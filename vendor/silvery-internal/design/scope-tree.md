@@ -56,7 +56,7 @@ This pattern appears in every major system — but each implements it for only o
 
 > **Note**: The provider/effect system is future/aspirational. v1 scopes provide only lifecycle (`cancelled`, `onDispose`, `[Symbol.dispose]`) and timers (`sleep`, `timeout`). I/O is done via direct async calls.
 
-Runtime providers (`app.rt.providers`) are plain typed objects providing I/O capabilities. Effect providers are the same objects — `fx.effect()` creates descriptors that look up the appropriate provider at execution time. There is one provider registry, not two.
+Runtime providers (`app.rt.providers`) are plain typed objects providing I/O capabilities. _In the future effects system_, effect providers will be the same objects — `fx.effect()` will create descriptors that look up the appropriate provider at execution time. There will be one provider registry, not two.
 
 ## Why It's Not Native
 

@@ -485,7 +485,7 @@ async delayedAction(s) {
 
 ### Cross-model dispatch
 
-Models compose via `fx.dispatch(Model, "method", args)`. The runtime routes to the target model's instance. Type-safe: TypeScript infers valid method names and arg types from the model definition.
+_Future_: Models compose via `fx.dispatch(Model, "method", args)` — the runtime routes to the target model's instance, type-safe (TypeScript infers valid method names and arg types). V1: models call each other directly via `useOtherModel.get().method()`.
 
 ### Framework bindings
 
@@ -594,11 +594,11 @@ type ModelHook<T> = {
 
 `createModel` IS the bridge between signals (Layer 1) and Zustand-like hook ergonomics (Layer 3). The factory IS the model definition; `createModel` adds the subscription/hook machinery.
 
-**Instance scoping**: `createModel(factory)` returns a model hook (a factory), not an instance. `hook.create({ ...deps })` creates an isolated instance bound to the provided dependencies. When used with `createApp`, instances are bound to the app's scope — multiple app instances create multiple model instances (not module singletons). `.get()` returns the instance in the current scope context.
+**Instance scoping**: `createModel(factory)` returns a model hook — a module-level singleton that acts as a factory. The hook itself is a singleton; the instances it creates are scoped. `hook.create({ ...deps })` creates an isolated instance bound to the provided dependencies. When used with `createApp`, instances are bound to the app's scope — multiple app instances create multiple model instances. `.get()` returns the instance in the current scope context.
 
 ### Models collection
 
-Model hooks are module-level singletons. For apps with multiple models, `createApp` binds all of them to providers at once:
+Model hooks are module-level singletons (the factories). Model instances are scoped per-app or per-test. For apps with multiple models, `createApp` binds all of them to providers at once:
 
 ```typescript
 const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => { ... })
@@ -699,6 +699,7 @@ For automation known at app creation — auto-advance, AI agent, recording:
 ```typescript
 function withAutoAdvance(script): AppPlugin {
   return (app) => {
+    const scope = app.rt.scope
     // Async work in the app's scope — scoped, cancellable, traced
     ;(async () => {
       for (const entry of script) {
