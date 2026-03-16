@@ -6,7 +6,7 @@ _What happens when you strip apps down to pure business logic and let the framew
 
 Most apps are 80% plumbing and 20% domain logic. The plumbing — UI rendering, state management, persistence, undo/redo, keyboard shortcuts, accessibility, API surfaces, documentation, testing infrastructure — is the same across every app. The domain logic — _what the app actually does_ — is often surprisingly small.
 
-[Command-centric design](./command-centric.md) crystallizes this. An app is:
+[Command-centric design](../era2/03-commands.md) crystallizes this. An app is:
 
 1. **A command tree** — every action the app can perform, with names and types
 2. **A state model** — the data the app manages
@@ -172,7 +172,7 @@ The command-centric architecture makes this possible. The AI revolution makes it
 
 ---
 
-_See also: [Command-Centric Design](./command-centric.md) — the architecture. [AI Mode](./ai-mode.md) — how AI agents use it._
+_See also: [Command-Centric Design](../era2/03-commands.md) — the architecture. [AI Mode](./ai-mode.md) — how AI agents use it._
 
 ---
 

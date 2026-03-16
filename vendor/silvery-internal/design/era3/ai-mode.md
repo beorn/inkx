@@ -1,10 +1,10 @@
 # AI Mode
 
-_Part 2 of [AI-Native Apps](./command-centric.md). This doc assumes familiarity with [Command-Centric Design](./command-centric.md), which covers the architecture — command registry, nested tree, domain objects, auto-derived surfaces — that makes everything below possible._
+_Part 2 of [AI-Native Apps](../era2/03-commands.md). This doc assumes familiarity with [Command-Centric Design](../era2/03-commands.md), which covers the architecture — command registry, nested tree, domain objects, auto-derived surfaces — that makes everything below possible._
 
 ## The Premise
 
-A [command-centric app](./command-centric.md) has well-composed, exposed internals: every action is a named command grouped into domain categories, state is structured and queryable, and the app describes itself at runtime. This is the plumbing. AI Mode is the interface layer — how AI agents access that plumbing.
+A [command-centric app](../era2/03-commands.md) has well-composed, exposed internals: every action is a named command grouped into domain categories, state is structured and queryable, and the app describes itself at runtime. This is the plumbing. AI Mode is the interface layer — how AI agents access that plumbing.
 
 The core principle: **the app IS the runtime.** Not a passive target that AI pokes at — a programmable system that AI talks to, codes against, and collaborates with.
 
@@ -19,7 +19,7 @@ This doc covers: how AI discovers commands (domain objects + types), the code in
 
 Before an AI can act, it needs to know what the app can do. The biggest problem with flat command lists is that they're overwhelming — 173 undifferentiated items.
 
-**Domain objects** solve this. As described in [Command-Centric Design](./command-centric.md#how-domain-objects-form), the command registry's nested tree naturally maps to typed domains — each subtree becomes a domain object with methods. This grouping matters for AI because it reduces a flat list of 173 commands into a handful of navigable domains:
+**Domain objects** solve this. As described in [Command-Centric Design](../era2/03-commands.md#how-domain-objects-form), the command registry's nested tree naturally maps to typed domains — each subtree becomes a domain object with methods. This grouping matters for AI because it reduces a flat list of 173 commands into a handful of navigable domains:
 
 ```typescript
 // Flat (overwhelming — 173 undifferentiated items):
@@ -573,4 +573,4 @@ AgentHub             ← orchestration layer
 
 ---
 
-_See also: [Command-Centric Design](./command-centric.md) — the architectural foundation that makes AI Mode possible._
+_See also: [Command-Centric Design](../era2/03-commands.md) — the architectural foundation that makes AI Mode possible._

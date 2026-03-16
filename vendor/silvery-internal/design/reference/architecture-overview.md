@@ -50,7 +50,7 @@ The programming model. Eight progressive "sips" from `useState` to full apps.
 - **Providers** are plain typed objects for I/O capabilities; models declare dependencies as **capability interfaces** (e.g., `{ persist: PersistProvider }`) rather than coupling to the app-global provider registry type
 - **Async generators** for content streaming — `async function*` yields chunks, signals trigger re-renders
 
-#### App Composition → [app-composition.md](./app-composition.md)
+#### App Composition → [05-app.md](../era2/05-app.md)
 
 How apps are assembled from plugins.
 
@@ -60,17 +60,17 @@ How apps are assembled from plugins.
 - **Surface plugins** (terminal, browser) contribute to both model and runtime — they're just plugins, no special abstraction
 - **Composition via `pipe()`**: `pipe(createApp(), withPersist(...), withChat(...), withHistory(), withTerminal(...))`
 
-#### Commands + Input → [command-centric.md](./command-centric.md), [input-system.md](./input-system.md)
+#### Commands + Input → [03-commands.md](../era2/03-commands.md), [04-input.md](../era2/04-input.md)
 
 Every user action is a discoverable command. Commands are `{ fn, args? }` objects organized as a nested tree.
 
 - **Commands** are `{ fn, args? }` objects — `fn` is the behavior, `args` is an optional schema with `.parse()`
-- **Keymaps** bind keys to commands with `when` predicates — see [input-system.md](./input-system.md)
+- **Keymaps** bind keys to commands with `when` predicates — see [04-input.md](../era2/04-input.md)
 - **Same code path** — pressing `x` and calling `commands.task.toggle_done.fn()` run the same function
 - **Complete by construction** — if the user can do it, there's a command for it
 - **Stable identity**: Commands are identified by their object path (e.g., `commands.chat.submit`). For external APIs (CLI, MCP, docs), paths are serialized as dot-separated strings with namespaced prefixes. Args schemas provide versioning — breaking changes are schema migrations.
 
-#### Scope Tree → [scope-tree.md](./scope-tree.md)
+#### Scope Tree → [06-scopes.md](../era2/06-scopes.md)
 
 Structured concurrency, effects, observability, and lifecycle in one tree.
 
@@ -80,14 +80,14 @@ Structured concurrency, effects, observability, and lifecycle in one tree.
 
 ### Packaging & Rendering (3 docs)
 
-- **[packaging-model.md](./packaging-model.md)** — Package decomposition, framework x platform matrix
-- **[composability.md](./composability.md)** — Universal rendering tradeoffs, gap analysis
-- **[windowing.md](./windowing.md)** — Focus, tabs, panes, windows, overlays, responder chain
+- **[packaging.md](../era2/packaging.md)** — Package decomposition, framework x platform matrix
+- **[composability.md](../era2/composability.md)** — Universal rendering tradeoffs, gap analysis
+- **[windowing.md](../era3/windowing.md)** — Focus, tabs, panes, windows, overlays, responder chain
 
 ### Vision (2 docs)
 
-- **[ai-mode.md](./ai-mode.md)** — AI agents driving command-centric apps
-- **[app-explosion.md](./app-explosion.md)** — The vision: what this all enables
+- **[ai-mode.md](../era3/ai-mode.md)** — AI agents driving command-centric apps
+- **[app-explosion.md](../era3/app-explosion.md)** — The vision: what this all enables
 
 ## How They Connect
 
@@ -214,22 +214,22 @@ Focus, tabs, panes, windows, and overlays as one coherent system. Six progressiv
 
 The windowing model defines the responder chain (input routes from focused view up through the hierarchy), modality (Dialogs trap focus and inert the background), and platform mapping (same view tree renders to terminal, web, or native). The `withViews()` plugin wires it all together with commands and keybindings.
 
-See [windowing.md](./windowing.md) for the full design.
+See [windowing.md](../era3/windowing.md) for the full design.
 
 ## Text Selection
 
 App-level text selection operating on the render tree, not screen rows. Mouse drag, double/triple-click, clipboard via OSC 52. Selection walks `TeaNode`s like browser `getSelection()` walks the DOM — producing clean semantic text without borders, padding, or ANSI codes.
 
-See [text-selection.md](./text-selection.md) for the full design.
+See [text-selection.md](../era3/text-selection.md) for the full design.
 
 ## Open Questions
 
-- How should `@silvery/web` reconcile abstract nodes to DOM — per-framework renderers or a universal DOM adapter? (See [composability.md](./composability.md) for analysis.)
-- ~~Should headless widget logic live in `@silvery/core` or a separate `@silvery/headless` package?~~ **Resolved**: headless state machines live in `@silvery/platter`. See [packaging-model.md](./packaging-model.md) for the full package decomposition.
+- How should `@silvery/web` reconcile abstract nodes to DOM — per-framework renderers or a universal DOM adapter? (See [composability.md](../era2/composability.md) for analysis.)
+- ~~Should headless widget logic live in `@silvery/core` or a separate `@silvery/headless` package?~~ **Resolved**: headless state machines live in `@silvery/platter`. See [packaging.md](../era2/packaging.md) for the full package decomposition.
 - What is the versioning/deprecation story for command IDs used by external consumers (CLI, MCP)?
 - How does scope propagation work in browser environments without `AsyncLocalStorage`?
 - Should `op()` enforcement be opt-in (lint rules) or built-in (strict mode)?
 
 ---
 
-_See also: [packaging-model.md](./packaging-model.md) (package decomposition, framework × platform matrix), [composability.md](./composability.md) (universal rendering tradeoffs, gap analysis), [windowing.md](./windowing.md) (windowing), [text-selection.md](./text-selection.md) (text selection), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [packaging.md](../era2/packaging.md) (package decomposition, framework × platform matrix), [composability.md](../era2/composability.md) (universal rendering tradeoffs, gap analysis), [windowing.md](../era3/windowing.md) (windowing), [text-selection.md](../era3/text-selection.md) (text selection), [04-input.md](../era2/04-input.md) (keymaps, sources, dispatch), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._

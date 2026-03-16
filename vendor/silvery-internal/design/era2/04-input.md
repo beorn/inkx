@@ -2,7 +2,7 @@
 
 _Status: finalized (v1, 2026-03-13). How input events reach commands._
 
-_See also: [command-centric.md](./command-centric.md) (command shapes, availability), [app-composition.md](./app-composition.md) (plugin composition, surfaces), [state-api-redesign.md](./state-api-redesign.md) (signals, models)._
+_See also: [03-commands.md](./03-commands.md) (command shapes, availability), [05-app.md](./05-app.md) (plugin composition, surfaces), [state-api-redesign.md](../reference/state-api-redesign.md) (signals, models)._
 
 ## The Core Idea
 
@@ -55,7 +55,7 @@ function invoke({ command, args }: Invocation): unknown {
 }
 ```
 
-This is the same `invoke()` that CLI, MCP, tests, and AI agents use (see [command-centric.md](./command-centric.md)). The input system doesn't get special dispatch — it produces `Invocation` objects and feeds them through the same function.
+This is the same `invoke()` that CLI, MCP, tests, and AI agents use (see [03-commands.md](./03-commands.md)). The input system doesn't get special dispatch — it produces `Invocation` objects and feeds them through the same function.
 
 ## Async Iterable Sources
 
@@ -140,7 +140,7 @@ available(commands, provided?)    // filter to invocable commands
 missingParams(command, provided?) // which args aren't resolvable
 ```
 
-This is the same mechanism described in [command-centric.md](./command-centric.md#command-availability) — the input system doesn't add its own availability layer. `keymap()` can optionally filter by `canInvoke()` during resolution to skip unavailable bindings.
+This is the same mechanism described in [03-commands.md](./03-commands.md#command-availability) — the input system doesn't add its own availability layer. `keymap()` can optionally filter by `canInvoke()` during resolution to skip unavailable bindings.
 
 ## Event Dispatch Pipeline
 
@@ -246,7 +246,7 @@ function withTerminal({ view, keys }): Plugin {
 }
 ```
 
-The standalone form calls `createApp()` + `pipe()` + `run()` internally — it's sugar, not a different system. The loop runs inside the app's scope tree. When the app disposes, the scope cancels, the AbortSignal fires, the async iterable terminates, the for-await exits. See [scope-tree.md](./scope-tree.md) for structured concurrency details.
+The standalone form calls `createApp()` + `pipe()` + `run()` internally — it's sugar, not a different system. The loop runs inside the app's scope tree. When the app disposes, the scope cancels, the AbortSignal fires, the async iterable terminates, the for-await exits. See [06-scopes.md](./06-scopes.md) for structured concurrency details.
 
 ## Signal Scopes
 
@@ -378,4 +378,4 @@ Incremental migration: command shapes don't change (`{ fn, args? }`). What chang
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [command-centric.md](./command-centric.md) (command tree, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency)._
+_See also: [architecture-overview.md](../reference/architecture-overview.md) (entry point connecting all design docs), [03-commands.md](./03-commands.md) (command tree, auto-derived surfaces), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [06-scopes.md](./06-scopes.md) (effects, scoping, concurrency)._

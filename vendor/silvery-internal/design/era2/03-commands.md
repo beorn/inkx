@@ -1,6 +1,6 @@
 # Command-Centric Design
 
-_Part 1 of [AI-Native Apps](./ai-mode.md). This doc covers the architecture — how to build apps with well-composed, exposed internals. [AI Mode](./ai-mode.md) covers what AI agents do with that architecture._
+_Part 1 of [AI-Native Apps](../era3/ai-mode.md). This doc covers the architecture — how to build apps with well-composed, exposed internals. [AI Mode](../era3/ai-mode.md) covers what AI agents do with that architecture._
 
 ## The Core Idea
 
@@ -26,7 +26,7 @@ Apps have layers of internal structure — state, actions, UI components, layout
 
 The result: **every action the user can take is automatically available to code, tests, AI, CLI, and any other consumer** — because they all call the same `fn()`. No annotation gap. No drift. No incomplete API.
 
-This is good for AI (see [AI Mode](./ai-mode.md)), but it's good for _everyone_. The properties that make an app AI-native — self-describing, programmatically drivable, structured state — also make it more testable, more accessible, more composable, and self-documenting.
+This is good for AI (see [AI Mode](../era3/ai-mode.md)), but it's good for _everyone_. The properties that make an app AI-native — self-describing, programmatically drivable, structured state — also make it more testable, more accessible, more composable, and self-documenting.
 
 ## The Problem: Automation is Always a Second Thing
 
@@ -61,7 +61,7 @@ interface CommandDef {
 }
 ```
 
-Command `fn` functions contain the behavior. Simple commands read/write signals directly. Commands that need interception (undo, tracing, collaboration) call through `op(app.model)` — the same opt-in choice as any other code (see [app-composition.md](./app-composition.md)). The `args` field uses a `.parse()` interface (Zod-compatible but not Zod-dependent) to validate parameters and resolve defaults from signals.
+Command `fn` functions contain the behavior. Simple commands read/write signals directly. Commands that need interception (undo, tracing, collaboration) call through `op(app.model)` — the same opt-in choice as any other code (see [05-app.md](./05-app.md)). The `args` field uses a `.parse()` interface (Zod-compatible but not Zod-dependent) to validate parameters and resolve defaults from signals.
 
 ```typescript
 const commands = {
@@ -140,7 +140,7 @@ The nesting does all the work by default:
 
 Individual commands can override any surface-specific behavior — but the defaults from nesting are right most of the time, so most commands only need `title` and `fn`, plus `args` if they take parameters.
 
-Each command definition has a **universal core** (title, description, fn, args) and optional **surface-specific overrides** (custom CLI flags, menu position). Keybindings and modes live on keymap bindings, not command definitions. One definition, not separate definitions in separate files. The tree structure groups commands into **domain objects** — typed namespaces that are navigable rather than flat. An AI exploring the app sees 6 domain objects, not 173 undifferentiated commands (see [AI Mode: Discovery](./ai-mode.md#discovery-domain-objects--types)).
+Each command definition has a **universal core** (title, description, fn, args) and optional **surface-specific overrides** (custom CLI flags, menu position). Keybindings and modes live on keymap bindings, not command definitions. One definition, not separate definitions in separate files. The tree structure groups commands into **domain objects** — typed namespaces that are navigable rather than flat. An AI exploring the app sees 6 domain objects, not 173 undifferentiated commands (see [AI Mode: Discovery](../era3/ai-mode.md#discovery-domain-objects--types)).
 
 The framework auto-derives every surface from the tree:
 
@@ -274,7 +274,7 @@ Silvery is a React-based TUI framework. Its command system already implements th
 
 ### How Domain Objects Form
 
-Each [plugin](./app-composition.md#plugins) contributes a subtree to the command tree — and that subtree becomes a domain object:
+Each [plugin](./05-app.md#plugins) contributes a subtree to the command tree — and that subtree becomes a domain object:
 
 ```
 Command Tree                    Domain Object           Code / CLI / Menu
@@ -318,4 +318,4 @@ Examining a real app's 173 commands:
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [AI Mode](./ai-mode.md) (AI agents driving command-centric apps)._
+_See also: [architecture-overview.md](../reference/architecture-overview.md) (entry point connecting all design docs), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [AI Mode](../era3/ai-mode.md) (AI agents driving command-centric apps)._

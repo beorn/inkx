@@ -2,7 +2,7 @@
 
 _Status: draft (2026-03-16). How silvery decomposes into independent packages and recomposes for different use cases._
 
-_See also: [composability.md](./composability.md) (tradeoffs, gap analysis, what's theoretically possible), [architecture-overview.md](./architecture-overview.md) (concepts, op spectrum), [app-composition.md](./app-composition.md) (plugins, op())._
+_See also: [composability.md](./composability.md) (tradeoffs, gap analysis, what's theoretically possible), [architecture-overview.md](../reference/architecture-overview.md) (concepts, op spectrum), [05-app.md](./05-app.md) (plugins, op())._
 
 ## What Is Silvery?
 
@@ -460,7 +460,7 @@ Each step builds on the previous. None requires the next. Stop when you have eno
 
 ## The Operation Spectrum
 
-Every piece of app behavior sits at one of three points. See [architecture-overview.md](./architecture-overview.md#the-operation-spectrum) for full details.
+Every piece of app behavior sits at one of three points. See [architecture-overview.md](../reference/architecture-overview.md#the-operation-spectrum) for full details.
 
 |                     | **op-call**        | **op-as-object**         | **op-as-data**                         |
 | ------------------- | ------------------ | ------------------------ | -------------------------------------- |

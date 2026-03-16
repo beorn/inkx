@@ -2,7 +2,7 @@
 
 _Status: draft (2026-03-15). What silvery's components are, how they compose, the tradeoffs vs platform-specific approaches, and what's theoretically possible._
 
-_See also: [packaging-model.md](./packaging-model.md) (package structure, dependencies, migration path), [architecture-overview.md](./architecture-overview.md) (concepts, op spectrum)._
+_See also: [packaging.md](./packaging.md) (package structure, dependencies, migration path), [architecture-overview.md](../reference/architecture-overview.md) (concepts, op spectrum)._
 
 ## The Question
 
@@ -66,7 +66,7 @@ Bridges between the pipeline and a rendering target.
 
 Framework-agnostic, platform-agnostic state and behavior. Signals, commands, keymaps, models, scopes, op(). Zero dependency on platter, frameworks, or platforms.
 
-See [packaging-model.md](./packaging-model.md#silverytea--app-framework-silvertea) for details.
+See [packaging.md](./packaging.md#silverytea--app-framework-silvertea) for details.
 
 ## How They Compose
 
@@ -276,7 +276,7 @@ The architecture is designed so these limits are explicit tradeoffs per-componen
 
 ## The Gradual Path
 
-Two products, one gradient. See [packaging-model.md](./packaging-model.md#what-should-i-use) for the full decision tree and when to adopt each step.
+Two products, one gradient. See [packaging.md](./packaging.md#what-should-i-use) for the full decision tree and when to adopt each step.
 
 **Silvery** (rendering) is the terminal pipeline, components, and theme. **Tea** (app framework) is commands, keymaps, op(), plugins, structured concurrency. Tea is optional and adopted gradually — each step adds capability without rewriting previous work.
 

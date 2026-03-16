@@ -2,7 +2,7 @@
 
 _Status: draft (2026-03-16). App-level text selection — DOM-based, not screen-row-based._
 
-_See also: [mouse-events-design.md](./mouse-events-design.md) (mouse event system), [architecture-overview.md](./architecture-overview.md) (concepts), [windowing.md](./windowing.md) (view scoping)._
+_See also: [mouse-events-design.md](../reference/mouse-events-design.md) (mouse event system), [architecture-overview.md](../reference/architecture-overview.md) (concepts), [windowing.md](./windowing.md) (view scoping)._
 
 ## The Problem
 
@@ -395,4 +395,4 @@ Triple-click line selection. Escape to clear. Visual feedback on copy. `selectAl
 
 ---
 
-_See also: [mouse-events-design.md](./mouse-events-design.md) (foundation), [windowing.md](./windowing.md) (view scoping context), [input-system.md](./input-system.md) (command registration)._
+_See also: [mouse-events-design.md](../reference/mouse-events-design.md) (foundation), [windowing.md](./windowing.md) (view scoping context), [04-input.md](../era2/04-input.md) (command registration)._

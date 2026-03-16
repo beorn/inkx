@@ -1,6 +1,6 @@
 # The Scope Tree
 
-_A unified tree for effects, concurrency, observability, and lifecycle. Connects [state-api-redesign.md](./state-api-redesign.md) (effects, async updates) with [loggily](../../loggily/) (spans, logs, tracing) and prior work in [legion/centurion](~/Code/legion/centurion/) (structured concurrency)._
+_A unified tree for effects, concurrency, observability, and lifecycle. Connects [state-api-redesign.md](../reference/state-api-redesign.md) (effects, async updates) with [loggily](../../loggily/) (spans, logs, tracing) and prior work in [legion/centurion](~/Code/legion/centurion/) (structured concurrency)._
 
 ## v1 Surface vs Future
 
@@ -417,7 +417,7 @@ const scope = pipe(
 )
 ```
 
-Same composition model everywhere (see [state-api-redesign.md](./state-api-redesign.md) for the full two-surface architecture):
+Same composition model everywhere (see [state-api-redesign.md](../reference/state-api-redesign.md) for the full two-surface architecture):
 
 ```
 State:    pipe(createState({...}), withUndo(), withValidation())
@@ -645,4 +645,4 @@ Additional plugin ideas: `withRateLimit({ max, per })`, `withPriority(level)`, `
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](./state-api-redesign.md) (signals, models, sip progression), [command-centric.md](./command-centric.md) (command shapes, auto-derived surfaces), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](../reference/architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](../reference/state-api-redesign.md) (signals, models, sip progression), [03-commands.md](./03-commands.md) (command shapes, auto-derived surfaces), [04-input.md](./04-input.md) (keymaps, sources, dispatch), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._

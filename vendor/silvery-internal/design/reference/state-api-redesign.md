@@ -293,7 +293,7 @@ An app has two concerns: **model** (all state + behavior) and **runtime** (all I
     app.model.chat.submit() — tests/agents call methods directly (no runner needed)
 ```
 
-Inspired by **SlateJS** (plugins wrap `apply()` via closure), **ProseMirror** (state + commands + transactions), and **hexagonal architecture** (surfaces as adapters). See [app-composition.md](./app-composition.md) for the full design.
+Inspired by **SlateJS** (plugins wrap `apply()` via closure), **ProseMirror** (state + commands + transactions), and **hexagonal architecture** (surfaces as adapters). See [05-app.md](../era2/05-app.md) for the full design.
 
 ### Two layers
 
@@ -301,7 +301,7 @@ Inspired by **SlateJS** (plugins wrap `apply()` via closure), **ProseMirror** (s
 
 **Layer 2: Explicit** — `pipe(createApp(), withChat(), withUndo(), withTerminal(...))` for full control over providers, models, plugins, and surfaces.
 
-See [app-composition.md](./app-composition.md) for the full plugin/composition design.
+See [05-app.md](../era2/05-app.md) for the full plugin/composition design.
 
 ## Key Mechanisms
 
@@ -361,7 +361,7 @@ app.model.chat.submit({ text })
 app.rt.providers.fs.write(path)
 ```
 
-See [app-composition.md](./app-composition.md) for `op()` implementation, surface plugins, command tree, and composition examples.
+See [05-app.md](../era2/05-app.md) for `op()` implementation, surface plugins, command tree, and composition examples.
 
 ### The inner loop
 
@@ -371,7 +371,7 @@ Sync queue drains state mutations; async updates each get a child scope on the r
 
 ### Effects and structured concurrency
 
-State mutations happen eagerly via signals; side effects use direct provider calls or scope methods. _Future: typed effect descriptors (`AsyncEffect<T>`) that are `await`-able data, delegated to the runtime via `AsyncLocalStorage` — see [scope-tree.md](./scope-tree.md)._
+State mutations happen eagerly via signals; side effects use direct provider calls or scope methods. _Future: typed effect descriptors (`AsyncEffect<T>`) that are `await`-able data, delegated to the runtime via `AsyncLocalStorage` — see [06-scopes.md](../era2/06-scopes.md)._
 
 ```typescript
 // No effects — plain function
@@ -390,7 +390,7 @@ async importAndSave(s, { url }) {
 
 The runtime surface owns the scope tree. Effects form a hierarchy: runtime scope → model scope → update scope. Cancellation flows down via `AbortSignal`, errors propagate up via promise rejection. No effect outlives its parent scope.
 
-For structured concurrency details, cancellation cascading, scope lifecycle, and testing patterns — see [scope-tree.md](./scope-tree.md). _For the full aspirational effects system (`AsyncEffect`, `fx.from()`, serialization policies, providers) — see [scope-tree.md § Providers vs Effect Providers](./scope-tree.md#providers-vs-effect-providers-future)._
+For structured concurrency details, cancellation cascading, scope lifecycle, and testing patterns — see [06-scopes.md](../era2/06-scopes.md). _For the full aspirational effects system (`AsyncEffect`, `fx.from()`, serialization policies, providers) — see [06-scopes.md § Providers vs Effect Providers](../era2/06-scopes.md#providers-vs-effect-providers-future)._
 
 **Two levels of effects** (v1) plus one aspirational:
 
@@ -774,10 +774,10 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 
 ## Decisions
 
-1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [app-composition.md](./app-composition.md).
+1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [05-app.md](../era2/05-app.md).
 2. **SlateJS-style plugin composition.** Plugins wrap `app.apply()` via closure. One type: `(app: App) => App`.
 3. **`op()` proxy for opt-in interception.** `op(app.model).chat.submit()` routes through `app.apply()`; direct calls bypass it.
-4. **Commands are `{ fn, args? }` objects.** `fn` is the behavior (reads/writes signals directly), `args` is an optional schema with `.parse()`. No registry, no string IDs — commands are referenced directly. See [command-centric.md](./command-centric.md) and [input-system.md](./input-system.md).
+4. **Commands are `{ fn, args? }` objects.** `fn` is the behavior (reads/writes signals directly), `args` is an optional schema with `.parse()`. No registry, no string IDs — commands are referenced directly. See [03-commands.md](../era2/03-commands.md) and [04-input.md](../era2/04-input.md).
 5. **Surfaces are plugins.** A surface plugin contributes to both `app.model` (view state) and `app.rt` (I/O).
 6. **No driver abstraction.** Three patterns: app plugins (definition-time), `run(app, fn)` (runtime), direct calls (tests).
 7. **Plugin composition via spread.** TypeScript intersection types accumulate. Last-write-wins; dev mode warns on collisions.
@@ -786,11 +786,11 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 10. **Signals, not Zustand, as the state primitive.** Zustand is O(n) selector fanout; signals are O(1). Signal references are stable objects, incompatible with Zustand's `Object.is` change detection. Use Zustand as API inspiration, not substrate.
 11. **React bridge as separate entry point.** `@silvery/tea/react`, `/svelte`, `/vue`.
 12. **Function-calling style over discriminated unions.** Named methods, not switch-case dispatch.
-13. **Async effects (future).** _Aspirational: `AsyncEffect<T>` typed effect descriptors, `await`-able and scoped via `AsyncLocalStorage`._ V1: direct provider calls + scope methods. See [scope-tree.md](./scope-tree.md).
+13. **Async effects (future).** _Aspirational: `AsyncEffect<T>` typed effect descriptors, `await`-able and scoped via `AsyncLocalStorage`._ V1: direct provider calls + scope methods. See [06-scopes.md](../era2/06-scopes.md).
 14. **Built-in timer effects.** `scope.timeout(ms, fn)` for one-shot, `scope.sleep(ms)` in async loops for intervals — cancellable via scope lifecycle.
 15. **Auto-cleanup via AbortSignal.** Cancellation propagates down; errors up. No effect outlives its parent.
 16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()` — any schema library works. Zod is the ergonomic choice (signal defaults via `z.number().default(() => cursor.value)`), not a dependency.
-17. **Structured concurrency via scope tree.** See [scope-tree.md](./scope-tree.md).
+17. **Structured concurrency via scope tree.** See [06-scopes.md](../era2/06-scopes.md).
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
 
 19. **`run()` owns lifecycle.** Creates root scope, applies `withTerminal()` by default, returns awaitable handle. `run(app, fn)` for automation/testing.
@@ -863,11 +863,11 @@ Read before proposing changes — many alternatives were explored and rejected.
 - **2026-03-12: Model shape decisions.** Flat shape (`state:` only reserved key), providers not runners, `fx.mutex`/`fx.batch` over global serialization, async/await over generators for effects.
 - **2026-03-12: Two-surface architecture rewrite.** Replaced Runtime/App split with model + runtime. Branded types prevent cross-surface plugin misapplication.
 - **2026-03-12: Prototype (aichat-v2).** Validated design against real AI chat demo. Reduced 327-line TEA state machine to ~140 lines, eliminated 12 of 14 message types. See `vendor/silvery-internal/prototype/aichat-v2/`.
-- **2026-03-12: App composition v2.** Simplified from four concerns to two (model, runtime). Introduced `op()` proxy for opt-in interception. See [app-composition.md](./app-composition.md).
+- **2026-03-12: App composition v2.** Simplified from four concerns to two (model, runtime). Introduced `op()` proxy for opt-in interception. See [05-app.md](../era2/05-app.md).
 - **2026-03-13: Signals vs Zustand decision.** Zustand's O(n) selector fanout and `Object.is` change detection are fundamentally incompatible with stable signal references. Resolution: `createModel()` wraps factories into signal-aware typed hooks with Zustand-like ergonomics but O(1) performance. Prior sessions confirmed dual-system approaches always duplicated concepts. GPT 5.4 Pro review validated this as Option C (signals with Zustand-like API).
-- **2026-03-13: Plugin composition decision.** Generic accumulation via intersection types, not a builder pattern. Each plugin is `(app) => App & { ... }`; `pipe()` chains them with inferred types. Builders require a central class; accumulation lets any package define plugins independently. See [app-composition.md](./app-composition.md) for details.
-- **2026-03-13: `op()` ergonomics finalized.** Method calls only (not signal writes), one op per call, cached proxy instances, strict/loose enforcement modes. See [app-composition.md](./app-composition.md) for the full contract.
+- **2026-03-13: Plugin composition decision.** Generic accumulation via intersection types, not a builder pattern. Each plugin is `(app) => App & { ... }`; `pipe()` chains them with inferred types. Builders require a central class; accumulation lets any package define plugins independently. See [05-app.md](../era2/05-app.md) for details.
+- **2026-03-13: `op()` ergonomics finalized.** Method calls only (not signal writes), one op per call, cached proxy instances, strict/loose enforcement modes. See [05-app.md](../era2/05-app.md) for the full contract.
 
 ---
 
-_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [scope-tree.md](./scope-tree.md) (effects, scoping, concurrency, observability), [command-centric.md](./command-centric.md) (command tree, auto-derived surfaces), [app-composition.md](./app-composition.md) (plugin composition, `op()` ergonomics), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](./architecture-overview.md) (entry point connecting all design docs), [06-scopes.md](../era2/06-scopes.md) (effects, scoping, concurrency, observability), [03-commands.md](../era2/03-commands.md) (command tree, auto-derived surfaces), [05-app.md](../era2/05-app.md) (plugin composition, `op()` ergonomics), [04-input.md](../era2/04-input.md) (keymaps, sources, dispatch), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._

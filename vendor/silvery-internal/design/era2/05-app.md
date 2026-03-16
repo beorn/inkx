@@ -2,7 +2,7 @@
 
 _Status: finalized (v2, 2026-03-13). How apps are assembled from plugins._
 
-_See also: [state-api-redesign.md](./state-api-redesign.md) (signals, models, createModel), [command-centric.md](./command-centric.md) (command tree, surfaces), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [scope-tree.md](./scope-tree.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
+_See also: [02-signals.md](./02-signals.md) (signals, models, createModel), [03-commands.md](./03-commands.md) (command shapes, availability), [04-input.md](./04-input.md) (keymaps, sources, dispatch), [06-scopes.md](./06-scopes.md) (structured concurrency, effects), [universal-editor.md](../../docs/future/universal-editor.md) (docily/textily/termily package split)._
 
 ## The Shape
 
@@ -38,7 +38,7 @@ interface Runtime {
 
 ## `op()` — The Interception Proxy
 
-`op()` bridges the operation spectrum (see [architecture-overview.md](./architecture-overview.md#the-operation-spectrum)): you write **op-as-object** code (method calls with closures), but `op()` captures it as **op-as-data** (serializable `{ target, path, args }` descriptors) and routes it through `apply()`. The ergonomic cost of going from op-as-object to op-as-data is near zero — same methods, same types, same autocomplete.
+`op()` bridges the operation spectrum (see [architecture-overview.md](../reference/architecture-overview.md#the-operation-spectrum)): you write **op-as-object** code (method calls with closures), but `op()` captures it as **op-as-data** (serializable `{ target, path, args }` descriptors) and routes it through `apply()`. The ergonomic cost of going from op-as-object to op-as-data is near zero — same methods, same types, same autocomplete.
 
 The key design: a proxy that routes calls through `apply()`.
 
@@ -317,7 +317,7 @@ app.model.chat.submit({ text: "hello" })
 invoke({ command: commands.chat.submit, args: { text: "hello" } })
 ```
 
-Model methods are the canonical behavior. `invoke()` additionally resolves signal defaults from the `args` schema and validates input before calling the command's `fn`, which typically delegates to `op(app.model).*`. See [command-centric.md](./command-centric.md) for the full command design and [input-system.md](./input-system.md) for keymaps and dispatch.
+Model methods are the canonical behavior. `invoke()` additionally resolves signal defaults from the `args` schema and validates input before calling the command's `fn`, which typically delegates to `op(app.model).*`. See [03-commands.md](./03-commands.md) for the full command design and [04-input.md](./04-input.md) for keymaps and dispatch.
 
 ## The Runner
 
@@ -507,7 +507,7 @@ Plugins wrap `apply()` to intercept ops. Plugins that don't care about a particu
 Apps declare their interception policy:
 
 - **Loose mode** (default): Direct calls and `op()` calls coexist. The app's conventions decide which to use.
-- **Strict mode**: State-changing model methods must go through `op()` or `invoke()`. Direct calls in strict mode throw in dev (warn in prod). Useful for rich text editors where undo must see every mutation. `invoke()` is a standalone function taking `{ command, args }` — see [command-centric.md](./command-centric.md).
+- **Strict mode**: State-changing model methods must go through `op()` or `invoke()`. Direct calls in strict mode throw in dev (warn in prod). Useful for rich text editors where undo must see every mutation. `invoke()` is a standalone function taking `{ command, args }` — see [03-commands.md](./03-commands.md).
 
 ### Command integration
 
@@ -535,6 +535,319 @@ Every surface (keymap, CLI, palette, MCP, AI agent, test) goes through the same 
 - **Hot reloading.** Can plugins be added/removed at runtime? Rich text editing may need this (enable/disable formatting based on context). Or is composition static?
 
 - **Package boundaries.** This doc describes in-process composition. The [universal-editor.md](../../docs/future/universal-editor.md) splits into packages (runly, docily, textily, termily). Roughly: runly = runtime + signals + `op()`, docily = editing models + plugins, termily = terminal surface.
+
+## The Progressive API (Sips 4-8)
+
+The full API builds progressively from React basics (Sips 1-3 in [02-signals.md](./02-signals.md)) to full app composition. Each step adds one thing. Nothing rewrites.
+
+### Sip 4: App composition + commands
+
+An app has two concerns: model (state + behavior) and runtime (I/O + lifecycle). Commands are `{ fn, args? }` objects. Keymaps bind keys to commands with `when` predicates.
+
+```typescript
+const app = pipe(
+  createApp(),
+  withChat(), // adds app.model.chat — domain state + methods + commands
+  withTerminal({
+    view: <ChatView />,
+    keys: keymap(when(isNormal, { enter: commands.chat.submit, "ctrl+l": commands.chat.compact }), {
+      escape: commands.app.exit,
+    }),
+  }),
+)
+using handle = await run(app)
+await handle.waitUntilExit()
+```
+
+### Sip 5: Providers -- typed I/O capabilities
+
+Provider factories are plain functions returning typed APIs:
+
+```typescript
+// Provider factories — plain functions returning typed APIs
+const createPersist = (dir: string) => ({
+  async write(path: string, data: unknown) {
+    await Bun.write(`${dir}/${path}`, JSON.stringify(data, null, 2))
+  },
+  async read(path: string) {
+    return JSON.parse(await Bun.file(`${dir}/${path}`).text())
+  },
+})
+
+const createAI = (config: { model: string }) => ({
+  async *stream(messages: Exchange[]) {
+    const stream = new Anthropic().messages.stream({
+      model: config.model,
+      max_tokens: 4096,
+      messages: messages.map((m) => ({ role: m.role, content: m.text })),
+    })
+    for await (const event of stream) {
+      if (event.type === "content_block_delta") yield event.delta.text
+    }
+  },
+})
+
+// All providers in one typed object
+const providers = createProviders({
+  persist: createPersist("./data"),
+  ai: createAI({ model: "claude-sonnet-4-20250514" }),
+})
+
+// Models with provider deps — createModel defers instantiation until bind:
+const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => {
+  const exchanges = signal<Exchange[]>([])
+  const streaming = signal(false)
+  return {
+    exchanges,
+    streaming,
+    submit({ text }: { text: string }) {
+      exchanges.value = [...exchanges.value, { role: "user", text }]
+    },
+    async save() {
+      await rt.persist.write("chat.json", exchanges.value)
+    },
+    async *respond() {
+      streaming.value = true
+      const exchange: Exchange = { role: "assistant", text: "" }
+      exchanges.value = [...exchanges.value, exchange]
+      for await (const chunk of rt.ai.stream(exchanges.value)) {
+        exchange.text += chunk
+        yield // re-render with accumulated content
+      }
+      streaming.value = false
+    },
+  }
+})
+
+// createApp binds model factories to providers automatically:
+const app = createApp(<ChatView />, { providers, models: { chat: useChat } })
+using handle = await run(app)
+await handle.waitUntilExit()
+```
+
+### Sip 6: Cross-cutting plugins
+
+Plugins wrap `app.apply()` to intercept operations routed through `op()`. `op(app.model).chat.submit()` goes through the `apply()` pipeline; direct calls (`app.model.chat.submit()`) bypass it.
+
+```typescript
+const app = pipe(
+  createApp(),
+  withPersist("./data"),
+  withAI({ model: "claude-sonnet-4-20250514" }),
+  withChat(),
+  withUndo(), // wraps apply() — records model ops for undo
+  withTracing(), // wraps apply() — logs all ops
+  withRecording(), // wraps apply() — captures ops for replay
+  withTerminal({
+    view: <ChatView />,
+    keys: keymap(when(isNormal, { enter: commands.chat.submit, "ctrl+l": commands.chat.compact }), {
+      escape: commands.app.exit,
+    }),
+  }),
+)
+
+using handle = await run(app)
+await handle.waitUntilExit()
+```
+
+### Sip 7: Different targets, same app
+
+```typescript
+// Terminal
+await run(<ChatTUI />)
+
+// Browser xterm.js
+await run(<ChatTUI />, { term: xtermBackend })
+
+// Headless — no view, just call methods
+useChat.get().submit({ text: "hello" })
+```
+
+### Sip 8: Testing -- isolated instances
+
+Unit test -- `.create()` makes an isolated instance with mock providers:
+
+```typescript
+const chat = useChat.create({
+  persist: { write: async () => {}, read: async () => ({}) },
+  ai: {
+    stream: async function* () {
+      yield "Hello"
+      yield " world"
+    },
+  },
+})
+
+chat.submit({ text: "hi" })
+expect(chat.exchanges.value).toHaveLength(1)
+
+// Test async behavior — consume the generator
+const gen = chat.respond()
+for await (const _ of gen) {
+  /* consume chunks */
+}
+expect(chat.exchanges.value[1].text).toBe("Hello world")
+
+// Selector assertions without React:
+chat.submit({ text: "test" })
+expect(chat.exchanges.value).toHaveLength(3)
+
+// Integration test — real providers, test config
+const testChat = useChat.create({
+  persist: createPersist("/tmp/test"),
+  ai: createAI({ model: "claude-haiku-4-5-20251001" }),
+})
+```
+
+## Providers
+
+Typed I/O capabilities. A plain frozen object whose types are inferred from the factory implementations.
+
+```typescript
+const createPersist = (dir: string) => ({
+  async write(path: string, data: unknown) {
+    /* ... */
+  },
+  async read(path: string) {
+    /* ... */
+  },
+})
+
+const createAI = (config: { model: string }) => ({
+  async *stream(messages: Exchange[]) {
+    /* ... */
+  },
+})
+
+const providers = createProviders({
+  persist: createPersist("./data"),
+  ai: createAI({ model: "claude-sonnet-4-20250514" }),
+  fs: await import("node:fs"),
+})
+
+// Shape: plain object, types inferred from factory return types
+// typeof providers = {
+//   persist: { write(path, data): Promise<void>; read(path): Promise<unknown> },
+//   ai: { stream(messages): AsyncGenerator<string> },
+//   fs: typeof import("node:fs"),
+// }
+```
+
+`createProviders` is essentially `Object.freeze` -- the value is in the type inference and the convention of collecting all I/O in one place.
+
+## External Callers
+
+Anything outside the model can call methods directly via `.get()`. No special API -- just code.
+
+Three natural ways to run async code alongside an app:
+
+### 1. App plugins (definition-time)
+
+For automation known at app creation -- auto-advance, AI agent, recording:
+
+```typescript
+function withAutoAdvance(script): AppPlugin {
+  return (app) => {
+    const scope = app.rt.scope
+    // Async work in the app's scope — scoped, cancellable, traced
+    ;(async () => {
+      for (const entry of script) {
+        if (scope.cancelled) break
+        useChat.get().submit({ text: entry.content })
+        await useChat.get().streaming.waitFor(v => !v)
+        await scope.sleep(400)
+      }
+    })()
+    return app
+  }
+}
+
+// Compose at definition time — no separate "driver" concept:
+const app = pipe(
+  createApp(<AIChat />, { providers, models: { chat: useChat } }),
+  args.auto ? withAutoAdvance(SCRIPT) : identity,
+)
+using handle = await run(app)
+await handle.waitUntilExit()
+```
+
+### 2. `run(app, fn)` (runtime callback)
+
+The second argument to `run()` is an async callback that receives the app handle. `run(app)` alone runs the interactive loop (render view, listen for input). Adding a callback gives you programmatic access alongside -- or instead of -- the interactive loop:
+
+```typescript
+// Default — interactive (keybindings, view rendering)
+await run(app)
+
+// Automation — callback drives the app
+await run(app, async (handle) => {
+  while (true) {
+    const action = await agent.decide(handle.screen.text)
+    useChat.get().submit(action.args)
+    await useChat.get().streaming.waitFor((v) => !v)
+  }
+})
+
+// Testing — callback runs scenario, then exits
+await run(app, async (handle) => {
+  useChat.get().submit({ text: "fix the bug" })
+  await useChat.get().streaming.waitFor((v) => !v)
+})
+```
+
+### 3. Direct calls (tests)
+
+No framework needed -- `.create()` makes an isolated instance with mock providers:
+
+```typescript
+const chat = useChat.create({
+  persist: { write: async () => {}, read: async () => ({}) },
+  ai: {
+    stream: async function* () {
+      yield "Hello"
+      yield " world"
+    },
+  },
+})
+
+chat.submit({ text: "fix the bug" })
+const gen = chat.respond()
+for await (const _ of gen) {
+  /* consume */
+}
+expect(chat.exchanges.value).toHaveLength(2)
+expect(chat.exchanges.value[1].text).toBe("Hello world")
+```
+
+Three patterns, no special abstractions. Plugins compose at definition time; `run()` callbacks drive at runtime; tests create isolated instances directly.
+
+## What Changes
+
+| Current                                              | New                                                           | Why                                   |
+| ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
+| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` -- one function, returns string          | 4 -> 1                                 |
+| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 -> 1                                 |
+| `createSlice(init, handlers)` + `createEffects(...)` | `createModel(() => { signals + methods })` -> typed hook       | 2 -> one wrapper                       |
+| `useApp(selector)`                                   | `useChat(m => m.phase)` -- per-model typed selector hook       | O(1) subscribe, no Provider           |
+| `tea()`, `createStore()`                             | Removed                                                       | Internal, no longer needed            |
+| Providers (DI with scoped contract)                  | `createProviders({...})` -- plain frozen object                | Types inferred, deps via `Pick`       |
+| Runtime = monolith (event loop + I/O + effects)      | Providers (I/O) + behavioral plugins (tracing, recording)     | Data composition + behavioral plugins |
+| Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields           | Behavioral composition, not just data |
+| Handle = the control surface                         | Model IS the control surface, external code calls it directly | No separate Handle shape              |
+
+## Migration from `useTea`
+
+| `useTea` pattern                             | Factory function equivalent                   |
+| -------------------------------------------- | --------------------------------------------- |
+| `type Msg = { type: "start" } \| ...`        | Named methods on the model factory            |
+| `function update(s, msg) { switch... }`      | `start() {}, tick() {}` (methods on object)   |
+| `const [state, send] = useTea(init, update)` | `const useChat = createModel(() => { ... })`  |
+| `send({ type: "start" })`                    | `useChat.get().submit()` (direct method call) |
+| `[state, [fx.delay(...)]]` return            | `async start(s) { await scope.sleep(...) }`   |
+| `streamPhase` / `revealFraction` / timers    | `async *respond(s) { yield }` (generator)     |
+| `collect([state, effects])` on return value  | `await collect(() => state.chat.respond())`   |
+
+The `collect()` helper survives unchanged. Timer effects migrate from `fx.delay`/`fx.interval` to scope methods (`scope.sleep`, `scope.timeout`). Only the wiring layer changes.
 
 ## Appendix: Design Journey (2026-03-12)
 
