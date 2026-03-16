@@ -1,6 +1,6 @@
 # Packaging Model
 
-_Status: draft (2026-03-15). How silvery decomposes into independent packages and recomposes for different use cases._
+_Status: draft (2026-03-16). How silvery decomposes into independent packages and recomposes for different use cases._
 
 _See also: [composability.md](./composability.md) (tradeoffs, gap analysis, what's theoretically possible), [architecture-overview.md](./architecture-overview.md) (concepts, op spectrum), [app-composition.md](./app-composition.md) (plugins, op())._
 
@@ -8,9 +8,9 @@ _See also: [composability.md](./composability.md) (tradeoffs, gap analysis, what
 
 Silvery today is "Polished Terminal UIs in React" — a better Ink. Responsive layouts, scrollable containers, 100x+ faster incremental updates, 30+ components, pure TypeScript. Homepage: silvery.dev.
 
-But the architecture is designed to decompose along four orthogonal axes, enabling combinations that go far beyond React terminal apps.
+But the architecture decomposes into two independent products — **Silver Platter** (rendering) and **Silvertea** (app framework) — each with its own framework × platform matrix, enabling combinations that go far beyond React terminal apps.
 
-The core idea: **separate what you render (components) from how you create them (engine), where they appear (platform), and how you organize behavior (app framework).** Each axis is an independent choice.
+The core idea: **separate what you render (components) from which framework creates them (React, Svelte, Solid), where they appear (terminal, web, canvas), and how you organize behavior (commands, keymaps, plugins).** Each choice is independent.
 
 ## Current Packages (v0.3.0)
 
@@ -29,43 +29,70 @@ Companion packages: **flexily** (layout engine), **loggily** (debug + tracing), 
 
 ## Future Package Architecture
 
-### The four axes
+### The two products
+
+Silver Platter (rendering) and Silvertea (app framework) are independent products under one `@silvery/*` scope. Both use prefix-based grouping: `platter-*` for rendering packages, `tea-*` for app framework packages.
 
 ```
-Engine (creates nodes)        Platform (renders nodes)
-──────────────────────        ────────────────────────
-@silvery/react                @silvery/term     (terminal + xterm.js)
-@silvery/svelte  (future)     @silvery/web      (native web elements, future)
-@silvery/solid   (future)     @silvery/canvas   (future)
+Silver Platter — universal cross-framework, cross-platform rendering
+"Your UI, served on a silver platter."
+────────────────────────────────────────────────────────────────────
+@silvery/platter           abstract nodes · headless state machines · signals
+@silvery/platter-react     React reconciler + React component library
+@silvery/platter-svelte    Svelte adapter + Svelte components          (future)
+@silvery/platter-solid     Solid adapter + Solid components            (future)
+@silvery/platter-term      terminal platform (ANSI, flexily)
+@silvery/platter-web       web platform (CSS, DOM mapping)             (future)
+@silvery/platter-canvas    canvas platform (draw calls)                (future)
+@silvery/theme             theme tokens (semantic colors, palettes)
 
-              @silvery/core
-              (abstract nodes · theme · pipeline interface)
+Silvertea — app framework (independent of silver platter rendering)
+──────────────────────────────────────────────────────────────────
+@silvery/tea               commands · keymaps · op · plugins · scopes
+                           + headless app component state machines
+@silvery/tea-react         React hooks (useSignal, useCommand) + React wrappers
+@silvery/tea-platter       silvery-rendered tea components + surface adapters
+@silvery/tea-dom           react-dom rendered tea components + adapter  (future)
+@silvery/tea-svelte        Svelte tea adapter + Svelte components      (future)
 
-              @silvery/kit
-              (app framework: signals · commands · TEA · op())
-
-              silvery
-              (bundled convenience = core + react + term)
+Convenience bundles
+───────────────────
+silvery      = @silvery/platter + platter-react + platter-term + theme
+silvertea    = @silvery/tea + tea-react + tea-platter
 ```
 
-### @silvery/core — The Contract
+### Why prefix grouping?
 
-Defines WHAT things are, independent of engine or platform. This is the contract that makes engine × platform composition work.
+Without prefixes, `@silvery/react` and `@silvery/tea-react` look hierarchical — as if tea-react depends on @silvery/react. It doesn't. With prefixes, they're clearly parallel:
+
+```
+@silvery/platter-react   ← rendering: React reconciler
+@silvery/tea-react       ← app framework: React hooks
+```
+
+Two independent products, each with a React adapter. The naming makes this obvious.
+
+**Naming**: "Silver platter" = the well-known idiom meaning "presented beautifully, ready to use" — exactly what a renderer does. "Tea platter" = a serving tray for tea (@silvery/tea-platter = tea components served via silvery rendering).
+
+### @silvery/platter — The Rendering Foundation
+
+The abstract rendering contract, headless component state machines, and signal primitives. Independent of any framework or platform.
 
 - **Abstract node types**: Box, Text — data descriptions of UI with typed props (flexDirection, color, overflow, gap, padding, etc.)
-- **Theme system**: semantic tokens ($primary, $muted, $border), palette abstraction
-- **Pipeline interface**: abstract phase definitions that platforms implement (see below)
-- **Component specs**: abstract definitions for SelectList, TextInput, VirtualList, CommandPalette, etc.
+- **Headless component state machines**: SelectListState, TextInputState, VirtualListState — pure `(action, state) → state` logic for keyboard handling, selection, scrolling
+- **Signal primitives**: `signal()`, `derived()`, `Readable<T>` interface — shared substrate for both rendering and tea
+- **Pipeline interface**: rendering capabilities that platforms implement
+- **Theme tokens**: semantic colors ($primary, $muted, $border), palette abstraction — may live in separate `@silvery/theme` or be part of platter
 
-**Rendering capabilities, not pipeline stages.** Core defines **rendering capabilities** that platforms provide: layout computation, mutation application, output generation, and measurement feedback. The terminal platform implements all capabilities (flexily for layout, ANSI buffer for output). The web platform delegates most to the browser (CSS for layout, DOM for mutations) and provides mapping/normalization:
+**Rendering capabilities, not pipeline stages.** Platter defines **rendering capabilities** that platforms provide: layout computation, mutation application, output generation, and measurement feedback:
 
-- @silvery/term implements all capabilities: flexily for layout, ANSI buffer for diff/output
-- @silvery/web provides mapping and normalization: node types → DOM elements, props → CSS, input → normalized events. Engines use their native DOM capabilities for reconciliation (react-dom, Svelte compiler, Solid runtime). No silvery-owned diff or layout phase — the browser handles both.
-- @silvery/canvas implements layout via flexily, output via draw calls
+- @silvery/platter-term implements all capabilities: flexily for layout, ANSI buffer for diff/output
+- @silvery/platter-web provides mapping and normalization: node types → DOM elements, props → CSS, input → normalized events. Frameworks use their native DOM capabilities for reconciliation (react-dom, Svelte compiler, Solid runtime). No silvery-owned diff or layout phase — the browser handles both.
+- @silvery/platter-canvas implements layout via flexily, output via draw calls
 
-This means core is thin — types, interfaces, theme tokens, and shared utilities. The heavy lifting is in the platform packages.
+Platter is thin — types, interfaces, state machines, signals, and shared utilities. Heavy lifting is in the platform packages.
 
-**Host protocol.** The minimal contract between engines and platforms for terminal rendering:
+**Host protocol.** The minimal contract between frameworks and platforms for terminal rendering:
 
 - `createNode(type, props) → NodeHandle` — create an abstract node
 - `updateNode(handle, oldProps, newProps)` — update properties
@@ -73,38 +100,75 @@ This means core is thin — types, interfaces, theme tokens, and shared utilitie
 - `insertChild(parent, child, index)` — tree structure
 - `commitBatch()` — signal end of update (triggers layout + render)
 
-This is what `react-reconciler` calls into on terminal. On web, engines use their native DOM operations instead, with `@silvery/web` providing the prop/style mapping layer.
+This is what `react-reconciler` calls into on terminal. On web, frameworks use their native DOM operations instead, with `@silvery/platter-web` providing the prop/style mapping layer.
 
-**Component library challenge.** Today's components (SelectList, TextInput, etc.) are React components with hooks. Making them truly engine-agnostic requires either:
+### The Component Story: Three Layers
 
-1. **Abstract specs + per-engine implementations**: core defines the behavior contract (props, callbacks, keyboard handling), each engine provides a framework-native implementation
-2. **Headless logic + engine-specific rendering**: core provides headless component logic (state machines, keyboard handling), engines wrap it with framework-specific rendering
+Every component exists in up to three layers. Each layer is a separate package with a clear dependency direction.
 
-Option 2 is more practical — the component LOGIC (what happens on key j, how selection wraps, how text editing works) is engine-agnostic. Only the RENDERING (turning that logic into framework-specific component trees) varies. This aligns with the TEA vision: component logic is a pure state machine, rendering is a projection.
+**Layer 1 — Headless state machine** (pure JS, one per component, universal):
+```
+@silvery/platter    →  SelectListState, TextInputState, VirtualListState
+@silvery/tea     →  CommandPaletteState, SheetState, ToastState
+```
 
-**Package boundary.** Headless component logic (state machines, keyboard handling, selection behavior) lives in `@silvery/headless`. Engine-specific rendering wrappers live in per-engine UI packages: `@silvery/react-ui` (today's `@silvery/ui`), future `@silvery/svelte-ui`, etc. This follows the React Aria / Headless UI pattern: behavior is framework-agnostic, rendering is framework-specific.
+**Layer 2 — Framework bindings** (one per framework, renderer-agnostic):
+```
+@silvery/platter-react    →  React reconciler: turns JSX into abstract nodes
+@silvery/platter-svelte   →  Svelte compiler adapter (future)
+@silvery/tea-react     →  useSignal, useCommand, useCommandPalette hooks
+@silvery/tea-svelte    →  Svelte stores/runes for tea (future)
+```
 
-### @silvery/react — React Engine
+**Layer 3 — Rendered components** (one per framework × renderer):
+```
+                          Silver Platter (abstract nodes)  DOM (native)
+                          ─────────────────────────────   ────────────
+React                     platter-react                   (react-dom — not ours)
+                          tea-platter                     tea-dom
 
-React reconciler that creates silvery abstract nodes from JSX.
+Svelte                    platter-svelte                  (native Svelte — not ours)
+                          tea-platter-svelte (future)     ↑ use tea-svelte + build own
+
+Solid                     platter-solid                   (native Solid — not ours)
+                          tea-platter-solid (future)      ↑ use tea-solid + build own
+```
+
+**Per-component count today: 2** — one headless state machine + one rendered React component. Not a combinatorial explosion. Rendered components target abstract nodes (Box, Text), which work on ALL platforms (terminal, web, canvas). The platform layer below handles output — components don't multiply per platform.
+
+**What each rendered package contains:**
+
+| Package | Components | Surface adapter | Deps |
+|---|---|---|---|
+| platter-react | SelectList, TextInput, VirtualList... using Box/Text | React reconciler | platter, react |
+| tea-platter | CommandPalette, Sheet, Toast... using platter-react components | withTerminal(), withBrowser() | tea-react, platter-react |
+| tea-dom | CommandPalette, Sheet, Toast... using div/input | withBrowser() | tea-react, react-dom |
+
+**"Native framework without silvery" users** (Svelte, Solid developers who don't want silver platter rendering) get headless state machines + framework bindings. They bring their own visual layer. We only pre-build rendered components for silver platter and react-dom targets.
+
+This follows the React Aria / Headless UI pattern: behavior is framework-agnostic, rendering is framework-specific.
+
+### @silvery/platter-react — React Framework Adapter
+
+React framework adapter that creates silvery abstract nodes from JSX, plus the full React component library.
 
 - Uses `react-reconciler` to bridge React → abstract nodes
-- Provides React-specific hooks: `useContentRect()`, `useFocus()` (platform-specific hooks like `useTerminalFocused()` live in `@silvery/term`)
+- Provides React-specific hooks: `useContentRect()`, `useFocus()` (platform-specific hooks like `useTerminalFocused()` live in `@silvery/platter-term`)
 - Provides signal bridge: `useSignal()` (wraps `useSyncExternalStore`)
-- Wraps abstract component specs into React components (Box, Text, SelectList, etc.)
+- **React component library**: SelectList, TextInput, VirtualList, ProgressBar, ScrollView, etc. — React wrappers around headless state machines from @silvery/platter
 
 Virtual DOM based — React diffs the component tree to determine what nodes changed.
 
-### @silvery/svelte — Svelte Engine (future)
+### @silvery/platter-svelte — Svelte Framework Adapter (future)
 
-Svelte adapter that compiles to direct abstract node operations.
+Svelte framework adapter that compiles to direct abstract node operations, plus Svelte component library.
 
 - No virtual DOM — Svelte knows at compile time which nodes to update
 - More efficient than React path (no diffing step)
 - Signal bridge: silvery signals ↔ Svelte 5 runes (both fine-grained reactive primitives)
-- Wraps abstract component specs into Svelte components
+- Svelte component library: same components as platter-react, Svelte wrappers
 
-### @silvery/term — Terminal Platform
+### @silvery/platter-term — Terminal Platform
 
 Renders abstract silvery nodes to terminal output. This is today's primary (and only) platform.
 
@@ -116,7 +180,7 @@ Renders abstract silvery nodes to terminal output. This is today's primary (and 
 
 Works in real terminals AND browsers (via xterm.js).
 
-### @silvery/web — Web Platform (future)
+### @silvery/platter-web — Web Platform (future)
 
 Maps silvery abstractions to native DOM rendering. Unlike terminal (where the platform owns the full render pipeline), web leverages the browser's native layout, diffing, and rendering.
 
@@ -126,15 +190,14 @@ Maps silvery abstractions to native DOM rendering. Unlike terminal (where the pl
 - **Theme**: CSS custom properties (`--silvery-primary`, etc.)
 - **Accessibility**: semantic props (role, aria-\*) pass through to DOM attributes
 
-**Architecture difference from terminal.** On terminal, all engines produce abstract nodes and the platform renders them through its own pipeline (flexily → ANSI). On web, engines use their native DOM capabilities — React uses react-dom, Svelte compiles to DOM operations, Solid uses fine-grained DOM updates. `@silvery/web` provides the mapping layer (which DOM elements, which CSS properties, which event normalization) but does not own a reconciler. This means web rendering requires an **engine-specific integration** — it is not fully orthogonal the way terminal is.
+**Architecture difference from terminal.** On terminal, all frameworks produce abstract nodes and the platform renders them through its own pipeline (flexily → ANSI). On web, frameworks use their native DOM capabilities — React uses react-dom, Svelte compiles to DOM operations, Solid uses fine-grained DOM updates. `@silvery/platter-web` provides the mapping layer (which DOM elements, which CSS properties, which event normalization) but does not own a reconciler. This means web rendering requires a **framework-specific integration** — it is not fully orthogonal the way terminal is.
 
 See [composability.md](./composability.md) for the full gap analysis and tradeoff discussion.
 
-### @silvery/kit — App Framework
+### @silvery/tea — App Framework (Silvertea)
 
-Replaces and expands `@silvery/tea`. Engine-agnostic, platform-agnostic.
+Replaces and expands the current `@silvery/tea`. Framework-agnostic, platform-agnostic.
 
-- **signal()**, **derived()**, **computed()** — reactive state primitives
 - **Command** `{ fn, args? }`, **invoke()**, **canInvoke()**, **available()** — command system
 - **keymap()**, **when()**, **Mapping\<E\>** — declarative input mapping (generic over event type)
 - **createModel()**, **ModelContext** — model factories with explicit DI
@@ -142,97 +205,157 @@ Replaces and expands `@silvery/tea`. Engine-agnostic, platform-agnostic.
 - **createApp()**, **pipe()**, **plugins** — app composition
 - **op()**, **apply()** — op-as-data bridge for interception, undo, replay
 - **Effects as data** — pure, testable side effects
+- **Headless app component state machines**: CommandPaletteState, SheetState, ToastState, TabGroupState
 
-**Zero dependencies on core, engines, or platforms.** Kit is pure state + behavior. This is what enables headless operation — an AI agent or test harness uses kit alone.
+**Zero dependencies on silvery rendering.** Tea is pure state + behavior. This is what enables headless operation — an AI agent or test harness uses tea alone, with no rendering packages.
 
-**Mapping\<E\> is generic.** `keymap()` returns `Mapping<string>` — the event type is just a normalized key string. Each platform's input parser converts platform-specific events (stdin escape sequences, DOM KeyboardEvent) to this normalized form BEFORE reaching the keymap. Kit never sees platform-specific types.
+**Depends on `Readable<T>` signals.** Tea uses signals from `@silvery/platter` (or any compatible implementation) for args schema defaults, availability detection, and reactive state. Signals are the shared substrate between silvery rendering and silvertea.
 
-**Framework bindings live in engine packages.** `useSignal()` is in @silvery/react. A Svelte signal adapter would be in @silvery/svelte. Kit provides the signal primitive; engines provide the framework integration.
+**Mapping\<E\> is generic.** `keymap()` returns `Mapping<string>` — the event type is just a normalized key string. Each surface adapter converts platform-specific events to this normalized form BEFORE reaching the keymap. Tea never sees platform-specific types.
 
-### silvery — Bundled Convenience
+### @silvery/tea-react — React Bindings for Tea
 
-Re-exports `@silvery/core` + `@silvery/react` + `@silvery/term`. One install, one import:
+React-specific hooks and headless React wrappers for tea. Framework binding layer — renderer-agnostic.
+
+- `useSignal()` — bridge tea signals to React via `useSyncExternalStore`
+- `useCommand()`, `useKeymap()` — React hooks for tea primitives
+- Headless React component wrappers (useCommandPalette, etc.)
+
+Used by BOTH tea-platter (silvery rendering) AND tea-dom (react-dom rendering). This is the shared React layer.
+
+### @silvery/tea-platter — Silvery-Rendered Tea Components
+
+Tea components rendered with silvery platter primitives, plus surface adapters. This is what makes tea work with silvery.
+
+- **Rendered components**: CommandPalette, Sheet, Toast, TabGroup, etc. — built from platter-react components (SelectList, TextInput, Box, Text)
+- **Surface adapters**: `withTerminal()` (stdin → keymap → dispatch → silvery rendering), `withBrowser()` (DOM events → keymap → dispatch → silvery rendering)
+- Depends on: tea-react, platter-react, platter-term (or platter-web)
+
+### @silvery/tea-dom — React-DOM Tea Components (future)
+
+Tea components rendered with native DOM elements for react-dom apps that don't use silvery rendering.
+
+- **Rendered components**: CommandPalette, Sheet, Toast, etc. — built with div/input/ul
+- **Surface adapter**: `withBrowser()` (DOM events → keymap → dispatch → react-dom rendering)
+- **Styles**: CSS for tea components
+- Depends on: tea-react, react-dom
+
+### @silvery/tea-svelte — Svelte Tea Adapter (future)
+
+Svelte bindings for tea signals and commands, plus Svelte component wrappers.
+
+**Surface adapters bridge tea to framework+platforms.** Summary:
+
+| Adapter | Surface plugin | Rendered components | Rendering |
+|---|---|---|---|
+| `@silvery/tea-platter` | `withTerminal()`, `withBrowser()` | silvery platter components | platter-react + platter-term/web |
+| `@silvery/tea-dom` | `withBrowser()` | DOM elements | react-dom |
+| `@silvery/tea-svelte` | `withBrowser()` | Svelte components | Svelte compiler |
+
+Silvery is treated as one rendering option among many. The platter adapter isn't special — it just uses silvery's rendering instead of react-dom or Svelte.
+
+### Convenience Bundles
+
+All packages live under `@silvery/*`. Two bare packages are the user-facing products:
+
+**`silvery`** — Ink replacement. Re-exports `@silvery/platter` + `@silvery/platter-react` + `@silvery/platter-term` + `@silvery/theme`:
 
 ```typescript
-import { Box, Text, run } from "silvery"
+import { Box, Text, SelectList, run } from "silvery"
 ```
 
-Most users start here and never need the scoped packages directly.
+**`silvertea`** — App framework. Re-exports `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-platter`:
 
-### Input Flow: Platform → Kit
-
-How platform-specific input reaches the abstract command system:
-
-```
-Platform-specific input
-  stdin escape sequences (term)     DOM keydown events (web)
-  ──────────────────────────        ──────────────────────────
-           │                                  │
-           ▼                                  ▼
-  Platform input parser             Platform input parser
-  (term: parseEscapeSequence)       (web: normalizeKeyboardEvent)
-           │                                  │
-           ▼                                  ▼
-  Normalized string                 Normalized string
-  "ctrl+d", "j", "escape"          "ctrl+d", "j", "escape"
-  ──────────────────────────────────────────────────────────
-                          │
-                          ▼
-                 Kit: keymap()(event)
-                 → Invocation | null
-                          │
-                          ▼
-                 Kit: invoke({ command, args })
-                 → resolves schema, calls fn
+```typescript
+import { signal, keymap, invoke, createApp, withTerminal } from "silvertea"
 ```
 
-Each platform normalizes its native events to a common string format. Kit's `keymap()` and `invoke()` work with these normalized strings — they never see platform-specific types. The normalization happens at the platform boundary.
+Most users start with `silvery` and add `silvertea` when they need commands/keymaps/op. React-dom users install `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-dom` directly — no silvery rendering dependency.
 
-**Beyond key strings.** Normalized key strings (`"ctrl+d"`, `"j"`) are the command dispatch vocabulary — sufficient for keymaps and shortcuts. But real input is richer: text insertion (IME/composition), pointer coordinates, wheel deltas, drag state. Platforms emit **typed input events** for these — `TextInputEvent`, `PointerEvent`, `WheelEvent` — which flow directly to components, not through the keymap. The keymap handles discrete commands; components handle continuous/rich input.
+### Input Flow: Surface Adapter → Tea
 
-## Migration Path: tea → kit
+How platform-specific input reaches tea's command system. Each surface adapter owns this flow:
 
-| @silvery/tea (current) | @silvery/kit (future)            | Change                                              |
-| ---------------------- | -------------------------------- | --------------------------------------------------- |
-| `createSlice()`        | `createModel()`                  | Factory receives `ModelContext` with explicit scope |
-| `store.apply({ op })`  | `op(model).method()`             | Proxy-based, same types/autocomplete                |
-| `useStore(selector)`   | `useSignal(signal)`              | Fine-grained (per-signal) vs coarse (selector)      |
-| Zustand store          | signals + methods                | No store wrapper — signals ARE the state            |
-| `createEffects()`      | Same (kept in kit)               | —                                                   |
-| —                      | `keymap()`, `when()`, `invoke()` | New: input mapping system                           |
-| —                      | `Scope`, structured concurrency  | New: explicit lifecycle                             |
-| —                      | `op()`, `apply()`                | New: interception pipeline                          |
+```
+Surface adapter (e.g., @silvery/tea-platter)
+  ┌──────────────────────────────────────────────┐
+  │ 1. Source input from platform                 │
+  │    stdin escape sequences (platter-term)      │
+  │    DOM keydown events (platter-web)           │
+  │                                               │
+  │ 2. Normalize to tea's key format              │
+  │    "ctrl+d", "j", "escape"                    │
+  │                                               │
+  │ 3. Dispatch through tea                       │
+  │    keymap()(event) → Invocation | null         │
+  │    invoke({ command, args }) → call fn         │
+  │                                               │
+  │ 4. Bridge signals → framework reactivity      │
+  │    useSignal() from tea-react                  │
+  │    rune adapter from tea-svelte               │
+  └──────────────────────────────────────────────┘
+```
+
+The surface adapter is the integration point — it knows both the platform (where input comes from, how rendering works) and tea (keymaps, commands, signals). Tea itself never sees platform-specific types.
+
+**Beyond key strings.** Normalized key strings (`"ctrl+d"`, `"j"`) are the command dispatch vocabulary — sufficient for keymaps and shortcuts. But real input is richer: text insertion (IME/composition), pointer coordinates, wheel deltas, drag state. Surface adapters emit **typed input events** for these — `TextInputEvent`, `PointerEvent`, `WheelEvent` — which flow directly to components, not through the keymap. The keymap handles discrete commands; components handle continuous/rich input.
+
+## Migration Path: current tea → new tea
+
+| @silvery/tea (current, zustand) | @silvery/tea (new)               | Change                                              |
+| ------------------------------- | -------------------------------- | --------------------------------------------------- |
+| `createSlice()`                 | `createModel()`                  | Factory receives `ModelContext` with explicit scope |
+| `store.apply({ op })`           | `op(model).method()`             | Proxy-based, same types/autocomplete                |
+| `useStore(selector)`            | `useSignal(signal)`              | Fine-grained (per-signal) vs coarse (selector)      |
+| Zustand store                   | signals + methods                | No store wrapper — signals ARE the state            |
+| `createEffects()`               | Same (kept)                      | —                                                   |
+| —                               | `keymap()`, `when()`, `invoke()` | New: input mapping system                           |
+| —                               | `Scope`, structured concurrency  | New: explicit lifecycle                             |
+| —                               | `op()`, `apply()`                | New: interception pipeline                          |
 
 ## Dependency Graph
 
 ```
-silvery (convenience re-export)
-  ├── @silvery/core
-  ├── @silvery/react  → @silvery/core
-  ├── @silvery/ui     → @silvery/core, @silvery/react (React component wrappers)
-  ├── @silvery/term   → @silvery/core
-  └── @silvery/theme  → @silvery/core
+Silver Platter (rendering)
+──────────────────────────
+silvery (convenience bundle)
+  ├── @silvery/platter       (abstract nodes, headless state machines, signals)
+  ├── @silvery/platter-react → platter  (React reconciler + component library)
+  ├── @silvery/platter-term  → platter  (terminal platform)
+  └── @silvery/theme         → platter
 
-@silvery/kit (standalone — zero dependencies on core, engines, or platforms)
-@silvery/headless → @silvery/kit (state machines use signals)
-@silvery/react-ui → @silvery/core, @silvery/react, @silvery/headless
+@silvery/platter-web    → platter  (future)
+@silvery/platter-svelte → platter  (future)
+@silvery/platter-canvas → platter  (future)
+@silvery/platter-solid  → platter  (future)
+@silvery/test           → platter, platter-term  (headless terminal testing)
+@silvery/compat         → platter-react  (Ink migration, private)
 
-@silvery/test    → @silvery/core, @silvery/term (headless terminal testing)
-@silvery/web     → @silvery/core  (future)
-@silvery/svelte  → @silvery/core  (future)
-@silvery/canvas  → @silvery/core  (future)
-@silvery/solid   → @silvery/core  (future)
-@silvery/compat  → @silvery/react (Ink migration, private)
+Silvertea (app framework)
+─────────────────────────
+silvertea (convenience bundle)
+  ├── @silvery/tea           → platter (for Readable<T> signals)
+  ├── @silvery/tea-react     → tea, react
+  └── @silvery/tea-platter   → tea-react, platter-react, platter-term
+
+@silvery/tea             (commands, keymaps, op, plugins, scopes, headless app state machines)
+  └── depends on @silvery/platter for Readable<T> signals
+
+@silvery/tea-react       → tea, react  (React hooks: useSignal, useCommand)
+@silvery/tea-platter     → tea-react, platter-react  (silvery-rendered tea components + surface adapters)
+@silvery/tea-dom         → tea-react, react-dom       (future: DOM-rendered tea components)
+@silvery/tea-svelte      → tea, svelte                (future: Svelte bindings + components)
 ```
 
-**Integration boundaries.** Surface plugins (e.g., `withTerminal()`) live in platform packages and accept kit types (Mapping, commands) as parameters — kit is a peer dependency, not a hard dependency. No separate bridge packages are needed because the integration is function parameters, not deep coupling. The surface plugin IS the bridge.
+**Signals are the shared substrate.** `@silvery/platter` defines `Readable<T>` and ships `signal()`, `derived()`. Both silvery rendering (`useSignal()` in platter-react) and silvertea (commands, keymaps, op) depend on this interface. Other signal libraries (Preact signals, etc.) work if they match the `{ value, subscribe }` shape.
 
-Where integrations live:
+**Surface adapters are the integration points.** Each tea rendered package bridges tea to a specific framework+renderer:
 
-- `withTerminal()` → in `@silvery/term`, accepts `Mapping<KeyStroke>` from kit
-- `withBrowser()` → in `@silvery/web`, accepts `Mapping<KeyboardEvent>` from kit
-- `useSignal()` → in `@silvery/react`, reads kit signal type
-- Engine-specific DOM rendering → in `@silvery/web` + engine package (e.g., react-dom)
+| Package | Surface adapter | Rendered components | Deps |
+|---|---|---|---|
+| `@silvery/tea-platter` | `withTerminal()`, `withBrowser()` | silvery platter components | tea-react, platter-react |
+| `@silvery/tea-dom` | `withBrowser()` | DOM elements | tea-react, react-dom |
+| `@silvery/tea-svelte` | `withBrowser()` | Svelte components | tea, svelte |
 
 ## What Should I Use?
 
@@ -240,53 +363,56 @@ Two products, one gradient. Start with what you need, go deeper when the pain hi
 
 ### The two products
 
-**Silvery** (rendering) — The terminal pipeline, components, and theme. 100x+ faster than Ink. Responsive flexbox layouts, scrollable containers, 30+ components. This is what you install silvery for.
+**Silvery** (`silvery`) — Polished terminal UIs in React. Cross-framework, cross-platform rendering via abstract nodes. 100x+ faster than Ink. Responsive flexbox layouts, scrollable containers, 30+ components.
 
-**Kit** (app framework) — Commands, keymaps, op(), plugins, structured concurrency. Scales complexity without ergonomic cost. Works with any signal-shaped state library. Add it when your app outgrows `useState`.
+**Silvertea** (`silvertea`) — App framework for command-centric apps. Commands, keymaps, op(), plugins, structured concurrency. Works with silvery, react-dom, Svelte, React Native, or headless — silvery is one framework+platform option among many.
 
 ### Decision tree
 
 ```
 "I want to build a terminal app"
-  → @silvery/react + @silvery/term + @silvery/react-ui
+  → `silvery` (bundles platter + platter-react + platter-term + theme)
   → Use useState, zustand, jotai, whatever you like for state.
   → Done. This is the 80% case.
-  → (shortcut: `silvery` bundles react + term + core)
 
 "My app's state is getting tangled across components"
-  → Add @silvery/kit
+  → Add `silvertea` (bundles tea + tea-react + tea-platter).
   → Use signal() to share state outside React.
-  → Or keep zustand — kit's commands work with any signal-shaped state.
+  → Or keep zustand — silvertea's commands work with any signal-shaped state.
 
 "I want AI, tests, or CLI to drive my app without rendering"
-  → @silvery/kit alone (no react, no term, no ui)
+  → @silvery/tea alone (no rendering packages)
   → Add commands: { fn, args? } objects.
   → invoke() from anywhere — same code path as keyboard input.
 
 "I want vim-style keybindings, modes, chords"
-  → @silvery/kit: keymap() + when() on top of commands.
+  → silvertea: keymap() + when() on top of commands.
   → Keymaps are data — declarative bindings with mode predicates.
 
 "I want undo/replay/recording"
-  → @silvery/kit: route state changes through op().
+  → silvertea: route state changes through op().
   → op() captures method calls as serializable records for replay.
 
 "My app has multiple subsystems that need to compose"
-  → @silvery/kit: pipe() + plugins. Each plugin adds model state,
+  → silvertea: pipe() + plugins. Each plugin adds model state,
     commands, providers, or wraps the interception pipeline.
 
 "I want the same app on terminal and web"
-  → Add @silvery/web alongside @silvery/term.
+  → Add @silvery/platter-web alongside @silvery/platter-term.
   → Use silvery components (Box/Text), not platform-specific code.
-  → Kit code doesn't change. Engine may need a web adapter.
+  → Tea code doesn't change.
+
+"I want silvertea with react-dom (no silvery rendering)"
+  → @silvery/tea + @silvery/tea-react + @silvery/tea-dom.
+  → Use react-dom for rendering, tea for commands/keymaps/op.
+  → Your own React components, tea's app architecture.
 
 "I want to swap React for Svelte"
-  → Replace @silvery/react with @silvery/svelte.
-  → Replace @silvery/react-ui with @silvery/svelte-ui.
-  → Kit code doesn't change. Only view components need rewriting.
+  → Replace @silvery/platter-react with @silvery/platter-svelte.
+  → Tea code doesn't change. Only view components need rewriting.
 ```
 
-### The gradient within Kit
+### The gradient within Silvertea
 
 Each step builds on the previous. None requires the next. Stop when you have enough.
 
@@ -299,34 +425,33 @@ Each step builds on the previous. None requires the next. Stop when you have eno
 | **Plugins**  | `pipe()`, `createApp()`     | Composable app architecture              | You have multiple subsystems or want reusable plugins |
 | **Scopes**   | `Scope`, effects as data    | Structured concurrency, testable effects | You have complex async lifecycles                     |
 
-**Signals are pluggable.** Kit depends on a `Readable<T>` interface (`{ value, subscribe }`), not its own implementation. Kit ships a simple zero-dep signal implementation, but you can use Preact signals, wrap Solid signals, or adapt anything with a synchronous `.value` and a `subscribe()`. The value of kit is what's built ON TOP of signals (commands, keymaps, op), not the signal primitive itself.
+**Signals are pluggable.** Tea depends on a `Readable<T>` interface (`{ value, subscribe }`) from `@silvery/platter`. Silvery ships a default signal implementation, but you can use Preact signals, wrap Solid signals, or adapt anything with a synchronous `.value` and a `subscribe()`. The value of silvertea is what's built ON TOP of signals (commands, keymaps, op), not the signal primitive itself.
 
 ### Quick reference
 
 #### Today
 
-| Situation                   | Packages                                                 | Notes                                   |
-| --------------------------- | -------------------------------------------------------- | --------------------------------------- |
-| Terminal app (better Ink)   | `@silvery/react` + `@silvery/term` + `@silvery/react-ui` | Or just `silvery` (convenience bundle)  |
-| Terminal app + architecture | above + `@silvery/kit`                                   | Add kit when state/commands get complex |
-| Headless model (AI/tests)   | `@silvery/kit`                                           | No rendering packages needed            |
+| Situation                   | Install                          | Notes                                   |
+| --------------------------- | -------------------------------- | --------------------------------------- |
+| Terminal app (better Ink)   | `silvery`                        | One install — bundles platter + platter-react + platter-term + theme |
+| Terminal app + architecture | `silvery` + `silvertea`          | Add silvertea when state/commands get complex |
+| Headless model (AI/tests)   | `@silvery/tea`                   | No rendering, no surface adapter needed |
 
 #### Future
 
-| Situation                     | Packages                                                             | Notes                         |
-| ----------------------------- | -------------------------------------------------------------------- | ----------------------------- |
-| Terminal + web (shared model) | `@silvery/react` + `@silvery/term` + `@silvery/web` + `@silvery/kit` | Both platforms, one model     |
-| Svelte terminal app           | `@silvery/svelte` + `@silvery/term` + `@silvery/svelte-ui`           | Swap engine, same platform    |
-| React-dom app with kit state  | `@silvery/kit` + `react-dom`                                         | Kit only, own rendering       |
-| Svelte web app                | `@silvery/svelte` + `@silvery/web` + `@silvery/svelte-ui`            | No silvery rendering pipeline |
+| Situation                     | Install                                                               | Notes                                     |
+| ----------------------------- | --------------------------------------------------------------------- | ----------------------------------------- |
+| Terminal + web (shared model) | `silvery` + `@silvery/platter-web` + `silvertea`                      | Both platforms, one model, one tea         |
+| React-dom app with tea        | `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-dom`            | Tea + react-dom, no silvery rendering      |
+| Svelte web app with tea       | `@silvery/tea` + `@silvery/tea-svelte`                                | Tea + svelte, no silvery rendering         |
+| Svelte terminal app           | `@silvery/platter-svelte` + `@silvery/platter-term`                   | Silvery rendering, swap framework          |
 
 #### Convenience bundles
 
-| Bundle    | Contains                                             | For                                   |
-| --------- | ---------------------------------------------------- | ------------------------------------- |
-| `silvery` | `@silvery/core` + `@silvery/react` + `@silvery/term` | Quick start — one install, one import |
-
-Additional bundles (e.g., `silvery-web`, `silvery-svelte`) can be added as new engines/platforms stabilize.
+| Bundle       | Contains                                                                          | For                                              |
+| ------------ | --------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `silvery`    | `@silvery/platter` + `platter-react` + `platter-term` + `@silvery/theme`          | Rendering — one install, one import |
+| `silvertea`  | `@silvery/tea` + `tea-react` + `tea-platter`                                      | App framework — tea + React hooks + silvery surface |
 
 ## The Operation Spectrum
 
@@ -339,7 +464,7 @@ Every piece of app behavior sits at one of three points. See [architecture-overv
 | Serializable?       | No                 | No                       | Yes                                    |
 | Established term    | Callbacks (React)  | Command pattern (GoF)    | Actions (Redux/Elm)                    |
 
-**op-call** → imperative, locked in. **op-as-object** → decoupled (swap engine/runtime). **op-as-data** → serializable (undo/replay/persist).
+**op-call** → imperative, locked in. **op-as-object** → decoupled (swap framework/runtime). **op-as-data** → serializable (undo/replay/persist).
 
 The `op()` proxy bridges op-as-object to op-as-data transparently.
 
@@ -347,24 +472,24 @@ The `op()` proxy bridges op-as-object to op-as-data transparently.
 
 | Dimension          | What you can swap       | Cost of entry                                                  |
 | ------------------ | ----------------------- | -------------------------------------------------------------- |
-| **Multi-engine**   | React ↔ Svelte ↔ Solid  | State in kit signals, not framework hooks                      |
+| **Multi-framework**   | React ↔ Svelte ↔ Solid  | State in tea signals, not framework hooks                      |
 | **Multi-platform** | Terminal ↔ Web ↔ Canvas | Components using silvery abstractions, not platform primitives |
 | **Multi-runtime**  | Real ↔ test ↔ AI agent  | Behavior in commands, not inline callbacks                     |
 | **Multi-session**  | Undo, replay, persist   | State changes through op(), not direct mutation                |
 
 ### Bring-your-own state management
 
-Any state library works with silvery rendering. The tradeoff is which kit features you can use:
+Any state library works with silvery rendering. The tradeoff is which tea features you can use:
 
-| State library         | Works with kit commands? | Works with op()? | Multi-engine?    |
+| State library         | Works with tea commands? | Works with op()? | Multi-framework?    |
 | --------------------- | ------------------------ | ---------------- | ---------------- |
-| Kit signals (default) | Yes                      | Yes              | Yes              |
+| Tea signals (default) | Yes                      | Yes              | Yes              |
 | Preact signals        | Yes (same shape)         | Yes              | Yes              |
 | Zustand               | Via adapter              | No               | No (React hooks) |
 | Jotai                 | Via adapter              | No               | No (React atoms) |
 | Svelte stores         | Via adapter              | No               | No (Svelte-only) |
 | useState              | No                       | No               | No               |
 
-Kit commands need `Readable<T>` signals for args schema defaults and availability detection. If your state library exposes `{ value, subscribe }`, it works natively. If not, a thin adapter bridges the gap. `op()` requires kit signals (or compatible) because it intercepts signal mutations.
+Tea commands need `Readable<T>` signals for args schema defaults and availability detection. If your state library exposes `{ value, subscribe }`, it works natively. If not, a thin adapter bridges the gap. `op()` requires tea-compatible signals because it intercepts signal mutations.
 
 **Multi-platform** (terminal ↔ web) is orthogonal — all state libraries work on all platforms. The constraint is on behavioral portability: can non-UI consumers drive your state?

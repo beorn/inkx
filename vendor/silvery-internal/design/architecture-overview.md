@@ -130,7 +130,7 @@ Every piece of app behavior exists on a spectrum from imperative to fully serial
 
 **op-call**: Imperative. Behavior happens inline. Locked to one framework, one runtime, one session.
 
-**op-as-object**: Command pattern (GoF). Behavior is encapsulated in an object — decoupled from the call site, but the `fn` closure captures live references, so it can't be serialized. Unlocks: swap view engine, test without rendering, AI/CLI can invoke commands.
+**op-as-object**: Command pattern (GoF). Behavior is encapsulated in an object — decoupled from the call site, but the `fn` closure captures live references, so it can't be serialized. Unlocks: swap view framework, test without rendering, AI/CLI can invoke commands.
 
 **op-as-data**: Actions (Redux/Elm). Behavior is inert data — just a name + args. A separate interpreter maps the name to behavior. Unlocks everything op-as-object does, plus: undo/redo, replay, time travel, logging, cross-process communication, persistence.
 
@@ -191,14 +191,22 @@ op(app.model).chat.submit({ text }) // intercepted — undo, tracing, recording 
 | model        | MobX store, Zustand slice, Elm Model                        |
 | provider     | React context provider, Angular service                     |
 
+## Windowing
+
+Focus, tabs, panes, windows, and overlays as one coherent system. Six progressive sips from focus scopes to cross-platform windowing. One `ViewStore` manages the full view tree: `App → Window → Workspace → Pane → TabGroup → Tab`, plus overlays (Dialog, Popover, Toast).
+
+The windowing model defines the responder chain (input routes from focused view up through the hierarchy), modality (Dialogs trap focus and inert the background), and platform mapping (same view tree renders to terminal, web, or native). The `withViews()` plugin wires it all together with commands and keybindings.
+
+See [windowing.md](./windowing.md) for the full design.
+
 ## Open Questions
 
-- How should `@silvery/web` reconcile abstract nodes to DOM — per-engine renderers or a universal DOM adapter? (See [composability.md](./composability.md) for analysis.)
-- Should headless widget logic live in `@silvery/core` or a separate `@silvery/headless` package?
+- How should `@silvery/web` reconcile abstract nodes to DOM — per-framework renderers or a universal DOM adapter? (See [composability.md](./composability.md) for analysis.)
+- ~~Should headless widget logic live in `@silvery/core` or a separate `@silvery/headless` package?~~ **Resolved**: headless state machines live in `@silvery/platter`. See [packaging-model.md](./packaging-model.md) for the full package decomposition.
 - What is the versioning/deprecation story for command IDs used by external consumers (CLI, MCP)?
 - How does scope propagation work in browser environments without `AsyncLocalStorage`?
 - Should `op()` enforcement be opt-in (lint rules) or built-in (strict mode)?
 
 ---
 
-_See also: [packaging-model.md](./packaging-model.md) (package decomposition, engine × platform matrix), [composability.md](./composability.md) (universal rendering tradeoffs, gap analysis), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [packaging-model.md](./packaging-model.md) (package decomposition, framework × platform matrix), [composability.md](./composability.md) (universal rendering tradeoffs, gap analysis), [windowing.md](./windowing.md) (windowing), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
