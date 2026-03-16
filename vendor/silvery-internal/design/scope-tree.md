@@ -6,11 +6,11 @@ _A unified tree for effects, concurrency, observability, and lifecycle. Connects
 
 **v1 (core)**:
 
-- Scope creation, disposal, and nesting (`Scope`, `createChild`, `[Symbol.dispose]`)
-- `fx.delay()`, `fx.interval()` — timer effects with scoped cleanup
-- AbortSignal-based cancellation cascade (parent cancel → child cancel → provider abort)
+- Scope creation, disposal, and nesting (`Scope`, `[Symbol.dispose]`)
+- `scope.sleep(ms)`, `scope.timeout(ms, fn)` — timer primitives with scoped cleanup
+- `scope.cancelled` — explicit cancellation checking
+- `scope.onDispose(fn)` — scoped cleanup registration
 - Testing with mock providers and `withTestClock()`
-- Scoped cleanup via DisposableStack (`scope.defer()`)
 
 **Future (defer)**:
 
@@ -50,9 +50,11 @@ This pattern appears in every major system — but each implements it for only o
 - **Command invocation**: `invoke({ command, args })` creates a child scope
 - **`op()` intercepted async methods**: run in a child scope
 - **Direct method calls**: run in the caller's scope (or root if none)
-- **`app.rt.scope.spawn(name, fn)`**: explicit child scope
+- **`using child = createScope(parent)`**: explicit child scope via `using` cleanup
 
-## Providers vs Effect Providers
+## Providers vs Effect Providers (Future)
+
+> **Note**: The provider/effect system is future/aspirational. v1 scopes provide only lifecycle (`cancelled`, `onDispose`, `[Symbol.dispose]`) and timers (`sleep`, `timeout`). I/O is done via direct async calls.
 
 Runtime providers (`app.rt.providers`) are plain typed objects providing I/O capabilities. Effect providers are the same objects — `fx.effect()` creates descriptors that look up the appropriate provider at execution time. There is one provider registry, not two.
 
@@ -71,12 +73,12 @@ Runtime (root scope)
 │   │   ├── fx.fetch(url)                  ← effect (scoped, auto-abortable)
 │   │   ├── log.info("fetched", { n })     ← log (scoped to span via ALS)
 │   │   └── fx.persist(data)               ← effect (scoped, auto-abortable)
-│   ├── fx.interval(30s, "save")           ← ongoing effect (scoped to model)
+│   ├── scope.timeout(30_000, save)        ← timer (scoped to model)
 │   └── log.debug("model initialized")     ← log (scoped to model's span)
 ├── Model: Navigation
-│   └── fx.interval(100, "scrollAnim")
+│   └── scope.sleep(100) loop              ← timer loop (scoped to model)
 └── View
-    └── fx.subscribe(resize, "onResize")
+    └── fx.subscribe(resize, onResize)
 ```
 
 Every node in this tree has:
@@ -85,7 +87,7 @@ Every node in this tree has:
 - **Lifetime**: starts when created, ends when scope exits
 - **Ownership**: parent created it, parent cleans it up
 - **Context**: inherits parent's trace ID, props, state
-- **Cancellation**: AbortSignal from parent, propagated automatically
+- **Cancellation**: parent dispose cascades to children, checked via `scope.cancelled`
 
 ### Logs ARE scoped
 
@@ -114,92 +116,83 @@ A scope is a single object that unifies five concerns:
 
 ```
 Scope
-├── AbortController          ← cancellation
-├── DisposableStack          ← cleanup
-├── loggily span             ← observability
-├── effect record[]          ← collection (via ALS)
-├── ALS context              ← propagation
+├── cancelled: boolean       ← cancellation (explicit checking)
+├── sleep(ms)                ← scoped timer (resolves on dispose)
+├── timeout(ms, fn)          ← scoped timer (cleared on dispose)
+├── onDispose(fn)            ← cleanup registration
+├── [Symbol.dispose]()       ← lifecycle (sets cancelled, runs cleanups)
+├── loggily span             ← observability (future)
 └── children: Scope[]        ← tree structure
-    └── (linked: parent abort → child abort)
+    └── (linked: parent dispose → child dispose)
+```
+
+### v1 Canonical Interface
+
+The working prototype uses this minimal interface — no `run(effect)`, `spawn()`, `exec()`, `done()`, or `join()`. Cancellation is checked explicitly via `scope.cancelled`, not via implicit propagation.
+
+```typescript
+interface Scope extends Disposable {
+  readonly cancelled: boolean
+  sleep(ms: number): Promise<void>
+  timeout(ms: number, fn: () => void): () => void
+  onDispose(fn: () => void): void
+  [Symbol.dispose](): void
+}
 ```
 
 ### Implementation
 
 ```typescript
-class Scope implements Disposable {
-  #controller = new AbortController()
-  #children: Scope[] = []
-  #cleanups = new DisposableStack()
-  #effects: AsyncEffect[] = []
-  #span: Span
-  #parentAbortHandler?: () => void
+function createScope(parent?: Scope): Scope {
+  let cancelled = false
+  const disposables: (() => void)[] = []
 
-  get signal() {
-    return this.#controller.signal
+  // Parent cancellation cascades to children
+  if (parent) {
+    parent.onDispose(() => scope[Symbol.dispose]())
   }
 
-  constructor(
-    readonly name: string,
-    readonly parent?: Scope,
-    private providers: EffectProviders,
-  ) {
-    // Parent abort → child abort (structured concurrency)
-    if (parent) {
-      parent.#children.push(this)
-      // Guard: parent may already be aborted (race condition)
-      if (parent.signal.aborted) {
-        this.cancel("parent already aborted")
-      } else {
-        this.#parentAbortHandler = () => this.cancel()
-        parent.signal.addEventListener("abort", this.#parentAbortHandler, { once: true })
-      }
-    }
-    // Scope IS a loggily span
-    this.#span = loggily.startSpan(name)
+  const scope: Scope = {
+    get cancelled() {
+      return cancelled
+    },
+
+    async sleep(ms: number) {
+      return new Promise<void>((resolve, reject) => {
+        if (cancelled) return resolve()
+        const id = setTimeout(resolve, ms)
+        scope.onDispose(() => {
+          clearTimeout(id)
+          resolve() // resolve (don't reject) on dispose — callers check `cancelled`
+        })
+      })
+    },
+
+    timeout(ms: number, fn: () => void): () => void {
+      const id = setTimeout(fn, ms)
+      const cancel = () => clearTimeout(id)
+      scope.onDispose(cancel)
+      return cancel
+    },
+
+    onDispose(fn: () => void) {
+      disposables.push(fn)
+    },
+
+    [Symbol.dispose]() {
+      cancelled = true
+      for (const fn of disposables) fn()
+      disposables.length = 0
+    },
   }
 
-  // Run an effect within this scope
-  async run<T>(effect: AsyncEffect<T>): Promise<T> {
-    this.#effects.push(effect)
-    const provider = this.providers[effect.type]
-    // Provider receives the scope's AbortSignal automatically
-    return provider(effect.args, { signal: this.signal, scope: this })
-  }
-
-  // Create a child scope
-  createChild(name: string): Scope {
-    return new Scope(`${this.name}:${name}`, this, this.providers)
-  }
-
-  // Cancel this scope and all children
-  cancel(reason?: string) {
-    this.#controller.abort(reason)
-    // Children cancel via the abort event listener (automatic)
-  }
-
-  // Register cleanup (timers, subscriptions, etc.)
-  defer(cleanup: Disposable | (() => void)) {
-    this.#cleanups.use(cleanup)
-  }
-
-  [Symbol.dispose]() {
-    this.cancel("scope disposed")
-    // Remove abort listener from parent (prevents memory leak on long-lived parent scopes)
-    if (this.parent && this.#parentAbortHandler) {
-      this.parent.signal.removeEventListener("abort", this.#parentAbortHandler)
-    }
-    // Remove from parent's children list
-    if (this.parent) {
-      const idx = this.parent.#children.indexOf(this)
-      if (idx >= 0) this.parent.#children.splice(idx, 1)
-    }
-    this.#cleanups[Symbol.dispose]()
-    this.#span.end()
-  }
+  return scope
 }
 ```
 
-### AsyncEffect — the effect descriptor that's also a thenable
+### AsyncEffect — future/aspirational effect descriptor
+
+> **Note**: AsyncEffect and the `fx.*` namespace are **future/aspirational** — not part of the v1 Scope interface. v1 uses `scope.sleep()`, `scope.timeout()`, and direct async code within a scope's lifetime. The effect descriptor system below is the planned extension for tracked, serializable, provider-backed effects.
 
 Each `fx.*` function returns an `AsyncEffect<T>` — a plain data descriptor that is also `await`-able. When `await`ed, it looks up the current scope via `AsyncLocalStorage` and delegates to the scope's provider.
 
@@ -216,7 +209,7 @@ class AsyncEffect<T> {
 
   then<R>(resolve: (value: T) => R | PromiseLike<R>, reject?: (error: unknown) => R | PromiseLike<R>): Promise<R> {
     const scope = currentScope() // ALS lookup
-    return scope.run(this).then(resolve, reject)
+    return scope.provider(this).then(resolve, reject)
   }
 }
 
@@ -226,12 +219,7 @@ const fx = {
 
   persist: (data: unknown): AsyncEffect<void> => new AsyncEffect("persist", { data }),
 
-  interval: (ms: number, update: string): AsyncEffect<Disposable> => new AsyncEffect("interval", { ms, update }),
-
   all: <T>(effects: AsyncEffect<T>[]): AsyncEffect<T[]> => new AsyncEffect("all", { effects }),
-
-  dispatch: (model: Model, update: string, args?: unknown): AsyncEffect<void> =>
-    new AsyncEffect("dispatch", { model, update, args }),
 }
 ```
 
@@ -239,9 +227,11 @@ const fx = {
 
 `fx.from(impl)` will wrap any object's methods into scoped effect providers. `fx.effect(name)` declares abstract capabilities provided at runtime. Both are deferred to post-v1 — see [Appendix: Advanced Effect Policies](#appendix-advanced-effect-policies) for the full design including serialization and execution policy matrices.
 
-For v1, effects are created explicitly via `fx.delay()`, `fx.interval()`, and hand-written `AsyncEffect` constructors in the `fx` namespace.
+For v1, timers use `scope.sleep(ms)` and `scope.timeout(ms, fn)` directly. The `fx.*` / `AsyncEffect` system is planned for post-v1.
 
-### Effect providers — where AbortSignal meets I/O
+### Effect providers (future) — where AbortSignal meets I/O
+
+> **Note**: Providers are the future execution layer for the `AsyncEffect` system (post-v1). In v1, timers use `scope.sleep()` / `scope.timeout()` directly, and I/O is done via direct async calls within a scope's lifetime.
 
 Providers are where effects actually execute. Every provider receives the scope's `AbortSignal` automatically — no manual threading.
 
@@ -259,88 +249,70 @@ const providers: EffectProviders = {
     await db.save(data, { signal })
   },
 
-  // interval — returns a Disposable, registers cleanup on scope
-  async interval({ ms, update }, { signal, scope }) {
-    const id = setInterval(() => runtime.send(update), ms)
-    const handle = {
-      [Symbol.dispose]() {
-        clearInterval(id)
-      },
-    }
-    // Auto-cancel when scope exits
-    scope.defer(handle)
-    // Also cancel if signal fires
-    signal.addEventListener("abort", () => handle[Symbol.dispose](), { once: true })
-    return handle
-  },
-
   // all — structured concurrency: child scope per effect, cancel siblings on failure
   async all({ effects }, { scope }) {
-    const childScope = scope.createChild("all")
+    using childScope = createScope(scope)
     try {
       return await Promise.all(effects.map((effect) => scopeContext.run(childScope, () => effect.then((v) => v))))
     } catch (e) {
-      childScope.cancel("sibling failed")
-      throw e
-    } finally {
       childScope[Symbol.dispose]()
+      throw e
     }
-  },
-
-  // dispatch — cross-model messaging
-  async dispatch({ model, update, args }, { scope }) {
-    const instance = runtime.getInstance(model)
-    return instance[update](args)
   },
 }
 ```
 
 ### The update author's experience
 
-The developer writes plain async functions. Scoping, cancellation, tracing, and effect recording are automatic:
+The developer writes plain async functions. The scope provides cancellation checking and timers:
 
 ```typescript
 // createModel wraps a factory → typed hook (see state-api-redesign.md §Sip 3)
-const useTodo = createModel(() => {
+const useTodo = createModel((scope: Scope) => {
   const items = signal<Item[]>([])
-  const autoSave = signal<Disposable | null>(null)
 
   return {
     items,
-    autoSave,
 
     // No effects — plain function
     add({ text }: { text: string }) {
       items.value = [...items.value, { text, done: false }]
     },
 
-    // Effects — async function, await typed effects
+    // Effects — async function, direct calls within scope lifetime
     async save() {
-      await fx.persist({ data: items.value })
+      await db.save(items.value)
     },
 
-    // Sequential — each await is scoped, abortable, traced
+    // Sequential — each step checks scope.cancelled
     async importAndSave({ url }: { url: string }) {
-      const data = await fx.fetch(url) // Response — typed naturally
+      const response = await fetch(url)
+      const data = await response.json()
+      if (scope.cancelled) return
       items.value = data
-      await fx.persist({ data })
+      await db.save(data)
     },
 
-    // Ongoing effects — returns Disposable
-    async startAutoSave() {
-      autoSave.value = await fx.interval(30_000, "save")
+    // Ongoing — scope.timeout for periodic saves
+    startAutoSave() {
+      const autoSave = () => {
+        if (scope.cancelled) return
+        db.save(items.value)
+        scope.timeout(30_000, autoSave)
+      }
+      scope.timeout(30_000, autoSave)
     },
 
-    // Parallel — structured concurrency
+    // Parallel — structured concurrency via child scope
     async batchImport({ urls }: { urls: string[] }) {
-      const results = await fx.all(urls.map((url) => fx.fetch(url)))
-      // If any fails, siblings are cancelled (scope cancel propagates)
-      await fx.persist({ data: results })
+      const results = await Promise.all(urls.map((url) => fetch(url).then((r) => r.json())))
+      if (scope.cancelled) return
+      await db.save(results)
     },
 
-    // Cross-model dispatch
-    async confirm() {
-      await fx.dispatch(useBoard, "addItem", { text: items.value[0]?.text })
+    // Cross-model — direct method call
+    async confirm(board: Board) {
+      board.addItem({ text: items.value[0]?.text })
     },
   }
 })
@@ -350,50 +322,50 @@ const useTodo = createModel(() => {
 
 ```typescript
 // 1. User triggers importAndSave
-// Runtime creates a child scope: app:todo:importAndSave
+// Runtime creates a child scope for the operation
 
-async importAndSave(s, { url }) {
-  // 2. await fx.fetch(url)
-  //    → AsyncEffect.then() looks up scope via ALS
-  //    → scope.run() calls fetch provider with { signal: scope.signal }
-  //    → provider calls native fetch(url, { signal })
-  const data = await fx.fetch(url)
+async importAndSave(scope: Scope, s, { url }) {
+  // 2. Fetch data — standard async call
+  const response = await fetch(url)
+  const data = await response.json()
 
-  // 3. If the model unmounts DURING the fetch:
-  //    → model scope cancels
-  //    → model scope's abort event fires
-  //    → child scope (importAndSave) receives abort, calls this.cancel()
-  //    → child scope's AbortController fires
-  //    → signal passed to fetch(url, { signal }) triggers
-  //    → fetch throws AbortError
-  //    → await rejects
-  //    → async function exits (finally block runs if present)
-  //    → child scope disposed (span closed, cleanups run)
+  // 3. Check cancellation explicitly after each await
+  //    If the model unmounts DURING the fetch:
+  //    → parent scope disposes
+  //    → child scope's onDispose callbacks fire
+  //    → scope.cancelled becomes true
+  //    → next check exits the function
+  if (scope.cancelled) return
 
   s.items.value = data
-  await fx.persist({ data })
+  await db.save(data)
 }
 
-// 4. Error handling — standard try/catch, runs within the scope
-async importAndSave(s, { url }) {
+// 4. Error handling — standard try/catch
+async importAndSave(scope: Scope, s, { url }) {
   try {
-    const data = await fx.fetch(url)
+    const response = await fetch(url)
+    const data = await response.json()
+    if (scope.cancelled) return
     s.items.value = data
-    await fx.persist({ data })
+    await db.save(data)
   } catch (e) {
-    if (e.name === "AbortError") return       // cancelled — nothing to do
-    await fx.toast({ message: `Import failed: ${e.message}` })
+    if (scope.cancelled) return               // cancelled — nothing to do
+    log.error?.(`Import failed: ${e.message}`)
   } finally {
     log.info?.("cleanup complete")            // always runs
   }
 }
 
-// 5. Manual cancellation via Disposable handle
-async startAutoSave(s) {
-  s.autoSave.value = await fx.interval(30_000, "save")
-  // Later:
-  s.autoSave.value[Symbol.dispose]()          // stops the interval
-  // Or: model unmount cancels the scope → interval cleaned up automatically
+// 5. Periodic timer via scope.timeout
+function startAutoSave(scope: Scope, s) {
+  const tick = () => {
+    if (scope.cancelled) return
+    db.save(s.items.value)
+    scope.timeout(30_000, tick)               // schedule next tick
+  }
+  scope.timeout(30_000, tick)
+  // Model unmount disposes the scope → pending timeout cleaned up automatically
 }
 ```
 
@@ -401,43 +373,40 @@ async startAutoSave(s) {
 
 ```
 Model unmounts
-  → model scope.cancel()
-    → AbortController.abort()
-      → child scope "importAndSave" receives abort event
-        → child scope.cancel()
-          → AbortController.abort()
-            → signal passed to fetch() fires
-              → fetch throws AbortError
-                → await rejects
-                  → async function exits
-                    → finally block runs
-      → child scope "autoSave" receives abort event
-        → DisposableStack cleans up
-          → clearInterval()
+  → model scope[Symbol.dispose]()
+    → scope.cancelled = true
+    → onDispose callbacks fire
+      → child scope "importAndSave" disposed
+        → child scope.cancelled = true
+        → pending sleep/timeout cleared
+        → next `if (scope.cancelled) return` exits the function
+      → child scope "autoSave" disposed
+        → pending timeout cleared (clearTimeout)
       → loggily span ends (with cancellation metadata)
 ```
 
-Nothing outlives its parent. Every pending I/O operation aborts. Every timer clears. Every span closes. Automatic, via the platform's own `AbortSignal` propagation.
+Nothing outlives its parent. Every pending timer clears. Every span closes. Cancellation is checked explicitly via `scope.cancelled`.
 
 ## Scope Plugins (`with*` composition)
 
-The base scope is minimal: AbortController + children + ALS context. Everything else is composable via `with*` wrappers — the same SlateJS-style plugin pattern used throughout Silvery. Each `with*` wraps `run()` — the single point where effects execute.
+The base scope is minimal: `cancelled`, `sleep()`, `timeout()`, `onDispose()`, `[Symbol.dispose]()`. Everything else is composable via `with*` wrappers — the same SlateJS-style plugin pattern used throughout Silvery. Each `with*` wraps the scope's methods to add behavior.
 
-**v1 plugins**: `withRecording()` (capture effect descriptors for testing), `withTestClock()` (controllable time for timer tests).
+**v1 plugins**: `withTestClock()` (controllable time for `sleep`/`timeout` tests).
 
 **Future plugins**: `withTracing()`, `withRetry()`, `withRateLimit()`, `withSupervision()`, `withDevtools()` — see [Appendix: Advanced Plugins](#appendix-advanced-plugins).
 
 ```typescript
-// v1 — recording for tests
-const scope = pipe(createScope("test"), withRecording())
-await scope.run(() => todo.save(state))
-expect(scope.effects).toEqual([fx.persist({ data: items })])
+// v1 — test clock for deterministic timer tests
+const clock = createTestClock()
+const scope = pipe(createScope(), withTestClock(clock))
+scope.timeout(1000, () => model.save())
+await clock.advance(1000)  // timer fires synchronously
 
 // Future — composing multiple plugins
-const runtime = pipe(
-  createRuntime({ fetch, persist }),
-  withTracing(), // loggily span per effect
-  withRecording(), // capture descriptors
+const scope = pipe(
+  createScope(),
+  withTracing(),    // loggily span per scope operation
+  withTestClock(),  // controllable time
 )
 ```
 
@@ -446,92 +415,90 @@ Same composition model everywhere (see [state-api-redesign.md](./state-api-redes
 ```
 State:    pipe(createState({...}), withUndo(), withValidation())
 Runtime:  pipe(createRuntime({...}), withTracing(), withRecording())
-Scopes:   pipe(createScope(name), withRetry(), withRateLimit())
+Scopes:   pipe(createScope(), withRetry(), withRateLimit())
 ```
 
 ### Testing
 
-Two levels of testing:
+Tests create scopes directly and pass them to the code under test:
 
 ```typescript
-// Level 1: Fire-and-forget effects — just collect descriptors
-// Works when the update doesn't depend on effect return values
+// Level 1: Simple scope — verify behavior within scope lifetime
 test("save persists items", async () => {
-  const effects = await collect(() => todo.save(state))
-  expect(effects).toEqual([fx.persist({ data: items })])
+  using scope = createScope()
+  const db = mockDb()
+  await todo.save(scope, state, db)
+  expect(db.saved).toEqual([items])
 })
 
-// Level 2: Data-dependent effects — provide mock providers
-// Required when downstream code uses effect results (common case)
-test("importAndSave fetches then persists", async () => {
-  const scope = testScope({ fetch: () => mockData })
-  await scope.run(() => todo.importAndSave(state, { url: "/api" }))
-
-  expect(scope.effects).toEqual([fx.fetch("/api"), fx.persist({ data: mockData })])
-  expect(state.items.value).toEqual(mockData)
+// Level 2: Cancellation behavior
+test("cancellation stops import", async () => {
+  using scope = createScope()
+  const promise = todo.importAndSave(scope, state, { url: "/slow" })
+  scope[Symbol.dispose]()  // cancel mid-flight
+  await promise
+  expect(scope.cancelled).toBe(true)
+  expect(state.items.value).toEqual([])  // no mutation after cancel
 })
 
-// Level 2b: Cancellation behavior
-test("cancellation aborts pending effects", async () => {
-  const scope = testScope({ fetch: () => delay(1000) })
+// Level 3: Timer behavior with test clock
+test("auto-save fires on schedule", async () => {
+  const clock = createTestClock()
+  using scope = pipe(createScope(), withTestClock(clock))
+  const db = mockDb()
 
-  const promise = scope.run(() => todo.importAndSave(state, { url: "/slow" }))
-  scope.cancel("test cancellation")
+  todo.startAutoSave(scope, state, db)
 
-  await expect(promise).rejects.toThrow("AbortError")
+  await clock.advance(30_000)  // first tick
+  expect(db.saved).toHaveLength(1)
+
+  await clock.advance(30_000)  // second tick
+  expect(db.saved).toHaveLength(2)
 })
 ```
 
-`collect()` is a thin wrapper — recording scope with no-op providers:
-
-```typescript
-async function collect(fn: () => Promise<void>): Promise<AsyncEffect[]> {
-  const scope = pipe(createScope("collect"), withRecording())
-  await scope.run(fn) // effects recorded, providers are no-ops
-  return scope.effects
-}
-```
-
-Level 1 works for fire-and-forget effects (`fx.persist(data)`, `fx.toast(msg)`) where the update doesn't use the return value. But when downstream code depends on effect results (`const data = await fx.fetch(url); s.items.value = data`), mock providers are required — `collect()` returns `undefined` and downstream code breaks. There's no free lunch — if your code uses an effect's result, the test must provide it.
+No `scope.run()` or effect descriptors — tests exercise real code with real (or mocked) dependencies. The scope provides lifecycle and timers; everything else is direct.
 
 ### Testing timer effects: `withTestClock()`
 
-Timer effects (`fx.delay`, `fx.interval`) are time-dependent — tests shouldn't wait for real time to pass. The `withTestClock()` plugin replaces timer providers with a controllable clock:
+`scope.sleep()` and `scope.timeout()` are time-dependent — tests shouldn't wait for real time to pass. The `withTestClock()` plugin replaces them with a controllable clock:
 
 ```typescript
 test("debounced search waits 300ms then fires", async () => {
   const clock = createTestClock()
-  const scope = pipe(testScope(), withTestClock(clock))
+  using scope = pipe(createScope(), withTestClock(clock))
+  const fetched: string[] = []
 
-  const promise = scope.run(() => search.debounced(state, { query: "foo" }))
+  search.debounced(scope, state, { query: "foo", onFetch: (url) => fetched.push(url) })
 
   // No time has passed — search hasn't fired yet
-  expect(scope.effects).not.toContainEqual(fx.fetch(expect.anything()))
+  expect(fetched).toHaveLength(0)
 
   // Advance 300ms — debounce fires
   await clock.advance(300)
-  expect(scope.effects).toContainEqual(fx.fetch("/search?q=foo"))
+  expect(fetched).toContain("/search?q=foo")
 })
 
-test("interval fires repeatedly", async () => {
+test("periodic save fires repeatedly", async () => {
   const clock = createTestClock()
-  const scope = pipe(testScope({ save: () => {} }), withTestClock(clock))
+  using scope = pipe(createScope(), withTestClock(clock))
+  const db = mockDb()
 
-  await scope.run(() => todo.startAutoSave(state))
+  todo.startAutoSave(scope, state, db)
 
   await clock.advance(30_000) // first tick
-  expect(scope.effects.filter((e) => e.type === "persist")).toHaveLength(1)
+  expect(db.saved).toHaveLength(1)
 
   await clock.advance(30_000) // second tick
-  expect(scope.effects.filter((e) => e.type === "persist")).toHaveLength(2)
+  expect(db.saved).toHaveLength(2)
 })
 ```
 
-`withTestClock()` intercepts `fx.delay` and `fx.interval` providers. `clock.advance(ms)` resolves pending timers synchronously. No real `setTimeout` calls, no flaky timing. Works with `scope.cancel()` — cancelling the scope clears all pending timers.
+`withTestClock()` intercepts `scope.sleep()` and `scope.timeout()`. `clock.advance(ms)` resolves pending timers synchronously. No real `setTimeout` calls, no flaky timing. Disposing the scope clears all pending timers.
 
 ## How Loggily Becomes the Scope Tree (Future)
 
-Loggily already has span hierarchy, ALS propagation, Disposable cleanup, and zero-overhead conditional logging. The scope tree maps naturally: each scope IS a loggily span. Silvery adds cancellation propagation (AbortController per scope), effect recording (`withRecording()`), structured concurrency (`fx.all()`), and operational plugins (`withRetry()`, `withRateLimit()`).
+Loggily already has span hierarchy, ALS propagation, Disposable cleanup, and zero-overhead conditional logging. The scope tree maps naturally: each scope IS a loggily span. Silvery adds cancellation propagation (parent dispose → child dispose), timer primitives (`scope.sleep()`, `scope.timeout()`), and operational plugins (`withRetry()`, `withRateLimit()`).
 
 Two v1-adjacent additions that depend on scopes but not full loggily integration:
 
@@ -540,7 +507,7 @@ Two v1-adjacent additions that depend on scopes but not full loggily integration
 
 ## Why async/await Over Generators
 
-An earlier version used generators (`yield*` with typed adapters). We switched to async/await for three reasons: natural TypeScript typing (`await fx.fetch(url)` returns `Response` — no adapter trick for TS's single-`Next`-type limitation [#32523](https://github.com/microsoft/TypeScript/issues/32523)), platform-native cancellation via AbortSignal, and universal familiarity. What we lose: generators' synchronous `collect()` and explicit step-by-step control. What we gain: the scope tree as the universal collection/tracing/cancellation mechanism.
+An earlier version used generators (`yield*` with typed adapters). We switched to async/await for three reasons: natural TypeScript typing (async functions return typed Promises naturally — no adapter trick for TS's single-`Next`-type limitation [#32523](https://github.com/microsoft/TypeScript/issues/32523)), explicit cancellation checking via `scope.cancelled`, and universal familiarity. What we lose: generators' synchronous `collect()` and explicit step-by-step control. What we gain: the scope tree as the universal lifecycle/tracing/cancellation mechanism.
 
 ## Prior Art
 
@@ -562,22 +529,22 @@ An earlier version used generators (`yield*` with typed adapters). We switched t
 | **DI**            | CoroutineContext        | None                 | Layers + Context        | Pluggable providers           |
 | **Observability** | None built-in           | None built-in        | Built-in tracing        | Unified with loggily          |
 | **Scope tree**    | Yes (Job hierarchy)     | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)      |
-| **Cleanup**       | Job.invokeOnCompletion  | Generator teardown   | Scope finalizers        | DisposableStack + abort       |
-| **Cancellation**  | CancellationException   | Generator throw      | Fiber interruption      | AbortSignal (platform)        |
+| **Cleanup**       | Job.invokeOnCompletion  | Generator teardown   | Scope finalizers        | `onDispose()` + `using`       |
+| **Cancellation**  | CancellationException   | Generator throw      | Fiber interruption      | `scope.cancelled` (explicit)  |
 | **Plugins**       | CoroutineContext elems  | None                 | Layers                  | `with*` composition           |
-| **Testing**       | `runTest { }`           | Run generators       | Provide test layers     | Swap providers, inspect scope |
+| **Testing**       | `runTest { }`           | Run generators       | Provide test layers     | `withTestClock()`, mock deps  |
 
 ## What This Enables
 
-**Testing**: Swap providers, run updates, inspect `scope.effects` + state. No mocks for the effect system itself — mock at the provider boundary.
+**Testing**: Create scopes with `withTestClock()`, pass to code under test, verify behavior and `scope.cancelled` state. Mock at the dependency boundary (db, fetch), not the scope itself.
 
-**Debugging**: `TRACE=1` shows the live scope tree — which effects are running, how long they took, what failed. No separate debugging infrastructure.
+**Debugging**: `TRACE=1` shows the live scope tree — which scopes are active, their nesting, what timers are pending. No separate debugging infrastructure.
 
-**AI agents**: The scope tree is inspectable at runtime. An AI agent can see what effects are active, what's pending, what failed. Combined with the command tree and state access, the agent has full visibility into the app's execution.
+**AI agents**: The scope tree is inspectable at runtime. An AI agent can see which scopes are active and their nesting. Combined with the command tree and state access, the agent has full visibility into the app's execution.
 
-**Replay**: Record `scope.effects` + provider results. Replay by providing a provider that feeds back recorded results in sequence.
+**Replay**: Record scope operations (sleep/timeout calls) + dependency results. Replay by providing mock dependencies that feed back recorded results in sequence.
 
-**Time-travel debugging**: Snapshot state at scope boundaries. Step forward/backward through scopes. Each scope is a self-contained unit with clear inputs (args), outputs (state mutations + effects), and duration.
+**Time-travel debugging**: Snapshot state at scope boundaries. Step forward/backward through scopes. Each scope is a self-contained unit with clear inputs (args), outputs (state mutations), and duration.
 
 ## Open Questions
 
@@ -585,7 +552,7 @@ An earlier version used generators (`yield*` with typed adapters). We switched t
 
 - **Scope-level error boundaries.** Should model scopes have `withErrorBoundary()` (catch and recover vs propagate)?
 
-- **Non-cancellable blocks.** Kotlin has `NonCancellable` for cleanup code that must complete. `scope.defer()` likely covers most cases; `withNonCancellable()` if needed.
+- **Non-cancellable blocks.** Kotlin has `NonCancellable` for cleanup code that must complete. `scope.onDispose()` likely covers most cases; `withNonCancellable()` if needed.
 
 ---
 
@@ -619,44 +586,49 @@ Layer priority: runtime > scope > fx definition. Default to raw args (zero overh
 
 _Deferred from v1. Included here for design completeness._
 
-Each `with*` wraps `scope.run()` — the single point where effects execute:
+Each `with*` wraps the scope's methods to add behavior:
 
 ```typescript
-// withRetry — wraps run() to retry failed effects
+// withRetry — wraps timeout to retry on failure
 const withRetry =
   ({ attempts, backoff }) =>
-  <T extends { run: Function }>(scope: T) => {
-    const { run } = scope
-    scope.run = async (effect) => {
-      for (let i = 0; i < attempts; i++) {
+  (scope: Scope): Scope => {
+    const { timeout } = scope
+    scope.timeout = (ms, fn) => {
+      let attempt = 0
+      const tryFn = () => {
         try {
-          return await run(effect)
+          fn()
         } catch (e) {
-          if (i === attempts - 1) throw e
-          if (backoff === "exponential") await delay(2 ** i * 100)
+          if (++attempt < attempts) {
+            const delay = backoff === "exponential" ? 2 ** attempt * 100 : ms
+            timeout(delay, tryFn)
+          } else {
+            throw e
+          }
         }
       }
+      return timeout(ms, tryFn)
     }
     return scope
   }
 
-// withTracing — wraps run() to create a loggily span per effect
+// withTracing — wraps sleep/timeout to create loggily spans
 const withTracing =
   () =>
-  <T extends { run: Function }>(scope: T) => {
-    const { run } = scope
-    scope.run = (effect) => {
-      const span = loggily.startSpan(effect.type, effect.args)
-      return run(effect).then(
-        (v) => {
-          span.end()
-          return v
-        },
-        (e) => {
-          span.end(e)
-          throw e
-        },
-      )
+  (scope: Scope): Scope => {
+    const { sleep, timeout } = scope
+    scope.sleep = async (ms) => {
+      const span = loggily.startSpan("sleep", { ms })
+      await sleep(ms)
+      span.end()
+    }
+    scope.timeout = (ms, fn) => {
+      return timeout(ms, () => {
+        const span = loggily.startSpan("timeout", { ms })
+        fn()
+        span.end()
+      })
     }
     return scope
   }

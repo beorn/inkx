@@ -25,15 +25,16 @@ function Counter() {
 await run(<Counter />)
 
 // ── Sip 2: Shared state via signals ────────────────────────
-import { run, signal } from "silvery"
+import { run, signal, useSignal } from "silvery"
 
 const count = signal(0)
 
 function Counter() {
+  const c = useSignal(count) // subscribe via useSyncExternalStore
   useInput((key) => {
     if (key === "j") count.value++
   })
-  return <Text>Count: {count.value}</Text>
+  return <Text>Count: {c}</Text>
 }
 
 await run(<Counter />)
@@ -71,6 +72,10 @@ function ChatView() {
 }
 
 await run(<ChatView />)
+
+// ── Product boundary ──────────────────────────────────────────
+// Sips 1-3 use silvery (rendering + signals). Sips 4-8 add silvertea (app framework).
+// You can stop at any sip.
 
 // ── Sip 4: App composition + commands ─────────────────────────
 // An app has two concerns: model (state + behavior) and runtime (I/O + lifecycle).
@@ -387,6 +392,14 @@ The runtime surface owns the scope tree. Effects form a hierarchy: runtime scope
 
 For the full effects system — `AsyncEffect` implementation, `fx.from()` API wrapping, serialization policies, providers, structured concurrency details, cancellation cascading, scopes-as-loggily-spans, testing patterns (`collect()`, `testScope()`, `withTestClock()`) — see [scope-tree.md](./scope-tree.md).
 
+**Three levels of effects** — these are a progression, not alternatives:
+
+- **Level 0: Direct provider call** (`rt.persist.write(...)`) — simplest, no scope participation
+- **Level 1: Scope methods** (`scope.timeout()`, `scope.sleep()`) — cancellable, lifecycle-aware
+- **Level 2: Effect descriptors** (`fx.persist(...)`, future) — testable, recordable, replayable
+
+Start at Level 0; promote when you need the capabilities of higher levels.
+
 ### Content streaming via generators
 
 Two yield mechanisms, each matching its JS primitive:
@@ -448,18 +461,25 @@ This replaces the current `useTea` pattern of `streamPhase` / `revealFraction` /
 
 ### Built-in timer effects
 
-Timer effects are provided by the runtime as pre-wrapped APIs:
+Timer effects use scope methods — cancellable and lifecycle-aware:
 
 ```typescript
-fx.delay(ms)                 // AsyncEffect<void> — awaitable pause
-fx.interval(ms, update)      // AsyncEffect<Disposable> — repeating, auto-cleanup
+scope.timeout(ms, fn)        // one-shot timer, auto-cancelled on scope disposal
+scope.sleep(ms)              // awaitable pause (use in async loops for intervals)
 
 async startAutoSave(s) {
-  s.autoSave.value = await fx.interval(30_000, "save")
+  // Interval via async loop — scope cancellation breaks the sleep
+  ;(async () => {
+    while (!scope.cancelled) {
+      await scope.sleep(30_000)
+      if (!scope.cancelled) await s.save()
+    }
+  })()
 },
-async stopAutoSave(s) {
-  s.autoSave.value[Symbol.dispose]()
-  // or: model unmount → scope cancels → interval cleaned up automatically
+
+// One-shot delay
+async delayedAction(s) {
+  scope.timeout(500, () => s.flash.value = false)
 },
 ```
 
@@ -574,6 +594,8 @@ type ModelHook<T> = {
 
 `createModel` IS the bridge between signals (Layer 1) and Zustand-like hook ergonomics (Layer 3). The factory IS the model definition; `createModel` adds the subscription/hook machinery.
 
+**Instance scoping**: `createModel(factory)` returns a model hook (a factory), not an instance. `hook.create({ ...deps })` creates an isolated instance bound to the provided dependencies. When used with `createApp`, instances are bound to the app's scope — multiple app instances create multiple model instances (not module singletons). `.get()` returns the instance in the current scope context.
+
 ### Models collection
 
 Model hooks are module-level singletons. For apps with multiple models, `createApp` binds all of them to providers at once:
@@ -662,6 +684,8 @@ function createChat(rt: { persist: PersistAPI; ai: AIAPI }) { ... }
 
 All three interoperate — TypeScript's structural typing means `Pick<typeof providers, "persist">` and `{ persist: PersistAPI }` are the same type as long as shapes match. Start with Level 1 everywhere. Promote to Level 2 or 3 only when needed.
 
+**Rule of thumb**: Use `Pick<>` for app-internal code, named capability interfaces for shared plugins/packages.
+
 ## External Callers
 
 Anything outside the model can call methods directly via `.get()`. No special API — just code.
@@ -676,13 +700,14 @@ For automation known at app creation — auto-advance, AI agent, recording:
 function withAutoAdvance(script): AppPlugin {
   return (app) => {
     // Async work in the app's scope — scoped, cancellable, traced
-    app.rt.scope.spawn("autoAdvance", async () => {
+    ;(async () => {
       for (const entry of script) {
+        if (scope.cancelled) break
         useChat.get().submit({ text: entry.content })
         await useChat.get().streaming.waitFor(v => !v)
-        await fx.delay(400)
+        await scope.sleep(400)
       }
-    })
+    })()
     return app
   }
 }
@@ -761,7 +786,7 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 11. **React bridge as separate entry point.** `@silvery/tea/react`, `/svelte`, `/vue`.
 12. **Function-calling style over discriminated unions.** Named methods, not switch-case dispatch.
 13. **Async effects with `AsyncEffect<T>`.** Async functions `await` typed effect descriptors; scoped via `AsyncLocalStorage`. See [scope-tree.md](./scope-tree.md).
-14. **Built-in timer effects.** `fx.delay(ms)`, `fx.interval(ms, update)` with auto-cleanup via scope.
+14. **Built-in timer effects.** `scope.timeout(ms, fn)` for one-shot, `scope.sleep(ms)` in async loops for intervals — cancellable via scope lifecycle.
 15. **Auto-cleanup via AbortSignal.** Cancellation propagates down; errors up. No effect outlives its parent.
 16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()` — any schema library works. Zod is the ergonomic choice (signal defaults via `z.number().default(cursor)`), not a dependency.
 17. **Structured concurrency via scope tree.** See [scope-tree.md](./scope-tree.md).
@@ -809,11 +834,11 @@ Plugins can collide — same command name, both modify `updates`, etc. Guideline
 | `function update(s, msg) { switch... }`      | `start() {}, tick() {}` (methods on object)   |
 | `const [state, send] = useTea(init, update)` | `const useChat = createModel(() => { ... })`  |
 | `send({ type: "start" })`                    | `useChat.get().submit()` (direct method call) |
-| `[state, [fx.delay(...)]]` return            | `async start(s) { await fx.delay(...) }`      |
+| `[state, [fx.delay(...)]]` return            | `async start(s) { await scope.sleep(...) }`   |
 | `streamPhase` / `revealFraction` / timers    | `async *respond(s) { yield }` (generator)     |
 | `collect([state, effects])` on return value  | `await collect(() => state.chat.respond())`   |
 
-The `fx.*` constructors, `collect()`, and timer effect types survive unchanged. Only the wiring layer changes.
+The `collect()` helper survives unchanged. Timer effects migrate from `fx.delay`/`fx.interval` to scope methods (`scope.sleep`, `scope.timeout`). Only the wiring layer changes.
 
 ### The three eras
 

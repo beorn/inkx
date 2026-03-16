@@ -32,9 +32,15 @@ Silvery apps are built from four concepts: **signals** (reactive state), **model
    run(app) → lifecycle, rendering, event loop
 ```
 
-## The Four Design Docs
+## Design Docs
 
-### 1. State API → [state-api-redesign.md](./state-api-redesign.md)
+Three tiers — core first, then packaging/rendering, then vision.
+
+### Core (5 docs)
+
+_This file_ (architecture-overview) is the entry point. The other four:
+
+#### State API → [state-api-redesign.md](./state-api-redesign.md)
 
 The programming model. Eight progressive "sips" from `useState` to full apps.
 
@@ -44,7 +50,7 @@ The programming model. Eight progressive "sips" from `useState` to full apps.
 - **Providers** are plain typed objects for I/O capabilities; models declare dependencies as **capability interfaces** (e.g., `{ persist: PersistProvider }`) rather than coupling to the app-global provider registry type
 - **Async generators** for content streaming — `async function*` yields chunks, signals trigger re-renders
 
-### 2. App Composition → [app-composition.md](./app-composition.md)
+#### App Composition → [app-composition.md](./app-composition.md)
 
 How apps are assembled from plugins.
 
@@ -54,7 +60,7 @@ How apps are assembled from plugins.
 - **Surface plugins** (terminal, browser) contribute to both model and runtime — they're just plugins, no special abstraction
 - **Composition via `pipe()`**: `pipe(createApp(), withPersist(...), withChat(...), withHistory(), withTerminal(...))`
 
-### 3. Commands + Input → [command-centric.md](./command-centric.md), [input-system.md](./input-system.md)
+#### Commands + Input → [command-centric.md](./command-centric.md), [input-system.md](./input-system.md)
 
 Every user action is a discoverable command. Commands are `{ fn, args? }` objects organized as a nested tree.
 
@@ -64,7 +70,7 @@ Every user action is a discoverable command. Commands are `{ fn, args? }` object
 - **Complete by construction** — if the user can do it, there's a command for it
 - **Stable identity**: Commands are identified by their object path (e.g., `commands.chat.submit`). For external APIs (CLI, MCP, docs), paths are serialized as dot-separated strings with namespaced prefixes. Args schemas provide versioning — breaking changes are schema migrations.
 
-### 4. Scope Tree → [scope-tree.md](./scope-tree.md)
+#### Scope Tree → [scope-tree.md](./scope-tree.md)
 
 Structured concurrency, effects, observability, and lifecycle in one tree.
 
@@ -74,32 +80,45 @@ Structured concurrency, effects, observability, and lifecycle in one tree.
 - **Context propagation**: `AsyncLocalStorage` on Node.js/Bun; explicit `scope` parameter as portable fallback. Effects resolve their scope via `AsyncLocalStorage.getStore()` when available, or accept an explicit scope argument.
 - **Testing**: swap providers, use `withTestClock()` for timers, `collect()` to inspect effect descriptors
 
+### Packaging & Rendering (3 docs)
+
+- **[packaging-model.md](./packaging-model.md)** — Package decomposition, framework x platform matrix
+- **[composability.md](./composability.md)** — Universal rendering tradeoffs, gap analysis
+- **[windowing.md](./windowing.md)** — Focus, tabs, panes, windows, overlays, responder chain
+
+### Vision (2 docs)
+
+- **[ai-mode.md](./ai-mode.md)** — AI agents driving command-centric apps
+- **[app-explosion.md](./app-explosion.md)** — The vision: what this all enables
+
 ## How They Connect
 
 ```
 State API (signals, models)
-    ↓ models expose methods
-App Composition (plugins, op(), apply())
-    ↓ commands are { fn, args? } objects
+    ↓ model factories create state + commands
+App Composition (plugins extend app via pipe())
+    ↓ commands exist as live object refs; keymaps bind keys to them
 Commands + Input (keymaps, dispatch)
     ↓ effects execute in scoped context
 Scope Tree (concurrency, lifecycle)
 ```
 
+**Setup order**: Model factories (e.g., `withChat`) create both the model state and command objects (`commands.chat.submit`) as live object refs. These exist before any surface plugin runs. `withTerminal` receives the already-created command refs and builds a keymap binding keys to them.
+
 A concrete flow — user presses Enter in the terminal:
 
 1. **Scope Tree**: Terminal source yields keypress event via async iterable within its scope
-2. **Input System**: Keymap maps Enter → `{ command: commands.chat.submit }` via `when` predicates; `invoke()` resolves args
+2. **Input System**: Keymap maps Enter → `{ command: commands.chat.submit }` (an existing object ref) via `when` predicates; `invoke()` resolves args
 3. **App Composition**: `fn()` calls `op(app.model).chat.submit()` → routes through `apply()` → plugins intercept (undo records, tracing logs)
 4. **State API**: `chat.submit()` writes to `exchanges` signal → O(1) subscriber notification → React re-renders
 
 ## Plugin Composition: Type-Safe Accumulation
 
-Plugins contribute to **named slots** — each plugin returns a manifest of contributions, and `pipe()` merges them with explicit semantics per slot:
+Plugins are `(app) => app` functions. Each plugin receives the app and extends its namespaces directly — adding state to `app.model`, registering entries in `app.commands`, contributing I/O capabilities to `app.rt.providers`, or wrapping `app.apply()`. `pipe()` chains plugins left-to-right, threading the app through each one:
 
 ```typescript
-// Each plugin contributes to named slots (model, providers, commands, wrapApply, hooks)
-// pipe() deep-merges object slots, chains scalar slots
+// Each plugin extends app.model, app.commands, app.rt.providers directly
+// pipe() chains plugins left-to-right
 
 const app = pipe(
   createApp(),                    // App
@@ -111,11 +130,11 @@ const app = pipe(
 // TypeScript sees the full accumulated type — app.model.chat, app.rt.providers.persist, etc.
 ```
 
-This is **generic accumulation via intersection types**, not a builder pattern. Each plugin is a standalone function that can be authored independently. The `pipe()` utility handles the merge — each plugin returns a manifest of contributions, not a raw spread. Type safety comes from TypeScript's intersection types modeling the accumulated result type, while `pipe()` implements the actual merge mechanics.
+This is **generic accumulation via intersection types**, not a builder pattern. Each plugin is a standalone function that can be authored independently. It mutably extends the app's namespaces (model, providers, commands) and returns the widened type. Type safety comes from TypeScript's intersection types modeling the accumulated result type.
 
 **Why not a builder pattern?** Builders require a central class that knows about all possible extensions. Intersection accumulation lets any package define a plugin without the core knowing about it. The plugin IS the extension — no registration ceremony.
 
-**Merge semantics**: Plugins contribute to named slots. Object slots (`model.*`, `rt.providers.*`, `commands.*`) are deep-merged by namespace. Scalar slots (`wrapApply`) are chained. TypeScript intersection types track the accumulated result type. Dev mode warns on namespace collisions.
+**Namespace ownership**: Each plugin owns its namespace (`withChat` owns `model.chat`, `withPersist` owns `rt.providers.persist`). Wrappable slots like `apply()` are chained by successive plugins. Dev mode warns on namespace collisions.
 
 ## The Operation Spectrum
 
@@ -136,7 +155,7 @@ Every piece of app behavior exists on a spectrum from imperative to fully serial
 
 The key difference between op-as-object and op-as-data: **who knows what "increment" does?** In op-as-object, the command itself knows (it has `fn`). In op-as-data, a separate interpreter knows — the data just describes the intention. That indirection is what makes serialization, undo, and replay possible.
 
-**The `op()` proxy bridges op-as-object toward op-as-data.** You write what looks like a method call (op-as-object ergonomics), and `op()` captures a **local op descriptor** (`{ target, path, args, run }`) — an in-process interceptable object containing a live object reference and closure. This local descriptor is routed through `apply()`, where middleware can generate a **serializable op record** (`{ targetPath: string, method: string, args: Record<string, unknown> }`) by resolving `target` to a stable model path. The local descriptor enables interception (undo, tracing); the serializable record enables replay, persistence, and collaboration. Developers never write `{ op: "increment" }` by hand — they call `store.increment()` and the proxy does it.
+**The `op()` proxy bridges op-as-object toward op-as-data.** You write what looks like a method call (op-as-object ergonomics), and `op()` captures an **`OpDescriptor`** (`{ target, path, args, run }`) — a local, in-process object containing a live object reference (`target`) and closure (`run`). Created by `op()`, not serializable. This descriptor is routed through `apply()`, where middleware can derive an **`OpRecord`** (`{ targetPath: string, method: string, args: Record<string, unknown> }`) — a serializable, pure-data form produced by resolving `target` to a stable model path. Only `OpRecord` is serializable/replayable. The `OpDescriptor` enables interception (undo, tracing); the `OpRecord` enables replay, persistence, and collaboration. Developers never write `{ op: "increment" }` by hand — they call `store.increment()` and the proxy does it.
 
 Each concern can be at a different point on the spectrum independently:
 
@@ -161,7 +180,7 @@ op(app.model).chat.submit({ text }) // intercepted — undo, tracing, recording 
 
 **When to use `op()`**: For state mutations that need cross-cutting behavior (undo, collaboration, recording). Direct calls for internal bookkeeping, performance-critical paths, or when interception isn't needed. The app's conventions decide, not the framework. This means replay/undo coverage is a convention, not a guarantee. Apps that need strong guarantees can enforce op()-only mutation via lint rules, branded signal types that only accept writes through apply(), or a strict mode that throws on direct mutation during recording.
 
-**How it works**: `op()` returns a Proxy that accumulates property access into a path, then on method invocation creates a **local op descriptor** (`{ target, path, args, run }`) and passes it to `app.apply()`. The `target` is a live object reference and `run` is a closure — this is op-as-object with interception, not yet true op-as-data. Plugins wrap `apply()` to intercept: tracing and undo work directly with the local descriptor, while persistence/collaboration plugins resolve `target` to a stable model path to produce a fully serializable op record. The `run` field holds the original method call — plugins that don't care just call `run()`.
+**How it works**: `op()` returns a Proxy that accumulates property access into a path, then on method invocation creates an **`OpDescriptor`** (`{ target, path, args, run }`) and passes it to `app.apply()`. The `target` is a live object reference and `run` is a closure — this is op-as-object with interception, not yet true op-as-data. Plugins wrap `apply()` to intercept: tracing and undo work directly with the `OpDescriptor`, while persistence/collaboration plugins resolve `target` to a stable model path to produce a fully serializable **`OpRecord`**. The `run` field holds the original method call — plugins that don't care just call `run()`.
 
 **Command integration**: Command `fn()` functions use `op()` to route through the pipeline. `invoke({ command: commands.chat.submit, args })` → resolves signal defaults via `args.parse()` → `fn()` → `op(app.model).chat.submit()` → `apply()` → plugins → actual method. This means keybindings, CLI, MCP, and AI agents all go through the same interception pipeline.
 
@@ -199,6 +218,12 @@ The windowing model defines the responder chain (input routes from focused view 
 
 See [windowing.md](./windowing.md) for the full design.
 
+## Text Selection
+
+App-level text selection operating on the render tree, not screen rows. Mouse drag, double/triple-click, clipboard via OSC 52. Selection walks `TeaNode`s like browser `getSelection()` walks the DOM — producing clean semantic text without borders, padding, or ANSI codes.
+
+See [text-selection.md](./text-selection.md) for the full design.
+
 ## Open Questions
 
 - How should `@silvery/web` reconcile abstract nodes to DOM — per-framework renderers or a universal DOM adapter? (See [composability.md](./composability.md) for analysis.)
@@ -209,4 +234,4 @@ See [windowing.md](./windowing.md) for the full design.
 
 ---
 
-_See also: [packaging-model.md](./packaging-model.md) (package decomposition, framework × platform matrix), [composability.md](./composability.md) (universal rendering tradeoffs, gap analysis), [windowing.md](./windowing.md) (windowing), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._
+_See also: [packaging-model.md](./packaging-model.md) (package decomposition, framework × platform matrix), [composability.md](./composability.md) (universal rendering tradeoffs, gap analysis), [windowing.md](./windowing.md) (windowing), [text-selection.md](./text-selection.md) (text selection), [input-system.md](./input-system.md) (keymaps, sources, dispatch), [ai-mode.md](./ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](./app-explosion.md) (the vision)._

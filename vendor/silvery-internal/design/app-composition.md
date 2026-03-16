@@ -221,7 +221,7 @@ function withTerminal({
   pointer,
 }: {
   view: JSX.Element
-  keys?: Mapping<KeyStroke>
+  keys?: Mapping<string>
   pointer?: Mapping<PointerEvent>
 }): Plugin {
   return (app) => {
@@ -328,7 +328,7 @@ async function run(app: App): Promise<RunHandle> {
 
   return {
     async waitUntilExit() {
-      await app.rt.scope.done()
+      await app.rt.exitPromise
     },
     [Symbol.dispose]() {
       app.dispose()

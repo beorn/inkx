@@ -26,7 +26,7 @@ A mapping is a pure function: event in, invocation out. If it returns null, the 
 type Mapping<E> = (event: E) => Invocation | null
 ```
 
-Sources and mappings are fully decoupled — any source (keyboard, mouse, network, timer) can feed any mapping.
+The type is generic, but in practice keymaps use `Mapping<string>` — surface adapters normalize platform events to key strings before the keymap sees them. Sources and mappings are fully decoupled — any source (keyboard, mouse, network, timer) can feed any mapping.
 
 ## `Invocation`
 
@@ -89,28 +89,28 @@ for await (const e of filter(termKeySource(stdin), (e) => !e.ctrl)) {
 
 ## `keymap()` Factory
 
-`keymap()` builds a `Mapping<KeyStroke>` from binding groups. Chord and count state live in the closure — keymap-local signals, same primitive, narrower scope.
+`keymap()` builds a `Mapping<string>` from binding groups. Chord and count state live in the closure — keymap-local signals, same primitive, narrower scope.
 
 ```typescript
 type Binding = { key: string; command: Command; when?: Signal<boolean> }
 type BindingGroup = Record<string, Command> | Binding[]
 
-function keymap(...groups: BindingGroup[]): Mapping<KeyStroke> {
+function keymap(...groups: BindingGroup[]): Mapping<string> {
   const bindings = flatten(groups) // normalize records + arrays into flat Binding[]
   const chord = signal<string | null>(null) // keymap-local
   const count = signal<number | null>(null) // keymap-local
 
-  return (e: KeyStroke) => {
+  return (key: string) => {
     for (const b of bindings) {
       if (b.when && !b.when.value) continue
-      if (matches(b.key, e, chord.value)) return { command: b.command }
+      if (matches(b.key, key, chord.value)) return { command: b.command }
     }
     return null
   }
 }
 ```
 
-The returned function is a plain `Mapping<KeyStroke>`. Chord state (`d d`, `g g`) and count state (`3 j`) are signals scoped to the keymap closure, not global state.
+The returned function is a plain `Mapping<string>`. Chord state (`d d`, `g g`) and count state (`3 j`) are signals scoped to the keymap closure, not global state.
 
 ## `when(signal, bindings)`
 
@@ -208,7 +208,7 @@ Minimal, flat, framework-agnostic. No event classes, no `preventDefault()`.
 ```typescript
 using app = withTerminal({
   view: <ListView />,
-  keys,   // Mapping<KeyStroke>
+  keys,   // Mapping<string>
 })
 ```
 
@@ -232,12 +232,13 @@ function withTerminal({ view, keys }): Plugin {
 
       term.render(view, app)
 
-      app.rt.scope.spawn("input", async (signal) => {
-        for await (const e of termKeySource(term.stdin, { signal })) {
+      ;(async () => {
+        for await (const e of termKeySource(term.stdin)) {
+          if (app.rt.scope.cancelled) break
           const inv = keys(e)
           if (inv) await invoke(inv)
         }
-      })
+      })()
     })
 
     return app
@@ -279,21 +280,21 @@ const keys = keymap(
 
 | Layer  | What             | Examples                                                       | Package               |
 | ------ | ---------------- | -------------------------------------------------------------- | --------------------- |
-| **L0** | Primitives       | `signal()`, `derived()`, functions, `.parse()` interface       | `@silvery/signal`     |
+| **L0** | Primitives       | `signal()`, `derived()`, functions, `.parse()` interface       | `@silvery/platter`    |
 | **L1** | Shapes           | `{ fn, args? }`, `Invocation`, `Mapping<E>`                    | Conventions (no code) |
-| **L2** | Input library    | `keymap()`, `when()`, `invoke()`, `canInvoke()`, `available()` | `@silvery/input`      |
+| **L2** | Input library    | `keymap()`, `when()`, `invoke()`, `canInvoke()`, `available()` | `@silvery/tea`        |
 | **L3** | App framework    | `createModel()`, `withTerminal()`, `pipe()`, plugins, `op()`   | `@silvery/tea`        |
 | **L4** | Domain framework | `withDocument()`, `withHistory()`, `withCursor()`              | `docily`              |
 
-Helpers produce the shapes; shapes are the architecture. A `Mapping<KeyStroke>` is just a function — you don't need `keymap()` to create one:
+Helpers produce the shapes; shapes are the architecture. A `Mapping<string>` is just a function — you don't need `keymap()` to create one:
 
 ```typescript
 // keymap() factory — convenient
 const keys = keymap(when(isNormal, { j: commands.down }))
 
 // Manual — equally valid
-const keys: Mapping<KeyStroke> = (e) => {
-  if (isNormal.value && e.key === "j") return { command: commands.down }
+const keys: Mapping<string> = (key) => {
+  if (isNormal.value && key === "j") return { command: commands.down }
   return null
 }
 ```
@@ -305,9 +306,10 @@ Both produce the same shape.
 Six concepts: signals, commands, keymap, view, withTerminal, run.
 
 ```typescript
-import { signal, derived } from "@silvery/signal"
-import { keymap, when, invoke } from "@silvery/input"
+import { signal, derived } from "@silvery/platter"
+import { keymap, when, invoke } from "@silvery/tea"
 import { createModel, withTerminal, run, pipe, createApp } from "@silvery/tea"
+import { useSignal } from "@silvery/tea-react"
 
 // 1. Signals — reactive state
 const items = signal(["Buy milk", "Write docs", "Ship feature"])
@@ -332,13 +334,15 @@ const keys = keymap(
   { j: commands.down, k: commands.up, "d d": commands.remove },
 )
 
-// 4. View — React component reading signals
+// 4. View — React component reading signals via useSignal()
 function ListView() {
+  const list = useSignal(items)
+  const cur = useSignal(cursor)
   return (
     <Box flexDirection="column">
-      {items.value.map((item, i) => (
-        <Text key={i} color={i === cursor.value ? "blue" : undefined}>
-          {i === cursor.value ? "> " : "  "}{item}
+      {list.map((item, i) => (
+        <Text key={i} color={i === cur ? "blue" : undefined}>
+          {i === cur ? "> " : "  "}{item}
         </Text>
       ))}
     </Box>

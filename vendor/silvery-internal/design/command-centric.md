@@ -72,6 +72,8 @@ const commands = {
       fn(a: { nodeId: string }) {
         model.task.toggleDone(a.nodeId)
       },
+      // Signal defaults use function form: .default(() => currentNodeId.value)
+      // Shown here as .default(currentNodeId) for brevity
       args: z.object({ nodeId: z.string().default(currentNodeId) }),
     },
     set_priority: {
@@ -103,6 +105,8 @@ const commands = {
 ### Command Availability
 
 The `args` schema serves triple duty: it defines what parameters a command accepts, resolves defaults from signals, and determines availability. If a signal default is nullish, `parse()` fails — command unavailable. No separate `when` field needed for args-based availability.
+
+> **Signal defaults use Zod's function default form:** `z.number().default(() => cursor.value)`, not `z.number().default(cursor)` (cursor is a Signal, not a number). `.parse({})` calls the function, reads `cursor.value` at parse time — if nullish, parse fails and the command is unavailable. In non-interactive contexts (CLI, MCP) there's no signal, so the function returns undefined and the param becomes required.
 
 General utilities on command collections:
 

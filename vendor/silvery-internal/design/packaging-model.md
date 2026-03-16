@@ -212,9 +212,9 @@ Replaces and expands the current `@silvery/tea`. Framework-agnostic, platform-ag
 
 **Zero dependencies on silvery rendering.** Tea is pure state + behavior. This is what enables headless operation — an AI agent or test harness uses tea alone, with no rendering packages.
 
-**Depends on `Readable<T>` signals.** Tea uses signals from `@silvery/platter` (or any compatible implementation) for args schema defaults, availability detection, and reactive state. Signals are the shared substrate between silvery rendering and silvertea.
+**Depends on a `Readable<T>` interface (`{ value, subscribe }`)** — any signal library that matches this shape works. Platter ships one implementation; Preact signals match natively; others adapt via thin wrappers. Tea has zero package dependencies — the `Readable<T>` interface is the shared substrate between silvery rendering and silvertea, not any particular package.
 
-**Mapping\<E\> is generic.** `keymap()` returns `Mapping<string>` — the event type is just a normalized key string. Each surface adapter converts platform-specific events to this normalized form BEFORE reaching the keymap. Tea never sees platform-specific types.
+**Mapping\<E\> is generic, but keymaps use `Mapping<string>`.** `keymap()` returns `Mapping<string>` — the event type is a normalized key string. Each surface adapter converts platform-specific events (terminal escape sequences, DOM `KeyboardEvent`s) to this normalized form BEFORE reaching the keymap. Tea never sees platform-specific types.
 
 ### @silvery/tea-react — React Bindings for Tea
 
@@ -337,12 +337,12 @@ silvery (convenience bundle)
 Silvertea (app framework)
 ─────────────────────────
 silvertea (convenience bundle)
-  ├── @silvery/tea           → platter (for Readable<T> signals)
+  ├── @silvery/tea           (zero dependencies)
   ├── @silvery/tea-react     → tea, react
   └── @silvery/tea-platter   → tea-react, platter-react, platter-term
 
 @silvery/tea             (commands, keymaps, op, plugins, scopes, headless app state machines)
-  └── depends on @silvery/platter for Readable<T> signals
+  └── zero dependencies — depends on a Readable<T> interface, not a package
 
 @silvery/tea-react       → tea, react  (React hooks: useSignal, useCommand)
 @silvery/tea-platter     → tea-react, platter-react  (silvery-rendered tea components + surface adapters)
@@ -350,7 +350,7 @@ silvertea (convenience bundle)
 @silvery/tea-svelte      → tea, svelte                (future: Svelte bindings + components)
 ```
 
-**Signals are the shared substrate.** `@silvery/platter` defines `Readable<T>` and ships `signal()`, `derived()`. Both silvery rendering (`useSignal()` in platter-react) and silvertea (commands, keymaps, op) depend on this interface. Other signal libraries (Preact signals, etc.) work if they match the `{ value, subscribe }` shape.
+**The `Readable<T>` interface is the shared substrate.** Both silvery rendering (`useSignal()` in platter-react) and silvertea (commands, keymaps, op) depend on the `Readable<T>` shape (`{ value, subscribe }`). `@silvery/platter` ships one implementation (`signal()`, `derived()`), but tea does not depend on platter — any signal library that matches the interface works (Preact signals natively, others via thin wrappers).
 
 **Surface adapters are the integration points.** Each tea rendered package bridges tea to a specific framework+renderer:
 
@@ -428,7 +428,7 @@ Each step builds on the previous. None requires the next. Stop when you have eno
 | **Plugins**  | `pipe()`, `createApp()`     | Composable app architecture              | You have multiple subsystems or want reusable plugins |
 | **Scopes**   | `Scope`, effects as data    | Structured concurrency, testable effects | You have complex async lifecycles                     |
 
-**Signals are pluggable.** Tea depends on a `Readable<T>` interface (`{ value, subscribe }`) from `@silvery/platter`. Silvery ships a default signal implementation, but you can use Preact signals, wrap Solid signals, or adapt anything with a synchronous `.value` and a `subscribe()`. The value of silvertea is what's built ON TOP of signals (commands, keymaps, op), not the signal primitive itself.
+**Signals are pluggable.** Tea depends on a `Readable<T>` interface (`{ value, subscribe }`) — not on any package. `@silvery/platter` ships a default implementation, but you can use Preact signals, wrap Solid signals, or adapt anything with a synchronous `.value` and a `subscribe()`. The value of silvertea is what's built ON TOP of signals (commands, keymaps, op), not the signal primitive itself.
 
 ### Quick reference
 
