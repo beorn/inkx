@@ -6,50 +6,58 @@ Silvery's public docs live in [`vendor/silvery/docs/`](../silvery/docs/).
 
 ## Contents
 
-| File                                     | What                                                                   |
-| ---------------------------------------- | ---------------------------------------------------------------------- |
-| [blog-launch.md](blog-launch.md)         | Draft launch blog post                                                 |
-| [benchmarks.md](benchmarks.md)           | Raw benchmark data (reproduce with `bun run bench`)                    |
-| [testing.md](testing.md)                 | Contributor testing strategy — golden spec, Ink compat, visual testing |
-| [dimension-audit.md](dimension-audit.md) | Audit of manual dimension calculations in km-tui                       |
+| File                               | What                       |
+| ---------------------------------- | -------------------------- |
+| [npm-registry.md](npm-registry.md) | npm package registry notes |
+
+### Launch
+
+| File                                                                                     | What                                      |
+| ---------------------------------------------------------------------------------------- | ----------------------------------------- |
+| [launch/blog-launch.md](launch/blog-launch.md)                                           | Draft launch blog post                    |
+| [launch/deep-research-marketing-critique.md](launch/deep-research-marketing-critique.md) | Deep research marketing critique          |
+| [launch/ink-issues-research.md](launch/ink-issues-research.md)                           | Research on Ink issues (positioning docs) |
 
 ### Era 2 Design (implement now)
 
 Progressive-disclosure docs — read in order. Each builds on the previous.
 
-| File                                                                    | What                                           |
-| ----------------------------------------------------------------------- | ---------------------------------------------- |
-| [design/era2/01-quick-start.md](design/era2/01-quick-start.md)         | Minimal app, idealized shapes, spike map       |
-| [design/era2/02-signals.md](design/era2/02-signals.md)                 | Signals, derived, createModel, selectors       |
-| [design/era2/03-commands.md](design/era2/03-commands.md)               | Command tree, `{ fn, args? }`, availability    |
-| [design/era2/04-input.md](design/era2/04-input.md)                     | Keymaps, sources, dispatch pipeline            |
-| [design/era2/05-app.md](design/era2/05-app.md)                         | App composition, plugins, op(), providers      |
-| [design/era2/06-scopes.md](design/era2/06-scopes.md)                   | Structured concurrency, scope tree, effects    |
-| [design/era2/composability.md](design/era2/composability.md)           | Cross-platform design, framework×platform      |
-| [design/era2/packaging.md](design/era2/packaging.md)                   | Package structure, bundles, migration           |
-| [design/era2/playground.md](design/era2/playground.md)                 | Live Canvas playground design                  |
-| [design/era2/decisions.md](design/era2/decisions.md)                   | Numbered decision log                          |
+| File                                                           | What                                        |
+| -------------------------------------------------------------- | ------------------------------------------- |
+| [design/era2/01-quick-start.md](design/era2/01-quick-start.md) | Minimal app, idealized shapes, spike map    |
+| [design/era2/02-signals.md](design/era2/02-signals.md)         | Signals, derived, createModel, selectors    |
+| [design/era2/03-commands.md](design/era2/03-commands.md)       | Command tree, `{ fn, args? }`, availability |
+| [design/era2/04-input.md](design/era2/04-input.md)             | Keymaps, sources, dispatch pipeline         |
+| [design/era2/05-app.md](design/era2/05-app.md)                 | App composition, plugins, op(), providers   |
+| [design/era2/06-scopes.md](design/era2/06-scopes.md)           | Structured concurrency, scope tree, effects |
+| [design/era2/composability.md](design/era2/composability.md)   | Cross-platform design, framework×platform   |
+| [design/era2/packaging.md](design/era2/packaging.md)           | Package structure, bundles, migration       |
+| [design/era2/playground.md](design/era2/playground.md)         | Live Canvas playground design               |
+| [design/era2/decisions.md](design/era2/decisions.md)           | Numbered decision log                       |
 
 ### Era 3 Design (future)
 
-| File                                                                    | What                                           |
-| ----------------------------------------------------------------------- | ---------------------------------------------- |
-| [design/era3/ai-mode.md](design/era3/ai-mode.md)                       | AI agents driving apps                         |
-| [design/era3/windowing.md](design/era3/windowing.md)                   | Focus, tabs, panes, overlays                   |
-| [design/era3/text-selection.md](design/era3/text-selection.md)         | App-level text selection                       |
-| [design/era3/app-explosion.md](design/era3/app-explosion.md)           | Vision / manifesto                             |
+| File                                                                           | What                            |
+| ------------------------------------------------------------------------------ | ------------------------------- |
+| [design/era3/ai-mode.md](design/era3/ai-mode.md)                               | AI agents driving apps          |
+| [design/era3/windowing.md](design/era3/windowing.md)                           | Focus, tabs, panes, overlays    |
+| [design/era3/text-selection.md](design/era3/text-selection.md)                 | App-level text selection        |
+| [design/era3/app-explosion.md](design/era3/app-explosion.md)                   | Vision / manifesto              |
+| [design/era3/dom-api-design.md](design/era3/dom-api-design.md)                 | RFC — DOM-like render API       |
+| [design/era3/virtual-columns-design.md](design/era3/virtual-columns-design.md) | RFC — virtual columns component |
 
-### Reference (pre-era2 explorations)
+### Archive (deprecated pre-era2 material)
 
-| File                                                                                     | What                                           |
-| ---------------------------------------------------------------------------------------- | ---------------------------------------------- |
-| [design/reference/state-api-redesign.md](design/reference/state-api-redesign.md)         | Original 8-sip API design (superseded by era2/)|
-| [design/reference/architecture-overview.md](design/reference/architecture-overview.md)   | Original hub doc (superseded by era2/01)       |
-| [design/reference/design.md](design/reference/design.md)                                 | Historical — original Silvery RFC (early 2025) |
-| [design/reference/dom-api-design.md](design/reference/dom-api-design.md)                 | RFC — DOM-like render API                      |
-| [design/reference/viewport-architecture.md](design/reference/viewport-architecture.md)   | Implemented — viewport + virtualization        |
-| [design/reference/virtual-columns-design.md](design/reference/virtual-columns-design.md) | RFC — virtual columns component                |
-| [design/reference/mouse-events-design.md](design/reference/mouse-events-design.md)       | Implemented — mouse event design rationale     |
+| File                                                                               | What                                             |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------ |
+| [design/archive/state-api-redesign.md](design/archive/state-api-redesign.md)       | Original 8-sip API design (superseded by era2/)  |
+| [design/archive/architecture-overview.md](design/archive/architecture-overview.md) | Original hub doc (superseded by era2/01)         |
+| [design/archive/design.md](design/archive/design.md)                               | Historical — original Silvery RFC (early 2025)   |
+| [design/archive/viewport-architecture.md](design/archive/viewport-architecture.md) | Implemented — viewport + virtualization          |
+| [design/archive/mouse-events-design.md](design/archive/mouse-events-design.md)     | Implemented — mouse event design rationale       |
+| [design/archive/architecture-enables.md](design/archive/architecture-enables.md)   | TEA architecture capabilities (deprecated)       |
+| [design/archive/focus-routing.md](design/archive/focus-routing.md)                 | Focus-based input routing (deprecated)           |
+| [design/archive/dimension-audit.md](design/archive/dimension-audit.md)             | Manual dimension calculations audit (deprecated) |
 
 ### Prototypes
 
@@ -59,8 +67,12 @@ Progressive-disclosure docs — read in order. Each builds on the previous.
 
 ### Deep Dives
 
-| File                                                                     | What                                         |
-| ------------------------------------------------------------------------ | -------------------------------------------- |
-| [deep-dives/internals.md](deep-dives/internals.md)                       | How the reconciler works (contributor-level) |
-| [deep-dives/scrollback-analysis.md](deep-dives/scrollback-analysis.md)   | Inline mode scrollback analysis              |
-| [deep-dives/architecture-enables.md](deep-dives/architecture-enables.md) | Capabilities enabled by the TEA architecture |
+| File                                                                   | What                                                                   |
+| ---------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| [deep-dives/internals.md](deep-dives/internals.md)                     | How the reconciler works (contributor-level)                           |
+| [deep-dives/scrollback-analysis.md](deep-dives/scrollback-analysis.md) | Inline mode scrollback analysis                                        |
+| [deep-dives/architecture.md](deep-dives/architecture.md)               | Architecture overview                                                  |
+| [deep-dives/containment.md](deep-dives/containment.md)                 | Containment model                                                      |
+| [deep-dives/performance.md](deep-dives/performance.md)                 | Performance analysis and optimization catalog                          |
+| [deep-dives/benchmarks.md](deep-dives/benchmarks.md)                   | Raw benchmark data (reproduce with `bun run bench`)                    |
+| [deep-dives/testing.md](deep-dives/testing.md)                         | Contributor testing strategy — golden spec, Ink compat, visual testing |

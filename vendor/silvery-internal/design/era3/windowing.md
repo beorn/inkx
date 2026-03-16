@@ -2,7 +2,7 @@
 
 _Status: draft (2026-03-15, revised 2026-03-16). Focus, tabs, panes, windows, and overlays as one coherent system._
 
-_See also: [architecture-overview.md](../reference/architecture-overview.md) (concepts, op spectrum), [05-app.md](../era2/05-app.md) (plugins, op()), [04-input.md](../era2/04-input.md) (keymaps, dispatch), [composability.md](../era2/composability.md) (universal rendering)._
+_See also: [architecture-overview.md](../archive/architecture-overview.md) (concepts, op spectrum), [05-app.md](../era2/05-app.md) (plugins, op()), [04-input.md](../era2/04-input.md) (keymaps, dispatch), [composability.md](../era2/composability.md) (universal rendering)._
 
 ## The Problem
 
@@ -632,4 +632,4 @@ Apple does NOT have a unified presentation model. Each platform renders differen
 
 ---
 
-_See also: [architecture-overview.md](../reference/architecture-overview.md), [composability.md](../era2/composability.md), [packaging.md](../era2/packaging.md), [04-input.md](../era2/04-input.md), [05-app.md](../era2/05-app.md)._
+_See also: [architecture-overview.md](../archive/architecture-overview.md), [composability.md](../era2/composability.md), [packaging.md](../era2/packaging.md), [04-input.md](../era2/04-input.md), [05-app.md](../era2/05-app.md)._

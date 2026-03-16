@@ -318,4 +318,4 @@ Examining a real app's 173 commands:
 
 ---
 
-_See also: [architecture-overview.md](../reference/architecture-overview.md) (entry point connecting all design docs), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [AI Mode](../era3/ai-mode.md) (AI agents driving command-centric apps)._
+_See also: [architecture-overview.md](../archive/architecture-overview.md) (entry point connecting all design docs), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [AI Mode](../era3/ai-mode.md) (AI agents driving command-centric apps)._

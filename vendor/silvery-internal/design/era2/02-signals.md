@@ -1,6 +1,6 @@
 # Signals & Models
 
-_Status: finalized. Extracted from [state-api-redesign.md](../reference/state-api-redesign.md) Sips 1-3._
+_Status: finalized. Extracted from [state-api-redesign.md](../archive/state-api-redesign.md) Sips 1-3._
 
 _See also: [05-app.md](./05-app.md) (app composition), [06-scopes.md](./06-scopes.md) (structured concurrency), [01-quick-start.md](./01-quick-start.md) (complete examples)._
 
@@ -104,12 +104,12 @@ Layer 1 is the state primitive -- fine-grained, framework-agnostic, testable. La
 
 Two surfaces, same signals. The **primary** way to read state depends on context. Signals are the ground truth; selectors are read sugar:
 
-| Context                  | Access                             | Notes                                                |
-| ------------------------ | ---------------------------------- | ---------------------------------------------------- |
+| Context                  | Access                             | Notes                                                 |
+| ------------------------ | ---------------------------------- | ----------------------------------------------------- |
 | **React components**     | `useChat(m => m.exchanges.length)` | Signal-aware selector -- auto-unwraps, O(1) subscribe |
 | **Model code / plugins** | `useChat.get().exchanges.value`    | Direct signal read -- typed, reactive                 |
 | **AI agents / commands** | `useChat.get().submit({ text })`   | Direct method call -- typed                           |
-| **External (CLI/MCP)**   | `useChat.snapshot()` -> JSON       | Serialized snapshot for remote consumers             |
+| **External (CLI/MCP)**   | `useChat.snapshot()` -> JSON       | Serialized snapshot for remote consumers              |
 | **Tests**                | `chat.exchanges.value`             | Isolated instance via `.create()` -- no framework     |
 
 ## Object Shapes

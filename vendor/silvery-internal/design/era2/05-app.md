@@ -38,7 +38,7 @@ interface Runtime {
 
 ## `op()` — The Interception Proxy
 
-`op()` bridges the operation spectrum (see [architecture-overview.md](../reference/architecture-overview.md#the-operation-spectrum)): you write **op-as-object** code (method calls with closures), but `op()` captures it as **op-as-data** (serializable `{ target, path, args }` descriptors) and routes it through `apply()`. The ergonomic cost of going from op-as-object to op-as-data is near zero — same methods, same types, same autocomplete.
+`op()` bridges the operation spectrum (see [architecture-overview.md](../archive/architecture-overview.md#the-operation-spectrum)): you write **op-as-object** code (method calls with closures), but `op()` captures it as **op-as-data** (serializable `{ target, path, args }` descriptors) and routes it through `apply()`. The ergonomic cost of going from op-as-object to op-as-data is near zero — same methods, same types, same autocomplete.
 
 The key design: a proxy that routes calls through `apply()`.
 
@@ -825,12 +825,12 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 
 | Current                                              | New                                                           | Why                                   |
 | ---------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------- |
-| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` -- one function, returns string          | 4 -> 1                                 |
-| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 -> 1                                 |
-| `createSlice(init, handlers)` + `createEffects(...)` | `createModel(() => { signals + methods })` -> typed hook       | 2 -> one wrapper                       |
-| `useApp(selector)`                                   | `useChat(m => m.phase)` -- per-model typed selector hook       | O(1) subscribe, no Provider           |
+| `render()` / `renderSync()` / `renderStatic()`       | `render(el, config?)` -- one function, returns string         | 4 -> 1                                |
+| `run(element)` + `createApp(config).run(element)`    | `run(app)` or `run(el, config?)`                              | 2 -> 1                                |
+| `createSlice(init, handlers)` + `createEffects(...)` | `createModel(() => { signals + methods })` -> typed hook      | 2 -> one wrapper                      |
+| `useApp(selector)`                                   | `useChat(m => m.phase)` -- per-model typed selector hook      | O(1) subscribe, no Provider           |
 | `tea()`, `createStore()`                             | Removed                                                       | Internal, no longer needed            |
-| Providers (DI with scoped contract)                  | `createProviders({...})` -- plain frozen object                | Types inferred, deps via `Pick`       |
+| Providers (DI with scoped contract)                  | `createProviders({...})` -- plain frozen object               | Types inferred, deps via `Pick`       |
 | Runtime = monolith (event loop + I/O + effects)      | Providers (I/O) + behavioral plugins (tracing, recording)     | Data composition + behavioral plugins |
 | Plugins add fields via spread only                   | Plugins wrap `apply()` (SlateJS-style) + add fields           | Behavioral composition, not just data |
 | Handle = the control surface                         | Model IS the control surface, external code calls it directly | No separate Handle shape              |

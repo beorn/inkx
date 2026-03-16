@@ -2,7 +2,7 @@
 
 _Status: draft (2026-03-15). What silvery's components are, how they compose, the tradeoffs vs platform-specific approaches, and what's theoretically possible._
 
-_See also: [packaging.md](./packaging.md) (package structure, dependencies, migration path), [architecture-overview.md](../reference/architecture-overview.md) (concepts, op spectrum)._
+_See also: [packaging.md](./packaging.md) (package structure, dependencies, migration path), [architecture-overview.md](../archive/architecture-overview.md) (concepts, op spectrum)._
 
 ## The Question
 

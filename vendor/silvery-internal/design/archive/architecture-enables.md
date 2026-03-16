@@ -1,10 +1,12 @@
 # What the Architecture Enables
 
+> **Deprecated (2026-03-16).** Deep dive into capabilities enabled by silvery's TEA architecture, written against the pre-Era 2 API (`@silvery/term/core`, `dispatch`, `batch`). Code examples reference old API names. Superseded by [era2/05-app.md](../era2/05-app.md) (plugin composition) and [era2/06-scopes.md](../era2/06-scopes.md) (structured concurrency). Concepts remain valid; API surface has changed.
+
 > **Internal** — Explores the advanced capabilities that fall out of Silvery's TEA-based architecture: undo/redo, replay, AI automation, server-side rendering, cross-target portability.
 
 Because all state lives in the model, all changes flow through `update`, and all effects are data, a set of powerful capabilities fall out naturally.
 
-This document extracts the advanced architectural capabilities from the plugin architecture. For the graduated progression, see [Building an App](../../silvery/docs/guides/building-an-app.md). For the plugin API reference, see [Event Handling](../../silvery/docs/guides/event-handling.md).
+This document extracts the advanced architectural capabilities from the plugin architecture. For the graduated progression, see [Building an App](../../../silvery/docs/guides/building-an-app.md). For the plugin API reference, see [Event Handling](../../../silvery/docs/guides/event-handling.md).
 
 ## Effect Combinators
 
@@ -178,7 +180,7 @@ This is the payoff of the full architecture: every moment is a snapshot, every t
 
 ## See Also
 
-- [Building an App](../../silvery/docs/guides/building-an-app.md) — graduated progression from Counter to full TEA
-- [Event Handling](../../silvery/docs/guides/event-handling.md) — plugin API reference
-- [State Management](../../silvery/docs/guides/state-management.md) — ops and effects API reference
-- [Runtime Layers](../../silvery/docs/guides/runtime-layers.md) — createStore, plugin composition API
+- [Building an App](../../../silvery/docs/guides/building-an-app.md) — graduated progression from Counter to full TEA
+- [Event Handling](../../../silvery/docs/guides/event-handling.md) — plugin API reference
+- [State Management](../../../silvery/docs/guides/state-management.md) — ops and effects API reference
+- [Runtime Layers](../../../silvery/docs/guides/runtime-layers.md) — createStore, plugin composition API

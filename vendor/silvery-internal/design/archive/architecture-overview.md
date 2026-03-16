@@ -1,5 +1,7 @@
 # Silvery Architecture Overview
 
+> **Deprecated (2026-03-16).** Original hub document connecting all Era 2 design docs. Superseded by the progressive-disclosure sequence: [era2/01-quick-start.md](../era2/01-quick-start.md) through [era2/06-scopes.md](../era2/06-scopes.md). Cross-references have been updated to point to era2/ docs directly.
+
 _Entry point for the Silvery design docs. Read this first, then dive into the linked docs._
 
 ## The Big Picture

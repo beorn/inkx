@@ -4,9 +4,9 @@
 
 Raw benchmark data for Silvery performance. All numbers from Apple M1 Max, macOS, Bun 1.3.9, February 2026.
 
-Reproduce with `bun run bench` (internal) or `bun run bench:compare` (Silvery vs Ink). See [benchmark suite README](../../silvery/benchmarks/ink-comparison/README.md) for Ink comparison methodology.
+Reproduce with `bun run bench` (internal) or `bun run bench:compare` (Silvery vs Ink). See [benchmark suite README](../../../silvery/benchmarks/ink-comparison/README.md) for Ink comparison methodology.
 
-For technical explanations of these optimizations, see [Performance Deep Dive](deep-dives/performance.md). For the head-to-head Ink comparison with context and code examples, see [Silvery vs Ink](silvery-vs-ink.md).
+For technical explanations of these optimizations, see [Performance Deep Dive](performance.md). For the head-to-head Ink comparison with context and code examples, see [Silvery vs Ink](../silvery-vs-ink.md).
 
 ---
 

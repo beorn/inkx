@@ -2,7 +2,7 @@
 
 _Status: finalized (v1, 2026-03-13). How input events reach commands._
 
-_See also: [03-commands.md](./03-commands.md) (command shapes, availability), [05-app.md](./05-app.md) (plugin composition, surfaces), [state-api-redesign.md](../reference/state-api-redesign.md) (signals, models)._
+_See also: [03-commands.md](./03-commands.md) (command shapes, availability), [05-app.md](./05-app.md) (plugin composition, surfaces), [state-api-redesign.md](../archive/state-api-redesign.md) (signals, models)._
 
 ## The Core Idea
 
@@ -231,7 +231,6 @@ function withTerminal({ view, keys }): Plugin {
       const term = app.rt.providers.term
 
       term.render(view, app)
-
       ;(async () => {
         for await (const e of termKeySource(term.stdin)) {
           if (app.rt.scope.cancelled) break
@@ -278,14 +277,14 @@ const keys = keymap(
 
 ## Layered Architecture
 
-| Layer  | What             | Examples                                                       | Package               |
-| ------ | ---------------- | -------------------------------------------------------------- | --------------------- |
-| **L0** | Primitives       | `signal()`, `derived()`, functions, `.parse()` interface       | `@silvery/platter`    |
-| **L1** | Shapes           | `{ fn, args? }`, `Invocation`, `Mapping<E>`                    | Conventions (no code) |
-| **L2** | Input library    | `keymap()`, `when()`, `invoke()`, `canInvoke()`, `available()` | `@silvery/tea`        |
-| **L3** | App framework    | `createModel()`, `pipe()`, plugins, `op()`                     | `@silvery/tea`        |
-| **L3** | Surface adapter  | `withTerminal()`, `withDom()`                                  | `@silvery/tea-platter`|
-| **L4** | Domain framework | `withDocument()`, `withHistory()`, `withCursor()`              | `docily`              |
+| Layer  | What             | Examples                                                       | Package                |
+| ------ | ---------------- | -------------------------------------------------------------- | ---------------------- |
+| **L0** | Primitives       | `signal()`, `derived()`, functions, `.parse()` interface       | `@silvery/platter`     |
+| **L1** | Shapes           | `{ fn, args? }`, `Invocation`, `Mapping<E>`                    | Conventions (no code)  |
+| **L2** | Input library    | `keymap()`, `when()`, `invoke()`, `canInvoke()`, `available()` | `@silvery/tea`         |
+| **L3** | App framework    | `createModel()`, `pipe()`, plugins, `op()`                     | `@silvery/tea`         |
+| **L3** | Surface adapter  | `withTerminal()`, `withDom()`                                  | `@silvery/tea-platter` |
+| **L4** | Domain framework | `withDocument()`, `withHistory()`, `withCursor()`              | `docily`               |
 
 Helpers produce the shapes; shapes are the architecture. A `Mapping<string>` is just a function — you don't need `keymap()` to create one:
 
@@ -378,4 +377,4 @@ Incremental migration: command shapes don't change (`{ fn, args? }`). What chang
 
 ---
 
-_See also: [architecture-overview.md](../reference/architecture-overview.md) (entry point connecting all design docs), [03-commands.md](./03-commands.md) (command tree, auto-derived surfaces), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [06-scopes.md](./06-scopes.md) (effects, scoping, concurrency)._
+_See also: [architecture-overview.md](../archive/architecture-overview.md) (entry point connecting all design docs), [03-commands.md](./03-commands.md) (command tree, auto-derived surfaces), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [06-scopes.md](./06-scopes.md) (effects, scoping, concurrency)._

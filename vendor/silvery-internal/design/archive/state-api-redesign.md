@@ -2,6 +2,8 @@
 
 _Status: finalized. Bead: km-5kh9r. Implementation: km-silvery.api-impl._
 
+> **Deprecated (2026-03-16).** Original monolithic API design document (8 Sips). Content has been extracted into focused era2/ docs: [02-signals.md](../era2/02-signals.md) (Sips 1-3, signals, createModel), [05-app.md](../era2/05-app.md) (Sips 4-8, app composition, providers, migration), and [decisions.md](../era2/decisions.md) (decision log + design history).
+
 ## The Problem
 
 Six overlapping entry points (`createApp`, `createSlice`, `createEffects`, `createStore`, `tea()`, `run()`), four render variants, and state management coupled to the runtime. Users don't know which to pick or how they combine.

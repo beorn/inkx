@@ -1,5 +1,7 @@
 # Manual Dimension Calculations Audit
 
+> **Deprecated (2026-03-16).** Audit of manual dimension calculations in km-tui views. References old paths (`km-ink/src/views/`) that were renamed during the km-ink → km-tui migration. Findings may still be relevant but file paths are stale.
+
 > **Internal** — km-tui-specific audit of hardcoded dimension calculations that could be replaced with Silvery's `useContentRect()` and flexbox auto-layout. Tracks the migration from manual sizing to layout feedback.
 
 **Scope:** `/Users/beorn/Code/pim/km/apps/km-tui/packages/km-ink/src/views/`

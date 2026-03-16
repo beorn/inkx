@@ -89,6 +89,7 @@ await handle.waitUntilExit()
 ```
 
 **What this demonstrates:**
+
 - Signals as state (no store, no useState)
 - Commands as `{ fn }` objects (no registry, no string IDs)
 - Keymap as pure function (key → Invocation | null)
@@ -171,10 +172,14 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
       },
     },
     compact: {
-      async fn() { /* compaction logic using scope.sleep() */ },
+      async fn() {
+        /* compaction logic using scope.sleep() */
+      },
     },
     exit: {
-      fn() { done.value = true },
+      fn() {
+        done.value = true
+      },
     },
   }
 
@@ -186,8 +191,8 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
     currentContent.value = ""
     for (const word of entry.content.split(/(\s+)/)) {
       currentContent.value += word
-      yield                        // cooperate
-      if (word.trim()) await scope.sleep(50)  // scoped timer
+      yield // cooperate
+      if (word.trim()) await scope.sleep(50) // scoped timer
     }
     // Commit final content
     messages.value = [...messages.value, { ...entry, content: entry.content }]
@@ -218,13 +223,15 @@ test("submit via invoke adds user message", () => {
 
 test("respond streams content", async () => {
   const chat = createChat([])
-  for await (const _ of chat.respond({ role: "agent", content: "Hello world" })) {}
+  for await (const _ of chat.respond({ role: "agent", content: "Hello world" })) {
+  }
   expect(chat.messages.value.at(-1)!.content).toBe("Hello world")
   expect(chat.phase.value).toBe("idle")
 })
 ```
 
 **What this adds over todo:**
+
 - `createModel(factory)` wraps a factory → typed hook with `.get()`, `.create()`, `.bind()`
 - Scope for structured concurrency (`scope.sleep()`, `scope.timeout()`)
 - Async generators for streaming content
@@ -310,8 +317,13 @@ export function withBoard(config: { rootPath: string }): Plugin {
     const isAtRoot = derived(() => !cursor.value || isRootLevel(cursor.value, columns.value))
 
     app.model.board = {
-      cursor, columns, selectedNodes, viewMode, foldDepths,
-      currentNode, isAtRoot,
+      cursor,
+      columns,
+      selectedNodes,
+      viewMode,
+      foldDepths,
+      currentNode,
+      isAtRoot,
 
       moveCursor({ dir }: { dir: Direction }) {
         const next = resolveDirection(cursor.value, dir, columns.value)
@@ -339,18 +351,58 @@ export function withBoard(config: { rootPath: string }): Plugin {
 
     // Commands — thin wrappers that route through op() for interception
     app.commands.navigation = {
-      down:  { fn() { op(app.model).board.moveCursor({ dir: "down" }) } },
-      up:    { fn() { op(app.model).board.moveCursor({ dir: "up" }) } },
-      left:  { fn() { op(app.model).board.moveCursor({ dir: "left" }) } },
-      right: { fn() { op(app.model).board.moveCursor({ dir: "right" }) } },
-      page_down: { fn() { /* page jump logic */ } },
-      page_up:   { fn() { /* page jump logic */ } },
+      down: {
+        fn() {
+          op(app.model).board.moveCursor({ dir: "down" })
+        },
+      },
+      up: {
+        fn() {
+          op(app.model).board.moveCursor({ dir: "up" })
+        },
+      },
+      left: {
+        fn() {
+          op(app.model).board.moveCursor({ dir: "left" })
+        },
+      },
+      right: {
+        fn() {
+          op(app.model).board.moveCursor({ dir: "right" })
+        },
+      },
+      page_down: {
+        fn() {
+          /* page jump logic */
+        },
+      },
+      page_up: {
+        fn() {
+          /* page jump logic */
+        },
+      },
     }
     app.commands.fold = {
-      fold_node:   { fn() { /* fold current or selected */ } },
-      unfold_node: { fn() { /* unfold current or selected */ } },
-      fold_all:    { fn() { /* fold all columns */ } },
-      unfold_all:  { fn() { /* unfold all columns */ } },
+      fold_node: {
+        fn() {
+          /* fold current or selected */
+        },
+      },
+      unfold_node: {
+        fn() {
+          /* unfold current or selected */
+        },
+      },
+      fold_all: {
+        fn() {
+          /* fold all columns */
+        },
+      },
+      unfold_all: {
+        fn() {
+          /* unfold all columns */
+        },
+      },
     }
 
     return app
@@ -392,7 +444,10 @@ export function withTaskManagement(): Plugin {
           }
         },
         args: z.object({
-          nodeId: z.string().optional().default(() => board.cursor.value),
+          nodeId: z
+            .string()
+            .optional()
+            .default(() => board.cursor.value),
         }),
       },
       set_priority: {
@@ -403,7 +458,10 @@ export function withTaskManagement(): Plugin {
           }
         },
         args: z.object({
-          nodeId: z.string().optional().default(() => board.cursor.value),
+          nodeId: z
+            .string()
+            .optional()
+            .default(() => board.cursor.value),
           priority: z.number(),
         }),
       },
@@ -442,7 +500,7 @@ export function buildKeymap(app: App) {
       l: cmd.navigation.right,
       "ctrl+d": cmd.navigation.page_down,
       "ctrl+u": cmd.navigation.page_up,
-      "g g": cmd.navigation.go_top,          // chord
+      "g g": cmd.navigation.go_top, // chord
       G: cmd.navigation.go_bottom,
 
       // Editing (28 commands)
@@ -450,15 +508,15 @@ export function buildKeymap(app: App) {
       O: cmd.edit.insert_above,
       i: cmd.edit.enter_inline,
       a: cmd.edit.enter_inline_append,
-      "d d": cmd.edit.remove,                // chord
-      "y y": cmd.edit.copy,                  // chord
+      "d d": cmd.edit.remove, // chord
+      "y y": cmd.edit.copy, // chord
       p: cmd.edit.paste,
       Tab: cmd.edit.indent,
       "shift+tab": cmd.edit.outdent,
 
       // Tasks (11 commands)
       x: cmd.task.toggle_done,
-      "! 0": cmd.task.set_priority_0,        // verb × location
+      "! 0": cmd.task.set_priority_0, // verb × location
       "! 1": cmd.task.set_priority_1,
       "! 2": cmd.task.set_priority_2,
       "! 3": cmd.task.set_priority_3,
@@ -473,7 +531,7 @@ export function buildKeymap(app: App) {
       // View (17 commands)
       z: cmd.fold.fold_node,
       Z: cmd.fold.unfold_node,
-      "z a": cmd.fold.fold_all,              // chord
+      "z a": cmd.fold.fold_all, // chord
 
       // Dialogs (12 commands)
       "/": cmd.dialog.search,
@@ -482,10 +540,10 @@ export function buildKeymap(app: App) {
       "ctrl+k": cmd.dialog.command_palette,
 
       // Favorites (verb × location pattern)
-      "g i": cmd.navigation.goto_inbox,      // goto × inbox
+      "g i": cmd.navigation.goto_inbox, // goto × inbox
       "g j": cmd.navigation.goto_journal,
       "g 1": cmd.navigation.goto_fav_1,
-      "m i": cmd.edit.move_to_inbox,         // move × inbox
+      "m i": cmd.edit.move_to_inbox, // move × inbox
       "m 1": cmd.edit.move_to_fav_1,
 
       // Panes (22 commands — Ctrl+W chord prefix)
@@ -569,6 +627,7 @@ export function withHistory(): Plugin {
 ```
 
 **What this adds over aichat:**
+
 - `pipe(createApp(), ...plugins)` — composable app assembly
 - `op(app.model).*` — opt-in interception for undo/tracing/recording
 - Provider plugins (`withPersist`, `withFileSync`) — DI boundary
@@ -591,6 +650,7 @@ Five patterns that must work in Era 2. Each needs a spike example.
 **Current**: ~2,000 LOC across focus-manager.ts, focus-events.ts, focus-queries.ts, with-focus.ts
 
 **What the spike must prove**:
+
 - TextInput receives typing while focused (keymap doesn't intercept)
 - Dialog open → focus transfers to dialog → board keymap deactivated
 - Dialog close (Esc/Enter) → focus returns to board → board keymap reactivated
@@ -599,6 +659,7 @@ Five patterns that must work in Era 2. Each needs a spike example.
 **Spike shape**: `focus-dialog.tsx` — Board with TextInput, button that opens a SelectList dialog, Esc to close
 
 **Signal-based approach**:
+
 ```typescript
 const focusTarget = signal<"board" | "dialog" | "input">("board")
 const isBoard = derived(() => focusTarget.value === "board")
@@ -618,10 +679,12 @@ const keys = keymap(
 **Current**: ~150 LOC in CursorStore
 
 **What the spike must prove**:
+
 - Moving cursor between 1000 items causes O(1) signal notifications (only the two affected items re-render)
 - No full-list re-render on cursor change
 
 **Signal-based approach**:
+
 ```typescript
 const cursor = signal(0)
 
@@ -641,6 +704,7 @@ function Item({ index }: { index: number }) {
 **Current**: ~1,300 LOC in chord-state.ts, verb-locations.ts, keybindings.ts
 
 **What the spike must prove**:
+
 - Simple chords: `d d` → delete, `g g` → go top
 - Count prefix: `3 j` → move down 3 times
 - Verb×location: `g i` → goto inbox, `m i` → move to inbox
@@ -656,16 +720,18 @@ function Item({ index }: { index: number }) {
 **Current**: ~650 LOC across batch-aware command handlers
 
 **What the spike must prove**:
+
 - Single item: `x` toggles done on cursor node
 - Multi-selection: select 3 items with `V` + `j j`, then `x` toggles all 3
 - Batch validation: if any item can't be toggled, the whole batch fails
 - Commands get selection from signal (`selectedNodes.value`), not from explicit args
 
 **Signal-based approach**:
+
 ```typescript
 function getSelectedCards(board: BoardModel) {
   const selected = board.selectedNodes.value
-  if (selected.size > 0) return [...selected].map(id => findNode(id))
+  if (selected.size > 0) return [...selected].map((id) => findNode(id))
   const cursor = board.cursor.value
   return cursor ? [findNode(cursor)] : []
 }
@@ -678,26 +744,24 @@ function getSelectedCards(board: BoardModel) {
 **Current**: ~500 LOC across provider contexts
 
 **What the spike must prove**:
+
 - Model receives providers via factory parameter (not context lookup)
 - Tests create isolated instances with mock providers
 - No React rendering needed for model tests
 - Multiple apps in one process get separate provider instances
 
 **Signal-based approach**:
+
 ```typescript
 // Production
 const app = pipe(
   createApp(),
   withPersist({ dir: "./vault" }),
-  withBoard(),  // board model receives app.rt.providers.persist
+  withBoard(), // board model receives app.rt.providers.persist
 )
 
 // Test — swap providers, no rendering
-const app = pipe(
-  createApp(),
-  withPersist({ dir: tmpDir }),
-  withBoard(),
-)
+const app = pipe(createApp(), withPersist({ dir: tmpDir }), withBoard())
 app.model.board.moveCursor({ dir: "down" })
 expect(app.model.board.cursor.value).toBe("node-2")
 ```
@@ -708,18 +772,19 @@ expect(app.model.board.cursor.value).toBe("node-2")
 
 How km maps into composable plugins for incremental migration.
 
-| Plugin | What it owns | Signals | Commands | Current files |
-|--------|-------------|---------|----------|---------------|
-| **withBoard()** | Navigation, columns, cards, cursor, selection, fold, view mode | `cursor`, `columns`, `selectedNodes`, `viewMode`, `foldDepths` | 33 nav + 12 selection + 17 view + fold | board-app-store, board-actions-nav |
-| **withTaskManagement()** | Status cycling, priorities, due dates, labels, assignees | (reads board signals) | 11 task commands | board-actions-edit (task parts) |
-| **withInlineEdit()** | Text editing, EditContext, TextArea/TextInput, block navigation | `activeEditTarget`, `editMode` | 28 edit + 2 block-edit + text editing | board-actions-edit (text parts), cursor-context |
-| **withSearch()** | Omnibox, local find, search/replace | `searchQuery`, `searchResults`, `replaceText` | ~7 search/replace + ~5 local find | board-actions-find |
-| **withHistory()** | Undo/redo via op interception | `undoStack`, `redoStack` | 2 (undo, redo) | useBoard history |
-| **withSync()** | File system ↔ SQLite bidirectional | `syncStatus`, `lastSync` | — | board-app-store (repo parts) |
-| **withDialogs()** | Modal dialogs, pickers, prompts, confirmations | `dialogState`, `dialogType` | 12 dialog + 5 favorites | ui/dialogs/* |
-| **withPanes()** | Split panes, focus routing, resize | `paneLayout`, `activePaneId` | 22 pane commands | pane management |
+| Plugin                   | What it owns                                                    | Signals                                                        | Commands                               | Current files                                   |
+| ------------------------ | --------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------- |
+| **withBoard()**          | Navigation, columns, cards, cursor, selection, fold, view mode  | `cursor`, `columns`, `selectedNodes`, `viewMode`, `foldDepths` | 33 nav + 12 selection + 17 view + fold | board-app-store, board-actions-nav              |
+| **withTaskManagement()** | Status cycling, priorities, due dates, labels, assignees        | (reads board signals)                                          | 11 task commands                       | board-actions-edit (task parts)                 |
+| **withInlineEdit()**     | Text editing, EditContext, TextArea/TextInput, block navigation | `activeEditTarget`, `editMode`                                 | 28 edit + 2 block-edit + text editing  | board-actions-edit (text parts), cursor-context |
+| **withSearch()**         | Omnibox, local find, search/replace                             | `searchQuery`, `searchResults`, `replaceText`                  | ~7 search/replace + ~5 local find      | board-actions-find                              |
+| **withHistory()**        | Undo/redo via op interception                                   | `undoStack`, `redoStack`                                       | 2 (undo, redo)                         | useBoard history                                |
+| **withSync()**           | File system ↔ SQLite bidirectional                              | `syncStatus`, `lastSync`                                       | —                                      | board-app-store (repo parts)                    |
+| **withDialogs()**        | Modal dialogs, pickers, prompts, confirmations                  | `dialogState`, `dialogType`                                    | 12 dialog + 5 favorites                | ui/dialogs/\*                                   |
+| **withPanes()**          | Split panes, focus routing, resize                              | `paneLayout`, `activePaneId`                                   | 22 pane commands                       | pane management                                 |
 
 **Migration order** (simplest → most complex):
+
 1. `withDialogs()` — validates DI + focus pattern
 2. `withBoard()` — validates signal perf with large lists
 3. `withTaskManagement()` — validates batch commands

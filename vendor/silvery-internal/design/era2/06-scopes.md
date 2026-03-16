@@ -1,6 +1,6 @@
 # The Scope Tree
 
-_A unified tree for effects, concurrency, observability, and lifecycle. Connects [state-api-redesign.md](../reference/state-api-redesign.md) (effects, async updates) with [loggily](../../loggily/) (spans, logs, tracing) and prior work in [legion/centurion](~/Code/legion/centurion/) (structured concurrency)._
+_A unified tree for effects, concurrency, observability, and lifecycle. Connects [state-api-redesign.md](../archive/state-api-redesign.md) (effects, async updates) with [loggily](../../loggily/) (spans, logs, tracing) and prior work in [legion/centurion](~/Code/legion/centurion/) (structured concurrency)._
 
 ## v1 Surface vs Future
 
@@ -407,17 +407,17 @@ The base scope is minimal: `cancelled`, `sleep()`, `timeout()`, `onDispose()`, `
 const clock = createTestClock()
 const scope = pipe(createScope(), withTestClock(clock))
 scope.timeout(1000, () => model.save())
-await clock.advance(1000)  // timer fires synchronously
+await clock.advance(1000) // timer fires synchronously
 
 // Future — composing multiple plugins
 const scope = pipe(
   createScope(),
-  withTracing(),    // loggily span per scope operation
-  withTestClock(),  // controllable time
+  withTracing(), // loggily span per scope operation
+  withTestClock(), // controllable time
 )
 ```
 
-Same composition model everywhere (see [state-api-redesign.md](../reference/state-api-redesign.md) for the full two-surface architecture):
+Same composition model everywhere (see [state-api-redesign.md](../archive/state-api-redesign.md) for the full two-surface architecture):
 
 ```
 State:    pipe(createState({...}), withUndo(), withValidation())
@@ -442,10 +442,10 @@ test("save persists items", async () => {
 test("cancellation stops import", async () => {
   using scope = createScope()
   const promise = todo.importAndSave(scope, state, { url: "/slow" })
-  scope[Symbol.dispose]()  // cancel mid-flight
+  scope[Symbol.dispose]() // cancel mid-flight
   await promise
   expect(scope.cancelled).toBe(true)
-  expect(state.items.value).toEqual([])  // no mutation after cancel
+  expect(state.items.value).toEqual([]) // no mutation after cancel
 })
 
 // Level 3: Timer behavior with test clock
@@ -456,10 +456,10 @@ test("auto-save fires on schedule", async () => {
 
   todo.startAutoSave(scope, state, db)
 
-  await clock.advance(30_000)  // first tick
+  await clock.advance(30_000) // first tick
   expect(db.saved).toHaveLength(1)
 
-  await clock.advance(30_000)  // second tick
+  await clock.advance(30_000) // second tick
   expect(db.saved).toHaveLength(2)
 })
 ```
@@ -528,18 +528,18 @@ An earlier version used generators (`yield*` with typed adapters). We switched t
 
 **Redux Saga** — same "effects as data" lineage (yield descriptors, test by inspecting). We add structured concurrency and scoped providers instead of a single global middleware.
 
-| Dimension         | Kotlin coroutines       | Effection v4         | Effect.ts               | Silvery scope tree            |
-| ----------------- | ----------------------- | -------------------- | ----------------------- | ----------------------------- |
-| **Size**          | Language built-in       | <5KB                 | ~200KB+                 | Part of Silvery               |
-| **Approach**      | `suspend` + dispatchers | Generators + runtime | Typed effect values     | async/await + AsyncEffect     |
-| **Type safety**   | Full (suspend typing)   | Minimal              | Maximum (3 type params) | Natural (await typing)        |
-| **DI**            | CoroutineContext        | None                 | Layers + Context        | Pluggable providers           |
-| **Observability** | None built-in           | None built-in        | Built-in tracing        | Unified with loggily          |
-| **Scope tree**    | Yes (Job hierarchy)     | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)      |
-| **Cleanup**       | Job.invokeOnCompletion  | Generator teardown   | Scope finalizers        | `onDispose()` + `using`       |
-| **Cancellation**  | CancellationException   | Generator throw      | Fiber interruption      | `scope.cancelled` (explicit)  |
-| **Plugins**       | CoroutineContext elems  | None                 | Layers                  | `with*` composition           |
-| **Testing**       | `runTest { }`           | Run generators       | Provide test layers     | `withTestClock()`, mock deps  |
+| Dimension         | Kotlin coroutines       | Effection v4         | Effect.ts               | Silvery scope tree           |
+| ----------------- | ----------------------- | -------------------- | ----------------------- | ---------------------------- |
+| **Size**          | Language built-in       | <5KB                 | ~200KB+                 | Part of Silvery              |
+| **Approach**      | `suspend` + dispatchers | Generators + runtime | Typed effect values     | async/await + AsyncEffect    |
+| **Type safety**   | Full (suspend typing)   | Minimal              | Maximum (3 type params) | Natural (await typing)       |
+| **DI**            | CoroutineContext        | None                 | Layers + Context        | Pluggable providers          |
+| **Observability** | None built-in           | None built-in        | Built-in tracing        | Unified with loggily         |
+| **Scope tree**    | Yes (Job hierarchy)     | Yes (core primitive) | Yes (fiber tree)        | Yes (unified with spans)     |
+| **Cleanup**       | Job.invokeOnCompletion  | Generator teardown   | Scope finalizers        | `onDispose()` + `using`      |
+| **Cancellation**  | CancellationException   | Generator throw      | Fiber interruption      | `scope.cancelled` (explicit) |
+| **Plugins**       | CoroutineContext elems  | None                 | Layers                  | `with*` composition          |
+| **Testing**       | `runTest { }`           | Run generators       | Provide test layers     | `withTestClock()`, mock deps |
 
 ## What This Enables
 
@@ -645,4 +645,4 @@ Additional plugin ideas: `withRateLimit({ max, per })`, `withPriority(level)`, `
 
 ---
 
-_See also: [architecture-overview.md](../reference/architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](../reference/state-api-redesign.md) (signals, models, sip progression), [03-commands.md](./03-commands.md) (command shapes, auto-derived surfaces), [04-input.md](./04-input.md) (keymaps, sources, dispatch), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._
+_See also: [architecture-overview.md](../archive/architecture-overview.md) (entry point connecting all design docs), [state-api-redesign.md](../archive/state-api-redesign.md) (signals, models, sip progression), [03-commands.md](./03-commands.md) (command shapes, auto-derived surfaces), [04-input.md](./04-input.md) (keymaps, sources, dispatch), [05-app.md](./05-app.md) (plugin composition, `op()` ergonomics), [ai-mode.md](../era3/ai-mode.md) (AI agents driving command-centric apps), [app-explosion.md](../era3/app-explosion.md) (the vision)._

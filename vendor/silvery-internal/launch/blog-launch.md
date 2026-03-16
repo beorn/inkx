@@ -154,7 +154,7 @@ The key insight: layout calculation is fast (~57us for a 50-node kanban board). 
 
 ## Performance
 
-Real numbers on Apple M1 Max, Bun 1.3.9 (February 2026). Reproducible via `bun run bench:compare`. See [performance.md](deep-dives/performance.md) for current numbers and the full optimization catalog.
+Real numbers on Apple M1 Max, Bun 1.3.9 (February 2026). Reproducible via `bun run bench:compare`. See [performance.md](../deep-dives/performance.md) for current numbers and the full optimization catalog.
 
 > Performance numbers in this post are from launch benchmarks (January 2025). Numbers have been updated to reflect the February 2026 benchmark run.
 

@@ -70,4 +70,4 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 ---
 
-_See also: [state-api-redesign.md](../reference/state-api-redesign.md) (original full design), [05-app.md](./05-app.md) (plugin design journey)._
+_See also: [state-api-redesign.md](../archive/state-api-redesign.md) (original full design), [05-app.md](./05-app.md) (plugin design journey)._
