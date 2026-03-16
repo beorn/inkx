@@ -6,7 +6,7 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 ## Decisions
 
-1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [app-composition.md](../app-composition.md).
+1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [05-app.md](./05-app.md).
 
 2. **SlateJS-style plugin composition.** Plugins wrap `app.apply()` via closure. One type: `(app: App) => App`.
 
@@ -38,7 +38,7 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()`.
 
-17. **Structured concurrency via scope tree.** See [scope-tree.md](../scope-tree.md).
+17. **Structured concurrency via scope tree.** See [06-scopes.md](./06-scopes.md).
 
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
 
@@ -70,4 +70,4 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 ---
 
-_See also: [state-api-redesign.md](../state-api-redesign.md) (full design), [app-composition.md](../app-composition.md) (plugin design journey)._
+_See also: [state-api-redesign.md](../reference/state-api-redesign.md) (original full design), [05-app.md](./05-app.md) (plugin design journey)._
