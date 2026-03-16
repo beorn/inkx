@@ -1,0 +1,73 @@
+# Era 2 Design Decisions
+
+_Status: living document. Extracted from state-api-redesign.md § Decisions + Design History._
+
+Decisions are numbered for cross-reference. New decisions append; old ones are never renumbered.
+
+## Decisions
+
+1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [app-composition.md](../app-composition.md).
+
+2. **SlateJS-style plugin composition.** Plugins wrap `app.apply()` via closure. One type: `(app: App) => App`.
+
+3. **`op()` proxy for opt-in interception.** `op(app.model).chat.submit()` routes through `app.apply()`; direct calls bypass it.
+
+4. **Commands are `{ fn, args? }` objects.** `fn` is the behavior (reads/writes signals directly), `args` is an optional schema with `.parse()`. No registry, no string IDs — commands are referenced directly.
+
+5. **Surfaces are plugins.** A surface plugin contributes to both `app.model` (view state) and `app.rt` (I/O).
+
+6. **No driver abstraction.** Three patterns: app plugins (definition-time), `run(app, fn)` (runtime), direct calls (tests).
+
+7. **Plugin composition via spread.** TypeScript intersection types accumulate. Last-write-wins; dev mode warns on collisions.
+
+8. **`createModel()` wraps factories into typed hooks.** Factory returns signals + methods; `createModel` adds `.get()`, `.create()`, selector hook. Dependencies via `Pick<typeof providers, ...>`.
+
+9. **Signal auto-unwrapping at the selector boundary.** `useChat(m => m.phase)` returns `Phase`, not `Signal<Phase>`. Raw `.value` everywhere else.
+
+10. **Signals, not Zustand, as the state primitive.** Zustand is O(n) selector fanout; signals are O(1). Signal references are stable objects, incompatible with Zustand's `Object.is` change detection.
+
+11. **React bridge as separate entry point.** `@silvery/tea/react`, `/svelte`, `/vue`.
+
+12. **Function-calling style over discriminated unions.** Named methods, not switch-case dispatch.
+
+13. **Async effects (future).** V1: direct provider calls + scope methods.
+
+14. **Built-in timer effects.** `scope.timeout(ms, fn)` for one-shot, `scope.sleep(ms)` in async loops for intervals.
+
+15. **Auto-cleanup via AbortSignal.** Cancellation propagates down; errors up. No effect outlives its parent.
+
+16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()`.
+
+17. **Structured concurrency via scope tree.** See [scope-tree.md](../scope-tree.md).
+
+18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
+
+19. **`run()` owns lifecycle.** Creates root scope, applies `withTerminal()` by default, returns awaitable handle.
+
+20. **Async/await for updates, generators for content.** `async` yields control; `async function*` yields content.
+
+21. **Providers are plain objects via `createProviders()`.** Single source of truth for I/O types.
+
+22. **Per-invocation concurrency, not global serialization.** `fx.mutex(key)` for exclusive access; `fx.batch(updates)` for atomic batches.
+
+23. **`Pick<typeof providers, ...>` for dependency declaration.** Three levels: concrete Pick → type alias Pick → named interfaces.
+
+24. **Composition is plain objects, not pipelines.** Providers as typed objects; models via `createModel`; behavioral plugins for cross-cutting concerns only.
+
+25. **No string keys in registration.** Provider/model names come from JS object property names, not string arguments.
+
+## Design History
+
+- **2026-03-11**: Initial design finalized. Eight Sips, two-surface architecture, SlateJS plugins. Validated by O3 deep research.
+- **2026-03-12**: Model shape decisions. Flat shape, providers not runners, async/await over generators for effects.
+- **2026-03-12**: Two-surface rewrite. Replaced Runtime/App split with model + runtime.
+- **2026-03-12**: Prototype (aichat-v2). Reduced 327-line TEA to ~140 lines, eliminated 12 of 14 message types.
+- **2026-03-12**: App composition v2. Simplified four concerns → two. Introduced `op()` proxy.
+- **2026-03-13**: Signals vs Zustand. O(n) fanout and `Object.is` incompatible with stable signal refs. Resolution: `createModel()` with Zustand-like API but O(1) perf.
+- **2026-03-13**: Plugin composition. Generic accumulation via intersection types, not builder pattern.
+- **2026-03-13**: `op()` ergonomics finalized. Method calls only, one op per call, cached proxy instances.
+- **2026-03-16**: Era 2 implementation plan. Pre-phase validation, 7-phase rollout.
+
+---
+
+_See also: [state-api-redesign.md](../state-api-redesign.md) (full design), [app-composition.md](../app-composition.md) (plugin design journey)._
