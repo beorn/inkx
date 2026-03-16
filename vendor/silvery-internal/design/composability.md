@@ -54,11 +54,11 @@ Frameworks also provide **framework-specific bindings** for tea's primitives:
 
 Bridges between the pipeline and a rendering target.
 
-| Platform     | Output                    | Layout             | Input                           | Theme                 |
-| ------------ | ------------------------- | ------------------ | ------------------------------- | --------------------- |
-| **Terminal** | ANSI sequences            | flexily            | stdin parsing → normalized keys | OSC palette detection |
+| Platform     | Output                       | Layout             | Input                           | Theme                 |
+| ------------ | ---------------------------- | ------------------ | ------------------------------- | --------------------- |
+| **Terminal** | ANSI sequences               | flexily            | stdin parsing → normalized keys | OSC palette detection |
 | **Web**      | DOM elements (via framework) | Native CSS flexbox | DOM listeners → normalized keys | CSS custom properties |
-| **Canvas**   | Draw calls                | flexily            | Hit-testing → normalized keys   | Programmatic colors   |
+| **Canvas**   | Draw calls                   | flexily            | Hit-testing → normalized keys   | Programmatic colors   |
 
 **Input normalization**: each platform converts its native events to a common format (normalized key strings like `"ctrl+d"`, `"j"`, `"escape"`) before they reach tea's `keymap()`. The app framework never sees platform-specific event types.
 
@@ -266,13 +266,13 @@ The architecture is designed so these limits are explicit tradeoffs per-componen
 
 ## What's Fundamentally Hard
 
-| Challenge                         | Why                                                                                                                                                         | Mitigation                                                                                   |
-| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| **Terminal ↔ web visual parity**  | Fixed-width cells vs proportional fonts, 256 colors vs unlimited, cell-grid vs pixel positioning                                                            | Accept graceful degradation. Design for terminal, enhance on web.                            |
-| **Framework interop**             | React and Svelte have different lifecycles, hooks, tooling. Running both requires two runtimes.                                                             | Practical case is different views for different deployments, not mixing frameworks in one view. |
-| **Component library abstraction** | SelectList, TextInput etc. are React components with hooks today. Making them framework-agnostic requires headless logic + framework-specific rendering wrappers. | Align with TEA: component logic as pure state machines, rendering as projection.             |
-| **Native mobile**                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                         | Future @silvery/native package, or @silvery/web in a WebView.                                |
-| **Performance at scale**          | Abstract nodes add indirection vs direct rendering.                                                                                                         | Negligible for most apps. Platforms can short-circuit for hot paths.                         |
+| Challenge                         | Why                                                                                                                                                               | Mitigation                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| **Terminal ↔ web visual parity**  | Fixed-width cells vs proportional fonts, 256 colors vs unlimited, cell-grid vs pixel positioning                                                                  | Accept graceful degradation. Design for terminal, enhance on web.                               |
+| **Framework interop**             | React and Svelte have different lifecycles, hooks, tooling. Running both requires two runtimes.                                                                   | Practical case is different views for different deployments, not mixing frameworks in one view. |
+| **Component library abstraction** | SelectList, TextInput etc. are React components with hooks today. Making them framework-agnostic requires headless logic + framework-specific rendering wrappers. | Align with TEA: component logic as pure state machines, rendering as projection.                |
+| **Native mobile**                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                               | Future @silvery/native package, or @silvery/web in a WebView.                                   |
+| **Performance at scale**          | Abstract nodes add indirection vs direct rendering.                                                                                                               | Negligible for most apps. Platforms can short-circuit for hot paths.                            |
 
 ## The Gradual Path
 

@@ -107,12 +107,14 @@ This is what `react-reconciler` calls into on terminal. On web, frameworks use t
 Every component exists in up to three layers. Each layer is a separate package with a clear dependency direction.
 
 **Layer 1 — Headless state machine** (pure JS, one per component, universal):
+
 ```
 @silvery/platter    →  SelectListState, TextInputState, VirtualListState
 @silvery/tea     →  CommandPaletteState, SheetState, ToastState
 ```
 
 **Layer 2 — Framework bindings** (one per framework, renderer-agnostic):
+
 ```
 @silvery/platter-react    →  React reconciler: turns JSX into abstract nodes
 @silvery/platter-svelte   →  Svelte compiler adapter (future)
@@ -121,6 +123,7 @@ Every component exists in up to three layers. Each layer is a separate package w
 ```
 
 **Layer 3 — Rendered components** (one per framework × renderer):
+
 ```
                           Silver Platter (abstract nodes)  DOM (native)
                           ─────────────────────────────   ────────────
@@ -138,11 +141,11 @@ Solid                     platter-solid                   (native Solid — not 
 
 **What each rendered package contains:**
 
-| Package | Components | Surface adapter | Deps |
-|---|---|---|---|
-| platter-react | SelectList, TextInput, VirtualList... using Box/Text | React reconciler | platter, react |
-| tea-platter | CommandPalette, Sheet, Toast... using platter-react components | withTerminal(), withBrowser() | tea-react, platter-react |
-| tea-dom | CommandPalette, Sheet, Toast... using div/input | withBrowser() | tea-react, react-dom |
+| Package       | Components                                                     | Surface adapter               | Deps                     |
+| ------------- | -------------------------------------------------------------- | ----------------------------- | ------------------------ |
+| platter-react | SelectList, TextInput, VirtualList... using Box/Text           | React reconciler              | platter, react           |
+| tea-platter   | CommandPalette, Sheet, Toast... using platter-react components | withTerminal(), withBrowser() | tea-react, platter-react |
+| tea-dom       | CommandPalette, Sheet, Toast... using div/input                | withBrowser()                 | tea-react, react-dom     |
 
 **"Native framework without silvery" users** (Svelte, Solid developers who don't want silver platter rendering) get headless state machines + framework bindings. They bring their own visual layer. We only pre-build rendered components for silver platter and react-dom targets.
 
@@ -246,11 +249,11 @@ Svelte bindings for tea signals and commands, plus Svelte component wrappers.
 
 **Surface adapters bridge tea to framework+platforms.** Summary:
 
-| Adapter | Surface plugin | Rendered components | Rendering |
-|---|---|---|---|
+| Adapter                | Surface plugin                    | Rendered components        | Rendering                        |
+| ---------------------- | --------------------------------- | -------------------------- | -------------------------------- |
 | `@silvery/tea-platter` | `withTerminal()`, `withBrowser()` | silvery platter components | platter-react + platter-term/web |
-| `@silvery/tea-dom` | `withBrowser()` | DOM elements | react-dom |
-| `@silvery/tea-svelte` | `withBrowser()` | Svelte components | Svelte compiler |
+| `@silvery/tea-dom`     | `withBrowser()`                   | DOM elements               | react-dom                        |
+| `@silvery/tea-svelte`  | `withBrowser()`                   | Svelte components          | Svelte compiler                  |
 
 Silvery is treated as one rendering option among many. The platter adapter isn't special — it just uses silvery's rendering instead of react-dom or Svelte.
 
@@ -351,11 +354,11 @@ silvertea (convenience bundle)
 
 **Surface adapters are the integration points.** Each tea rendered package bridges tea to a specific framework+renderer:
 
-| Package | Surface adapter | Rendered components | Deps |
-|---|---|---|---|
+| Package                | Surface adapter                   | Rendered components        | Deps                     |
+| ---------------------- | --------------------------------- | -------------------------- | ------------------------ |
 | `@silvery/tea-platter` | `withTerminal()`, `withBrowser()` | silvery platter components | tea-react, platter-react |
-| `@silvery/tea-dom` | `withBrowser()` | DOM elements | tea-react, react-dom |
-| `@silvery/tea-svelte` | `withBrowser()` | Svelte components | tea, svelte |
+| `@silvery/tea-dom`     | `withBrowser()`                   | DOM elements               | tea-react, react-dom     |
+| `@silvery/tea-svelte`  | `withBrowser()`                   | Svelte components          | tea, svelte              |
 
 ## What Should I Use?
 
@@ -431,27 +434,27 @@ Each step builds on the previous. None requires the next. Stop when you have eno
 
 #### Today
 
-| Situation                   | Install                          | Notes                                   |
-| --------------------------- | -------------------------------- | --------------------------------------- |
-| Terminal app (better Ink)   | `silvery`                        | One install — bundles platter + platter-react + platter-term + theme |
-| Terminal app + architecture | `silvery` + `silvertea`          | Add silvertea when state/commands get complex |
-| Headless model (AI/tests)   | `@silvery/tea`                   | No rendering, no surface adapter needed |
+| Situation                   | Install                 | Notes                                                                |
+| --------------------------- | ----------------------- | -------------------------------------------------------------------- |
+| Terminal app (better Ink)   | `silvery`               | One install — bundles platter + platter-react + platter-term + theme |
+| Terminal app + architecture | `silvery` + `silvertea` | Add silvertea when state/commands get complex                        |
+| Headless model (AI/tests)   | `@silvery/tea`          | No rendering, no surface adapter needed                              |
 
 #### Future
 
-| Situation                     | Install                                                               | Notes                                     |
-| ----------------------------- | --------------------------------------------------------------------- | ----------------------------------------- |
-| Terminal + web (shared model) | `silvery` + `@silvery/platter-web` + `silvertea`                      | Both platforms, one model, one tea         |
-| React-dom app with tea        | `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-dom`            | Tea + react-dom, no silvery rendering      |
-| Svelte web app with tea       | `@silvery/tea` + `@silvery/tea-svelte`                                | Tea + svelte, no silvery rendering         |
-| Svelte terminal app           | `@silvery/platter-svelte` + `@silvery/platter-term`                   | Silvery rendering, swap framework          |
+| Situation                     | Install                                                    | Notes                                 |
+| ----------------------------- | ---------------------------------------------------------- | ------------------------------------- |
+| Terminal + web (shared model) | `silvery` + `@silvery/platter-web` + `silvertea`           | Both platforms, one model, one tea    |
+| React-dom app with tea        | `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-dom` | Tea + react-dom, no silvery rendering |
+| Svelte web app with tea       | `@silvery/tea` + `@silvery/tea-svelte`                     | Tea + svelte, no silvery rendering    |
+| Svelte terminal app           | `@silvery/platter-svelte` + `@silvery/platter-term`        | Silvery rendering, swap framework     |
 
 #### Convenience bundles
 
-| Bundle       | Contains                                                                          | For                                              |
-| ------------ | --------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `silvery`    | `@silvery/platter` + `platter-react` + `platter-term` + `@silvery/theme`          | Rendering — one install, one import |
-| `silvertea`  | `@silvery/tea` + `tea-react` + `tea-platter`                                      | App framework — tea + React hooks + silvery surface |
+| Bundle      | Contains                                                                 | For                                                 |
+| ----------- | ------------------------------------------------------------------------ | --------------------------------------------------- |
+| `silvery`   | `@silvery/platter` + `platter-react` + `platter-term` + `@silvery/theme` | Rendering — one install, one import                 |
+| `silvertea` | `@silvery/tea` + `tea-react` + `tea-platter`                             | App framework — tea + React hooks + silvery surface |
 
 ## The Operation Spectrum
 
@@ -470,18 +473,18 @@ The `op()` proxy bridges op-as-object to op-as-data transparently.
 
 ## Portability Dimensions
 
-| Dimension          | What you can swap       | Cost of entry                                                  |
-| ------------------ | ----------------------- | -------------------------------------------------------------- |
-| **Multi-framework**   | React ↔ Svelte ↔ Solid  | State in tea signals, not framework hooks                      |
-| **Multi-platform** | Terminal ↔ Web ↔ Canvas | Components using silvery abstractions, not platform primitives |
-| **Multi-runtime**  | Real ↔ test ↔ AI agent  | Behavior in commands, not inline callbacks                     |
-| **Multi-session**  | Undo, replay, persist   | State changes through op(), not direct mutation                |
+| Dimension           | What you can swap       | Cost of entry                                                  |
+| ------------------- | ----------------------- | -------------------------------------------------------------- |
+| **Multi-framework** | React ↔ Svelte ↔ Solid  | State in tea signals, not framework hooks                      |
+| **Multi-platform**  | Terminal ↔ Web ↔ Canvas | Components using silvery abstractions, not platform primitives |
+| **Multi-runtime**   | Real ↔ test ↔ AI agent  | Behavior in commands, not inline callbacks                     |
+| **Multi-session**   | Undo, replay, persist   | State changes through op(), not direct mutation                |
 
 ### Bring-your-own state management
 
 Any state library works with silvery rendering. The tradeoff is which tea features you can use:
 
-| State library         | Works with tea commands? | Works with op()? | Multi-framework?    |
+| State library         | Works with tea commands? | Works with op()? | Multi-framework? |
 | --------------------- | ------------------------ | ---------------- | ---------------- |
 | Tea signals (default) | Yes                      | Yes              | Yes              |
 | Preact signals        | Yes (same shape)         | Yes              | Yes              |
