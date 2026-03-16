@@ -367,36 +367,36 @@ See [app-composition.md](./app-composition.md) for `op()` implementation, surfac
 
 Sync queue drains state mutations; async updates each get a child scope on the runtime. State mutations happen eagerly via signals (last write wins); effects are delegated to the runtime via the scope tree.
 
-**Concurrency** is per-invocation, not global: updates run concurrently by default, `fx.mutex(key)` for exclusive resource access, `fx.batch(updates)` for atomic multi-update batches.
+**Concurrency** is per-invocation, not global: updates run concurrently by default. _Future: `fx.mutex(key)` for exclusive resource access, `fx.batch(updates)` for atomic multi-update batches._
 
 ### Effects and structured concurrency
 
-Effects are typed descriptors (`AsyncEffect<T>`) that are both plain data and `await`-able. When `await`ed inside a model update, they look up the current scope via `AsyncLocalStorage` and delegate to the runtime surface. State mutations happen eagerly (via signals); effects are lazy (via `await`).
+State mutations happen eagerly via signals; side effects use direct provider calls or scope methods. _Future: typed effect descriptors (`AsyncEffect<T>`) that are `await`-able data, delegated to the runtime via `AsyncLocalStorage` — see [scope-tree.md](./scope-tree.md)._
 
 ```typescript
 // No effects — plain function
 moveCursor(s, { delta }) { s.cursor.value += delta }
 
-// With effects — async function, await typed effects
-async save(s) { await fx.persist({ data: s.items.value }) }
+// With side effects — v1: direct provider calls, scope for lifecycle
+async save(s) { await rt.persist.write("data.json", s.items.value) }
 
-// Sequential — each await is scoped, abortable, traced
+// Sequential — async/await, cancellable via scope
 async importAndSave(s, { url }) {
-  const data = await fx.fetch(url)    // data: Response — typed naturally
+  const data = await fetch(url, { signal: scope.signal })
   s.items.value = data
-  await fx.persist({ data })
+  await rt.persist.write("data.json", data)
 }
 ```
 
 The runtime surface owns the scope tree. Effects form a hierarchy: runtime scope → model scope → update scope. Cancellation flows down via `AbortSignal`, errors propagate up via promise rejection. No effect outlives its parent scope.
 
-For the full effects system — `AsyncEffect` implementation, `fx.from()` API wrapping, serialization policies, providers, structured concurrency details, cancellation cascading, scopes-as-loggily-spans, testing patterns (`collect()`, `testScope()`, `withTestClock()`) — see [scope-tree.md](./scope-tree.md).
+For structured concurrency details, cancellation cascading, scope lifecycle, and testing patterns — see [scope-tree.md](./scope-tree.md). _For the full aspirational effects system (`AsyncEffect`, `fx.from()`, serialization policies, providers) — see [scope-tree.md § Future](./scope-tree.md#future-aspirational)._
 
-**Three levels of effects** — these are a progression, not alternatives:
+**Two levels of effects** (v1) plus one aspirational:
 
 - **Level 0: Direct provider call** (`rt.persist.write(...)`) — simplest, no scope participation
 - **Level 1: Scope methods** (`scope.timeout()`, `scope.sleep()`) — cancellable, lifecycle-aware
-- **Level 2: Effect descriptors** (`fx.persist(...)`, future) — testable, recordable, replayable
+- _Level 2 (future): Effect descriptors (`fx.persist(...)`) — testable, recordable, replayable_
 
 Start at Level 0; promote when you need the capabilities of higher levels.
 
@@ -785,10 +785,10 @@ Three patterns, no special abstractions. Plugins compose at definition time; `ru
 10. **Signals, not Zustand, as the state primitive.** Zustand is O(n) selector fanout; signals are O(1). Signal references are stable objects, incompatible with Zustand's `Object.is` change detection. Use Zustand as API inspiration, not substrate.
 11. **React bridge as separate entry point.** `@silvery/tea/react`, `/svelte`, `/vue`.
 12. **Function-calling style over discriminated unions.** Named methods, not switch-case dispatch.
-13. **Async effects with `AsyncEffect<T>`.** Async functions `await` typed effect descriptors; scoped via `AsyncLocalStorage`. See [scope-tree.md](./scope-tree.md).
+13. **Async effects (future).** _Aspirational: `AsyncEffect<T>` typed effect descriptors, `await`-able and scoped via `AsyncLocalStorage`._ V1: direct provider calls + scope methods. See [scope-tree.md](./scope-tree.md).
 14. **Built-in timer effects.** `scope.timeout(ms, fn)` for one-shot, `scope.sleep(ms)` in async loops for intervals — cancellable via scope lifecycle.
 15. **Auto-cleanup via AbortSignal.** Cancellation propagates down; errors up. No effect outlives its parent.
-16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()` — any schema library works. Zod is the ergonomic choice (signal defaults via `z.number().default(cursor)`), not a dependency.
+16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()` — any schema library works. Zod is the ergonomic choice (signal defaults via `z.number().default(() => cursor.value)`), not a dependency.
 17. **Structured concurrency via scope tree.** See [scope-tree.md](./scope-tree.md).
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
 

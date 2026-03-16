@@ -241,15 +241,16 @@ function withTerminal({
       term.render(view, app)
 
       // Input — for-await loop IS the lifecycle
-      app.rt.scope.run(async () => {
+      ;(async () => {
         for await (const e of termKeySource(term.stdin)) {
+          if (app.rt.scope.cancelled) break
           const inv = keys?.(e)
           if (inv) {
             const result = await invoke(inv) // invoke returns a promise for async commands
             if (result === false) bell()
           }
         }
-      })
+      })()
     })
 
     return app

@@ -72,9 +72,7 @@ const commands = {
       fn(a: { nodeId: string }) {
         model.task.toggleDone(a.nodeId)
       },
-      // Signal defaults use function form: .default(() => currentNodeId.value)
-      // Shown here as .default(currentNodeId) for brevity
-      args: z.object({ nodeId: z.string().default(currentNodeId) }),
+      args: z.object({ nodeId: z.string().default(() => currentNodeId.value) }),
     },
     set_priority: {
       title: "Set Priority",
@@ -82,7 +80,7 @@ const commands = {
       fn(a: { nodeId: string; priority: number }) {
         model.task.setPriority(a)
       },
-      args: z.object({ nodeId: z.string().default(currentNodeId), priority: z.number() }),
+      args: z.object({ nodeId: z.string().default(() => currentNodeId.value), priority: z.number() }),
     },
   },
   navigation: {
