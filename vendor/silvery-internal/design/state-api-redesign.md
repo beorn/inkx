@@ -390,7 +390,7 @@ async importAndSave(s, { url }) {
 
 The runtime surface owns the scope tree. Effects form a hierarchy: runtime scope → model scope → update scope. Cancellation flows down via `AbortSignal`, errors propagate up via promise rejection. No effect outlives its parent scope.
 
-For structured concurrency details, cancellation cascading, scope lifecycle, and testing patterns — see [scope-tree.md](./scope-tree.md). _For the full aspirational effects system (`AsyncEffect`, `fx.from()`, serialization policies, providers) — see [scope-tree.md § Future](./scope-tree.md#future-aspirational)._
+For structured concurrency details, cancellation cascading, scope lifecycle, and testing patterns — see [scope-tree.md](./scope-tree.md). _For the full aspirational effects system (`AsyncEffect`, `fx.from()`, serialization policies, providers) — see [scope-tree.md § Providers vs Effect Providers](./scope-tree.md#providers-vs-effect-providers-future)._
 
 **Two levels of effects** (v1) plus one aspirational:
 

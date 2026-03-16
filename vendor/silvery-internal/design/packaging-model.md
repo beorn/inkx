@@ -204,10 +204,10 @@ Replaces and expands the current `@silvery/tea`. Framework-agnostic, platform-ag
 - **Command** `{ fn, args? }`, **invoke()**, **canInvoke()**, **available()** — command system
 - **keymap()**, **when()**, **Mapping\<E\>** — declarative input mapping (generic over event type)
 - **createModel()**, **ModelContext** — model factories with explicit DI
-- **Scope** — structured concurrency (sleep, timeout, interval, dispose)
+- **Scope** — structured concurrency (cancelled, signal, sleep, timeout, onDispose, dispose)
 - **createApp()**, **pipe()**, **plugins** — app composition
 - **op()**, **apply()** — op-as-data bridge for interception, undo, replay
-- **Effects as data** — pure, testable side effects
+- _Future_: **Effects as data** (`AsyncEffect<T>`) — pure, testable side effects via typed descriptors
 - **Headless app component state machines**: CommandPaletteState, SheetState, ToastState, TabGroupState
 
 **Zero dependencies on silvery rendering.** Tea is pure state + behavior. This is what enables headless operation — an AI agent or test harness uses tea alone, with no rendering packages.
@@ -267,10 +267,12 @@ All packages live under `@silvery/*`. Two bare packages are the user-facing prod
 import { Box, Text, SelectList, run } from "silvery"
 ```
 
-**`silvertea`** — App framework. Re-exports `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-platter`:
+**`silvertea`** — App framework. Re-exports `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-platter` + signals from `@silvery/platter` (convenience — `@silvery/tea` itself has zero package deps):
 
 ```typescript
 import { signal, keymap, invoke, createApp, withTerminal } from "silvertea"
+// signal comes from @silvery/platter, re-exported by the silvertea bundle for convenience
+// @silvery/tea core depends only on the Readable<T> interface, not on platter
 ```
 
 Most users start with `silvery` and add `silvertea` when they need commands/keymaps/op. React-dom users install `@silvery/tea` + `@silvery/tea-react` + `@silvery/tea-dom` directly — no silvery rendering dependency.

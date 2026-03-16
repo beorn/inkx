@@ -283,7 +283,8 @@ const keys = keymap(
 | **L0** | Primitives       | `signal()`, `derived()`, functions, `.parse()` interface       | `@silvery/platter`    |
 | **L1** | Shapes           | `{ fn, args? }`, `Invocation`, `Mapping<E>`                    | Conventions (no code) |
 | **L2** | Input library    | `keymap()`, `when()`, `invoke()`, `canInvoke()`, `available()` | `@silvery/tea`        |
-| **L3** | App framework    | `createModel()`, `withTerminal()`, `pipe()`, plugins, `op()`   | `@silvery/tea`        |
+| **L3** | App framework    | `createModel()`, `pipe()`, plugins, `op()`                     | `@silvery/tea`        |
+| **L3** | Surface adapter  | `withTerminal()`, `withDom()`                                  | `@silvery/tea-platter`|
 | **L4** | Domain framework | `withDocument()`, `withHistory()`, `withCursor()`              | `docily`              |
 
 Helpers produce the shapes; shapes are the architecture. A `Mapping<string>` is just a function — you don't need `keymap()` to create one:
@@ -308,7 +309,8 @@ Six concepts: signals, commands, keymap, view, withTerminal, run.
 ```typescript
 import { signal, derived } from "@silvery/platter"
 import { keymap, when, invoke } from "@silvery/tea"
-import { createModel, withTerminal, run, pipe, createApp } from "@silvery/tea"
+import { createModel, run, pipe, createApp } from "@silvery/tea"
+import { withTerminal } from "@silvery/tea-platter"
 import { useSignal } from "@silvery/tea-react"
 
 // 1. Signals — reactive state

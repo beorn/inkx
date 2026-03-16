@@ -133,6 +133,7 @@ The working prototype uses this minimal interface — no `run(effect)`, `spawn()
 ```typescript
 interface Scope extends Disposable {
   readonly cancelled: boolean
+  readonly signal: AbortSignal
   sleep(ms: number): Promise<void>
   timeout(ms: number, fn: () => void): () => void
   onDispose(fn: () => void): void
@@ -146,6 +147,7 @@ interface Scope extends Disposable {
 function createScope(parent?: Scope): Scope {
   let cancelled = false
   const disposables: (() => void)[] = []
+  const ac = new AbortController()
 
   // Parent cancellation cascades to children
   if (parent) {
@@ -155,6 +157,10 @@ function createScope(parent?: Scope): Scope {
   const scope: Scope = {
     get cancelled() {
       return cancelled
+    },
+
+    get signal() {
+      return ac.signal
     },
 
     async sleep(ms: number) {
@@ -181,6 +187,7 @@ function createScope(parent?: Scope): Scope {
 
     [Symbol.dispose]() {
       cancelled = true
+      ac.abort()
       for (const fn of disposables) fn()
       disposables.length = 0
     },

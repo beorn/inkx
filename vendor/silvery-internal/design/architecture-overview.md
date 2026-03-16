@@ -74,11 +74,9 @@ Every user action is a discoverable command. Commands are `{ fn, args? }` object
 
 Structured concurrency, effects, observability, and lifecycle in one tree.
 
-- **Scope = AbortController + DisposableStack + loggily span + children**
-- **Effects are typed descriptors** (`AsyncEffect<T>`) that are `await`-able — they look up the current scope and delegate to providers
-- **Cancellation cascades down** (parent → children), errors propagate up
-- **Context propagation**: `AsyncLocalStorage` on Node.js/Bun; explicit `scope` parameter as portable fallback. Effects resolve their scope via `AsyncLocalStorage.getStore()` when available, or accept an explicit scope argument.
-- **Testing**: swap providers, use `withTestClock()` for timers, `collect()` to inspect effect descriptors
+- **Scope = AbortController + AbortSignal + DisposableStack + loggily span + children**
+- **v1**: Direct provider calls + scope methods (`sleep`, `timeout`, `onDispose`, `signal`). Cancellation cascades down (parent → children), errors propagate up.
+- _Future_: **Effects as typed descriptors** (`AsyncEffect<T>`) that are `await`-able — they look up the current scope via `AsyncLocalStorage` and delegate to providers. `collect()` to inspect effect descriptors, `withTestClock()` for deterministic timer testing. Context propagation via `AsyncLocalStorage` on Node.js/Bun; explicit `scope` parameter as portable fallback.
 
 ### Packaging & Rendering (3 docs)
 
