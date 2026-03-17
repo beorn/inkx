@@ -59,7 +59,10 @@ export class FsWriter implements FsSync {
         const fileIds = new Set<string>()
         for (const [nodeId, blockId] of assigned) {
           const node = getNode(this.db, nodeId)
-          if (!node) continue
+          if (!node) {
+            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after block_id assignment`)
+            continue
+          }
           // Update in-memory node for serialization
           node.block_id = blockId
           const file = findFileNode(this.db, node)
@@ -68,7 +71,10 @@ export class FsWriter implements FsSync {
         // Rewrite each affected source file (without assignBlockId to prevent cascading)
         for (const fileId of fileIds) {
           const file = getNode(this.db, fileId)
-          if (!file?.fs_path) continue
+          if (!file?.fs_path) {
+            log.error?.(`rewriteSourceFiles: file node ${fileId} missing or has no fs_path`)
+            continue
+          }
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
@@ -231,6 +237,10 @@ export class FsWriter implements FsSync {
     const existingIndex = findIndexFile(node, children)
 
     const title = node.content ?? node.name ?? ""
+    if (!title) {
+      log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
+      return
+    }
     const childSlots = children.filter(
       (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
     )
@@ -364,7 +374,7 @@ export class FsWriter implements FsSync {
         }
       }
     } catch (err) {
-      log.debug?.(`reconcile-before-write: error checking file ${String(err)}`)
+      log.error?.(`reconcile-before-write: error checking file ${absPath}: ${String(err)}`)
     }
   }
 

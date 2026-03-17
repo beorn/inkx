@@ -160,4 +160,38 @@ describe("getChildSlotTarget", () => {
     const node = makeNode({ id: "s", content: "  ![[./mip]]  " })
     expect(getChildSlotTarget(node)).toBe("mip")
   })
+
+  test("handles trailing newline", () => {
+    const node = makeNode({ id: "s", content: "![[./mip]]\n" })
+    expect(getChildSlotTarget(node)).toBe("mip")
+  })
+
+  test("extracts nested path target with slashes", () => {
+    const node = makeNode({ id: "s", content: "![[./sub/nested]]" })
+    expect(getChildSlotTarget(node)).toBe("sub/nested")
+  })
+
+  test("multi-line embed content returns null (not a single slot)", () => {
+    const node = makeNode({ id: "s", content: "![[./alpha]]\n![[./beta]]" })
+    expect(getChildSlotTarget(node)).toBeNull()
+  })
+
+  test("returns null when embed has trailing text", () => {
+    const node = makeNode({ id: "s", content: "![[./child]] extra text" })
+    expect(getChildSlotTarget(node)).toBeNull()
+  })
+
+  test("returns null for whitespace-only content", () => {
+    const node = makeNode({ id: "s", content: "   " })
+    expect(getChildSlotTarget(node)).toBeNull()
+  })
+})
+
+describe("findIndexFile — duplicate same-name files", () => {
+  test("returns first same-name match found", () => {
+    const folder = makeNode({ id: "f", fstype: "folder", name: "project" })
+    const file1 = makeNode({ id: "a", fstype: "mdfile", name: "project", parent_id: "f" })
+    const file2 = makeNode({ id: "b", fstype: "mdfile", name: "project", parent_id: "f" })
+    expect(findIndexFile(folder, [file1, file2])?.id).toBe("a")
+  })
 })

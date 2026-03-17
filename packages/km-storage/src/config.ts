@@ -88,8 +88,8 @@ function loadOriginalBeadsConfigWithPath(
         const content = readFileSync(beadsConfigPath, "utf-8")
         const config = parseYaml(content) as OriginalBeadsConfig
         return { config: config || {}, filepath: beadsConfigPath }
-      } catch {
-        // Invalid YAML, skip
+      } catch (err) {
+        throw new Error(`invalid YAML in ${beadsConfigPath}: ${String(err)}`)
       }
     }
     dir = dirname(dir)

@@ -501,7 +501,10 @@ export class SyncManager extends EventEmitter {
         const fileIds = new Set<string>()
         for (const [nodeId, blockId] of assigned) {
           const node = getNode(this.db, nodeId)
-          if (!node) continue
+          if (!node) {
+            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after block_id assignment`)
+            continue
+          }
           node.block_id = blockId // Update in-memory for serialization
           const file = this.findFileNode(node)
           if (file && file.id !== excludeFileId) fileIds.add(file.id)
@@ -509,7 +512,10 @@ export class SyncManager extends EventEmitter {
         // Queue rewrites for affected source files (no assignBlockId to prevent cascading)
         for (const fileId of fileIds) {
           const file = getNode(this.db, fileId)
-          if (!file?.fs_path) continue
+          if (!file?.fs_path) {
+            log.error?.(`rewriteSourceFiles: file node ${fileId} missing or has no fs_path`)
+            continue
+          }
           const absPath = toAbsoluteFsPath(this.config.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
@@ -635,6 +641,10 @@ export class SyncManager extends EventEmitter {
     const existingIndex = findIndexFile(node, children)
 
     const title = node.content ?? node.name ?? ""
+    if (!title) {
+      log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
+      return
+    }
     const childSlots = children.filter(
       (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
     )
@@ -769,8 +779,7 @@ export class SyncManager extends EventEmitter {
         }
       }
     } catch (err) {
-      log.debug?.(`reconcile-before-write: error checking file ${String(err)}`)
-      // Continue with write anyway - better than losing the DB change
+      log.error?.(`reconcile-before-write: error checking file ${absPath}: ${String(err)}`)
     }
   }
 

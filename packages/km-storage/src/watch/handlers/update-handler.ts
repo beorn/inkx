@@ -231,10 +231,16 @@ function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
   if (!op.nodeId) return
 
   const node = getNode(db, op.nodeId)
-  if (node?.fstype !== "mdfile") return
+  if (!node) {
+    log.error?.(`syncIndexFileToFolder: node not found for id=${op.nodeId}`)
+    return
+  }
+  if (node.fstype !== "mdfile") return
 
   // Check if this file is an index file for its parent folder
-  const parent = node.parent_id ? getNode(db, node.parent_id) : null
+  // Note: parent_id may be "." (repo root sentinel) which returns null from getNode — that's normal
+  if (!node.parent_id) return
+  const parent = getNode(db, node.parent_id)
   if (parent?.fstype !== "folder") return
   if (!isIndexFile(parent.name ?? "", node)) return
 
@@ -257,6 +263,8 @@ function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
         emitNodeUpdated(emitter, "fs-watch", child.id, { parent_idx: idx })
       }
       idx++
+    } else {
+      log.warn?.(`syncIndexFileToFolder: slot target "${target}" has no matching child in folder ${parent.id}`)
     }
   }
 

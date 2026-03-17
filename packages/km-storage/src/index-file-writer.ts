@@ -17,6 +17,9 @@ export function generateIndexFileContent(
   children: Array<{ name: string }>,
   materialization: "metadata" | "full",
 ): string {
+  if (!title) {
+    throw new Error("generateIndexFileContent: title must not be empty")
+  }
   let result = `# ${title}\n`
 
   // Body paragraphs (if any)

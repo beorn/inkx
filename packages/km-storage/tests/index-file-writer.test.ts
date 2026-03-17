@@ -47,6 +47,12 @@ describe("generateIndexFileContent", () => {
     expect(result).toBe("# Empty\n")
   })
 
+  test("throws on empty title", () => {
+    expect(() => generateIndexFileContent("", "", [], "metadata")).toThrow(
+      "generateIndexFileContent: title must not be empty",
+    )
+  })
+
   test("body with leading/trailing whitespace is trimmed", () => {
     const result = generateIndexFileContent("Title", "  text with spaces  ", [], "metadata")
     expect(result).toBe("# Title\n\ntext with spaces\n")

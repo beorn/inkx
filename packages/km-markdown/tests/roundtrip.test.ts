@@ -719,6 +719,71 @@ Regular paragraph here.`)
     expect(normalizeMarkdown(md1)).toBe(normalizeMarkdown(md2))
     expect(md2).toContain("![[Projects/API#Auth|API Docs]]")
   })
+
+  describe("relative child embeds (![[./...]])", () => {
+    test("![[./child]] roundtrips correctly", () => {
+      const input = "![[./child]]\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const output = nodesToMarkdown(nodes)
+      expect(output.trimEnd()).toBe(input.trimEnd())
+    })
+
+    test("![[./child]] parses to paragraph with embed content", () => {
+      const input = "![[./child]]\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const embedNode = nodes.find((n) => n.content?.includes("![[./child]]"))
+      expect(embedNode).toBeDefined()
+      expect(embedNode!.content).toBe("![[./child]]")
+    })
+
+    test("![[./sub/nested]] preserves nested paths", () => {
+      const input = "![[./sub/nested]]\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const output = nodesToMarkdown(nodes)
+      expect(output.trimEnd()).toBe(input.trimEnd())
+    })
+
+    test("![[other]] without ./ prefix roundtrips correctly", () => {
+      const input = "![[other]]\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const output = nodesToMarkdown(nodes)
+      expect(output.trimEnd()).toBe(input.trimEnd())
+      const embedNode = nodes.find((n) => n.content?.includes("![[other]]"))
+      expect(embedNode).toBeDefined()
+      expect(embedNode!.content).not.toContain("./")
+    })
+
+    test("double round-trip stability", () => {
+      const input = "![[./child]]\n"
+      const nodes1 = parseMarkdownToNodes(input, "test.md")
+      const output1 = nodesToMarkdown(nodes1)
+      const nodes2 = parseMarkdownToNodes(output1, "test.md")
+      const output2 = nodesToMarkdown(nodes2)
+      expect(output2).toBe(output1)
+    })
+
+    test("mixed inline content with ![[./child]]", () => {
+      const input = "Some text ![[./child]] more text\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const output = nodesToMarkdown(nodes)
+      expect(output.trimEnd()).toBe(input.trimEnd())
+    })
+
+    test("standalone ![[./child]] as block in multi-element doc", () => {
+      const input = "# Title\n\n![[./child]]\n\nParagraph text\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const output = nodesToMarkdown(nodes)
+      expect(output.trimEnd()).toBe(input.trimEnd())
+    })
+
+    test("embeddingTarget in data is stripped of ./ prefix", () => {
+      const input = "![[./child]]\n"
+      const nodes = parseMarkdownToNodes(input, "test.md")
+      const embedNode = nodes.find((n) => n.data?.embeddingTarget !== undefined)
+      expect(embedNode).toBeDefined()
+      expect(embedNode!.data!.embeddingTarget).toBe("child")
+    })
+  })
 })
 
 /**

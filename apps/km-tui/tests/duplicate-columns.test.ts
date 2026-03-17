@@ -443,6 +443,309 @@ describe("folder index file expansion", () => {
     expect(columns[0]!.node.id).toBe("f1") // readme resolved via slot
     expect(columns[1]!.node.id).toBe("s2") // inline section
   })
+
+  test("folder child is a folder (not just mdfile) resolves as slot", () => {
+    const { folder, indexFile, mipFile } = folderWithIndex()
+    const subfolder = makeNode({
+      id: "subfolder",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "early-orbit",
+      parent_idx: 4,
+      name: "designs",
+    })
+    const sec1 = indexSection("s1", "index-file", 0, "![[./mip]]")
+    const sec2 = indexSection("s2", "index-file", 1, "![[./designs]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, subfolder, sec1, sec2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("mip")
+    expect(columns[1]!.node.id).toBe("subfolder")
+  })
+
+  test("all children referenced in slots → no unlisted section", () => {
+    const { folder, indexFile, mipFile, launchFile, extraFile } = folderWithIndex()
+    const sec1 = indexSection("s1", "index-file", 0, "![[./mip]]")
+    const sec2 = indexSection("s2", "index-file", 1, "![[./launch-academy]]")
+    const sec3 = indexSection("s3", "index-file", 2, "![[./notes]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, launchFile, extraFile, sec1, sec2, sec3],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    expect(columns.length).toBe(3)
+    expect(columns[0]!.node.id).toBe("mip")
+    expect(columns[1]!.node.id).toBe("launch")
+    expect(columns[2]!.node.id).toBe("extra")
+  })
+
+  test("empty index file (no sections, no body) → all children as columns", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const file1 = makeNode({
+      id: "f1",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "readme",
+      fs_path: "project/readme.md",
+    })
+    const file2 = makeNode({
+      id: "f2",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 2,
+      name: "todo",
+      fs_path: "project/todo.md",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, file1, file2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("f1")
+    expect(columns[1]!.node.id).toBe("f2")
+  })
+
+  test(".md (dot-md/empty-name) detected as index file", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const dotMdFile = makeNode({
+      id: "dot-md",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "",
+      fs_path: "project/.md",
+    })
+    const file1 = makeNode({
+      id: "f1",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "readme",
+      fs_path: "project/readme.md",
+    })
+    const sec1 = indexSection("s1", "dot-md", 0, "![[./readme]]")
+    const sec2 = indexSection("s2", "dot-md", 1, "Notes")
+
+    const repo = createFakeRepo({
+      nodes: [folder, dotMdFile, file1, sec1, sec2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("f1")
+    expect(columns[1]!.node.id).toBe("s2")
+  })
+
+  test("same-name with case mismatch resolved via namesAreSimilar", () => {
+    const folder = makeNode({
+      id: "my-proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "My-Project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "my-proj",
+      parent_idx: 0,
+      name: "my project",
+      fs_path: "My-Project/my project.md",
+    })
+    const file1 = makeNode({
+      id: "f1",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "my-proj",
+      parent_idx: 1,
+      name: "tasks",
+      fs_path: "My-Project/tasks.md",
+    })
+    const sec1 = indexSection("s1", "idx", 0, "![[./tasks]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, file1, sec1],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "my-proj", new Map())
+
+    expect(columns.length).toBe(1)
+    expect(columns[0]!.node.id).toBe("f1")
+  })
+
+  test("both same-name.md and index.md exist → same-name used for promotion", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const sameNameFile = makeNode({
+      id: "same-name",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const indexMdFile = makeNode({
+      id: "index-md",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "index",
+      fs_path: "project/index.md",
+    })
+    const file1 = makeNode({
+      id: "f1",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 2,
+      name: "readme",
+      fs_path: "project/readme.md",
+    })
+    const sec1 = indexSection("s1", "same-name", 0, "![[./readme]]")
+    const sec2 = indexSection("s2", "index-md", 0, "![[./readme]]")
+    const sec3 = indexSection("s3", "index-md", 1, "Index Notes")
+
+    const repo = createFakeRepo({
+      nodes: [folder, sameNameFile, indexMdFile, file1, sec1, sec2, sec3],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("f1")
+    expect(columns[1]!.node.id).toBe("index-md")
+  })
+
+  test("same-name.md has slots, index.md has different slots → only same-name's used", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const sameNameFile = makeNode({
+      id: "same-name",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const indexMdFile = makeNode({
+      id: "index-md",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "index",
+      fs_path: "project/index.md",
+    })
+    const fileA = makeNode({
+      id: "fa",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 2,
+      name: "alpha",
+      fs_path: "project/alpha.md",
+    })
+    const fileB = makeNode({
+      id: "fb",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 3,
+      name: "beta",
+      fs_path: "project/beta.md",
+    })
+    const snSec1 = indexSection("sn-s1", "same-name", 0, "![[./alpha]]")
+    const snSec2 = indexSection("sn-s2", "same-name", 1, "![[./beta]]")
+    const ixSec1 = indexSection("ix-s1", "index-md", 0, "![[./beta]]")
+    const ixSec2 = indexSection("ix-s2", "index-md", 1, "![[./alpha]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, sameNameFile, indexMdFile, fileA, fileB, snSec1, snSec2, ixSec1, ixSec2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    expect(columns.length).toBe(3)
+    expect(columns[0]!.node.id).toBe("fa")
+    expect(columns[1]!.node.id).toBe("fb")
+    expect(columns[2]!.node.id).toBe("index-md")
+  })
 })
 
 describe("markdown file columns", () => {
