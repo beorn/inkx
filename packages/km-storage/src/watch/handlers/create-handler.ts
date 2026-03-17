@@ -107,6 +107,12 @@ export function handleCreate(options: CreateHandlerOptions): void {
     })
     // Add folder to resolver so subsequent files can link to it (e.g., ![[inbox]])
     options.ctx.resolver.addFile(folderId, folderName)
+
+    // Mark parent folder for index refresh (new subfolder needs to appear in materialized index)
+    if (parentId) {
+      ctx.foldersToRefresh ??= new Set()
+      ctx.foldersToRefresh.add(parentId)
+    }
     return
   }
 
@@ -129,6 +135,12 @@ export function handleCreate(options: CreateHandlerOptions): void {
       content: basename(op.path),
       data: { name: basename(op.path) },
     })
+
+    // Mark parent folder for index refresh (new file needs to appear in materialized index)
+    if (parentId) {
+      ctx.foldersToRefresh ??= new Set()
+      ctx.foldersToRefresh.add(parentId)
+    }
   }
 }
 
@@ -261,6 +273,12 @@ function handleTxtCreate(
   if (fileNode) {
     ctx.newFiles.push({ id: fileNode.id, name: fileName })
     ctx.resolver.addFile(fileNode.id, fileName)
+
+    // Mark parent folder for index refresh (new file needs to appear in materialized index)
+    if (parentId) {
+      ctx.foldersToRefresh ??= new Set()
+      ctx.foldersToRefresh.add(parentId)
+    }
   }
 }
 

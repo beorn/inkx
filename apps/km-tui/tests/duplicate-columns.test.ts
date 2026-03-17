@@ -886,6 +886,127 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     expect(columns[1]!.node.id).toBe("s1")
   })
 
+  test("paragraph with unresolved slot stays visible as body content", () => {
+    // Regression: paragraph with ![[./missing]] was identified as slot,
+    // excluded from body, but target didn't resolve — paragraph disappeared entirely.
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    // Paragraph slot referencing a non-existent child
+    const slotMissing = makeNode({
+      id: "p-missing",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "![[./missing-child]]",
+    })
+    // Resolved paragraph slot
+    const slotAlpha = makeNode({
+      id: "p-alpha",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 1,
+      content: "![[./alpha]]",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, slotMissing, slotAlpha],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // The unresolved slot paragraph should appear in body column.
+    // Alpha should resolve as a column.
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.isVirtual).toBe(true) // body column with unresolved slot
+    expect(columns[0]!.cardNodes.length).toBe(1)
+    expect(columns[0]!.cardNodes[0]!.content).toBe("![[./missing-child]]")
+    expect(columns[1]!.node.id).toBe("alpha") // resolved slot
+  })
+
+  test("paragraph with partially resolved multi-slot stays in body", () => {
+    // Multi-line slot paragraph where one target exists but another doesn't.
+    // The whole paragraph should stay in body (not partially consumed).
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    // Multi-slot paragraph: one exists, one doesn't
+    const multiSlot = makeNode({
+      id: "p-multi",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "![[./alpha]]\n![[./nonexistent]]",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, multiSlot],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // The partially-resolved multi-slot should stay in body.
+    // Alpha should appear as unlisted child (not consumed by the partial slot).
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.isVirtual).toBe(true) // body column
+    expect(columns[0]!.cardNodes[0]!.content).toBe("![[./alpha]]\n![[./nonexistent]]")
+    expect(columns[1]!.node.id).toBe("alpha") // unlisted child (not consumed by partial slot)
+  })
+
   test("paragraph with prose containing embed is NOT treated as slot", () => {
     const folder = makeNode({
       id: "proj",

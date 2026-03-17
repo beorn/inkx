@@ -20,10 +20,9 @@ import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "
 import { shouldApplyToFs } from "./writequeue.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
-import { findIndexFile, isIndexFile, isSlotNode, namesAreSimilar } from "@km/tree"
-import { isOutline } from "@km/core"
+import { findIndexFile, isIndexFile, namesAreSimilar } from "@km/tree"
 import { getFolderIndexConfig } from "../config.ts"
-import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
+import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
 
 const log = createLogger("km:storage:watch:fs-writer")
 
@@ -241,32 +240,14 @@ export class FsWriter implements FsSync {
     const folderPath = node.fs_path
     if (!folderPath) return
 
-    const children = getChildren(this.db, node.id)
-    const existingIndex = findIndexFile(node, children)
-
-    const title = node.content ?? node.name ?? ""
-    if (!title) {
+    const content = buildIndexContent(this.db, node, config)
+    if (!content) {
       log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
       return
     }
-    const childSlots = children.filter(
-      (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
-    )
 
-    // Preserve existing body content from the index file (non-slot paragraphs)
-    let body = ""
-    if (existingIndex) {
-      const indexChildren = getChildren(this.db, existingIndex.id)
-      const bodyParts = indexChildren.filter((c) => !isOutline(c.type, c.item) && !isSlotNode(c))
-      body = bodyParts.map((c) => c.content ?? "").join("\n\n")
-    }
-
-    const content = generateIndexFileContent(
-      title,
-      body,
-      childSlots.map((c) => ({ name: c.name ?? "" })),
-      config.materialization,
-    )
+    const children = getChildren(this.db, node.id)
+    const existingIndex = findIndexFile(node, children)
 
     if (existingIndex?.fs_path) {
       // Update existing index file
@@ -311,16 +292,26 @@ export class FsWriter implements FsSync {
     }
 
     // Rename the same-name index file inside the (now renamed) folder
+    let indexRenameSucceeded = false
     if (indexNeedsRename && indexFile?.fs_path) {
       const oldIndexName = indexFile.fs_path.split("/").pop() ?? ""
       const newIndexName = newName + ".md"
       if (oldIndexName !== newIndexName) {
         const oldIndexAbsPath = toAbsoluteFsPath(this.repoPath, join(newFsPath, oldIndexName))
         const newIndexAbsPath = toAbsoluteFsPath(this.repoPath, join(newFsPath, newIndexName))
-        if (existsSync(oldIndexAbsPath) && !existsSync(newIndexAbsPath)) {
-          log.info?.(`index file rename: ${oldIndexName} → ${newIndexName}`)
-          renameSync(oldIndexAbsPath, newIndexAbsPath)
+        try {
+          if (existsSync(oldIndexAbsPath) && !existsSync(newIndexAbsPath)) {
+            log.info?.(`index file rename: ${oldIndexName} → ${newIndexName}`)
+            renameSync(oldIndexAbsPath, newIndexAbsPath)
+            indexRenameSucceeded = true
+          }
+        } catch (err) {
+          log.error?.(`index file rename failed: ${oldIndexName} → ${newIndexName}: ${String(err)}`)
+          // Don't update DB for index file — reconciler will pick up the mismatch
         }
+      } else {
+        // Names are the same, no rename needed — treat as success for DB update
+        indexRenameSucceeded = true
       }
     }
 
@@ -340,8 +331,8 @@ export class FsWriter implements FsSync {
       oldPrefix + "%",
     ])
 
-    // Update the same-name index file's name and fs_path in DB
-    if (indexNeedsRename && indexFile) {
+    // Only update the index file's name and fs_path in DB if the FS rename succeeded
+    if (indexNeedsRename && indexFile && indexRenameSucceeded) {
       const newIndexFsPath = join(newFsPath, newName + ".md")
       this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
         newIndexFsPath,
@@ -395,6 +386,15 @@ export class FsWriter implements FsSync {
     // Mutate node so caller writes content at new path
     fileNode.fs_path = newFsPath
     fileNode.name = newName
+
+    // If parent folder has materialization enabled, refresh its index file
+    // so slots reflect the new filename
+    if (fileNode.parent_id && fileNode.parent_id !== ".") {
+      const parent = getNode(this.db, fileNode.parent_id)
+      if (parent?.fstype === "folder" && parent.fs_path) {
+        this.handleFolderIndexUpdate(parent)
+      }
+    }
   }
 
   /**

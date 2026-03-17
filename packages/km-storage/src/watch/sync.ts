@@ -22,11 +22,10 @@ import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
-import { isOutline } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
-import { findIndexFile, isSlotNode, namesAreSimilar } from "@km/tree"
+import { findIndexFile, namesAreSimilar } from "@km/tree"
 import { getFolderIndexConfig } from "../config.ts"
-import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
+import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
 
 /** Progress info for sync operations */
 interface SyncProgress {
@@ -637,32 +636,14 @@ export class SyncManager extends EventEmitter {
     const folderPath = node.fs_path
     if (!folderPath) return
 
-    const children = getChildren(this.db, node.id)
-    const existingIndex = findIndexFile(node, children)
-
-    const title = node.content ?? node.name ?? ""
-    if (!title) {
+    const content = buildIndexContent(this.db, node, config)
+    if (!content) {
       log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
       return
     }
-    const childSlots = children.filter(
-      (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
-    )
 
-    // Preserve existing body content from the index file (non-slot paragraphs)
-    let body = ""
-    if (existingIndex) {
-      const indexChildren = getChildren(this.db, existingIndex.id)
-      const bodyParts = indexChildren.filter((c) => !isOutline(c.type, c.item) && !isSlotNode(c))
-      body = bodyParts.map((c) => c.content ?? "").join("\n\n")
-    }
-
-    const content = generateIndexFileContent(
-      title,
-      body,
-      childSlots.map((c) => ({ name: c.name ?? "" })),
-      config.materialization,
-    )
+    const children = getChildren(this.db, node.id)
+    const existingIndex = findIndexFile(node, children)
 
     if (existingIndex?.fs_path) {
       const absPath = toAbsoluteFsPath(this.config.repoPath, existingIndex.fs_path)
@@ -702,13 +683,26 @@ export class SyncManager extends EventEmitter {
     this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
 
     // Queue the same-name index file rename inside the (now renamed) folder
+    // Only queue + update DB if the target doesn't already exist (failure-safe)
+    let indexRenameQueued = false
     if (indexNeedsRename && indexFile?.fs_path) {
       const oldIndexName = indexFile.fs_path.split("/").pop() ?? ""
       const newIndexName = newName + ".md"
       if (oldIndexName !== newIndexName) {
-        const oldIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, oldIndexName))
-        const newIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, newIndexName))
-        this.writeQueue.queueRename(oldIndexAbsPath, newIndexAbsPath, eventId)
+        // Check if a file with the new name already exists in the current folder
+        // (it will still be there after the folder rename)
+        const conflictCheckPath = toAbsoluteFsPath(this.config.repoPath, join(oldFsPath, newIndexName))
+        if (!existsSync(conflictCheckPath)) {
+          const oldIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, oldIndexName))
+          const newIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, newIndexName))
+          this.writeQueue.queueRename(oldIndexAbsPath, newIndexAbsPath, eventId)
+          indexRenameQueued = true
+        } else {
+          log.warn?.(`index file rename skipped: target already exists: ${newIndexName}`)
+        }
+      } else {
+        // Names are the same, no rename needed — treat as success for DB update
+        indexRenameQueued = true
       }
     }
 
@@ -730,8 +724,8 @@ export class SyncManager extends EventEmitter {
       oldPrefix + "%",
     ])
 
-    // Update the same-name index file's name and fs_path in DB
-    if (indexNeedsRename && indexFile) {
+    // Only update the index file's name and fs_path in DB if the rename was queued
+    if (indexNeedsRename && indexFile && indexRenameQueued) {
       const newIndexFsPath = join(newFsPath, newName + ".md")
       this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
         newIndexFsPath,
@@ -785,6 +779,15 @@ export class SyncManager extends EventEmitter {
     // Mutate the node so the caller writes content to the new path
     fileNode.fs_path = newFsPath
     fileNode.name = newName
+
+    // If parent folder has materialization enabled, refresh its index file
+    // so slots reflect the new filename
+    if (fileNode.parent_id && fileNode.parent_id !== ".") {
+      const parent = getNode(this.db, fileNode.parent_id)
+      if (parent?.fstype === "folder" && parent.fs_path) {
+        this.handleFolderIndexUpdate(parent, eventId)
+      }
+    }
   }
 
   /**

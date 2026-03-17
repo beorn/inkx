@@ -235,7 +235,7 @@ export { loadConfig, clearConfigCache, getOriginalBeadsConfig, getFolderIndexCon
 export type { KmConfig, BeadsConfig, TuiConfig, FolderIndexConfig, OriginalBeadsConfig } from "./config.ts"
 
 // Index file writer (pure functions for folder index files)
-export { generateIndexFileContent, indexFileName } from "./index-file-writer.ts"
+export { buildIndexContent, generateIndexFileContent, indexFileName } from "./index-file-writer.ts"
 
 // Config domain object (preferred API)
 export { loadConfigObject } from "./config-object.ts"

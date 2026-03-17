@@ -546,11 +546,18 @@ function expandIndexFileColumns(
   // Identify which children are pure slot references (paragraph or heading)
   // by checking ALL children against extractSlotTargets. Build a set of
   // child IDs that are slots so we can exclude them from body content.
+  // Only mark a child as a slot if ALL its targets resolve to actual folder children —
+  // unresolved paragraph slots must remain visible as body content (not silently disappear).
   const slotChildIds = new Set<string>()
   for (const child of indexChildren) {
     const targets = extractSlotTargets([child])
     if (targets.length > 0) {
-      slotChildIds.add(child.id)
+      const allResolved = targets.every((target) =>
+        deduped.some((fc) => fc !== indexFile && namesAreSimilar(fc.name ?? "", target)),
+      )
+      if (allResolved) {
+        slotChildIds.add(child.id)
+      }
     }
   }
 
@@ -594,17 +601,19 @@ function expandIndexFileColumns(
   for (const child of indexChildren) {
     const targets = extractSlotTargets([child])
     if (targets.length > 0) {
-      // This child is a slot reference (paragraph or heading)
-      let allResolved = true
-      for (const target of targets) {
-        if (!resolveSlot(target)) {
-          allResolved = false
+      // Check if ALL targets resolve before consuming any (resolveSlot has side effects)
+      const allResolved = targets.every((target) =>
+        deduped.some((fc) => fc !== indexFile && namesAreSimilar(fc.name ?? "", target)),
+      )
+      if (allResolved) {
+        // All targets resolve — consume them as columns
+        for (const target of targets) {
+          resolveSlot(target)
         }
+        continue
       }
-      // If all targets resolved, skip to next child
-      if (allResolved) continue
-      // For heading slots with unresolved targets, fall through to treat as inline section
-      // (preserves pre-existing behavior: unresolved heading slots become columns)
+      // Unresolved: heading slots fall through to become inline sections;
+      // paragraph slots are already in filteredIndexBody, skip them here.
       if (!indexSections.includes(child)) continue
     }
     // Non-slot structural children (or unresolved heading slots) become inline columns

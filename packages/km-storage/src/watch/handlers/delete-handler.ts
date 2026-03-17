@@ -4,7 +4,7 @@
  * Simple handlers for file/folder deletion and renaming.
  */
 
-import { dirname } from "path"
+import { basename, dirname } from "path"
 import { emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
 import { toRelativeFsPath } from "../../path-utils.ts"
 import type { ReconcileOp } from "../reconcile.ts"
@@ -47,8 +47,10 @@ export function handleRename(
     }
   }
 
+  const newName = basename(op.path).replace(/\.(md|txt)$/, "")
   emitNodeUpdated(emitter, "fs-watch", op.nodeId, {
     fs_path: toRelativeFsPath(repoRoot, op.path),
+    name: newName,
   })
 }
 

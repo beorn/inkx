@@ -1061,4 +1061,245 @@ describe("index file roundtrip", () => {
         expect(content).toContain("# Project")
       }))
   })
+
+  describe("M. rename consistency", () => {
+    test("M1: external file rename updates node name (not just fs_path)", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const manager = createSyncManager(db, repoDir)
+        mkdirSync(join(repoDir, "docs"), { recursive: true })
+        writeFileSync(join(repoDir, "docs", "old-name.md"), "# Old Name\n")
+        await manager.syncFromFs()
+
+        const nodeBefore = findMdFile(db, "old-name")!
+        expect(nodeBefore).toBeDefined()
+        expect(nodeBefore.name).toBe("old-name")
+
+        // External rename: old-name.md → new-name.md
+        renameSync(join(repoDir, "docs", "old-name.md"), join(repoDir, "docs", "new-name.md"))
+        await manager.syncFromFs()
+
+        // Both fs_path and name should reflect the new filename
+        const nodeAfter = getNode(db, nodeBefore.id)!
+        expect(nodeAfter.fs_path).toContain("new-name")
+        expect(nodeAfter.name).toBe("new-name")
+      }))
+
+    test("M2: in-app file rename refreshes parent materialized index", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "project.md"), "# Project\n")
+        writeFileSync(join(fp, "old-child.md"), "# Old Child\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        const childFile = findMdFile(db, "old-child", folder.id)!
+        expect(childFile).toBeDefined()
+
+        // Read materialized index before rename
+        const indexBefore = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(indexBefore).toContain("old-child")
+
+        // In-app rename: change the file's title (triggers file rename)
+        emitNodeUpdated(emitter, "test", childFile.id, { content: "New Child" })
+
+        // The parent's materialized index should now reference the new filename
+        // titleToFilename preserves case and spaces, so "New Child" → "New Child.md"
+        const indexAfter = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(indexAfter).toContain("New Child")
+        expect(indexAfter).not.toContain("old-child")
+      }))
+
+    test("M3: folder+index rename is failure-safe when target exists", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        mkdirSync(join(repoDir, "project"), { recursive: true })
+        writeFileSync(join(repoDir, "project", "project.md"), "# My Project\n")
+        // Create a file that will conflict with the renamed index
+        writeFileSync(join(repoDir, "project", "newname.md"), "# Conflicting\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        const indexFile = findMdFile(db, "project", folder.id)!
+        expect(indexFile).toBeDefined()
+
+        // Rename folder: project → newname
+        // The index file rename (project.md → newname.md) should fail
+        // because newname.md already exists in the folder
+        emitNodeUpdated(emitter, "test", folder.id, { content: "newname" })
+
+        // Folder should be renamed on disk
+        expect(existsSync(join(repoDir, "newname"))).toBe(true)
+
+        // The index file should NOT have been renamed (target existed)
+        // so it still exists with the old name inside the new folder
+        expect(existsSync(join(repoDir, "newname", "project.md"))).toBe(true)
+
+        // DB should be consistent: index file's name should still be "project"
+        // (not updated since the FS rename didn't succeed)
+        const indexAfter = getNode(db, indexFile.id)!
+        expect(indexAfter.name).toBe("project")
+      }))
+  })
+
+  describe("N. body preservation", () => {
+    test("N1: index file with code block body survives folder update", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        mkdirSync(join(fp, "docs"), { recursive: true })
+
+        // Index file with code block in body
+        const indexContent = [
+          "# My Project",
+          "",
+          "```typescript",
+          'const x = "hello world"',
+          "function foo() {",
+          "  return x",
+          "}",
+          "```",
+          "",
+          "![[./docs]]",
+          "",
+        ].join("\n")
+        writeFileSync(join(fp, "project.md"), indexContent)
+        await manager.syncFromFs()
+
+        // Trigger folder update — this re-materializes the index file
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+        // Body (code block) should be preserved
+        const result = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(result).toContain("```typescript")
+        expect(result).toContain('const x = "hello world"')
+        expect(result).toContain("function foo() {")
+        expect(result).toContain("```")
+        // Slots should still be present
+        expect(result).toContain("![[./docs]]")
+      }))
+
+    test("N2: index file with list items in body survives folder update", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        mkdirSync(join(fp, "alpha"), { recursive: true })
+
+        const indexContent = [
+          "# My Project",
+          "",
+          "- First item",
+          "- Second item",
+          "- Third item",
+          "",
+          "![[./alpha]]",
+          "",
+        ].join("\n")
+        writeFileSync(join(fp, "project.md"), indexContent)
+        await manager.syncFromFs()
+
+        // Trigger folder update
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+        const result = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(result).toContain("- First item")
+        expect(result).toContain("- Second item")
+        expect(result).toContain("- Third item")
+        expect(result).toContain("![[./alpha]]")
+      }))
+
+    test("N3: external directory creation triggers parent index refresh", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "index.md"), "# Project\n")
+        await manager.syncFromFs()
+
+        // Create a new subdirectory externally
+        mkdirSync(join(fp, "new-folder"), { recursive: true })
+        await manager.syncFromFs()
+
+        // Parent index file should list the new folder
+        const content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("![[./new-folder]]")
+      }))
+
+    test("N4: external .txt file creation triggers parent index refresh", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "index.md"), "# Project\n")
+        await manager.syncFromFs()
+
+        // Create a new .txt file externally
+        writeFileSync(join(fp, "notes.txt"), "Some plain text notes\n")
+        await manager.syncFromFs()
+
+        // Parent index file should list the new file
+        const content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("![[./notes]]")
+      }))
+
+    test("N5: applier foldersToRefresh path preserves body", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+
+        // Create index file with body paragraph
+        writeFileSync(join(fp, "index.md"), "# Project\n\nThis is a description paragraph.\n\n![[./alpha]]\n")
+        mkdirSync(join(fp, "alpha"), { recursive: true })
+        await manager.syncFromFs()
+
+        // Externally create a new child — triggers foldersToRefresh in applier
+        writeFileSync(join(fp, "beta.md"), "# Beta\n")
+        await manager.syncFromFs()
+
+        // Body should be preserved after the refresh
+        const content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("This is a description paragraph.")
+        expect(content).toContain("![[./alpha]]")
+        expect(content).toContain("![[./beta]]")
+      }))
+
+    test("N6: blockquote in body survives folder update", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        mkdirSync(join(fp, "docs"), { recursive: true })
+
+        const indexContent = "# My Project\n\n> Important note:\n> this is a blockquote\n\n![[./docs]]\n"
+        writeFileSync(join(fp, "project.md"), indexContent)
+        await manager.syncFromFs()
+
+        // Trigger folder update
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+        const result = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(result).toContain("> Important note:")
+        expect(result).toContain("> this is a blockquote")
+        expect(result).toContain("![[./docs]]")
+      }))
+  })
 })

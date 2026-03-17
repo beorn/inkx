@@ -11,8 +11,7 @@ import { ulid } from "ulid"
 import type { Emitter } from "../emitter.ts"
 import { getNode, getChildren } from "../index.ts"
 import { findIndexFile } from "@km/tree"
-import { isOutline } from "@km/core"
-import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
+import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
 import { getFolderIndexConfig } from "../config.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { join } from "path"
@@ -302,57 +301,37 @@ function finalizeBatchLinks(
   }
 
   // Re-materialize index files for folders that lost their index file
+  // AND refresh index files for folders whose children changed (create/delete/move)
+  const allFolderIds = new Set<string>()
   if (ctx.foldersNeedingIndexUpdate?.size) {
-    const config = getFolderIndexConfig(repoRoot)
-    if (config.materialization !== "none") {
-      for (const folderId of ctx.foldersNeedingIndexUpdate) {
-        const folder = getNode(db, folderId)
-        if (!folder?.fstype || folder.fstype !== "folder" || !folder.fs_path) continue
-        const children = getChildren(db, folderId)
-        const existingIndex = findIndexFile(folder, children)
-        if (existingIndex) continue // Another index file already exists (priority cascade)
-        const title = folder.content ?? folder.name ?? ""
-        if (!title) continue
-        const childSlots = children.filter((c) => isOutline(c.type, c.item))
-        const content = generateIndexFileContent(
-          title,
-          "",
-          childSlots.map((c) => ({ name: c.name ?? "" })),
-          config.materialization,
-        )
-        const filename = indexFileName(folder.name ?? "", config.naming)
-        const absPath = toAbsoluteFsPath(repoRoot, join(folder.fs_path, filename))
-        fs.writeFileSync(absPath, content)
-      }
-    }
+    for (const id of ctx.foldersNeedingIndexUpdate) allFolderIds.add(id)
+  }
+  if (ctx.foldersToRefresh?.size) {
+    for (const id of ctx.foldersToRefresh) allFolderIds.add(id)
   }
 
-  // Refresh materialized index files for folders whose children changed (create/delete/move)
-  if (ctx.foldersToRefresh?.size) {
+  if (allFolderIds.size > 0) {
     const config = getFolderIndexConfig(repoRoot)
     if (config.materialization !== "none") {
-      for (const folderId of ctx.foldersToRefresh) {
-        // Skip folders already handled by re-materialization above
-        if (ctx.foldersNeedingIndexUpdate?.has(folderId)) continue
-
+      for (const folderId of allFolderIds) {
         const folder = getNode(db, folderId)
         if (!folder?.fstype || folder.fstype !== "folder" || !folder.fs_path) continue
+
+        const content = buildIndexContent(db, folder, config)
+        if (!content) continue
+
+        // Determine where to write: existing index file path or new file
         const children = getChildren(db, folderId)
         const existingIndex = findIndexFile(folder, children)
-        if (!existingIndex) continue // No index file to refresh
 
-        const title = folder.content ?? folder.name ?? ""
-        if (!title) continue
-        const childSlots = children.filter((c) => c.id !== existingIndex.id && isOutline(c.type, c.item))
-        const content = generateIndexFileContent(
-          title,
-          "",
-          childSlots.map((c) => ({ name: c.name ?? "" })),
-          config.materialization,
-        )
-        if (!existingIndex.fs_path) continue
-        const absPath = toAbsoluteFsPath(repoRoot, existingIndex.fs_path)
-        fs.writeFileSync(absPath, content)
+        if (existingIndex?.fs_path) {
+          const absPath = toAbsoluteFsPath(repoRoot, existingIndex.fs_path)
+          fs.writeFileSync(absPath, content)
+        } else {
+          const filename = indexFileName(folder.name ?? "", config.naming)
+          const absPath = toAbsoluteFsPath(repoRoot, join(folder.fs_path, filename))
+          fs.writeFileSync(absPath, content)
+        }
       }
     }
   }
