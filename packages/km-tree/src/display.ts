@@ -8,6 +8,7 @@
 import type { KNode } from "@km/core"
 import { extractMetadata, isOutline } from "@km/core"
 import { PROP_REGEX } from "@km/markdown"
+import { findIndexFile } from "./index-file.ts"
 
 /** Strip inline metadata (key:: value) and block IDs (^id) from display text */
 export function stripForDisplay(text: string): string {
@@ -225,7 +226,8 @@ export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn)
     return ""
   }
 
-  // Follow children with matching normalized name
+  // Follow children with matching normalized name — but skip index files
+  // (they're semantically part of the folder, not separate entities)
   const nodeName = normalizeName(getNodeDisplayName(node, getChildren))
   let current: KNode | undefined = node
 
@@ -236,6 +238,13 @@ export function getCollapsedTypeSuffix(node: KNode, getChildren?: GetChildrenFn)
       (c: KNode) => normalizeName(getNodeDisplayName(c, getChildren)) === nodeName,
     )
     if (!matchingChild) break
+
+    // If this is a folder→file collapse where the file is the folder's index file,
+    // don't show the type suffix — the index file is absorbed into the folder
+    if (current.fstype === "folder" && (matchingChild.fstype === "mdfile" || matchingChild.fstype === "file")) {
+      const idx = findIndexFile(current, children)
+      if (idx?.id === matchingChild.id) break
+    }
 
     const childIndicator = getTypeIndicator(matchingChild.type, matchingChild.fstype, matchingChild.item)
     if (childIndicator) {
