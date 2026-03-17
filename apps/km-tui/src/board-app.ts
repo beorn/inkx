@@ -8,7 +8,7 @@
 
 import { createApp, type EventHandlerContext } from "@silvery/term/runtime"
 import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/react"
-import { activeEditTargetRef } from "@silvery/react"
+import { activeEditTargetRef, activeEditContextRef } from "@silvery/react"
 import { createLogger, type SpanLogger } from "loggily"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -19,6 +19,7 @@ import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
 import { getModeStack, resetModeStack } from "./dialog-guard.ts"
 import { handleCommandAction } from "./board/board-actions.ts"
+import { clickToCursorOffset } from "./board/click-to-cursor.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import { clearSelection } from "./keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "./tui-context.ts"
@@ -744,6 +745,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Walk up InkxNode ancestors to find the clicked item's KNode ID and column index.
       // data-view="item" = card/sub-block, data-view="column" = column header/background
       let nodeId: string | null = null
+      let idNode: TeaNode | null = null
       let isColumnNode = false
       let colIndex: number | null = null
       let hasClickHandler = false
@@ -752,6 +754,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         const props = current.props as Record<string, unknown>
         if (!nodeId && typeof props.id === "string") {
           nodeId = props.id
+          idNode = current
           isColumnNode = props["data-view"] === "column"
         }
         if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
@@ -787,12 +790,22 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           inSameCard = walkId === editCardId
         }
         if (inSameCard) {
-          // Same card → save + re-enter edit on clicked node
-          activeEditTargetRef.current?.save()
-          actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-          actionCtx.setUI({
-            inlineEditBlock: { nodeId, blockIndex: 0, initialCursorPos: "start" },
-          })
+          if (nodeId === edit.nodeId && idNode) {
+            // Same node being edited → reposition cursor at click position
+            const editCtx = activeEditContextRef.current
+            const editTarget = activeEditTargetRef.current
+            if (editCtx && editTarget) {
+              const offset = clickToCursorOffset(mouse.x, mouse.y, editCtx, idNode)
+              editTarget.setCursorOffset(offset)
+            }
+          } else {
+            // Different node in same card → save + re-enter edit on clicked node
+            activeEditTargetRef.current?.save()
+            actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+            actionCtx.setUI({
+              inlineEditBlock: { nodeId, blockIndex: 0, initialCursorPos: "start" },
+            })
+          }
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
           return
         }
