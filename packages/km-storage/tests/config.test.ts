@@ -169,7 +169,7 @@ describe("getFolderIndexConfig", () => {
     withTestEnvSync(({ testDir }) => {
       clearConfigCache()
       const config = getFolderIndexConfig(testDir)
-      expect(config).toEqual({ naming: "index", materialization: "metadata" })
+      expect(config).toEqual({ naming: "index", materialization: "none" })
     }))
 
   test("valid values pass through correctly", () =>
@@ -224,7 +224,7 @@ describe("getFolderIndexConfig", () => {
       const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
       try {
         const config = getFolderIndexConfig(testDir)
-        expect(config.materialization).toBe("metadata")
+        expect(config.materialization).toBe("none")
         expect(warnSpy).toHaveBeenCalledOnce()
       } finally {
         warnSpy.mockRestore()
@@ -247,7 +247,7 @@ describe("getFolderIndexConfig", () => {
       try {
         const config = getFolderIndexConfig(testDir)
         expect(config.naming).toBe("index")
-        expect(config.materialization).toBe("metadata")
+        expect(config.materialization).toBe("none")
         expect(warnSpy).toHaveBeenCalledTimes(2)
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("naming"))
         expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("materialization"))
@@ -270,7 +270,7 @@ describe("getFolderIndexConfig", () => {
       try {
         const config = getFolderIndexConfig(testDir)
         expect(config.naming).toBe("index")
-        expect(config.materialization).toBe("metadata")
+        expect(config.materialization).toBe("none")
         expect(warnSpy).not.toHaveBeenCalled()
       } finally {
         warnSpy.mockRestore()
