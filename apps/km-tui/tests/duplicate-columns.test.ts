@@ -1063,6 +1063,143 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
   })
 })
 
+describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () => {
+  test("unresolved paragraph slot AFTER an inline section stays visible as body", () => {
+    // When an unresolved paragraph slot appears AFTER the first outline section,
+    // extractBody puts it in `items` (not `body`). It must still show as body content,
+    // not silently disappear or become a column.
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    // An inline section (outline item) comes first
+    const inlineSec = makeNode({
+      id: "s1",
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "Notes",
+      title: "Notes",
+    })
+    // Then an unresolved paragraph slot AFTER the section
+    const unresolvedSlot = makeNode({
+      id: "p-unresolved",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 1,
+      content: "![[./nonexistent]]",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, inlineSec, unresolvedSlot],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // Should have: body column (with unresolved slot) + Notes inline section + alpha unlisted
+    expect(columns.length).toBe(3)
+    expect(columns[0]!.isVirtual).toBe(true) // body column
+    expect(columns[0]!.cardNodes.length).toBe(1)
+    expect(columns[0]!.cardNodes[0]!.content).toBe("![[./nonexistent]]")
+    expect(columns[1]!.node.id).toBe("s1") // inline section
+    expect(columns[2]!.node.id).toBe("alpha") // unlisted child
+  })
+
+  test("resolved paragraph slot after inline section still resolves correctly", () => {
+    // A resolved paragraph slot after an outline section should still resolve
+    // to the folder child — not be treated as body content.
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    // Inline section first
+    const inlineSec = makeNode({
+      id: "s1",
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "Notes",
+      title: "Notes",
+    })
+    // Resolved paragraph slot AFTER the section
+    const resolvedSlot = makeNode({
+      id: "p-resolved",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 1,
+      content: "![[./alpha]]",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, inlineSec, resolvedSlot],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // Should have: Notes inline section + alpha resolved from slot
+    // No body column — the slot resolves successfully
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("s1") // inline section
+    expect(columns[1]!.node.id).toBe("alpha") // resolved slot
+  })
+})
+
 describe("markdown file columns", () => {
   test("zooming into an md file with H2 sections produces multiple columns", () => {
     // Simulate an md file (mdfile) with H2 sections (mdsection) as children.

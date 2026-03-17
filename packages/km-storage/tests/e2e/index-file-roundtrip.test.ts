@@ -1301,5 +1301,235 @@ describe("index file roundtrip", () => {
         expect(result).toContain("> this is a blockquote")
         expect(result).toContain("![[./docs]]")
       }))
+
+    test("N7: index file with ONLY inline sections (no paragraphs) preserves body", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        mkdirSync(join(fp, "docs"), { recursive: true })
+
+        // Index file with only inline sections — no paragraph body nodes
+        const indexContent = [
+          "# My Project",
+          "",
+          "## Overview",
+          "",
+          "This section describes the project.",
+          "",
+          "## Goals",
+          "",
+          "- Goal one",
+          "- Goal two",
+          "",
+          "![[./docs]]",
+          "",
+        ].join("\n")
+        writeFileSync(join(fp, "project.md"), indexContent)
+        await manager.syncFromFs()
+
+        // Trigger folder update — this re-materializes the index file
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+        // Inline sections should be preserved
+        const result = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(result).toContain("## Overview")
+        expect(result).toContain("This section describes the project.")
+        expect(result).toContain("## Goals")
+        expect(result).toContain("- Goal one")
+        expect(result).toContain("- Goal two")
+        // Slots should still be present
+        expect(result).toContain("![[./docs]]")
+      }))
+
+    test("N8: slots interleaved between prose are not duplicated after rewrite", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        mkdirSync(join(fp, "alpha"), { recursive: true })
+        mkdirSync(join(fp, "beta"), { recursive: true })
+
+        // Index file with slots interleaved between prose
+        const indexContent = [
+          "# My Project",
+          "",
+          "Introduction paragraph.",
+          "",
+          "![[./alpha]]",
+          "",
+          "Middle paragraph.",
+          "",
+          "![[./beta]]",
+          "",
+        ].join("\n")
+        writeFileSync(join(fp, "project.md"), indexContent)
+        await manager.syncFromFs()
+
+        // Trigger folder update — this re-materializes the index file
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+        // Check no slot duplication
+        const result = readFileSync(join(fp, "project.md"), "utf-8")
+        const alphaSlots = result.match(/!\[\[\.\/alpha\]\]/g) ?? []
+        const betaSlots = result.match(/!\[\[\.\/beta\]\]/g) ?? []
+        expect(alphaSlots.length).toBe(1)
+        expect(betaSlots.length).toBe(1)
+        // Body paragraphs should be preserved
+        expect(result).toContain("Introduction paragraph.")
+        expect(result).toContain("Middle paragraph.")
+      }))
+
+    test("N9: inline section with nested content preserved after folder update", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        mkdirSync(join(fp, "src"), { recursive: true })
+
+        // Index file with inline section containing nested content
+        const indexContent = [
+          "# My Project",
+          "",
+          "## Architecture",
+          "",
+          "The system uses a layered design:",
+          "",
+          "- Layer 1: Parser",
+          "- Layer 2: Storage",
+          "- Layer 3: Board",
+          "",
+          "### Components",
+          "",
+          "Each layer has its own test suite.",
+          "",
+          "![[./src]]",
+          "",
+        ].join("\n")
+        writeFileSync(join(fp, "project.md"), indexContent)
+        await manager.syncFromFs()
+
+        // Trigger folder update
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+        const result = readFileSync(join(fp, "project.md"), "utf-8")
+        expect(result).toContain("## Architecture")
+        expect(result).toContain("The system uses a layered design:")
+        expect(result).toContain("- Layer 1: Parser")
+        expect(result).toContain("- Layer 2: Storage")
+        expect(result).toContain("- Layer 3: Board")
+        expect(result).toContain("### Components")
+        expect(result).toContain("Each layer has its own test suite.")
+        expect(result).toContain("![[./src]]")
+      }))
+  })
+
+  describe("O. rename bugs", () => {
+    test("O1: handleRename updates parent_id for cross-folder move (km-z0k8z)", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        // handleRename is invoked when the reconciler detects a same-inode rename.
+        // For cross-folder moves, this happens during watcher events or when the
+        // reconciler scope includes both source and target. We test it directly
+        // via applyReconcileOps with a synthetic rename op.
+        const { applyReconcileOps } = await import("../../src/watch/reconcile.ts")
+
+        const manager = createSyncManager(db, repoDir)
+        mkdirSync(join(repoDir, "a"), { recursive: true })
+        mkdirSync(join(repoDir, "b"), { recursive: true })
+        writeFileSync(join(repoDir, "a", "task.md"), "# Task\n")
+        writeFileSync(join(repoDir, "b", "index.md"), "# B\n")
+        await manager.syncFromFs()
+
+        const folderA = findFolder(db, "a")!
+        const folderB = findFolder(db, "b")!
+        const task = findMdFile(db, "task", folderA.id)!
+        expect(task).toBeDefined()
+        expect(task.parent_id).toBe(folderA.id)
+
+        // Simulate what the watcher would produce for a cross-folder rename
+        renameSync(join(repoDir, "a", "task.md"), join(repoDir, "b", "task.md"))
+        applyReconcileOps(
+          db,
+          [
+            {
+              type: "rename" as const,
+              nodeId: task.id,
+              oldPath: join(repoDir, "a", "task.md"),
+              path: join(repoDir, "b", "task.md"),
+              ino: task.fs_ino ?? 0,
+            },
+          ],
+          repoDir,
+          emitter,
+        )
+
+        // parent_id should now be folderB, not folderA
+        const taskAfter = getNode(db, task.id)!
+        expect(taskAfter.parent_id).toBe(folderB.id)
+        expect(taskAfter.fs_path).toContain("b/task.md")
+      }))
+
+    test("O2: renamed mdfile added to modifiedIndexFiles (km-pl25h)", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        mkdirSync(join(repoDir, "project"), { recursive: true })
+        writeFileSync(join(repoDir, "project", "notes.md"), "# Notes\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        const notesFile = findMdFile(db, "notes", folder.id)!
+        expect(notesFile).toBeDefined()
+
+        // Rename notes.md → project.md (becomes the folder's index file)
+        renameSync(join(repoDir, "project", "notes.md"), join(repoDir, "project", "project.md"))
+        await manager.syncFromFs()
+
+        // The renamed file should be detected as the folder's index file
+        const renamedFile = getNode(db, notesFile.id)!
+        expect(renamedFile.name).toBe("project")
+
+        const children = getChildren(db, folder.id)
+        const indexFile = findIndexFile(folder, children)
+        expect(indexFile).not.toBeNull()
+        expect(indexFile!.id).toBe(notesFile.id)
+
+        // The folder should have the promoted title from the index file
+        // (syncIndexFileToFolder should have run)
+        const folderAfter = getNode(db, folder.id)!
+        expect(folderAfter.content).toBe("Notes")
+      }))
+
+    test("O3: in-app folder rename refreshes index file title (km-mkzzr)", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full")
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "project.md"), "# Project\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        const indexFile = findMdFile(db, "project", folder.id)!
+        expect(indexFile).toBeDefined()
+
+        // In-app folder rename: project → renamed-project
+        emitNodeUpdated(emitter, "test", folder.id, { content: "renamed-project" })
+
+        // The index file should exist with the new name and contain the new title
+        expect(existsSync(join(repoDir, "renamed-project", "renamed-project.md"))).toBe(true)
+        const content = readFileSync(join(repoDir, "renamed-project", "renamed-project.md"), "utf-8")
+        expect(content).toContain("# renamed-project")
+      }))
   })
 })

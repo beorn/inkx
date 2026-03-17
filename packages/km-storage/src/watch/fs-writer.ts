@@ -341,6 +341,12 @@ export class FsWriter implements FsSync {
         indexFile.id,
       ])
     }
+
+    // Refresh index file content with new title (node already updated in DB)
+    const updatedFolder = getNode(this.db, node.id)
+    if (updatedFolder) {
+      this.handleFolderIndexUpdate(updatedFolder)
+    }
   }
 
   /**

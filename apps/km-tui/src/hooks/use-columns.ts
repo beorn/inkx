@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
-import { isEmbed } from "@km/core"
+import { isEmbed, isOutline } from "@km/core"
 import { createLogger } from "loggily"
 import { extractBody, extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/tree"
 import type { ColumnView } from "../types.ts"
@@ -561,27 +561,22 @@ function expandIndexFileColumns(
     }
   }
 
-  // Merge non-slot index body into the folder's virtual body column.
-  // Body children that are pure slot references are handled as columns below, not body content.
-  const filteredIndexBody = indexBody.filter(
-    (n) =>
-      !slotChildIds.has(n.id) &&
-      !isCollapsedChild(n) &&
-      n.content &&
-      n.content.replace(/<[^>]+>/g, "").trim().length > 0,
-  )
-  if (filteredIndexBody.length > 0) {
-    const virtualCardIds = new Set<string>()
-    for (const n of filteredIndexBody) {
-      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
-    }
-    columns.push({
-      node: createVirtualBodyNode(indexFile.parent_id),
-      cardNodes: filteredIndexBody,
-      virtualCardIds,
-      isVirtual: true,
-    })
-  }
+  // Filter helper: node has visible content and is not collapsed/resolved-slot
+  const isBodyContent = (n: KNode) =>
+    !slotChildIds.has(n.id) &&
+    !isCollapsedChild(n) &&
+    n.content != null &&
+    n.content.replace(/<[^>]+>/g, "").trim().length > 0
+
+  // Collect body nodes from two sources:
+  // 1. filteredIndexBody: non-slot body from extractBody (before first outline item)
+  // 2. fallbackBody: unresolved non-outline slots that appear AFTER the first outline
+  //    section — extractBody puts these in `items`, but they should be body content.
+  const filteredIndexBody = indexBody.filter(isBodyContent)
+  const fallbackBody: KNode[] = []
+
+  // Track where structural columns start so we can insert body column before them
+  const bodyInsertIdx = columns.length
 
   // Track which folder children are referenced by embed slots
   const referencedIds = new Set<string>()
@@ -612,17 +607,41 @@ function expandIndexFileColumns(
         }
         continue
       }
-      // Unresolved: heading slots fall through to become inline sections;
-      // paragraph slots are already in filteredIndexBody, skip them here.
-      if (!indexSections.includes(child)) continue
+      // Unresolved slot: classify by node type, not extractBody position.
+      // Outline (heading) slots fall through to become inline sections.
+      // Non-outline (paragraph) slots → body fallback content (unless already in indexBody).
+      if (!isOutline(child.type, child.item)) {
+        if (!indexBody.includes(child) && isBodyContent(child)) fallbackBody.push(child)
+        continue
+      }
     }
-    // Non-slot structural children (or unresolved heading slots) become inline columns
-    if (indexSections.includes(child)) {
+    // Outline children (sections or unresolved heading slots) become inline columns
+    if (isOutline(child.type, child.item)) {
       if (!isDetailOnly(child)) {
         columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
       }
     }
-    // Non-slot body children were already handled above in filteredIndexBody
+    // Non-slot, non-outline children in `items` are non-structural content
+    // (e.g., plain paragraphs between sections) — add to fallback body.
+    // Children in indexBody were already handled by filteredIndexBody above.
+    else if (!indexBody.includes(child) && isBodyContent(child)) {
+      fallbackBody.push(child)
+    }
+  }
+
+  // Create virtual body column from pre-section body + post-section fallback body
+  const allBodyNodes = [...filteredIndexBody, ...fallbackBody]
+  if (allBodyNodes.length > 0) {
+    const virtualCardIds = new Set<string>()
+    for (const n of allBodyNodes) {
+      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
+    }
+    columns.splice(bodyInsertIdx, 0, {
+      node: createVirtualBodyNode(indexFile.parent_id),
+      cardNodes: allBodyNodes,
+      virtualCardIds,
+      isVirtual: true,
+    })
   }
 
   // Append unreferenced folder children (not the index file, not already placed)

@@ -26,32 +26,53 @@ export function handleRename(
 ): void {
   if (!op.nodeId) return
 
-  // Track both old and new parent folders for index refresh (move = child leaving + entering)
-  if (db && ctx && op.oldPath) {
-    const node = getNode(db, op.nodeId)
-    if (node?.parent_id && node.parent_id !== ".") {
-      // Old parent (source) needs refresh — child is leaving
-      ctx.foldersToRefresh ??= new Set()
-      ctx.foldersToRefresh.add(node.parent_id)
-    }
+  const newRelPath = toRelativeFsPath(repoRoot, op.path)
+  const newName = basename(op.path).replace(/\.(md|txt)$/, "")
 
-    // New parent (destination) needs refresh — child is arriving
-    const newRelPath = toRelativeFsPath(repoRoot, op.path)
-    const newParentRelPath = dirname(newRelPath)
-    if (newParentRelPath !== ".") {
-      const newParent = getNodeByPath(db, newParentRelPath)
-      if (newParent) {
-        ctx.foldersToRefresh ??= new Set()
-        ctx.foldersToRefresh.add(newParent.id)
+  // Build update payload — always includes fs_path and name
+  const updates: Record<string, unknown> = {
+    fs_path: newRelPath,
+    name: newName,
+  }
+
+  if (db) {
+    const node = getNode(db, op.nodeId)
+    if (node) {
+      const newParentRelPath = dirname(newRelPath)
+      const oldParentRelPath = node.fs_path ? dirname(node.fs_path) : null
+      const parentChanged = oldParentRelPath != null && newParentRelPath !== oldParentRelPath
+
+      // Resolve new parent folder (needed for cross-folder move and index refresh)
+      const newParent = newParentRelPath !== "." ? getNodeByPath(db, newParentRelPath) : null
+
+      // Cross-folder move: update parent_id when directory changed
+      if (parentChanged && newParent) {
+        updates.parent_id = newParent.id
+      }
+
+      if (ctx) {
+        // Track old parent for index refresh — child is leaving
+        if (op.oldPath && node.parent_id && node.parent_id !== ".") {
+          ctx.foldersToRefresh ??= new Set()
+          ctx.foldersToRefresh.add(node.parent_id)
+        }
+
+        // Track new parent for index refresh — child is arriving
+        if (op.oldPath && newParent) {
+          ctx.foldersToRefresh ??= new Set()
+          ctx.foldersToRefresh.add(newParent.id)
+        }
+
+        // Add renamed mdfiles to modifiedIndexFiles for post-batch sync
+        if (node.fstype === "mdfile") {
+          ctx.modifiedIndexFiles ??= new Set()
+          ctx.modifiedIndexFiles.add(op.nodeId)
+        }
       }
     }
   }
 
-  const newName = basename(op.path).replace(/\.(md|txt)$/, "")
-  emitNodeUpdated(emitter, "fs-watch", op.nodeId, {
-    fs_path: toRelativeFsPath(repoRoot, op.path),
-    name: newName,
-  })
+  emitNodeUpdated(emitter, "fs-watch", op.nodeId, updates)
 }
 
 /**

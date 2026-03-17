@@ -51,15 +51,17 @@ export function buildIndexContent(
 /**
  * Extract body content from an existing index file using lossless markdown
  * serialization. Serializes the full index file subtree, then strips the
- * title heading and any trailing slot lines to isolate body content.
+ * title heading and all slot lines to isolate body content.
  *
- * This ensures code blocks, blockquotes, lists, and other complex markdown
- * survive index file regeneration — unlike the lossy `.content` join.
+ * This ensures code blocks, blockquotes, lists, inline sections, and other
+ * complex markdown survive index file regeneration — unlike the lossy
+ * `.content` join.
  */
 function extractBodyFromIndex(db: Database, indexFile: KNode): string {
   const indexChildren = getChildren(db, indexFile.id)
-  const bodyNodes = indexChildren.filter((c) => !isOutline(c.type, c.item) && !isSlotNode(c))
-  if (bodyNodes.length === 0) return ""
+  // Early return only when ALL children are slot nodes (nothing to preserve)
+  const hasNonSlotContent = indexChildren.some((c) => !isSlotNode(c))
+  if (!hasNonSlotContent) return ""
 
   // Serialize the full index file subtree — this gives us perfectly round-tripped markdown
   const subtree = getSubtree(db, indexFile.id)
@@ -70,9 +72,10 @@ function extractBodyFromIndex(db: Database, indexFile: KNode): string {
   if (!titleMatch) return ""
   let body = fullMarkdown.slice(titleMatch[0].length)
 
-  // Strip trailing slot lines (![[./name]]\n) from the end
-  const slotPattern = /(?:\n?(?:!\[\[\.\/.+?\]\]\n)+)$/
-  body = body.replace(slotPattern, "")
+  // Strip ALL standalone slot lines (![[./name]]) — not just trailing ones.
+  // Slots at any position must be removed to avoid duplication when
+  // generateIndexFileContent() re-appends them from the current folder children.
+  body = body.replace(/!\[\[\.\/.+?\]\]\n(\n)?/g, "")
 
   return body.trim()
 }
