@@ -77,6 +77,7 @@ import { readBoardIgnored, isIgnored } from "../ignored.ts"
 import { findMatchingNodeIds } from "../board/board-actions-find.ts"
 import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
 import { navigateToNode } from "../navigate-to-node.ts"
+import { pushNavHistoryEntry } from "../keyboard/keyboard-helpers.ts"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -977,6 +978,20 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
       const nav = navigateToNode(targetId, rootId, repo)
       if (!nav) return
+
+      // Save nav history before navigating (enables { / } back/forward)
+      const paneUI = boardPane ? mergePaneUI(boardPane) : null
+      if (paneUI) {
+        pushNavHistoryEntry(
+          state.setUI,
+          rootId,
+          paneUI.colIndex,
+          paneUI.cardIndex,
+          paneUI.multiSelected,
+          paneUI.cursorNodeId,
+          paneUI.foldDepths,
+        )
+      }
 
       if (nav.action === "SELECT") {
         state.dispatchBoard({ type: "SELECT", nodeId: nav.cursorTarget })
