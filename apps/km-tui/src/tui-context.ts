@@ -165,7 +165,7 @@ export function enterTextMode(
   ctx: ActionCtx,
   nodeId: string,
   blockIndex = 0,
-  initialCursorPos?: "start" | "end",
+  initialCursorPos?: "start" | "end" | number,
 ): void {
   ctx.setUI({ inlineEditBlock: { nodeId, blockIndex, initialCursorPos } })
 }

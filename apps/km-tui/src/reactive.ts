@@ -59,7 +59,7 @@ export function useReactive<T>(reactive: Reactive<T>): T {
 
 export interface NodeEditState {
   blockIndex: number
-  initialCursorPos?: "start" | "end"
+  initialCursorPos?: "start" | "end" | number
   stickyX?: number
 }
 
@@ -240,7 +240,7 @@ export class ReactiveNodeStore {
   syncEdit(
     oldNodeId: string | null,
     newNodeId: string | null,
-    newState: { blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null,
+    newState: { blockIndex: number; initialCursorPos?: "start" | "end" | number; stickyX?: number } | null,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
       this.getOrCreate(oldNodeId).edit.value = null

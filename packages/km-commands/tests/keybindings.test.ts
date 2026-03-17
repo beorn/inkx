@@ -1427,4 +1427,36 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expectKey("l", "shift_right", { opt: true })
     })
   })
+
+  describe("Cmd shortcuts punch through inline-edit-barrier", () => {
+    const inlineCtx = createContext({ isInlineEditing: true, textInputFocused: true })
+
+    it("Cmd+f → local_find during inline editing", () => {
+      expect(resolveKeybinding("f", { cmd: true }, inlineCtx)).toEqual({ commandId: "local_find" })
+    })
+
+    it("Cmd+Shift+f → search_replace during inline editing", () => {
+      expect(resolveKeybinding("f", { cmd: true, shift: true }, inlineCtx)).toEqual({
+        commandId: "search_replace",
+      })
+    })
+
+    it("Cmd+d → duplicate_node during inline editing", () => {
+      expect(resolveKeybinding("d", { cmd: true }, inlineCtx)).toEqual({ commandId: "duplicate_node" })
+    })
+
+    it("Cmd+n → capture_dialog during inline editing", () => {
+      expect(resolveKeybinding("n", { cmd: true }, inlineCtx)).toEqual({ commandId: "capture_dialog" })
+    })
+
+    it("Cmd+Enter → insert_below during inline editing", () => {
+      expect(resolveKeybinding("Enter", { cmd: true }, inlineCtx)).toEqual({ commandId: "insert_below" })
+    })
+
+    it("Cmd+Shift+Enter → new_item during inline editing", () => {
+      expect(resolveKeybinding("Enter", { cmd: true, shift: true }, inlineCtx)).toEqual({
+        commandId: "new_item",
+      })
+    })
+  })
 })

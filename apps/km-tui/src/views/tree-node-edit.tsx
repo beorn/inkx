@@ -186,8 +186,7 @@ export function TitleEditor({
       undoHandle.endBatch()
       if (result) {
         // Focus the survivor with cursor at the merge point
-        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0 } })
-        // TODO: set cursor offset to result.cursorOffset via activeEditTargetRef after render
+        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0, initialCursorPos: result.cursorOffset } })
       }
     } catch {
       undoHandle.endBatch()
@@ -311,6 +310,7 @@ export function BodyBlockEditor({
                         inlineEditBlock: {
                           nodeId: result.survivorId,
                           blockIndex: 0,
+                          initialCursorPos: result.cursorOffset,
                         },
                       })
                     }

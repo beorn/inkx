@@ -19,7 +19,7 @@ interface BodyEditFieldProps {
   onSave?: (newValue: string) => void
   onSplitAtBoundary?: (offset: number) => void
   onMergeBackward?: () => void
-  initialCursorPos?: "start" | "end"
+  initialCursorPos?: "start" | "end" | number
   stickyX?: number
   /** Max visible height in rows. Omit for unlimited (no scrolling). */
   maxHeight?: number

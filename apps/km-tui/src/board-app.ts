@@ -785,7 +785,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           inSameCard = walkId === editCardId
         }
         if (inSameCard) {
-          // Same card → navigate edit to clicked node
+          // Same card → save + re-enter edit on clicked node
           activeEditTargetRef.current?.save()
           actionCtx.dispatchBoard({ type: "SELECT", nodeId })
           actionCtx.setUI({

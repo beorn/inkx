@@ -700,6 +700,13 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // Text formatting (Cmd+b/i — kitty protocol, text edit only)
         { key: "cmd-b", commandId: "text.bold", when: isInlineEditing },
         { key: "cmd-i", commandId: "text.italic", when: isInlineEditing },
+        // Cmd shortcuts that must punch through the inline-edit barrier
+        { key: "cmd-f", commandId: "local_find", when: isInlineEditing },
+        { key: "cmd-shift-f", commandId: "search_replace", when: isInlineEditing },
+        { key: "cmd-d", commandId: "duplicate_node", when: isInlineEditing },
+        { key: "cmd-n", commandId: "capture_dialog", when: isInlineEditing },
+        { key: "cmd-Enter", commandId: "insert_below", when: isInlineEditing },
+        { key: "cmd-shift-Enter", commandId: "new_item", when: isInlineEditing },
         { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
       ],
     },

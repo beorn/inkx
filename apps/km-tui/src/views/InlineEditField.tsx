@@ -24,7 +24,7 @@ interface InlineEditFieldProps {
   /** Called when Backspace at start needs a tree merge */
   onMergeBackward?: () => void
   /** Initial cursor position when entering edit mode via block navigation */
-  initialCursorPos?: "start" | "end"
+  initialCursorPos?: "start" | "end" | number
   /** Preferred cursor column preserved across block boundaries */
   stickyX?: number
 }

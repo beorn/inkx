@@ -212,7 +212,12 @@ export interface PerPaneUIFields {
   visualAnchor: string | null
   collapsedColumns: Set<number>
   columnScrollAnchor: { colIdx: number; anchor: number } | null
-  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null
+  inlineEditBlock: {
+    nodeId: string
+    blockIndex: number
+    initialCursorPos?: "start" | "end" | number
+    stickyX?: number
+  } | null
   localSearch: LocalSearchState | null
   searchReplace: SearchReplaceState | null
   showFilterDialog: boolean
@@ -326,7 +331,12 @@ export interface BoardPaneState extends PaneStateBase {
   columnScrollAnchor: { colIdx: number; anchor: number } | null
 
   // Per-pane edit state
-  inlineEditBlock: { nodeId: string; blockIndex: number; initialCursorPos?: "start" | "end"; stickyX?: number } | null
+  inlineEditBlock: {
+    nodeId: string
+    blockIndex: number
+    initialCursorPos?: "start" | "end" | number
+    stickyX?: number
+  } | null
 
   // Per-pane search
   localSearch: LocalSearchState | null

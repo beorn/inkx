@@ -31,18 +31,18 @@ prototype/        Working prototypes validating design ideas
 
 These are the authoritative docs for Era 2. Read them in order:
 
-| Doc | Covers |
-|-----|--------|
+| Doc                 | Covers                                                   |
+| ------------------- | -------------------------------------------------------- |
 | `01-quick-start.md` | Idealized app shapes, spike map, km plugin decomposition |
-| `02-signals.md` | `signal()`, `derived()`, `createModel()`, selectors |
-| `03-commands.md` | `{ fn, args? }` commands, availability, surfaces |
-| `04-input.md` | Keymaps, sources, dispatch pipeline |
-| `05-app.md` | App composition, plugins, `op()`, providers, migration |
-| `06-scopes.md` | Structured concurrency, scope tree, effects |
-| `composability.md` | Cross-platform design |
-| `packaging.md` | Package structure, bundles |
-| `playground.md` | Live Canvas playground |
-| `decisions.md` | Numbered decision log (append-only) |
+| `02-signals.md`     | `signal()`, `derived()`, `createModel()`, selectors      |
+| `03-commands.md`    | `{ fn, args? }` commands, availability, surfaces         |
+| `04-input.md`       | Keymaps, sources, dispatch pipeline                      |
+| `05-app.md`         | App composition, plugins, `op()`, providers, migration   |
+| `06-scopes.md`      | Structured concurrency, scope tree, effects              |
+| `composability.md`  | Cross-platform design                                    |
+| `packaging.md`      | Package structure, bundles                               |
+| `playground.md`     | Live Canvas playground                                   |
+| `decisions.md`      | Numbered decision log (append-only)                      |
 
 ### design/era3/ — Future
 

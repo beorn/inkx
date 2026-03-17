@@ -180,12 +180,24 @@ Important actions must be reachable while editing text.
 
 ### With Kitty protocol
 
-Cmd handles app commands. Ctrl is free for emacs:
+Cmd handles app commands. Ctrl is free for emacs.
+
+These Cmd shortcuts work in **both** node mode and text edit mode (they punch
+through the inline-edit-barrier):
 
 ```
-Cmd+F       = local find (app command)
-Cmd+Shift+F = search & replace (app command)
-Ctrl+F      = emacs forward-char (text editing)
+Cmd+Z       = undo
+Cmd+Shift+Z = redo
+Cmd+B       = bold (text edit only)
+Cmd+I       = italic (text edit only)
+Cmd+F       = local find
+Cmd+Shift+F = search & replace
+Cmd+K       = command palette
+Cmd+D       = duplicate node
+Cmd+N       = capture dialog
+Cmd+Enter   = insert below
+Cmd+Shift+Enter = new item dialog
+Ctrl+F      = emacs forward-char (text editing, with Kitty)
 ```
 
 ### Without Kitty protocol

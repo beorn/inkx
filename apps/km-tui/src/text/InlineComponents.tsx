@@ -235,7 +235,7 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   return (
-    <Link href={node.url} color={resolveColor(ctx, "$link")}>
+    <Link href={node.url} color={resolveColor(ctx, "$link")} underline={false}>
       {node.text}
     </Link>
   )
@@ -246,9 +246,9 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
   if (resolved) {
     return (
-      <Text color={resolveColor(ctx, "$link")} underline>
+      <Link href={`km://wiki/${encodeURIComponent(node.target)}`} color={resolveColor(ctx, "$link")} underline={false}>
         {resolved}
-      </Text>
+      </Link>
     )
   }
   // Unresolved: show target dimmed (avoids prominent raw IDs like ^1210156063601370)
@@ -316,8 +316,8 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
   const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
   return (
-    <Link href={node.url} color={resolveColor(ctx, "$link")}>
-      <Text dim={ctx.colorOverride === undefined}>{display}</Text>
+    <Link href={node.url} color={resolveColor(ctx, "$link")} underline={false}>
+      {display}
     </Link>
   )
 }
@@ -327,9 +327,9 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
   const resolved = ctx.resolveBlockRef?.(node.id)
   if (resolved) {
     return (
-      <Text color={resolveColor(ctx, "$link")} underline>
+      <Link href={`km://block/${encodeURIComponent(node.id)}`} color={resolveColor(ctx, "$link")} underline={false}>
         {resolved}
-      </Text>
+      </Link>
     )
   }
   // Unresolved block refs: show ID in red so broken refs are visible

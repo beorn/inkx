@@ -54,7 +54,7 @@ import {
 } from "../src/layout/index.ts"
 import { DateBadge } from "../src/views/tree-node-helpers.tsx"
 import { TreeNode } from "../src/views/TreeNode.tsx"
-import { BoardCore } from "../src/views/Board.tsx"
+import { BoardCore, type BoardCoreProps } from "../src/views/Board.tsx"
 import { CommandBox } from "../src/views/CommandBox.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode } from "@km/core"
@@ -125,19 +125,6 @@ function getBoardPillsFromStore(): [] {
 
 // Create a mock UI state for storybook rendering
 const mockUIState = createInitialPaneUI("cards", [], { columns: 120, rows: 40 })
-const noopDispatch = () => {}
-const noopDialogHandlers = {
-  handlePickerSelect: () => {},
-  handlePickerCancel: () => {},
-  handleTagSelect: () => {},
-  handleAssigneeSelect: () => {},
-  handleNewItemCreate: () => {},
-  handleNewItemCancel: () => {},
-  handleSearchSelect: () => {},
-  handleSearchCancel: () => {},
-  handleDatePromptConfirm: () => {},
-  handleDatePromptCancel: () => {},
-}
 
 // Mock Zustand store satisfying TreeNode's useAppStore/useAppShallow requirements
 const mockZustandStore = createStore(() => ({
@@ -171,7 +158,7 @@ const noopUndoHandle = {
   canRedo: () => false,
 }
 
-function StorybookProviders({ children }: { children: React.ReactNode }): React.ReactElement {
+export function StorybookProviders({ children }: { children: React.ReactNode }): React.ReactElement {
   const treeConfig = deriveTreeConfig(mockUIState.viewMode, mockUIState.maxContentLines, mockUIState)
   return (
     <StoreContext.Provider value={mockZustandStore}>
@@ -1171,6 +1158,10 @@ function createMockTUIBoardState(): TUIBoardState {
   }
 }
 
+// Max width for storybook content areas (consistent across all sections).
+// Inner content is this minus border (2) and paddingX (2) = STORYBOOK_MAX_WIDTH - 4.
+const STORYBOOK_MAX_WIDTH = 80
+
 // Wrapper component with border and title
 // height prop is used for BoardCore renders — set to dimensions.rows so BoardCore has space
 function ViewBox({
@@ -1187,7 +1178,7 @@ function ViewBox({
   return (
     <Box
       flexDirection="column"
-      width={104}
+      maxWidth={STORYBOOK_MAX_WIDTH}
       height={outerHeight}
       borderStyle="double"
       borderColor="magenta"
@@ -1212,27 +1203,19 @@ function makeBoardCoreProps(
   cardIndex: number,
   dims: { columns: number; rows: number },
   selectionLevel: "board" | "column" | "card" = "card",
-) {
+): BoardCoreProps {
   const ui = createInitialPaneUI(viewMode, [], dims)
 
   return {
-    state,
-    layout: {
-      columns: state.columns,
-      colIndex,
-      cardIndex,
-      subPath: [] as number[],
-      isAtCardLevel: selectionLevel === "card",
-      isInOutlineMode: false,
-    },
+    rootId: state.rootId,
+    columns: state.columns,
+    colIndex,
+    cardIndex,
     ui,
     derivedSelectionLevel: selectionLevel,
     dimensions: dims,
-    setUI: () => {},
-    dispatch: noopDispatch,
-    dialogHandlers: noopDialogHandlers,
     collapsedNodes: new Set<string>(),
-    moveMode: false,
+    hasDetailPane: false,
   }
 }
 
@@ -1254,8 +1237,8 @@ function Layer3AllViews(): React.ReactElement {
 
   // BoardCore receives dimensions and handles all internal layout.
   // Dimensions must match ViewBox inner content area.
-  // ViewBox outer=104, border=2+2, paddingX=1+1 → inner=98
-  const viewCols = 98
+  // ViewBox maxWidth=STORYBOOK_MAX_WIDTH, border=2+2, paddingX=1+1 → inner=STORYBOOK_MAX_WIDTH-6
+  const viewCols = STORYBOOK_MAX_WIDTH - 6
   const viewRows = 20
 
   return (
@@ -1590,7 +1573,7 @@ function ToastAndStatusSection(): React.ReactElement {
     return toast
   }
 
-  const demoTermWidth = 100
+  const demoTermWidth = STORYBOOK_MAX_WIDTH - 4 // inner content width
   const demoTermHeight = 30
 
   // Create mock UI state with status message
@@ -1698,16 +1681,16 @@ function ToastAndStatusSection(): React.ReactElement {
 // ============================================================================
 
 // Create a minimal mock repo for storybook
-const mockRepo = createFakeRepo()
+export const mockRepo = createFakeRepo()
 
 // Section definitions for interactive mode
-interface Section {
+export interface Section {
   id: string
   title: string
   component: () => React.ReactElement
 }
 
-const sections: Section[] = [
+export const sections: Section[] = [
   { id: "rich-text", title: "Layer 1: Rich Text", component: Layer1RichText },
   { id: "tag-pills", title: "Layer 1: Tag Pills", component: Layer1TagPills },
   {
@@ -1839,20 +1822,22 @@ function InteractiveStorybook({ mode }: { mode: StorybookMode }): React.ReactEle
 // Render and Output
 // ============================================================================
 
-// Render mode: --inline (default), --fullscreen, --fullscreen-nonalt
-const mode: StorybookMode = process.argv.includes("--inline")
-  ? "inline"
-  : process.argv.includes("--fullscreen-nonalt")
-    ? "fullscreen-nonalt"
-    : "fullscreen"
+if (import.meta.main) {
+  // Render mode: --inline (default), --fullscreen, --fullscreen-nonalt
+  const mode: StorybookMode = process.argv.includes("--inline")
+    ? "inline"
+    : process.argv.includes("--fullscreen-nonalt")
+      ? "fullscreen-nonalt"
+      : "fullscreen"
 
-const renderMode = mode === "inline" ? "inline" : "fullscreen"
-const alternateScreen = mode === "fullscreen" ? true : false
+  const renderMode = mode === "inline" ? "inline" : "fullscreen"
+  const alternateScreen = mode === "fullscreen" ? true : false
 
-using term = createTerm()
-const instance = await silverytRender(<InteractiveStorybook mode={mode} />, term, {
-  exitOnCtrlC: true,
-  mode: renderMode,
-  alternateScreen,
-})
-await instance.waitUntilExit()
+  using term = createTerm()
+  const instance = await silverytRender(<InteractiveStorybook mode={mode} />, term, {
+    exitOnCtrlC: true,
+    mode: renderMode,
+    alternateScreen,
+  })
+  await instance.waitUntilExit()
+}

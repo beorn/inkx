@@ -50,7 +50,9 @@ export const viewCommand = new Command("view")
     setDebugRepoRoot(resolved.repoRoot)
 
     // km-fast-md.7: Use discoverOnly for interactive mode (instant render)
+    // KM_EAGER_LOAD=1 disables discoverOnly for testing (avoids stub→full race)
     const interactive = options.interactive !== false
+    const eagerLoad = process.env.KM_EAGER_LOAD === "1"
 
     // Patch console early so startup warnings (stale events, etc.) are captured
     // in the TUI console panel instead of being lost to stderr before alt screen.
@@ -71,7 +73,7 @@ export const viewCommand = new Command("view")
         using _ = startup.span("repo-load")
         createdRepo = yield* createRepo(resolved.repoRoot, {
           loadFiles: true,
-          discoverOnly: interactive,
+          discoverOnly: interactive && !eagerLoad,
         })
         return createdRepo
       },

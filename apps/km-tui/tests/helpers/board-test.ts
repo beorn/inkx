@@ -39,7 +39,14 @@ import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } f
 import { compareBuffers, formatMismatch } from "@silvery/term/toolbelt"
 import { StoreContext } from "@silvery/term/runtime"
 import { parseKey } from "@silvery/term/runtime"
-import { createFocusManager, FocusManagerContext, ThemeProvider, hitTest } from "@silvery/react"
+import {
+  createFocusManager,
+  FocusManagerContext,
+  ThemeProvider,
+  hitTest,
+  processMouseEvent,
+  createMouseEventProcessor,
+} from "@silvery/react"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
@@ -598,6 +605,19 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     void originalPress("") // triggers doRender without actual key processing
   }
 
+  // Dispatch DOM-level mouse events through silvery's tree (onMouseDown, onClick, etc.).
+  // This is separate from sendMouseEvent because the board-app handleMouse already handles
+  // card selection and focus; processMouseEvent is only needed for component-level handlers
+  // like click-to-position in edit fields.
+  const mouseEventState = createMouseEventProcessor()
+  const sendTreeMouseEvent = (mouse: ParsedMouse) => {
+    act(() => {
+      processMouseEvent(mouseEventState, mouse, result.getContainer())
+      store.setState((s) => s)
+    })
+    void originalPress("")
+  }
+
   // Dispatch a command by name — reverse-looks up the key(s) and calls pressKey().
   // This is a semantic alias: tests express intent (command name) instead of mechanism (key).
   // The full key handler path is exercised, including focus, visual mode, dialogs, etc.
@@ -610,7 +630,15 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   }
 
   // Build the full fluent board API with all assertion methods
-  const board = createFluentBoardApi({ result, columns, rows, pressKey, sendMouseEvent, dispatchCommand })
+  const board = createFluentBoardApi({
+    result,
+    columns,
+    rows,
+    pressKey,
+    sendMouseEvent,
+    sendTreeMouseEvent,
+    dispatchCommand,
+  })
 
   return { board, registry, toastQueue, store, focusManager, result }
 }
@@ -629,9 +657,10 @@ function createFluentBoardApi(ctx: {
   rows: number
   pressKey: (key: string) => void
   sendMouseEvent: (mouse: ParsedMouse) => void
+  sendTreeMouseEvent?: (mouse: ParsedMouse) => void
   dispatchCommand?: (commandId: string) => void
 }) {
-  const { result, columns, rows, pressKey, sendMouseEvent, dispatchCommand } = ctx
+  const { result, columns, rows, pressKey, sendMouseEvent, sendTreeMouseEvent, dispatchCommand } = ctx
 
   // Create fluent API using App's auto-refreshing locators
   const board = {
@@ -678,6 +707,24 @@ function createFluentBoardApi(ctx: {
       })
       // Second click (within double-click threshold)
       sendMouseEvent({
+        button: 0,
+        x,
+        y,
+        action: "down",
+        delta: 0,
+        shift: false,
+        meta: false,
+        ctrl: false,
+      })
+      return board
+    },
+    /** Dispatch a DOM-level mousedown at screen coordinates (x, y) through the silvery tree.
+     *  Fires onMouseDown handlers on Box components. Use for component-level click handling
+     *  (e.g. silvery's CursorLine/EditContextDisplay onCursorClick).
+     *  Does NOT handle board-level logic (card selection) — use click() first, then clickTree(). */
+    clickTree: (x: number, y: number) => {
+      if (!sendTreeMouseEvent) throw new Error("clickTree() requires testEnv()")
+      sendTreeMouseEvent({
         button: 0,
         x,
         y,
