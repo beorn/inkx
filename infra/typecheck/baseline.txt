@@ -324,8 +324,7 @@
 2 vendor/silvery/tests/providers/search-provider.test.tsx
 1 vendor/silvery/tests/providers/surface-registry.test.tsx
 2 vendor/silvery/tests/scroll-tier.test.ts
-9 vendor/silvery/tests/term/viewport-compositor.test.ts
-18 vendor/silvery/tests/ui/list-view-history.test.tsx
+18 vendor/silvery/tests/ui/list-view-history.pending.tsx
 1 vendor/silvery/tests/ui/search-bar.test.tsx
 1 vendor/tap/src/parallel-tui.ts
 8 vendor/termless/packages/cli/src/mcp.ts
