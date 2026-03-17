@@ -648,7 +648,8 @@ export class SyncManager extends EventEmitter {
     if (existingIndex?.fs_path) {
       const absPath = toAbsoluteFsPath(this.config.repoPath, existingIndex.fs_path)
       this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
-    } else {
+    } else if (config.materialization === "full") {
+      // Only "full" mode auto-creates index files. "metadata" mode only updates existing ones.
       const filename = indexFileName(node.name ?? "", config.naming)
       const newFsPath = join(folderPath, filename)
       const absPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)

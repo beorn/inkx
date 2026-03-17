@@ -253,13 +253,13 @@ export class FsWriter implements FsSync {
       // Update existing index file
       const absPath = toAbsoluteFsPath(this.repoPath, existingIndex.fs_path)
       this.writeSync(absPath, content)
-    } else {
-      // Create new index file
+    } else if (config.materialization === "full") {
+      // Only "full" mode auto-creates index files. "metadata" mode only updates existing ones —
+      // the user creates the index file manually, materialization keeps it in sync.
       const filename = indexFileName(node.name ?? "", config.naming)
       const newFsPath = join(folderPath, filename)
       const absPath = toAbsoluteFsPath(this.repoPath, newFsPath)
       this.writeSync(absPath, content)
-      // The watcher will pick up the new file and create a DB node for it
     }
   }
 

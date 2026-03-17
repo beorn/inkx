@@ -365,7 +365,7 @@ describe("index file roundtrip", () => {
         expect(existsSync(join(repoDir, "my-folder", "index.md"))).toBe(false)
       }))
 
-    test("D2: materialization=metadata → title-only (no slots)", () =>
+    test("D2: materialization=metadata does NOT create new index files", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "metadata")
         const manager = createSyncManager(db, repoDir)
@@ -373,13 +373,11 @@ describe("index file roundtrip", () => {
         mkdirSync(join(repoDir, "my-folder"), { recursive: true })
         writeFileSync(join(repoDir, "my-folder", "notes.md"), "# Notes\n")
         await manager.syncFromFs()
+        // Folder update should NOT create a new index file in metadata mode
         emitNodeUpdated(emitter, "test", findFolder(db, "my-folder")!.id, {
           data: { description: "test" },
         })
-        expect(existsSync(join(repoDir, "my-folder", "index.md"))).toBe(true)
-        const content = readFileSync(join(repoDir, "my-folder", "index.md"), "utf-8")
-        expect(content).toContain("# my-folder")
-        expect(content).not.toContain("![[")
+        expect(existsSync(join(repoDir, "my-folder", "index.md"))).toBe(false)
       }))
 
     test("D3: materialization=full → child slots", () =>
@@ -436,7 +434,7 @@ describe("index file roundtrip", () => {
   describe("E. naming conventions", () => {
     test("E1: naming=index → creates index.md", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        writeConfig(repoDir, "metadata", "index")
+        writeConfig(repoDir, "full", "index")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "proj"), { recursive: true })
@@ -450,7 +448,7 @@ describe("index file roundtrip", () => {
 
     test("E2: naming=same-name → creates folderName.md", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        writeConfig(repoDir, "metadata", "same-name")
+        writeConfig(repoDir, "full", "same-name")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "proj"), { recursive: true })
@@ -465,7 +463,7 @@ describe("index file roundtrip", () => {
 
     test("E3: naming=dot-md → creates .md on disk", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        writeConfig(repoDir, "metadata", "dot-md")
+        writeConfig(repoDir, "full", "dot-md")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "proj"), { recursive: true })

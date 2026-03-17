@@ -327,7 +327,8 @@ function finalizeBatchLinks(
         if (existingIndex?.fs_path) {
           const absPath = toAbsoluteFsPath(repoRoot, existingIndex.fs_path)
           fs.writeFileSync(absPath, content)
-        } else {
+        } else if (config.materialization === "full") {
+          // Only "full" mode auto-creates index files
           const filename = indexFileName(folder.name ?? "", config.naming)
           const absPath = toAbsoluteFsPath(repoRoot, join(folder.fs_path, filename))
           fs.writeFileSync(absPath, content)
