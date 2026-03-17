@@ -1541,3 +1541,67 @@ describe("index file roundtrip", () => {
       }))
   })
 })
+
+describe("P. regression: no duplicate sections after sync", () => {
+  test("P1: folder with index file — sections not duplicated after syncFromFs", () =>
+    withTestEnv(async ({ repoDir, db }) => {
+      const manager = createSyncManager(db, repoDir)
+      // Create a folder with an index file that has sections (like Asana's early-orbit)
+      const fp = join(repoDir, "project")
+      mkdirSync(fp, { recursive: true })
+      writeFileSync(
+        join(fp, "project.md"),
+        "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n",
+      )
+      writeFileSync(join(fp, "child.md"), "# Child\n\nSome content.\n")
+      await manager.syncFromFs()
+
+      // Count sections — should be exactly 2 (INBOX + DONE)
+      const folder = findFolder(db, "project")!
+      const indexFile = findMdFile(db, "project", folder.id)!
+      const sections = getChildren(db, indexFile.id).filter(
+        (c) => c.type === "h" && c.item && c.fstype === "mdsection",
+      )
+      expect(sections.map((s) => s.content)).toEqual(["INBOX", "DONE"])
+      expect(sections.length).toBe(2)
+
+      // Sync again — sections should NOT be duplicated
+      await manager.syncFromFs()
+      const sectionsAfter = getChildren(db, indexFile.id).filter(
+        (c) => c.type === "h" && c.item && c.fstype === "mdsection",
+      )
+      expect(sectionsAfter.length).toBe(2)
+      expect(sectionsAfter.map((s) => s.content)).toEqual(["INBOX", "DONE"])
+    }))
+
+  test("P2: folder with index file + FsWriter — no duplication after folder update", () =>
+    withTestEnv(async ({ repoDir, db, emitter }) => {
+      writeConfig(repoDir, "none")
+      const manager = createSyncManager(db, repoDir)
+      emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+      const fp = join(repoDir, "project")
+      mkdirSync(fp, { recursive: true })
+      writeFileSync(
+        join(fp, "project.md"),
+        "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n",
+      )
+      writeFileSync(join(fp, "child.md"), "# Child\n")
+      await manager.syncFromFs()
+
+      const folder = findFolder(db, "project")!
+      const indexFile = findMdFile(db, "project", folder.id)!
+
+      // Trigger a folder update
+      emitNodeUpdated(emitter, "test", folder.id, { data: { description: "updated" } })
+
+      // Resync
+      await manager.syncFromFs()
+
+      // Sections should still be exactly 2
+      const sections = getChildren(db, indexFile.id).filter(
+        (c) => c.type === "h" && c.item && c.fstype === "mdsection",
+      )
+      expect(sections.length).toBe(2)
+      expect(sections.map((s) => s.content)).toEqual(["INBOX", "DONE"])
+    }))
+})
