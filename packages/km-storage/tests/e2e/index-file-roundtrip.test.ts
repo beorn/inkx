@@ -99,6 +99,7 @@ describe("index file roundtrip", () => {
 
     test("A4: same-name beats index.md when both exist", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# From Same-Name\n")
@@ -544,6 +545,7 @@ describe("index file roundtrip", () => {
 
     test("G2: folder rename cascades fs_path to descendants", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "old-folder"), { recursive: true })
@@ -558,6 +560,7 @@ describe("index file roundtrip", () => {
 
     test("G2b: folder rename renames same-name index file", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "project"), { recursive: true })
@@ -591,6 +594,7 @@ describe("index file roundtrip", () => {
 
     test("G2c: folder rename does NOT rename non-matching index file", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "project"), { recursive: true })
@@ -768,6 +772,7 @@ describe("index file roundtrip", () => {
   describe("I. multiple index files & priority cascade", () => {
     test("I1: both project.md and index.md → same-name wins", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# From Same-Name\n")
@@ -790,6 +795,7 @@ describe("index file roundtrip", () => {
 
     test("I3: all three exist → same-name wins", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# From Same-Name\n")
@@ -802,6 +808,7 @@ describe("index file roundtrip", () => {
 
     test("I4: delete same-name.md → index.md becomes primary", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# From Same-Name\n")
@@ -817,6 +824,7 @@ describe("index file roundtrip", () => {
 
     test("I5: delete primary same-name → fallback to index.md", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# From Same-Name\n")
@@ -919,6 +927,7 @@ describe("index file roundtrip", () => {
 
     test("J2: ![[./child]] syntax preserved on disk", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         const fp = join(repoDir, "project")
         mkdirSync(join(fp, "docs"), { recursive: true })
@@ -1115,6 +1124,7 @@ describe("index file roundtrip", () => {
 
     test("M3: folder+index rename is failure-safe when target exists", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "none")
         const manager = createSyncManager(db, repoDir)
         emitter.setFsSync(new FsWriter(db, repoDir, emitter))
         mkdirSync(join(repoDir, "project"), { recursive: true })

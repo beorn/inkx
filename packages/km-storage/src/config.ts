@@ -36,7 +36,7 @@ export interface TuiConfig {
 export interface FolderIndexConfig {
   /** Naming convention for index files: "same-name" | "index" | "dot-md" (default: "index") */
   naming?: "same-name" | "index" | "dot-md"
-  /** What to materialize in index files: "none" | "metadata" | "full" (default: "none") */
+  /** What to materialize in index files: "none" | "metadata" | "full" (default: "metadata") */
   materialization?: "none" | "metadata" | "full"
 }
 
@@ -170,13 +170,13 @@ export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexC
     }
   }
 
-  let materialization: Required<FolderIndexConfig>["materialization"] = "none"
+  let materialization: Required<FolderIndexConfig>["materialization"] = "metadata"
   if (raw?.materialization != null) {
     if (VALID_MATERIALIZATION.has(raw.materialization as FolderIndexConfig["materialization"])) {
       materialization = raw.materialization
     } else {
       console.warn(
-        `km config: invalid folderIndex.materialization "${raw.materialization}" — expected one of ${[...VALID_MATERIALIZATION].join(", ")}. Using default "none".`,
+        `km config: invalid folderIndex.materialization "${raw.materialization}" — expected one of ${[...VALID_MATERIALIZATION].join(", ")}. Using default "metadata".`,
       )
     }
   }

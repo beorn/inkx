@@ -12,12 +12,20 @@ import type { Database } from "bun:sqlite"
 import { reconcileDirectory, applyReconcileOps, getParentNodeId } from "../../src/watch/reconcile.ts"
 import { getNodeByPath } from "../../src/db-queries/core-lookup.ts"
 import { getChildren } from "../../src/db-queries/tree-traversal.ts"
-import { withTestEnv } from "@km/storage"
+import { withTestEnv, clearConfigCache } from "@km/storage"
 import type { Emitter } from "../../src/emitter.ts"
 
 // ============================================================================
 // Test Helpers
 // ============================================================================
+
+/** Disable index file materialization for tests that don't want it */
+function disableMaterialization(repoDir: string): void {
+  const kmDir = join(repoDir, ".km")
+  mkdirSync(kmDir, { recursive: true })
+  writeFileSync(join(kmDir, "config.yaml"), 'folderIndex:\n  materialization: "none"\n')
+  clearConfigCache()
+}
 
 /** Create a markdown file and return its path */
 function createMdFile(repoDir: string, name: string, content: string): string {
@@ -421,6 +429,7 @@ describe("reconcile.ts", () => {
   describe("TUI refresh scenario", () => {
     test("folder children remain visible after file touch in subfolder", () =>
       withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        disableMaterialization(repoDir)
         const issueFolder = createFolder(repoDir, "issue")
         const task1Path = createMdFile(issueFolder, "task1.md", "# Task 1\n\n- [ ] Do something")
         createMdFile(issueFolder, "task2.md", "# Task 2\n\n- [ ] Do something else")
@@ -449,6 +458,7 @@ describe("reconcile.ts", () => {
 
     test("nested tasks remain visible after parent file touch", () =>
       withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        disableMaterialization(repoDir)
         const issueFolder = createFolder(repoDir, "issue")
         const taskPath = createMdFile(issueFolder, "project.md", BOARD_CONTENT)
 
