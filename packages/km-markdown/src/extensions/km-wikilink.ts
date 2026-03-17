@@ -279,7 +279,14 @@ function exitEmbed(this: CompileContext, _token: Token) {
 
 function exitTarget(this: CompileContext, token: Token) {
   const node = this.stack[this.stack.length - 1] as unknown as KmWikilink
-  node.target = this.sliceSerialize(token)
+  const raw = this.sliceSerialize(token)
+  // Detect ./ prefix for relative child references
+  if (raw.startsWith("./")) {
+    node.target = raw.slice(2)
+    node.relative = true
+  } else {
+    node.target = raw
+  }
 }
 
 function exitSection(this: CompileContext, token: Token) {

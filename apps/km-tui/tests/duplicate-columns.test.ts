@@ -171,8 +171,279 @@ describe("duplicate column deduplication", () => {
   })
 })
 
-// Index file expansion tests removed — folder+file merge needs deeper design.
-// See bead km-storage.folder-file-merge for the design discussion.
+describe("folder index file expansion", () => {
+  // Shared setup: a folder with an index file + child files
+  function folderWithIndex() {
+    const folder = makeNode({
+      id: "early-orbit",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "early-orbit",
+    })
+    const indexFile = makeNode({
+      id: "index-file",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "early-orbit",
+      parent_idx: 0,
+      name: "early-orbit",
+      fs_path: "early-orbit/early-orbit.md",
+    })
+    const mipFile = makeNode({
+      id: "mip",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "early-orbit",
+      parent_idx: 1,
+      name: "mip",
+      title: "MIP",
+      fs_path: "early-orbit/mip.md",
+    })
+    const launchFile = makeNode({
+      id: "launch",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "early-orbit",
+      parent_idx: 2,
+      name: "launch-academy",
+      title: "Launch Academy",
+      fs_path: "early-orbit/launch-academy.md",
+    })
+    const extraFile = makeNode({
+      id: "extra",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "early-orbit",
+      parent_idx: 3,
+      name: "notes",
+      title: "Notes",
+      fs_path: "early-orbit/notes.md",
+    })
+    return { folder, indexFile, mipFile, launchFile, extraFile }
+  }
+
+  // Helper to make index file sections
+  function indexSection(id: string, parentId: string, idx: number, content: string, title?: string) {
+    return makeNode({
+      id,
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      parent_id: parentId,
+      parent_idx: idx,
+      content,
+      title: title ?? content,
+    })
+  }
+
+  test("embed slots resolve to folder children", () => {
+    const { folder, indexFile, mipFile, launchFile, extraFile } = folderWithIndex()
+    const sec1 = indexSection("s1", "index-file", 0, "![[./mip]]")
+    const sec2 = indexSection("s2", "index-file", 1, "Overview & Inbox")
+    const sec3 = indexSection("s3", "index-file", 2, "![[./launch-academy]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, launchFile, extraFile, sec1, sec2, sec3],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    // Order: mip (slot) → Overview (inline) → launch (slot) → notes (unlisted)
+    expect(columns.length).toBe(4)
+    expect(columns[0]!.node.id).toBe("mip")
+    expect(columns[1]!.node.id).toBe("s2") // inline section
+    expect(columns[2]!.node.id).toBe("launch")
+    expect(columns[3]!.node.id).toBe("extra") // unlisted child
+  })
+
+  test("unlisted children appended after listed ones", () => {
+    const { folder, indexFile, mipFile, launchFile, extraFile } = folderWithIndex()
+    // Only one slot — launch and notes are unlisted
+    const sec1 = indexSection("s1", "index-file", 0, "![[./mip]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, launchFile, extraFile, sec1],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    expect(columns.length).toBe(3)
+    expect(columns[0]!.node.id).toBe("mip") // slot
+    expect(columns[1]!.node.id).toBe("launch") // unlisted
+    expect(columns[2]!.node.id).toBe("extra") // unlisted
+  })
+
+  test("index body content becomes virtual body column", () => {
+    const { folder, indexFile, mipFile } = folderWithIndex()
+    // Body paragraph before any sections
+    const bodyP = makeNode({
+      id: "body-p",
+      type: "p",
+      parent_id: "index-file",
+      parent_idx: 0,
+      content: "This is the folder description.",
+    })
+    const sec1 = indexSection("s1", "index-file", 1, "![[./mip]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, bodyP, sec1],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    // body column + mip column
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.isVirtual).toBe(true)
+    expect(columns[0]!.cardNodes.length).toBe(1)
+    expect(columns[0]!.cardNodes[0]!.content).toBe("This is the folder description.")
+    expect(columns[1]!.node.id).toBe("mip")
+  })
+
+  test("index file with no sections shows only unlisted children", () => {
+    const { folder, indexFile, mipFile, launchFile } = folderWithIndex()
+    // Index file has only a body paragraph, no sections
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, launchFile],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    // All children except the index file become columns
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("mip")
+    expect(columns[1]!.node.id).toBe("launch")
+  })
+
+  test("unresolved embed slot treated as inline section", () => {
+    const { folder, indexFile, mipFile } = folderWithIndex()
+    // Reference to a non-existent child
+    const sec1 = indexSection("s1", "index-file", 0, "![[./nonexistent]]")
+    const sec2 = indexSection("s2", "index-file", 1, "![[./mip]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, sec1, sec2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    // nonexistent slot → inline section, mip slot → resolved
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("s1") // unresolved → inline
+    expect(columns[1]!.node.id).toBe("mip") // resolved
+  })
+
+  test("non-relative embed is treated as inline section", () => {
+    const { folder, indexFile, mipFile } = folderWithIndex()
+    // Regular embed (no ./) — should NOT resolve as slot
+    const sec1 = indexSection("s1", "index-file", 0, "![[mip]]")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, mipFile, sec1],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "early-orbit", new Map())
+
+    // ![[mip]] is inline (no ./), mip is an unlisted child
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("s1") // inline section
+    expect(columns[1]!.node.id).toBe("mip") // unlisted
+  })
+
+  test("no index file → standard column behavior", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const file1 = makeNode({
+      id: "f1",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "readme",
+      fs_path: "project/readme.md",
+    })
+    const file2 = makeNode({
+      id: "f2",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "todo",
+      fs_path: "project/todo.md",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, file1, file2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("f1")
+    expect(columns[1]!.node.id).toBe("f2")
+  })
+
+  test("index.md is detected as index file", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "index",
+      fs_path: "project/index.md",
+    })
+    const file1 = makeNode({
+      id: "f1",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "readme",
+      fs_path: "project/readme.md",
+    })
+    const sec1 = indexSection("s1", "idx", 0, "![[./readme]]")
+    const sec2 = indexSection("s2", "idx", 1, "Inline Notes")
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, file1, sec1, sec2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // readme (slot) → Inline Notes (inline)
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("f1") // readme resolved via slot
+    expect(columns[1]!.node.id).toBe("s2") // inline section
+  })
+})
 
 describe("markdown file columns", () => {
   test("zooming into an md file with H2 sections produces multiple columns", () => {

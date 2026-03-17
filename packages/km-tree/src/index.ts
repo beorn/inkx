@@ -45,6 +45,9 @@ export {
   type CollapsedAncestor,
 } from "./display.ts"
 
+// Index file detection (folder-file merge)
+export { findIndexFile, isIndexFile, getChildSlotTarget } from "./index-file.ts"
+
 // Body content utilities
 export { extractBody, type BodyExtraction, type ExtractBodyDbOpts } from "./body.ts"
 

@@ -303,6 +303,47 @@ tags: [a, b, c]
     })
   })
 
+  describe("relative wikilinks (./prefix)", () => {
+    test("![[./child]] sets relative flag and strips prefix", () => {
+      const links = parseWikiLinks("![[./mip]]")
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("mip")
+      expect(links[0]!.embedded).toBe(true)
+      expect(links[0]!.relative).toBe(true)
+    })
+
+    test("[[./child]] sets relative on non-embed link", () => {
+      const links = parseWikiLinks("[[./readme]]")
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("readme")
+      expect(links[0]!.relative).toBe(true)
+      expect(links[0]!.embedded).toBeUndefined()
+    })
+
+    test("regular embed does not set relative", () => {
+      const links = parseWikiLinks("![[mip]]")
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("mip")
+      expect(links[0]!.relative).toBeUndefined()
+    })
+
+    test("./child with section anchor", () => {
+      const links = parseWikiLinks("![[./project#tasks]]")
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("project")
+      expect(links[0]!.section).toBe("tasks")
+      expect(links[0]!.relative).toBe(true)
+    })
+
+    test("./child with alias", () => {
+      const links = parseWikiLinks("![[./project|My Project]]")
+      expect(links.length).toBe(1)
+      expect(links[0]!.target).toBe("project")
+      expect(links[0]!.alias).toBe("My Project")
+      expect(links[0]!.relative).toBe(true)
+    })
+  })
+
   describe("extractTags", () => {
     test.each([
       {

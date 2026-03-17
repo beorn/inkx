@@ -63,5 +63,7 @@ export interface KmWikilink extends Node {
   alias?: string
   /** True for ![[...]] embeds, false for [[...]] links */
   embedded: boolean
+  /** True for ./target relative references (structural child slots) */
+  relative?: boolean
   data?: Data
 }

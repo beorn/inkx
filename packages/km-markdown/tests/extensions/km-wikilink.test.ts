@@ -157,4 +157,58 @@ describe("km-wikilink", () => {
     const links = findWikilinks(tree)
     expect(links).toHaveLength(0)
   })
+
+  it("relative embed: ![[./child]]", () => {
+    const tree = parse("![[./child]]")
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(1)
+    expect(links[0]).toMatchObject({
+      type: "kmWikilink",
+      target: "child",
+      embedded: true,
+      relative: true,
+    })
+  })
+
+  it("relative link: [[./sibling]]", () => {
+    const tree = parse("[[./sibling]]")
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(1)
+    expect(links[0]).toMatchObject({
+      type: "kmWikilink",
+      target: "sibling",
+      embedded: false,
+      relative: true,
+    })
+  })
+
+  it("relative with section: [[./page#heading]]", () => {
+    const tree = parse("[[./page#heading]]")
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(1)
+    expect(links[0]).toMatchObject({
+      target: "page",
+      section: "heading",
+      relative: true,
+    })
+  })
+
+  it("relative with alias: ![[./child|Display Name]]", () => {
+    const tree = parse("![[./child|Display Name]]")
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(1)
+    expect(links[0]).toMatchObject({
+      target: "child",
+      alias: "Display Name",
+      embedded: true,
+      relative: true,
+    })
+  })
+
+  it("non-relative embed does not set relative flag", () => {
+    const tree = parse("![[other]]")
+    const links = findWikilinks(tree)
+    expect(links).toHaveLength(1)
+    expect(links[0]!.relative).toBeUndefined()
+  })
 })

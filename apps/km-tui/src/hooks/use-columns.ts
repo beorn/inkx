@@ -16,7 +16,7 @@ import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { isEmbed } from "@km/core"
 import { createLogger } from "loggily"
-import { extractBody } from "@km/tree"
+import { extractBody, findIndexFile, getChildSlotTarget, namesAreSimilar } from "@km/tree"
 import type { ColumnView } from "../types.ts"
 import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
@@ -340,12 +340,21 @@ export function deriveColumnsFromRepo(
   // Keep the node with more children; if tied, keep the first one.
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
 
-  // Convert structural children to columns (with per-column memoization)
-  // Skip detail-only sections (e.g., Attachments, Comments, Activity) — they're detail-pane only.
-  // Columns with km.collapse:: true are included (rendered as narrow collapsed columns).
-  for (const node of deduped) {
-    if (isDetailOnly(node)) continue
-    columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
+  // Folder-index merge: when zoomed into a folder, detect its index file
+  // and expand its sections as columns (with embed slots resolving to folder children).
+  const rootNode = rootId ? repo.getNode(rootId) : null
+  const indexFile = rootNode?.fstype === "folder" ? findIndexFile(rootNode, deduped) : null
+
+  if (indexFile) {
+    expandIndexFileColumns(repo, indexFile, deduped, columns, wipLimits, foldDepths)
+  } else {
+    // Convert structural children to columns (with per-column memoization)
+    // Skip detail-only sections (e.g., Attachments, Comments, Activity) — they're detail-pane only.
+    // Columns with km.collapse:: true are included (rendered as narrow collapsed columns).
+    for (const node of deduped) {
+      if (isDetailOnly(node)) continue
+      columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
+    }
   }
 
   span.spanData.columns = columns.length
@@ -482,13 +491,98 @@ export function* deriveColumnsIncremental(
   }
 
   const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
+
+  // Folder-index merge (same logic as deriveColumnsFromRepo)
+  const rootNode = rootId ? repo.getNode(rootId) : null
+  const indexFile = rootNode?.fstype === "folder" ? findIndexFile(rootNode, deduped) : null
+
   let columnCount = 0
-  for (const node of deduped) {
-    if (isDetailOnly(node)) continue
-    yield kNodeToColumnViewCached(repo, node, wipLimits, foldDepths)
-    columnCount++
+  if (indexFile) {
+    const expanded: ColumnView[] = []
+    expandIndexFileColumns(repo, indexFile, deduped, expanded, wipLimits, foldDepths)
+    for (const col of expanded) {
+      yield col
+      columnCount++
+    }
+  } else {
+    for (const node of deduped) {
+      if (isDetailOnly(node)) continue
+      yield kNodeToColumnViewCached(repo, node, wipLimits, foldDepths)
+      columnCount++
+    }
   }
   span.spanData.columns = (filteredBody.length > 0 ? 1 : 0) + columnCount
+}
+
+// =============================================================================
+// Folder-index file expansion
+// =============================================================================
+
+/**
+ * Expand an index file's sections as columns for a folder.
+ *
+ * Index file sections control the folder's column layout:
+ * - `## ![[./child]]` embed slots resolve to the referenced folder child
+ * - `## Inline Section` becomes a column directly
+ * - Unlisted folder children are appended after listed ones
+ * - The index file itself is excluded from the column list
+ */
+function expandIndexFileColumns(
+  repo: Repo,
+  indexFile: KNode,
+  deduped: KNode[],
+  columns: ColumnView[],
+  wipLimits: Map<string, number>,
+  foldDepths: Map<string, number>,
+): void {
+  const indexChildren = repo.getChildren(indexFile.id)
+  const { body: indexBody, items: indexSections } = extractBody(indexChildren)
+
+  // Merge index body into the folder's virtual body column
+  const filteredIndexBody = indexBody.filter(
+    (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+  )
+  if (filteredIndexBody.length > 0) {
+    const virtualCardIds = new Set<string>()
+    for (const n of filteredIndexBody) {
+      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
+    }
+    columns.push({
+      node: createVirtualBodyNode(indexFile.parent_id),
+      cardNodes: filteredIndexBody,
+      virtualCardIds,
+      isVirtual: true,
+    })
+  }
+
+  // Track which folder children are referenced by embed slots
+  const referencedIds = new Set<string>()
+
+  // Process each index section
+  for (const section of indexSections) {
+    const slotTarget = getChildSlotTarget(section)
+    if (slotTarget) {
+      // Embed slot: resolve to folder child
+      const child = deduped.find((n) => n !== indexFile && namesAreSimilar(n.name ?? "", slotTarget))
+      if (child) {
+        columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
+        referencedIds.add(child.id)
+        continue
+      }
+      // Slot target not found — fall through to treat as inline section
+    }
+    // Inline section → column
+    if (!isDetailOnly(section)) {
+      columns.push(kNodeToColumnViewCached(repo, section, wipLimits, foldDepths))
+    }
+  }
+
+  // Append unreferenced folder children (not the index file, not already placed)
+  for (const node of deduped) {
+    if (node === indexFile || referencedIds.has(node.id)) continue
+    if (isDetailOnly(node)) continue
+    columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
+  }
 }
 
 // =============================================================================

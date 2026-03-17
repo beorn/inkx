@@ -116,6 +116,8 @@ export interface WikiLink {
   alias?: string
   /** True for embeddings (![[...]]) which should transclude content */
   embedded?: boolean
+  /** True for ./target relative references (structural child slots) */
+  relative?: boolean
 }
 
 /**
@@ -172,13 +174,16 @@ export function parseWikiLinks(text: string): WikiLink[] {
   let match
   while ((match = WIKILINK_REGEX.exec(text)) !== null) {
     const isEmbedded = match[1] === "!"
+    const rawTarget = match[2] ?? ""
+    const isRelative = rawTarget.startsWith("./")
     links.push({
       type: "wikiLink",
-      target: match[2] ?? "",
+      target: isRelative ? rawTarget.slice(2) : rawTarget,
       section: match[3],
       blockId: match[4],
       alias: match[5],
       embedded: isEmbedded || undefined, // Only set if true
+      relative: isRelative || undefined, // Only set if true
     })
   }
 
