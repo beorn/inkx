@@ -753,8 +753,11 @@ function kNodeToColumnView(
   const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
 
   // Split children into body (paragraphs) and structural (outline) cards
+  // When the column is a folder with an index file, exclude the index file from cards
   const allCardNodes = repo.getChildren(node.id)
-  const { body: bodyNodes, items: structuralNodes } = extractBody(allCardNodes)
+  const folderIndex = node.fstype === "folder" ? findIndexFile(node, allCardNodes) : null
+  const filteredCardNodes = folderIndex ? allCardNodes.filter((c) => c.id !== folderIndex.id) : allCardNodes
+  const { body: bodyNodes, items: structuralNodes } = extractBody(filteredCardNodes)
 
   const cardNodes: KNode[] = []
   const virtualCardIds = new Set<string>()
