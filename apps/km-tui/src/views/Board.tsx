@@ -59,6 +59,7 @@ import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
+import { useLinkOpen } from "../hooks/use-link-open.ts"
 import { PaneBar } from "./PaneBar.tsx"
 import {
   createFileDropHandler,
@@ -957,6 +958,8 @@ export interface BoardAppProps {
  */
 export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, patchedConsole }: BoardAppProps) {
   const { exit } = useApp()
+  // Handle Cmd+click on links — opens external URLs, dispatches internal km:// links
+  useLinkOpen()
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
   const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
   const focusPaneById = useAppStore<BoardAppStore, (id: string) => void>((s) => s.focusPaneById)

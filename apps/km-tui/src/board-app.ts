@@ -8,7 +8,7 @@
 
 import { createApp, type EventHandlerContext } from "@silvery/term/runtime"
 import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/react"
-import { activeEditTargetRef, activeEditContextRef } from "@silvery/react"
+import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/react"
 import { createLogger, type SpanLogger } from "loggily"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
@@ -821,10 +821,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         return
       }
 
-      // Interactive element (e.g. Link with onClick) + modifier key — defer to
+      // Interactive element (e.g. Link with onClick) + Cmd held — defer to
       // DOM event system. Cmd+click on a Link should open it, not select the card.
-      // Without modifier, regular clicks still select the card normally.
-      if (hasClickHandler && (mouse.ctrl || mouse.meta)) {
+      // Uses lastModifierState because SGR mouse protocol has no Super/Cmd bit.
+      if (hasClickHandler && lastModifierState.super) {
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }
