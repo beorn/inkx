@@ -742,25 +742,31 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const hitNode = ctx.hitTest(mouse.x, mouse.y)
       if (!hitNode) return
 
-      // Walk up InkxNode ancestors to find the clicked item's KNode ID and column index.
-      // data-view="item" = card/sub-block, data-view="column" = column header/background
-      let nodeId: string | null = null
+      // Walk up ancestors to find clicked item and card-level node.
+      // data-view="item" = sub-block, data-view="card" = card wrapper, data-view="column" = column
+      let nodeId: string | null = null // First id found (may be sub-block)
       let idNode: TeaNode | null = null
+      let cardId: string | null = null // Card-level id (for selection)
       let isColumnNode = false
       let colIndex: number | null = null
       let hasClickHandler = false
       let current: TeaNode | null = hitNode
       while (current) {
         const props = current.props as Record<string, unknown>
-        if (!nodeId && typeof props.id === "string") {
-          nodeId = props.id
-          idNode = current
-          isColumnNode = props["data-view"] === "column"
+        if (typeof props.id === "string") {
+          if (!nodeId) {
+            nodeId = props.id
+            idNode = current
+          }
+          if (props["data-view"] === "card") cardId = props.id
+          if (props["data-view"] === "column") isColumnNode = true
         }
         if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
         if (typeof props.onClick === "function") hasClickHandler = true
         current = current.parent
       }
+      // Use card-level ID for selection (click anywhere on card selects the card)
+      const selectId = cardId ?? nodeId
 
       const now = Date.now()
       const dx = Math.abs(mouse.x - locals.lastClick.x)
@@ -777,12 +783,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // - Inside same card → save + re-enter edit on clicked node
       // - Outside card → exit edit mode, proceed with normal click
       const edit = actionCtx.ui.inlineEditBlock
-      if (edit && nodeId && !isColumnNode) {
+      if (edit && selectId && !isColumnNode) {
         const editCardId = actionCtx.card?.id
         // Check if clicked node is inside the same card
-        let inSameCard = nodeId === editCardId
+        let inSameCard = selectId === editCardId
         if (!inSameCard && editCardId) {
-          let walkId: string | null = nodeId
+          let walkId: string | null = selectId
           while (walkId && walkId !== editCardId) {
             const n = actionCtx.repo.getNode(walkId)
             walkId = n?.parent_id ?? null
@@ -814,7 +820,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         actionCtx.setUI({ inlineEditBlock: null })
       }
 
-      if (!nodeId || isColumnNode) {
+      if (!selectId || isColumnNode) {
         // Column header / empty space click → deselect all, cursor to board root
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
@@ -830,18 +836,18 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
 
       if (isDoubleClick) {
-        // Double-click → select the node and enter inline edit
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId, blockIndex: 0 })
+        // Double-click → select the sub-block and enter inline edit on it
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId!, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
       } else if (mouse.ctrl) {
-        // Ctrl-click → move cursor to clicked card and toggle its selection
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-        actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId })
+        // Ctrl-click → move cursor to card and toggle its selection
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId: selectId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       } else {
-        // Single click → select the exact node the hit test found
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId })
+        // Single click → select the card (not sub-block)
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       }
       return

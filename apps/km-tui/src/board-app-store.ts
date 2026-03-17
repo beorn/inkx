@@ -62,6 +62,7 @@ import {
   setSplitRatioAbsolute,
 } from "./layout-helpers.ts"
 import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./workspace-persist.ts"
+import { deserializeFilterProperties } from "./workspace-persist.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
 
 // =============================================================================
@@ -278,6 +279,10 @@ function restoreWorkspaceFromPersisted(
         viewMode: persisted.viewMode as "cards" | "list" | "columns" | "tabs",
         cursorStore: paneCursorStore,
       })
+    }
+    // Restore persisted filter properties (hide done, tag filters, etc.)
+    if (persisted.filterProperties && isBoardPane(pane)) {
+      ;(pane as BoardPaneState).filterProperties = deserializeFilterProperties(persisted.filterProperties)
     }
     panes.set(persisted.id, pane)
   }

@@ -1413,12 +1413,12 @@ describe("Cmd shortcuts (kitty protocol, cmd modifier)", () => {
       expectKey("l", "focus_detail", sup)
     })
 
-    it("Cmd+j still shifts down (no conflict)", () => {
-      expectKey("j", "shift_down", sup)
+    it("Cmd+j not bound (use Cmd+Arrow for zoom, Opt+j for shift)", () => {
+      const result = resolveKeybinding("j", sup, createContext())
+      expect(result).toBeNull()
     })
 
-    it("Cmd+k still shifts up (no conflict — global Cmd+k command_palette is higher priority)", () => {
-      // Cmd+k resolves to command_palette because global layer is higher priority
+    it("Cmd+k resolves to command_palette (global layer)", () => {
       expectKey("k", "command_palette", sup)
     })
 

@@ -5,7 +5,7 @@
  * `<vault>/.km/workspaces/`. On exit, auto-saves as "default". On launch,
  * restores from "default" if present.
  *
- * Persisted: layout tree, pane viewType/rootNodePath/viewMode, focusedPaneId.
+ * Persisted: layout tree, pane viewType/rootNodePath/viewMode/filterProperties, focusedPaneId.
  * NOT persisted: cursor position, fold state, scroll offsets, CursorStore,
  * selection, nav history — these are session-specific.
  *
@@ -16,8 +16,10 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
-import type { LayoutNode, PaneState, WorkspaceState, ViewMode } from "./board-types.ts"
+import type { LayoutNode, PaneState, WorkspaceState, ViewMode, BoardPaneState } from "./board-types.ts"
 import { isBoardPane } from "./board-types.ts"
+import type { FilterProperties } from "./ui-reducer.ts"
+import { createEmptyFilterProperties } from "./ui-reducer.ts"
 import type { Repo } from "./repo-context.tsx"
 
 // =============================================================================
@@ -33,12 +35,26 @@ export interface PersistedWorkspace {
   focusedPaneId: string
 }
 
+/**
+ * JSON-safe representation of FilterProperties (Sets → arrays).
+ * Only non-empty categories are included to keep the JSON compact.
+ */
+export interface PersistedFilterProperties {
+  taskStatus?: string[]
+  priority?: string[]
+  dueDate?: string[]
+  assignedTo?: string[]
+  nodeType?: string[]
+}
+
 export interface PersistedPane {
   id: string
   viewType: "board" | "detail" | "empty"
   /** Node's fs_path (relative file path within the vault), resolved to rootId on restore */
   rootNodePath: string | null
   viewMode: ViewMode
+  /** Optional property-based filters (hide done, tag filters, etc.) */
+  filterProperties?: PersistedFilterProperties
 }
 
 export type PersistedLayoutNode =
@@ -68,6 +84,53 @@ function serializeLayout(node: LayoutNode): PersistedLayoutNode {
 }
 
 /**
+ * Serialize FilterProperties (Sets → arrays), omitting empty categories.
+ * Returns undefined if all categories are empty (nothing to persist).
+ */
+function serializeFilterProperties(fp: FilterProperties): PersistedFilterProperties | undefined {
+  const result: PersistedFilterProperties = {}
+  let hasAny = false
+
+  if (fp.taskStatus.size > 0) {
+    result.taskStatus = [...fp.taskStatus]
+    hasAny = true
+  }
+  if (fp.priority.size > 0) {
+    result.priority = [...fp.priority]
+    hasAny = true
+  }
+  if (fp.dueDate.size > 0) {
+    result.dueDate = [...fp.dueDate]
+    hasAny = true
+  }
+  if (fp.assignedTo.size > 0) {
+    result.assignedTo = [...fp.assignedTo]
+    hasAny = true
+  }
+  if (fp.nodeType.size > 0) {
+    result.nodeType = [...fp.nodeType]
+    hasAny = true
+  }
+
+  return hasAny ? result : undefined
+}
+
+/**
+ * Deserialize persisted filter properties (arrays → Sets).
+ * Returns a full FilterProperties with empty Sets for omitted categories.
+ */
+export function deserializeFilterProperties(raw: PersistedFilterProperties | undefined): FilterProperties {
+  if (!raw) return createEmptyFilterProperties()
+  return {
+    taskStatus: new Set(raw.taskStatus ?? []),
+    priority: new Set(raw.priority ?? []),
+    dueDate: new Set(raw.dueDate ?? []),
+    assignedTo: new Set(raw.assignedTo ?? []),
+    nodeType: new Set(raw.nodeType ?? []),
+  }
+}
+
+/**
  * Serialize a live PaneState to a persisted pane.
  * Uses the repo to look up the node's fs_path from its rootId.
  * Falls back to null if the node no longer exists or has no fs_path.
@@ -75,6 +138,7 @@ function serializeLayout(node: LayoutNode): PersistedLayoutNode {
 function serializePane(pane: PaneState, repo: Repo): PersistedPane {
   let rootNodePath: string | null = null
   let viewMode: ViewMode = "cards"
+  let filterProperties: PersistedFilterProperties | undefined
 
   if (isBoardPane(pane)) {
     if (pane.rootId) {
@@ -82,14 +146,17 @@ function serializePane(pane: PaneState, repo: Repo): PersistedPane {
       rootNodePath = node?.fs_path ?? null
     }
     viewMode = pane.viewMode
+    filterProperties = serializeFilterProperties(pane.filterProperties)
   }
 
-  return {
+  const result: PersistedPane = {
     id: pane.id,
     viewType: pane.viewType,
     rootNodePath,
     viewMode,
   }
+  if (filterProperties) result.filterProperties = filterProperties
+  return result
 }
 
 /**
@@ -151,6 +218,29 @@ function parseLayout(raw: unknown): PersistedLayoutNode | null {
  * Validate and parse a persisted pane.
  * Returns null if the structure is invalid.
  */
+/**
+ * Validate and parse optional persisted filter properties.
+ * Lenient: unknown categories are ignored, invalid arrays are skipped.
+ * Returns undefined if input is not an object or is empty.
+ */
+function parseFilterProperties(raw: unknown): PersistedFilterProperties | undefined {
+  if (!raw || typeof raw !== "object") return undefined
+  const obj = raw as Record<string, unknown>
+
+  const result: PersistedFilterProperties = {}
+  let hasAny = false
+
+  for (const key of ["taskStatus", "priority", "dueDate", "assignedTo", "nodeType"] as const) {
+    const val = obj[key]
+    if (Array.isArray(val) && val.every((v) => typeof v === "string") && val.length > 0) {
+      result[key] = val as string[]
+      hasAny = true
+    }
+  }
+
+  return hasAny ? result : undefined
+}
+
 function parsePane(raw: unknown): PersistedPane | null {
   if (!raw || typeof raw !== "object") return null
   const obj = raw as Record<string, unknown>
@@ -160,12 +250,17 @@ function parsePane(raw: unknown): PersistedPane | null {
   if (obj.rootNodePath !== null && typeof obj.rootNodePath !== "string") return null
   if (!VALID_VIEW_MODES.has(obj.viewMode as string)) return null
 
-  return {
+  const result: PersistedPane = {
     id: obj.id as string,
     viewType: obj.viewType as "board" | "detail" | "empty",
     rootNodePath: (obj.rootNodePath as string | null) ?? null,
     viewMode: obj.viewMode as ViewMode,
   }
+
+  const filterProperties = parseFilterProperties(obj.filterProperties)
+  if (filterProperties) result.filterProperties = filterProperties
+
+  return result
 }
 
 /**

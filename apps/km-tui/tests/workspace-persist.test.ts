@@ -3,8 +3,9 @@ import { mkdirSync, existsSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 
-import type { WorkspaceState, PaneState, LayoutNode } from "../src/board-types.ts"
+import type { WorkspaceState, PaneState, LayoutNode, BoardPaneState } from "../src/board-types.ts"
 import type { Repo } from "../src/repo-context.tsx"
+import { createEmptyFilterProperties } from "../src/ui-reducer.ts"
 import {
   serializeWorkspace,
   parsePersistedWorkspace,
@@ -12,7 +13,9 @@ import {
   loadWorkspace,
   listWorkspaces,
   deleteWorkspace,
+  deserializeFilterProperties,
   type PersistedWorkspace,
+  type PersistedFilterProperties,
 } from "../src/workspace-persist.ts"
 
 // =============================================================================
@@ -42,6 +45,7 @@ function makePaneState(
     rootId?: string | null
     rootPath?: string | null
     viewMode?: "cards" | "list" | "columns" | "tabs"
+    filterProperties?: import("../src/ui-reducer.ts").FilterProperties
   },
 ): PaneState {
   return {
@@ -61,6 +65,7 @@ function makePaneState(
     curswantX: null,
     curswantY: null,
     viewMode: opts?.viewMode ?? "cards",
+    filterProperties: opts?.filterProperties ?? createEmptyFilterProperties(),
     cursorStore: {
       getState: () => ({
         cursorNodeId: null,
@@ -591,5 +596,171 @@ describe("deleteWorkspace", () => {
     deleteWorkspace("remove", tmpDir)
     expect(loadWorkspace("keep", tmpDir)).not.toBeNull()
     expect(listWorkspaces(tmpDir)).toEqual(["keep"])
+  })
+})
+
+// =============================================================================
+// Filter Properties Persistence
+// =============================================================================
+
+describe("filterProperties persistence", () => {
+  it("serializes filterProperties with active filters", () => {
+    const fp = createEmptyFilterProperties()
+    fp.taskStatus = new Set(["done", "dropped"])
+    const pane = makePaneState("main", { rootId: "node-tasks", filterProperties: fp })
+    const ws = makeWorkspace({ panes: [pane] })
+    const result = serializeWorkspace(ws, "test", defaultRepo)
+
+    expect(result.panes[0]!.filterProperties).toEqual({
+      taskStatus: ["done", "dropped"],
+    })
+  })
+
+  it("omits filterProperties when all filters are empty", () => {
+    const ws = makeWorkspace()
+    const result = serializeWorkspace(ws, "test", defaultRepo)
+
+    expect(result.panes[0]!.filterProperties).toBeUndefined()
+  })
+
+  it("serializes multiple filter categories", () => {
+    const fp = createEmptyFilterProperties()
+    fp.taskStatus = new Set(["done"])
+    fp.priority = new Set(["1", "2"])
+    fp.dueDate = new Set(["overdue"])
+    const pane = makePaneState("main", { rootId: "node-tasks", filterProperties: fp })
+    const ws = makeWorkspace({ panes: [pane] })
+    const result = serializeWorkspace(ws, "test", defaultRepo)
+
+    expect(result.panes[0]!.filterProperties).toEqual({
+      taskStatus: ["done"],
+      priority: ["1", "2"],
+      dueDate: ["overdue"],
+    })
+  })
+
+  it("round-trips filterProperties through save/load", () => {
+    const fp = createEmptyFilterProperties()
+    fp.taskStatus = new Set(["done", "dropped"])
+    fp.priority = new Set(["1"])
+    const pane = makePaneState("main", { rootId: "node-tasks", filterProperties: fp })
+    const ws = makeWorkspace({ panes: [pane] })
+
+    saveWorkspace(ws, "filter-test", tmpDir, defaultRepo)
+    const loaded = loadWorkspace("filter-test", tmpDir)
+
+    expect(loaded).not.toBeNull()
+    expect(loaded!.panes[0]!.filterProperties).toEqual({
+      taskStatus: expect.arrayContaining(["done", "dropped"]),
+      priority: ["1"],
+    })
+  })
+
+  it("parses workspace without filterProperties (backwards compatible)", () => {
+    const data: PersistedWorkspace = {
+      version: 1,
+      name: "old",
+      savedAt: "2026-01-01T00:00:00.000Z",
+      layout: { type: "leaf", paneId: "main" },
+      panes: [{ id: "main", viewType: "board", rootNodePath: "tasks.md", viewMode: "cards" }],
+      focusedPaneId: "main",
+    }
+
+    const result = parsePersistedWorkspace(data)
+    expect(result).not.toBeNull()
+    expect(result!.panes[0]!.filterProperties).toBeUndefined()
+  })
+
+  it("parses workspace with filterProperties", () => {
+    const data = {
+      version: 1,
+      name: "filtered",
+      savedAt: "2026-03-16T00:00:00.000Z",
+      layout: { type: "leaf", paneId: "main" },
+      panes: [
+        {
+          id: "main",
+          viewType: "board",
+          rootNodePath: "tasks.md",
+          viewMode: "cards",
+          filterProperties: { taskStatus: ["done"] },
+        },
+      ],
+      focusedPaneId: "main",
+    }
+
+    const result = parsePersistedWorkspace(data)
+    expect(result).not.toBeNull()
+    expect(result!.panes[0]!.filterProperties).toEqual({ taskStatus: ["done"] })
+  })
+
+  it("ignores invalid filterProperties gracefully", () => {
+    const data = {
+      version: 1,
+      name: "bad-filter",
+      savedAt: "2026-03-16T00:00:00.000Z",
+      layout: { type: "leaf", paneId: "main" },
+      panes: [
+        {
+          id: "main",
+          viewType: "board",
+          rootNodePath: "tasks.md",
+          viewMode: "cards",
+          filterProperties: { taskStatus: [123, true], unknownField: "ignored" },
+        },
+      ],
+      focusedPaneId: "main",
+    }
+
+    const result = parsePersistedWorkspace(data)
+    expect(result).not.toBeNull()
+    // taskStatus has non-string values, so it's dropped; unknownField is ignored
+    expect(result!.panes[0]!.filterProperties).toBeUndefined()
+  })
+})
+
+// =============================================================================
+// deserializeFilterProperties
+// =============================================================================
+
+describe("deserializeFilterProperties", () => {
+  it("returns empty FilterProperties for undefined input", () => {
+    const fp = deserializeFilterProperties(undefined)
+    expect(fp.taskStatus.size).toBe(0)
+    expect(fp.priority.size).toBe(0)
+    expect(fp.dueDate.size).toBe(0)
+    expect(fp.assignedTo.size).toBe(0)
+    expect(fp.nodeType.size).toBe(0)
+  })
+
+  it("converts arrays to Sets", () => {
+    const persisted: PersistedFilterProperties = {
+      taskStatus: ["done", "dropped"],
+      priority: ["1"],
+    }
+    const fp = deserializeFilterProperties(persisted)
+
+    expect(fp.taskStatus).toEqual(new Set(["done", "dropped"]))
+    expect(fp.priority).toEqual(new Set(["1"]))
+    expect(fp.dueDate).toEqual(new Set())
+    expect(fp.assignedTo).toEqual(new Set())
+    expect(fp.nodeType).toEqual(new Set())
+  })
+
+  it("handles all filter categories", () => {
+    const persisted: PersistedFilterProperties = {
+      taskStatus: ["todo"],
+      priority: ["2", "3"],
+      dueDate: ["overdue", "today"],
+      assignedTo: ["alice"],
+      nodeType: ["h", "p"],
+    }
+    const fp = deserializeFilterProperties(persisted)
+
+    expect(fp.taskStatus).toEqual(new Set(["todo"]))
+    expect(fp.priority).toEqual(new Set(["2", "3"]))
+    expect(fp.dueDate).toEqual(new Set(["overdue", "today"]))
+    expect(fp.assignedTo).toEqual(new Set(["alice"]))
+    expect(fp.nodeType).toEqual(new Set(["h", "p"]))
   })
 })

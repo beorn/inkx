@@ -868,16 +868,11 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "u", commandId: "undo" },
         { key: "U", commandId: "redo" },
 
-        // Shifting (Cmd/Super+direction) — move nodes in tree
-        // Also bound to Alt/Meta for terminals without Kitty protocol
-        { key: "cmd-ArrowUp", commandId: "shift_up" },
-        { key: "cmd-ArrowDown", commandId: "shift_down" },
-        { key: "cmd-ArrowLeft", commandId: "shift_left" },
-        { key: "cmd-ArrowRight", commandId: "shift_right" },
-        { key: "cmd-k", commandId: "shift_up" },
-        { key: "cmd-j", commandId: "shift_down" },
-        // Note: Cmd+h/l are reserved for focus switching (see navigation layer)
-        // Use Alt/Meta+h/l for shifting instead
+        // Cmd+arrows — NOT usable: Ghostty/iTerm consume them
+        // (Up/Down = scroll, Left = Home/Ctrl+E, Right = End/Ctrl+A)
+        // Cmd+[ / ] already used for nav_back/forward (navigation layer)
+        // Fold/unfold: use H/L (Shift+h/l)
+        // Shifting (Opt+direction) — move nodes in tree
         { key: "opt-ArrowUp", commandId: "shift_up" },
         { key: "opt-ArrowDown", commandId: "shift_down" },
         { key: "opt-ArrowLeft", commandId: "shift_left" },
