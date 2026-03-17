@@ -20,7 +20,7 @@ import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "
 import { shouldApplyToFs } from "./writequeue.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
-import { findIndexFile, isIndexFile } from "@km/tree"
+import { findIndexFile, isIndexFile, isSlotNode, namesAreSimilar } from "@km/tree"
 import { isOutline } from "@km/core"
 import { getFolderIndexConfig } from "../config.ts"
 import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
@@ -252,9 +252,18 @@ export class FsWriter implements FsSync {
     const childSlots = children.filter(
       (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
     )
+
+    // Preserve existing body content from the index file (non-slot paragraphs)
+    let body = ""
+    if (existingIndex) {
+      const indexChildren = getChildren(this.db, existingIndex.id)
+      const bodyParts = indexChildren.filter((c) => !isOutline(c.type, c.item) && !isSlotNode(c))
+      body = bodyParts.map((c) => c.content ?? "").join("\n\n")
+    }
+
     const content = generateIndexFileContent(
       title,
-      "",
+      body,
       childSlots.map((c) => ({ name: c.name ?? "" })),
       config.materialization,
     )
@@ -289,10 +298,30 @@ export class FsWriter implements FsSync {
       return
     }
 
+    // Before renaming the folder, check for a same-name index file that needs renaming too
+    const oldFolderName = node.name ?? ""
+    const children = getChildren(this.db, node.id)
+    const indexFile = findIndexFile(node, children)
+    const indexNeedsRename = indexFile?.fs_path && indexFile.name && namesAreSimilar(oldFolderName, indexFile.name)
+
     log.info?.(`folder rename: ${oldFsPath} → ${newFsPath}`)
 
     if (existsSync(oldAbsPath)) {
       renameSync(oldAbsPath, newAbsPath)
+    }
+
+    // Rename the same-name index file inside the (now renamed) folder
+    if (indexNeedsRename && indexFile?.fs_path) {
+      const oldIndexName = indexFile.fs_path.split("/").pop() ?? ""
+      const newIndexName = newName + ".md"
+      if (oldIndexName !== newIndexName) {
+        const oldIndexAbsPath = toAbsoluteFsPath(this.repoPath, join(newFsPath, oldIndexName))
+        const newIndexAbsPath = toAbsoluteFsPath(this.repoPath, join(newFsPath, newIndexName))
+        if (existsSync(oldIndexAbsPath) && !existsSync(newIndexAbsPath)) {
+          log.info?.(`index file rename: ${oldIndexName} → ${newIndexName}`)
+          renameSync(oldIndexAbsPath, newIndexAbsPath)
+        }
+      }
     }
 
     // Update DB paths
@@ -310,6 +339,17 @@ export class FsWriter implements FsSync {
       Date.now(),
       oldPrefix + "%",
     ])
+
+    // Update the same-name index file's name and fs_path in DB
+    if (indexNeedsRename && indexFile) {
+      const newIndexFsPath = join(newFsPath, newName + ".md")
+      this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+        newIndexFsPath,
+        newName,
+        Date.now(),
+        indexFile.id,
+      ])
+    }
   }
 
   /**

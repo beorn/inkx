@@ -16,7 +16,7 @@ import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { isEmbed } from "@km/core"
 import { createLogger } from "loggily"
-import { extractBody, findIndexFile, getChildSlotTarget, namesAreSimilar } from "@km/tree"
+import { extractBody, extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/tree"
 import type { ColumnView } from "../types.ts"
 import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
@@ -519,13 +519,18 @@ export function* deriveColumnsIncremental(
 // =============================================================================
 
 /**
- * Expand an index file's sections as columns for a folder.
+ * Expand an index file's children as columns for a folder.
  *
- * Index file sections control the folder's column layout:
- * - `## ![[./child]]` embed slots resolve to the referenced folder child
+ * Index file children control the folder's column layout:
+ * - `![[./child]]` embed slots (paragraph OR heading) resolve to the referenced folder child
  * - `## Inline Section` becomes a column directly
+ * - Non-slot body content (prose paragraphs) shown in a virtual body column
  * - Unlisted folder children are appended after listed ones
  * - The index file itself is excluded from the column list
+ *
+ * Note: The writer emits `![[./child]]` as plain lines that parse as paragraph nodes
+ * (type: "p"), not heading/mdsection nodes. We use extractSlotTargets on ALL children
+ * to handle both paragraph and heading slot references.
  */
 function expandIndexFileColumns(
   repo: Repo,
@@ -538,9 +543,25 @@ function expandIndexFileColumns(
   const indexChildren = repo.getChildren(indexFile.id)
   const { body: indexBody, items: indexSections } = extractBody(indexChildren)
 
-  // Merge index body into the folder's virtual body column
+  // Identify which children are pure slot references (paragraph or heading)
+  // by checking ALL children against extractSlotTargets. Build a set of
+  // child IDs that are slots so we can exclude them from body content.
+  const slotChildIds = new Set<string>()
+  for (const child of indexChildren) {
+    const targets = extractSlotTargets([child])
+    if (targets.length > 0) {
+      slotChildIds.add(child.id)
+    }
+  }
+
+  // Merge non-slot index body into the folder's virtual body column.
+  // Body children that are pure slot references are handled as columns below, not body content.
   const filteredIndexBody = indexBody.filter(
-    (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+    (n) =>
+      !slotChildIds.has(n.id) &&
+      !isCollapsedChild(n) &&
+      n.content &&
+      n.content.replace(/<[^>]+>/g, "").trim().length > 0,
   )
   if (filteredIndexBody.length > 0) {
     const virtualCardIds = new Set<string>()
@@ -558,23 +579,41 @@ function expandIndexFileColumns(
   // Track which folder children are referenced by embed slots
   const referencedIds = new Set<string>()
 
-  // Process each index section
-  for (const section of indexSections) {
-    const slotTarget = getChildSlotTarget(section)
-    if (slotTarget) {
-      // Embed slot: resolve to folder child
-      const child = deduped.find((n) => n !== indexFile && namesAreSimilar(n.name ?? "", slotTarget))
-      if (child) {
-        columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
-        referencedIds.add(child.id)
-        continue
+  // Helper: resolve a slot target to a folder child and add as column
+  const resolveSlot = (target: string): boolean => {
+    const child = deduped.find((n) => n !== indexFile && namesAreSimilar(n.name ?? "", target))
+    if (child) {
+      columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
+      referencedIds.add(child.id)
+      return true
+    }
+    return false
+  }
+
+  // Process ALL index children in order, resolving slots from both body and structural children
+  for (const child of indexChildren) {
+    const targets = extractSlotTargets([child])
+    if (targets.length > 0) {
+      // This child is a slot reference (paragraph or heading)
+      let allResolved = true
+      for (const target of targets) {
+        if (!resolveSlot(target)) {
+          allResolved = false
+        }
       }
-      // Slot target not found — fall through to treat as inline section
+      // If all targets resolved, skip to next child
+      if (allResolved) continue
+      // For heading slots with unresolved targets, fall through to treat as inline section
+      // (preserves pre-existing behavior: unresolved heading slots become columns)
+      if (!indexSections.includes(child)) continue
     }
-    // Inline section → column
-    if (!isDetailOnly(section)) {
-      columns.push(kNodeToColumnViewCached(repo, section, wipLimits, foldDepths))
+    // Non-slot structural children (or unresolved heading slots) become inline columns
+    if (indexSections.includes(child)) {
+      if (!isDetailOnly(child)) {
+        columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
+      }
     }
+    // Non-slot body children were already handled above in filteredIndexBody
   }
 
   // Append unreferenced folder children (not the index file, not already placed)

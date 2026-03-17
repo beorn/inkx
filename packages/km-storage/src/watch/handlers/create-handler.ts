@@ -39,6 +39,10 @@ export interface ReconcileContext {
   resolver: LinkResolver
   /** Index file candidates created this batch — synced after all files exist */
   indexFileCandidates?: Array<{ nodeId: string; parentId: string }>
+  /** Index files modified (created or updated) this batch — re-synced after all ops */
+  modifiedIndexFiles?: Set<string>
+  /** Folder IDs that need index file refresh (child added/removed/moved) */
+  foldersToRefresh?: Set<string>
   /** Folder IDs whose index files were deleted — need re-materialization */
   foldersNeedingIndexUpdate?: Set<string>
 }
@@ -218,6 +222,10 @@ function handleMarkdownCreate(
     if (parentId) {
       ctx.indexFileCandidates ??= []
       ctx.indexFileCandidates.push({ nodeId: fileNode.id, parentId })
+
+      // Mark parent folder for index refresh (new child needs to appear in materialized index)
+      ctx.foldersToRefresh ??= new Set()
+      ctx.foldersToRefresh.add(parentId)
     }
   }
 }

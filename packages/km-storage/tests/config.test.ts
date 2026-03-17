@@ -9,11 +9,11 @@
  * Uses isolated temp directories for cleaner test setup.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { join } from "path"
 import { mkdirSync, writeFileSync } from "fs"
 
-import { loadConfig, clearConfigCache, getOriginalBeadsConfig } from "../src/config.ts"
+import { loadConfig, clearConfigCache, getOriginalBeadsConfig, getFolderIndexConfig } from "../src/config.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("loadConfig", () => {
@@ -162,4 +162,118 @@ actor: "test-user"
 
   // NOTE: Caching test removed - caching was removed to fix path-keyed bug.
   // Use clearConfigCache() to force reload if needed.
+})
+
+describe("getFolderIndexConfig", () => {
+  test("returns defaults when no config exists", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      const config = getFolderIndexConfig(testDir)
+      expect(config).toEqual({ naming: "index", materialization: "none" })
+    }))
+
+  test("valid values pass through correctly", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `folderIndex:
+  naming: "same-name"
+  materialization: "full"
+`,
+      )
+
+      const config = getFolderIndexConfig(testDir)
+      expect(config.naming).toBe("same-name")
+      expect(config.materialization).toBe("full")
+    }))
+
+  test("invalid naming value falls back to default", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `folderIndex:
+  naming: "bar"
+`,
+      )
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+      try {
+        const config = getFolderIndexConfig(testDir)
+        expect(config.naming).toBe("index")
+        expect(warnSpy).toHaveBeenCalledOnce()
+      } finally {
+        warnSpy.mockRestore()
+      }
+    }))
+
+  test("invalid materialization value falls back to default", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `folderIndex:
+  materialization: "foo"
+`,
+      )
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+      try {
+        const config = getFolderIndexConfig(testDir)
+        expect(config.materialization).toBe("none")
+        expect(warnSpy).toHaveBeenCalledOnce()
+      } finally {
+        warnSpy.mockRestore()
+      }
+    }))
+
+  test("invalid values log a warning", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `folderIndex:
+  naming: "bad"
+  materialization: "wrong"
+`,
+      )
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+      try {
+        const config = getFolderIndexConfig(testDir)
+        expect(config.naming).toBe("index")
+        expect(config.materialization).toBe("none")
+        expect(warnSpy).toHaveBeenCalledTimes(2)
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("naming"))
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("materialization"))
+      } finally {
+        warnSpy.mockRestore()
+      }
+    }))
+
+  test("missing values use defaults without warning", () =>
+    withTestEnvSync(({ testDir }) => {
+      clearConfigCache()
+      mkdirSync(join(testDir, ".km"), { recursive: true })
+      writeFileSync(
+        join(testDir, ".km/config.yaml"),
+        `folderIndex: {}
+`,
+      )
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+      try {
+        const config = getFolderIndexConfig(testDir)
+        expect(config.naming).toBe("index")
+        expect(config.materialization).toBe("none")
+        expect(warnSpy).not.toHaveBeenCalled()
+      } finally {
+        warnSpy.mockRestore()
+      }
+    }))
 })

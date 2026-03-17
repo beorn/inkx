@@ -25,7 +25,7 @@ import type { ParseResult } from "../../parse-pool.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
 import { getNode, getChildren } from "../../index.ts"
-import { isIndexFile, getChildSlotTarget } from "@km/tree"
+import { isIndexFile, extractSlotTargets } from "@km/tree"
 import { namesAreSimilar } from "@km/tree"
 
 const log = createLogger("km:storage:watch:reconcile")
@@ -187,6 +187,13 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
 
   // Post-processing: if this file is an index file, sync changes back to its parent folder
   syncIndexFileToFolder(options)
+
+  // Track this index file for post-batch re-sync (siblings created later in the batch
+  // won't exist yet when syncIndexFileToFolder runs above)
+  if (op.nodeId) {
+    ctx.modifiedIndexFiles ??= new Set()
+    ctx.modifiedIndexFiles.add(op.nodeId)
+  }
 }
 
 /**
@@ -200,32 +207,6 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
  * and shouldApplyToFs("fs-watch") returns false — so these changes won't trigger
  * the write path to regenerate the index file.
  */
-/**
- * Extract all embed slot targets from an index file's children.
- * Handles both single-embed nodes and multi-embed nodes (where multiple
- * ![[./name]] embeds are merged into one content string by the parser).
- */
-function extractAllSlotTargets(indexChildren: KNode[]): string[] {
-  const targets: string[] = []
-  for (const child of indexChildren) {
-    // Try single-embed match first
-    const single = getChildSlotTarget(child)
-    if (single) {
-      targets.push(single)
-      continue
-    }
-    // Multi-embed: content may have multiple ![[./name]] on separate lines
-    const content = child.content?.trim() ?? ""
-    if (!content) continue
-    const embedRegex = /!\[\[\.\/([^\]]+)\]\]/g
-    let match
-    while ((match = embedRegex.exec(content)) !== null) {
-      if (match[1]) targets.push(match[1])
-    }
-  }
-  return targets
-}
-
 export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
   const { db, op, emitter } = options
   if (!op.nodeId) return
@@ -248,7 +229,7 @@ export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
   const indexChildren = getChildren(db, node.id)
 
   // Extract all slot targets from the index file content
-  const slotTargets = extractAllSlotTargets(indexChildren)
+  const slotTargets = extractSlotTargets(indexChildren)
 
   // Sync child ordering: for each slot target, update parent_idx
   const folderChildren = getChildren(db, parent.id)
@@ -264,7 +245,9 @@ export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
       }
       idx++
     } else {
-      log.warn?.(`syncIndexFileToFolder: slot target "${target}" has no matching child in folder ${parent.id}`)
+      log.debug?.(
+        `syncIndexFileToFolder: slot target "${target}" has no matching child in folder ${parent.id} (may resolve in post-batch sync)`,
+      )
     }
   }
 

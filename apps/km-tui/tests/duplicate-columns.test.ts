@@ -748,6 +748,200 @@ describe("folder index file expansion", () => {
   })
 })
 
+describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
+  test("index file with paragraph-type slot children resolves as columns", () => {
+    // When generateIndexFileContent() emits `![[./child]]`, the parser produces
+    // paragraph nodes (type: "p"), NOT heading/mdsection nodes. The TUI must
+    // recognize these as slot references and resolve them to folder children.
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    const fileBeta = makeNode({
+      id: "beta",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 2,
+      name: "beta",
+      title: "Beta",
+      fs_path: "project/beta.md",
+    })
+    // These are paragraph nodes (type: "p") — exactly what the parser produces
+    // for `![[./alpha]]` lines in a markdown file
+    const slotP1 = makeNode({
+      id: "p1",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "![[./alpha]]",
+    })
+    const slotP2 = makeNode({
+      id: "p2",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 1,
+      content: "![[./beta]]",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, fileBeta, slotP1, slotP2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // Both paragraph slots should resolve to folder children
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("alpha")
+    expect(columns[1]!.node.id).toBe("beta")
+  })
+
+  test("paragraph slot mixed with heading sections both resolve correctly", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    // Paragraph slot (from writer-generated index file)
+    const slotP = makeNode({
+      id: "p1",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "![[./alpha]]",
+    })
+    // Heading section (manually authored)
+    const inlineSec = makeNode({
+      id: "s1",
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      parent_id: "idx",
+      parent_idx: 1,
+      content: "Notes",
+      title: "Notes",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, slotP, inlineSec],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // Paragraph slot resolves to alpha, heading section becomes inline column
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.node.id).toBe("alpha")
+    expect(columns[1]!.node.id).toBe("s1")
+  })
+
+  test("paragraph with prose containing embed is NOT treated as slot", () => {
+    const folder = makeNode({
+      id: "proj",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      parent_id: "root",
+      parent_idx: 0,
+      name: "project",
+    })
+    const indexFile = makeNode({
+      id: "idx",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 0,
+      name: "project",
+      fs_path: "project/project.md",
+    })
+    const fileAlpha = makeNode({
+      id: "alpha",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "proj",
+      parent_idx: 1,
+      name: "alpha",
+      title: "Alpha",
+      fs_path: "project/alpha.md",
+    })
+    // This is prose containing an embed — NOT a standalone slot
+    const proseP = makeNode({
+      id: "p1",
+      type: "p",
+      parent_id: "idx",
+      parent_idx: 0,
+      content: "See ![[./alpha]] for details",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [folder, indexFile, fileAlpha, proseP],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "proj", new Map())
+
+    // The prose paragraph should become a body card, NOT resolve as a slot
+    // alpha should appear as an unlisted child
+    // Body column (with prose paragraph) + alpha (unlisted)
+    expect(columns.length).toBe(2)
+    expect(columns[0]!.isVirtual).toBe(true) // body column with prose
+    expect(columns[0]!.cardNodes[0]!.content).toBe("See ![[./alpha]] for details")
+    expect(columns[1]!.node.id).toBe("alpha") // unlisted child
+  })
+})
+
 describe("markdown file columns", () => {
   test("zooming into an md file with H2 sections produces multiple columns", () => {
     // Simulate an md file (mdfile) with H2 sections (mdsection) as children.

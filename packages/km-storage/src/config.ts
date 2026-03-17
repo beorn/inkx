@@ -148,15 +148,40 @@ export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
   }
 }
 
+const VALID_NAMING = new Set<FolderIndexConfig["naming"]>(["same-name", "index", "dot-md"])
+const VALID_MATERIALIZATION = new Set<FolderIndexConfig["materialization"]>(["none", "metadata", "full"])
+
 /**
  * Get folder-index configuration with defaults applied.
+ * Invalid values are rejected with a warning and replaced by defaults.
  */
 export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexConfig> {
   const config = loadConfig(searchFrom)
-  return {
-    naming: config.folderIndex?.naming ?? "index",
-    materialization: config.folderIndex?.materialization ?? "none",
+  const raw = config.folderIndex
+
+  let naming: Required<FolderIndexConfig>["naming"] = "index"
+  if (raw?.naming != null) {
+    if (VALID_NAMING.has(raw.naming as FolderIndexConfig["naming"])) {
+      naming = raw.naming
+    } else {
+      console.warn(
+        `km config: invalid folderIndex.naming "${raw.naming}" — expected one of ${[...VALID_NAMING].join(", ")}. Using default "index".`,
+      )
+    }
   }
+
+  let materialization: Required<FolderIndexConfig>["materialization"] = "none"
+  if (raw?.materialization != null) {
+    if (VALID_MATERIALIZATION.has(raw.materialization as FolderIndexConfig["materialization"])) {
+      materialization = raw.materialization
+    } else {
+      console.warn(
+        `km config: invalid folderIndex.materialization "${raw.materialization}" — expected one of ${[...VALID_MATERIALIZATION].join(", ")}. Using default "none".`,
+      )
+    }
+  }
+
+  return { naming, materialization }
 }
 
 /**

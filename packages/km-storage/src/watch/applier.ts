@@ -103,7 +103,7 @@ export function applyReconcileOps(
   }
 
   // Batch resolve links and sync index files for all new files at once
-  finalizeBatchLinks(db, ctx, emit, root)
+  finalizeBatchLinks(db, ctx, emit, root, fileOps)
 }
 
 /**
@@ -167,7 +167,7 @@ export async function applyReconcileOpsAsync(
   }
 
   // Batch resolve links and sync index files for all new files at once
-  finalizeBatchLinks(db, ctx, emit, root)
+  finalizeBatchLinks(db, ctx, emit, root, fileOps)
 
   log.debug?.(`applied ${reconcileOps.length} ops (async) in ${Date.now() - start}ms`)
 }
@@ -192,7 +192,7 @@ function applyOp(
       handleUpdate({ db, op, repoRoot, emitter, fs, ctx, parsed })
       break
     case "rename":
-      handleRename(emitter, op, repoRoot)
+      handleRename(emitter, op, repoRoot, db, ctx)
       break
     case "delete":
       handleDelete(emitter, op, db, ctx)
@@ -260,24 +260,45 @@ async function parseMarkdownFiles(ops: ReconcileOp[], parsePool: ParsePoolServic
 /**
  * Finalize batch link resolution and index file sync for all new files
  */
-function finalizeBatchLinks(db: Database, ctx: ReconcileContext, emitter: Emitter, repoRoot: string): void {
+function finalizeBatchLinks(
+  db: Database,
+  ctx: ReconcileContext,
+  emitter: Emitter,
+  repoRoot: string,
+  fs: FileSystemOps = realFs,
+): void {
   if (ctx.newFiles.length > 0) {
     const resolved = resolveLinksBatch(db, ctx.newFiles)
     log.debug?.(`batch resolved ${resolved} links for ${ctx.newFiles.length} new files`)
   }
 
-  // Sync index files created this batch — now that all siblings exist
+  // Collect all index files that need post-batch sync (creates + updates)
+  const indexFilesToSync = new Set<string>()
+
+  // Index files created this batch — now that all siblings exist
   if (ctx.indexFileCandidates?.length) {
     for (const { nodeId } of ctx.indexFileCandidates) {
-      syncIndexFileToFolder({
-        db,
-        op: { type: "update", path: "", nodeId } as ReconcileOp,
-        repoRoot,
-        emitter,
-        fs: realFs,
-        ctx,
-      })
+      indexFilesToSync.add(nodeId)
     }
+  }
+
+  // Index files updated this batch — siblings created later may not have existed during initial sync
+  if (ctx.modifiedIndexFiles?.size) {
+    for (const nodeId of ctx.modifiedIndexFiles) {
+      indexFilesToSync.add(nodeId)
+    }
+  }
+
+  // Re-sync all collected index files
+  for (const nodeId of indexFilesToSync) {
+    syncIndexFileToFolder({
+      db,
+      op: { type: "update", path: "", nodeId } as ReconcileOp,
+      repoRoot,
+      emitter,
+      fs,
+      ctx,
+    })
   }
 
   // Re-materialize index files for folders that lost their index file
@@ -293,10 +314,45 @@ function finalizeBatchLinks(db: Database, ctx: ReconcileContext, emitter: Emitte
         const title = folder.content ?? folder.name ?? ""
         if (!title) continue
         const childSlots = children.filter((c) => isOutline(c.type, c.item))
-        const content = generateIndexFileContent(title, "", childSlots.map((c) => ({ name: c.name ?? "" })), config.materialization)
+        const content = generateIndexFileContent(
+          title,
+          "",
+          childSlots.map((c) => ({ name: c.name ?? "" })),
+          config.materialization,
+        )
         const filename = indexFileName(folder.name ?? "", config.naming)
         const absPath = toAbsoluteFsPath(repoRoot, join(folder.fs_path, filename))
-        realFs.writeFileSync(absPath, content)
+        fs.writeFileSync(absPath, content)
+      }
+    }
+  }
+
+  // Refresh materialized index files for folders whose children changed (create/delete/move)
+  if (ctx.foldersToRefresh?.size) {
+    const config = getFolderIndexConfig(repoRoot)
+    if (config.materialization !== "none") {
+      for (const folderId of ctx.foldersToRefresh) {
+        // Skip folders already handled by re-materialization above
+        if (ctx.foldersNeedingIndexUpdate?.has(folderId)) continue
+
+        const folder = getNode(db, folderId)
+        if (!folder?.fstype || folder.fstype !== "folder" || !folder.fs_path) continue
+        const children = getChildren(db, folderId)
+        const existingIndex = findIndexFile(folder, children)
+        if (!existingIndex) continue // No index file to refresh
+
+        const title = folder.content ?? folder.name ?? ""
+        if (!title) continue
+        const childSlots = children.filter((c) => c.id !== existingIndex.id && isOutline(c.type, c.item))
+        const content = generateIndexFileContent(
+          title,
+          "",
+          childSlots.map((c) => ({ name: c.name ?? "" })),
+          config.materialization,
+        )
+        if (!existingIndex.fs_path) continue
+        const absPath = toAbsoluteFsPath(repoRoot, existingIndex.fs_path)
+        fs.writeFileSync(absPath, content)
       }
     }
   }

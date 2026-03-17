@@ -24,7 +24,7 @@ import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
 import { isOutline } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
-import { findIndexFile } from "@km/tree"
+import { findIndexFile, isSlotNode, namesAreSimilar } from "@km/tree"
 import { getFolderIndexConfig } from "../config.ts"
 import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
 
@@ -648,9 +648,18 @@ export class SyncManager extends EventEmitter {
     const childSlots = children.filter(
       (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
     )
+
+    // Preserve existing body content from the index file (non-slot paragraphs)
+    let body = ""
+    if (existingIndex) {
+      const indexChildren = getChildren(this.db, existingIndex.id)
+      const bodyParts = indexChildren.filter((c) => !isOutline(c.type, c.item) && !isSlotNode(c))
+      body = bodyParts.map((c) => c.content ?? "").join("\n\n")
+    }
+
     const content = generateIndexFileContent(
       title,
-      "",
+      body,
       childSlots.map((c) => ({ name: c.name ?? "" })),
       config.materialization,
     )
@@ -681,10 +690,27 @@ export class SyncManager extends EventEmitter {
       return
     }
 
+    // Before renaming the folder, check for a same-name index file that needs renaming too
+    const oldFolderName = node.name ?? ""
+    const children = getChildren(this.db, node.id)
+    const indexFile = findIndexFile(node, children)
+    const indexNeedsRename = indexFile?.fs_path && indexFile.name && namesAreSimilar(oldFolderName, indexFile.name)
+
     log.info?.(`folder rename: ${oldFsPath} → ${newFsPath}`)
 
     // Queue the directory rename
     this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
+
+    // Queue the same-name index file rename inside the (now renamed) folder
+    if (indexNeedsRename && indexFile?.fs_path) {
+      const oldIndexName = indexFile.fs_path.split("/").pop() ?? ""
+      const newIndexName = newName + ".md"
+      if (oldIndexName !== newIndexName) {
+        const oldIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, oldIndexName))
+        const newIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, newIndexName))
+        this.writeQueue.queueRename(oldIndexAbsPath, newIndexAbsPath, eventId)
+      }
+    }
 
     // Update fs_path for this node and all descendants in DB
     // Use REPLACE to update paths that start with the old prefix
@@ -703,6 +729,17 @@ export class SyncManager extends EventEmitter {
       Date.now(),
       oldPrefix + "%",
     ])
+
+    // Update the same-name index file's name and fs_path in DB
+    if (indexNeedsRename && indexFile) {
+      const newIndexFsPath = join(newFsPath, newName + ".md")
+      this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
+        newIndexFsPath,
+        newName,
+        Date.now(),
+        indexFile.id,
+      ])
+    }
   }
 
   /**

@@ -46,7 +46,7 @@ export {
 } from "./display.ts"
 
 // Index file detection (folder-file merge)
-export { findIndexFile, isIndexFile, getChildSlotTarget } from "./index-file.ts"
+export { findIndexFile, isIndexFile, getChildSlotTarget, isSlotNode, extractSlotTargets } from "./index-file.ts"
 
 // Body content utilities
 export { extractBody, type BodyExtraction, type ExtractBodyDbOpts } from "./body.ts"

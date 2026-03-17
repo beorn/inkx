@@ -19,6 +19,7 @@ import { FsWriter } from "../../src/watch/fs-writer.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
 import { emitNodeUpdated } from "../../src/emitter.ts"
 import { indexFileName } from "../../src/index-file-writer.ts"
+import { findIndexFile } from "@km/tree"
 
 function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
   // Clear config cache to ensure no stale config from previous tests
@@ -555,6 +556,55 @@ describe("index file roundtrip", () => {
         expect(getNode(db, childFile.id)!.fs_path).toContain("new-folder")
       }))
 
+    test("G2b: folder rename renames same-name index file", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        mkdirSync(join(repoDir, "project"), { recursive: true })
+        writeFileSync(join(repoDir, "project", "project.md"), "# My Project\n")
+        writeFileSync(join(repoDir, "project", "child.md"), "# Child\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        const indexFile = findMdFile(db, "project", folder.id)!
+        expect(indexFile).toBeDefined()
+
+        // Rename folder: project → newname
+        emitNodeUpdated(emitter, "test", folder.id, { content: "newname" })
+
+        // The same-name index file should be renamed on disk
+        expect(existsSync(join(repoDir, "newname", "newname.md"))).toBe(true)
+        expect(existsSync(join(repoDir, "newname", "project.md"))).toBe(false)
+
+        // The index file node should be updated in DB
+        const renamedIndex = getNode(db, indexFile.id)!
+        expect(renamedIndex.name).toBe("newname")
+        expect(renamedIndex.fs_path).toBe("newname/newname.md")
+
+        // findIndexFile should still detect it after rename
+        const folderAfter = getNode(db, folder.id)!
+        const children = getChildren(db, folderAfter.id)
+        const detectedIndex = findIndexFile(folderAfter, children)
+        expect(detectedIndex).not.toBeNull()
+        expect(detectedIndex!.id).toBe(indexFile.id)
+      }))
+
+    test("G2c: folder rename does NOT rename non-matching index file", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        mkdirSync(join(repoDir, "project"), { recursive: true })
+        // index.md does NOT match the folder name — it should NOT be renamed
+        writeFileSync(join(repoDir, "project", "index.md"), "# My Project\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        emitNodeUpdated(emitter, "test", folder.id, { content: "newname" })
+
+        // index.md should still exist (not renamed)
+        expect(existsSync(join(repoDir, "newname", "index.md"))).toBe(true)
+      }))
+
     test("G3: child moved into folder → detected", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
         const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
@@ -908,6 +958,107 @@ describe("index file roundtrip", () => {
         expect(ch.find((c) => c.name === "alpha")!.parent_idx).toBeLessThan(
           ch.find((c) => c.name === "beta")!.parent_idx,
         )
+      }))
+  })
+
+  describe("K. batch index consistency", () => {
+    test("K1: child create refreshes parent folder's materialized index", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const manager = createSyncManager(db, repoDir)
+        writeConfig(repoDir, "full")
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "alpha.md"), "# Alpha\n")
+        writeFileSync(join(fp, "index.md"), "# Project\n\n![[./alpha]]\n")
+        await manager.syncFromFs()
+
+        // Verify initial state: index file lists alpha
+        let content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("![[./alpha]]")
+
+        // Now create a new child — parent's index file should be refreshed to include it
+        writeFileSync(join(fp, "beta.md"), "# Beta\n")
+        await manager.syncFromFs()
+
+        const folder = findFolder(db, "project")!
+        const children = getChildren(db, folder.id)
+        const beta = children.find((c) => c.name === "beta")
+        expect(beta).toBeDefined()
+
+        // The materialized index file should now include beta
+        content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("![[./beta]]")
+      }))
+
+    test("K2: move child out of folder refreshes source parent's index", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const manager = createSyncManager(db, repoDir)
+        writeConfig(repoDir, "full")
+        const src = join(repoDir, "src-folder")
+        const dst = join(repoDir, "dst-folder")
+        mkdirSync(src, { recursive: true })
+        mkdirSync(dst, { recursive: true })
+        writeFileSync(join(src, "child.md"), "# Child\n")
+        writeFileSync(join(src, "index.md"), "# Source\n\n![[./child]]\n")
+        writeFileSync(join(dst, "index.md"), "# Dest\n")
+        await manager.syncFromFs()
+
+        // Move child from src to dst
+        renameSync(join(src, "child.md"), join(dst, "child.md"))
+        await manager.syncFromFs()
+
+        // Source folder's index should no longer reference child
+        const srcContent = readFileSync(join(src, "index.md"), "utf-8")
+        expect(srcContent).not.toContain("![[./child]]")
+      }))
+
+    test("K3: updated index file in same batch as sibling create both reflected", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const manager = createSyncManager(db, repoDir)
+        writeConfig(repoDir, "full")
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "alpha.md"), "# Alpha\n")
+        writeFileSync(join(fp, "index.md"), "# Project\n\n![[./alpha]]\n")
+        await manager.syncFromFs()
+
+        // In same batch: update the index file AND create a new sibling
+        writeFileSync(join(fp, "index.md"), "# Project Updated\n\n![[./alpha]]\n![[./beta]]\n")
+        writeFileSync(join(fp, "beta.md"), "# Beta\n")
+        await manager.syncFromFs()
+
+        // Both the updated index and the new sibling should be synced
+        const folder = findFolder(db, "project")!
+        expect(getNode(db, folder.id)!.content).toBe("Project Updated")
+        const children = getChildren(db, folder.id)
+        expect(children.find((c) => c.name === "beta")).toBeDefined()
+
+        // Index file should list both children (alpha from update, beta from create)
+        const content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("![[./alpha]]")
+        expect(content).toContain("![[./beta]]")
+      }))
+  })
+
+  describe("L. injected FS usage", () => {
+    test("L1: finalizeBatchLinks re-materialization uses injected fs", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const manager = createSyncManager(db, repoDir)
+        writeConfig(repoDir, "full")
+        const fp = join(repoDir, "project")
+        mkdirSync(fp, { recursive: true })
+        writeFileSync(join(fp, "alpha.md"), "# Alpha\n")
+        writeFileSync(join(fp, "index.md"), "# Project\n\n![[./alpha]]\n")
+        await manager.syncFromFs()
+
+        // Delete the index file — triggers re-materialization
+        unlinkSync(join(fp, "index.md"))
+        await manager.syncFromFs()
+
+        // A new index file should be re-materialized
+        expect(existsSync(join(fp, "index.md"))).toBe(true)
+        const content = readFileSync(join(fp, "index.md"), "utf-8")
+        expect(content).toContain("# Project")
       }))
   })
 })

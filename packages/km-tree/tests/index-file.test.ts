@@ -6,7 +6,7 @@
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { findIndexFile, isIndexFile, getChildSlotTarget } from "../src/index-file.ts"
+import { findIndexFile, isIndexFile, getChildSlotTarget, extractSlotTargets } from "../src/index-file.ts"
 
 function makeNode(overrides: Partial<KNode> & { id: string }): KNode {
   return {
@@ -184,6 +184,61 @@ describe("getChildSlotTarget", () => {
   test("returns null for whitespace-only content", () => {
     const node = makeNode({ id: "s", content: "   " })
     expect(getChildSlotTarget(node)).toBeNull()
+  })
+})
+
+describe("extractSlotTargets", () => {
+  test("single embed child → one target", () => {
+    const children = [makeNode({ id: "s1", content: "![[./alpha]]" })]
+    expect(extractSlotTargets(children)).toEqual(["alpha"])
+  })
+
+  test("multi-embed child (multiple lines, all slots) → multiple targets", () => {
+    const children = [makeNode({ id: "s1", content: "![[./alpha]]\n![[./beta]]" })]
+    expect(extractSlotTargets(children)).toEqual(["alpha", "beta"])
+  })
+
+  test("prose containing embed → NOT a slot (returns empty)", () => {
+    const children = [makeNode({ id: "s1", content: "See ![[./alpha]] later" })]
+    expect(extractSlotTargets(children)).toEqual([])
+  })
+
+  test("mixed: some slot children, some body children → only slot targets returned", () => {
+    const children = [
+      makeNode({ id: "s1", content: "![[./alpha]]" }),
+      makeNode({ id: "s2", content: "Just a paragraph" }),
+      makeNode({ id: "s3", content: "![[./beta]]\n![[./gamma]]" }),
+    ]
+    expect(extractSlotTargets(children)).toEqual(["alpha", "beta", "gamma"])
+  })
+
+  test("empty children list → empty targets", () => {
+    expect(extractSlotTargets([])).toEqual([])
+  })
+
+  test("child with empty content → skipped", () => {
+    const children = [makeNode({ id: "s1", content: "" })]
+    expect(extractSlotTargets(children)).toEqual([])
+  })
+
+  test("child with only whitespace → skipped", () => {
+    const children = [makeNode({ id: "s1", content: "   \n  " })]
+    expect(extractSlotTargets(children)).toEqual([])
+  })
+
+  test("multi-line with one prose line mixed in → NOT a slot", () => {
+    const children = [makeNode({ id: "s1", content: "![[./alpha]]\nsome text\n![[./beta]]" })]
+    expect(extractSlotTargets(children)).toEqual([])
+  })
+
+  test("embed with whitespace padding on lines → still extracted", () => {
+    const children = [makeNode({ id: "s1", content: "  ![[./alpha]]  \n  ![[./beta]]  " })]
+    expect(extractSlotTargets(children)).toEqual(["alpha", "beta"])
+  })
+
+  test("non-relative embed ![[other]] → NOT a slot", () => {
+    const children = [makeNode({ id: "s1", content: "![[other]]" })]
+    expect(extractSlotTargets(children)).toEqual([])
   })
 })
 

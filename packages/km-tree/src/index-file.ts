@@ -69,6 +69,54 @@ export function getChildSlotTarget(node: KNode): string | null {
   return match?.[1] ?? null
 }
 
+/**
+ * Check if a node is a pure slot reference (content is entirely `![[./name]]` lines).
+ */
+export function isSlotNode(node: KNode): boolean {
+  if (getChildSlotTarget(node)) return true
+  const content = node.content?.trim() ?? ""
+  if (!content) return false
+  const lines = content
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0)
+  const slotPattern = /^!\[\[\.\/([^\]]+)\]\]$/
+  return lines.length > 0 && lines.every((line) => slotPattern.test(line))
+}
+
+/**
+ * Extract all child slot targets from an index file's direct children.
+ * A child is a slot reference if its ENTIRE trimmed content is one or more
+ * standalone `![[./name]]` lines (no surrounding text).
+ */
+export function extractSlotTargets(children: KNode[]): string[] {
+  const targets: string[] = []
+  for (const child of children) {
+    // Single-embed: exact match via existing getChildSlotTarget
+    const single = getChildSlotTarget(child)
+    if (single) {
+      targets.push(single)
+      continue
+    }
+    // Multi-embed: content is ONLY slot lines (no prose)
+    const content = child.content?.trim() ?? ""
+    if (!content) continue
+    const lines = content
+      .split("\n")
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0)
+    const slotPattern = /^!\[\[\.\/([^\]]+)\]\]$/
+    const allSlots = lines.every((line) => slotPattern.test(line))
+    if (allSlots && lines.length > 0) {
+      for (const line of lines) {
+        const match = slotPattern.exec(line)
+        if (match?.[1]) targets.push(match[1])
+      }
+    }
+  }
+  return targets
+}
+
 /** Check if a node is an md file (outline item with fstype mdfile) */
 function isMdFile(node: KNode): boolean {
   return isOutline(node.type, node.item) && node.fstype === "mdfile"
