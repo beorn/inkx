@@ -67,13 +67,15 @@ export async function parseDeferredAsync(
  * @returns true if parsed successfully, false if stub not found or parse failed
  */
 // oxlint-disable-next-line complexity/complexity -- Stub-to-full parse with INSERT — shares insertNodeRow helper
-export function parseStubFile(db: Database, nodeId: string, fsPath: string): boolean {
+export function parseStubFile(db: Database, nodeId: string, fsPath: string, relativePath?: string): boolean {
   log.debug?.(`parseStubFile: parsing ${fsPath}`)
 
   try {
     const content = readFileSync(fsPath, "utf-8")
     const isTxt = fsPath.endsWith(".txt")
-    const { nodes } = isTxt ? parsePlainTextToNodes(content, fsPath) : parseMarkdownWithLinks(content, fsPath)
+    // Use relative path for the parser so fs_path in nodes is relative to repo root
+    const parserPath = relativePath ?? fsPath
+    const { nodes } = isTxt ? parsePlainTextToNodes(content, parserPath) : parseMarkdownWithLinks(content, parserPath)
 
     const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null

@@ -96,7 +96,7 @@ export const viewCommand = new Command("view")
             if (data?._stub && node.fs_path) {
               const absPath = join(resolved.repoRoot, node.fs_path)
               debug.debug?.(`parsing stub file eagerly: ${absPath}`)
-              storageModule.parseStubFile(createdRepo.database, node.id, absPath)
+              storageModule.parseStubFile(createdRepo.database, node.id, absPath, node.fs_path)
             }
           }
         } else {
