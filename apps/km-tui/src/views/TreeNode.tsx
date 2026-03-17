@@ -10,7 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Text, useScreenRectCallback } from "@silvery/react"
+import { Box, ErrorBoundary, Link, Text, useScreenRectCallback } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -396,7 +396,8 @@ function TreeNodeImpl({
   // Date badge check — rendered as React component below
   const hasDateBadge = !!(displayNode.priority || displayNode.due_at || displayNode.start_at || displayNode.rrule)
 
-  // Parent context for embedded tasks - use prop or default implementation
+  // Parent context for embedded tasks - use prop or default implementation.
+  // Returns both the display text and the source node ID (for navigation links).
   const resolvedGetParentContext = useCallback(
     (n: KNode) => (getParentContextProp ? getParentContextProp(n) : getParentContextFromState(repo, n)),
     [getParentContextProp, repo],
@@ -410,25 +411,34 @@ function TreeNodeImpl({
   // Suppress parent context if it matches an excluded sigil (redundant on that board/column).
   // Check both the display name AND the source node's sigil name / fs_path.
   // This handles the case where a column is "@next" but its display name is "Next Actions".
-  const parentContext = useMemo(() => {
-    if (!rawParentContext) return null
+  // Also resolves the parent node ID for navigation links.
+  const { parentContext, parentNodeId } = useMemo((): { parentContext: string | null; parentNodeId: string | null } => {
+    if (!rawParentContext) return { parentContext: null, parentNodeId: null }
     // Direct match: display name is in excluded sigils
-    if (excludedSigils.includes(rawParentContext)) return null
+    if (excludedSigils.includes(rawParentContext)) return { parentContext: null, parentNodeId: null }
     // Extended check: resolve the parent context source node and compare its name/fs_path
     if (parentContextProp === undefined && depth === 0 && nodeIsTask && isEmbedded) {
       const result = getParentContextExFromState(repo, node)
       if (result) {
         // Check if the source node's name (sigil) is excluded
-        if (result.nodeName && excludedSigils.includes(result.nodeName)) return null
+        if (result.nodeName && excludedSigils.includes(result.nodeName)) {
+          return { parentContext: null, parentNodeId: null }
+        }
         // Check if the source node's fs_path matches an excluded sigil
         if (result.fsPath) {
           const filename = result.fsPath.split("/").pop() || ""
           const fsName = filename.replace(/\.md$/, "")
-          if (excludedSigils.includes(fsName)) return null
+          if (excludedSigils.includes(fsName)) return { parentContext: null, parentNodeId: null }
         }
+        return { parentContext: rawParentContext, parentNodeId: result.nodeId }
       }
     }
-    return rawParentContext
+    // When parentContextProp is provided externally, resolve nodeId via getParentContextEx
+    if (parentContextProp !== undefined && depth === 0 && isEmbedded) {
+      const result = getParentContextExFromState(repo, node)
+      return { parentContext: rawParentContext, parentNodeId: result?.nodeId ?? null }
+    }
+    return { parentContext: rawParentContext, parentNodeId: null }
   }, [rawParentContext, excludedSigils, parentContextProp, depth, nodeIsTask, isEmbedded, repo, node])
 
   // Context suffix (shown inline for oneliner variant only)
@@ -490,11 +500,20 @@ function TreeNodeImpl({
     <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
       {/* Parent context line (shown ABOVE task for embedded items, multiline mode only) */}
       {/* Indented to align with title text, dimmed without "< " prefix */}
+      {/* Wrapped in Link for Cmd+click navigation to the parent node */}
       {!isOneliner && isEmbedded && parentContext && (
         <Box paddingLeft={prefix.length}>
-          <Text dimColor italic wrap="truncate">
-            {parentContext}
-          </Text>
+          {parentNodeId ? (
+            <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
+              <Text italic wrap="truncate">
+                {parentContext}
+              </Text>
+            </Link>
+          ) : (
+            <Text dimColor italic wrap="truncate">
+              {parentContext}
+            </Text>
+          )}
         </Box>
       )}
 
@@ -585,7 +604,12 @@ function TreeNodeImpl({
                   </Text>
                 )}
                 {showInlineChildCount && <Text dimColor> {childCount}</Text>}
-                {!childrenHidden && showInlineContext && (
+                {!childrenHidden && showInlineContext && parentNodeId && (
+                  <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
+                    <Text italic>{contextSuffix}</Text>
+                  </Link>
+                )}
+                {!childrenHidden && showInlineContext && !parentNodeId && (
                   <Text dimColor={sd} italic>
                     {contextSuffix}
                   </Text>

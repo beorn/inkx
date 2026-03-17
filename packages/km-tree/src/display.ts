@@ -340,6 +340,8 @@ export function getParentContext(node: KNode, skipParentId?: string | null, getN
 export interface ParentContextResult {
   /** Display name of the parent (same as getParentContext return value) */
   displayName: string
+  /** The parent node's ID (for navigation links) */
+  nodeId: string
   /** The parent node's name (sigil-style, e.g., "@next") if available */
   nodeName: string | undefined
   /** The parent node's fs_path if available */
@@ -359,6 +361,7 @@ export function getParentContextEx(
   if (!parent) return null
   return {
     displayName: getNodeDisplayName(parent),
+    nodeId: parent.id,
     nodeName: parent.name,
     fsPath: parent.fs_path,
   }

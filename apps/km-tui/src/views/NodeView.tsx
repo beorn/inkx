@@ -28,7 +28,7 @@
  *
  */
 import React from "react"
-import { Box, Text, Small } from "@silvery/react"
+import { Box, Link, Text, Small } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask } from "@km/core"
 import {
@@ -311,6 +311,8 @@ export interface NodeCardViewProps {
   isBlocked?: boolean
   /** Parent context string for embedded tasks (shown above title, dimmed italic) */
   parentContext?: string | null
+  /** Parent node ID for navigation links (enables Cmd+click on parent context) */
+  parentNodeId?: string | null
 }
 
 /**
@@ -328,6 +330,7 @@ export function NodeCardView({
   width,
   isBlocked = false,
   parentContext,
+  parentNodeId,
 }: NodeCardViewProps): React.ReactElement {
   const nodeIsTask = isTask(node)
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
@@ -363,8 +366,16 @@ export function NodeCardView({
 
   return (
     <Box flexDirection="column" width={width}>
-      {/* Parent context for embedded tasks */}
-      {parentContext && (
+      {/* Parent context for embedded tasks — Cmd+click navigable when parentNodeId is set */}
+      {parentContext && parentNodeId && (
+        <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
+          <Text italic wrap="truncate">
+            {"  "}
+            {parentContext}
+          </Text>
+        </Link>
+      )}
+      {parentContext && !parentNodeId && (
         <Text dimColor italic wrap="truncate">
           {"  "}
           {parentContext}

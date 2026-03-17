@@ -45,7 +45,7 @@ import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 // cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)
 import type { CursorStore } from "../cursor-store.ts"
-import type { BoardAppStore } from "../board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
@@ -76,6 +76,7 @@ import { getNodeDisplayName } from "../state.ts"
 import { readBoardIgnored, isIgnored } from "../ignored.ts"
 import { findMatchingNodeIds } from "../board/board-actions-find.ts"
 import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
+import { navigateToNode } from "../navigate-to-node.ts"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -958,8 +959,38 @@ export interface BoardAppProps {
  */
 export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, patchedConsole }: BoardAppProps) {
   const { exit } = useApp()
-  // Handle Cmd+click on links — opens external URLs, dispatches internal km:// links
-  useLinkOpen()
+  const repo = useRepo()
+  const storeApi = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
+
+  // Handle Cmd+click on links — opens external URLs, dispatches internal km:// links.
+  // Internal km://node/{id} links navigate to the referenced node via navigateToNode().
+  const handleInternalLink = useCallback(
+    (href: string) => {
+      const match = href.match(/^km:\/\/node\/(.+)$/)
+      if (!match?.[1] || !storeApi) return
+      const targetId = decodeURIComponent(match[1])
+
+      // Read current state imperatively (event handler, not render)
+      const state = storeApi.getState()
+      const boardPane = getActiveBoardPane(state)
+      const rootId = boardPane?.rootId ?? null
+
+      const nav = navigateToNode(targetId, rootId, repo)
+      if (!nav) return
+
+      if (nav.action === "SELECT") {
+        state.dispatchBoard({ type: "SELECT", nodeId: nav.cursorTarget })
+      } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget, cursorNodeId: nav.cursorTarget })
+        state.openDetailPane()
+      } else if (nav.zoomTarget) {
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget, cursorNodeId: nav.cursorTarget })
+      }
+    },
+    [repo, storeApi],
+  )
+  useLinkOpen(handleInternalLink)
+
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
   const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
   const focusPaneById = useAppStore<BoardAppStore, (id: string) => void>((s) => s.focusPaneById)
