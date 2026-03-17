@@ -746,6 +746,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       let nodeId: string | null = null
       let isColumnNode = false
       let colIndex: number | null = null
+      let hasClickHandler = false
       let current: TeaNode | null = hitNode
       while (current) {
         const props = current.props as Record<string, unknown>
@@ -754,6 +755,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           isColumnNode = props["data-view"] === "column"
         }
         if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
+        if (typeof props.onClick === "function") hasClickHandler = true
         current = current.parent
       }
 
@@ -802,6 +804,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (!nodeId || isColumnNode) {
         // Column header / empty space click → deselect all, cursor to board root
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        return
+      }
+
+      // Interactive element (e.g. Link with onClick) + modifier key — defer to
+      // DOM event system. Cmd+click on a Link should open it, not select the card.
+      // Without modifier, regular clicks still select the card normally.
+      if (hasClickHandler && (mouse.ctrl || mouse.meta)) {
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }

@@ -10,7 +10,7 @@
 /* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, CursorLine, useFocusManager, useEditContext } from "@silvery/react"
+import { Box, Text, CursorLine, useFocusManager, useEditContext, useModifierKeys } from "@silvery/react"
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
@@ -361,8 +361,22 @@ export function StatusCounters({
     ? ` ${isLoading ? `${spinnerFrame} ` : ""}${renderWatcherStatus(ui.watcherStatus)}`
     : ""
 
+  // Held modifier keys (shown as emoji sigils)
+  const mods = useModifierKeys()
+  const modParts: string[] = []
+  if (mods.super) modParts.push("⌘")
+  if (mods.ctrl) modParts.push("⌃")
+  if (mods.alt) modParts.push("⌥")
+  if (mods.shift) modParts.push("⇧")
+  const modSuffix = modParts.length > 0 ? ` ${modParts.join("")}` : ""
+
   return (
     <Box flexDirection="row" flexShrink={0}>
+      {modSuffix && (
+        <Text dimColor id="modifier-keys">
+          {modSuffix}{" "}
+        </Text>
+      )}
       <Text dimColor id="storage-path">
         {storageMode === "memory" ? "MEM" : "DISK"} {shortenPath(rootPath)}
       </Text>
