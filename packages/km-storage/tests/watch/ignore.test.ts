@@ -132,6 +132,11 @@ describe("Ignore Patterns", () => {
       expect(isHiddenFile(".")).toBe(false)
       expect(isHiddenFile("..")).toBe(false)
     })
+
+    test("should exempt .md (dot-md index file naming convention)", () => {
+      expect(isHiddenFile(".md")).toBe(false)
+      expect(isHiddenFile("/path/to/project/.md")).toBe(false)
+    })
   })
 
   describe("readGitignore", () => {

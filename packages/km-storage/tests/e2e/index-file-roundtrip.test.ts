@@ -90,9 +90,8 @@ describe("index file roundtrip", () => {
         expect(getNode(db, folder.id)!.content).toBe("Documentation")
       }))
 
-    // BUG: .md (dot-md) files are hidden files (start with .) and skipped by
-    // isHiddenFile() in watcher.ts. findIndexFile() supports dot-md but the
-    // scan/reconcile path never sees them.
+    // Note: .md (dot-md) files are exempt from isHiddenFile() so the scanner
+    // can discover them. The indexFileName() function produces ".md" for dot-md naming.
     test("A3: .md (dot-md) naming exists in indexFileName", () => {
       expect(indexFileName("project", "dot-md")).toBe(".md")
     })
@@ -473,7 +472,7 @@ describe("index file roundtrip", () => {
         emitNodeUpdated(emitter, "test", findFolder(db, "proj")!.id, {
           data: { description: "test" },
         })
-        // BUG: .md is created by FsWriter but scanner skips it (isHiddenFile)
+        // .md is created by FsWriter and scanner discovers it (isHiddenFile exempts ".md")
         expect(existsSync(join(repoDir, "proj", ".md"))).toBe(true)
       }))
   })
