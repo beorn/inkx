@@ -24,6 +24,9 @@ import type { ReconcileOp } from "../reconcile.ts"
 import type { ParseResult } from "../../parse-pool.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
+import { getNode, getChildren } from "../../index.ts"
+import { isIndexFile, getChildSlotTarget } from "@km/tree"
+import { namesAreSimilar } from "@km/tree"
 
 const log = createLogger("km:storage:watch:reconcile")
 
@@ -180,5 +183,95 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
         name: link.alias ?? undefined,
       })
     }
+  }
+
+  // Post-processing: if this file is an index file, sync changes back to its parent folder
+  syncIndexFileToFolder(options)
+}
+
+/**
+ * After a standard update, check if the updated file is an index file for its parent folder.
+ * If so, propagate structural changes (title, child ordering) from the index file to the folder.
+ *
+ * This enables bidirectional sync: editing an index file externally updates the folder's
+ * children ordering and title in the DB.
+ *
+ * Circular sync is already prevented: events emitted here use actor "fs-watch",
+ * and shouldApplyToFs("fs-watch") returns false — so these changes won't trigger
+ * the write path to regenerate the index file.
+ */
+/**
+ * Extract all embed slot targets from an index file's children.
+ * Handles both single-embed nodes and multi-embed nodes (where multiple
+ * ![[./name]] embeds are merged into one content string by the parser).
+ */
+function extractAllSlotTargets(indexChildren: KNode[]): string[] {
+  const targets: string[] = []
+  for (const child of indexChildren) {
+    // Try single-embed match first
+    const single = getChildSlotTarget(child)
+    if (single) {
+      targets.push(single)
+      continue
+    }
+    // Multi-embed: content may have multiple ![[./name]] on separate lines
+    const content = child.content?.trim() ?? ""
+    if (!content) continue
+    const embedRegex = /!\[\[\.\/([^\]]+)\]\]/g
+    let match
+    while ((match = embedRegex.exec(content)) !== null) {
+      if (match[1]) targets.push(match[1])
+    }
+  }
+  return targets
+}
+
+function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
+  const { db, op, emitter } = options
+  if (!op.nodeId) return
+
+  const node = getNode(db, op.nodeId)
+  if (node?.fstype !== "mdfile") return
+
+  // Check if this file is an index file for its parent folder
+  const parent = node.parent_id ? getNode(db, node.parent_id) : null
+  if (parent?.fstype !== "folder") return
+  if (!isIndexFile(parent.name ?? "", node)) return
+
+  // Get the index file's children (sections parsed from the file)
+  const indexChildren = getChildren(db, node.id)
+
+  // Extract all slot targets from the index file content
+  const slotTargets = extractAllSlotTargets(indexChildren)
+
+  // Sync child ordering: for each slot target, update parent_idx
+  const folderChildren = getChildren(db, parent.id)
+  const referencedIds = new Set<string>()
+  let idx = 0
+
+  for (const target of slotTargets) {
+    const child = folderChildren.find((c) => c.id !== node.id && namesAreSimilar(c.name ?? "", target))
+    if (child) {
+      referencedIds.add(child.id)
+      if (child.parent_idx !== idx) {
+        emitNodeUpdated(emitter, "fs-watch", child.id, { parent_idx: idx })
+      }
+      idx++
+    }
+  }
+
+  // Append unreferenced children after referenced ones
+  for (const child of folderChildren) {
+    if (child.id === node.id || referencedIds.has(child.id)) continue
+    if (child.parent_idx !== idx) {
+      emitNodeUpdated(emitter, "fs-watch", child.id, { parent_idx: idx })
+    }
+    idx++
+  }
+
+  // Sync title from index file's H1 (stored as the file node's content/title) to folder node
+  const indexTitle = node.title ?? node.content
+  if (indexTitle && parent.content !== indexTitle) {
+    emitNodeUpdated(emitter, "fs-watch", parent.id, { content: indexTitle })
   }
 }

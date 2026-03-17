@@ -460,8 +460,16 @@ export function nodeToText(node: RootContent | Root): string {
 
   // KmWikilink nodes → reconstruct wikilink text
   if (node.type === "kmWikilink") {
-    const wl = node as { target: string; section?: string; blockRef?: string; alias?: string; embedded: boolean }
+    const wl = node as {
+      target: string
+      section?: string
+      blockRef?: string
+      alias?: string
+      embedded: boolean
+      relative?: boolean
+    }
     let text = wl.embedded ? "![[" : "[["
+    if (wl.relative) text += "./"
     text += wl.target
     if (wl.section) text += `#${wl.section}`
     if (wl.blockRef) text += `#^${wl.blockRef}`

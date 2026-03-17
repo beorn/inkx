@@ -33,9 +33,17 @@ export interface TuiConfig {
   watchWorker?: boolean
 }
 
+export interface FolderIndexConfig {
+  /** Naming convention for index files: "same-name" | "index" | "dot-md" (default: "index") */
+  naming?: "same-name" | "index" | "dot-md"
+  /** What to materialize in index files: "none" | "metadata" | "full" (default: "none") */
+  materialization?: "none" | "metadata" | "full"
+}
+
 export interface KmConfig {
   beads?: BeadsConfig
   tui?: TuiConfig
+  folderIndex?: FolderIndexConfig
 }
 
 /** Original beads config format from .beads/config.yaml */
@@ -137,6 +145,17 @@ export function getBeadsConfig(searchFrom?: string): Required<BeadsConfig> {
     board: config.beads?.board ?? "issue",
     parent: config.beads?.parent ?? "issue/",
     prefix: config.beads?.prefix ?? "km",
+  }
+}
+
+/**
+ * Get folder-index configuration with defaults applied.
+ */
+export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexConfig> {
+  const config = loadConfig(searchFrom)
+  return {
+    naming: config.folderIndex?.naming ?? "index",
+    materialization: config.folderIndex?.materialization ?? "none",
   }
 }
 

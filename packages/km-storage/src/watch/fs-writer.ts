@@ -16,10 +16,14 @@ import type { Event, KNode } from "@km/core"
 import type { Emitter, FsSync } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getIgnorePatterns } from "../ignore.ts"
-import { getAllNodes, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
+import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
 import { shouldApplyToFs } from "./writequeue.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
+import { findIndexFile } from "@km/tree"
+import { isOutline } from "@km/core"
+import { getFolderIndexConfig } from "../config.ts"
+import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
 
 const log = createLogger("km:storage:watch:fs-writer")
 
@@ -112,6 +116,12 @@ export class FsWriter implements FsSync {
       return
     }
 
+    // Folder metadata update: update or create index file
+    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path) {
+      this.handleFolderIndexUpdate(node)
+      return
+    }
+
     const fileNode = findFileNode(this.db, node)
     if (!fileNode?.fs_path) return
 
@@ -198,6 +208,51 @@ export class FsWriter implements FsSync {
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
     this.writeSync(absPath, content)
     blockIds.rewriteSourceFiles(fileNode.id)
+
+    // If moved node's parent is a folder with materialization, regenerate its index file
+    const parent = node.parent_id ? getNode(this.db, node.parent_id) : null
+    if (parent?.fstype === "folder" && parent.fs_path) {
+      this.handleFolderIndexUpdate(parent)
+    }
+  }
+
+  /**
+   * Update or create an index file for a folder node.
+   * Respects the folderIndex config — does nothing if materialization is "none".
+   */
+  private handleFolderIndexUpdate(node: KNode): void {
+    const config = getFolderIndexConfig(this.repoPath)
+    if (config.materialization === "none") return
+
+    const folderPath = node.fs_path
+    if (!folderPath) return
+
+    const children = getChildren(this.db, node.id)
+    const existingIndex = findIndexFile(node, children)
+
+    const title = node.content ?? node.name ?? ""
+    const childSlots = children.filter(
+      (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
+    )
+    const content = generateIndexFileContent(
+      title,
+      "",
+      childSlots.map((c) => ({ name: c.name ?? "" })),
+      config.materialization,
+    )
+
+    if (existingIndex?.fs_path) {
+      // Update existing index file
+      const absPath = toAbsoluteFsPath(this.repoPath, existingIndex.fs_path)
+      this.writeSync(absPath, content)
+    } else {
+      // Create new index file
+      const filename = indexFileName(node.name ?? "", config.naming)
+      const newFsPath = join(folderPath, filename)
+      const absPath = toAbsoluteFsPath(this.repoPath, newFsPath)
+      this.writeSync(absPath, content)
+      // The watcher will pick up the new file and create a DB node for it
+    }
   }
 
   /**

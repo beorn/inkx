@@ -22,7 +22,11 @@ import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import type { Event, KNode } from "@km/core"
+import { isOutline } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
+import { findIndexFile } from "@km/tree"
+import { getFolderIndexConfig } from "../config.ts"
+import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
 
 /** Progress info for sync operations */
 interface SyncProgress {
@@ -35,6 +39,7 @@ interface SyncProgress {
 export type SyncProgressCallback = (info: SyncProgress) => void
 import {
   getAllNodes,
+  getChildren,
   getNode,
   getSubtree,
   nodesToMarkdown,
@@ -574,6 +579,12 @@ export class SyncManager extends EventEmitter {
       return
     }
 
+    // Folder metadata update: update or create index file
+    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path) {
+      this.handleFolderIndexUpdate(node, event.id)
+      return
+    }
+
     // Find the file this node belongs to
     const fileNode = findFileNode(this.db, node)
     if (!fileNode?.fs_path) {
@@ -609,6 +620,42 @@ export class SyncManager extends EventEmitter {
   /**
    * Rename a folder directory on disk and update all descendant fs_path values.
    */
+  /**
+   * Update or create an index file for a folder node.
+   * Respects the folderIndex config — does nothing if materialization is "none".
+   */
+  private handleFolderIndexUpdate(node: KNode, eventId: string): void {
+    const config = getFolderIndexConfig(this.config.repoPath)
+    if (config.materialization === "none") return
+
+    const folderPath = node.fs_path
+    if (!folderPath) return
+
+    const children = getChildren(this.db, node.id)
+    const existingIndex = findIndexFile(node, children)
+
+    const title = node.content ?? node.name ?? ""
+    const childSlots = children.filter(
+      (c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item),
+    )
+    const content = generateIndexFileContent(
+      title,
+      "",
+      childSlots.map((c) => ({ name: c.name ?? "" })),
+      config.materialization,
+    )
+
+    if (existingIndex?.fs_path) {
+      const absPath = toAbsoluteFsPath(this.config.repoPath, existingIndex.fs_path)
+      this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
+    } else {
+      const filename = indexFileName(node.name ?? "", config.naming)
+      const newFsPath = join(folderPath, filename)
+      const absPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)
+      this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
+    }
+  }
+
   private handleFolderRename(node: KNode, newName: string, eventId: string): void {
     const oldFsPath = node.fs_path ?? ""
     const oldAbsPath = toAbsoluteFsPath(this.config.repoPath, oldFsPath)
@@ -797,6 +844,12 @@ export class SyncManager extends EventEmitter {
 
     // Regenerate affected files (reconcile first to avoid losing external changes)
     this.regenerateFileForNode(node, event.id, true)
+
+    // If moved node's parent is a folder with materialization, regenerate its index file
+    const parent = node.parent_id ? getNode(this.db, node.parent_id) : null
+    if (parent?.fstype === "folder" && parent.fs_path) {
+      this.handleFolderIndexUpdate(parent, event.id)
+    }
   }
 
   /**

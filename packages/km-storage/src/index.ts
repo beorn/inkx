@@ -230,9 +230,12 @@ export type {
 export { parseRRule, getNextOccurrence, naturalToRRule } from "./recurrence.ts"
 
 // Configuration
-export { loadConfig, clearConfigCache, getOriginalBeadsConfig } from "./config.ts"
+export { loadConfig, clearConfigCache, getOriginalBeadsConfig, getFolderIndexConfig } from "./config.ts"
 
-export type { KmConfig, BeadsConfig, TuiConfig, OriginalBeadsConfig } from "./config.ts"
+export type { KmConfig, BeadsConfig, TuiConfig, FolderIndexConfig, OriginalBeadsConfig } from "./config.ts"
+
+// Index file writer (pure functions for folder index files)
+export { generateIndexFileContent, indexFileName } from "./index-file-writer.ts"
 
 // Config domain object (preferred API)
 export { loadConfigObject } from "./config-object.ts"
