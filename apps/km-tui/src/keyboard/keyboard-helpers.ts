@@ -14,7 +14,7 @@ import type { ActionCtx } from "../tui-context.ts"
 // =============================================================================
 
 /** Push a new entry to navigation history */
-export function pushNavHistoryEntry(
+function pushNavHistoryEntry(
   setUI: ActionCtx["setUI"],
   rootId: string | null,
   colIndex: number,
@@ -47,6 +47,27 @@ export function saveNavHistory(ctx: ActionCtx): void {
     ctx.ui.multiSelected,
     ctx.cursorNodeId,
     ctx.foldDepths,
+  )
+}
+
+/** Push nav history from pane state (for imperative use outside ActionCtx) */
+export function saveNavHistoryFromPane(
+  setUI: ActionCtx["setUI"],
+  pane: {
+    rootId: string | null
+    cursorNodeId: string | null
+    multiSelected: Set<SelectionKey>
+    foldDepths: Map<string, number>
+  },
+): void {
+  pushNavHistoryEntry(
+    setUI,
+    pane.rootId,
+    0, // colIndex — derived at render, not available imperatively; unused in restore
+    0, // cardIndex — same
+    pane.multiSelected,
+    pane.cursorNodeId,
+    pane.foldDepths,
   )
 }
 
