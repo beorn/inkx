@@ -20,7 +20,7 @@
 12 apps/km-cli/tests/import/comment-filter.test.ts
 10 apps/km-cli/tests/import/convert.test.ts
 11 apps/km-cli/tests/import/import.test.ts
-3 apps/km-tui/src/board-app.ts
+4 apps/km-tui/src/board-app.ts
 2 apps/km-tui/src/board/board-actions-edit.ts
 4 apps/km-tui/src/board/board-actions-search-replace.ts
 4 apps/km-tui/src/board/board-actions-zoom.ts
@@ -67,7 +67,6 @@
 12 apps/km-tui/tests/detail-only-cards.test.ts
 1 apps/km-tui/tests/detail-pane.slow.test.ts
 10 apps/km-tui/tests/driver.test.tsx
-3 apps/km-tui/tests/duplicate-columns.test.ts
 6 apps/km-tui/tests/embed.test.ts
 1 apps/km-tui/tests/filter.slow.test.ts
 2 apps/km-tui/tests/fold.slow.test.ts
@@ -182,7 +181,7 @@
 4 vendor/silvery/examples/interactive/task-list.tsx
 11 vendor/silvery/examples/interactive/terminal.tsx
 1 vendor/silvery/examples/interactive/textarea.tsx
-13 vendor/silvery/examples/interactive/theme.tsx
+14 vendor/silvery/examples/interactive/theme.tsx
 3 vendor/silvery/examples/interactive/transform.tsx
 7 vendor/silvery/examples/interactive/virtual-10k.tsx
 4 vendor/silvery/examples/kitty/canvas.tsx
@@ -208,7 +207,8 @@
 1 vendor/silvery/packages/compat/src/with-ink-cursor.ts
 1 vendor/silvery/packages/compat/src/with-ink.ts
 2 vendor/silvery/packages/react/src/accessibility.ts
-79 vendor/silvery/packages/react/src/exports.ts
+1 vendor/silvery/packages/react/src/components/Link.tsx
+82 vendor/silvery/packages/react/src/exports.ts
 1 vendor/silvery/packages/react/src/reconciler/nodes.ts
 1 vendor/silvery/packages/tea/src/with-render.ts
 1 vendor/silvery/packages/term/src/adapters/yoga-adapter.ts
@@ -243,6 +243,7 @@
 2 vendor/silvery/packages/ui/src/components/Form.tsx
 2 vendor/silvery/packages/ui/src/components/GridCell.tsx
 5 vendor/silvery/packages/ui/src/components/HorizontalVirtualList.tsx
+5 vendor/silvery/packages/ui/src/components/ListView.tsx
 2 vendor/silvery/packages/ui/src/components/ModalDialog.tsx
 5 vendor/silvery/packages/ui/src/components/PickerDialog.tsx
 2 vendor/silvery/packages/ui/src/components/PickerList.tsx
@@ -250,6 +251,7 @@
 1 vendor/silvery/packages/ui/src/components/Screen.tsx
 1 vendor/silvery/packages/ui/src/components/ScrollbackList.tsx
 5 vendor/silvery/packages/ui/src/components/ScrollbackView.tsx
+1 vendor/silvery/packages/ui/src/components/SearchBar.tsx
 5 vendor/silvery/packages/ui/src/components/SelectList.tsx
 2 vendor/silvery/packages/ui/src/components/Skeleton.tsx
 2 vendor/silvery/packages/ui/src/components/Spinner.tsx
@@ -263,8 +265,6 @@
 2 vendor/silvery/packages/ui/src/components/Tooltip.tsx
 5 vendor/silvery/packages/ui/src/components/TreeView.tsx
 3 vendor/silvery/packages/ui/src/components/Typography.tsx
-3 vendor/silvery/packages/ui/src/components/VirtualList.tsx
-3 vendor/silvery/packages/ui/src/components/VirtualView.tsx
 1 vendor/silvery/packages/ui/src/components/useReadline.ts
 4 vendor/silvery/packages/ui/src/components/useTextArea.ts
 4 vendor/silvery/packages/ui/src/image/Image.tsx
@@ -307,7 +307,7 @@
 1 vendor/silvery/tests/features/default-bg.test.tsx
 2 vendor/silvery/tests/features/fuzz-properties.fuzz.tsx
 2 vendor/silvery/tests/features/inline-focus-reporting.test.tsx
-6 vendor/silvery/tests/features/key-release.test.tsx
+3 vendor/silvery/tests/features/key-release.test.tsx
 1 vendor/silvery/tests/features/kitty-protocol.test.ts
 1 vendor/silvery/tests/features/pipeline-bugfixes.test.tsx
 4 vendor/silvery/tests/features/prop-removal.test.tsx
@@ -315,12 +315,18 @@
 5 vendor/silvery/tests/features/scrollback-cross-backend.fuzz.tsx
 4 vendor/silvery/tests/features/scrollback-fill.test.tsx
 3 vendor/silvery/tests/features/scrollback-overflow.test.tsx
+3 vendor/silvery/tests/features/selection-e2e.test.tsx
 1 vendor/silvery/tests/features/text-input.test.tsx
-1 vendor/silvery/tests/features/theme-explorer-smoke.test.tsx
+2 vendor/silvery/tests/features/theme-explorer-smoke.test.tsx
 5 vendor/silvery/tests/features/transform.test.tsx
 1 vendor/silvery/tests/hooks/use-textarea.test.tsx
 2 vendor/silvery/tests/output-phase-xterm-replay.test.ts
+2 vendor/silvery/tests/providers/search-provider.test.tsx
+1 vendor/silvery/tests/providers/surface-registry.test.tsx
 2 vendor/silvery/tests/scroll-tier.test.ts
+9 vendor/silvery/tests/term/viewport-compositor.test.ts
+18 vendor/silvery/tests/ui/list-view-history.test.tsx
+1 vendor/silvery/tests/ui/search-bar.test.tsx
 1 vendor/tap/src/parallel-tui.ts
 8 vendor/termless/packages/cli/src/mcp.ts
 1 vendor/termless/tests/cross-backend.test.ts
