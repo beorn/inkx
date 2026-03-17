@@ -387,13 +387,21 @@ function insertFileNodes(
   // Get stub info if available (for deferred parsing)
   const stub = stubInfo?.get(file.nodeId)
 
-  // Set parent info on file node, preserving relative fs_path from stub
+  // Patch file node to match stub: preserve ID, parent info, and relative fs_path.
+  // Re-parent children so they reference the stub ID (not the parser-generated ID).
   const fileNode = file.nodes[0]
   if (fileNode && stub) {
+    const originalFileId = fileNode.id
+    fileNode.id = file.nodeId
     fileNode.parent_id = stub.parent_id
     fileNode.parent_idx = stub.parent_idx
     if (stub.fs_path) {
       fileNode.fs_path = stub.fs_path
+    }
+    for (const node of file.nodes) {
+      if (node.parent_id === originalFileId) {
+        node.parent_id = file.nodeId
+      }
     }
   }
 

@@ -1336,3 +1336,53 @@ describe.skipIf(!existsSync(VAULT_PATH))("zoom-mismatch: real vault repro", () =
     }
   })
 })
+
+describe("zoom out from file to folder shows multiple columns", () => {
+  test("Z from a file with siblings produces horizontal columns, not single-column list", () => {
+    // Simulate folder structure: early-orbit folder with 3 md files
+    // When zoomed into one file and pressing Z, the folder's children
+    // should become columns (horizontal layout), not a single-column list.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "early-orbit",
+            item("Overview", item("task-a"), item("task-b")),
+            item("Milestones", item("milestone-1"), item("milestone-2")),
+            item("Program", item("session-1")),
+          ),
+        ),
+      { columns: 120, rows: 24 },
+    )
+
+    // Navigate to first card and zoom into it
+    board.press("z") // zoom into early-orbit (column → board)
+    board.expect("#Overview").toExist()
+    board.expect("#Milestones").toExist()
+    board.expect("#Program").toExist()
+
+    // Zoom into Overview
+    board.press("z")
+    board.expect("#task-a").toExist()
+
+    // Z to zoom back out to early-orbit level
+    board.press("Z")
+
+    // All three sections should be visible as COLUMNS (horizontal layout)
+    board.expect("#Overview").toExist()
+    board.expect("#Milestones").toExist()
+    board.expect("#Program").toExist()
+
+    // Verify they're actually laid out as separate columns (horizontal, not stacked)
+    const overviewBox = board.q("#Overview").boundingBox()
+    const milestonesBox = board.q("#Milestones").boundingBox()
+    const programBox = board.q("#Program").boundingBox()
+
+    // Columns should be side by side (different X positions, same Y row)
+    expect(milestonesBox!.x).toBeGreaterThan(overviewBox!.x)
+    expect(programBox!.x).toBeGreaterThan(milestonesBox!.x)
+    expect(milestonesBox!.y).toBe(overviewBox!.y)
+    expect(programBox!.y).toBe(overviewBox!.y)
+  })
+})

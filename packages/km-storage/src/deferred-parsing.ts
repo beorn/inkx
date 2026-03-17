@@ -200,12 +200,19 @@ function parseOneFile(
     fileNode.item &&
     (fileNode.fstype === "file" || fileNode.fstype === "mdfile" || fileNode.fstype === "txtfile")
   ) {
+    const originalFileId = fileNode.id
     fileNode.id = nodeId
     fileNode.parent_id = stubRow.parent_id
     fileNode.parent_idx = stubRow.parent_idx
     // Preserve relative fs_path from the stub (parser sets absolute path)
     if (stubRow.fs_path) {
       fileNode.fs_path = stubRow.fs_path
+    }
+    // Update child nodes to point to the preserved file node ID
+    for (const node of nodes) {
+      if (node.parent_id === originalFileId) {
+        node.parent_id = nodeId
+      }
     }
   }
 
