@@ -832,6 +832,15 @@ export class SyncManager extends EventEmitter {
       // File/folder node: delete the file from disk
       const absPath = toAbsoluteFsPath(this.config.repoPath, fsPath)
       this.writeQueue.queueDelete(absPath, event.id)
+
+      // If deleted node's parent is a folder, regenerate index file (in case it was the index)
+      const parentId = data.parent_id
+      if (parentId && parentId !== ".") {
+        const parent = getNode(this.db, parentId)
+        if (parent?.fstype === "folder" && parent.fs_path) {
+          this.handleFolderIndexUpdate(parent, event.id)
+        }
+      }
     } else if (data?.parent_id) {
       // Section node: regenerate the parent file to reflect the deletion
       this.regenerateFileForNode(data.parent_id, event.id)

@@ -226,7 +226,7 @@ function extractAllSlotTargets(indexChildren: KNode[]): string[] {
   return targets
 }
 
-function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
+export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
   const { db, op, emitter } = options
   if (!op.nodeId) return
 

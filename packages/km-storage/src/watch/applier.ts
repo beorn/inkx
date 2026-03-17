@@ -9,6 +9,13 @@ import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
 import type { Emitter } from "../emitter.ts"
+import { getNode, getChildren } from "../index.ts"
+import { findIndexFile } from "@km/tree"
+import { isOutline } from "@km/core"
+import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
+import { getFolderIndexConfig } from "../config.ts"
+import { toAbsoluteFsPath } from "../path-utils.ts"
+import { join } from "path"
 import { createLinkResolver } from "../link-resolver.ts"
 import { resolveLinksBatch } from "../db-links.ts"
 import type { FileSystemOps } from "./writequeue.ts"
@@ -19,6 +26,7 @@ import type { ParseSource } from "../pipeline.ts"
 import { parseFiles, collect } from "../pipeline.ts"
 import type { ParsePoolService } from "../parse-pool.ts"
 import { handleCreate, handleUpdate, handleDelete, handleRename, type ReconcileContext } from "./handlers/index.ts"
+import { syncIndexFileToFolder } from "./handlers/update-handler.ts"
 
 const log = createLogger("km:storage:watch:reconcile")
 
@@ -94,8 +102,8 @@ export function applyReconcileOps(
     void opSpan // used via dispose
   }
 
-  // Batch resolve links for all new files at once
-  finalizeBatchLinks(db, ctx)
+  // Batch resolve links and sync index files for all new files at once
+  finalizeBatchLinks(db, ctx, emit, root)
 }
 
 /**
@@ -158,8 +166,8 @@ export async function applyReconcileOpsAsync(
     applyOp(db, op, root, emit, fileOps, ctx, parsed)
   }
 
-  // Batch resolve links for all new files at once
-  finalizeBatchLinks(db, ctx)
+  // Batch resolve links and sync index files for all new files at once
+  finalizeBatchLinks(db, ctx, emit, root)
 
   log.debug?.(`applied ${reconcileOps.length} ops (async) in ${Date.now() - start}ms`)
 }
@@ -187,7 +195,7 @@ function applyOp(
       handleRename(emitter, op, repoRoot)
       break
     case "delete":
-      handleDelete(emitter, op)
+      handleDelete(emitter, op, db, ctx)
       break
   }
 }
@@ -250,11 +258,46 @@ async function parseMarkdownFiles(ops: ReconcileOp[], parsePool: ParsePoolServic
 }
 
 /**
- * Finalize batch link resolution for all new files
+ * Finalize batch link resolution and index file sync for all new files
  */
-function finalizeBatchLinks(db: Database, ctx: ReconcileContext): void {
+function finalizeBatchLinks(db: Database, ctx: ReconcileContext, emitter: Emitter, repoRoot: string): void {
   if (ctx.newFiles.length > 0) {
     const resolved = resolveLinksBatch(db, ctx.newFiles)
     log.debug?.(`batch resolved ${resolved} links for ${ctx.newFiles.length} new files`)
+  }
+
+  // Sync index files created this batch — now that all siblings exist
+  if (ctx.indexFileCandidates?.length) {
+    for (const { nodeId } of ctx.indexFileCandidates) {
+      syncIndexFileToFolder({
+        db,
+        op: { type: "update", path: "", nodeId } as ReconcileOp,
+        repoRoot,
+        emitter,
+        fs: realFs,
+        ctx,
+      })
+    }
+  }
+
+  // Re-materialize index files for folders that lost their index file
+  if (ctx.foldersNeedingIndexUpdate?.size) {
+    const config = getFolderIndexConfig(repoRoot)
+    if (config.materialization !== "none") {
+      for (const folderId of ctx.foldersNeedingIndexUpdate) {
+        const folder = getNode(db, folderId)
+        if (!folder?.fstype || folder.fstype !== "folder" || !folder.fs_path) continue
+        const children = getChildren(db, folderId)
+        const existingIndex = findIndexFile(folder, children)
+        if (existingIndex) continue // Another index file already exists (priority cascade)
+        const title = folder.content ?? folder.name ?? ""
+        if (!title) continue
+        const childSlots = children.filter((c) => isOutline(c.type, c.item))
+        const content = generateIndexFileContent(title, "", childSlots.map((c) => ({ name: c.name ?? "" })), config.materialization)
+        const filename = indexFileName(folder.name ?? "", config.naming)
+        const absPath = toAbsoluteFsPath(repoRoot, join(folder.fs_path, filename))
+        realFs.writeFileSync(absPath, content)
+      }
+    }
   }
 }

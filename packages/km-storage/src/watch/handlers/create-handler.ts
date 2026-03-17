@@ -37,6 +37,10 @@ export interface ReconcileContext {
   newFiles: Array<{ id: string; name: string }>
   /** Pre-built lookup map for efficient link resolution */
   resolver: LinkResolver
+  /** Index file candidates created this batch — synced after all files exist */
+  indexFileCandidates?: Array<{ nodeId: string; parentId: string }>
+  /** Folder IDs whose index files were deleted — need re-materialization */
+  foldersNeedingIndexUpdate?: Set<string>
 }
 
 /**
@@ -209,6 +213,12 @@ function handleMarkdownCreate(
     ctx.newFiles.push({ id: fileNode.id, name: fileName })
     // Update resolver so subsequent files can link to this one
     ctx.resolver.addFile(fileNode.id, fileName)
+
+    // Mark for post-batch index file sync (can't sync during creation because siblings may not exist yet)
+    if (parentId) {
+      ctx.indexFileCandidates ??= []
+      ctx.indexFileCandidates.push({ nodeId: fileNode.id, parentId })
+    }
   }
 }
 

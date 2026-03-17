@@ -782,10 +782,7 @@ describe("index file roundtrip", () => {
         expect(getNode(db, folder.id)!.content).toBe("Fallback")
       }))
 
-    // BUG: Title promotion doesn't re-evaluate priority when a higher-priority index file
-    // is added alongside an existing lower-priority one. syncIndexFileToFolder only syncs
-    // the file being updated, not the "winning" index file.
-    test.skip("I6: create same-name.md when index.md exists → same-name takes over", () =>
+    test("I6: create same-name.md when index.md exists → same-name takes over", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
@@ -799,9 +796,7 @@ describe("index file roundtrip", () => {
         expect(getNode(db, findFolder(db, "project")!.id)!.content).toBe("From Same-Name")
       }))
 
-    // BUG: Title promotion only triggers when the index file is updated, not on initial creation.
-    // A new index.md needs to be touched/edited after creation to trigger syncIndexFileToFolder.
-    test.skip("I7: create index.md when only other file exists → index.md takes over", () =>
+    test("I7: create index.md when only other file exists → index.md takes over", () =>
       withTestEnv(async ({ repoDir, db }) => {
         const manager = createSyncManager(db, repoDir)
         mkdirSync(join(repoDir, "project"), { recursive: true })
@@ -815,17 +810,24 @@ describe("index file roundtrip", () => {
         expect(getNode(db, folder.id)!.content).toBe("From Index")
       }))
 
-    // BUG: After deleting the primary index file (project.md) and syncing,
-    // FsWriter.handleFolderIndexUpdate does not create a new index.md per the
-    // naming config. The folder update triggers handleFolderIndexUpdate which
-    // calls getFolderIndexConfig, but the config may not propagate correctly
-    // through the FsWriter path after the primary is deleted.
-    // test("I8: materialization=full + delete primary → new per config", () =>
-    //   withTestEnv(async ({ repoDir, db, emitter }) => {
-    //     writeConfig(repoDir, "full", "index")
-    //     ...
-    //   }))
-    test.skip("I8: materialization=full + delete primary → new per config", () => {})
+    test("I8: materialization=full + delete primary → new per config", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        writeConfig(repoDir, "full", "index")
+        clearConfigCache()
+        const manager = createSyncManager(db, repoDir)
+        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        mkdirSync(join(repoDir, "project"), { recursive: true })
+        writeFileSync(join(repoDir, "project", "project.md"), "# My Project\n")
+        writeFileSync(join(repoDir, "project", "child.md"), "# Child\n")
+        await manager.syncFromFs()
+        // project.md is the primary index (same-name)
+        expect(existsSync(join(repoDir, "project", "project.md"))).toBe(true)
+        // Delete the primary index
+        unlinkSync(join(repoDir, "project", "project.md"))
+        await manager.syncFromFs()
+        // After deletion + sync, handleFolderIndexUpdate should re-create per config naming=index
+        expect(existsSync(join(repoDir, "project", "index.md"))).toBe(true)
+      }))
 
     test("I9: case variant (Project.md vs project) → detected as index file", () =>
       withTestEnv(async ({ repoDir, db }) => {

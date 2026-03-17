@@ -20,7 +20,7 @@ import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "
 import { shouldApplyToFs } from "./writequeue.ts"
 import { reconcileDirectory, applyReconcileOps } from "./reconcile.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
-import { findIndexFile } from "@km/tree"
+import { findIndexFile, isIndexFile } from "@km/tree"
 import { isOutline } from "@km/core"
 import { getFolderIndexConfig } from "../config.ts"
 import { generateIndexFileContent, indexFileName } from "../index-file-writer.ts"
@@ -190,6 +190,14 @@ export class FsWriter implements FsSync {
       const absPath = toAbsoluteFsPath(this.repoPath, node.fs_path)
       if (existsSync(absPath)) {
         unlinkSync(absPath)
+      }
+
+      // If deleted node was an index file, regenerate parent folder's index
+      if (node.fstype === "mdfile" && node.parent_id && node.parent_id !== ".") {
+        const parent = getNode(this.db, node.parent_id)
+        if (parent?.fstype === "folder" && parent.fs_path && isIndexFile(parent.name ?? "", node)) {
+          this.handleFolderIndexUpdate(parent)
+        }
       }
     }
   }
