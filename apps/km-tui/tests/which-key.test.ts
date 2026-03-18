@@ -191,9 +191,9 @@ describe("getChordSuffixes", () => {
     expect(suffixes.length).toBe(8) // 4 pickers + 4 boards (h,i,j,a) + 0 favorites (empty by default)
 
     const suffixMap = Object.fromEntries(suffixes.map((s) => [s.key, s.commandId]))
-    expect(suffixMap["#"]).toBe("add")
-    expect(suffixMap["@"]).toBe("add")
-    expect(suffixMap["+"]).toBe("add")
+    expect(suffixMap["shift-3"]).toBe("add") // # on US layout
+    expect(suffixMap["shift-2"]).toBe("add") // @ on US layout
+    expect(suffixMap["shift-="]).toBe("add") // + on US layout
     expect(suffixMap["["]).toBe("add")
     expect(suffixMap["h"]).toBe("add")
     expect(suffixMap["i"]).toBe("add")

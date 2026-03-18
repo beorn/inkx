@@ -791,15 +791,15 @@ describe("chord keybindings", () => {
       ["v", "j", {}, "pane_focus_down"],
       ["v", "k", {}, "pane_focus_up"],
       ["v", "l", {}, "pane_focus_right"],
-      ["v", ">", {}, "pane_resize_grow"],
-      ["v", "<", {}, "pane_resize_shrink"],
+      ["v", ".", { shift: true }, "pane_resize_grow"],
+      ["v", ",", { shift: true }, "pane_resize_shrink"],
       ["v", "=", {}, "pane_equalize"],
-      ["v", "H", {}, "pane_swap_left"],
-      ["v", "J", {}, "pane_swap_down"],
-      ["v", "K", {}, "pane_swap_up"],
-      ["v", "L", {}, "pane_swap_right"],
+      ["v", "h", { shift: true }, "pane_swap_left"],
+      ["v", "j", { shift: true }, "pane_swap_down"],
+      ["v", "k", { shift: true }, "pane_swap_up"],
+      ["v", "l", { shift: true }, "pane_swap_right"],
       ["v", "n", {}, "pane_focus_next"],
-      ["v", "N", {}, "pane_focus_prev"],
+      ["v", "n", { shift: true }, "pane_focus_prev"],
       ["v", "p", {}, "pane_focus_previous"],
       ["v", "Tab", {}, "pane_focus_next"],
       ["v", "w", {}, "pane_close"],
@@ -890,6 +890,7 @@ describe("chord keybindings", () => {
         s.targetId ? { commandId: s.commandId, targetId: s.targetId } : { commandId: s.commandId },
       ]),
     )
+    // Note: favorites 2,3 shadow picker shift-2,shift-3 in same chordMap bucket
     expect(suffixMap).toEqual({
       "0": { commandId: "add", targetId: "fav:0" },
       "1": { commandId: "add", targetId: "fav:1" },
@@ -901,8 +902,6 @@ describe("chord keybindings", () => {
       "7": { commandId: "add", targetId: "fav:7" },
       "8": { commandId: "add", targetId: "fav:8" },
       "9": { commandId: "add", targetId: "fav:9" },
-      "shift-3": { commandId: "add", targetId: "pick:#" },
-      "shift-2": { commandId: "add", targetId: "pick:@" },
       "shift-=": { commandId: "add", targetId: "pick:+" },
       "[": { commandId: "add", targetId: "pick:[" },
       a: { commandId: "add", targetId: "@archive" },
@@ -916,6 +915,7 @@ describe("chord keybindings", () => {
     const suffixes = getChordSuffixes("g")
     const keys = suffixes.map((s) => s.key).sort()
     // g a replaces g e (goto archive), plus digits 0-9 for favorites
+    // Note: shift-g/shift-o/shift-2/shift-3 shadowed by g/o/2/3 in same chordMap bucket
     expect(keys).toEqual([
       "0",
       "1",
@@ -935,18 +935,16 @@ describe("chord keybindings", () => {
       "j",
       "o",
       "p",
-      "shift-2",
-      "shift-3",
       "shift-=",
-      "shift-g",
-      "shift-o",
     ])
   })
 
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
-    // View: - , shift-x c d m v x | Pane: shift-, = shift-. shift-h shift-j shift-k shift-l shift-n Tab h j k l n o p s w z
+    // View: - , c d m v | Pane: = shift-. Tab h j k l n o p s w z
+    // Note: shift-,/shift-h/shift-j/shift-k/shift-l/shift-n shadowed by ,/h/j/k/l/n in same chordMap bucket
+    // Note: x shadowed by shift-x (registered first) in same chordMap bucket
     expect(keys).toEqual([
       ",",
       "-",
@@ -963,17 +961,10 @@ describe("chord keybindings", () => {
       "o",
       "p",
       "s",
-      "shift-,",
       "shift-.",
-      "shift-h",
-      "shift-j",
-      "shift-k",
-      "shift-l",
-      "shift-n",
       "shift-x",
       "v",
       "w",
-      "x",
       "z",
     ])
   })
@@ -981,6 +972,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns Ctrl+v-prefix hints", () => {
     const suffixes = getChordSuffixes("Ctrl+v")
     const keys = suffixes.map((s) => s.key).sort()
+    // Same shadowing as v-prefix: shift variants hidden by unshifted in same chordMap bucket
     expect(keys).toEqual([
       ",",
       "-",
@@ -997,17 +989,10 @@ describe("chord keybindings", () => {
       "o",
       "p",
       "s",
-      "shift-,",
       "shift-.",
-      "shift-h",
-      "shift-j",
-      "shift-k",
-      "shift-l",
-      "shift-n",
       "shift-x",
       "v",
       "w",
-      "x",
       "z",
     ])
   })

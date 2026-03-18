@@ -79,7 +79,7 @@ describe("keyToString", () => {
     expect(keyToString("j", {})).toBe("j")
     expect(keyToString("k", {})).toBe("k")
     expect(keyToString("a", {})).toBe("a")
-    expect(keyToString("G", {})).toBe("G")
+    expect(keyToString("G", {})).toBe("g")
     expect(keyToString("1", {})).toBe("1")
     expect(keyToString(" ", {})).toBe(" ")
   })

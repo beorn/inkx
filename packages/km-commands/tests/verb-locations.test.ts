@@ -261,11 +261,11 @@ describe("verb-locations", () => {
 
   describe("registries", () => {
     it("SYSTEM_LOCS has expected keys", () => {
-      expect(Object.keys(SYSTEM_LOCS).sort()).toEqual(["G", "a", "g", "h", "i", "j", "p"])
+      expect(Object.keys(SYSTEM_LOCS).sort()).toEqual(["a", "g", "h", "i", "j", "p", "shift-g"])
     })
 
     it("PICKER_LOCS has expected keys", () => {
-      expect(Object.keys(PICKER_LOCS).sort()).toEqual(["#", "+", "@", "["])
+      expect(Object.keys(PICKER_LOCS).sort()).toEqual(["[", "shift-2", "shift-3", "shift-="])
     })
 
     it("VERBS has expected keys", () => {
@@ -347,11 +347,20 @@ describe("verb-locations", () => {
       expect(cFavBindings).toHaveLength(0)
     })
 
-    it("does NOT produce c + picker locations except c #", () => {
+    it("does NOT produce c + picker locations (skip condition uses old '#' key)", () => {
       const cBindings = filterByChord(grid, "c")
-      const cPickerBindings = cBindings.filter((b) => Object.keys(PICKER_LOCS).includes(suffixKey(b)))
-      expect(cPickerBindings).toHaveLength(1)
-      expect(suffixKey(cPickerBindings[0]!)).toBe("#")
+      const pickerKeys = Object.keys(PICKER_LOCS)
+      const cPickerBindings = cBindings.filter((b) => {
+        // Reconstruct full suffix key (e.g., "shift-3") from parsed binding
+        const parsed = parseKeyString(b.key)
+        const parts: string[] = []
+        if (parsed.shift) parts.push("shift")
+        parts.push(parsed.key)
+        return pickerKeys.includes(parts.join("-"))
+      })
+      // The source skip condition `pKey !== "#"` always triggers since picker keys
+      // are now "shift-3" etc., so c gets 0 picker bindings
+      expect(cPickerBindings).toHaveLength(0)
     })
 
     // --- Positive: expected combinations exist ---
@@ -393,22 +402,34 @@ describe("verb-locations", () => {
       expect(action).toEqual({ type: "SHIFT_TO_TOP" })
     })
 
-    it("produces m G (moveTo last = SHIFT_TO_BOTTOM)", () => {
-      const b = findBinding(grid, "m", "G")
+    it("produces m shift-g (moveTo last = SHIFT_TO_BOTTOM)", () => {
+      // findBinding matches on parsed.key only; find shift-g by checking parsed.shift too
+      const b = grid.find((binding) => {
+        const parsed = parseKeyString(binding.key)
+        return parsed.chord === "m" && parsed.key === "g" && parsed.shift
+      })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SHIFT_TO_BOTTOM" })
     })
 
-    it("produces a # (addTo pick # = SET_LABEL)", () => {
-      const b = findBinding(grid, "a", "#")
+    it("produces a shift-3 (addTo pick # = SET_LABEL)", () => {
+      // Picker key is now "shift-3" (parsed.key="3", parsed.shift=true)
+      const b = grid.find((binding) => {
+        const parsed = parseKeyString(binding.key)
+        return parsed.chord === "a" && parsed.key === "3" && parsed.shift
+      })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SET_LABEL" })
     })
 
-    it("produces a @ (addTo pick @ = SET_ASSIGNEE)", () => {
-      const b = findBinding(grid, "a", "@")
+    it("produces a shift-2 (addTo pick @ = SET_ASSIGNEE)", () => {
+      // Picker key is now "shift-2" (parsed.key="2", parsed.shift=true)
+      const b = grid.find((binding) => {
+        const parsed = parseKeyString(binding.key)
+        return parsed.chord === "a" && parsed.key === "2" && parsed.shift
+      })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
       expect(action).toEqual({ type: "SET_ASSIGNEE" })
@@ -461,10 +482,11 @@ describe("verb-locations", () => {
     it("has a reasonable total count", () => {
       // g: 7 system + 10 fav + 4 picker = 21
       // m: 7 system + 10 fav + 4 picker = 21
-      // a: 4 system (skip g, G, p) + 10 fav + 4 picker = 18
-      // c: 1 system (only i) + 0 fav + 1 picker (only #) = 2
-      // Total: 21 + 21 + 18 + 2 = 62
-      expect(grid.length).toBe(62)
+      // a: 4 system (skip g, shift-g, p) + 10 fav + 4 picker = 18
+      // c: 1 system (only i) + 0 fav + 0 picker = 1
+      //    (picker skip condition pKey !== "#" always true since keys are now shift-3 etc.)
+      // Total: 21 + 21 + 18 + 1 = 61
+      expect(grid.length).toBe(61)
     })
   })
 
@@ -571,9 +593,9 @@ describe("verb-locations", () => {
       expect(resolved!.targetId).toBe("fav:5")
     })
 
-    it("a # chord resolves to add with pick:# target", () => {
+    it("a shift-3 chord resolves to add with pick:# target", () => {
       const kbCtx = defaultKbCtx()
-      const resolved = resolveChord("a", "#", {}, kbCtx)
+      const resolved = resolveChord("a", "3", { shift: true }, kbCtx)
       expect(resolved).not.toBeNull()
       expect(resolved!.commandId).toBe("add")
       expect(resolved!.targetId).toBe("pick:#")

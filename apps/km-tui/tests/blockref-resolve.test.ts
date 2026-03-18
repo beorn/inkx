@@ -9,6 +9,7 @@
  */
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { stripAnsi } from "@silvery/test"
 import type { KNode } from "@km/core"
 import { parseInlineText } from "../src/text/inline-parser.ts"
 
@@ -91,7 +92,9 @@ describe("blockref/wikilink resolution", () => {
     const card = board.q("[data-cursor]")
     const text = card.textContent()
     expect(text).toContain("Review quarterly budget")
-    expect(text).not.toContain("1210156063601370")
+    // Strip OSC 8 hyperlink sequences — the ID legitimately appears in the
+    // hyperlink URL (km://wiki/^ID), but should not appear as visible text
+    expect(stripAnsi(text)).not.toContain("1210156063601370")
   })
 
   test("full board: unresolved [[^ID]] shows target dimmed (not hidden)", () => {
