@@ -36,7 +36,6 @@ import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
 import { createLinkResolver } from "./link-resolver.ts"
 import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./markdown-processing.ts"
 import { INSERT_NODE_PLAIN_SQL } from "./db-insert.ts"
-import { deleteSubtreeChildren } from "./deferred-parsing.ts"
 
 const log = createLogger("km:storage:pipeline")
 
@@ -407,9 +406,11 @@ function insertFileNodes(
     }
   }
 
-  // Delete stub and existing children (prevents duplicates from events.jsonl or prior parse)
+  // Skip if already parsed (has children) — prevents double-parse duplicates
+  // without destroying event-created children that may be richer than markdown
   if (stub) {
-    deleteSubtreeChildren(db, file.nodeId)
+    const childCount = (db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(file.nodeId) as { cnt: number }).cnt
+    if (childCount > 0) return // Already parsed, skip
     deleteStmt.run(file.nodeId)
   }
 

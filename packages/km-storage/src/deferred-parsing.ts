@@ -90,9 +90,13 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
     db.run("BEGIN IMMEDIATE")
 
     try {
-      // Delete the stub AND any existing children (from events.jsonl or prior parse).
-      // Without this, deferred parsing inserts fresh children while old ones remain.
-      deleteSubtreeChildren(db, nodeId)
+      // Skip if already parsed (has children) — prevents double-parse duplicates
+      // without destroying event-created children that may be richer than markdown
+      const childCount = (db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(nodeId) as { cnt: number }).cnt
+      if (childCount > 0) {
+        db.run("ROLLBACK")
+        return true
+      }
       db.prepare("DELETE FROM nodes WHERE id = ?").run(nodeId)
 
       const fileNode = nodes[0]
@@ -214,8 +218,11 @@ function parseOneFile(
     return null
   }
 
-  // Delete existing children before re-inserting parsed ones (prevents duplicates)
-  deleteSubtreeChildren(db, nodeId)
+  // Skip if already parsed (has children) — prevents double-parse duplicates
+  // without destroying event-created children that may be richer than markdown
+  const childCount = (db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(nodeId) as { cnt: number }).cnt
+  if (childCount > 0) return null
+
   deleteStmt.run(nodeId)
 
   const fileNode = nodes[0]
