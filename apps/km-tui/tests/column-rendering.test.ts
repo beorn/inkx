@@ -891,3 +891,163 @@ describe("body block spacing in columns view", () => {
     expect(secThreeBox!.y - secTwoBox!.y).toBe(1)
   })
 })
+
+// =============================================================================
+// Ghost cursor — folder index file navigation (km-nx8af)
+//
+// When a folder column has an index file (same-name .md), the view filters
+// it from cardNodes. Navigation must also skip it, otherwise the cursor
+// lands on an invisible node ("ghost cursor").
+// =============================================================================
+
+describe("ghost cursor — folder index file (km-nx8af)", () => {
+  /**
+   * Folder "project" with children: [project.md (index), task-a, task-b].
+   * View shows: [task-a, task-b]. project.md is filtered by kNodeToColumnView.
+   * Navigation via j/k must skip project.md.
+   */
+  function makeFolderWithIndexFile(): KNode[] {
+    const now = Date.now()
+    return [
+      {
+        id: "board",
+        type: "h",
+        item: true,
+        fstype: "repo",
+        name: "board",
+        data: { name: "board", is_repo_root: true },
+        parent_id: null,
+        parent_idx: 0,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+      {
+        id: "project",
+        type: "h",
+        item: true,
+        fstype: "folder",
+        name: "project",
+        data: { name: "project" },
+        parent_id: "board",
+        parent_idx: 0,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+      {
+        // Index file: same name as folder → findIndexFile matches
+        id: "project-md",
+        type: "h",
+        item: true,
+        fstype: "mdfile",
+        name: "project",
+        data: { name: "project" },
+        parent_id: "project",
+        parent_idx: 0,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+      {
+        id: "task-a",
+        type: "p",
+        item: true,
+        list_marker: "-",
+        task_marker: "[ ]",
+        task_status: "todo",
+        content: "task-a",
+        data: {},
+        parent_id: "project",
+        parent_idx: 1,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+      {
+        id: "task-b",
+        type: "p",
+        item: true,
+        list_marker: "-",
+        task_marker: "[ ]",
+        task_status: "todo",
+        content: "task-b",
+        data: {},
+        parent_id: "project",
+        parent_idx: 2,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+      {
+        id: "other-col",
+        type: "h",
+        item: true,
+        fstype: "folder",
+        name: "other",
+        data: { name: "other" },
+        parent_id: "board",
+        parent_idx: 1,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+      {
+        id: "other-task",
+        type: "p",
+        item: true,
+        list_marker: "-",
+        task_marker: "[ ]",
+        task_status: "todo",
+        content: "other-task",
+        data: {},
+        parent_id: "other-col",
+        parent_idx: 0,
+        created_at: now,
+        updated_at: now,
+        version: "v1",
+      },
+    ] as KNode[]
+  }
+
+  test("j from column header lands on first visible card, not invisible index file", () => {
+    const repo = createFakeRepo({ nodes: makeFolderWithIndexFile() })
+    const { board } = testEnvWithRepo(repo, "board", { columns: 80, rows: 20 })
+
+    // Initial cursor is on first visible card (task-a).
+    board.expect('[id="task-a"][data-cursor]').toExist()
+
+    // Go up to column header
+    board.command("cursor_up") // task-a → column header "project"
+    board.expect('[id="project"][data-cursor]').toExist()
+
+    // Now press j to go to first card. Should skip invisible index file.
+    board.command("cursor_down")
+
+    // The cursor should be on task-a, not on the invisible project-md
+    board.expect('[id="task-a"][data-cursor]').toExist()
+  })
+
+  test("k from first visible card goes to column header, not invisible index file", () => {
+    const repo = createFakeRepo({ nodes: makeFolderWithIndexFile() })
+    const { board } = testEnvWithRepo(repo, "board", { columns: 80, rows: 20 })
+
+    // Initial cursor is on first visible card (task-a).
+    board.expect('[id="task-a"][data-cursor]').toExist()
+
+    // Press k to go up — should go to column header, not invisible index file
+    board.command("cursor_up")
+
+    // Should be at column header "project", not at invisible project-md
+    board.expect('[id="project"][data-cursor]').toExist()
+  })
+
+  test("index file is not rendered as a card in the column", () => {
+    const repo = createFakeRepo({ nodes: makeFolderWithIndexFile() })
+    const { board } = testEnvWithRepo(repo, "board", { columns: 80, rows: 20 })
+
+    // The index file node should not appear on screen
+    const indexFileNode = board.q('[id="project-md"][data-view="item"]')
+    expect(indexFileNode.count()).toBe(0)
+  })
+})

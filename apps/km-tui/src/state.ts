@@ -20,6 +20,7 @@ import {
   getParentContext as getParentContextBase,
   getParentContextEx as getParentContextExBase,
   extractBody,
+  findIndexFile,
 } from "@km/tree"
 
 /**
@@ -174,7 +175,11 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       continue
     }
 
-    const cardNodes = repo.getChildren(colNode.id)
+    const allCardNodes = repo.getChildren(colNode.id)
+    // Filter out folder index files — they are absorbed into the folder's column
+    // and must not appear as navigable cards (mirrors kNodeToColumnView filtering)
+    const folderIndex = colNode.fstype === "folder" ? findIndexFile(colNode, allCardNodes) : null
+    const cardNodes = folderIndex ? allCardNodes.filter((c) => c.id !== folderIndex.id) : allCardNodes
     columnCardNodes[colIdx] = cardNodes
 
     // Yield progress after each column

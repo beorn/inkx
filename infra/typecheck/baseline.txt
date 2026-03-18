@@ -84,7 +84,6 @@
 1 apps/km-tui/tests/pty-integration.slow.spec.ts
 1 apps/km-tui/tests/real-vault.slow.test.ts
 6 apps/km-tui/tests/toast.spec.ts
-3 apps/km-tui/tests/tree-node-helpers.test.ts
 16 apps/km-tui/tests/views/node-view.test.tsx
 9 apps/km-tui/tests/visual.test.ts
 16 apps/km-tui/tests/windowing-wire.test.ts
@@ -120,9 +119,10 @@
 2 packages/km-storage/src/query.ts
 3 packages/km-storage/src/repo.ts
 1 packages/km-storage/src/store-memory.ts
-1 packages/km-storage/src/watch/applier.ts
+2 packages/km-storage/src/watch/applier.ts
+1 packages/km-storage/src/watch/fs-writer.ts
 2 packages/km-storage/src/watch/handlers/node-differ.ts
-2 packages/km-storage/src/watch/sync.ts
+3 packages/km-storage/src/watch/sync.ts
 2 packages/km-storage/tests/ambiguous-suffix.test.ts
 4 packages/km-storage/tests/db-rules.test.ts
 2 packages/km-storage/tests/e2e/roundtrip-features.test.ts
@@ -131,6 +131,7 @@
 1 packages/km-storage/tests/repo.test.ts
 1 packages/km-storage/tests/store.test.ts
 2 packages/km-storage/tests/sync/chaos/concurrent.slow.test.ts
+6 packages/km-storage/tests/sync/chaos/index-file-chaos.fuzz.ts
 2 packages/km-storage/tests/timestamp-preserve.test.ts
 1 packages/km-storage/tests/tree-traversal-filtered.test.ts
 11 packages/km-storage/tests/watch/node-differ.test.ts
@@ -243,7 +244,7 @@
 2 vendor/silvery/packages/ui/src/components/Form.tsx
 2 vendor/silvery/packages/ui/src/components/GridCell.tsx
 5 vendor/silvery/packages/ui/src/components/HorizontalVirtualList.tsx
-5 vendor/silvery/packages/ui/src/components/ListView.tsx
+6 vendor/silvery/packages/ui/src/components/ListView.tsx
 2 vendor/silvery/packages/ui/src/components/ModalDialog.tsx
 5 vendor/silvery/packages/ui/src/components/PickerDialog.tsx
 2 vendor/silvery/packages/ui/src/components/PickerList.tsx
@@ -265,6 +266,8 @@
 2 vendor/silvery/packages/ui/src/components/Tooltip.tsx
 5 vendor/silvery/packages/ui/src/components/TreeView.tsx
 3 vendor/silvery/packages/ui/src/components/Typography.tsx
+1 vendor/silvery/packages/ui/src/components/VirtualList.tsx
+1 vendor/silvery/packages/ui/src/components/VirtualView.tsx
 1 vendor/silvery/packages/ui/src/components/useReadline.ts
 4 vendor/silvery/packages/ui/src/components/useTextArea.ts
 4 vendor/silvery/packages/ui/src/image/Image.tsx
@@ -324,7 +327,6 @@
 2 vendor/silvery/tests/providers/search-provider.test.tsx
 1 vendor/silvery/tests/providers/surface-registry.test.tsx
 2 vendor/silvery/tests/scroll-tier.test.ts
-18 vendor/silvery/tests/ui/list-view-history.pending.tsx
 1 vendor/silvery/tests/ui/search-bar.test.tsx
 1 vendor/tap/src/parallel-tui.ts
 8 vendor/termless/packages/cli/src/mcp.ts

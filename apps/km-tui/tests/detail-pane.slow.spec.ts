@@ -14,6 +14,7 @@
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { DETAIL_DEFAULT_DEPTH } from "../src/view-navigation.ts"
 
 describe("Detail Pane Journeys", () => {
   test("D opens detail pane and focuses it, D again closes it", () => {
@@ -224,6 +225,92 @@ describe("Detail Pane Journeys", () => {
     // i = inline edit on detail cursor node
     board.press("i")
     expect(getActiveBoardPane(store.getState())?.inlineEditBlock?.nodeId).toBe("child-a")
+  })
+
+  // =========================================================================
+  // Bug km-ii6qw.2: Shift+L unfold doesn't work in detail pane
+  // =========================================================================
+
+  test("L unfolds a child in detail pane, revealing deeper descendants", () => {
+    // 3 levels deep: child-a > gc-1 > ggc-1
+    // With DETAIL_DEFAULT_DEPTH=1, gc-1 is visible but ggc-1 is folded
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("parent", item("child-a", item("gc-1", item("ggc-1"), item("ggc-2")))))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Step 1: Open detail pane — cursor on child-a
+    board.command("toggle_detail_pane")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    expect(pane1?.cursorNodeId).toBe("child-a")
+
+    // gc-1 is visible at depth 1, but ggc-1/ggc-2 are folded (depth exceeded)
+    // Note: they also exist in the board card, so check the detail pane foldDepths
+    const detailPane = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
+    const foldDepthsBefore = detailPane?.foldDepths ?? new Map()
+    expect(foldDepthsBefore.has("child-a")).toBe(false) // no override yet
+
+    // Step 2: Unfold child-a with L (Shift+L)
+    board.command("unfold_node")
+
+    // Verify foldDepths was updated for child-a
+    const detailPane2 = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
+    const foldDepthsAfter = detailPane2?.foldDepths ?? new Map()
+    expect(foldDepthsAfter.get("child-a")).toBeGreaterThan(DETAIL_DEFAULT_DEPTH)
+  })
+
+  test("H folds a child in detail pane, hiding its sub-children", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("parent", item("child-a", item("gc-1"), item("gc-2"))))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Step 1: Open detail pane — cursor on child-a
+    board.command("toggle_detail_pane")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    // gc-1 and gc-2 are visible at DETAIL_DEFAULT_DEPTH=1 (in detail pane)
+    // They also appear in the board card. After folding, they should disappear from detail.
+
+    // Step 2: Fold child-a
+    board.command("fold_node")
+
+    // Verify foldDepths was updated — child-a should have depth 0 (fully folded)
+    const detailPane = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
+    const foldDepths = detailPane?.foldDepths ?? new Map()
+    expect(foldDepths.get("child-a")).toBe(0)
+
+    // Step 3: Unfold — should restore
+    board.command("unfold_node")
+    const detailPane2 = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
+    const foldDepths2 = detailPane2?.foldDepths ?? new Map()
+    expect(foldDepths2.get("child-a")).toBeGreaterThan(0)
+  })
+
+  // =========================================================================
+  // Bug km-ii6qw.3: Detail depth matches column depth (no full tree duplication)
+  // =========================================================================
+
+  test("detail pane children use controlled depth, not infinite expansion", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("parent", item("child-a", item("gc-1", item("ggc-1")))))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Open detail pane
+    board.command("toggle_detail_pane")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    // DETAIL_DEFAULT_DEPTH=1: child-a shows gc-1 (1 level), but gc-1's children
+    // (ggc-1) are folded. The detail pane should NOT show the full tree.
+    // Verify by checking that child-a's foldOverride is not set (inherits default depth)
+    const detailPane = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
+    const foldDepths = detailPane?.foldDepths ?? new Map()
+    // No explicit depth override — children inherit DETAIL_DEFAULT_DEPTH via remainingDepth prop
+    expect(foldDepths.has("child-a")).toBe(false)
+    // DETAIL_DEFAULT_DEPTH should be 1 (not 0 or Infinity)
+    expect(DETAIL_DEFAULT_DEPTH).toBe(1)
   })
 
   test("detail pane stays open when navigating between columns", () => {

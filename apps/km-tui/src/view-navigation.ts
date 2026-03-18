@@ -11,7 +11,7 @@
 import type { Repo } from "@km/storage"
 import { isOutline } from "@km/core"
 import { createLogger } from "loggily"
-import { extractBody } from "@km/tree"
+import { extractBody, findIndexFile } from "@km/tree"
 import type { GridNavigator } from "@km/board"
 import type { ViewMode } from "./types.ts"
 import { deriveCursorAncestors } from "./cursor-store.ts"
@@ -213,8 +213,8 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
     if (isAtColumnLevel) {
       // Collapsed column → can't go down into cards (they're not rendered)
       if (state.collapsedNodes.has(cursorNodeId)) return null
-      // Column header → first card in column
-      const cards = repo.getChildren(cursorNodeId)
+      // Column header → first navigable card in column (skip index files)
+      const cards = getNavigableChildren(cursorNodeId, repo)
       return cards[0]?.id ?? null
     }
 
@@ -438,7 +438,7 @@ function navigateToStructuralCol(
     return targetCol.id
   }
 
-  const targetCards = repo.getChildren(targetCol.id)
+  const targetCards = getNavigableChildren(targetCol.id, repo)
 
   if (targetCards.length === 0) {
     return targetCol.id
@@ -447,7 +447,7 @@ function navigateToStructuralCol(
   if (isAtColumnLevel) {
     // At column header: if current column has cards, stay at header level
     if (sourceColId) {
-      const currentCards = repo.getChildren(sourceColId)
+      const currentCards = getNavigableChildren(sourceColId, repo)
       if (currentCards.length > 0) {
         return targetCol.id
       }
@@ -527,10 +527,12 @@ function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator, s
 // =============================================================================
 
 /**
- * Detail view navigation — flat single-column navigation through properties + children.
+ * Detail view navigation — flat sibling navigation through properties + children.
  *
- * The detail pane shows metadata property rows (with __meta__ cursor IDs) first,
- * followed by tree children. j/k navigates sequentially through all items.
+ * Same navigation pattern as column view: j/k moves between sibling items
+ * (metadata rows then direct children). No DFS tree walking — to go deeper
+ * into a child's tree, use zoom (z).
+ *
  * h/l: left returns to parent pane (handled by handleHorizontalNav), right is boundary.
  */
 export function createDetailViewNavigation(): ViewNavigation {
@@ -544,7 +546,7 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       if (dir === "left" || dir === "right") return null
 
-      // Build the flat list of navigable items: metadata keys + children
+      // Build the flat list of navigable items: metadata keys + direct children
       const rootNode = rootId ? repo.getNode(rootId) : null
       const metaKeys = rootNode ? computeDetailMetadataKeys(rootNode) : []
       const metaIds = metaKeys.map((key) => `${DETAIL_META_PREFIX}${key}`)
@@ -558,18 +560,7 @@ export function createDetailViewNavigation(): ViewNavigation {
         return dir === "down" ? (allItems[0] ?? null) : (allItems[allItems.length - 1] ?? null)
       }
 
-      // Check if cursor is a __meta__ item
-      const isMetaCursor = cursorNodeId.startsWith(DETAIL_META_PREFIX)
-
-      if (isMetaCursor) {
-        const idx = allItems.indexOf(cursorNodeId)
-        if (idx < 0) return allItems[0] ?? null
-        const targetIdx = dir === "down" ? idx + 1 : idx - 1
-        if (targetIdx < 0 || targetIdx >= allItems.length) return null
-        return allItems[targetIdx] ?? null
-      }
-
-      // Regular child node — find it in allItems
+      // Find cursor in the flat list
       const idx = allItems.indexOf(cursorNodeId)
       if (idx >= 0) {
         const targetIdx = dir === "down" ? idx + 1 : idx - 1
@@ -592,6 +583,13 @@ export function createDetailViewNavigation(): ViewNavigation {
     },
   }
 }
+
+/**
+ * Default remaining depth for detail view children (matching column behavior).
+ * DetailView passes remainingDepth={DETAIL_DEFAULT_DEPTH} to TreeNode,
+ * giving fold indicators and controlled tree depth — same as cards in columns.
+ */
+export const DETAIL_DEFAULT_DEPTH = 1
 
 // =============================================================================
 // ViewNavigation lookup
@@ -636,10 +634,27 @@ function cardAt(cards: { id: string }[], idx: number): string {
   return card.id
 }
 
+/**
+ * Get navigable children of a node, filtering out index files for folders.
+ *
+ * The view layer (kNodeToColumnView) filters index files from cardNodes so they
+ * are not rendered. Navigation must match: if a node is invisible in the view,
+ * the cursor must not land on it. This mirrors the filtering at use-columns.ts:776-778.
+ */
+export function getNavigableChildren(parentId: string | null, repo: Repo): import("@km/core").KNode[] {
+  const children = repo.getChildren(parentId)
+  if (!parentId) return children
+  const parentNode = repo.getNode(parentId)
+  if (parentNode?.fstype !== "folder") return children
+  const indexFile = findIndexFile(parentNode, children)
+  if (!indexFile) return children
+  return children.filter((c) => c.id !== indexFile.id)
+}
+
 function getSibling(nodeId: string, repo: Repo, delta: 1 | -1): string | null {
   const node = repo.getNode(nodeId)
   if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
-  const siblings = repo.getChildren(node.parent_id)
+  const siblings = getNavigableChildren(node.parent_id, repo)
   const idx = indexOfChild(siblings, nodeId)
   if (idx < 0) {
     throw new Error(`[nav] node ${nodeId} not found in parent's children`)

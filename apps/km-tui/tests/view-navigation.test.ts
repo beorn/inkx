@@ -143,11 +143,130 @@ describe("CardsViewNavigation", () => {
   })
 })
 
+describe("ghost cursor — index file nodes (km-nx8af)", () => {
+  /**
+   * When a folder column has an index file (e.g., early-orbit/early-orbit.md),
+   * the view layer filters it from cardNodes (kNodeToColumnView). But navigation
+   * uses repo.getChildren() directly, which includes the index file. If the
+   * cursor lands on the invisible index file node, it becomes a "ghost cursor"
+   * — the cursor exists but nothing is rendered for it.
+   */
+  const nav = createCardsViewNavigation()
+  const grid = createGridNavigator()
+
+  // Build a board with a folder column whose first child is its index file.
+  // At the parent ("board") level, "project" is a column with cards:
+  //   [project.md (index file), task-a, task-b]
+  // The view filters out project.md, showing only [task-a, task-b].
+  // Navigation must also skip project.md.
+  const nodes: import("@km/core").KNode[] = [
+    {
+      id: "board",
+      type: "h",
+      item: true,
+      fstype: "repo",
+      name: "board",
+      data: { name: "board", is_repo_root: true },
+      parent_id: null,
+      parent_idx: 0,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    },
+    {
+      id: "project",
+      type: "h",
+      item: true,
+      fstype: "folder",
+      name: "project",
+      data: { name: "project" },
+      parent_id: "board",
+      parent_idx: 0,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    },
+    {
+      // Index file: same name as parent folder → findIndexFile matches this
+      id: "project-md",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      name: "project",
+      data: { name: "project" },
+      parent_id: "project",
+      parent_idx: 0,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    },
+    {
+      id: "task-a",
+      type: "p",
+      item: true,
+      list_marker: "-",
+      task_marker: "[ ]",
+      task_status: "todo",
+      content: "task-a",
+      data: {},
+      parent_id: "project",
+      parent_idx: 1,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    },
+    {
+      id: "task-b",
+      type: "p",
+      item: true,
+      list_marker: "-",
+      task_marker: "[ ]",
+      task_status: "todo",
+      content: "task-b",
+      data: {},
+      parent_id: "project",
+      parent_idx: 2,
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    },
+  ]
+  const repo = createFakeRepo({ nodes })
+
+  it("j from column header skips index file, lands on first visible card", () => {
+    // Column header "project" → j should go to "task-a", not "project-md" (index file)
+    const target = nav.navigate("down", makeState("project"), repo, grid)
+    expect(target).not.toBe("project-md")
+    expect(target).toBe("task-a")
+  })
+
+  it("j from card before index file skips it", () => {
+    // If cursor is on task-a (parent_idx 1) and index file is at parent_idx 0,
+    // j should go to task-b, not to the invisible index file.
+    const target = nav.navigate("down", makeState("task-a"), repo, grid)
+    expect(target).toBe("task-b")
+  })
+
+  it("k from card after index file skips it", () => {
+    // k from task-a: previous sibling by parent_idx is project-md (index file),
+    // but it should skip to column header instead
+    const target = nav.navigate("up", makeState("task-a"), repo, grid)
+    // Should go to column header, not to the invisible index file
+    expect(target).not.toBe("project-md")
+    expect(target).toBe("project")
+  })
+
+  it("j from last card → null (does not wrap to index file)", () => {
+    const target = nav.navigate("down", makeState("task-b"), repo, grid)
+    expect(target).toBeNull()
+  })
+})
+
 describe("DetailViewNavigation", () => {
   const nav = createDetailViewNavigation()
+  const grid = createGridNavigator()
   const nodes = item("root", item("child0"), item("child1"), item("child2"))
   const repo = createFakeRepo({ nodes })
-  const grid = createGridNavigator()
 
   it("cursor === root, down → first child (bug: km-tui.detail-nav-ancestor)", () => {
     const target = nav.navigate("down", makeState("root", "root"), repo, grid)
@@ -177,5 +296,13 @@ describe("DetailViewNavigation", () => {
   it("left/right → null", () => {
     expect(nav.navigate("left", makeState("child0", "root"), repo, grid)).toBeNull()
     expect(nav.navigate("right", makeState("child0", "root"), repo, grid)).toBeNull()
+  })
+
+  it("j navigates between siblings only (no DFS into children)", () => {
+    const nested = item("root", item("parent", item("child")), item("sibling"))
+    const nestedRepo = createFakeRepo({ nodes: nested })
+    // j from parent → sibling (not into parent's child)
+    const target = nav.navigate("down", makeState("parent", "root"), nestedRepo, grid)
+    expect(target).toBe("sibling")
   })
 })

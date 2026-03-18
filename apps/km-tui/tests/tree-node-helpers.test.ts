@@ -14,7 +14,9 @@
 import { describe, it, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { hasTaskProperties } from "@km/core"
-import { formatDateBadge, formatInfoSuffix, getNodeStyle, shortName } from "../src/views/tree-node-helpers.tsx"
+import { formatDateBadge, formatInfoSuffix, getNodeStyle, shortName, type GetBoardPillsFn } from "../src/views/tree-node-helpers.tsx"
+import { computeBulletIcon } from "../src/views/tree-node-shared.ts"
+import { FOLDED_MARKER } from "../src/icons.ts"
 import { makeSelectionKey, parseSelectionKey } from "../src/types.ts"
 import type { KNode } from "@km/core"
 
@@ -37,7 +39,7 @@ describe("hasTaskProperties", () => {
 
   for (const [name, props] of taskProps) {
     it(`returns true for node with ${name}`, () => {
-      expect(hasTaskProperties(props as KNode)).toBe(true)
+      expect(hasTaskProperties(props as unknown as KNode)).toBe(true)
     })
   }
 
@@ -133,7 +135,7 @@ describe("formatInfoSuffix with implicit tasks", () => {
   it("shows board pills for node with task properties", () => {
     const node = { due_at: "2026-02-20" } as KNode
     // getBoardPills returns pills when called for a task
-    const mockGetBoardPills = () => [{ boardId: "b1", boardName: "board", color: "cyan" }]
+    const mockGetBoardPills: GetBoardPillsFn = () => [{ name: "board", color: "cyan" }]
     const suffix = formatInfoSuffix(node, false, new Set(), mockGetBoardPills)
     // Should have called getBoardPills (non-empty suffix)
     expect(suffix).not.toBe("")
@@ -141,7 +143,7 @@ describe("formatInfoSuffix with implicit tasks", () => {
 
   it("does not show board pills for plain node", () => {
     const node = {} as KNode
-    const mockGetBoardPills = () => [{ boardId: "b1", boardName: "board", color: "cyan" }]
+    const mockGetBoardPills: GetBoardPillsFn = () => [{ name: "board", color: "cyan" }]
     const suffix = formatInfoSuffix(node, false, new Set(), mockGetBoardPills)
     // Should NOT have called getBoardPills for non-task
     expect(suffix).toBe("")
@@ -289,5 +291,70 @@ describe("parseSelectionKey", () => {
   it("handles node IDs with colons", () => {
     const result = parseSelectionKey("a:b:c")
     expect(result.nodeId).toBe("a:b:c")
+  })
+})
+
+// =============================================================================
+// computeBulletIcon: nerdfont fold indicator (Bug km-ii6qw.1)
+// =============================================================================
+
+describe("computeBulletIcon nerdfont fold indicator", () => {
+  /** Minimal KNode for testing bullet icons */
+  function makeNode(overrides: Partial<KNode> = {}): KNode {
+    return {
+      id: "test",
+      type: "h",
+      parent_id: null,
+      parent_idx: 0,
+      content: "test",
+      data: {},
+      created_at: 0,
+      updated_at: 0,
+      version: "",
+      item: true,
+      fstype: "mdsection",
+      ...overrides,
+    }
+  }
+
+  it("shows fold marker (▶) for folded non-task node with children in nerdfont mode", () => {
+    const node = makeNode()
+    const icon = computeBulletIcon(node, false, null, true, true, undefined, "nerdfont")
+    // When folded with children, the bullet MUST be the fold marker (▶)
+    // to indicate hidden content the user can unfold
+    expect(icon.char).toBe(FOLDED_MARKER.char)
+  })
+
+  it("shows type bullet for unfolded non-task node with children in nerdfont mode", () => {
+    const node = makeNode()
+    const icon = computeBulletIcon(node, false, null, true, false, undefined, "nerdfont")
+    // When unfolded, type-specific bullet is acceptable (e.g., § for mdsection)
+    expect(icon.char).not.toBe(FOLDED_MARKER.char)
+  })
+
+  it("shows type bullet for non-task leaf node in nerdfont mode", () => {
+    const node = makeNode()
+    const icon = computeBulletIcon(node, false, null, false, false, undefined, "nerdfont")
+    // Leaf node (no children) — type bullet is fine, no fold state to show
+    expect(icon.char).not.toBe(FOLDED_MARKER.char)
+  })
+
+  it("shows fold marker for folded folder with children in nerdfont mode", () => {
+    const node = makeNode({ fstype: "folder" })
+    const icon = computeBulletIcon(node, false, null, true, true, undefined, "nerdfont")
+    expect(icon.char).toBe(FOLDED_MARKER.char)
+  })
+
+  it("shows fold marker for folded list item with children in nerdfont mode", () => {
+    const node = makeNode({ type: "p", item: true, list_marker: "-", fstype: undefined })
+    const icon = computeBulletIcon(node, false, null, true, true, undefined, "nerdfont")
+    expect(icon.char).toBe(FOLDED_MARKER.char)
+  })
+
+  it("preserves ownColor on fold marker", () => {
+    const node = makeNode()
+    const icon = computeBulletIcon(node, false, null, true, true, "red", "nerdfont")
+    expect(icon.char).toBe(FOLDED_MARKER.char)
+    expect(icon.color).toBe("red")
   })
 })

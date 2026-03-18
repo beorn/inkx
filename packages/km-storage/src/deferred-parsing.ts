@@ -90,6 +90,9 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
     db.run("BEGIN IMMEDIATE")
 
     try {
+      // Delete the stub AND any existing children (from events.jsonl or prior parse).
+      // Without this, deferred parsing inserts fresh children while old ones remain.
+      deleteSubtreeChildren(db, nodeId)
       db.prepare("DELETE FROM nodes WHERE id = ?").run(nodeId)
 
       const fileNode = nodes[0]
@@ -134,6 +137,23 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
 // ============================================================================
 // INTERNAL HELPERS
 // ============================================================================
+
+/**
+ * Delete all descendants of a node (recursive subtree, not the node itself).
+ * Used before re-parsing a file to prevent duplicate children when events.jsonl
+ * or a prior parse already created children under the same parent.
+ */
+export function deleteSubtreeChildren(db: Database, nodeId: string): void {
+  db.prepare(
+    `DELETE FROM nodes WHERE id IN (
+      WITH RECURSIVE sub(id) AS (
+        SELECT id FROM nodes WHERE parent_id = ?1
+        UNION ALL
+        SELECT n.id FROM nodes n JOIN sub s ON n.parent_id = s.id
+      ) SELECT id FROM sub
+    )`,
+  ).run(nodeId)
+}
 
 /**
  * km-fast-md.6: Parse files in parallel using worker pool.
@@ -194,6 +214,8 @@ function parseOneFile(
     return null
   }
 
+  // Delete existing children before re-inserting parsed ones (prevents duplicates)
+  deleteSubtreeChildren(db, nodeId)
   deleteStmt.run(nodeId)
 
   const fileNode = nodes[0]

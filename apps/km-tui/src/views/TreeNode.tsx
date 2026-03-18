@@ -10,7 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Link, Text, useScreenRectCallback } from "@silvery/react"
+import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -1031,9 +1031,7 @@ function NodeChildren({
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
           <Box flexDirection="column" alignItems="center">
-            <Text dimColor wrap="truncate">
-              +{totalHiddenCount} more
-            </Text>
+            <Small wrap="truncate">+{totalHiddenCount} more</Small>
           </Box>
         )}
       </Box>
@@ -1065,9 +1063,7 @@ function NodeChildren({
       })}
       {hiddenCount > 0 && showOverflowIndicator && (
         <Box flexDirection="column" alignItems="center">
-          <Text dimColor wrap="truncate">
-            +{hiddenCount} more
-          </Text>
+          <Small wrap="truncate">+{hiddenCount} more</Small>
         </Box>
       )}
     </Box>

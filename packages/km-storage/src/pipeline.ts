@@ -36,6 +36,7 @@ import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
 import { createLinkResolver } from "./link-resolver.ts"
 import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./markdown-processing.ts"
 import { INSERT_NODE_PLAIN_SQL } from "./db-insert.ts"
+import { deleteSubtreeChildren } from "./deferred-parsing.ts"
 
 const log = createLogger("km:storage:pipeline")
 
@@ -183,7 +184,7 @@ export async function* applyNodes(
       if (file.error) continue
 
       if (file.isCreate) {
-        insertFileNodes(file, insertStmt, deleteStmt, stubInfo, emitter, now)
+        insertFileNodes(file, insertStmt, deleteStmt, db, stubInfo, emitter, now)
       } else {
         updateFileMetadata(file, db, emitter, now)
       }
@@ -380,6 +381,7 @@ function insertFileNodes(
   file: ParsedFile,
   insertStmt: ReturnType<Database["prepare"]>,
   deleteStmt: ReturnType<Database["prepare"]>,
+  db: Database,
   stubInfo: Map<string, { parent_id: string | null; parent_idx: number; fs_path: string | null }> | undefined,
   emitter: Emitter | undefined,
   now: number,
@@ -405,8 +407,9 @@ function insertFileNodes(
     }
   }
 
-  // Delete stub if it exists
+  // Delete stub and existing children (prevents duplicates from events.jsonl or prior parse)
   if (stub) {
+    deleteSubtreeChildren(db, file.nodeId)
     deleteStmt.run(file.nodeId)
   }
 

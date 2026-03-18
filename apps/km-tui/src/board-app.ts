@@ -743,11 +743,11 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (!hitNode) return
 
       // Walk up ancestors to find clicked item and card-level node.
-      // data-view="item" = sub-block, data-view="card" = card wrapper, data-view="column" = column
+      // data-view="item" = sub-block, data-view="card"/data-card-id = card wrapper, data-view="column" = column
       let nodeId: string | null = null // First id found (may be sub-block)
       let idNode: TeaNode | null = null
-      let cardId: string | null = null // Card-level id (for selection)
-      let isColumnNode = false
+      let cardId: string | null = null // Card-level id (for border-click fallback)
+      let firstIdIsColumn = false
       let colIndex: number | null = null
       let hasClickHandler = false
       let current: TeaNode | null = hitNode
@@ -757,16 +757,24 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           if (!nodeId) {
             nodeId = props.id
             idNode = current
+            firstIdIsColumn = props["data-view"] === "column"
           }
           if (props["data-view"] === "card") cardId = props.id
-          if (props["data-view"] === "column") isColumnNode = true
         }
+        // Card wrapper uses data-card-id (not id) to avoid duplicate id conflicts with TreeNode.
+        if (!cardId && typeof props["data-card-id"] === "string") cardId = props["data-card-id"] as string
         if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
         if (typeof props.onClick === "function") hasClickHandler = true
         current = current.parent
       }
-      // Use card-level ID for selection (click anywhere on card selects the card)
-      const selectId = cardId ?? nodeId
+      // Column click = no card ancestor found AND the first id-bearing element is the column.
+      // Clicks inside cards always find data-card-id or data-view="item" before the column.
+      const isColumnNode = firstIdIsColumn && !cardId
+      // Selection priority:
+      // 1. Sub-block nodeId (click on content inside card → j/k sub-block navigation)
+      // 2. Card-level cardId (click on border → card selection, not column deselect)
+      // 3. Column nodeId (click on column header → column-level, handled below)
+      const selectId = nodeId && !firstIdIsColumn ? nodeId : (cardId ?? nodeId)
 
       const now = Date.now()
       const dx = Math.abs(mouse.x - locals.lastClick.x)

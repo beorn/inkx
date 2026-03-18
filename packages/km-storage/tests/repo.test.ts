@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs"
+import { mkdirSync, writeFileSync, rmSync, existsSync, statSync } from "fs"
 import { join } from "path"
 
 import { runGenerator } from "@km/core"
@@ -655,5 +655,89 @@ describe("FsWriter auto-registration", () => {
     expect(content).toContain("New CLI task")
 
     repo.close()
+  })
+})
+
+// =============================================================================
+// WAL checkpoint on close (km-shk24 bug 2: disk I/O after prolonged use)
+// =============================================================================
+
+describe("WAL checkpoint on close", () => {
+  let tempDir: string
+
+  beforeEach(() => {
+    tempDir = createTempDir()
+  })
+
+  afterEach(() => {
+    cleanupTempDir(tempDir)
+  })
+
+  test("WAL file is checkpointed after explicit PRAGMA wal_checkpoint", () => {
+    mkdirSync(join(tempDir, ".km"), { recursive: true })
+    writeFileSync(join(tempDir, "tasks.md"), "# Tasks\n\n## Inbox\n\n- [ ] Task 1\n- [ ] Task 2\n")
+
+    const repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+
+    // Add many nodes to grow the WAL
+    for (let i = 0; i < 50; i++) {
+      repo.addNode(null, { type: "p", item: true, content: `Bulk task ${i}` })
+    }
+
+    // WAL file should exist and have data
+    const walPath = join(tempDir, ".km", "state.db-wal")
+    const walSizeBefore = existsSync(walPath) ? statSync(walPath).size : 0
+
+    // Checkpoint the WAL (this is what the fix in view.ts does)
+    repo.database.run("PRAGMA wal_checkpoint(TRUNCATE)")
+
+    // After TRUNCATE checkpoint, WAL file should be zero or very small
+    const walSizeAfter = existsSync(walPath) ? statSync(walPath).size : 0
+    expect(walSizeAfter).toBeLessThan(walSizeBefore)
+
+    repo.close()
+  })
+})
+
+// =============================================================================
+// Deferred parsing: no duplicate children (km-ii6qw)
+// =============================================================================
+
+describe("deferred parsing deduplication", () => {
+  test("double parseStubFile does not duplicate children", async () => {
+    // Simulate the Asana vault scenario: a .md file with heading sections
+    // is parsed eagerly (parseStubFile) then again via deferred parsing.
+    const dir = createTempDir()
+    const mdContent = "# Launch Academy\n\n## INBOX\n\nTask 1\n\n## PROJECTS\n\nTask 2\n"
+    writeFileSync(join(dir, "launch-academy.md"), mdContent)
+
+    mkdirSync(join(dir, ".km"), { recursive: true })
+    writeFileSync(join(dir, "launch-academy.md"), "# Launch Academy\n\n## INBOX\n\nTask 1\n\n## PROJECTS\n\nTask 2\n")
+
+    // Load with discoverOnly to get a stub
+    const repo = runGenerator(createRepo(dir, { loadFiles: true, discoverOnly: true }))
+
+    // Find the stub
+    const stub = repo.database.prepare("SELECT id FROM nodes WHERE fs_path = ?").get("launch-academy.md") as { id: string } | null
+    expect(stub).toBeTruthy()
+
+    // Parse the file (first time)
+    const { parseStubFile } = await import("../src/deferred-parsing.ts")
+    parseStubFile(repo.database, stub!.id, join(dir, "launch-academy.md"), "launch-academy.md")
+
+    const childrenAfterFirst = repo.database.prepare("SELECT content FROM nodes WHERE parent_id = ?").all(stub!.id) as { content: string }[]
+    const sections1 = childrenAfterFirst.filter((c) => c.content === "INBOX" || c.content === "PROJECTS")
+    expect(sections1.length).toBe(2)
+
+    // Parse AGAIN (simulates deferred parsing of an already-parsed file)
+    parseStubFile(repo.database, stub!.id, join(dir, "launch-academy.md"), "launch-academy.md")
+
+    // Should still have exactly 2 sections, not 4
+    const childrenAfterSecond = repo.database.prepare("SELECT content FROM nodes WHERE parent_id = ?").all(stub!.id) as { content: string }[]
+    const sections2 = childrenAfterSecond.filter((c) => c.content === "INBOX" || c.content === "PROJECTS")
+    expect(sections2.length).toBe(2)
+
+    repo.close()
+    rmSync(dir, { recursive: true, force: true })
   })
 })

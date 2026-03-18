@@ -99,6 +99,41 @@ describe("mouse click targeting", () => {
     expect(cursorText).toContain("proj-a")
   })
 
+  test("clicking on card border selects the card (not deselect to root)", () => {
+    const { board, store } = testEnv(() => item.root("board", item("Inbox", item("task-1"), item("task-2"))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Verify data-view="card" wrappers are present
+    const cardWrappers = board.q("[data-view='card']")
+    expect(cardWrappers.count(), "data-view='card' wrappers should exist").toBeGreaterThan(0)
+
+    // Navigate to task-2 first (so we know cursor is there)
+    board.command("cursor_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-2")
+
+    // Find the inner element's bounding box (inside the card border)
+    const task2 = board.q("[id='task-2'][data-view='item']")
+    expect(task2.count()).toBeGreaterThan(0)
+    const innerBox = task2.boundingBox()
+    expect(innerBox).not.toBeNull()
+
+    // Navigate to task-1 (move cursor away from task-2)
+    board.command("cursor_up")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-1")
+
+    // Click on the card border (1 column left of the inner content area).
+    // The card border is rendered by the Card wrapper Box, which has data-card-id
+    // but no `id` prop. Without the data-card-id fix, this would resolve to
+    // the column and deselect to board root.
+    board.click(innerBox!.x - 1, innerBox!.y)
+
+    // Cursor should land on task-2, not deselect to board root
+    const cursorId = getActiveBoardPane(store.getState())!.cursorNodeId
+    expect(cursorId).toBe("task-2")
+  })
+
   test("ctrl-click toggles multi-selection", () => {
     const { board } = testEnv(() => item.root("board", item("Inbox", item("task-1"), item("task-2"), item("task-3"))), {
       columns: 80,

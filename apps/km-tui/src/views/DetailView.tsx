@@ -13,16 +13,15 @@
 import React from "react"
 import { Box, Text, Small } from "@silvery/react"
 import type { KNode } from "@km/core"
-import { isTask, decomposeDatetime } from "@km/core"
+import { decomposeDatetime } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
-import { InlineText, getStatusIcon } from "../text/index.ts"
-import { stripTaskMark } from "./tree-node-helpers.tsx"
 import { TreeNode } from "./TreeNode.tsx"
+import { DETAIL_DEFAULT_DEPTH } from "../view-navigation.ts"
 
 // =============================================================================
 // DetailView Component
@@ -61,11 +60,6 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     )
   }
 
-  const nodeIsTask = isTask(rootNode)
-  const rawContent = rootNode.content ?? ""
-  const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
-  const statusIcon = nodeIsTask ? getStatusIcon(rootNode.task_status ?? "todo") : null
-
   // Compute metadata keys and children
   const metaKeys = computeMetadataKeys(rootNode)
   const children = repo.getChildren(rootId)
@@ -75,22 +69,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
-      {/* Title header — selection-colored background */}
-      <Box height={1} flexShrink={0} width={width} backgroundColor="$inverse-bg" flexDirection="row">
-        <Box width={1} flexShrink={0} />
-        <Box flexGrow={1} flexShrink={1} overflow="hidden">
-          <Text bold color="$inverse" wrap="truncate">
-            {statusIcon && <Text>{statusIcon.char} </Text>}
-            <InlineText text={displayContent} context={{ colorOverride: null, hideFields: true }} />
-          </Text>
-        </Box>
-        <Box width={1} flexShrink={0} />
-      </Box>
-
-      {/* Separator below title */}
-      <Box height={1} flexShrink={0} width={width}>
-        <Text color="$disabled-fg">{"\u2500".repeat(Math.max(0, width))}</Text>
-      </Box>
+      {/* Title is shown in the pane bar — no duplicate header needed */}
 
       {/* Scrollable content: metadata rows + children */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
@@ -117,11 +96,21 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           </Box>
         )}
 
-        {/* Children as tree nodes (supports inline editing) */}
+        {/* Children as tree nodes — uses remainingDepth={1} to match column
+            fold behavior: show title + one level of sub-children, with fold
+            indicators for deeper content. User can Shift+L to unfold more. */}
         {children.map((child, index) => {
           const isSelected = cursorCardNodeId === child.id
           return (
-            <TreeNode key={child.id} node={child} depth={0} isSelected={isSelected} colIndex={0} cardIndex={index} />
+            <TreeNode
+              key={child.id}
+              node={child}
+              depth={0}
+              remainingDepth={DETAIL_DEFAULT_DEPTH}
+              isSelected={isSelected}
+              colIndex={0}
+              cardIndex={index}
+            />
           )
         })}
 

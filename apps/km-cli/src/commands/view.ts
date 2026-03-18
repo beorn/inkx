@@ -249,6 +249,20 @@ export const viewCommand = new Command("view")
     aborted = true
     // Background task will check `aborted` and exit cleanly on next yield
 
+    // Checkpoint and close the database before exiting.
+    // Without this, the WAL file grows indefinitely across sessions and
+    // eventually causes SQLite disk I/O errors (km-shk24 bug 2).
+    try {
+      createdRepo?.database?.run("PRAGMA wal_checkpoint(TRUNCATE)")
+    } catch {
+      // Ignore checkpoint errors — we're exiting anyway
+    }
+    try {
+      createdRepo?.close()
+    } catch {
+      // Ignore close errors — we're exiting anyway
+    }
+
     // Force exit to avoid Bun segfault during GC cleanup (bun#24357).
     // Without this, Bun crashes with SIGSEGV at 0x23B923B823B723B6 during
     // process shutdown — a known Bun bug with complex app teardown.

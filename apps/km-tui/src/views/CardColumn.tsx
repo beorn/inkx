@@ -248,7 +248,14 @@ const Card = React.memo(
           ? { borderStyle: "round" as const, borderColor: "$selection-bg", borderDimColor: false }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
-        <Box flexDirection="column" flexShrink={0} width={width} {...hrLayoutProps}>
+        <Box
+          data-view="card"
+          data-card-id={nodeId}
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          {...hrLayoutProps}
+        >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
             id={nodeId}
@@ -276,6 +283,8 @@ const Card = React.memo(
       const bodyBorderColor = isEditing ? "$focusborder" : "$selection-bg"
       return (
         <Box
+          data-view="card"
+          data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
           width={width}
@@ -315,6 +324,8 @@ const Card = React.memo(
       const collapsedBorder = isSelected || isMultiSelected || isColSelected ? "$selection-bg" : "$muted"
       return (
         <Box
+          data-view="card"
+          data-card-id={nodeId}
           flexDirection="column"
           flexShrink={0}
           width={width}
@@ -361,7 +372,7 @@ const Card = React.memo(
       const rightPad = padding - leftPad
 
       return (
-        <Box flexDirection="column" flexShrink={0} width={width}>
+        <Box data-view="card" data-card-id={nodeId} flexDirection="column" flexShrink={0} width={width}>
           <Box
             flexDirection="column"
             width={width}
@@ -397,6 +408,8 @@ const Card = React.memo(
 
     return (
       <Box
+        data-view="card"
+        data-card-id={nodeId}
         flexDirection="column"
         flexShrink={0}
         width={width}

@@ -1200,6 +1200,99 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
   })
 })
 
+describe("Asana vault section deduplication (km-shk24)", () => {
+  test("launch-academy.md sections are not duplicated", () => {
+    // Regression test for km-shk24: Asana vault's launch-academy.md has 6 sections
+    // (INBOX, PROJECTS & PHASES, Phase 2-5) but TUI showed each duplicated.
+    // Root cause: stale DB state. This test documents correct behavior.
+    const mdFile = makeNode({
+      id: "stabell/early-orbit/launch-academy.md",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "stabell/early-orbit",
+      parent_idx: 0,
+      title: "Launch Academy",
+      fs_path: "stabell/early-orbit/launch-academy.md",
+      name: "launch-academy",
+    })
+    const sectionNames = ["INBOX", "PROJECTS & PHASES", "Phase 2", "Phase 3", "Phase 4", "Phase 5"]
+    const sections = sectionNames.map((name, idx) =>
+      makeNode({
+        id: `la-section-${idx}`,
+        type: "h",
+        item: true,
+        fstype: "mdsection",
+        parent_id: "stabell/early-orbit/launch-academy.md",
+        parent_idx: idx,
+        content: name,
+        title: name,
+      }),
+    )
+
+    const repo = createFakeRepo({
+      nodes: [mdFile, ...sections],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "stabell/early-orbit/launch-academy.md", new Map())
+
+    // Should produce exactly 6 columns, no duplicates
+    expect(columns.length).toBe(6)
+    expect(columns.map((c) => c.node.title || c.node.content)).toEqual(sectionNames)
+  })
+
+  test("duplicate mdsection children with same content produce only one column each", () => {
+    // Simulates stale DB scenario: two copies of each section exist as children
+    // (e.g., from import + parse creating duplicate nodes).
+    // deduplicateByFsPath only dedupes by fs_path — mdsection nodes have no fs_path.
+    // This test documents that sections without fs_path are NOT deduplicated
+    // (they can't be — they're structurally distinct nodes).
+    const mdFile = makeNode({
+      id: "launch-academy.md",
+      type: "h",
+      item: true,
+      fstype: "mdfile",
+      parent_id: "root",
+      parent_idx: 0,
+      title: "Launch Academy",
+      fs_path: "launch-academy.md",
+      name: "launch-academy",
+    })
+    // Two INBOX sections with different IDs (simulates duplicate DB entries)
+    const inbox1 = makeNode({
+      id: "inbox-1",
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      parent_id: "launch-academy.md",
+      parent_idx: 0,
+      content: "INBOX",
+      title: "INBOX",
+    })
+    const inbox2 = makeNode({
+      id: "inbox-2",
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      parent_id: "launch-academy.md",
+      parent_idx: 1,
+      content: "INBOX",
+      title: "INBOX",
+    })
+
+    const repo = createFakeRepo({
+      nodes: [mdFile, inbox1, inbox2],
+    })
+
+    const columns = deriveColumnsFromRepo(repo, "launch-academy.md", new Map())
+
+    // Without fs_path, deduplication doesn't apply — both nodes become columns.
+    // This is the correct behavior: if there are genuinely two children, show both.
+    // The duplication bug is at the storage layer (duplicate DB entries), not the TUI.
+    expect(columns.length).toBe(2)
+  })
+})
+
 describe("markdown file columns", () => {
   test("zooming into an md file with H2 sections produces multiple columns", () => {
     // Simulate an md file (mdfile) with H2 sections (mdsection) as children.
