@@ -16,7 +16,7 @@
  * goes through the command system (keybindings layer "favorites-dialog").
  */
 import React from "react"
-import { Box, Text, ModalDialog, H1, H2 } from "@silvery/react"
+import { Box, Text, ModalDialog, H1, H2, Muted, Small, Strong } from "@silvery/react"
 import { getAllFavorites, getFavorite, SYSTEM_LOCS, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"
@@ -33,7 +33,7 @@ interface FavoritesDialogProps {
 function SectionHeader({ label }: { label: string }): React.ReactElement {
   return (
     <Box height={1}>
-      <H2 color="$muted">{label}</H2>
+      <H2>{label}</H2>
     </Box>
   )
 }
@@ -62,9 +62,13 @@ function KeyRow({
           <NodeLine node={node} title={title} />
         </Box>
       ) : label ? (
-        <Text color={dimLabel ? "$disabled-fg" : "$fg"}>{label}</Text>
+        dimLabel ? (
+          <Muted>{label}</Muted>
+        ) : (
+          <Text>{label}</Text>
+        )
       ) : (
-        <Text color="$disabled-fg">{"(empty)"}</Text>
+        <Muted>{"(empty)"}</Muted>
       )}
     </Box>
   )
@@ -89,23 +93,23 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
       >
         <Box flexDirection="column">
           <Box flexDirection="row" height={1}>
-            <Text dimColor>{"Current  "}</Text>
+            <Small>{"Current  "}</Small>
             {currentNode ? (
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
                 <NodeLine node={currentNode} title={currentNode.title ?? currentNode.name ?? currentNodeId ?? ""} />
               </Box>
             ) : (
-              <Text color="$disabled-fg">{currentNodeId ?? "(unassigned)"}</Text>
+              <Muted>{currentNodeId ?? "(unassigned)"}</Muted>
             )}
           </Box>
           <Box flexDirection="row" height={1}>
-            <Text bold>{"Assign \u2192 "}</Text>
+            <Strong>{"Assign \u2192 "}</Strong>
             {assignNode ? (
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
                 <NodeLine node={assignNode} title={assignTitle ?? ""} />
               </Box>
             ) : (
-              <Text color="$disabled-fg">{assignNodeId ?? "(no node selected)"}</Text>
+              <Muted>{assignNodeId ?? "(no node selected)"}</Muted>
             )}
           </Box>
         </Box>

@@ -10,7 +10,7 @@
  * a text app with string arithmetic.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Fill, ModalDialog, H2, Small } from "@silvery/react"
+import { Box, Text, Fill, ModalDialog, H2, H3, Small } from "@silvery/react"
 import { KeyBinding } from "./shared-components.tsx"
 import { getHelpScreenData, VERB_GRID, type HelpSection } from "@km/commands"
 
@@ -85,7 +85,7 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       {keys.map((k, i) => (
         <React.Fragment key={i}>
           {i > 0 && <Text> </Text>}
-          <KeyBinding keys={k} color={"$warning"} />
+          <KeyBinding keys={k} />
         </React.Fragment>
       ))}
       <Text> </Text>
@@ -165,7 +165,9 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
             {cols.map((col, ci) => (
               <React.Fragment key={ci}>
                 {ci > 0 && <Box width={gap} />}
-                <Box width={colWidth}>{col[i] ?? null}</Box>
+                <Box width={colWidth} flexDirection="column">
+                  {col[i] ?? null}
+                </Box>
               </React.Fragment>
             ))}
           </Box>,
@@ -196,7 +198,7 @@ const VG_COL_W = 12
 
 function GridCell({ value, showDot = true }: { value?: string; showDot?: boolean }): React.ReactElement {
   if (!value) return showDot ? <Text dimColor>{"·"}</Text> : <Text>{""}</Text>
-  return <KeyBinding keys={value} color={"$warning"} />
+  return <KeyBinding keys={value} />
 }
 
 function buildVerbGridLines(): React.ReactElement[] {
@@ -210,15 +212,15 @@ function buildVerbGridLines(): React.ReactElement[] {
     <Box key="vg-col-hdr" flexDirection="row">
       <Box width={VG_LOC_W} />
       <Box width={VG_COL_W}>
-        <H2>{"go to"}</H2>
+        <H3>{"go to"}</H3>
       </Box>
       <Box width={VG_COL_W}>
-        <H2>{"move"}</H2>
+        <H3>{"move"}</H3>
       </Box>
       <Box width={VG_COL_W}>
-        <H2>{"add/link"}</H2>
+        <H3>{"add/link"}</H3>
       </Box>
-      <H2>{"create"}</H2>
+      <H3>{"create"}</H3>
     </Box>,
   )
 
@@ -229,21 +231,21 @@ function buildVerbGridLines(): React.ReactElement[] {
         <Text dimColor>{"prefix key"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$warning"}>{"g"}</Text>
+        <Text color={"$fg"}>{"g"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$warning"}>{"⌃g"}</Text>
+        <Text color={"$fg"}>{"⌃g"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$warning"}>{"m"}</Text>
+        <Text color={"$fg"}>{"m"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$warning"}>{"⌃m"}</Text>
+        <Text color={"$fg"}>{"⌃m"}</Text>
       </Box>
       <Box width={VG_COL_W} flexDirection="row">
-        <Text color={"$warning"}>{"a"}</Text>
+        <Text color={"$fg"}>{"a"}</Text>
         <Text dimColor>{" or "}</Text>
-        <Text color={"$warning"}>{"⌃l"}</Text>
+        <Text color={"$fg"}>{"⌃l"}</Text>
       </Box>
-      <Text color={"$warning"}>{"c"}</Text>
+      <Text color={"$fg"}>{"c"}</Text>
     </Box>,
   )
 
@@ -258,7 +260,7 @@ function buildVerbGridLines(): React.ReactElement[] {
     lines.push(
       <Box key={`vg-${i}`} flexDirection="row">
         <Box width={VG_LOC_W} flexDirection="row">
-          <Text color={"$warning"}>{row.key}</Text>
+          <Text color={"$fg"}>{row.key}</Text>
           <Text>{" " + row.location}</Text>
         </Box>
         <Box width={VG_COL_W} flexDirection="row">
@@ -345,7 +347,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
         height={boxHeight}
         title="Keyboard Shortcuts"
         hotkey="?"
-        titleColor={"$fg"}
+        titleColor={"$primary"}
         footer={footer}
       >
         {visibleContent}

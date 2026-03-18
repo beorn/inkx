@@ -107,14 +107,14 @@ export const SYSTEM_LOCS: Record<string, { resolve: TargetResolver; label: strin
   a: { resolve: archive, label: "archive" },
   p: { resolve: parent, label: "parent" },
   g: { resolve: first, label: "first" },
-  G: { resolve: last, label: "last" },
+  "shift-g": { resolve: last, label: "last" }, // G (shift+g)
 }
 
 /** Picker locations */
 export const PICKER_LOCS: Record<string, { resolve: TargetResolver; label: string }> = {
-  "#": { resolve: pick("#"), label: "tag" },
-  "@": { resolve: pick("@"), label: "assignee" },
-  "+": { resolve: pick("+"), label: "project" },
+  "shift-3": { resolve: pick("#"), label: "tag" }, // #
+  "shift-2": { resolve: pick("@"), label: "assignee" }, // @
+  "shift-=": { resolve: pick("+"), label: "project" }, // +
   "[": { resolve: pick("["), label: "item" },
 }
 
@@ -143,11 +143,11 @@ export function verbLocationGrid(prefixes?: string[]): Keybinding[] {
     // System locations
     for (const [lKey, loc] of Object.entries(SYSTEM_LOCS)) {
       // Skip combos that don't make sense
-      // g g -> first, g G -> last are special (cursor movement, not goto board)
-      // m g -> first, m G -> last are shift-to-top/bottom
-      // a g, a G, a p -> don't make sense
+      // g g -> first, g shift-g -> last are special (cursor movement, not goto board)
+      // m g -> first, m shift-g -> last are shift-to-top/bottom
+      // a g, a shift-g, a p -> don't make sense
       // c only makes sense with inbox (c i)
-      if (vKey === "a" && (lKey === "g" || lKey === "G" || lKey === "p")) continue
+      if (vKey === "a" && (lKey === "g" || lKey === "shift-g" || lKey === "p")) continue
       if (vKey === "c" && lKey !== "i") continue
 
       bindings.push({

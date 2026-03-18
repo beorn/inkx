@@ -13,7 +13,6 @@ import {
   InputLayerProvider,
   ThemeProvider,
   detectTerminalCaps,
-  ansi16DarkTheme,
 } from "@silvery/react"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
@@ -24,7 +23,7 @@ import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
 import { SyncManager } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
-import { detectTerminalTheme } from "./theme.ts"
+import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
@@ -275,7 +274,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     }
 
     // Detect terminal theme from actual colors (OSC 4/10/11) with fallback
-    const theme = isInteractive ? await detectTerminalTheme(caps) : ansi16DarkTheme
+    const theme = await detectTheme({ caps })
     log.debug?.(`Theme: ${theme.name}`)
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 

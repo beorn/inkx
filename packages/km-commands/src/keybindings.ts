@@ -243,12 +243,7 @@ function matchBinding(
     if (!!parsed.ctrl !== !!modifiers.ctrl) return false
     if (!!parsed.opt !== !!modifiers.opt) return false
     if (!!parsed.cmd !== !!modifiers.cmd) return false
-    // For single uppercase letters (A-Z), the shift key is implicit in the character
-    // Don't require explicit shift: true in the binding for capital letters
-    const isUppercaseLetter = key.length === 1 && key >= "A" && key <= "Z" && !parsed.shift
-    if (!isUppercaseLetter && !!parsed.shift !== !!modifiers.shift) {
-      return false
-    }
+    if (!!parsed.shift !== !!modifiers.shift) return false
   }
 
   // Check mode
@@ -360,19 +355,26 @@ export function getChordSuffixes(prefix: string): { key: string; commandId: stri
   const seen = new Set<string>()
   for (const [chordKey, bucket] of chordMap) {
     if (!chordKey.startsWith(`${prefix}:`)) continue
-    const suffixKey = chordKey.slice(prefix.length + 1)
+    // Use the first binding's parsed data to reconstruct the full suffix key
+    const first = bucket[0]
+    if (!first) continue
+    // Reconstruct suffix with modifiers (e.g., shift-g, shift-Tab)
+    const parsed = first._parsed
+    const parts: string[] = []
+    if (parsed.ctrl) parts.push("ctrl")
+    if (parsed.opt) parts.push("opt")
+    if (parsed.shift) parts.push("shift")
+    if (parsed.cmd) parts.push("cmd")
+    parts.push(parsed.key)
+    const suffixKey = parts.join("-")
     if (seen.has(suffixKey)) continue
     seen.add(suffixKey)
-    // Use the first binding's commandId + targetId (highest priority)
-    const first = bucket[0]
-    if (first) {
-      const entry: { key: string; commandId: string; targetId?: string } = {
-        key: suffixKey,
-        commandId: first.commandId,
-      }
-      if (first.targetId) entry.targetId = first.targetId
-      result.push(entry)
+    const entry: { key: string; commandId: string; targetId?: string } = {
+      key: suffixKey,
+      commandId: first.commandId,
     }
+    if (first.targetId) entry.targetId = first.targetId
+    result.push(entry)
   }
   return result
 }
@@ -430,7 +432,7 @@ const V_CHORD_SUFFIXES: Array<{ suffix: string; commandId: string; when?: WhenPr
   { suffix: "m", commandId: "cycle_view_mode" },
   // View operations
   { suffix: "c", commandId: "toggle_collapse" },
-  { suffix: "X", commandId: "toggle_show_ignored" },
+  { suffix: "shift-x", commandId: "toggle_show_ignored" },
   { suffix: "d", commandId: "toggle_hide_done" },
   { suffix: "x", commandId: "ignore_node" },
   { suffix: "-", commandId: "clear_filters" },
@@ -441,15 +443,15 @@ const V_CHORD_SUFFIXES: Array<{ suffix: string; commandId: string; when?: WhenPr
   { suffix: "j", commandId: "pane_focus_down" },
   { suffix: "k", commandId: "pane_focus_up" },
   { suffix: "l", commandId: "pane_focus_right" },
-  { suffix: ">", commandId: "pane_resize_grow" },
-  { suffix: "<", commandId: "pane_resize_shrink" },
+  { suffix: "shift-.", commandId: "pane_resize_grow" },
+  { suffix: "shift-,", commandId: "pane_resize_shrink" },
   { suffix: "=", commandId: "pane_equalize" },
-  { suffix: "H", commandId: "pane_swap_left" },
-  { suffix: "J", commandId: "pane_swap_down" },
-  { suffix: "K", commandId: "pane_swap_up" },
-  { suffix: "L", commandId: "pane_swap_right" },
+  { suffix: "shift-h", commandId: "pane_swap_left" },
+  { suffix: "shift-j", commandId: "pane_swap_down" },
+  { suffix: "shift-k", commandId: "pane_swap_up" },
+  { suffix: "shift-l", commandId: "pane_swap_right" },
   { suffix: "n", commandId: "pane_focus_next" },
-  { suffix: "N", commandId: "pane_focus_prev" },
+  { suffix: "shift-n", commandId: "pane_focus_prev" },
   { suffix: "p", commandId: "pane_focus_previous" },
   { suffix: "Tab", commandId: "pane_focus_next" },
   { suffix: "w", commandId: "pane_close" },
@@ -484,7 +486,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       name: "modal",
       bindings: [
         // Help overlay — dismiss with ?, Escape, q; j/k scroll; absorb everything else
-        { key: "?", commandId: "help.dismiss", when: helpOverlayOpen },
+        { key: "shift-/", commandId: "help.dismiss", when: helpOverlayOpen }, // ?
         { key: "Escape", commandId: "help.dismiss", when: helpOverlayOpen },
         { key: "q", commandId: "help.dismiss", when: helpOverlayOpen },
         { key: "j", commandId: "help.scroll_down", when: helpOverlayOpen },
@@ -536,7 +538,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ArrowRight", commandId: "filter.nav_right", when: filterDialogOpen },
         { key: " ", commandId: "dialog.confirm", when: filterDialogOpen },
         { key: "Enter", commandId: "dialog.confirm", when: filterDialogOpen },
-        { key: "X", commandId: "filter.clear_all", when: filterDialogOpen },
+        { key: "shift-x", commandId: "filter.clear_all", when: filterDialogOpen },
       ],
     },
 
@@ -588,7 +590,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         // Find bar closed but matches remain: n/N navigate, Escape clears
         // Exclude isInlineEditing so text.exit_edit takes priority (km-tui.double-esc)
         { key: "n", commandId: "find_next", when: and(localFindActive, not(textInputFocused)) },
-        { key: "N", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
+        { key: "shift-n", commandId: "find_prev", when: and(localFindActive, not(textInputFocused)) },
         {
           key: "Escape",
           commandId: "find_close",
@@ -747,14 +749,14 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "k", commandId: "cursor_up" },
         { key: "h", commandId: "cursor_left" },
         { key: "l", commandId: "cursor_right" },
-        { key: "G", commandId: "cursor_last", when: not(textInputFocused) },
-        { key: "T", commandId: "task_dialog", when: not(textInputFocused) },
-        { key: "M", commandId: "manage_favorites", when: not(textInputFocused) },
-        { key: "F", commandId: "search_replace", when: not(textInputFocused) },
+        { key: "shift-g", commandId: "cursor_last", when: not(textInputFocused) },
+        { key: "shift-t", commandId: "task_dialog", when: not(textInputFocused) },
+        { key: "shift-m", commandId: "manage_favorites", when: not(textInputFocused) },
+        { key: "shift-f", commandId: "search_replace", when: not(textInputFocused) },
 
         // Block navigation (J/K — jump by block, auto-unfolds)
-        { key: "J", commandId: "block_nav_down" },
-        { key: "K", commandId: "block_nav_up" },
+        { key: "shift-j", commandId: "block_nav_down" },
+        { key: "shift-k", commandId: "block_nav_up" },
 
         // Arrows behave identically to hjkl
         { key: "ArrowDown", commandId: "cursor_down" },
@@ -767,8 +769,8 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ctrl-p", commandId: "cursor_up", when: not(anyDialogOpen) },
 
         // History navigation: {/} = history back/forward (v2 spec)
-        { key: "{", commandId: "nav_back" },
-        { key: "}", commandId: "nav_forward" },
+        { key: "shift-[", commandId: "nav_back" }, // {
+        { key: "shift-]", commandId: "nav_forward" }, // }
 
         // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
         { key: "ctrl-d", commandId: "page_down" },
@@ -786,10 +788,10 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // Zoom: z = zoom inwards one level, Z = zoom out one level
         { key: "z", commandId: "zoom_inwards" },
-        { key: "Z", commandId: "zoom_outwards" },
+        { key: "shift-z", commandId: "zoom_outwards" },
 
         // Smart-D: context-aware pane toggle (open+focus / focus / close) per v2 spec
-        { key: "D", commandId: "toggle_detail_pane" },
+        { key: "shift-d", commandId: "toggle_detail_pane" },
         // Cmd+W: always close detail pane regardless of focus state
         { key: "cmd-w", commandId: "close_detail_pane" },
         { key: "ctrl-Enter", commandId: "follow_link" },
@@ -845,7 +847,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "Escape", commandId: "cancel_move", modes: ["move"] },
 
         // I = enter body edit at start, Shift+Enter = enter body edit at end
-        { key: "I", commandId: "enter_body_edit" },
+        { key: "shift-i", commandId: "enter_body_edit" },
         { key: "shift-Enter", commandId: "enter_body_edit" },
 
         // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
@@ -860,13 +862,13 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // o/O = new item below/above (outliner-style)
         { key: "o", commandId: "insert_below" },
-        { key: "O", commandId: "insert_above" },
+        { key: "shift-o", commandId: "insert_above" },
         { key: "cmd-Enter", commandId: "insert_below" },
         { key: "cmd-shift-Enter", commandId: "new_item" },
 
         // u/U = undo/redo (vim-style)
         { key: "u", commandId: "undo" },
-        { key: "U", commandId: "redo" },
+        { key: "shift-u", commandId: "redo" },
 
         // Cmd+arrows — NOT usable: Ghostty/iTerm consume them
         // (Up/Down = scroll, Left = Home/Ctrl+E, Right = End/Ctrl+A)
@@ -906,12 +908,12 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       bindings: [
         // x = toggle done/not-done (quick), X = cycle through all statuses
         { key: "x", commandId: "toggle_task_done" },
-        { key: "X", commandId: "cycle_task_status" },
+        { key: "shift-x", commandId: "cycle_task_status" },
         // e removed — archive is now m a (move to archive)
         // { key: "e", commandId: "archive" }, // removed: too easy to hit accidentally
         // c = capture to inbox, C = capture with dialog
         { key: "c", commandId: "capture_inbox" },
-        { key: "C", commandId: "capture_dialog" },
+        { key: "shift-c", commandId: "capture_dialog" },
       ],
     },
 
@@ -920,17 +922,17 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       name: "fold",
       bindings: [
         // H/L = fold/unfold subtree at cursor (progressive)
-        { key: "H", commandId: "fold_node" },
-        { key: "L", commandId: "unfold_node" },
+        { key: "shift-h", commandId: "fold_node" },
+        { key: "shift-l", commandId: "unfold_node" },
         // </> = fold/unfold all (board-wide)
-        { key: "<", commandId: "fold_all" },
-        { key: ">", commandId: "unfold_all" },
+        { key: "shift-,", commandId: "fold_all" }, // <
+        { key: "shift-.", commandId: "unfold_all" }, // >
 
         // Bare symbol shortcuts (convenience aliases for common chord actions)
         // These only fire in node mode (not text edit, not dialog)
-        { key: "@", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(anyDialogOpen)) },
-        { key: "#", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(anyDialogOpen)) },
-        { key: "+", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(anyDialogOpen)) },
+        { key: "shift-2", commandId: "add", targetId: "pick:@", when: and(not(textInputFocused), not(anyDialogOpen)) }, // @
+        { key: "shift-3", commandId: "add", targetId: "pick:#", when: and(not(textInputFocused), not(anyDialogOpen)) }, // #
+        { key: "shift-=", commandId: "add", targetId: "pick:+", when: and(not(textInputFocused), not(anyDialogOpen)) }, // +
         { key: "[", commandId: "add", targetId: "pick:[", when: and(not(textInputFocused), not(anyDialogOpen)) },
 
         // Chord prefix standalone fallbacks (fire on timeout / non-suffix key)
@@ -942,9 +944,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // g-prefix chords (go-to — non-location entries)
         { key: "g g", commandId: "cursor_first" },
-        { key: "g G", commandId: "cursor_last" },
+        { key: "g shift-g", commandId: "cursor_last" },
         { key: "g o", commandId: "open_in_system" },
-        { key: "g O", commandId: "open_in_terminal" },
+        { key: "g shift-o", commandId: "open_in_terminal" },
 
         // v-prefix chords — VIEW + PANE operations (generated from shared V_CHORD_SUFFIXES)
         ...prefixChords("v", V_CHORD_SUFFIXES),
@@ -959,7 +961,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "t -", commandId: "clear_task" },
         { key: "t o", commandId: "set_assignee" },
         { key: "t d", commandId: "set_due_date" },
-        { key: "t !", commandId: "set_priority" },
+        { key: "t shift-1", commandId: "set_priority" }, // t !
         { key: "t 0", commandId: "set_priority_0" },
         { key: "t 1", commandId: "set_priority_1" },
         { key: "t 2", commandId: "set_priority_2" },
@@ -975,9 +977,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // Ctrl+g/Ctrl+m non-location entries
         { key: "Ctrl+g g", commandId: "cursor_first" },
-        { key: "Ctrl+g G", commandId: "cursor_last" },
+        { key: "Ctrl+g shift-g", commandId: "cursor_last" },
         { key: "Ctrl+g o", commandId: "open_in_system" },
-        { key: "Ctrl+g O", commandId: "open_in_terminal" },
+        { key: "Ctrl+g shift-o", commandId: "open_in_terminal" },
         { key: "Ctrl+m m", commandId: "enter_move_mode", when: hasKitty },
         { key: "Ctrl+m a", commandId: "archive", when: hasKitty },
 
@@ -992,8 +994,8 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       bindings: [
         // v is a chord prefix (v c, v d, v m, etc.) — visual mode via v v chord
         // V (uppercase) = view settings (opens filter dialog)
-        { key: "V", commandId: "filter" },
-        { key: "?", commandId: "show_help" },
+        { key: "shift-v", commandId: "filter" },
+        { key: "shift-/", commandId: "show_help" }, // ?
         { key: ".", commandId: "increase_content_lines" },
         { key: "=", commandId: "increase_content_lines" },
         { key: ",", commandId: "decrease_content_lines" },
@@ -1001,7 +1003,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // Filter and command palette
 
-        { key: ":", commandId: "command_palette" },
+        { key: "shift-;", commandId: "command_palette" }, // :
       ],
     },
 
@@ -1026,7 +1028,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         ...prefixChords("Ctrl+v", V_CHORD_SUFFIXES),
         // Bare n/N for pane cycling (when find is not active)
         { key: "n", commandId: "pane_focus_next", when: not(localFindActive) },
-        { key: "N", commandId: "pane_focus_prev", when: not(localFindActive) },
+        { key: "shift-n", commandId: "pane_focus_prev", when: not(localFindActive) },
       ],
     },
 

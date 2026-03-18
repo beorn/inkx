@@ -101,7 +101,7 @@ describe("HelpOverlay", () => {
     expect(app.text).toContain("⌘")
   })
 
-  test("key labels for find are rendered in warning color (yellow)", () => {
+  test("key labels for find have background badge (Kbd style)", () => {
     const app = renderHelp()
     const lines = app.ansi.split("\n")
     const findLine = lines.find((l: string) => {
@@ -109,8 +109,9 @@ describe("HelpOverlay", () => {
       return s.includes("find") && s.includes("/")
     })
     expect(findLine).toBeDefined()
-    // Yellow ANSI code — keys use $warning token (yellow: 38;5;3 in 256-color or 33 in 4-bit)
-    expect(findLine).toMatch(/38;5;3|\x1b\[33m/)
+    // Keys use $mutedbg background (ANSI 16 dark: black = 40 in 4-bit or 48;5;0 in 256-color)
+    // and bold (1m)
+    expect(findLine).toMatch(/\x1b\[1m|\x1b\[1;/)
   })
 
   test("scrolling shifts visible content", () => {

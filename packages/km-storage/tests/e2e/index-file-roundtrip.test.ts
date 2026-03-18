@@ -1549,19 +1549,14 @@ describe("P. regression: no duplicate sections after sync", () => {
       // Create a folder with an index file that has sections (like Asana's early-orbit)
       const fp = join(repoDir, "project")
       mkdirSync(fp, { recursive: true })
-      writeFileSync(
-        join(fp, "project.md"),
-        "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n",
-      )
+      writeFileSync(join(fp, "project.md"), "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n")
       writeFileSync(join(fp, "child.md"), "# Child\n\nSome content.\n")
       await manager.syncFromFs()
 
       // Count sections — should be exactly 2 (INBOX + DONE)
       const folder = findFolder(db, "project")!
       const indexFile = findMdFile(db, "project", folder.id)!
-      const sections = getChildren(db, indexFile.id).filter(
-        (c) => c.type === "h" && c.item && c.fstype === "mdsection",
-      )
+      const sections = getChildren(db, indexFile.id).filter((c) => c.type === "h" && c.item && c.fstype === "mdsection")
       expect(sections.map((s) => s.content)).toEqual(["INBOX", "DONE"])
       expect(sections.length).toBe(2)
 
@@ -1581,10 +1576,7 @@ describe("P. regression: no duplicate sections after sync", () => {
       emitter.setFsSync(new FsWriter(db, repoDir, emitter))
       const fp = join(repoDir, "project")
       mkdirSync(fp, { recursive: true })
-      writeFileSync(
-        join(fp, "project.md"),
-        "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n",
-      )
+      writeFileSync(join(fp, "project.md"), "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n")
       writeFileSync(join(fp, "child.md"), "# Child\n")
       await manager.syncFromFs()
 
@@ -1598,9 +1590,7 @@ describe("P. regression: no duplicate sections after sync", () => {
       await manager.syncFromFs()
 
       // Sections should still be exactly 2
-      const sections = getChildren(db, indexFile.id).filter(
-        (c) => c.type === "h" && c.item && c.fstype === "mdsection",
-      )
+      const sections = getChildren(db, indexFile.id).filter((c) => c.type === "h" && c.item && c.fstype === "mdsection")
       expect(sections.length).toBe(2)
       expect(sections.map((s) => s.content)).toEqual(["INBOX", "DONE"])
     }))

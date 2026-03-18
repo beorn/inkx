@@ -97,6 +97,7 @@ export const addCommand = new Command("add")
   .option("--json", "Output as JSON")
   .option("--force", "Re-add tasks even if already linked on the target board")
   .option("--quiet", "Suppress progress output")
+  .showHelpAfterError(true)
   // oxlint-disable-next-line complexity/complexity -- CLI add with query matching, sigil tagging, and four-way dedup
   .action(async (target: string, sources: string[], options: AddOptions) => {
     // Detect sigil target (@next, +project, #tag)

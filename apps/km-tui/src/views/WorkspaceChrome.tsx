@@ -54,10 +54,11 @@ const pickerConfig: Record<
 }
 
 // =============================================================================
-// Dialog Layout Helpers (moved from Board.tsx)
+// Dialog Layout Helpers
 // =============================================================================
 
-function DialogBox({
+/** Centered dialog — horizontally centered, vertical position via topFraction. */
+function CenterDialog({
   termWidth,
   contentHeight,
   maxWidth,
@@ -82,6 +83,25 @@ function DialogBox({
       marginTop={Math.floor(contentHeight * topFraction)}
       {...rest}
     >
+      {children}
+    </Box>
+  )
+}
+
+/** Top-right dialog — anchored to top-right corner, below the top bar (marginTop=1). */
+function TopRightDialog({
+  termWidth,
+  width,
+  children,
+  ...rest
+}: {
+  termWidth: number
+  width: number
+  children: React.ReactNode
+  "data-dialog": string
+}): React.ReactElement {
+  return (
+    <Box position="absolute" marginLeft={Math.max(0, termWidth - width)} marginTop={1} {...rest}>
       {children}
     </Box>
   )
@@ -276,7 +296,7 @@ export function WorkspaceChrome({
       <CursorStoreProvider store={cursorStore}>
         {/* Generic picker modal (project / tag / assignee) */}
         {ui.activePicker && (
-          <DialogBox
+          <CenterDialog
             termWidth={termWidth}
             contentHeight={contentHeight}
             maxWidth={80}
@@ -299,11 +319,11 @@ export function WorkspaceChrome({
               recentIds={ui.recentProjectIds}
               emptyLabel={pickerConfig[ui.activePicker.type].emptyLabel}
             />
-          </DialogBox>
+          </CenterDialog>
         )}
         {/* New item dialog modal */}
         {ui.showNewItemDialog && (
-          <DialogBox
+          <CenterDialog
             termWidth={termWidth}
             contentHeight={contentHeight}
             maxWidth={70}
@@ -316,12 +336,12 @@ export function WorkspaceChrome({
               width={Math.min(70, Math.floor(termWidth / 2))}
               height={10}
             />
-          </DialogBox>
+          </CenterDialog>
         )}
       </CursorStoreProvider>
       {/* Search dialog modal */}
       {ui.showSearchDialog && (
-        <DialogBox
+        <CenterDialog
           termWidth={termWidth}
           contentHeight={contentHeight}
           maxWidth={90}
@@ -339,16 +359,11 @@ export function WorkspaceChrome({
             scope={ui.searchScope}
             scopeNodeIds={ui.searchScopeNodeIds}
           />
-        </DialogBox>
+        </CenterDialog>
       )}
-      {/* Filter panel — top-right corner */}
+      {/* Filter panel — top-right corner, below top bar */}
       {ui.showFilterDialog && (
-        <Box
-          position="absolute"
-          marginLeft={Math.max(0, termWidth - FILTER_PANEL_WIDTH)}
-          marginTop={0}
-          data-dialog="filter"
-        >
+        <TopRightDialog termWidth={termWidth} width={FILTER_PANEL_WIDTH} data-dialog="filter">
           <FilterDialog
             filterProperties={ui.filterProperties}
             filterText={ui.filterText}
@@ -358,7 +373,7 @@ export function WorkspaceChrome({
             cursorVal={ui.filterCursorVal}
             width={FILTER_PANEL_WIDTH}
           />
-        </Box>
+        </TopRightDialog>
       )}
       {/* Delete confirmation dialog */}
       {ui.deleteConfirm && (
@@ -366,7 +381,7 @@ export function WorkspaceChrome({
       )}
       {/* Date prompt dialog */}
       {ui.datePrompt && (
-        <DialogBox
+        <CenterDialog
           termWidth={termWidth}
           contentHeight={contentHeight}
           maxWidth={60}
@@ -381,11 +396,11 @@ export function WorkspaceChrome({
             width={Math.min(60, Math.floor(termWidth / 2))}
             height={14}
           />
-        </DialogBox>
+        </CenterDialog>
       )}
       {/* Omnibox / command palette */}
       {ui.showOmnibox && (
-        <DialogBox
+        <CenterDialog
           termWidth={termWidth}
           contentHeight={contentHeight}
           maxWidth={100}
@@ -399,11 +414,11 @@ export function WorkspaceChrome({
             width={Math.min(100, Math.floor((termWidth * 3) / 4))}
             maxHeight={Math.floor((contentHeight * 2) / 3)}
           />
-        </DialogBox>
+        </CenterDialog>
       )}
       {/* Search & replace dialog */}
       {ui.searchReplace && (
-        <DialogBox
+        <CenterDialog
           termWidth={termWidth}
           contentHeight={contentHeight}
           maxWidth={70}
@@ -417,11 +432,11 @@ export function WorkspaceChrome({
             onSearchChange={searchReplaceSearchHandler ?? (() => {})}
             onReplaceChange={searchReplaceReplaceHandler ?? (() => {})}
           />
-        </DialogBox>
+        </CenterDialog>
       )}
       {/* Favorites dialog */}
       {ui.showFavoritesDialog && (
-        <DialogBox
+        <CenterDialog
           termWidth={termWidth}
           contentHeight={contentHeight}
           maxWidth={50}
@@ -433,7 +448,7 @@ export function WorkspaceChrome({
             width={Math.min(50, Math.floor(termWidth / 2))}
             assignNodeId={cursorNodeId}
           />
-        </DialogBox>
+        </CenterDialog>
       )}
       {/* Help overlay */}
       {ui.showHelp && <HelpOverlay width={termWidth} height={contentHeight} scrollOffset={ui.helpScrollOffset} />}

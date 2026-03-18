@@ -77,6 +77,10 @@ export function keyToString(input: string, key: KeyEvent): string {
   if (key.backspace) return "Backspace"
   if (key.delete) return "Delete"
   if (key.tab) return "Tab"
+  // Normalize uppercase to lowercase — shift is captured separately in modifiers.
+  // With Kitty protocol, shift+a reports base key 'a' + shift modifier;
+  // keybindings use "shift-a" format so the lookup key must be lowercase.
+  if (input.length === 1 && input >= "A" && input <= "Z") return input.toLowerCase()
   return input
 }
 

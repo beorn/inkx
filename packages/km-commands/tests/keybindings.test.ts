@@ -433,8 +433,7 @@ describe("initDefaultKeybindings", () => {
     ["h", {}, "cursor_left"],
     ["l", {}, "cursor_right"],
     ["g", {}, "cursor_first"],
-    ["G", {}, "cursor_last"],
-    ["G", { shift: true }, "cursor_last"], // Ink reports shift+G
+    ["g", { shift: true }, "cursor_last"],
     // Arrow key navigation (same as hjkl per docs/06-ui.md)
     ["ArrowDown", {}, "cursor_down"],
     ["ArrowUp", {}, "cursor_up"],
@@ -541,7 +540,7 @@ describe("wildcard keybindings", () => {
   it("specific key takes priority over wildcard when registered earlier", () => {
     // Specific key registered first (lower _order)
     registerKeybinding({
-      key: "?",
+      key: "shift-/",
       commandId: "dismiss_help",
       when: (ctx) => ctx.helpOverlayOpen,
     })
@@ -556,7 +555,7 @@ describe("wildcard keybindings", () => {
     const helpOpen = createContext({ helpOverlayOpen: true })
 
     // ? should match dismiss_help (registered first), not noop
-    expect(resolveKeybinding("?", {}, helpOpen)).toEqual({ commandId: "dismiss_help" })
+    expect(resolveKeybinding("/", { shift: true }, helpOpen)).toEqual({ commandId: "dismiss_help" })
     // j should match noop (wildcard fallback)
     expect(resolveKeybinding("j", {}, helpOpen)).toEqual({ commandId: "noop" })
   })
@@ -602,7 +601,7 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
 
   it("help overlay: ? dismisses help", () => {
     const ctx = createContext({ helpOverlayOpen: true })
-    expect(resolveKeybinding("?", {}, ctx)).toEqual({ commandId: "help.dismiss" })
+    expect(resolveKeybinding("/", { shift: true }, ctx)).toEqual({ commandId: "help.dismiss" })
   })
 
   it("help overlay: Escape dismisses help", () => {
@@ -774,92 +773,92 @@ describe("chord keybindings", () => {
   describe("chord resolution (non-composable commands)", () => {
     it.each([
       // g-prefix chords (go-to) — non-composable
-      ["g", "g", "cursor_first"],
-      ["g", "o", "open_in_system"],
-      ["g", "O", "open_in_terminal"],
+      ["g", "g", {}, "cursor_first"],
+      ["g", "o", {}, "open_in_system"],
+      ["g", "o", { shift: true }, "open_in_terminal"],
       // v-prefix chords (view operations)
-      ["v", "c", "toggle_collapse"],
-      ["v", "X", "toggle_show_ignored"],
-      ["v", "m", "cycle_view_mode"],
-      ["v", "d", "toggle_hide_done"],
-      ["v", "x", "ignore_node"],
+      ["v", "c", {}, "toggle_collapse"],
+      ["v", "x", { shift: true }, "toggle_show_ignored"],
+      ["v", "m", {}, "cycle_view_mode"],
+      ["v", "d", {}, "toggle_hide_done"],
+      ["v", "x", {}, "ignore_node"],
 
-      ["v", "-", "clear_filters"],
-      ["v", ",", "filter"],
+      ["v", "-", {}, "clear_filters"],
+      ["v", ",", {}, "filter"],
       // v-prefix chords (pane operations)
-      ["v", "s", "pane_split_vertical"],
-      ["v", "h", "pane_focus_left"],
-      ["v", "j", "pane_focus_down"],
-      ["v", "k", "pane_focus_up"],
-      ["v", "l", "pane_focus_right"],
-      ["v", ">", "pane_resize_grow"],
-      ["v", "<", "pane_resize_shrink"],
-      ["v", "=", "pane_equalize"],
-      ["v", "H", "pane_swap_left"],
-      ["v", "J", "pane_swap_down"],
-      ["v", "K", "pane_swap_up"],
-      ["v", "L", "pane_swap_right"],
-      ["v", "n", "pane_focus_next"],
-      ["v", "N", "pane_focus_prev"],
-      ["v", "p", "pane_focus_previous"],
-      ["v", "Tab", "pane_focus_next"],
-      ["v", "w", "pane_close"],
-      ["v", "o", "pane_only"],
-      ["v", "z", "pane_zoom"],
+      ["v", "s", {}, "pane_split_vertical"],
+      ["v", "h", {}, "pane_focus_left"],
+      ["v", "j", {}, "pane_focus_down"],
+      ["v", "k", {}, "pane_focus_up"],
+      ["v", "l", {}, "pane_focus_right"],
+      ["v", ">", {}, "pane_resize_grow"],
+      ["v", "<", {}, "pane_resize_shrink"],
+      ["v", "=", {}, "pane_equalize"],
+      ["v", "H", {}, "pane_swap_left"],
+      ["v", "J", {}, "pane_swap_down"],
+      ["v", "K", {}, "pane_swap_up"],
+      ["v", "L", {}, "pane_swap_right"],
+      ["v", "n", {}, "pane_focus_next"],
+      ["v", "N", {}, "pane_focus_prev"],
+      ["v", "p", {}, "pane_focus_previous"],
+      ["v", "Tab", {}, "pane_focus_next"],
+      ["v", "w", {}, "pane_close"],
+      ["v", "o", {}, "pane_only"],
+      ["v", "z", {}, "pane_zoom"],
       // m-prefix chords (move to board)
-      ["m", "a", "archive"],
-      ["m", "m", "enter_move_mode"],
+      ["m", "a", {}, "archive"],
+      ["m", "m", {}, "enter_move_mode"],
       // t-prefix chords (task properties)
-      ["t", "t", "task_dialog"],
-      ["t", "-", "clear_task"],
-      ["t", "d", "set_due_date"],
-      ["t", "!", "set_priority"],
-      ["t", "s", "cycle_task_status"],
-      ["t", "r", "set_recurring"],
-      ["t", "o", "set_assignee"],
-      ["t", "l", "set_label"],
-    ] as const)("chord %s%s resolves to %s", (prefix, key, commandId) => {
+      ["t", "t", {}, "task_dialog"],
+      ["t", "-", {}, "clear_task"],
+      ["t", "d", {}, "set_due_date"],
+      ["t", "1", { shift: true }, "set_priority"],
+      ["t", "s", {}, "cycle_task_status"],
+      ["t", "r", {}, "set_recurring"],
+      ["t", "o", {}, "set_assignee"],
+      ["t", "l", {}, "set_label"],
+    ] as const)("chord %s%s resolves to %s", (prefix, key, mods, commandId) => {
       const ctx = createContext()
-      expect(resolveChord(prefix, key, {}, ctx)).toEqual({ commandId })
+      expect(resolveChord(prefix, key, mods, ctx)).toEqual({ commandId })
     })
   })
 
   describe("chord resolution (composable commands with targetId)", () => {
     it.each([
       // g-prefix composable goto
-      ["g", "i", "goto", "@inbox"],
-      ["g", "j", "goto", "@journal"],
-      ["g", "h", "goto", "@next"],
-      ["g", "a", "goto", "@archive"],
-      ["g", "p", "goto", "parent"],
-      ["g", "+", "goto", "pick:+"],
-      ["g", "[", "goto", "pick:["],
-      ["g", "#", "goto", "pick:#"],
-      ["g", "@", "goto", "pick:@"],
+      ["g", "i", {}, "goto", "@inbox"],
+      ["g", "j", {}, "goto", "@journal"],
+      ["g", "h", {}, "goto", "@next"],
+      ["g", "a", {}, "goto", "@archive"],
+      ["g", "p", {}, "goto", "parent"],
+      ["g", "=", { shift: true }, "goto", "pick:+"],
+      ["g", "[", {}, "goto", "pick:["],
+      ["g", "3", { shift: true }, "goto", "pick:#"],
+      ["g", "2", { shift: true }, "goto", "pick:@"],
       // m-prefix composable move
-      ["m", "i", "move", "@inbox"],
-      ["m", "j", "move", "@journal"],
-      ["m", "h", "move", "@next"],
-      ["m", "p", "move", "parent"],
-      ["m", "g", "move", "first"],
-      ["m", "G", "move", "last"],
-      ["m", "+", "move", "pick:+"],
-      ["m", "[", "move", "pick:["],
-      ["m", "#", "move", "pick:#"],
-      ["m", "@", "move", "pick:@"],
+      ["m", "i", {}, "move", "@inbox"],
+      ["m", "j", {}, "move", "@journal"],
+      ["m", "h", {}, "move", "@next"],
+      ["m", "p", {}, "move", "parent"],
+      ["m", "g", {}, "move", "first"],
+      ["m", "g", { shift: true }, "move", "last"],
+      ["m", "=", { shift: true }, "move", "pick:+"],
+      ["m", "[", {}, "move", "pick:["],
+      ["m", "3", { shift: true }, "move", "pick:#"],
+      ["m", "2", { shift: true }, "move", "pick:@"],
       // a-prefix composable add
-      ["a", "#", "add", "pick:#"],
-      ["a", "@", "add", "pick:@"],
-      ["a", "+", "add", "pick:+"],
-      ["a", "[", "add", "pick:["],
-      ["a", "h", "add", "@next"],
-      ["a", "i", "add", "@inbox"],
-      ["a", "j", "add", "@journal"],
+      ["a", "3", { shift: true }, "add", "pick:#"],
+      ["a", "2", { shift: true }, "add", "pick:@"],
+      ["a", "=", { shift: true }, "add", "pick:+"],
+      ["a", "[", {}, "add", "pick:["],
+      ["a", "h", {}, "add", "@next"],
+      ["a", "i", {}, "add", "@inbox"],
+      ["a", "j", {}, "add", "@journal"],
       // c-prefix composable create
-      ["c", "i", "create_in", "@inbox"],
-    ] as const)("chord %s%s resolves to %s (targetId: %s)", (prefix, key, commandId, targetId) => {
+      ["c", "i", {}, "create_in", "@inbox"],
+    ] as const)("chord %s%s resolves to %s (targetId: %s)", (prefix, key, mods, commandId, targetId) => {
       const ctx = createContext()
-      expect(resolveChord(prefix, key, {}, ctx)).toMatchObject({ commandId, targetId })
+      expect(resolveChord(prefix, key, mods, ctx)).toMatchObject({ commandId, targetId })
     })
   })
 
@@ -879,7 +878,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => parseKeyString(b.key).chord)
-    expect(chordBindings.length).toBe(184) // 25 g + 28 v + 23 m + 18 a + 13 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 27 Ctrl+v
+    expect(chordBindings.length).toBe(183) // 25 g + 27 v + 23 m + 18 a + 13 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 27 Ctrl+v
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -902,9 +901,9 @@ describe("chord keybindings", () => {
       "7": { commandId: "add", targetId: "fav:7" },
       "8": { commandId: "add", targetId: "fav:8" },
       "9": { commandId: "add", targetId: "fav:9" },
-      "#": { commandId: "add", targetId: "pick:#" },
-      "@": { commandId: "add", targetId: "pick:@" },
-      "+": { commandId: "add", targetId: "pick:+" },
+      "shift-3": { commandId: "add", targetId: "pick:#" },
+      "shift-2": { commandId: "add", targetId: "pick:@" },
+      "shift-=": { commandId: "add", targetId: "pick:+" },
       "[": { commandId: "add", targetId: "pick:[" },
       a: { commandId: "add", targetId: "@archive" },
       h: { commandId: "add", targetId: "@next" },
@@ -918,8 +917,6 @@ describe("chord keybindings", () => {
     const keys = suffixes.map((s) => s.key).sort()
     // g a replaces g e (goto archive), plus digits 0-9 for favorites
     expect(keys).toEqual([
-      "#",
-      "+",
       "0",
       "1",
       "2",
@@ -930,9 +927,6 @@ describe("chord keybindings", () => {
       "7",
       "8",
       "9",
-      "@",
-      "G",
-      "O",
       "[",
       "a",
       "g",
@@ -941,26 +935,23 @@ describe("chord keybindings", () => {
       "j",
       "o",
       "p",
+      "shift-2",
+      "shift-3",
+      "shift-=",
+      "shift-g",
+      "shift-o",
     ])
   })
 
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
-    // View: - , X c d m v x | Pane: < = > H J K L N Tab h j k l n o p s w z
+    // View: - , shift-x c d m v x | Pane: shift-, = shift-. shift-h shift-j shift-k shift-l shift-n Tab h j k l n o p s w z
     expect(keys).toEqual([
       ",",
       "-",
-      "<",
       "=",
-      ">",
-      "H",
-      "J",
-      "K",
-      "L",
-      "N",
       "Tab",
-      "X",
       "c",
       "d",
       "h",
@@ -972,6 +963,14 @@ describe("chord keybindings", () => {
       "o",
       "p",
       "s",
+      "shift-,",
+      "shift-.",
+      "shift-h",
+      "shift-j",
+      "shift-k",
+      "shift-l",
+      "shift-n",
+      "shift-x",
       "v",
       "w",
       "x",
@@ -985,16 +984,8 @@ describe("chord keybindings", () => {
     expect(keys).toEqual([
       ",",
       "-",
-      "<",
       "=",
-      ">",
-      "H",
-      "J",
-      "K",
-      "L",
-      "N",
       "Tab",
-      "X",
       "c",
       "d",
       "h",
@@ -1006,6 +997,14 @@ describe("chord keybindings", () => {
       "o",
       "p",
       "s",
+      "shift-,",
+      "shift-.",
+      "shift-h",
+      "shift-j",
+      "shift-k",
+      "shift-l",
+      "shift-n",
+      "shift-x",
       "v",
       "w",
       "x",
@@ -1027,48 +1026,48 @@ describe("chord keybindings", () => {
     const ctx = createContext()
     // v2: x → toggle_task_done, X → cycle_task_status
     expect(resolveKeybinding("x", {}, ctx)).toEqual({ commandId: "toggle_task_done" })
-    expect(resolveKeybinding("X", {}, ctx)).toEqual({ commandId: "cycle_task_status" })
+    expect(resolveKeybinding("x", { shift: true }, ctx)).toEqual({ commandId: "cycle_task_status" })
     // v2: d → clipboard_cut, y → clipboard_copy, p → clipboard_paste
     expect(resolveKeybinding("d", {}, ctx)).toEqual({ commandId: "clipboard_cut" })
     expect(resolveKeybinding("y", {}, ctx)).toEqual({ commandId: "clipboard_copy" })
     expect(resolveKeybinding("p", {}, ctx)).toEqual({ commandId: "clipboard_paste" })
     // v2: o → insert_below, O → insert_above
     expect(resolveKeybinding("o", {}, ctx)).toEqual({ commandId: "insert_below" })
-    expect(resolveKeybinding("O", {}, ctx)).toEqual({ commandId: "insert_above" })
+    expect(resolveKeybinding("o", { shift: true }, ctx)).toEqual({ commandId: "insert_above" })
     // v2: u → undo, U → redo
     expect(resolveKeybinding("u", {}, ctx)).toEqual({ commandId: "undo" })
-    expect(resolveKeybinding("U", {}, ctx)).toEqual({ commandId: "redo" })
+    expect(resolveKeybinding("u", { shift: true }, ctx)).toEqual({ commandId: "redo" })
     // z → zoom_inwards (one level closer to cursor), Z → zoom_outwards
     expect(resolveKeybinding("z", {}, ctx)).toEqual({ commandId: "zoom_inwards" })
-    expect(resolveKeybinding("Z", {}, ctx)).toEqual({ commandId: "zoom_outwards" })
+    expect(resolveKeybinding("z", { shift: true }, ctx)).toEqual({ commandId: "zoom_outwards" })
     // v2: e bare removed (archive is m a), c → capture_inbox, C → capture_dialog, D → toggle_detail_pane (Smart-D)
     expect(resolveKeybinding("c", {}, ctx)).toEqual({ commandId: "capture_inbox" })
-    expect(resolveKeybinding("C", {}, ctx)).toEqual({ commandId: "capture_dialog" })
-    expect(resolveKeybinding("D", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
+    expect(resolveKeybinding("c", { shift: true }, ctx)).toEqual({ commandId: "capture_dialog" })
+    expect(resolveKeybinding("d", { shift: true }, ctx)).toEqual({ commandId: "toggle_detail_pane" })
     // v2: Space → select_toggle
     expect(resolveKeybinding(" ", {}, ctx)).toEqual({ commandId: "select_toggle" })
     // v2: H → fold_node, L → unfold_node
-    expect(resolveKeybinding("H", {}, ctx)).toEqual({ commandId: "fold_node" })
-    expect(resolveKeybinding("L", {}, ctx)).toEqual({ commandId: "unfold_node" })
+    expect(resolveKeybinding("h", { shift: true }, ctx)).toEqual({ commandId: "fold_node" })
+    expect(resolveKeybinding("l", { shift: true }, ctx)).toEqual({ commandId: "unfold_node" })
     // v2: < → fold_all, > → unfold_all
-    expect(resolveKeybinding("<", {}, ctx)).toEqual({ commandId: "fold_all" })
-    expect(resolveKeybinding(">", {}, ctx)).toEqual({ commandId: "unfold_all" })
+    expect(resolveKeybinding(",", { shift: true }, ctx)).toEqual({ commandId: "fold_all" })
+    expect(resolveKeybinding(".", { shift: true }, ctx)).toEqual({ commandId: "unfold_all" })
     // Tab → indent_node (structural indent)
     expect(resolveKeybinding("Tab", {}, ctx)).toEqual({ commandId: "indent_node" })
     // v2: : → command_palette, , → decrease_content_lines, . → increase_content_lines
-    expect(resolveKeybinding(":", {}, ctx)).toEqual({ commandId: "command_palette" })
+    expect(resolveKeybinding(";", { shift: true }, ctx)).toEqual({ commandId: "command_palette" })
     expect(resolveKeybinding(",", {}, ctx)).toEqual({ commandId: "decrease_content_lines" })
     expect(resolveKeybinding(".", {}, ctx)).toEqual({ commandId: "increase_content_lines" })
   })
 
   it("Smart-D: D key maps to toggle_detail_pane", () => {
     const ctx = createContext()
-    expect(resolveKeybinding("D", {}, ctx)).toEqual({ commandId: "toggle_detail_pane" })
+    expect(resolveKeybinding("d", { shift: true }, ctx)).toEqual({ commandId: "toggle_detail_pane" })
   })
 
   it("M key maps to manage_favorites", () => {
     const ctx = createContext()
-    expect(resolveKeybinding("M", {}, ctx)).toEqual({ commandId: "manage_favorites" })
+    expect(resolveKeybinding("m", { shift: true }, ctx)).toEqual({ commandId: "manage_favorites" })
   })
 
   it("Escape in detail pane falls through to close_or_quit", () => {
@@ -1087,9 +1086,9 @@ describe("chord keybindings", () => {
 
   it("a-prefix chords resolve correctly", () => {
     const ctx = createContext()
-    expect(resolveChord("a", "#", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
-    expect(resolveChord("a", "@", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
-    expect(resolveChord("a", "+", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
+    expect(resolveChord("a", "3", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
+    expect(resolveChord("a", "2", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
+    expect(resolveChord("a", "=", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
     expect(resolveChord("a", "[", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:[" })
     expect(resolveChord("a", "i", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@inbox" })
     expect(resolveChord("a", "j", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@journal" })
@@ -1104,20 +1103,20 @@ describe("chord keybindings", () => {
   describe("bare symbol shortcuts (convenience aliases)", () => {
     it("@ in node mode → add with targetId pick:@ (same as a@)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("@", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
-      expect(resolveChord("a", "@", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
+      expect(resolveKeybinding("2", { shift: true }, ctx)).toEqual({ commandId: "add", targetId: "pick:@" })
+      expect(resolveChord("a", "2", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:@" })
     })
 
     it("# in node mode → add with targetId pick:# (same as a#)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("#", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
-      expect(resolveChord("a", "#", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
+      expect(resolveKeybinding("3", { shift: true }, ctx)).toEqual({ commandId: "add", targetId: "pick:#" })
+      expect(resolveChord("a", "3", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:#" })
     })
 
     it("+ in node mode → add with targetId pick:+ (same as a+)", () => {
       const ctx = createContext()
-      expect(resolveKeybinding("+", {}, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
-      expect(resolveChord("a", "+", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
+      expect(resolveKeybinding("=", { shift: true }, ctx)).toEqual({ commandId: "add", targetId: "pick:+" })
+      expect(resolveChord("a", "=", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
     })
 
     it("[ in node mode → add with targetId pick:[ (same as a[)", () => {
@@ -1129,9 +1128,9 @@ describe("chord keybindings", () => {
     it("bare symbols are blocked during text input", () => {
       const ctx = createContext({ textInputFocused: true, isInlineEditing: true })
       // All should resolve to noop (wildcard catch-all in inline-edit-barrier)
-      expect(resolveKeybinding("@", {}, ctx)).toEqual({ commandId: "noop" })
-      expect(resolveKeybinding("#", {}, ctx)).toEqual({ commandId: "noop" })
-      expect(resolveKeybinding("+", {}, ctx)).toEqual({ commandId: "noop" })
+      expect(resolveKeybinding("2", { shift: true }, ctx)).toEqual({ commandId: "noop" })
+      expect(resolveKeybinding("3", { shift: true }, ctx)).toEqual({ commandId: "noop" })
+      expect(resolveKeybinding("=", { shift: true }, ctx)).toEqual({ commandId: "noop" })
       expect(resolveKeybinding("[", {}, ctx)).toEqual({ commandId: "noop" })
     })
 
@@ -1142,9 +1141,9 @@ describe("chord keybindings", () => {
       const addHash = { commandId: "add", targetId: "#" }
       const addPlus = { commandId: "add", targetId: "+" }
       const addBracket = { commandId: "add", targetId: "[" }
-      expect(resolveKeybinding("@", {}, ctx)).not.toEqual(addAt)
-      expect(resolveKeybinding("#", {}, ctx)).not.toEqual(addHash)
-      expect(resolveKeybinding("+", {}, ctx)).not.toEqual(addPlus)
+      expect(resolveKeybinding("2", { shift: true }, ctx)).not.toEqual(addAt)
+      expect(resolveKeybinding("3", { shift: true }, ctx)).not.toEqual(addHash)
+      expect(resolveKeybinding("=", { shift: true }, ctx)).not.toEqual(addPlus)
       expect(resolveKeybinding("[", {}, ctx)).not.toEqual(addBracket)
     })
   })
@@ -1168,7 +1167,7 @@ describe("text mode keybinding separation", () => {
       ["q", {}, "quit"],
       // v is now chord-only (v v = visual mode), tested in chord section
       ["/", {}, "local_find"],
-      ["?", {}, "show_help"],
+      ["/", { shift: true }, "show_help"],
       // v2 rebindings
       ["x", {}, "toggle_task_done"],
       [" ", {}, "select_toggle"],

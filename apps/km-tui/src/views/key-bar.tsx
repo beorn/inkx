@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Text, useFocusManager } from "@silvery/react"
+import { Box, Strong, Text, useFocusManager } from "@silvery/react"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 import { isDetailPaneId } from "../board-types.ts"
 
@@ -101,9 +101,7 @@ export function KeyBar({ ui, termWidth }: KeyBarProps): React.ReactElement {
     <Box flexDirection="row" flexShrink={0} width={termWidth} id="key-bar">
       {/* Mode indicator */}
       <Text dimColor>{"\u2500\u2500 "}</Text>
-      <Text bold id="key-bar-mode">
-        {mode}
-      </Text>
+      <Strong id="key-bar-mode">{mode}</Strong>
       <Text dimColor>{" \u2500\u2500\u2500\u2500 "}</Text>
       {/* Key hints */}
       {hints.map((hint, i) => (

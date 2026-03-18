@@ -1,37 +1,22 @@
 /**
  * km Theme Configuration
  *
- * Delegates fully to swatch for theme derivation. At startup, km detects
- * the terminal's actual colors via OSC queries and derives a matching theme.
- * Falls back to built-in themes (Nord dark / Catppuccin Latte light) when
- * detection fails.
+ * Uses silvery's detectTheme() to query the terminal's actual colors via
+ * OSC 4/10/11 and derive a full theme. Falls back to Nord (dark) or
+ * Catppuccin Latte (light) when detection fails.
  *
  * All components use $token strings (e.g., "$selection-bg", "$focusborder")
  * which silvery ThemeProvider resolves at render time.
  */
-import { ansi16DarkTheme, ansi16LightTheme, detectTheme } from "@silvery/react"
-import type { Theme, TerminalCaps } from "@silvery/react"
+import { ansi16DarkTheme, detectTheme } from "@silvery/react"
+import type { Theme } from "@silvery/react"
 
 /** Default theme for tests (ANSI 16 dark — no terminal detection needed) */
 export const defaultKmTheme: Theme = ansi16DarkTheme
 
-/**
- * Detect the terminal's theme from its actual colors.
- *
- * - Truecolor terminals: queries OSC 4/10/11 for the real palette,
- *   fills gaps from Nord (dark) or Catppuccin Latte (light), derives
- *   a full 33-token theme via swatch.
- * - ANSI 16 terminals: uses named ANSI colors that adapt to whatever
- *   terminal theme the user has configured.
- */
-export async function detectTerminalTheme(caps: TerminalCaps): Promise<Theme> {
-  if (caps.colorLevel !== "truecolor") {
-    // ANSI 16 — colors adapt to the terminal's palette automatically
-    return caps.darkBackground ? ansi16DarkTheme : ansi16LightTheme
-  }
-  // Truecolor — detect actual terminal colors and derive theme
-  return detectTheme()
-}
+// Re-export detectTheme directly — no km-specific wrapper needed.
+// detectTheme() handles all fallbacks internally (Nord dark / Catppuccin Latte light).
+export { detectTheme }
 
 /** Dim a single color value — same hue, reduced brightness.
  * Truecolor (#RRGGBB): multiply RGB by factor.

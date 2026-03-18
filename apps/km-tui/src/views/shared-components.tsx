@@ -5,7 +5,7 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, Small, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/react"
+import { Box, Text, Muted, Small, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/react"
 import { useApp as useAppStore } from "@silvery/term/runtime"
 import { createLogger } from "loggily"
 
@@ -287,20 +287,22 @@ function isChord(segment: string): boolean {
 }
 
 /**
- * Render a single key segment with chord dot separator.
+ * Render a single key segment with Kbd styling (background badge).
  *
  * If the segment is a chord (e.g., "g c"), renders as g·c where · is dim.
- * Otherwise renders the segment as-is in yellow.
+ * Chord dots and slash separators have no background — only key chars do.
  */
-function KeySegment({ segment, color = "$warning" }: { segment: string; color?: string }): React.ReactElement {
+function KeySegment({ segment, color }: { segment: string; color?: string }): React.ReactElement {
   if (isChord(segment)) {
     const [prefix, suffix] = segment.split(" ")
     return (
-      <Text bold color={color}>
-        {prefix}
+      <>
+        <Text bold color={color}>
+          {prefix}
+        </Text>
         <Text dimColor>{"·"}</Text>
         <KeySegment segment={suffix} color={color} />
-      </Text>
+      </>
     )
   }
   // Render bare `/` inside compact groups (e.g., ⌘[/], >/<) as dim
@@ -333,7 +335,7 @@ function KeySegment({ segment, color = "$warning" }: { segment: string; color?: 
  * - Mixed: `"⌃w v / s"` → ⌃w·v dim(/) s
  * - Plain: `"hjkl"` → hjkl
  */
-export function KeyBinding({ keys, color = "$warning" }: { keys: string; color?: string }): React.ReactElement {
+export function KeyBinding({ keys, color }: { keys: string; color?: string }): React.ReactElement {
   // Double-space separator: "a #  #" → a·# (space) # (no slash)
   if (keys.includes("  ")) {
     const segments = keys.split("  ")
@@ -412,7 +414,7 @@ export function InputBox({
       <Text>
         {prompt && <Text color={promptColor}>{prompt}</Text>}
         {showPlaceholder ? (
-          <Text dimColor>{placeholder}</Text>
+          <Muted>{placeholder}</Muted>
         ) : (
           <CursorLine beforeCursor={beforeCursor} afterCursor={afterCursor} showCursor={showCursor} />
         )}
@@ -485,11 +487,12 @@ export function NodeLine({
       {(parentContext || children) && (
         <Box flexGrow={0} flexShrink={0}>
           <Text color={isSelected ? "$selection" : undefined}>
-            {parentContext && (
-              <Text dimColor={!isSelected} color={isSelected ? "$selection" : undefined}>
-                {` < ${parentContext}`}
-              </Text>
-            )}
+            {parentContext &&
+              (isSelected ? (
+                <Text color="$selection">{` < ${parentContext}`}</Text>
+              ) : (
+                <Muted>{` < ${parentContext}`}</Muted>
+              ))}
             {children}
           </Text>
         </Box>

@@ -15,7 +15,7 @@
  */
 
 import React from "react"
-import { Box, Text, Small, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/react"
+import { Box, Text, Small, Strong, Muted, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/react"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 
 interface SearchReplaceDialogProps {
@@ -95,7 +95,7 @@ export function SearchReplaceDialog({
     <ModalDialog title="Find & Replace" hotkey="F" titleRight={matchRight} width={width} focusScope={true}>
       {/* Search field */}
       <Box flexDirection="row" testID="search-field">
-        <Text color={focusedField === "search" ? "$fg" : "$disabled-fg"}>Find: </Text>
+        {focusedField === "search" ? <Strong>Find: </Strong> : <Muted>Find: </Muted>}
         <DialogInput value={searchQuery} onChange={onSearchChange} isActive={focusedField === "search"} />
       </Box>
 
@@ -103,7 +103,7 @@ export function SearchReplaceDialog({
 
       {/* Replace field */}
       <Box flexDirection="row" testID="replace-field">
-        <Text color={focusedField === "replace" ? "$fg" : "$disabled-fg"}>Repl: </Text>
+        {focusedField === "replace" ? <Strong>Repl: </Strong> : <Muted>Repl: </Muted>}
         <DialogInput value={replaceQuery} onChange={onReplaceChange} isActive={focusedField === "replace"} />
       </Box>
 

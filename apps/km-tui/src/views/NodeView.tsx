@@ -28,7 +28,7 @@
  *
  */
 import React from "react"
-import { Box, Link, Text, Small } from "@silvery/react"
+import { Box, Link, Muted, Text, Small } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isTask } from "@km/core"
 import {
@@ -624,7 +624,7 @@ export function NodeDetailView({
             {metadataRows.map((row) => (
               <Box key={row.label} flexDirection="row">
                 <Box width={10} flexShrink={0}>
-                  <Text dimColor>{row.label}</Text>
+                  <Muted>{row.label}</Muted>
                 </Box>
                 <Text>{row.value}</Text>
               </Box>

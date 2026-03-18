@@ -5,7 +5,7 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, Small, ErrorBoundary, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, Muted, Strong, ErrorBoundary, ModalDialog } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { isOutline, isEmbed } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -243,16 +243,16 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
 
   const footerContent = (
     <Box flexDirection="row" justifyContent="space-between">
-      <Text dimColor>
+      <Muted>
         {"↑↓ nav  Enter go  "}
-        <Text>Tab</Text>
+        <Strong>Tab</Strong>
         {scope === "all" && scopeNodeName
           ? ` narrow to ${scopeNodeName}`
           : scope === "all"
             ? " narrow scope"
             : " search all"}
         {"  Esc cancel"}
-      </Text>
+      </Muted>
       {resultCount > maxVisible && (
         <Small>
           {scrollOffset > 0 ? "↑" : " "}

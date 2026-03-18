@@ -10,7 +10,7 @@
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
-import { Box, Text, Small, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import {
@@ -268,19 +268,19 @@ function CommandResultItem({ result, isSelected }: { result: OmniboxResult; isSe
       {/* Label + description: fills remaining space, truncates on overflow */}
       <Box flexGrow={1} flexShrink={1} overflow="hidden">
         <Text color={fg} bold={isSelected} wrap="truncate">
-          <Text dimColor={!isSelected}>{typeIcon}</Text>
-          <Text>{result.label}</Text>
+          <Muted>{typeIcon}</Muted>
+          <Strong>{result.label}</Strong>
           {"  "}
-          <Text dimColor>{result.description}</Text>
+          <Muted>{result.description}</Muted>
         </Text>
       </Box>
       {/* Shortcut hint: fixed width, never squeezed */}
       {result.shortcutHint && (
         <Box flexGrow={0} flexShrink={0}>
-          <Text color={isSelected ? "$selection" : "$inputborder"} backgroundColor={bg}>
+          <Muted color={isSelected ? "$selection" : undefined} backgroundColor={bg}>
             {"  "}
             {result.shortcutHint}
-          </Text>
+          </Muted>
         </Box>
       )}
     </Box>

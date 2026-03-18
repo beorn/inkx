@@ -34,6 +34,7 @@ Progressive-disclosure docs — read in order. Each builds on the previous.
 | [design/era2/packaging.md](design/era2/packaging.md)           | Package structure, bundles, migration       |
 | [design/era2/playground.md](design/era2/playground.md)         | Live Canvas playground design               |
 | [design/era2/decisions.md](design/era2/decisions.md)           | Numbered decision log                       |
+| [design/era2/wiring.md](design/era2/wiring.md)                 | How packages connect — 6 cases, data flows  |
 
 ### Era 3 Design (future)
 

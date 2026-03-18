@@ -5,7 +5,7 @@
  * Uses useDialogInput for text input + dialogTargetRef wiring.
  */
 import React from "react"
-import { Box, Text, Small, CursorLine, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, Muted, CursorLine, ModalDialog } from "@silvery/react"
 import { resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
@@ -83,7 +83,7 @@ export function DatePromptDialog({
 
       {/* Live preview */}
       <Box>
-        <Text color={preview.color}>{preview.text}</Text>
+        {preview.color === "$muted" ? <Muted>{preview.text}</Muted> : <Text color={preview.color}>{preview.text}</Text>}
       </Box>
 
       {/* Hint */}
