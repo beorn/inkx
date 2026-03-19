@@ -345,4 +345,28 @@ describe("Detail Pane Journeys", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     board.expectScreen("task-b")
   })
+
+  // =========================================================================
+  // km-o7ayx: Detail view children use Card infrastructure
+  // =========================================================================
+
+  test("detail pane children render as cards with data-view attribute", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("parent", item("child-a"), item("child-b")))),
+      { checkIncremental: false, incremental: false },
+    )
+
+    // Step 1: Open detail pane — auto-focuses detail, cursor on first child
+    board.command("toggle_detail_pane")
+    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+
+    // Step 2: Children should be wrapped in Card components with data-view="card"
+    // This verifies they go through the Card infrastructure (borders, fold, overflow)
+    board.expect('[data-view="card"][data-card-id="child-a"]').toExist()
+    board.expect('[data-view="card"][data-card-id="child-b"]').toExist()
+
+    // Step 3: Children should still be visible on screen
+    board.expectScreen("child-a")
+    board.expectScreen("child-b")
+  })
 })

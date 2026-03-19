@@ -23,4 +23,6 @@ if [ -f "$REPO_ROOT/vendor/tools/tools/recall.ts" ]; then
   disown
 fi
 
+# Hook output (required by Claude Code)
+echo '{"hookSpecificOutput": {"status": "ok"}}'
 exit 0

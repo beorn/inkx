@@ -163,6 +163,12 @@ The `remove` command protects against data loss:
 - **Requires --force** to remove dirty worktrees
 - **Protects main/master** branches from deletion
 
+## WorktreeCreate Hook
+
+Claude Code's `isolation: "worktree"` triggers the `WorktreeCreate` hook defined in `.claude/settings.json`. The hook at `.claude/hooks/worktree-create.sh` sets up submodules, dependencies, and direnv in the new worktree.
+
+**Critical**: The hook MUST output JSON to stdout (e.g., `{"hookSpecificOutput": {"status": "success"}}`). Claude Code treats hooks with no stdout as failures ("WorktreeCreate hook failed: no successful output"). All exit paths must emit JSON.
+
 ## Common Issues
 
 ### "Cannot create worktree - uncommitted changes detected"

@@ -6,6 +6,7 @@
  */
 
 import { describe, test, it, expect } from "vitest"
+import { TC } from "./helpers/theme.ts"
 import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
 import { createFakeRepo, createRepo, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
@@ -1384,5 +1385,159 @@ describe("zoom out from file to folder shows multiple columns", () => {
     expect(programBox!.x).toBeGreaterThan(milestonesBox!.x)
     expect(milestonesBox!.y).toBe(overviewBox!.y)
     expect(programBox!.y).toBe(overviewBox!.y)
+  })
+})
+
+// =============================================================================
+// Zoom + Background Color Assertions
+// =============================================================================
+
+describe("Zoom color assertions", () => {
+  test("cursor card has $selection-bg after zoom in", () => {
+    const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Zoom in: board -> col -> parent
+    board.press("z") // root=col
+    board.press("z") // root=parent, cursor on child1
+    board.expect("#child1[data-cursor]").toExist()
+
+    // Verify cursor card has selection background color
+    const box = board.q("#child1[data-cursor]").boundingBox()
+    expect(box).not.toBeNull()
+    if (!box) return
+
+    let hasSelectionBg = false
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const cell = board.screen.cell(x, box.y)
+      if (cell.bg === TC["$selection-bg"]) {
+        hasSelectionBg = true
+        break
+      }
+    }
+    expect(hasSelectionBg, "cursor card should have $selection-bg after zoom in").toBe(true)
+  })
+
+  test("cursor card has $selection-bg after zoom out", () => {
+    const { board } = testEnv(
+      () => item("board", item("col", item("parent", item("child1", item("gc1")), item("child2", item("gc2"))))),
+      { columns: 120, rows: 24 },
+    )
+
+    // Zoom in deep
+    board.press("z") // root=col
+    board.press("z") // root=parent, columns=[child1, child2]
+    board.press("k") // go to column header (child1)
+    board.press("z") // root=child1
+
+    // Zoom out
+    board.press("Z") // root=parent
+    const cursorEl = board.q("[data-cursor]")
+    expect(cursorEl.count()).toBeGreaterThan(0)
+    const cursorId = cursorEl.getAttribute("id")
+    expect(cursorId).toBeTruthy()
+
+    const box = cursorEl.boundingBox()
+    expect(box).not.toBeNull()
+    if (!box) return
+
+    let hasSelectionBg = false
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const cell = board.screen.cell(x, box.y)
+      if (cell.bg === TC["$selection-bg"]) {
+        hasSelectionBg = true
+        break
+      }
+    }
+    expect(hasSelectionBg, `cursor card "${cursorId}" should have $selection-bg after zoom out`).toBe(true)
+  })
+
+  test("non-cursor cards do NOT have $selection-bg after zoom", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("parent", item("child1", item("gc1"), item("gc2")), item("child2", item("gc3")))),
+        ),
+      { columns: 120, rows: 24 },
+    )
+
+    // Zoom into parent
+    board.press("z") // root=col
+    board.press("z") // root=parent
+    board.expect("#gc1[data-cursor]").toExist()
+
+    // gc2 and gc3 should NOT have selection bg
+    for (const nodeId of ["gc2", "gc3"]) {
+      const nodeEl = board.q(`#${nodeId}`)
+      if (nodeEl.count() === 0) continue
+      const box = nodeEl.boundingBox()
+      if (!box) continue
+
+      let hasSelectionBg = false
+      for (let x = box.x; x < box.x + box.width; x++) {
+        const cell = board.screen.cell(x, box.y)
+        if (cell.bg === TC["$selection-bg"]) {
+          hasSelectionBg = true
+          break
+        }
+      }
+      expect(hasSelectionBg, `non-cursor card "${nodeId}" should NOT have $selection-bg`).toBe(false)
+    }
+  })
+
+  test.each([
+    { cols: 200, rows: 50 },
+    { cols: 120, rows: 30 },
+    { cols: 80, rows: 24 },
+  ])("zoom in/out at $cols x $rows maintains correct cursor bg color", ({ cols, rows }) => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("task1"), item("task2"), item("task3")),
+          item("col2", item("taskA"), item("taskB")),
+        ),
+      { columns: cols, rows },
+    )
+
+    // Zoom into col1
+    board.press("k") // column header
+    board.press("z") // root=col1
+
+    // Verify cursor card has selection bg
+    const cursorEl = board.q("[data-cursor]")
+    expect(cursorEl.count()).toBeGreaterThan(0)
+    const box = cursorEl.boundingBox()
+    if (!box) return
+
+    let hasSelectionBg = false
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const cell = board.screen.cell(x, box.y)
+      if (cell.bg === TC["$selection-bg"]) {
+        hasSelectionBg = true
+        break
+      }
+    }
+    expect(hasSelectionBg, "cursor card should have $selection-bg after zoom at wide terminal").toBe(true)
+
+    // Zoom back out
+    board.press("Z")
+    const cursorEl2 = board.q("[data-cursor]")
+    expect(cursorEl2.count()).toBeGreaterThan(0)
+    const box2 = cursorEl2.boundingBox()
+    if (!box2) return
+
+    let hasSelectionBg2 = false
+    for (let x = box2.x; x < box2.x + box2.width; x++) {
+      const cell = board.screen.cell(x, box2.y)
+      if (cell.bg === TC["$selection-bg"]) {
+        hasSelectionBg2 = true
+        break
+      }
+    }
+    expect(hasSelectionBg2, "cursor card should have $selection-bg after zoom out").toBe(true)
   })
 })

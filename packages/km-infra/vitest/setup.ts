@@ -100,17 +100,21 @@ process.env.SILVERY_STRICT = "1"
 // Known incremental rendering mismatches -- tracked as km-silvery.bg-bleed
 // These are real bugs in silvery's content-phase/output-phase that need fixing.
 // Adding them here prevents blocking unrelated work while we fix the pipeline.
+//
+// IMPORTANT: Be SPECIFIC. Blanket patterns like "*incremental*" suppress tests
+// that are explicitly verifying incremental correctness -- defeating the purpose
+// of SILVERY_STRICT. Only add patterns for tests with KNOWN, TRACKED mismatches.
+// Each pattern should have a bead ID comment explaining why it's suppressed.
 const KNOWN_STRICT_PATTERNS = [
-  "*incremental*",
-  "*ANSI replay*",
-  "*ANSI output*",
-  "*changesToAnsi*",
-  "*incremental render*",
-  "*incremental mismatch*",
-  "*garble*",
-  "*resize*garble*",
+  // km-silvery.bg-bleed: zoom garble at wide terminals (stale content after zoom out)
+  "*zoom*garble*",
   "*zoom*mismatch*",
+  // km-silvery.bg-bleed: resize causes stale content fragments
+  "*resize*garble*",
+  // km-silvery.bg-bleed: emoji wide-char handling causes off-by-one in incremental
   "*emoji*garble*",
+  "*flag emoji*garble*",
+  // km-silvery.bg-bleed: navigation fuzz with known seed triggers mismatch
   "*seed=42*",
 ]
 

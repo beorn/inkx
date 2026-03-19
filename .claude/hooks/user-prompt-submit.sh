@@ -9,4 +9,6 @@ if [ -f "$REPO_ROOT/vendor/tools/tools/recall.ts" ]; then
   exec bun "$REPO_ROOT/vendor/tools/tools/recall.ts" hook
 fi
 
+# recall.ts not found — output empty hook result
+echo '{"hookSpecificOutput": {}}'
 exit 0

@@ -77,9 +77,10 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
     const parserPath = relativePath ?? fsPath
     const { nodes } = isTxt ? parsePlainTextToNodes(content, parserPath) : parseMarkdownWithLinks(content, parserPath)
 
-    const stubRow = db.prepare("SELECT parent_id, parent_idx FROM nodes WHERE id = ?").get(nodeId) as {
+    const stubRow = db.prepare("SELECT parent_id, parent_idx, parsed FROM nodes WHERE id = ?").get(nodeId) as {
       parent_id: string | null
       parent_idx: number
+      parsed: number
     } | null
 
     if (!stubRow) {
@@ -87,14 +88,25 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
       return false
     }
 
+    // Skip if already parsed — prevents double-parse duplicates and metadata loss.
+    // The `parsed` flag catches title-only files (no children) that the old
+    // childCount > 0 guard missed.
+    if (stubRow.parsed) {
+      log.debug?.(`parseStubFile: ${nodeId} already parsed, skipping`)
+      return true
+    }
+
     db.run("BEGIN IMMEDIATE")
 
     try {
-      // Skip if already parsed (has children) — prevents double-parse duplicates
-      // without destroying event-created children that may be richer than markdown
-      const childCount = (db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(nodeId) as { cnt: number }).cnt
+      // Re-check under transaction (another thread may have parsed between our check and BEGIN)
+      const childCount = (
+        db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(nodeId) as { cnt: number }
+      ).cnt
       if (childCount > 0) {
-        db.run("ROLLBACK")
+        // Children exist (from prior parse or events) — mark parsed and skip
+        db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
+        db.run("COMMIT")
         return true
       }
       db.prepare("DELETE FROM nodes WHERE id = ?").run(nodeId)
@@ -124,6 +136,9 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
       for (const node of nodes) {
         insertNodeRow(insertStmt, node, now)
       }
+
+      // Mark the file node as parsed
+      db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
 
       db.run("COMMIT")
       log.debug?.(`parseStubFile: success, ${nodes.length} nodes`)
@@ -207,10 +222,11 @@ function parseOneFile(
   const isTxt = fsPath.endsWith(".txt")
   const { nodes, wikilinks } = isTxt ? parsePlainTextToNodes(content, fsPath) : parseMarkdownWithLinks(content, fsPath)
 
-  const stubRow = db.prepare("SELECT parent_id, parent_idx, fs_path FROM nodes WHERE id = ?").get(nodeId) as {
+  const stubRow = db.prepare("SELECT parent_id, parent_idx, fs_path, parsed FROM nodes WHERE id = ?").get(nodeId) as {
     parent_id: string | null
     parent_idx: number
     fs_path: string | null
+    parsed: number
   } | null
 
   if (!stubRow) {
@@ -218,10 +234,18 @@ function parseOneFile(
     return null
   }
 
-  // Skip if already parsed (has children) — prevents double-parse duplicates
-  // without destroying event-created children that may be richer than markdown
-  const childCount = (db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(nodeId) as { cnt: number }).cnt
-  if (childCount > 0) return null
+  // Skip if already parsed — prevents double-parse duplicates and metadata loss
+  if (stubRow.parsed) return null
+
+  // Also skip if children exist (from events or prior parse that didn't set flag)
+  const childCount = (
+    db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(nodeId) as { cnt: number }
+  ).cnt
+  if (childCount > 0) {
+    // Mark parsed for future checks, then skip
+    db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
+    return null
+  }
 
   deleteStmt.run(nodeId)
 
@@ -251,6 +275,9 @@ function parseOneFile(
   for (const node of nodes) {
     insertNodeRow(insertStmt, node, now)
   }
+
+  // Mark the file node as parsed
+  db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(nodeId)
 
   return wikilinks
 }

@@ -78,6 +78,7 @@ import { findMatchingNodeIds } from "../board/board-actions-find.ts"
 import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
 import { navigateToNode } from "../navigate-to-node.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
+import { parseKmUrl, resolveKmLink } from "../internal-link.ts"
 
 export { makeSelectionKey } from "../types.ts"
 
@@ -964,12 +965,15 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const storeApi = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
 
   // Handle Cmd+click on links — opens external URLs, dispatches internal km:// links.
-  // Internal km://node/{id} links navigate to the referenced node via navigateToNode().
+  // Internal km:// links navigate to the referenced node via navigateToNode().
+  // Supported schemes: km://node/{id}, km://wiki/{name}, km://block/{id}
   const handleInternalLink = useCallback(
     (href: string) => {
-      const match = href.match(/^km:\/\/node\/(.+)$/)
-      if (!match?.[1] || !storeApi) return
-      const targetId = decodeURIComponent(match[1])
+      if (!storeApi) return
+      const parsed = parseKmUrl(href)
+      if (!parsed) return
+      const targetId = resolveKmLink(parsed, repo)
+      if (!targetId) return
 
       // Read current state imperatively (event handler, not render)
       const state = storeApi.getState()

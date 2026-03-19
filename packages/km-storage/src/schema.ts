@@ -47,6 +47,9 @@ CREATE TABLE IF NOT EXISTS nodes (
   content TEXT,
   content_hash TEXT,
 
+  -- Parse state
+  parsed INTEGER DEFAULT 0,  -- 1 after first successful parse (prevents double-parse)
+
   -- Metadata
   data JSON DEFAULT '{}',
   created_at INTEGER,
@@ -135,6 +138,7 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   missing("start_at")
   missing("item", "INTEGER DEFAULT 0")
   missing("embed_source")
+  missing("parsed", "INTEGER DEFAULT 0")
 
   // kmast v2: convert old type values to trait-based model
   // oi → h + item:true, li → p + item:true, link → embed + embed_source from link_to
@@ -200,6 +204,7 @@ export const NODE_COLUMNS = new Set([
   "priority",
   "content",
   "content_hash",
+  "parsed",
   "data",
   "created_at",
   "updated_at",

@@ -718,14 +718,18 @@ describe("deferred parsing deduplication", () => {
     const repo = runGenerator(createRepo(dir, { loadFiles: true, discoverOnly: true }))
 
     // Find the stub
-    const stub = repo.database.prepare("SELECT id FROM nodes WHERE fs_path = ?").get("launch-academy.md") as { id: string } | null
+    const stub = repo.database.prepare("SELECT id FROM nodes WHERE fs_path = ?").get("launch-academy.md") as {
+      id: string
+    } | null
     expect(stub).toBeTruthy()
 
     // Parse the file (first time)
     const { parseStubFile } = await import("../src/deferred-parsing.ts")
     parseStubFile(repo.database, stub!.id, join(dir, "launch-academy.md"), "launch-academy.md")
 
-    const childrenAfterFirst = repo.database.prepare("SELECT content FROM nodes WHERE parent_id = ?").all(stub!.id) as { content: string }[]
+    const childrenAfterFirst = repo.database.prepare("SELECT content FROM nodes WHERE parent_id = ?").all(stub!.id) as {
+      content: string
+    }[]
     const sections1 = childrenAfterFirst.filter((c) => c.content === "INBOX" || c.content === "PROJECTS")
     expect(sections1.length).toBe(2)
 
@@ -733,7 +737,9 @@ describe("deferred parsing deduplication", () => {
     parseStubFile(repo.database, stub!.id, join(dir, "launch-academy.md"), "launch-academy.md")
 
     // Should still have exactly 2 sections, not 4
-    const childrenAfterSecond = repo.database.prepare("SELECT content FROM nodes WHERE parent_id = ?").all(stub!.id) as { content: string }[]
+    const childrenAfterSecond = repo.database
+      .prepare("SELECT content FROM nodes WHERE parent_id = ?")
+      .all(stub!.id) as { content: string }[]
     const sections2 = childrenAfterSecond.filter((c) => c.content === "INBOX" || c.content === "PROJECTS")
     expect(sections2.length).toBe(2)
 

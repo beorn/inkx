@@ -406,11 +406,20 @@ function insertFileNodes(
     }
   }
 
-  // Skip if already parsed (has children) — prevents double-parse duplicates
-  // without destroying event-created children that may be richer than markdown
+  // Skip if already parsed — prevents double-parse duplicates and metadata loss.
+  // Check both `parsed` flag (catches title-only files) and childCount (legacy guard).
   if (stub) {
-    const childCount = (db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(file.nodeId) as { cnt: number }).cnt
-    if (childCount > 0) return // Already parsed, skip
+    const parsedRow = db.prepare("SELECT parsed FROM nodes WHERE id = ?").get(file.nodeId) as { parsed: number } | null
+    if (parsedRow?.parsed) return // Already parsed, skip
+
+    const childCount = (
+      db.prepare("SELECT count(*) as cnt FROM nodes WHERE parent_id = ?").get(file.nodeId) as { cnt: number }
+    ).cnt
+    if (childCount > 0) {
+      // Mark parsed for future checks, then skip
+      db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(file.nodeId)
+      return
+    }
     deleteStmt.run(file.nodeId)
   }
 
@@ -452,6 +461,11 @@ function insertFileNodes(
     if (emitter) {
       emitNodeCreated(emitter, "fs-watch", node as unknown as Record<string, unknown>)
     }
+  }
+
+  // Mark the file node as parsed
+  if (stub) {
+    db.prepare("UPDATE nodes SET parsed = 1 WHERE id = ?").run(file.nodeId)
   }
 }
 

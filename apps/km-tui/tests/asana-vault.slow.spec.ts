@@ -68,7 +68,7 @@ describe("Asana vault: launch-academy", () => {
       .prepare("SELECT id, fstype FROM nodes WHERE fs_path = ?")
       .get("stabell/early-orbit") as { id: string; fstype: string } | null
 
-    if (!earlyOrbit || earlyOrbit.fstype !== "folder") return
+    if (earlyOrbit?.fstype !== "folder") return
 
     // getNavigableChildren should filter out the index file
     const allChildren = repo.getChildren(earlyOrbit.id)

@@ -14,7 +14,13 @@
 import { describe, it, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { hasTaskProperties } from "@km/core"
-import { formatDateBadge, formatInfoSuffix, getNodeStyle, shortName, type GetBoardPillsFn } from "../src/views/tree-node-helpers.tsx"
+import {
+  formatDateBadge,
+  formatInfoSuffix,
+  getNodeStyle,
+  shortName,
+  type GetBoardPillsFn,
+} from "../src/views/tree-node-helpers.tsx"
 import { computeBulletIcon } from "../src/views/tree-node-shared.ts"
 import { FOLDED_MARKER } from "../src/icons.ts"
 import { makeSelectionKey, parseSelectionKey } from "../src/types.ts"

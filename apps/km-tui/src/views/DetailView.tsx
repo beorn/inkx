@@ -2,15 +2,15 @@
  * DetailView — renders the detail pane as a single column.
  *
  * Shows the focused item's metadata properties as navigable rows,
- * followed by tree children as compact line items. Uses column
- * infrastructure (ColumnHeader pattern) for consistent styling.
+ * followed by tree children as Card components (matching column card
+ * rendering: borders, fold indicators, overflow counts, virtualization).
  *
  * Cursor navigation: j/k moves through __meta__ property rows first,
  * then tree children. The cursor ID uses the DETAIL_META_PREFIX
  * convention (e.g., "__meta__Status", "__meta__Due").
  */
 
-import React from "react"
+import React, { useCallback, useMemo } from "react"
 import { Box, Text, Small } from "@silvery/react"
 import type { KNode } from "@km/core"
 import { decomposeDatetime } from "@km/core"
@@ -20,8 +20,9 @@ import { getNodeDisplayName } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
-import { TreeNode } from "./TreeNode.tsx"
-import { DETAIL_DEFAULT_DEPTH } from "../view-navigation.ts"
+import { Card } from "./CardColumn.tsx"
+import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
+import { useTreeRenderContext } from "../ui-context.tsx"
 
 // =============================================================================
 // DetailView Component
@@ -44,12 +45,16 @@ export interface DetailViewProps {
  * - Separator
  * - Metadata property rows (navigable with j/k via __meta__ cursor IDs)
  * - Separator (if both properties and children exist)
- * - Tree children as compact line items
+ * - Tree children rendered as Cards (matching column card infrastructure)
+ *
+ * Children use the same Card infrastructure as CardColumn: bordered cards
+ * with fold indicators, overflow counts, and VirtualList virtualization.
  */
 export function DetailView({ rootId, width, height }: DetailViewProps): React.ReactElement {
   const repo = useRepo()
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const { treeConfig } = useTreeRenderContext()
 
   const rootNode = rootId ? repo.getNode(rootId) : null
   if (!rootNode) {
@@ -62,10 +67,28 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
   // Compute metadata keys and children
   const metaKeys = computeMetadataKeys(rootNode)
-  const children = repo.getChildren(rootId)
+  const children = useMemo(() => repo.getChildren(rootId), [repo, rootId])
 
   // Effective content width (minus padding)
   const contentWidth = Math.max(8, width - 2)
+
+  // Height consumed by metadata section (rows + separator)
+  const metaHeight = metaKeys.length + (metaKeys.length > 0 && children.length > 0 ? 1 : 0)
+  // Remaining height for children cards (virtualized)
+  const childrenHeight = Math.max(1, height - metaHeight)
+
+  // Card width matches column convention: width - 1 for scroll indicator space
+  const cardWidth = Math.max(8, width - 1)
+
+  // Stable renderItem callback for VirtualList — Card self-subscribes to cursor
+  const renderItem = useCallback(
+    (child: KNode, index: number) => (
+      <Card key={child.id} card={child} width={cardWidth} colIndex={0} cardIndex={index} />
+    ),
+    [cardWidth],
+  )
+
+  const keyExtractor = useCallback((child: KNode) => child.id, [])
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
@@ -96,30 +119,27 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           </Box>
         )}
 
-        {/* Children as tree nodes — uses remainingDepth={1} to match column
-            fold behavior: show title + one level of sub-children, with fold
-            indicators for deeper content. User can Shift+L to unfold more. */}
-        {children.map((child, index) => {
-          const isSelected = cursorCardNodeId === child.id
-          return (
-            <TreeNode
-              key={child.id}
-              node={child}
-              depth={0}
-              remainingDepth={DETAIL_DEFAULT_DEPTH}
-              isSelected={isSelected}
-              colIndex={0}
-              cardIndex={index}
-            />
-          )
-        })}
-
-        {/* Empty state */}
-        {metaKeys.length === 0 && children.length === 0 && (
+        {/* Children as Cards — uses Card infrastructure for borders, fold
+            indicators, overflow counts, and VirtualList for virtualization.
+            Matches column card rendering (embedding rule). */}
+        {children.length > 0 ? (
+          <ScrollTrackingVirtualList
+            isSelected={true}
+            items={children}
+            width={cardWidth}
+            height={childrenHeight}
+            itemHeight={treeConfig.maxContentLines + 2}
+            overscan={2}
+            maxRendered={20}
+            keyExtractor={keyExtractor}
+            renderItem={renderItem}
+          />
+        ) : metaKeys.length === 0 ? (
+          /* Empty state — no metadata and no children */
           <Box paddingX={1}>
             <Small>(empty)</Small>
           </Box>
-        )}
+        ) : null}
       </Box>
     </Box>
   )

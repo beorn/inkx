@@ -7,13 +7,17 @@ INPUT=$(cat)
 WORKTREE_PATH=$(echo "$INPUT" | jq -r '.worktree_path // empty')
 
 if [ -z "$WORKTREE_PATH" ]; then
+  echo '{"hookSpecificOutput": {"status": "skipped", "reason": "no worktree_path"}}'
   exit 0
 fi
 
 LOG="/tmp/worktree-create-hook.log"
 echo "$(date '+%H:%M:%S') Setting up worktree: $WORKTREE_PATH" >> "$LOG"
 
-cd "$WORKTREE_PATH" || exit 0
+if ! cd "$WORKTREE_PATH" 2>/dev/null; then
+  echo "{\"hookSpecificOutput\": {\"status\": \"error\", \"reason\": \"cannot cd to $WORKTREE_PATH\"}}"
+  exit 0
+fi
 
 # Initialize submodules (independent clones, not symlinks)
 if [ -f .gitmodules ]; then
@@ -33,4 +37,5 @@ if [ -f .envrc ] && command -v direnv &>/dev/null; then
 fi
 
 echo "$(date '+%H:%M:%S') Worktree setup complete" >> "$LOG"
+echo "{\"hookSpecificOutput\": {\"status\": \"success\", \"worktree\": \"$WORKTREE_PATH\"}}"
 exit 0

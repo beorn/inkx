@@ -61,7 +61,7 @@ const MAX_RENDERED_CARDS = 20
 // Card Component
 // =============================================================================
 
-interface CardProps {
+export interface CardProps {
   card: KNode
   width: number
   colIndex: number
@@ -146,7 +146,7 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
   return null
 }
 
-const Card = React.memo(
+export const Card = React.memo(
   function Card({
     card,
     width,

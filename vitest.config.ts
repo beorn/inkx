@@ -39,6 +39,14 @@ const sharedTest = {
 	server: { deps: { inline: ["zod"] } },
 }
 
+const sharedPtyTest = {
+	setupFiles: ["./packages/km-infra/vitest/setup-pty.ts"],
+	maxWorkers: process.env.VITEST_MAX_WORKERS
+		? Number.parseInt(process.env.VITEST_MAX_WORKERS)
+		: Math.max(availableParallelism() - 1, 1),
+	server: { deps: { inline: ["zod"] } },
+}
+
 const projects = hasProjectFlag
 	? [
 			{
@@ -47,7 +55,7 @@ const projects = hasProjectFlag
 					name: "default",
 					...sharedTest,
 					include: ["**/*.{test,spec}.{ts,tsx,md}"],
-					exclude: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
+					exclude: [...alwaysExclude, "**/*.slow.*", "**/*.pty.*", "vendor/**"],
 				},
 			},
 			{
@@ -56,7 +64,7 @@ const projects = hasProjectFlag
 					name: "slow",
 					...sharedTest,
 					include: ["**/*.slow.{test,spec}.{ts,tsx,md}"],
-					exclude: alwaysExclude,
+					exclude: [...alwaysExclude, "**/*.pty.*"],
 				},
 			},
 			{
@@ -65,6 +73,22 @@ const projects = hasProjectFlag
 					name: "vendor",
 					...sharedTest,
 					include: ["vendor/**/*.{test,spec}.{ts,tsx,md}"],
+					exclude: [...alwaysExclude, "**/*.slow.*", "**/*.pty.*"],
+				},
+			},
+			{
+				test: {
+					name: "pty",
+					...sharedPtyTest,
+					include: ["**/*.pty.{test,spec}.{ts,tsx}"],
+					exclude: alwaysExclude,
+				},
+			},
+			{
+				test: {
+					name: "fuzz",
+					...sharedTest,
+					include: ["**/*.fuzz.{ts,tsx}"],
 					exclude: [...alwaysExclude, "**/*.slow.*"],
 				},
 			},
@@ -93,8 +117,8 @@ export default defineConfig({
 			? ["**/*.fuzz.{ts,tsx}"]
 			: ["**/*.{test,spec}.{ts,tsx,md}"],
 		exclude: process.env.FUZZ
-			? [...alwaysExclude, "**/*.slow.*"]
-			: [...alwaysExclude, "**/*.slow.*", "vendor/**"],
+			? [...alwaysExclude, "**/*.slow.*", "**/*.pty.*"]
+			: [...alwaysExclude, "**/*.slow.*", "**/*.pty.*", "vendor/**"],
 		setupFiles: ["./packages/km-infra/vitest/setup.ts"],
 		benchmark: {
 			include: [
