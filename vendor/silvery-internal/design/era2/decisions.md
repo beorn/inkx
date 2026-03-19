@@ -62,6 +62,8 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 28. **`createResource()` for async signals.** Bridges async providers to sync signals. `createResource(fetcher)` returns a signal with `.value` (data), `.loading` (boolean signal), `.error` (signal). Built on signals + scope tree. Inspired by Solid's `createAsync` and Angular's `resource()`. Lives in `@silvery/signal`.
 
+29. **Getter/setter function-call pattern, not `.value`.** Signals use `count()` to read and `count(5)` to write — same as alien-signals, Angular, and SolidJS. Not `.value` (Vue, Preact). Visual clarity (function call is obviously dynamic), capability separation (read-only accessor is just `() => T`), and no auto-unwrapping magic needed. Selectors call accessors explicitly: `m.exchanges().length`. Eliminates old P3/P5 auto-unwrap complexity. See [signals-landscape-2026.md](./signals-landscape-2026.md).
+
 ## Design History
 
 - **2026-03-11**: Initial design finalized. Eight Sips, two-surface architecture, SlateJS plugins. Validated by O3 deep research.
@@ -74,6 +76,7 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 - **2026-03-13**: `op()` ergonomics finalized. Method calls only, one op per call, cached proxy instances.
 - **2026-03-16**: Era 2 implementation plan. Pre-phase validation, 7-phase rollout.
 - **2026-03-19**: Signals implementation decision. alien-signals as reactive engine (decision 26). createStore for deep tracking (decision 27). createResource for async (decision 28). Based on comprehensive landscape research.
+- **2026-03-19**: Getter/setter function-call pattern (decision 29). Switched from `.value` to `count()` / `count(5)`. Aligns with alien-signals native API, Angular, SolidJS. Eliminates auto-unwrap complexity.
 
 ---
 

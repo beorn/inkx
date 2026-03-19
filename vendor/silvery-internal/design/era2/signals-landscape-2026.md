@@ -285,25 +285,27 @@ Solid pioneered this: reactive computations form a tree. When a parent disposes,
 
 ### Recommendation: Thin Layer over alien-signals
 
-Don't build a signals engine. Don't re-export Solid (getter API mismatch, ownership complexity). Use alien-signals as the core and add silvery-specific layers:
+Don't build a signals engine. Use alien-signals as the core (getter/setter function-call pattern) and add silvery-specific layers:
 
 ```
-@silvery/signals
+@silvery/signal
 ├── Core (re-export alien-signals)
 │   signal(), computed(), effect(), batch()
+│   Read: sig()  Write: sig(newValue)
 │
-├── Stores (new — Solid/Vue-inspired deep proxy)
-│   createStore<T>(initial) → deep reactive proxy with .value signals
+├── Stores (alien-deepsignals)
+│   createStore<T>(initial) → deep proxy with getter/setter accessors
 │
-├── Resources (new — Solid-inspired async bridge)
-│   createResource<T>(fetcher) → signal with .value, .loading, .error
+├── Resources (silvery-built, scope-integrated)
+│   createResource<T>(fetcher) → res() for data, res.loading(), res.error()
 │
-├── React Integration (new)
+├── React Integration (silvery-built)
 │   useSignal(signal) → T  (via useSyncExternalStore)
 │   useStore(store, selector) → T
 │
 └── Types
-    Readable<T> = { readonly value: T; subscribe(fn): () => void }
+    Accessor<T> = () => T           (read-only)
+    Signal<T> = Accessor<T> & (v: T) => void  (read-write)
 ```
 
 ### Why alien-signals over alternatives?
@@ -331,18 +333,18 @@ Don't build a signals engine. Don't re-export Solid (getter API mismatch, owners
 ```typescript
 // Before (reactive.ts)
 const cursor = new Reactive<string | null>(null)
-cursor.value = "node-1"           // write
-const v = cursor.value            // read
-cursor.subscribe(() => { ... })   // subscribe
+cursor.value = "node-1"           // write via .value
+const v = cursor.value            // read via .value
+cursor.subscribe(() => { ... })   // manual subscribe
 
-// After (@silvery/signals)
+// After (@silvery/signal)
 const cursor = signal<string | null>(null)
-cursor.value = "node-1"           // same .value API
-const v = cursor.value            // same read
-effect(() => { console.log(cursor.value) })  // auto-tracking
+cursor("node-1")                  // write via function call
+const v = cursor()                // read via function call
+effect(() => { console.log(cursor()) })  // auto-tracking
 ```
 
-The km-tui `Reactive<T>` class is a subset of what alien-signals provides. Migration is mechanical: replace `new Reactive(v)` with `signal(v)`, replace manual `subscribe()` with `effect()` or `computed()`.
+The km-tui `Reactive<T>` class is a subset of what alien-signals provides. Migration: replace `new Reactive(v)` with `signal(v)`, replace `.value` reads with `()`, replace `.value =` writes with `(newValue)`, replace manual `subscribe()` with `effect()` or `computed()`.
 
 ### What To Take From Each Library
 

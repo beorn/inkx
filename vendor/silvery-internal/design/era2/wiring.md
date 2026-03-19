@@ -34,6 +34,20 @@ Everything is a plugin — capabilities are opt-in.
 
 Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (lifecycle).
 
+## Graphs
+
+A silvery app is composed of five interconnected structures:
+
+| Graph | What it is | Shape | API |
+|---|---|---|---|
+| **Reactive data graph** | Signals connected by derivations. How data flows. | DAG | `signal()`, `derived()`, `createModel()` |
+| **Async scope tree** | Spawned async work and its ownership. Cancellation down, errors up. | Tree | `createScope()`, `scope.child()`, `op.scope` |
+| **Ag node tree** | Abstract UI structure. Adapter writes, renderer reads. | Tree | `createRootNode()`, `withAg()` |
+| **Command tree** | Action namespace. Discoverable, projectable to CLI/MCP/palette. | Tree | `app.commands.todo.add` |
+| **Plugin chain** | dispatch/apply/run wrapping layers. | Stack | `create()`, `pipe()`, `with*()` |
+
+These are views of one runtime. A keypress traverses the plugin chain, resolves a command (command tree), executes it in a scope (async scope tree), mutates signals (reactive data graph), which triggers a re-render of the UI (ag node tree).
+
 ## Terminology
 
 - **Ag**: rendering (Ag = silver). Node tree, adapters, renderers, 30+ components.
@@ -369,24 +383,24 @@ const todoModel = createModel(() => {
   const items = signal<string[]>([])
   return {
     cursor, items,
-    current: derived(() => items.value[cursor.value] ?? null),
-    add(text: string) { items.value = [...items.value, text] },
+    current: computed(() => items()[cursor()] ?? null),
+    add(text: string) { items([...items(), text]) },
     remove() {
-      items.value = items.value.filter((_, i) => i !== cursor.value)
-      cursor.value = Math.min(cursor.value, Math.max(0, items.value.length - 1))
+      items(items().filter((_, i) => i !== cursor()))
+      cursor(Math.min(cursor(), Math.max(0, items().length - 1)))
     },
-    moveDown() { cursor.value = Math.min(cursor.value + 1, Math.max(0, items.value.length - 1)) },
-    moveUp()   { cursor.value = Math.max(cursor.value - 1, 0) },
+    moveDown() { cursor(Math.min(cursor() + 1, Math.max(0, items().length - 1))) },
+    moveUp()   { cursor(Math.max(cursor() - 1, 0)) },
   }
 })
 
 const editorModel = createModel(() => {
   const mode = signal<"normal" | "edit">("normal")
-  return { mode, isEditing: derived(() => mode.value === "edit") }
+  return { mode, isEditing: computed(() => mode() === "edit") }
 })
 ```
 
-`createModel(factory)` returns a definition. `.create()` makes an isolated instance. `useModel(todoModel, m => m.cursor)` in React reads via selector with signal auto-unwrap.
+`createModel(factory)` returns a definition. `.create()` makes an isolated instance. `useModel(todoModel, m => m.cursor())` in React calls the accessor and tracks the dependency.
 
 ### Domain Plugins
 
@@ -400,7 +414,7 @@ function withTodo() {
 
     app.commands.todo = {
       add:       { title: "Add Item", args: { text: string() }, fn(args) { todo.add(args.text) } },
-      remove:    { title: "Remove Item", args: { item: string({ default: () => todo.current.value }) }, fn() { todo.remove() } },
+      remove:    { title: "Remove Item", args: { item: string({ default: () => todo.current() }) }, fn() { todo.remove() } },
       move_down: { title: "Move Down", fn() { todo.moveDown() } },
       move_up:   { title: "Move Up",   fn() { todo.moveUp() } },
     }
@@ -426,8 +440,8 @@ function withEditor() {
     app.models.editor = editor
 
     app.commands.editor = {
-      enter_edit: { title: "Edit", fn() { editor.mode.value = "edit" } },
-      exit_edit:  { title: "Done", fn() { editor.mode.value = "normal" } },
+      enter_edit: { title: "Edit", fn() { editor.mode("edit") } },
+      exit_edit:  { title: "Done", fn() { editor.mode("normal") } },
     }
     for (const [name, cmd] of Object.entries(app.commands.editor)) {
       app.registerCommand?.(["editor", name], cmd)
@@ -556,7 +570,7 @@ No ag. Tea on native React DOM. No ag-ui components.
 ```typescript
 const todo = todoModel.create()
 todo.add("test"); todo.add("another"); todo.moveDown()
-expect(todo.cursor.value).toBe(1)
+expect(todo.cursor()).toBe(1)
 
 const app = pipe(create(), withTea(), withTodo())   // no keymap, no rendering
 await app.command(app.commands.todo.add, { text: "test" })
