@@ -193,6 +193,33 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 - Might be duplicate but need confirmation
 - Scope seems wrong
 
+### Phase 2½: Verify Close Candidates
+
+**Before presenting any close recommendations**, verify each one against the codebase and related beads. This prevents closing beads that still have open work.
+
+For each close candidate:
+
+1. **Check children**: `bd children <id>` — are all children closed? Open children = not done.
+2. **Check related beads**: `bd show <id>` — read description for mentioned sub-beads, then `bd show <sub-bead> --short` to verify their status.
+3. **Check code**: For implementation beads, verify the code actually exists (grep for key types/functions mentioned in the description).
+4. **Check notes**: Look for "Next:" or "TODO:" items that indicate remaining work.
+5. **Check in_progress beads**: For beads claimed by `claude:*` agents, the agent session is likely dead. Check if work was committed (`git log --oneline -5 --grep="<bead-id>"`) or if the bead has notes documenting completion.
+
+**Run verifications in parallel** — launch one agent per close candidate, or batch `bd show --short` commands.
+
+**Upgrade or downgrade** based on findings:
+- Children all closed + code exists + review done → **safe to close**
+- Open children or missing code → **not safe** — move to Restructure or keep open
+- Superseded but child beads still open → **close parent, also close children** with reason
+
+This step is critical — it catches beads that *look* done from the description but have dangling open work.
+
+6. **Track deferred items**: When a bead has "deferred", "tracked only", "P2 items", or "P1s deferred" items in its description/notes, these MUST be tracked before closing:
+   - For each deferred item, find the covering bead (the one that should eventually address it).
+   - If a covering bead exists: `bd update <covering-bead> --append-notes "Deferred from <closing-bead>: <item description>"` — so the item is explicitly mentioned and won't be forgotten.
+   - If NO covering bead exists: create one with `bd create --id <scope>.<suffix> --type <type> --priority <N> --title "<title>" --description "Deferred <priority> from <closing-bead> (<date>). <details>"`, then parent it.
+   - **Never close a bead with deferred items that have no tracking destination.** This is how work gets lost across sessions.
+
 ### Phase 3: Present Plan
 
 Output structured report:

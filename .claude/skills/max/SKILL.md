@@ -80,6 +80,23 @@ After agents complete:
    Sub-agents must NOT run `bun fix`, `test:fast`, or `test:all` — the parent handles all verification.
 3. Update todos as completed
 
+## Isolation: When to Use Worktrees
+
+**Don't assume you're the only agent.** Other agents may be working on the same repo concurrently. Classify each work unit by blast radius:
+
+| Blast Radius | Examples | Isolation |
+|---|---|---|
+| **Foundational** — changes to core libraries, rendering engines, test infrastructure, storage layer | silvery output phase, flexily layout, km-storage schema, vitest config | **Worktree** (`isolation: "worktree"`) — breakage here breaks every other agent |
+| **Cross-cutting** — touches multiple packages or shared types | Type changes, shared utility updates, package.json scripts | **Worktree** preferred, shared OK if changes are additive-only |
+| **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
+
+**Worktree rules:**
+- Agents in worktrees **MUST commit** their changes (worktrees are cleaned up when no commits exist, losing all work)
+- Tell agents explicitly: "Commit your changes with conventional commits before finishing"
+- Use `bun worktree merge <name>` from main to integrate after
+
+**If `isolation: "worktree"` fails** (e.g., WorktreeCreate hook error, uncommitted changes): fall back to shared workspace but sequence foundational agents — don't run two foundational agents on the same package concurrently.
+
 ## Anti-Patterns
 
 - Launch agents one at a time, waiting for each
@@ -87,7 +104,8 @@ After agents complete:
 - Edit files one at a time when pattern is clear
 - Skip TodoWrite (user can't see your parallel progress)
 - Let sub-agents run `bun fix` or `test:all` (parent does this once)
-- **NEVER use `isolation: "worktree"` for agents that create files** — worktrees are cleaned up when no commits exist, losing all work. Use shared-workspace agents (the default) instead. Worktrees are only safe for read-only research agents or when agents are explicitly instructed to commit.
+- Assume you're the only agent — other sessions/agents may be working on the same repo
+- Run two foundational agents on the same package without isolation
 
 ## Sticky Mode
 

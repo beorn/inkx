@@ -121,6 +121,15 @@ Use worktrees when you need to:
 - **Test changes in isolation** from your main working directory
 - **Compare implementations** side by side
 - **Run long tests** while continuing development
+- **Parallel agents on foundational code** — changes to silvery, flexily, storage, or test infrastructure can break other agents working in the same repo. Use worktrees to isolate foundational work. See [max/SKILL.md](../max/SKILL.md#isolation-when-to-use-worktrees) for the blast-radius classification.
+
+### Multi-Agent Awareness
+
+**Don't assume you're the only agent.** Multiple Claude Code sessions or sub-agents may operate on the same repository concurrently. Worktrees prevent:
+- Git index lock conflicts (`.git/index.lock`)
+- Partial edits visible to other agents mid-change
+- Test failures from incomplete changes in shared files
+- Submodule pointer drift between concurrent edits
 
 ## Merging Back to Main
 
