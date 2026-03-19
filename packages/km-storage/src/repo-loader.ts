@@ -216,6 +216,28 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
     const discoveryDeferred = source.deferredFiles ?? []
     returnDeferredFiles =
       reconcileDeferredFiles.length > 0 ? [...discoveryDeferred, ...reconcileDeferredFiles] : discoveryDeferred
+
+    // Re-queue existing unparsed stubs from prior sessions.
+    // In disk mode, state.db persists between runs. If a prior discoverOnly session
+    // created stubs but background parsing didn't complete (process killed, WAL not
+    // checkpointed), those stubs survive with parsed=0. Reconciliation won't re-queue
+    // them because the files already exist in the DB. Without this, zooming out shows
+    // empty sibling cards forever.
+    const alreadyQueued = new Set(returnDeferredFiles.map((f) => f.nodeId))
+    const unparsedStubs = db
+      .prepare("SELECT id, fs_path FROM nodes WHERE parsed = 0 AND fs_path IS NOT NULL AND data LIKE '%_stub%'")
+      .all() as { id: string; fs_path: string }[]
+    let requeuedCount = 0
+    for (const stub of unparsedStubs) {
+      if (!alreadyQueued.has(stub.id)) {
+        returnDeferredFiles.push({ nodeId: stub.id, fsPath: join(repoRoot, stub.fs_path) })
+        requeuedCount++
+      }
+    }
+    if (requeuedCount > 0) {
+      log.debug?.(`re-queued ${requeuedCount} unparsed stubs from prior sessions`)
+    }
+
     log.debug?.(`discover-only mode, ${returnDeferredFiles?.length ?? 0} files deferred`)
   } else {
     // Even in full mode, reconciliation may find new files that need parsing
