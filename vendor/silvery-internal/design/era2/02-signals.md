@@ -78,6 +78,21 @@ await run(<ChatView />)
 // You can stop at any sip.
 ```
 
+## Implementation
+
+**`@silvery/signal` re-exports [alien-signals](https://github.com/stackblitz/alien-signals)** as the reactive engine — the fastest signals implementation (~1KB, push-pull, version counting, proven by Vue 3.6 adoption). Silvery adds three layers on top:
+
+| Layer | API | Purpose |
+|-------|-----|---------|
+| **Core** (alien-signals) | `signal()`, `computed()`, `effect()` | Reactive primitives with `.value` read/write |
+| **Stores** (silvery) | `createStore(initial)` | Deep proxy — nested property access returns signals. Solid/Vue concept, `.value` API. |
+| **Resources** (silvery) | `createResource(fetcher)` | Async bridge — signal with `.value`, `.loading`, `.error`. Built on scope tree. |
+| **React** (silvery) | `useSignal(s)`, model selectors | `useSyncExternalStore` integration, auto-unwrapping |
+
+**Why alien-signals?** Fastest (~400% over Preact), smallest (~1KB), `.value` API matches era2, zero framework baggage, battle-tested (Vue 3.6, XState, ~3M weekly npm downloads). Not SolidJS (getter API mismatch, ownership model complexity with React), not Preact (slower, larger), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md) and decision 26.
+
+**`batch()`** groups multiple signal writes into one notification. alien-signals auto-batches in microtasks; explicit `batch()` available for synchronous grouping.
+
 ## Principles
 
 **P1: Signals are the state primitive.** Silvery's native state cell is `signal<T>()`. Fine-grained O(1) reactivity -- only subscribers of the specific signal that changed are notified. This is the right granularity for large trees (1000+ nodes), sparse updates, and terminal UIs with tight render budgets. Not Zustand stores (O(n) selector fanout), not proxies (too implicit), not bare useState (no sharing).
@@ -198,6 +213,71 @@ function createChat(rt: { persist: PersistAPI; ai: AIAPI }) { ... }
 All three interoperate -- TypeScript's structural typing means `Pick<typeof providers, "persist">` and `{ persist: PersistAPI }` are the same type as long as shapes match. Start with Level 1 everywhere. Promote to Level 2 or 3 only when needed.
 
 **Rule of thumb**: Use `Pick<>` for app-internal code, named capability interfaces for shared plugins/packages.
+
+## Stores — Deep Reactive State
+
+Signals are flat cells — `signal<User>({ name: "Alice", address: { city: "NYC" } })` replaces the entire value on any mutation, causing all subscribers to re-run even if they only read `name`.
+
+`createStore()` returns a deep proxy where property access at any depth returns/creates a signal:
+
+```typescript
+import { createStore } from "@silvery/signal"
+
+const user = createStore({
+  name: "Alice",
+  address: { city: "NYC", zip: "10001" },
+  tags: ["admin"],
+})
+
+// Deep access returns signals — O(1) subscriptions per property
+user.name.value               // "Alice" (signal)
+user.address.city.value       // "NYC" (signal, tracked independently)
+user.address.city.value = "SF" // only subscribers of address.city re-run
+
+// Array operations
+user.tags.value = [...user.tags.value, "editor"]
+```
+
+**Design**: Proxy-based, inspired by Solid's `createStore` and Vue's `reactive()`, but property access returns `.value` signals (not getters). This keeps the uniform `.value` contract — stores compose with `computed()`, `effect()`, and model selectors without special-casing.
+
+**When to use**: Nested objects where different consumers read different properties (km's tree nodes: title, status, children, metadata). When all consumers read the same top-level value, a flat `signal()` is simpler.
+
+## Resources — Async Signals
+
+Bridges async operations (provider calls, DB queries) to the synchronous signal graph:
+
+```typescript
+import { createResource } from "@silvery/signal"
+
+const profile = createResource(async () => {
+  const data = await rt.api.fetchProfile(userId.value)
+  return data
+})
+
+// In components:
+profile.value     // T | undefined (data when loaded)
+profile.loading   // Signal<boolean>
+profile.error     // Signal<Error | undefined>
+
+// Refetches when userId changes (dependency tracked via signal read inside fetcher)
+```
+
+**Design**: Inspired by Solid's `createAsync` and Angular's `resource()`. The fetcher runs in a tracking scope — signal reads inside it become dependencies. When dependencies change, the resource refetches. Loading/error are themselves signals for fine-grained subscription. Built on the scope tree (06-scopes) for cancellation — if the scope disposes, in-flight fetches are aborted.
+
+## Projections — Reactive Collections (Future)
+
+Reactive transformations over collections that update O(1) when one item changes. Inspired by Ryan Carniato's "Beyond Signals" (Solid 2.0). Example:
+
+```typescript
+// Future API — not yet designed
+const activeTasks = createProjection(
+  () => allTasks.value,
+  { filter: t => !t.done, sort: (a, b) => a.priority - b.priority }
+)
+// When one task's done status changes → O(1) update to the projection
+```
+
+Watch Solid 2.0 (currently beta) for the production-ready API, then adopt. Relevant for km's VirtualList rendering of filtered/sorted node trees.
 
 ## Framework Bindings
 

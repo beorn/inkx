@@ -80,7 +80,7 @@ The abstract rendering contract, headless component state machines, and signal p
 
 - **Abstract node types**: Box, Text — data descriptions of UI with typed props (flexDirection, color, overflow, gap, padding, etc.)
 - **Headless component state machines**: SelectListState, TextInputState, VirtualListState — pure `(action, state) → state` logic for keyboard handling, selection, scrolling
-- **Signal primitives**: `signal()`, `derived()`, `Readable<T>` interface — shared substrate for both rendering and tea
+- **Signal primitives**: `signal()`, `computed()`, `effect()`, `batch()` via alien-signals + `createStore()`, `createResource()`, `Readable<T>` — shared substrate for both rendering and tea. See `@silvery/signal` in [02-signals.md](./02-signals.md)
 - **Pipeline interface**: rendering capabilities that platforms implement
 - **Theme tokens**: semantic colors ($primary, $muted, $border), palette abstraction — may live in separate `@silvery/theme` or be part of platter
 

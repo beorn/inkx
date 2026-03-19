@@ -56,6 +56,12 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 25. **No string keys in registration.** Provider/model names come from JS object property names, not string arguments.
 
+26. **alien-signals as the reactive engine.** The `@silvery/signal` package re-exports alien-signals (fastest implementation, ~1KB, `.value` API, proven by Vue 3.6 adoption). Silvery adds layers on top: `createStore()` (deep proxy — Solid/Vue concept), `createResource()` (async bridge — Solid concept), `useSignal()` (React hook). Not Preact signals (slower, larger), not SolidJS (getter API mismatch, ownership complexity), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md).
+
+27. **`createStore()` for deep reactive state.** Signals are flat cells. For nested objects (km's tree model: nodes with children, properties, metadata), `createStore(initial)` returns a deep proxy where each property access returns/creates a signal. Inspired by Solid's `createStore` and Vue's `reactive()`, but using `.value` signals instead of getters. Lives in `@silvery/signal`.
+
+28. **`createResource()` for async signals.** Bridges async providers to sync signals. `createResource(fetcher)` returns a signal with `.value` (data), `.loading` (boolean signal), `.error` (signal). Built on signals + scope tree. Inspired by Solid's `createAsync` and Angular's `resource()`. Lives in `@silvery/signal`.
+
 ## Design History
 
 - **2026-03-11**: Initial design finalized. Eight Sips, two-surface architecture, SlateJS plugins. Validated by O3 deep research.
@@ -67,6 +73,7 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 - **2026-03-13**: Plugin composition. Generic accumulation via intersection types, not builder pattern.
 - **2026-03-13**: `op()` ergonomics finalized. Method calls only, one op per call, cached proxy instances.
 - **2026-03-16**: Era 2 implementation plan. Pre-phase validation, 7-phase rollout.
+- **2026-03-19**: Signals implementation decision. alien-signals as reactive engine (decision 26). createStore for deep tracking (decision 27). createResource for async (decision 28). Based on comprehensive landscape research.
 
 ---
 
