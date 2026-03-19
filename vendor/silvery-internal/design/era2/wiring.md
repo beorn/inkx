@@ -40,7 +40,7 @@ A silvery app is composed of five interconnected structures:
 
 | Graph | What it is | Shape | API |
 |---|---|---|---|
-| **Reactive data graph** | Signals connected by derivations. How data flows. | DAG | `signal()`, `derived()`, `createModel()` |
+| **Reactive data graph** | Signals connected by computeds. How data flows. | DAG | `signal()`, `computed()`, `createModel()` |
 | **Async scope tree** | Spawned async work and its ownership. Cancellation down, errors up. | Tree | `createScope()`, `scope.child()`, `op.scope` |
 | **Ag node tree** | Abstract UI structure. Adapter writes, renderer reads. | Tree | `createRootNode()`, `withAg()` |
 | **Command tree** | Action namespace. Discoverable, projectable to CLI/MCP/palette. | Tree | `app.commands.todo.add` |
@@ -266,7 +266,7 @@ function withTea() {
       key: string
       command: CommandRef
       args?: unknown
-      when?: Readable<boolean>
+      when?: () => boolean   // signal accessor — called at input time
       prompt?: string
     }
     const bindings: RegisteredBinding[] = []
@@ -282,7 +282,7 @@ function withTea() {
         for (let i = bindings.length - 1; i >= 0; i--) {
           const b = bindings[i]
           if (b.key !== op.key) continue
-          if (b.when && !b.when.value) continue  // condition inactive
+          if (b.when && !b.when()) continue  // condition inactive
           const meta = commandMeta.get(b.command)
           if (!meta) continue
           const resolution = resolveInvocation(app, b.command, b.args)
@@ -350,10 +350,10 @@ function withTea() {
 
 ```typescript
 type Binding = CommandRef | { command: CommandRef; args?: unknown; prompt?: string }
-type ConditionalBinding = { when: Readable<boolean>; binding: Binding }
+type ConditionalBinding = { when: () => boolean; binding: Binding }
 
 function when<B extends Record<string, Binding>>(
-  condition: Readable<boolean>,
+  condition: () => boolean,   // signal accessor
   bindings: B,
 ): Record<keyof B, ConditionalBinding> {
   const result = {} as any
@@ -364,7 +364,7 @@ function when<B extends Record<string, Binding>>(
 }
 ```
 
-`app.keymap()` inspects each value — if it has a `when` property, the binding is conditional. The signal's `.value` is checked at input time (lazy evaluation, not reactive subscription).
+`app.keymap()` inspects each value — if it has a `when` property, the binding is conditional. The signal is called at input time — `when()` (lazy evaluation, not reactive subscription).
 
 ### resolveInvocation — surface behavior
 
@@ -378,13 +378,21 @@ function when<B extends Record<string, Binding>>(
 ### Models
 
 ```typescript
+// Flat signal — cursor position
+// Deep store — todo items with nested properties
+// Computed — derived current item
 const todoModel = createModel(() => {
   const cursor = signal(0)
-  const items = signal<string[]>([])
+  const items = createStore<{ text: string; done: boolean; priority: number }[]>([])
   return {
     cursor, items,
     current: computed(() => items()[cursor()] ?? null),
-    add(text: string) { items([...items(), text]) },
+    add(text: string) { items([...items(), { text, done: false, priority: 0 }]) },
+    toggleDone() {
+      const i = cursor()
+      const item = items()[i]
+      if (item) items()[i].done(!items()[i].done())  // deep store — mutate in place
+    },
     remove() {
       items(items().filter((_, i) => i !== cursor()))
       cursor(Math.min(cursor(), Math.max(0, items().length - 1)))
@@ -397,6 +405,20 @@ const todoModel = createModel(() => {
 const editorModel = createModel(() => {
   const mode = signal<"normal" | "edit">("normal")
   return { mode, isEditing: computed(() => mode() === "edit") }
+})
+
+// Async resource — loads data, refetches when dependencies change
+const profileModel = createModel((rt: Pick<typeof providers, "api">) => {
+  const userId = signal<string | null>(null)
+  const profile = createResource(async () => {
+    const id = userId()
+    if (!id) return null
+    return rt.api.fetchProfile(id)
+  })
+  return {
+    userId, profile,
+    switchUser(id: string) { userId(id) },  // triggers profile refetch
+  }
 })
 ```
 
@@ -413,13 +435,13 @@ function withTodo() {
     app.models.todo = todo
 
     app.commands.todo = {
-      add:       { title: "Add Item", args: { text: string() }, fn(args) { todo.add(args.text) } },
-      remove:    { title: "Remove Item", args: { item: string({ default: () => todo.current() }) }, fn() { todo.remove() } },
-      move_down: { title: "Move Down", fn() { todo.moveDown() } },
-      move_up:   { title: "Move Up",   fn() { todo.moveUp() } },
+      add:         { title: "Add Item", args: { text: string() }, fn(args) { todo.add(args.text) } },
+      toggle_done: { title: "Toggle Done", fn() { todo.toggleDone() } },
+      remove:      { title: "Remove Item", args: { item: string({ default: () => todo.current() }) }, fn() { todo.remove() } },
+      move_down:   { title: "Move Down", fn() { todo.moveDown() } },
+      move_up:     { title: "Move Up",   fn() { todo.moveUp() } },
     }
 
-    // Register command metadata for ref → path lookup
     for (const [name, cmd] of Object.entries(app.commands.todo)) {
       app.registerCommand?.(["todo", name], cmd)
     }
@@ -427,6 +449,7 @@ function withTodo() {
     app.keymap?.({
       j: app.commands.todo.move_down,
       k: app.commands.todo.move_up,
+      x: app.commands.todo.toggle_done,
       dd: app.commands.todo.remove,
     })
 
@@ -568,11 +591,24 @@ No ag. Tea on native React DOM. No ag-ui components.
 ### Case 3: Headless
 
 ```typescript
+// Model unit test — createStore items have nested reactive properties
 const todo = todoModel.create()
 todo.add("test"); todo.add("another"); todo.moveDown()
 expect(todo.cursor()).toBe(1)
+expect(todo.items()[0].done()).toBe(false)      // deep store — read nested
+todo.toggleDone()                                // mutates via store proxy
+expect(todo.items()[1].done()).toBe(true)        // only this item's subscribers re-ran
 
-const app = pipe(create(), withTea(), withTodo())   // no keymap, no rendering
+// Resource test — async data loading
+const profile = profileModel.create({ api: { fetchProfile: async (id) => ({ name: "Alice" }) } })
+profile.switchUser("user-1")
+expect(profile.profile.loading()).toBe(true)     // loading signal
+await flush()                                     // let microtask complete
+expect(profile.profile()).toEqual({ name: "Alice" })
+expect(profile.profile.loading()).toBe(false)
+
+// App test — full pipeline without rendering
+const app = pipe(create(), withTea(), withTodo())
 await app.command(app.commands.todo.add, { text: "test" })
 ```
 
