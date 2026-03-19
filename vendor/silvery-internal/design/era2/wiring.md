@@ -684,9 +684,9 @@ function withLogging() {
 Foundation:
   @silvery/create                         (zero deps — create, dispatch, apply)
   @silvery/scope                          (zero deps — withScope, createScope, currentScope)
-  @silvery/signal                         (alien-signals — signal, computed, effect, batch)
-    ├── core re-exports from alien-signals (~1KB, fastest, .value API)
-    ├── createStore()                     deep reactive proxy (Solid/Vue-inspired)
+  @silvery/signal                         (alien-signals + alien-deepsignals)
+    ├── core: signal, computed, effect, batch  (re-export alien-signals, ~1.8KB)
+    ├── createStore()                     deep reactive proxy (alien-deepsignals, ~2.7KB)
     ├── createResource()                  async signal bridge (scope-integrated)
     └── /react                            useSignal(), model selectors (peer: react)
 

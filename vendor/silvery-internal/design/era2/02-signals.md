@@ -89,7 +89,9 @@ await run(<ChatView />)
 | **Resources** (silvery) | `createResource(fetcher)` | Async bridge — signal with `.value`, `.loading`, `.error`. Built on scope tree. |
 | **React** (silvery) | `useSignal(s)`, model selectors | `useSyncExternalStore` integration, auto-unwrapping |
 
-**Why alien-signals?** Fastest (~400% over Preact), smallest (~1KB), `.value` API matches era2, zero framework baggage, battle-tested (Vue 3.6, XState, ~3M weekly npm downloads). Not SolidJS (getter API mismatch, ownership model complexity with React), not Preact (slower, larger), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md) and decision 26.
+**Why alien-signals?** Fastest (~400% over Preact), smallest (1.8KB gzip), `.value` API matches era2, zero framework baggage, battle-tested (Vue 3.6, XState, ~3M weekly npm downloads). Deep store tracking via `alien-deepsignals` (+2.7KB). Not `@solidjs/signals` (getter API mismatch — `count()` not `.value` — and 14KB), not Preact (slower, larger), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md) and decision 26.
+
+**Alternative considered**: `@solidjs/signals` 0.13.5 (Solid 2.0 beta) has everything built-in: stores, projections, async, optimistic, ownership in 14KB. If we ever reconsidered the `.value` convention, it would be the obvious all-in-one choice. But the getter API is a fundamental mismatch.
 
 **`batch()`** groups multiple signal writes into one notification. alien-signals auto-batches in microtasks; explicit `batch()` available for synchronous grouping.
 
@@ -238,7 +240,7 @@ user.address.city.value = "SF" // only subscribers of address.city re-run
 user.tags.value = [...user.tags.value, "editor"]
 ```
 
-**Design**: Proxy-based, inspired by Solid's `createStore` and Vue's `reactive()`, but property access returns `.value` signals (not getters). This keeps the uniform `.value` contract — stores compose with `computed()`, `effect()`, and model selectors without special-casing.
+**Implementation**: Built on `alien-deepsignals` — adds Proxy-based deep tracking to alien-signals (~2.7KB additional). Property access at any depth returns `.value` signals (not getters like Solid). This keeps the uniform `.value` contract — stores compose with `computed()`, `effect()`, and model selectors without special-casing.
 
 **When to use**: Nested objects where different consumers read different properties (km's tree nodes: title, status, children, metadata). When all consumers read the same top-level value, a flat `signal()` is simpler.
 

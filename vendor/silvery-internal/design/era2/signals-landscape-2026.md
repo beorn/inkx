@@ -51,17 +51,33 @@ v2.0.0-beta.0 released, skipping alpha. Key changes:
 - **`createEffect` split**: Separate compute and apply phases
 - **`onMount` → `onSettled`**: Supports cleanup, operates after async deps resolve
 
-### Can SolidJS Signals Be Used Standalone?
+### `@solidjs/signals` — Standalone Package (NEW)
 
-**Core primitives work standalone** — `createSignal`, `createEffect`, `createMemo`, `createRoot`, `batch` from `solid-js` work without Solid's renderer. BUT:
+**Published**: `@solidjs/signals` 0.13.5 (beta). Zero dependencies. MIT. Works in Node/Bun — no DOM, no JSX, no components needed. This is the reactive foundation of SolidJS 2.0 Beta (released March 3, 2026).
 
-- **Must wrap in `createRoot()`** — Solid's ownership model requires it
-- **Getter pattern** — `count()` not `count.value`. Fundamental to Solid's tracking. Different API shape from TC39/Preact/era2.
-- **`createStore`** — Works standalone but its deep proxy uses getters, not `.value`. In React context, can't get fine-grained benefits since React re-renders whole components.
-- **`createAsync` / resources** — Tied to Solid's Suspense/transition system
-- **Projections** — Solid 2.0, not available standalone yet
+**57 exports** including:
+- **Core**: `createSignal`, `createMemo`, `createEffect`, `createReaction`, `flush`, `untrack`, `batch` (implicit)
+- **Stores**: `createStore`, `createProjection`, `createOptimistic`, `createOptimisticStore`, `reconcile`, `snapshot`, `merge`, `deep`
+- **Async**: `action`, `isPending`, `latest`, `refresh`, `isRefreshing`, `resolve`, `createLoadingBoundary`
+- **Ownership**: `createRoot`, `createOwner`, `runWithOwner`, `getOwner`, `onCleanup`, `onSettled`
+- **Context**: `createContext`, `getContext`, `setContext`
 
-**Verdict**: Solid's reactivity is brilliant but the getter-based API and ownership model don't align with era2's `.value` convention. Better to take the *concepts* (stores, projections, async) and implement them on top of a `.value`-based engine.
+**Size**: 36.3KB minified / **14KB gzipped** (vs alien-signals 1.8KB)
+
+**Key differences from alien-signals / Preact**:
+- **Getter API** — `count()` not `count.value`. Fundamental to Solid's tracking.
+- **Requires `createRoot()`** — ownership model for proper disposal
+- **Microtask batching** — updates batched automatically, must call `flush()` for synchronous processing
+- **Two-phase effects** — `createEffect(() => trackedValue(), (value) => { sideEffect })`
+- **`createAsync` is not separate** — `createMemo` natively accepts async (Promise/AsyncIterable)
+
+**Verdict**: The most featureful standalone signals library (stores, projections, async, optimistic — everything). But the getter API (`count()` vs `.value`) and ownership model don't align with era2's `.value` convention. The 14KB size is also 8x alien-signals. Better to take the *concepts* and implement on top of a `.value`-based engine. **However**: if era2 ever reconsiders the `.value` convention, `@solidjs/signals` would be the obvious choice — it has everything built in.
+
+### `alien-deepsignals` — Deep Tracking for alien-signals
+
+Adds Proxy-based deep tracking to alien-signals. ~2.7KB gzipped additional. Nested property access returns signals automatically — exactly what `createStore()` needs.
+
+Similarly, `deepsignal/core` adds deep tracking to `@preact/signals-core` for ~1.0KB additional.
 
 ### Annual Framework Reviews
 
@@ -292,17 +308,23 @@ Don't build a signals engine. Don't re-export Solid (getter API mismatch, owners
 
 ### Why alien-signals over alternatives?
 
-| Criteria | alien-signals | @preact/signals-core | solid-js | @vue/reactivity |
-|----------|--------------|---------------------|----------|-----------------|
-| **Speed** | Fastest (benchmark leader) | Good | Good | Good (uses alien-signals in 3.6) |
-| **Size** | ~1KB | ~1.6KB | ~5KB (reactive only) | ~10KB |
-| **API** | `.value` | `.value` | `getter()` | `.value` |
-| **Deep stores** | No (build on top) | No | Yes (proxy) | Yes (proxy) |
+| Criteria | alien-signals | @preact/signals-core | @solidjs/signals | @vue/reactivity |
+|----------|--------------|---------------------|-----------------|-----------------|
+| **Speed** | Fastest (benchmark leader) | Good | Not benchmarked yet | Good (uses alien-signals in 3.6) |
+| **Size (gzip)** | 1.8KB | 1.9KB | **14KB** | ~10KB |
+| **API** | `.value` | `.value` | **`getter()`** | `.value` |
+| **Deep stores** | +alien-deepsignals (2.7KB) | +deepsignal/core (1.0KB) | Built-in `createStore` | Built-in `reactive()` |
+| **Async** | No (build on top) | No | Built-in (memo + Promise) | No |
+| **Projections** | No | No | Built-in `createProjection` | No |
+| **Optimistic** | No | No | Built-in `createOptimisticStore` | No |
+| **Ownership** | `effectScope()` | `effect()` returns dispose | Full tree (createRoot) | No |
 | **React hooks** | No (build on top) | Yes (separate pkg) | No | No |
-| **Framework baggage** | None | Preact-flavored | Solid ownership | Vue-flavored |
-| **Production proven** | Vue 3.6, XState | Preact ecosystem | SolidJS | Vue ecosystem |
+| **Framework baggage** | None | Preact-flavored | Solid ownership model | Vue-flavored |
+| **Production proven** | Vue 3.6, XState | Preact ecosystem | SolidJS 2.0 beta | Vue ecosystem |
 
-alien-signals wins: fastest, smallest, `.value` API, zero framework baggage, proven by Vue adoption. Build stores + hooks on top.
+**Decision**: alien-signals + alien-deepsignals (~4.5KB total) for era2. Fastest, smallest with deep tracking, `.value` API matches era2 convention. Build `createResource()` on scope tree. Watch `@solidjs/signals` projections for future adoption.
+
+**If we ever reconsider the `.value` convention**: `@solidjs/signals` would be the obvious all-in-one choice — 14KB gets signals + stores + async + projections + optimistic + ownership. But the getter API is a fundamental mismatch with era2's design.
 
 ### Migration Path
 
@@ -326,12 +348,13 @@ The km-tui `Reactive<T>` class is a subset of what alien-signals provides. Migra
 
 | Concept | Source | How to Adopt |
 |---------|--------|-------------|
-| Core signals engine | alien-signals | Re-export as `@silvery/signals` |
-| Deep store proxy | Solid `createStore` / Vue `reactive()` | Build proxy wrapper returning signals per-property |
-| Async resources | Solid `createAsync` | Build on signals + scope tree |
-| Projections | Solid 2.0 (when available) | Build or adopt for VirtualList |
+| Core signals engine | alien-signals | Re-export as `@silvery/signal` |
+| Deep store proxy | alien-deepsignals | Use directly — adds Proxy tracking to alien-signals |
+| Async resources | Solid `createAsync` concept | Build on signals + scope tree (Solid's uses memo + Promise internally) |
+| Projections | `@solidjs/signals` `createProjection` | Study API when stable, build `.value`-based equivalent |
+| Optimistic updates | `@solidjs/signals` `createOptimisticStore` | Future — study pattern, build on stores |
 | Incremental computation | Signia (tldraw) | Consider for large tree operations |
-| React integration | km's `useReactive` pattern | Generalize into `useSignal()` hook |
+| React integration | km's `useReactive` pattern | Generalize into `useSignal()` hook via `useSyncExternalStore` |
 
 ## Key Repos & Resources
 
