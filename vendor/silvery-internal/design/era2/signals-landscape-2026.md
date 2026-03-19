@@ -14,30 +14,59 @@
 
 ## Ryan Carniato / SolidJS
 
-### SolidJS 2.0
+### Blog Series on Reactivity (2024) — Essential Reading
 
-- Major rewrite in progress (2024-2026)
-- Rethinks `createEffect` (the most misused API in Solid 1.x) — replaced by more targeted primitives
-- Introduces `createAsync` for async/server patterns (signal that updates when async operation completes, with loading/error states)
-- `@solidjs/signals` extracted as standalone reactive core (usable outside Solid)
+Four-part series representing the deepest technical writing on signals in the ecosystem:
 
-### "Beyond Signals" (JSNation 2024)
+1. **"Derivations in Reactivity"** (Jan 2024) — Core distinction: derivation (pure `next = fn(deps)`) vs synchronization (effects writing to state). "What can be derived, should be derived." Effects writing to state break dependency tracking.
+
+2. **"Scheduling Derivations in Reactivity"** — Three scheduling strategies: immediate (sync, depth-first), lazy (defer until read), scheduled (queue for ordering). Even lazy systems benefit from scheduled nodes for pure calculations before rendering.
+
+3. **"Async Derivations in Reactivity"** (Aug 2024) — The hardest problem. Async contamination (function coloring) spreads through codebases. Proposes signals that handle async transparently: `createAsync` executes eagerly, throws unresolved values up the chain, reschedules on resolution. With "colorless async," ALL values become potentially reactive.
+
+4. **"Mutable Derivations in Reactivity"** — Introduces **projections**: derived mutable stores that track changes and apply transformations reactively. Unlike immutable derivations that rebuild state, projections mutate in-place, preserving object identity.
+
+Links: `dev.to/this-is-learning/derivations-in-reactivity-4fo1` (and subsequent parts)
+
+### "Beyond Signals" (JSNation US 2025)
 
 Carniato's thesis: **signals alone don't solve the hard problems**. The next frontier is **projections** — reactive data transformations over collections:
 
-- **Problem**: When you `map()` a reactive array, naive signals recreate every mapped item on any array change. For a list of 1000 items where one changes, you need O(1) updates, not O(n).
-- **Projections** = reactive list primitives (map, filter, sort, slice) that do fine-grained diffing internally
+- **Problem**: When you `map()` a reactive array, naive signals recreate every mapped item on any array change. For 1000 items where one changes, you need O(1) updates, not O(n).
+- **Projections** = reactive list primitives (map, filter, sort, slice) with fine-grained diffing
 - Think of them as "reactive SQL views" — declarative transformations that maintain themselves incrementally
-- Solid 2.0 will have `createProjection` as a first-class primitive
-- **Relevance to era2**: km's VirtualList rendering tree nodes. Currently uses React reconciliation. Projections would let the model layer express "these 1000 nodes, filtered by status, sorted by date" as a reactive pipeline that updates O(1) when one node changes.
+- **Relevance to era2**: km's VirtualList rendering tree nodes. Projections would let the model layer express "these 1000 nodes, filtered by status, sorted by date" as a reactive pipeline with O(1) updates.
 
-### Fine-Grained Reactivity as Frontier
+### SolidJS 2.0 (Beta, March 2026)
 
-Carniato argues the industry is converging on signals as the base primitive, but diverging on what goes *above* them:
-- **Stores** (deep reactive objects) — Solid's `createStore`, Vue's `reactive()`
-- **Projections** (reactive collections) — Solid 2.0
-- **Resources** (async signals) — Solid's `createAsync`, Angular's `resource()`
-- **Transitions** (concurrent UI) — Solid's `startTransition`, React's `useTransition`
+v2.0.0-beta.0 released, skipping alpha. Key changes:
+
+- **Signals rewritten from scratch** — new reactive graph implementation
+- **Async is first-class**: Computations can return Promises or async iterables; graph suspends/resumes
+- **`<Loading>` vs `isPending()`**: `<Loading>` for initial readiness fallbacks; `isPending(() => expr)` as expression for background refresh
+- **Deterministic batching**: Microtask-based; reads don't update until batch flushes; explicit `flush()` for immediate sync
+- **Projections**: New primitive for derived, granular, non-mutating reactive data
+- **Optimistic updates**: `action(...)` + `createOptimisticStore` + generators
+- **Derived state**: `createSignal(fn)` and `createStore(fn)` for derived-but-writable
+- **`createEffect` split**: Separate compute and apply phases
+- **`onMount` → `onSettled`**: Supports cleanup, operates after async deps resolve
+
+### Can SolidJS Signals Be Used Standalone?
+
+**Core primitives work standalone** — `createSignal`, `createEffect`, `createMemo`, `createRoot`, `batch` from `solid-js` work without Solid's renderer. BUT:
+
+- **Must wrap in `createRoot()`** — Solid's ownership model requires it
+- **Getter pattern** — `count()` not `count.value`. Fundamental to Solid's tracking. Different API shape from TC39/Preact/era2.
+- **`createStore`** — Works standalone but its deep proxy uses getters, not `.value`. In React context, can't get fine-grained benefits since React re-renders whole components.
+- **`createAsync` / resources** — Tied to Solid's Suspense/transition system
+- **Projections** — Solid 2.0, not available standalone yet
+
+**Verdict**: Solid's reactivity is brilliant but the getter-based API and ownership model don't align with era2's `.value` convention. Better to take the *concepts* (stores, projections, async) and implement them on top of a `.value`-based engine.
+
+### Annual Framework Reviews
+
+- **"Heading into 2025"**: "Pretty much all non-React frameworks run off Signals now." Svelte 5 runes = "syntactical sugar over fine-grained Signals similar to SolidJS since 2018."
+- **"Heading into 2026"**: Performance-focused momentum shifted to "strategic thinking." Real evolution is async-first. Frameworks converged on "a similar language of state, derived state, and effects."
 
 ## Major Signals Libraries
 
@@ -52,12 +81,14 @@ Carniato argues the industry is converging on signals as the base primitive, but
 ### alien-signals
 
 - **Author**: Johnson Chu (creator of Vue Language Tools / Volar)
-- **Claim**: Fastest signals implementation (~400% faster than Preact signals on benchmarks)
-- **API**: `signal()`, `computed()`, `effect()` — minimal, no batching primitive (auto-batches in microtask)
-- **Architecture**: Push-pull with version counting (no dirty bit propagation). Novel approach to dependency tracking using linked lists instead of Sets.
+- **Performance**: Fastest signals implementation in benchmarks (~400% faster than Preact signals)
+- **Adoption**: ~3M weekly npm downloads. **Vue 3.6 ported the alien-signals algorithm** (PR vuejs/core#12349) — 13-14% memory reduction. Also used by XState.
+- **API**: `signal()`, `computed()`, `effect()` — minimal. `createReactiveSystem()` factory for custom systems.
+- **Architecture**: Push-pull with version counting. Doubly-linked list (`Link` structure) for O(1) dependency tracking (no Array/Set/Map). Three-phase: Propagation → Dirty Checking → Shallow Propagation. No recursion — manual stack-based iteration.
 - **Size**: ~1KB
-- **Status**: Newer (2024), gaining traction in Vue ecosystem tooling
-- **Relevance to era2**: Strong candidate for era2's signals implementation. MIT license, minimal API surface matches `Readable<T>`, fastest available.
+- **Limitations**: No stores/deep tracking, no batching primitive (auto-batches), no React integration
+- **Relevance to era2**: Best candidate for the signals engine. MIT license, `.value` API, fastest, proven at scale (Vue 3.6). Build stores/hooks on top.
+- **Repo**: `stackblitz/alien-signals`
 
 ### Angular Signals (Angular 17+)
 
@@ -90,15 +121,23 @@ Carniato argues the industry is converging on signals as the base primitive, but
 - **Key difference**: Signals are framework-agnostic reactive primitives. Zustand/Jotai are React state management patterns.
 - **Era2 migration**: Moving from Zustand (@silvery/tea today) to signals (era2) because signal references are stable objects (incompatible with Zustand's `Object.is` change detection) and O(1) subscriptions vs O(n) selectors.
 
+### Vue 3 Reactivity (`@vue/reactivity`)
+
+- **Vue 3.6 adopted alien-signals algorithm** — Johnson Chu contributed directly (PR #12349)
+- **Vapor Mode**: Eliminates VDOM overhead; direct granular DOM instructions; 100K components in ~100ms; bundle under 10KB
+- `reactive()` deep proxy, `ref()` shallow, `computed()` lazy
+- **Standalone**: `@vue/reactivity` works outside Vue. Mature, battle-tested.
+
 ### Other Notable Libraries
 
 | Library | Notes |
 |---------|-------|
+| **Signia** (tldraw) | Signals with **incremental computation** for large derived collections. Logical clocks instead of dirty flags. Built for 100K+ collaborative whiteboard nodes. |
+| **Starbeam** (Yehuda Katz) | "Universal reactivity" — framework-agnostic. Renderers for React, Preact, Svelte. Reactive data structures (Map, Set). Contributed to TC39 proposal. |
+| **Legend State** | ~4KB, fine-grained signals for React/React Native. Local-first sync with optimistic updates. Persistence plugins. |
+| **Reactively** | Lazy/pull-based. Among fastest in benchmarks. Efficient on wide dependency graphs. |
 | **@maverick-js/signals** | Used by Vidstack player. Ownership/disposal tree (like Solid). |
-| **usignal** | Micro signals library (<500 bytes). |
-| **reactively** | Academic approach — optimal lazy evaluation with topological ordering. |
-| **Effect-TS** | Not signals per se, but structured concurrency + reactive streams. Fiber-based. Heavyweight. |
-| **Legend State** | Proxy-based reactive state for React. Deep observation like Vue's `reactive()`. |
+| **Effect-TS** | Structured concurrency + reactive streams. Fiber-based. Heavyweight but comprehensive. |
 
 ## Advanced Problems Being Solved
 
@@ -219,6 +258,81 @@ Solid pioneered this: reactive computations form a tree. When a parent disposes,
 - **Terminal + web portability** — same model, different surface adapters
 - **op() interception proxy** — transparent undo/tracing/recording without middleware
 
+## `@silvery/signals` Package Design
+
+### Current State in Silvery
+
+- `vendor/silvery/docs/reference/signals.md` — references `@preact/signals-core` as the implementation
+- `apps/km-tui/src/reactive.ts` — homemade `Reactive<T>` class (basically a hand-rolled signal with `.value` + `.subscribe()`)
+- `@silvery/tea` uses Zustand — era2 replaces this with signals
+- No `@silvery/signals` package exists yet
+
+### Recommendation: Thin Layer over alien-signals
+
+Don't build a signals engine. Don't re-export Solid (getter API mismatch, ownership complexity). Use alien-signals as the core and add silvery-specific layers:
+
+```
+@silvery/signals
+├── Core (re-export alien-signals)
+│   signal(), computed(), effect(), batch()
+│
+├── Stores (new — Solid/Vue-inspired deep proxy)
+│   createStore<T>(initial) → deep reactive proxy with .value signals
+│
+├── Resources (new — Solid-inspired async bridge)
+│   createResource<T>(fetcher) → signal with .value, .loading, .error
+│
+├── React Integration (new)
+│   useSignal(signal) → T  (via useSyncExternalStore)
+│   useStore(store, selector) → T
+│
+└── Types
+    Readable<T> = { readonly value: T; subscribe(fn): () => void }
+```
+
+### Why alien-signals over alternatives?
+
+| Criteria | alien-signals | @preact/signals-core | solid-js | @vue/reactivity |
+|----------|--------------|---------------------|----------|-----------------|
+| **Speed** | Fastest (benchmark leader) | Good | Good | Good (uses alien-signals in 3.6) |
+| **Size** | ~1KB | ~1.6KB | ~5KB (reactive only) | ~10KB |
+| **API** | `.value` | `.value` | `getter()` | `.value` |
+| **Deep stores** | No (build on top) | No | Yes (proxy) | Yes (proxy) |
+| **React hooks** | No (build on top) | Yes (separate pkg) | No | No |
+| **Framework baggage** | None | Preact-flavored | Solid ownership | Vue-flavored |
+| **Production proven** | Vue 3.6, XState | Preact ecosystem | SolidJS | Vue ecosystem |
+
+alien-signals wins: fastest, smallest, `.value` API, zero framework baggage, proven by Vue adoption. Build stores + hooks on top.
+
+### Migration Path
+
+```typescript
+// Before (reactive.ts)
+const cursor = new Reactive<string | null>(null)
+cursor.value = "node-1"           // write
+const v = cursor.value            // read
+cursor.subscribe(() => { ... })   // subscribe
+
+// After (@silvery/signals)
+const cursor = signal<string | null>(null)
+cursor.value = "node-1"           // same .value API
+const v = cursor.value            // same read
+effect(() => { console.log(cursor.value) })  // auto-tracking
+```
+
+The km-tui `Reactive<T>` class is a subset of what alien-signals provides. Migration is mechanical: replace `new Reactive(v)` with `signal(v)`, replace manual `subscribe()` with `effect()` or `computed()`.
+
+### What To Take From Each Library
+
+| Concept | Source | How to Adopt |
+|---------|--------|-------------|
+| Core signals engine | alien-signals | Re-export as `@silvery/signals` |
+| Deep store proxy | Solid `createStore` / Vue `reactive()` | Build proxy wrapper returning signals per-property |
+| Async resources | Solid `createAsync` | Build on signals + scope tree |
+| Projections | Solid 2.0 (when available) | Build or adopt for VirtualList |
+| Incremental computation | Signia (tldraw) | Consider for large tree operations |
+| React integration | km's `useReactive` pattern | Generalize into `useSignal()` hook |
+
 ## Key Repos & Resources
 
 - `tc39/proposal-signals` — TC39 signals proposal
@@ -228,5 +342,13 @@ Solid pioneered this: reactive computations form a tree. When a parent disposes,
 - `vuejs/core` — Vue 3 reactivity (`@vue/reactivity` standalone)
 - `angular/angular` — Angular signals
 - `sveltejs/svelte` — Svelte 5 runes
-- Ryan Carniato's "Beyond Signals" talk (JSNation 2024) — projections concept
+- Ryan Carniato's "Beyond Signals" talk (JSNation US 2025) — projections concept
 - Ryan Carniato's blog (dev.to/ryansolid, ryansolid.medium.com)
+- Ryan Carniato's 4-part Reactivity series (dev.to/this-is-learning/) — derivations, scheduling, async, mutable
+- `solidjs/solid` releases — v2.0.0-beta.0 (March 2026)
+- `vuejs/core` PR #12349 — Vue 3.6 alien-signals adoption
+- `tldraw/signia` — incremental computation signals
+- `starbeamjs/starbeam` — universal reactivity
+- `LegendApp/legend-state` — fine-grained React signals
+- `transitive-bullshit/ts-reactive-comparison` — 15-library comparison
+- `milomg/js-reactivity-benchmark` — performance benchmarks
