@@ -1,5 +1,7 @@
 # Command-Centric Design
 
+> **Deep-dive** for [00-architecture.md](./00-architecture.md) § Command Tree. Command-centric philosophy, surface projection, availability. Last synced: 2026-03-19.
+
 _Part 1 of [AI-Native Apps](../era3/ai-mode.md). This doc covers the architecture — how to build apps with well-composed, exposed internals. [AI Mode](../era3/ai-mode.md) covers what AI agents do with that architecture._
 
 ## The Core Idea
@@ -7,6 +9,8 @@ _Part 1 of [AI-Native Apps](../era3/ai-mode.md). This doc covers the architectur
 Apps have layers of internal structure — state, actions, UI components, layout — but they expose almost none of it. The only way in is through the surface the developer chose to build: a GUI, a CLI, an API. Each is a separate artifact that has to be designed, built, and maintained.
 
 **Command-centric design** inverts this. Instead of building surfaces and hiding internals, you build around a **command tree** — a typed collection of every action the app can perform. The tree is the discoverable surface over app behavior — model methods are canonical, but the tree makes them accessible to every consumer. Every surface projects the command tree differently — keybindings, CLI, command palette, menus, MCP tools, tests, documentation.
+
+Commands are accessed as **object references** — `app.commands.todo.add` — not strings. Strings exist only for serialization (op dispatch, CLI, MCP). TypeScript types, IDE navigation, and refactoring all work on references.
 
 ```
                      Command Tree
@@ -52,7 +56,7 @@ This is the same mistake web development made with accessibility before ARIA: tr
 
 ### One Command, Every Surface
 
-Commands are organized as a **nested tree**. The tree structure is the single source of grouping — it auto-derives CLI subcommands, menu hierarchy, command palette categories, **domain objects** (typed groups like `app.task`, `app.navigation`), and TypeScript types. No separate `category`, `cli.path`, or `menu.group` fields needed.
+Commands are organized as a **nested tree**. The tree structure is the single source of grouping — it auto-derives CLI subcommands, menu hierarchy, command palette categories, **domain objects** (typed groups like `app.commands.task`, `app.commands.navigation`), and TypeScript types. No separate `category`, `cli.path`, or `menu.group` fields needed.
 
 ```typescript
 interface CommandDef {
@@ -64,47 +68,104 @@ interface CommandDef {
 Command `fn` functions contain the behavior. Simple commands read/write signals directly. Commands that need interception (undo, tracing, collaboration) call through `op(app.model)` — the same opt-in choice as any other code (see [05-app.md](./05-app.md)). The `args` field uses a `.parse()` interface (Zod-compatible but not Zod-dependent) to validate parameters and resolve defaults from signals.
 
 ```typescript
-const commands = {
-  task: {
-    toggle_done: {
-      title: "Toggle Done",
-      description: "Toggle the done state of the current task",
-      fn(a: { nodeId: string }) {
-        model.task.toggleDone(a.nodeId)
+// Domain plugin co-locates model + commands + keybindings
+function withTask() {
+  return (app) => {
+    const task = taskModel.create()
+    app.models.task = task
+
+    app.commands.task = {
+      toggle_done: {
+        title: "Toggle Done",
+        description: "Toggle the done state of the current task",
+        fn(a: { nodeId: string }) {
+          task.toggleDone(a.nodeId)
+        },
+        args: z.object({ nodeId: z.string().default(() => task.currentNodeId()) }),
       },
-      args: z.object({ nodeId: z.string().default(() => currentNodeId.value) }),
-    },
-    set_priority: {
-      title: "Set Priority",
-      description: "Set task priority (0=critical, 4=backlog)",
-      fn(a: { nodeId: string; priority: number }) {
-        model.task.setPriority(a)
+      set_priority: {
+        title: "Set Priority",
+        description: "Set task priority (0=critical, 4=backlog)",
+        fn(a: { nodeId: string; priority: number }) {
+          task.setPriority(a)
+        },
+        args: z.object({ nodeId: z.string().default(() => task.currentNodeId()), priority: z.number() }),
       },
-      args: z.object({ nodeId: z.string().default(() => currentNodeId.value), priority: z.number() }),
-    },
-  },
-  navigation: {
-    down: {
-      title: "Move Down",
-      fn() {
-        model.nav.moveCursor({ delta: 1 })
+    }
+
+    for (const [name, cmd] of Object.entries(app.commands.task)) {
+      app.registerCommand?.(["task", name], cmd)
+    }
+
+    app.keymap?.({
+      x: app.commands.task.toggle_done,
+    })
+
+    return app
+  }
+}
+
+function withNavigation() {
+  return (app) => {
+    const nav = navModel.create()
+    app.models.navigation = nav
+
+    app.commands.navigation = {
+      down: {
+        title: "Move Down",
+        fn() { nav.moveCursor({ delta: 1 }) },
       },
-    },
-    up: {
-      title: "Move Up",
-      fn() {
-        model.nav.moveCursor({ delta: -1 })
+      up: {
+        title: "Move Up",
+        fn() { nav.moveCursor({ delta: -1 }) },
       },
-    },
-  },
+    }
+
+    for (const [name, cmd] of Object.entries(app.commands.navigation)) {
+      app.registerCommand?.(["navigation", name], cmd)
+    }
+
+    app.keymap?.({
+      j: app.commands.navigation.down,
+      k: app.commands.navigation.up,
+    })
+
+    return app
+  }
 }
 ```
 
-### Command Availability
+### Command Availability and `resolveInvocation()`
 
 The `args` schema serves triple duty: it defines what parameters a command accepts, resolves defaults from signals, and determines availability. If a signal default is nullish, `parse()` fails — command unavailable. No separate `when` field needed for args-based availability.
 
-> **Signal defaults use Zod's function default form:** `z.number().default(() => cursor.value)`, not `z.number().default(cursor)` (cursor is a Signal, not a number). `.parse({})` calls the function, reads `cursor.value` at parse time — if nullish, parse fails and the command is unavailable. In non-interactive contexts (CLI, MCP) there's no signal, so the function returns undefined and the param becomes required.
+> **Signal defaults use function-call syntax:** `z.number().default(() => cursor())`, not `z.number().default(cursor)` (cursor is a signal accessor, not a number). `.parse({})` calls the function, reads `cursor()` at parse time — if nullish, parse fails and the command is unavailable. In non-interactive contexts (CLI, MCP) there's no signal, so the function returns undefined and the param becomes required.
+
+**`resolveInvocation()`** is the shared resolver used by all surfaces — keymap, mouseMap, `app.command()`, CLI, MCP:
+
+```typescript
+function resolveInvocation(
+  app,
+  cmd,
+  partialArgs?,
+):
+  | { state: "ready"; args: Record<string, unknown> }
+  | { state: "prompt"; missing: string[] }
+  | { state: "unavailable" }
+  | { state: "invalid"; error: Error }
+  | { state: "unknown" }
+```
+
+It centralizes arg defaults, signal-based availability, and validation. Every surface calls the same function and then handles the result according to its nature:
+
+#### Surface behavior table
+
+| Surface           | ready            | prompt                  | unavailable               | invalid                  | unknown                 |
+| ----------------- | ---------------- | ----------------------- | ------------------------- | ------------------------ | ----------------------- |
+| **keymap**        | dispatch command | dispatch prompt op      | swallow                   | swallow                  | swallow                 |
+| **app.command()** | resolve result   | reject `PromptRequired` | reject `Unavailable`      | reject `ValidationError` | reject `UnknownCommand` |
+| **raw dispatch**  | execute          | `op.status="prompt"`    | `op.status="unavailable"` | `op.status="invalid"`    | `op.status="unknown"`   |
+| **CLI/MCP**       | execute          | report missing args     | report unavailable        | report error             | report not found        |
 
 General utilities on command collections:
 
@@ -126,6 +187,51 @@ Three sources of args are handled uniformly:
 - **Interactive**: signal defaults fill everything
 - **CLI**: explicit args, no signals
 - **Mixed**: event provides some, signals fill rest
+
+### `when()` — Descriptor-Based Conditional Bindings
+
+`when()` returns per-binding descriptors carrying the live signal. Object spread produces descriptors, not eagerly computed values:
+
+```typescript
+type Binding = CommandRef | { command: CommandRef; args?: unknown; prompt?: string }
+type ConditionalBinding = { when: () => boolean; binding: Binding }
+
+function when<B extends Record<string, Binding>>(
+  condition: () => boolean, // signal accessor — called at input time
+  bindings: B,
+): Record<keyof B, ConditionalBinding>
+```
+
+`app.keymap()` inspects each value — if it has a `when` property, the binding is conditional. The signal is called at input time — lazy evaluation, not reactive subscription. Focus is a signal condition — `when(focusModel.hasFocus, { ... })`.
+
+```typescript
+function withEditor() {
+  return (app) => {
+    const editor = editorModel.create()
+    app.models.editor = editor
+
+    app.commands.editor = {
+      enter_edit: { title: "Edit", fn() { editor.mode("edit") } },
+      exit_edit: { title: "Done", fn() { editor.mode("normal") } },
+    }
+    for (const [name, cmd] of Object.entries(app.commands.editor)) {
+      app.registerCommand?.(["editor", name], cmd)
+    }
+
+    app.keymap?.({
+      i: app.commands.editor.enter_edit,
+      ...when(editor.isEditing, {
+        Escape: app.commands.editor.exit_edit,
+        Enter: { command: app.commands.task.add, prompt: "text" },
+      }),
+    })
+
+    return app
+  }
+}
+```
+
+### Surface Projection
 
 The nesting does all the work by default:
 
@@ -159,6 +265,22 @@ The framework auto-derives every surface from the tree:
 
 No other approach gets all of these from one definition.
 
+### The `dispatch(op)` Path
+
+The primary entry point for command execution is `dispatch(op)` — infrastructure plugins wrap it, and `app.command()` is a convenience that builds the op and returns `op.pending`:
+
+```typescript
+// All go through dispatch — observable, interceptable, scoped:
+commandProxy(app).todo.add({ text: "Buy milk" }) // proxy → dispatch
+await app.command(app.commands.todo.add, { text: "x" }) // object ref → dispatch
+await app.command("todo.add", { text: "x" }) // string path (serialization)
+
+// ⚠ Escape hatch — bypasses dispatch, scopes, logging, validation, replay:
+app.commands.todo.move_down.fn() // direct — tests only
+```
+
+`dispatch(op)` is the canonical path because it enables the full plugin chain: scope creation, logging, replay, undo, interception. `app.command()` is sugar over it. Direct `fn()` calls bypass everything and should only appear in unit tests.
+
 ### The Defining Properties
 
 - **Commands are the discoverable surface over behavior.** Model methods are canonical, but every user action has a corresponding command. No annotation gap — if the user can do it, it's in the tree.
@@ -166,6 +288,7 @@ No other approach gets all of these from one definition.
 - **Self-describing at runtime.** The app enumerates every available command with metadata, grouped by domain category. The app describes itself.
 - **Structured state.** `getState()` returns typed application state. Consumers read data, not pixels.
 - **Complete by construction.** If the user can do it, it's a command. No opt-in, no forgetting to expose something.
+- **Objects over strings.** `app.commands.todo.add` is the primary reference. Strings only for serialization.
 
 ### The Surfaces
 
@@ -182,12 +305,12 @@ Code (in-process driver)         ← primary: full power, typed, composable
 
 ```typescript
 const cursor = model.cursor
-invoke({ command: commands.task.toggle_done })
+app.dispatch({ type: "command", path: ["task", "toggle_done"] })
 
 for (const card of model.columns[0].cardNodes) {
   if (card.task_status !== "done") {
-    invoke({ command: commands.task.toggle_done })
-    invoke({ command: commands.navigation.down })
+    await app.command(app.commands.task.toggle_done)
+    await app.command(app.commands.navigation.down)
   }
 }
 ```
@@ -263,7 +386,8 @@ The result is that Silvery apps are testable, scriptable, accessible, and AI-nat
 Silvery is a React-based TUI framework. Its command system already implements the core:
 
 - Nested command tree — plain objects with `title`, `description`, `fn()`, optional `args`
-- Direct invocation — `invoke({ command: commands.task.toggle_done })` calls `fn()` with args resolved from signals
+- `dispatch(op)` path — the canonical entry point. `app.command()` is a convenience that builds the op and returns `op.pending`
+- `resolveInvocation()` — shared resolver for all surfaces (ready/prompt/unavailable/invalid/unknown)
 - `cmd.search(query)` — fuzzy matching across all commands by name, description, path
 - `getState()` — structured application state
 - Virtual DOM — component tree with layout, props, state (unique among terminal frameworks)
@@ -274,7 +398,7 @@ Silvery is a React-based TUI framework. Its command system already implements th
 
 ### How Domain Objects Form
 
-Each [plugin](./05-app.md#plugins) contributes a subtree to the command tree — and that subtree becomes a domain object:
+Each domain plugin co-locates models + commands + keybindings and contributes a subtree to the command tree — that subtree becomes a domain object:
 
 ```
 Command Tree                    Domain Object           Code / CLI / Menu
@@ -308,7 +432,7 @@ Examining a real app's 173 commands:
 
 - **Entity queries for parameter resolution.** When `goto` needs a board target, where do the options come from? Apple's `EntityQuery` model solves this. Should commands declare parameter sources?
 
-- ~~**Context predicates.**~~ **Resolved.** `when` lives on keymap bindings, not commands. The `args` schema handles availability for args-based predicates (nullish signal default → `parse()` fails → unavailable). Mode-based predicates are channel-specific (`when(isNormal, ...)` on keymaps).
+- ~~**Context predicates.**~~ **Resolved.** `when()` lives on keymap bindings, not commands. The `args` schema handles availability for args-based predicates (nullish signal default → `parse()` fails → unavailable). Mode-based predicates are channel-specific (`when(isNormal, ...)` on keymaps).
 
 - **Surface overrides.** Sometimes you want a different CLI name or menu position than the tree implies. Override syntax is probably optional fields on the command def.
 

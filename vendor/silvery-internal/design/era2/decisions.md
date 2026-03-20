@@ -18,11 +18,17 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 6. **No driver abstraction.** Three patterns: app plugins (definition-time), `run(app, fn)` (runtime), direct calls (tests).
 
+   > Note: The `run(app, fn)` pattern evolved into `app.run()` as a method on the app object. See [00-architecture.md](./00-architecture.md) Part 0 — renderer provides `run()`, adapter wraps it.
+
 7. **Plugin composition via spread.** TypeScript intersection types accumulate. Last-write-wins; dev mode warns on collisions.
 
 8. **`createModel()` wraps factories into typed hooks.** Factory returns signals + methods; `createModel` adds `.get()`, `.create()`, selector hook. Dependencies via `Pick<typeof providers, ...>`.
 
+   > Note: The `.get()` API is outdated. Per Decision 29, signals use callable accessors (`count()` to read, `count(5)` to write). Selectors call accessors explicitly: `useModel(todoModel, m => m.cursor())`. See [00-architecture.md](./00-architecture.md) Models section.
+
 9. **Signal auto-unwrapping at the selector boundary.** `useChat(m => m.phase)` returns `Phase`, not `Signal<Phase>`. Raw `.value` everywhere else.
+
+   > ⚠️ **Superseded by Decision 29** — callable accessors (`count()` to read) eliminate the need for auto-unwrapping. Selectors call accessors explicitly: `m.exchanges().length`. No `.value`, no magic unwrap.
 
 10. **Signals, not Zustand, as the state primitive.** Zustand is O(n) selector fanout; signals are O(1). Signal references are stable objects, incompatible with Zustand's `Object.is` change detection.
 
@@ -44,6 +50,8 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 19. **`run()` owns lifecycle.** Creates root scope, applies `withTerminal()` by default, returns awaitable handle.
 
+    > Note: Refined by [00-architecture.md](./00-architecture.md). `run()` is not a standalone function — renderer provides `app.run()`, adapter wraps it, and `withScope` wraps `run()` for root scope disposal. No default `withTerminal()`; rendering is opt-in via `withTerm()`.
+
 20. **Async/await for updates, generators for content.** `async` yields control; `async function*` yields content.
 
 21. **Providers are plain objects via `createProviders()`.** Single source of truth for I/O types.
@@ -58,9 +66,15 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 26. **alien-signals as the reactive engine.** The `@silvery/signal` package re-exports alien-signals (fastest implementation, ~1KB, `.value` API, proven by Vue 3.6 adoption). Silvery adds layers on top: `createStore()` (deep proxy — Solid/Vue concept), `createResource()` (async bridge — Solid concept), `useSignal()` (React hook). Not Preact signals (slower, larger), not SolidJS (getter API mismatch, ownership complexity), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md).
 
+    > Note: The choice of alien-signals stands, but the `.value` API description is outdated. Per Decision 29, the API uses callable accessors (`count()` / `count(5)`), which is alien-signals' native getter/setter pattern.
+
 27. **`createStore()` for deep reactive state.** Signals are flat cells. For nested objects (km's tree model: nodes with children, properties, metadata), `createStore(initial)` returns a deep proxy where each property access returns/creates a signal. Inspired by Solid's `createStore` and Vue's `reactive()`, but using `.value` signals instead of getters. Lives in `@silvery/signal`.
 
+    > Note: The "using `.value` signals instead of getters" description is outdated. Per Decision 29, the API uses callable accessors. Deep store properties are accessed as `items()[i].done()` (read) and mutated in place via the store proxy.
+
 28. **`createResource()` for async signals.** Bridges async providers to sync signals. `createResource(fetcher)` returns a signal with `.value` (data), `.loading` (boolean signal), `.error` (signal). Built on signals + scope tree. Inspired by Solid's `createAsync` and Angular's `resource()`. Lives in `@silvery/signal`.
+
+    > Note: The `.value` (data) description is outdated. Per Decision 29, `createResource()` returns a callable accessor: `profile()` to read data, `profile.loading()` for loading state. See [00-architecture.md](./00-architecture.md) headless test examples.
 
 29. **Getter/setter function-call pattern, not `.value`.** Signals use `count()` to read and `count(5)` to write — same as alien-signals, Angular, and SolidJS. Not `.value` (Vue, Preact). Visual clarity (function call is obviously dynamic), capability separation (read-only accessor is just `() => T`), and no auto-unwrapping magic needed. Selectors call accessors explicitly: `m.exchanges().length`. Eliminates old P3/P5 auto-unwrap complexity. See [signals-landscape-2026.md](./signals-landscape-2026.md).
 

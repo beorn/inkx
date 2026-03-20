@@ -1,5 +1,7 @@
 # Signals & Models
 
+> **Deep-dive** for [00-architecture.md](./00-architecture.md) § Reactive Data Graph. Progressive signal API, createModel, createStore, createResource. Last synced: 2026-03-19.
+
 _Status: finalized. Extracted from [state-api-redesign.md](../archive/state-api-redesign.md) Sips 1-3._
 
 _See also: [05-app.md](./05-app.md) (app composition), [06-scopes.md](./06-scopes.md) (structured concurrency), [01-quick-start.md](./01-quick-start.md) (complete examples)._
@@ -82,12 +84,12 @@ await run(<ChatView />)
 
 **`@silvery/signal` re-exports [alien-signals](https://github.com/stackblitz/alien-signals)** as the reactive engine — the fastest signals implementation (1.8KB gzip, push-pull, version counting, proven by Vue 3.6 adoption). Silvery adds layers on top:
 
-| Layer                    | API                                  | Purpose                                                         |
-| ------------------------ | ------------------------------------ | --------------------------------------------------------------- |
-| **Core** (alien-signals) | `signal()`, `computed()`, `effect()` | Reactive primitives — `sig()` to read, `sig(newValue)` to write |
-| **Stores** (silvery)     | `createStore(initial)`               | Deep proxy — nested property access returns signal accessors    |
-| **Resources** (silvery)  | `createResource(fetcher)`            | Async bridge — `res()` for data, `res.loading()`, `res.error()` |
-| **React** (silvery)      | `useSignal(s)`, model selectors      | `useSyncExternalStore` integration                              |
+| Layer                          | API                                             | Purpose                                                               |
+| ------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------- |
+| **Core** (alien-signals)       | `signal()`, `computed()`, `effect()`, `batch()` | Reactive primitives — `sig()` to read, `sig(newValue)` to write       |
+| **Stores** (alien-deepsignals) | `createStore(initial)`                          | Deep proxy — nested property access returns signal accessors (~2.7KB) |
+| **Resources** (silvery)        | `createResource(fetcher)`                       | Async bridge — `res()` for data, `res.loading()`, `res.error()`       |
+| **React** (silvery)            | `useSignal(s)`, model selectors                 | `useSyncExternalStore` integration                                    |
 
 ### Why getter/setter functions, not `.value`?
 
@@ -103,7 +105,7 @@ Era2 uses the **function-call pattern** (`count()` to read, `count(5)` to write)
 | **TC39 proposal**         | `.get()/.set()` methods — designed for frameworks to wrap either way                | —                                                                       |
 | **No magic**              | Selectors call accessors explicitly: `m.exchanges().length`                         | Requires auto-unwrapping: `m.exchanges.length` magically reads signal   |
 
-The function-call pattern eliminates the auto-unwrapping complexity (old P3/P5). Selectors are just functions that call accessors — no tracking scope magic needed beyond what alien-signals provides natively.
+The function-call pattern eliminates the auto-unwrapping complexity (old P3/P5). Selectors are just functions that call accessors — no tracking scope magic needed beyond what alien-signals provides natively. Decision 29 supersedes Decision 9 (signal auto-unwrapping at the selector boundary) — explicit accessor calls replace implicit unwrapping.
 
 **Why alien-signals?** Fastest (~400% over Preact), smallest (1.8KB gzip), zero framework baggage, battle-tested (Vue 3.6, XState, ~3M weekly npm downloads). Deep store tracking via alien-deepsignals (+2.7KB). See [signals-landscape-2026.md](./signals-landscape-2026.md) and decision 26.
 
@@ -170,8 +172,8 @@ const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => {
 
 // Shape of the returned hook:
 type ModelHook<T> = {
-  // Callable as selector hook in React (signal-aware, auto-unwrapping):
-  <U>(selector: (model: Unwrapped<T>) => U, eq?: (a: U, b: U) => boolean): U
+  // Callable as selector hook in React (signal-aware, explicit accessor calls):
+  <U>(selector: (model: T) => U, eq?: (a: U, b: U) => boolean): U
 
   // Direct access (tests, plugins, AI agents, model code):
   get(): T // raw instance with signal fields
@@ -182,7 +184,7 @@ type ModelHook<T> = {
 
 // Testing: useChat.create(mockProviders) -- isolated, no framework
 // Direct: useChat.get().submit({ text }) -- typed method call
-// React: useChat(m => m.exchanges.length) -- O(1) subscribe
+// React: useChat(m => m.exchanges().length) -- O(1) subscribe
 ```
 
 `createModel` IS the bridge between signals (Layer 1) and Zustand-like hook ergonomics (Layer 3). The factory IS the model definition; `createModel` adds the subscription/hook machinery.
@@ -298,23 +300,23 @@ Watch Solid 2.0 (currently beta) for the production-ready API, then adopt. Relev
 
 ## Framework Bindings
 
-`@silvery/tea` is framework-agnostic. The core is signals + factory functions. Each framework gets a thin binding that implements signal-tracked selectors using the framework's native subscription mechanism:
+`@silvery/model` is framework-agnostic. The core is signals + factory functions. Each framework gets a thin binding that implements signal-tracked selectors using the framework's native subscription mechanism:
 
 ```tsx
 // React -- useSyncExternalStore + signal dependency tracking
-import { createModel } from "@silvery/tea/react"
+import { createModel } from "@silvery/model/react"
 const useChat = createModel(() => { ... })
-const phase = useChat(m => m.phase)  // auto-unwrapped, O(1) subscribe
+const phase = useChat(m => m.phase())  // explicit accessor call, O(1) subscribe
 
 // Svelte -- writable store bridge
-import { createModel } from "@silvery/tea/svelte"
+import { createModel } from "@silvery/model/svelte"
 const chat = createModel(() => { ... })
-$: phase = $chat.phase  // Svelte reactive statement
+$: phase = $chat.phase()  // Svelte reactive statement, explicit accessor
 
 // Vue -- ref() bridge
-import { createModel } from "@silvery/tea/vue"
+import { createModel } from "@silvery/model/vue"
 const chat = createModel(() => { ... })
-const phase = computed(() => chat.value.phase)
+const phase = computed(() => chat.phase())  // explicit accessor call
 ```
 
 The React binding is the primary target. It uses `useSyncExternalStore` internally. The selector function runs in a tracking scope — every `accessor()` call inside the selector is tracked. When any tracked signal changes, the selector reruns and the component re-renders only if the output changed.
