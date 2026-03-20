@@ -64,19 +64,31 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 25. **No string keys in registration.** Provider/model names come from JS object property names, not string arguments.
 
-26. **alien-signals as the reactive engine.** The `@silvery/signal` package re-exports alien-signals (fastest implementation, ~1KB, `.value` API, proven by Vue 3.6 adoption). Silvery adds layers on top: `createStore()` (deep proxy — Solid/Vue concept), `createResource()` (async bridge — Solid concept), `useSignal()` (React hook). Not Preact signals (slower, larger), not SolidJS (getter API mismatch, ownership complexity), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md).
+26. **alien-signals as the reactive engine.** The `@silvery/signals` package re-exports alien-signals (fastest implementation, ~1KB, `.value` API, proven by Vue 3.6 adoption). Silvery adds layers on top: `createStore()` (deep proxy — Solid/Vue concept), `createResource()` (async bridge — Solid concept), `useSignal()` (React hook). Not Preact signals (slower, larger), not SolidJS (getter API mismatch, ownership complexity), not custom (unnecessary). See [signals-landscape-2026.md](./signals-landscape-2026.md).
 
     > Note: The choice of alien-signals stands, but the `.value` API description is outdated. Per Decision 29, the API uses callable accessors (`count()` / `count(5)`), which is alien-signals' native getter/setter pattern.
 
-27. **`createStore()` for deep reactive state.** Signals are flat cells. For nested objects (km's tree model: nodes with children, properties, metadata), `createStore(initial)` returns a deep proxy where each property access returns/creates a signal. Inspired by Solid's `createStore` and Vue's `reactive()`, but using `.value` signals instead of getters. Lives in `@silvery/signal`.
+27. **`createStore()` for deep reactive state.** Signals are flat cells. For nested objects (km's tree model: nodes with children, properties, metadata), `createStore(initial)` returns a deep proxy where each property access returns/creates a signal. Inspired by Solid's `createStore` and Vue's `reactive()`, but using `.value` signals instead of getters. Lives in `@silvery/signals`.
 
     > Note: The "using `.value` signals instead of getters" description is outdated. Per Decision 29, the API uses callable accessors. Deep store properties are accessed as `items()[i].done()` (read) and mutated in place via the store proxy.
 
-28. **`createResource()` for async signals.** Bridges async providers to sync signals. `createResource(fetcher)` returns a signal with `.value` (data), `.loading` (boolean signal), `.error` (signal). Built on signals + scope tree. Inspired by Solid's `createAsync` and Angular's `resource()`. Lives in `@silvery/signal`.
+28. **`createResource()` for async signals.** Bridges async providers to sync signals. `createResource(fetcher)` returns a signal with `.value` (data), `.loading` (boolean signal), `.error` (signal). Built on signals + scope tree. Inspired by Solid's `createAsync` and Angular's `resource()`. Lives in `@silvery/signals`.
 
     > Note: The `.value` (data) description is outdated. Per Decision 29, `createResource()` returns a callable accessor: `profile()` to read data, `profile.loading()` for loading state. See [00-architecture.md](./00-architecture.md) headless test examples.
 
 29. **Getter/setter function-call pattern, not `.value`.** Signals use `count()` to read and `count(5)` to write — same as alien-signals, Angular, and SolidJS. Not `.value` (Vue, Preact). Visual clarity (function call is obviously dynamic), capability separation (read-only accessor is just `() => T`), and no auto-unwrapping magic needed. Selectors call accessors explicitly: `m.exchanges().length`. Eliminates old P3/P5 auto-unwrap complexity. See [signals-landscape-2026.md](./signals-landscape-2026.md).
+
+30. **Commands are state-agnostic.** `@silvery/commands` depends only on `@silvery/create`. `when()` predicates are `() => boolean` — plain functions, not signal accessors. `canInvoke()` and `available()` evaluate on demand. For reactive availability (menu bars, toolbars, command palettes), users wrap with `computed()` from their chosen signal library. No `Readable<T>` type needed in the command system. This makes commands work with any state system: signals, zustand, jotai, valtio, plain variables.
+
+31. **`@silvery/tea` dissolves.** The TEA reducer pattern (`tea()` ~30 lines) moves to `@silvery/create` as a utility. Commands, keybindings, and registry move to `@silvery/commands`. Focus system moves to `@silvery/ag`. Text editing state machines and headless component state machines move to `@silvery/headless`. No separate `@silvery/tea` package in era2.
+
+32. **New `@silvery/headless` package.** Pure `(action, state) → state` machines: SelectListState, TextInputState, VirtualListState, ToggleState, TabGroupState, CommandPaletteState. No rendering, no node tree, no React. Usable by `@silvery/ag-react/ui` (silvery rendering), `@silvery/impure/react-dom` (DOM), or headless consumers. Depends only on `@silvery/create`.
+
+33. **`@silvery/ag-react/ui` replaces `@silvery/ag-ui`.** Rendered React components are a subpath of `@silvery/ag-react`, not a separate package. This makes the framework dependency explicit: `/ui` is React-specific. Future `@silvery/ag-exp-svelte/ui` follows the same pattern.
+
+34. **`@silvery/signals` and `@silvery/model` are optional.** The rendering pipeline (ag) has zero signal dependencies. Commands are state-agnostic. Headless state machines are pure functions. Signals are the recommended reactive primitive but users can use zustand, jotai, valtio, or anything else. `@silvery/model` (createModel, DI factories) is an opinionated layer on signals — fully optional.
+
+35. **`@silvery/signal` renamed to `@silvery/signals`** (plural). Matches industry convention: alien-signals, @preact/signals, @solidjs/signals all use plural.
 
 ## Design History
 
@@ -91,6 +103,7 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 - **2026-03-16**: Era 2 implementation plan. Pre-phase validation, 7-phase rollout.
 - **2026-03-19**: Signals implementation decision. alien-signals as reactive engine (decision 26). createStore for deep tracking (decision 27). createResource for async (decision 28). Based on comprehensive landscape research.
 - **2026-03-19**: Getter/setter function-call pattern (decision 29). Switched from `.value` to `count()` / `count(5)`. Aligns with alien-signals native API, Angular, SolidJS. Eliminates auto-unwrap complexity.
+- **2026-03-20**: Package decomposition decisions (30–35). Commands are state-agnostic (no signal dependency). `@silvery/tea` dissolves into create/commands/ag/headless. New `@silvery/headless` package for pure state machines. React UI components move to `@silvery/ag-react/ui` subpath. Signals and model are fully optional layers. `@silvery/signal` renamed to `@silvery/signals` (plural).
 
 ---
 

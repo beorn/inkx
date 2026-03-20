@@ -82,7 +82,7 @@ await run(<ChatView />)
 
 ## Implementation
 
-**`@silvery/signal` re-exports [alien-signals](https://github.com/stackblitz/alien-signals)** as the reactive engine — the fastest signals implementation (1.8KB gzip, push-pull, version counting, proven by Vue 3.6 adoption). Silvery adds layers on top:
+**`@silvery/signals` re-exports [alien-signals](https://github.com/stackblitz/alien-signals)** as the reactive engine — the fastest signals implementation (1.8KB gzip, push-pull, version counting, proven by Vue 3.6 adoption). Silvery adds layers on top:
 
 | Layer                          | API                                             | Purpose                                                               |
 | ------------------------------ | ----------------------------------------------- | --------------------------------------------------------------------- |
@@ -239,7 +239,7 @@ Signals are flat cells — `signal<User>({ name: "Alice", address: { city: "NYC"
 `createStore()` returns a deep proxy where property access at any depth returns signal accessors:
 
 ```typescript
-import { createStore } from "@silvery/signal"
+import { createStore } from "@silvery/signals"
 
 const user = createStore({
   name: "Alice",
@@ -266,7 +266,7 @@ user.tags([...user.tags(), "editor"])
 Bridges async operations (provider calls, DB queries) to the synchronous signal graph:
 
 ```typescript
-import { createResource } from "@silvery/signal"
+import { createResource } from "@silvery/signals"
 
 const profile = createResource(async () => {
   const data = await rt.api.fetchProfile(userId())

@@ -100,11 +100,34 @@ silvery          available  available    clean
 @leafy           -          taken        -
 ```
 
+## Reserving / Squatting Names
+
+To hold a name for future use, publish a minimal placeholder and deprecate it:
+
+```bash
+# 1. Publish empty placeholder
+dir="/tmp/npm-reserve-$name"
+mkdir -p "$dir"
+printf '{"name":"%s","version":"0.0.0","description":"Placeholder — not yet published.","author":"Bjørn Stabell <bjorn@stabell.org>","license":"MIT"}\n' "$name" > "$dir/package.json"
+(cd "$dir" && npm publish --access public)
+
+# 2. Deprecate so installers get a warning
+npm deprecate "$name@0.0.0" "Placeholder — not yet published."
+
+# 3. Later, un-deprecate when publishing a real version
+npm deprecate "$name@*" ""
+```
+
+**Always deprecate placeholders** — it signals the package is intentionally empty, not abandoned. Without deprecation, npm may eventually reclaim unused packages.
+
+**Cannot squat without publishing** — npm requires a published tarball to hold the name. Unpublished names are released after 24 hours.
+
 ## Tips
 
 - **Scoped packages are safest** — no similarity blocking, no squatting risk
 - **npm-name-cli says available ≠ publishable** — it doesn't catch similarity blocks
 - **Org scopes are first-come**: create with `npm org create` to reserve
+- **Deprecate placeholders** — `npm deprecate "pkg@*" "Placeholder"` on anything you're just holding
 
 ## Disputes (hard)
 

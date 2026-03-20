@@ -1,7 +1,7 @@
 /**
  * Minimal signal + createModel implementation for the prototype.
  *
- * In production, these would come from `@silvery/signal` and `@silvery/tea`.
+ * In production, these would come from `@silvery/signals` and `@silvery/tea`.
  *
  * - signal<T>() — fine-grained reactive state cells (L0)
  * - createModel(factory) — wraps factory → typed hook + namespace (L3)

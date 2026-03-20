@@ -347,8 +347,8 @@ Adding `withApp()` and a domain plugin. State moves from React `useState` to sig
 
 ```typescript
 // todo.tsx -- Level 2: with app level, domain plugin, declarative keymap
-import { signal, computed } from "@silvery/signal"
-import { useSignal } from "@silvery/signal/react"
+import { signal, computed } from "@silvery/signals"
+import { useSignal } from "@silvery/signals/react"
 import { create, pipe } from "@silvery/create"
 import { withScope } from "@silvery/scope"
 import { withApp, when } from "silvertea"
@@ -551,7 +551,7 @@ All steps happen through the dispatch/apply pipeline -- no event bus, no middlew
 
 | Layer  | What             | Examples                                                     | Package           |
 | ------ | ---------------- | ------------------------------------------------------------ | ----------------- |
-| **L0** | Primitives       | `signal()`, `computed()`, functions                          | `@silvery/signal` |
+| **L0** | Primitives       | `signal()`, `computed()`, functions                          | `@silvery/signals` |
 | **L1** | Foundation       | `create()`, `dispatch()`, `apply()`, `OpTypes`               | `@silvery/create` |
 | **L2** | App architecture | `withApp()`, `app.keymap()`, `when()`, `resolveInvocation()` | `silvertea`       |
 | **L2** | Rendering        | `withAg()`, `withReact()`, `withTerm()`                      | `@silvery/ag-*`   |

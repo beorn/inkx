@@ -10,7 +10,7 @@ Everything is a plugin — capabilities are opt-in.
 | ----------------- | --------------------------------------- | ---------------- | --------------------------- |
 | **Foundation**    | `create()`                              | none             | ops pass through            |
 | **+ Ag**          | `withAg()`, `withTerm()`, `withReact()` | React useState   | `useInput()` in components  |
-| **+ App**         | `withApp()`, domain plugins             | Signals/models   | Keymap → commands → signals |
+| **+ App**         | `withApp()`, domain plugins             | Any (signals recommended) | Keymap → commands → state |
 | **+ Ops as data** | `commandProxy()`, `withLogging()`       | Same, observable | All mutations serializable  |
 
 ---
@@ -360,14 +360,14 @@ function withApp(options?: { providers?: Record<string, any> }) {
 
 ### when() — descriptor-based
 
-`when()` returns per-binding descriptors carrying the live signal. Object spread produces descriptors, not eagerly computed values:
+`when()` returns per-binding descriptors carrying a predicate function. Object spread produces descriptors, not eagerly computed values:
 
 ```typescript
 type Binding = CommandRef | { command: CommandRef; args?: unknown; prompt?: string }
 type ConditionalBinding = { when: () => boolean; binding: Binding }
 
 function when<B extends Record<string, Binding>>(
-  condition: () => boolean, // signal accessor
+  condition: () => boolean, // () => boolean predicate
   bindings: B,
 ): Record<keyof B, ConditionalBinding> {
   const result = {} as any
@@ -378,7 +378,7 @@ function when<B extends Record<string, Binding>>(
 }
 ```
 
-`app.keymap()` inspects each value — if it has a `when` property, the binding is conditional. The signal is called at input time — `when()` (lazy evaluation, not reactive subscription).
+`app.keymap()` inspects each value — if it has a `when` property, the binding is conditional. The function is called at input time — `when()` (lazy evaluation, not reactive subscription).
 
 ### resolveInvocation — surface behavior
 
@@ -822,7 +822,7 @@ Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (l
 
 ## Design Decisions
 
-**alien-signals is the reactive engine.** `@silvery/signal` re-exports alien-signals core (`signal`, `computed`, `effect`, `batch`) and adds `createStore()` (deep proxy), `createResource()` (async bridge), and `/react` bindings (`useSignal`). Decision 26-28 in [decisions.md](./decisions.md). See [signals-landscape-2026.md](./signals-landscape-2026.md) for the full research and rationale.
+**alien-signals is the reactive engine.** `@silvery/signals` re-exports alien-signals core (`signal`, `computed`, `effect`, `batch`) and adds `createStore()` (deep proxy), `createResource()` (async bridge), and `/react` bindings (`useSignal`). Decision 26-28 in [decisions.md](./decisions.md). See [signals-landscape-2026.md](./signals-landscape-2026.md) for the full research and rationale.
 
 **Everything is a plugin.** `create()` is zero-dep. Scope, ag, app, rendering — all opt-in.
 
@@ -858,49 +858,55 @@ Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (l
 
 ```
 Foundation:
-  @silvery/create                         (zero deps — create, dispatch, apply)
+  @silvery/create                         (zero deps — pipe, dispatch, apply, tea())
   @silvery/scope                          (zero deps — withScope, createScope, currentScope)
-  @silvery/signal                         (alien-signals + alien-deepsignals)
-    ├── core: signal, computed, effect, batch  (re-export alien-signals, ~1.8KB)
-    ├── createStore()                     deep reactive proxy (alien-deepsignals, ~2.7KB)
-    ├── createResource()                  async signal bridge (scope-integrated)
-    └── /react                            useSignal(), model selectors (peer: react)
+  @silvery/headless                       (create — SelectListState, TextInputState, VirtualListState...)
 
-App (app architecture):
-  @silvery/model                          (signal)
-    └── /react                            (signal/react, peer: react)
-  @silvery/commands                       (create, signal, scope)
-    └── /react                            (signal/react, peer: react)
+App (state-agnostic):
+  @silvery/commands                       (create — commands, keymap, when, registry)
+    └── /react                            (peer: react — useCommand, useKeymap hooks)
+
+App (optional, signal-based):
+  @silvery/signals                        (alien-signals + alien-deepsignals)
+    ├── core: signal, computed, effect, batch
+    ├── createStore() deep reactive proxy
+    ├── createResource() async signal bridge
+    └── /react                            useSignal() (peer: react)
+  @silvery/model                          (signals — optional)
+    └── /react                            (signals/react, peer: react)
 
 Ag (rendering):
-  @silvery/ag                             (create — withAg, node tree, state machines)
-  @silvery/ag-react                       (ag, peer: react — adapter/reconciler)
-  @silvery/ag-svelte                      (ag, peer: svelte — future)
-  @silvery/ag-term                        (ag, scope, flexily — renderer)
-  @silvery/ag-web                         (ag — renderer, future)
-  @silvery/ag-ui                          (ag, ag-react, model, commands, ag-theme — 30+ React components)
-  @silvery/ag-theme                       (no deps — tokens, palettes)
+  @silvery/ag                             (create — node types, focus system, pipeline interface)
+  @silvery/ag-react                       (ag, peer: react — reconciler)
+    └── /ui                               (ag-react, headless, commands, theme — 30+ React components)
+  @silvery/ag-term                        (ag, scope, flexily — terminal renderer)
+  @silvery/theme                          (no deps — tokens, palettes)
+
+Ag experimental (future — log warning on import):
+  @silvery/ag-exp-svelte                  (ag, peer: svelte)
+  @silvery/ag-exp-web                     (ag)
+  @silvery/ag-exp-canvas                  (ag, flexily)
 
 Impure (native framework bridges — no ag):
   @silvery/impure
-    ├── /react-dom                        (create, scope, commands, peer: react, react-dom)
-    └── /svelte                           (create, scope, commands, peer: svelte — future)
+    ├── /react-dom                        (headless, commands, peer: react, react-dom — experimental)
+    └── /svelte                           (headless, commands, peer: svelte — experimental)
 
 Bundles:
-  silvery                                 create + scope + signal + model + commands + ag + ag-react + ag-term + ag-ui + ag-theme
+  silvery                                 create + scope + headless + commands + signals + model + ag + ag-react + ag-react/ui + ag-term + theme
 ```
 
 ---
 
 ## Cross-Reference to Era 2 Docs
 
-| Doc           | Covered here                                         | Full details in original                       |
-| ------------- | ---------------------------------------------------- | ---------------------------------------------- |
-| 02-signals    | `signal()`, `createModel()`                          | 8-sip API, framework bindings, provider DI     |
-| 03-commands   | Command tree, args, availability, surfaces           | Surface projection, domain objects, CLI rules  |
-| 01-rendering-input | `keymap()`, `when()`, precedence                | Mapping type, invoke(), chord/count state      |
-| 04-app        | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
-| 04-app        | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
-| composability | Adapter/renderer roles                               | Framework×platform matrix, gap analysis        |
-| packaging     | `create` + `ag-*` + app split + `impure`             | Migration paths, bundle strategies             |
-| decisions     | Referenced where relevant                            | Full decision log (25 decisions)               |
+| Doc                | Covered here                                         | Full details in original                       |
+| ------------------ | ---------------------------------------------------- | ---------------------------------------------- |
+| 02-signals         | `signal()`, `createModel()` (optional)               | 8-sip API, framework bindings, provider DI     |
+| 03-commands        | Command tree, args, availability, surfaces           | Surface projection, domain objects, CLI rules  |
+| 01-rendering-input | `keymap()`, `when()`, precedence                     | Mapping type, invoke(), chord/count state      |
+| 04-app             | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
+| 04-app             | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
+| composability      | Adapter/renderer roles                               | Framework×platform matrix, gap analysis        |
+| packaging          | `create` + `ag-*` + app split + `impure`             | Migration paths, bundle strategies             |
+| decisions          | Referenced where relevant                            | Full decision log (25 decisions)               |
