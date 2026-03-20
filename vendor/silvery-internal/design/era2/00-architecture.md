@@ -62,8 +62,8 @@ These are views of one runtime. A keypress traverses the plugin chain, resolves 
 | ------------------ | --------------------------------------- | ---------------- | ------------------------------ |
 | **Foundation**     | `create()`                              | none             | ops pass through               |
 | **+ Ag**           | `withAg()`, `withTerm()`, `withReact()` | React useState   | `useInput()` in components     |
-| **+ Tea**          | `withApp()`, domain plugins             | Signals/models   | Keymap → commands → signals    |
-| **+ Interception** | `withLogging()`, proxies                | Same, observable | All mutations through dispatch |
+| **+ App**          | `withApp()`, domain plugins             | Signals/models   | Keymap → commands → signals    |
+| **+ Ops as data**  | `commandProxy()`, `withLogging()`       | Same, observable | All mutations serializable     |
 
 ---
 

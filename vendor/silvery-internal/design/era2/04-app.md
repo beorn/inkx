@@ -167,7 +167,7 @@ await app.command(app.commands.todo.add, { text: "test" })
 
 ---
 
-## `op()` Proxy -- Interception Bridge
+## `op()` Proxy -- Operations as Data
 
 `op()` bridges the operation spectrum: you write **op-as-object** code (method calls with closures), but `op()` captures it as **op-as-data** (serializable `{ target, path, args }` descriptors) and routes it through `apply()`. The ergonomic cost of going from op-as-object to op-as-data is near zero -- same methods, same types, same autocomplete.
 
