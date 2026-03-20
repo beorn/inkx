@@ -2,157 +2,160 @@
 
 > **Era2 design doc.** When era2 ships, integrate this into `vendor/silvery/docs/getting-started/migrate-from-ink.md` as a new section after the existing compat layer content.
 
-The existing Ink migration guide (`docs/getting-started/migrate-from-ink.md`) covers Steps 1-3: drop-in import swap, API differences, and the `withInk()` compat layer. This doc adds Steps 4-5: migrating from render-only to the full app framework.
+The existing Ink migration guide covers the drop-in import swap, API differences, and the `withInk()` compat layer. This doc covers the next step: moving from render-only to silvery's app framework.
 
-## Step 4: Replace Ink hooks with commands
+## When to migrate
 
-Each Ink hook has a silvery-native replacement. Replace them one at a time.
+`render()` is fine for simple apps. You feel the pain when:
 
-### `useInput` → keymap
+- **Input handlers are scattered.** Multiple `useInput` hooks across components, each handling some keys. You add a feature and accidentally break a shortcut in another component because they both respond to the same key.
+- **Modes are fragile.** Normal mode, insert mode, search mode — tracked with `useState` and checked with `if (mode === "normal")` inside every `useInput`. One missed check and keys leak between modes.
+- **You can't test behavior without UI.** To test "pressing j moves the cursor down," you have to mount the full component tree and simulate keypresses. There's no way to call the action directly.
+- **You want a command palette.** With `useInput`, there's no list of "what can the user do right now?" — it's buried in conditionals. A command palette would require manually duplicating every action's name and function.
+- **You want CLI/MCP/AI access.** The same actions users perform via keyboard should be callable from a CLI (`km task toggle-done`), MCP tool, or AI agent — but with `useInput` the logic lives inside React components.
 
-Ink's `useInput` is imperative — you handle raw keys in a callback. Silvery's keymap is declarative — you bind keys to commands.
+If none of these bother you, stay with `render()`. When they do, `createApp()` solves all of them.
 
-```diff
-- import { useInput } from 'silvery/ink'
-+ import { createApp } from 'silvery'
+## The migration
 
-- useInput((input, key) => {
--   if (input === 'j') setCursor(c => c + 1)
--   if (input === 'k') setCursor(c => c - 1)
--   if (key.return) openItem()
--   if (input === 'q') process.exit(0)
-- })
-
-+ const app = createApp()
-+ app.commands.nav = {
-+   down:   { title: "Move Down",  fn: () => setCursor(c => c + 1) },
-+   up:     { title: "Move Up",    fn: () => setCursor(c => c - 1) },
-+   open:   { title: "Open",       fn: () => openItem() },
-+   quit:   { title: "Quit",       fn: () => process.exit(0) },
-+ }
-+ app.keymap({
-+   j: app.commands.nav.down,
-+   k: app.commands.nav.up,
-+   Enter: app.commands.nav.open,
-+   q: app.commands.nav.quit,
-+ })
-```
-
-What you gain: commands are testable (`app.commands.nav.down.fn()`), discoverable (auto-generated CLI, command palette, MCP tools), and composable (plugins add commands without touching view code).
-
-### `useApp().exit()` → command
-
-```diff
-- import { useApp } from 'silvery/ink'
-- const { exit } = useApp()
-- exit()
-
-+ app.commands.app.quit.fn()
-```
-
-### `useFocus` → silvery focus system
-
-```diff
-- import { useFocus } from 'silvery/ink'
-- const { isFocused } = useFocus({ autoFocus: true })
-
-+ import { useFocusable } from 'silvery'
-+ const { isFocused } = useFocusable({ autoFocus: true })
-```
-
-Or use `<Box focusScope>` for container-level focus management.
-
-### Hook replacement reference
-
-| Ink hook | Silvery equivalent | Notes |
-|---|---|---|
-| `useInput(fn)` | `app.keymap()` + commands | Declarative, composable |
-| `useApp()` | `app.commands` | Named actions |
-| `useFocus()` | `useFocusable()` or `<Box focusScope>` | Container-level focus |
-| `useFocusManager()` | Silvery focus system | Tab/Shift+Tab built-in |
-| `useStdin()` | `useInput()` from silvery | Better escape handling |
-| `useStdout()` | `useContentRect()` | Dimensions + resize |
-
-## Step 5: Migrate from render() to createApp()
-
-This is the biggest change — moving from Ink's render-only model to silvery's app framework.
-
-### Before: render-only (Ink style)
+### Before: render-only
 
 ```typescript
-import { render } from 'silvery/ink'
+import { render, useInput } from 'silvery'
 
 function App() {
-  const [count, setCount] = useState(0)
-  useInput((input) => {
-    if (input === 'j') setCount(c => c + 1)
-    if (input === 'q') process.exit(0)
+  const [items, setItems] = useState(["Buy milk", "Fix bug"])
+  const [cursor, setCursor] = useState(0)
+  const [mode, setMode] = useState<"normal" | "insert">("normal")
+
+  useInput((input, key) => {
+    if (mode === "normal") {
+      if (input === "j") setCursor(c => Math.min(c + 1, items.length - 1))
+      if (input === "k") setCursor(c => Math.max(c - 1, 0))
+      if (input === "x") setItems(items.filter((_, i) => i !== cursor))
+      if (input === "i") setMode("insert")
+      if (input === "q") process.exit(0)
+    }
+    if (mode === "insert") {
+      if (key.escape) setMode("normal")
+      // ... handle text input
+    }
   })
-  return <Text>Count: {count}</Text>
+
+  return (
+    <Box flexDirection="column">
+      {items.map((item, i) => (
+        <Text key={i}>{i === cursor ? "> " : "  "}{item}</Text>
+      ))}
+      <Text dimColor>{mode === "normal" ? "j/k move, x delete, i insert, q quit" : "ESC to exit"}</Text>
+    </Box>
+  )
 }
 
-render(<App />)
+await render(<App />)
 ```
 
-### After: createApp (silvery style)
+Problems:
+- All input logic lives in one component — can't split it without prop drilling `mode` and `setMode`
+- Testing requires rendering the full UI and simulating keypresses
+- No way to list available actions or generate a CLI
+- Adding search mode means another `if (mode === ...)` branch in the same callback
+
+### After: createApp
 
 ```typescript
-import { createApp, signal, Box, Text, useSignal } from 'silvery'
+import { createApp, signal, useSignal, Box, Text } from 'silvery'
 
-// State — outside React, testable, shareable (signals are optional)
-const count = signal(0)
+// State — testable, shareable, outside React
+const items = signal(["Buy milk", "Fix bug"])
+const cursor = signal(0)
+const mode = signal<"normal" | "insert">("normal")
 
-// App — commands, keymaps, rendering
+// Commands — named, testable, discoverable
 const app = createApp()
-app.commands.counter = {
-  increment: { title: "Increment", fn: () => count(count() + 1) },
-  quit:      { title: "Quit",      fn: () => process.exit(0) },
+app.commands.nav = {
+  down:   { fn: () => cursor(Math.min(cursor() + 1, items().length - 1)) },
+  up:     { fn: () => cursor(Math.max(cursor() - 1, 0)) },
+  delete: { fn: () => items(items().filter((_, i) => i !== cursor())) },
 }
+app.commands.mode = {
+  insert: { fn: () => mode("insert") },
+  normal: { fn: () => mode("normal") },
+}
+app.commands.app = {
+  quit: { fn: () => process.exit(0) },
+}
+
+// Keymaps — declarative, mode-aware, no conditionals
 app.keymap({
-  j: app.commands.counter.increment,
-  q: app.commands.counter.quit,
+  ...when(() => mode() === "normal", {
+    j: app.commands.nav.down,
+    k: app.commands.nav.up,
+    x: app.commands.nav.delete,
+    i: app.commands.mode.insert,
+    q: app.commands.app.quit,
+  }),
+  ...when(() => mode() === "insert", {
+    Escape: app.commands.mode.normal,
+  }),
 })
 
-// View — pure renderer, no input handling
+// View — pure renderer, zero input logic
 function App() {
-  const c = useSignal(count)
-  return <Text>Count: {c}</Text>
+  const m = useSignal(mode)
+  const c = useSignal(cursor)
+  const list = useSignal(items)
+  return (
+    <Box flexDirection="column">
+      {list.map((item, i) => (
+        <Text key={i}>{i === c ? "> " : "  "}{item}</Text>
+      ))}
+      <Text dimColor>{m === "normal" ? "j/k move, x delete, i insert, q quit" : "ESC to exit"}</Text>
+    </Box>
+  )
 }
 
 await app.run(<App />)
 ```
 
-### What changes
+What changed:
+- **Input logic is gone from the view.** The component is a pure function of state.
+- **Modes are declarative.** `when(() => mode() === "normal", { ... })` replaces `if (mode === "normal")` inside callbacks. Adding a search mode is one more `when()` block, not another branch in a growing conditional.
+- **Every action is testable without UI.** `app.commands.nav.down.fn()` — call it, check state. No rendering needed.
+- **Actions are discoverable.** Walk `app.commands` to list everything the user can do. Auto-generates a command palette, CLI help, MCP tool list.
 
-| Concern | render() | createApp() |
+### What you gain at each step
+
+| Step | What | Why bother |
 |---|---|---|
-| **State** | `useState` inside components | `signal()` outside React (optional — useState still works) |
-| **Input** | `useInput` callback per component | `keymap()` — declarative, composable |
-| **Actions** | Inline in `useInput` | Named commands — testable, discoverable |
-| **Testing** | Mount component, simulate keys | Call `command.fn()` directly |
-| **CLI** | Build separately | Auto-generated from command tree |
-| **AI/MCP** | Build separately | Auto-generated from command tree |
+| `createApp()` | Entry point for commands + keymaps | You can define actions outside components |
+| `app.commands` | Named action objects | Testable, discoverable, composable |
+| `app.keymap()` | Declarative key bindings | No scattered `useInput`, mode-aware via `when()` |
+| `when()` | Conditional bindings | Modes without `if` chains |
+| `signal()` | Reactive state outside React | Share state between commands/views/tests (optional — `useState` works too) |
+| `app.run()` | Full app lifecycle | Replaces `render()` — same thing plus commands/scope |
 
 ### Migration checklist
 
-1. Create the app: `const app = createApp()`
-2. Move input handling: `useInput` → `app.keymap()` + commands
-3. Optionally move state: `useState` → `signal()` (not required — useState works fine)
-4. Simplify views: remove input logic, just render state
-5. Remove `silvery/ink` imports — use `silvery` directly
-6. Remove `withInk()` if you were using it during transition
+1. `const app = createApp()`
+2. Extract actions from `useInput` → `app.commands`
+3. Replace `useInput` → `app.keymap()` with `when()` for modes
+4. Optionally: `useState` → `signal()` for state shared outside components
+5. Simplify views: remove all input logic
+6. `render(<App />)` → `await app.run(<App />)`
+7. Remove `silvery/ink` imports — use `silvery` directly
 
 ### You don't have to migrate all at once
 
-`render()` and `createApp()` coexist. You can have some components using `useInput` (Ink style) and others driven by keymaps. Migrate incrementally — one component at a time.
+`render()` and `createApp()` coexist. You can have some components using `useInput` and others driven by keymaps. Migrate one component at a time.
 
 ## FAQ
 
 **Do I need signals?**
-No. `useState` works fine with `createApp()`. Signals are useful when state needs to be shared across components or accessed outside React (commands, tests, CLI). They're optional.
+No. `useState` works with `createApp()`. Signals help when state is shared across components or accessed outside React (commands, tests, CLI). Optional.
 
 **Do I need createApp()?**
-No. `render()` works perfectly for simple apps. Use `createApp()` when you want commands, keymaps, or the auto-generated CLI/MCP surfaces.
+No. `render()` is fine for simple apps. Migrate when you feel the pain described above.
 
-**What about third-party Ink plugins?**
-Most work unchanged with `silvery/ink`. If they import from `ink` directly, alias `ink` → `silvery/ink` in your bundler config.
+**Can I use both useInput and keymap?**
+Yes. Components with `useInput` still work — unmatched keys fall through from the keymap to component handlers. Replace them gradually.
