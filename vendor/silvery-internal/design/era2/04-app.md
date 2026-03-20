@@ -2,7 +2,7 @@
 
 > **Deep-dive** for [00-architecture.md](./00-architecture.md) § Part 2 (Tea) and Async Scope Tree. Plugin composition, domain plugins, op() proxy, structured concurrency. Last synced: 2026-03-19.
 
-_Status: v1 (2026-03-19). Merged from 05-app.md (plugin composition) and 06-scopes.md (structured concurrency). See also: [02-signals.md](./02-signals.md) (signals, models, createModel), [03-commands.md](./03-commands.md) (command shapes, availability), [04-input.md](./04-input.md) (keymaps, sources, dispatch)._
+_Status: v1 (2026-03-19). Merged from 05-app.md (plugin composition) and 06-scopes.md (structured concurrency). See also: [01-rendering-input.md](./01-rendering-input.md) (rendering, input pipeline), [02-signals.md](./02-signals.md) (signals, models), [03-commands.md](./03-commands.md) (command tree, availability)._
 
 ---
 
@@ -14,7 +14,7 @@ The app kernel is `create()` -- see [00-architecture.md](./00-architecture.md) �
 const app = create() // -> { dispatch, apply, run }
 ```
 
-Three wrappable methods, zero state. Everything else -- models, commands, keymaps, scopes, rendering -- is added by plugins. `withTea()` and domain plugins build the app architecture on top of that kernel. The `{ model, rt, commands }` shape you see in a full app is what `withTea()` + domain plugins produce, not a competing kernel shape.
+Three wrappable methods, zero state. Everything else -- models, commands, keymaps, scopes, rendering -- is added by plugins. `withApp()` and domain plugins build the app architecture on top of that kernel. The `{ model, rt, commands }` shape you see in a full app is what `withApp()` + domain plugins produce, not a competing kernel shape.
 
 The progression:
 
@@ -22,7 +22,7 @@ The progression:
 |---|---|---|
 | **Foundation** | `create()` | `{ dispatch, apply, run }` -- zero state |
 | **+ Scope** | `withScope()` | `app.scope`, `op.scope` (lazy), `app.quit()` |
-| **+ Tea** | `withTea()` | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
+| **+ Tea** | `withApp()` | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
 | **+ Domains** | `withTodo()`, `withEditor()`, ... | Populated models, commands, keybindings |
 | **+ Rendering** | `withAg()`, `withTerm()`, `withReact()` | Node tree, terminal I/O, React reconciler |
 
@@ -32,11 +32,11 @@ Each layer only calls down. Tea doesn't know about rendering. Domains don't know
 
 ## Plugin Composition Philosophy
 
-### `withTea()` -- The App Infrastructure Plugin
+### `withApp()` -- The App Infrastructure Plugin
 
-`withTea()` installs the registries (models, commands, keymap) and the apply-chain logic for command execution and key resolution. It does not add domain state -- that's what domain plugins do.
+`withApp()` installs the registries (models, commands, keymap) and the apply-chain logic for command execution and key resolution. It does not add domain state -- that's what domain plugins do.
 
-See [00-architecture.md](./00-architecture.md) § Part 2 for the full `withTea()` implementation. The key points:
+See [00-architecture.md](./00-architecture.md) § Part 2 for the full `withApp()` implementation. The key points:
 
 - **`app.models`** -- registry for domain state (populated by domain plugins)
 - **`app.commands`** -- discoverable command tree (populated by domain plugins)
@@ -44,7 +44,7 @@ See [00-architecture.md](./00-architecture.md) § Part 2 for the full `withTea()
 - **`app.registerCommand()`** -- maps command object refs to string paths (for serialization)
 - **`app.command()`** -- typed dispatch convenience (returns `op.pending`)
 
-Without `withTea()`, `create()` apps can still use `dispatch()` and `apply()` directly -- Tea is opt-in infrastructure for the command/model/keymap pattern.
+Without `withApp()`, `create()` apps can still use `dispatch()` and `apply()` directly -- Tea is opt-in infrastructure for the command/model/keymap pattern.
 
 ### How Plugins Compose
 
@@ -130,7 +130,7 @@ const app = pipe(
   create(),
   withScope(),
   withAg(),
-  withTea(),                    // models + commands + keymap registries
+  withApp(),                    // models + commands + keymap registries
   withTodo(),                   // domain
   withEditor(),                 // domain
   (app) => {                    // inline domain
@@ -159,7 +159,7 @@ todo.toggleDone()
 expect(todo.items()[1].done()).toBe(true)
 
 // App test -- full pipeline without rendering
-const app = pipe(create(), withTea(), withTodo())
+const app = pipe(create(), withApp(), withTodo())
 await app.command(app.commands.todo.add, { text: "test" })
 ```
 
@@ -430,7 +430,7 @@ The framework tracks which scopes it created vs which the caller provided. This 
 ```typescript
 // Auto-created -- framework disposes after command completes
 app.dispatch({ type: "command", path: ["todo", "add"], args: { text: "test" } })
-// op.scope created lazily, disposed by withTea() after fn() settles
+// op.scope created lazily, disposed by withApp() after fn() settles
 
 // Caller-provided -- caller controls lifetime
 const batch = app.scope.child("batch")
@@ -728,7 +728,7 @@ const editor = pipe(
   create(),
   withScope(),
   withAg(),
-  withTea(),
+  withApp(),
 
   // Editing core
   withDocument(store),
@@ -756,10 +756,10 @@ const editor = pipe(
 
 ```typescript
 // Terminal TUI
-pipe(create(), withScope(), withAg(), withTea(), ...domains, withTerm(), withReact({ view: <App /> }))
+pipe(create(), withScope(), withAg(), withApp(), ...domains, withTerm(), withReact({ view: <App /> }))
 
 // Browser (future) -- no ag, tea on native React DOM
-pipe(create(), withScope(), withTea(), ...domains, withReactDOM({ view: <App />, root: "#app" }))
+pipe(create(), withScope(), withApp(), ...domains, withReactDOM({ view: <App />, root: "#app" }))
 ```
 
 Domain plugins are surface-agnostic. Drop the terminal, add a browser adapter -- models and commands stay the same.
@@ -775,7 +775,7 @@ function createApp(options: {
   term?: TermOptions
 }) {
   return pipe(
-    create(), withScope(), withAg(), withTea(),
+    create(), withScope(), withAg(), withApp(),
     ...options.domains,
     withTerm(options.term), withReact({ view: options.view }),
   )

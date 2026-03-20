@@ -2,7 +2,7 @@
 
 > **Deep-dive** for [00-architecture.md](./00-architecture.md) § Command Tree. Command-centric philosophy, surface projection, availability. Last synced: 2026-03-19.
 
-_Part 1 of [AI-Native Apps](../era3/ai-mode.md). This doc covers the architecture — how to build apps with well-composed, exposed internals. [AI Mode](../era3/ai-mode.md) covers what AI agents do with that architecture._
+_Commands are the foundation for discoverable, testable, automatable apps. Every action is named, typed, and projectable to CLI, palette, MCP, and AI agents. See [AI Mode](../era3/ai-mode.md) (era3) for what AI agents do with this architecture._
 
 ## The Core Idea
 

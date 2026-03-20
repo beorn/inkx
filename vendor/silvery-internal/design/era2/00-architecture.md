@@ -24,8 +24,8 @@ Everything is a plugin — capabilities are opt-in.
   │                                                            │    │
   │  ┌── apply chain (app + rendering plugins) ──────────────┐ │    │
   │  │  withReact: calls inner, fans out unhandled to useInput│◄┘    │
-  │  │  withTea/keymap: input:key → resolves binding → cmd op │      │
-  │  │  withTea/commands: command → resolves from tree → fn() │      │
+  │  │  withApp/keymap: input:key → resolves binding → cmd op  │      │
+  │  │  withApp/commands: command → resolves from tree → fn() │      │
   │  └────────────────────────────────────────────────────────┘      │
   └──────────────────────────────────────────────────────────────────┘
                                   │
@@ -62,7 +62,7 @@ These are views of one runtime. A keypress traverses the plugin chain, resolves 
 | ------------------ | --------------------------------------- | ---------------- | ------------------------------ |
 | **Foundation**     | `create()`                              | none             | ops pass through               |
 | **+ Ag**           | `withAg()`, `withTerm()`, `withReact()` | React useState   | `useInput()` in components     |
-| **+ Tea**          | `withTea()`, domain plugins             | Signals/models   | Keymap → commands → signals    |
+| **+ Tea**          | `withApp()`, domain plugins             | Signals/models   | Keymap → commands → signals    |
 | **+ Interception** | `withLogging()`, proxies                | Same, observable | All mutations through dispatch |
 
 ---
@@ -241,15 +241,15 @@ function withTerm(options?: TermOptions) {
 
 ## Part 2: Tea (silvertea)
 
-`withTea()` creates the registries (models, commands, keymap). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
+`withApp()` creates the registries (models, commands, keymap). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
 
-### withTea — app infrastructure (single plugin)
+### withApp — app infrastructure (single plugin)
 
 ```typescript
-function withTea() {
+function withApp() {
   return (app) => {
     // Capability marker — prevents double-install
-    if (app._tea) throw new Error("withTea() already installed")
+    if (app._tea) throw new Error("withApp() already installed")
     app._tea = true
 
     app.models = {}
@@ -618,7 +618,7 @@ Centralizes arg defaults, signal-based availability, and validation.
 
 All declarative via `when()` and keymap layer ordering:
 
-1. Last-registered bindings checked first (domain plugins register after withTea)
+1. Last-registered bindings checked first (domain plugins register after withApp)
 2. `when()` conditions evaluated dynamically at input time — signal accessors called per keypress
 3. Unmatched input falls through to `useInput()` hooks (registered via `app.onInput`)
 
@@ -631,7 +631,7 @@ const app = pipe(
   create(),
   withScope(),
   withAg(),
-  withTea(),                    // models + commands + keymap registries
+  withApp(),                    // models + commands + keymap registries
   withTodo(),                   // domain
   withEditor(),                 // domain
   (app) => {                    // inline domain
@@ -701,7 +701,7 @@ pipe(create(), withScope(), withAg(), withTerm(), withReact({ view: <Counter /> 
 
 ```typescript
 import { withReactDOM } from "@silvery/impure/react-dom"
-pipe(create(), withScope(), withTea(), withTodo(), withReactDOM({ view: <App />, root: "#app" }))
+pipe(create(), withScope(), withApp(), withTodo(), withReactDOM({ view: <App />, root: "#app" }))
 ```
 
 No ag. Tea on native React DOM. No ag-ui components.
@@ -728,7 +728,7 @@ expect(profile.profile()).toEqual({ name: "Alice" })
 expect(profile.profile.loading()).toBe(false)
 
 // App test — full pipeline without rendering
-const app = pipe(create(), withTea(), withTodo())
+const app = pipe(create(), withApp(), withTodo())
 await app.command(app.commands.todo.add, { text: "test" })
 ```
 
@@ -750,7 +750,7 @@ Plugins    → refine app type per capability
 ```typescript
 function withScope(): <A>(app: A) => A & { scope: Scope; quit(): void }
 function withAg(): <A>(app: A) => A & { root: Node }
-function withTea(): <A>(app: A) => A & SilveryApp
+function withApp(): <A>(app: A) => A & SilveryApp
 function withTerm(): <A extends { root: Node }>(app: A) => A & { run(): Promise<void> }
 function withReact(o: O): <A extends { root: Node }>(app: A) => A // run optional — wraps if present
 ```
@@ -764,7 +764,7 @@ function createApp(options: {
   term?: TermOptions
 }) {
   return pipe(
-    create(), withScope(), withAg(), withTea(),
+    create(), withScope(), withAg(), withApp(),
     ...options.domains,
     withTerm(options.term), withReact({ view: options.view }),
   )
@@ -822,7 +822,7 @@ function withLogging() {
 
 **Everything is a plugin.** `create()` is zero-dep. Scope, ag, tea, rendering — all opt-in.
 
-**`withTea()` — single app infrastructure plugin.** Creates models + commands + keymap registries. Domain plugins populate them.
+**`withApp()` — single app infrastructure plugin.** Creates models + commands + keymap registries. Domain plugins populate them.
 
 **Domain plugins co-locate everything.** Models + commands + keybindings in one plugin. Closure access. No `this`. `app.keymap?.()` for headless compatibility.
 
@@ -840,7 +840,7 @@ function withLogging() {
 
 **Scope disposal.** Auto-created op scopes tracked via WeakSet, disposed after command completion. Caller-provided scopes (set before dispatch) not disposed — ownership detected automatically. Root scope disposed when `run()` exits.
 
-**Capability protection.** `withTea()` throws on double-install. Domain plugins require `withTea()` for `app.models`/`app.commands`. Keybinding registration is optional (`app.keymap?.()`) — enables headless use.
+**Capability protection.** `withApp()` throws on double-install. Domain plugins require `withApp()` for `app.models`/`app.commands`. Keybinding registration is optional (`app.keymap?.()`) — enables headless use.
 
 **Interception plugin order.** `withLogging()` should be installed as the outermost `apply` wrapper (last in pipe before renderer/adapter) to observe all ops. Alternatively, wrap `dispatch` instead of `apply` for guaranteed visibility regardless of plugin order.
 

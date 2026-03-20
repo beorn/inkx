@@ -56,7 +56,7 @@ await app.run()
 2. `withReact()` wraps `app.run` — starts the React reconciler, renders `<Counter />` into the ag node tree.
 3. `app.run()` enters the loop: `for await (const key of terminal.keys(scope.signal))`.
 4. Each keypress becomes `app.dispatch({ type: "input:key", ...key })`.
-5. No keymap exists (no `withTea()`), so `input:key` ops fall through to `useInput()` hooks registered by `withReact()`.
+5. No keymap exists (no `withApp()`), so `input:key` ops fall through to `useInput()` hooks registered by `withReact()`.
 6. `useInput` handler mutates React state. React re-renders. Ag flushes to terminal.
 
 This is the minimal interactive path:
@@ -77,7 +77,7 @@ Input is dispatched as ops. Sources produce `input:key` and `input:mouse` ops. A
 terminal.keys() --> dispatch({ type: "input:key", ... })
                       |
                   +-- apply chain ---------------------------------+
-                  |  withTea/keymap: match binding --> when()        |
+                  |  withApp/keymap: match binding --> when()         |
                   |    --> queueMicrotask(dispatch(command op))      |
                   |  withReact: fan out to useInput() hooks         |
                   +------------------------------------------------+
@@ -177,7 +177,7 @@ function withReact({ view }: { view: ReactElement }) {
 }
 ```
 
-Note the order: `prevApply(op)` is called first. If the keymap (installed by `withTea()`) handles the op, `useInput()` hooks never see it. Only unmatched input falls through to components.
+Note the order: `prevApply(op)` is called first. If the keymap (installed by `withApp()`) handles the op, `useInput()` hooks never see it. Only unmatched input falls through to components.
 
 ---
 
@@ -341,7 +341,7 @@ const isInsert = computed(() => mode() === "insert")
 
 ## Level 2: With Tea (Signals, Commands, Keymap)
 
-Adding `withTea()` and a domain plugin. State moves from React `useState` to signals. Input moves from `useInput()` to declarative keymaps. The view becomes a pure renderer -- no input handling.
+Adding `withApp()` and a domain plugin. State moves from React `useState` to signals. Input moves from `useInput()` to declarative keymaps. The view becomes a pure renderer -- no input handling.
 
 ```typescript
 // todo.tsx -- Level 2: with tea, domain plugin, declarative keymap
@@ -349,7 +349,7 @@ import { signal, computed } from "@silvery/signal"
 import { useSignal } from "@silvery/signal/react"
 import { create, pipe } from "@silvery/create"
 import { withScope } from "@silvery/scope"
-import { withTea, when } from "silvertea"
+import { withApp, when } from "silvertea"
 import { withAg } from "@silvery/ag"
 import { withTerm } from "@silvery/ag-term"
 import { withReact } from "@silvery/ag-react"
@@ -434,7 +434,7 @@ const app = pipe(
   create(),
   withScope(),
   withAg(),
-  withTea(),
+  withApp(),
   withTodo(),
   withTerm(),
   withReact({ view: <ListView /> }),
@@ -452,7 +452,7 @@ await app.run()
 - **View reads signals via `useSignal()`** -- no other hooks, no `onKeyDown`, no `useInput()`
 - **Chord binding** (`dd`) -- resolved by the trie in `compileKeymap()`
 - **Domain plugin** co-locates models + commands + keybindings
-- **`app.keymap?.()`** -- conditional call enables headless use (no keymap without `withTea()`)
+- **`app.keymap?.()`** -- conditional call enables headless use (no keymap without `withApp()`)
 
 ### `when()` -- Descriptor-Based
 
@@ -490,7 +490,7 @@ Two separate concerns: **can the command run?** (args schema -- `resolveInvocati
 
 All declarative via `when()` and keymap layer ordering:
 
-1. Last-registered bindings checked first (domain plugins register after `withTea()`)
+1. Last-registered bindings checked first (domain plugins register after `withApp()`)
 2. `when()` conditions evaluated dynamically at input time -- signal accessors called per keypress
 3. Unmatched input falls through to `useInput()` hooks (registered via `app.onInput` in `withReact()`)
 
@@ -529,7 +529,7 @@ for await (key)
        |
        +-- apply chain:
        |    |
-       |    +-- withTea/keymap:
+       |    +-- withApp/keymap:
        |    |    match key against trie
        |    |    check when() conditions (signal accessors)
        |    |    check resolveInvocation() state
@@ -551,11 +551,11 @@ All steps happen through the dispatch/apply pipeline -- no event bus, no middlew
 | ------ | ---------------- | ------------------------------------------------------------ | ----------------- |
 | **L0** | Primitives       | `signal()`, `computed()`, functions                          | `@silvery/signal` |
 | **L1** | Foundation       | `create()`, `dispatch()`, `apply()`, `OpTypes`               | `@silvery/create` |
-| **L2** | App architecture | `withTea()`, `app.keymap()`, `when()`, `resolveInvocation()` | `silvertea`       |
+| **L2** | App architecture | `withApp()`, `app.keymap()`, `when()`, `resolveInvocation()` | `silvertea`       |
 | **L2** | Rendering        | `withAg()`, `withReact()`, `withTerm()`                      | `@silvery/ag-*`   |
 | **L3** | Domain plugins   | `withTodo()`, `withEditor()`, `withDocument()`               | App-specific      |
 
-Keymaps are not a separate library -- they are part of `withTea()`. Domain plugins register bindings via `app.keymap()`. The dispatch/apply pipeline is the architecture.
+Keymaps are not a separate library -- they are part of `withApp()`. Domain plugins register bindings via `app.keymap()`. The dispatch/apply pipeline is the architecture.
 
 ---
 
