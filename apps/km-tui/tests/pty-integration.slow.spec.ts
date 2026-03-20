@@ -94,9 +94,9 @@ describe("PTY integration: auto-repeat", () => {
     term = await createKmTerminal("pty-auto-repeat")
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
-  }, 30000)
+  }, { timeout: 30_000 })
 
-  test("rapid j presses move cursor continuously", async () => {
+  test("rapid j presses move cursor continuously", { timeout: 20_000 }, async () => {
     const initialBreadcrumb = getBreadcrumb(term)
 
     // Single j press, wait for stable
@@ -112,9 +112,9 @@ describe("PTY integration: auto-repeat", () => {
 
     // Save snapshot for visual reference
     saveSnapshot(term, "after-rapid-j")
-  }, 20000)
+  })
 
-  test("very rapid j presses (15ms gap, ~67Hz) still move cursor", async () => {
+  test("very rapid j presses (15ms gap, ~67Hz) still move cursor", { timeout: 20_000 }, async () => {
     const initialBreadcrumb = getBreadcrumb(term)
 
     // Very rapid — faster than typical key repeat
@@ -123,7 +123,7 @@ describe("PTY integration: auto-repeat", () => {
 
     const afterRapid = getBreadcrumb(term)
     expect(afterRapid).not.toBe(initialBreadcrumb)
-  }, 20000)
+  })
 })
 
 describe("PTY integration: burst input (real key repeat simulation)", () => {
@@ -133,9 +133,9 @@ describe("PTY integration: burst input (real key repeat simulation)", () => {
     term = await createKmTerminal("pty-burst")
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
-  }, 30000)
+  }, { timeout: 30_000 })
 
-  test("burst of j chars in single write (simulates OS stdin buffering)", async () => {
+  test("burst of j chars in single write (simulates OS stdin buffering)", { timeout: 20_000 }, async () => {
     const initialBreadcrumb = getBreadcrumb(term)
 
     // Real key repeat: OS buffers multiple keystrokes into one stdin read.
@@ -144,9 +144,9 @@ describe("PTY integration: burst input (real key repeat simulation)", () => {
 
     const afterBurst = getBreadcrumb(term)
     expect(afterBurst).not.toBe(initialBreadcrumb)
-  }, 20000)
+  })
 
-  test("repeated bursts of j chars (simulates held key over time)", async () => {
+  test("repeated bursts of j chars (simulates held key over time)", { timeout: 20_000 }, async () => {
     const initialBreadcrumb = getBreadcrumb(term)
 
     // Simulate how OS delivers key repeat: bursts of 2-3 chars every ~50ms
@@ -158,9 +158,9 @@ describe("PTY integration: burst input (real key repeat simulation)", () => {
 
     const afterBursts = getBreadcrumb(term)
     expect(afterBursts).not.toBe(initialBreadcrumb)
-  }, 20000)
+  })
 
-  test("burst h/l alternation (simulates rapid column switching)", async () => {
+  test("burst h/l alternation (simulates rapid column switching)", { timeout: 20_000 }, async () => {
     // Move right first
     await pressAndWait(term, "l")
 
@@ -170,7 +170,7 @@ describe("PTY integration: burst input (real key repeat simulation)", () => {
 
     // No bell
     expect(hasBellIndicator(term)).toBe(false)
-  }, 20000)
+  })
 })
 
 describe("PTY integration: h/l false bell", () => {
@@ -180,9 +180,9 @@ describe("PTY integration: h/l false bell", () => {
     term = await createKmTerminal("pty-bell")
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
-  }, 30000)
+  }, { timeout: 30_000 })
 
-  test("alternating h/l does not trigger bell when not at boundary", async () => {
+  test("alternating h/l does not trigger bell when not at boundary", { timeout: 20_000 }, async () => {
     // Move right first to ensure we're not at a column boundary
     await pressAndWait(term, "l")
     expect(hasBellIndicator(term)).toBe(false)
@@ -195,9 +195,9 @@ describe("PTY integration: h/l false bell", () => {
     await term.waitForStable(500, 10000)
 
     expect(hasBellIndicator(term)).toBe(false)
-  }, 20000)
+  })
 
-  test("rapid h at left boundary: bells on each press without crash", async () => {
+  test("rapid h at left boundary: bells on each press without crash", { timeout: 20_000 }, async () => {
     // Navigate back to leftmost column first
     for (let i = 0; i < 10; i++) term.command("cursor_left")
     await term.waitForStable(500, 10000)
@@ -208,7 +208,7 @@ describe("PTY integration: h/l false bell", () => {
     // Rapid boundary hits — each fires bell, should not crash
     await repeatKey(term, "h", 5)
     await term.waitForStable(500, 10000)
-  }, 20000)
+  })
 })
 
 describe("PTY integration: navigation correctness", () => {
@@ -218,9 +218,9 @@ describe("PTY integration: navigation correctness", () => {
     term = await createKmTerminal("pty-nav")
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
-  }, 30000)
+  }, { timeout: 30_000 })
 
-  test("zoom in with Enter and back out with Escape", async () => {
+  test("zoom in with Enter and back out with Escape", { timeout: 20_000 }, async () => {
     saveSnapshot(term, "nav-initial")
 
     const initialBreadcrumb = getBreadcrumb(term)
@@ -236,9 +236,9 @@ describe("PTY integration: navigation correctness", () => {
     await pressAndWait(term, "Escape")
     await term.waitForStable(500, 10000)
     saveSnapshot(term, "nav-zoomed-out")
-  }, 20000)
+  })
 
-  test("view mode toggle with v preserves content", async () => {
+  test("view mode toggle with v preserves content", { timeout: 20_000 }, async () => {
     const textBefore = term.getText()
 
     // Toggle view mode
@@ -252,9 +252,9 @@ describe("PTY integration: navigation correctness", () => {
 
     // Toggle back
     await pressAndWait(term, "v")
-  }, 20000)
+  })
 
-  test("search opens with cmd+f and closes with Escape", async () => {
+  test("search opens with cmd+f and closes with Escape", { timeout: 20_000 }, async () => {
     // Open search (Cmd+f triggers global search dialog)
     term.press("cmd+f")
     await term.waitForStable(300, 5000)
@@ -267,7 +267,7 @@ describe("PTY integration: navigation correctness", () => {
     // Close search with Escape
     await pressAndWait(term, "Escape")
     saveSnapshot(term, "nav-search-closed")
-  }, 20000)
+  })
 })
 
 describe("PTY integration: SVG snapshot capture", () => {
@@ -277,9 +277,9 @@ describe("PTY integration: SVG snapshot capture", () => {
     term = await createKmTerminal("pty-snapshot", { cols: 120, rows: 40 })
     await waitForContent(term, 15000)
     await term.waitForStable(1500, 20000)
-  }, 30000)
+  }, { timeout: 30_000 })
 
-  test("initial board render captures valid SVG", async () => {
+  test("initial board render captures valid SVG", { timeout: 10_000 }, async () => {
     const svg = term.screenshotSvg()
 
     // SVG should contain terminal content
@@ -287,9 +287,9 @@ describe("PTY integration: SVG snapshot capture", () => {
     expect(svg.length).toBeGreaterThan(100)
 
     saveSnapshot(term, "snapshot-initial-board")
-  }, 10000)
+  })
 
-  test("after navigation, screen updates", async () => {
+  test("after navigation, screen updates", { timeout: 10_000 }, async () => {
     const textBefore = term.getText()
 
     await pressAndWait(term, "j")
@@ -299,13 +299,13 @@ describe("PTY integration: SVG snapshot capture", () => {
     expect(textAfter).not.toBe(textBefore)
 
     saveSnapshot(term, "snapshot-after-nav")
-  }, 10000)
+  })
 
-  test("board renders with visible content via viterm matchers", async () => {
+  test("board renders with visible content via viterm matchers", { timeout: 10_000 }, async () => {
     // Use viterm matchers — the real power of termless
     expect(term.screen).toContainText(getBreadcrumb(term).trim())
     expect(term.getText().trim().length).toBeGreaterThan(0)
-  }, 10000)
+  })
 })
 
 // =============================================================================
@@ -342,7 +342,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     return count
   }
 
-  test("zoom outwards renders consistently across backends (xterm.js)", async () => {
+  test("zoom outwards renders consistently across backends (xterm.js)", { timeout: 60_000 }, async () => {
     const term = createTerminalFixture({ cols: COLS, rows: ROWS })
     await term.spawn(["bun", "km", "view", "--repo", ASANA_VAULT, ROOT_NODE], {
       cwd: KM_CWD,
@@ -397,9 +397,9 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     expect(middleContentRows).toBeGreaterThan(totalRows * 0.5)
 
     saveSnapshot(term, "zoom-garble-verified")
-  }, 60000)
+  })
 
-  test("zoom outwards renders consistently (vt100)", async () => {
+  test("zoom outwards renders consistently (vt100)", { timeout: 60_000 }, async () => {
     const term = createTerminalFixture({ cols: COLS, rows: ROWS, backend: createVt100Backend() })
     await term.spawn(["bun", "km", "view", "--repo", ASANA_VAULT, ROOT_NODE], {
       cwd: KM_CWD,
@@ -428,9 +428,9 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     const totalRows = afterZoom.split("\n").length
 
     expect(middleContentRows).toBeGreaterThan(totalRows * 0.5)
-  }, 60000)
+  })
 
-  test("zoom outwards renders consistently (ghostty)", async () => {
+  test("zoom outwards renders consistently (ghostty)", { timeout: 60_000 }, async () => {
     const ghostty = await initGhostty()
     const term = createTerminalFixture({
       cols: COLS,
@@ -464,9 +464,9 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     const totalRows = afterZoom.split("\n").length
 
     expect(middleContentRows).toBeGreaterThan(totalRows * 0.5)
-  }, 60000)
+  })
 
-  test("cross-backend comparison: all three backends agree after zoom", async () => {
+  test("cross-backend comparison: all three backends agree after zoom", { timeout: 120_000 }, async () => {
     const ghostty = await initGhostty()
 
     // Spawn on all three backends in parallel
@@ -528,5 +528,5 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
 
     // Check that xterm.js and vt100 agree (these are the most mature backends)
     expect(results["xterm.js"]).toBe(results["vt100"])
-  }, 120000)
+  })
 })
