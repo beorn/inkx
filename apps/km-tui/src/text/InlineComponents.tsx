@@ -10,11 +10,14 @@
  * into an AST and renders via InlineNodes.
  */
 
-import React from "react"
+import React, { useCallback, useRef } from "react"
 import { Link, Text } from "@silvery/react"
+import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
+import { usePopover, urlPopoverContent, richUrlPopoverContent, internalLinkPopoverContent } from "../views/Popover.tsx"
+import { getCachedMetadata, fetchUrlMetadata } from "./url-metadata.ts"
 import type {
   BareURLNode,
   BlockRefNode,
@@ -234,8 +237,42 @@ export function InlineCode({ node, decorations, offset }: { node: CodeNode } & D
 
 export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
+  const popover = usePopover()
+  const hoveredRef = useRef(false)
+  const onMouseEnter = useCallback(
+    (e: SilveryMouseEvent) => {
+      hoveredRef.current = true
+      const anchor = { x: e.clientX, y: e.clientY }
+      const cached = getCachedMetadata(node.url)
+      if (cached) {
+        popover?.show(richUrlPopoverContent(node.url, cached), anchor)
+      } else {
+        popover?.show(urlPopoverContent(node.url, { loading: true }), anchor)
+        fetchUrlMetadata(node.url).then((meta) => {
+          if (!hoveredRef.current) return
+          if (meta) {
+            popover?.update(richUrlPopoverContent(node.url, meta))
+          } else {
+            // Fetch failed or returned nothing — remove spinner
+            popover?.update(urlPopoverContent(node.url))
+          }
+        })
+      }
+    },
+    [popover, node.url],
+  )
+  const onMouseLeave = useCallback(() => {
+    hoveredRef.current = false
+    popover?.hide()
+  }, [popover])
   return (
-    <Link href={node.url} color={resolveColor(ctx, "$link")} underline={false}>
+    <Link
+      href={node.url}
+      color={resolveColor(ctx, "$link")}
+      underline={false}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {node.text}
     </Link>
   )
@@ -244,9 +281,24 @@ export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
 export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
+  const popover = usePopover()
+  const onMouseEnter = useCallback(
+    (e: SilveryMouseEvent) => {
+      const title = resolved ?? node.target
+      popover?.show(internalLinkPopoverContent(title), { x: e.clientX, y: e.clientY })
+    },
+    [popover, resolved, node.target],
+  )
+  const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
     return (
-      <Link href={`km://wiki/${encodeURIComponent(node.target)}`} color={resolveColor(ctx, "$link")} underline={false}>
+      <Link
+        href={`km://wiki/${encodeURIComponent(node.target)}`}
+        color={resolveColor(ctx, "$link")}
+        underline={false}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
         {resolved}
       </Link>
     )
@@ -315,8 +367,41 @@ export function InlineField({ node }: { node: InlineFieldNode }): React.ReactEle
 export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const display = prettifyUrl(node.url)
+  const popover = usePopover()
+  const hoveredRef = useRef(false)
+  const onMouseEnter = useCallback(
+    (e: SilveryMouseEvent) => {
+      hoveredRef.current = true
+      const anchor = { x: e.clientX, y: e.clientY }
+      const cached = getCachedMetadata(node.url)
+      if (cached) {
+        popover?.show(richUrlPopoverContent(node.url, cached), anchor)
+      } else {
+        popover?.show(urlPopoverContent(node.url, { loading: true }), anchor)
+        fetchUrlMetadata(node.url).then((meta) => {
+          if (!hoveredRef.current) return
+          if (meta) {
+            popover?.update(richUrlPopoverContent(node.url, meta))
+          } else {
+            popover?.update(urlPopoverContent(node.url))
+          }
+        })
+      }
+    },
+    [popover, node.url],
+  )
+  const onMouseLeave = useCallback(() => {
+    hoveredRef.current = false
+    popover?.hide()
+  }, [popover])
   return (
-    <Link href={node.url} color={resolveColor(ctx, "$link")} underline={false}>
+    <Link
+      href={node.url}
+      color={resolveColor(ctx, "$link")}
+      underline={false}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
       {display}
     </Link>
   )
@@ -325,9 +410,24 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
 export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
   const resolved = ctx.resolveBlockRef?.(node.id)
+  const popover = usePopover()
+  const onMouseEnter = useCallback(
+    (e: SilveryMouseEvent) => {
+      const title = resolved ?? node.id
+      popover?.show(internalLinkPopoverContent(title), { x: e.clientX, y: e.clientY })
+    },
+    [popover, resolved, node.id],
+  )
+  const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
     return (
-      <Link href={`km://block/${encodeURIComponent(node.id)}`} color={resolveColor(ctx, "$link")} underline={false}>
+      <Link
+        href={`km://block/${encodeURIComponent(node.id)}`}
+        color={resolveColor(ctx, "$link")}
+        underline={false}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
         {resolved}
       </Link>
     )

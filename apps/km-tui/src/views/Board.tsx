@@ -59,6 +59,7 @@ import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
+import { PopoverProvider } from "./Popover.tsx"
 import { useLinkOpen } from "../hooks/use-link-open.ts"
 import { PaneBar } from "./PaneBar.tsx"
 import {
@@ -1066,27 +1067,31 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   // Single pane (common case) — render Board directly, no wrapper overhead
   if (workspace.panes.size <= 1) {
     return (
-      <Box flexDirection="column" height={storeDimensions.rows}>
-        {renderPane("main")}
-        {bottomBar}
-        {chrome}
-      </Box>
+      <PopoverProvider>
+        <Box flexDirection="column" height={storeDimensions.rows}>
+          {renderPane("main")}
+          {bottomBar}
+          {chrome}
+        </Box>
+      </PopoverProvider>
     )
   }
 
   // Multiple panes — use WorkspaceView for split layout
   return (
-    <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
-      <WorkspaceView
-        layout={workspace.layout}
-        panes={workspace.panes}
-        focusedPaneId={workspace.focusedPaneId}
-        renderPane={renderPane}
-        onPaneClick={focusPaneById}
-      />
-      {bottomBar}
-      {chrome}
-    </Box>
+    <PopoverProvider>
+      <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
+        <WorkspaceView
+          layout={workspace.layout}
+          panes={workspace.panes}
+          focusedPaneId={workspace.focusedPaneId}
+          renderPane={renderPane}
+          onPaneClick={focusPaneById}
+        />
+        {bottomBar}
+        {chrome}
+      </Box>
+    </PopoverProvider>
   )
 }
 
