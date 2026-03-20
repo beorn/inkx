@@ -795,4 +795,72 @@ describe("preloadSubtree cache", () => {
     // Root should have all 3 children, not just [eo]
     expect(repo.getChildren("root").map((c) => c.id)).toEqual(["eo", "beowa", "family"])
   })
+
+  test("validateCache passes after correct preload", () => {
+    using repo = createTestRepo()
+
+    repo.data.addNode(null, { id: "root", type: "h", item: true })
+    repo.data.addNode("root", { id: "A", type: "h", item: true })
+    repo.data.addNode("root", { id: "B", type: "h", item: true })
+    repo.data.addNode("A", { id: "A1", type: "p", item: true })
+
+    repo.preloadSubtree("A", 3)
+    repo.preloadSubtree("root", 3)
+
+    // All cached entries should match DB
+    expect(() => repo.validateCache()).not.toThrow()
+  })
+
+  test("mutation after preload busts cache correctly", () => {
+    using repo = createTestRepo()
+
+    repo.data.addNode(null, { id: "root", type: "h", item: true })
+    repo.data.addNode("root", { id: "A", type: "h", item: true })
+    repo.data.addNode("root", { id: "B", type: "h", item: true })
+
+    // Warm cache
+    repo.preloadSubtree("root", 3)
+    expect(repo.getChildren("root")).toHaveLength(2)
+
+    // Mutate via repo API (which busts cache)
+    repo.addNode("root", { type: "h", item: true, content: "C" })
+
+    // Cache should be busted — new child visible
+    expect(repo.getChildren("root")).toHaveLength(3)
+  })
+
+  test("second preloadSubtree is no-op when cache is warm", () => {
+    using repo = createTestRepo()
+
+    repo.data.addNode(null, { id: "root", type: "h", item: true })
+    repo.data.addNode("root", { id: "A", type: "h", item: true })
+    repo.data.addNode("root", { id: "B", type: "h", item: true })
+
+    repo.preloadSubtree("root", 3)
+    const first = repo.getChildren("root")
+
+    // Second preload should be idempotent
+    repo.preloadSubtree("root", 3)
+    const second = repo.getChildren("root")
+
+    expect(second).toBe(first) // Same reference — cache hit
+  })
+
+  test("deep subtree preload does not warm external parents", () => {
+    // Tree: top > [mid, sib] > [deep > [leaf]]
+    using repo = createTestRepo()
+
+    repo.data.addNode(null, { id: "top", type: "h", item: true })
+    repo.data.addNode("top", { id: "mid", type: "h", item: true })
+    repo.data.addNode("top", { id: "sib", type: "h", item: true })
+    repo.data.addNode("mid", { id: "deep", type: "h", item: true })
+    repo.data.addNode("deep", { id: "leaf", type: "p", item: true })
+
+    // Preload mid (depth 2) — should warm mid and deep, NOT top
+    repo.preloadSubtree("mid", 2)
+
+    // top's children should still come from DB (not partial cache)
+    expect(repo.getChildren("top").map((c) => c.id)).toEqual(["mid", "sib"])
+    expect(() => repo.validateCache()).not.toThrow()
+  })
 })

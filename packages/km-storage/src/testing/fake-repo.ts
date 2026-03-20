@@ -210,6 +210,9 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     preloadSubtree(_rootId: string | null, _maxDepth: number) {
       // No-op for fake repo — children are already in memory
     },
+    validateCache() {
+      // No-op for fake repo — no caching layer
+    },
 
     getSubtree(nodeId) {
       ensureNotClosed()

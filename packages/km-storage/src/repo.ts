@@ -86,30 +86,70 @@ interface ChildrenCache {
   has(parentId: string | null): boolean
   /** Set cache entry only if not already present (for batch preloading) */
   warmIfMissing(parentId: string | null, children: KNode[]): void
+  /** Validate all cached entries against the DB. Throws on mismatch. */
+  validate(): void
 }
+
+const cacheLog = createLogger("km:storage:cache")
+const strictCache = process.env.KM_STRICT_CACHE === "1"
 
 function createChildrenCache(dataStore: DataStore): ChildrenCache {
   const cache = new Map<string | null, KNode[]>()
   return {
     get(parentId) {
       const cached = cache.get(parentId)
-      if (cached) return cached
+      if (cached) {
+        cacheLog.debug?.(`hit parent=${parentId ?? "null"} n=${cached.length}`)
+        return cached
+      }
       const result = dataStore.getChildren(parentId)
       cache.set(parentId, result)
+      cacheLog.debug?.(`miss parent=${parentId ?? "null"} n=${result.length}`)
       return result
     },
     bust(parentId) {
       cache.delete(parentId)
+      cacheLog.debug?.(`bust parent=${parentId ?? "null"}`)
     },
     clear() {
       cache.clear()
+      cacheLog.debug?.("clear")
     },
     has(parentId) {
       return cache.has(parentId)
     },
     warmIfMissing(parentId, children) {
       if (!cache.has(parentId)) {
+        if (strictCache) {
+          // Validate against DB — detect partial cache entries
+          const actual = dataStore.getChildren(parentId)
+          if (children.length !== actual.length) {
+            const actualIds = new Set(actual.map((n) => n.id))
+            const missing = [...actualIds].filter((id) => !children.some((c) => c.id === id))
+            throw new Error(
+              `Children cache poisoning detected: warmIfMissing(${parentId ?? "null"}) ` +
+                `has ${children.length} children but DB has ${actual.length}. ` +
+                `Missing: [${missing.join(", ")}]`,
+            )
+          }
+        }
         cache.set(parentId, children)
+        cacheLog.debug?.(`warm parent=${parentId ?? "null"} n=${children.length}`)
+      }
+    },
+    validate() {
+      for (const [parentId, cached] of cache) {
+        const actual = dataStore.getChildren(parentId)
+        if (cached.length !== actual.length) {
+          const actualIds = new Set(actual.map((n) => n.id))
+          const cachedIds = new Set(cached.map((n) => n.id))
+          const missing = [...actualIds].filter((id) => !cachedIds.has(id))
+          throw new Error(
+            `Cache validation failed for parent=${parentId ?? "null"}: ` +
+              `cached ${cached.length} but DB has ${actual.length}. ` +
+              `Missing: [${missing.join(", ")}]`,
+          )
+        }
       }
     },
   }
@@ -170,6 +210,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
         if (rootParentId !== undefined && pid === rootParentId) continue
         childrenCache.warmIfMissing(pid, children)
       }
+    },
+    validateCache() {
+      childrenCache.validate()
     },
     getAncestors(nodeId: string) {
       return dbGetAncestors(db, nodeId)
@@ -746,6 +789,9 @@ export interface Repo extends Disposable {
    * @param maxDepth - Maximum depth to preload (0 = root only, 4 = root + 4 levels)
    */
   preloadSubtree(rootId: string | null, maxDepth: number): void
+
+  /** Validate children cache against DB. Throws on mismatch. For testing. */
+  validateCache(): void
 
   /** Get ancestors of a node (from root to parent) */
   getAncestors(nodeId: string): KNode[]
