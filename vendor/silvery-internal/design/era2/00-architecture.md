@@ -41,7 +41,7 @@ A silvery app is composed of five interconnected structures:
 | Graph                   | What it is                                                          | Shape | API                                          |
 | ----------------------- | ------------------------------------------------------------------- | ----- | -------------------------------------------- |
 | **Reactive data graph** | Signals connected by computeds. How data flows.                     | DAG   | `signal()`, `computed()`, `createModel()`    |
-| **Async scope tree**    | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | `createScope()`, `scope.child()`, `op.scope` |
+| **Async scope tree** (structured concurrency)    | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | `createScope()`, `scope.child()`, `op.scope` |
 | **Ag node tree**        | Abstract UI structure. Adapter writes, renderer reads.              | Tree  | `createRootNode()`, `withAg()`               |
 | **Command tree**        | Action namespace. Discoverable, projectable to CLI/MCP/palette.     | Tree  | `app.commands.todo.add`                      |
 | **Plugin chain**        | dispatch/apply/run wrapping layers.                                 | Stack | `create()`, `pipe()`, `with*()`              |

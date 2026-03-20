@@ -282,7 +282,7 @@ For some apps, `op()` may be required for all state mutations (e.g., rich text e
 
 ---
 
-## Async Scope Tree
+## Async Scope Tree (Structured Concurrency)
 
 A **tree of scopes where ownership, lifecycle, and communication follow the tree edges.** Parent owns children. Cancellation flows down. Errors and results flow up. Nothing outlives its parent.
 
