@@ -18,13 +18,13 @@ Three wrappable methods, zero state. Everything else -- models, commands, keymap
 
 The progression:
 
-| Level | What you add | What you get |
-|---|---|---|
-| **Foundation** | `create()` | `{ dispatch, apply, run }` -- zero state |
-| **+ Scope** | `withScope()` | `app.scope`, `op.scope` (lazy), `app.quit()` |
-| **+ App** | `withApp()` | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
-| **+ Domains** | `withTodo()`, `withEditor()`, ... | Populated models, commands, keybindings |
-| **+ Rendering** | `withAg()`, `withTerm()`, `withReact()` | Node tree, terminal I/O, React reconciler |
+| Level           | What you add                            | What you get                                                  |
+| --------------- | --------------------------------------- | ------------------------------------------------------------- |
+| **Foundation**  | `create()`                              | `{ dispatch, apply, run }` -- zero state                      |
+| **+ Scope**     | `withScope()`                           | `app.scope`, `op.scope` (lazy), `app.quit()`                  |
+| **+ App**       | `withApp()`                             | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
+| **+ Domains**   | `withTodo()`, `withEditor()`, ...       | Populated models, commands, keybindings                       |
+| **+ Rendering** | `withAg()`, `withTerm()`, `withReact()` | Node tree, terminal I/O, React reconciler                     |
 
 Each layer only calls down. The app layer doesn't know about rendering. Domains don't know about each other (unless explicitly ordered). The kernel doesn't know about anything.
 
@@ -50,13 +50,13 @@ Without `withApp()`, `create()` apps can still use `dispatch()` and `apply()` di
 
 Plugins compose on `create()` via `pipe()`. Each plugin wraps one or more of the three methods (`dispatch`, `apply`, `run`) to add behavior. There are no special categories -- a plugin does whatever it needs. Common patterns:
 
-| Pattern | What it does | Examples |
-|---|---|---|
-| **Domain** | Adds model + commands + keybindings | `withTodo()`, `withEditor()`, `withChat()` |
-| **Infrastructure** | Wraps `dispatch` or `apply` | `withScope()`, `withLogging()`, `withHistory()` |
-| **Renderer** | Provides `run()` | `withTerm()` |
-| **Adapter** | Bridges framework to ag tree | `withReact()`, `withSvelte()` (future) |
-| **Cross-cutting** | Wraps `apply()` for observation | `withTracing()`, `withRecording()` |
+| Pattern            | What it does                        | Examples                                        |
+| ------------------ | ----------------------------------- | ----------------------------------------------- |
+| **Domain**         | Adds model + commands + keybindings | `withTodo()`, `withEditor()`, `withChat()`      |
+| **Infrastructure** | Wraps `dispatch` or `apply`         | `withScope()`, `withLogging()`, `withHistory()` |
+| **Renderer**       | Provides `run()`                    | `withTerm()`                                    |
+| **Adapter**        | Bridges framework to ag tree        | `withReact()`, `withSvelte()` (future)          |
+| **Cross-cutting**  | Wraps `apply()` for observation     | `withTracing()`, `withRecording()`              |
 
 Last plugin in `pipe` wraps `apply()` outermost -- it intercepts first.
 
@@ -288,14 +288,14 @@ A **tree of scopes where ownership, lifecycle, and communication follow the tree
 
 This pattern appears in every major system -- but each implements it for only one concern:
 
-| System | Name | Scope = | Down = | Up = |
-|---|---|---|---|---|
-| **Kotlin** | CoroutineScope | Coroutine scope | Cancellation | Exception |
-| **Swift** | Structured concurrency | TaskGroup | Cancellation | Thrown error |
-| **Trio (Python)** | Nursery | Nursery block | Cancellation | Exception |
-| **React** | Component tree | Component | Unmount | Error boundary |
-| **C# / TS** | `using` / Disposable | Block scope | `Dispose()` | -- |
-| **Silvery** | Scope tree | Scope | Cancellation + cleanup | Error + spans |
+| System            | Name                   | Scope =         | Down =                 | Up =           |
+| ----------------- | ---------------------- | --------------- | ---------------------- | -------------- |
+| **Kotlin**        | CoroutineScope         | Coroutine scope | Cancellation           | Exception      |
+| **Swift**         | Structured concurrency | TaskGroup       | Cancellation           | Thrown error   |
+| **Trio (Python)** | Nursery                | Nursery block   | Cancellation           | Exception      |
+| **React**         | Component tree         | Component       | Unmount                | Error boundary |
+| **C# / TS**       | `using` / Disposable   | Block scope     | `Dispose()`            | --             |
+| **Silvery**       | Scope tree             | Scope           | Cancellation + cleanup | Error + spans  |
 
 The insight: effects, concurrency, observability, and lifecycle aren't separate trees. They're projections of the same tree.
 
@@ -488,7 +488,7 @@ function startAutoSave(scope: Scope) {
   const tick = () => {
     if (scope.cancelled) return
     db.save(items())
-    scope.timeout(30_000, tick)  // schedule next tick
+    scope.timeout(30_000, tick) // schedule next tick
   }
   scope.timeout(30_000, tick)
   // Model unmount disposes the scope -> pending timeout cleaned up automatically
@@ -636,9 +636,49 @@ const scope = pipe(
 
 ---
 
+## Providers
+
+Providers are typed I/O capabilities — the bridge between pure domain logic and impure side effects (persistence, AI, network). They are passed to `withApp({ providers })` and flow into models via dependency injection.
+
+Models declare their provider dependencies via `Pick<typeof providers, "persist" | "ai">`, keeping the dependency surface explicit and testable. See [02-signals.md](./02-signals.md) § Model (via `createModel`) for how model factories receive providers.
+
+### Provider creation and wiring
+
+```typescript
+const providers = {
+  persist: createPersistProvider(dbPath),
+  ai: createAIProvider({ model: "claude-sonnet-4-6" }),
+  api: createAPIProvider({ baseUrl }),
+}
+
+const app = pipe(
+  create(), withScope(), withAg(),
+  withApp({ providers }),
+  withTodo(), withEditor(),
+  withTerm(), withReact({ view: <App /> }),
+)
+```
+
+Domain plugins access providers through the models they create — each model factory receives only the providers it declared via `Pick`. This means a model that needs `persist` and `ai` never sees `api`, and a model with no provider dependencies receives nothing.
+
+### Testing
+
+Providers are replaced with mocks at the model level — no framework wiring needed:
+
+```typescript
+const chat = useChat.create({ persist: mockPersist, ai: mockAI })
+chat.submit({ text: "hello" })
+await chat.save()
+expect(mockPersist.written).toContain("chat.json")
+```
+
+This is the same `.create(mockDeps)` pattern described in [02-signals.md](./02-signals.md) § Testing. Each test gets isolated state and isolated I/O.
+
+---
+
 ## Future: Effects System
 
-> **Everything in this section is post-v1.** v1 uses `scope.sleep()`, `scope.timeout()`, and direct async calls within a scope's lifetime. The effect descriptor system below is the planned extension for tracked, serializable, provider-backed effects.
+> The effect descriptor system extends providers with trackable, serializable async operations. v1 uses providers directly via `scope.sleep()`, `scope.timeout()`, and scoped async calls. The effect system below is the planned extension for when operations need to be inspected, replayed, or composed as data.
 
 ### `AsyncEffect` -- Effect Descriptors
 
@@ -696,23 +736,26 @@ Each `with*` wraps the scope's methods to add behavior:
 
 ```typescript
 // withRetry -- wraps timeout to retry on failure
-const withRetry = ({ attempts, backoff }) => (scope: Scope): Scope => {
-  const { timeout } = scope
-  scope.timeout = (ms, fn) => {
-    let attempt = 0
-    const tryFn = () => {
-      try { fn() }
-      catch (e) {
-        if (++attempt < attempts) {
-          const delay = backoff === "exponential" ? 2 ** attempt * 100 : ms
-          timeout(delay, tryFn)
-        } else throw e
+const withRetry =
+  ({ attempts, backoff }) =>
+  (scope: Scope): Scope => {
+    const { timeout } = scope
+    scope.timeout = (ms, fn) => {
+      let attempt = 0
+      const tryFn = () => {
+        try {
+          fn()
+        } catch (e) {
+          if (++attempt < attempts) {
+            const delay = backoff === "exponential" ? 2 ** attempt * 100 : ms
+            timeout(delay, tryFn)
+          } else throw e
+        }
       }
+      return timeout(ms, tryFn)
     }
-    return timeout(ms, tryFn)
+    return scope
   }
-  return scope
-}
 ```
 
 Additional ideas: `withRateLimit({ max, per })`, `withPriority(level)`, `withSupervision(strategy)`, `withConcurrencyLimit(n)`, `withTimeout(ms)`, `withDevtools()`.
@@ -804,4 +847,4 @@ await app.run()
 
 ---
 
-_See also: [00-architecture.md](./00-architecture.md) (canonical reference), [02-signals.md](./02-signals.md) (signals, models), [03-commands.md](./03-commands.md) (command shapes), [04-input.md](./04-input.md) (keymaps, dispatch), [05-app.md](./05-app.md) (original app composition detail), [06-scopes.md](./06-scopes.md) (original scope tree detail)._
+_See also: [00-architecture.md](./00-architecture.md) (canonical reference), [01-rendering-input.md](./01-rendering-input.md) (rendering, input pipeline), [02-signals.md](./02-signals.md) (signals, models), [03-commands.md](./03-commands.md) (command tree, availability)._

@@ -155,7 +155,9 @@ function withReact({ view }: { view: ReactElement }) {
     // useInput hook registers here -- exposed to React components via context
     app.onInput = (handler: (op: Op) => boolean) => {
       inputHandlers.add(handler)
-      return () => { inputHandlers.delete(handler) }  // returns unsubscribe
+      return () => {
+        inputHandlers.delete(handler)
+      } // returns unsubscribe
     }
 
     const prevApply = app.apply
@@ -169,7 +171,7 @@ function withReact({ view }: { view: ReactElement }) {
     const prevRun = app.run
     app.run = async () => {
       await using reconciler = createReconciler(app.root, () => app.flush?.())
-      reconciler.render(view)  // injects app into React context
+      reconciler.render(view) // injects app into React context
       await prevRun?.()
     }
     return app
@@ -301,16 +303,16 @@ Count and chord compose: `3dd` = delete 3 lines. The count is consumed when the 
 
 Key strings in `input:key` ops carry the raw terminal event. The keymap's `matches()` function normalizes for comparison with binding patterns:
 
-| Raw event     | Binding pattern | Notes                                 |
-| ------------- | --------------- | ------------------------------------- |
-| `"a"`         | `a`             | Lowercase letter                      |
-| `"A"`         | `A`             | Uppercase (Shift implied)             |
-| `"Enter"`     | `Enter`         | Special keys capitalized              |
-| `"Escape"`    | `Escape`        | Special keys capitalized              |
-| `"ArrowDown"` | `ArrowDown`     | Arrow keys                            |
-| ctrl+c        | `ctrl+c`        | Modifier prefix, `+` separator        |
-| ctrl+shift+k  | `ctrl+shift+k`  | Multiple modifiers, canonical order   |
-| ctrl+w then v | `ctrl+w v`      | Chord: space-separated key sequence   |
+| Raw event     | Binding pattern | Notes                               |
+| ------------- | --------------- | ----------------------------------- |
+| `"a"`         | `a`             | Lowercase letter                    |
+| `"A"`         | `A`             | Uppercase (Shift implied)           |
+| `"Enter"`     | `Enter`         | Special keys capitalized            |
+| `"Escape"`    | `Escape`        | Special keys capitalized            |
+| `"ArrowDown"` | `ArrowDown`     | Arrow keys                          |
+| ctrl+c        | `ctrl+c`        | Modifier prefix, `+` separator      |
+| ctrl+shift+k  | `ctrl+shift+k`  | Multiple modifiers, canonical order |
+| ctrl+w then v | `ctrl+w v`      | Chord: space-separated key sequence |
 
 Modifier flags (`shift`, `ctrl`, `meta`, `alt`) are booleans on the op. The binding pattern encodes them as prefixes. The keymap normalizes both sides for comparison.
 

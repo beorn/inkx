@@ -4,66 +4,14 @@ _Status: draft (2026-03-19). The central reference for Silvery Era 2. Deep-dives
 
 Everything is a plugin — capabilities are opt-in.
 
-## Principles
-
-1. **Composability** — pipe + plugins. Infrastructure, domains, and rendering compose freely.
-2. **Type inference** — infer from factories and schemas. Minimize explicit annotations.
-3. **Objects over strings** — TypeScript references primary. Strings only for serialization.
-4. **Ergonomics** — obvious APIs. One way to do things.
-5. **No `this`** — closure access and parameters only.
-
-## How It Works
-
-```
-  dispatch(op) ──────────────────────────────────────────────────────┐
-                                                                     │
-  ┌── dispatch chain (infrastructure) ─────────────────────────────┐ │
-  │  withScope: installs lazy op.scope getter                      │◄┘
-  │    → create: reentry guard                                     │
-  │      → calls apply(op) ───────────────────────────────────┐    │
-  │                                                            │    │
-  │  ┌── apply chain (app + rendering plugins) ──────────────┐ │    │
-  │  │  withReact: calls inner, fans out unhandled to useInput│◄┘    │
-  │  │  withApp/keymap: input:key → resolves binding → cmd op  │      │
-  │  │  withApp/commands: command → resolves from tree → fn() │      │
-  │  └────────────────────────────────────────────────────────┘      │
-  └──────────────────────────────────────────────────────────────────┘
-                                  │
-                        signal mutation → React re-render → flush → stdout
-```
-
-Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (lifecycle).
-
-## Graphs
-
-A silvery app is composed of five interconnected structures:
-
-| Graph                   | What it is                                                          | Shape | API                                          |
-| ----------------------- | ------------------------------------------------------------------- | ----- | -------------------------------------------- |
-| **Reactive data graph** | Signals connected by computeds. How data flows.                     | DAG   | `signal()`, `computed()`, `createModel()`    |
-| **Async scope tree** (structured concurrency)    | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | `createScope()`, `scope.child()`, `op.scope` |
-| **Ag node tree**        | Abstract UI structure. Adapter writes, renderer reads.              | Tree  | `createRootNode()`, `withAg()`               |
-| **Command tree**        | Action namespace. Discoverable, projectable to CLI/MCP/palette.     | Tree  | `app.commands.todo.add`                      |
-| **Plugin chain**        | dispatch/apply/run wrapping layers.                                 | Stack | `create()`, `pipe()`, `with*()`              |
-
-These are views of one runtime. A keypress traverses the plugin chain, resolves a command (command tree), executes it in a scope (async scope tree), mutates signals (reactive data graph), which triggers a re-render of the UI (ag node tree).
-
-## Terminology
-
-- **Ag**: rendering (Ag = silver). Node tree, adapters, renderers, 30+ components.
-- **App level**: app architecture. Models, commands, keymaps, providers.
-- **Impure**: native framework bridges — app level without ag rendering.
-- **Operation** (op): anything dispatched. Serializable payload.
-- **Plugin**: `(app) => app`. Wraps methods or adds capabilities.
-
 ## Three Levels
 
-| Level              | What you add                            | State            | Input handling                 |
-| ------------------ | --------------------------------------- | ---------------- | ------------------------------ |
-| **Foundation**     | `create()`                              | none             | ops pass through               |
-| **+ Ag**           | `withAg()`, `withTerm()`, `withReact()` | React useState   | `useInput()` in components     |
-| **+ App**          | `withApp()`, domain plugins             | Signals/models   | Keymap → commands → signals    |
-| **+ Ops as data**  | `commandProxy()`, `withLogging()`       | Same, observable | All mutations serializable     |
+| Level             | What you add                            | State            | Input handling              |
+| ----------------- | --------------------------------------- | ---------------- | --------------------------- |
+| **Foundation**    | `create()`                              | none             | ops pass through            |
+| **+ Ag**          | `withAg()`, `withTerm()`, `withReact()` | React useState   | `useInput()` in components  |
+| **+ App**         | `withApp()`, domain plugins             | Signals/models   | Keymap → commands → signals |
+| **+ Ops as data** | `commandProxy()`, `withLogging()`       | Same, observable | All mutations serializable  |
 
 ---
 
@@ -253,7 +201,7 @@ function withApp(options?: { providers?: Record<string, any> }) {
 
     app.models = {}
     app.commands = {}
-    app.providers = options?.providers ?? {}  // typed I/O capabilities (api, storage, ai)
+    app.providers = options?.providers ?? {} // typed I/O capabilities (api, storage, ai)
 
     // Per-app command ref → path mapping (not module-global)
     const commandMeta = new WeakMap<object, { path: string[] }>()
@@ -812,7 +760,63 @@ function withLogging() {
 }
 ```
 
-**Replay/undo**: command invocations (path + args) form a serializable log. For undo, lower-level operation log (model patches) may be needed — see era2/05-app.
+**Replay/undo**: command invocations (path + args) form a serializable log. For undo, lower-level operation log (model patches) may be needed — see era2/04-app.
+
+---
+
+## Concepts
+
+### Principles
+
+1. **Composability** — pipe + plugins. Infrastructure, domains, and rendering compose freely.
+2. **Type inference** — infer from factories and schemas. Minimize explicit annotations.
+3. **Objects over strings** — TypeScript references primary. Strings only for serialization.
+4. **Ergonomics** — obvious APIs. One way to do things.
+5. **No `this`** — closure access and parameters only.
+
+### Graphs
+
+A silvery app is composed of five interconnected structures:
+
+| Graph                                         | What it is                                                          | Shape | API                                          |
+| --------------------------------------------- | ------------------------------------------------------------------- | ----- | -------------------------------------------- |
+| **Reactive data graph**                       | Signals connected by computeds. How data flows.                     | DAG   | `signal()`, `computed()`, `createModel()`    |
+| **Async scope tree** (structured concurrency) | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | `createScope()`, `scope.child()`, `op.scope` |
+| **Ag node tree**                              | Abstract UI structure. Adapter writes, renderer reads.              | Tree  | `createRootNode()`, `withAg()`               |
+| **Command tree**                              | Action namespace. Discoverable, projectable to CLI/MCP/palette.     | Tree  | `app.commands.todo.add`                      |
+| **Plugin chain**                              | dispatch/apply/run wrapping layers.                                 | Stack | `create()`, `pipe()`, `with*()`              |
+
+These are views of one runtime. A keypress traverses the plugin chain, resolves a command (command tree), executes it in a scope (async scope tree), mutates signals (reactive data graph), which triggers a re-render of the UI (ag node tree).
+
+### Terminology
+
+- **Ag**: rendering (Ag = silver). Node tree, adapters, renderers, 30+ components.
+- **App level**: app architecture. Models, commands, keymaps, providers.
+- **Impure**: native framework bridges — app level without ag rendering.
+- **Operation** (op): anything dispatched. Serializable payload.
+- **Plugin**: `(app) => app`. Wraps methods or adds capabilities.
+
+### Architecture Overview
+
+```
+  dispatch(op) ──────────────────────────────────────────────────────┐
+                                                                     │
+  ┌── dispatch chain (infrastructure) ─────────────────────────────┐ │
+  │  withScope: installs lazy op.scope getter                      │◄┘
+  │    → create: reentry guard                                     │
+  │      → calls apply(op) ───────────────────────────────────┐    │
+  │                                                            │    │
+  │  ┌── apply chain (app + rendering plugins) ──────────────┐ │    │
+  │  │  withReact: calls inner, fans out unhandled to useInput│◄┘    │
+  │  │  withApp/keymap: input:key → resolves binding → cmd op  │      │
+  │  │  withApp/commands: command → resolves from tree → fn() │      │
+  │  └────────────────────────────────────────────────────────┘      │
+  └──────────────────────────────────────────────────────────────────┘
+                                  │
+                        signal mutation → React re-render → flush → stdout
+```
+
+Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (lifecycle).
 
 ---
 
@@ -894,9 +898,9 @@ Bundles:
 | ------------- | ---------------------------------------------------- | ---------------------------------------------- |
 | 02-signals    | `signal()`, `createModel()`                          | 8-sip API, framework bindings, provider DI     |
 | 03-commands   | Command tree, args, availability, surfaces           | Surface projection, domain objects, CLI rules  |
-| 04-input      | `keymap()`, `when()`, precedence                     | Mapping type, invoke(), chord/count state      |
-| 05-app        | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
-| 06-scopes     | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
+| 01-rendering-input | `keymap()`, `when()`, precedence                | Mapping type, invoke(), chord/count state      |
+| 04-app        | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
+| 04-app        | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
 | composability | Adapter/renderer roles                               | Framework×platform matrix, gap analysis        |
 | packaging     | `create` + `ag-*` + app split + `impure`             | Migration paths, bundle strategies             |
 | decisions     | Referenced where relevant                            | Full decision log (25 decisions)               |

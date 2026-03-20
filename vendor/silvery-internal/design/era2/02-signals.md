@@ -2,16 +2,16 @@
 
 > **Deep-dive** for [00-architecture.md](./00-architecture.md) § Reactive Data Graph. Progressive signal API, createModel, createStore, createResource. Last synced: 2026-03-19.
 
-_Status: finalized. Extracted from [state-api-redesign.md](../archive/state-api-redesign.md) Sips 1-3._
+_Status: finalized. Extracted from [state-api-redesign.md](../archive/state-api-redesign.md)._
 
-_See also: [05-app.md](./05-app.md) (app composition), [06-scopes.md](./06-scopes.md) (structured concurrency), [01-quick-start.md](./01-quick-start.md) (complete examples)._
+_See also: [04-app.md](./04-app.md) (app composition, structured concurrency), [01-rendering-input.md](./01-rendering-input.md) (complete examples)._
 
-## The Progressive API (Sips 1-3)
+## The Progressive API
 
-Eight sips from `useState` to full apps. Each step adds one thing. Nothing rewrites. This document covers the first three sips -- the signal and model layer.
+Three steps from `useState` to models. Each step adds one thing. Nothing rewrites.
 
 ```tsx
-// -- Sip 1: Just React -----------------------------------------------
+// -- Step 1: Just React -----------------------------------------------
 import { run } from "silvery"
 
 function Counter() {
@@ -24,7 +24,7 @@ function Counter() {
 
 await run(<Counter />)
 
-// -- Sip 2: Shared state via signals ---------------------------------
+// -- Step 2: Shared state via signals ---------------------------------
 import { run, signal, useSignal } from "silvery"
 
 const count = signal(0)
@@ -39,7 +39,7 @@ function Counter() {
 
 await run(<Counter />)
 
-// -- Sip 3: Models -- createModel wraps factory -> typed hook ---------
+// -- Step 3: Models -- createModel wraps factory -> typed hook ---------
 import { run, signal, createModel } from "silvery"
 
 // createModel: factory function in, typed hook out.
@@ -76,8 +76,8 @@ await run(<ChatView />)
 
 ```
 // -- Product boundary -------------------------------------------------
-// Sips 1-3 use silvery (rendering + signals). Sips 4-8 add silvertea (app framework).
-// You can stop at any sip.
+// Steps 1-3 use silvery (rendering + signals). Further steps add app-level packages (commands, keymaps, scopes).
+// You can stop at any step.
 ```
 
 ## Implementation

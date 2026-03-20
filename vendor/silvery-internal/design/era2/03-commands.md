@@ -113,11 +113,15 @@ function withNavigation() {
     app.commands.navigation = {
       down: {
         title: "Move Down",
-        fn() { nav.moveCursor({ delta: 1 }) },
+        fn() {
+          nav.moveCursor({ delta: 1 })
+        },
       },
       up: {
         title: "Move Up",
-        fn() { nav.moveCursor({ delta: -1 }) },
+        fn() {
+          nav.moveCursor({ delta: -1 })
+        },
       },
     }
 
@@ -211,8 +215,18 @@ function withEditor() {
     app.models.editor = editor
 
     app.commands.editor = {
-      enter_edit: { title: "Edit", fn() { editor.mode("edit") } },
-      exit_edit: { title: "Done", fn() { editor.mode("normal") } },
+      enter_edit: {
+        title: "Edit",
+        fn() {
+          editor.mode("edit")
+        },
+      },
+      exit_edit: {
+        title: "Done",
+        fn() {
+          editor.mode("normal")
+        },
+      },
     }
     for (const [name, cmd] of Object.entries(app.commands.editor)) {
       app.registerCommand?.(["editor", name], cmd)

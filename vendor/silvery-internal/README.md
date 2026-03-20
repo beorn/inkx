@@ -22,18 +22,18 @@ Silvery's public docs live in [`vendor/silvery/docs/`](../silvery/docs/).
 
 **Start here**: [00-architecture.md](design/era2/00-architecture.md) is the central reference. Deep-dives expand on specific topics.
 
-| File | What |
-|---|---|
-| [design/era2/00-architecture.md](design/era2/00-architecture.md) | **THE reference** — full architecture, code, flows, packages |
-| [design/era2/01-rendering-input.md](design/era2/01-rendering-input.md) | Deep-dive: ag rendering, input pipeline, chord engine, examples |
-| [design/era2/02-signals.md](design/era2/02-signals.md) | Deep-dive: reactive data graph, progressive API, alien-signals |
-| [design/era2/03-commands.md](design/era2/03-commands.md) | Deep-dive: command tree, surface projection, availability |
-| [design/era2/04-app.md](design/era2/04-app.md) | Deep-dive: plugin composition, domain plugins, op() proxy, scopes |
-| [design/era2/composability.md](design/era2/composability.md) | Reference: framework×platform matrix |
-| [design/era2/packaging.md](design/era2/packaging.md) | Roadmap: package structure (partially superseded) |
-| [design/era2/playground.md](design/era2/playground.md) | RFC: Live Canvas playground |
-| [design/era2/decisions.md](design/era2/decisions.md) | Log: numbered decisions (append-only) |
-| [design/era2/signals-landscape-2026.md](design/era2/signals-landscape-2026.md) | Research: signals library comparison |
+| File                                                                           | What                                                              |
+| ------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| [design/era2/00-architecture.md](design/era2/00-architecture.md)               | **THE reference** — full architecture, code, flows, packages      |
+| [design/era2/01-rendering-input.md](design/era2/01-rendering-input.md)         | Deep-dive: ag rendering, input pipeline, chord engine, examples   |
+| [design/era2/02-signals.md](design/era2/02-signals.md)                         | Deep-dive: reactive data graph, progressive API, alien-signals    |
+| [design/era2/03-commands.md](design/era2/03-commands.md)                       | Deep-dive: command tree, surface projection, availability         |
+| [design/era2/04-app.md](design/era2/04-app.md)                                 | Deep-dive: plugin composition, domain plugins, op() proxy, scopes |
+| [design/era2/composability.md](design/era2/composability.md)                   | Reference: framework×platform matrix                              |
+| [design/era2/packaging.md](design/era2/packaging.md)                           | Roadmap: package structure (partially superseded)                 |
+| [design/era2/playground.md](design/era2/playground.md)                         | RFC: Live Canvas playground                                       |
+| [design/era2/decisions.md](design/era2/decisions.md)                           | Log: numbered decisions (append-only)                             |
+| [design/era2/signals-landscape-2026.md](design/era2/signals-landscape-2026.md) | Research: signals library comparison                              |
 
 ### Era 3 Design (future)
 
