@@ -22,3 +22,6 @@
 [submodule "vendor/bearlymade"]
 	path = vendor/bearlymade
 	url = git@github.com:beorn/bearlymade.git
+[submodule "vendor/silvery-internal"]
+	path = vendor/silvery-internal
+	url = git@github.com:beorn/silvery-internal.git
