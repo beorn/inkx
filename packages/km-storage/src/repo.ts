@@ -144,6 +144,15 @@ function createQueryMethods(deps: RepoMethodDeps) {
       if (childrenCache.has(rootId)) return
 
       const nodes = dbGetSubtreeShallow(db, rootId, maxDepth)
+
+      // The CTE includes the root node itself (depth 0). Its parent_id points
+      // to the root's PARENT — but we only have ONE of that parent's children,
+      // not all of them. Caching this partial list poisons the parent's cache
+      // entry (e.g., zooming into folder A caches parent's children as [A],
+      // hiding siblings B and C). Find the root's parent_id so we can skip it.
+      const rootNode = rootId ? nodes.find((n) => n.id === rootId) : null
+      const rootParentId = rootNode ? (rootNode.parent_id === "." ? null : rootNode.parent_id) : undefined
+
       // Group by parent_id and warm the children cache
       const byParent = new Map<string | null, KNode[]>()
       for (const node of nodes) {
@@ -155,8 +164,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
         }
         arr.push(node)
       }
-      // Warm the cache — only set if not already cached (avoid overwriting fresher data)
+      // Warm the cache — only set if not already cached (avoid overwriting fresher data).
+      // Skip the root's parent — we only have a partial list of its children.
       for (const [pid, children] of byParent) {
+        if (rootParentId !== undefined && pid === rootParentId) continue
         childrenCache.warmIfMissing(pid, children)
       }
     },

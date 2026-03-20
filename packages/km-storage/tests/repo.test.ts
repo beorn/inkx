@@ -747,3 +747,52 @@ describe("deferred parsing deduplication", () => {
     rmSync(dir, { recursive: true, force: true })
   })
 })
+
+// =============================================================================
+// preloadSubtree cache poisoning
+// =============================================================================
+
+describe("preloadSubtree cache", () => {
+  test("preloading child subtree does not poison parent's children cache", () => {
+    // The CTE in getSubtreeShallow includes the root node itself (depth 0).
+    // Its parent_id points to the root's parent. When grouped by parent_id,
+    // this creates a PARTIAL entry for the parent — only one of N siblings.
+    // warmIfMissing caches this partial list, causing getChildren(parent) to
+    // return only the preloaded child and hide its siblings.
+    using repo = createTestRepo()
+
+    repo.data.addNode(null, { id: "root", type: "h", item: true })
+    repo.data.addNode("root", { id: "A", type: "h", item: true })
+    repo.data.addNode("root", { id: "B", type: "h", item: true })
+    repo.data.addNode("root", { id: "C", type: "h", item: true })
+    repo.data.addNode("A", { id: "A1", type: "p", item: true })
+    repo.data.addNode("A", { id: "A2", type: "p", item: true })
+
+    // Verify: root has 3 children
+    expect(repo.getChildren("root").map((c) => c.id)).toEqual(["A", "B", "C"])
+
+    // Preload A's subtree — includes A itself with parent_id = "root"
+    repo.preloadSubtree("A", 3)
+
+    // Root's children must NOT be poisoned to just [A]
+    expect(repo.getChildren("root").map((c) => c.id)).toEqual(["A", "B", "C"])
+  })
+
+  test("sequential preloads preserve all children", () => {
+    using repo = createTestRepo()
+
+    repo.data.addNode(null, { id: "root", type: "h", item: true })
+    repo.data.addNode("root", { id: "eo", type: "h", item: true })
+    repo.data.addNode("root", { id: "beowa", type: "h", item: true })
+    repo.data.addNode("root", { id: "family", type: "h", item: true })
+    repo.data.addNode("eo", { id: "la", type: "h", item: true })
+
+    // Simulate zoom-in to la, then zoom-out to eo, then zoom-out to root
+    repo.preloadSubtree("la", 3)
+    repo.preloadSubtree("eo", 3)
+    repo.preloadSubtree("root", 3)
+
+    // Root should have all 3 children, not just [eo]
+    expect(repo.getChildren("root").map((c) => c.id)).toEqual(["eo", "beowa", "family"])
+  })
+})
