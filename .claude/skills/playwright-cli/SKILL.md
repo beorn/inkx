@@ -267,6 +267,24 @@ bunx @playwright/cli@latest tracing-stop
 bunx @playwright/cli@latest close
 ```
 
+## Cleanup
+
+playwright-cli leaves artifacts in the working directory after sessions:
+
+- `.playwright-cli/` — logs and page snapshots (YAML)
+- `*.png` — screenshots from `screenshot` command
+- `*.yaml` — snapshots from `snapshot` command
+
+**After finishing a playwright-cli session**, clean up:
+
+```bash
+rm -f *.png *.yaml          # screenshots and snapshots
+find .playwright-cli -type f -delete 2>/dev/null
+find .playwright-cli -type d -empty -delete 2>/dev/null
+```
+
+Most vendor packages already gitignore these patterns, but clean up anyway to avoid disk bloat.
+
 ## Specific tasks
 
 * **Request mocking** [references/request-mocking.md](references/request-mocking.md)
