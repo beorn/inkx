@@ -2,13 +2,25 @@
  * Chat model — pure state + commands + async generators.
  *
  * No timers, no I/O, no view concerns. The model owns:
- * - Signals (reactive state)
- * - Commands ({ fn, args? } — the primary interface)
+ * - Signals (reactive state — optional, from @silvery/signals)
+ * - Commands ({ title, fn, args? } — from @silvery/commands, state-agnostic)
  * - Async generators (streaming)
  *
  * The model receives scope via ModelContext — no ambient lookup,
  * no useScope(), no AsyncLocalStorage. This makes models testable
  * (pass a test scope) and composable (share an app scope).
+ *
+ * In production, imports would come from:
+ * - signal()       → `@silvery/signals` (plural, Decision 35; optional, Decision 34)
+ * - createModel()  → `@silvery/model` (optional, Decision 34)
+ * - Commands       → `@silvery/commands` (depends only on @silvery/create)
+ * - tea()          → `@silvery/create` (Decision 31 — tea dissolved into create)
+ *
+ * Key design points:
+ * - Signals use callable accessors: phase() to read, phase("idle") to write (Decision 29)
+ * - Commands are plain objects { title, fn, args? } — closures capture whatever state they use (Decision 30)
+ * - Commands are state-agnostic — @silvery/commands has no signal dependency (Decision 30)
+ * - Signals are optional — commands work without them (Decision 34)
  */
 
 import { z } from "zod"
@@ -28,7 +40,8 @@ export type Phase = "idle" | "thinking" | "streaming" | "tools"
 export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
   const { scope } = ctx
 
-  // ── Signals ────────────────────────────────────────────────
+  // ── Signals (from @silvery/signals — optional) ──────────────
+  // Callable accessor pattern: messages() to read, messages([...]) to write
   const messages = signal<Message[]>([{ id: 0, role: "system", content: INTRO_TEXT }])
   const phase = signal<Phase>("idle")
   const currentContent = signal("")
@@ -41,19 +54,23 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
   let scriptIdx = 0
   let nextId = 1
 
-  // ── Commands ({ fn, args? } — the primary interface) ───────
+  // ── Commands (from @silvery/commands — state-agnostic, depends only on @silvery/create) ──
+  // Commands are plain objects { title, fn, args? } (Decision 4, 30)
+  // Closures capture whatever state they use — no signal dependency in the command system
+  // when() predicates are () => boolean — commands work with any state system or none
 
   const commands = {
     submit: {
+      title: "Submit Message",
       args: z.object({ text: z.string() }),
       fn({ text }: { text: string }) {
-        if (done.value) return
+        if (done()) return
 
         // Fast-forward if still streaming
-        if (phase.value !== "idle") {
-          phase.value = "idle"
-          currentContent.value = ""
-          activeToolIndex.value = -1
+        if (phase() !== "idle") {
+          phase("idle")
+          currentContent("")
+          activeToolIndex(-1)
         }
 
         if (!text.trim()) return
@@ -69,18 +86,20 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
     },
 
     compact: {
+      title: "Compact Context",
       async fn() {
-        if (done.value || compacting.value) return
-        compacting.value = true
-        contextBaseline.value = computeCumulativeTokens(messages.value).currentContext
+        if (done() || compacting()) return
+        compacting(true)
+        contextBaseline(computeCumulativeTokens(messages()).currentContext)
         await scope.sleep(3000)
-        compacting.value = false
+        compacting(false)
       },
     },
 
     exit: {
+      title: "Exit",
       fn() {
-        done.value = true
+        done(true)
       },
     },
   }
@@ -108,7 +127,7 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
 
   function addMessage(entry: Omit<Message, "id">): Message {
     const msg: Message = { ...entry, id: nextId++ }
-    messages.value = [...messages.value, msg]
+    messages([...messages(), msg])
     return msg
   }
 
@@ -117,35 +136,35 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
     const msg = addMessage({ ...entry, content: "" })
 
     if (entry.thinking) {
-      phase.value = "thinking"
+      phase("thinking")
       await scope.sleep(1200)
     }
 
-    phase.value = "streaming"
-    currentContent.value = ""
+    phase("streaming")
+    currentContent("")
     for (const word of entry.content.split(/(\s+)/)) {
-      currentContent.value += word
+      currentContent(currentContent() + word)
       yield
       if (word.trim()) await scope.sleep(50)
     }
-    const msgs = [...messages.value]
+    const msgs = [...messages()]
     const idx = msgs.findIndex((m) => m.id === msg.id)
     if (idx >= 0) msgs[idx] = { ...msgs[idx]!, content: entry.content }
-    messages.value = msgs
-    currentContent.value = ""
+    messages(msgs)
+    currentContent("")
 
     const tools = entry.toolCalls ?? []
     if (tools.length > 0) {
-      phase.value = "tools"
+      phase("tools")
       for (let i = 0; i < tools.length; i++) {
-        activeToolIndex.value = i
+        activeToolIndex(i)
         yield
         await scope.sleep(600)
       }
-      activeToolIndex.value = -1
+      activeToolIndex(-1)
     }
 
-    phase.value = "idle"
+    phase("idle")
   }
 
   function scheduleResponse() {
@@ -157,7 +176,7 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
   }
 
   function advance() {
-    if (done.value || compacting.value || phase.value !== "idle") return
+    if (done() || compacting() || phase() !== "idle") return
     if (scriptIdx >= script.length) return
 
     const entry = script[scriptIdx++]!
@@ -171,7 +190,7 @@ export function createChat(ctx: ModelContext, script: ScriptEntry[]) {
   }
 
   function getNextHint(): string {
-    if (done.value || phase.value !== "idle") return ""
+    if (done() || phase() !== "idle") return ""
     const entry = script[scriptIdx]
     return entry?.role === "user" ? entry.content : ""
   }
@@ -226,11 +245,13 @@ export function computeCumulativeTokens(messages: Message[]): {
 
 const INTRO_TEXT = [
   "AI Chat v2 — Era 2 API prototype:",
-  " \u2022 Signals — fine-grained reactive state",
-  " \u2022 Commands — { fn, args? } as the interface",
-  " \u2022 Keymap — declarative key→command dispatch via invoke()",
-  " \u2022 Async generators — streaming replaces timer-driven reveals",
-  " \u2022 Scope — structured concurrency for timers and lifecycle",
-  " \u2022 Factory functions — models are plain objects",
+  " \u2022 @silvery/signals — callable accessor: count() read, count(5) write (optional)",
+  " \u2022 @silvery/commands — { title, fn, args? } state-agnostic (depends on create only)",
+  " \u2022 @silvery/commands — keymap(), when(() => bool), invoke()",
+  " \u2022 @silvery/create — pipe(), tea() (zero deps)",
+  " \u2022 @silvery/scope — structured concurrency for timers and lifecycle",
+  " \u2022 @silvery/model — factory functions, explicit DI (optional)",
+  " \u2022 @silvery/ag-react — rendering, @silvery/ag-term — terminal surface",
+  " \u2022 Signals optional — commands work without them (Decision 34)",
   " \u2022 Pure tests — model tests need no React rendering",
 ].join("\n")

@@ -1,6 +1,9 @@
 /**
  * Structured concurrency — scoped timers and lifecycle.
  *
+ * Production: `@silvery/scope` (zero dependencies).
+ * Also provides: withScope(), createScope(), currentScope().
+ *
  * A scope owns pending timers. When disposed, all timers cancel
  * and pending sleeps resolve immediately. The `using` keyword
  * ensures cleanup even on early exit.
@@ -10,6 +13,8 @@
  * and composable (multiple models share an app scope).
  *
  * Same pattern at every level: app scope → model scope → keymap-local scope.
+ *
+ * This file inlines what would be @silvery/scope for prototype simplicity.
  */
 
 type Pending = { id: ReturnType<typeof setTimeout>; resolve: () => void }

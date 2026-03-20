@@ -5,6 +5,13 @@
  * via withTerminal()'s term:key handler. The view only reads signals
  * and renders UI.
  *
+ * In production, imports would come from:
+ * - Box, Text, Link, Spinner, ScrollbackList, TextArea → `@silvery/ag-react/ui`
+ * - useTerminalFocused                                  → `@silvery/ag-term`
+ * - signal, useSignal                                   → `@silvery/signals` + `/react`
+ * - useChat, formatTokens, etc.                         → app model (uses @silvery/model)
+ * - invoke                                              → `@silvery/commands`
+ *
  * Era 2 aspirations (marked with "Era 2:" comments below):
  * - Focus, dimensions, elapsed time are all signals from the runtime
  * - Animation/streaming would be a scope-owned effect, not model logic
@@ -64,8 +71,8 @@ export function ChatView({ ctrlDPending }: { ctrlDPending?: Signal<boolean> }): 
 
 export function DemoFooter({ ctrlDPending = NEVER_PENDING }: { ctrlDPending?: Signal<boolean> }): JSX.Element {
   const chat = useChat.get()
-  // Era 2: useSignal(app.focused) — focus is a signal the runtime provides,
-  // not a special hook. Same for dimensions: useSignal(app.dims).
+  // Era 2: useSignal(app.focused) — focus is a signal from @silvery/ag-term,
+  // not a special hook. Same for dimensions: useSignal(app.dims). (Decision 29: callable accessor)
   const terminalFocused = useTerminalFocused()
   const isDone = useSignal(chat.done)
   const isCompacting = useSignal(chat.compacting)
@@ -135,8 +142,8 @@ export function MessageItem({ message, isLatest }: { message: Message; isLatest:
   const chatPhase = useSignal(chat.phase)
   const streamContent = useSignal(chat.currentContent)
   const toolIdx = useSignal(chat.activeToolIndex)
-  // Era 2: pulse would be a derived signal — derived(() => Math.floor(app.now.value / 400) % 2 === 0)
-  // where app.now is a frame-synced timestamp signal. No setInterval needed.
+  // Era 2: pulse would be a derived signal — computed(() => Math.floor(app.now() / 400) % 2 === 0)
+  // where app.now is a frame-synced timestamp signal. No setInterval needed. (Decision 29: callable accessor)
   const pulseVal = usePulse()
 
   const phase = isLatest ? chatPhase : ("idle" as const)
@@ -382,8 +389,8 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
 
 // ── View-local hooks ─────────────────────────────────────────
 // These are view concerns — not model state.
-// Era 2: these would be replaced by runtime-provided signals
-// (app.focused, scope.interval(), app.now) composed with derived().
+// Era 2: these would be replaced by runtime-provided signals from @silvery/ag-term
+// (app.focused, scope.interval(), app.now) composed with computed() from @silvery/signals.
 
 function usePulse(ms = 400): boolean {
   const [val, setVal] = useState(false)

@@ -7,6 +7,15 @@
  *
  * Tests use instant scopes — all sleeps resolve immediately.
  * Scope is passed via ModelContext — no ambient lookup needed.
+ *
+ * Production packages used here:
+ * - @silvery/model (createModel → useChat.create) — optional (Decision 34)
+ * - @silvery/scope (createInstantScope)
+ * - @silvery/commands (invoke) — state-agnostic, depends only on @silvery/create
+ * - @silvery/signals (signal accessors) — optional (Decision 34), used by this model
+ *
+ * Signal access uses callable accessor pattern (Decision 29):
+ *   chat.messages() to read, chat.done(true) to write.
  */
 
 import { describe, it, expect } from "vitest"
@@ -23,30 +32,30 @@ function createChat(script = SCRIPT) {
 describe("createChat", () => {
   it("creates model with initial system message", () => {
     const chat = createChat()
-    expect(chat.messages.value).toHaveLength(1)
-    expect(chat.messages.value[0]!.role).toBe("system")
-    expect(chat.messages.value[0]!.content).toContain("AI Chat v2")
+    expect(chat.messages()).toHaveLength(1)
+    expect(chat.messages()[0]!.role).toBe("system")
+    expect(chat.messages()[0]!.content).toContain("AI Chat v2")
   })
 
   it("submit via invoke adds user message", () => {
     const chat = createChat()
     invoke({ command: chat.commands.submit, args: { text: "hello" } })
-    expect(chat.messages.value).toHaveLength(2)
-    expect(chat.messages.value[1]!.role).toBe("user")
-    expect(chat.messages.value[1]!.content).toBe("hello")
+    expect(chat.messages()).toHaveLength(2)
+    expect(chat.messages()[1]!.role).toBe("user")
+    expect(chat.messages()[1]!.content).toBe("hello")
   })
 
   it("submit ignores empty text", () => {
     const chat = createChat()
     chat.commands.submit.fn({ text: "   " })
-    expect(chat.messages.value).toHaveLength(1)
+    expect(chat.messages()).toHaveLength(1)
   })
 
   it("submit ignores when done", () => {
     const chat = createChat()
-    chat.done.value = true
+    chat.done(true)
     chat.commands.submit.fn({ text: "hello" })
-    expect(chat.messages.value).toHaveLength(1)
+    expect(chat.messages()).toHaveLength(1)
   })
 
   it("respond streams agent content via async generator", async () => {
@@ -57,10 +66,10 @@ describe("createChat", () => {
       /* drain */
     }
 
-    const last = chat.messages.value.at(-1)!
+    const last = chat.messages().at(-1)!
     expect(last.role).toBe("agent")
     expect(last.content).toBe("Hello world")
-    expect(chat.phase.value).toBe("idle")
+    expect(chat.phase()).toBe("idle")
   })
 
   it("respond handles thinking phase", async () => {
@@ -76,7 +85,7 @@ describe("createChat", () => {
       /* drain */
     }
 
-    const last = chat.messages.value.at(-1)!
+    const last = chat.messages().at(-1)!
     expect(last.thinking).toBe("Let me analyze the code...")
     expect(last.content).toBe("Fixed the bug.")
   })
@@ -94,7 +103,7 @@ describe("createChat", () => {
       /* drain */
     }
 
-    const last = chat.messages.value.at(-1)!
+    const last = chat.messages().at(-1)!
     expect(last.toolCalls).toHaveLength(1)
     expect(last.toolCalls![0]!.tool).toBe("Read")
   })
@@ -102,27 +111,27 @@ describe("createChat", () => {
   it("compact sets contextBaseline and resets", async () => {
     const chat = createChat()
     chat.commands.submit.fn({ text: "hello" })
-    expect(chat.compacting.value).toBe(false)
+    expect(chat.compacting()).toBe(false)
 
     await chat.commands.compact.fn()
 
-    expect(chat.compacting.value).toBe(false)
-    expect(chat.contextBaseline.value).toBeGreaterThanOrEqual(0)
+    expect(chat.compacting()).toBe(false)
+    expect(chat.contextBaseline()).toBeGreaterThanOrEqual(0)
   })
 
   it("compact is no-op when already compacting", async () => {
     const chat = createChat()
-    chat.compacting.value = true
-    const baseline = chat.contextBaseline.value
+    chat.compacting(true)
+    const baseline = chat.contextBaseline()
     await chat.commands.compact.fn()
-    expect(chat.contextBaseline.value).toBe(baseline)
+    expect(chat.contextBaseline()).toBe(baseline)
   })
 
   it("advance progresses through script", () => {
     const chat = createChat()
-    const initialLen = chat.messages.value.length
+    const initialLen = chat.messages().length
     chat.advance()
-    expect(chat.messages.value.length).toBeGreaterThan(initialLen)
+    expect(chat.messages().length).toBeGreaterThan(initialLen)
   })
 
   it("getNextHint returns next scripted user message", () => {
@@ -132,7 +141,7 @@ describe("createChat", () => {
 
   it("getNextHint returns empty when done", () => {
     const chat = createChat()
-    chat.done.value = true
+    chat.done(true)
     expect(chat.getNextHint()).toBe("")
   })
 

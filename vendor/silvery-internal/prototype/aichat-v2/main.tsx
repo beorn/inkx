@@ -7,6 +7,15 @@
  * The root scope owns all timers — `using` ensures cleanup.
  * Scope is passed explicitly via ModelContext — no ambient lookup.
  *
+ * In production, the imports would come from:
+ * - signal()                  → `@silvery/signals` (optional)
+ * - createScope/InstantScope  → `@silvery/scope`
+ * - useChat (createModel)     → `@silvery/model` (optional)
+ * - keymap, when, doublePress → `@silvery/commands`
+ * - withTerminal              → `@silvery/ag-term` (surface adapter)
+ * - autoAdvance, idleAutoSubmit → app-specific plugins (not in a silvery package)
+ * - pipe                      → `@silvery/create`
+ *
  * `--fast` creates an instant scope — all sleeps resolve immediately,
  * so animations run at zero delay. The model doesn't know about fast.
  *
@@ -36,6 +45,8 @@ async function main() {
   const chat = useChat.bind({ scope }, script)
 
   // 2. Keymap — all key dispatch is declarative
+  //    when() takes () => boolean predicates (Decision 30).
+  //    A signal IS () => T (callable accessor), so it satisfies the predicate type naturally.
   const isActive = signal(true)
   const ctrlD = doublePress(scope, "ctrl+d", chat.commands.exit)
   const keys = keymap(
@@ -60,9 +71,9 @@ async function main() {
     idleAutoSubmit(scope, chat)
   }
 
-  // 5. Exit — react to done signal
+  // 5. Exit — react to done signal (callable accessor pattern: chat.done() to read)
   chat.done.subscribe(() => {
-    if (chat.done.value) scope.timeout(auto ? 1000 : 0, () => handle.unmount())
+    if (chat.done()) scope.timeout(auto ? 1000 : 0, () => handle.unmount())
   })
 
   await handle.waitUntilExit()

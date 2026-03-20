@@ -1,26 +1,33 @@
 /**
  * Era 2 input system + composition helpers.
  *
- * Implements the core primitives from @silvery/input:
- * - Command, Invocation, Mapping<E> — the shapes
- * - invoke() — single dispatch point
- * - keymap(), when() — declarative key→command mapping
- * - doublePress() — chord-like stateful binding
- * - withTerminal() — surface that owns input dispatch outside React
- * - autoAdvance(), idleAutoSubmit() — behavioral plugins
+ * In production, these would come from separate packages:
+ * - Command, Invocation, Mapping<E>, invoke(), canInvoke()  → `@silvery/commands`
+ * - keymap(), when()                                         → `@silvery/commands`
+ * - pipe()                                                   → `@silvery/create`
+ * - withTerminal()                                           → `@silvery/ag-term` (surface adapter)
+ *
+ * Key design points:
+ * - Commands are plain objects { title, fn, args? } (Decision 4, 30)
+ * - Commands are state-agnostic — closures capture whatever state they use
+ * - when() takes () => boolean predicates, NOT signal accessors (Decision 30)
+ * - pipe() and tea() live in @silvery/create (Decision 31)
+ * - Signals are optional — commands work without them (Decision 34)
+ *
+ * This file inlines what would be @silvery/commands + @silvery/create + surface adapter
+ * for prototype simplicity.
  *
  * All timers go through an explicitly passed scope — no ambient lookup.
  */
 
 import type { ReactElement } from "react"
 import { createApp, type Key, type AppHandle } from "@silvery/term/runtime"
-import { signal } from "./signal.js"
+import { signal, type WritableSignal } from "./signal.js"
 import type { Scope } from "./scope.js"
 import type { ChatModel } from "./model.js"
 import type { ScriptEntry } from "./types.js"
-import type { Signal } from "./signal.js"
 
-// ── Shapes ───────────────────────────────────────────────────
+// ── Shapes (from @silvery/commands) ──────────────────────────
 
 export interface Command {
   fn: (...args: any[]) => any
@@ -34,7 +41,7 @@ export interface Invocation {
 
 export type Mapping<E> = (event: E) => Invocation | null
 
-// ── Dispatch ─────────────────────────────────────────────────
+// ── Dispatch (from @silvery/commands) ────────────────────────
 
 export function invoke({ command, args }: Invocation): unknown {
   if (command.args) return command.fn(command.args.parse(args ?? {}))
@@ -51,16 +58,25 @@ export function canInvoke(command: Command, args?: Record<string, unknown>): boo
   }
 }
 
-// ── Keymap ───────────────────────────────────────────────────
+// ── Keymap (from @silvery/commands) ──────────────────────────
 
 interface Binding {
   key: string
   command: Command
   args?: Record<string, unknown>
-  when?: Signal<boolean>
+  /** () => boolean predicate — NOT a signal accessor (Decision 30).
+   *  Commands are state-agnostic; when() uses plain functions. */
+  when?: () => boolean
 }
 
-export function when(predicate: Signal<boolean>, bindings: Record<string, Command>): Binding[] {
+/**
+ * when() — conditional bindings with () => boolean predicates.
+ *
+ * Decision 30: when() takes plain () => boolean predicates, NOT signal accessors.
+ * This keeps @silvery/commands free of signal dependencies. For reactive availability
+ * in toolbars/palettes, wrap with computed() from your signal library of choice.
+ */
+export function when(predicate: () => boolean, bindings: Record<string, Command>): Binding[] {
   return Object.entries(bindings).map(([key, command]) => ({ key, command, when: predicate }))
 }
 
@@ -69,30 +85,32 @@ export function when(predicate: Signal<boolean>, bindings: Record<string, Comman
  *
  * State lives in the keymap closure as a signal (same primitive, narrower scope).
  * Timer lifecycle is owned by the passed scope — cancelled on dispose.
+ *
+ * Uses callable accessor pattern: pending() to read, pending(true) to write (Decision 29).
  */
 export function doublePress(
   scope: Scope,
   key: string,
   command: Command,
   opts?: { timeout?: number },
-): { bindings: Binding[]; pending: Signal<boolean> } {
+): { bindings: Binding[]; pending: WritableSignal<boolean> } {
   const timeoutMs = opts?.timeout ?? 2000
   const pending = signal(false)
   let cancelTimer: (() => void) | null = null
 
   const wrapper: Command = {
     fn() {
-      if (pending.value) {
-        pending.value = false
+      if (pending()) {
+        pending(false)
         if (cancelTimer) {
           cancelTimer()
           cancelTimer = null
         }
         command.fn()
       } else {
-        pending.value = true
+        pending(true)
         cancelTimer = scope.timeout(timeoutMs, () => {
-          pending.value = false
+          pending(false)
           cancelTimer = null
         })
       }
@@ -111,7 +129,7 @@ export function keymap(...groups: Array<Binding[] | Record<string, Command>>): M
 
   return (event: string) => {
     for (const b of bindings) {
-      if (b.when && !b.when.value) continue
+      if (b.when && !b.when()) continue  // () => boolean predicate (Decision 30)
       if (b.key === event) return { command: b.command, args: b.args }
     }
     return null
@@ -127,13 +145,17 @@ function normalizeKey(input: string, key: Key): string {
   return input
 }
 
-// ── Surface ─────────────────────────────────────────────────
+// ── Surface (from @silvery/ag-term) ─────────────────────────
 
 /**
  * withTerminal() — Era 2 surface that owns the input loop.
  *
- * Wraps createApp() (Layer 3) with a term:key handler that dispatches
- * through the keymap. Key events flow:
+ * Production: this would be the surface adapter in @silvery/ag-term,
+ * which converts platform-specific events (terminal escape sequences)
+ * to normalized key strings before reaching the keymap.
+ *
+ * Wraps createApp() with a term:key handler that dispatches through
+ * the keymap. Key events flow:
  *
  *   stdin → parse → focus tree (TextArea consumes typing) → term:key → keymap → invoke
  *
@@ -163,7 +185,7 @@ export async function withTerminal({
   return app.run(view, { mode, focusReporting })
 }
 
-// ── Composition ──────────────────────────────────────────────
+// ── Composition (from @silvery/create) ───────────────────────
 
 export function pipe<T>(value: T, ...fns: Array<(v: T) => T>): T {
   return fns.reduce((v, fn) => fn(v), value)
@@ -176,19 +198,21 @@ export function pipe<T>(value: T, ...fns: Array<(v: T) => T>): T {
  *
  * No `fast` flag needed — an instant scope makes all sleeps resolve
  * immediately, so the typing animation loop runs at zero delay.
+ *
+ * Uses callable accessor pattern: chat.done() to read, chat.done(true) to write (Decision 29).
  */
 export async function autoAdvance(scope: Scope, chat: ChatModel, script: ScriptEntry[]): Promise<void> {
   for (const entry of script) {
-    if (chat.done.value || scope.cancelled) break
+    if (chat.done() || scope.cancelled) break
 
     if (entry.role === "user") {
       for (let i = 0; i <= entry.content.length; i++) {
-        chat.autoTypingText.value = entry.content.slice(0, i)
+        chat.autoTypingText(entry.content.slice(0, i))
         await scope.sleep(30)
         if (scope.cancelled) return
       }
       await scope.sleep(300)
-      chat.autoTypingText.value = null
+      chat.autoTypingText(null)
       chat.addMessage({ role: "user", content: entry.content, tokens: entry.tokens })
     } else {
       for await (const _ of chat.respond(entry)) {
@@ -199,10 +223,14 @@ export async function autoAdvance(scope: Scope, chat: ChatModel, script: ScriptE
     await scope.sleep(400)
   }
 
-  chat.done.value = true
+  chat.done(true)
 }
 
-/** Idle auto-submit — submits the next hint after idle delay (interactive demo). */
+/**
+ * Idle auto-submit — submits the next hint after idle delay (interactive demo).
+ *
+ * Uses callable accessor pattern: chat.done() to read, chat.phase() to read (Decision 29).
+ */
 export function idleAutoSubmit(scope: Scope, chat: ChatModel, opts?: { delay?: number }): void {
   const delayMs = opts?.delay ?? 10_000
   let cancelTimer: (() => void) | null = null
@@ -212,7 +240,7 @@ export function idleAutoSubmit(scope: Scope, chat: ChatModel, opts?: { delay?: n
       cancelTimer()
       cancelTimer = null
     }
-    if (scope.cancelled || chat.done.value || chat.compacting.value || chat.phase.value !== "idle") return
+    if (scope.cancelled || chat.done() || chat.compacting() || chat.phase() !== "idle") return
     const hint = chat.getNextHint()
     if (!hint) return
     cancelTimer = scope.timeout(delayMs, () => {
