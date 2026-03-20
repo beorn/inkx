@@ -38,13 +38,13 @@ Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (l
 
 A silvery app is composed of five interconnected structures:
 
-| Graph | What it is | Shape | API |
-|---|---|---|---|
-| **Reactive data graph** | Signals connected by computeds. How data flows. | DAG | `signal()`, `computed()`, `createModel()` |
-| **Async scope tree** | Spawned async work and its ownership. Cancellation down, errors up. | Tree | `createScope()`, `scope.child()`, `op.scope` |
-| **Ag node tree** | Abstract UI structure. Adapter writes, renderer reads. | Tree | `createRootNode()`, `withAg()` |
-| **Command tree** | Action namespace. Discoverable, projectable to CLI/MCP/palette. | Tree | `app.commands.todo.add` |
-| **Plugin chain** | dispatch/apply/run wrapping layers. | Stack | `create()`, `pipe()`, `with*()` |
+| Graph                   | What it is                                                          | Shape | API                                          |
+| ----------------------- | ------------------------------------------------------------------- | ----- | -------------------------------------------- |
+| **Reactive data graph** | Signals connected by computeds. How data flows.                     | DAG   | `signal()`, `computed()`, `createModel()`    |
+| **Async scope tree**    | Spawned async work and its ownership. Cancellation down, errors up. | Tree  | `createScope()`, `scope.child()`, `op.scope` |
+| **Ag node tree**        | Abstract UI structure. Adapter writes, renderer reads.              | Tree  | `createRootNode()`, `withAg()`               |
+| **Command tree**        | Action namespace. Discoverable, projectable to CLI/MCP/palette.     | Tree  | `app.commands.todo.add`                      |
+| **Plugin chain**        | dispatch/apply/run wrapping layers.                                 | Stack | `create()`, `pipe()`, `with*()`              |
 
 These are views of one runtime. A keypress traverses the plugin chain, resolves a command (command tree), executes it in a scope (async scope tree), mutates signals (reactive data graph), which triggers a re-render of the UI (ag node tree).
 
@@ -58,12 +58,12 @@ These are views of one runtime. A keypress traverses the plugin chain, resolves 
 
 ## Three Levels
 
-| Level | What you add | State | Input handling |
-|---|---|---|---|
-| **Foundation** | `create()` | none | ops pass through |
-| **+ Ag** | `withAg()`, `withTerm()`, `withReact()` | React useState | `useInput()` in components |
-| **+ Tea** | `withTea()`, domain plugins | Signals/models | Keymap → commands → signals |
-| **+ Interception** | `withLogging()`, proxies | Same, observable | All mutations through dispatch |
+| Level              | What you add                            | State            | Input handling                 |
+| ------------------ | --------------------------------------- | ---------------- | ------------------------------ |
+| **Foundation**     | `create()`                              | none             | ops pass through               |
+| **+ Ag**           | `withAg()`, `withTerm()`, `withReact()` | React useState   | `useInput()` in components     |
+| **+ Tea**          | `withTea()`, domain plugins             | Signals/models   | Keymap → commands → signals    |
+| **+ Interception** | `withLogging()`, proxies                | Same, observable | All mutations through dispatch |
 
 ---
 
@@ -78,10 +78,16 @@ function create() {
     dispatch(op) {
       if (processing) throw new Error(`Reentrant dispatch(): ${op.type}`)
       processing = true
-      try { return app.apply(op) }      // closure, not this
-      finally { processing = false }
+      try {
+        return app.apply(op)
+      } finally {
+        // closure, not this
+        processing = false
+      }
     },
-    apply(op) { return false },
+    apply(op) {
+      return false
+    },
     run: undefined as (() => Promise<void>) | undefined,
   }
   return app
@@ -106,15 +112,26 @@ function withScope(rootScope?: Scope) {
       if (!op.scope) {
         let _scope: Scope | undefined
         Object.defineProperty(op, "scope", {
-          get: () => (_scope ??= scope.child(
-            op.type === "command" ? `op:command:${op.path?.join(".")}` : `op:${op.type}`
-          )),
-          enumerable: false, configurable: true,
+          get: () =>
+            (_scope ??= scope.child(op.type === "command" ? `op:command:${op.path?.join(".")}` : `op:${op.type}`)),
+          enumerable: false,
+          configurable: true,
         })
       }
       return prevDispatch(op)
     }
     app.quit = () => scope.cancel()
+
+    // Wrap run to dispose root scope on exit
+    const prevRun = app.run
+    app.run = async () => {
+      try {
+        await prevRun?.()
+      } finally {
+        scope.dispose()
+      }
+    }
+
     return app
   }
 }
@@ -125,16 +142,26 @@ function withScope(rootScope?: Scope) {
 ```typescript
 type Op = { type: string; [key: string]: unknown }
 
+// All op types use declaration merging on the same interface.
+// @silvery/create defines the base:
 interface OpTypes {
   resize: { cols: number; rows: number }
+  command: { path: string[]; args?: Record<string, unknown> }
+  prompt: { command: string[]; missing: string[] }
+  error: { source: string[]; error: string }
 }
+
+// Other packages augment — e.g. @silvery/ag-term:
 declare module "@silvery/create" {
   interface OpTypes {
     "input:key": { key: string; shift?: boolean; ctrl?: boolean; meta?: boolean; alt?: boolean }
-    "input:mouse": { kind: "click" | "doubleClick" | "rightClick"; x: number; y: number; button?: string; modifiers?: { shift?: boolean; ctrl?: boolean; meta?: boolean; alt?: boolean } }
-    command: { path: string[]; args?: Record<string, unknown> }
-    prompt: { command: string[]; missing: string[] }
-    error: { source: string[]; error: string }
+    "input:mouse": {
+      kind: "click" | "doubleClick" | "rightClick"
+      x: number
+      y: number
+      button?: string
+      modifiers?: { shift?: boolean; ctrl?: boolean; meta?: boolean; alt?: boolean }
+    }
   }
 }
 
@@ -151,7 +178,10 @@ Node tree, adapters, renderers — plugins on top of `create()`.
 
 ```typescript
 function withAg() {
-  return (app) => { app.root = createRootNode(); return app }
+  return (app) => {
+    app.root = createRootNode()
+    return app
+  }
 }
 ```
 
@@ -161,6 +191,15 @@ function withAg() {
 function withReact({ view }: { view: ReactElement }) {
   return (app) => {
     const inputHandlers = new Set<(op: Op) => boolean>()
+
+    // useInput hook registers here — exposed to React components via context
+    app.onInput = (handler: (op: Op) => boolean) => {
+      inputHandlers.add(handler)
+      return () => {
+        inputHandlers.delete(handler)
+      } // returns unsubscribe
+    }
+
     const prevApply = app.apply
     app.apply = (op) => {
       if (prevApply(op)) return true
@@ -172,7 +211,7 @@ function withReact({ view }: { view: ReactElement }) {
     const prevRun = app.run
     app.run = async () => {
       await using reconciler = createReconciler(app.root, () => app.flush?.())
-      reconciler.render(view)
+      reconciler.render(view) // injects app into React context — useInput/useModel resolve via context
       await prevRun?.()
     }
     return app
@@ -218,42 +257,65 @@ function withTea() {
 
     // Per-app command ref → path mapping (not module-global)
     const commandMeta = new WeakMap<object, { path: string[] }>()
+    // Track auto-created scopes (vs caller-provided) — no public _callerScope flag
+    const autoScopes = new WeakSet<object>()
 
     // --- Command execution (wraps apply) ---
+    // Every command op gets op.pending — even unknown/failed commands.
     const prevApply = app.apply
     app.apply = (op) => {
       if (op.type === "command") {
         const cmd = resolveCommand(app.commands, op.path)
-        if (!cmd?.fn) return prevApply(op)
 
         // Always produce a promise — uniform completion model
-        const pending = Promise.resolve().then(() => {
-          const resolution = resolveInvocation(app, cmd, op.args)
-          op.args = resolution.args ?? op.args  // write back resolved args for replay
-          op.status = resolution.state
-          if (resolution.state !== "ready") {
+        const pending = Promise.resolve()
+          .then(() => {
+            if (!cmd?.fn) {
+              op.status = "unknown"
+              throw new CommandError("unknown", op.path)
+            }
+            const resolution = resolveInvocation(app, cmd, op.args)
+            op.args = resolution.args ?? op.args // write back resolved args for replay
+            op.status = resolution.state
+
             if (resolution.state === "prompt") {
               queueMicrotask(() => app.dispatch({ type: "prompt", command: op.path, missing: resolution.missing }))
+              throw new CommandError("prompt", op.path)
             }
-            throw new CommandError(resolution.state, op.path)
-          }
-          return op.scope
-            ? op.scope.run(() => cmd.fn(resolution.args))
-            : cmd.fn(resolution.args)
-        }).then((value) => {
-          op.result = value
-          op.status = "ok"
-          return value
-        }).catch((err) => {
-          op.result = undefined
-          op.status = "error"
-          Object.defineProperty(op, "error", { value: err, enumerable: false })
-          queueMicrotask(() => app.dispatch({ type: "error", source: op.path, error: String(err) }))
-          throw err
-        }).finally(() => {
-          // Auto-dispose scope if we created it (not caller-provided)
-          if (op.scope && !op._callerScope) op.scope.dispose?.()
-        })
+            if (resolution.state === "unavailable") throw new CommandError("unavailable", op.path)
+            if (resolution.state === "invalid") throw resolution.error // preserve validation error
+
+            // Track if scope was auto-created (for disposal)
+            const hadScope = !!Object.getOwnPropertyDescriptor(op, "scope")
+            const result = op.scope ? op.scope.run(() => cmd.fn(resolution.args)) : cmd.fn(resolution.args)
+            if (op.scope && !hadScope) autoScopes.add(op.scope)
+            return result
+          })
+          .then(
+            (value) => {
+              op.result = value
+              op.status = "ok"
+              return value
+            },
+            (err) => {
+              // Preserve non-ready status (prompt/unavailable/invalid/unknown)
+              // Only overwrite to "error" for actual execution failures
+              if (!op.status || op.status === "ready") op.status = "error"
+              op.result = undefined
+              Object.defineProperty(op, "error", { value: err, enumerable: false })
+              if (op.status === "error") {
+                queueMicrotask(() => app.dispatch({ type: "error", source: op.path, error: String(err) }))
+              }
+              throw err
+            },
+          )
+          .finally(() => {
+            // Auto-dispose scope only if framework created it
+            const scope = Object.getOwnPropertyDescriptor(op, "scope")?.get?.()
+            if (scope && autoScopes.has(scope)) scope.dispose?.()
+          })
+        // Suppress unhandled rejection — keymap dispatches fire-and-forget
+        void pending.catch(() => {})
         Object.defineProperty(op, "pending", { value: pending, enumerable: false })
         return true
       }
@@ -266,7 +328,7 @@ function withTea() {
       key: string
       command: CommandRef
       args?: unknown
-      when?: () => boolean   // signal accessor — called at input time
+      when?: () => boolean // signal accessor — called at input time
       prompt?: string
     }
     const bindings: RegisteredBinding[] = []
@@ -282,7 +344,7 @@ function withTea() {
         for (let i = bindings.length - 1; i >= 0; i--) {
           const b = bindings[i]
           if (b.key !== op.key) continue
-          if (b.when && !b.when()) continue  // condition inactive
+          if (b.when && !b.when()) continue // condition inactive
           const meta = commandMeta.get(b.command)
           if (!meta) continue
           const resolution = resolveInvocation(app, b.command, b.args)
@@ -323,20 +385,24 @@ function withTea() {
     app.registerCommand = (path: string[], cmd: object) => {
       const existing = commandMeta.get(cmd)
       if (existing) {
-        if (existing.path.join(".") !== path.join(".")) throw new Error(`Command registered at "${existing.path.join(".")}", cannot re-register at "${path.join(".")}"`)
-        return  // same path — no-op
+        if (existing.path.join(".") !== path.join("."))
+          throw new Error(
+            `Command registered at "${existing.path.join(".")}", cannot re-register at "${path.join(".")}"`,
+          )
+        return // same path — no-op
       }
       commandMeta.set(cmd, { path })
     }
 
     // Typed command helper — always async, always rejects on failure
     app.command = (refOrPath, args) => {
-      const path = typeof refOrPath === "string"
-        ? refOrPath.split(".")
-        : commandMeta.get(refOrPath)?.path ?? findPathInTree(app.commands, refOrPath)
+      const path =
+        typeof refOrPath === "string"
+          ? refOrPath.split(".")
+          : (commandMeta.get(refOrPath)?.path ?? findPathInTree(app.commands, refOrPath))
       const op: Op = { type: "command", path, args }
       app.dispatch(op)
-      return op.pending  // always exists — set by command apply wrapper
+      return op.pending // always exists — set by command apply wrapper
     }
 
     return app
@@ -353,7 +419,7 @@ type Binding = CommandRef | { command: CommandRef; args?: unknown; prompt?: stri
 type ConditionalBinding = { when: () => boolean; binding: Binding }
 
 function when<B extends Record<string, Binding>>(
-  condition: () => boolean,   // signal accessor
+  condition: () => boolean, // signal accessor
   bindings: B,
 ): Record<keyof B, ConditionalBinding> {
   const result = {} as any
@@ -368,12 +434,12 @@ function when<B extends Record<string, Binding>>(
 
 ### resolveInvocation — surface behavior
 
-| Surface | ready | prompt | unavailable | invalid |
-|---|---|---|---|---|
-| **keymap** | dispatch command op | dispatch prompt op | swallow (key does nothing) | swallow |
-| **app.command()** | resolve with result | reject `PromptRequired` | reject `Unavailable` | reject `ValidationError` |
-| **raw dispatch** | execute | set `op.status` | set `op.status` | set `op.status` + error op |
-| **CLI/MCP** | execute | report missing args | report unavailable | report validation error |
+| Surface           | ready            | prompt                  | unavailable               | invalid                  | unknown                 |
+| ----------------- | ---------------- | ----------------------- | ------------------------- | ------------------------ | ----------------------- |
+| **keymap**        | dispatch command | dispatch prompt op      | swallow                   | swallow                  | swallow                 |
+| **app.command()** | resolve result   | reject `PromptRequired` | reject `Unavailable`      | reject `ValidationError` | reject `UnknownCommand` |
+| **raw dispatch**  | execute          | `op.status="prompt"`    | `op.status="unavailable"` | `op.status="invalid"`    | `op.status="unknown"`   |
+| **CLI/MCP**       | execute          | report missing args     | report unavailable        | report error             | report not found        |
 
 ### Models
 
@@ -385,20 +451,27 @@ const todoModel = createModel(() => {
   const cursor = signal(0)
   const items = createStore<{ text: string; done: boolean; priority: number }[]>([])
   return {
-    cursor, items,
+    cursor,
+    items,
     current: computed(() => items()[cursor()] ?? null),
-    add(text: string) { items([...items(), { text, done: false, priority: 0 }]) },
+    add(text: string) {
+      items([...items(), { text, done: false, priority: 0 }])
+    },
     toggleDone() {
       const i = cursor()
       const item = items()[i]
-      if (item) items()[i].done(!items()[i].done())  // deep store — mutate in place
+      if (item) items()[i].done(!items()[i].done()) // deep store — mutate in place
     },
-    remove() {
-      items(items().filter((_, i) => i !== cursor()))
+    removeAt(index: number) {
+      items(items().filter((_, i) => i !== index))
       cursor(Math.min(cursor(), Math.max(0, items().length - 1)))
     },
-    moveDown() { cursor(Math.min(cursor() + 1, Math.max(0, items().length - 1))) },
-    moveUp()   { cursor(Math.max(cursor() - 1, 0)) },
+    moveDown() {
+      cursor(Math.min(cursor() + 1, Math.max(0, items().length - 1)))
+    },
+    moveUp() {
+      cursor(Math.max(cursor() - 1, 0))
+    },
   }
 })
 
@@ -416,8 +489,11 @@ const profileModel = createModel((rt: Pick<typeof providers, "api">) => {
     return rt.api.fetchProfile(id)
   })
   return {
-    userId, profile,
-    switchUser(id: string) { userId(id) },  // triggers profile refetch
+    userId,
+    profile,
+    switchUser(id: string) {
+      userId(id)
+    }, // triggers profile refetch
   }
 })
 ```
@@ -435,11 +511,38 @@ function withTodo() {
     app.models.todo = todo
 
     app.commands.todo = {
-      add:         { title: "Add Item", args: { text: string() }, fn(args) { todo.add(args.text) } },
-      toggle_done: { title: "Toggle Done", fn() { todo.toggleDone() } },
-      remove:      { title: "Remove Item", args: { item: string({ default: () => todo.current() }) }, fn() { todo.remove() } },
-      move_down:   { title: "Move Down", fn() { todo.moveDown() } },
-      move_up:     { title: "Move Up",   fn() { todo.moveUp() } },
+      add: {
+        title: "Add Item",
+        args: { text: string() },
+        fn(args) {
+          todo.add(args.text)
+        },
+      },
+      toggle_done: {
+        title: "Toggle Done",
+        fn() {
+          todo.toggleDone()
+        },
+      },
+      remove: {
+        title: "Remove Item",
+        args: { index: number({ default: () => todo.cursor() }) },
+        fn(args) {
+          todo.removeAt(args.index)
+        },
+      },
+      move_down: {
+        title: "Move Down",
+        fn() {
+          todo.moveDown()
+        },
+      },
+      move_up: {
+        title: "Move Up",
+        fn() {
+          todo.moveUp()
+        },
+      },
     }
 
     for (const [name, cmd] of Object.entries(app.commands.todo)) {
@@ -463,8 +566,18 @@ function withEditor() {
     app.models.editor = editor
 
     app.commands.editor = {
-      enter_edit: { title: "Edit", fn() { editor.mode("edit") } },
-      exit_edit:  { title: "Done", fn() { editor.mode("normal") } },
+      enter_edit: {
+        title: "Edit",
+        fn() {
+          editor.mode("edit")
+        },
+      },
+      exit_edit: {
+        title: "Done",
+        fn() {
+          editor.mode("normal")
+        },
+      },
     }
     for (const [name, cmd] of Object.entries(app.commands.editor)) {
       app.registerCommand?.(["editor", name], cmd)
@@ -488,7 +601,11 @@ function withEditor() {
 Shared by all surfaces — keymap, mouseMap, app.command(), CLI, MCP:
 
 ```typescript
-function resolveInvocation(app, cmd, partialArgs?):
+function resolveInvocation(
+  app,
+  cmd,
+  partialArgs?,
+):
   | { state: "ready"; args: Record<string, unknown> }
   | { state: "prompt"; missing: string[] }
   | { state: "unavailable" }
@@ -501,9 +618,9 @@ Centralizes arg defaults, signal-based availability, and validation.
 
 All declarative via `when()` and keymap layer ordering:
 
-1. Last-registered layers checked first (domain plugins register after withTea)
-2. `when()` conditions evaluated reactively — bindings activate/deactivate as signals change
-3. Unmatched input falls through to `useInput()` hooks
+1. Last-registered bindings checked first (domain plugins register after withTea)
+2. `when()` conditions evaluated dynamically at input time — signal accessors called per keypress
+3. Unmatched input falls through to `useInput()` hooks (registered via `app.onInput`)
 
 No imperative push/pop. Focus is a signal condition — `when(focusModel.hasFocus, { ... })`.
 
@@ -533,12 +650,12 @@ await app.run()
 
 ```typescript
 // All go through dispatch — observable, interceptable, scoped:
-commandProxy(app).todo.add({ text: "Buy milk" })            // proxy → dispatch
-await app.command(app.commands.todo.add, { text: "x" })     // object ref → dispatch
-await app.command("todo.add", { text: "x" })                // string path (serialization)
+commandProxy(app).todo.add({ text: "Buy milk" }) // proxy → dispatch
+await app.command(app.commands.todo.add, { text: "x" }) // object ref → dispatch
+await app.command("todo.add", { text: "x" }) // string path (serialization)
 
 // ⚠ Escape hatch — bypasses dispatch, scopes, logging, validation, replay:
-app.commands.todo.move_down.fn()                             // direct — tests only
+app.commands.todo.move_down.fn() // direct — tests only
 ```
 
 ### Scopes and Op Lifecycle
@@ -547,26 +664,27 @@ app.commands.todo.move_down.fn()                             // direct — tests
 const op: Op = { type: "command", path: ["file", "save"] }
 app.dispatch(op)
 
-op.status              // "ok" | "prompt" | "unavailable" | "invalid" | "error"
-op.args                // resolved/defaulted args (written back for replay)
-op.result              // enumerable — resolved value (serializable)
-op.scope               // non-enumerable — lazy, created on first access
-op.pending             // non-enumerable — always present for command ops
-op.error               // non-enumerable — error object (if status === "error")
+op.status // "ok" | "prompt" | "unavailable" | "invalid" | "unknown" | "error"
+op.args // resolved/defaulted args (written back for replay)
+op.result // enumerable — resolved value (serializable)
+op.scope // non-enumerable — lazy, created on first access
+op.pending // non-enumerable — always present for command ops
+op.error // non-enumerable — error object (if status === "error")
 
-await op.pending       // resolves to result, rejects on error
-JSON.stringify(op)     // { type: "command", path: [...], args: {...}, status: "ok", result: {...} }
-                       // scope, pending, error NOT included (non-enumerable)
+await op.pending // resolves to result, rejects on error
+JSON.stringify(op) // { type: "command", path: [...], args: {...}, status: "ok", result: {...} }
+// scope, pending, error NOT included (non-enumerable)
 ```
 
-**Scope disposal**: auto-created op scopes are disposed after command completion (sync or `pending.finally()`). Caller-provided scopes (`op.scope = batch`) are NOT disposed by the framework — the caller owns their lifetime.
+**Scope disposal**: scopes auto-created by `withScope()` (via lazy getter) are tracked internally and disposed after command completion. Caller-provided scopes (set on the op before dispatch) are NOT disposed by the framework — ownership is detected automatically, no flag needed.
 
 ```typescript
 // Caller-provided scope for batching:
 const batch = app.scope.child("batch")
-app.dispatch({ type: "command", path: [...], scope: batch, _callerScope: true })
-app.dispatch({ type: "command", path: [...], scope: batch, _callerScope: true })
-// caller disposes: batch.dispose()
+const op1 = { type: "command", path: [...], scope: batch }  // caller-owned
+const op2 = { type: "command", path: [...], scope: batch }
+app.dispatch(op1); app.dispatch(op2)
+batch.dispose()  // caller controls lifetime
 ```
 
 ---
@@ -593,17 +711,19 @@ No ag. Tea on native React DOM. No ag-ui components.
 ```typescript
 // Model unit test — createStore items have nested reactive properties
 const todo = todoModel.create()
-todo.add("test"); todo.add("another"); todo.moveDown()
+todo.add("test")
+todo.add("another")
+todo.moveDown()
 expect(todo.cursor()).toBe(1)
-expect(todo.items()[0].done()).toBe(false)      // deep store — read nested
-todo.toggleDone()                                // mutates via store proxy
-expect(todo.items()[1].done()).toBe(true)        // only this item's subscribers re-ran
+expect(todo.items()[0].done()).toBe(false) // deep store — read nested
+todo.toggleDone() // mutates via store proxy
+expect(todo.items()[1].done()).toBe(true) // only this item's subscribers re-ran
 
 // Resource test — async data loading
 const profile = profileModel.create({ api: { fetchProfile: async (id) => ({ name: "Alice" }) } })
 profile.switchUser("user-1")
-expect(profile.profile.loading()).toBe(true)     // loading signal
-await flush()                                     // let microtask complete
+expect(profile.profile.loading()).toBe(true) // loading signal
+await flush() // let microtask complete
 expect(profile.profile()).toEqual({ name: "Alice" })
 expect(profile.profile.loading()).toBe(false)
 
@@ -612,7 +732,7 @@ const app = pipe(create(), withTea(), withTodo())
 await app.command(app.commands.todo.add, { text: "test" })
 ```
 
-`withTodo()` calls `app.keymap?.()` — conditional, so headless works without withKeymap registering.
+`withTodo()` calls `app.keymap?.()` — conditional. Headless works because no renderer emits input ops, so bindings are never evaluated.
 
 ---
 
@@ -628,11 +748,11 @@ Plugins    → refine app type per capability
 ### Plugin return types
 
 ```typescript
-function withScope():     <A>(app: A) => A & { scope: Scope; quit(): void }
-function withAg():        <A>(app: A) => A & { root: Node }
-function withTea():       <A>(app: A) => A & SilveryApp
-function withTerm():      <A extends { root: Node }>(app: A) => A & { run(): Promise<void> }
-function withReact(o: O): <A extends { root: Node; run(): Promise<void> }>(app: A) => A
+function withScope(): <A>(app: A) => A & { scope: Scope; quit(): void }
+function withAg(): <A>(app: A) => A & { root: Node }
+function withTea(): <A>(app: A) => A & SilveryApp
+function withTerm(): <A extends { root: Node }>(app: A) => A & { run(): Promise<void> }
+function withReact(o: O): <A extends { root: Node }>(app: A) => A // run optional — wraps if present
 ```
 
 ### Preset
@@ -716,11 +836,13 @@ function withLogging() {
 
 **Command ops always produce `op.pending`.** Uniform completion model — both sync and async commands produce a promise. `app.command()` returns it. Rejects on any failure (parse, unavailable, throw, async rejection). Error ops also emitted.
 
-**Op lifecycle.** `op.status` (ok/prompt/unavailable/invalid/error), `op.args` (resolved — written back for replay), `op.result` (enumerable), `op.error` (non-enumerable). Serializable fields: type, path, args, status, result.
+**Op lifecycle.** `op.status` (ok/prompt/unavailable/invalid/unknown/error), `op.args` (resolved — written back for replay), `op.result` (enumerable), `op.error` (non-enumerable). Non-ready statuses preserved — not overwritten to "error". `op.pending` always set for command ops, even rejected ones. Fire-and-forget rejections suppressed internally (`void pending.catch(() => {})`).
 
-**Scope disposal.** Auto-created op scopes disposed after command completion. Caller-provided scopes not disposed by framework.
+**Scope disposal.** Auto-created op scopes tracked via WeakSet, disposed after command completion. Caller-provided scopes (set before dispatch) not disposed — ownership detected automatically. Root scope disposed when `run()` exits.
 
-**Capability protection.** `withTea()` throws on double-install. Domain plugins use `app.keymap?.()` and `app.registerCommand?.()` — conditional on tea being present.
+**Capability protection.** `withTea()` throws on double-install. Domain plugins require `withTea()` for `app.models`/`app.commands`. Keybinding registration is optional (`app.keymap?.()`) — enables headless use.
+
+**Interception plugin order.** `withLogging()` should be installed as the outermost `apply` wrapper (last in pipe before renderer/adapter) to observe all ops. Alternatively, wrap `dispatch` instead of `apply` for guaranteed visibility regardless of plugin order.
 
 **Objects over strings.** `app.commands.todo.move_down` primary. Strings for serialization only.
 
@@ -769,13 +891,13 @@ Bundles:
 
 ## Cross-Reference to Era 2 Docs
 
-| Doc | Covered here | Full details in original |
-|-----|-------------|--------------------------|
-| 02-signals | `signal()`, `createModel()` | 8-sip API, framework bindings, provider DI |
-| 03-commands | Command tree, args, availability, surfaces | Surface projection, domain objects, CLI rules |
-| 04-input | `keymap()`, `when()`, precedence | Mapping type, invoke(), chord/count state |
-| 05-app | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture |
-| 06-scopes | `op.scope`, ALS, `AbortSignal`, lifetime | Scope API (sleep, timeout, onDispose), effects |
-| composability | Adapter/renderer roles | Framework×platform matrix, gap analysis |
-| packaging | `create` + `ag-*` + tea split + `impure` | Migration paths, bundle strategies |
-| decisions | Referenced where relevant | Full decision log (25 decisions) |
+| Doc           | Covered here                                         | Full details in original                       |
+| ------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| 02-signals    | `signal()`, `createModel()`                          | 8-sip API, framework bindings, provider DI     |
+| 03-commands   | Command tree, args, availability, surfaces           | Surface projection, domain objects, CLI rules  |
+| 04-input      | `keymap()`, `when()`, precedence                     | Mapping type, invoke(), chord/count state      |
+| 05-app        | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
+| 06-scopes     | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
+| composability | Adapter/renderer roles                               | Framework×platform matrix, gap analysis        |
+| packaging     | `create` + `ag-*` + tea split + `impure`             | Migration paths, bundle strategies             |
+| decisions     | Referenced where relevant                            | Full decision log (25 decisions)               |

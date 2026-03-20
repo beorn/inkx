@@ -82,26 +82,26 @@ await run(<ChatView />)
 
 **`@silvery/signal` re-exports [alien-signals](https://github.com/stackblitz/alien-signals)** as the reactive engine — the fastest signals implementation (1.8KB gzip, push-pull, version counting, proven by Vue 3.6 adoption). Silvery adds layers on top:
 
-| Layer | API | Purpose |
-|-------|-----|---------|
+| Layer                    | API                                  | Purpose                                                         |
+| ------------------------ | ------------------------------------ | --------------------------------------------------------------- |
 | **Core** (alien-signals) | `signal()`, `computed()`, `effect()` | Reactive primitives — `sig()` to read, `sig(newValue)` to write |
-| **Stores** (silvery) | `createStore(initial)` | Deep proxy — nested property access returns signal accessors |
-| **Resources** (silvery) | `createResource(fetcher)` | Async bridge — `res()` for data, `res.loading()`, `res.error()` |
-| **React** (silvery) | `useSignal(s)`, model selectors | `useSyncExternalStore` integration |
+| **Stores** (silvery)     | `createStore(initial)`               | Deep proxy — nested property access returns signal accessors    |
+| **Resources** (silvery)  | `createResource(fetcher)`            | Async bridge — `res()` for data, `res.loading()`, `res.error()` |
+| **React** (silvery)      | `useSignal(s)`, model selectors      | `useSyncExternalStore` integration                              |
 
 ### Why getter/setter functions, not `.value`?
 
 Era2 uses the **function-call pattern** (`count()` to read, `count(5)` to write) — same as alien-signals, Angular, and SolidJS. Not `.value` (Vue, Preact). Decision 29.
 
-| | `count()` getter | `count.value` property |
-|---|---|---|
-| **Visual clarity** | Obviously dynamic (it's a function call) | Looks like a plain property read |
-| **Capability separation** | Read-only accessor is just `() => T` — can't accidentally write | `.value` always exposes both get and set |
-| **Destructuring** | `const { count } = model` — count is a function, stays reactive | `const { count } = model` — works, but `const { value } = count` breaks |
-| **TypeScript** | `() => T` — indistinguishable from other functions (slightly worse for "find refs") | `Signal<T>` carries type (slightly better for "find refs") |
-| **Industry momentum** | Angular, SolidJS, alien-signals, S.js, Knockout | Vue, Preact, Qwik |
-| **TC39 proposal** | `.get()/.set()` methods — designed for frameworks to wrap either way | — |
-| **No magic** | Selectors call accessors explicitly: `m.exchanges().length` | Requires auto-unwrapping: `m.exchanges.length` magically reads signal |
+|                           | `count()` getter                                                                    | `count.value` property                                                  |
+| ------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **Visual clarity**        | Obviously dynamic (it's a function call)                                            | Looks like a plain property read                                        |
+| **Capability separation** | Read-only accessor is just `() => T` — can't accidentally write                     | `.value` always exposes both get and set                                |
+| **Destructuring**         | `const { count } = model` — count is a function, stays reactive                     | `const { count } = model` — works, but `const { value } = count` breaks |
+| **TypeScript**            | `() => T` — indistinguishable from other functions (slightly worse for "find refs") | `Signal<T>` carries type (slightly better for "find refs")              |
+| **Industry momentum**     | Angular, SolidJS, alien-signals, S.js, Knockout                                     | Vue, Preact, Qwik                                                       |
+| **TC39 proposal**         | `.get()/.set()` methods — designed for frameworks to wrap either way                | —                                                                       |
+| **No magic**              | Selectors call accessors explicitly: `m.exchanges().length`                         | Requires auto-unwrapping: `m.exchanges.length` magically reads signal   |
 
 The function-call pattern eliminates the auto-unwrapping complexity (old P3/P5). Selectors are just functions that call accessors — no tracking scope magic needed beyond what alien-signals provides natively.
 
@@ -135,8 +135,8 @@ Layer 1 is the state primitive — fine-grained, framework-agnostic, testable. L
 
 Same API everywhere — `accessor()` to read, `accessor(newValue)` to write. No context-dependent syntax:
 
-| Context                  | Access                              | Notes                                                    |
-| ------------------------ | ----------------------------------- | -------------------------------------------------------- |
+| Context                  | Access                               | Notes                                                   |
+| ------------------------ | ------------------------------------ | ------------------------------------------------------- |
 | **React components**     | `useChat(m => m.exchanges().length)` | Selector calls accessor — tracked, O(1) subscribe       |
 | **Model code / plugins** | `useChat.get().exchanges()`          | Direct accessor call — typed, reactive                  |
 | **AI agents / commands** | `useChat.get().submit({ text })`     | Direct method call — typed                              |
@@ -246,10 +246,10 @@ const user = createStore({
 })
 
 // Deep access returns accessors — O(1) subscriptions per property
-user.name()                   // "Alice" — read via getter
-user.name("Bob")              // write — only name subscribers re-run
-user.address.city()           // "NYC" — deep read, tracked independently
-user.address.city("SF")       // deep write — only address.city subscribers re-run
+user.name() // "Alice" — read via getter
+user.name("Bob") // write — only name subscribers re-run
+user.address.city() // "NYC" — deep read, tracked independently
+user.address.city("SF") // deep write — only address.city subscribers re-run
 
 // Array operations
 user.tags([...user.tags(), "editor"])
@@ -272,9 +272,9 @@ const profile = createResource(async () => {
 })
 
 // In components:
-profile()          // T | undefined (data when loaded)
-profile.loading()  // boolean
-profile.error()    // Error | undefined
+profile() // T | undefined (data when loaded)
+profile.loading() // boolean
+profile.error() // Error | undefined
 
 // Refetches when userId changes (dependency tracked via userId() call inside fetcher)
 ```
@@ -287,10 +287,10 @@ Reactive transformations over collections that update O(1) when one item changes
 
 ```typescript
 // Future API — not yet designed
-const activeTasks = createProjection(
-  () => allTasks(),
-  { filter: t => !t.done, sort: (a, b) => a.priority - b.priority }
-)
+const activeTasks = createProjection(() => allTasks(), {
+  filter: (t) => !t.done,
+  sort: (a, b) => a.priority - b.priority,
+})
 // When one task's done status changes → O(1) update to the projection
 ```
 
