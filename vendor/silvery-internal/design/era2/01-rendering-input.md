@@ -8,12 +8,12 @@ _See also: [03-commands.md](./03-commands.md) (command shapes, availability), [0
 
 ---
 
-## Level 1: Ag Only (No Tea)
+## Level 1: Ag Only (No App Level)
 
 The simplest interactive app. `create()` provides the dispatch/apply pipeline. `withAg()` adds the node tree. `withTerm()` reads terminal input and flushes rendering. `withReact()` bridges React components to the ag node tree. State lives in React `useState` — no signals, no commands, no keymap.
 
 ```typescript
-// counter.tsx — Level 1: ag only, no tea
+// counter.tsx — Level 1: ag only, no app level
 import { create, pipe } from "@silvery/create"
 import { withScope } from "@silvery/scope"
 import { withAg } from "@silvery/ag"
@@ -71,7 +71,7 @@ No commands, no keymap, no signals. Pure React + ag rendering + terminal input.
 
 ## How Input Flows
 
-Input is dispatched as ops. Sources produce `input:key` and `input:mouse` ops. At Level 1, unmatched input reaches `useInput()` directly. At Level 2 (with tea), the keymap plugin intercepts keys and resolves them to command ops before they reach components.
+Input is dispatched as ops. Sources produce `input:key` and `input:mouse` ops. At Level 1, unmatched input reaches `useInput()` directly. At Level 2 (with app level), the keymap plugin intercepts keys and resolves them to command ops before they reach components.
 
 ```
 terminal.keys() --> dispatch({ type: "input:key", ... })
@@ -339,12 +339,12 @@ const isInsert = computed(() => mode() === "insert")
 
 ---
 
-## Level 2: With Tea (Signals, Commands, Keymap)
+## Level 2: With App Level (Signals, Commands, Keymap)
 
 Adding `withApp()` and a domain plugin. State moves from React `useState` to signals. Input moves from `useInput()` to declarative keymaps. The view becomes a pure renderer -- no input handling.
 
 ```typescript
-// todo.tsx -- Level 2: with tea, domain plugin, declarative keymap
+// todo.tsx -- Level 2: with app level, domain plugin, declarative keymap
 import { signal, computed } from "@silvery/signal"
 import { useSignal } from "@silvery/signal/react"
 import { create, pipe } from "@silvery/create"

@@ -1,12 +1,12 @@
 # App Architecture & Scopes
 
-> **Deep-dive** for [00-architecture.md](./00-architecture.md) § Part 2 (Tea) and Async Scope Tree. Plugin composition, domain plugins, op() proxy, structured concurrency. Last synced: 2026-03-19.
+> **Deep-dive** for [00-architecture.md](./00-architecture.md) § Part 2 (App Level) and Async Scope Tree. Plugin composition, domain plugins, op() proxy, structured concurrency. Last synced: 2026-03-19.
 
 _Status: v1 (2026-03-19). Merged from 05-app.md (plugin composition) and 06-scopes.md (structured concurrency). See also: [01-rendering-input.md](./01-rendering-input.md) (rendering, input pipeline), [02-signals.md](./02-signals.md) (signals, models), [03-commands.md](./03-commands.md) (command tree, availability)._
 
 ---
 
-## Tea on Top of `create()`
+## App Level on Top of `create()`
 
 The app kernel is `create()` -- see [00-architecture.md](./00-architecture.md) § Part 0:
 
@@ -22,11 +22,11 @@ The progression:
 |---|---|---|
 | **Foundation** | `create()` | `{ dispatch, apply, run }` -- zero state |
 | **+ Scope** | `withScope()` | `app.scope`, `op.scope` (lazy), `app.quit()` |
-| **+ Tea** | `withApp()` | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
+| **+ App** | `withApp()` | `app.models`, `app.commands`, `app.keymap()`, `app.command()` |
 | **+ Domains** | `withTodo()`, `withEditor()`, ... | Populated models, commands, keybindings |
 | **+ Rendering** | `withAg()`, `withTerm()`, `withReact()` | Node tree, terminal I/O, React reconciler |
 
-Each layer only calls down. Tea doesn't know about rendering. Domains don't know about each other (unless explicitly ordered). The kernel doesn't know about anything.
+Each layer only calls down. The app layer doesn't know about rendering. Domains don't know about each other (unless explicitly ordered). The kernel doesn't know about anything.
 
 ---
 
@@ -44,7 +44,7 @@ See [00-architecture.md](./00-architecture.md) § Part 2 for the full `withApp()
 - **`app.registerCommand()`** -- maps command object refs to string paths (for serialization)
 - **`app.command()`** -- typed dispatch convenience (returns `op.pending`)
 
-Without `withApp()`, `create()` apps can still use `dispatch()` and `apply()` directly -- Tea is opt-in infrastructure for the command/model/keymap pattern.
+Without `withApp()`, `create()` apps can still use `dispatch()` and `apply()` directly -- The app level is opt-in infrastructure for the command/model/keymap pattern.
 
 ### How Plugins Compose
 
@@ -758,7 +758,7 @@ const editor = pipe(
 // Terminal TUI
 pipe(create(), withScope(), withAg(), withApp(), ...domains, withTerm(), withReact({ view: <App /> }))
 
-// Browser (future) -- no ag, tea on native React DOM
+// Browser (future) -- no ag, app level on native React DOM
 pipe(create(), withScope(), withApp(), ...domains, withReactDOM({ view: <App />, root: "#app" }))
 ```
 

@@ -51,8 +51,8 @@ These are views of one runtime. A keypress traverses the plugin chain, resolves 
 ## Terminology
 
 - **Ag**: rendering (Ag = silver). Node tree, adapters, renderers, 30+ components.
-- **Tea**: app architecture (bundled as `silvertea`). Models, commands, keymaps.
-- **Impure**: native framework bridges — tea without ag rendering.
+- **App level**: app architecture. Models, commands, keymaps, providers.
+- **Impure**: native framework bridges — app level without ag rendering.
 - **Operation** (op): anything dispatched. Serializable payload.
 - **Plugin**: `(app) => app`. Wraps methods or adds capabilities.
 
@@ -239,7 +239,7 @@ function withTerm(options?: TermOptions) {
 
 ---
 
-## Part 2: Tea (silvertea)
+## Part 2: App Level
 
 `withApp()` creates the registries (models, commands, keymap). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
 
@@ -691,7 +691,7 @@ batch.dispose()  // caller controls lifetime
 
 ## Part 3: More Cases
 
-### Case 1: Ag only (no tea)
+### Case 1: Ag only (no app level)
 
 ```typescript
 pipe(create(), withScope(), withAg(), withTerm(), withReact({ view: <Counter /> }))
@@ -704,7 +704,7 @@ import { withReactDOM } from "@silvery/impure/react-dom"
 pipe(create(), withScope(), withApp(), withTodo(), withReactDOM({ view: <App />, root: "#app" }))
 ```
 
-No ag. Tea on native React DOM. No ag-ui components.
+No ag. App level on native React DOM. No ag-ui components.
 
 ### Case 3: Headless
 
@@ -820,7 +820,7 @@ function withLogging() {
 
 **alien-signals is the reactive engine.** `@silvery/signal` re-exports alien-signals core (`signal`, `computed`, `effect`, `batch`) and adds `createStore()` (deep proxy), `createResource()` (async bridge), and `/react` bindings (`useSignal`). Decision 26-28 in [decisions.md](./decisions.md). See [signals-landscape-2026.md](./signals-landscape-2026.md) for the full research and rationale.
 
-**Everything is a plugin.** `create()` is zero-dep. Scope, ag, tea, rendering — all opt-in.
+**Everything is a plugin.** `create()` is zero-dep. Scope, ag, app, rendering — all opt-in.
 
 **`withApp()` — single app infrastructure plugin.** Creates models + commands + keymap registries. Domain plugins populate them.
 
@@ -862,7 +862,7 @@ Foundation:
     ├── createResource()                  async signal bridge (scope-integrated)
     └── /react                            useSignal(), model selectors (peer: react)
 
-Tea (app architecture — bundled as silvertea):
+App (app architecture):
   @silvery/model                          (signal)
     └── /react                            (signal/react, peer: react)
   @silvery/commands                       (create, signal, scope)
@@ -883,8 +883,7 @@ Impure (native framework bridges — no ag):
     └── /svelte                           (create, scope, commands, peer: svelte — future)
 
 Bundles:
-  silvertea                               create + scope + signal + model + commands
-  silvery                                 silvertea + ag + ag-react + ag-term + ag-ui + ag-theme
+  silvery                                 create + scope + signal + model + commands + ag + ag-react + ag-term + ag-ui + ag-theme
 ```
 
 ---
@@ -899,5 +898,5 @@ Bundles:
 | 05-app        | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
 | 06-scopes     | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
 | composability | Adapter/renderer roles                               | Framework×platform matrix, gap analysis        |
-| packaging     | `create` + `ag-*` + tea split + `impure`             | Migration paths, bundle strategies             |
+| packaging     | `create` + `ag-*` + app split + `impure`             | Migration paths, bundle strategies             |
 | decisions     | Referenced where relevant                            | Full decision log (25 decisions)               |
