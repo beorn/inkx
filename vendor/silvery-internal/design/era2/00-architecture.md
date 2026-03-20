@@ -1,6 +1,6 @@
-# Era 2 Wiring Guide
+# Era 2 Architecture
 
-_Status: draft (2026-03-19). How packages connect for each use case._
+_Status: draft (2026-03-19). The central reference for Silvery Era 2. Deep-dives in sibling docs._
 
 Everything is a plugin — capabilities are opt-in.
 

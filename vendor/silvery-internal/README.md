@@ -20,21 +20,22 @@ Silvery's public docs live in [`vendor/silvery/docs/`](../silvery/docs/).
 
 ### Era 2 Design (implement now)
 
-Progressive-disclosure docs — read in order. Each builds on the previous.
+**Start here**: [architecture.md](design/era2/architecture.md) is the central reference. Deep-dives below expand on specific topics.
 
-| File                                                           | What                                        |
-| -------------------------------------------------------------- | ------------------------------------------- |
-| [design/era2/01-quick-start.md](design/era2/01-quick-start.md) | Minimal app, idealized shapes, spike map    |
-| [design/era2/02-signals.md](design/era2/02-signals.md)         | Signals, derived, createModel, selectors    |
-| [design/era2/03-commands.md](design/era2/03-commands.md)       | Command tree, `{ fn, args? }`, availability |
-| [design/era2/04-input.md](design/era2/04-input.md)             | Keymaps, sources, dispatch pipeline         |
-| [design/era2/05-app.md](design/era2/05-app.md)                 | App composition, plugins, op(), providers   |
-| [design/era2/06-scopes.md](design/era2/06-scopes.md)           | Structured concurrency, scope tree, effects |
-| [design/era2/composability.md](design/era2/composability.md)   | Cross-platform design, framework×platform   |
-| [design/era2/packaging.md](design/era2/packaging.md)           | Package structure, bundles, migration       |
-| [design/era2/playground.md](design/era2/playground.md)         | Live Canvas playground design               |
-| [design/era2/decisions.md](design/era2/decisions.md)           | Numbered decision log                       |
-| [design/era2/wiring.md](design/era2/wiring.md)                 | How packages connect — 6 cases, data flows  |
+| File | What |
+|---|---|
+| [design/era2/00-architecture.md](design/era2/00-architecture.md) | **THE reference** — full architecture, code, flows, packages |
+| [design/era2/01-quick-start.md](design/era2/01-quick-start.md) | Deep-dive: concrete app examples, migration paths |
+| [design/era2/02-signals.md](design/era2/02-signals.md) | Deep-dive: signal research, progressive API, alien-signals rationale |
+| [design/era2/03-commands.md](design/era2/03-commands.md) | Deep-dive: command-centric philosophy, surface projection |
+| [design/era2/04-input.md](design/era2/04-input.md) | Deep-dive: chord engine, async iterables, key normalization |
+| [design/era2/05-app.md](design/era2/05-app.md) | Deep-dive: op() proxy, Sips 4-8, plugin philosophy |
+| [design/era2/06-scopes.md](design/era2/06-scopes.md) | Deep-dive: full scope API (sleep, timeout, onDispose), effects |
+| [design/era2/composability.md](design/era2/composability.md) | Deep-dive: framework×platform matrix |
+| [design/era2/packaging.md](design/era2/packaging.md) | Roadmap: package structure (needs update for ag-* naming) |
+| [design/era2/playground.md](design/era2/playground.md) | RFC: Live Canvas playground |
+| [design/era2/decisions.md](design/era2/decisions.md) | Log: numbered decisions (append-only) |
+| [design/era2/signals-landscape-2026.md](design/era2/signals-landscape-2026.md) | Research: signals library comparison |
 
 ### Era 3 Design (future)
 

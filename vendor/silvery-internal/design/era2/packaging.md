@@ -1,8 +1,10 @@
 # Packaging Model
 
+> **Partially superseded (2026-03-19).** The package naming has evolved. "Silver Platter" is now **Ag** (`@silvery/ag-*`). "Silvertea" package structure is now `@silvery/create` + `@silvery/scope` + `@silvery/signal` + `@silvery/model` + `@silvery/commands`. See [00-architecture.md](./00-architecture.md) § Dependency Graph for the current package structure.
+
 _Status: draft (2026-03-16). How silvery decomposes into independent packages and recomposes for different use cases._
 
-_See also: [composability.md](./composability.md) (tradeoffs, gap analysis, what's theoretically possible), [architecture-overview.md](../archive/architecture-overview.md) (concepts, op spectrum), [05-app.md](./05-app.md) (plugins, op())._
+_See also: [00-architecture.md](./00-architecture.md) (THE reference), [composability.md](./composability.md) (tradeoffs, gap analysis)._
 
 ## What Is Silvery?
 
