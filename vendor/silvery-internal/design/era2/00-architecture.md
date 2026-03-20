@@ -241,19 +241,19 @@ function withTerm(options?: TermOptions) {
 
 ## Part 2: App Level
 
-`withApp()` creates the registries (models, commands, keymap). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
+`withApp()` creates the registries (models, commands, keymap) and accepts providers (typed I/O capabilities). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
 
 ### withApp — app infrastructure (single plugin)
 
 ```typescript
-function withApp() {
+function withApp(options?: { providers?: Record<string, any> }) {
   return (app) => {
     // Capability marker — prevents double-install
-    if (app._tea) throw new Error("withApp() already installed")
-    app._tea = true
+    if (app.models || app.commands || app.providers) throw new Error("withApp() already installed")
 
     app.models = {}
     app.commands = {}
+    app.providers = options?.providers ?? {}  // typed I/O capabilities (api, storage, ai)
 
     // Per-app command ref → path mapping (not module-global)
     const commandMeta = new WeakMap<object, { path: string[] }>()
@@ -631,7 +631,7 @@ const app = pipe(
   create(),
   withScope(),
   withAg(),
-  withApp(),                    // models + commands + keymap registries
+  withApp({ providers }),        // models + commands + keymap + providers
   withTodo(),                   // domain
   withEditor(),                 // domain
   (app) => {                    // inline domain
@@ -822,7 +822,7 @@ function withLogging() {
 
 **Everything is a plugin.** `create()` is zero-dep. Scope, ag, app, rendering — all opt-in.
 
-**`withApp()` — single app infrastructure plugin.** Creates models + commands + keymap registries. Domain plugins populate them.
+**`withApp()` — single app infrastructure plugin.** Creates models + commands + keymap registries + providers. Domain plugins populate registries and access providers for I/O.
 
 **Domain plugins co-locate everything.** Models + commands + keybindings in one plugin. Closure access. No `this`. `app.keymap?.()` for headless compatibility.
 
