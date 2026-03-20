@@ -12,7 +12,7 @@ What if one codebase could render to terminal, web, and canvas — using React, 
 
 ## Silvery's Five Components
 
-Silvery decomposes into five independent components. Each solves one problem. They compose freely along two axes (framework × platform), with an optional app framework (tea) independent of both.
+Silvery decomposes into five independent components. Each solves one problem. They compose freely along two axes (framework x platform), with an optional app framework (create + scope + commands + signals + model) independent of both.
 
 ### 1. Abstract Nodes (@silvery/ag)
 
@@ -27,14 +27,14 @@ A data model for UI. Box, Text, and their properties (flexDirection, color, over
 The abstract rendering phases: measure → layout → diff → output. Ag defines the contracts; platforms provide implementations.
 
 - **@silvery/ag-term**: implements all capabilities — flexily for layout, ANSI buffer for diff/output. Frameworks produce abstract nodes; the terminal platform renders them.
-- **@silvery/ag-web**: provides mapping and normalization only — node types → DOM elements, props → CSS, theme → custom properties. Frameworks use their native DOM capabilities (react-dom, Svelte compiler, Solid runtime) for reconciliation. The browser handles layout (CSS flexbox) and rendering.
-- **@silvery/ag-canvas**: flexily for layout, draw calls for output. Similar to terminal — frameworks produce abstract nodes, platform renders them.
+- **@silvery/ag-exp-web**: provides mapping and normalization only — node types → DOM elements, props → CSS, theme → custom properties. Frameworks use their native DOM capabilities (react-dom, Svelte compiler, Solid runtime) for reconciliation. The browser handles layout (CSS flexbox) and rendering.
+- **@silvery/ag-exp-canvas**: flexily for layout, draw calls for output. Similar to terminal — frameworks produce abstract nodes, platform renders them.
 
 **Note:** Terminal and canvas are **platform-rendered** — the platform owns the full pipeline. Web is **framework-rendered** — the framework uses its native DOM capabilities through the platform's mapping layer. This means framework × platform is not fully orthogonal: terminal works identically regardless of framework, but web rendering depends on the framework's DOM capabilities.
 
 Ag is thin — types, interfaces, theme tokens, utilities. Heavy lifting lives in platform packages.
 
-### 3. Framework Adapters (@silvery/ag-react, @silvery/ag-svelte, ...)
+### 3. Framework Adapters (@silvery/ag-react, @silvery/ag-exp-svelte, ...)
 
 Bridges between view frameworks and silvery's abstract nodes.
 
@@ -46,13 +46,13 @@ Bridges between view frameworks and silvery's abstract nodes.
 
 All produce the same abstract nodes. The pipeline downstream is identical.
 
-Frameworks also provide **framework-specific bindings** for tea's primitives:
+**Signal bindings** bridge silvery signals to each framework's reactivity model (in `@silvery/signals/*` subpaths, not in the framework adapters):
 
-- React: `useSignal()` via `useSyncExternalStore`
-- Svelte: signal store adapter via Svelte 5 runes
-- Solid: trivial — Solid signals ≈ tea signals
+- React: `useSignal()` via `useSyncExternalStore` (`@silvery/signals/react`)
+- Svelte: signal store adapter via Svelte 5 runes (`@silvery/signals/svelte`, future)
+- Solid: trivial -- Solid signals ~ silvery signals
 
-### 4. Platform Adapters (@silvery/ag-term, @silvery/ag-web, ...)
+### 4. Platform Adapters (@silvery/ag-term, @silvery/ag-exp-web, ...)
 
 Bridges between the pipeline and a rendering target.
 
@@ -62,13 +62,15 @@ Bridges between the pipeline and a rendering target.
 | **Web**      | DOM elements (via framework) | Native CSS flexbox | DOM listeners → normalized keys | CSS custom properties |
 | **Canvas**   | Draw calls                   | flexily            | Hit-testing → normalized keys   | Programmatic colors   |
 
-**Input normalization**: each platform converts its native events to a common format (normalized key strings like `"ctrl+d"`, `"j"`, `"escape"`) before they reach tea's `keymap()`. The app framework never sees platform-specific event types.
+**Input normalization**: each platform converts its native events to a common format (normalized key strings like `"ctrl+d"`, `"j"`, `"escape"`) before they reach the command system's `keymap()`. The app framework never sees platform-specific event types.
 
-### 5. App Framework (silvertea = @silvery/create + scope + signal + model + commands)
+### 5. App Framework (@silvery/create + scope + signals + model + commands)
+
+> The name "silvertea" is retired. What was `@silvery/tea` dissolved (Decision 31) into `@silvery/create` + `@silvery/scope` + `@silvery/commands` + `@silvery/signals` + `@silvery/model`.
 
 Framework-agnostic, platform-agnostic state and behavior. Signals, commands, keymaps, models, scopes, op(). Zero dependency on ag, frameworks, or platforms.
 
-`@silvery/impure` provides native framework bridges — tea without ag rendering. Use tea's signals, commands, and models with React DOM, Svelte, or other native frameworks directly. No abstract node tree, no ag pipeline.
+`@silvery/impure` provides native framework bridges -- app-level packages without ag rendering. Use signals, commands, and models with React DOM, Svelte, or other native frameworks directly. No abstract node tree, no ag pipeline.
 
 See [packaging.md](./packaging.md) for details.
 
@@ -79,20 +81,20 @@ See [packaging.md](./packaging.md) for details.
 Every cell is a valid combination:
 
 ```
-                  Platforms
-                  @silvery/ag-term    @silvery/ag-web    @silvery/ag-canvas
-Frameworks        ────────────────    ───────────────    ──────────────────
-@silvery/ag-react    ✓ (today)        future              future
-@silvery/ag-svelte   future           future              future
-@silvery/ag-solid    future           future              future
+                       Platforms
+                       @silvery/ag-term    @silvery/ag-exp-web    @silvery/ag-exp-canvas
+Frameworks             ────────────────    ───────────────────    ──────────────────────
+@silvery/ag-react          ✓ (today)        future                  future
+@silvery/ag-exp-svelte     future           future                  future
+@silvery/ag-exp-solid      future           future                  future
 ```
 
 ### One model, multiple views
 
-Because tea is independent of rendering, one model can drive multiple views simultaneously:
+Because the app framework is independent of rendering, one model can drive multiple views simultaneously:
 
 ```
-                    silvertea (model)
+                    app framework (model)
                     ┌───────────────────┐
                     │ signals + commands │
                     └─────────┬─────────┘
@@ -126,7 +128,7 @@ Future topologies (server-authoritative model, replicated/event-sourced model ac
 
 **Progressive adoption.** Start with `silvery` (React + terminal). Extract state to signals when you need sharing. Add commands when you need automation. Use op() when you need undo. Each step is independent — you never rewrite.
 
-**Test without rendering.** Tea models are pure state + behavior. Create with `createInstantScope()`, invoke commands, assert on signals. No DOM, no terminal, no framework.
+**Test without rendering.** Models are pure state + behavior. Create with `.create(mockDeps)`, invoke commands, assert on signals. No DOM, no terminal, no framework.
 
 ### What you lose compared to platform-native development
 
@@ -151,7 +153,7 @@ The abstract component model can only express what ALL platforms can render. Any
 1. **Closable** — extend the abstract model. Each platform implements what it can, degrades gracefully where it can't. Tracked in bead: km-silvery.web-platform-gap.
 2. **Fundamental** — proportional vs fixed-width fonts, unlimited vs 256 colors, pixel vs cell positioning. These are inherent platform differences. Design for the lowest common denominator, enhance on richer platforms.
 
-**Accessibility deserves early investment.** Unlike other closable gaps, accessibility is legally required for web apps and structurally hard to retrofit. The recommendation: add semantic props (`role`, `aria-label`, `aria-live`, `tabIndex`) to `@silvery/ag`'s abstract node types NOW, even though only `@silvery/ag-web` uses them initially. Terminal ignores them (screen readers don't read terminal apps). Canvas would need a parallel accessibility tree. By including them in ag early, all components and frameworks build with accessibility in mind from the start, avoiding the expensive "bolt it on later" pattern.
+**Accessibility deserves early investment.** Unlike other closable gaps, accessibility is legally required for web apps and structurally hard to retrofit. The recommendation: add semantic props (`role`, `aria-label`, `aria-live`, `tabIndex`) to `@silvery/ag`'s abstract node types NOW, even though only `@silvery/ag-exp-web` uses them initially. Terminal ignores them (screen readers don't read terminal apps). Canvas would need a parallel accessibility tree. By including them in ag early, all components and frameworks build with accessibility in mind from the start, avoiding the expensive "bolt it on later" pattern.
 
 **Design principle**: the abstract model is the **floor**, not the ceiling. Platforms can render MORE than the model specifies (progressive enhancement). An `<Image>` shows a full image on web, falls back to ASCII art on terminal. What must NOT happen: a platform inventing components that don't exist in the abstract model.
 
@@ -196,7 +198,7 @@ The abstract component model can only express what ALL platforms can render. Any
 
 The domain model is the portable core. Surface models handle platform-specific concerns. Views can be universal (using silvery abstractions) or platform-specific (using native APIs). Runtime is always deployment-specific.
 
-Most real apps will be hybrid. The MODEL is universal (tea signals + commands). The VIEW uses abstract components where portability matters, platform-specific code where it doesn't:
+Most real apps will be hybrid. The MODEL is universal (signals + commands). The VIEW uses abstract components where portability matters, platform-specific code where it doesn't:
 
 ```typescript
 // Universal model — works everywhere
@@ -243,15 +245,15 @@ The model doesn't know or care which view renders it.
 ### Today
 
 - React + terminal (silvery's primary use case)
-- Headless / AI / test (tea alone, no rendering)
+- Headless / AI / test (app-level packages alone, no rendering)
 - Terminal in browser (xterm.js backend in @silvery/ag-term)
 - Model shared between view and non-view consumers
-- @silvery/impure — tea on native frameworks (React DOM, Svelte) without ag
+- @silvery/impure -- app-level packages on native frameworks (React DOM, Svelte) without ag
 
 ### Near-term (new packages, architecture ready)
 
-- @silvery/ag-web — React terminal apps also run as web apps
-- @silvery/ag-svelte — same model, different view framework
+- @silvery/ag-exp-web — React terminal apps also run as web apps
+- @silvery/ag-exp-svelte — same model, different view framework
 - Terminal + web simultaneously — CLI and dashboard share a model
 
 ### Theoretical limit (requires closing all gaps)
@@ -276,21 +278,21 @@ The architecture is designed so these limits are explicit tradeoffs per-componen
 | **Terminal ↔ web visual parity**  | Fixed-width cells vs proportional fonts, 256 colors vs unlimited, cell-grid vs pixel positioning                                                                  | Accept graceful degradation. Design for terminal, enhance on web.                               |
 | **Framework interop**             | React and Svelte have different lifecycles, hooks, tooling. Running both requires two runtimes.                                                                   | Practical case is different views for different deployments, not mixing frameworks in one view. |
 | **Component library abstraction** | SelectList, TextInput etc. are React components with hooks today. Making them framework-agnostic requires headless logic + framework-specific rendering wrappers. | Align with TEA: component logic as pure state machines, rendering as projection.                |
-| **Native mobile**                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                               | Future @silvery/ag-native package, or @silvery/ag-web in a WebView.                             |
+| **Native mobile**                 | React Native has its own component model. Bridging silvery → RN is another adapter.                                                                               | Future @silvery/ag-exp-native package, or @silvery/ag-exp-web in a WebView.                     |
 | **Performance at scale**          | Abstract nodes add indirection vs direct rendering.                                                                                                               | Negligible for most apps. Platforms can short-circuit for hot paths.                            |
 
 ## The Gradual Path
 
 Two products, one gradient. See [packaging.md](./packaging.md#what-should-i-use) for the full decision tree and when to adopt each step.
 
-**Silvery** (rendering) is the ag pipeline, components, and theme. **Tea** (app framework) is commands, keymaps, op(), plugins, structured concurrency. Tea is optional and adopted gradually — each step adds capability without rewriting previous work.
+**Silvery** (rendering) is the ag pipeline, components, and theme. **App-level packages** (create + scope + commands + signals + model) provide commands, keymaps, op(), plugins, structured concurrency. The app framework is optional and adopted gradually -- each step adds capability without rewriting previous work.
 
 ```
 "I want a terminal app"
   → npm install silvery. Use useState, zustand, whatever. Done.
 
 "My state is getting tangled"
-  → Add tea signals. Shared state outside React.
+  -> Add signals (@silvery/signals). Shared state outside React.
 
 "I want AI/tests to drive my app"
   → Add commands. dispatch(op) from anywhere — same code path as keyboard.
@@ -302,13 +304,13 @@ Two products, one gradient. See [packaging.md](./packaging.md#what-should-i-use)
   → Route mutations through op(). Serializable records for replay.
 
 "I want the same app on the web"
-  → Use silvery components (Box/Text). Add @silvery/ag-web. Tea code unchanged.
+  -> Use silvery components (Box/Text). Add @silvery/ag-exp-web. App-level code unchanged.
 
 "I want Svelte instead of React"
-  → Add @silvery/ag-svelte. Tea code unchanged. Only views need rewriting.
+  -> Add @silvery/ag-exp-svelte. App-level code unchanged. Only views need rewriting.
 
-"I want tea on React DOM (no ag)"
-  → Add @silvery/impure. Tea signals + commands + models on native react-dom.
+"I want app-level packages on React DOM (no ag)"
+  -> Add @silvery/impure. Signals + commands + models on native react-dom.
 ```
 
 Each step is independently valuable. Each solves a specific pain point. You never rewrite — you extract and recompose.

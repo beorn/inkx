@@ -68,7 +68,7 @@ function withScope(rootScope?: Scope) {
       }
       return prevDispatch(op)
     }
-    app.quit = () => scope.cancel()
+    app.quit = () => scope[Symbol.dispose]()
 
     // Wrap run to dispose root scope on exit
     const prevRun = app.run
@@ -76,7 +76,7 @@ function withScope(rootScope?: Scope) {
       try {
         await prevRun?.()
       } finally {
-        scope.dispose()
+        scope[Symbol.dispose]()
       }
     }
 
@@ -95,6 +95,7 @@ type Op = { type: string; [key: string]: unknown }
 interface OpTypes {
   resize: { cols: number; rows: number }
   command: { path: string[]; args?: Record<string, unknown> }
+  "model-op": { target: string; path: string[]; args: unknown[]; run: () => unknown }
   prompt: { command: string[]; missing: string[] }
   error: { source: string[]; error: string }
 }
@@ -172,6 +173,7 @@ function withReact({ view }: { view: ReactElement }) {
 ```typescript
 function withTerm(options?: TermOptions) {
   return (app) => {
+    const prevRun = app.run
     app.run = async () => {
       await using terminal = createTerminal(options)
       app.flush = () => runPipeline(app.root, terminal)
@@ -179,6 +181,7 @@ function withTerm(options?: TermOptions) {
       for await (const key of terminal.keys(app.scope?.signal)) {
         app.dispatch({ type: "input:key", ...key })
       }
+      await prevRun?.()
     }
     return app
   }
@@ -190,6 +193,8 @@ function withTerm(options?: TermOptions) {
 ## Part 2: App Level
 
 `withApp()` creates the registries (models, commands, keymap) and accepts providers (typed I/O capabilities). Domain plugins populate them. Everything co-located in the domain plugin — models, commands, keybindings. No circular dependencies, no `this`, full type safety via closure access.
+
+> **`withApp()` is a composition preset**, not a standalone package export. It combines `withScope()`, `withCommands()`, model registry setup, and optionally provider wiring into a single convenience plugin. The `silvery` bundle provides it, or users write their own. Individual capabilities (`@silvery/commands`, `@silvery/scope`, `@silvery/model`) are the real packages.
 
 ### withApp — app infrastructure (single plugin)
 
@@ -233,10 +238,13 @@ function withApp(options?: { providers?: Record<string, any> }) {
             if (resolution.state === "unavailable") throw new CommandError("unavailable", op.path)
             if (resolution.state === "invalid") throw resolution.error // preserve validation error
 
-            // Track if scope was auto-created (for disposal)
-            const hadScope = !!Object.getOwnPropertyDescriptor(op, "scope")
-            const result = op.scope ? op.scope.run(() => cmd.fn(resolution.args)) : cmd.fn(resolution.args)
-            if (op.scope && !hadScope) autoScopes.add(op.scope)
+            // Track if scope was auto-created (for disposal).
+            // Check BEFORE accessing op.scope — the lazy getter from withScope()
+            // creates a child scope on first access, so checking after would always
+            // see a scope and couldn't distinguish caller-owned from auto-created.
+            const callerOwned = !!Object.getOwnPropertyDescriptor(op, "scope")?.value
+            const result = cmd.fn(resolution.args)
+            if (op.scope && !callerOwned) autoScopes.add(op.scope)
             return result
           })
           .then(
@@ -260,7 +268,7 @@ function withApp(options?: { providers?: Record<string, any> }) {
           .finally(() => {
             // Auto-dispose scope only if framework created it
             const scope = Object.getOwnPropertyDescriptor(op, "scope")?.get?.()
-            if (scope && autoScopes.has(scope)) scope.dispose?.()
+            if (scope && autoScopes.has(scope)) scope[Symbol.dispose]?.()
           })
         // Suppress unhandled rejection — keymap dispatches fire-and-forget
         void pending.catch(() => {})
@@ -277,7 +285,7 @@ function withApp(options?: { providers?: Record<string, any> }) {
       command: CommandRef
       args?: unknown
       when?: () => boolean // signal accessor — called at input time
-      prompt?: string
+      prompt?: string // arg field name to prompt for interactively when missing
     }
     const bindings: RegisteredBinding[] = []
 
@@ -317,8 +325,9 @@ function withApp(options?: { providers?: Record<string, any> }) {
           // ConditionalBinding from when()
           const { when: condition, binding } = value
           const cmd = typeof binding === "object" && "command" in binding ? binding.command : binding
+          const args = typeof binding === "object" && "args" in binding ? binding.args : undefined
           const prompt = typeof binding === "object" && "prompt" in binding ? binding.prompt : undefined
-          bindings.push({ key, command: cmd, when: condition, prompt })
+          bindings.push({ key, command: cmd, args, when: condition, prompt })
         } else if (value && typeof value === "object" && "command" in value) {
           // { command, args?, prompt? }
           bindings.push({ key, command: value.command, args: value.args, prompt: value.prompt })
@@ -461,7 +470,7 @@ function withTodo() {
     app.commands.todo = {
       add: {
         title: "Add Item",
-        args: { text: string() },
+        args: z.object({ text: z.string() }),
         fn(args) {
           todo.add(args.text)
         },
@@ -474,7 +483,7 @@ function withTodo() {
       },
       remove: {
         title: "Remove Item",
-        args: { index: number({ default: () => todo.cursor() }) },
+        args: z.object({ index: z.number().default(() => todo.cursor()) }),
         fn(args) {
           todo.removeAt(args.index)
         },
@@ -558,6 +567,7 @@ function resolveInvocation(
   | { state: "prompt"; missing: string[] }
   | { state: "unavailable" }
   | { state: "invalid"; error: Error }
+  | { state: "unknown" }
 ```
 
 Centralizes arg defaults, signal-based availability, and validation.
@@ -624,7 +634,7 @@ JSON.stringify(op) // { type: "command", path: [...], args: {...}, status: "ok",
 // scope, pending, error NOT included (non-enumerable)
 ```
 
-**Scope disposal**: scopes auto-created by `withScope()` (via lazy getter) are tracked internally and disposed after command completion. Caller-provided scopes (set on the op before dispatch) are NOT disposed by the framework — ownership is detected automatically, no flag needed.
+**Scope disposal**: scopes auto-created by `withScope()` (via lazy getter) are tracked internally and disposed after command completion. Caller-provided scopes (set on the op before dispatch) are NOT disposed by the framework — ownership is detected by checking the property descriptor before accessing `op.scope` (caller-provided scopes have a `value` descriptor; the lazy getter installs a `get` descriptor).
 
 ```typescript
 // Caller-provided scope for batching:
@@ -632,7 +642,7 @@ const batch = app.scope.child("batch")
 const op1 = { type: "command", path: [...], scope: batch }  // caller-owned
 const op2 = { type: "command", path: [...], scope: batch }
 app.dispatch(op1); app.dispatch(op2)
-batch.dispose()  // caller controls lifetime
+batch[Symbol.dispose]()  // caller controls lifetime
 ```
 
 ---
@@ -842,7 +852,7 @@ Three wrapping tiers: `dispatch` (infrastructure), `apply` (app logic), `run` (l
 
 **Op lifecycle.** `op.status` (ok/prompt/unavailable/invalid/unknown/error), `op.args` (resolved — written back for replay), `op.result` (enumerable), `op.error` (non-enumerable). Non-ready statuses preserved — not overwritten to "error". `op.pending` always set for command ops, even rejected ones. Fire-and-forget rejections suppressed internally (`void pending.catch(() => {})`).
 
-**Scope disposal.** Auto-created op scopes tracked via WeakSet, disposed after command completion. Caller-provided scopes (set before dispatch) not disposed — ownership detected automatically. Root scope disposed when `run()` exits.
+**Scope disposal.** Auto-created op scopes tracked via WeakSet, disposed after command completion. Caller-provided scopes (set before dispatch) not disposed — ownership detected by checking `op.scope` before the lazy getter runs (a `value` descriptor means caller-owned; the lazy getter installs a `get` descriptor). Root scope disposed when `run()` exits via `[Symbol.dispose]()`.
 
 **Capability protection.** `withApp()` throws on double-install. Domain plugins require `withApp()` for `app.models`/`app.commands`. Keybinding registration is optional (`app.keymap?.()`) — enables headless use.
 
@@ -902,11 +912,11 @@ Bundles:
 
 | Doc                | Covered here                                         | Full details in original                       |
 | ------------------ | ---------------------------------------------------- | ---------------------------------------------- |
-| 02-signals         | `signal()`, `createModel()` (optional)               | 8-sip API, framework bindings, provider DI     |
+| 02-signals         | `signal()`, `createModel()` (optional)               | Progressive API (three steps), framework bindings, provider DI |
 | 03-commands        | Command tree, args, availability, surfaces           | Surface projection, domain objects, CLI rules  |
 | 01-rendering-input | `keymap()`, `when()`, precedence                     | Mapping type, invoke(), chord/count state      |
 | 04-app             | `dispatch()`/`apply()`, domain plugins, commandProxy | Two-box model/runtime, provider architecture   |
 | 04-app             | `op.scope`, ALS, `AbortSignal`, lifetime             | Scope API (sleep, timeout, onDispose), effects |
 | composability      | Adapter/renderer roles                               | Framework×platform matrix, gap analysis        |
 | packaging          | `create` + `ag-*` + app split + `impure`             | Migration paths, bundle strategies             |
-| decisions          | Referenced where relevant                            | Full decision log (25 decisions)               |
+| decisions          | Referenced where relevant                            | Full decision log (35 decisions)               |

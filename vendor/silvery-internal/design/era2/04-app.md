@@ -32,7 +32,9 @@ Each layer only calls down. The app layer doesn't know about rendering. Domains 
 
 ## Plugin Composition Philosophy
 
-### `withApp()` -- The App Infrastructure Plugin
+### `withApp()` -- Composition Preset
+
+`withApp()` is a **composition preset** that combines `withCommands()`, scope setup, model registry, and optionally provider wiring into a single convenience plugin. It is not a standalone package export -- it's what the `silvery` bundle provides, or what users write themselves by composing the underlying packages (`@silvery/commands`, `@silvery/scope`, `@silvery/model`).
 
 `withApp()` installs the registries (models, commands, keymap) and the apply-chain logic for command execution and key resolution. It does not add domain state -- that's what domain plugins do.
 
@@ -189,6 +191,8 @@ op(app.models).chat.submit({ text: "hello" })
 
 > **Note**: The implementation below is illustrative pseudocode. A production implementation must handle nested path accumulation, receiver binding, proxy identity caching, async generator methods, and symbol properties.
 
+Model-ops produce operations with `type: "model-op"` alongside the `target/path/args/run` fields. They flow through the same `apply()` pipeline as command ops. The `type` discriminant distinguishes command-ops (`type: "command"`) from model-ops (`type: "model-op"`) -- see [00-architecture.md](./00-architecture.md) SS Op Types.
+
 ```typescript
 function op<T extends object>(target: T): T {
   return new Proxy(target, {
@@ -197,6 +201,7 @@ function op<T extends object>(target: T): T {
       if (typeof val === "function") {
         return (...args: any[]) =>
           app.apply({
+            type: "model-op",
             target: "model",
             path: [prop], // e.g., ["chat", "submit"]
             args,
@@ -219,7 +224,7 @@ function withHistory() {
   return (app) => {
     const { apply } = app
     app.apply = (o) => {
-      if (o.target === "model") pushUndo(o)
+      if (o.type === "model-op") pushUndo(o)
       return apply(o)
     }
     return app
@@ -453,7 +458,7 @@ app.run = async () => {
   try {
     await prevRun?.()
   } finally {
-    scope.dispose() // root scope -- cascades to all children
+    scope[Symbol.dispose]() // root scope -- cascades to all children
   }
 }
 ```
@@ -629,7 +634,7 @@ const scope = pipe(createScope(), withTestClock(clock))
 // Future -- composing multiple plugins
 const scope = pipe(
   createScope(),
-  withTracing(), // loggily span per scope operation
+  withTracing(), // logging span per scope operation
   withTestClock(), // controllable time
 )
 ```

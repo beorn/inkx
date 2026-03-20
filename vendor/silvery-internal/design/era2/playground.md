@@ -72,7 +72,7 @@ Sucrase is purpose-built for development transforms. It strips types and convert
 | JSX transpiler   | Sucrase        | Fast, small, browser-compatible             |
 | UI framework     | React          | Already a dependency of Silvery             |
 | Layout engine    | Flexily        | Pure JS, synchronous init, no WASM          |
-| Canvas rendering | silvery/canvas | The whole point                             |
+| Canvas rendering | @silvery/ag-exp-canvas | The whole point                    |
 
 ## Project Structure
 
@@ -122,7 +122,7 @@ User code runs in a sandboxed scope with only React and Silvery exports availabl
 ```tsx
 // evaluate.ts (sketch)
 import React from "react"
-import { Box, Text, useContentRect, useScreenRect } from "@silvery/term/canvas"
+import { Box, Text, useContentRect, useScreenRect } from "@silvery/ag-exp-canvas"
 
 const scope = { React, Box, Text, useContentRect, useScreenRect }
 
@@ -260,5 +260,5 @@ Monaco dominates. For a lighter alternative, consider CodeMirror 6 (~150 KB) wit
 
 - `examples/playground/` -- Static playground (Phase 1)
 - `examples/web/canvas.html` -- Minimal Canvas adapter demo
-- `deep-dives/architecture.md` -- RenderAdapter interface
-- `docs/roadmap.md` -- Multi-target rendering vision
+- `../../deep-dives/architecture.md` -- RenderAdapter interface
+- `./composability.md` -- Cross-platform rendering vision

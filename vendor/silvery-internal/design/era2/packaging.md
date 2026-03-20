@@ -53,7 +53,8 @@ Experimental (future — log warning on use, API unstable):
 Headless (pure state machines, no rendering)
 ────────────────────────────────────────────
 @silvery/headless          SelectListState, TextInputState, VirtualListState,
-                           ToggleState, TabGroupState (create)
+                           ToggleState, TabGroupState, CommandPaletteState,
+                           SheetState, ToastState (create)
 
 App-level packages (independent of ag rendering)
 ─────────────────────────────────────────────────
@@ -122,8 +123,8 @@ Every component exists in up to three layers. Each layer is a separate package w
 
 ```
 @silvery/headless   ->  SelectListState, TextInputState, VirtualListState,
-                        ToggleState, TabGroupState
-@silvery/commands   ->  CommandPaletteState, SheetState, ToastState
+                        ToggleState, TabGroupState,
+                        CommandPaletteState, SheetState, ToastState
 ```
 
 **Layer 2 — Framework bindings** (one per framework, renderer-agnostic):
@@ -168,7 +169,7 @@ React framework adapter that creates silvery abstract nodes from JSX. The `/ui` 
 
 - Uses `react-reconciler` to bridge React -> abstract nodes
 - Provides React-specific hooks: `useContentRect()`, `useFocus()` (platform-specific hooks like `useTerminalFocused()` live in `@silvery/ag-term`)
-- Provides signal bridge: `useSignal()` (wraps `useSyncExternalStore`)
+- Signal bridge `useSignal()` lives in `@silvery/signals/react` (wraps `useSyncExternalStore`), not here — ag-react is signal-agnostic
 - **`@silvery/ag-react/ui`**: SelectList, TextInput, VirtualList, ProgressBar, ScrollView, etc. — React wrappers around headless state machines from @silvery/headless. Depends on ag-react, headless, commands, theme.
 
 Virtual DOM based — React diffs the component tree to determine what nodes changed.
@@ -228,16 +229,17 @@ Each backend is a ~10-line adapter: `zustandBackend(store)`, `signalBackend(sign
 
 ### App-Level Packages (@silvery/create, signals, scope, model, commands)
 
-The app-level packages replace and expand the old `@silvery/tea`. Framework-agnostic, platform-agnostic. Split across focused packages:
+The app-level packages replace and expand what was `@silvery/tea` (dissolved per Decision 31). Framework-agnostic, platform-agnostic. Split across focused packages:
+
+> **`withApp()` is a composition preset**, not a standalone package export. It combines `withScope()` + `withCommands()` + model registry setup + optional provider wiring into a single convenience plugin. The `silvery` bundle provides it, or users write their own by composing `@silvery/commands`, `@silvery/scope`, `@silvery/model`.
 
 - **@silvery/create** — `create()`, `dispatch()`, `apply()`, `pipe()`, `tea()` — zero-dep dispatch pipeline + TEA utility
 - **@silvery/scope** — `createScope()`, `withScope()`, `currentScope()` — structured concurrency (zero deps)
-- **@silvery/headless** — `SelectListState`, `TextInputState`, `VirtualListState`, `ToggleState`, `TabGroupState` — pure state machines (depends on create)
+- **@silvery/headless** — `SelectListState`, `TextInputState`, `VirtualListState`, `ToggleState`, `TabGroupState`, `CommandPaletteState`, `SheetState`, `ToastState` — pure state machines (depends on create)
 - **@silvery/signals** — `signal()`, `computed()`, `effect()`, `batch()` via alien-signals + `createStore()`, `createResource()`, subpath `/react` for `useSignal()` — optional, for reactive state
 - **@silvery/model** — `createModel()`, `ModelContext` — model factories with explicit DI (depends on signals — optional)
 - **@silvery/commands** — **Command** `{ fn, args? }`, **invoke()**, **canInvoke()**, **available()**, **keymap()**, **when()**, **Mapping\<E\>** — command system + declarative input mapping (depends on create only). Subpath `/react` for `useCommand()`, `useKeymap()` hooks.
 - _Future_: **Effects as data** (`AsyncEffect<T>`) — pure, testable side effects via typed descriptors
-- **Headless app component state machines**: CommandPaletteState, SheetState, ToastState (in @silvery/commands)
 
 **Zero dependencies on silvery rendering.** App-level packages are pure state + behavior. This is what enables headless operation — an AI agent or test harness uses them alone, with no rendering packages.
 
@@ -323,7 +325,7 @@ The surface adapter is the integration point — it knows both the platform (whe
 | `createSlice()`                 | `createModel()` (@silvery/model)                     | Factory receives `ModelContext` with explicit scope |
 | `store.apply({ op })`           | `op(model).method()`                                 | Proxy-based, same types/autocomplete                |
 | `useStore(selector)`            | `useSignal(signal)`                                  | Fine-grained (per-signal) vs coarse (selector)      |
-| Zustand store                   | signals + methods                                    | No store wrapper — signals ARE the state            |
+| Zustand store                   | signals + methods                                    | No store wrapper — signals replace the store        |
 | `createEffects()`               | Same (kept)                                          | —                                                   |
 | `createStore()` (TEA runtime)   | `tea()` (@silvery/create)                            | Same TEA shape, now a utility in create             |
 | —                               | `keymap()`, `when()`, `invoke()` (@silvery/commands) | New: input mapping system                           |
@@ -346,6 +348,7 @@ Headless:
   @silvery/headless                       (create — pure state machines)
     +-- SelectListState, TextInputState, VirtualListState
     +-- ToggleState, TabGroupState
+    +-- CommandPaletteState, SheetState, ToastState
 
 App (app architecture):
   @silvery/commands                       (create only)

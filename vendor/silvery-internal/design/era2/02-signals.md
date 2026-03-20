@@ -42,9 +42,9 @@ await run(<Counter />)
 // -- Step 3: Models -- createModel wraps factory -> typed hook ---------
 import { run, signal, createModel } from "silvery"
 
-// createModel: factory function in, typed hook out.
-// Returns a callable selector hook (Zustand-like) + .get() for direct access.
-const useChat = createModel(() => {
+// createModel: factory function in, model definition out.
+// .create() makes isolated instances. useModel() is the React hook.
+const chatModel = createModel(() => {
   const exchanges = signal<Exchange[]>([])
   const streaming = signal(false)
   return {
@@ -60,14 +60,15 @@ const useChat = createModel(() => {
 })
 
 // Direct access (tests, plugins, AI agents):
-useChat.get().submit({ text: "hello" })
-useChat.get().exchanges() // [{ role: "user", text: "hello" }]
+const chat = chatModel.create() // isolated instance
+chat.submit({ text: "hello" })
+chat.exchanges() // [{ role: "user", text: "hello" }]
 
 // Signal-tracked selector hook -- O(1) subscriptions:
 function ChatView() {
-  const count = useChat((m) => m.exchanges().length) // calls accessor, subscribes to exchanges
-  const isStreaming = useChat((m) => m.streaming()) // calls accessor, subscribes to streaming
-  const submit = useChat((m) => m.submit) // stable method ref (not a signal)
+  const count = useModel(chatModel, (m) => m.exchanges().length) // calls accessor, subscribes to exchanges
+  const isStreaming = useModel(chatModel, (m) => m.streaming()) // calls accessor, subscribes to streaming
+  const submit = useModel(chatModel, (m) => m.submit) // stable method ref (not a signal)
   return <Text>{count} messages</Text>
 }
 
@@ -115,7 +116,7 @@ The function-call pattern eliminates the auto-unwrapping complexity (old P3/P5).
 
 ## Principles
 
-**P1: Signals are the state primitive.** `signal<T>(initial)` returns a callable accessor — `sig()` reads, `sig(newValue)` writes. Fine-grained O(1) reactivity — only subscribers of the specific signal that changed are notified. Not Zustand stores (O(n) selector fanout), not proxies (too implicit), not bare useState (no sharing).
+**P1: Signals are the recommended reactive primitive.** `signal<T>(initial)` returns a callable accessor — `sig()` reads, `sig(newValue)` writes. Fine-grained O(1) reactivity — only subscribers of the specific signal that changed are notified. Not Zustand stores (O(n) selector fanout), not proxies (too implicit), not bare useState (no sharing). Signals are optional — the rendering pipeline and commands have zero signal dependencies (see Decision 34). Users can use zustand, jotai, valtio, or anything else.
 
 **P2: createModel wraps factories into typed hooks.** A model is a factory function returning signal accessors + methods. `createModel()` wraps it into a callable hook. The factory IS the definition; `createModel` IS the binding. No separate model interface, no Provider ceremony.
 
@@ -131,7 +132,7 @@ Layer 2: Model factories             createModel(() => { signal accessors + meth
 Layer 3: Selector hooks              useChat(m => m.phase()) -- tracked, O(1) subscribe
 ```
 
-Layer 1 is the state primitive — fine-grained, framework-agnostic, testable. Layer 2 wraps factories into typed namespaces with `.get()`, `.create()`, `.snapshot()`. Layer 3 provides Zustand-like ergonomics: the selector calls accessors, which track dependencies. Components re-render only when their specific dependencies change — not on every store update.
+Layer 1 is the state primitive — fine-grained, framework-agnostic, testable. Layer 2 wraps factories into typed definitions with `.create()` for isolated instances. Layer 3 provides Zustand-like ergonomics via `useModel(model, selector)`: the selector calls accessors, which track dependencies. Components re-render only when their specific dependencies change — not on every store update.
 
 ## State Access
 
@@ -142,17 +143,17 @@ Same API everywhere — `accessor()` to read, `accessor(newValue)` to write. No 
 | **React components**     | `useChat(m => m.exchanges().length)` | Selector calls accessor — tracked, O(1) subscribe       |
 | **Model code / plugins** | `useChat.get().exchanges()`          | Direct accessor call — typed, reactive                  |
 | **AI agents / commands** | `useChat.get().submit({ text })`     | Direct method call — typed                              |
-| **External (CLI/MCP)**   | `useChat.snapshot()` → JSON          | Serialized snapshot for remote consumers                |
+| **External (CLI/MCP)**   | Serialize signal values → JSON       | Serialized state for remote consumers                   |
 | **Tests**                | `chat.exchanges()`                   | Isolated instance via `.create()` — no framework needed |
 
 ## Object Shapes
 
 ### Model (via `createModel`)
 
-`createModel()` wraps a factory function -> returns a typed hook + namespace. The factory returns signals (state) + methods (behavior). Dependencies on providers are declared via `Pick`.
+`createModel()` wraps a factory function -> returns a model definition. The factory returns signals (state) + methods (behavior). `.create()` makes isolated instances. `useModel(model, selector)` is the React hook. Dependencies on providers are declared via `Pick`.
 
 ```typescript
-const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => {
+const chatModel = createModel((rt: Pick<typeof providers, "persist" | "ai">) => {
   const exchanges = signal<Exchange[]>([])
   const streaming = signal(false)
   return {
@@ -170,43 +171,40 @@ const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => {
   }
 })
 
-// Shape of the returned hook:
-type ModelHook<T> = {
-  // Callable as selector hook in React (signal-aware, explicit accessor calls):
-  <U>(selector: (model: T) => U, eq?: (a: U, b: U) => boolean): U
+// Shape of what createModel returns:
+// - createModel(factory) returns a model definition
+// - .create(deps?) makes an isolated instance (for testing or per-app scoping)
+// - useModel(chatModel, selector) is the React hook pattern (from 00-architecture.md)
 
-  // Direct access (tests, plugins, AI agents, model code):
-  get(): T // raw instance with signal fields
-  create(deps?: any): T // isolated instance for testing
-  snapshot(): Snapshot<T> // plain JSON state (signals -> values)
-  subscribe(fn: () => void): () => void
-}
-
-// Testing: useChat.create(mockProviders) -- isolated, no framework
-// Direct: useChat.get().submit({ text }) -- typed method call
-// React: useChat(m => m.exchanges().length) -- O(1) subscribe
+// Testing: chatModel.create(mockProviders) -- isolated, no framework
+// Direct: instance.submit({ text }) -- typed method call
+// React: useModel(chatModel, m => m.exchanges().length) -- O(1) subscribe
 ```
 
-`createModel` IS the bridge between signals (Layer 1) and Zustand-like hook ergonomics (Layer 3). The factory IS the model definition; `createModel` adds the subscription/hook machinery.
+`createModel` IS the bridge between signals (Layer 1) and hook ergonomics (Layer 3). The factory IS the model definition; `createModel` adds the instance creation machinery.
 
-**Instance scoping**: `createModel(factory)` returns a model hook -- a module-level singleton that acts as a factory. The hook itself is a singleton; the instances it creates are scoped. `hook.create({ ...deps })` creates an isolated instance bound to the provided dependencies. When used with `createApp`, instances are bound to the app's scope -- multiple app instances create multiple model instances. `.get()` returns the instance in the current scope context.
+**Instance scoping**: `createModel(factory)` returns a model definition. `.create(deps)` makes an isolated instance bound to the provided dependencies. In an app context, domain plugins call `.create()` and register instances on `app.models`. `useModel(model, selector)` is the React hook for subscribing to a model's signals.
 
-### Models Collection
+### Models in Domain Plugins
 
-Model hooks are module-level singletons (the factories). Model instances are scoped per-app or per-test. For apps with multiple models, `createApp` binds all of them to providers at once:
+Each domain plugin creates and registers its own model instances. Models are wired to providers via the domain plugin's closure — not via ambient `createApp()` scoping:
 
 ```typescript
-const useChat = createModel((rt: Pick<typeof providers, "persist" | "ai">) => { ... })
-const useTodos = createModel((rt: Pick<typeof providers, "persist">) => { ... })
-const usePrefs = createModel(() => { ... })  // no providers needed
+const chatModel = createModel((rt: Pick<typeof providers, "persist" | "ai">) => { ... })
+const todoModel = createModel((rt: Pick<typeof providers, "persist">) => { ... })
 
-const app = createApp(<App />, {
-  providers,
-  models: { chat: useChat, todos: useTodos, prefs: usePrefs },
-})
+// Domain plugins create and register instances:
+function withChat() {
+  return (app) => {
+    const chat = chatModel.create({ persist: app.providers.persist, ai: app.providers.ai })
+    app.models.chat = chat
+    // ... commands, keybindings ...
+    return app
+  }
+}
 ```
 
-Each model hook is independently usable in any component -- no `useModels()` aggregate hook needed. Components import the specific model they need.
+Each model is independently usable in any component via `useModel(chatModel, selector)`. Components import the specific model they need.
 
 ### Type System for Dependencies
 
@@ -304,24 +302,27 @@ Watch Solid 2.0 (currently beta) for the production-ready API, then adopt. Relev
 
 ```tsx
 // React -- useSyncExternalStore + signal dependency tracking
-import { createModel } from "@silvery/model/react"
-const useChat = createModel(() => { ... })
-const phase = useChat(m => m.phase())  // explicit accessor call, O(1) subscribe
+import { createModel } from "@silvery/model"
+import { useModel } from "@silvery/model/react"
+const chatModel = createModel(() => { ... })
+const phase = useModel(chatModel, m => m.phase())  // explicit accessor call, O(1) subscribe
 
 // Svelte -- writable store bridge
-import { createModel } from "@silvery/model/svelte"
-const chat = createModel(() => { ... })
-$: phase = $chat.phase()  // Svelte reactive statement, explicit accessor
+import { createModel } from "@silvery/model"
+const chatModel = createModel(() => { ... })
+const chat = chatModel.create()
+$: phase = chat.phase()  // Svelte reactive statement, explicit accessor
 
 // Vue -- ref() bridge
-import { createModel } from "@silvery/model/vue"
-const chat = createModel(() => { ... })
+import { createModel } from "@silvery/model"
+const chatModel = createModel(() => { ... })
+const chat = chatModel.create()
 const phase = computed(() => chat.phase())  // explicit accessor call
 ```
 
-The React binding is the primary target. It uses `useSyncExternalStore` internally. The selector function runs in a tracking scope — every `accessor()` call inside the selector is tracked. When any tracked signal changes, the selector reruns and the component re-renders only if the output changed.
+The React binding is the primary target. `useModel(model, selector)` uses `useSyncExternalStore` internally. The selector function runs in a tracking scope — every `accessor()` call inside the selector is tracked. When any tracked signal changes, the selector reruns and the component re-renders only if the output changed.
 
-This gives **Zustand ergonomics with signal performance**: `useChat(m => m.phase())` looks like a Zustand selector but subscribes to exactly one signal, not the entire store.
+This gives **Zustand ergonomics with signal performance**: `useModel(chatModel, m => m.phase())` looks like a Zustand selector but subscribes to exactly one signal, not the entire store.
 
 ## Testing
 
@@ -329,7 +330,7 @@ This gives **Zustand ergonomics with signal performance**: `useChat(m => m.phase
 
 ```typescript
 // Unit test -- .create() makes an isolated instance with mock providers
-const chat = useChat.create({
+const chat = chatModel.create({
   persist: { write: async () => {}, read: async () => ({}) },
   ai: {
     stream: async function* () {
@@ -354,7 +355,7 @@ chat.submit({ text: "test" })
 expect(chat.exchanges()).toHaveLength(3)
 
 // Integration test -- real providers, test config
-const testChat = useChat.create({
+const testChat = chatModel.create({
   persist: createPersist("/tmp/test"),
   ai: createAI({ model: "claude-haiku-4-5-20251001" }),
 })

@@ -4,7 +4,7 @@
 
 _Status: draft (2026-03-19). From zero to a full interactive app — rendering and input in progressive steps._
 
-_See also: [03-commands.md](./03-commands.md) (command shapes, availability), [05-app.md](./05-app.md) (plugin composition), [06-scopes.md](./06-scopes.md) (structured concurrency)._
+_See also: [03-commands.md](./03-commands.md) (command shapes, availability), [04-app.md](./04-app.md) (plugin composition, structured concurrency)._
 
 ---
 
@@ -28,7 +28,7 @@ function Counter() {
   useInput((op) => {
     if (op.key === "j" || op.key === "ArrowDown") setCount((c) => c + 1)
     if (op.key === "k" || op.key === "ArrowUp") setCount((c) => c - 1)
-    if (op.key === "q") return false // unhandled — falls through
+    if (op.key === "q") { process.exit(0); return true }
     return true
   })
 
@@ -127,7 +127,7 @@ function withTerm(options?: TermOptions) {
 }
 ```
 
-No registration, no cleanup -- break or cancel stops it. The loop IS the scope: when it ends, no dangling listeners. The async iterable terminates when the scope's `AbortSignal` fires. See [06-scopes.md](./06-scopes.md) for structured concurrency details.
+No registration, no cleanup -- break or cancel stops it. The loop IS the scope: when it ends, no dangling listeners. The async iterable terminates when the scope's `AbortSignal` fires. See [04-app.md](./04-app.md) for structured concurrency details.
 
 Async iterables compose naturally:
 
@@ -185,7 +185,7 @@ Note the order: `prevApply(op)` is called first. If the keymap (installed by `wi
 
 ## Deep-Dive: Chord Engine
 
-Multi-key sequences (`dd`, `gg`, `ciw`) require a chord engine with trie lookup, timeout, and ambiguity resolution. The chord state is keymap-local -- a signal inside the `compileKeymap()` closure.
+Multi-key sequences (`dd`, `gg`, `ciw`) require a chord engine with trie lookup, timeout, and ambiguity resolution. The chord state is keymap-local -- a plain variable inside the `compileKeymap()` closure.
 
 ### Trie Structure
 
@@ -210,28 +210,30 @@ Single-key bindings (`j`, `k`) resolve immediately. Multi-key bindings (`dd`, `g
 
 When a keypress matches both a single-key binding AND a chord prefix (e.g., `d` bound to `delete` and `dd` bound to `deleteLine`), the engine must handle ambiguity:
 
-1. **Enter pending state**: Store the current trie position in the keymap-local `chord` signal.
+1. **Enter pending state**: Store the current trie position in the keymap-local `chord` variable.
 2. **Start timeout** (~300ms configurable): If no follow-up key arrives before timeout, resolve the single-key binding.
 3. **Follow-up key arrives**:
    - Matches a child node --> continue down the trie (extend chord).
    - Reaches a leaf --> resolve the command, clear chord state.
    - No match --> resolve the pending single-key binding for the prefix, then reprocess the follow-up key.
 
+> The keymap engine uses plain closure state internally -- signals are a user-space choice, not a framework requirement. `@silvery/commands` depends only on `@silvery/create` (Decision 30).
+
 ```typescript
-// Inside compileKeymap():
-const chord = signal<TrieNode | null>(null)
-const chordTimer = signal<Timer | null>(null)
+// Inside compileKeymap() -- plain closure state, not signals:
+let chord: TrieNode | null = null
+let chordTimer: Timer | null = null
 
 function handleKey(op: Op): boolean {
-  const current = chord() ?? root
+  const current = chord ?? root
 
   const next = current.children.get(op.key)
   if (!next) {
     // No match in current position -- if we were in a chord, resolve the prefix
-    if (chord()) {
+    if (chord) {
       resolvePending(current)
-      chord(null)
-      clearTimeout(chordTimer())
+      chord = null
+      clearTimeout(chordTimer!)
       // Reprocess this key from root
       return handleKey(op)
     }
@@ -240,27 +242,25 @@ function handleKey(op: Op): boolean {
 
   if (next.binding && !next.children.size) {
     // Leaf node -- resolve immediately
-    chord(null)
-    clearTimeout(chordTimer())
+    chord = null
+    clearTimeout(chordTimer!)
     dispatchBinding(next.binding)
     return true
   }
 
   if (next.binding && next.children.size) {
     // Ambiguous -- both a complete binding and a prefix
-    chord(next)
-    chordTimer(
-      setTimeout(() => {
-        // Timeout -- resolve the complete binding
-        chord(null)
-        dispatchBinding(next.binding!)
-      }, 300),
-    )
+    chord = next
+    chordTimer = setTimeout(() => {
+      // Timeout -- resolve the complete binding
+      chord = null
+      dispatchBinding(next.binding!)
+    }, 300)
     return true
   }
 
   // Non-leaf, non-binding -- pure prefix, wait for more
-  chord(next)
+  chord = next
   return true
 }
 ```
@@ -270,22 +270,22 @@ function handleKey(op: Op): boolean {
 Vim-style count prefixes (`3j` = move down 3 times) are handled as a parallel state machine:
 
 ```typescript
-const count = signal<number | null>(null)
+let count: number | null = null
 
 // Digits accumulate into count (but "0" at start is a command, not count)
 if (/^[0-9]$/.test(op.key)) {
-  if (op.key === "0" && count() === null) {
+  if (op.key === "0" && count === null) {
     // "0" is a command (go to line start), not a count prefix
   } else {
-    count((count() ?? 0) * 10 + parseInt(op.key))
+    count = (count ?? 0) * 10 + parseInt(op.key)
     return true
   }
 }
 
 // When a binding resolves, pass count as repeat:
 function dispatchBinding(binding: RegisteredBinding) {
-  const repeat = count() ?? 1
-  count(null)
+  const repeat = count ?? 1
+  count = null
   for (let i = 0; i < repeat; i++) {
     const meta = commandMeta.get(binding.command)
     if (meta) {
@@ -318,17 +318,17 @@ Modifier flags (`shift`, `ctrl`, `meta`, `alt`) are booleans on the op. The bind
 
 ---
 
-## Signal Scopes
+## State Scoping
 
-All state is signals, scoped by visibility:
+State is scoped by visibility -- signals for reactive model state, plain variables for keymap internals:
 
-| Scope            | Example                   | Lifetime                |
-| ---------------- | ------------------------- | ----------------------- |
-| **Universal**    | `items`, `cursor`, `mode` | App lifetime            |
-| **Keymap-local** | `chord`, `count`          | Keymap instance         |
-| **Derived**      | `isNormal`, `isInsert`    | Computed from universal |
+| Scope            | Example                   | Mechanism               | Lifetime                |
+| ---------------- | ------------------------- | ----------------------- | ----------------------- |
+| **Universal**    | `items`, `cursor`, `mode` | `signal()`              | App lifetime            |
+| **Keymap-local** | `chord`, `count`          | Plain closure variables | Keymap instance         |
+| **Derived**      | `isNormal`, `isInsert`    | `computed()`            | Computed from universal |
 
-No special "scope" concept -- just closures and the same `signal()` primitive at different lexical scopes. Signals use the function-call pattern: `mode()` to read, `mode("normal")` to write.
+Keymap internals (`chord`, `count`) use plain `let` variables inside the `compileKeymap()` closure -- they don't need reactivity (no subscribers observe them). Model state uses signals for reactive updates. Both are just closures at different lexical scopes.
 
 ```typescript
 // Universal -- lives on the model
@@ -351,7 +351,7 @@ import { signal, computed } from "@silvery/signals"
 import { useSignal } from "@silvery/signals/react"
 import { create, pipe } from "@silvery/create"
 import { withScope } from "@silvery/scope"
-import { withApp, when } from "silvertea"
+import { withApp, when } from "@silvery/commands"
 import { withAg } from "@silvery/ag"
 import { withTerm } from "@silvery/ag-term"
 import { withReact } from "@silvery/ag-react"
@@ -553,7 +553,7 @@ All steps happen through the dispatch/apply pipeline -- no event bus, no middlew
 | ------ | ---------------- | ------------------------------------------------------------ | ----------------- |
 | **L0** | Primitives       | `signal()`, `computed()`, functions                          | `@silvery/signals` |
 | **L1** | Foundation       | `create()`, `dispatch()`, `apply()`, `OpTypes`               | `@silvery/create` |
-| **L2** | App architecture | `withApp()`, `app.keymap()`, `when()`, `resolveInvocation()` | `silvertea`       |
+| **L2** | App architecture | `withApp()`, `app.keymap()`, `when()`, `resolveInvocation()` | `@silvery/commands` + `@silvery/scope` (withApp is a composition preset) |
 | **L2** | Rendering        | `withAg()`, `withReact()`, `withTerm()`                      | `@silvery/ag-*`   |
 | **L3** | Domain plugins   | `withTodo()`, `withEditor()`, `withDocument()`               | App-specific      |
 
@@ -561,4 +561,4 @@ Keymaps are not a separate library -- they are part of `withApp()`. Domain plugi
 
 ---
 
-_See also: [00-architecture.md](./00-architecture.md) (dispatch/apply pipeline, full pipe example), [03-commands.md](./03-commands.md) (command tree, auto-derived surfaces), [05-app.md](./05-app.md) (plugin composition), [06-scopes.md](./06-scopes.md) (effects, scoping, concurrency)._
+_See also: [00-architecture.md](./00-architecture.md) (dispatch/apply pipeline, full pipe example), [03-commands.md](./03-commands.md) (command tree, auto-derived surfaces), [04-app.md](./04-app.md) (plugin composition, scopes, concurrency)._

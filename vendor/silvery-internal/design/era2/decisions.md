@@ -6,7 +6,7 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 ## Decisions
 
-1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [05-app.md](./05-app.md).
+1. **Two concerns, one `apply()`.** Model (state + behavior) and Runtime (I/O + lifecycle). One `app.apply()` pipeline; plugins wrap it. See [04-app.md](./04-app.md).
 
 2. **SlateJS-style plugin composition.** Plugins wrap `app.apply()` via closure. One type: `(app: App) => App`.
 
@@ -34,6 +34,8 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 11. **React bridge as separate entry point.** `@silvery/tea/react`, `/svelte`, `/vue`.
 
+   > ⚠️ **Superseded by Decision 31** — `@silvery/tea` dissolved. React bindings now live in `@silvery/model/react`, `@silvery/signals/react`, and `@silvery/commands/react`.
+
 12. **Function-calling style over discriminated unions.** Named methods, not switch-case dispatch.
 
 13. **Async effects (future).** V1: direct provider calls + scope methods.
@@ -44,9 +46,11 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 16. **`.parse()` interface for args, not Zod-specific.** Framework depends only on `.parse()`.
 
-17. **Structured concurrency via scope tree.** See [06-scopes.md](./06-scopes.md).
+17. **Structured concurrency via scope tree.** See [04-app.md](./04-app.md).
 
 18. **`@silvery/tea` independence.** Keep as `@silvery/tea` for now; evaluate standalone after Silvery 1.0.
+
+   > ⚠️ **Superseded by Decision 31** — `@silvery/tea` dissolved into `@silvery/create` (tea() utility), `@silvery/commands`, `@silvery/ag` (focus), and `@silvery/headless` (state machines). No separate `@silvery/tea` package in era2.
 
 19. **`run()` owns lifecycle.** Creates root scope, applies `withTerminal()` by default, returns awaitable handle.
 
@@ -107,4 +111,4 @@ Decisions are numbered for cross-reference. New decisions append; old ones are n
 
 ---
 
-_See also: [state-api-redesign.md](../archive/state-api-redesign.md) (original full design), [05-app.md](./05-app.md) (plugin design journey)._
+_See also: [state-api-redesign.md](../archive/state-api-redesign.md) (original full design), [04-app.md](./04-app.md) (plugin design journey)._
