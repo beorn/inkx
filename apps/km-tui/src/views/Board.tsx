@@ -235,7 +235,7 @@ function BoardTopBar({
         ? cursorColumnNodeId
         : cursorCardNodeId
   // Let silvery's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
-  const filterIndicator = formatFilterIndicator(filterProperties, filterText)
+  const filterIndicator = formatFilterIndicator(filterProperties, filterText) ?? undefined
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
   const selectedPathSegments = renderPath(getPathSegments(repo, pathNodeId, rootId), termWidth - 4 - reservedWidth)
 
@@ -742,7 +742,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const storeRef = React.useContext(StoreContext)
   const columnsRef = useRef(filteredColumns)
   columnsRef.current = filteredColumns
-  const findTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const findTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const handleFindQueryChange = useCallback(
     (query: string) => {
       setUI((prev) => ({
@@ -782,7 +782,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   const searchReplaceRef = useRef(ui.searchReplace)
   searchReplaceRef.current = ui.searchReplace
-  const srTimerRef = useRef<ReturnType<typeof setTimeout>>()
+  const srTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const handleSearchReplaceSearchChange = useCallback(
     (searchQuery: string) => {
       const sr = searchReplaceRef.current
@@ -1104,7 +1104,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 /** Count descendant nodes hidden by property filters within a card's subtree.
  * Only counts one level deep (direct children) — deeper nesting is rare in practice. */
 function countHiddenDescendants(
-  repo: { getNode(id: string): KNode | undefined; getChildren(parentId: string | null): KNode[] },
+  repo: { getNode(id: string): KNode | null | undefined; getChildren(parentId: string | null): KNode[] },
   parentId: string,
   filters: FilterProperties,
 ): number {

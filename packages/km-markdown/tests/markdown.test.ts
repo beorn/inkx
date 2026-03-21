@@ -1062,7 +1062,7 @@ describe("nodeToText handles image nodes", () => {
 
   test("returns alt text for image node", () => {
     const imageNode = {
-      type: "image",
+      type: "image" as const,
       url: "https://example.com/photo.png",
       alt: "A photo",
     }
@@ -1070,13 +1070,13 @@ describe("nodeToText handles image nodes", () => {
   })
 
   test("returns empty string for image node without alt text", () => {
-    const imageNode = { type: "image", url: "https://example.com/photo.png" }
+    const imageNode = { type: "image" as const, url: "https://example.com/photo.png", alt: "" }
     expect(nodeToText(imageNode)).toBe("")
   })
 
   test("returns empty string for image node with empty alt text", () => {
     const imageNode = {
-      type: "image",
+      type: "image" as const,
       url: "https://example.com/photo.png",
       alt: "",
     }
@@ -1086,15 +1086,15 @@ describe("nodeToText handles image nodes", () => {
   test("extracts image alt text within paragraph children", () => {
     // Simulates a paragraph containing text + image: "See ![diagram](url) for details"
     const paragraphNode = {
-      type: "paragraph",
+      type: "paragraph" as const,
       children: [
-        { type: "text", value: "See " },
+        { type: "text" as const, value: "See " },
         {
-          type: "image",
+          type: "image" as const,
           url: "https://example.com/diagram.png",
           alt: "diagram",
         },
-        { type: "text", value: " for details" },
+        { type: "text" as const, value: " for details" },
       ],
     }
     expect(nodeToText(paragraphNode)).toBe("See diagram for details")

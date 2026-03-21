@@ -15,6 +15,17 @@
 
 /* oxlint-disable typescript-eslint/no-unsafe-call, typescript-eslint/no-unsafe-member-access, typescript-eslint/no-unsafe-return, typescript-eslint/no-unsafe-assignment, typescript-eslint/no-explicit-any, typescript-eslint/no-this-alias -- Micromark tokenizer API is inherently untyped */
 
+// Augment micromark's TokenTypeMap with km-specific token types
+declare module "micromark-util-types" {
+  interface TokenTypeMap {
+    kmTaskListCheck: "kmTaskListCheck"
+    kmTaskListCheckMarker: "kmTaskListCheckMarker"
+    kmTaskListCheckValueUnchecked: "kmTaskListCheckValueUnchecked"
+    kmTaskListCheckValueChecked: "kmTaskListCheckValueChecked"
+    kmTaskListCheckValueCustom: "kmTaskListCheckValueCustom"
+  }
+}
+
 import { factorySpace } from "micromark-factory-space"
 import { markdownLineEnding, markdownLineEndingOrSpace, markdownSpace } from "micromark-util-character"
 import { codes, types } from "micromark-util-symbol"

@@ -33,7 +33,7 @@ async function main() {
   console.log("\nSUCCESS")
 }
 
-main().catch(e => {
-  console.error("CAUGHT:", e.message)
+main().catch((e: unknown) => {
+  console.error("CAUGHT:", e instanceof Error ? e.message : String(e))
   process.exit(1)
 })

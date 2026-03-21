@@ -127,4 +127,9 @@ export interface TuiOptions {
    * Set up early (before loadRepo) to capture startup warnings.
    */
   patchedConsole?: import("@silvery/react").PatchedConsole
+  /**
+   * Performance.now() timestamp of CLI invocation.
+   * Used to log total startup time from CLI to first render.
+   */
+  startTime?: number
 }

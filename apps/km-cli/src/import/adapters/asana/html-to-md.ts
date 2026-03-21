@@ -71,7 +71,7 @@ function transformMdast(node: MdastNode): void {
   if (!("children" in node) || !Array.isArray(node.children)) return
 
   for (let i = 0; i < node.children.length; i++) {
-    const child = node.children[i]
+    const child = node.children[i]!
     // Unwrap <del>/<s> nodes — mdast-util-to-markdown can't serialize them without GFM extension
     if (child.type === "delete" && "children" in child) {
       node.children.splice(i, 1, ...child.children)

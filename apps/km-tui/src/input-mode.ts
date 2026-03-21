@@ -23,6 +23,8 @@ export type InputMode =
   | "dialog:picker"
   | "dialog:datePrompt"
   | "dialog:filter"
+  | "dialog:omnibox"
+  | "dialog:favorites"
 
 /** Create a mode stack with push/pop/current semantics. Factory function, no classes. */
 export function createModeStack() {

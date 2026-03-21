@@ -16,7 +16,7 @@ import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("modifier key indicators in bottom bar", () => {
   test("Super+j shows ⌘ in bottom bar modifier indicator", () => {
-    const { board } = testEnv(() => [item("board", item("Todo", item("Task 1")))])
+    const { board } = testEnv(() => item("board", item("Todo", item("Task 1"))))
 
     // Before pressing modifier, no indicator should be present
     board.expect("#modifier-keys").not.toExist()
@@ -33,7 +33,7 @@ describe("modifier key indicators in bottom bar", () => {
   })
 
   test("regular key clears modifier indicator", () => {
-    const { board } = testEnv(() => [item("board", item("Todo", item("Task 1")))])
+    const { board } = testEnv(() => item("board", item("Todo", item("Task 1"))))
 
     // Press Super+j to set modifier
     board.press("Super+j")

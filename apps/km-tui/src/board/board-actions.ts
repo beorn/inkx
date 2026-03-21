@@ -52,9 +52,10 @@ import {
 } from "@km/commands"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
-import { createEmptyFilterProperties, VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
+import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
-const log = createLogger("km:tui:board-actions")
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
+const log = createLogger("km:tui:board-actions") as any
 
 /**
  * Maximum fold depth. Prevents runaway expansion when unfolding.
@@ -745,6 +746,16 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         filterCursorVal: 0,
       })
       return ok()
+    case "CLEAR_FILTERS":
+      popDialogMode()
+      ctx.setUI({
+        filterText: "",
+        filterProperties: createEmptyFilterProperties(),
+        filterCursorRow: 0,
+        filterCursorVal: 0,
+        showFilterDialog: false,
+      })
+      return ok()
     case "TOGGLE_HIDE_DONE": {
       const activeStatuses = new Set(["todo", "wip", "blocked"])
       const current = ctx.ui.filterProperties.taskStatus
@@ -1245,7 +1256,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               ctx.navigator.clearStickyY()
               ctx.setUI({ viewMode: val.value as ViewMode })
             } else {
-              ctx.setUI({ [row.key]: val.value })
+              ctx.setUI({ [row.key]: val.value as IconStyle })
             }
           } else {
             // Checkbox: toggle filter property
@@ -1350,6 +1361,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       ctx.setUI({})
       return ok()
     }
+
+    case "INCREASE_OUTLINE_DEPTH":
+    case "DECREASE_OUTLINE_DEPTH":
+      // Outline depth changes are handled by view-level reducers
+      return ok()
+    case "DEV_TEST_TOAST":
+      ctx.toastQueue.info("Test toast from DEV_TEST_TOAST action")
+      ctx.setUI({})
+      return ok()
 
     default:
       assertNever(action)
@@ -2030,7 +2050,7 @@ function handleSetPriority(ctx: ActionCtx, value?: string): ActionResult {
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
   for (const nodeId of nodeIds) {
-    ctx.repo.updateNode(nodeId, { priority: next ?? null })
+    ctx.repo.updateNode(nodeId, { priority: next })
   }
   if (nodeIds.length > 1) ctx.undoHandle.endBatch()
 
@@ -2114,7 +2134,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
       return ok()
     }
     for (const nodeId of nodeIds) {
-      ctx.repo.updateNode(nodeId, { rrule: rrule })
+      ctx.repo.updateNode(nodeId, { rrule: rrule ?? undefined })
     }
     ctx.toastQueue.info(rrule ? `Recurrence: ${trimmed}` : "Recurrence cleared")
   } else {

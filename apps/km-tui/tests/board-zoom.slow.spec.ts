@@ -606,7 +606,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const repo = createFakeRepo({ nodes })
 
     // Derive columns as if zoomed into the file node (rootId is the zoom root)
-    const columns = deriveColumnsFromRepo(repo, rootId, new Set())
+    const columns = deriveColumnsFromRepo(repo, rootId, new Map())
 
     // Should have 1 column: "Processing"
     expect(columns.length).toBe(1)
@@ -646,7 +646,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     ]
 
     const repo = createFakeRepo({ nodes })
-    const columns = deriveColumnsFromRepo(repo, rootId, new Set())
+    const columns = deriveColumnsFromRepo(repo, rootId, new Map())
 
     expect(columns.length).toBe(1)
     const col = columns[0]!
@@ -690,7 +690,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     ]
 
     const repo = createFakeRepo({ nodes })
-    const columns = deriveColumnsFromRepo(repo, rootId, new Set())
+    const columns = deriveColumnsFromRepo(repo, rootId, new Map())
 
     expect(columns.length).toBe(1)
     const col = columns[0]!
@@ -750,7 +750,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const repo = createFakeRepo({ nodes })
 
     // deriveColumnsFromRepo should produce the same structure as buildBoardState
-    const derived = deriveColumnsFromRepo(repo, rootId, new Set())
+    const derived = deriveColumnsFromRepo(repo, rootId, new Map())
     const built = buildBoardState(repo, rootId)
 
     // Both should have: 1 virtual body column + 1 structural column = 2 columns
@@ -796,7 +796,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     ]
 
     const repo = createFakeRepo({ nodes })
-    const columns = deriveColumnsFromRepo(repo, rootId, new Set())
+    const columns = deriveColumnsFromRepo(repo, rootId, new Map())
 
     // Should have 2 columns: virtual body (with embed) + Section
     // NOT 3 columns (embed as column + section as column)
@@ -855,7 +855,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
 
     const repo = createFakeRepo({ nodes })
 
-    const derived = deriveColumnsFromRepo(repo, rootId, new Set())
+    const derived = deriveColumnsFromRepo(repo, rootId, new Map())
     const built = buildBoardState(repo, rootId)
 
     // Both should have exactly 2 columns (no body column)

@@ -197,8 +197,8 @@ const FILE_DIFF_FIELDS = ["content", "title"] as const
 function diffNodeFields(existing: KNode, newNode: KNode, fields: readonly string[]): Record<string, unknown> {
   const changes: Record<string, unknown> = {}
   for (const field of fields) {
-    const existingVal = (existing as Record<string, unknown>)[field]
-    const newVal = (newNode as Record<string, unknown>)[field]
+    const existingVal = (existing as unknown as Record<string, unknown>)[field]
+    const newVal = (newNode as unknown as Record<string, unknown>)[field]
     if (newVal !== existingVal) {
       changes[field] = newVal
     }

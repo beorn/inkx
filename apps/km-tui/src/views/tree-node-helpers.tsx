@@ -385,7 +385,7 @@ export function parseDepsRefs(data: Record<string, unknown>, field: "deps" | "bl
  * Check if a node has unresolved dependencies (deps where the target is not done).
  * Returns true if the node has deps and at least one is not done/dropped.
  */
-export function hasUnresolvedDeps(node: KNode, getNode: (id: string) => KNode | undefined): boolean {
+export function hasUnresolvedDeps(node: KNode, getNode: (id: string) => KNode | null | undefined): boolean {
   const refs = parseDepsRefs(node.data, "deps")
   if (refs.length === 0) return false
   for (const ref of refs) {

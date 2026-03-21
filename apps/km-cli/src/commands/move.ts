@@ -101,7 +101,8 @@ export const moveCommand = new Command("move")
     }
 
     // Move via repo (handles event emission and persistence)
-    repo.moveNode(node.id, targetParentId, Date.now())
+    // targetParentId is null only for --toRoot; repo.moveNode handles null at runtime via dataStore
+    repo.moveNode(node.id, targetParentId!, Date.now())
 
     if (options.json) {
       console.log(JSON.stringify({ id: node.id, parent_id: targetParentId }))

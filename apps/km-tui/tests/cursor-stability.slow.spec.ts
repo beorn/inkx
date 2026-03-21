@@ -240,7 +240,7 @@ function findBoardRoot(repo: Repo): string {
     if (node.data?.is_repo_root) return node.id
   }
   for (const node of nodes) {
-    const children = getChildren(repo.db, node.id)
+    const children = getChildren(repo.database, node.id)
     if (children.length > 0) return node.id
   }
   throw new Error("No suitable board root found in vault")

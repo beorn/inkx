@@ -15,7 +15,7 @@ export type { TPath } from "@km/tree"
 
 // ===== Base Types =====
 
-export type ViewMode = "cards" | "list" | "columns" | "tabs"
+export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
 
 // ===== Board State (NEW - simplified architecture) =====
 

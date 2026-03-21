@@ -24,7 +24,13 @@ import {
   type BoardAppStore,
   type CreateBoardAppStoreParams,
 } from "../src/board-app-store.ts"
-import { createBoardState, createPaneState, isBoardPane, isDetailPaneId } from "../src/board-types.ts"
+import {
+  createBoardState,
+  createPaneState,
+  isBoardPane,
+  isDetailPaneId,
+  type BoardPaneState,
+} from "../src/board-types.ts"
 import type { PersistedWorkspace } from "../src/workspace-persist.ts"
 import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
@@ -41,6 +47,14 @@ import { BoardApp } from "../src/views/index.ts"
 // =============================================================================
 // Helpers
 // =============================================================================
+
+/** Helper: React.createElement with children as prop (avoids React 19 overload mismatch) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
+  React.createElement(
+    type,
+    children.length === 1 ? { ...props, children: children[0] } : children.length > 0 ? { ...props, children } : props,
+  )
 
 /**
  * Create a store with a 3-column board for testing pane operations.
@@ -86,7 +100,7 @@ describe("windowing — split creates independent panes", () => {
     // New pane is empty
     const paneIds = [...store.getState().workspace.panes.keys()]
     const newPaneId = paneIds.find((id) => id !== "main")!
-    const newPane = store.getState().workspace.panes.get(newPaneId)!
+    const newPane = store.getState().workspace.panes.get(newPaneId)! as BoardPaneState
     expect(newPane.viewType).toBe("empty")
     // EmptyPaneState doesn't have rootId (discriminated union)
   })
@@ -97,9 +111,9 @@ describe("windowing — split creates independent panes", () => {
     store.getState().splitFocusedPane("h")
 
     const paneIds = [...store.getState().workspace.panes.keys()]
-    const mainPane = store.getState().workspace.panes.get("main")!
+    const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     const newPaneId = paneIds.find((id) => id !== "main")!
-    const newPane = store.getState().workspace.panes.get(newPaneId)!
+    const newPane = store.getState().workspace.panes.get(newPaneId)! as BoardPaneState
 
     // Each pane should have a different cursor store instance
     expect(mainPane.cursorStore).not.toBe(newPane.cursorStore)
@@ -114,7 +128,7 @@ describe("windowing — split creates independent panes", () => {
     store.getState().splitFocusedPane("h")
 
     // The main pane should have the cursor position saved
-    const mainPane = store.getState().workspace.panes.get("main")!
+    const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(mainPane.cursorNodeId).toBe("task-2")
     expect(mainPane.rootId).toBe("board")
   })
@@ -144,11 +158,11 @@ describe("windowing — focus switch saves/restores state", () => {
     expect(store.getState().workspace.focusedPaneId).toBe(newPaneId)
 
     // Verify: old pane saved cursor position
-    const savedMainPane = store.getState().workspace.panes.get("main")!
+    const savedMainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(savedMainPane.cursorNodeId).toBe("proj-a")
 
     // Empty pane doesn't have a cursor
-    const newPane = store.getState().workspace.panes.get(newPaneId)!
+    const newPane = store.getState().workspace.panes.get(newPaneId)! as BoardPaneState
     expect(newPane.viewType).toBe("empty")
   })
 
@@ -182,7 +196,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // New pane is empty (no foldDepths)
     const newPaneId = store.getState().workspace.focusedPaneId
-    const newPane = store.getState().workspace.panes.get(newPaneId)!
+    const newPane = store.getState().workspace.panes.get(newPaneId)! as BoardPaneState
     expect(newPane.viewType).toBe("empty")
 
     // Switch back — main pane should still have the fold
@@ -249,7 +263,7 @@ describe("windowing — dispatch syncs to focused pane", () => {
 
     store.getState().dispatchBoard({ type: "SELECT", nodeId: "proj-b" })
 
-    const mainPane = store.getState().workspace.panes.get("main")!
+    const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(mainPane.cursorNodeId).toBe("proj-b")
     expect(mainPane.curswantX).toBeNull()
   })
@@ -259,7 +273,7 @@ describe("windowing — dispatch syncs to focused pane", () => {
 
     store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "task-1" })
 
-    const mainPane = store.getState().workspace.panes.get("main")!
+    const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(mainPane.foldDepths.has("task-1")).toBe(true)
   })
 
@@ -273,7 +287,7 @@ describe("windowing — dispatch syncs to focused pane", () => {
       ]),
     )
 
-    const mainPane = store.getState().workspace.panes.get("main")!
+    const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(mainPane.foldDepths.has("task-1")).toBe(true)
     expect(mainPane.foldDepths.has("task-2")).toBe(true)
   })
@@ -327,16 +341,16 @@ describe("windowing — visual rendering", () => {
     const focusManager = createFocusManager()
     const render = createRenderer({ cols, rows, singlePassLayout: true })
     const result = render(
-      React.createElement(
+      h(
         ThemeProvider,
         { theme: defaultKmTheme },
-        React.createElement(
+        h(
           StoreContext.Provider,
           { value: store as StoreApi<unknown> },
-          React.createElement(
+          h(
             FocusManagerContext.Provider,
             { value: focusManager },
-            React.createElement(RepoProvider, { repo }, React.createElement(BoardApp, { toastQueue })),
+            h(RepoProvider, { repo }, h(BoardApp, { toastQueue })),
           ),
         ),
       ),
@@ -437,7 +451,7 @@ describe("windowing — workspace restoration with detail-focused save", () => {
   test("restored board pane has a valid cursor from fallback state", () => {
     const { store } = createStoreWithSavedWorkspace()
 
-    const boardPane = store.getState().workspace.panes.get("main")!
+    const boardPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(isBoardPane(boardPane)).toBe(true)
     // The cursor should come from the fallback (task-1), not be null
     expect(boardPane.cursorNodeId).toBe("task-1")
@@ -446,8 +460,8 @@ describe("windowing — workspace restoration with detail-focused save", () => {
   test("cursor store is assigned to the board pane, not the detail pane", () => {
     const { store } = createStoreWithSavedWorkspace()
 
-    const boardPane = store.getState().workspace.panes.get("main")!
-    const detailPane = store.getState().workspace.panes.get("main-detail")!
+    const boardPane = store.getState().workspace.panes.get("main")! as BoardPaneState
+    const detailPane = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
 
     // The board pane's cursor store should have the initial cursor
     const boardCursor = boardPane.cursorStore.getState()
@@ -598,7 +612,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
 
     // Detail cursor starts on first child (no topbar)
-    const detailPane = store.getState().workspace.panes.get("main-detail")!
+    const detailPane = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
     expect(detailPane.cursorNodeId).toBe("sub-a")
 
     // Capture screen before j
@@ -606,7 +620,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
 
     // j moves detail cursor to second child
     board.command("cursor_down")
-    const detailPaneAfter = store.getState().workspace.panes.get("main-detail")!
+    const detailPaneAfter = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
     expect(detailPaneAfter.cursorNodeId).toBe("sub-b")
 
     // Screen MUST change (cursor moved = different visual state)
@@ -614,7 +628,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     expect(afterJ).not.toBe(beforeJ)
 
     // Board cursor should NOT have changed (it's in the other pane)
-    const mainPane = store.getState().workspace.panes.get("main")!
+    const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(mainPane.cursorNodeId).toBe("task-1")
   })
 
@@ -784,7 +798,7 @@ describe("detail pane cursor styling", () => {
     board.command("toggle_detail_pane") // Open detail pane (auto-focuses detail, cursor on sub-a)
 
     // Verify state: cursor starts on first child
-    const detail = store.getState().workspace.panes.get("main-detail")!
+    const detail = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
     expect(detail.cursorNodeId).toBe("sub-a")
 
     // The text "sub-a" should have gold background ($selected=yellow=3)
@@ -803,7 +817,7 @@ describe("detail pane cursor styling", () => {
     board.command("toggle_detail_pane") // Open detail pane (auto-focuses detail, cursor on sub-a)
 
     // Cursor starts on first child
-    const detail = store.getState().workspace.panes.get("main-detail")!
+    const detail = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
     expect(detail.cursorNodeId).toBe("sub-a")
 
     // The cursored item "sub-a" should have gold background (last occurrence = detail pane)

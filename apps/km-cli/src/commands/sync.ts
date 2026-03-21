@@ -7,13 +7,14 @@
 import { createLogger } from "loggily"
 import { Command } from "@commander-js/extra-typings"
 import { createTerm } from "@silvery/react"
+import type { FullLogger } from "../logger-types.ts"
 
 const term = createTerm(process)
 import { steps } from "@silvery/ui/progress"
 import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
-const log = createLogger("km:cli:sync")
+const log = createLogger("km:cli:sync") as FullLogger
 import { SyncManager, findKmRootFromPath, readEvents, SCHEMA, ensureRepoRootNode } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 

@@ -31,7 +31,8 @@ describe("config file operations", () => {
 
     writeFileSync(configPath, JSON.stringify(config, null, 2))
     const raw = readFileSync(configPath, "utf-8")
-    const parsed = JSON.parse(raw)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = JSON.parse(raw) as any
 
     expect(parsed.accounts).toHaveLength(2)
     expect(parsed.accounts[0].name).toBe("personal")
@@ -49,12 +50,14 @@ describe("config file operations", () => {
 
     // Simulate upsert
     const raw = readFileSync(configPath, "utf-8")
-    const parsed = JSON.parse(raw)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = JSON.parse(raw) as any
     const idx = parsed.accounts.findIndex((a: { name: string }) => a.name === "personal")
     parsed.accounts[idx] = { name: "personal", provider: "claude-oauth", metadata: { tier: "pro" } }
     writeFileSync(configPath, JSON.stringify(parsed, null, 2))
 
-    const updated = JSON.parse(readFileSync(configPath, "utf-8"))
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updated = JSON.parse(readFileSync(configPath, "utf-8")) as any
     expect(updated.accounts).toHaveLength(1)
     expect(updated.accounts[0].metadata?.tier).toBe("pro")
   })

@@ -4,5 +4,14 @@
     // DO NOT add "paths" - packages resolve via node_modules symlinks
     // See docs/dev/monorepo-module-resolution.md
   },
-  "exclude": ["node_modules", "dist", "**/dist", "archive"]
+  "exclude": [
+    "node_modules",
+    "**/node_modules",
+    "node_modules/.bun",
+    "dist",
+    "**/dist",
+    "archive",
+    "vendor/silvery/tests/compat/ink/generated",
+    "vendor/silvery-internal/prototype"
+  ]
 }

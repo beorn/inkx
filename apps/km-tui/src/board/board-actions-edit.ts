@@ -675,6 +675,7 @@ function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB:
 
   // Assign distinct indices: use their layout positions, which are guaranteed unique
   const parentId = ctx.rootId
+  if (!parentId) return
   if (!colA.isVirtual && colA.node.parent_idx !== colIndexA) {
     repo.moveNode(colA.node.id, parentId, colIndexA)
     colA.node.parent_idx = colIndexA

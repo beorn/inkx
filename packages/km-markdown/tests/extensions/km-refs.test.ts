@@ -11,7 +11,7 @@ function parse(md: string) {
 describe("kmRefsTransform", () => {
   test("extracts tags from paragraph", () => {
     const tree = parse("Hello #world #test")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.type).toBe("paragraph")
     expect(para.data?.tags).toEqual(["world", "test"])
     expect(para.data?.mentions).toBeUndefined()
@@ -20,7 +20,7 @@ describe("kmRefsTransform", () => {
 
   test("extracts mentions from paragraph", () => {
     const tree = parse("Assigned to @alice")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.type).toBe("paragraph")
     expect(para.data?.mentions).toEqual(["alice"])
     expect(para.data?.tags).toBeUndefined()
@@ -29,7 +29,7 @@ describe("kmRefsTransform", () => {
 
   test("extracts projects from paragraph", () => {
     const tree = parse("For +myproject")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.type).toBe("paragraph")
     expect(para.data?.projects).toEqual(["myproject"])
     expect(para.data?.tags).toBeUndefined()
@@ -38,7 +38,7 @@ describe("kmRefsTransform", () => {
 
   test("extracts all three ref types combined", () => {
     const tree = parse("#tag @user +proj")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.data?.tags).toEqual(["tag"])
     expect(para.data?.mentions).toEqual(["user"])
     expect(para.data?.projects).toEqual(["proj"])
@@ -46,7 +46,7 @@ describe("kmRefsTransform", () => {
 
   test("does not set data when no refs found", () => {
     const tree = parse("Just plain text")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.data?.tags).toBeUndefined()
     expect(para.data?.mentions).toBeUndefined()
     expect(para.data?.projects).toBeUndefined()
@@ -54,14 +54,14 @@ describe("kmRefsTransform", () => {
 
   test("extracts refs from headings", () => {
     const tree = parse("## Section #important")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.type).toBe("heading")
     expect(heading.data?.tags).toEqual(["important"])
   })
 
   test("hoists refs from list item paragraph to listItem", () => {
     const tree = parse("- Task #urgent @bob")
-    const list = tree.children[0]
+    const list = tree.children[0]!
     expect(list.type).toBe("list")
     const listItem = (list as any).children[0]
     expect(listItem.type).toBe("listItem")
@@ -76,14 +76,14 @@ describe("kmRefsTransform", () => {
 
   test("extracts unicode refs", () => {
     const tree = parse("#café @naïve")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.data?.tags).toEqual(["café"])
     expect(para.data?.mentions).toEqual(["naïve"])
   })
 
   test("extracts refs with hyphens and underscores", () => {
     const tree = parse("#my-tag @user_name +cool-project")
-    const para = tree.children[0]
+    const para = tree.children[0]!
     expect(para.data?.tags).toEqual(["my-tag"])
     expect(para.data?.mentions).toEqual(["user_name"])
     expect(para.data?.projects).toEqual(["cool-project"])
@@ -93,18 +93,18 @@ describe("kmRefsTransform", () => {
     const tree = parse("First #alpha\n\nSecond #beta @charlie")
     expect(tree.children.length).toBe(2)
 
-    const para1 = tree.children[0]
+    const para1 = tree.children[0]!
     expect(para1.data?.tags).toEqual(["alpha"])
     expect(para1.data?.mentions).toBeUndefined()
 
-    const para2 = tree.children[1]
+    const para2 = tree.children[1]!
     expect(para2.data?.tags).toEqual(["beta"])
     expect(para2.data?.mentions).toEqual(["charlie"])
   })
 
   test("nested list items each get their own refs", () => {
     const tree = parse("- Item A #first\n- Item B #second @dave")
-    const list = tree.children[0]
+    const list = tree.children[0]!
     expect(list.type).toBe("list")
 
     const li1 = (list as any).children[0]

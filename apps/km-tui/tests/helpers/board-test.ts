@@ -34,6 +34,14 @@
 
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
+
+/** Helper: React.createElement with children as prop (avoids React 19 overload mismatch) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
+  React.createElement(
+    type,
+    children.length === 1 ? { ...props, children: children[0] } : children.length > 0 ? { ...props, children } : props,
+  )
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/reactive.ts"
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
 import { compareBuffers, formatMismatch } from "@silvery/term/toolbelt"
@@ -536,16 +544,16 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     navigator: registry,
   })
   const result = render(
-    React.createElement(
+    h(
       ThemeProvider,
       { theme: defaultKmTheme },
-      React.createElement(
+      h(
         StoreContext.Provider,
         { value: store as StoreApi<unknown> },
-        React.createElement(
+        h(
           FocusManagerContext.Provider,
           { value: focusManager },
-          React.createElement(RepoProvider, { repo, children: boardAppElement }),
+          h(RepoProvider, { repo, children: boardAppElement }),
         ),
       ),
     ),
@@ -1730,33 +1738,14 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardCoreElement = React.createElement(BoardCore, {
     rootId: state.rootId,
-    rootPath: state.rootPath,
     columns: state.columns,
-    layout: {
-      columns: state.columns,
-      colIndex: 0,
-      cardIndex: 0,
-      subPath: [],
-      isAtCardLevel: true,
-      isInOutlineMode: false,
-    },
+    colIndex: 0,
+    cardIndex: 0,
     ui: createInitialPaneUI("cards", [], { columns, rows }),
     derivedSelectionLevel: "card",
     dimensions: { columns, rows },
-    navigator: createGridNavigator(),
-    setUI: () => {},
-    dialogHandlers: {
-      handlePickerSelect: () => {},
-      handlePickerCancel: () => {},
-      handleTagSelect: () => {},
-      handleAssigneeSelect: () => {},
-      handleNewItemCreate: () => {},
-      handleNewItemCancel: () => {},
-      handleSearchSelect: () => {},
-      handleSearchCancel: () => {},
-    },
     collapsedNodes: new Set<string>(),
-    moveMode: false,
+    hasDetailPane: false,
   })
   // Wrap in StoreContext + ReactiveNodeStoreProvider + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialPaneUI("cards", [], { columns, rows })
@@ -1791,7 +1780,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     canUndo: () => false,
     canRedo: () => false,
   }
-  const wrappedElement = React.createElement(
+  const wrappedElement = h(
     TreeRenderProvider,
     {
       treeConfig,
@@ -1804,13 +1793,13 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     boardCoreElement,
   )
   const result = render(
-    React.createElement(
+    h(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      React.createElement(
+      h(
         ReactiveNodeStoreProvider,
         { value: nodeStore },
-        React.createElement(RepoProvider, { repo, children: wrappedElement }),
+        h(RepoProvider, { repo, children: wrappedElement }),
       ),
     ),
   )

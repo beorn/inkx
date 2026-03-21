@@ -183,7 +183,7 @@ export function ItemPicker({
 
   // Debounce query for fuzzy scoring (200ms, immediate in tests)
   const [deferredQuery, setDeferredQuery] = React.useState(editCtx.value)
-  const pickerTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const pickerTimerRef = React.useRef<ReturnType<typeof setTimeout>>(undefined)
   React.useEffect(() => {
     clearTimeout(pickerTimerRef.current)
     // @ts-expect-error - React internal flag set by silvery test renderer

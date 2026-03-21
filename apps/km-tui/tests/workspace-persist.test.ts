@@ -47,10 +47,10 @@ function makePaneState(
     viewMode?: "cards" | "list" | "columns" | "tabs"
     filterProperties?: import("../src/ui-reducer.ts").FilterProperties
   },
-): PaneState {
+): BoardPaneState {
   return {
     id,
-    viewType: opts?.viewType ?? "board",
+    viewType: (opts?.viewType ?? "board") as "board",
     rootId: opts?.rootId ?? null,
     rootPath: opts?.rootPath ?? null,
     cursorNodeId: null,
@@ -76,7 +76,7 @@ function makePaneState(
       setState: () => {},
       subscribe: () => () => {},
     },
-  } as unknown as PaneState
+  } as unknown as BoardPaneState
 }
 
 const leaf = (id: string): LayoutNode => ({ type: "leaf", paneId: id })

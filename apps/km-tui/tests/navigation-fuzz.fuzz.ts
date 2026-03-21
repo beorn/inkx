@@ -238,7 +238,7 @@ describe("TUI Fuzz Tests", () => {
     const nodes = createStandardBoard()
     const driver = createBoardDriver(createFakeRepo({ nodes }), "board")
 
-    for await (const key of take(gen(WEIGHTED_KEYS), 200)) {
+    for await (const key of take(gen<string>(WEIGHTED_KEYS), 200)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -256,7 +256,7 @@ describe("TUI Fuzz Tests", () => {
 
     const keys = [...NAVIGATION_KEYS, "g", "G", "Escape"]
 
-    for await (const key of take(gen(keys), 150)) {
+    for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -275,7 +275,7 @@ describe("TUI Fuzz Tests", () => {
     // Include Enter for zoom, o/u/i for zoom in/out
     const keys = [...NAVIGATION_KEYS, "Enter", "Escape", "o", "u", "i", "[", "]"]
 
-    for await (const key of take(gen(keys), 150)) {
+    for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -305,7 +305,7 @@ describe("TUI Fuzz Tests", () => {
       [2, "Z"],
     ]
 
-    for await (const key of take(gen(keys), 150)) {
+    for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -400,7 +400,7 @@ describe("TUI Fuzz Tests", () => {
 
     const keys = [...NAVIGATION_KEYS, "g", "G", "v", "Enter", "Escape", "Tab"]
 
-    for await (const key of take(gen(keys), 100)) {
+    for await (const key of take(gen<string>(keys), 100)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -431,7 +431,7 @@ describe("TUI Fuzz Tests", () => {
       [2, "%"], // Jump to column 5
     ]
 
-    for await (const key of take(gen(keys), 150)) {
+    for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -461,7 +461,7 @@ describe("TUI Fuzz Tests", () => {
       [5, "Escape"], // Clear selection
     ]
 
-    for await (const key of take(gen(keys), 150)) {
+    for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -490,7 +490,7 @@ describe("TUI Fuzz Tests", () => {
       [2, "u"], // Zoom out
     ]
 
-    for await (const key of take(gen(keys), 150)) {
+    for await (const key of take(gen<string>(keys), 150)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -516,7 +516,7 @@ describe("TUI Fuzz Tests", () => {
       [3, "Escape"],
     ]
 
-    for await (const key of take(gen(keys), 100)) {
+    for await (const key of take(gen<string>(keys), 100)) {
       const before = driver.getState()
       driver.press(key)
       const after = driver.getState()
@@ -620,7 +620,7 @@ export function replaySequence(driver: ReturnType<typeof createBoardDriver>, seq
   const issues: { iteration: number; key: string; issue: string }[] = []
 
   for (let i = 0; i < sequence.length; i++) {
-    const key = sequence[i]
+    const key = sequence[i]!
     const before = driver.getState()
     driver.press(key)
     const after = driver.getState()

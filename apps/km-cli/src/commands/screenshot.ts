@@ -8,8 +8,9 @@
 import { Command } from "@commander-js/extra-typings"
 import { createLogger } from "loggily"
 import { setDebugRepoRoot } from "../debug-log.ts"
+import type { FullLogger } from "../logger-types.ts"
 
-const log = createLogger("km:cli:screenshot")
+const log = createLogger("km:cli:screenshot") as FullLogger
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"
 type OutputFormat = "text" | "ansi" | "debug"
@@ -71,39 +72,19 @@ export const screenshotCommand = new Command("screenshot")
 
     // Import React and Board components
     const React = await import("react")
-    const { BoardCore, RepoProvider, createInitialUIState, createGridNavigator } = await import("@km/tui")
+    const { BoardCore, RepoProvider, createInitialPaneUI } = await import("@km/tui")
 
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {
-      state,
-      layout: {
-        columns: state.columns,
-        colIndex: 0,
-        cardIndex: 0,
-        isAtCardLevel: true,
-      },
-      ui: createInitialUIState({ columns: width, rows: height }),
+      rootId: state.rootId,
+      columns: state.columns,
+      colIndex: 0,
+      cardIndex: 0,
+      ui: createInitialPaneUI("cards", [], { columns: width, rows: height }),
       derivedSelectionLevel: "card" as const,
       dimensions: { columns: width, rows: height },
-      navigator: createGridNavigator(),
-      setUI: () => {},
-      dialogHandlers: {
-        handlePickerSelect: () => {},
-        handlePickerCancel: () => {},
-        handleTagSelect: () => {},
-        handleAssigneeSelect: () => {},
-        handleNewItemCreate: () => {},
-        handleNewItemCancel: () => {},
-        handleSearchSelect: () => {},
-        handleSearchCancel: () => {},
-        handleDatePromptConfirm: () => {},
-        handleDatePromptCancel: () => {},
-        handleOmniboxSelect: () => {},
-        handleOmniboxCancel: () => {},
-      },
       collapsedNodes: new Set<string>(),
-      moveMode: false,
-      colScrollOffset: 0,
+      hasDetailPane: false,
     })
 
     // Create element wrapped in RepoProvider

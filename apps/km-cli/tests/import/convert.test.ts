@@ -1332,9 +1332,9 @@ describe("roundtrip: convert → parse", () => {
     // Items in sections start at depth 3 (section is H2)
     // Nested subtasks increment: H3 → H4 → H5
     const allHeadings = tree.children.filter((n): n is Heading => n.type === "heading")
-    const level1 = allHeadings.find((h) => h.children[0]?.value?.includes("Level 1"))
-    const level2 = allHeadings.find((h) => h.children[0]?.value?.includes("Level 2"))
-    const level3 = allHeadings.find((h) => h.children[0]?.value?.includes("Level 3"))
+    const level1 = allHeadings.find((h) => (h.children[0] as { value?: string })?.value?.includes("Level 1"))
+    const level2 = allHeadings.find((h) => (h.children[0] as { value?: string })?.value?.includes("Level 2"))
+    const level3 = allHeadings.find((h) => (h.children[0] as { value?: string })?.value?.includes("Level 3"))
     expect(level1).toBeDefined()
     expect(level2).toBeDefined()
     expect(level3).toBeDefined()
@@ -1403,7 +1403,7 @@ describe("roundtrip: convert → parse", () => {
     expect(betaMd).toContain("### [ ] Shared task ![[^shared-rt]]")
 
     // Beta only heading is H3
-    const betaHeading = h3s.find((h) => h.children[0]?.value?.includes("Beta only"))
+    const betaHeading = h3s.find((h) => (h.children[0] as { value?: string })?.value?.includes("Beta only"))
     expect(betaHeading).toBeDefined()
   })
 
@@ -2130,8 +2130,10 @@ describe("HTML content escaping", () => {
   test("real HTML link is preserved as a markdown link", () => {
     const { tree } = roundtrip('<body><p>Visit <a href="http://example.com">the site</a> now</p></body>')
     expect(hasNodeType(tree, "link")).toBe(true)
-    const link = tree.children.flatMap((n) => ("children" in n ? n.children : [])).find((c) => c.type === "link")
-    expect(link.url).toBe("http://example.com")
+    const link = tree.children
+      .flatMap((n) => ("children" in n ? (n.children as Array<{ type: string; url?: string }>) : []))
+      .find((c) => c.type === "link")
+    expect(link!.url).toBe("http://example.com")
   })
 
   test("text starting with # is not interpreted as a heading", () => {

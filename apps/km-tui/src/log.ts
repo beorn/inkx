@@ -10,7 +10,10 @@
  * log.debug?.("render %s children=%d", sid(node.id), children.length)
  * log.trace?.("layout col=%d card=%d", colIndex, cardIndex)
  */
-import { createLogger, type ConditionalLogger } from "loggily"
+import { createLogger } from "loggily"
+
+/** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
+type ConditionalLogger = ReturnType<typeof createLogger>
 
 // ============================================================
 // Short ID helper

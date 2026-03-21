@@ -107,7 +107,7 @@ export function computeIgnorePath(node: KNode, repo: Repo): string | null {
   // Find the nearest ancestor with an fs_path
   let parentFile: KNode | null = null
   let parentSection: KNode | null = null
-  let current: KNode | undefined = node.parent_id ? repo.getNode(node.parent_id) : undefined
+  let current: KNode | null | undefined = node.parent_id ? repo.getNode(node.parent_id) : undefined
 
   while (current) {
     if (current.fs_path) {

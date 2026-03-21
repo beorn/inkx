@@ -38,7 +38,7 @@ export function buildUniqueSlugMap(entries: Array<{ name: string; gid: string }>
   const map = new Map<string, string>()
   for (const [slug, group] of bySlug) {
     if (group.length === 1) {
-      map.set(group[0].name, slug)
+      map.set(group[0]!.name, slug)
     } else {
       for (const e of group) {
         map.set(e.name, `${slug}-${e.gid}`)
@@ -136,7 +136,7 @@ export interface ConvertOptions {
 /** Map import status to km TaskStatus */
 const TASK_STATUS_MAP: Record<string, TaskStatus> = {
   done: "done",
-  wip: "doing",
+  wip: "wip",
   blocked: "blocked",
   dropped: "dropped",
 }
@@ -1006,7 +1006,7 @@ function buildPrimaryMap(data: ImportData): {
     }
     for (const [slug, group] of bySlug) {
       if (group.length === 1) {
-        projectSlugOverrides.set(group[0].project.sourceId, slug)
+        projectSlugOverrides.set(group[0]!.project.sourceId, slug)
       } else {
         for (const p of group) {
           projectSlugOverrides.set(p.project.sourceId, `${slug}-${p.project.sourceId}`)

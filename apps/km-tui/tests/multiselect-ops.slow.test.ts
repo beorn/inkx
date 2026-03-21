@@ -23,7 +23,10 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
   return repo.getChildren(parentId).map((n) => n.id)
 }
 
-function nodeStatus(repo: { getNode(id: string): { task_status?: string | null } | undefined }, id: string): string {
+function nodeStatus(
+  repo: { getNode(id: string): { task_status?: string | null } | null | undefined },
+  id: string,
+): string {
   return repo.getNode(id)?.task_status ?? "todo"
 }
 

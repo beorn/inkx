@@ -156,7 +156,7 @@ const daemonStatusCommand = new Command("status").description("Show daemon statu
     try {
       const response = await sendToDaemon(paths.socket, { type: "status" })
       if (response.ok && response.data) {
-        const status = response.data as DaemonStatus
+        const status = response.data as unknown as DaemonStatus
         console.log("Status:", term.green("running"))
         console.log("PID:", status.pid)
         console.log("Uptime:", formatUptime(status.uptime ?? 0))
@@ -462,7 +462,7 @@ class KmDaemon extends EventEmitter {
       case "status":
         return {
           ok: true,
-          data: this.getStatus() as Record<string, unknown>,
+          data: this.getStatus() as unknown as Record<string, unknown>,
         }
 
       case "sync":

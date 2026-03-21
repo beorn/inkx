@@ -1,6 +1,10 @@
 import { describe, test, expect, vi } from "vitest"
 import { createOpenRouterProvider } from "../../src/providers/openrouter.ts"
 
+/** Cast a vitest mock to satisfy the typeof fetch constraint */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const asFetch = (mock: any): typeof fetch => mock
+
 describe("openrouter provider", () => {
   const provider = createOpenRouterProvider()
 
@@ -15,22 +19,24 @@ describe("openrouter provider", () => {
 
   test("checkQuota returns credits info with limit", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          data: {
-            label: "my-key",
-            limit: 10.0,
-            limit_remaining: 7.5,
-            usage: 2.5,
-            usage_daily: 0.5,
-            usage_monthly: 2.5,
-            is_free_tier: false,
-          },
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: {
+              label: "my-key",
+              limit: 10.0,
+              limit_remaining: 7.5,
+              usage: 2.5,
+              usage_daily: 0.5,
+              usage_monthly: 2.5,
+              is_free_tier: false,
+            },
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({ apiKey: "sk-or-test" })
@@ -49,19 +55,21 @@ describe("openrouter provider", () => {
 
   test("checkQuota returns unavailable when credits exhausted", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          data: {
-            limit: 5.0,
-            limit_remaining: 0,
-            usage: 5.0,
-            is_free_tier: false,
-          },
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: {
+              limit: 5.0,
+              limit_remaining: 0,
+              usage: 5.0,
+              is_free_tier: false,
+            },
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({ apiKey: "sk-or-test" })
@@ -73,19 +81,21 @@ describe("openrouter provider", () => {
 
   test("checkQuota returns available when no limit set", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 200,
-      json: () =>
-        Promise.resolve({
-          data: {
-            limit: null,
-            limit_remaining: null,
-            usage: 12.3,
-            is_free_tier: false,
-          },
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () =>
+          Promise.resolve({
+            data: {
+              limit: null,
+              limit_remaining: null,
+              usage: 12.3,
+              is_free_tier: false,
+            },
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({ apiKey: "sk-or-test" })
@@ -97,7 +107,7 @@ describe("openrouter provider", () => {
 
   test("checkQuota returns error for invalid key", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 401 })
+    globalThis.fetch = asFetch(vi.fn().mockResolvedValue({ ok: false, status: 401 }))
 
     try {
       const result = await provider.checkQuota({ apiKey: "invalid" })
@@ -110,7 +120,7 @@ describe("openrouter provider", () => {
 
   test("checkQuota handles network error", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error("timeout"))
+    globalThis.fetch = asFetch(vi.fn().mockRejectedValue(new Error("timeout")))
 
     try {
       const result = await provider.checkQuota({ apiKey: "sk-or-test" })

@@ -54,7 +54,7 @@ console.error = function (...args: unknown[]) {
 
 // Also set IS_REACT_ACT_ENVIRONMENT to false as a baseline, though silvery/testing
 // will override it to true when imported.
-globalThis.IS_REACT_ACT_ENVIRONMENT = false
+;(globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = false
 
 // Pre-initialize Ghostty WASM for SILVERY_STRICT_TERMINAL values that include ghostty.
 // Must use beforeAll (not top-level await) because vitest setup files

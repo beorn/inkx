@@ -22,6 +22,14 @@ import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
 
+/** Helper: React.createElement with children as prop (avoids React 19 overload mismatch) */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const h = (type: any, props: any, ...children: any[]) =>
+  React.createElement(
+    type,
+    children.length === 1 ? { ...props, children: children[0] } : children.length > 0 ? { ...props, children } : props,
+  )
+
 /**
  * Build store params from a tree — same logic as tui.tsx's runBoard().
  */
@@ -72,13 +80,13 @@ describe("production entry point (createBoardApp)", () => {
     const app = createBoardApp(storeParams)
 
     // Build the same element tree as production tui.tsx
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -104,13 +112,13 @@ describe("production entry point (createBoardApp)", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -143,13 +151,13 @@ describe("production smoke: console toggle", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -184,13 +192,13 @@ describe("production smoke: console toggle", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -235,13 +243,13 @@ describe("console toggle: resume re-entrancy (km-tui.console)", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -281,13 +289,13 @@ describe("production smoke: inline edit + re-render", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -325,13 +333,13 @@ describe("production smoke: inline edit + re-render", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -365,13 +373,13 @@ describe("perf regression: unnecessary setUI on keypress (km-tui.perf-regr)", ()
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -427,13 +435,13 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -480,8 +488,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
     // → SyncManager.handleNodeUpdated() → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, createTestEnvRepo } = await import("@km/storage")
-    const { SyncManager } = await import("../../../../packages/km-storage/src/watch/sync.ts")
+    const { withTestEnv, getAllNodes, createTestEnvRepo, SyncManager } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
@@ -542,8 +549,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 
   test("emitter.getFsSync() returns non-null when wired in tui.tsx pattern", async () => {
     // Diagnostic: verifies the production wiring step
-    const { withTestEnv } = await import("@km/storage")
-    const { SyncManager } = await import("../../../../packages/km-storage/src/watch/sync.ts")
+    const { withTestEnv, SyncManager } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       const syncManager = new SyncManager({
@@ -571,7 +577,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
   })
 
   test("shouldApplyToFs returns true for actor=user", async () => {
-    const { shouldApplyToFs } = await import("../../../../packages/km-storage/src/watch/writequeue.ts")
+    const { shouldApplyToFs } = await import("@km/storage")
     expect(shouldApplyToFs("user")).toBe(true)
     expect(shouldApplyToFs("fs-watch")).toBe(false)
   })
@@ -612,13 +618,13 @@ describe("production smoke: store dimensions", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -652,13 +658,13 @@ describe("perf: processEvent render count", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -695,13 +701,13 @@ describe("perf: processEvent render count", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -739,13 +745,13 @@ describe("perf: processEvent render count", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -784,13 +790,13 @@ describe("perf: processEvent render count", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -826,13 +832,13 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -877,13 +883,13 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
@@ -925,13 +931,13 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     const { storeParams, repo, initialState } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
-    const element = React.createElement(
+    const element = h(
       RepoProvider,
       { repo },
-      React.createElement(
+      h(
         InputLayerProvider,
         null,
-        React.createElement(BoardApp, {
+        h(BoardApp, {
           initialState,
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,

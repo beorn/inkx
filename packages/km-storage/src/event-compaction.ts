@@ -182,9 +182,9 @@ function countWorktree(repoPath: string, _kmDir: string): { fileCount: number; d
   const ignorePatterns = getIgnorePatterns(repoPath)
 
   function walk(dir: string): void {
-    let entries: ReturnType<typeof readdirSync>
+    let entries: import("fs").Dirent[]
     try {
-      entries = readdirSync(dir, { withFileTypes: true })
+      entries = readdirSync(dir, { withFileTypes: true, encoding: "utf-8" })
     } catch {
       return
     }

@@ -61,11 +61,13 @@ async function syncDir(db: Database, dir: string, repoDir: string, emitter: Emit
 let _repoDir = ""
 
 /** Wrap withTestEnv to set _repoDir for path helpers */
-function withTestEnvRel<T>(fn: (env: { db: Database; repoDir: string; emitter: Emitter }) => T): Promise<T> {
-  return withTestEnv((env) => {
+async function withTestEnvRel<T>(
+  fn: (env: { db: Database; repoDir: string; emitter: Emitter }) => T,
+): Promise<Awaited<T>> {
+  return (await withTestEnv(async (env) => {
     _repoDir = env.repoDir
-    return fn(env)
-  }) as Promise<T>
+    return (await fn(env)) as Awaited<T>
+  })) as Awaited<T>
 }
 
 /** Convert absolute path to relative for DB queries (DB stores relative fs_path) */

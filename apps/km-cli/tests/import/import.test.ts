@@ -79,9 +79,12 @@ describe("Stage 1: Fetch from Asana API", () => {
     expect(sprint.team).toBe("Engineering")
 
     // Workspace metadata JSON saved
-    const wsMeta = JSON.parse(readFileSync(join(downloadDir, "_workspace.json"), "utf-8"))
+    const wsMeta = JSON.parse(readFileSync(join(downloadDir, "_workspace.json"), "utf-8")) as {
+      teams: Array<{ name: string }>
+      users: Array<{ name: string }>
+    }
     expect(wsMeta.teams).toHaveLength(1)
-    expect(wsMeta.teams[0].name).toBe("Engineering")
+    expect(wsMeta.teams[0]!.name).toBe("Engineering")
     expect(wsMeta.users).toHaveLength(2)
   })
 
@@ -248,17 +251,17 @@ describe("Stage 1: Fetch from Asana API", () => {
   })
 
   test("records API calls when record is true", async () => {
-    const result = await fetchFromAsana({
+    const result = (await fetchFromAsana({
       token: "fake-token",
       downloadDir,
       record: true,
-    })
+    })) as unknown as import("../../src/import/adapters/asana/asana-types.ts").FetchResult
 
     expect(result.recorded).toBeDefined()
     expect(result.recorded!.length).toBeGreaterThan(0)
     // Should have calls for: /users/me, /projects, /projects/:id/sections x2, /tasks x2, /tasks/:id/subtasks
-    expect(result.recorded!.some((r) => r.path === "/users/me")).toBe(true)
-    expect(result.recorded!.some((r) => r.path === "/projects")).toBe(true)
+    expect(result.recorded!.some((r: { path: string }) => r.path === "/users/me")).toBe(true)
+    expect(result.recorded!.some((r: { path: string }) => r.path === "/projects")).toBe(true)
   })
 
   test("converts html_notes with bullets via mdast", async () => {
@@ -572,12 +575,14 @@ describe("Stage 2: Download Attachments", () => {
     const createdAt = "2025-06-15T10:30:00.000Z"
     const data: import("../../src/import/types.ts").ImportData = {
       source: "test",
+      fetchedAt: createdAt,
       projects: [
         {
           sourceId: "proj-1",
           title: "Test Project",
           sections: [
             {
+              sourceId: "section-1",
               title: "Section 1",
               items: [
                 {
@@ -627,12 +632,14 @@ describe("Stage 2: Download Attachments", () => {
     const beforeMs = Date.now()
     const data: import("../../src/import/types.ts").ImportData = {
       source: "test",
+      fetchedAt: new Date().toISOString(),
       projects: [
         {
           sourceId: "proj-1",
           title: "Test Project",
           sections: [
             {
+              sourceId: "section-1",
               title: "Section 1",
               items: [
                 {

@@ -25,7 +25,8 @@ describe("credential file operations", () => {
 
     writeFileSync(credPath, JSON.stringify(credential, null, 2))
     const raw = readFileSync(credPath, "utf-8")
-    const parsed = JSON.parse(raw)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = JSON.parse(raw) as any
 
     expect(parsed.accessToken).toBe("test-access-token")
     expect(parsed.refreshToken).toBe("test-refresh-token")

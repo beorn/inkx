@@ -308,7 +308,7 @@ describe("MemoryStore", () => {
     expect(task!.due_at).toBe("2026-03-15")
 
     // Clear the date
-    store.updateNode(task!.id, { due_at: null } as Partial<KNode>)
+    store.updateNode(task!.id, { due_at: null } as unknown as Partial<KNode>)
 
     const updated = store.getNode(task!.id)
     expect(updated!.due_at).toBeUndefined()

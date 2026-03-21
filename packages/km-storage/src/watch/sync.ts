@@ -435,7 +435,7 @@ export class SyncManager extends EventEmitter {
     } catch (error) {
       // Suppress errors after stop (DB closed, temp dir removed — expected during teardown)
       if (this.stopped) return
-      span.error?.(error instanceof Error ? error : String(error))
+      span.error?.(error instanceof Error ? error.message : String(error))
       this.emit("error", error)
     }
     if (!this.stopped) {
@@ -632,11 +632,12 @@ export class SyncManager extends EventEmitter {
   private handleFolderIndexUpdate(node: KNode, eventId: string): void {
     const config = getFolderIndexConfig(this.config.repoPath)
     if (config.materialization === "none") return
+    const indexConfig = { materialization: config.materialization, naming: config.naming }
 
     const folderPath = node.fs_path
     if (!folderPath) return
 
-    const content = buildIndexContent(this.db, node, config)
+    const content = buildIndexContent(this.db, node, indexConfig)
     if (!content) {
       log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
       return
@@ -870,6 +871,7 @@ export class SyncManager extends EventEmitter {
           fs_path?: string
           type?: string
           parent_id?: string | null
+          item?: boolean
         }
       | undefined
     const fsPath = data?.fs_path

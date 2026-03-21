@@ -36,7 +36,7 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): stri
   } else if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
     // Compute depth from tree nesting (direct file children = H2)
     let depth = 2
-    let current: KNode | undefined = ca.node.parent_id ? repo.getNode(ca.node.parent_id) : undefined
+    let current: KNode | null | undefined = ca.node.parent_id ? repo.getNode(ca.node.parent_id) : undefined
     while (isOutline(current?.type ?? "", current?.item) && current?.fstype === "mdsection") {
       depth++
       current = current.parent_id ? repo.getNode(current.parent_id) : undefined

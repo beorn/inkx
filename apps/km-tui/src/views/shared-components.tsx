@@ -283,7 +283,7 @@ function isChord(segment: string): boolean {
   if (parts.length !== 2) return false
   // Each part must be 1–3 visible characters
   // (covers single chars like "g", modifier+key like "⌃w", ranges like "0-9")
-  return [...parts[0]].length <= 3 && [...parts[1]].length <= 3
+  return [...parts[0]!].length <= 3 && [...parts[1]!].length <= 3
 }
 
 /**
@@ -294,7 +294,7 @@ function isChord(segment: string): boolean {
  */
 function KeySegment({ segment, color }: { segment: string; color?: string }): React.ReactElement {
   if (isChord(segment)) {
-    const [prefix, suffix] = segment.split(" ")
+    const [prefix, suffix] = segment.split(" ") as [string, string]
     return (
       <>
         <Text bold color={color}>

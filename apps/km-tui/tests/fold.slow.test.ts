@@ -272,8 +272,10 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
 
   /** Verify ANSI diff replay produces correct terminal output */
   function verifyDiffReplay(
-    prevBuffer: ReturnType<ReturnType<typeof import("@silvery/test").createRenderer>["lastBuffer"]>,
-    nextBuffer: ReturnType<ReturnType<typeof import("@silvery/test").createRenderer>["lastBuffer"]>,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    prevBuffer: any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    nextBuffer: any,
     label: string,
   ) {
     if (!prevBuffer || !nextBuffer) throw new Error(`${label}: No buffer`)

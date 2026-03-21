@@ -208,19 +208,13 @@ export async function createBoardTest(
   // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {
     rootId: state.rootId,
-    rootPath: state.rootPath,
     columns: state.columns,
     colIndex: 0,
     cardIndex: 0,
-    isAtCardLevel: true,
     ui: createInitialPaneUI("cards", [], { columns: width, rows: height }),
     derivedSelectionLevel: "card",
     dimensions: { columns: width, rows: height },
-    navigator: createGridNavigator(),
-    dispatch: () => {},
-    dialogHandlers: NOOP_DIALOG_HANDLERS,
     collapsedNodes: new Set<string>(),
-    moveMode: false,
     hasDetailPane: false,
   })
 
@@ -232,17 +226,9 @@ export async function createBoardTest(
   nodeStore.syncCursor(cursorStore.getState())
   cursorStore.subscribe(() => nodeStore.syncCursor(cursorStore.getState()))
 
-  const app = render(
-    React.createElement(
-      ReactiveNodeStoreProvider,
-      { value: nodeStore },
-      React.createElement(
-        CursorStoreProvider,
-        { store: cursorStore },
-        React.createElement(RepoProvider, { repo, children: boardCoreElement }),
-      ),
-    ),
-  )
+  const repoElement = React.createElement(RepoProvider, { repo, children: boardCoreElement })
+  const cursorElement = React.createElement(CursorStoreProvider, { store: cursorStore, children: repoElement })
+  const app = render(React.createElement(ReactiveNodeStoreProvider, { value: nodeStore, children: cursorElement }))
 
   // Current data - updated after each input
   const currentState = state as InitialBoardData

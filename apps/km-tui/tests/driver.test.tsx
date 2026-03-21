@@ -71,7 +71,7 @@ describe("withCommands", () => {
     const app = withCommands(baseApp, createOptions())
 
     // Execute command
-    await app.cmd.down!()
+    await (app.cmd.down as any)()
 
     // cursor_down should dispatch CURSOR_MOVE with dir: down
     expect(dispatchedActions).toHaveLength(1)
@@ -105,7 +105,7 @@ describe("withCommands", () => {
     )
     const app = withCommands(baseApp, createOptions())
 
-    expect(app.cmd.down!.id).toBe("cursor_down")
+    expect((app.cmd.down as any).id).toBe("cursor_down")
   })
 
   test("cmd.down.name returns command name", () => {
@@ -117,7 +117,7 @@ describe("withCommands", () => {
     )
     const app = withCommands(baseApp, createOptions())
 
-    expect(app.cmd.down!.name).toBe("Move Down")
+    expect((app.cmd.down as any).name).toBe("Move Down")
   })
 
   test("cmd.down.help returns command description", () => {
@@ -129,7 +129,7 @@ describe("withCommands", () => {
     )
     const app = withCommands(baseApp, createOptions())
 
-    expect(app.cmd.down!.help).toContain("Move cursor down")
+    expect((app.cmd.down as any).help).toContain("Move cursor down")
   })
 
   test("cmd.down.keys returns keybindings", () => {
@@ -141,7 +141,7 @@ describe("withCommands", () => {
     )
     const app = withCommands(baseApp, createOptions())
 
-    const keys = app.cmd.down!.keys
+    const keys = (app.cmd.down as any).keys
     expect(keys).toContain("j")
     expect(keys).toContain("ArrowDown")
   })
@@ -247,7 +247,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings(),
-      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
     })
 
     // Press j should trigger cursor_down
@@ -277,7 +277,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings(),
-      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
     })
 
     await app.press("ArrowDown")
@@ -306,7 +306,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings(),
-      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
     })
 
     await app.press("k")
@@ -335,7 +335,7 @@ describe("withKeybindings", () => {
 
     const app = withKeybindings(appWithCmd, {
       bindings: defaultKeybindings(),
-      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
+      getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
     })
 
     // 'x' is not bound to any command
@@ -385,7 +385,7 @@ describe("composed app driver", () => {
       }),
       {
         bindings: defaultKeybindings(),
-        getKeyContext: () => ({ mode: "normal", hasMultiSelection: false }),
+        getKeyContext: () => ({ mode: "normal", hasMultiSelection: false, hasSelection: false }),
       },
     )
 
@@ -485,9 +485,9 @@ describe("createBoardDriver", () => {
 
     // Commands should have metadata
     expect(driver.cmd.down).toBeDefined()
-    expect(driver.cmd.down!.id).toBe("cursor_down")
-    expect(driver.cmd.down!.name).toBe("Move Down")
-    expect(driver.cmd.down!.keys).toContain("j")
+    expect((driver.cmd.down as any).id).toBe("cursor_down")
+    expect((driver.cmd.down as any).name).toBe("Move Down")
+    expect((driver.cmd.down as any).keys).toContain("j")
   })
 
   test("press('j') navigates cursor down", async () => {

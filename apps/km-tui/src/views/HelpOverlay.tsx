@@ -108,7 +108,7 @@ function buildSectionLines(section: HelpSection, keyPrefix: string): React.React
   const lines: React.ReactElement[] = []
   lines.push(<SectionHeaderLine key={`${keyPrefix}-hdr`} title={section.category} />)
   for (let i = 0; i < section.items.length; i++) {
-    const item = section.items[i]
+    const item = section.items[i]!
     lines.push(<EntryLine key={`${keyPrefix}-e${i}`} keys={item.keys} desc={item.description} />)
   }
   if (section.category === "Panes") {
@@ -152,7 +152,7 @@ function buildContentLines(sections: HelpSection[], contentWidth: number): React
 
     if (cols.length === 1) {
       // Single column — full width
-      lines.push(...cols[0])
+      lines.push(...cols[0]!)
     } else {
       // Multi-column: merge lines side by side using fixed-width Boxes
       const gap = 4
@@ -251,7 +251,7 @@ function buildVerbGridLines(): React.ReactElement[] {
 
   // Grid rows
   for (let i = 0; i < VERB_GRID.length; i++) {
-    const row = VERB_GRID[i]
+    const row = VERB_GRID[i]!
     if (row.separator) {
       lines.push(<Text key={`vg-sep-${i}`}> </Text>)
     }

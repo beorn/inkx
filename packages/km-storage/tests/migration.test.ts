@@ -26,7 +26,7 @@ test("ensureRepoRootNode creates root node in empty DB", () => {
   expect(root).toBeDefined()
   expect(root.type).toBe("h")
   expect(root.fs_path).toBe(".")
-  expect(JSON.parse(root.data).is_repo_root).toBe(true)
+  expect((JSON.parse(root.data) as Record<string, unknown>).is_repo_root).toBe(true)
 })
 
 test("ensureRepoRootNode is idempotent", () => {
@@ -125,8 +125,8 @@ describe("SQLite performance optimizations", () => {
     }[]
 
     expect(indexInfo).toHaveLength(2)
-    expect(indexInfo[0].name).toBe("parent_id")
-    expect(indexInfo[1].name).toBe("parent_idx")
+    expect(indexInfo[0]!.name).toBe("parent_id")
+    expect(indexInfo[1]!.name).toBe("parent_idx")
   })
 
   test("old idx_nodes_parent index is dropped by migration", () => {

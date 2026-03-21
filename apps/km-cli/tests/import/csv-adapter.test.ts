@@ -415,8 +415,8 @@ describe("CSV → convert → markdown", () => {
     expect(md).toContain("## Sprint 5")
     expect(md).toContain("## Sprint 4")
 
-    // Task with all metadata (depth 3 inside section)
-    expect(md).toContain("### [ ] Launch v2 @alice #launch #critical")
+    // Task with all metadata (depth 3 inside section, wip → [/])
+    expect(md).toContain("### [/] Launch v2 @alice #launch #critical")
     expect(md).toContain("Final preparations")
 
     // Done task (depth 3 inside section)

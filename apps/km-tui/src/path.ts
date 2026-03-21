@@ -101,10 +101,10 @@ export const NodePath = {
     let currentId: string | null = nodeId
 
     while (currentId !== rootId) {
-      const node = currentId ? repo.getNode(currentId) : null
+      const node: import("@km/core").KNode | null = currentId ? repo.getNode(currentId) : null
       if (!node) return null
 
-      const parentId = node.parent_id
+      const parentId: string | null = node.parent_id
       const siblings = repo.getChildren(parentId)
       if (!currentId) return null // Unreachable: getNode(currentId) succeeded above
       const index = indexOfChild(siblings, currentId)

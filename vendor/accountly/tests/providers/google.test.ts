@@ -1,6 +1,10 @@
 import { describe, test, expect, vi } from "vitest"
 import { createGoogleProvider } from "../../src/providers/google.ts"
 
+/** Cast a vitest mock to satisfy the typeof fetch constraint */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const asFetch = (mock: any): typeof fetch => mock
+
 describe("google provider", () => {
   const provider = createGoogleProvider()
 
@@ -15,7 +19,7 @@ describe("google provider", () => {
 
   test("checkQuota returns available for valid key", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200 })
+    globalThis.fetch = asFetch(vi.fn().mockResolvedValue({ ok: true, status: 200 }))
 
     try {
       const result = await provider.checkQuota({ apiKey: "AIza-test" })
@@ -29,7 +33,7 @@ describe("google provider", () => {
 
   test("checkQuota returns error for invalid key (403)", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 403 })
+    globalThis.fetch = asFetch(vi.fn().mockResolvedValue({ ok: false, status: 403 }))
 
     try {
       const result = await provider.checkQuota({ apiKey: "invalid" })
@@ -42,7 +46,7 @@ describe("google provider", () => {
 
   test("checkQuota returns error for invalid key (400)", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 400 })
+    globalThis.fetch = asFetch(vi.fn().mockResolvedValue({ ok: false, status: 400 }))
 
     try {
       const result = await provider.checkQuota({ apiKey: "invalid" })
@@ -55,7 +59,7 @@ describe("google provider", () => {
 
   test("checkQuota handles network error", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error("DNS resolution failed"))
+    globalThis.fetch = asFetch(vi.fn().mockRejectedValue(new Error("DNS resolution failed")))
 
     try {
       const result = await provider.checkQuota({ apiKey: "AIza-test" })

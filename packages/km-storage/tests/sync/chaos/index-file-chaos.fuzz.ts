@@ -10,7 +10,10 @@
  * Uses real SyncManager with debounce=0, real filesystem (withTestEnv).
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test as _test, expect } from "vitest"
+
+// Vitest fuzz extension (defined by vitest project config)
+const test = _test as typeof _test & { fuzz: typeof _test }
 import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync, readdirSync } from "fs"
 import { join, basename } from "path"
 import { createSeededRandom, type SeededRandom } from "vimonkey"

@@ -12,6 +12,7 @@
 
 import { describe, expect, test } from "vitest"
 import { fromMarkdown } from "mdast-util-from-markdown"
+import type { Heading } from "mdast"
 import type { KmWikilink } from "../../src/kmast/types.ts"
 import { km, kmFromMarkdown } from "../../src/extensions/index.ts"
 import { parseMarkdownWithLinks, nodesToMarkdown, parseMarkdown } from "../../src/index.ts"
@@ -90,25 +91,25 @@ describe("kmast integration: data fields", () => {
   describe("paragraph.data.tags, .mentions, .projects", () => {
     test("extracts tags from paragraph", () => {
       const tree = parse("Text #urgent #bug")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.tags).toEqual(["urgent", "bug"])
     })
 
     test("extracts mentions from paragraph", () => {
       const tree = parse("Assigned to @alice @bob")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.mentions).toEqual(["alice", "bob"])
     })
 
     test("extracts projects from paragraph", () => {
       const tree = parse("For +backend +api")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.projects).toEqual(["backend", "api"])
     })
 
     test("extracts all ref types together", () => {
       const tree = parse("#tag @user +proj")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.tags).toEqual(["tag"])
       expect(para.data?.mentions).toEqual(["user"])
       expect(para.data?.projects).toEqual(["proj"])
@@ -116,7 +117,7 @@ describe("kmast integration: data fields", () => {
 
     test("no refs set on plain text", () => {
       const tree = parse("Plain paragraph")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.tags).toBeUndefined()
       expect(para.data?.mentions).toBeUndefined()
       expect(para.data?.projects).toBeUndefined()
@@ -135,7 +136,7 @@ describe("kmast integration: data fields", () => {
   describe("paragraph.data.props, .propsRaw, .cleanText", () => {
     test("extracts typed props from paragraph", () => {
       const tree = parse("Task rating:: 5 due:: 2025-01-15")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.props).toEqual({
         rating: { type: "number", value: 5 },
         due: { type: "date", value: "2025-01-15" },
@@ -146,14 +147,14 @@ describe("kmast integration: data fields", () => {
 
     test("link property value", () => {
       const tree = parse("Task blocked-by:: [[other]]")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.props?.["blocked-by"]).toEqual({ type: "link", target: "other" })
       expect(para.data?.propsRaw?.["blocked-by"]).toBe("[[other]]")
     })
 
     test("no props on plain paragraph", () => {
       const tree = parse("No properties here")
-      const para = tree.children[0]
+      const para = tree.children[0]!
       expect(para.data?.props).toBeUndefined()
       expect(para.data?.propsRaw).toBeUndefined()
     })
@@ -171,21 +172,21 @@ describe("kmast integration: data fields", () => {
   describe("heading.data fields", () => {
     test("heading with block ID", () => {
       const tree = parse("## Section Title ^blk1")
-      const heading = tree.children[0]
+      const heading = tree.children[0]!
       expect(heading.type).toBe("heading")
       expect(heading.data?.blockId).toBe("blk1")
     })
 
     test("heading with task mark", () => {
       const tree = parse("### [x] Done heading")
-      const heading = tree.children[0]
+      const heading = tree.children[0]! as Heading
       expect(heading.type).toBe("heading")
       expect(heading.data?.taskMark).toBe("x")
     })
 
     test("heading with inline properties", () => {
       const tree = parse("## Column km.add:: status:todo")
-      const heading = tree.children[0]
+      const heading = tree.children[0]!
       expect(heading.data?.propsRaw).toEqual({ "km.add": "status:todo" })
       expect(heading.data?.cleanText).toBe("Column")
       // km.* keys excluded from typed props
@@ -194,7 +195,7 @@ describe("kmast integration: data fields", () => {
 
     test("heading with non-km property", () => {
       const tree = parse("## Section color:: blue")
-      const heading = tree.children[0]
+      const heading = tree.children[0]!
       expect(heading.data?.props).toEqual({ color: { type: "text", value: "blue" } })
       expect(heading.data?.propsRaw).toEqual({ color: "blue" })
       expect(heading.data?.cleanText).toBe("Section")
@@ -202,7 +203,7 @@ describe("kmast integration: data fields", () => {
 
     test("heading with tags", () => {
       const tree = parse("## Section #important")
-      const heading = tree.children[0]
+      const heading = tree.children[0]!
       expect(heading.data?.tags).toEqual(["important"])
     })
   })
@@ -313,7 +314,7 @@ describe("kmast integration: combined features", () => {
   test("paragraph with refs, property, and block ID", () => {
     const md = "Description #feature @bob priority:: 3 ^ref1"
     const tree = parse(md)
-    const para = tree.children[0]
+    const para = tree.children[0]!
 
     expect(para.data?.blockId).toBe("ref1")
     expect(para.data?.tags).toEqual(["feature"])
@@ -325,7 +326,7 @@ describe("kmast integration: combined features", () => {
   test("heading with task mark, property, and block ID", () => {
     const md = "## [/] In Progress km.sync:: status:wip ^h1"
     const tree = parse(md)
-    const heading = tree.children[0]
+    const heading = tree.children[0]! as Heading
 
     expect(heading.data?.taskMark).toBe("/")
     expect(heading.data?.blockId).toBe("h1")
@@ -337,7 +338,7 @@ describe("kmast integration: combined features", () => {
   test("paragraph with wikilinks and refs", () => {
     const md = "See [[Project A]] and [[Other|alias]] #important @lead"
     const tree = parse(md)
-    const para = tree.children[0]
+    const para = tree.children[0]!
 
     // Refs
     expect(para.data?.tags).toEqual(["important"])
@@ -387,7 +388,7 @@ describe("kmast integration: combined features", () => {
 describe("kmast integration: heading rules", () => {
   test("km.add:: in heading propsRaw", () => {
     const tree = parse("## Ready km.add:: status:todo")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.add"]).toBe("status:todo")
     expect(heading.data?.cleanText).toBe("Ready")
     expect(heading.data?.props).toEqual({})
@@ -395,42 +396,42 @@ describe("kmast integration: heading rules", () => {
 
   test("km.sync:: in heading propsRaw", () => {
     const tree = parse("## Active km.sync:: status:wip")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.sync"]).toBe("status:wip")
     expect(heading.data?.cleanText).toBe("Active")
   })
 
   test("km.collapse:: true", () => {
     const tree = parse("## Archive km.collapse:: true")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.collapse"]).toBe("true")
     expect(heading.data?.cleanText).toBe("Archive")
   })
 
   test("km.limit:: in heading propsRaw", () => {
     const tree = parse("## WIP km.limit:: 3")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.limit"]).toBe("3")
     expect(heading.data?.cleanText).toBe("WIP")
   })
 
   test("km.color:: in heading propsRaw", () => {
     const tree = parse("## Highlight km.color:: cyan")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.color"]).toBe("cyan")
     expect(heading.data?.cleanText).toBe("Highlight")
   })
 
   test("km.default:: true in heading propsRaw", () => {
     const tree = parse("## Inbox km.default:: true")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.default"]).toBe("true")
     expect(heading.data?.cleanText).toBe("Inbox")
   })
 
   test("multiple km.* rules on one heading", () => {
     const tree = parse("## Column km.sync:: status:wip km.limit:: 5 km.color:: green")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.sync"]).toBe("status:wip")
     expect(heading.data?.propsRaw?.["km.limit"]).toBe("5")
     expect(heading.data?.propsRaw?.["km.color"]).toBe("green")
@@ -440,14 +441,14 @@ describe("kmast integration: heading rules", () => {
 
   test("duplicate km.add values are comma-concatenated", () => {
     const tree = parse("## Col km.add:: query1 km.add:: query2")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.add"]).toBe("query1, query2")
     expect(heading.data?.cleanText).toBe("Col")
   })
 
   test("heading with task mark AND km rules", () => {
     const tree = parse("## [x] Done km.collapse:: true")
-    const heading = tree.children[0]
+    const heading = tree.children[0]! as Heading
     expect(heading.data?.taskMark).toBe("x")
     expect(heading.data?.propsRaw?.["km.collapse"]).toBe("true")
     expect(heading.data?.cleanText).toBe("Done")
@@ -455,7 +456,7 @@ describe("kmast integration: heading rules", () => {
 
   test("heading with mixed km.* and non-km properties", () => {
     const tree = parse("## Section km.color:: blue label:: important")
-    const heading = tree.children[0]
+    const heading = tree.children[0]!
     expect(heading.data?.propsRaw?.["km.color"]).toBe("blue")
     expect(heading.data?.propsRaw?.["label"]).toBe("important")
     expect(heading.data?.props?.label).toEqual({ type: "text", value: "important" })

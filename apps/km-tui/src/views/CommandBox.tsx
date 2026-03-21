@@ -423,7 +423,7 @@ function FindInput({
   onQueryChange: (query: string) => void
 }): React.ReactElement {
   // Debounce propagation to avoid full board re-render on every keystroke
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const debouncedChange = useRef((value: string) => {
     clearTimeout(timerRef.current)
     // @ts-expect-error - React internal flag set by silvery test renderer

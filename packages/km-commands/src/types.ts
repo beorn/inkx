@@ -121,7 +121,11 @@ interface ZoomOutwardsAction {
   type: "ZOOM_OUTWARDS"
 }
 
-interface CloseDetailPaneAction {
+interface ZoomToRootAction {
+  type: "ZOOM_TO_ROOT"
+}
+
+export interface CloseDetailPaneAction {
   type: "CLOSE_DETAIL_PANE"
 }
 
@@ -129,11 +133,11 @@ interface ToggleDetailPaneAction {
   type: "TOGGLE_DETAIL_PANE"
 }
 
-interface ShowHelpAction {
+export interface ShowHelpAction {
   type: "SHOW_HELP"
 }
 
-interface HideHelpAction {
+export interface HideHelpAction {
   type: "HIDE_HELP"
 }
 
@@ -145,7 +149,7 @@ interface HelpScrollDownAction {
   type: "HELP_SCROLL_DOWN"
 }
 
-interface CycleViewModeAction {
+export interface CycleViewModeAction {
   type: "CYCLE_VIEW_MODE"
 }
 
@@ -153,26 +157,26 @@ interface CycleIconStyleAction {
   type: "CYCLE_ICON_STYLE"
 }
 
-interface DeleteNodeAction {
+export interface DeleteNodeAction {
   type: "DELETE_NODE"
   nodeId: string
 }
 
 /** Select all (progressive: column first, then board-wide) */
-interface SelectAllProgressiveAction {
+export interface SelectAllProgressiveAction {
   type: "SELECT_ALL"
 }
 
 // TUI-specific actions (dialogs, quit, favorites)
-interface QuitAction {
+export interface QuitAction {
   type: "QUIT"
 }
 
-interface ShowNewItemDialogAction {
+export interface ShowNewItemDialogAction {
   type: "SHOW_NEW_ITEM_DIALOG"
 }
 
-interface ShowItemPickerAction {
+export interface ShowItemPickerAction {
   type: "SHOW_ITEM_PICKER"
 }
 
@@ -180,17 +184,17 @@ interface ShowSearchDialogAction {
   type: "SHOW_SEARCH_DIALOG"
 }
 
-interface JumpToFavoriteAction {
+export interface JumpToFavoriteAction {
   type: "JUMP_TO_FAVORITE"
   favoriteKey: string
 }
 
-interface JumpToColumnAction {
+export interface JumpToColumnAction {
   type: "JUMP_TO_COLUMN"
   columnNumber: number // 1-9 (maps to column index 0-8)
 }
 
-interface CloseOrQuitAction {
+export interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
@@ -235,27 +239,27 @@ interface ReparentPickerAction {
   type: "REPARENT_PICKER" // Open reparent/move-to picker
 }
 
-interface DialogNavUpAction {
+export interface DialogNavUpAction {
   type: "DIALOG_NAV_UP"
 }
 
-interface DialogNavDownAction {
+export interface DialogNavDownAction {
   type: "DIALOG_NAV_DOWN"
 }
 
-interface DialogNavLeftAction {
+export interface DialogNavLeftAction {
   type: "DIALOG_NAV_LEFT"
 }
 
-interface DialogNavRightAction {
+export interface DialogNavRightAction {
   type: "DIALOG_NAV_RIGHT"
 }
 
-interface DialogConfirmAction {
+export interface DialogConfirmAction {
   type: "DIALOG_CONFIRM"
 }
 
-interface DialogCancelAction {
+export interface DialogCancelAction {
   type: "DIALOG_CANCEL"
 }
 
@@ -445,6 +449,18 @@ interface SetAssigneeAction {
   type: "SET_ASSIGNEE"
 }
 
+interface IncreaseOutlineDepthAction {
+  type: "INCREASE_OUTLINE_DEPTH"
+}
+
+interface DecreaseOutlineDepthAction {
+  type: "DECREASE_OUTLINE_DEPTH"
+}
+
+interface DevTestToastAction {
+  type: "DEV_TEST_TOAST"
+}
+
 interface NoopAction {
   type: "NOOP"
 }
@@ -465,7 +481,7 @@ interface EnterInlineEditAction {
   blockIndex?: number // 0 = title (default), 1+ = body children
 }
 
-interface EditBlockNavigateAction {
+export interface EditBlockNavigateAction {
   type: "EDIT_BLOCK_NAVIGATE"
   direction: "up" | "down"
 }
@@ -474,7 +490,7 @@ interface IndentNodeAction {
   type: "INDENT_NODE"
 }
 
-interface OutdentNodeAction {
+export interface OutdentNodeAction {
   type: "OUTDENT_NODE"
 }
 
@@ -851,9 +867,13 @@ export type TUIAction =
   | FavoritesAssignAction
   | FavoritesClearAction
   | FavoritesBackAction
+  | IncreaseOutlineDepthAction
+  | DecreaseOutlineDepthAction
+  | DevTestToastAction
 
 export type UIAction =
   | ZoomOutwardsAction
+  | ZoomToRootAction
   | CloseDetailPaneAction
   | ToggleDetailPaneAction
   | ShowHelpAction

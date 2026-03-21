@@ -303,8 +303,8 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
       // Reuse parseWikiLinks which already handles all wikilink variants including bare block refs
       if (getEmbeddingText(cleanText)) {
         const links = parseWikiLinks(cleanText)
-        if (links.length === 1 && links[0].embedded) {
-          const link = links[0]
+        const link = links[0]
+        if (links.length === 1 && link?.embedded) {
           const target = link.blockId ? `^${link.blockId}` : link.target
           if (target) {
             sectionNode.data = { ...sectionNode.data, embeddingTarget: target }
@@ -362,7 +362,7 @@ function convertListItem(
 
   // Extract only the first paragraph's text for node.content.
   // Extra paragraphs are handled as child nodes below (convertBlock).
-  const firstPara = item.children.find((c) => c.type === "paragraph" || c.type === "text")
+  const firstPara = item.children.find((c) => c.type === "paragraph" || (c as { type: string }).type === "text")
   let text = firstPara ? nodeToText(firstPara as RootContent) : ""
 
   // Read task mark from kmast data (set by kmTaskMark tokenizer)
@@ -541,8 +541,8 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
       // Detect embedding syntax ![[...]] and store target for reconciliation
       if (getEmbeddingText(content)) {
         const links = parseWikiLinks(content)
-        if (links.length === 1 && links[0].embedded) {
-          const link = links[0]
+        const link = links[0]
+        if (links.length === 1 && link?.embedded) {
           const target = link.blockId ? `^${link.blockId}` : link.target
           if (target) {
             data.embeddingTarget = target

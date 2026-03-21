@@ -6,7 +6,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import { mkdirSync, writeFileSync, rmSync, existsSync, statSync } from "fs"
+import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, statSync } from "fs"
 import { join } from "path"
 
 import { runGenerator } from "@km/core"

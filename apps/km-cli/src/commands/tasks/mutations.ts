@@ -149,7 +149,7 @@ export async function releaseTask(pathOrId: string | undefined, options: { json?
   }
 
   repo.updateNode(task.id, {
-    assigned_to: null,
+    assigned_to: undefined,
     task_status: "todo" as TaskStatus,
     task_marker: "[ ]",
   })

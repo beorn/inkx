@@ -8,6 +8,7 @@
 import type { ImportAdapter, AdapterParseOptions, AdapterFetchOptions, AdapterFetchResult } from "../../adapter.ts"
 import { readFileSync } from "fs"
 import type { ImportData, ImportAttachment } from "../../types.ts"
+import type { FetchResult } from "./asana-types.ts"
 import { parseAsanaFile } from "./asana-file.ts"
 
 /**
@@ -39,7 +40,7 @@ function convertAsanaLinks(text: string): string {
 }
 
 /** Recursively preprocess all item bodies in ImportData */
-function preprocessItems(items: import("../types.ts").ImportItem[]): void {
+function preprocessItems(items: import("../../types.ts").ImportItem[]): void {
   for (const item of items) {
     if (item.body) item.body = convertAsanaLinks(item.body)
     if (item.children) preprocessItems(item.children)
@@ -72,7 +73,7 @@ export const asanaAdapter: ImportAdapter = {
       record: options.record as boolean | undefined,
     })
     // fetchFromAsana returns ImportData directly or FetchResult depending on record flag
-    const data = "data" in result ? result.data : (result as unknown as ImportData)
+    const data: ImportData = "data" in result ? (result as FetchResult).data : (result as ImportData)
     return { data }
   },
 

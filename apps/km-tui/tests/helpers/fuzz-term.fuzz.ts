@@ -157,8 +157,8 @@ describe("createFuzzTerm", () => {
       events.push({ input: e.data.input, key: { ...e.data.key } })
     }
 
-    expect(events[0].key.return).toBe(true)
-    expect(events[1].key.upArrow).toBe(true)
+    expect(events[0]!.key.return).toBe(true)
+    expect(events[1]!.key.upArrow).toBe(true)
     term[Symbol.dispose]()
   })
 

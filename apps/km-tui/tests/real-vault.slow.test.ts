@@ -31,7 +31,7 @@ function findBoardRoot(repo: Repo): string {
   }
   // Fallback: find first folder with children
   for (const node of nodes) {
-    const children = getChildren(repo.db, node.id)
+    const children = getChildren(repo.database, node.id)
     if (children.length > 0) {
       return node.id
     }

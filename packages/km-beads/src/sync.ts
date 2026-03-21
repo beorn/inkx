@@ -116,7 +116,7 @@ export function exportToBeads(issues: Issue[], options: SyncOptions): SyncResult
     existingIssues = issues
     // Log validation errors but continue - allows partial recovery
     if (errors.length > 0) {
-      log.warn(`Skipped ${errors.length} malformed lines in existing issues`)
+      log.warn?.(`Skipped ${errors.length} malformed lines in existing issues`)
     }
   }
 

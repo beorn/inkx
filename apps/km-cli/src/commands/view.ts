@@ -11,9 +11,10 @@ import { createLogger, isOutline } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 import { restoreTerminalState } from "@silvery/term/runtime"
+import type { FullLogger } from "../logger-types.ts"
 
-const debug = createLogger("km:cli:view")
-const log = createLogger("km")
+const debug = createLogger("km:cli:view") as FullLogger
+const log = createLogger("km") as FullLogger
 
 type ViewMode = "cards" | "columns" | "list" | "tabs"
 
@@ -270,7 +271,6 @@ export const viewCommand = new Command("view")
         repo: createdRepo,
         patchedConsole: patchedConsole ?? undefined,
         onReady: enableConsoleDebug,
-        startTime,
       })
 
       // Signal background task to stop (don't wait - causes Bun crash on cleanup)

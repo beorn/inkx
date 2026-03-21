@@ -42,7 +42,7 @@ function parse(md: string) {
 /** Extract the first listItem from a parsed tree */
 function firstListItem(md: string): any {
   const tree = parse(md)
-  const list = tree.children[0]
+  const list = tree.children[0]!
   expect(list.type).toBe("list")
   return (list as any).children[0]
 }

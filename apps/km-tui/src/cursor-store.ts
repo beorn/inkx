@@ -57,7 +57,7 @@ const BODY_COL_PREFIX = "__body__"
  *   When omitted, all non-outline direct children of root are treated as body cards.
  */
 export function deriveCursorAncestors(
-  getNode: (id: string) => { parent_id: string | null; type: string; item?: boolean } | null,
+  getNode: (id: string) => { parent_id: string | null; type: string; item?: boolean } | null | undefined,
   rootId: string | null,
   cursorNodeId: string | null,
   getChildren?: (parentId: string | null) => { id: string; type: string; item?: boolean }[],

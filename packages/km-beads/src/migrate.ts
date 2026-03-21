@@ -45,9 +45,7 @@ export function readBeadsIssues(fs: BeadsFs, beadsDir: string): BeadsIssue[] {
 
   // Log validation errors but don't fail - allows partial recovery
   if (errors.length > 0) {
-    log.warn(`Skipped ${errors.length} malformed lines in ${issuesPath}`, {
-      errors: errors.map((e) => `line ${e.line}: ${e.error}`),
-    })
+    log.warn?.(`Skipped ${errors.length} malformed lines in ${issuesPath}`)
   }
 
   return issues

@@ -22,7 +22,7 @@ import { themeFg } from "./colors.ts"
  * Direct children of a file node are H2 (depth 2). Each additional
  * mdsection ancestor adds 1 to the depth.
  */
-function computeSectionDepth(node: KNode, getNode: (id: string) => KNode | undefined): number {
+function computeSectionDepth(node: KNode, getNode: (id: string) => KNode | null | undefined): number {
   let depth = 2 // Direct file children are H2
   let current = node.parent_id ? getNode(node.parent_id) : undefined
   while (isOutline(current?.type ?? "", current?.item) && current?.fstype === "mdsection") {

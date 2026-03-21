@@ -592,7 +592,7 @@ export async function fetchFromAsana(
           sourceId: `user-${user.gid}`,
           slug: `@${userSlug}`,
           title: `@${user.name}`,
-          fetchTasks: () => allUserTasks,
+          fetchTasks: async () => allUserTasks,
           // Use assignee_section for My Tasks grouping (API doesn't support /user_task_lists/sections)
           useAssigneeSection: true,
           workspace: workspace.name,
@@ -643,7 +643,7 @@ export async function fetchFromAsana(
           sourceId: `tag-${tag.gid}`,
           slug: `#${tagSlug}`,
           title: `#${tag.name}`,
-          fetchTasks: () => orphanTasks,
+          fetchTasks: async () => orphanTasks,
           workspace: workspace.name,
         },
         enrichOpts,

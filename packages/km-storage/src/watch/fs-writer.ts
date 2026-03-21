@@ -236,11 +236,12 @@ export class FsWriter implements FsSync {
   private handleFolderIndexUpdate(node: KNode): void {
     const config = getFolderIndexConfig(this.repoPath)
     if (config.materialization === "none") return
+    const indexConfig = { materialization: config.materialization, naming: config.naming }
 
     const folderPath = node.fs_path
     if (!folderPath) return
 
-    const content = buildIndexContent(this.db, node, config)
+    const content = buildIndexContent(this.db, node, indexConfig)
     if (!content) {
       log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
       return

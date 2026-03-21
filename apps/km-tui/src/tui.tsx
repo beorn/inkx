@@ -30,7 +30,8 @@ import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 
-const log = createLogger("km:tui")
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
+const log = createLogger("km:tui") as any
 
 /**
  * Global event emitter for TUI refresh events

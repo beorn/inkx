@@ -86,7 +86,7 @@ function findInboxSection(db: Database): { id: string } | undefined {
   >[]
 
   for (const row of rows) {
-    const data = JSON.parse((row.data as string) || "{}")
+    const data = JSON.parse((row.data as string) || "{}") as Record<string, any>
     const adds = Array.isArray(data.rules?.add) ? data.rules.add : data.rules?.add ? [data.rules.add] : []
     if (adds.some((a: string) => a.includes("due:past"))) {
       return { id: row.id as string }
@@ -1111,7 +1111,7 @@ describe("due date queries for @next board", () => {
 
         // Simulate interactive "td" — set due_at to yesterday (matches due:past rule)
         const yest = yesterday()
-        db.run("UPDATE nodes SET due_at = ?, updated_at = ? WHERE id = ?", [yest, Date.now(), taskNode!.id])
+        db.run("UPDATE nodes SET due_at = ?, updated_at = ? WHERE id = ?", [yest, Date.now(), taskNode!.id] as any)
 
         // Call onNodeChanged (same as handleDatePromptConfirm does)
         const ruleCtx = createRuleContext()

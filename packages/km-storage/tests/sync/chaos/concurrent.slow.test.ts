@@ -161,8 +161,12 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
             data,
             syncManager,
             testWatcher,
-            advanceTime: (ms) => clock!.tickAsync(ms),
-            flushTimers: () => clock!.tickAsync(1000),
+            advanceTime: async (ms) => {
+              await clock!.tickAsync(ms)
+            },
+            flushTimers: async () => {
+              await clock!.tickAsync(1000)
+            },
             writeAndTrigger: (path, content) => {
               writeFileSync(path, content)
               testWatcher.triggerChange(path)

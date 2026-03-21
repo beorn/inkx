@@ -115,9 +115,9 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
       // Visible nodes in zoomed-out view: children (columns) and grandchildren (cards) of parentNode.
       // Keep cursor on current node if it would be visible; otherwise use the column
       // the cursor was in (becomes a card); otherwise fall back to old root (becomes a column).
-      const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
+      const cursorNode = ctx.cursorNodeId ? ctx.repo.getNode(ctx.cursorNodeId) : null
       const col = ctx.column
-      let cursorTarget = ctx.rootId // fallback: old root (always a column)
+      let cursorTarget: string | null = ctx.rootId // fallback: old root (always a column)
 
       if (cursorNode) {
         const cursorParent = cursorNode.parent_id
@@ -155,6 +155,7 @@ export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
  * Card → column header → board root → boundary.
  */
 function navigateToParent(ctx: ActionCtx): ActionResult {
+  if (!ctx.cursorNodeId) return boundary("up")
   const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
   if (!cursorNode?.parent_id) return boundary("up")
 

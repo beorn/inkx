@@ -220,7 +220,7 @@ async function runSuite(suite: Suite, onUpdate: (update: Partial<SuiteState>) =>
     const proc = spawn([...suite.command!, ...suite.files], { stdout: "pipe" })
     // Pipe stdout to parser
     if (proc.stdout) {
-      for await (const chunk of proc.stdout) {
+      for await (const chunk of proc.stdout as unknown as AsyncIterable<Uint8Array>) {
         parser.write(chunk.toString())
       }
     }

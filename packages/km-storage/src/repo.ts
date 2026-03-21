@@ -571,7 +571,7 @@ function updateRenameReferences(
 
     if (newData) {
       const changes: Partial<KNode> = { data: JSON.stringify(newData) as unknown as Record<string, unknown> }
-      if (updatedContent !== undefined) changes.content = updatedContent
+      if (updatedContent !== undefined) changes.content = updatedContent ?? undefined
       mutations.updateNode(node.id, changes)
     }
   }

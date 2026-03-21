@@ -45,7 +45,7 @@ import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/react"
 import { pipe, withCommands, type AppWithCommands, type AppState } from "@silvery/tea/plugins"
-import { StoreContext } from "@silvery/term/runtime"
+import { StoreContext, type EventHandlerContext } from "@silvery/term/runtime"
 import { parseKey } from "@silvery/term/runtime"
 import {
   createCommandRegistry,
@@ -293,7 +293,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   )
 
   // Focus-aware event handler context (same shape as EventHandlerContext from create-app.tsx)
-  const eventCtx = {
+  const eventCtx: EventHandlerContext<BoardAppStore> = {
     get: store.getState,
     set: store.setState,
     focusManager,
@@ -308,6 +308,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     },
     getFocusPath() {
       return focusManager.getFocusPath(baseApp.getContainer())
+    },
+    hitTest(_x: number, _y: number) {
+      return null
     },
   }
 

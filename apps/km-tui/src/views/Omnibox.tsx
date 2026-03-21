@@ -362,7 +362,7 @@ export function Omnibox({ onSelect, onCancel, width, maxHeight }: OmniboxProps):
   // Debounce query for expensive filtering (200ms, immediate in tests)
   const query = editCtx.value.trim()
   const [deferredQuery, setDeferredQuery] = React.useState(query)
-  const omniTimerRef = React.useRef<ReturnType<typeof setTimeout>>()
+  const omniTimerRef = React.useRef<ReturnType<typeof setTimeout>>(undefined)
   React.useEffect(() => {
     clearTimeout(omniTimerRef.current)
     // @ts-expect-error - React internal flag set by silvery test renderer

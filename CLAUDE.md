@@ -83,6 +83,8 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 
 **When editing any component** (km or silvery), read [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md) and [Styling](vendor/silvery/docs/guide/styling.md) first. Use canonical components (SelectList, TextInput, VirtualList), semantic theme tokens (`$primary`, `$muted`), and typography presets — never manual key handlers, hardcoded ANSI codes, or raw color values.
 
+**Vendor package.json independence:** Vendor packages must not use `workspace:*` dependencies — they are standalone repos that must work outside the km monorepo. Use npm versions or `github:owner/repo` for cross-vendor deps. The km root `package.json` `overrides` section maps these to workspace copies for local development (e.g., `"vimonkey": "$vimonkey"`).
+
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
 
@@ -148,7 +150,8 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [tests/termless.md](.claude/skills/tests/termless.md)               | ANSI verification, scrollback, cursor, terminal modes, resolved colors |
 | [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
 | [troubleshoot/](.claude/skills/troubleshoot/)                       | Something broken — systematic debugging (reproduce, instrument, bisect) |
-| [git/](.claude/skills/git/)                                         | Commits and releases                                                  |
+| [git/](.claude/skills/git/)                                         | Commits                                                               |
+| [release/](.claude/skills/release/)                                 | Release packages (version, changelog, npm publish, GitHub release)    |
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |

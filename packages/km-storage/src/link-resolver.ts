@@ -40,7 +40,7 @@ export function createLinkResolver(db: Database): LinkResolver {
   // Build lookup map: normalized name → node id
   // Use name field for capability-based matching (any named node is linkable)
   // This includes files, folders, and sections
-  const filesByName = new Map<string, string>()
+  const filesByName = new Map<string, string | null>()
 
   const rows = db
     .query(

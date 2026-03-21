@@ -516,7 +516,7 @@ function findColumnHeaderRow(screenText: string, columnName: string): number {
   const rows = screenText.split("\n")
   // Find the separator row (all dashes), then the header is the row before it
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i].includes("─") && rows[i - 1].includes(columnName) && !rows[i - 1].includes(">")) {
+    if (rows[i]!.includes("─") && rows[i - 1]!.includes(columnName) && !rows[i - 1]!.includes(">")) {
       return i - 1
     }
   }

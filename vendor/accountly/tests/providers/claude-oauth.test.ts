@@ -1,6 +1,10 @@
 import { describe, test, expect, vi } from "vitest"
 import { createClaudeOAuthProvider, refreshOAuthToken, ensureFreshOAuth } from "../../src/providers/claude-oauth.ts"
 
+/** Cast a vitest mock to satisfy the typeof fetch constraint */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const asFetch = (mock: any): typeof fetch => mock
+
 describe("claude-oauth provider", () => {
   const provider = createClaudeOAuthProvider()
 
@@ -26,11 +30,13 @@ describe("claude-oauth provider", () => {
 
   test("checkQuota returns error for invalid credential", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 401,
-      statusText: "Unauthorized",
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        statusText: "Unauthorized",
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({
@@ -45,31 +51,33 @@ describe("claude-oauth provider", () => {
 
   test("checkQuota parses flat usage response", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          five_hour: {
-            utilization: 60.0,
-            resets_at: "2026-02-15T14:00:00Z",
-          },
-          seven_day: {
-            utilization: 35.0,
-            resets_at: "2026-02-20T00:00:00Z",
-          },
-          seven_day_opus: null,
-          seven_day_sonnet: {
-            utilization: 10.0,
-            resets_at: "2026-02-19T00:00:00Z",
-          },
-          extra_usage: {
-            is_enabled: true,
-            monthly_limit: 20000,
-            used_credits: 10000,
-            utilization: 50.0,
-          },
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            five_hour: {
+              utilization: 60.0,
+              resets_at: "2026-02-15T14:00:00Z",
+            },
+            seven_day: {
+              utilization: 35.0,
+              resets_at: "2026-02-20T00:00:00Z",
+            },
+            seven_day_opus: null,
+            seven_day_sonnet: {
+              utilization: 10.0,
+              resets_at: "2026-02-19T00:00:00Z",
+            },
+            extra_usage: {
+              is_enabled: true,
+              monthly_limit: 20000,
+              used_credits: 10000,
+              utilization: 50.0,
+            },
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({
@@ -98,27 +106,29 @@ describe("claude-oauth provider", () => {
 
   test("checkQuota marks unavailable when 5-hour at 100%", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          five_hour: {
-            utilization: 100.0,
-            resets_at: "2026-02-15T14:00:00Z",
-          },
-          seven_day: {
-            utilization: 50.0,
-            resets_at: "2026-02-20T00:00:00Z",
-          },
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            five_hour: {
+              utilization: 100.0,
+              resets_at: "2026-02-15T14:00:00Z",
+            },
+            seven_day: {
+              utilization: 50.0,
+              resets_at: "2026-02-20T00:00:00Z",
+            },
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({
         accessToken: "valid-token",
       })
       expect(result.available).toBe(false)
-      expect(result.windows[0].utilization).toBe(100)
+      expect(result.windows[0]!.utilization).toBe(100)
     } finally {
       globalThis.fetch = originalFetch
     }
@@ -126,7 +136,7 @@ describe("claude-oauth provider", () => {
 
   test("checkQuota handles network error", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error("Network timeout"))
+    globalThis.fetch = asFetch(vi.fn().mockRejectedValue(new Error("Network timeout")))
 
     try {
       const result = await provider.checkQuota({
@@ -141,13 +151,15 @@ describe("claude-oauth provider", () => {
 
   test("checkQuota handles API error response", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          error: { message: "Rate limited" },
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            error: { message: "Rate limited" },
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({
@@ -162,18 +174,20 @@ describe("claude-oauth provider", () => {
 
   test("checkQuota skips null windows", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          five_hour: {
-            utilization: 20.0,
-            resets_at: "2026-02-15T14:00:00Z",
-          },
-          seven_day_opus: null,
-          seven_day_cowork: null,
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            five_hour: {
+              utilization: 20.0,
+              resets_at: "2026-02-15T14:00:00Z",
+            },
+            seven_day_opus: null,
+            seven_day_cowork: null,
+          }),
+      }),
+    )
 
     try {
       const result = await provider.checkQuota({
@@ -181,7 +195,7 @@ describe("claude-oauth provider", () => {
       })
       expect(result.available).toBe(true)
       expect(result.windows).toHaveLength(1)
-      expect(result.windows[0].name).toBe("5-hour")
+      expect(result.windows[0]!.name).toBe("5-hour")
     } finally {
       globalThis.fetch = originalFetch
     }
@@ -207,16 +221,18 @@ describe("token refresh", () => {
 
   test("refreshOAuthToken updates direct format credential", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          token_type: "Bearer",
-          access_token: "new-access-token",
-          refresh_token: "new-refresh-token",
-          expires_in: 28800,
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            token_type: "Bearer",
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            expires_in: 28800,
+          }),
+      }),
+    )
 
     try {
       const result = await refreshOAuthToken({
@@ -235,16 +251,18 @@ describe("token refresh", () => {
 
   test("refreshOAuthToken updates claudeAiOauth wrapper format", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          token_type: "Bearer",
-          access_token: "new-access-token",
-          refresh_token: "new-refresh-token",
-          expires_in: 28800,
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            token_type: "Bearer",
+            access_token: "new-access-token",
+            refresh_token: "new-refresh-token",
+            expires_in: 28800,
+          }),
+      }),
+    )
 
     try {
       const result = await refreshOAuthToken({
@@ -268,11 +286,13 @@ describe("token refresh", () => {
 
   test("refreshOAuthToken returns undefined on HTTP error", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: false,
-      status: 400,
-      statusText: "Bad Request",
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 400,
+        statusText: "Bad Request",
+      }),
+    )
 
     try {
       const result = await refreshOAuthToken({
@@ -289,7 +309,7 @@ describe("token refresh", () => {
   test("ensureFreshOAuth skips refresh for non-expired token", async () => {
     const fetchSpy = vi.fn()
     const originalFetch = globalThis.fetch
-    globalThis.fetch = fetchSpy
+    globalThis.fetch = asFetch(fetchSpy)
 
     try {
       const cred = {
@@ -307,16 +327,18 @@ describe("token refresh", () => {
 
   test("ensureFreshOAuth refreshes expired token and calls onRefresh", async () => {
     const originalFetch = globalThis.fetch
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: () =>
-        Promise.resolve({
-          token_type: "Bearer",
-          access_token: "fresh-token",
-          refresh_token: "fresh-refresh",
-          expires_in: 28800,
-        }),
-    })
+    globalThis.fetch = asFetch(
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            token_type: "Bearer",
+            access_token: "fresh-token",
+            refresh_token: "fresh-refresh",
+            expires_in: 28800,
+          }),
+      }),
+    )
 
     try {
       const onRefresh = vi.fn()
@@ -331,7 +353,7 @@ describe("token refresh", () => {
       expect(result).toBeDefined()
       expect(result!.accessToken).toBe("fresh-token")
       expect(onRefresh).toHaveBeenCalledOnce()
-      expect(onRefresh.mock.calls[0][0].accessToken).toBe("fresh-token")
+      expect(onRefresh.mock.calls[0]![0].accessToken).toBe("fresh-token")
     } finally {
       globalThis.fetch = originalFetch
     }

@@ -178,13 +178,16 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     set: store.setState,
     focusManager,
     focus(testID: string) {
-      // Use focusById with the render tree root. If a real focusable node with
-      // this testID exists, it gets focused. Otherwise focusById falls through
-      // to virtual focus (sets activeId without a DOM node).
       focusManager.focusById(testID, result.getContainer(), "programmatic")
+    },
+    activateScope(scopeId: string) {
+      focusManager.activateScope(scopeId, result.getContainer())
     },
     getFocusPath() {
       return focusManager.getFocusPath(result.getContainer())
+    },
+    hitTest(_x: number, _y: number) {
+      return null
     },
   }
 

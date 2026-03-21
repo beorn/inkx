@@ -22,7 +22,8 @@
  */
 
 import { runGenerator } from "@km/core"
-import type { KNode, Repo } from "@km/storage"
+import type { KNode } from "@km/core"
+import type { Repo } from "@km/storage"
 import { createFakeRepo, createRepo } from "@km/storage"
 import { expect } from "vitest"
 import { type BoardDriver, createBoardDriver, type TUIDriverState } from "../../src/driver.ts"
@@ -118,7 +119,7 @@ export const selection: Invariant = (app) => {
 
 /** All parent links are valid */
 export const parentLinks: Invariant = (app) => {
-  for (const node of app.repo.getAllNodes()) {
+  for (const node of app.repo.data.getAllNodes()) {
     if (node.parent_id) {
       expect(app.repo.getNode(node.parent_id), `Parent "${node.parent_id}" missing for "${node.id}"`).toBeDefined()
     }
@@ -127,7 +128,7 @@ export const parentLinks: Invariant = (app) => {
 
 /** All embed_source references are valid */
 export const nodeLinks: Invariant = (app) => {
-  for (const node of app.repo.getAllNodes()) {
+  for (const node of app.repo.data.getAllNodes()) {
     const embedSrc = node.embed_source
     if (embedSrc) {
       expect(app.repo.getNode(embedSrc), `Embed source "${embedSrc}" missing for "${node.id}"`).toBeDefined()
@@ -381,7 +382,9 @@ function createAppSync(input: string[] | KNode[], options: BoardAppOptions = {})
 
 async function createAppAsync(path: string, options: BoardAppOptions = {}): Promise<BoardApp> {
   const repo = await runGenerator(createRepo(path, { loadFiles: true }))
-  const rootId = repo.getRepoRootNode().id
+  const rootNode = repo.getRepoRootNode()
+  if (!rootNode) throw new Error(`No root node found for repo at ${path}`)
+  const rootId = rootNode.id
   const driver = createBoardDriver(repo, rootId, {
     viewMode: options.viewMode ?? "cards",
     columns: options.columns ?? 80,

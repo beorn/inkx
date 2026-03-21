@@ -144,7 +144,7 @@ describe("formatDate", () => {
     [1, "urgent", "dates due tomorrow"],
     [3, "soon", "dates due within 3 days"],
     [10, "normal", "future dates"],
-  ] as const)("returns %s urgency for %s", (daysOffset, expectedUrgency) => {
+  ] as const)("returns %s urgency for %s", (daysOffset, expectedUrgency, _label) => {
     const formatted = formatDate(dateRelativeToToday(daysOffset))
     expect(formatted.urgency).toBe(expectedUrgency)
   })

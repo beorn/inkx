@@ -32,8 +32,9 @@ export function formatProjectMeta(proj: AsanaProjectInfo, maxGid: number): strin
 }
 
 /** Print help + account listing + download history + quickstart */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts any Command variant
 export async function printDiscovery(
-  cmd: Command,
+  cmd: Command<any[], any, any>,
   artifactsDir: string,
   authToken?: string,
   workspaceFilter?: string,

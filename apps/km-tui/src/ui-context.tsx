@@ -110,7 +110,7 @@ export function useTreeConfig() {
  * or the first ancestor with fs_path. Used to derive rootBoardId from a pane's rootId.
  */
 export function findBoardRootId(
-  repo: { getNode(id: string): { fs_path?: string; parent_id?: string | null } | undefined },
+  repo: { getNode(id: string): { fs_path?: string; parent_id?: string | null } | null | undefined },
   nodeId: string | null,
 ): string | null {
   if (!nodeId) return null
@@ -129,7 +129,7 @@ export function findBoardRootId(
  * Checks fs_path for sigil prefix (@, #, +).
  */
 export function deriveExcludedSigils(
-  repo: { getNode(id: string): { fs_path?: string } | undefined },
+  repo: { getNode(id: string): { fs_path?: string } | null | undefined },
   rootBoardId: string | null,
 ): string[] {
   if (!rootBoardId) return []

@@ -22,7 +22,8 @@ import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 
-const log = createLogger("km:tui:columns")
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
+const log = createLogger("km:tui:columns") as any
 
 // =============================================================================
 // Helpers — collapsed node filtering
@@ -395,7 +396,6 @@ export function deriveDetailColumns(repo: Repo, rootId: string | null, foldDepth
       cardNodes,
       virtualCardIds,
       isVirtual: true,
-      descendantIndex: mapDescendantsForColumn(allChildren, 0, foldDepths, repo),
     },
   ]
 }

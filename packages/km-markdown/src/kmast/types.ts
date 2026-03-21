@@ -6,7 +6,7 @@
  * type (`KmWikilink`) is registered.
  */
 
-import type { Node, Data } from "unist"
+import type { Node, Data } from "mdast"
 import type { PropertyValue } from "../parser.ts"
 
 // =============================================================================
@@ -17,6 +17,9 @@ declare module "mdast" {
   interface Data {
     /** Block ID from ` ^blockId` suffix (stripped from text) */
     blockId?: string
+
+    /** Task mark character: '/', '-', '!', ' ', 'x', 'X' (from km-task-mark / km-heading-task-mark) */
+    taskMark?: string
 
     /** Parsed inline property values (key:: value syntax) */
     props?: Record<string, PropertyValue>
@@ -35,6 +38,11 @@ declare module "mdast" {
 
   interface ListItemData extends Data {
     /** Task mark character: '/', '-', '!', ' ', 'x', 'X' (from km-task-mark) */
+    taskMark?: string
+  }
+
+  interface HeadingData extends Data {
+    /** Task mark character: '/', '-', '!', ' ', 'x', 'X' (from km-heading-task-mark) */
     taskMark?: string
   }
 

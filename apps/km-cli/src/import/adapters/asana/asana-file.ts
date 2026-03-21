@@ -100,7 +100,7 @@ function convertTask(task: AsanaTask): ImportItem {
 
 /** Parse Asana JSON export into ImportData */
 export function parseAsanaFile(jsonContent: string): ImportData {
-  const asana: AsanaExport = JSON.parse(jsonContent)
+  const asana = JSON.parse(jsonContent) as AsanaExport
   const tasks = asana.data
 
   // Group tasks by project → section

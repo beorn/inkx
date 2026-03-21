@@ -107,7 +107,7 @@ function executeCommand(
   commands: readonly CommandDef[],
   id: string,
   ctx: CommandContext = createContext(),
-): CommandAction | null {
+): CommandAction | CommandAction[] | null {
   return findCommand(commands, id).execute(ctx)
 }
 
@@ -115,7 +115,7 @@ function executeCommand(
 function expectAction(
   commands: readonly CommandDef[],
   id: string,
-  expected: CommandAction | null,
+  expected: Record<string, unknown> | null,
   ctx: CommandContext = createContext(),
 ): void {
   expect(executeCommand(commands, id, ctx)).toEqual(expected)

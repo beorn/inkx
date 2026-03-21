@@ -64,6 +64,8 @@ export interface UndoableRepoHandle {
 export interface UndoResult {
   ok: boolean
   cursorNodeId?: string | null
+  /** Human-readable label of the operation (e.g., "Delete", "Move cards") */
+  label?: string
 }
 
 // =============================================================================

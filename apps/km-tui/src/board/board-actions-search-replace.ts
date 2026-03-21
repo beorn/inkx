@@ -174,7 +174,7 @@ export function handleSearchReplaceTabField(ctx: ActionCtx): ActionResult {
  */
 export function searchReplaceMatchingNodeIds(
   columns: ColumnView[],
-  repo: { getNode: (id: string) => import("@km/core").KNode | undefined },
+  repo: { getNode: (id: string) => import("@km/core").KNode | null | undefined },
   query: string,
   useRegex: boolean,
 ): string[] {

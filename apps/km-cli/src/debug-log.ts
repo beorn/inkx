@@ -9,7 +9,14 @@
  * Must be imported before any debug() calls.
  */
 
-import { addWriter, setSuppressConsole } from "loggily"
+// loggily re-exports addWriter/setSuppressConsole from ./core.js, but TypeScript
+// can't resolve them under verbatimModuleSyntax + bundler moduleResolution.
+// They exist at runtime; cast through unknown to satisfy the type checker.
+import * as _loggily from "loggily"
+const { addWriter, setSuppressConsole } = _loggily as unknown as {
+  addWriter: (writer: (formatted: string, level: string) => void) => () => void
+  setSuppressConsole: (value: boolean) => void
+}
 import createDebug from "debug"
 import { appendFileSync, createWriteStream } from "fs"
 import { relative } from "path"

@@ -56,7 +56,12 @@ function loadDownloadDir(dirPath: string): ImportData {
   // Load workspace metadata if available
   const wsPath = join(dirPath, "_workspace.json")
   if (existsSync(wsPath)) {
-    const ws = JSON.parse(readFileSync(wsPath, "utf-8"))
+    const ws = JSON.parse(readFileSync(wsPath, "utf-8")) as {
+      name?: string
+      users?: ImportData["users"]
+      teams?: ImportData["teams"]
+      user?: { gid?: string }
+    }
     data.workspace = ws.name
     data.users = ws.users
     data.teams = ws.teams
@@ -97,7 +102,8 @@ function logImportSuccess(action: string, count: number, source?: string): void 
 // Command
 // ============================================================================
 
-function createAsanaCommand(): Command {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- commander infers complex generic types
+function createAsanaCommand(): Command<any[], any, any> {
   const cmd = new Command("asana")
     .description("Import from Asana")
     .addHelpText(
@@ -197,15 +203,15 @@ Pipeline:
           logImportSuccess("Loaded", importData.projects.length, `${options.from}/`)
         } else {
           const json = readFileSync(filePath, "utf-8")
-          const parsed = JSON.parse(json)
+          const parsed = JSON.parse(json) as Record<string, unknown>
 
           if (parsed.source && parsed.projects) {
             // Full ImportData (multi-project)
-            importData = parsed as ImportData
+            importData = parsed as unknown as ImportData
             logImportSuccess("Loaded", importData.projects.length, options.from)
           } else if (parsed.sourceId && parsed.title) {
             // Single ImportProject from download directory
-            const project = parsed as ImportProject
+            const project = parsed as unknown as ImportProject
             importData = {
               source: "asana",
               fetchedAt: new Date().toISOString(),
@@ -372,7 +378,8 @@ Pipeline:
 // CSV Command
 // ============================================================================
 
-function createCsvCommand(): Command {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- commander infers complex generic types
+function createCsvCommand(): Command<any[], any, any> {
   const cmd = new Command("csv")
     .description("Import from CSV or TSV file")
     .addHelpText(

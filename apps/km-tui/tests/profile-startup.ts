@@ -115,8 +115,7 @@ async function profile() {
   const handle = await boardApp.run(
     React.createElement(
       RepoProvider,
-      { repo },
-      React.createElement(InputLayerProvider, null, React.createElement(BoardApp, { toastQueue })),
+      { repo, children: React.createElement(InputLayerProvider, { children: React.createElement(BoardApp, { toastQueue }) }) },
     ),
     { cols: 200, rows: 70, stdout: devNull as unknown as NodeJS.WriteStream },
   )
@@ -191,7 +190,7 @@ async function profile() {
         panes: new Map(prev.workspace.panes).set(pane.id, { ...pane, cursorNodeId }),
       },
     }))
-    getState().cursorStore.setState({ cursorNodeId })
+    getState().cursorStore.setState({ cursorNodeId } as any)
   }
 
   /** Update the active board pane's foldDepths via store.setState */

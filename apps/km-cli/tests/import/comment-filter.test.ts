@@ -76,12 +76,12 @@ describe("splitConsolidatedComment", () => {
     const result = splitConsolidatedComment(text, "2018-05-29T00:00:00Z")
 
     expect(result).toHaveLength(2)
-    expect(result[0].date).toBe("2017-03-03")
-    expect(result[0].text).toBe(
+    expect(result[0]!.date).toBe("2017-03-03")
+    expect(result[0]!.text).toBe(
       "Checked:\n- living ok\n- kitchen & bedroom - pressure ok, return ok, but floor not warm\n- bath - ok, except return warm even when off",
     )
-    expect(result[1].date).toBe("2017-03-03")
-    expect(result[1].text).toBe("They should call us soon")
+    expect(result[1]!.date).toBe("2017-03-03")
+    expect(result[1]!.text).toBe("They should call us soon")
   })
 
   it("filters system blocks and keeps user blocks", () => {
@@ -90,8 +90,8 @@ describe("splitConsolidatedComment", () => {
     const result = splitConsolidatedComment(text, "2018-05-28T09:15:04.331Z")
 
     expect(result).toHaveLength(1)
-    expect(result[0].date).toBe("2018-02-05")
-    expect(result[0].text).toBe("Did annual checkup - no problems")
+    expect(result[0]!.date).toBe("2018-02-05")
+    expect(result[0]!.text).toBe("Did annual checkup - no problems")
   })
 
   it("returns single comment with extracted date from header", () => {
@@ -99,8 +99,8 @@ describe("splitConsolidatedComment", () => {
     const result = splitConsolidatedComment(text, "2018-05-28T09:15:04.331Z")
 
     expect(result).toHaveLength(1)
-    expect(result[0].date).toBe("2018-02-05")
-    expect(result[0].text).toBe("Did annual checkup with Dr Na")
+    expect(result[0]!.date).toBe("2018-02-05")
+    expect(result[0]!.text).toBe("Did annual checkup with Dr Na")
   })
 
   it("returns original text when no consolidated headers present", () => {
@@ -108,8 +108,8 @@ describe("splitConsolidatedComment", () => {
     const result = splitConsolidatedComment(text, "2022-05-29T01:36:36.425Z")
 
     expect(result).toHaveLength(1)
-    expect(result[0].date).toBeUndefined()
-    expect(result[0].text).toBe("Just a plain comment")
+    expect(result[0]!.date).toBeUndefined()
+    expect(result[0]!.text).toBe("Just a plain comment")
   })
 
   it("returns empty array when all blocks are system actions", () => {
@@ -125,8 +125,8 @@ describe("splitConsolidatedComment", () => {
     const result = splitConsolidatedComment(text, "2022-01-01T00:00:00Z")
 
     expect(result).toHaveLength(1)
-    expect(result[0].date).toBe("2020-01-06")
-    expect(result[0].text).toBe("Some user content")
+    expect(result[0]!.date).toBe("2020-01-06")
+    expect(result[0]!.text).toBe("Some user content")
   })
 })
 

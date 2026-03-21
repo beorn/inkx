@@ -69,7 +69,7 @@ function expectCardBorder(board: ReturnType<typeof testEnv>["board"], nodeId: st
 function findBorderCell(
   board: ReturnType<typeof testEnv>["board"],
   nodeId: string,
-): { char: string; fg: string | null } | null {
+): { char: string; fg: unknown } | null {
   const box = board.screen.nodeBox(nodeId)
   if (!box) return null
   for (let x = box.x - 1; x >= 0; x--) {
@@ -695,7 +695,7 @@ describe("card child line truncation", () => {
 
     // The child node's root Box should be exactly 1 row tall (truncated)
     const rect = childNode.boundingBox()
-    expect(rect.height).toBe(1)
+    expect(rect!.height).toBe(1)
   })
 
   test("card root (depth 0) remains multiline while children truncate", () => {
@@ -720,8 +720,8 @@ describe("card child line truncation", () => {
     board.expect("#child2").toExist()
 
     // Each child should be exactly 1 row tall (truncated, not wrapped)
-    const child1Rect = board.q("#child1").boundingBox()
-    const child2Rect = board.q("#child2").boundingBox()
+    const child1Rect = board.q("#child1").boundingBox()!
+    const child2Rect = board.q("#child2").boundingBox()!
     expect(child1Rect.height).toBe(1)
     expect(child2Rect.height).toBe(1)
 
@@ -1153,7 +1153,7 @@ describe("emoji content garble reproduction", () => {
       ),
       item("Regular Column", item("Plain task A"), item("Plain task B")),
     )
-    const { board } = testEnv(() => nodes, { cols: 120, rows: 30 })
+    const { board } = testEnv(() => nodes, { columns: 120, rows: 30 })
 
     // Navigate through emoji columns
     for (const key of ["l", "l", "j", "j", "h", "j", "k", "l", "h", "h"]) {
@@ -1175,7 +1175,7 @@ describe("emoji content garble reproduction", () => {
       item("Harmon from Modo called", item("Follow up on proposal"), item("Send contract \u{1F4C4}")),
       item("Calendar", item("10:00 Standup"), item("14:00 1:1 with @bj\u00F8rn-st"), item("15:30 Demo prep")),
     )
-    const { board } = testEnv(() => nodes, { cols: 100, rows: 25 })
+    const { board } = testEnv(() => nodes, { columns: 100, rows: 25 })
 
     // Navigate — SILVERY_STRICT checks buffer + output on each press
     for (const key of ["l", "l", "j", "j", "j", "h", "h", "k", "k", "l", "j"]) {
@@ -1202,7 +1202,7 @@ describe("emoji content garble reproduction", () => {
         item("Read 50 books \u{1F4DA}"),
       ),
     )
-    const { board } = testEnv(() => nodes, { cols: 80, rows: 20 })
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 20 })
 
     // Navigate extensively — SILVERY_STRICT catches any mismatch
     const sequence = ["j", "j", "j", "l", "j", "j", "h", "k", "k", "l", "l", "j", "j", "j", "k", "h", "j", "j"]

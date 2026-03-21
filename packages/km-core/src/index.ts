@@ -29,6 +29,7 @@ export type {
   SessionToolCallData,
   SessionEndedData,
   NotificationLevel,
+  Reminder,
 } from "./types.ts"
 
 // Build info (auto-generated)

@@ -266,7 +266,7 @@ describe("Edit Operations", () => {
     const nodes = item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a")))
     // Force all columns to have parent_idx=0 (default scenario)
     for (const n of nodes) {
-      if (n.type === "heading") {
+      if (n.type === "h") {
         n.parent_idx = 0
       }
     }
@@ -289,7 +289,7 @@ describe("Edit Operations", () => {
     const cols = Array.from({ length: 20 }, (_, i) => item(`col${i + 1}`, item(`${i + 1}a`)))
     const nodes = item("board", ...cols)
     for (const n of nodes) {
-      if (n.type === "heading") n.parent_idx = 0
+      if (n.type === "h") n.parent_idx = 0
     }
     const { board } = testEnv(() => nodes)
     board.command("cursor_up")

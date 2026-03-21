@@ -166,7 +166,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -198,7 +198,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -231,7 +231,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -266,7 +266,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed pointing to existing target
         nodes.push({
@@ -280,7 +280,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -316,7 +316,7 @@ describe("embed display", () => {
             created_at: Date.now(),
             updated_at: Date.now(),
             version: "v1",
-          } as KNode)
+          } as unknown as KNode)
         })
 
         return nodes
@@ -362,7 +362,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -395,7 +395,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -429,7 +429,7 @@ describe("embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -477,7 +477,7 @@ describe("folded embed display (FoldedChildRow)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         nodes.push({
           id: "target-task-xyz",
@@ -495,7 +495,7 @@ describe("folded embed display (FoldedChildRow)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Patch embed children: block-ref format with resolved embed_source.
         // embed_source points directly to the target node ID.
@@ -559,7 +559,7 @@ describe("link title resolution", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed node: embed_source is set, content has block reference format
         // This simulates what the rules engine creates + markdown serialization round-trip
@@ -575,7 +575,7 @@ describe("link title resolution", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -611,7 +611,7 @@ describe("link title resolution", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed with file#^blockid path format
         nodes.push({
@@ -626,7 +626,7 @@ describe("link title resolution", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -660,7 +660,7 @@ describe("link title resolution", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -701,7 +701,7 @@ describe("unresolved Asana embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed ref: embed_source points to target via file#^blockId
         nodes.push({
@@ -715,7 +715,7 @@ describe("unresolved Asana embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -753,7 +753,7 @@ describe("unresolved Asana embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed ref: embed_source points to target via ^blockId
         nodes.push({
@@ -767,7 +767,7 @@ describe("unresolved Asana embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -800,7 +800,7 @@ describe("unresolved Asana embed display", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -842,7 +842,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed link pointing to the li task, placed in a column
         nodes.push({
@@ -857,7 +857,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -893,7 +893,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed link in body position (before the oi column)
         // Add as a p-type body node before col1
@@ -908,7 +908,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -942,7 +942,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed in column
         nodes.push({
@@ -957,7 +957,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -990,7 +990,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Child of target
         nodes.push({
@@ -1008,7 +1008,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed in column pointing to the parent
         nodes.push({
@@ -1023,7 +1023,7 @@ describe("context-dependent rendering", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1291,7 +1291,7 @@ describe("embed alias override (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed with alias override — content is plain text, not ![[...]]
         nodes.push({
@@ -1305,7 +1305,7 @@ describe("embed alias override (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1341,7 +1341,7 @@ describe("embed alias override (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Embed whose content is embed syntax (not an alias)
         nodes.push({
@@ -1355,7 +1355,7 @@ describe("embed alias override (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1392,7 +1392,7 @@ describe("broken embed rendering (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1422,7 +1422,7 @@ describe("broken embed rendering (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1453,7 +1453,7 @@ describe("broken embed rendering (km-wk17l)", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1550,7 +1550,7 @@ describe("strip embed sigil", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Target B: task with name "@waiting" (different sigil, should NOT be stripped in @next column)
         nodes.push({
@@ -1569,7 +1569,7 @@ describe("strip embed sigil", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1685,7 +1685,7 @@ describe("strip embed sigil", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         // Target task that lives inside @next.md — parent context would be "@next"
         nodes.push({
@@ -1703,7 +1703,7 @@ describe("strip embed sigil", () => {
           created_at: Date.now(),
           updated_at: Date.now(),
           version: "v1",
-        } as KNode)
+        } as unknown as KNode)
 
         return nodes
       },
@@ -1784,7 +1784,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
-      } as KNode)
+      } as unknown as KNode)
 
       // Add the target task nodes (what the embeds point to)
       nodes.push({
@@ -1802,7 +1802,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
-      } as KNode)
+      } as unknown as KNode)
 
       nodes.push({
         id: "target-b",
@@ -1819,7 +1819,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         created_at: Date.now(),
         updated_at: Date.now(),
         version: "v1",
-      } as KNode)
+      } as unknown as KNode)
 
       return nodes
     })

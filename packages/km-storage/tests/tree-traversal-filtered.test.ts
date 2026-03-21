@@ -30,14 +30,7 @@ function insertNode(
   db.run(
     `INSERT INTO nodes (id, type, parent_id, parent_idx, content, item, data, created_at, updated_at, version)
      VALUES (?, ?, ?, ?, ?, ?, '{}', ?, ?, 'v1')`,
-    id,
-    type,
-    pid,
-    parentIdx,
-    content ?? "",
-    item ? 1 : 0,
-    now,
-    now,
+    [id, type, pid, parentIdx, content ?? "", item ? 1 : 0, now, now],
   )
 }
 

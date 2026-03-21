@@ -6,13 +6,19 @@
 
 import type { KNode } from "@km/core"
 import { isOutline } from "@km/core"
-import { getNodeDisplayName } from "../state.ts"
+import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
 /** Minimal repo interface for embed resolution (subset of full Repo). */
 export interface EmbedRepo {
-  getNode(id: string): KNode | undefined
+  getNode(id: string): KNode | null | undefined
+  getChildren(parentId: string | null): KNode[]
   resolveByName?(name: string): KNode | null
   resolveNode?(query: string): KNode | null
+}
+
+/** Bound version of getNodeDisplayNameBase that injects repo.getChildren */
+function getNodeDisplayName(repo: EmbedRepo, node: KNode): string {
+  return getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 }
 
 /** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */

@@ -12,7 +12,7 @@
  */
 
 import { expect } from "vitest"
-import type { KNode } from "@km/storage"
+import type { KNode } from "@km/core"
 import { board, type BoardApp, type BoardAppOptions } from "../tests/helpers/board-app.ts"
 
 // Re-export types
@@ -66,7 +66,7 @@ export function checkSelection(app: BoardApp) {
 
 /** All parent links are valid */
 export function checkParentLinks(app: BoardApp) {
-  for (const node of app.repo.getAllNodes()) {
+  for (const node of app.repo.data.getAllNodes()) {
     if (node.parent_id) {
       expect(app.repo.getNode(node.parent_id), `Parent "${node.parent_id}" missing for "${node.id}"`).toBeDefined()
     }
@@ -75,7 +75,7 @@ export function checkParentLinks(app: BoardApp) {
 
 /** All embed_source references are valid */
 export function checkNodeLinks(app: BoardApp) {
-  for (const node of app.repo.getAllNodes()) {
+  for (const node of app.repo.data.getAllNodes()) {
     if (node.embed_source) {
       expect(app.repo.getNode(node.embed_source), `Embed "${node.embed_source}" missing for "${node.id}"`).toBeDefined()
     }

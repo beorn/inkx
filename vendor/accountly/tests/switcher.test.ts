@@ -23,7 +23,7 @@ describe("switcher logic", () => {
 
   test("only claude-oauth accounts can be switched", () => {
     // This tests the logic, not the actual switching
-    const provider = "anthropic-api"
+    const provider: string = "anthropic-api"
     const canSwitch = provider === "claude-oauth"
     expect(canSwitch).toBe(false)
   })

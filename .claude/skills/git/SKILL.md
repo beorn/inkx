@@ -1,45 +1,35 @@
 ---
-description: Git operations and releases. Use when committing changes or creating GitHub releases.
-argument-hint: [commit|release]
+description: Git operations — commits and worktrees. For releases, use /release.
+argument-hint: [commit]
 allowed-tools: Bash, Read, Write, Glob, Skill, AskUserQuestion
 ---
 
 # Git Operations
 
-**Keywords**: commit, release, git, push, tag, version
+**Keywords**: commit, git, push, worktree
 
-Commit changes and create releases.
+Commit changes and manage worktrees. For releases, use `/release`.
 
 ## Quick Commands
 
 | Action             | Command                       |
 | ------------------ | ----------------------------- |
-| Commit all changes | `/git commit`                 |
-| Create release     | `/git release`                |
+| Commit all changes | `/commit`                     |
+| Create release     | `/release [vendor/pkg] [patch\|minor\|major]` |
 | Merge worktree     | `bun worktree merge <name>`   |
 
 ## Commit Rules
 
 - **Atomic**: One logical commit (even across packages)
 - **Beads first**: `bd sync` runs automatically before commit
-- **Co-author**: Include Claude attribution
 - **Conventional commits**: `type(scope): message`
-
-## Release Workflow
-
-1. Uncommitted changes? Auto-commits
-2. Must be on `main` branch
-3. Tests pass
-4. Preview dry-run
-5. Confirm version type (patch/minor/major)
-6. Execute + verify
 
 ## Sub-Skills
 
 | File                       | Purpose                                |
 | -------------------------- | -------------------------------------- |
-| [/commit](../commit/SKILL.md) | Multi-repo commit workflow, submodules (use `/commit` directly) |
-| [release.md](release.md)   | GitHub release process, versioning     |
+| [/commit](../commit/SKILL.md) | Multi-repo commit workflow, submodules |
+| [/release](../release/SKILL.md) | Release packages (version, changelog, npm publish) |
 | [worktree.md](worktree.md) | Parallel development with worktrees    |
 
 ## Conventional Commit Types

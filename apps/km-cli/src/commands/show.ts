@@ -76,7 +76,7 @@ function outputJson(node: KNode, options: ShowOptions, repo: Repo): void {
  */
 function displayFields(node: KNode, rootPath: string): void {
   for (const f of DISPLAY_FIELDS) {
-    let val = f.get?.(node) ?? (node as Record<string, unknown>)[f.key]
+    let val = f.get?.(node) ?? (node as unknown as Record<string, unknown>)[f.key]
     // Convert relative fs_path to absolute for display
     if (f.key === "fs_path" && typeof val === "string" && !val.startsWith("/")) {
       val = join(rootPath, val)

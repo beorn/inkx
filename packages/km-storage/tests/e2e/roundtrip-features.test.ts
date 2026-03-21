@@ -9,6 +9,7 @@
  */
 
 import { describe, test, expect } from "vitest"
+import { ulid } from "ulid"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { SyncManager } from "../../src/watch/sync.ts"
@@ -288,8 +289,9 @@ describe("E2E Round-Trip Features", () => {
         const taskAlpha = sourceTasks.find((t) => t.content?.includes("Alpha"))!
         applyEventWithDb(data.database, {
           type: "node_created",
-          source: "test",
-          timestamp: Date.now(),
+          id: ulid(),
+          actor: "test",
+          ts: Date.now(),
           data: {
             id: "embed-alpha",
             type: "embed",
@@ -356,8 +358,9 @@ describe("E2E Round-Trip Features", () => {
         // Create embedding with alias
         applyEventWithDb(data.database, {
           type: "node_created",
-          source: "test",
-          timestamp: Date.now(),
+          id: ulid(),
+          actor: "test",
+          ts: Date.now(),
           data: {
             id: "embed-alias",
             type: "embed",

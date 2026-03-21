@@ -11,7 +11,8 @@ describe("keychain", () => {
     }
 
     const json = JSON.stringify(credential)
-    const parsed = JSON.parse(json)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const parsed = JSON.parse(json) as any
 
     expect(parsed.claudeAiOauth.accessToken).toBe(credential.claudeAiOauth.accessToken)
     expect(parsed.claudeAiOauth.refreshToken).toBe(credential.claudeAiOauth.refreshToken)

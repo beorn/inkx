@@ -99,7 +99,7 @@ export default defineConfig({
 	cacheDir: "node_modules/.vitest",
 	plugins: [mdspec()],
 	test: {
-		reporter: "dot",
+		reporters: ["dot"],
 		includeTaskLocation: true,
 		outputFile: {
 			html: "./test-results/vitest-report.html",

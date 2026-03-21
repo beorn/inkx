@@ -9,7 +9,10 @@
 import { createApp, type EventHandlerContext } from "@silvery/term/runtime"
 import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/react"
 import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/react"
-import { createLogger, type SpanLogger } from "loggily"
+import { createLogger } from "loggily"
+
+/** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
+type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
 import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -812,7 +815,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
               const offset = clickToCursorOffset(mouse.x, mouse.y, editCtx, idNode)
               editTarget.setCursorOffset(offset)
             }
-          } else {
+          } else if (nodeId) {
             // Different node in same card → save + re-enter edit on clicked node
             activeEditTargetRef.current?.save()
             actionCtx.dispatchBoard({ type: "SELECT", nodeId })

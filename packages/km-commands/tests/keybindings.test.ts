@@ -37,10 +37,9 @@ type Modifiers = {
 function createNode(id: string, opts?: Partial<TNode>): TNode {
   return {
     id,
-    type: "oi",
+    type: "h",
     parent_id: null,
     parent_idx: 0,
-    link_to: null,
     name: id,
     title: id,
     children: [],

@@ -177,7 +177,7 @@ export function ColumnHeader({
                     ) : (
                       displayName
                     )}
-                    {!isVirtual && isSigilName(node.name) && !slugsMatch(node.name, displayName) && (
+                    {!isVirtual && isSigilName(node.name) && node.name && !slugsMatch(node.name, displayName) && (
                       <>
                         {" "}
                         <Text dimColor>{node.name}</Text>

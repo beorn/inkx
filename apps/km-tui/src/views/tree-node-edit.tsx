@@ -143,7 +143,7 @@ export function TitleEditor({
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
       const hrMatch = isHRContent(newContent)
       const currentType = displayNode.type
-      if (hrMatch && (currentType === "p" || currentType === "li") && !isOutline(currentType, displayNode.item)) {
+      if (hrMatch && currentType === "p" && !isOutline(currentType, displayNode.item)) {
         repo.updateNode(displayNode.id, { type: "hr" })
       } else if (!hrMatch && currentType === "hr") {
         repo.updateNode(displayNode.id, { type: "p" })

@@ -36,8 +36,7 @@ export async function ensureAsanaSetup(tokenOverride?: string): Promise<{ token:
   console.log(term.dim("Get a Personal Access Token from: https://app.asana.com/0/developer-console"))
   console.log()
 
-  const token = await withTextInput({
-    message: "Asana Personal Access Token:",
+  const token = await withTextInput("Asana Personal Access Token:", {
     placeholder: "1/1234567890...",
   })
 
@@ -48,7 +47,7 @@ export async function ensureAsanaSetup(tokenOverride?: string): Promise<{ token:
 
   // Validate
   console.log(term.dim("Validating token..."))
-  const { validateAsanaToken } = await import("../import/adapters/asana-api.ts")
+  const { validateAsanaToken } = await import("../import/adapters/asana/asana-discovery.ts")
 
   let userInfo: { name: string; email: string; workspaces: Array<{ gid: string; name: string }> }
   try {
@@ -63,10 +62,10 @@ export async function ensureAsanaSetup(tokenOverride?: string): Promise<{ token:
   // Select workspace
   let defaultWorkspace: string | undefined
   if (userInfo.workspaces.length > 1) {
-    defaultWorkspace = await withSelect({
-      message: "Default workspace:",
-      options: userInfo.workspaces.map((w) => ({ label: w.name, value: w.name })),
-    })
+    defaultWorkspace = await withSelect(
+      "Default workspace:",
+      userInfo.workspaces.map((w) => ({ label: w.name, value: w.name })),
+    )
   } else if (userInfo.workspaces.length === 1) {
     defaultWorkspace = userInfo.workspaces[0]?.name
     console.log(term.dim(`Workspace: ${defaultWorkspace}`))

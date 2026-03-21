@@ -134,7 +134,7 @@ describe("Toast rendering", () => {
     const toastBox = toastEl.boundingBox()
 
     // Toast bottom edge must not reach the bottom bar row
-    expect(toastBox.y + toastBox.height).toBeLessThanOrEqual(bottomBarBox.y)
+    expect(toastBox!.y + toastBox!.height).toBeLessThanOrEqual(bottomBarBox!.y)
   })
 
   test("board content remains visible when toast appears (km-9zu9f)", () => {
@@ -194,6 +194,6 @@ describe("Toast rendering", () => {
     const toastBox = toastEl.boundingBox()
 
     // Toast bottom edge must be above the bottom bar
-    expect(toastBox.y + toastBox.height).toBeLessThanOrEqual(bottomBarBox.y)
+    expect(toastBox!.y + toastBox!.height).toBeLessThanOrEqual(bottomBarBox!.y)
   })
 })

@@ -143,7 +143,7 @@ describe("Incremental ANSI output verification", () => {
     }
     if (!rootId) {
       for (const node of nodes) {
-        const children = getChildren(repo.db, node.id)
+        const children = getChildren(repo.database, node.id)
         if (children.length > 0) {
           rootId = node.id
           break

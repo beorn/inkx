@@ -69,7 +69,8 @@ describe("Query Executor", () => {
     const ast = parseQuery(query)
     const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(expectedCount)
-    expect(results.every(predicate)).toBe(true)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test predicate union
+    expect(results.every(predicate as (r: any) => boolean)).toBe(true)
   })
 
   test("combines conditions", () => {

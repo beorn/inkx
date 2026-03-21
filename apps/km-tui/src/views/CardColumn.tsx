@@ -235,7 +235,7 @@ export const Card = React.memo(
     // When a middle block is selected (H+1 → H+2, +1), the next block
     // yields its paddingTop (1→0, -1). Net: 0 shift.
     // When the last body block is selected (H+2 → H+2). Net: 0 shift.
-    const yieldTop = isPrevBodyBlock && isPrevAtCursor
+    const yieldTop = !!(isPrevBodyBlock && isPrevAtCursor)
     const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$surface-bg" : "$muted"
 
     if (isHR && !isEditing) {
@@ -243,9 +243,9 @@ export const Card = React.memo(
       // Padding on all 4 sides matches border dimensions for layout stability.
       // When selected, they get a yellow border like other body blocks.
       const hrLayoutProps = isSelected
-        ? { borderStyle: "round" as const, borderColor: "$selection-bg", borderDimColor: false }
+        ? { borderStyle: "round" as const, borderColor: "$selection-bg" }
         : isMultiSelected || isColSelected
-          ? { borderStyle: "round" as const, borderColor: "$selection-bg", borderDimColor: false }
+          ? { borderStyle: "round" as const, borderColor: "$selection-bg" }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
         <Box
@@ -292,7 +292,7 @@ export const Card = React.memo(
             isSelected || isEditing,
             bodyBorderColor,
             yieldTop,
-            isLastBodyBlock,
+            !!isLastBodyBlock,
             isMultiSelected,
             isColSelected,
             bodyDefaultBorder,
@@ -331,7 +331,6 @@ export const Card = React.memo(
           width={width}
           borderStyle="round"
           borderColor={collapsedBorder}
-          borderDimColor={!isSelected && !isMultiSelected && !isColSelected}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -373,14 +372,7 @@ export const Card = React.memo(
 
       return (
         <Box data-view="card" data-card-id={nodeId} flexDirection="column" flexShrink={0} width={width}>
-          <Box
-            flexDirection="column"
-            width={width}
-            borderStyle="round"
-            borderBottom={false}
-            borderColor={borderColor}
-            borderDimColor={false}
-          >
+          <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <TreeNode
               node={card}
@@ -415,7 +407,6 @@ export const Card = React.memo(
         width={width}
         borderStyle="round"
         borderColor={borderColor}
-        borderDimColor={false}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
@@ -469,11 +460,10 @@ function bodyBlockLayoutProps(
   defaultBorderColor = "$muted",
   cursorDim = false,
 ) {
-  if (showBorder) return { borderStyle: "round" as const, borderColor, borderDimColor: cursorDim }
+  if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
     borderStyle: "round" as const,
     borderColor: isMultiSelected || isColumnSelected ? "$selection-bg" : defaultBorderColor,
-    borderDimColor: !isMultiSelected && !isColumnSelected && defaultBorderColor !== "$surface-bg",
   }
 }
 
@@ -502,7 +492,7 @@ function SkeletonCards({
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       {Array.from({ length: cardCount }, (_, ri) => (
-        <Box key={ri} borderStyle="round" borderDimColor width={width} height={cardHeight}>
+        <Box key={ri} borderStyle="round" dimColor width={width} height={cardHeight}>
           <Text dimColor wrap="truncate">
             {"░".repeat(6 + ((ri * 5 + colIndex * 7) % 12))}
           </Text>
@@ -722,7 +712,6 @@ export const Column = React.memo(function Column({
           flexGrow={1}
           borderStyle="round"
           borderColor={borderColor}
-          borderDimColor={false}
           overflow="hidden"
           backgroundColor={isColumnSelected ? "$selection-bg" : undefined}
         >

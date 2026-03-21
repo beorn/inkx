@@ -117,7 +117,7 @@ export function createFuzzTerm<S = Record<string, unknown>>(options: FuzzTermOpt
     if (!keys || keys.length === 0) {
       throw new Error("createFuzzTerm: must provide either keys or pick")
     }
-    return keys[Math.floor(random.float() * keys.length)]
+    return keys[Math.floor(random.float() * keys.length)]!
   }
 
   return {
@@ -143,9 +143,9 @@ export function createFuzzTerm<S = Record<string, unknown>>(options: FuzzTermOpt
           const result = await pick(state as unknown as S, history, random)
           if (Array.isArray(result)) {
             if (result.length === 0) continue
-            key = result[0]
+            key = result[0]!
             for (let i = 1; i < result.length; i++) {
-              batch.push(result[i])
+              batch.push(result[i]!)
             }
           } else {
             key = result

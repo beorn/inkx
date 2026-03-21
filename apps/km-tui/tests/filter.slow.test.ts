@@ -734,7 +734,7 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
  */
 
 /** Open and close filter dialog to flush Zustand → React render cycle */
-function flushFilter(board: { press: (key: string) => void }) {
+function flushFilter(board: { press: (key: string) => void; command: (cmd: string) => void }) {
   board.command("filter")
   board.press("Escape")
 }

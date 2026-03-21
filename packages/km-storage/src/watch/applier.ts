@@ -313,11 +313,12 @@ function finalizeBatchLinks(
   if (allFolderIds.size > 0) {
     const config = getFolderIndexConfig(repoRoot)
     if (config.materialization !== "none") {
+      const indexConfig = { materialization: config.materialization, naming: config.naming }
       for (const folderId of allFolderIds) {
         const folder = getNode(db, folderId)
         if (!folder?.fstype || folder.fstype !== "folder" || !folder.fs_path) continue
 
-        const content = buildIndexContent(db, folder, config)
+        const content = buildIndexContent(db, folder, indexConfig)
         if (!content) continue
 
         // Determine where to write: existing index file path or new file

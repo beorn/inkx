@@ -441,7 +441,7 @@ function buildNonRecursivePathSQL(
  * Path patterns match against effective_path (includes ancestor lookup for child nodes).
  */
 function buildPathCondition(pathFilter: QueryPath, pathColumn: string, params: (string | number)[]): string {
-  const { pattern, recursive, negated } = pathFilter
+  const { pattern, recursive, negated = false } = pathFilter
 
   let normalizedPattern = normalizePathPattern(pattern)
 

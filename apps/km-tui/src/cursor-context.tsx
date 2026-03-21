@@ -76,10 +76,14 @@ function useCursorNodeState(store: CursorStore | null): {
   })
 }
 
-const defaultNodeState = {
-  cursorCardNodeId: null as string | null,
-  cursorColumnNodeId: null as string | null,
-  selectionLevel: "board" as const,
+const defaultNodeState: {
+  cursorCardNodeId: string | null
+  cursorColumnNodeId: string | null
+  selectionLevel: "board" | "column" | "card"
+} = {
+  cursorCardNodeId: null,
+  cursorColumnNodeId: null,
+  selectionLevel: "board",
 }
 
 /**
@@ -183,17 +187,25 @@ export function useCursorNodePosition(): {
   })
 }
 
-const defaultCursorNodePosition = {
-  cursorNodeId: null as string | null,
-  cursorCardNodeId: null as string | null,
-  cursorColumnNodeId: null as string | null,
-  selectionLevel: "board" as const,
+const defaultCursorNodePosition: {
+  cursorNodeId: string | null
+  cursorCardNodeId: string | null
+  cursorColumnNodeId: string | null
+  selectionLevel: "board" | "column" | "card"
+} = {
+  cursorNodeId: null,
+  cursorCardNodeId: null,
+  cursorColumnNodeId: null,
+  selectionLevel: "board",
 }
 
 // Stable references
-const falseColumnSelectedResult = {
-  isSelected: false as const,
-  selectionLevel: "board" as const,
+const falseColumnSelectedResult: {
+  isSelected: boolean
+  selectionLevel: "board" | "column" | "card"
+} = {
+  isSelected: false,
+  selectionLevel: "board",
 }
 function noopSubscribe() {
   return () => {}

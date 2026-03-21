@@ -99,9 +99,7 @@ describe("insertNodeRow() timestamp preservation", () => {
     const node = createNode("node2")
     // TypeScript requires these fields, but at runtime they could be missing
     // Use Object.assign to bypass type checking for this test
-    const nodeWithoutTimestamps = { ...node } as KNode & { created_at?: number; updated_at?: number }
-    delete nodeWithoutTimestamps.created_at
-    delete nodeWithoutTimestamps.updated_at
+    const { created_at, updated_at, ...nodeWithoutTimestamps } = node
 
     const now = Date.now()
     insertNodeRow(stmt, nodeWithoutTimestamps as KNode, now)
