@@ -550,11 +550,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
       h(
         StoreContext.Provider,
         { value: store as StoreApi<unknown> },
-        h(
-          FocusManagerContext.Provider,
-          { value: focusManager },
-          h(RepoProvider, { repo, children: boardAppElement }),
-        ),
+        h(FocusManagerContext.Provider, { value: focusManager }, h(RepoProvider, { repo, children: boardAppElement })),
       ),
     ),
     { incremental: options?.incremental ?? true },
@@ -1796,11 +1792,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     h(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      h(
-        ReactiveNodeStoreProvider,
-        { value: nodeStore },
-        h(RepoProvider, { repo, children: wrappedElement }),
-      ),
+      h(ReactiveNodeStoreProvider, { value: nodeStore }, h(RepoProvider, { repo, children: wrappedElement })),
     ),
   )
 

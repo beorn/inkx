@@ -291,9 +291,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
         rules: hasRules ? rules : undefined, // Only set if rules exist
         task_status: taskStatus,
         task_marker: taskMarker,
-        data: {
-          ...(hasRules ? { rules, title } : {}), // Store rules and clean title in data for DB persistence
-        },
+        data: hasRules ? { rules, title } : {},
         created_at: now,
         updated_at: now,
         version: "",
@@ -363,7 +361,7 @@ function convertListItem(
   // Extract only the first paragraph's text for node.content.
   // Extra paragraphs are handled as child nodes below (convertBlock).
   const firstPara = item.children.find((c) => c.type === "paragraph" || (c as { type: string }).type === "text")
-  let text = firstPara ? nodeToText(firstPara as RootContent) : ""
+  const text = firstPara ? nodeToText(firstPara as RootContent) : ""
 
   // Read task mark from kmast data (set by kmTaskMark tokenizer)
   const taskMark = item.data?.taskMark as string | undefined

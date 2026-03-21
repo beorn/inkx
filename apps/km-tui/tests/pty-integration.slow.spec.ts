@@ -90,14 +90,11 @@ async function waitForContent(term: TermlessTerminal, timeout: number) {
 describe("PTY integration: auto-repeat", () => {
   let term: TermlessTerminal
 
-  beforeAll(
-    async () => {
-      term = await createKmTerminal("pty-auto-repeat")
-      await waitForContent(term, 15000)
-      await term.waitForStable(1500, 20000)
-    },
-    30_000,
-  )
+  beforeAll(async () => {
+    term = await createKmTerminal("pty-auto-repeat")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
+  }, 30_000)
 
   test("rapid j presses move cursor continuously", { timeout: 20_000 }, async () => {
     const initialBreadcrumb = getBreadcrumb(term)
@@ -132,14 +129,11 @@ describe("PTY integration: auto-repeat", () => {
 describe("PTY integration: burst input (real key repeat simulation)", () => {
   let term: TermlessTerminal
 
-  beforeAll(
-    async () => {
-      term = await createKmTerminal("pty-burst")
-      await waitForContent(term, 15000)
-      await term.waitForStable(1500, 20000)
-    },
-    30_000,
-  )
+  beforeAll(async () => {
+    term = await createKmTerminal("pty-burst")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
+  }, 30_000)
 
   test("burst of j chars in single write (simulates OS stdin buffering)", { timeout: 20_000 }, async () => {
     const initialBreadcrumb = getBreadcrumb(term)
@@ -182,14 +176,11 @@ describe("PTY integration: burst input (real key repeat simulation)", () => {
 describe("PTY integration: h/l false bell", () => {
   let term: TermlessTerminal
 
-  beforeAll(
-    async () => {
-      term = await createKmTerminal("pty-bell")
-      await waitForContent(term, 15000)
-      await term.waitForStable(1500, 20000)
-    },
-    30_000,
-  )
+  beforeAll(async () => {
+    term = await createKmTerminal("pty-bell")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
+  }, 30_000)
 
   test("alternating h/l does not trigger bell when not at boundary", { timeout: 20_000 }, async () => {
     // Move right first to ensure we're not at a column boundary
@@ -223,14 +214,11 @@ describe("PTY integration: h/l false bell", () => {
 describe("PTY integration: navigation correctness", () => {
   let term: TermlessTerminal
 
-  beforeAll(
-    async () => {
-      term = await createKmTerminal("pty-nav")
-      await waitForContent(term, 15000)
-      await term.waitForStable(1500, 20000)
-    },
-    30_000,
-  )
+  beforeAll(async () => {
+    term = await createKmTerminal("pty-nav")
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
+  }, 30_000)
 
   test("zoom in with Enter and back out with Escape", { timeout: 20_000 }, async () => {
     saveSnapshot(term, "nav-initial")
@@ -285,14 +273,11 @@ describe("PTY integration: navigation correctness", () => {
 describe("PTY integration: SVG snapshot capture", () => {
   let term: TermlessTerminal
 
-  beforeAll(
-    async () => {
-      term = await createKmTerminal("pty-snapshot", { cols: 120, rows: 40 })
-      await waitForContent(term, 15000)
-      await term.waitForStable(1500, 20000)
-    },
-    30_000,
-  )
+  beforeAll(async () => {
+    term = await createKmTerminal("pty-snapshot", { cols: 120, rows: 40 })
+    await waitForContent(term, 15000)
+    await term.waitForStable(1500, 20000)
+  }, 30_000)
 
   test("initial board render captures valid SVG", { timeout: 10_000 }, async () => {
     const svg = term.screenshotSvg()

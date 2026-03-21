@@ -376,7 +376,7 @@ export class MemoryStore extends BaseStore {
     const now = Date.now()
 
     // Merge non-column fields into data blob (matches db-ops.ts addNodeImpl)
-    const mergedData: Record<string, unknown> = { ...(node.data ?? {}) }
+    const mergedData: Record<string, unknown> = { ...node.data }
     for (const [key, value] of Object.entries(node)) {
       if (key !== "data" && !NODE_COLUMNS.has(key) && value !== undefined && value !== null) {
         mergedData[key] = value

@@ -251,7 +251,7 @@ describe("DB edit -> sync -> file", () => {
       await manager.syncToFs()
 
       // Verify file has the change
-      let content = readFileSync(filePath, "utf-8")
+      const content = readFileSync(filePath, "utf-8")
       expect(content).toContain("[x] Alpha")
 
       // file -> DB (re-parse)

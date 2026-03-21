@@ -113,10 +113,10 @@ async function profile() {
 
   const t7 = timer("boardApp.run() — React mount + first render + layout + output")
   const handle = await boardApp.run(
-    React.createElement(
-      RepoProvider,
-      { repo, children: React.createElement(InputLayerProvider, { children: React.createElement(BoardApp, { toastQueue }) }) },
-    ),
+    React.createElement(RepoProvider, {
+      repo,
+      children: React.createElement(InputLayerProvider, { children: React.createElement(BoardApp, { toastQueue }) }),
+    }),
     { cols: 200, rows: 70, stdout: devNull as unknown as NodeJS.WriteStream },
   )
   t7.end()

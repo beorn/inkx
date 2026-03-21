@@ -17,14 +17,14 @@ function renderHelp(opts?: { width?: number; height?: number; scrollOffset?: num
   const w = opts?.width ?? 100
   const h = opts?.height ?? 200
   const render = createRenderer({ cols: w, rows: h + 10 })
-  const element = React.createElement(
-    ThemeProvider,
-    { theme: defaultKmTheme, children: React.createElement(HelpOverlay, {
+  const element = React.createElement(ThemeProvider, {
+    theme: defaultKmTheme,
+    children: React.createElement(HelpOverlay, {
       width: w,
       height: h,
       scrollOffset: opts?.scrollOffset ?? 0,
-    }) },
-  )
+    }),
+  })
   return render(element)
 }
 

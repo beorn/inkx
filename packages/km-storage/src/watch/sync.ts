@@ -195,7 +195,7 @@ export class SyncManager extends EventEmitter {
     // Wait for in-flight syncs to complete before clearing resources
     if (this.inFlightSyncs.size > 0) {
       log.debug?.(`waiting for ${this.inFlightSyncs.size} in-flight syncs`)
-      await Promise.allSettled([...this.inFlightSyncs])
+      await Promise.allSettled(this.inFlightSyncs)
     }
     this.writeQueue.clear()
     if (this.parsePool) {
@@ -371,7 +371,7 @@ export class SyncManager extends EventEmitter {
    */
   async waitForInflight(): Promise<void> {
     if (this.inFlightSyncs.size > 0) {
-      await Promise.allSettled([...this.inFlightSyncs])
+      await Promise.allSettled(this.inFlightSyncs)
     }
   }
 

@@ -189,7 +189,7 @@ export function stringifyTaskMetadata(content: string, node: KNode, options?: { 
   }
 
   // Fields changed — strip task metadata and rewrite in key:: value
-  let cleanContent = stripTaskMetadataFormats(content)
+  const cleanContent = stripTaskMetadataFormats(content)
 
   const entries: MetadataEntries = {}
   if (dueParts?.date) {
@@ -235,7 +235,7 @@ export function parseTaskMetadataFromText(text: string): {
   const extracted = extractTaskMetadata(text)
 
   // Strip task-specific metadata from text to get clean content (preserves non-task properties)
-  let clean = stripTaskMetadataFormats(text)
+  const clean = stripTaskMetadataFormats(text)
 
   // Map extracted fields to node-field format
   let due_at: string | undefined

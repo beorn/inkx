@@ -145,7 +145,7 @@ describe("Column Collapse Journeys", () => {
     // Step 2: Navigate to col3 and collapse it
     board.command("cursor_right") // col2
     board.command("cursor_right") // col3
-    let cursor = board.q("[data-cursor]")
+    const cursor = board.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-c")
     board.command("toggle_collapse")
     expect(board.q("[data-collapsed]").count()).toBe(2)

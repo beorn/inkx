@@ -208,7 +208,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   const now = Date.now()
 
   // Merge non-column fields into data blob
-  const mergedData: Record<string, unknown> = { ...(node.data ?? {}) }
+  const mergedData: Record<string, unknown> = { ...node.data }
   for (const [key, value] of Object.entries(node)) {
     if (key !== "data" && !NODE_COLUMNS.has(key) && value !== undefined && value !== null) {
       mergedData[key] = value
