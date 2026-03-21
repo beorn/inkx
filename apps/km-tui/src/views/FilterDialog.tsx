@@ -9,7 +9,7 @@
  * goes through the command system (keybindings layer "filter-dialog").
  */
 import React from "react"
-import { Box, Text, ModalDialog, Muted, Strong } from "@silvery/react"
+import { Text, ModalDialog, Muted, Strong } from "@silvery/react"
 import type { FilterProperties, IconStyle, ViewDialogRow } from "../ui-reducer.ts"
 import { VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
 import type { ViewMode } from "../board-types.ts"

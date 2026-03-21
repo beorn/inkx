@@ -54,7 +54,7 @@ export const viewCommand = new Command("view")
     process.on("unhandledRejection", onUnhandled)
 
     try {
-      const startTime = performance.now()
+      const _startTime = performance.now()
       using startup = log.span("startup", { path: root })
       debug.debug?.("view command", {
         root,
