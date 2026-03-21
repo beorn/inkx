@@ -29,7 +29,8 @@
     "apps/km-cli/src/tui/experiments/",
     "vendor/opentui/issues/",
     "vendor/flexily/**",
-    "vendor/termless/packages/vt100/tests/backend.test.ts"
+    "vendor/termless/packages/vt100/tests/backend.test.ts",
+    "vendor/silvery/tests/compat/ink/generated/**"
   ],
   "rules": {
     "complexity/complexity": ["warn", { "cyclomatic": 30, "cognitive": 30 }],
@@ -144,8 +145,6 @@
         "no-async-promise-executor": "error",
         "no-promise-executor-return": "error",
         "prefer-promise-reject-errors": "error",
-        "promise/prefer-await-to-then": "warn",
-        "promise/prefer-await-to-callbacks": "warn",
         "curly": ["error", "multi-line"],
         "no-unused-vars": [
           "warn",
