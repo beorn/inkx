@@ -248,15 +248,18 @@ export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
         popover?.show(richUrlPopoverContent(node.url, cached), anchor)
       } else {
         popover?.show(urlPopoverContent(node.url, { loading: true }), anchor)
-        fetchUrlMetadata(node.url).then((meta) => {
-          if (!hoveredRef.current) return
-          if (meta) {
-            popover?.update(richUrlPopoverContent(node.url, meta))
-          } else {
-            // Fetch failed or returned nothing — remove spinner
-            popover?.update(urlPopoverContent(node.url))
-          }
-        })
+        void fetchUrlMetadata(node.url)
+          .then((meta) => {
+            if (!hoveredRef.current) return
+            if (meta) {
+              popover?.update(richUrlPopoverContent(node.url, meta))
+            } else {
+              // Fetch failed or returned nothing — remove spinner
+              popover?.update(urlPopoverContent(node.url))
+            }
+            return
+          })
+          .catch(() => {})
       }
     },
     [popover, node.url],
@@ -378,14 +381,17 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
         popover?.show(richUrlPopoverContent(node.url, cached), anchor)
       } else {
         popover?.show(urlPopoverContent(node.url, { loading: true }), anchor)
-        fetchUrlMetadata(node.url).then((meta) => {
-          if (!hoveredRef.current) return
-          if (meta) {
-            popover?.update(richUrlPopoverContent(node.url, meta))
-          } else {
-            popover?.update(urlPopoverContent(node.url))
-          }
-        })
+        void fetchUrlMetadata(node.url)
+          .then((meta) => {
+            if (!hoveredRef.current) return
+            if (meta) {
+              popover?.update(richUrlPopoverContent(node.url, meta))
+            } else {
+              popover?.update(urlPopoverContent(node.url))
+            }
+            return
+          })
+          .catch(() => {})
       }
     },
     [popover, node.url],

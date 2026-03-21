@@ -102,6 +102,7 @@ export const moveCommand = new Command("move")
 
     // Move via repo (handles event emission and persistence)
     // targetParentId is null only for --toRoot; repo.moveNode handles null at runtime via dataStore
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- null is valid at runtime for --toRoot (repo.moveNode delegates to dataStore which accepts null)
     repo.moveNode(node.id, targetParentId!, Date.now())
 
     if (options.json) {

@@ -849,7 +849,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (isDoubleClick) {
         // Double-click → select the sub-block and enter inline edit on it
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId!, blockIndex: 0 })
+        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
       } else if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection

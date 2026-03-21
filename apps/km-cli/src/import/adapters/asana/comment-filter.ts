@@ -136,9 +136,9 @@ const MONTHS: Record<string, string> = {
 function parseConsolidatedDate(headerLine: string): string | undefined {
   const m = headerLine.match(/on (?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\w* (\w+) (\d{1,2}), (\d{4}) /)
   if (!m) return undefined
-  const month = MONTHS[m[1]!]
+  const month = MONTHS[m[1] ?? ""]
   if (!month) return undefined
-  return `${m[3]!}-${month}-${m[2]!.padStart(2, "0")}`
+  return `${m[3] ?? ""}-${month}-${(m[2] ?? "").padStart(2, "0")}`
 }
 
 /** Strip the consolidated "Name on Day Mon DD, YYYY HH:MM AM/PM:" header from a block's content */

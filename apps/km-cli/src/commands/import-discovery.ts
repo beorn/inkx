@@ -4,7 +4,6 @@
 
 import { existsSync, readdirSync, statSync } from "fs"
 import { join } from "path"
-import type { Command } from "@commander-js/extra-typings"
 import { createTerm } from "@silvery/react"
 
 const term = createTerm(process)
@@ -32,9 +31,8 @@ export function formatProjectMeta(proj: AsanaProjectInfo, maxGid: number): strin
 }
 
 /** Print help + account listing + download history + quickstart */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- accepts any Command variant
 export async function printDiscovery(
-  cmd: Command<any[], any, any>,
+  cmd: { outputHelp(): void },
   artifactsDir: string,
   authToken?: string,
   workspaceFilter?: string,

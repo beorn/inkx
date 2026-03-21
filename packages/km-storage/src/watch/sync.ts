@@ -401,7 +401,7 @@ export class SyncManager extends EventEmitter {
   private handleFsSync(data: { paths: string[]; directories: string[] }): void {
     const promise = this.handleFsSyncInner(data)
     this.inFlightSyncs.add(promise)
-    promise.finally(() => this.inFlightSyncs.delete(promise))
+    void promise.finally(() => this.inFlightSyncs.delete(promise))
   }
 
   private async handleFsSyncInner(data: { paths: string[]; directories: string[] }): Promise<void> {

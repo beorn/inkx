@@ -15,7 +15,12 @@
 
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
 import { Box, Spinner, Text, RuntimeContext } from "@silvery/react"
+import type { BaseRuntimeEvents, RuntimeContextValue } from "@silvery/react"
 import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
+
+interface LinkEvents extends BaseRuntimeEvents {
+  "link:open": [href: string]
+}
 
 // =============================================================================
 // Types
@@ -245,7 +250,7 @@ function PopoverLink({ href, line }: { href: string; line: PopoverLine }): React
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
-      rt?.emit("link:open" as any, href)
+      ;(rt as RuntimeContextValue<LinkEvents> | null)?.emit("link:open", href)
       e.stopPropagation()
     },
     [rt, href],

@@ -122,14 +122,14 @@ const KM_PATTERNS = [
   // Stripped entirely — these are metadata (recur_parent relationship), not display content
   {
     re: /\s*→\s*(?:\[\[)?\^(\d+)(?:\]\])?/g,
-    make: (_m: RegExpExecArray): InlineNode => ({ type: "field", key: "recur_parent", value: _m[1]! }),
+    make: (_m: RegExpExecArray): InlineNode => ({ type: "field", key: "recur_parent", value: _m[1] ?? "" }),
   },
   // Wiki links: ![[target]], [[target]], [[target|alias]]
   {
     re: /(!?)\[\[([^\]]+)\]\]/g,
     make: (m: RegExpExecArray): InlineNode => {
       const isEmbed = m[1] === "!"
-      const inner = m[2]!
+      const inner = m[2] ?? ""
       const pipeIdx = inner.indexOf("|")
       return {
         type: "wikilink",
@@ -142,18 +142,18 @@ const KM_PATTERNS = [
   // Bracketed inline fields: [key:: value]
   {
     re: /\[(\w+)::\s*([^\]]*)\]/g,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1]!, value: m[2]! }),
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1] ?? "", value: m[2] ?? "" }),
   },
   // Bare key:: value properties
   {
     re: /((?:km\.)?[a-z][a-z0-9_-]*)::\s*(.+?)(?=\s+(?:km\.)?[a-z][a-z0-9_-]*::|$)/gi,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1]!, value: m[2]!.trim() }),
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: m[1] ?? "", value: (m[2] ?? "").trim() }),
   },
   // Bare ^numericId (10+ digits) — block identifier metadata, stripped from display.
   // Only [[^ID]] wikilinks create visible cross-references; bare ^ID is metadata only.
   {
     re: /\^(\d{10,})/g,
-    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: "block_id", value: m[1]! }),
+    make: (m: RegExpExecArray): InlineNode => ({ type: "field", key: "block_id", value: m[1] ?? "" }),
     // Skip if inside a wikilink
     skipIf: (m: RegExpExecArray, text: string) => {
       const before = text.slice(0, m.index ?? 0)
@@ -196,8 +196,8 @@ function parseKmSyntax(text: string): InlineNode[] {
   SIGIL_RE.lastIndex = 0
   let m: RegExpExecArray | null
   while ((m = SIGIL_RE.exec(text)) !== null) {
-    const prefix = m[1]!
-    const name = m[2]!
+    const prefix = m[1] ?? ""
+    const name = m[2] ?? ""
     const node: InlineNode =
       prefix === "@" ? { type: "mention", name } : prefix === "#" ? { type: "tag", name } : { type: "project", name }
     addIfFree(m.index, m.index + m[0].length, node)

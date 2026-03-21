@@ -66,8 +66,8 @@ if (
   _strictTerminalEnv === "all" ||
   _strictTerminalEnv.includes("ghostty")
 ) {
-  const { initGhostty } = require("@termless/ghostty") as typeof import("@termless/ghostty")
   beforeAll(async () => {
+    const { initGhostty } = await import("@termless/ghostty")
     await initGhostty()
   })
 }

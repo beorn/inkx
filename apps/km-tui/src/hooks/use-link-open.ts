@@ -7,7 +7,11 @@
  */
 
 import { useEffect } from "react"
-import { useRuntime } from "@silvery/react"
+import { useRuntime, type BaseRuntimeEvents } from "@silvery/react"
+
+interface LinkEvents extends BaseRuntimeEvents {
+  "link:open": [href: string]
+}
 
 /** Open a URL using the OS default handler. */
 function openExternal(href: string): void {
@@ -22,11 +26,11 @@ function openExternal(href: string): void {
  *   If not provided, internal links are ignored.
  */
 export function useLinkOpen(onInternalLink?: (href: string) => void): void {
-  const rt = useRuntime()
+  const rt = useRuntime<LinkEvents>()
 
   useEffect(() => {
     if (!rt) return
-    return rt.on("link:open" as any, (href: string) => {
+    return rt.on("link:open", (href: string) => {
       if (href.startsWith("http://") || href.startsWith("https://")) {
         openExternal(href)
       } else if (href.startsWith("km://") && onInternalLink) {

@@ -126,7 +126,8 @@ export async function fetchUrlMetadata(url: string): Promise<UrlMetadata | null>
 
 /** Read up to maxBytes from a response, then cancel the stream. */
 async function readPartial(response: Response, maxBytes: number): Promise<string> {
-  const reader = response.body!.getReader()
+  if (!response.body) return ""
+  const reader = response.body.getReader()
   const chunks: Uint8Array[] = []
   let total = 0
   try {

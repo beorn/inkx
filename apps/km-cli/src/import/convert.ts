@@ -37,8 +37,8 @@ export function buildUniqueSlugMap(entries: Array<{ name: string; gid: string }>
   }
   const map = new Map<string, string>()
   for (const [slug, group] of bySlug) {
-    if (group.length === 1) {
-      map.set(group[0]!.name, slug)
+    if (group.length === 1 && group[0]) {
+      map.set(group[0].name, slug)
     } else {
       for (const e of group) {
         map.set(e.name, `${slug}-${e.gid}`)
@@ -1005,8 +1005,8 @@ function buildPrimaryMap(data: ImportData): {
       bySlug.set(p.slug, list)
     }
     for (const [slug, group] of bySlug) {
-      if (group.length === 1) {
-        projectSlugOverrides.set(group[0]!.project.sourceId, slug)
+      if (group.length === 1 && group[0]) {
+        projectSlugOverrides.set(group[0].project.sourceId, slug)
       } else {
         for (const p of group) {
           projectSlugOverrides.set(p.project.sourceId, `${slug}-${p.project.sourceId}`)

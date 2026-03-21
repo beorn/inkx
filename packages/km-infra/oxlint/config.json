@@ -106,6 +106,7 @@
     "clearInterval": "readonly",
     "setImmediate": "readonly",
     "AbortController": "readonly",
+    "AbortSignal": "readonly",
     "performance": "readonly",
     "AsyncDisposableStack": "readonly",
     "Worker": "readonly",

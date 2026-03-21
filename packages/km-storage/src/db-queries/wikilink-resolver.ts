@@ -38,7 +38,9 @@ export function findFileByName(db: Database, name: string): KNode | null {
   if (rows.length === 0) return null
   // Ambiguous — multiple nodes match, return null to avoid arbitrary resolution
   if (rows.length > 1) return null
-  return rowToNode(rows[0]!)
+  const row = rows[0]
+  if (!row) return null
+  return rowToNode(row)
 }
 
 /**
