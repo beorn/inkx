@@ -111,7 +111,7 @@ describe("FakeRepo", () => {
 
       const tasks = repo.getAllTasks()
       expect(tasks).toHaveLength(2)
-      expect(tasks.every((t) => t.task_status != null)).toBe(true)
+      expect(tasks.every((t) => t.task_status !== null)).toBe(true)
     })
 
     it("getTasksByStatus filters by task_status", () => {

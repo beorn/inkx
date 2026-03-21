@@ -203,7 +203,7 @@ describe("Database Rules", () => {
 
           const children = getChildren(store.getDatabase(), openSection!.id)
           const embeds = children.filter((c) => c.type === "embed")
-          const directTasks = children.filter((c) => c.task_status != null)
+          const directTasks = children.filter((c) => c.task_status !== null)
 
           expect(embeds.length).toBe(1)
           expect(directTasks.length).toBe(1)
@@ -414,7 +414,7 @@ describe("Database Rules", () => {
           expect(todoChildren.length).toBe(2)
           expect(doneChildren.length).toBe(0)
 
-          const taskA = allNodes.find((n) => n.task_status != null && n.content?.includes("Task A"))
+          const taskA = allNodes.find((n) => n.task_status !== null && n.content?.includes("Task A"))
           expect(taskA).toBeDefined()
 
           store.updateNode(taskA!.id, { task_status: "done", task_marker: "[x]" })

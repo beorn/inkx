@@ -448,7 +448,7 @@ function convertListItem(
       ...(Object.keys(parsedProps.props).length > 0 ? { props: parsedProps.props } : {}),
       ...(Object.keys(structuralPropsRaw).length > 0 ? { propsRaw: structuralPropsRaw } : {}),
       ...(Object.keys(metadataFromProps).length > 0 ? { metadata: metadataFromProps } : {}),
-      ...(ordered && listStart != null && listStart !== 1 ? { list_start: listStart } : {}),
+      ...(ordered && listStart !== null && listStart !== 1 ? { list_start: listStart } : {}),
     },
     created_at: inlineCreatedAt ?? now,
     updated_at: now,
@@ -670,7 +670,7 @@ function createFileNode(
 /** Parse a frontmatter value (ISO date string, Date object, or epoch ms) into a Unix timestamp in ms.
  *  Returns undefined if the value is missing or unparseable. */
 function parseFrontmatterTimestamp(value: unknown): number | undefined {
-  if (value == null) return undefined
+  if (value === null) return undefined
   if (typeof value === "number") return value
   if (value instanceof Date) {
     const t = value.getTime()

@@ -1473,7 +1473,7 @@ function createFluentBoardApi(ctx: {
         expect(box, `column "${id}" has boundingBox`).not.toBeNull()
       }
 
-      const validBoxes = boxes.filter((b) => b.box != null) as {
+      const validBoxes = boxes.filter((b) => b.box !== null) as {
         id: string
         box: NonNullable<(typeof boxes)[0]["box"]>
       }[]

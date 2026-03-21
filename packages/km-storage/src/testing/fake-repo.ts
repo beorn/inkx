@@ -253,12 +253,12 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     getAllTasks() {
       ensureNotClosed()
-      return [...nodes.values()].filter((n) => n.task_status != null)
+      return [...nodes.values()].filter((n) => n.task_status !== null)
     },
 
     getTasksByStatus(status) {
       ensureNotClosed()
-      return [...nodes.values()].filter((n) => n.task_status != null && n.task_status === status)
+      return [...nodes.values()].filter((n) => n.task_status !== null && n.task_status === status)
     },
 
     search(query) {
@@ -288,7 +288,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     queryTasks(expression) {
       ensureNotClosed()
       // Simple implementation: filter query results to only tasks
-      return this.query(expression).filter((n) => n.task_status != null)
+      return this.query(expression).filter((n) => n.task_status !== null)
     },
 
     getLinksTo(targetId) {

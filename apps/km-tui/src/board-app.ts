@@ -441,7 +441,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       currentNode: ctx.selectedNode
         ? ({
             ...ctx.selectedNode,
-            isTask: ctx.selectedNode.task_status != null,
+            isTask: ctx.selectedNode.task_status !== null,
             children: [],
             depth: 0,
             childCount: 0,
@@ -766,7 +766,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
         // Card wrapper uses data-card-id (not id) to avoid duplicate id conflicts with TreeNode.
         if (!cardId && typeof props["data-card-id"] === "string") cardId = props["data-card-id"] as string
-        if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
+        if (colIndex === null && props["data-col-index"] !== null) colIndex = Number(props["data-col-index"])
         if (typeof props.onClick === "function") hasClickHandler = true
         current = current.parent
       }
@@ -987,7 +987,7 @@ function walkVisibleDescendants(
 ): void {
   if (depth >= maxDepth || remainingDepth <= 0) return
   const allChildren = repo.getChildren(node.id)
-  const children = maxChildren != null ? allChildren.slice(0, maxChildren) : allChildren
+  const children = maxChildren !== null ? allChildren.slice(0, maxChildren) : allChildren
   for (const child of children) {
     visitor(child)
     const childDepth = foldDepths.get(child.id) ?? remainingDepth - 1

@@ -565,7 +565,7 @@ function expandIndexFileColumns(
   const isBodyContent = (n: KNode) =>
     !slotChildIds.has(n.id) &&
     !isCollapsedChild(n) &&
-    n.content != null &&
+    n.content !== null &&
     n.content.replace(/<[^>]+>/g, "").trim().length > 0
 
   // Collect body nodes from two sources:

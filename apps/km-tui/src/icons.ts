@@ -12,7 +12,7 @@ export const SIGIL_RE = /^[@#+]/
 
 /** Check if a string is a sigil name */
 export function isSigilName(name: string | null | undefined): boolean {
-  return name != null && SIGIL_RE.test(name)
+  return name !== null && SIGIL_RE.test(name)
 }
 
 export interface StatusIcon {
@@ -154,7 +154,7 @@ export function getTypeBullet(
   hasChildren: boolean,
 ): StatusIcon | null {
   // Tasks don't use a type bullet — their checkbox serves as the bullet
-  if (node.task_status != null || node.task_marker !== undefined) return null
+  if (node.task_status !== null || node.task_marker !== undefined) return null
 
   if (isOutline(node.type, node.item)) {
     switch (node.fstype) {

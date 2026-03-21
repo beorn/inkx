@@ -67,7 +67,7 @@ export function createOpenRouterProvider(): QuotaProvider {
         const windows: QuotaWindow[] = []
 
         // Credit limit utilization
-        if (key.limit != null && key.limit > 0) {
+        if (key.limit !== null && key.limit > 0) {
           const remaining = key.limit_remaining ?? key.limit - (key.usage ?? 0)
           const utilization = Math.round(((key.limit - remaining) / key.limit) * 100)
           windows.push({
@@ -79,7 +79,7 @@ export function createOpenRouterProvider(): QuotaProvider {
         }
 
         // Total usage (when no limit, still show spend)
-        if (key.usage != null && key.usage > 0 && key.limit === 0) {
+        if (key.usage !== null && key.usage > 0 && key.limit === 0) {
           windows.push({
             name: `Spent ${fmtDollars(key.usage)} total`,
             utilization: 0,
@@ -87,14 +87,14 @@ export function createOpenRouterProvider(): QuotaProvider {
         }
 
         // Daily usage
-        if (key.usage_daily != null && key.usage_daily > 0) {
+        if (key.usage_daily !== null && key.usage_daily > 0) {
           windows.push({
             name: `Today ${fmtDollars(key.usage_daily)}`,
             utilization: 0,
           })
         }
 
-        const available = key.limit != null ? (key.limit_remaining ?? 0) > 0 : true
+        const available = key.limit !== null ? (key.limit_remaining ?? 0) > 0 : true
         return { ...base, available, windows }
       } catch (err) {
         return {

@@ -97,7 +97,7 @@ function assertNodeNotExists(db: Database, path: string): void {
 /** Get children of a specific type (uses new km-ast types) */
 function getChildrenOfType(db: Database, parentId: string, type: string): ReturnType<typeof getChildren> {
   if (type === "task") {
-    return getChildren(db, parentId).filter((n) => n.task_status != null)
+    return getChildren(db, parentId).filter((n) => n.task_status !== null)
   }
   if (type === "section") {
     return getChildren(db, parentId).filter((n) => n.type === "h" && n.fstype === "mdsection")

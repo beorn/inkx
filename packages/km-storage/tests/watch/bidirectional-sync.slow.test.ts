@@ -42,7 +42,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.task_status !== null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -78,7 +78,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.task_status !== null)
         expect(task).toBeDefined()
 
         // Update task text (simulating TUI edit)
@@ -129,7 +129,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify new task was synced
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.task_status != null)
+        const tasks = allNodes.filter((n) => n.task_status !== null)
         expect(tasks.length).toBe(2)
       }),
     )
@@ -155,7 +155,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify initial state
         let allNodes = getAllNodes(db)
-        let task = allNodes.find((n) => n.task_status != null)
+        let task = allNodes.find((n) => n.task_status !== null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Original task")
 
@@ -175,7 +175,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify database was updated
         allNodes = getAllNodes(db)
-        task = allNodes.find((n) => n.task_status != null)
+        task = allNodes.find((n) => n.task_status !== null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Modified task")
       }),
@@ -270,7 +270,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Final content should be the last edit
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.task_status !== null)
         expect(task).toBeDefined()
         expect(task!.content).toContain("Task 4")
       }),
@@ -295,7 +295,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Get task node
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.task_status !== null)
         expect(task).toBeDefined()
 
         // Simulate concurrent operations:
@@ -314,7 +314,7 @@ describe("Bidirectional Sync E2E", () => {
 
         // Verify new task was picked up from filesystem
         const finalNodes = getAllNodes(db)
-        const tasks = finalNodes.filter((n) => n.task_status != null)
+        const tasks = finalNodes.filter((n) => n.task_status !== null)
 
         // Should have 2 tasks (external edit added Task B)
         expect(tasks.length).toBe(2)
@@ -368,7 +368,7 @@ describe("Full Round-Trip", () => {
         await syncManager.syncFromFs()
 
         // Find task in DB
-        const task = getAllNodes(db).find((n) => n.task_status != null)
+        const task = getAllNodes(db).find((n) => n.task_status !== null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -411,7 +411,7 @@ describe("Full Round-Trip", () => {
 
         await syncManager.syncFromFs()
 
-        const task = getAllNodes(db).find((n) => n.task_status != null)
+        const task = getAllNodes(db).find((n) => n.task_status !== null)
         expect(task).toBeDefined()
 
         const versionBefore = repo.version
@@ -446,7 +446,7 @@ describe("Full Round-Trip", () => {
         const syncManager = createTestSyncManager(db, repoDir)
         await syncManager.syncFromFs()
 
-        const task = getAllNodes(db).find((n) => n.task_status != null)
+        const task = getAllNodes(db).find((n) => n.task_status !== null)
         expect(task).toBeDefined()
 
         // Subscribe (same pattern as useSyncExternalStore in useColumns)
@@ -483,7 +483,7 @@ describe("Full Round-Trip", () => {
         await syncManager.syncFromFs()
 
         // Verify initial state
-        const initialTask = getAllNodes(db).find((n) => n.task_status != null)
+        const initialTask = getAllNodes(db).find((n) => n.task_status !== null)
         expect(initialTask).toBeDefined()
         expect(initialTask!.content).toContain("Original")
 
@@ -501,7 +501,7 @@ describe("Full Round-Trip", () => {
         await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // 1. DB should have the new content
-        const updatedTask = getAllNodes(db).find((n) => n.task_status != null)
+        const updatedTask = getAllNodes(db).find((n) => n.task_status !== null)
         expect(updatedTask).toBeDefined()
         expect(updatedTask!.content).toContain("Modified by external editor")
 
@@ -528,7 +528,7 @@ describe("Full Round-Trip", () => {
 
         await syncManager.syncFromFs()
 
-        const task = getAllNodes(db).find((n) => n.task_status != null)
+        const task = getAllNodes(db).find((n) => n.task_status !== null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -544,7 +544,7 @@ describe("Full Round-Trip", () => {
         await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
 
         // DB should reflect the status change
-        const updated = getAllNodes(db).find((n) => n.task_status != null)
+        const updated = getAllNodes(db).find((n) => n.task_status !== null)
         expect(updated).toBeDefined()
         expect(updated!.task_status).toBe("done")
       }),

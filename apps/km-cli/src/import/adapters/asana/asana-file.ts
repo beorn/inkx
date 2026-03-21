@@ -84,7 +84,7 @@ function convertTask(task: AsanaTask): ImportItem {
   }
 
   // Priority from custom fields — map to P-string
-  const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value != null)
+  const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value !== null)
   if (priorityField?.number_value) {
     const clamped = Math.max(1, Math.min(4, priorityField.number_value))
     item.priority = `P${clamped}`

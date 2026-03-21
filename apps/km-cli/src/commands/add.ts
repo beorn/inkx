@@ -32,7 +32,7 @@ interface AddOptions {
 
 /** Show phase completion with timing */
 function phaseOk(label: string, detail?: string, startMs?: number): void {
-  const timing = startMs != null ? ` ${term.dim(`${Date.now() - startMs}ms`)}` : ""
+  const timing = startMs !== null ? ` ${term.dim(`${Date.now() - startMs}ms`)}` : ""
   const suffix = detail ? ` ${term.dim(`(${detail})`)}` : ""
   console.log(`${term.green("✔")} ${label}${suffix}${timing}`)
 }
@@ -230,7 +230,7 @@ export const addCommand = new Command("add")
       : new Set(
           repo
             .getSubtree(targetNode.id)
-            .filter((n): n is typeof n & { embed_source: string } => n.embed_source != null)
+            .filter((n): n is typeof n & { embed_source: string } => n.embed_source !== null)
             .map((n) => n.embed_source),
         )
 

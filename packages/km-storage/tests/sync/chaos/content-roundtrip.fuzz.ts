@@ -157,7 +157,7 @@ type Mutation =
 
 /** Pick a random valid mutation given current DB state */
 function pickMutation(rng: SeededRandom, nodes: KNode[], opts?: { allowAdd?: boolean }): Mutation | null {
-  const tasks = nodes.filter((n) => n.task_status != null)
+  const tasks = nodes.filter((n) => n.task_status !== null)
   const sections = nodes.filter((n) => n.type === "h" && !n.fstype)
   const allowAdd = opts?.allowAdd ?? false
 
@@ -267,7 +267,7 @@ describe("Content Round-Trip Fuzz", () => {
       // Toggle 10 random tasks, verifying round-trip after each
       for (let i = 0; i < 10; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.task_status != null)
+        const tasks = nodes.filter((n) => n.task_status !== null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -311,7 +311,7 @@ describe("Content Round-Trip Fuzz", () => {
 
       for (let i = 0; i < 10; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.task_status != null)
+        const tasks = nodes.filter((n) => n.task_status !== null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -429,7 +429,7 @@ describe("Content Round-Trip Fuzz", () => {
 
       // The new task should exist in the DB
       const allNodes = getAllNodes(db)
-      const taskContents = allNodes.filter((n) => n.task_status != null).map((n) => n.content)
+      const taskContents = allNodes.filter((n) => n.task_status !== null).map((n) => n.content)
       expect(taskContents).toContain("Task A")
       expect(taskContents).toContain("Task A.5")
       expect(taskContents).toContain("Task B")
@@ -469,7 +469,7 @@ describe("Content Round-Trip Fuzz", () => {
       // Do 10 edits that don't add/delete nodes — only content + status changes
       for (let i = 0; i < 10; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.task_status != null)
+        const tasks = nodes.filter((n) => n.task_status !== null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -518,7 +518,7 @@ describe("Content Round-Trip Fuzz", () => {
           let taskCount = 0
           const traverse = (parentId: string) => {
             for (const child of getChildren(db, parentId)) {
-              if (child.task_status != null) taskCount++
+              if (child.task_status !== null) taskCount++
               traverse(child.id)
             }
           }
@@ -531,7 +531,7 @@ describe("Content Round-Trip Fuzz", () => {
       // Edit tasks in one file, verify others are unchanged
       for (let round = 0; round < 5; round++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.task_status != null)
+        const tasks = nodes.filter((n) => n.task_status !== null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -599,7 +599,7 @@ describe("Content Round-Trip Fuzz", () => {
       const structureBefore = getSectionStructure()
 
       // Edit a task under Level 3
-      const tasks = getAllNodes(db).filter((n) => n.task_status != null && n.content?.includes("3.1"))
+      const tasks = getAllNodes(db).filter((n) => n.task_status !== null && n.content?.includes("3.1"))
       if (tasks.length > 0) {
         repo.updateNode(tasks[0]!.id, { content: "Edited task 3.1" })
         await Bun.sleep(100)
@@ -653,7 +653,7 @@ type: daily
       expect(fileNode!.data?.tags).toEqual(["project", "work"])
 
       // Toggle a task
-      const task = getAllNodes(db).find((n) => n.task_status != null)
+      const task = getAllNodes(db).find((n) => n.task_status !== null)
       expect(task).toBeDefined()
       repo.updateNode(task!.id, { task_status: "done", task_marker: "[x]" })
       await Bun.sleep(100)
@@ -689,7 +689,7 @@ type: daily
       // Do mutations, then verify FS file content matches what nodesToMarkdown would produce
       for (let i = 0; i < 5; i++) {
         const nodes = getAllNodes(db)
-        const tasks = nodes.filter((n) => n.task_status != null)
+        const tasks = nodes.filter((n) => n.task_status !== null)
         if (tasks.length === 0) break
 
         const task = rng.pick(tasks)
@@ -703,7 +703,7 @@ type: daily
       // Re-parse and verify the DB matches FS
       await syncManager.syncFromFs()
       const finalNodes = getAllNodes(db)
-      const tasks = finalNodes.filter((n) => n.task_status != null)
+      const tasks = finalNodes.filter((n) => n.task_status !== null)
 
       // Every task in DB should have its content appear in the FS file
       for (const task of tasks) {

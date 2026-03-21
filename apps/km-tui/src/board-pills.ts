@@ -91,7 +91,7 @@ function getBoardForLink(repo: Repo, linkNode: KNode): KNode | null {
  */
 export function getBoardPills(repo: Repo, taskNode: KNode, excludeBoardIds: Set<string> = new Set()): BoardPill[] {
   // Only nodes with task_status can be on boards (regardless of structural type)
-  if (taskNode.task_status == null) return []
+  if (taskNode.task_status === null) return []
 
   // Find all links pointing to this task
   const links = repo.getLinksTo(taskNode.id)

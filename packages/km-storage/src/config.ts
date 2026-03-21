@@ -160,7 +160,7 @@ export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexC
   const raw = config.folderIndex
 
   let naming: Required<FolderIndexConfig>["naming"] = "index"
-  if (raw?.naming != null) {
+  if (raw?.naming !== null) {
     if (VALID_NAMING.has(raw.naming as FolderIndexConfig["naming"])) {
       naming = raw.naming
     } else {
@@ -171,7 +171,7 @@ export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexC
   }
 
   let materialization: Required<FolderIndexConfig>["materialization"] = "none"
-  if (raw?.materialization != null) {
+  if (raw?.materialization !== null) {
     if (VALID_MATERIALIZATION.has(raw.materialization as FolderIndexConfig["materialization"])) {
       materialization = raw.materialization
     } else {

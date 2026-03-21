@@ -40,7 +40,7 @@ export function handleRename(
     if (node) {
       const newParentRelPath = dirname(newRelPath)
       const oldParentRelPath = node.fs_path ? dirname(node.fs_path) : null
-      const parentChanged = oldParentRelPath != null && newParentRelPath !== oldParentRelPath
+      const parentChanged = oldParentRelPath !== null && newParentRelPath !== oldParentRelPath
 
       // Resolve new parent folder (needed for cross-folder move and index refresh)
       const newParent = newParentRelPath !== "." ? getNodeByPath(db, newParentRelPath) : null

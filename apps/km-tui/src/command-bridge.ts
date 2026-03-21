@@ -45,8 +45,8 @@ function buildCommandContexts(ctx: ActionCtx) {
     ? ({
         ...selectedNode,
         isTask:
-          selectedNode.task_status != null ||
-          (embedSource != null && ctx.repo.getNode(embedSource)?.task_status != null),
+          selectedNode.task_status !== null ||
+          (embedSource !== null && ctx.repo.getNode(embedSource)?.task_status !== null),
         children: [],
         depth: 0,
         childCount: 0,
@@ -96,7 +96,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     omniboxOpen: ui.showOmnibox,
     searchReplaceOpen: !!ui.searchReplace,
     favoritesDialogOpen: ui.showFavoritesDialog,
-    favoritesKeySelected: ui.favoritesSelectedKey != null,
+    favoritesKeySelected: ui.favoritesSelectedKey !== null,
     hasKitty: kittySupported,
     inputType: ui.inlineEditBlock ? "textarea" : isDialogInput ? "field" : undefined,
     editBlockIndex: ui.inlineEditBlock?.blockIndex,

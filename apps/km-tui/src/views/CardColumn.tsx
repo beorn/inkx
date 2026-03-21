@@ -174,7 +174,7 @@ export const Card = React.memo(
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
     // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
-    const isPrevAtCursor = prevCardNodeId != null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
+    const isPrevAtCursor = prevCardNodeId !== null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
 
     // Check if this card is in inline edit mode (for border color)
     const isEditing = useAppStore<BoardAppStore, boolean>(

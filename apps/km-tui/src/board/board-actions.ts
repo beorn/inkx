@@ -397,7 +397,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
       // Restore cursor to saved position if available, otherwise keep current
-      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
+      const cursorNodeId = result.ok && result.cursorNodeId !== null ? result.cursorNodeId : ctx.cursorNodeId
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
       if (result.label) ctx.setUI({ status: { level: "info", message: `Undo: ${result.label}` } })
       return ok()
@@ -1451,7 +1451,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
 
   // Materialize content for folder nodes (title stored as data.name, not content field).
   // Without this, splitNode/splitAsChild would operate on empty string.
-  if (node.content == null) {
+  if (node.content === null) {
     const editText = editTarget.getContent()
     ctx.repo.updateNode(nodeId, { content: editText })
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- just updated the node, it exists

@@ -35,7 +35,7 @@ export interface EmbedResolution {
 /** Resolve embed source to target node and display node. */
 export function resolveEmbed(repo: EmbedRepo, node: KNode): EmbedResolution {
   const embedSource = node.embed_source
-  const isEmbedded = embedSource != null
+  const isEmbedded = embedSource !== null
   const resolvedNode = isEmbedded && embedSource ? (repo.getNode(embedSource) ?? null) : null
   const displayNode = resolvedNode ?? node
   const isBrokenEmbed = isEmbedded && !resolvedNode
@@ -102,7 +102,7 @@ export function tryResolveEmbedRef(repo: EmbedRepo, ref: string): string | null 
 
   // Bare block ref "^blockid" → extract blockid and look up
   const blockMatch = ref.match(/^\^([\w-]+)$/)
-  if (blockMatch?.[1] != null) return resolveAndFormat(blockMatch[1])
+  if (blockMatch?.[1] !== null) return resolveAndFormat(blockMatch[1])
 
   // file#^blockid → extract blockid part
   const hashIdx = ref.indexOf("#")

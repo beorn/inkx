@@ -40,7 +40,7 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
       {/* Right: indicators + pane label */}
       <Box flexShrink={0} flexDirection="row">
         {right}
-        {paneLabel != null && <Text bold={isFocused}> [{paneLabel}]</Text>}
+        {paneLabel !== null && <Text bold={isFocused}> [{paneLabel}]</Text>}
       </Box>
     </Box>
   )
