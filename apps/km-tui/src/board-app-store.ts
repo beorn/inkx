@@ -20,16 +20,7 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
-import type {
-  BoardAction,
-  BoardState,
-  BoardPaneState,
-  LayoutNode,
-  NavHistoryEntry,
-  PaneState,
-  PerPaneUIFields,
-  WorkspaceState,
-} from "./board-types.ts"
+import type { BoardAction, BoardState, BoardPaneState, LayoutNode, PaneState, WorkspaceState } from "./board-types.ts"
 import {
   createBoardState,
   createPaneState,

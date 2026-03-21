@@ -42,7 +42,7 @@ import { isCollapsedChild } from "../hooks/use-columns.ts"
  * Estimated card height in rows (border + content + padding).
  * Cards in CARDS view are taller (have borders) compared to COLUMNS view.
  */
-const ESTIMATED_CARD_HEIGHT = 4
+const _ESTIMATED_CARD_HEIGHT = 4
 
 /**
  * Number of extra cards to render above and below visible area.
@@ -458,7 +458,7 @@ function bodyBlockLayoutProps(
   isMultiSelected: boolean,
   isColumnSelected = false,
   defaultBorderColor = "$muted",
-  cursorDim = false,
+  _cursorDim = false,
 ) {
   if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
@@ -533,7 +533,7 @@ export const Column = React.memo(function Column({
   const repo = useRepo()
   const setUI = useSetUI()
   const {
-    treeConfig: { iconStyle, borderMode, maxContentLines },
+    treeConfig: { iconStyle, borderMode: _borderMode, maxContentLines },
   } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)

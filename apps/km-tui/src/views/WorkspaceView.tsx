@@ -134,7 +134,7 @@ function LayoutNodeView({
   paneLabels,
   renderPane,
   onPaneClick,
-  isLeftChild,
+  isLeftChild: _isLeftChild,
 }: {
   node: LayoutNode
   panes: Map<string, PaneState>

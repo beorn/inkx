@@ -6,7 +6,7 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
-import { isOutline, type KNode } from "@km/core"
+import { isOutline } from "@km/core"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
@@ -81,7 +81,7 @@ export function handleZoomToRoot(ctx: ActionCtx): ActionResult {
  * Handles detail pane, outline mode, and actual zoom operations.
  */
 export function handleZoomOutwards(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchBoard } = ctx
+  const { ui: _ui, dispatchBoard } = ctx
 
   // Close overlays first
   if (ctx.hasDetailPane) {
@@ -286,7 +286,7 @@ export function handleFollowLink(ctx: ActionCtx): ActionResult {
  * Zoom inwards - handles outline mode sub-selection or standard zoom.
  */
 export function handleZoomInwards(ctx: ActionCtx): ActionResult {
-  const { ui, dispatchBoard } = ctx
+  const { ui: _ui, dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card
 

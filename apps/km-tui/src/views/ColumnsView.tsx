@@ -9,7 +9,7 @@
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Text, Small, HorizontalVirtualList } from "@silvery/react"
+import { Box, Small, HorizontalVirtualList } from "@silvery/react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:columns")

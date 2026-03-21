@@ -38,14 +38,13 @@ import type { Repo } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialPaneUI } from "./ui-reducer.ts"
-import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "./repo-context.tsx"
 import { CursorStoreProvider } from "./cursor-context.tsx"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "./reactive.ts"
 
 /** No-op dialog handlers — constant to avoid per-render allocation */
-const NOOP_DIALOG_HANDLERS = {
+const _NOOP_DIALOG_HANDLERS = {
   handlePickerSelect: () => {},
   handlePickerCancel: () => {},
   handleTagSelect: () => {},

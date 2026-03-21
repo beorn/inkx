@@ -189,10 +189,10 @@ export interface CommandBoxProps {
 
 export function CommandBox({
   ui,
-  termWidth,
-  storageMode,
-  rootPath,
-  nodeCount,
+  termWidth: _termWidth,
+  storageMode: _storageMode,
+  rootPath: _rootPath,
+  nodeCount: _nodeCount,
   moveMode,
   consoleStats,
   toastQueue,

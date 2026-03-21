@@ -64,7 +64,7 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
 
 /** Outline mode prev/next sub-item navigation using node IDs. */
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
-  const { ui } = ctx
+  const { ui: _ui } = ctx
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
   const descendantIds = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)

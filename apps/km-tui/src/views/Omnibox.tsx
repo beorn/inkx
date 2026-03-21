@@ -13,14 +13,7 @@ import React from "react"
 import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
-import {
-  getAllCommands,
-  getAllKeybindings,
-  fuzzyMatch,
-  formatKeybinding,
-  type CommandDef,
-  type Keybinding,
-} from "@km/commands"
+import { getAllCommands, getAllKeybindings, fuzzyMatch, formatKeybinding } from "@km/commands"
 import { isOutline, isEmbed, type KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"

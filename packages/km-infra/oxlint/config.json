@@ -70,7 +70,7 @@
     "@typescript-eslint/no-unnecessary-type-constraint": "error",
     "@typescript-eslint/no-unsafe-declaration-merging": "error",
     "@typescript-eslint/no-unsafe-function-type": "error",
-    "eqeqeq": "warn",
+    "eqeqeq": ["warn", "smart"],
     "prefer-const": "warn",
     "no-useless-rename": "error",
     "no-useless-constructor": "warn",

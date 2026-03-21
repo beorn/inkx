@@ -45,7 +45,6 @@ import {
   getFavorite,
   setFavorite,
   clearFavorite,
-  getAllFavorites,
   RESERVED_KEYS,
   getReservedKeyLabel,
   initDefaultKeybindings,

@@ -23,7 +23,7 @@ import { relative } from "path"
 import { homedir } from "os"
 
 let stream: ReturnType<typeof createWriteStream> | null = null
-let logFilePath: string | null = null
+let _logFilePath: string | null = null
 
 // Strip ANSI escape sequences for clean file output
 // eslint-disable-next-line no-control-regex
@@ -234,7 +234,7 @@ createDebug.log = customLog
 const logPath = process.env.DEBUG_LOG
 
 if (logPath) {
-  logFilePath = logPath
+  _logFilePath = logPath
   const logStream = createWriteStream(logPath, { flags: "a" })
   stream = logStream
   // Use appendFileSync for @beorn/logger writer — stream.write() is async and

@@ -16,7 +16,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
-import type { LayoutNode, PaneState, WorkspaceState, ViewMode, BoardPaneState } from "./board-types.ts"
+import type { LayoutNode, PaneState, WorkspaceState, ViewMode } from "./board-types.ts"
 import { isBoardPane } from "./board-types.ts"
 import type { FilterProperties } from "./ui-reducer.ts"
 import { createEmptyFilterProperties } from "./ui-reducer.ts"

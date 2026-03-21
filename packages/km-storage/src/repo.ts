@@ -52,14 +52,7 @@ import type { FileTree } from "./file-tree.ts"
 import { createDiskFileTree } from "./file-tree.ts"
 import { executeQuery, parseQuery } from "./query.ts"
 import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
-import {
-  loadRepo,
-  ensureRepoRootNode,
-  type DeferredFile,
-  type LoadError,
-  type PendingLink,
-  type StepYield,
-} from "./repo-loader.ts"
+import { loadRepo, type DeferredFile, type LoadError, type PendingLink, type StepYield } from "./repo-loader.ts"
 import { type UnexploredDir } from "./discovery.ts"
 import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import { generatePathBasedId } from "./id-utils.ts"

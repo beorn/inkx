@@ -50,7 +50,7 @@ import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from 
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
-const log = createLogger("km:tui:board")
+const _log = createLogger("km:tui:board")
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
@@ -112,23 +112,6 @@ export interface BoardCoreProps {
 // =============================================================================
 // Progressive Column Reveal
 // =============================================================================
-
-/**
- * Returns the number of columns to render.
- *
- * Previously used progressive reveal (one column per event loop tick via
- * setTimeout(0) + startTransition), but profiling showed this was the
- * primary startup bottleneck: 6 columns × 600ms render + idle gaps between
- * ticks = 6.4s at 39% CPU. Rendering all columns in a single frame
- * reduced startup from 6.4s to 0.8s (8x speedup, 142% CPU utilization).
- *
- * The key insight: progressive reveal added MORE total work (multiple React
- * reconciliation passes + pipeline runs) and MORE idle time (event loop
- * scheduling between ticks), making startup slower, not faster.
- */
-function useColumnReveal(columnCount: number, _rootId: string | null): number {
-  return columnCount
-}
 
 /**
  * Lightweight skeleton for a single column — shows the real column header name

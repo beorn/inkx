@@ -371,7 +371,7 @@ export function deriveColumnsFromRepo(
  *
  * This gives standard j/k navigation through metadata rows first, then children.
  */
-export function deriveDetailColumns(repo: Repo, rootId: string | null, foldDepths: Map<string, number>): ColumnView[] {
+export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDepths: Map<string, number>): ColumnView[] {
   const rootNode = rootId ? repo.getNode(rootId) : null
 
   // Compute metadata rows for the root node
@@ -416,43 +416,6 @@ function createVirtualMetaNode(parentId: string | null, key: string): KNode {
     created_at: now,
     updated_at: now,
     version: "",
-  }
-}
-
-/** Build descendant index for a virtual column's cards */
-function mapDescendantsForColumn(
-  cards: KNode[],
-  colIndex: number,
-  foldDepths: Map<string, number>,
-  repo: Repo,
-): Map<string, { colIndex: number; cardIndex: number }> {
-  const index = new Map<string, { colIndex: number; cardIndex: number }>()
-  for (let i = 0; i < cards.length; i++) {
-    const card = cards[i]
-    if (!card) continue
-    const foldDepth = foldDepths.get(card.id) ?? 1
-    if (foldDepth > 0) {
-      mapDescendants(card.id, colIndex, i, 0, (id) => repo.getChildren(id), foldDepths, foldDepth)
-    }
-  }
-  return index
-
-  function mapDescendants(
-    nodeId: string,
-    colIdx: number,
-    cardIdx: number,
-    depth: number,
-    getChildren: (id: string) => KNode[],
-    depths: Map<string, number>,
-    maxDepth: number,
-  ) {
-    if (depth >= maxDepth) return
-    const children = getChildren(nodeId)
-    for (const child of children) {
-      index.set(child.id, { colIndex: colIdx, cardIndex: cardIdx })
-      const childDepth = depths.get(child.id) ?? maxDepth
-      mapDescendants(child.id, colIdx, cardIdx, depth + 1, getChildren, depths, childDepth)
-    }
   }
 }
 
@@ -541,7 +504,7 @@ function expandIndexFileColumns(
   foldDepths: Map<string, number>,
 ): void {
   const indexChildren = repo.getChildren(indexFile.id)
-  const { body: indexBody, items: indexSections } = extractBody(indexChildren)
+  const { body: indexBody, items: _indexSections } = extractBody(indexChildren)
 
   // Identify which children are pure slot references (paragraph or heading)
   // by checking ALL children against extractSlotTargets. Build a set of
