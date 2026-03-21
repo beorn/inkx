@@ -1,6 +1,6 @@
 {
   "$schema": "../../../node_modules/oxlint/configuration_schema.json",
-  "plugins": ["typescript", "promise"],
+  "plugins": ["typescript", "promise", "unicorn", "import"],
   "jsPlugins": ["oxlint-plugin-complexity"],
   "categories": {
     "correctness": "off"
@@ -37,6 +37,10 @@
     "getter-return": "error",
     "no-undef": "error",
     "no-unreachable": "error",
+    "unicorn/no-unnecessary-await": "error",
+    "unicorn/no-useless-spread": "warn",
+    "unicorn/no-useless-fallback-in-spread": "warn",
+    "import/no-commonjs": "error",
     "promise/no-return-in-finally": "error",
     "@typescript-eslint/prefer-optional-chain": "warn",
     "@typescript-eslint/await-thenable": "error",
@@ -65,6 +69,12 @@
     "@typescript-eslint/no-unnecessary-type-constraint": "error",
     "@typescript-eslint/no-unsafe-declaration-merging": "error",
     "@typescript-eslint/no-unsafe-function-type": "error",
+    "eqeqeq": "warn",
+    "prefer-const": "warn",
+    "no-useless-rename": "error",
+    "no-useless-constructor": "warn",
+    "no-eval": "error",
+    "no-new-wrappers": "error",
     "no-unused-expressions": "error",
     "no-unused-vars": "error",
     "@typescript-eslint/no-wrapper-object-types": "error",
