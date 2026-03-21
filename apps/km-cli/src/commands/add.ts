@@ -325,7 +325,7 @@ export const addCommand = new Command("add")
 
       // Append sigil to source task content (dedup: skip if already present)
       if (sigilStr && sigilPrefix && sigilName) {
-        const dataKey = SIGIL_DATA_KEY[sigilPrefix]!
+        const dataKey = SIGIL_DATA_KEY[sigilPrefix] ?? "mentions"
         for (const task of tasksToSigil) {
           // Skip embed nodes — they mirror the source, don't tag them
           if (isEmbed(task.type)) continue
