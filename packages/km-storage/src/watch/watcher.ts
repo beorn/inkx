@@ -257,8 +257,7 @@ export function scanDirectory(
   const entries = readdirSync(dirPath, { withFileTypes: true })
 
   for (const entry of entries) {
-    // Fast join: dirPath is always absolute, entry.name has no separators
-    const fullPath = dirPath + "/" + entry.name
+    const fullPath = join(dirPath, entry.name)
 
     // Skip hidden files (files starting with .)
     if (isHiddenFile(fullPath)) {
@@ -339,7 +338,7 @@ export async function scanDirectoryAsync(
   const statPromises: Array<Promise<void>> = []
 
   for (const entry of entries) {
-    const fullPath = dirPath + "/" + entry.name
+    const fullPath = join(dirPath, entry.name)
 
     if (isHiddenFile(fullPath)) continue
     if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) continue

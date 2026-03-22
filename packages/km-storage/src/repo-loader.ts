@@ -599,8 +599,7 @@ function* reconcileFilesystem(
     }
 
     for (const entry of entries) {
-      // Fast join: dirPath is always absolute, entry.name has no separators
-      const fullPath = dirPath + "/" + entry.name
+      const fullPath = join(dirPath, entry.name)
 
       // Skip hidden files
       if (isHiddenFile(fullPath)) continue

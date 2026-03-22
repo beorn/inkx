@@ -11,6 +11,7 @@
  */
 
 import type { Database } from "bun:sqlite"
+import { basename } from "path"
 import { createLogger } from "loggily"
 import { findChildByContent } from "./db-queries/wikilink-resolver.ts"
 
@@ -55,11 +56,9 @@ export function createLinkResolver(db: Database): LinkResolver {
   for (const row of rows) {
     // Index by basename from fs_path
     if (row.fs_path) {
-      const slashIdx = row.fs_path.lastIndexOf("/")
-      let basename = slashIdx >= 0 ? row.fs_path.slice(slashIdx + 1) : row.fs_path
-      if (basename.endsWith(".md") || basename.endsWith(".MD")) basename = basename.slice(0, -3)
-      if (basename) {
-        const key = basename.toLowerCase()
+      const name = basename(row.fs_path).replace(/\.md$/i, "")
+      if (name) {
+        const key = name.toLowerCase()
         const existing = filesByName.get(key)
         if (existing === undefined) {
           filesByName.set(key, row.id)
