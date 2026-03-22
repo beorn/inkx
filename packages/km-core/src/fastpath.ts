@@ -16,25 +16,20 @@
 
 import { sep, basename, relative } from "path"
 
-const IS_DEV = typeof process !== "undefined" && process.env.NODE_ENV !== "production"
-const SEP_CODE = sep.charCodeAt(0)
-
 /**
  * Fast path.join for an absolute directory + simple filename.
  *
- * Preconditions:
- * - `dir` is an absolute path (starts with `/` or drive letter on Windows)
+ * Preconditions (always validated):
+ * - `dir` is non-empty
  * - `name` is a simple filename with no path separators
  *
  * @example joinPath("/repo/src", "file.ts") // => "/repo/src/file.ts"
  */
 export function joinPath(dir: string, name: string): string {
-  if (IS_DEV) {
-    if (!dir) throw new Error(`joinPath: dir is empty`)
-    if (!name) throw new Error(`joinPath: name is empty`)
-    if (name.includes(sep)) throw new Error(`joinPath: name contains separator: ${name}`)
-    if (sep !== "/" && name.includes("/")) throw new Error(`joinPath: name contains '/': ${name}`)
-  }
+  if (!dir) throw new Error(`joinPath: dir is empty`)
+  if (!name) throw new Error(`joinPath: name is empty`)
+  if (name.includes(sep)) throw new Error(`joinPath: name contains separator: ${name}`)
+  if (sep !== "/" && name.includes("/")) throw new Error(`joinPath: name contains '/': ${name}`)
   return dir + sep + name
 }
 
