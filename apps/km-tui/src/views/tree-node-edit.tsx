@@ -79,7 +79,7 @@ export function TitleEditor({
       const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
-      const newContent = marker !== null ? `${marker} ${cleanContent}` : cleanContent
+      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
       // No-op: value didn't change and no metadata to update
       if (newContent === originalContent && Object.keys(metaFields).length === 0) return
       undoHandle.setCursor(displayNode.id)
@@ -96,7 +96,7 @@ export function TitleEditor({
       const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
       const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
-      const newContent = marker !== null ? `${marker} ${cleanContent}` : cleanContent
+      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
       const hasMetaUpdates = Object.keys(metaFields).length > 0
 
       // No-op: value didn't change and no metadata to update

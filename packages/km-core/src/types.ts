@@ -207,7 +207,7 @@ export function hasTaskProperties(
 export function isTask(
   node: Pick<KNode, "task_status" | "due_at" | "priority" | "start_at" | "assigned_to" | "rrule">,
 ): boolean {
-  return node.task_status !== null || hasTaskProperties(node)
+  return node.task_status != null || hasTaskProperties(node)
 }
 
 // =============================================================================
@@ -245,7 +245,7 @@ export function validateNode(
   }
 
   // task requires item
-  if ((node.task_status !== null || node.task_marker !== null) && node.item !== true) {
+  if ((node.task_status != null || node.task_marker != null) && node.item !== true) {
     errors.push({ field: "item", message: "task (task_status/task_marker) requires item = true" })
   }
 

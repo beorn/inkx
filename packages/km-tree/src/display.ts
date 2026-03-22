@@ -86,7 +86,7 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   if (node.title) {
     return stripInlineRules(node.title)
   }
-  if (node.title === null && node.data?.title) {
+  if (node.title == null && node.data?.title) {
     return stripInlineRules(node.data.title as string)
   }
 
@@ -99,7 +99,7 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
       if (firstSection.title) {
         return stripInlineRules(firstSection.title)
       }
-      if (firstSection.title === null && firstSection.data?.title) {
+      if (firstSection.title == null && firstSection.data?.title) {
         return stripInlineRules(firstSection.data.title as string)
       }
       // Fallback: strip rules from content
@@ -142,7 +142,7 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
   if (node.data?.name) return false
   if (node.title) return false
   // Only check data.title when node.title is undefined (not just empty "")
-  if (node.title === null && node.data?.title) return false
+  if (node.title == null && node.data?.title) return false
   if (isOutline(node.type, node.item) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
     const firstSection = children.find((c: KNode) => isOutline(c.type, c.item) && c.fstype === "mdsection")

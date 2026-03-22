@@ -78,7 +78,7 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
   const repo = useRepo()
 
   // Detail view: show selected key with current + pending assignment
-  if (selectedKey !== null) {
+  if (selectedKey != null) {
     const currentNodeId = getFavorite(selectedKey)
     const currentNode = currentNodeId ? repo.getNode(currentNodeId) : null
     const assignNode = assignNodeId ? repo.getNode(assignNodeId) : null

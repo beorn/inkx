@@ -339,7 +339,7 @@ function TreeNodeImpl({
   const shouldStripColor = isHighlighted || style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
-  const isHR = node.type === "hr" || (cleanContent !== null && isHRContent(cleanContent))
+  const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
 
   // Memoize content for display - collapse blank lines for compact body cards
   const isVerbatim = node.type === "code" || node.type === "table"

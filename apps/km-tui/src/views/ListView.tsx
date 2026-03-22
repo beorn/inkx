@@ -99,7 +99,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
     for (const item of flatItems) {
-      if (item.type === "card" && item.card.task_status !== null) {
+      if (item.type === "card" && item.card.task_status != null) {
         cache.set(item.card.id, getBoardPills(repo, item.card, excludeBoardIds))
       }
     }

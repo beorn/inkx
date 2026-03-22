@@ -342,7 +342,7 @@ export function buildKeybindingContext(options: {
 export function wouldHandleKey(input: string, key: KeyEvent, kbCtx: KeybindingContext): boolean {
   const keyStr = keyToString(input, key)
   const modifiers = keyToModifiers(key)
-  return resolveKeybinding(keyStr, modifiers, kbCtx) !== null
+  return resolveKeybinding(keyStr, modifiers, kbCtx) != null
 }
 
 // Re-export for convenience

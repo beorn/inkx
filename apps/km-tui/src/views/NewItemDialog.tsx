@@ -105,7 +105,7 @@ export function NewItemDialog({
   )
 
   // Determine if cursor is a task (new item will also be a task)
-  const isTask = cursorNode?.task_marker !== null || cursorNode === null
+  const isTask = cursorNode?.task_marker != null || cursorNode === null
 
   // Use refs to avoid stale closure issues with the handler
   const onCancelRef = React.useRef(onCancel)
