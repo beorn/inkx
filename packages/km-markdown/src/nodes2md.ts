@@ -53,11 +53,10 @@ export function nodesToMarkdown(
   // embedding target resolution (targets may be in other files)
   const tree = buildNodeTree(nodes)
   const mapSource = lookupNodes ?? nodes
-  const nodeMap = new Map(mapSource.map((n) => [n.id, n]))
-
-  // Collect existing block IDs to avoid collisions
+  const nodeMap = new Map<string, KNode>()
   const existingBlockIds = new Set<string>()
   for (const n of mapSource) {
+    nodeMap.set(n.id, n)
     if (n.block_id) existingBlockIds.add(n.block_id)
   }
 
