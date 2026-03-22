@@ -339,7 +339,7 @@ export async function scanDirectoryAsync(
   const statPromises: Array<Promise<void>> = []
 
   for (const entry of entries) {
-    const fullPath = join(dirPath, entry.name)
+    const fullPath = dirPath + "/" + entry.name
 
     if (isHiddenFile(fullPath)) continue
     if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) continue
