@@ -6,7 +6,8 @@
  */
 
 import { existsSync, statSync, realpathSync } from "fs"
-import { resolve, dirname, join, basename, relative, isAbsolute, sep } from "path"
+import { resolve, dirname, join, basename, relative, isAbsolute } from "path"
+import { relativeFast } from "@km/core"
 
 export interface PathResolution {
   /** Resolved absolute path */
@@ -257,14 +258,8 @@ export function resolvePathArg(arg: string | undefined, fallbackRoot?: string, s
  * toRelativeFsPath("/repo", "/repo") // => "."
  */
 export function toRelativeFsPath(repoRoot: string, absolutePath: string): string {
-  if (absolutePath === repoRoot) return "."
-  // Fast path: if absolutePath starts with repoRoot + sep, just slice
-  const prefix = repoRoot + sep
-  if (absolutePath.startsWith(prefix)) {
-    return absolutePath.slice(prefix.length)
-  }
-  // Fallback to path.relative for edge cases (symlinks, non-canonical paths)
-  const rel = relative(repoRoot, absolutePath)
+  const rel = relativeFast(repoRoot, absolutePath)
+  // Sanity: if outside the repo, return as-is (caller error, but don't corrupt)
   if (rel.startsWith("..")) return absolutePath
   return rel
 }

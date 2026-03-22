@@ -21,6 +21,7 @@
 import type { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "fs"
 import { join } from "path"
+import { joinPath } from "@km/core"
 import type { Event } from "@km/core"
 import { createLogger } from "loggily"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
@@ -199,7 +200,7 @@ export function* discoverFiles(
     let order = 0
 
     for (const entry of entries) {
-      const fullPath = join(dirPath, entry.name)
+      const fullPath = joinPath(dirPath, entry.name)
 
       // Skip ignored entries BEFORE creating nodes
       if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
@@ -411,7 +412,7 @@ function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): num
       const entries = readdirSync(dirPath, { withFileTypes: true })
 
       for (const entry of entries) {
-        const fullPath = join(dirPath, entry.name)
+        const fullPath = joinPath(dirPath, entry.name)
         if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
 
         if (entry.isSymbolicLink()) {

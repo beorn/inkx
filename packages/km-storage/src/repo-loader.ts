@@ -17,6 +17,7 @@ import { createLogger } from "loggily"
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"
+import { joinPath, isHiddenFast } from "@km/core"
 import { toRelativeFsPath } from "./path-utils.ts"
 import type { Event } from "@km/core"
 import { SCHEMA } from "./schema.ts"
@@ -24,7 +25,7 @@ import { applyEventWithDb } from "./db-events.ts"
 import { evaluateAllRules, createRuleContext } from "./db-rules.ts"
 import { findKmRootFromPath } from "./path-utils.ts"
 import { MemoryStore, type NodeStore } from "./store.ts"
-import { getIgnorePatterns, shouldIgnore, isHiddenFile } from "./ignore.ts"
+import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
 import { generatePathBasedId } from "./id-utils.ts"
 import { INSERT_NODE_SQL } from "./db-insert.ts"
 
@@ -599,10 +600,10 @@ function* reconcileFilesystem(
     }
 
     for (const entry of entries) {
-      const fullPath = join(dirPath, entry.name)
+      const fullPath = joinPath(dirPath, entry.name)
 
       // Skip hidden files
-      if (isHiddenFile(fullPath)) continue
+      if (isHiddenFast(fullPath)) continue
 
       // Skip ignored entries
       if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
