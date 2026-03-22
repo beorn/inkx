@@ -217,10 +217,11 @@ function measureQuality(isBaseline: boolean): QualityResult {
   let filesChanged = 0
 
   if (!isBaseline) {
-    // Diff this commit vs its parent — measures just the experiment's change
-    const numstatProc = Bun.spawnSync(["git", "diff", "--numstat", "HEAD~1", "--", ".", ":!infra/autoresearch"], {
-      cwd: ROOT,
-    })
+    // Diff HEAD~1 to HEAD (committed change only, excludes working tree noise)
+    const numstatProc = Bun.spawnSync(
+      ["git", "diff", "--numstat", "HEAD~1", "HEAD", "--", ".", ":!infra/autoresearch"],
+      { cwd: ROOT },
+    )
     for (const line of numstatProc.stdout.toString().trim().split("\n")) {
       const [add, del] = line.split("\t")
       if (add && del && add !== "-") {
