@@ -26,6 +26,9 @@ import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdas
 import { km, kmFromMarkdown } from "./extensions/index.ts"
 import { extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
 
+// Cache the micromark syntax extension (stateless, safe to reuse)
+const _kmSyntax = km()
+
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
 
@@ -125,7 +128,7 @@ export interface WikiLink {
  */
 export function parseMarkdown(content: string): Root {
   return fromMarkdown(content, {
-    extensions: [km()],
+    extensions: [_kmSyntax],
     mdastExtensions: kmFromMarkdown(),
   })
 }
