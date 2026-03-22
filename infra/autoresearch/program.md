@@ -77,10 +77,10 @@ This will:
 # Continue to next experiment
 ```
 
-**If DISCARD**: Reset the commit, try something else.
+**If DISCARD**: Revert the commit, try something else.
 
 ```bash
-git reset --hard HEAD~1
+git revert HEAD --no-edit
 # Try a different approach
 ```
 
