@@ -1,9 +1,8 @@
 /**
  * Fast path utilities — cross-platform, allocation-free alternatives to path.join/basename/relative.
  *
- * These are safe to use when the inputs satisfy documented preconditions (absolute dirs,
- * simple filenames). Each function validates preconditions in development and throws on
- * violation, so misuse is caught early.
+ * Each function has a safe variant (validates preconditions) and a fast variant (trusts the caller).
+ * The exported function picks the right one at import time based on NODE_ENV — zero runtime branching.
  *
  * Performance vs path.*:
  *   joinPath:     6-10x faster than path.join
@@ -16,27 +15,34 @@
 
 import { sep, basename, relative } from "path"
 
-/** Skip precondition checks in production builds (dead-code-eliminated by bundlers) */
-const SKIP_CHECKS = typeof process !== "undefined" && process.env.NODE_ENV === "production"
+// ---------------------------------------------------------------------------
+// joinPath
+// ---------------------------------------------------------------------------
+
+function joinSafe(dir: string, name: string): string {
+  if (!dir) throw new Error(`joinPath: dir is empty`)
+  if (!name) throw new Error(`joinPath: name is empty`)
+  if (name.includes(sep)) throw new Error(`joinPath: name contains separator: ${name}`)
+  if (sep !== "/" && name.includes("/")) throw new Error(`joinPath: name contains '/': ${name}`)
+  return dir + sep + name
+}
+
+function joinFast(dir: string, name: string): string {
+  return dir + sep + name
+}
 
 /**
  * Fast path.join for an absolute directory + simple filename.
- *
- * Preconditions (validated unless NODE_ENV=production):
- * - `dir` is non-empty
- * - `name` is a simple filename with no path separators
+ * Validates preconditions in dev, zero overhead in production.
  *
  * @example joinPath("/repo/src", "file.ts") // => "/repo/src/file.ts"
  */
-export function joinPath(dir: string, name: string): string {
-  if (!SKIP_CHECKS) {
-    if (!dir) throw new Error(`joinPath: dir is empty`)
-    if (!name) throw new Error(`joinPath: name is empty`)
-    if (name.includes(sep)) throw new Error(`joinPath: name contains separator: ${name}`)
-    if (sep !== "/" && name.includes("/")) throw new Error(`joinPath: name contains '/': ${name}`)
-  }
-  return dir + sep + name
-}
+export const joinPath: (dir: string, name: string) => string =
+  process.env.NODE_ENV === "production" ? joinFast : joinSafe
+
+// ---------------------------------------------------------------------------
+// basenameFast
+// ---------------------------------------------------------------------------
 
 /**
  * Fast path.basename — extracts the last path component.
@@ -56,6 +62,10 @@ export function basenameFast(path: string): string {
   if (!result) return basename(path)
   return result
 }
+
+// ---------------------------------------------------------------------------
+// relativeFast
+// ---------------------------------------------------------------------------
 
 /**
  * Fast path.relative for the common case where `child` is under `root`.
@@ -93,13 +103,17 @@ export function createRelativeFast(root: string): (child: string) => string {
   }
 }
 
+// ---------------------------------------------------------------------------
+// isHiddenFast
+// ---------------------------------------------------------------------------
+
 /**
  * Fast hidden file check — true if the basename starts with `.` (excluding `.`, `..`, `.md`).
  *
  * 2x faster than `basename(path).startsWith(".")` because it avoids extracting
  * the basename string when the file isn't hidden (early exit via charCodeAt).
  *
- * @example isHiddenFast("/repo/.git/config") // => true
+ * @example isHiddenFast("/repo/.git") // => true
  * @example isHiddenFast("/repo/file.md") // => false
  */
 export function isHiddenFast(path: string): boolean {
