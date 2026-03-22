@@ -16,20 +16,25 @@
 
 import { sep, basename, relative } from "path"
 
+/** Skip precondition checks in production builds (dead-code-eliminated by bundlers) */
+const SKIP_CHECKS = typeof process !== "undefined" && process.env.NODE_ENV === "production"
+
 /**
  * Fast path.join for an absolute directory + simple filename.
  *
- * Preconditions (always validated):
+ * Preconditions (validated unless NODE_ENV=production):
  * - `dir` is non-empty
  * - `name` is a simple filename with no path separators
  *
  * @example joinPath("/repo/src", "file.ts") // => "/repo/src/file.ts"
  */
 export function joinPath(dir: string, name: string): string {
-  if (!dir) throw new Error(`joinPath: dir is empty`)
-  if (!name) throw new Error(`joinPath: name is empty`)
-  if (name.includes(sep)) throw new Error(`joinPath: name contains separator: ${name}`)
-  if (sep !== "/" && name.includes("/")) throw new Error(`joinPath: name contains '/': ${name}`)
+  if (!SKIP_CHECKS) {
+    if (!dir) throw new Error(`joinPath: dir is empty`)
+    if (!name) throw new Error(`joinPath: name is empty`)
+    if (name.includes(sep)) throw new Error(`joinPath: name contains separator: ${name}`)
+    if (sep !== "/" && name.includes("/")) throw new Error(`joinPath: name contains '/': ${name}`)
+  }
   return dir + sep + name
 }
 
