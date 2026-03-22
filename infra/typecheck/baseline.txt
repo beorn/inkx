@@ -1,2 +1,3 @@
+3 infra/autoresearch/run.ts
 7 vendor/termless/packages/cli/src/install-cmd.ts
 3 vendor/termless/src/registry.ts
