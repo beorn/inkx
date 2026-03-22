@@ -137,11 +137,13 @@ export function parseMarkdown(content: string): Root {
  * Extract frontmatter from markdown content
  * Returns { frontmatter, content } where content has frontmatter removed
  */
+const _frontmatterRe = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/
+
 export function extractFrontmatter(content: string): {
   frontmatter: string | null
   body: string
 } {
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
+  const match = content.match(_frontmatterRe)
 
   if (match) {
     return {
