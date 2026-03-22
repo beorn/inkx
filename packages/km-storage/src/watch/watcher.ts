@@ -257,7 +257,8 @@ export function scanDirectory(
   const entries = readdirSync(dirPath, { withFileTypes: true })
 
   for (const entry of entries) {
-    const fullPath = join(dirPath, entry.name)
+    // Fast join: dirPath is always absolute, entry.name has no separators
+    const fullPath = dirPath + "/" + entry.name
 
     // Skip hidden files (files starting with .)
     if (isHiddenFile(fullPath)) {
