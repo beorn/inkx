@@ -26,6 +26,10 @@ import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdas
 import { km, kmFromMarkdown } from "./extensions/index.ts"
 import { extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
 
+// Cache extensions at module level — avoids re-creating objects on every parseMarkdown call
+const _kmExtension = km()
+const _kmFromMarkdown = kmFromMarkdown()
+
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
 
@@ -125,8 +129,8 @@ export interface WikiLink {
  */
 export function parseMarkdown(content: string): Root {
   return fromMarkdown(content, {
-    extensions: [km()],
-    mdastExtensions: kmFromMarkdown(),
+    extensions: [_kmExtension],
+    mdastExtensions: _kmFromMarkdown,
   })
 }
 
