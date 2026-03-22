@@ -391,7 +391,11 @@ export function shouldIgnore(path: string, patternsOrMatcher: string[] | Pattern
  * Check if a filename is a hidden file (starts with .)
  */
 export function isHiddenFile(path: string): boolean {
-  const name = basename(path)
+  // Fast basename: find last "/" and check the character after it
+  const slashIdx = path.lastIndexOf("/")
+  const nameStart = slashIdx >= 0 ? slashIdx + 1 : 0
+  if (path.charCodeAt(nameStart) !== 46 /* "." */) return false
+  const name = path.slice(nameStart)
   // .md is a valid index file naming convention (dot-md), not a hidden file
-  return name.startsWith(".") && name !== "." && name !== ".." && name !== ".md"
+  return name !== "." && name !== ".." && name !== ".md"
 }
