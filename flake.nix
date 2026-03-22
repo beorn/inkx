@@ -22,10 +22,7 @@
           buildInputs = with pkgs; [
             bun
             nodejs_22
-            nixfmt
-            tmux
-            lnav # Log viewer for debug script
-            ttyd # Terminal web server for TTY MCP
+            ripgrep
           ];
 
           # Note: Run 'bun run setup' manually after first clone

@@ -36,17 +36,7 @@ function collectAttachments(data: ImportData): ImportAttachment[] {
     }
   }
 
-  for (const project of data.projects) {
-    if (project.sections) {
-      for (const section of project.sections) {
-        for (const item of section.items) walkItem(item)
-      }
-    }
-    if (project.items) {
-      for (const item of project.items) walkItem(item)
-    }
-  }
-
+  walkAllItems(data, walkItem)
   return all
 }
 
@@ -115,22 +105,8 @@ function collectInlineImages(data: ImportData): Map<string, ImportAttachment> {
     }
   }
 
-  for (const project of data.projects) {
-    if (project.sections) {
-      for (const section of project.sections) {
-        for (const item of section.items) {
-          collectExistingUrls(item)
-        }
-        for (const item of section.items) walkItem(item)
-      }
-    }
-    if (project.items) {
-      for (const item of project.items) {
-        collectExistingUrls(item)
-      }
-      for (const item of project.items) walkItem(item)
-    }
-  }
+  walkAllItems(data, collectExistingUrls)
+  walkAllItems(data, walkItem)
 
   return urlMap
 }
@@ -150,16 +126,7 @@ function replaceInlineImageUrls(data: ImportData, urlMap: Map<string, ImportAtta
     }
   }
 
-  for (const project of data.projects) {
-    if (project.sections) {
-      for (const section of project.sections) {
-        for (const item of section.items) walkItem(item)
-      }
-    }
-    if (project.items) {
-      for (const item of project.items) walkItem(item)
-    }
-  }
+  walkAllItems(data, walkItem)
 }
 
 /** Get file extension from attachment name, with fallback */
@@ -305,4 +272,17 @@ export async function downloadAttachments(
   }
 
   return result
+}
+
+function walkAllItems(data: ImportData, visitor: (item: ImportItem) => void): void {
+  for (const project of data.projects) {
+    if (project.sections) {
+      for (const section of project.sections) {
+        for (const item of section.items) visitor(item)
+      }
+    }
+    if (project.items) {
+      for (const item of project.items) visitor(item)
+    }
+  }
 }

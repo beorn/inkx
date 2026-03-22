@@ -50,7 +50,8 @@
       "mcp__termless__wait",
       "Skill(project-cleanup)",
       "Skill(npm)",
-      "Skill(open)"
+      "Skill(open)",
+      "mcp__plugin_telegram_telegram__reply"
     ],
     "deny": [],
     "ask": []

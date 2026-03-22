@@ -189,46 +189,23 @@ export function extractMetadata(html: string): UrlMetadata {
   return meta
 }
 
-/**
- * Extract content from `<meta property="..." content="...">`.
- * Handles both attribute orders (property before content and vice versa).
- */
 function extractProperty(html: string, property: string): string | null {
-  // property="..." content="..."
-  const re1 = new RegExp(
-    `<meta[^>]+property\\s*=\\s*["']${escapeRegex(property)}["'][^>]+content\\s*=\\s*["']([^"']*)["']`,
-    "i",
-  )
-  const m1 = html.match(re1)
-  if (m1?.[1]) return decodeEntities(m1[1])
-
-  // content="..." property="..." (reversed)
-  const re2 = new RegExp(
-    `<meta[^>]+content\\s*=\\s*["']([^"']*)["'][^>]+property\\s*=\\s*["']${escapeRegex(property)}["']`,
-    "i",
-  )
-  const m2 = html.match(re2)
-  if (m2?.[1]) return decodeEntities(m2[1])
-
-  return null
+  return extractMetaContent("property", property, html)
 }
 
-/**
- * Extract content from `<meta name="..." content="...">`.
- * Handles both attribute orders.
- */
 function extractMetaName(html: string, name: string): string | null {
-  const re1 = new RegExp(
-    `<meta[^>]+name\\s*=\\s*["']${escapeRegex(name)}["'][^>]+content\\s*=\\s*["']([^"']*)["']`,
-    "i",
-  )
+  return extractMetaContent("name", name, html)
+}
+
+function extractMetaContent(attr: string, value: string, html: string): string | null {
+  const escaped = escapeRegex(value)
+  // attr="..." content="..."
+  const re1 = new RegExp(`<meta[^>]+${attr}\\s*=\\s*["']${escaped}["'][^>]+content\\s*=\\s*["']([^"']*)["']`, "i")
   const m1 = html.match(re1)
   if (m1?.[1]) return decodeEntities(m1[1])
 
-  const re2 = new RegExp(
-    `<meta[^>]+content\\s*=\\s*["']([^"']*)["'][^>]+name\\s*=\\s*["']${escapeRegex(name)}["']`,
-    "i",
-  )
+  // content="..." attr="..." (reversed)
+  const re2 = new RegExp(`<meta[^>]+content\\s*=\\s*["']([^"']*)["'][^>]+${attr}\\s*=\\s*["']${escaped}["']`, "i")
   const m2 = html.match(re2)
   if (m2?.[1]) return decodeEntities(m2[1])
 
