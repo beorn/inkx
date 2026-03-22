@@ -258,9 +258,12 @@ export function resolvePathArg(arg: string | undefined, fallbackRoot?: string, s
  */
 export function toRelativeFsPath(repoRoot: string, absolutePath: string): string {
   if (absolutePath === repoRoot) return "."
+  // Fast path: if absolutePath starts with repoRoot + "/", just slice
+  if (absolutePath.startsWith(repoRoot) && absolutePath.charCodeAt(repoRoot.length) === 47 /* "/" */) {
+    return absolutePath.slice(repoRoot.length + 1)
+  }
+  // Fallback to path.relative for edge cases (symlinks, non-canonical paths)
   const rel = relative(repoRoot, absolutePath)
-  // Sanity: if relative() returns something starting with "..", the path
-  // is outside the repo — return as-is (caller error, but don't corrupt).
   if (rel.startsWith("..")) return absolutePath
   return rel
 }
