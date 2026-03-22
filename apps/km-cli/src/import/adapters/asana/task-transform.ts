@@ -141,7 +141,7 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
   }
 
   // Extract priority from custom fields — map to P-string
-  const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value !== null)
+  const priorityField = task.custom_fields?.find((f) => f.name.toLowerCase() === "priority" && f.number_value != null)
   if (priorityField?.number_value) {
     const clamped = Math.max(1, Math.min(4, priorityField.number_value))
     item.priority = `P${clamped}`
@@ -151,9 +151,9 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
   if (task.custom_fields?.length) {
     const customFields: Record<string, string | number> = {}
     for (const cf of task.custom_fields) {
-      if (cf.display_value !== null) {
+      if (cf.display_value != null) {
         customFields[cf.name] = cf.display_value
-      } else if (cf.number_value !== null) {
+      } else if (cf.number_value != null) {
         customFields[cf.name] = cf.number_value
       } else if (cf.text_value) {
         customFields[cf.name] = cf.text_value
@@ -229,7 +229,7 @@ export function toImportItem(task: AsanaApiTask): ImportItem {
   }
 
   // Asana time tracking total (in minutes)
-  if (task.actual_time_minutes !== null) {
+  if (task.actual_time_minutes != null) {
     item.metadata = { ...item.metadata, actualTimeMinutes: task.actual_time_minutes }
   }
 

@@ -1,12 +1,2 @@
-1 apps/km-cli/src/commands/add.ts
-2 apps/km-cli/src/import/adapters/asana/task-transform.ts
-1 apps/km-tui/src/board/board-actions.ts
-1 apps/km-tui/src/command-bridge.ts
-1 apps/km-tui/src/hooks/use-columns.ts
-1 apps/km-tui/src/icons.ts
-6 apps/km-tui/src/text/format.ts
-2 apps/km-tui/src/views/ScrollTracker.tsx
-1 apps/km-tui/src/views/ToastStack.tsx
-2 apps/km-tui/src/views/embed-display.ts
-8 packages/km-storage/src/config.ts
-9 vendor/accountly/src/providers/openrouter.ts
+7 vendor/termless/packages/cli/src/install-cmd.ts
+3 vendor/termless/src/registry.ts

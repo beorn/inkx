@@ -64,7 +64,7 @@ describe("E2E Round-Trip Features", () => {
           "# Tasks\n\n- [ ] Todo item\n- [x] Done item\n- [/] WIP item\n",
         )
 
-        const tasks = nodes.filter((n) => n.task_status !== null)
+        const tasks = nodes.filter((n) => n.task_status != null)
         expect(tasks).toHaveLength(3)
 
         const todo = tasks.find((t) => t.content?.includes("Todo"))
@@ -84,7 +84,7 @@ describe("E2E Round-Trip Features", () => {
       withTestEnv(async ({ repoDir, data }) => {
         const { nodes } = await roundTrip(data.database, repoDir, "due.md", "# Due\n\n- [ ] Pay bills 📅 2025-03-15\n")
 
-        const task = nodes.find((n) => n.task_status !== null)
+        const task = nodes.find((n) => n.task_status != null)
         expect(task?.due_at).toBe("2025-03-15")
       }))
 
@@ -97,7 +97,7 @@ describe("E2E Round-Trip Features", () => {
           "# Scheduled\n\n- [ ] Meeting prep ⏳ 2025-03-10\n",
         )
 
-        const task = nodes.find((n) => n.task_status !== null)
+        const task = nodes.find((n) => n.task_status != null)
         expect(task?.start_at).toBe("2025-03-10")
       }))
 
@@ -110,7 +110,7 @@ describe("E2E Round-Trip Features", () => {
           "# Priority\n\n- [ ] Urgent priority:: P1\n- [ ] High priority:: P2\n- [ ] Low priority:: P3\n",
         )
 
-        const tasks = nodes.filter((n) => n.task_status !== null)
+        const tasks = nodes.filter((n) => n.task_status != null)
         const urgent = tasks.find((t) => t.content?.includes("Urgent"))
         expect(urgent?.priority).toBe("P1")
 
@@ -244,7 +244,7 @@ describe("E2E Round-Trip Features", () => {
           "# Order\n\n- [ ] First\n- [ ] Second\n- [ ] Third\n",
         )
 
-        const tasks = nodes.filter((n) => n.task_status !== null).sort((a, b) => a.parent_idx - b.parent_idx)
+        const tasks = nodes.filter((n) => n.task_status != null).sort((a, b) => a.parent_idx - b.parent_idx)
 
         expect(tasks[0]?.content).toContain("First")
         expect(tasks[1]?.content).toContain("Second")
@@ -270,7 +270,7 @@ describe("E2E Round-Trip Features", () => {
             (n.fstype === "file" || n.fstype === "mdfile") &&
             n.fs_path?.includes("source"),
         )!
-        const sourceTasks = allNodes.filter((n) => n.task_status !== null && n.parent_id === sourceFile.id)
+        const sourceTasks = allNodes.filter((n) => n.task_status != null && n.parent_id === sourceFile.id)
         expect(sourceTasks).toHaveLength(2)
 
         // Step 2: Create target file, sync it
@@ -341,7 +341,7 @@ describe("E2E Round-Trip Features", () => {
             (n.fstype === "file" || n.fstype === "mdfile") &&
             n.fs_path?.includes("src"),
         )!
-        const srcTask = nodes.find((n) => n.task_status !== null && n.parent_id === srcFile.id)!
+        const srcTask = nodes.find((n) => n.task_status != null && n.parent_id === srcFile.id)!
 
         // Create target with embedding
         writeFileSync(join(repoDir, "tgt.md"), "# Target\n")

@@ -40,7 +40,7 @@ function getFileNodes(db: import("bun:sqlite").Database): KNode[] {
 
 /** Get all task nodes */
 function getTaskNodes(db: import("bun:sqlite").Database): KNode[] {
-  return getAllNodes(db).filter((n) => n.task_status !== null)
+  return getAllNodes(db).filter((n) => n.task_status != null)
 }
 
 /** Get all section nodes */
@@ -99,7 +99,7 @@ describe("file -> sync -> DB", () => {
 
       // Each file should have exactly one task
       for (const fileNode of fileNodes) {
-        const children = getAllNodes(data.database).filter((n) => n.parent_id === fileNode.id && n.task_status !== null)
+        const children = getAllNodes(data.database).filter((n) => n.parent_id === fileNode.id && n.task_status != null)
         expect(children).toHaveLength(1)
       }
     }))
@@ -259,11 +259,11 @@ describe("DB edit -> sync -> file", () => {
 
       // The done status should persist through the re-parse
       const allNodes = getAllNodes(data.database)
-      const alphaAfter = allNodes.find((n) => n.content?.includes("Alpha") && n.task_status !== null)
+      const alphaAfter = allNodes.find((n) => n.content?.includes("Alpha") && n.task_status != null)
       expect(alphaAfter?.task_status).toBe("done")
 
       // Beta should still be todo
-      const betaAfter = allNodes.find((n) => n.content?.includes("Beta") && n.task_status !== null)
+      const betaAfter = allNodes.find((n) => n.content?.includes("Beta") && n.task_status != null)
       expect(betaAfter?.task_status).toBe("todo")
     }))
 })

@@ -855,7 +855,7 @@ function projectToNodes(
       const cfId = `cf-${project.sourceId}-${i}`
       const detailParts: string[] = [`Type: ${cf.type}`]
       if (cf.description) detailParts.push(cf.description)
-      if (cf.precision !== null) detailParts.push(`Precision: ${cf.precision}`)
+      if (cf.precision != null) detailParts.push(`Precision: ${cf.precision}`)
       if (cf.enumOptions?.length) {
         detailParts.push(`Options: ${cf.enumOptions.join(", ")}`)
       }
@@ -1026,7 +1026,7 @@ function buildPrimaryMap(data: ImportData): {
     } else if (isUser) {
       const userName = project.title.replace(/^@/, "").trim()
       const userSlug = userSlugMap.get(userName) ?? slugify(userName)
-      const isImportingUser = data.importingUserGid !== null && project.sourceId === `user-${data.importingUserGid}`
+      const isImportingUser = data.importingUserGid != null && project.sourceId === `user-${data.importingUserGid}`
 
       if (isImportingUser) {
         // Importing user's My Tasks at top level (spans workspaces)

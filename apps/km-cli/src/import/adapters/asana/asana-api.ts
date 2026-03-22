@@ -90,7 +90,7 @@ async function fetchCustomFieldSettings(client: AsanaClient, projectGid: string)
         type: cf.type ?? "text",
       }
       if (cf.description) def.description = cf.description
-      if (cf.precision !== null) def.precision = cf.precision
+      if (cf.precision != null) def.precision = cf.precision
       if (cf.enum_options?.length) {
         def.enumOptions = cf.enum_options.map((o) => o.name).filter((n): n is string => !!n)
       }

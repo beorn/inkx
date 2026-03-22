@@ -557,7 +557,7 @@ bdCommand
     }
 
     const children = repo.getChildren(issue.id)
-    const childIssues = children.filter((c) => c.task_status !== null).map((c) => nodeToIssue(c, { repo }))
+    const childIssues = children.filter((c) => c.task_status != null).map((c) => nodeToIssue(c, { repo }))
 
     if (opts.json) {
       console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))

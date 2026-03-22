@@ -117,7 +117,7 @@ async function initTestFile(
   await ctx.syncManager.syncFromFs()
   if (options.start !== false) ctx.syncManager.start()
 
-  const tasks = ctx.data.getAllNodes().filter((n) => n.task_status !== null)
+  const tasks = ctx.data.getAllNodes().filter((n) => n.task_status != null)
   return { filePath, tasks }
 }
 
@@ -128,7 +128,7 @@ function findTask(ctx: ConcurrentTestCtx, content: string) {
 
 /** Get all tasks from the data store */
 function getAllTasks(ctx: ConcurrentTestCtx) {
-  return ctx.data.getAllNodes().filter((n) => n.task_status !== null)
+  return ctx.data.getAllNodes().filter((n) => n.task_status != null)
 }
 
 /** Run a concurrent edit test with fake timers and test environment */

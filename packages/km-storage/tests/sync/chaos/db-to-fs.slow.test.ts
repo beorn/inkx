@@ -34,7 +34,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status !== null)
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("todo")
 
@@ -66,7 +66,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status !== null)
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
         expect(task!.task_status).toBe("done")
 
@@ -100,7 +100,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status !== null)
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Update task content
@@ -133,7 +133,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status !== null)
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Make 5 rapid updates
@@ -166,7 +166,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status !== null)
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Toggle status rapidly
@@ -204,7 +204,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find tasks
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.task_status !== null)
+        const tasks = allNodes.filter((n) => n.task_status != null)
         expect(tasks.length).toBe(2)
 
         const task1 = tasks.find((t) => t.content === "Task 1")
@@ -288,7 +288,7 @@ More content that should be preserved.
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status !== null)
+        const task = allNodes.find((n) => n.task_status != null)
         expect(task).toBeDefined()
 
         // Update task
