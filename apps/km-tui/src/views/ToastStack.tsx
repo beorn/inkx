@@ -84,7 +84,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       {/* Main message */}
       <Text color={color}>{content}</Text>
       {/* Progress bar */}
-      {toast.progress !== null && <ProgressBar progress={toast.progress} color={color} />}
+      {toast.progress != null && <ProgressBar progress={toast.progress} color={color} />}
       {/* Description on second line if present */}
       {toast.description && <Small>{toast.description}</Small>}
       {/* Show individual items if below threshold */}
