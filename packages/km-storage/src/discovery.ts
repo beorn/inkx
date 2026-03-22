@@ -199,7 +199,8 @@ export function* discoverFiles(
     let order = 0
 
     for (const entry of entries) {
-      const fullPath = join(dirPath, entry.name)
+      // Fast join: dirPath is always absolute, entry.name has no separators
+      const fullPath = dirPath + "/" + entry.name
 
       // Skip ignored entries BEFORE creating nodes
       if (shouldIgnore(fullPath, ignorePatterns, repoRoot)) continue
@@ -411,7 +412,7 @@ function countMarkdownFilesFast(rootPath: string, ignorePatterns: string[]): num
       const entries = readdirSync(dirPath, { withFileTypes: true })
 
       for (const entry of entries) {
-        const fullPath = join(dirPath, entry.name)
+        const fullPath = dirPath + "/" + entry.name
         if (shouldIgnore(fullPath, ignorePatterns, rootPath)) continue
 
         if (entry.isSymbolicLink()) {
