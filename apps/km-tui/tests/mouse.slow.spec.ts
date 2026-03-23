@@ -16,6 +16,7 @@
 import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync } from "fs"
 import { createTerminalFixture } from "@termless/test"
+import "@termless/test/matchers"
 
 const KM_CWD = "/Users/beorn/Code/pim/km"
 
@@ -34,7 +35,7 @@ async function spawnKm(vaultContent: string, opts?: { cols?: number; rows?: numb
     cwd: KM_CWD,
     env: { KM_EAGER_LOAD: "1" },
   })
-  await term.waitFor("helloworld", 15000)
+  await expect(term.screen).toContainText("helloworld", { timeout: 15000 })
   return { term, vault }
 }
 
@@ -48,7 +49,7 @@ describe("mouse click-to-position (termless)", { timeout: 30000 }, () => {
     expect(pos).not.toBeNull()
 
     await term.dblclick(pos!.col + 3, pos!.row)
-    await term.waitFor("INSERT", 5000)
+    await expect(term.screen).toContainText("INSERT", { timeout: 5000 })
   })
 
   test.skip("click repositions cursor — type inserts at clicked position", async () => {
@@ -58,13 +59,13 @@ describe("mouse click-to-position (termless)", { timeout: 30000 }, () => {
     expect(pos).not.toBeNull()
 
     await term.dblclick(pos!.col + 3, pos!.row)
-    await term.waitFor("INSERT", 5000)
+    await expect(term.screen).toContainText("INSERT", { timeout: 5000 })
 
     term.click(pos!.col + 2, pos!.row)
     await new Promise((r) => setTimeout(r, 200))
 
     term.type("X")
-    await term.waitFor("heXlloworld", 5000)
+    await expect(term.screen).toContainText("heXlloworld", { timeout: 5000 })
   })
 
   test.skip("click at start of text positions cursor at beginning", async () => {
@@ -74,12 +75,12 @@ describe("mouse click-to-position (termless)", { timeout: 30000 }, () => {
     expect(pos).not.toBeNull()
 
     await term.dblclick(pos!.col, pos!.row)
-    await term.waitFor("INSERT", 5000)
+    await expect(term.screen).toContainText("INSERT", { timeout: 5000 })
 
     term.click(pos!.col, pos!.row)
     await new Promise((r) => setTimeout(r, 200))
 
     term.type("Z")
-    await term.waitFor("Zhelloworld", 5000)
+    await expect(term.screen).toContainText("Zhelloworld", { timeout: 5000 })
   })
 })

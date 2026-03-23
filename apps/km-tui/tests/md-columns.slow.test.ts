@@ -31,7 +31,7 @@ describe("md file columns (termless)", { timeout: 30000 }, () => {
 
     const term = createTerminalFixture({ cols: 120, rows: 30 })
     await term.spawn(["bun", "km", "view", vault], { cwd: KM_CWD })
-    await term.waitFor("Task A", 15000) // board rendered + background parse complete
+    await expect(term.screen).toContainText("Task A", { timeout: 15000 }) // board rendered + background parse complete
 
     // Navigate to column header (k k j), settle, then zoom (z)
     term.press("k")

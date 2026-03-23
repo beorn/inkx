@@ -13,6 +13,7 @@ import { describe, test, expect, beforeAll } from "vitest"
 import { existsSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 import { createTerminalFixture } from "@termless/test"
+import "@termless/test/matchers"
 import { createVt100Backend } from "@termless/vt100"
 import { createGhosttyBackend, initGhostty } from "@termless/ghostty"
 
@@ -350,7 +351,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     })
 
     // Wait for board to load — Launch Academy view should show "INBOX"
-    await term.waitFor("INBOX", 20000)
+    await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
     await term.waitForStable(2000, 25000)
     const beforeZoom = normalizeText(term.getText())
     saveSnapshot(term, "zoom-garble-before")
@@ -407,7 +408,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     })
 
     // Wait for board to load
-    await term.waitFor("INBOX", 20000)
+    await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
     await term.waitForStable(2000, 25000)
     const beforeZoom = normalizeText(term.getText())
 
@@ -443,7 +444,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
     })
 
     // Wait for board to load
-    await term.waitFor("INBOX", 20000)
+    await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
     await term.waitForStable(2000, 25000)
     const beforeZoom = normalizeText(term.getText())
 
@@ -486,7 +487,7 @@ describe("PTY integration: zoom garble (ANSI replay verification)", () => {
         cwd: KM_CWD,
         env: { SILVERY_STRICT: "1" },
       })
-      await term.waitFor("INBOX", 20000)
+      await expect(term.screen).toContainText("INBOX", { timeout: 20000 })
       await term.waitForStable(2000, 25000)
 
       // Press Z to zoom outwards
