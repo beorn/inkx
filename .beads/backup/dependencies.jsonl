@@ -1326,6 +1326,9 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.compat-matrix","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.contour","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.contributing","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-23T14:48:05Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.fix-alacritty-census","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-23T14:48:07Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.fix-kitty-build","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-23T14:48:06Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.fix-libvterm-census","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.foot","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.generic-matchers","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.ghostty","metadata":"{}","type":"parent-child"}

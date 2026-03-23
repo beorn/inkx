@@ -8,7 +8,7 @@ Every directory in `vendor/` is a **standalone git submodule** with its own repo
 
 | Context                 | Allowed                                               | Not Allowed                           |
 | ----------------------- | ----------------------------------------------------- | ------------------------------------- |
-| Source code (imports)   | `@termless/core`, `@silvery/ag-react`                    | `../../../vendor/silvery/src/...`     |
+| Source code (imports)   | `@termless/core`, `@silvery/ag-react`                 | `../../../vendor/silvery/src/...`     |
 | Source code (strings)   | `tests/layout.test.ts` (relative to package)          | `vendor/flexily/tests/layout.test.ts` |
 | Documentation           | `npm install @termless/ghostty`                       | `cd vendor/termless && ...`           |
 | Links in docs           | `https://silvery.dev/guide/...`                       | `vendor/silvery/docs/guide/...`       |

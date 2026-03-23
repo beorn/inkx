@@ -25,3 +25,6 @@
 [submodule "vendor/silvery-internal"]
 	path = vendor/silvery-internal
 	url = git@github.com:beorn/silvery-internal.git
+[submodule "vendor/terminfo.dev"]
+	path = vendor/terminfo.dev
+	url = git@github.com:beorn/terminfo.dev.git

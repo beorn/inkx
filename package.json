@@ -29,6 +29,7 @@
     "@termless/core": "$@termless/core",
     "@termless/xtermjs": "$@termless/xtermjs",
     "vimonkey": "$vimonkey",
+    "vt100.js": "$vt100.js",
     "zod": "^4.3.6"
   },
   "bin": {

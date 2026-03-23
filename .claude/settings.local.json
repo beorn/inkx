@@ -51,7 +51,14 @@
       "Skill(project-cleanup)",
       "Skill(npm)",
       "Skill(open)",
-      "mcp__plugin_telegram_telegram__reply"
+      "mcp__plugin_telegram_telegram__reply",
+      "mcp__tribe__tribe_sessions",
+      "mcp__tribe__tribe_send",
+      "mcp__tribe__tribe_broadcast",
+      "mcp__tribe__tribe_history",
+      "mcp__tribe__tribe_rename",
+      "mcp__tribe__tribe_health",
+      "Skill(update-config)"
     ],
     "deny": [],
     "ask": []

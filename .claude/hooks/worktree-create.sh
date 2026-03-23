@@ -3,21 +3,24 @@
 # Runs when Claude Code creates a temporary agent worktree (isolation: "worktree").
 # Sets up submodules, dependencies, and direnv in the new worktree.
 
+LOG="/tmp/worktree-create-hook.log"
 INPUT=$(cat)
+echo "$(date '+%H:%M:%S') INPUT: $INPUT" >> "$LOG"
+
 WORKTREE_PATH=$(echo "$INPUT" | jq -r '.worktree_path // empty')
+echo "$(date '+%H:%M:%S') WORKTREE_PATH: '$WORKTREE_PATH'" >> "$LOG"
 
 if [ -z "$WORKTREE_PATH" ]; then
-  echo '{"decision": "approve", "reason": "no worktree_path, skipping setup"}'
+  # No worktree path — nothing to set up. Exit silently.
   exit 0
 fi
-
-LOG="/tmp/worktree-create-hook.log"
-echo "$(date '+%H:%M:%S') Setting up worktree: $WORKTREE_PATH" >> "$LOG"
 
 if ! cd "$WORKTREE_PATH" 2>/dev/null; then
-  echo "{\"decision\": \"approve\", \"reason\": \"cannot cd to $WORKTREE_PATH\"}"
+  echo "$(date '+%H:%M:%S') Cannot cd to $WORKTREE_PATH" >> "$LOG"
   exit 0
 fi
+
+echo "$(date '+%H:%M:%S') Setting up worktree: $WORKTREE_PATH" >> "$LOG"
 
 # Initialize submodules (independent clones, not symlinks)
 if [ -f .gitmodules ]; then
@@ -37,5 +40,4 @@ if [ -f .envrc ] && command -v direnv &>/dev/null; then
 fi
 
 echo "$(date '+%H:%M:%S') Worktree setup complete" >> "$LOG"
-echo "{\"decision\": \"approve\", \"reason\": \"worktree setup complete: $WORKTREE_PATH\"}"
 exit 0

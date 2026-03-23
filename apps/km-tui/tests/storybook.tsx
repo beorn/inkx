@@ -31,7 +31,16 @@
  */
 
 import React, { useState } from "react"
-import { render as silverytRender, useInput, useApp, useStdout, Box, Text, createTerm, useTerm } from "@silvery/ag-react"
+import {
+  render as silverytRender,
+  useInput,
+  useApp,
+  useStdout,
+  Box,
+  Text,
+  createTerm,
+  useTerm,
+} from "@silvery/ag-react"
 
 import {
   InlineText,

@@ -6,7 +6,7 @@
     },
     "tribe": {
       "command": "bun",
-      "args": ["vendor/tools/tools/tribe.ts", "--name", "chief", "--role", "chief", "--domains", "all"]
+      "args": ["vendor/tools/tools/tribe.ts"]
     }
   }
 }
