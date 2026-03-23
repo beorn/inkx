@@ -611,12 +611,10 @@ export function buildNodeTree(nodes: KNode[]): Map<string, KNode[]> {
 
   for (const node of nodes) {
     const parentId = node.parent_id ?? "__root__"
-    let children = tree.get(parentId)
-    if (!children) {
-      children = []
-      tree.set(parentId, children)
+    if (!tree.has(parentId)) {
+      tree.set(parentId, [])
     }
-    children.push(node)
+    tree.get(parentId)?.push(node)
   }
 
   // Sort children by parent_idx

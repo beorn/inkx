@@ -9,11 +9,16 @@ import { watch, type FSWatcher } from "chokidar"
 
 const log = createLogger("km:storage:watch:watcher")
 import { dirname, join } from "path"
-import { joinPath, isHiddenFast } from "@km/core"
 import { statSync, existsSync, readdirSync, readlinkSync, realpathSync, writeFileSync, unlinkSync } from "fs"
 import * as fsPromises from "fs/promises"
 import { EventEmitter } from "events"
-import { DEFAULT_IGNORE_PATTERNS, createIgnoreMatcher, shouldIgnore, type PatternMatcher } from "../ignore.ts"
+import {
+  DEFAULT_IGNORE_PATTERNS,
+  createIgnoreMatcher,
+  shouldIgnore,
+  isHiddenFile,
+  type PatternMatcher,
+} from "../ignore.ts"
 
 export interface WatcherConfig {
   debounceMs: number
@@ -252,10 +257,10 @@ export function scanDirectory(
   const entries = readdirSync(dirPath, { withFileTypes: true })
 
   for (const entry of entries) {
-    const fullPath = joinPath(dirPath, entry.name)
+    const fullPath = join(dirPath, entry.name)
 
     // Skip hidden files (files starting with .)
-    if (isHiddenFast(fullPath)) {
+    if (isHiddenFile(fullPath)) {
       continue
     }
 
@@ -333,9 +338,9 @@ export async function scanDirectoryAsync(
   const statPromises: Array<Promise<void>> = []
 
   for (const entry of entries) {
-    const fullPath = joinPath(dirPath, entry.name)
+    const fullPath = join(dirPath, entry.name)
 
-    if (isHiddenFast(fullPath)) continue
+    if (isHiddenFile(fullPath)) continue
     if (ignorePatterns && shouldIgnore(fullPath, ignorePatterns)) continue
 
     if (entry.isSymbolicLink()) {
@@ -459,10 +464,10 @@ export function scanSymlinks(dirPath: string, ignorePatterns?: string[], recursi
     const entries = readdirSync(dir, { withFileTypes: true })
 
     for (const entry of entries) {
-      const fullPath = joinPath(dir, entry.name)
+      const fullPath = join(dir, entry.name)
 
       // Skip hidden files
-      if (isHiddenFast(fullPath)) {
+      if (isHiddenFile(fullPath)) {
         continue
       }
 
@@ -564,10 +569,10 @@ export function detectCaseCollisions(dirPath: string, recursive: boolean = false
     const entries = readdirSync(dir, { withFileTypes: true })
 
     for (const entry of entries) {
-      const fullPath = joinPath(dir, entry.name)
+      const fullPath = join(dir, entry.name)
 
       // Skip hidden files
-      if (isHiddenFast(fullPath)) {
+      if (isHiddenFile(fullPath)) {
         continue
       }
 

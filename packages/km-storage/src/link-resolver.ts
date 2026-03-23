@@ -12,7 +12,6 @@
 
 import type { Database } from "bun:sqlite"
 import { createLogger } from "loggily"
-import { basenameFast } from "@km/core"
 import { findChildByContent } from "./db-queries/wikilink-resolver.ts"
 
 const log = createLogger("km:storage:link-resolver")
@@ -56,9 +55,9 @@ export function createLinkResolver(db: Database): LinkResolver {
   for (const row of rows) {
     // Index by basename from fs_path
     if (row.fs_path) {
-      const name = basenameFast(row.fs_path).replace(/\.md$/i, "")
-      if (name) {
-        const key = name.toLowerCase()
+      const basename = row.fs_path.split("/").pop()?.replace(/\.md$/i, "")
+      if (basename) {
+        const key = basename.toLowerCase()
         const existing = filesByName.get(key)
         if (existing === undefined) {
           filesByName.set(key, row.id)

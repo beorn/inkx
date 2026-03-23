@@ -26,9 +26,6 @@ import type { Root, RootContent, ListItem, Heading, Paragraph, List } from "mdas
 import { km, kmFromMarkdown } from "./extensions/index.ts"
 import { extractTitleTaskMarker, extractTaskMetadata, composeDatetime } from "@km/core"
 
-// Cache the micromark syntax extension (stateless, safe to reuse)
-const _kmSyntax = km()
-
 // Re-export types
 export type { Root, RootContent, ListItem, Heading, Paragraph, List }
 
@@ -128,7 +125,7 @@ export interface WikiLink {
  */
 export function parseMarkdown(content: string): Root {
   return fromMarkdown(content, {
-    extensions: [_kmSyntax],
+    extensions: [km()],
     mdastExtensions: kmFromMarkdown(),
   })
 }
@@ -137,13 +134,11 @@ export function parseMarkdown(content: string): Root {
  * Extract frontmatter from markdown content
  * Returns { frontmatter, content } where content has frontmatter removed
  */
-const _frontmatterRe = /^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/
-
 export function extractFrontmatter(content: string): {
   frontmatter: string | null
   body: string
 } {
-  const match = content.match(_frontmatterRe)
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
 
   if (match) {
     return {
