@@ -33,6 +33,7 @@ import { useNodeStore, useReactive } from "../reactive.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
+import { useCardInteraction } from "../hooks/use-card-interaction.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -171,6 +172,9 @@ export const Card = React.memo(
     const selLevel = useReactive(nodeStore.selectionLevel)
     const isSelected = cursorCardNodeId === nodeId && selLevel === "card"
 
+    // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
+    const { hoverBorderColor, handlers: hoverHandlers } = useCardInteraction(nodeId, isSelected || isColSelected)
+
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
     // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
@@ -255,6 +259,7 @@ export const Card = React.memo(
           flexShrink={0}
           width={width}
           {...hrLayoutProps}
+          {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -297,6 +302,7 @@ export const Card = React.memo(
             isColSelected,
             bodyDefaultBorder,
           )}
+          {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <TreeNode
@@ -321,7 +327,8 @@ export const Card = React.memo(
     const isCardCollapsed = card.rules?.collapse === true
     if (isCardCollapsed) {
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
-      const collapsedBorder = isSelected || isMultiSelected || isColSelected ? "$selection-bg" : "$muted"
+      const collapsedBorder =
+        isSelected || isMultiSelected || isColSelected ? "$selection-bg" : (hoverBorderColor ?? "$muted")
       return (
         <Box
           data-view="card"
@@ -331,6 +338,7 @@ export const Card = React.memo(
           width={width}
           borderStyle="round"
           borderColor={collapsedBorder}
+          {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
           <Box
@@ -360,7 +368,7 @@ export const Card = React.memo(
       ? "$focusborder"
       : isSelected || isMultiSelected || isColSelected
         ? "$selection-bg"
-        : defaultBorder
+        : (hoverBorderColor ?? defaultBorder)
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
       // Inner width excludes the 2 border columns (left + right)
@@ -371,7 +379,14 @@ export const Card = React.memo(
       const rightPad = padding - leftPad
 
       return (
-        <Box data-view="card" data-card-id={nodeId} flexDirection="column" flexShrink={0} width={width}>
+        <Box
+          data-view="card"
+          data-card-id={nodeId}
+          flexDirection="column"
+          flexShrink={0}
+          width={width}
+          {...hoverHandlers}
+        >
           <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <TreeNode
@@ -407,6 +422,7 @@ export const Card = React.memo(
         width={width}
         borderStyle="round"
         borderColor={borderColor}
+        {...hoverHandlers}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
         <TreeNode
