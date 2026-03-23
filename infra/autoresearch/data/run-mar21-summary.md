@@ -7,31 +7,31 @@
 
 ## Results Summary
 
-| Metric | Baseline | Final | Change |
-|--------|----------|-------|--------|
-| Bench geomean (ops/sec) | 1,604 | 2,140 | **+33.4%** |
-| Profile startup (ms) | 557.0 | 526.5 | **-5.5%** |
-| Net lines added | - | +15 | minimal |
-| Complexity warnings | 0 | 0 | none |
-| Tests passing | 4,604 | 4,604 | all pass |
+| Metric                  | Baseline | Final | Change     |
+| ----------------------- | -------- | ----- | ---------- |
+| Bench geomean (ops/sec) | 1,604    | 2,140 | **+33.4%** |
+| Profile startup (ms)    | 557.0    | 526.5 | **-5.5%**  |
+| Net lines added         | -        | +15   | minimal    |
+| Complexity warnings     | 0        | 0     | none       |
+| Tests passing           | 4,604    | 4,604 | all pass   |
 
 ## Experiments
 
-| # | Experiment | Verdict | Bench | Profile | Lines |
-|---|-----------|---------|-------|---------|-------|
-| 1 | link-resolver: `lastIndexOf` instead of `split("/").pop()` | KEEP | +5.6% | -1.1% | +2 |
-| 2 | silvery: iterative `syncPrevLayout` (avoid recursion) | KEEP | +4.4% | -4.2% | 0 |
-| 3 | buildNodeTree: single Map lookup instead of `has+set+get` | KEEP | +5.4% | -1.1% | +2 |
-| 4 | nodesToMarkdown: merge nodeMap + blockIds into one loop | KEEP | +5.5% | -4.9% | -1 |
-| 5 | toRelativeFsPath: `slice` instead of `path.relative` | KEEP | +3.9% | -3.9% | +3 |
-| 6a | cache `km()+kmFromMarkdown()` at module level | DISCARD | - | - | - |
-| 6b | cache `km()` syntax extension at module level (stateless only) | **STRONG** | +33.7% | -1.5% | +3 |
-| 7 | isHiddenFile: `lastIndexOf` + early exit on non-dot | **STRONG** | +33.1% | -3.0% | +4 |
-| 8 | extractFrontmatter: hoist regex to module level | **STRONG** | +33.0% | -5.0% | +2 |
-| 9 | scanDirectory: string concat instead of `path.join` | **STRONG** | +31.3% | -1.8% | +1 |
-| 10 | repo-loader: string concat instead of `path.join` | **STRONG** | +33.0% | -4.8% | +1 |
-| 11 | discovery: string concat instead of `path.join` | **STRONG** | +33.9% | -5.0% | +1 |
-| 12 | async scanner: string concat instead of `path.join` | **STRONG** | +33.4% | -5.5% | 0 |
+| #   | Experiment                                                     | Verdict    | Bench  | Profile | Lines |
+| --- | -------------------------------------------------------------- | ---------- | ------ | ------- | ----- |
+| 1   | link-resolver: `lastIndexOf` instead of `split("/").pop()`     | KEEP       | +5.6%  | -1.1%   | +2    |
+| 2   | silvery: iterative `syncPrevLayout` (avoid recursion)          | KEEP       | +4.4%  | -4.2%   | 0     |
+| 3   | buildNodeTree: single Map lookup instead of `has+set+get`      | KEEP       | +5.4%  | -1.1%   | +2    |
+| 4   | nodesToMarkdown: merge nodeMap + blockIds into one loop        | KEEP       | +5.5%  | -4.9%   | -1    |
+| 5   | toRelativeFsPath: `slice` instead of `path.relative`           | KEEP       | +3.9%  | -3.9%   | +3    |
+| 6a  | cache `km()+kmFromMarkdown()` at module level                  | DISCARD    | -      | -       | -     |
+| 6b  | cache `km()` syntax extension at module level (stateless only) | **STRONG** | +33.7% | -1.5%   | +3    |
+| 7   | isHiddenFile: `lastIndexOf` + early exit on non-dot            | **STRONG** | +33.1% | -3.0%   | +4    |
+| 8   | extractFrontmatter: hoist regex to module level                | **STRONG** | +33.0% | -5.0%   | +2    |
+| 9   | scanDirectory: string concat instead of `path.join`            | **STRONG** | +31.3% | -1.8%   | +1    |
+| 10  | repo-loader: string concat instead of `path.join`              | **STRONG** | +33.0% | -4.8%   | +1    |
+| 11  | discovery: string concat instead of `path.join`                | **STRONG** | +33.9% | -5.0%   | +1    |
+| 12  | async scanner: string concat instead of `path.join`            | **STRONG** | +33.4% | -5.5%   | 0     |
 
 Note: bench/profile deltas are vs the baseline, not incremental. The dominant improvement
 was experiment 6b (caching `km()` extension), which boosted all parser benchmarks by 50-60%.
@@ -53,6 +53,7 @@ that modify the AST in-place.
 
 Five experiments (9-12) all replaced `join(dirPath, entry.name)` with `dirPath + "/" + entry.name`
 in directory traversal loops. This is safe because:
+
 - `dirPath` is always an absolute path (starts with `/`)
 - `entry.name` is always a simple filename (no separators)
 
@@ -82,9 +83,9 @@ and isHiddenFile (experiment 7).
 
 ## Optimization Categories
 
-| Category | Experiments | Typical Gain |
-|----------|-------------|--------------|
-| Allocation avoidance (cache, avoid intermediate arrays) | 1, 3, 4, 6b, 7 | 3-34% |
-| Fast-path short-circuits (avoid expensive fallbacks) | 5, 8 | 3-5% |
-| String operations (avoid `path.join`, `path.relative`) | 9, 10, 11, 12 | 1-2% each |
-| Algorithm (iterative vs recursive) | 2 | 4% |
+| Category                                                | Experiments    | Typical Gain |
+| ------------------------------------------------------- | -------------- | ------------ |
+| Allocation avoidance (cache, avoid intermediate arrays) | 1, 3, 4, 6b, 7 | 3-34%        |
+| Fast-path short-circuits (avoid expensive fallbacks)    | 5, 8           | 3-5%         |
+| String operations (avoid `path.join`, `path.relative`)  | 9, 10, 11, 12  | 1-2% each    |
+| Algorithm (iterative vs recursive)                      | 2              | 4%           |

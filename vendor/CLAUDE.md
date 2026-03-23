@@ -6,20 +6,21 @@ Every directory in `vendor/` is a **standalone git submodule** with its own repo
 
 **vendor packages must never reference `vendor/` paths.** They don't know they're inside km.
 
-| Context | Allowed | Not Allowed |
-|---------|---------|-------------|
-| Source code (imports) | `@termless/core`, `@silvery/react` | `../../../vendor/silvery/src/...` |
-| Source code (strings) | `tests/layout.test.ts` (relative to package) | `vendor/flexily/tests/layout.test.ts` |
-| Documentation | `npm install @termless/ghostty` | `cd vendor/termless && ...` |
-| Links in docs | `https://silvery.dev/guide/...` | `vendor/silvery/docs/guide/...` |
-| CLAUDE.md files | `vendor/` paths OK (local dev context, not published) | — |
-| Comments (run examples) | `vendor/` paths OK (developer convenience) | — |
+| Context                 | Allowed                                               | Not Allowed                           |
+| ----------------------- | ----------------------------------------------------- | ------------------------------------- |
+| Source code (imports)   | `@termless/core`, `@silvery/react`                    | `../../../vendor/silvery/src/...`     |
+| Source code (strings)   | `tests/layout.test.ts` (relative to package)          | `vendor/flexily/tests/layout.test.ts` |
+| Documentation           | `npm install @termless/ghostty`                       | `cd vendor/termless && ...`           |
+| Links in docs           | `https://silvery.dev/guide/...`                       | `vendor/silvery/docs/guide/...`       |
+| CLAUDE.md files         | `vendor/` paths OK (local dev context, not published) | —                                     |
+| Comments (run examples) | `vendor/` paths OK (developer convenience)            | —                                     |
 
 **Why:** When someone clones `github.com/beorn/termless` directly (not as a km submodule), `vendor/silvery/` doesn't exist. Hardcoded monorepo paths break standalone usage.
 
 ## km → vendor references (allowed)
 
-km code *can* reference `vendor/` paths — it's the monorepo host:
+km code _can_ reference `vendor/` paths — it's the monorepo host:
+
 - `bun vitest run vendor/silvery/tests/` — running vendor tests from km root
 - `vendor/silvery/docs/guide/the-silvery-way.md` — km CLAUDE.md linking to vendor docs
 - `workspace:*` in km's root `package.json` — monorepo dependency resolution
@@ -27,12 +28,14 @@ km code *can* reference `vendor/` paths — it's the monorepo host:
 ## Cross-vendor references
 
 Vendor packages that depend on each other use **npm package names**, never relative `vendor/` paths:
+
 - `@termless/core` depends on types, not `../../silvery/src/types`
 - km root `package.json` `overrides` maps npm names → workspace copies for local dev
 
 ## Package Independence Checklist
 
 For any vendor package to be "standalone-ready":
+
 - [ ] No `vendor/` in source code strings (except comments)
 - [ ] No `vendor/` in documentation or guides
 - [ ] No `workspace:*` in its `package.json` (use npm versions or `github:owner/repo`)
@@ -41,25 +44,26 @@ For any vendor package to be "standalone-ready":
 
 ## Packages
 
-| Package | npm Scope | Description |
-|---------|-----------|-------------|
-| **silvery** | `@silvery/*` | React TUI framework — reconciler, components, theme |
-| **flexily** | `@flexily/*` | Yoga-compatible flexbox layout engine |
-| **termless** | `@termless/*` | Headless terminal testing (like Playwright for terminals) |
-| **ansi** | `@silvery/ansi` | ANSI escape sequence utilities |
-| **mdtest** | `@beorn/mdtest` | Markdown-driven test runner |
-| **tools** | `@beorn/tools` | CLI tools, LLM integration, recall |
-| **vimonkey** | `vimonkey` | Vitest monkey-patching utilities |
-| **loggily** | `loggily` | Structured logging |
-| **accountly** | `accountly` | LLM API accounting/cost tracking |
-| **tap** | `@silvery/tap` | Terminal app protocol |
-| **bearlymade** | — | Bear.app integration |
-| **watcher-chaos** | — | File watcher chaos testing |
-| **silvery-internal** | — | Internal design docs (not published) |
+| Package              | npm Scope       | Description                                               |
+| -------------------- | --------------- | --------------------------------------------------------- |
+| **silvery**          | `@silvery/*`    | React TUI framework — reconciler, components, theme       |
+| **flexily**          | `@flexily/*`    | Yoga-compatible flexbox layout engine                     |
+| **termless**         | `@termless/*`   | Headless terminal testing (like Playwright for terminals) |
+| **ansi**             | `@silvery/ansi` | ANSI escape sequence utilities                            |
+| **mdtest**           | `@beorn/mdtest` | Markdown-driven test runner                               |
+| **tools**            | `@beorn/tools`  | CLI tools, LLM integration, recall                        |
+| **vimonkey**         | `vimonkey`      | Vitest monkey-patching utilities                          |
+| **loggily**          | `loggily`       | Structured logging                                        |
+| **accountly**        | `accountly`     | LLM API accounting/cost tracking                          |
+| **tap**              | `@silvery/tap`  | Terminal app protocol                                     |
+| **bearlymade**       | —               | Bear.app integration                                      |
+| **watcher-chaos**    | —               | File watcher chaos testing                                |
+| **silvery-internal** | —               | Internal design docs (not published)                      |
 
 ## Fixing Violations
 
 When you find a `vendor/` reference in a vendor package:
+
 1. **Source code**: Use `import.meta.dir` or package-relative paths
 2. **Docs**: Use npm package names or published URLs (e.g., `silvery.dev`, `termless.dev`)
 3. **Scripts**: Detect monorepo vs standalone and adapt paths accordingly
