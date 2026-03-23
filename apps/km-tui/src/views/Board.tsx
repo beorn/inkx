@@ -21,7 +21,7 @@ import {
   useContentRect,
   setWindowTitle,
   useFocusManager,
-  Link,
+  useRuntime,
   type PatchedConsole,
 } from "@silvery/react"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/term/runtime"
@@ -138,27 +138,24 @@ interface TopBarProps {
 }
 
 /**
- * Clickable breadcrumb path. Each segment with an id is a Link that zooms to that node.
- * Preserves the old styling: board root is bold, others are dimmed, separators dimmed.
+ * Clickable breadcrumb path. Each segment with an id zooms on click.
+ * Uses Text (not Link) so color inherits from parent — works on both dark and yellow bars.
+ * Preserves old styling: board root bold, others dimmed, separators dimmed.
  */
 function TopBarBreadcrumb({
   segments,
   boardColor,
-  textColor,
 }: {
   segments: PathSegment[]
   boardColor?: string
-  /** Text color — pass "$selection" when on yellow bg, undefined for default */
-  textColor?: string
 }): React.ReactElement {
-  // Find board root index (same logic as old renderTopBarContent)
+  const rt = useRuntime<{ "link:open": [href: string] }>()
   const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard)
   const boardRootIdx =
     firstWithinBoardIdx > 0 ? firstWithinBoardIdx - 1 : firstWithinBoardIdx === -1 ? segments.length - 1 : 0
 
   return (
     <>
-      {/* Board color dot */}
       {boardColor ? (
         <Text>
           {" "}
@@ -177,21 +174,19 @@ function TopBarBreadcrumb({
             {seg.sep}{" "}
           </Text>
         ) : null
-        // Board root: bold. Others: dimmed. Clickable segments get Link.
-        const nameEl = seg.id ? (
-          <Link
+        const nameEl = (
+          <Text
             key={`seg-${i}`}
-            href={`km://zoom/${seg.id}`}
-            variant="arm-on-hover"
-            color={textColor ?? "$fg"}
             bold={isBoardRoot}
             dimColor={!isBoardRoot}
-            underline={false}
+            onClick={
+              seg.id
+                ? () => {
+                    rt?.emit("link:open", `km://zoom/${seg.id}`)
+                  }
+                : undefined
+            }
           >
-            {seg.name}
-          </Link>
-        ) : (
-          <Text key={`seg-${i}`} bold={isBoardRoot} dimColor={!isBoardRoot}>
             {seg.name}
           </Text>
         )
@@ -244,7 +239,7 @@ function PaneBoardTopBar({
       paneLabel={paneLabel}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
-          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} textColor={isBoardSelected ? "$selection" : undefined} />
+          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />
         </Text>
       }
       right={
@@ -320,7 +315,7 @@ function BoardTopBar({
       backgroundColor={isBoardSelected ? "$selection-bg" : undefined}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
-          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} textColor={isBoardSelected ? "$selection" : undefined} />
+          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} />
         </Text>
       }
       right={
