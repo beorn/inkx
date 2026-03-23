@@ -3,6 +3,10 @@
     "tty": {
       "command": "bun",
       "args": ["vendor/termless/packages/cli/src/cli.ts", "mcp"]
+    },
+    "tribe": {
+      "command": "bun",
+      "args": ["vendor/tools/tools/tribe.ts", "--name", "chief", "--role", "chief", "--domains", "all"]
     }
   }
 }
