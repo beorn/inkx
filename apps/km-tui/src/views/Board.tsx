@@ -21,7 +21,7 @@ import {
   useContentRect,
   setWindowTitle,
   useFocusManager,
-  useRuntime,
+  Link,
   type PatchedConsole,
 } from "@silvery/react"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/term/runtime"
@@ -138,8 +138,8 @@ interface TopBarProps {
 }
 
 /**
- * Clickable breadcrumb path. Each segment with an id zooms on click.
- * Uses Text (not Link) so color inherits from parent — works on both dark and yellow bars.
+ * Clickable breadcrumb path. Each segment with an id is a Link that zooms to that node.
+ * Uses color="inherit" so Link picks up parent color (works on both dark and yellow bars).
  * Preserves old styling: board root bold, others dimmed, separators dimmed.
  */
 function TopBarBreadcrumb({
@@ -149,7 +149,6 @@ function TopBarBreadcrumb({
   segments: PathSegment[]
   boardColor?: string
 }): React.ReactElement {
-  const rt = useRuntime<{ "link:open": [href: string] }>()
   const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard)
   const boardRootIdx =
     firstWithinBoardIdx > 0 ? firstWithinBoardIdx - 1 : firstWithinBoardIdx === -1 ? segments.length - 1 : 0
@@ -174,19 +173,20 @@ function TopBarBreadcrumb({
             {seg.sep}{" "}
           </Text>
         ) : null
-        const nameEl = (
-          <Text
+        const nameEl = seg.id ? (
+          <Link
             key={`seg-${i}`}
+            href={`km://zoom/${seg.id}`}
+            variant="arm-on-hover"
+            color="inherit"
             bold={isBoardRoot}
             dimColor={!isBoardRoot}
-            onClick={
-              seg.id
-                ? () => {
-                    rt?.emit("link:open", `km://zoom/${seg.id}`)
-                  }
-                : undefined
-            }
+            underline={false}
           >
+            {seg.name}
+          </Link>
+        ) : (
+          <Text key={`seg-${i}`} bold={isBoardRoot} dimColor={!isBoardRoot}>
             {seg.name}
           </Text>
         )
