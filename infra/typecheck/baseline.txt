@@ -1,8 +1,13 @@
 4 infra/autoresearch/run-quality.ts
-3 infra/autoresearch/run.ts
+2 infra/autoresearch/run.ts
+20 vendor/terminfo.dev/docs/data/census.data.ts
+4 vendor/terminfo.dev/src/cli.ts
+4 vendor/terminfo.dev/src/versions.ts
 3 vendor/termless/docs/census.data.ts
-4 vendor/termless/packages/census/src/cli.ts
-3 vendor/termless/packages/census/src/versions.ts
+8 vendor/termless/packages/kitty/src/backend.ts
+20 vendor/termless/sites/terminfo.dev/docs/data/census.data.ts
+4 vendor/termless/sites/terminfo.dev/src/cli.ts
+4 vendor/termless/sites/terminfo.dev/src/versions.ts
 1 vendor/termless/src/backends.ts
 32 vendor/tools/tests/tribe.test.ts
-2 vendor/tools/tools/tribe.ts
+3 vendor/tools/tools/tribe.ts
