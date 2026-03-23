@@ -7,7 +7,7 @@
  */
 
 import { createApp, type EventHandlerContext } from "@silvery/ag-term/runtime"
-import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/ag-react"
+import type { Key, ParsedMouse, FocusManager, AgNode } from "@silvery/ag-react"
 import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
@@ -748,12 +748,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Walk up ancestors to find clicked item and card-level node.
       // data-view="item" = sub-block, data-view="card"/data-card-id = card wrapper, data-view="column" = column
       let nodeId: string | null = null // First id found (may be sub-block)
-      let idNode: TeaNode | null = null
+      let idNode: AgNode | null = null
       let cardId: string | null = null // Card-level id (for border-click fallback)
       let firstIdIsColumn = false
       let colIndex: number | null = null
       let hasClickHandler = false
-      let current: TeaNode | null = hitNode
+      let current: AgNode | null = hitNode
       while (current) {
         const props = current.props as Record<string, unknown>
         if (typeof props.id === "string") {

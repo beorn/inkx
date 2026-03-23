@@ -32,7 +32,7 @@
 import React from "react"
 import { createRenderer, bufferToStyledText } from "@silvery/test"
 import type { AutoLocator, FilterOptions } from "@silvery/test"
-import type { TeaNode } from "@silvery/ag-react"
+import type { AgNode } from "@silvery/ag-react"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"
@@ -74,7 +74,7 @@ function delegateLocatorMethods(
     getAttribute: (name) => getBaseLocator().getAttribute(name),
     boundingBox: () => getBaseLocator().boundingBox(),
     isVisible: () => getBaseLocator().isVisible(),
-    filter: (optionsOrPredicate: FilterOptions | ((node: TeaNode) => boolean)) => {
+    filter: (optionsOrPredicate: FilterOptions | ((node: AgNode) => boolean)) => {
       const loc = getBaseLocator()
       if (typeof optionsOrPredicate === "function") {
         return loc.filter(optionsOrPredicate)

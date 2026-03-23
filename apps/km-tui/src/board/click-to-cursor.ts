@@ -1,6 +1,6 @@
 import { getWrappedLines } from "@silvery/tea/text-cursor"
 import type { TermEditContext } from "@silvery/ag-react"
-import type { TeaNode } from "@silvery/ag-react"
+import type { AgNode } from "@silvery/ag-react"
 
 // The fold marker + space prefix before the editable text content
 const PREFIX_WIDTH = 2
@@ -11,9 +11,9 @@ const PREFIX_WIDTH = 2
  * @param clickX - Absolute terminal column of the click
  * @param clickY - Absolute terminal row of the click
  * @param editCtx - The active TermEditContext (provides text and wrapWidth)
- * @param idNode - The TeaNode with the node's `id` prop (its screenRect gives the title row bounds)
+ * @param idNode - The AgNode with the node's `id` prop (its screenRect gives the title row bounds)
  */
-export function clickToCursorOffset(clickX: number, clickY: number, editCtx: TermEditContext, idNode: TeaNode): number {
+export function clickToCursorOffset(clickX: number, clickY: number, editCtx: TermEditContext, idNode: AgNode): number {
   const rect = idNode.screenRect
   if (!rect) return editCtx.selectionStart
   const lines = getWrappedLines(editCtx.text, editCtx.wrapWidth)
