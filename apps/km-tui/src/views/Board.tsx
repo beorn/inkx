@@ -21,6 +21,7 @@ import {
   useContentRect,
   setWindowTitle,
   useFocusManager,
+  Link,
   type PatchedConsole,
 } from "@silvery/react"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/term/runtime"
@@ -55,7 +56,8 @@ const _log = createLogger("km:tui:board")
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
 import { TreeRenderProvider, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
-import { getPathSegments, renderTopBarContent } from "./board-top-bar.ts"
+import { getPathSegments } from "./board-top-bar.ts"
+import type { PathSegment } from "../layout/path.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
 import { PaneIdProvider } from "../pane-context.tsx"
 import { WorkspaceChrome, WorkspaceBottomBar } from "./WorkspaceChrome.tsx"
@@ -136,6 +138,53 @@ interface TopBarProps {
 }
 
 /**
+ * Clickable breadcrumb path. Each segment with an id is a Link that zooms to that node.
+ */
+function TopBarBreadcrumb({
+  segments,
+  isBoardSelected,
+}: {
+  segments: PathSegment[]
+  isBoardSelected: boolean
+}): React.ReactElement {
+  const color = isBoardSelected ? "$selection" : undefined
+  return (
+    <>
+      {" "}
+      {segments.map((seg, i) => {
+        const sepEl = seg.sep ? (
+          <Text key={`sep-${i}`} dimColor>
+            {" "}
+            {seg.sep}{" "}
+          </Text>
+        ) : null
+        const nameEl = seg.id ? (
+          <Link
+            key={`seg-${i}`}
+            href={`km://zoom/${seg.id}`}
+            variant="arm-on-hover"
+            color={color ?? "$fg"}
+            underline={false}
+          >
+            {seg.name}
+          </Link>
+        ) : (
+          <Text key={`seg-${i}`} color={color}>
+            {seg.name}
+          </Text>
+        )
+        return (
+          <React.Fragment key={i}>
+            {sepEl}
+            {nameEl}
+          </React.Fragment>
+        )
+      })}
+    </>
+  )
+}
+
+/**
  * PaneBoardTopBar — multi-pane board top bar.
  *
  * Renders: path > segments          CARDS VIEW  [F] filter  [1]
@@ -160,7 +209,7 @@ function PaneBoardTopBar({
   viewMode?: string
   maxContentLines: number
   filterIndicator: string | undefined
-  selectedPathSegments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>
+  selectedPathSegments: PathSegment[]
 }): React.ReactElement {
   const paneId = usePaneId()
   const { activeScopeId } = useFocusManager()
@@ -173,7 +222,7 @@ function PaneBoardTopBar({
       paneLabel={paneLabel}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
-          {renderTopBarContent(selectedPathSegments, isBoardSelected && isPaneFocused, boardColor)}
+          <TopBarBreadcrumb segments={selectedPathSegments} isBoardSelected={isBoardSelected && isPaneFocused} />
         </Text>
       }
       right={
@@ -249,7 +298,7 @@ function BoardTopBar({
       backgroundColor={isBoardSelected ? "$selection-bg" : undefined}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
-          {renderTopBarContent(selectedPathSegments, isBoardSelected, boardColor)}
+          <TopBarBreadcrumb segments={selectedPathSegments} isBoardSelected={isBoardSelected} />
         </Text>
       }
       right={
@@ -948,12 +997,23 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const repo = useRepo()
   const storeApi = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
 
-  // Handle Cmd+click on links — opens external URLs, dispatches internal km:// links.
-  // Internal km:// links navigate to the referenced node via navigateToNode().
-  // Supported schemes: km://node/{id}, km://wiki/{name}, km://block/{id}
+  // Handle clicks on links — opens external URLs, dispatches internal km:// links.
+  // Supported schemes: km://node/{id}, km://wiki/{name}, km://block/{id}, km://zoom/{id}
   const handleInternalLink = useCallback(
     (href: string) => {
       if (!storeApi) return
+
+      // km://zoom/{id} — always zoom to node (used by breadcrumb segments)
+      if (href.startsWith("km://zoom/")) {
+        const targetId = href.slice("km://zoom/".length)
+        if (!targetId) return
+        const state = storeApi.getState()
+        const boardPane = getActiveBoardPane(state)
+        if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
+        return
+      }
+
       const parsed = parseKmUrl(href)
       if (!parsed) return
       const targetId = resolveKmLink(parsed, repo)
