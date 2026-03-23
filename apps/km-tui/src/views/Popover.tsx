@@ -14,13 +14,8 @@
  */
 
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
-import { Box, Spinner, Text, RuntimeContext } from "@silvery/react"
-import type { BaseRuntimeEvents, RuntimeContextValue } from "@silvery/react"
+import { Box, Link, Spinner, Text } from "@silvery/react"
 import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
-
-interface LinkEvents extends BaseRuntimeEvents {
-  "link:open": [href: string]
-}
 
 // =============================================================================
 // Types
@@ -224,7 +219,17 @@ function PopoverOverlay({ state, onMouseEnter, onHide }: PopoverOverlayProps): R
     >
       {content.lines.map((line, i) =>
         line.link && content.href ? (
-          <PopoverLink key={i} href={content.href} line={line} />
+          <Link
+            key={i}
+            href={content.href}
+            variant="arm-on-hover"
+            color={line.color}
+            dimColor={line.dim}
+            bold={line.bold}
+            wrap={line.wrap ?? "wrap"}
+          >
+            {line.text}
+          </Link>
         ) : (
           <Text key={i} color={line.color} dimColor={line.dim} bold={line.bold} wrap={line.wrap ?? "wrap"}>
             {line.text}
@@ -233,42 +238,6 @@ function PopoverOverlay({ state, onMouseEnter, onHide }: PopoverOverlayProps): R
       )}
       {content.loading && <Spinner label="Loading" color="$muted" />}
     </Box>
-  )
-}
-
-// =============================================================================
-// PopoverLink — clickable text that arms on hover (no Cmd required)
-//
-// Temporary: uses Text + hover state. Will be replaced with
-// <Link variant="arm-on-hover"> once silvery's Link supports it
-// and OSC 8 wrapping is fixed (see bead km-silvery.link-arm-variant).
-// =============================================================================
-
-function PopoverLink({ href, line }: { href: string; line: PopoverLine }): React.ReactElement {
-  const [hovered, setHovered] = useState(false)
-  const rt = useContext(RuntimeContext)
-
-  const handleClick = useCallback(
-    (e: SilveryMouseEvent) => {
-      ;(rt as RuntimeContextValue<LinkEvents> | null)?.emit("link:open", href)
-      e.stopPropagation()
-    },
-    [rt, href],
-  )
-
-  return (
-    <Text
-      color={hovered ? "$link" : line.color}
-      dimColor={!hovered && line.dim}
-      bold={line.bold}
-      underline={hovered}
-      wrap={line.wrap ?? "wrap"}
-      onClick={handleClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-    >
-      {line.text}
-    </Text>
   )
 }
 
