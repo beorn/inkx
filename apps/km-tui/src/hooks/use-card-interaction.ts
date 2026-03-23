@@ -42,14 +42,28 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       if (!storeRef) return
       const state = storeRef.getState()
 
+      // Find the deepest node with an id under the click target.
+      // Sub-items inside cards have id={node.id} — clicking them selects
+      // the sub-item, not the card.
+      let targetId = nodeId
+      let node: any = e.target
+      while (node) {
+        const id = node.props?.id
+        if (typeof id === "string" && id.length > 0) {
+          targetId = id
+          break
+        }
+        node = node.parent
+      }
+
       if (e.metaKey || cmdHeld) {
-        // Cmd+click → zoom into this card (make it the board root)
+        // Cmd+click → zoom into the clicked node
         const boardPane = getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
-        state.dispatchBoard({ type: "ZOOM_IN", nodeId, cursorNodeId: nodeId })
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
       } else {
-        // Plain click → select this card
-        state.dispatchBoard({ type: "SELECT", nodeId })
+        // Plain click → select the clicked item (sub-item or card)
+        state.dispatchBoard({ type: "SELECT", nodeId: targetId })
       }
 
       e.stopPropagation()
