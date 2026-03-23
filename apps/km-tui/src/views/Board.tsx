@@ -139,37 +139,59 @@ interface TopBarProps {
 
 /**
  * Clickable breadcrumb path. Each segment with an id is a Link that zooms to that node.
+ * Preserves the old styling: board root is bold, others are dimmed, separators dimmed.
  */
 function TopBarBreadcrumb({
   segments,
-  isBoardSelected,
+  boardColor,
+  textColor,
 }: {
   segments: PathSegment[]
-  isBoardSelected: boolean
+  boardColor?: string
+  /** Text color — pass "$selection" when on yellow bg, undefined for default */
+  textColor?: string
 }): React.ReactElement {
-  const color = isBoardSelected ? "$selection" : undefined
+  // Find board root index (same logic as old renderTopBarContent)
+  const firstWithinBoardIdx = segments.findIndex((s) => s.isWithinBoard)
+  const boardRootIdx =
+    firstWithinBoardIdx > 0 ? firstWithinBoardIdx - 1 : firstWithinBoardIdx === -1 ? segments.length - 1 : 0
+
   return (
     <>
-      {" "}
+      {/* Board color dot */}
+      {boardColor ? (
+        <Text>
+          {" "}
+          <Text color={boardColor} dimColor>
+            {"●"}
+          </Text>{" "}
+        </Text>
+      ) : (
+        " "
+      )}
       {segments.map((seg, i) => {
+        const isBoardRoot = i === boardRootIdx
         const sepEl = seg.sep ? (
           <Text key={`sep-${i}`} dimColor>
             {" "}
             {seg.sep}{" "}
           </Text>
         ) : null
+        // Board root: bold. Others: dimmed. Clickable segments get Link.
         const nameEl = seg.id ? (
           <Link
             key={`seg-${i}`}
             href={`km://zoom/${seg.id}`}
             variant="arm-on-hover"
-            color={color ?? "$fg"}
+            color={textColor ?? "$fg"}
+            bold={isBoardRoot}
+            dimColor={!isBoardRoot}
             underline={false}
           >
             {seg.name}
           </Link>
         ) : (
-          <Text key={`seg-${i}`} color={color}>
+          <Text key={`seg-${i}`} bold={isBoardRoot} dimColor={!isBoardRoot}>
             {seg.name}
           </Text>
         )
@@ -222,7 +244,7 @@ function PaneBoardTopBar({
       paneLabel={paneLabel}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
-          <TopBarBreadcrumb segments={selectedPathSegments} isBoardSelected={isBoardSelected && isPaneFocused} />
+          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} textColor={isBoardSelected ? "$selection" : undefined} />
         </Text>
       }
       right={
@@ -298,7 +320,7 @@ function BoardTopBar({
       backgroundColor={isBoardSelected ? "$selection-bg" : undefined}
       left={
         <Text color={isBoardSelected ? "$selection" : undefined} wrap="truncate">
-          <TopBarBreadcrumb segments={selectedPathSegments} isBoardSelected={isBoardSelected} />
+          <TopBarBreadcrumb segments={selectedPathSegments} boardColor={boardColor} textColor={isBoardSelected ? "$selection" : undefined} />
         </Text>
       }
       right={
