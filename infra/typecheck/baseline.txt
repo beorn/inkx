@@ -1,3 +1,8 @@
+4 infra/autoresearch/run-quality.ts
 3 infra/autoresearch/run.ts
-7 vendor/termless/packages/cli/src/install-cmd.ts
-3 vendor/termless/src/registry.ts
+3 vendor/termless/docs/census.data.ts
+4 vendor/termless/packages/census/src/cli.ts
+3 vendor/termless/packages/census/src/versions.ts
+1 vendor/termless/src/backends.ts
+32 vendor/tools/tests/tribe.test.ts
+2 vendor/tools/tools/tribe.ts
