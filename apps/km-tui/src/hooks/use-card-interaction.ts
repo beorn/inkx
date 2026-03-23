@@ -46,9 +46,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       // Sub-items inside cards have id={node.id} — clicking them selects
       // the sub-item, not the card.
       let targetId = nodeId
-      let node: any = e.target
+      let node: typeof e.target | null = e.target
       while (node) {
-        const id = node.props?.id
+        const id = (node.props as Record<string, unknown>)?.id
         if (typeof id === "string" && id.length > 0) {
           targetId = id
           break

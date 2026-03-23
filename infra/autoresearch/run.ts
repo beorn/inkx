@@ -149,7 +149,14 @@ async function runBenchmarks(): Promise<BenchResult[]> {
 
     if (existsSync(tmpFile)) {
       try {
-        const json = JSON.parse(readFileSync(tmpFile, "utf-8"))
+        const json = JSON.parse(readFileSync(tmpFile, "utf-8")) as {
+          files?: {
+            groups?: {
+              fullName: string
+              benchmarks?: { name: string; period?: number; mean: number; hz: number; samples?: unknown[] }[]
+            }[]
+          }[]
+        }
         for (const f of json.files ?? []) {
           for (const g of f.groups ?? []) {
             for (const b of g.benchmarks ?? []) {

@@ -537,7 +537,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   }
 
   // FakeRepo implements DataStore methods directly — self-reference for repo.data access
-  ;(repo as any).data = repo
+  Object.defineProperty(repo, "data", { get: () => repo, enumerable: true })
   return repo
 
   function reset() {

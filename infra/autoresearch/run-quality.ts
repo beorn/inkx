@@ -186,11 +186,13 @@ function compare(current: QualityMeasurement, baseline: QualityMeasurement): Qua
   // Detail changes
   if (warningsDelta < 0) reasons.push(`Warnings: ${baseline.lintWarnings} → ${current.lintWarnings} (${warningsDelta})`)
   if (warningsDelta > 0) reasons.push(`WARNING REGRESSION: warnings increased by ${warningsDelta}`)
-  if (complexityDelta < 0)
+  if (complexityDelta < 0) {
     reasons.push(`Complexity: ${baseline.totalComplexity} → ${current.totalComplexity} (${complexityDelta})`)
+  }
   if (complexityDelta > 0) reasons.push(`COMPLEXITY REGRESSION: increased by ${complexityDelta}`)
-  if (current.lintErrors > baseline.lintErrors)
+  if (current.lintErrors > baseline.lintErrors) {
     reasons.push(`ERROR REGRESSION: errors increased ${baseline.lintErrors} → ${current.lintErrors}`)
+  }
   if (locDelta < -10) reasons.push(`Code reduced: ${locDelta} lines`)
   if (locDelta > 20) reasons.push(`Code grew: +${locDelta} lines`)
 
