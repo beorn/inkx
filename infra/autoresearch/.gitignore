@@ -1,4 +1,6 @@
 # Experiment data is local — not committed
 data/baseline.json
+data/quality-baseline.json
 data/results.tsv
+data/quality-results.tsv
 data/bench-tmp.json
