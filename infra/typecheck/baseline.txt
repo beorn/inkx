@@ -1,6 +1,6 @@
 4 infra/autoresearch/run-quality.ts
 2 infra/autoresearch/run.ts
-20 vendor/terminfo.dev/docs/data/census.data.ts
+27 vendor/terminfo.dev/docs/data/census.data.ts
 4 vendor/terminfo.dev/src/cli.ts
 4 vendor/terminfo.dev/src/versions.ts
 3 vendor/termless/docs/census.data.ts
