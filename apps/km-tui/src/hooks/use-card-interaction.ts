@@ -8,7 +8,7 @@
  */
 
 import React, { useCallback, useState } from "react"
-import { StoreContext } from "@silvery/ag-term/runtime"
+import { StoreContext } from "@silvery/tea/create-app"
 import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"

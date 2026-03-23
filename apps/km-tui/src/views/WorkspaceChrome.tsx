@@ -9,7 +9,7 @@
 
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
-import { useApp as useAppStore, StoreContext } from "@silvery/ag-term/runtime"
+import { useApp as useAppStore, StoreContext } from "@silvery/tea/create-app"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { usePaneUI } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"

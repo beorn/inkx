@@ -20,7 +20,7 @@ import { parseToPlainText } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { useApp as useAppStore } from "@silvery/ag-term/runtime"
+import { useApp as useAppStore } from "@silvery/tea/create-app"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants

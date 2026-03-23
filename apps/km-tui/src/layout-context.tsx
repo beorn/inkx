@@ -6,7 +6,7 @@
  * which are then available for h/l navigation to find cards by Y position.
  */
 
-import { useApp as useAppStore } from "@silvery/ag-term/runtime"
+import { useApp as useAppStore } from "@silvery/tea/create-app"
 import type { BoardAppStore } from "./board-app-store.ts"
 import type { GridNavigator } from "@km/board"
 

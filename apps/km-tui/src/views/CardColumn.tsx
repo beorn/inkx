@@ -8,7 +8,7 @@
  * No CardState wrapper — cards are plain KNode objects.
  */
 import React, { useCallback, useEffect, useMemo } from "react"
-import { useApp as useAppStore } from "@silvery/ag-term/runtime"
+import { useApp as useAppStore } from "@silvery/tea/create-app"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"

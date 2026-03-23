@@ -17,7 +17,7 @@ import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { useApp as useAppStore } from "@silvery/ag-term/runtime"
+import { useApp as useAppStore } from "@silvery/tea/create-app"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants

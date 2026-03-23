@@ -84,7 +84,7 @@ interface TUIBoardState {
   helpMode: boolean
 }
 import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
-import { StoreContext } from "@silvery/ag-term/runtime"
+import { StoreContext } from "@silvery/tea/create-app"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/cursor-store.ts"
 import { createStore } from "zustand/vanilla"

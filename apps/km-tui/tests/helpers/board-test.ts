@@ -45,7 +45,7 @@ const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/reactive.ts"
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
 import { compareBuffers, formatMismatch } from "@silvery/ag-term/toolbelt"
-import { StoreContext } from "@silvery/ag-term/runtime"
+import { StoreContext } from "@silvery/tea/create-app"
 import { parseKey } from "@silvery/ag-term/runtime"
 import {
   createFocusManager,
