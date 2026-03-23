@@ -4,8 +4,12 @@
  * Provides hover tracking + click handlers for cards:
  * - Plain hover → faint highlight (border color change)
  * - Click → select the card
- * - Cmd+hover → armed state (pointer cursor)
- * - Cmd+click → navigate/zoom into the card
+ * - Ctrl+click → navigate/zoom into the card (reliable: SGR protocol reports Ctrl)
+ * - Cmd+hover → armed state visual (Kitty protocol only)
+ *
+ * Why Ctrl not Cmd: Terminal mouse protocol (SGR) reports Ctrl/Alt/Shift but NOT
+ * Cmd/Super. metaKey is always false in mouse events. Cmd detection only works via
+ * useModifierKeys (keyboard events) which requires Kitty protocol + hover-first flow.
  */
 
 import React, { useCallback, useState } from "react"
@@ -60,8 +64,10 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       if (!storeRef) return
       const state = storeRef.getState()
 
-      if (cmdHeld) {
-        // Cmd+click → navigate to node
+      // Ctrl+click from mouse event (reliable), or Cmd from Kitty keyboard tracking
+      const navigateModifier = e.ctrlKey || cmdHeld
+      if (navigateModifier) {
+        // Modifier+click → navigate to node
         const boardPane = getActiveBoardPane(state)
         const rootId = boardPane?.rootId ?? null
         const nav = navigateToNode(nodeId, rootId, repo)
