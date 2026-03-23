@@ -129,7 +129,7 @@ Create symlinks manually in a postinstall script. More complex, less idiomatic.
 | ---------------------- | ---------------- | ---------------- |
 | `vendor/silvery/packages/ansi`  | `@silvery/ansi`  | `@silvery/ansi`  |
 | `vendor/silvery`    | `Silvery`  | `Silvery`  |
-| `vendor/silvery/packages/ui` | `@silvery/ui` | `@silvery/ui` |
+| `vendor/silvery/packages/ui` | `@silvery/ag-react/ui` | `@silvery/ag-react/ui` |
 | `packages/km-core`     | `@km/core`       | `@km/core`       |
 
 Note: Folder name doesn't have to match package name. The `name` field in `package.json` is what matters.

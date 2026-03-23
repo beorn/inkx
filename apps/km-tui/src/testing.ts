@@ -32,7 +32,7 @@
 import React from "react"
 import { createRenderer, bufferToStyledText } from "@silvery/test"
 import type { AutoLocator, FilterOptions } from "@silvery/test"
-import type { TeaNode } from "@silvery/react"
+import type { TeaNode } from "@silvery/ag-react"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"

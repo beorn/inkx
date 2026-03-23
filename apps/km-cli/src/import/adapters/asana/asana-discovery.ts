@@ -1,4 +1,4 @@
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 import { AsanaClient } from "./asana-client.ts"
 import { ASANA_BASE } from "./asana-types.ts"
 import type { AsanaWorkspace, AsanaProjectInfo } from "./asana-types.ts"

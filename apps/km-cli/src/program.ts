@@ -10,7 +10,7 @@ import "./debug-log.ts"
 
 import { Command, type OptionValues } from "@commander-js/extra-typings"
 import { existsSync, statSync } from "fs"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 import { dirname, join, resolve } from "path"
 
 const term = createTerm(process)

@@ -10,7 +10,7 @@
 /* oxlint-disable complexity/complexity -- React component with many indicator conditionals */
 
 import React, { useState, useEffect, useRef } from "react"
-import { Box, Text, CursorLine, useFocusManager, useEditContext, useModifierKeys } from "@silvery/react"
+import { Box, Text, CursorLine, useFocusManager, useEditContext, useModifierKeys } from "@silvery/ag-react"
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"

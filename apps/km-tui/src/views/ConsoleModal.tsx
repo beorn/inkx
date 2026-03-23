@@ -14,7 +14,7 @@ import {
   useConsole,
   ModalDialog,
   type PatchedConsole,
-} from "@silvery/react"
+} from "@silvery/ag-react"
 
 const MAX_LINES = 100
 

@@ -4,7 +4,7 @@
  * Displays up to 5 toasts stacked vertically with borders and black backgrounds.
  */
 import React from "react"
-import { Box, Text, Small } from "@silvery/react"
+import { Box, Text, Small } from "@silvery/ag-react"
 import type { Toast as ToastType } from "@km/core"
 import { BOTTOM_BAR_HEIGHT } from "./board-layout.ts"
 

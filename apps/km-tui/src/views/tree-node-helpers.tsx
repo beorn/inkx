@@ -5,7 +5,7 @@
  */
 
 import React from "react"
-import { Text } from "@silvery/react"
+import { Text } from "@silvery/ag-react"
 import { extractTitleTaskMarker, isTask, decomposeDatetime, type KNode } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"

@@ -56,7 +56,7 @@ Headless terminal testing library (like Playwright for terminal apps). Tests TUI
 
 ```typescript
 import { createTermless } from "@silvery/test"
-import { run } from "@silvery/term/runtime"
+import { run } from "@silvery/ag-term/runtime"
 import "@termless/test/matchers"
 
 test("renders header with correct colors", async () => {

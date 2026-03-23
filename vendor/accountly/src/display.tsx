@@ -1,6 +1,6 @@
 import React from "react"
-import { renderString } from "@silvery/react"
-import { Box, Text } from "@silvery/react"
+import { renderString } from "@silvery/ag-react"
+import { Box, Text } from "@silvery/ag-react"
 import type { AccountConfig, QuotaInfo, QuotaWindow } from "./types.ts"
 
 // ── Helpers ─────────────────────────────────────────────────────────────

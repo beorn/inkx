@@ -11,7 +11,7 @@
 
 import { readFileSync } from "node:fs"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 

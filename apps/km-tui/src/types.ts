@@ -126,7 +126,7 @@ export interface TuiOptions {
    * When provided, runBoard uses this instead of creating its own.
    * Set up early (before loadRepo) to capture startup warnings.
    */
-  patchedConsole?: import("@silvery/react").PatchedConsole
+  patchedConsole?: import("@silvery/ag-react").PatchedConsole
   /**
    * Performance.now() timestamp of CLI invocation.
    * Used to log total startup time from CLI to first render.

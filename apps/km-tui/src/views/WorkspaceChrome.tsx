@@ -8,8 +8,8 @@
  */
 
 import React, { useCallback, useMemo } from "react"
-import { Box, Text } from "@silvery/react"
-import { useApp as useAppStore, StoreContext } from "@silvery/term/runtime"
+import { Box, Text } from "@silvery/ag-react"
+import { useApp as useAppStore, StoreContext } from "@silvery/ag-term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { usePaneUI } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"

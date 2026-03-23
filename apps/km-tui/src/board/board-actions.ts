@@ -26,7 +26,7 @@ import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
-import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/react"
+import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/ag-react"
 import { dialogTargetRef } from "../dialog-target.ts"
 import {
   extractBody,

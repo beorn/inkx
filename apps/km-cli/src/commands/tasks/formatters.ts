@@ -4,7 +4,7 @@
  * Functions for formatting tasks and their paths for CLI output.
  */
 
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { getNodeDisplayName as getNodeDisplayNameRaw, type CollapsedAncestor } from "@km/tree"

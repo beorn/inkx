@@ -12,7 +12,7 @@
  * km add myboard TASKID        # Link only (no sigil — not a sigil target)
  */
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { realpathSync } from "fs"

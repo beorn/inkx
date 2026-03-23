@@ -22,8 +22,7 @@
     "@km/storage": "workspace:*",
     "@km/tree": "workspace:*",
     "@km/tui": "workspace:*",
-    "@silvery/react": "workspace:*",
-    "@silvery/ui": "workspace:*",
+    "@silvery/ag-react": "workspace:*",
     "commander": "^13.1.0",
     "react": "catalog:"
   },

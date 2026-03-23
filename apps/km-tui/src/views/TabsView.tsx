@@ -7,7 +7,7 @@
  * Uses silvery VirtualList for React-level virtualization.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Small, VirtualList } from "@silvery/react"
+import { Box, Text, Small, VirtualList } from "@silvery/ag-react"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
@@ -17,7 +17,7 @@ import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { useApp as useAppStore } from "@silvery/term/runtime"
+import { useApp as useAppStore } from "@silvery/ag-term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants

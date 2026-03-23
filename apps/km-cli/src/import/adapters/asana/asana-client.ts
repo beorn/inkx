@@ -1,4 +1,4 @@
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 import { ASANA_BASE } from "./asana-types.ts"
 import type { RecordedCall } from "./asana-types.ts"
 

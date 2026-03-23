@@ -7,7 +7,7 @@
  * Design: Inverse text (white on gray) with centered arrow and count.
  */
 import React from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 
 export interface OverflowIndicatorProps {
   direction: "up" | "down"

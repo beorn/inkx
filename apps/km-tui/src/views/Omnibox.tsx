@@ -10,7 +10,7 @@
  * Uses useDialogInput for text editing (Enter/Escape/Arrow routing).
  */
 import React from "react"
-import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/ag-react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { getAllCommands, getAllKeybindings, fuzzyMatch, formatKeybinding } from "@km/commands"

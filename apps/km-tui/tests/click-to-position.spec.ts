@@ -10,7 +10,7 @@
 
 import { describe, test, expect } from "vitest"
 import { clickToCursorOffset } from "../src/board/click-to-cursor.ts"
-import type { TermEditContext } from "@silvery/react"
+import type { TermEditContext } from "@silvery/ag-react"
 
 function mockEditCtx(text: string, wrapWidth = 80): TermEditContext {
   return { text, wrapWidth, selectionStart: text.length, selectionEnd: text.length } as TermEditContext

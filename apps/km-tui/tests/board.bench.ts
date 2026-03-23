@@ -14,7 +14,7 @@
  */
 
 import { bench, describe, beforeAll } from "vitest"
-import { createFlexilyEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@silvery/react"
+import { createFlexilyEngine, initYogaEngine, setLayoutEngine, type LayoutEngine } from "@silvery/ag-react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 

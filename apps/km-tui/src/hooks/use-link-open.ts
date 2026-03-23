@@ -7,7 +7,7 @@
  */
 
 import { useEffect } from "react"
-import { useRuntime, type BaseRuntimeEvents } from "@silvery/react"
+import { useRuntime, type BaseRuntimeEvents } from "@silvery/ag-react"
 
 interface LinkEvents extends BaseRuntimeEvents {
   "link:open": [href: string]

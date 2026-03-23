@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from "vitest"
 import React, { useState } from "react"
-import { Box, Text, useInput, type Key } from "@silvery/react"
+import { Box, Text, useInput, type Key } from "@silvery/ag-react"
 import { createRenderer } from "@silvery/test"
 import { item, testEnv } from "./helpers/board-test"
 import { TC } from "./helpers/theme"

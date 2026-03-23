@@ -13,10 +13,10 @@ import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createToastQueue } from "@km/core"
 import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
 import React from "react"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
-import { InputLayerProvider } from "@silvery/react"
+import { InputLayerProvider } from "@silvery/ag-react"
 
 const repoPath = process.env.VAULT ?? "/Users/beorn/Code/pim/km/imports/asana"
 

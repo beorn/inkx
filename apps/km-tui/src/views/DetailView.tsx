@@ -11,7 +11,7 @@
  */
 
 import React, { useCallback, useMemo } from "react"
-import { Box, Text, Small } from "@silvery/react"
+import { Box, Text, Small } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import { decomposeDatetime } from "@km/core"
 import { useRepo } from "../repo-context.tsx"

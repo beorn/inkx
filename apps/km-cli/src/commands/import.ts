@@ -13,12 +13,12 @@
 import { existsSync, readFileSync, readdirSync, statSync, mkdirSync, copyFileSync } from "fs"
 import { basename, join, resolve } from "path"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-import { steps, step } from "@silvery/ui/progress"
-import { CURSOR_SHOW, write } from "@silvery/ui/cli"
+import { steps, step } from "@silvery/ag-react/ui/progress"
+import { CURSOR_SHOW, write } from "@silvery/ag-react/ui/cli"
 import type { ImportData, ImportProject } from "../import/types.ts"
 import type { AsanaWorkspace } from "../import/adapters/asana/asana-api.ts"
 import { convertBatch, slugify } from "../import/convert.ts"

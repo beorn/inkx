@@ -9,10 +9,10 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { outputPhase, VirtualTerminal } from "@silvery/term/toolbelt"
+import { outputPhase, VirtualTerminal } from "@silvery/ag-term/toolbelt"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "@silvery/react"
+import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 

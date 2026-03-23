@@ -11,8 +11,8 @@
 
 import { describe, test, expect, beforeEach } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, withCommands, withKeybindings } from "@silvery/react"
-import type { CommandRegistryLike, WithCommandsOptions } from "@silvery/react"
+import { Box, Text, withCommands, withKeybindings } from "@silvery/ag-react"
+import type { CommandRegistryLike, WithCommandsOptions } from "@silvery/ag-react"
 import {
   createCommandRegistry,
   allCommands,

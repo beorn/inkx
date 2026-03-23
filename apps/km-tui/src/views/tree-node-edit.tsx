@@ -7,7 +7,7 @@
  */
 
 import React, { useCallback, useMemo } from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import { isOutline } from "@km/core"
 import { extractTitleTaskMarker, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"

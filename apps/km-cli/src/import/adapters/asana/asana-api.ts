@@ -7,11 +7,11 @@
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "fs"
 import { join } from "path"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-import { ProgressBar } from "@silvery/ui/cli"
+import { ProgressBar } from "@silvery/ag-react/ui/cli"
 import { AsanaClient } from "./asana-client.ts"
 import { TASK_FIELDS } from "./asana-types.ts"
 import type { AsanaApiTask, FetchOptions, FetchResult } from "./asana-types.ts"

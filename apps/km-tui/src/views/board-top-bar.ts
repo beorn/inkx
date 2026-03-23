@@ -1,7 +1,7 @@
 /**
  * Board top bar - path segments rendering
  */
-import { createTerm, type StyleChain } from "@silvery/react"
+import { createTerm, type StyleChain } from "@silvery/ag-react"
 import { isOutline, type KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"

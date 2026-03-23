@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 import { displayLength, stripAnsi } from "../../src/text/rich.ts"
 import { parseToPlainText } from "../../src/text/inline-parser.ts"
 

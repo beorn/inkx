@@ -10,7 +10,7 @@
  */
 
 import React from "react"
-import { EditContextDisplay, useContentRect, useEditContext } from "@silvery/react"
+import { EditContextDisplay, useContentRect, useEditContext } from "@silvery/ag-react"
 
 interface BodyEditFieldProps {
   initialValue: string

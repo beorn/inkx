@@ -16,7 +16,7 @@ import {
   type KeyCommandResult,
   type TNode,
 } from "@km/commands"
-import { detectTerminalCaps, activeEditTargetRef } from "@silvery/react"
+import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
 import { getModeStack } from "./dialog-guard.ts"

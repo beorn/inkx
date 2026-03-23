@@ -17,12 +17,12 @@
  */
 
 import { describe, test, expect, beforeAll, beforeEach, afterEach } from "vitest"
-import { withDiagnostics } from "@silvery/react"
+import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "@silvery/test"
-import { displayWidth, graphemeWidth } from "@silvery/react"
+import { displayWidth, graphemeWidth } from "@silvery/ag-react"
 
 // ─── Card Border Helpers ─────────────────────────────────────────────────────
 

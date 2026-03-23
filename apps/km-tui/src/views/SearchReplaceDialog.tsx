@@ -15,7 +15,7 @@
  */
 
 import React from "react"
-import { Box, Text, Small, Strong, Muted, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/react"
+import { Box, Text, Small, Strong, Muted, CursorLine, Toggle, ModalDialog, useEditContext } from "@silvery/ag-react"
 import type { SearchReplaceState } from "../ui-reducer.ts"
 
 interface SearchReplaceDialogProps {

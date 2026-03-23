@@ -6,7 +6,7 @@
  */
 
 import React from "react"
-import { Box, Strong, Text, useFocusManager } from "@silvery/react"
+import { Box, Strong, Text, useFocusManager } from "@silvery/ag-react"
 import { type PaneUI, getEditMode } from "../ui-reducer.ts"
 import { isDetailPaneId } from "../board-types.ts"
 

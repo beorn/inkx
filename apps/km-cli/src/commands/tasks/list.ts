@@ -4,7 +4,7 @@
  * Lists tasks with optional filtering by path, status, or query.
  */
 
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"

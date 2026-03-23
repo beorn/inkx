@@ -1,6 +1,6 @@
 import { getWrappedLines } from "@silvery/tea/text-cursor"
-import type { TermEditContext } from "@silvery/react"
-import type { TeaNode } from "@silvery/react"
+import type { TermEditContext } from "@silvery/ag-react"
+import type { TeaNode } from "@silvery/ag-react"
 
 // The fold marker + space prefix before the editable text content
 const PREFIX_WIDTH = 2

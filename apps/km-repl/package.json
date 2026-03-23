@@ -11,7 +11,7 @@
     "@km/board": "workspace:*",
     "@km/commands": "workspace:*",
     "@km/core": "workspace:*",
-    "@silvery/react": "workspace:*",
+    "@silvery/ag-react": "workspace:*",
     "react": "catalog:"
   },
   "devDependencies": {

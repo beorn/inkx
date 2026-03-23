@@ -608,7 +608,7 @@ import { loadRepo, runGenerator } from "@km/storage"
 const result = runGenerator(loadRepo("/path/to/repo"))
 
 // With progress reporting
-import { withProgress } from "@silvery/ui/wrappers"
+import { withProgress } from "@silvery/ag-react/ui/wrappers"
 const result = await withProgress(loadRepo("/path/to/repo"), {
   phases: PHASES,
 })

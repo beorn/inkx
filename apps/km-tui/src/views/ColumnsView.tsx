@@ -9,14 +9,14 @@
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
-import { Box, Small, HorizontalVirtualList } from "@silvery/react"
+import { Box, Small, HorizontalVirtualList } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:columns")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
-import { useApp as useAppStore } from "@silvery/term/runtime"
+import { useApp as useAppStore } from "@silvery/ag-term/runtime"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"

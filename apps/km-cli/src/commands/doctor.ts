@@ -7,11 +7,11 @@
 
 import { createLogger } from "loggily"
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
-import { steps } from "@silvery/ui/progress"
+import { steps } from "@silvery/ag-react/ui/progress"
 import { dirname, join, resolve } from "path"
 
 const log = createLogger("km:cli:doctor")

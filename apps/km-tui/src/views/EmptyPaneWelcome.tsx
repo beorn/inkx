@@ -4,7 +4,7 @@
  */
 
 import React from "react"
-import { Box, Muted, Small } from "@silvery/react"
+import { Box, Muted, Small } from "@silvery/ag-react"
 
 export function EmptyPaneWelcome(): React.ReactElement {
   return (

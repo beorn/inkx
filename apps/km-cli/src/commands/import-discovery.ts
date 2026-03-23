@@ -4,7 +4,7 @@
 
 import { existsSync, readdirSync, statSync } from "fs"
 import { join } from "path"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 

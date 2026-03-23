@@ -5,8 +5,8 @@
  * Uses context from the cursor item for defaults.
  */
 import React from "react"
-import { useApp as useAppStore } from "@silvery/term/runtime"
-import { Box, Text, CursorLine, ModalDialog } from "@silvery/react"
+import { useApp as useAppStore } from "@silvery/ag-term/runtime"
+import { Box, Text, CursorLine, ModalDialog } from "@silvery/ag-react"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"

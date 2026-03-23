@@ -7,7 +7,7 @@
  */
 
 import React, { createContext, useContext, useMemo } from "react"
-import { useApp as useAppStore, useAppShallow } from "@silvery/term/runtime"
+import { useApp as useAppStore, useAppShallow } from "@silvery/ag-term/runtime"
 import type { UIState, PaneUI, IconStyle, BorderMode } from "./ui-reducer.ts"
 import { createEmptyFilterProperties } from "./ui-reducer.ts"
 import type { BoardAppStore } from "./board-app-store.ts"

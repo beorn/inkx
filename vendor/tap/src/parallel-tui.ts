@@ -7,7 +7,7 @@
  * - Updates in place using cursor positioning
  *
  * Unlike the silvery version, this renders inline starting from current cursor position,
- * similar to MultiProgress in @silvery/ui.
+ * similar to MultiProgress in @silvery/ag-react/ui.
  */
 
 import { spawn } from "bun"

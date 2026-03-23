@@ -10,7 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/react"
+import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import { isTask, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"

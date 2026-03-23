@@ -11,8 +11,8 @@
  */
 
 import React, { useCallback, useRef } from "react"
-import { Link, Text } from "@silvery/react"
-import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
+import { Link, Text } from "@silvery/ag-react"
+import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"

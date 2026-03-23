@@ -10,6 +10,6 @@
   "dependencies": {
     "@km/core": "workspace:*",
     "@km/tree": "workspace:*",
-    "@silvery/react": "workspace:*"
+    "@silvery/ag-react": "workspace:*"
   }
 }

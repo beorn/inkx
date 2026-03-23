@@ -14,7 +14,7 @@ import { describe, it, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { TC } from "./helpers/theme.ts"
 import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"
-import { stripAnsi } from "@silvery/react"
+import { stripAnsi } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 
 /** Helper to build a data-cursor locator for node IDs with spaces */

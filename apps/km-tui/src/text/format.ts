@@ -11,7 +11,7 @@
  * - $success/$warning/$error for task status
  */
 
-import { createTerm, type StyleChain } from "@silvery/react"
+import { createTerm, type StyleChain } from "@silvery/ag-react"
 import { getStatusForMarker, isOutline, type KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"

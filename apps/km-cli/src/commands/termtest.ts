@@ -9,7 +9,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { runTermtest, TERMTEST_SECTIONS, type TermtestSection } from "@silvery/react"
+import { runTermtest, TERMTEST_SECTIONS, type TermtestSection } from "@silvery/ag-react"
 
 export const termtestCommand = new Command("termtest")
   .description("Visual terminal capability test — run in any terminal to verify feature support")

@@ -27,7 +27,7 @@ cp .claude/skills/pro-review/templates/context-header.md "$CONTEXT"
 
 Include these files in order (the rendering pipeline's execution order):
 
-**Core pipeline** (`vendor/silvery/packages/term/src/pipeline/`):
+**Core pipeline** (`vendor/silvery/packages/ag-term/src/pipeline/`):
 - `types.ts` — shared types and interfaces
 - `helpers.ts` — utility functions used across phases
 - `cascade-predicates.ts` — dirty-flag propagation logic
@@ -44,7 +44,7 @@ Include these files in order (the rendering pipeline's execution order):
 - `measure-stats.ts` — performance measurement
 - `index.ts` — pipeline orchestration and public API
 
-**Pipeline consumers** (`vendor/silvery/packages/term/src/`):
+**Pipeline consumers** (`vendor/silvery/packages/ag-term/src/`):
 - `renderer.ts` — renderer that drives the pipeline
 - `scheduler.ts` — render scheduling (batching, microtask queue)
 - `output.ts` — output stream management
@@ -52,7 +52,7 @@ Include these files in order (the rendering pipeline's execution order):
 ```bash
 echo -e "\n\n# Silvery Rendering Pipeline — Source Code\n" >> "$CONTEXT"
 
-PIPELINE_DIR="vendor/silvery/packages/term/src/pipeline"
+PIPELINE_DIR="vendor/silvery/packages/ag-term/src/pipeline"
 PIPELINE_FILES=(
   types.ts helpers.ts cascade-predicates.ts
   measure-phase.ts layout-phase.ts
@@ -71,7 +71,7 @@ for f in "${PIPELINE_FILES[@]}"; do
   echo -e "\`\`\`" >> "$CONTEXT"
 done
 
-CONSUMER_DIR="vendor/silvery/packages/term/src"
+CONSUMER_DIR="vendor/silvery/packages/ag-term/src"
 for f in renderer.ts scheduler.ts output.ts; do
   filepath="$CONSUMER_DIR/$f"
   [ -f "$filepath" ] || continue
@@ -113,7 +113,7 @@ done
 echo -e "\n\n# Documentation\n" >> "$CONTEXT"
 
 DOC_FILES=(
-  "vendor/silvery/packages/term/src/pipeline/RENDERING.md"
+  "vendor/silvery/packages/ag-term/src/pipeline/RENDERING.md"
   "vendor/silvery/CLAUDE.md"
   "vendor/silvery/docs/guide/debugging.md"
 )
@@ -182,7 +182,7 @@ Launch ALL 4 reviews in a **single message** (parallel, no dependencies). Claude
 Task(subagent_type="general-purpose", prompt="
 You are reviewing the silvery rendering pipeline for ALGORITHM CLARITY.
 
-Read these pipeline source files in vendor/silvery/packages/term/src/pipeline/:
+Read these pipeline source files in vendor/silvery/packages/ag-term/src/pipeline/:
 - cascade-predicates.ts (dirty-flag propagation)
 - content-phase.ts (content generation)
 - diff-buffers.ts (incremental diff)
@@ -217,7 +217,7 @@ Read ALL test files in vendor/silvery/tests/ that relate to the pipeline:
 - capability-matrix.test.ts
 - cross-backend-output.test.ts
 
-Then read the source files they test (in vendor/silvery/packages/term/src/pipeline/).
+Then read the source files they test (in vendor/silvery/packages/ag-term/src/pipeline/).
 
 Evaluate:
 1. Which pipeline functions have NO test coverage?
@@ -239,7 +239,7 @@ Task(subagent_type="general-purpose", prompt="
 You are reviewing DOCUMENTATION, ENVIRONMENT VARIABLES, and LOGGILY INTEGRATION for the silvery rendering pipeline.
 
 Read:
-- vendor/silvery/packages/term/src/pipeline/RENDERING.md
+- vendor/silvery/packages/ag-term/src/pipeline/RENDERING.md
 - vendor/silvery/CLAUDE.md
 - vendor/silvery/docs/guide/debugging.md
 - vendor/loggily/CLAUDE.md

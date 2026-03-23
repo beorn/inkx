@@ -8,7 +8,7 @@
  * supporting both ANSI 16 color names and truecolor hex values.
  */
 
-import { createTerm, resolveThemeColor, type StyleChain } from "@silvery/react"
+import { createTerm, resolveThemeColor, type StyleChain } from "@silvery/ag-react"
 import { getActiveTheme } from "@silvery/theme"
 
 /** Cached term instance for color styling. Uses default color detection. */

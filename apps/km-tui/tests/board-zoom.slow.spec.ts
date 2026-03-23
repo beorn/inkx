@@ -16,7 +16,7 @@ import { buildBoardState } from "../src/state.ts"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
-import { compareBuffers, formatMismatch } from "@silvery/term/toolbelt"
+import { compareBuffers, formatMismatch } from "@silvery/ag-term/toolbelt"
 import { bufferToText } from "@silvery/test"
 import { existsSync } from "fs"
 

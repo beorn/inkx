@@ -13,7 +13,7 @@
 import { act } from "react"
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
-import { activeEditTargetRef } from "@silvery/react"
+import { activeEditTargetRef } from "@silvery/ag-react"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"

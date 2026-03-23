@@ -10,7 +10,7 @@ import { Command } from "@commander-js/extra-typings"
 import { createLogger, isOutline } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
-import { restoreTerminalState } from "@silvery/term/runtime"
+import { restoreTerminalState } from "@silvery/ag-term/runtime"
 import type { FullLogger } from "../logger-types.ts"
 
 const debug = createLogger("km:cli:view") as FullLogger
@@ -63,7 +63,7 @@ export const viewCommand = new Command("view")
       })
 
       // Clear the "Loading..." line from bootstrap.ts
-      const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@silvery/ui/cli")
+      const { CURSOR_TO_START, CLEAR_LINE_END } = await import("@silvery/ag-react/ui/cli")
       process.stdout.write(CURSOR_TO_START + CLEAR_LINE_END)
 
       // Import modules
@@ -85,12 +85,12 @@ export const viewCommand = new Command("view")
 
       // Patch console early so startup warnings (stale events, etc.) are captured
       // in the TUI console panel instead of being lost to stderr before alt screen.
-      const { patchConsole } = await import("@silvery/react")
+      const { patchConsole } = await import("@silvery/ag-react")
       const patchedConsole =
         interactive && process.stdin.isTTY ? patchConsole(console, { capture: true, suppress: true }) : null
 
       // Load repo + build state with unified progress display
-      const { steps } = await import("@silvery/ui/progress")
+      const { steps } = await import("@silvery/ag-react/ui/progress")
       const { createRepo } = storageModule
 
       let createdRepo: import("@km/storage").Repo | undefined

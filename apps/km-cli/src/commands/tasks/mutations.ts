@@ -4,7 +4,7 @@
  * Functions for modifying tasks: create, claim, release, assign, markDone.
  */
 
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { resolvePathArg, parseTaskMetadata, extractTags } from "@km/storage"

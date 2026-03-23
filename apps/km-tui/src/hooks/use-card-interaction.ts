@@ -8,9 +8,9 @@
  */
 
 import React, { useCallback, useState } from "react"
-import { StoreContext } from "@silvery/term/runtime"
-import { useModifierKeys, useMouseCursor } from "@silvery/react"
-import type { SilveryMouseEvent } from "@silvery/term/mouse-events"
+import { StoreContext } from "@silvery/ag-term/runtime"
+import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
+import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"

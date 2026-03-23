@@ -185,7 +185,7 @@ async stdinWrite(data: string) {
 
 ### 1. Add `sendInput()` to Term interface
 
-**File:** `vendor/silvery/packages/term/src/ansi/types.ts`
+**File:** `vendor/silvery/packages/ag-term/src/ansi/types.ts`
 
 Add to `TermEmulator` interface:
 ```typescript
@@ -194,7 +194,7 @@ Add to `TermEmulator` interface:
 sendInput?(data: string): void
 ```
 
-**File:** `vendor/silvery/packages/term/src/ansi/term.ts`
+**File:** `vendor/silvery/packages/ag-term/src/ansi/term.ts`
 
 In `createBackendTerm()`:
 ```typescript
@@ -238,7 +238,7 @@ Note: This exactly mirrors the `termProvider.events()` parsing pipeline in `term
 
 ### 2. Add `sendInput` to the Term type definition
 
-**File:** `vendor/silvery/packages/term/src/ansi/term.ts` (Term interface)
+**File:** `vendor/silvery/packages/ag-term/src/ansi/term.ts` (Term interface)
 
 Add to the Term interface:
 ```typescript
@@ -324,7 +324,7 @@ keyToKittyRelease(key: string): string  // Same as keyToKittyAnsi but with :3 ev
 
 ### 5. Add `sendInput` convenience to `run()` handle
 
-**File:** `vendor/silvery/packages/term/src/runtime/run.tsx`
+**File:** `vendor/silvery/packages/ag-term/src/runtime/run.tsx`
 
 The `RunHandle` should expose `sendInput` for termless tests:
 ```typescript

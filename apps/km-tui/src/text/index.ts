@@ -38,9 +38,9 @@ export {
 export { formatNode, formatStatus, formatNodeBrief, formatCollapsedAncestor } from "./format.ts"
 
 // Term primitives (re-exported from silvery)
-export { createTerm, term, type Term, type StyleChain } from "@silvery/react"
+export { createTerm, term, type Term, type StyleChain } from "@silvery/ag-react"
 
-// Extended ANSI features (from @silvery/term/ansi)
+// Extended ANSI features (from @silvery/ag-term/ansi)
 export {
   curlyUnderline,
   dottedUnderline,
@@ -51,7 +51,7 @@ export {
   hyperlink,
   detectExtendedUnderline,
   type UnderlineStyle,
-} from "@silvery/term/ansi"
+} from "@silvery/ag-term/ansi"
 
 // Inline AST (parser + types + components)
 export { parseInlineText, parseToPlainText, inlineNodesToPlainText } from "./inline-parser.ts"

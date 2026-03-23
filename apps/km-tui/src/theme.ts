@@ -8,8 +8,8 @@
  * All components use $token strings (e.g., "$selection-bg", "$focusborder")
  * which silvery ThemeProvider resolves at render time.
  */
-import { ansi16DarkTheme, detectTheme } from "@silvery/react"
-import type { Theme } from "@silvery/react"
+import { ansi16DarkTheme, detectTheme } from "@silvery/ag-react"
+import type { Theme } from "@silvery/ag-react"
 
 /** Default theme for tests (ANSI 16 dark — no terminal detection needed) */
 export const defaultKmTheme: Theme = ansi16DarkTheme

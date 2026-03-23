@@ -5,7 +5,7 @@
  * This component exists for storybook demonstrations.
  */
 import React from "react"
-import { Box, Text } from "@silvery/react"
+import { Box, Text } from "@silvery/ag-react"
 import { renderTopBarContent } from "./board-top-bar.ts"
 import type { PathSegment } from "../layout/index.ts"
 

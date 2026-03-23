@@ -15,7 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { VirtualTerminal, outputPhase } from "@silvery/term/toolbelt"
+import { VirtualTerminal, outputPhase } from "@silvery/ag-term/toolbelt"
 
 // =============================================================================
 // Fold all / unfold all commands

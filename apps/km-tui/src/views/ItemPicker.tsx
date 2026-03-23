@@ -10,7 +10,7 @@
  *   - Recent item tracking
  */
 import React from "react"
-import { Box, Text, Small, CursorLine, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, CursorLine, ModalDialog } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { useRepo } from "../repo-context.tsx"

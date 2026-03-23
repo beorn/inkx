@@ -5,7 +5,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 import { join } from "path"
 
 const term = createTerm(process)

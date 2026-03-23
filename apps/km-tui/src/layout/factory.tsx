@@ -15,7 +15,7 @@ import React, {
   type ReactNode,
   type ReactElement,
 } from "react"
-import { constrainText, displayWidth, wrapText, truncateText, padText } from "@silvery/react"
+import { constrainText, displayWidth, wrapText, truncateText, padText } from "@silvery/ag-react"
 
 // =============================================================================
 // Text Utilities (re-export from silvery with aliases)

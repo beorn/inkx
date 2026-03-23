@@ -5,7 +5,7 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, Small, Muted, Strong, ErrorBoundary, ModalDialog } from "@silvery/react"
+import { Box, Text, Small, Muted, Strong, ErrorBoundary, ModalDialog } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import { isOutline, isEmbed } from "@km/core"
 import { useRepo } from "../repo-context.tsx"

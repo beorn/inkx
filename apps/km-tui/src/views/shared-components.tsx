@@ -5,8 +5,8 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, Muted, Small, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/react"
-import { useApp as useAppStore } from "@silvery/term/runtime"
+import { Box, Text, Muted, Small, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/ag-react"
+import { useApp as useAppStore } from "@silvery/ag-term/runtime"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:layout")

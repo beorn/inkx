@@ -11,7 +11,7 @@
  */
 
 import React from "react"
-import { CursorLine, useContentRect, useEditContext } from "@silvery/react"
+import { CursorLine, useContentRect, useEditContext } from "@silvery/ag-react"
 
 interface InlineEditFieldProps {
   initialValue: string

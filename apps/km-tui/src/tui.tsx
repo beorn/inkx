@@ -13,7 +13,7 @@ import {
   InputLayerProvider,
   ThemeProvider,
   detectTerminalCaps,
-} from "@silvery/react"
+} from "@silvery/ag-react"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { restoreTerminal } from "./raw-signals.ts"

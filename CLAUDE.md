@@ -8,7 +8,7 @@ TypeScript, Bun, Silvery (React TUI), SQLite. Bidirectional sync: TUI ↔ Model 
 |---|---|---|
 | **TypeScript 5.9** | Language (strict mode) | [typescript-eslint rules](https://typescript-eslint.io/rules/) |
 | **Bun** | Runtime, package manager, SQLite driver | [bun.sh/docs](https://bun.sh/docs) — use `bun:sqlite`, `bun:test` is NOT used |
-| **React 19** | UI via `@silvery/react` reconciler (NOT React DOM) | [react.dev](https://react.dev) — hooks, refs, effects all apply |
+| **React 19** | UI via `@silvery/ag-react` reconciler (NOT React DOM) | [react.dev](https://react.dev) — hooks, refs, effects all apply |
 | **Silvery** | TUI framework — reconciler, components, theme | [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md), [Styling](vendor/silvery/docs/guide/styling.md), [silvery CLAUDE.md](vendor/silvery/CLAUDE.md) |
 | **Flexily** | Layout engine (Yoga-compatible flexbox) | [flexily CLAUDE.md](vendor/flexily/CLAUDE.md) |
 | **Zustand 5** | State management (used by `@silvery/tea`) | [zustand docs](https://zustand.docs.pmnd.rs/) — immutable updates, selectors |

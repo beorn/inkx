@@ -8,7 +8,7 @@
  * - `stripAnsi(text)` - remove all ANSI escape codes
  */
 
-import { stripAnsi } from "@silvery/react"
+import { stripAnsi } from "@silvery/ag-react"
 import stringWidth from "string-width"
 
 // Re-export ANSI utilities from silvery (canonical implementation)

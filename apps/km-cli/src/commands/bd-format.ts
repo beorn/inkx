@@ -4,7 +4,7 @@
  * Pure functions for formatting issue data for CLI output.
  */
 
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import type { Issue } from "@km/beads"

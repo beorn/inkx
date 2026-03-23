@@ -1,5 +1,5 @@
-import type { PositionRegistry, ScreenRect } from "@silvery/react"
-import { createPositionRegistry } from "@silvery/react"
+import type { PositionRegistry, ScreenRect } from "@silvery/ag-react"
+import { createPositionRegistry } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:grid-navigator")

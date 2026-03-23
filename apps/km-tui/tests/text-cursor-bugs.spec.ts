@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { wrapText, getWrappedLines, cursorToRowCol } from "@silvery/react"
+import { wrapText, getWrappedLines, cursorToRowCol } from "@silvery/ag-react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
 

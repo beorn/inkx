@@ -23,8 +23,8 @@ import {
   useFocusManager,
   Link,
   type PatchedConsole,
-} from "@silvery/react"
-import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/term/runtime"
+} from "@silvery/ag-react"
+import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/ag-term/runtime"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"

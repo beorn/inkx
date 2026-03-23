@@ -44,9 +44,9 @@ const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
   )
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/reactive.ts"
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
-import { compareBuffers, formatMismatch } from "@silvery/term/toolbelt"
-import { StoreContext } from "@silvery/term/runtime"
-import { parseKey } from "@silvery/term/runtime"
+import { compareBuffers, formatMismatch } from "@silvery/ag-term/toolbelt"
+import { StoreContext } from "@silvery/ag-term/runtime"
+import { parseKey } from "@silvery/ag-term/runtime"
 import {
   createFocusManager,
   FocusManagerContext,
@@ -54,7 +54,7 @@ import {
   hitTest,
   processMouseEvent,
   createMouseEventProcessor,
-} from "@silvery/react"
+} from "@silvery/ag-react"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
@@ -77,7 +77,7 @@ import {
 } from "../../src/board-app-store.ts"
 import { handleKey, handleMouse, resetBoardAppState } from "../../src/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
-import type { ParsedMouse } from "@silvery/react"
+import type { ParsedMouse } from "@silvery/ag-react"
 import type { InitialBoardData } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
 

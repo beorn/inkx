@@ -10,7 +10,7 @@
 
 import { existsSync } from "fs"
 import { homedir } from "os"
-import { enableBracketedPaste, disableBracketedPaste, PASTE_START, PASTE_END } from "@silvery/react"
+import { enableBracketedPaste, disableBracketedPaste, PASTE_START, PASTE_END } from "@silvery/ag-react"
 
 // Increase max listeners for test scenarios where many Board components are created
 // Each Board adds a paste handler that listens to stdin

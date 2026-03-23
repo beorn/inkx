@@ -37,7 +37,7 @@ done
 ```
 
 **Grouping rules**:
-- silvery internal packages with <1000 LOC: group with their closest sibling (e.g., `@silvery/theme` + `@silvery/ui`)
+- silvery internal packages with <1000 LOC: group with their closest sibling (e.g., `@silvery/theme` + `@silvery/ag-react/ui`)
 - flexily: single review unit (all under `vendor/flexily/src/`)
 - Small packages (<500 LOC): skip unless specifically requested
 

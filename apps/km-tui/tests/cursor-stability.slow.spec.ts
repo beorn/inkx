@@ -13,7 +13,7 @@ import { stripAnsi } from "@silvery/test"
 import { existsSync } from "fs"
 import { createRepo, getChildren, type Repo } from "@km/storage"
 import { runGenerator } from "@km/core"
-import { withDiagnostics } from "@silvery/react"
+import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver } from "../src/driver.ts"
 
 /**

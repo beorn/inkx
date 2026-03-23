@@ -39,7 +39,7 @@ export const screenshotCommand = new Command("screenshot")
       import("@km/core"),
       import("../program.ts"),
       import("@km/tui"),
-      import("@silvery/react"),
+      import("@silvery/ag-react"),
     ])
 
     // Resolve path and load repo

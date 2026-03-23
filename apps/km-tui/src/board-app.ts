@@ -6,9 +6,9 @@
  * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
 
-import { createApp, type EventHandlerContext } from "@silvery/term/runtime"
-import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/react"
-import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/react"
+import { createApp, type EventHandlerContext } from "@silvery/ag-term/runtime"
+import type { Key, ParsedMouse, FocusManager, TeaNode } from "@silvery/ag-react"
+import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
 /** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */

@@ -7,7 +7,7 @@
  */
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { renderStatic, ThemeProvider } from "@silvery/react"
+import { renderStatic, ThemeProvider } from "@silvery/ag-react"
 import { createRenderer } from "@silvery/test"
 import { HelpOverlay } from "../src/views/HelpOverlay.tsx"
 import { defaultKmTheme } from "../src/theme.ts"

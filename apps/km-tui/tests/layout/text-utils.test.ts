@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { wrapText, truncateText, padText, constrainText, displayWidth as displayLength } from "@silvery/react"
+import { wrapText, truncateText, padText, constrainText, displayWidth as displayLength } from "@silvery/ag-react"
 
 // =============================================================================
 // wrapText

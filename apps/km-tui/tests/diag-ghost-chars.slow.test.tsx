@@ -13,11 +13,11 @@ import React, { useState } from "react"
 import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { VirtualTerminal, Box, Text, useInput } from "@silvery/react"
+import { VirtualTerminal, Box, Text, useInput } from "@silvery/ag-react"
 import { createRenderer } from "@silvery/test"
-import { outputPhase } from "@silvery/term/toolbelt"
+import { outputPhase } from "@silvery/ag-term/toolbelt"
 import { item } from "./helpers/board-test.ts"
-import type { TerminalBuffer } from "@silvery/term"
+import type { TerminalBuffer } from "@silvery/ag-term"
 
 // =============================================================================
 // Running Terminal — simulates what a real terminal accumulates

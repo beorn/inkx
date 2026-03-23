@@ -382,8 +382,8 @@
         "react": "^18.0.0 || ^19.0.0",
       },
     },
-    "vendor/silvery/packages/compat": {
-      "name": "@silvery/compat",
+    "vendor/silvery/packages/ink": {
+      "name": "@silvery/ink",
       "version": "0.3.0",
       "dependencies": {
         "@silvery/react": "workspace:*",
@@ -403,7 +403,7 @@
       "name": "@silvery/tea",
       "version": "0.3.0",
       "dependencies": {
-        "@silvery/compat": "workspace:*",
+        "@silvery/ink": "workspace:*",
         "@silvery/react": "workspace:*",
         "@silvery/term": "workspace:*",
         "@silvery/test": "workspace:*",
@@ -486,16 +486,6 @@
       "version": "0.3.0",
       "devDependencies": {
         "@napi-rs/cli": "^3.0.0",
-      },
-      "peerDependencies": {
-        "@termless/core": "*",
-      },
-    },
-    "vendor/termless/packages/census": {
-      "name": "@termless/census",
-      "version": "0.3.0",
-      "bin": {
-        "census": "./src/cli.ts",
       },
       "peerDependencies": {
         "@termless/core": "*",
@@ -1285,7 +1275,7 @@
 
     "@shikijs/vscode-textmate": ["@shikijs/vscode-textmate@10.0.2", "", {}, "sha512-83yeghZ2xxin3Nj8z1NMd/NCuca+gsYXswywDy5bHvwlWL8tpTQmzGeUuHd9FC3E/SBEMvzJRwWEOz5gGes9Qg=="],
 
-    "@silvery/compat": ["@silvery/compat@workspace:vendor/silvery/packages/compat"],
+    "@silvery/ink": ["@silvery/ink@workspace:vendor/silvery/packages/ink"],
 
     "@silvery/react": ["@silvery/react@workspace:vendor/silvery/packages/react"],
 
@@ -1308,8 +1298,6 @@
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
     "@termless/alacritty": ["@termless/alacritty@workspace:vendor/termless/packages/alacritty"],
-
-    "@termless/census": ["@termless/census@workspace:vendor/termless/packages/census"],
 
     "@termless/cli": ["@termless/cli@workspace:vendor/termless/packages/cli"],
 

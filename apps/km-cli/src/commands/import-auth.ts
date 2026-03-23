@@ -2,7 +2,7 @@
  * Import Auth — Asana token setup and config reset helpers
  */
 
-import { createTerm } from "@silvery/react"
+import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 
@@ -30,7 +30,7 @@ export async function ensureAsanaSetup(tokenOverride?: string): Promise<{ token:
   }
 
   // First time — walk user through setup
-  const { withTextInput, withSelect } = await import("@silvery/ui/wrappers")
+  const { withTextInput, withSelect } = await import("@silvery/ag-react/ui/wrappers")
 
   console.log(term.cyan("First-time Asana setup"))
   console.log(term.dim("Get a Personal Access Token from: https://app.asana.com/0/developer-console"))

@@ -2,7 +2,7 @@
  * Layout components bound to silvery
  */
 
-import { Box, Text, useStdout } from "@silvery/react"
+import { Box, Text, useStdout } from "@silvery/ag-react"
 import { createLayoutComponents } from "./factory.tsx"
 
 // Re-export everything from factory (types, pure utilities, hooks)

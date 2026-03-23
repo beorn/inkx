@@ -12,7 +12,7 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { TC } from "./helpers/theme.ts"
 import type { KNode } from "@km/core"
-import { stripAnsi } from "@silvery/react"
+import { stripAnsi } from "@silvery/ag-react"
 
 // ---------------------------------------------------------------------------
 // Helpers

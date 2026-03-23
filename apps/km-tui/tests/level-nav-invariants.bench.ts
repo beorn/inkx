@@ -35,7 +35,7 @@
 import { describe, test, expect } from "vitest"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
-import { withDiagnostics } from "@silvery/react"
+import { withDiagnostics } from "@silvery/ag-react"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("Level navigation invariants", () => {

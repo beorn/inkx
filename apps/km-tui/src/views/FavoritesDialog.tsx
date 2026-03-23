@@ -16,7 +16,7 @@
  * goes through the command system (keybindings layer "favorites-dialog").
  */
 import React from "react"
-import { Box, Text, ModalDialog, H1, H2, Muted, Small, Strong } from "@silvery/react"
+import { Box, Text, ModalDialog, H1, H2, Muted, Small, Strong } from "@silvery/ag-react"
 import { getAllFavorites, getFavorite, SYSTEM_LOCS, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"
