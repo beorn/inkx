@@ -7,7 +7,7 @@ INPUT=$(cat)
 WORKTREE_PATH=$(echo "$INPUT" | jq -r '.worktree_path // empty')
 
 if [ -z "$WORKTREE_PATH" ]; then
-  echo '{"hookSpecificOutput": {"status": "skipped", "reason": "no worktree_path"}}'
+  echo '{"decision": "approve", "reason": "no worktree_path, skipping setup"}'
   exit 0
 fi
 
@@ -15,7 +15,7 @@ LOG="/tmp/worktree-create-hook.log"
 echo "$(date '+%H:%M:%S') Setting up worktree: $WORKTREE_PATH" >> "$LOG"
 
 if ! cd "$WORKTREE_PATH" 2>/dev/null; then
-  echo "{\"hookSpecificOutput\": {\"status\": \"error\", \"reason\": \"cannot cd to $WORKTREE_PATH\"}}"
+  echo "{\"decision\": \"approve\", \"reason\": \"cannot cd to $WORKTREE_PATH\"}"
   exit 0
 fi
 
@@ -37,5 +37,5 @@ if [ -f .envrc ] && command -v direnv &>/dev/null; then
 fi
 
 echo "$(date '+%H:%M:%S') Worktree setup complete" >> "$LOG"
-echo "{\"hookSpecificOutput\": {\"status\": \"success\", \"worktree\": \"$WORKTREE_PATH\"}}"
+echo "{\"decision\": \"approve\", \"reason\": \"worktree setup complete: $WORKTREE_PATH\"}"
 exit 0
