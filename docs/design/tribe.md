@@ -736,6 +736,62 @@ The `tribe_health()` tool is particularly useful — it returns a diagnostic:
 }
 ```
 
+### Systemic Blockers (Infrastructure-Level)
+
+Beyond per-bead blockers, retros must track **infrastructure-level coordination failures** — shared resources that cause implicit blocking between members:
+
+| Blocker Type | Symptom | Detection | Coordination Protocol |
+|-------------|---------|-----------|----------------------|
+| **Git worktree/branch conflict** | Two members editing the same branch, merge conflicts | Member reports `request` before shared file edits; chief checks `cwd` field | Chief assigns worktree isolation: "Use `bun worktree` for this work" |
+| **CPU contention** | Multiple members running `test:all` simultaneously, everything slows | Member reports "tests running slow"; chief checks who else is testing | Chief sequences test runs: "Wait for member-X to finish tests before running yours" |
+| **Broken codebase** | Member A's refactor leaves code in a half-migrated state, member B can't build | Member B reports blocked; `bun fix` or `bun run test:fast` fails | Chief holds off new assignments until refactor is complete, or directs to worktree |
+| **Unpublished npm packages** | Member A published a new API in silvery, member B needs the npm version | Member B reports "need @silvery/foo@x.y.z but it's not on npm yet" | Chief asks member A to `npm publish`, or uses workspace overrides |
+| **Shared file hotspot** | Multiple members need to edit the same file (theme.ts, package.json) | Repeated `request`/`verdict` on same file across a session | Chief identifies hotspot in retro; future sessions use worktree isolation by default for that file |
+| **Stale .km/state.db** | Member's changes to storage/materialization require DB reset; other members' TUI breaks | Member reports "TUI shows wrong data" after another member's commit | Chief broadcasts: "Delete .km/state.db and relaunch" after storage changes |
+| **Lock file conflicts** | bun.lock, .beads/ Dolt lock, SQLite locks | "database is locked" errors, bun install conflicts | Chief sequences package installs; tribe.db already uses WAL + busy_timeout |
+
+**Members must report** when they:
+- Experience slowdowns (CPU contention from concurrent test runs, etc.)
+- Begin or complete a multi-file refactor (codebase stability)
+- Publish or need an npm package (dependency chain)
+- Create or merge a worktree (branch awareness)
+- Modify shared config files (package.json, tsconfig, .mcp.json)
+
+**On `/tribe sync`**, members should additionally report:
+- Active worktrees and their purpose
+- Any in-flight refactors that leave the codebase in a transitional state
+- npm packages they've changed but not yet published
+- Any slowdowns or resource contention they're experiencing
+
+**Retro analysis for systemic blockers:**
+```
+For each tribe session, compute:
+- Git conflict count (merge conflicts resolved)
+- CPU contention events (overlapping test runs)
+- Codebase stability gaps (time between "refactor started" → "refactor complete")
+- Package publish latency (time between "need package" → "package available")
+- Hotspot files (files mentioned in >2 request/verdict exchanges)
+```
+
+### Member Naming & Domain Focus
+
+Members should be named after their domain, not generic numbers. This lets the user see at a glance what each terminal is working on:
+
+```bash
+# Good: domain-focused names
+TRIBE_NAME=silvery-worker TRIBE_DOMAINS=silvery,flexily claude-tribe
+TRIBE_NAME=tui-worker TRIBE_DOMAINS=tui,cards,board claude-tribe
+TRIBE_NAME=termless-worker TRIBE_DOMAINS=termless,backends claude-tribe
+TRIBE_NAME=storage-worker TRIBE_DOMAINS=storage,parser,markdown claude-tribe
+
+# Bad: generic numbers
+claude-tribe  # auto-assigns member-1, member-2, ...
+```
+
+The chief routes work based on `domains` — a bead about silvery rendering goes to `silvery-worker`, not the first idle member. Members should `/tribe rename` to a meaningful name if they started with a generic one.
+
+When the chief receives a sync report, it should suggest renames if members are unnamed but have a clear domain focus from their work history.
+
 ### Failure Taxonomy
 
 Over multiple retros, patterns emerge. Classify and track:
@@ -749,6 +805,10 @@ Over multiple retros, patterns emerge. Classify and track:
 | **Scope creep** | Member created 5 new beads while working on 1 | Chief should gate new bead creation or review |
 | **External silence** | Telegram user waiting >15 min with no update | Chief sends interim "still working on it" automatically |
 | **Cascade failure** | Member dies, blocked beads pile up | Chief reassigns within 2 min of heartbeat timeout |
+| **Git conflict** | Merge conflict on shared branch | Use worktree isolation; chief tracks who's on which branch |
+| **CPU starvation** | Overlapping test suites slow everyone | Chief sequences test runs across members |
+| **Half-migrated code** | Refactor in progress breaks other members' builds | Chief holds assignments until refactor complete; direct others to worktree |
+| **Package lag** | npm publish needed before dependent work can proceed | Chief tracks publish chain; sequences dependent assignments |
 
 Track frequency of each failure type in retros to measure improvement over time.
 

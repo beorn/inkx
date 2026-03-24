@@ -58,10 +58,24 @@
       "mcp__tribe__tribe_history",
       "mcp__tribe__tribe_rename",
       "mcp__tribe__tribe_health",
+      "Skill(tribe)",
       "Skill(update-config)"
     ],
     "deny": [],
     "ask": []
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sqlite3 .beads/tribe.db \"UPDATE sessions SET claude_session_id = '${CLAUDE_SESSION_ID}' WHERE pid = (SELECT pid FROM sessions ORDER BY started_at DESC LIMIT 1)\" 2>/dev/null || true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
   },
   "outputStyle": "default",
   "spinnerTipsEnabled": false,
