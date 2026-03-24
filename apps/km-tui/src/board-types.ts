@@ -86,7 +86,9 @@ export interface BoardState {
  */
 export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
-  | { type: "SELECT"; nodeId: string | null }
+  // cardNodeId: optional hint for the card containing this node (used by click handler
+  // when clicking inside embeds — the visual card differs from the data model parent chain)
+  | { type: "SELECT"; nodeId: string | null; cardNodeId?: string }
 
   // Fold/unfold (manipulates foldDepths Map)
   | { type: "TOGGLE_FOLD"; nodeId: string }

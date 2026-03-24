@@ -448,6 +448,16 @@ export function createBoardAppStoreState(
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
           const viewNav = getViewNavigation(focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards")
           const ancestors = viewNav.classifyCursor(action.nodeId, rootId, s.repo)
+          // When a cardNodeId hint is provided (e.g., click inside an embed), use it
+          // if the derived card doesn't match. Embeds display children from a different
+          // subtree, so the data model parent chain leads to the wrong card.
+          if (action.cardNodeId && ancestors.cursorCardNodeId !== action.cardNodeId) {
+            const hintAncestors = viewNav.classifyCursor(action.cardNodeId, rootId, s.repo)
+            if (hintAncestors.selectionLevel === "card") {
+              ancestors.cursorCardNodeId = hintAncestors.cursorCardNodeId
+              ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
+            }
+          }
           // Sync detail pane when board cursor moves to a different card.
           // Detail pane's rootId = the cursor card, so update it and reset its cursor.
           // Must use set() (not silent mutation) so the detail Board re-renders with new rootId.

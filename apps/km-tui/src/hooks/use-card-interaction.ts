@@ -63,7 +63,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
       } else {
         // Plain click → select the clicked item (sub-item or card)
-        state.dispatchBoard({ type: "SELECT", nodeId: targetId })
+        // Pass cardNodeId hint so embedded sub-items resolve to the visual card,
+        // not the data model parent (which may be in a different column).
+        state.dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: nodeId })
       }
 
       e.stopPropagation()
