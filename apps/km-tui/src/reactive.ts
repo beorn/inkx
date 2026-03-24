@@ -114,38 +114,32 @@ export class ReactiveNodeStore {
   /** Track which card had cursorInDescendant=true so we can clear it on change */
   private prevDescendantCardId: string | null = null
 
-  // ── Hover state (debounced, centralized) ──
+  // ── Hover state (centralized, coalesced per-frame) ──
   private hoveredNodeId: string | null = null
-  private hoverTimer: ReturnType<typeof setTimeout> | null = null
-  private static HOVER_DEBOUNCE_MS = 80
+  private pendingHover: string | null | undefined = undefined // undefined = no pending
+  private hoverRafScheduled = false
 
-  /** Set the hovered node (debounced). Only 2 per-node signals fire: old clears, new sets. */
+  /** Set the hovered node. Coalesced: multiple calls in the same frame only
+   * fire the last one. Per-node signals ensure only 2 cards re-render. */
   setHovered(nodeId: string | null): void {
-    if (this.hoverTimer) {
-      clearTimeout(this.hoverTimer)
-      this.hoverTimer = null
+    if (nodeId === this.hoveredNodeId && this.pendingHover === undefined) return
+    this.pendingHover = nodeId
+    if (!this.hoverRafScheduled) {
+      this.hoverRafScheduled = true
+      // queueMicrotask coalesces within the same event loop tick — multiple
+      // mouseEnter/mouseLeave events from a single mouse move batch into one update.
+      queueMicrotask(() => {
+        this.hoverRafScheduled = false
+        const target = this.pendingHover
+        this.pendingHover = undefined
+        if (target === undefined) return
+        const prev = this.hoveredNodeId
+        if (prev === target) return
+        if (prev) this.getOrCreate(prev).hovered.value = false
+        if (target) this.getOrCreate(target).hovered.value = true
+        this.hoveredNodeId = target
+      })
     }
-
-    if (nodeId === this.hoveredNodeId) return
-
-    if (nodeId === null) {
-      // Mouse left — clear immediately (no debounce on leave)
-      this.applyHover(null)
-    } else {
-      // Mouse entered — debounce to avoid cascade during fast movement
-      this.hoverTimer = setTimeout(() => {
-        this.hoverTimer = null
-        this.applyHover(nodeId)
-      }, ReactiveNodeStore.HOVER_DEBOUNCE_MS)
-    }
-  }
-
-  private applyHover(nodeId: string | null): void {
-    const prev = this.hoveredNodeId
-    if (prev === nodeId) return
-    if (prev) this.getOrCreate(prev).hovered.value = false
-    if (nodeId) this.getOrCreate(nodeId).hovered.value = true
-    this.hoveredNodeId = nodeId
   }
 
   /** Sync cursor state from CursorStore to Reactive fields */
