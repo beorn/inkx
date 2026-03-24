@@ -462,13 +462,24 @@ export function createBoardAppStoreState(
               ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
             }
           }
+          // Capture previous card BEFORE updating cursor store (needed for detail pane sync).
+          const targetCursorStore =
+            focusedPane && isBoardPane(focusedPane) && focusedPane.cursorStore ? focusedPane.cursorStore : s.cursorStore
+          const prevCardId = targetCursorStore.getState().cursorCardNodeId
+
+          // Notify CursorStore FIRST — before any Zustand set() that could trigger
+          // a render with stale cursor state (prevents column scroll jump on embeds).
+          targetCursorStore.setState({
+            cursorNodeId: action.nodeId,
+            ...ancestors,
+          })
+
           // Sync detail pane when board cursor moves to a different card.
           // Detail pane's rootId = the cursor card, so update it and reset its cursor.
           // Must use set() (not silent mutation) so the detail Board re-renders with new rootId.
           const detailPane = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
           if (detailPane) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
-            const prevCardId = s.cursorStore.getState().cursorCardNodeId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
               // Initial cursor = first metadata row, then first child
               const newRootNode = s.repo.getNode(newCardId)
@@ -494,14 +505,6 @@ export function createBoardAppStoreState(
               }
             }
           }
-          // Notify CursorStore subscribers (only cursor-aware components re-render).
-          // Route to the focused pane's own cursor store (detail pane has its own).
-          const targetCursorStore =
-            focusedPane && isBoardPane(focusedPane) && focusedPane.cursorStore ? focusedPane.cursorStore : s.cursorStore
-          targetCursorStore.setState({
-            cursorNodeId: action.nodeId,
-            ...ancestors,
-          })
           return
         }
 
