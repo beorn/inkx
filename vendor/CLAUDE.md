@@ -60,6 +60,69 @@ For any vendor package to be "standalone-ready":
 | **watcher-chaos**    | —               | File watcher chaos testing                                |
 | **silvery-internal** | —               | Internal design docs (not published)                      |
 
+## ESM Publishing (Sindre Sorhus Pattern)
+
+All published packages must follow the **compiled ESM** pattern. **Never publish raw `.ts` source.**
+
+**Reference implementation**: flexily (`vendor/flexily/`)
+
+### package.json
+```json
+{
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "bun run build"
+  },
+  "engines": { "node": ">=18" }
+}
+```
+
+### tsconfig.build.json
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
+```
+
+### Rules
+- **`exports` → `./dist/*.js`** — never `./src/*.ts`
+- **`types` → `./dist/*.d.ts`** — generated declarations, not raw source
+- **`module` → `"NodeNext"`** in tsconfig — not `"bundler"` (that's dev-only)
+- **`files` → `["dist"]`** — ship compiled output, not source
+- **`dist/` in `.gitignore`** — built artifacts not tracked
+- **`prepublishOnly: "bun run build"`** — auto-build before npm publish
+- **No `require()`** — ESM only, use `import`
+- **No silent `catch {}`** — fail fast, fail loudly
+
+### Anti-patterns
+| Wrong | Right |
+|-------|-------|
+| `"exports": { ".": "./src/index.ts" }` | `"exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } }` |
+| `"moduleResolution": "bundler"` | `"moduleResolution": "NodeNext"` |
+| `"noEmit": true` in published package | `"declaration": true, "outDir": "dist"` |
+| `"files": ["src"]` | `"files": ["dist"]` |
+| `} catch {}` | `} catch (err) { throw new Error(...) }` |
+
 ## Fixing Violations
 
 When you find a `vendor/` reference in a vendor package:
