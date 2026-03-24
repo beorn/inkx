@@ -267,12 +267,18 @@ function TreeNodeImpl({
     dim,
   ])
 
+  // Card title highlight: when cursor is on a sub-item (not the card title),
+  // show yellow text instead of inverse selection. Only applies at depth 0 (card title).
+  // Per-node cursorInDescendant Reactive — only the active card's node fires.
+  const cursorInDescendant = useReactive(nodeStore.getOrCreate(node.id).cursorInDescendant)
+  const titleHighlightOnly = depth === 0 && isSelected && !isMultiSelected && cursorInDescendant
+
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const searchHighlight = isSearchMatch && !isSelected && !isMultiSelected
-  const effectiveBg = style.backgroundColor
-  const tc = style.textColor
+  const effectiveBg = titleHighlightOnly ? undefined : style.backgroundColor
+  const tc = titleHighlightOnly ? "$selection-bg" : style.textColor
   const sd = style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
@@ -527,11 +533,12 @@ function TreeNodeImpl({
         <Box
           id={node.id}
           data-view="item"
-          {...(isSelected && {
-            "data-cursor": true,
-            "data-col-index": colIndex,
-            "data-card-index": cardIndex,
-          })}
+          {...(isSelected &&
+            !titleHighlightOnly && {
+              "data-cursor": true,
+              "data-col-index": colIndex,
+              "data-card-index": cardIndex,
+            })}
           flexDirection="row"
           alignItems={isOneliner || isCardChild ? undefined : "flex-start"}
           overflow={isOneliner || isCardChild ? "hidden" : undefined}

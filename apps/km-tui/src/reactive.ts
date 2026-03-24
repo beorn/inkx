@@ -77,6 +77,9 @@ interface NodeReactiveState {
   foldOverride: Reactive<number | undefined>
   edit: Reactive<NodeEditState | null>
   excludedSigils: Reactive<string[]>
+  /** True when cursor is in this card but on a descendant (not this node).
+   * Used by card title TreeNode to show yellow fg instead of inverse bg. */
+  cursorInDescendant: Reactive<boolean>
 }
 
 function createNodeState(): NodeReactiveState {
@@ -87,6 +90,7 @@ function createNodeState(): NodeReactiveState {
     foldOverride: new Reactive<number | undefined>(undefined),
     edit: new Reactive<NodeEditState | null>(null),
     excludedSigils: new Reactive<string[]>([]),
+    cursorInDescendant: new Reactive(false),
   }
 }
 
@@ -103,6 +107,8 @@ export class ReactiveNodeStore {
   cursorCardNodeId = new Reactive<string | null>(null)
   cursorColumnNodeId = new Reactive<string | null>(null)
   selectionLevel = new Reactive<"board" | "column" | "card">("board")
+  /** Track which card had cursorInDescendant=true so we can clear it on change */
+  private prevDescendantCardId: string | null = null
 
   /** Sync cursor state from CursorStore to Reactive fields */
   syncCursor(cursorState: {
@@ -115,6 +121,24 @@ export class ReactiveNodeStore {
     this.cursorCardNodeId.value = cursorState.cursorCardNodeId
     this.cursorColumnNodeId.value = cursorState.cursorColumnNodeId
     this.selectionLevel.value = cursorState.selectionLevel
+
+    // Update per-card cursorInDescendant: true when cursor is in this card
+    // but on a sub-item (not the card title). Only the affected card's
+    // TreeNode at depth 0 subscribes, so only 1-2 components re-render.
+    const cardId = cursorState.cursorCardNodeId
+    const isInDescendant = cardId != null && cursorState.cursorNodeId !== cardId
+
+    // Clear previous card's flag (if it changed)
+    if (this.prevDescendantCardId && this.prevDescendantCardId !== cardId) {
+      this.getOrCreate(this.prevDescendantCardId).cursorInDescendant.value = false
+    }
+
+    // Set current card's flag
+    if (cardId) {
+      this.getOrCreate(cardId).cursorInDescendant.value = isInDescendant
+    }
+
+    this.prevDescendantCardId = isInDescendant ? cardId : null
   }
 
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
