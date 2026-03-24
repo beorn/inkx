@@ -60,68 +60,62 @@ For any vendor package to be "standalone-ready":
 | **watcher-chaos**    | —               | File watcher chaos testing                                |
 | **silvery-internal** | —               | Internal design docs (not published)                      |
 
-## ESM Publishing (Sindre Sorhus Pattern)
+## ESM Publishing
 
-All published packages must follow the **compiled ESM** pattern. **Never publish raw `.ts` source.**
+Publish raw TypeScript source — no build step. Node.js 23.6+ strips types natively; Bun always could.
 
-**Reference implementation**: flexily (`vendor/flexily/`)
+**Reference implementation**: vt100.js (`vendor/vt100/`)
 
 ### package.json
 ```json
 {
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    }
+    ".": "./src/index.ts"
   },
-  "types": "./dist/index.d.ts",
-  "main": "./dist/index.js",
-  "files": ["dist"],
-  "scripts": {
-    "build": "tsc",
-    "prepublishOnly": "bun run build"
-  },
-  "engines": { "node": ">=18" }
+  "files": ["src"],
+  "engines": { "node": ">=23.6.0" }
 }
 ```
 
-### tsconfig.build.json
+### tsconfig.json (dev only — typecheck, not build)
 ```json
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "declaration": true,
-    "outDir": "dist",
-    "rootDir": "src",
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
+    "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
 ```
 
 ### Rules
-- **`exports` → `./dist/*.js`** — never `./src/*.ts`
-- **`types` → `./dist/*.d.ts`** — generated declarations, not raw source
-- **`module` → `"NodeNext"`** in tsconfig — not `"bundler"` (that's dev-only)
-- **`files` → `["dist"]`** — ship compiled output, not source
-- **`dist/` in `.gitignore`** — built artifacts not tracked
-- **`prepublishOnly: "bun run build"`** — auto-build before npm publish
+- **Publish `.ts` source** — no `dist/`, no build step, no `.js` output
+- **`exports` → `./src/index.ts`** — direct TypeScript
+- **`files` → `["src"]`** — ship source only
+- **Import with `.ts` extensions** — `import { foo } from "./bar.ts"`
+- **`engines.node` → `">=23.6.0"`** — requires native type stripping
 - **No `require()`** — ESM only, use `import`
 - **No silent `catch {}`** — fail fast, fail loudly
+- **No `dist/` directory** — nothing to build, nothing to forget
 
-### Anti-patterns
-| Wrong | Right |
-|-------|-------|
-| `"exports": { ".": "./src/index.ts" }` | `"exports": { ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" } }` |
-| `"moduleResolution": "bundler"` | `"moduleResolution": "NodeNext"` |
-| `"noEmit": true` in published package | `"declaration": true, "outDir": "dist"` |
-| `"files": ["src"]` | `"files": ["dist"]` |
-| `} catch {}` | `} catch (err) { throw new Error(...) }` |
+### Why not compiled `.js`?
+- Node.js 23.6+ handles `.ts` natively (type stripping, no transpilation)
+- Bun handles `.ts` natively
+- Bundlers (Vite, esbuild, webpack) handle `.ts` natively
+- No build step = no stale artifacts, no version skew, no "forgot to build"
+- Source IS the artifact
+
+### When to add a build step
+- **Minification** for large packages (reduce npm install size)
+- **Backwards compat** with Node.js < 23.6
+- **Pre-built for performance** (skip type stripping on every import)
+
+Use `bun build src/index.ts --outdir dist --target node` when needed.
 
 ## Fixing Violations
 
