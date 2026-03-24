@@ -34,6 +34,9 @@ export interface ActionCtx {
   rootId: string | null
   rootPath: string | null
   cursorNodeId: string | null
+  /** Current card containing the cursor (from CursorStore). Used as embed-aware
+   * hint — data model parent chain may lead to the wrong card for embeds. */
+  cursorCardNodeId: string | null
   selectedNodes: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>

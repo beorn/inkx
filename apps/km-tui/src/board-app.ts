@@ -211,6 +211,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       rootId,
       rootPath: board?.rootPath ?? null,
       cursorNodeId,
+      cursorCardNodeId: s.cursorStore.getState().cursorCardNodeId,
       selectedNodes: board?.selectedNodes ?? new Set(),
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),

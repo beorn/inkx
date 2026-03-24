@@ -31,6 +31,9 @@ export interface NavState {
   rootId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
+  /** Current card containing the cursor (from CursorStore). Used as embed-aware
+   * card boundary hint — overrides findAncestorAtDepth when available. */
+  cursorCardNodeId?: string | null
 }
 
 /**
@@ -128,18 +131,33 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
 
   // Resolve sub-card descendants to their card-level ancestor.
   // Needed to know which card we're inside, even when navigating at sub-block level.
+  // Prefer cursorCardNodeId from the cursor store when available — it reflects the
+  // VISUAL card, which may differ from the data model parent chain for embeds.
   let cardNodeId = cursorNodeId
   let isBodyCardDescendant = false
   if (isAtCardLevel && !isBodyContent) {
-    const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
-    if (directChildOfRoot) {
-      const directChildNode = repo.getNode(directChildOfRoot)
-      if (directChildNode && !isOutline(directChildNode.type, directChildNode.item)) {
-        cardNodeId = directChildOfRoot
-        isBodyCardDescendant = true
-      } else {
-        const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
-        if (cardAncestor) cardNodeId = cardAncestor
+    if (state.cursorCardNodeId) {
+      // Use the cursor store's card (embed-aware)
+      cardNodeId = state.cursorCardNodeId
+      // Check if it's a body card descendant
+      const directChildOfRoot = findAncestorAtDepth(state.cursorCardNodeId, rootId, 0, repo)
+      if (directChildOfRoot) {
+        const directChildNode = repo.getNode(state.cursorCardNodeId)
+        if (directChildNode && directChildNode.parent_id === rootId && !isOutline(directChildNode.type, directChildNode.item)) {
+          isBodyCardDescendant = true
+        }
+      }
+    } else {
+      const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
+      if (directChildOfRoot) {
+        const directChildNode = repo.getNode(directChildOfRoot)
+        if (directChildNode && !isOutline(directChildNode.type, directChildNode.item)) {
+          cardNodeId = directChildOfRoot
+          isBodyCardDescendant = true
+        } else {
+          const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
+          if (cardAncestor) cardNodeId = cardAncestor
+        }
       }
     }
   }
