@@ -114,22 +114,20 @@ export class ReactiveNodeStore {
   /** Track which card had cursorInDescendant=true so we can clear it on change */
   private prevDescendantCardId: string | null = null
 
-  // ── Hover state (centralized, coalesced per-frame) ──
+  // ── Hover state (centralized, coalesced across I/O events) ──
   private hoveredNodeId: string | null = null
   private pendingHover: string | null | undefined = undefined // undefined = no pending
-  private hoverRafScheduled = false
+  private hoverScheduled = false
 
-  /** Set the hovered node. Coalesced: multiple calls in the same frame only
-   * fire the last one. Per-node signals ensure only 2 cards re-render. */
+  /** Set the hovered node. Coalesced: rapid mouseEnter/mouseLeave events
+   * across multiple I/O callbacks batch into one update. setTimeout(0)
+   * fires after all pending I/O, so only the last hover target renders. */
   setHovered(nodeId: string | null): void {
-    if (nodeId === this.hoveredNodeId && this.pendingHover === undefined) return
     this.pendingHover = nodeId
-    if (!this.hoverRafScheduled) {
-      this.hoverRafScheduled = true
-      // queueMicrotask coalesces within the same event loop tick — multiple
-      // mouseEnter/mouseLeave events from a single mouse move batch into one update.
-      queueMicrotask(() => {
-        this.hoverRafScheduled = false
+    if (!this.hoverScheduled) {
+      this.hoverScheduled = true
+      setTimeout(() => {
+        this.hoverScheduled = false
         const target = this.pendingHover
         this.pendingHover = undefined
         if (target === undefined) return
@@ -138,7 +136,7 @@ export class ReactiveNodeStore {
         if (prev) this.getOrCreate(prev).hovered.value = false
         if (target) this.getOrCreate(target).hovered.value = true
         this.hoveredNodeId = target
-      })
+      }, 0)
     }
   }
 
