@@ -59,7 +59,8 @@
       "mcp__tribe__tribe_rename",
       "mcp__tribe__tribe_health",
       "Skill(tribe)",
-      "Skill(update-config)"
+      "Skill(update-config)",
+      "Skill(release)"
     ],
     "deny": [],
     "ask": []

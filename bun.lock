@@ -345,10 +345,7 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.3.0",
-      "bin": {
-        "silvery": "./bin/silvery.ts",
-      },
+      "version": "0.4.2",
       "dependencies": {
         "chalk": "^5.6.2",
         "loggily": "github:beorn/loggily",
@@ -382,7 +379,7 @@
     },
     "vendor/silvery/packages/ag": {
       "name": "@silvery/ag",
-      "version": "0.3.0",
+      "version": "0.4.2",
       "dependencies": {
         "@silvery/ag-term": "workspace:*",
         "@silvery/tea": "workspace:*",
@@ -390,7 +387,7 @@
     },
     "vendor/silvery/packages/ag-react": {
       "name": "@silvery/ag-react",
-      "version": "0.3.0",
+      "version": "0.4.2",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/theme": "workspace:*",
@@ -401,7 +398,7 @@
     },
     "vendor/silvery/packages/ag-term": {
       "name": "@silvery/ag-term",
-      "version": "0.3.0",
+      "version": "0.4.2",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -411,9 +408,20 @@
         "flexily": "github:beorn/flexily",
       },
     },
+    "vendor/silvery/packages/cli": {
+      "name": "@silvery/examples",
+      "version": "0.4.2",
+      "bin": {
+        "silvery-examples": "./bin/cli.ts",
+      },
+      "dependencies": {
+        "@silvery/tea": "workspace:*",
+        "silvery": "workspace:*",
+      },
+    },
     "vendor/silvery/packages/ink": {
       "name": "@silvery/ink",
-      "version": "0.3.0",
+      "version": "0.4.2",
       "dependencies": {
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
@@ -422,7 +430,7 @@
     },
     "vendor/silvery/packages/tea": {
       "name": "@silvery/tea",
-      "version": "0.3.0",
+      "version": "0.4.2",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -433,7 +441,7 @@
     },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
-      "version": "0.3.0",
+      "version": "0.4.2",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -443,7 +451,7 @@
     },
     "vendor/silvery/packages/theme": {
       "name": "@silvery/theme",
-      "version": "0.3.0",
+      "version": "0.4.2",
     },
     "vendor/tap": {
       "name": "@beorn/tap",
@@ -459,10 +467,10 @@
     "vendor/terminfo.dev": {
       "name": "terminfo.dev",
       "dependencies": {
-        "@termless/core": "workspace:*",
+        "@termless/core": "^0.3.0",
         "commander": "^13.0.0",
-        "loggily": "workspace:*",
-        "silvery": "workspace:*",
+        "loggily": "^0.4.0",
+        "silvery": "^0.4.1",
       },
       "devDependencies": {
         "vitepress": "^1.5.0",
@@ -654,7 +662,7 @@
     },
     "vendor/vt100": {
       "name": "vt100.js",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "devDependencies": {
         "vitest": "^4.0.0",
       },
@@ -1308,6 +1316,8 @@
     "@silvery/ag-react": ["@silvery/ag-react@workspace:vendor/silvery/packages/ag-react"],
 
     "@silvery/ag-term": ["@silvery/ag-term@workspace:vendor/silvery/packages/ag-term"],
+
+    "@silvery/examples": ["@silvery/examples@workspace:vendor/silvery/packages/cli"],
 
     "@silvery/ink": ["@silvery/ink@workspace:vendor/silvery/packages/ink"],
 
