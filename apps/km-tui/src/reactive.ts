@@ -80,6 +80,9 @@ interface NodeReactiveState {
   /** True when cursor is in this card but on a descendant (not this node).
    * Used by card title TreeNode to show yellow fg instead of inverse bg. */
   cursorInDescendant: Reactive<boolean>
+  /** True when mouse is hovering over this node's card. Per-node signal so
+   * only the entering/leaving card re-renders (not all cards). */
+  hovered: Reactive<boolean>
 }
 
 function createNodeState(): NodeReactiveState {
@@ -91,6 +94,7 @@ function createNodeState(): NodeReactiveState {
     edit: new Reactive<NodeEditState | null>(null),
     excludedSigils: new Reactive<string[]>([]),
     cursorInDescendant: new Reactive(false),
+    hovered: new Reactive(false),
   }
 }
 
@@ -109,6 +113,40 @@ export class ReactiveNodeStore {
   selectionLevel = new Reactive<"board" | "column" | "card">("board")
   /** Track which card had cursorInDescendant=true so we can clear it on change */
   private prevDescendantCardId: string | null = null
+
+  // ── Hover state (debounced, centralized) ──
+  private hoveredNodeId: string | null = null
+  private hoverTimer: ReturnType<typeof setTimeout> | null = null
+  private static HOVER_DEBOUNCE_MS = 80
+
+  /** Set the hovered node (debounced). Only 2 per-node signals fire: old clears, new sets. */
+  setHovered(nodeId: string | null): void {
+    if (this.hoverTimer) {
+      clearTimeout(this.hoverTimer)
+      this.hoverTimer = null
+    }
+
+    if (nodeId === this.hoveredNodeId) return
+
+    if (nodeId === null) {
+      // Mouse left — clear immediately (no debounce on leave)
+      this.applyHover(null)
+    } else {
+      // Mouse entered — debounce to avoid cascade during fast movement
+      this.hoverTimer = setTimeout(() => {
+        this.hoverTimer = null
+        this.applyHover(nodeId)
+      }, ReactiveNodeStore.HOVER_DEBOUNCE_MS)
+    }
+  }
+
+  private applyHover(nodeId: string | null): void {
+    const prev = this.hoveredNodeId
+    if (prev === nodeId) return
+    if (prev) this.getOrCreate(prev).hovered.value = false
+    if (nodeId) this.getOrCreate(nodeId).hovered.value = true
+    this.hoveredNodeId = nodeId
+  }
 
   /** Sync cursor state from CursorStore to Reactive fields */
   syncCursor(cursorState: {

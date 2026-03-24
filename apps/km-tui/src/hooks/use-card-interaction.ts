@@ -7,13 +7,14 @@
  * - Cmd+hover → armed state visual (Kitty protocol)
  */
 
-import React, { useCallback, useState } from "react"
+import React, { useCallback } from "react"
 import { StoreContext } from "@silvery/tea/create-app"
 import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
+import { useNodeStore, useReactive } from "../reactive.ts"
 
 export interface CardInteraction {
   hovered: boolean
@@ -27,15 +28,18 @@ export interface CardInteraction {
 }
 
 export function useCardInteraction(nodeId: string, isSelected: boolean): CardInteraction {
-  const [hovered, setHovered] = useState(false)
+  // Centralized hover: per-node reactive signal, debounced at the store level.
+  // Only 2 cards re-render per hover change (old clears, new sets).
+  const nodeStore = useNodeStore()
+  const hovered = useReactive(nodeStore.getOrCreate(nodeId).hovered)
   const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
   const armed = hovered && cmdHeld
   useMouseCursor(armed ? "pointer" : null)
 
   const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
 
-  const handleMouseEnter = useCallback(() => setHovered(true), [])
-  const handleMouseLeave = useCallback(() => setHovered(false), [])
+  const handleMouseEnter = useCallback(() => nodeStore.setHovered(nodeId), [nodeStore, nodeId])
+  const handleMouseLeave = useCallback(() => nodeStore.setHovered(null), [nodeStore])
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
