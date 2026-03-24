@@ -103,7 +103,7 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
       // Pass cursorCardNodeId hint for embed-aware card classification.
       // When navigating within an embed's children, the data model parent
       // chain leads to the wrong card — the hint ensures the visual card is used.
-      dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: ctx.cursorCardNodeId ?? undefined })
+      dispatchBoard({ type: "SELECT", nodeId: targetId })
       // In cards view, attach deferred resolve for off-screen Y-correction.
       // register() will fire it during silvery's Phase 2.7.
       if (ui.viewMode === "cards") {
@@ -185,7 +185,7 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
   const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
   if (targetId === null) return boundary(dir)
 
-  dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: ctx.cursorCardNodeId ?? undefined })
+  dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
 }
 

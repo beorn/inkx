@@ -448,29 +448,14 @@ export function createBoardAppStoreState(
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
           const viewNav = getViewNavigation(focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards")
           const ancestors = viewNav.classifyCursor(action.nodeId, rootId, s.repo)
-          // When a cardNodeId hint is provided (e.g., click inside an embed or keyboard
-          // nav within embedded children), use it if the derived card doesn't match AND
-          // the target node isn't a data-model descendant of the derived card. This
-          // distinguishes embeds (target's parent chain goes to wrong card) from normal
-          // card-to-card navigation (derived card is correct, hint is the old card).
-          if (action.cardNodeId && ancestors.cursorCardNodeId !== action.cardNodeId) {
-            // Check: is target actually a descendant of the derived card?
-            // If not, derivation followed an embed's parent chain → use the hint.
-            let isDescendantOfDerived = false
-            if (ancestors.cursorCardNodeId && action.nodeId) {
-              let walkId: string | null = action.nodeId
-              for (let i = 0; i < 100 && walkId; i++) {
-                if (walkId === ancestors.cursorCardNodeId) { isDescendantOfDerived = true; break }
-                const n = s.repo.getNode(walkId)
-                walkId = n?.parent_id ?? null
-              }
-            }
-            if (!isDescendantOfDerived) {
-              const hintAncestors = viewNav.classifyCursor(action.cardNodeId, rootId, s.repo)
-              if (hintAncestors.selectionLevel === "card") {
-                ancestors.cursorCardNodeId = hintAncestors.cursorCardNodeId
-                ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
-              }
+          // Click hint: the click handler always knows the exact visual card. When
+          // clicking inside an embed, the data model parent chain leads to the source
+          // card, not the visual card. The click hint overrides unconditionally.
+          if (action.cardNodeId && action.cardHintSource === "click" && ancestors.cursorCardNodeId !== action.cardNodeId) {
+            const hintAncestors = viewNav.classifyCursor(action.cardNodeId, rootId, s.repo)
+            if (hintAncestors.selectionLevel === "card") {
+              ancestors.cursorCardNodeId = hintAncestors.cursorCardNodeId
+              ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
             }
           }
           // Sync detail pane when board cursor moves to a different card.

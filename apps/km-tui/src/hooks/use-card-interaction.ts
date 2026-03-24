@@ -65,7 +65,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         // Plain click → select the clicked item (sub-item or card)
         // Pass cardNodeId hint so embedded sub-items resolve to the visual card,
         // not the data model parent (which may be in a different column).
-        state.dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: nodeId })
+        state.dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: nodeId, cardHintSource: "click" })
       }
 
       e.stopPropagation()
