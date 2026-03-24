@@ -451,7 +451,11 @@ export function createBoardAppStoreState(
           // Click hint: the click handler always knows the exact visual card. When
           // clicking inside an embed, the data model parent chain leads to the source
           // card, not the visual card. The click hint overrides unconditionally.
-          if (action.cardNodeId && action.cardHintSource === "click" && ancestors.cursorCardNodeId !== action.cardNodeId) {
+          if (
+            action.cardNodeId &&
+            action.cardHintSource === "click" &&
+            ancestors.cursorCardNodeId !== action.cardNodeId
+          ) {
             const hintAncestors = viewNav.classifyCursor(action.cardNodeId, rootId, s.repo)
             if (hintAncestors.selectionLevel === "card") {
               ancestors.cursorCardNodeId = hintAncestors.cursorCardNodeId

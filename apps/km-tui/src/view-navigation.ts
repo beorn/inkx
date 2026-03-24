@@ -143,7 +143,11 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       const directChildOfRoot = findAncestorAtDepth(state.cursorCardNodeId, rootId, 0, repo)
       if (directChildOfRoot) {
         const directChildNode = repo.getNode(state.cursorCardNodeId)
-        if (directChildNode && directChildNode.parent_id === rootId && !isOutline(directChildNode.type, directChildNode.item)) {
+        if (
+          directChildNode &&
+          directChildNode.parent_id === rootId &&
+          !isOutline(directChildNode.type, directChildNode.item)
+        ) {
           isBodyCardDescendant = true
         }
       }

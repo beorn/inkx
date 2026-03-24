@@ -697,8 +697,11 @@ export function Board({ patchedConsole }: BoardProps) {
   // Board re-renders on every cursor change — the cursor-context hooks
   // handle fine-grained subscriptions for individual components.
   const cursorNodeIdRef = useRef<string | null>(null)
+  const cursorCardNodeIdRef = useRef<string | null>(null)
   const cursorNodeId = useSyncExternalStore(cursorStore.subscribe, () => {
-    const id = cursorStore.getState().cursorNodeId
+    const state = cursorStore.getState()
+    cursorCardNodeIdRef.current = state.cursorCardNodeId
+    const id = state.cursorNodeId
     if (id === cursorNodeIdRef.current) return cursorNodeIdRef.current
     cursorNodeIdRef.current = id
     return id
@@ -706,8 +709,9 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Derive cursor position from cursorNodeId + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index
+  // cursorCardNodeId hint prevents embeds from resolving to the wrong column
   const cursorPosition = useMemo(
-    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex, getNode),
+    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex, getNode, cursorCardNodeIdRef.current),
     [columns, cursorNodeId, nodeIndex, getNode],
   )
 

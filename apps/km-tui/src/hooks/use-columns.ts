@@ -105,6 +105,8 @@ export function deriveCursorIndices(
   cursorNodeId: string | null,
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
   getNode?: (id: string) => { parent_id: string | null } | null,
+  /** Hint from cursor store — for embeds where parent_id chain leads to wrong card */
+  cursorCardNodeId?: string | null,
 ): CursorIndices {
   if (!cursorNodeId || columns.length === 0) {
     return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
@@ -113,7 +115,10 @@ export function deriveCursorIndices(
   // Direct lookup
   let entry = nodeIndex.get(cursorNodeId)
 
-  // On miss: walk up parent chain to find containing card
+  // On miss: try cursorCardNodeId hint first (embed-aware), then parent walk
+  if (!entry && cursorCardNodeId) {
+    entry = nodeIndex.get(cursorCardNodeId)
+  }
   if (!entry && getNode) {
     let current = getNode(cursorNodeId)
     while (current?.parent_id) {

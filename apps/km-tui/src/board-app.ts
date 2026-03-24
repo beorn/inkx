@@ -198,7 +198,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       nodeIndex = buildNodeIndex(columns)
       locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex }
     }
-    const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
+    const cursorCardNodeId = s.cursorStore.getState().cursorCardNodeId
+    const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id), cursorCardNodeId)
     const column = columns[cursor.colIndex]
     const card = column?.cardNodes[cursor.cardIndex]
     const selectedNode = card ?? column?.node ?? null
