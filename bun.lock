@@ -427,6 +427,7 @@
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
+        "@silvery/commands": "workspace:*",
         "@silvery/ink": "workspace:*",
         "@silvery/test": "workspace:*",
       },
@@ -438,6 +439,7 @@
         "silvery-examples": "./bin/cli.ts",
       },
       "dependencies": {
+        "@silvery/ag-term": "workspace:*",
         "@silvery/create": "workspace:*",
         "silvery": "workspace:*",
       },
