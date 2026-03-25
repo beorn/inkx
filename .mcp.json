@@ -10,7 +10,7 @@
     },
     "github": {
       "command": "bun",
-      "args": ["vendor/bearly/tools/github-channel.ts"]
+      "args": ["vendor/bearly/tools/github-channel.ts", "--repos", "all"]
     }
   }
 }
