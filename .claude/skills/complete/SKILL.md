@@ -43,7 +43,15 @@ If the diffs are truncated, Read the changed files to fill gaps. If still unclea
 
 ### How to investigate
 
-Form 5-10 hypotheses. Prioritize non-obvious ones — the obvious searches (exact old name) are easy; the creative ones (variant spellings, related concepts, sibling functions) catch what others miss.
+**CRITICAL: Never skip this step.** The investigation IS the point of /complete — tests and lint are table stakes anyone can run. The hypotheses catch what automation can't: stale docs, dead references, orphaned code, leaking abstractions.
+
+**Scale with surface area.** The 5-10 hypothesis range is a minimum for small changes. For larger work:
+- 1-3 files changed → 5 hypotheses
+- 5-10 files changed → 10 hypotheses
+- 10+ files or cross-package → 15-20 hypotheses
+- Docs reorg / rename / deletion → add hypotheses for every deleted/renamed file
+
+Form hypotheses. Prioritize non-obvious ones — the obvious searches (exact old name) are easy; the creative ones (variant spellings, related concepts, sibling functions) catch what others miss.
 
 For each hypothesis, grep the **entire repo**:
 ```

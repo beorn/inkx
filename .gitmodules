@@ -11,7 +11,7 @@
 	path = vendor/termless
 	url = git@github.com:beorn/termless.git
 [submodule "vendor/tools"]
-	path = vendor/tools
+	path = vendor/bearly
 	url = git@github.com:beorn/tools.git
 [submodule "vendor/silvery"]
 	path = vendor/silvery
@@ -19,9 +19,6 @@
 [submodule "vendor/vimonkey"]
 	path = vendor/vimonkey
 	url = git@github.com:beorn/vimonkey.git
-[submodule "vendor/bearlymade"]
-	path = vendor/bearlymade
-	url = git@github.com:beorn/bearlymade.git
 [submodule "vendor/silvery-internal"]
 	path = vendor/silvery-internal
 	url = git@github.com:beorn/silvery-internal.git
