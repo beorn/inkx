@@ -51,6 +51,8 @@
     "worktree": "bun vendor/bearly/tools/worktree.ts",
     "accountly": "bun vendor/accountly/src/cli.ts",
     "recall": "bun vendor/bearly/tools/recall.ts",
+    "tribe": "bun vendor/bearly/tools/tribe-cli.ts",
+    "tribe-retro": "bun vendor/bearly/tools/tribe-retro.ts",
     "llm": "bun vendor/bearly/tools/llm.ts",
     "refactor": "bun vendor/bearly/tools/refactor.ts",
     "tap": "bun ./vendor/tap/src/cli/runner.ts",
