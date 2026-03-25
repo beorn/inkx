@@ -1005,6 +1005,7 @@
 {"created_at":"2026-03-24T20:52:19Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2a-6-unification","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T20:52:19Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-5-plugins","issue_id":"km-silvery.era2a-6-unification","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-24T21:35:57Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2a-docs-launch","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:11:22Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-6-unification","issue_id":"km-silvery.era2a-docs-launch","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-20T13:06:48Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2b-0-tea","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T22:02:50Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-5-plugins","issue_id":"km-silvery.era2b-0-tea","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-20T13:06:49Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2b-1-headless","metadata":"{}","type":"parent-child"}
@@ -1427,6 +1428,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-swatch","issue_id":"km-themex.token-redesign","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-swatch","issue_id":"km-themex.vision","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-7xli","issue_id":"km-tiyk","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-24T22:15:45Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery.era2","issue_id":"km-tkbuj","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tkfgb","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tlc2p","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tmmq3","metadata":"{}","type":"parent-child"}
@@ -1435,6 +1437,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools.bd-api","issue_id":"km-tools.bd-api.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools.bd-api","issue_id":"km-tools.bd-api.2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.bd-proxy","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:12:20Z","created_by":"claude:19080504","depends_on_id":"km-tools","issue_id":"km-tools.claude-plugins","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.clean-dims","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.commit-perf","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.daily-summary","metadata":"{}","type":"parent-child"}
