@@ -45,10 +45,12 @@ echo "$TSC_OUTPUT" \
   | sort \
   | uniq -c \
   | sed 's/^ *//' \
-  > "$CURRENT"
+  > "$CURRENT" || true  # 0 errors = grep exits 1, which is fine
 
-CURRENT_TOTAL=$(echo "$TSC_OUTPUT" | grep -c 'error TS' || echo "0")
+CURRENT_TOTAL=$(echo "$TSC_OUTPUT" | grep -c 'error TS' || true)
+CURRENT_TOTAL=${CURRENT_TOTAL:-0}
 BASELINE_TOTAL=$(awk '{sum += $1} END {print sum+0}' "$BASELINE")
+BASELINE_TOTAL=${BASELINE_TOTAL:-0}
 
 # Compare: for each file in current output, check if it exceeds baseline
 FAILED=0
@@ -84,8 +86,8 @@ if [ "$FAILED" -gt 0 ]; then
   exit 1
 fi
 
-FIXED=$((BASELINE_TOTAL - CURRENT_TOTAL))
-if [ "$FIXED" -gt 0 ] && [ "$FIXED" -lt "$BASELINE_TOTAL" ]; then
+FIXED=$(( ${BASELINE_TOTAL:-0} - ${CURRENT_TOTAL:-0} ))
+if [ "${FIXED:-0}" -gt 0 ] && [ "${BASELINE_TOTAL:-0}" -gt 0 ]; then
   echo "typecheck: OK ($CURRENT_TOTAL errors, ~$FIXED fixed since baseline)"
   echo "  Update baseline to lock in fixes: bun run typecheck:update"
 else

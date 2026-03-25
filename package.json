@@ -18,6 +18,7 @@
     "vendor/bearly/packages/*"
   ],
   "overrides": {
+    "silvery": "$silvery",
     "@silvery/ag": "$@silvery/ag",
     "@silvery/ag-react": "$@silvery/ag-react",
     "@silvery/ag-term": "$@silvery/ag-term",

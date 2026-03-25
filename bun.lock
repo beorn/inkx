@@ -727,6 +727,7 @@
     "@termless/xtermjs": "vendor/termless/packages/xtermjs",
     "flexily": "vendor/flexily",
     "loggily": "vendor/loggily",
+    "silvery": "vendor/silvery",
     "vimonkey": "vendor/vimonkey",
     "vt100.js": "file:vendor/vt100/packages/vt100",
     "vterm.js": "file:vendor/vt100/packages/vterm",
@@ -2405,8 +2406,6 @@
 
     "@termless/core/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
-    "@termless/core/silvery": ["silvery@0.4.3", "", { "dependencies": { "chalk": "^5.6.2", "loggily": "github:beorn/loggily", "react-reconciler": "^0.33.0", "slice-ansi": "^8.0.0", "string-width": "^8.2.0", "zustand": "^5.0.11" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-KE73UL7oSumbVQPNlMQeVgi7cqR657Gvnfqpxnt3MSIrhAPA6ljtYGEIRp9anes7KhpK6YagXlwn9aE/HIy/dg=="],
-
     "@termless/vt100/vt100.js": ["vt100.js@file:vendor/vt100/packages/vt100", {}],
 
     "@termless/vterm/vterm.js": ["vterm.js@file:vendor/vt100/packages/vterm", {}],
@@ -2458,8 +2457,6 @@
     "strip-literal/js-tokens": ["js-tokens@9.0.1", "", {}, "sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ=="],
 
     "terminfo.dev/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
-
-    "terminfo.dev/silvery": ["silvery@0.4.3", "", { "dependencies": { "chalk": "^5.6.2", "loggily": "github:beorn/loggily", "react-reconciler": "^0.33.0", "slice-ansi": "^8.0.0", "string-width": "^8.2.0", "zustand": "^5.0.11" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-KE73UL7oSumbVQPNlMQeVgi7cqR657Gvnfqpxnt3MSIrhAPA6ljtYGEIRp9anes7KhpK6YagXlwn9aE/HIy/dg=="],
 
     "tsutils/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
 
