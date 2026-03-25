@@ -320,6 +320,16 @@
         "tests/**/*.ts"
       ]
     },
+    "vendor/termless/packages/vterm": {
+      "entry": [
+        "src/index.ts",
+        "tests/**/*.test.ts"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "tests/**/*.ts"
+      ]
+    },
     "vendor/termless/packages/wezterm": {
       "entry": [
         "src/index.ts",
