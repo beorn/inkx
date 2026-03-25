@@ -38,6 +38,7 @@ When user says `/pm <action>`, run these commands:
 | `/pm close <id>`    | `bd close <id>`                                              | action      |
 | `/pm sync`          | `git add .beads && git commit -m "chore: sync beads"`        | action      |
 | `/pm my`            | `bd list --assignee $USER`                                   | info        |
+| `/pm refactor <scope>` | Load [workflows/refactor.md](workflows/refactor.md) for phased refactoring | ask    |
 | `/pm rebase`        | Load [workflows/rebase.md](workflows/rebase.md) for session reset | ask         |
 | `/pm replan`        | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |
 | `/pm regroup`       | Load [workflows/rebase.md](workflows/rebase.md) (alias)      | ask         |

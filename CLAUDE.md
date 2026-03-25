@@ -152,6 +152,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [troubleshoot/](.claude/skills/troubleshoot/)                       | Something broken — systematic debugging (reproduce, instrument, bisect) |
 | [git/](.claude/skills/git/)                                         | Commits                                                               |
 | [release/](.claude/skills/release/)                                 | Release packages (version, changelog, npm publish, GitHub release)    |
+| [refactor/](.claude/skills/refactor/)                                | Large-scale phased refactoring (plan, review, execute phases)         |
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |
