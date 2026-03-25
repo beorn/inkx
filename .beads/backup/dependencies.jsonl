@@ -345,6 +345,7 @@
 {"created_at":"2026-03-12T22:31:35Z","created_by":"claude:65d845d9","depends_on_id":"km-flexily.pipeline-review-0312","issue_id":"km-flexily.dead-code-resolve-edge-calls","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:26:30Z","created_by":"claude:c9beade3","depends_on_id":"km-flexily.pipeline-review-0312","issue_id":"km-flexily.dead-stats","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:26:41Z","created_by":"claude:c9beade3","depends_on_id":"km-flexily.pipeline-review-0312","issue_id":"km-flexily.default-style-comments","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T13:03:59Z","created_by":"claude:491faf6c","depends_on_id":"km-flexily","issue_id":"km-flexily.dns","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:26:57Z","created_by":"claude:c9beade3","depends_on_id":"km-flexily.pipeline-review-0312","issue_id":"km-flexily.docs-broken-identifiers","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:26:40Z","created_by":"claude:c9beade3","depends_on_id":"km-flexily.pipeline-review-0312","issue_id":"km-flexily.docs-overstate-compat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:31:56Z","created_by":"claude:65d845d9","depends_on_id":"km-flexily.pipeline-review-0312","issue_id":"km-flexily.dry-measure-vs-layout","metadata":"{}","type":"parent-child"}
@@ -990,6 +991,7 @@
 {"created_at":"2026-03-12T14:25:42Z","created_by":"claude:73d7a332","depends_on_id":"km-silvery","issue_id":"km-silvery.compat-dry","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T13:58:34Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.compat-refactor","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:51:29Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.compat-render-simplify","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T12:10:29Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery","issue_id":"km-silvery.component-docs","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T14:21:37Z","created_by":"claude:e8fd4b92","depends_on_id":"km-silvery","issue_id":"km-silvery.component-parity","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:45Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.cursor-compat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:49Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.decorations","metadata":"{}","type":"parent-child"}
@@ -1058,6 +1060,7 @@
 {"created_at":"2026-03-10T10:25:04Z","created_by":"claude:474834b0","depends_on_id":"km-silvery.examples","issue_id":"km-silvery.ex-template","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:56:13Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.example-improvements","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T17:03:54Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.example-mouse","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T12:17:03Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery","issue_id":"km-silvery.examples-audit","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T11:13:32Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.examples-canonical","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T11:13:33Z","created_by":"claude:474834b0","depends_on_id":"km-silvery.plugin-composition","issue_id":"km-silvery.examples-canonical","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-12T09:20:45Z","created_by":"claude:73d7a332","depends_on_id":"km-silvery","issue_id":"km-silvery.examples-cleanup","metadata":"{}","type":"parent-child"}
@@ -1196,6 +1199,7 @@
 {"created_at":"2026-03-09T11:21:55Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery.compat","issue_id":"km-silvery.site","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-09T11:28:29Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery.split","issue_id":"km-silvery.site","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-09T11:21:55Z","created_by":"claude:55df8ef1","depends_on_id":"km-w297c","issue_id":"km-silvery.site","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-25T12:23:01Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery","issue_id":"km-silvery.site-smoke-test","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T14:23:08Z","created_by":"claude:e8fd4b92","depends_on_id":"km-silvery","issue_id":"km-silvery.size-variants","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:40Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.skip-bgdirty","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T11:28:27Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.split","metadata":"{}","type":"parent-child"}
@@ -1380,7 +1384,9 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-term-2","issue_id":"km-term-2.4","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-term-2","issue_id":"km-term-2.5","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:01Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.api","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T12:43:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.app-harness-expand","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:03Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.baselines","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T12:56:57Z","created_by":"claude:491faf6c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.broken-pages","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:03Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.compare","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T22:21:33Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.integrate-best","issue_id":"km-terminfo.da1-sentinel","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T11:29:07Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.dir-restructure","metadata":"{}","type":"parent-child"}
@@ -1393,6 +1399,7 @@
 {"created_at":"2026-03-24T22:21:36Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.integrate-best","issue_id":"km-terminfo.probe-methodology","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T22:21:35Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.integrate-best","issue_id":"km-terminfo.svg-badges","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T22:21:34Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.integrate-best","issue_id":"km-terminfo.unicode-probes","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T12:35:22Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.unified-cli","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:35:14Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.xtgettcap","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.alacritty","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.caniterminal","metadata":"{}","type":"parent-child"}

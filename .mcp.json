@@ -7,6 +7,10 @@
     "tribe": {
       "command": "bun",
       "args": ["vendor/bearly/tools/tribe.ts"]
+    },
+    "github": {
+      "command": "bun",
+      "args": ["vendor/bearly/tools/github-channel.ts"]
     }
   }
 }
