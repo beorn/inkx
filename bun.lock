@@ -267,24 +267,45 @@
         "picocolors": "^1.1.1",
       },
     },
-    "vendor/bearlymade": {
-      "name": "bearlymade",
+    "vendor/bearly": {
+      "name": "@beorn/tools",
+      "version": "0.6.0",
+      "dependencies": {
+        "@ai-sdk/anthropic": "^3.0.63",
+        "@ai-sdk/google": "^3.0.52",
+        "@ai-sdk/openai": "^3.0.47",
+        "@ai-sdk/perplexity": "^3.0.25",
+        "@ai-sdk/xai": "^3.0.72",
+        "@modelcontextprotocol/sdk": "^1.27.1",
+        "@termless/core": "^0.3.0",
+        "@termless/xtermjs": "^0.3.0",
+        "ai": "^6.0.134",
+        "commander": "^14.0.3",
+        "openai": "^6.32.0",
+        "playwright": "^1.58.2",
+        "ts-morph": "^24.0.0",
+        "zod": "^4.3.6",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.11",
+        "typescript": "^5.9.3",
+      },
     },
-    "vendor/bearlymade/packages/alien-projections": {
+    "vendor/bearly/packages/alien-projections": {
       "name": "alien-projections",
       "version": "0.1.3",
       "peerDependencies": {
         "alien-signals": ">=3.0.0",
       },
     },
-    "vendor/bearlymade/packages/alien-resources": {
+    "vendor/bearly/packages/alien-resources": {
       "name": "alien-resources",
       "version": "0.1.3",
       "peerDependencies": {
         "alien-signals": ">=3.0.0",
       },
     },
-    "vendor/bearlymade/packages/vitest-silvery-dots": {
+    "vendor/bearly/packages/vitest-silvery-dots": {
       "name": "vitest-silvery-dots",
       "version": "0.1.0",
       "peerDependencies": {
@@ -351,7 +372,7 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.4.3",
+      "version": "0.5.0",
       "dependencies": {
         "chalk": "^5.6.2",
         "loggily": "github:beorn/loggily",
@@ -384,7 +405,7 @@
     },
     "vendor/silvery/packages/ag": {
       "name": "@silvery/ag",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "dependencies": {
         "@silvery/ag-term": "workspace:*",
         "@silvery/create": "workspace:*",
@@ -392,7 +413,7 @@
     },
     "vendor/silvery/packages/ag-react": {
       "name": "@silvery/ag-react",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/theme": "workspace:*",
@@ -403,7 +424,7 @@
     },
     "vendor/silvery/packages/ag-term": {
       "name": "@silvery/ag-term",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -415,7 +436,7 @@
     },
     "vendor/silvery/packages/commands": {
       "name": "@silvery/commands",
-      "version": "0.1.0",
+      "version": "0.5.0",
       "dependencies": {
         "@silvery/ag-term": "workspace:*",
       },
@@ -434,7 +455,7 @@
     },
     "vendor/silvery/packages/examples": {
       "name": "@silvery/examples",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "bin": {
         "silvery-examples": "./bin/cli.ts",
       },
@@ -446,11 +467,11 @@
     },
     "vendor/silvery/packages/headless": {
       "name": "@silvery/headless",
-      "version": "0.1.0",
+      "version": "0.5.0",
     },
     "vendor/silvery/packages/ink": {
       "name": "@silvery/ink",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "dependencies": {
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
@@ -459,22 +480,22 @@
     },
     "vendor/silvery/packages/model": {
       "name": "@silvery/model",
-      "version": "0.1.0",
+      "version": "0.5.0",
     },
     "vendor/silvery/packages/scope": {
       "name": "@silvery/scope",
-      "version": "0.1.0",
+      "version": "0.5.0",
     },
     "vendor/silvery/packages/signals": {
       "name": "@silvery/signals",
-      "version": "0.1.0",
+      "version": "0.5.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
       },
     },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
@@ -484,7 +505,7 @@
     },
     "vendor/silvery/packages/theme": {
       "name": "@silvery/theme",
-      "version": "0.4.2",
+      "version": "0.5.0",
     },
     "vendor/tap": {
       "name": "@beorn/tap",
@@ -660,30 +681,6 @@
         "@termless/core": "*",
       },
     },
-    "vendor/tools": {
-      "name": "@beorn/tools",
-      "version": "0.6.0",
-      "dependencies": {
-        "@ai-sdk/anthropic": "^3.0.63",
-        "@ai-sdk/google": "^3.0.52",
-        "@ai-sdk/openai": "^3.0.47",
-        "@ai-sdk/perplexity": "^3.0.25",
-        "@ai-sdk/xai": "^3.0.72",
-        "@modelcontextprotocol/sdk": "^1.27.1",
-        "@termless/core": "^0.3.0",
-        "@termless/xtermjs": "^0.3.0",
-        "ai": "^6.0.134",
-        "commander": "^14.0.3",
-        "openai": "^6.32.0",
-        "playwright": "^1.58.2",
-        "ts-morph": "^24.0.0",
-        "zod": "^4.3.6",
-      },
-      "devDependencies": {
-        "@types/bun": "^1.3.11",
-        "typescript": "^5.9.3",
-      },
-    },
     "vendor/vimonkey": {
       "name": "vimonkey",
       "version": "0.2.0",
@@ -808,7 +805,7 @@
 
     "@beorn/tap": ["@beorn/tap@workspace:vendor/tap"],
 
-    "@beorn/tools": ["@beorn/tools@workspace:vendor/tools"],
+    "@beorn/tools": ["@beorn/tools@workspace:vendor/bearly"],
 
     "@beorn/watcher-chaos": ["@beorn/watcher-chaos@workspace:vendor/watcher-chaos"],
 
@@ -1490,9 +1487,9 @@
 
     "algoliasearch": ["algoliasearch@5.50.0", "", { "dependencies": { "@algolia/abtesting": "1.16.0", "@algolia/client-abtesting": "5.50.0", "@algolia/client-analytics": "5.50.0", "@algolia/client-common": "5.50.0", "@algolia/client-insights": "5.50.0", "@algolia/client-personalization": "5.50.0", "@algolia/client-query-suggestions": "5.50.0", "@algolia/client-search": "5.50.0", "@algolia/ingestion": "1.50.0", "@algolia/monitoring": "1.50.0", "@algolia/recommend": "5.50.0", "@algolia/requester-browser-xhr": "5.50.0", "@algolia/requester-fetch": "5.50.0", "@algolia/requester-node-http": "5.50.0" } }, "sha512-yE5I83Q2s8euVou8Y3feXK08wyZInJWLYXgWO6Xti9jBUEZAGUahyeQ7wSZWkifLWVnQVKEz5RAmBlXG5nqxog=="],
 
-    "alien-projections": ["alien-projections@workspace:vendor/bearlymade/packages/alien-projections"],
+    "alien-projections": ["alien-projections@workspace:vendor/bearly/packages/alien-projections"],
 
-    "alien-resources": ["alien-resources@workspace:vendor/bearlymade/packages/alien-resources"],
+    "alien-resources": ["alien-resources@workspace:vendor/bearly/packages/alien-resources"],
 
     "alien-signals": ["alien-signals@3.1.2", "", {}, "sha512-d9dYqZTS90WLiU0I5c6DHj/HcKkF8ZyGN3G5x8wSbslulz70KOxaqCT0hQCo9KOyhVqzqGojvNdJXoTumZOtcw=="],
 
@@ -1515,8 +1512,6 @@
     "bail": ["bail@2.0.2", "", {}, "sha512-0xO6mYd7JB2YesxDKplafRpsiOzPt9V02ddPCLbY1xYGPOX24NTyN50qnUxgCPcSoYMhKpAuBTjQoRZCAkUDRw=="],
 
     "balanced-match": ["balanced-match@4.0.4", "", {}, "sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA=="],
-
-    "bearlymade": ["bearlymade@workspace:vendor/bearlymade"],
 
     "before-after-hook": ["before-after-hook@4.0.0", "", {}, "sha512-q6tR3RPqIB1pMiTRMFcZwuG5T8vwp+vUvEG0vuI6B+Rikh5BfPp2fQ82c925FOs+b0lcFQ8CFrL+KbilfZFhOQ=="],
 
@@ -2352,7 +2347,7 @@
 
     "vitest": ["vitest@4.1.1", "", { "dependencies": { "@vitest/expect": "4.1.1", "@vitest/mocker": "4.1.1", "@vitest/pretty-format": "4.1.1", "@vitest/runner": "4.1.1", "@vitest/snapshot": "4.1.1", "@vitest/spy": "4.1.1", "@vitest/utils": "4.1.1", "es-module-lexer": "^2.0.0", "expect-type": "^1.3.0", "magic-string": "^0.30.21", "obug": "^2.1.1", "pathe": "^2.0.3", "picomatch": "^4.0.3", "std-env": "^4.0.0-rc.1", "tinybench": "^2.9.0", "tinyexec": "^1.0.2", "tinyglobby": "^0.2.15", "tinyrainbow": "^3.0.3", "vite": "^6.0.0 || ^7.0.0 || ^8.0.0", "why-is-node-running": "^2.3.0" }, "peerDependencies": { "@edge-runtime/vm": "*", "@opentelemetry/api": "^1.9.0", "@types/node": "^20.0.0 || ^22.0.0 || >=24.0.0", "@vitest/browser-playwright": "4.1.1", "@vitest/browser-preview": "4.1.1", "@vitest/browser-webdriverio": "4.1.1", "@vitest/ui": "4.1.1", "happy-dom": "*", "jsdom": "*" }, "optionalPeers": ["@edge-runtime/vm", "@opentelemetry/api", "@types/node", "@vitest/browser-playwright", "@vitest/browser-preview", "@vitest/browser-webdriverio", "@vitest/ui", "happy-dom", "jsdom"], "bin": { "vitest": "vitest.mjs" } }, "sha512-yF+o4POL41rpAzj5KVILUxm1GCjKnELvaqmU9TLLUbMfDzuN0UpUR9uaDs+mCtjPe+uYPksXDRLQGGPvj1cTmA=="],
 
-    "vitest-silvery-dots": ["vitest-silvery-dots@workspace:vendor/bearlymade/packages/vitest-silvery-dots"],
+    "vitest-silvery-dots": ["vitest-silvery-dots@workspace:vendor/bearly/packages/vitest-silvery-dots"],
 
     "vterm": ["vterm@workspace:vendor/vt100"],
 
@@ -2410,6 +2405,8 @@
 
     "@termless/core/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
+    "@termless/core/silvery": ["silvery@0.4.3", "", { "dependencies": { "chalk": "^5.6.2", "loggily": "github:beorn/loggily", "react-reconciler": "^0.33.0", "slice-ansi": "^8.0.0", "string-width": "^8.2.0", "zustand": "^5.0.11" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-KE73UL7oSumbVQPNlMQeVgi7cqR657Gvnfqpxnt3MSIrhAPA6ljtYGEIRp9anes7KhpK6YagXlwn9aE/HIy/dg=="],
+
     "@termless/vt100/vt100.js": ["vt100.js@file:vendor/vt100/packages/vt100", {}],
 
     "@termless/vterm/vterm.js": ["vterm.js@file:vendor/vt100/packages/vterm", {}],
@@ -2461,6 +2458,8 @@
     "strip-literal/js-tokens": ["js-tokens@9.0.1", "", {}, "sha512-mxa9E9ITFOt0ban3j6L5MpjwegGz6lBQmM1IJkWeBZGcMxto50+eWdjC/52xDbS2vy0k7vIMK0Fe2wfL9OQSpQ=="],
 
     "terminfo.dev/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
+
+    "terminfo.dev/silvery": ["silvery@0.4.3", "", { "dependencies": { "chalk": "^5.6.2", "loggily": "github:beorn/loggily", "react-reconciler": "^0.33.0", "slice-ansi": "^8.0.0", "string-width": "^8.2.0", "zustand": "^5.0.11" }, "peerDependencies": { "react": "^18.0.0 || ^19.0.0" } }, "sha512-KE73UL7oSumbVQPNlMQeVgi7cqR657Gvnfqpxnt3MSIrhAPA6ljtYGEIRp9anes7KhpK6YagXlwn9aE/HIy/dg=="],
 
     "tsutils/tslib": ["tslib@1.14.1", "", {}, "sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="],
 
