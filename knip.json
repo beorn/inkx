@@ -373,7 +373,7 @@
         "tests/**/*.ts"
       ]
     },
-    "vendor/bearlymade/packages/vitest-silvery-dots": {
+    "vendor/bearly/packages/vitest-silvery-dots": {
       "entry": [
         "src/index.tsx",
         "tests/**/*.test.tsx"

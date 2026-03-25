@@ -119,4 +119,4 @@ Total estimated effort for meaningful improvement: ~10 hours across 3 phases. No
 - [Brain architecture](../architecture/brain.md) — committed design incorporating these findings
 - Cloudi ADR01 memory system spec *(internal: `~/Code/pim/cloudi/specs/active/ADR01/`)*
 - [Plain-brain exploration](plain-brain.md) — original exploration (graduated to brain.md)
-- km recall implementation: `vendor/tools/tools/recall.ts`, `recall/search.ts`
+- km recall implementation: `vendor/bearly/tools/recall.ts`, `recall/search.ts`

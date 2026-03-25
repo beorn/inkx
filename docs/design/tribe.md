@@ -1,6 +1,6 @@
 # Tribe: Cross-Session Coordination for Claude Code
 
-> **Status: Phase 1 implemented** — Channel plugin at `vendor/tools/tools/tribe.ts`, tests at `vendor/tools/tests/tribe.test.ts`.
+> **Status: Phase 1 implemented** — Channel plugin at `vendor/bearly/tools/tribe.ts`, tests at `vendor/bearly/tests/tribe.test.ts`.
 
 Tribe is a coordination layer that lets multiple independent Claude Code sessions discover each other, exchange messages, and coordinate work. One session acts as **chief** (coordinator); the rest are **members** (workers). The chief bridges to the outside world via existing channel plugins (Telegram, etc.).
 

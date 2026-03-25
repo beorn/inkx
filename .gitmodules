@@ -10,9 +10,9 @@
 [submodule "vendor/termless"]
 	path = vendor/termless
 	url = git@github.com:beorn/termless.git
-[submodule "vendor/tools"]
+[submodule "vendor/bearly"]
 	path = vendor/bearly
-	url = git@github.com:beorn/tools.git
+	url = git@github.com:beorn/bearly.git
 [submodule "vendor/silvery"]
 	path = vendor/silvery
 	url = git@github.com:beorn/silvery.git

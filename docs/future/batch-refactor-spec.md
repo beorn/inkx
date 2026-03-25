@@ -58,14 +58,14 @@ A smart batch refactoring tool that:
 | /batch command          | ✅ Plugin     | `batch@tools`                |
 | pattern.migrate         | ✅ Complete   | LLM-powered API migration                 |
 | Confidence scoring      | 📝 Documented | In command instructions                   |
-| Plugin packaging        | ✅ Complete   | `vendor/tools/plugins/batch` |
+| Plugin packaging        | ✅ Complete   | `vendor/bearly/plugins/batch` |
 | Marketplace             | ✅ Configured | `tools`                      |
 
 ### Installation
 
 ```bash
 # Add marketplace (one-time)
-claude plugin marketplace add /path/to/vendor/tools
+claude plugin marketplace add /path/to/vendor/bearly
 
 # Install plugin
 claude plugin install batch@tools
@@ -192,7 +192,7 @@ Verification: PASSED
 ## Plugin Structure (Current)
 
 ```
-vendor/tools/
+vendor/bearly/
 ├── .claude-plugin/
 │   └── marketplace.json       # Marketplace manifest
 └── plugins/
@@ -353,4 +353,4 @@ interface RefactorPlan {
 - [Claude Code plugins](https://code.claude.com/docs/en/plugins.md)
 - [mcp-refactor-typescript](https://github.com/stefan-nitu/mcp-refactor-typescript)
 - Plugin repo: [beorn/tools](https://github.com/beorn/tools)
-- Plugin command: `vendor/tools/plugins/batch/commands/batch.md`
+- Plugin command: `vendor/bearly/plugins/batch/commands/batch.md`

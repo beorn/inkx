@@ -35,7 +35,7 @@ Check ALL publishable packages for unpublished changes:
 ```bash
 cd /Users/beorn/Code/pim/km
 
-for dir in . vendor/flexily vendor/loggily vendor/mdtest vendor/silvery vendor/termless vendor/vimonkey vendor/tools vendor/watcher-chaos; do
+for dir in . vendor/flexily vendor/loggily vendor/mdtest vendor/silvery vendor/termless vendor/vimonkey vendor/bearly vendor/watcher-chaos; do
   pkg="$dir/package.json"
   [ ! -f "$pkg" ] && continue
 

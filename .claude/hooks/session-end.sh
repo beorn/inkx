@@ -16,10 +16,10 @@ if [ -n "$ALL_VITEST" ]; then
 fi
 
 # Fork the actual work to background
-if [ -f "$REPO_ROOT/vendor/tools/tools/recall.ts" ]; then
+if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
   TMPFILE=$(mktemp /tmp/recall-remember.XXXXXX)
   echo "$STDIN_DATA" > "$TMPFILE"
-  (cd "$REPO_ROOT" && bun vendor/tools/tools/recall.ts remember < "$TMPFILE" >/dev/null 2>&1; rm -f "$TMPFILE") &
+  (cd "$REPO_ROOT" && bun vendor/bearly/tools/recall.ts remember < "$TMPFILE" >/dev/null 2>&1; rm -f "$TMPFILE") &
   disown
 fi
 

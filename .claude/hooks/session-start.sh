@@ -14,7 +14,7 @@ fi
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 LOG="/tmp/recall-session-start.log"
 
-if [ -f "$REPO_ROOT/vendor/tools/tools/recall.ts" ]; then
+if [ -f "$REPO_ROOT/vendor/bearly/tools/recall.ts" ]; then
   DB="$HOME/.claude/session-index.db"
   SKIP_INDEX=0
 
@@ -25,7 +25,7 @@ if [ -f "$REPO_ROOT/vendor/tools/tools/recall.ts" ]; then
   fi
 
   if [ "$SKIP_INDEX" -eq 0 ]; then
-    (cd "$REPO_ROOT" && bun vendor/tools/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") </dev/null &>/dev/null &
+    (cd "$REPO_ROOT" && bun vendor/bearly/tools/recall.ts index --incremental 2>&1 | tail -5 >> "$LOG") </dev/null &>/dev/null &
     disown
   fi
 
@@ -42,7 +42,7 @@ if [ -f "$REPO_ROOT/vendor/tools/tools/recall.ts" ]; then
     (
       if ! mkdir "$LOCK" 2>/dev/null; then exit 0; fi
       trap 'rmdir "$LOCK" 2>/dev/null' EXIT
-      cd "$REPO_ROOT" && bun vendor/tools/tools/recall.ts summarize 2>&1 | tail -5 >> "$LOG"
+      cd "$REPO_ROOT" && bun vendor/bearly/tools/recall.ts summarize 2>&1 | tail -5 >> "$LOG"
       touch "$STAMP"
     ) </dev/null &>/dev/null &
     disown

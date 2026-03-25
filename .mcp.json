@@ -6,7 +6,7 @@
     },
     "tribe": {
       "command": "bun",
-      "args": ["vendor/tools/tools/tribe.ts"]
+      "args": ["vendor/bearly/tools/tribe.ts"]
     }
   }
 }

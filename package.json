@@ -15,7 +15,7 @@
     "vendor/*",
     "vendor/termless/packages/*",
     "vendor/silvery/packages/*",
-    "vendor/bearlymade/packages/*"
+    "vendor/bearly/packages/*"
   ],
   "overrides": {
     "@silvery/ag": "$@silvery/ag",
@@ -47,11 +47,11 @@
     "km": "bun run ./apps/km-cli/src/index.ts",
     "km:strict": "SILVERY_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
-    "worktree": "bun vendor/tools/tools/worktree.ts",
+    "worktree": "bun vendor/bearly/tools/worktree.ts",
     "accountly": "bun vendor/accountly/src/cli.ts",
-    "recall": "bun vendor/tools/tools/recall.ts",
-    "llm": "bun vendor/tools/tools/llm.ts",
-    "refactor": "bun vendor/tools/tools/refactor.ts",
+    "recall": "bun vendor/bearly/tools/recall.ts",
+    "llm": "bun vendor/bearly/tools/llm.ts",
+    "refactor": "bun vendor/bearly/tools/refactor.ts",
     "tap": "bun ./vendor/tap/src/cli/runner.ts",
     "update-all": "bun upgrade && nix flake update && bun update && bun test",
     "lint": "bash infra/lint.sh",
