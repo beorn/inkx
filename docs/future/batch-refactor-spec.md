@@ -208,7 +208,7 @@ vendor/bearly/
 
 ```bash
 # Add marketplace (one-time)
-claude plugin marketplace add github:beorn/tools
+claude plugin marketplace add github:beorn/bearly
 
 # Install plugin
 claude plugin install batch@tools
@@ -352,5 +352,5 @@ interface RefactorPlan {
 - [ast-grep docs](https://ast-grep.github.io/)
 - [Claude Code plugins](https://code.claude.com/docs/en/plugins.md)
 - [mcp-refactor-typescript](https://github.com/stefan-nitu/mcp-refactor-typescript)
-- Plugin repo: [beorn/tools](https://github.com/beorn/tools)
+- Plugin repo: [beorn/bearly](https://github.com/beorn/bearly)
 - Plugin command: `vendor/bearly/plugins/batch/commands/batch.md`

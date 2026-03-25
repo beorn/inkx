@@ -10,7 +10,7 @@
  */
 
 import { Command } from "@commander-js/extra-typings"
-import { createWorktree, removeWorktree, listWorktrees, showDefaultInfo } from "@beorn/tools/tools/worktree"
+import { createWorktree, removeWorktree, listWorktrees, showDefaultInfo } from "bearly/tools/worktree"
 
 // ============================================
 // Subcommands
