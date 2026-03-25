@@ -43,6 +43,7 @@
         "@silvery/commands": "workspace:*",
         "@silvery/create": "workspace:*",
         "@silvery/headless": "workspace:*",
+        "@silvery/scope": "workspace:*",
         "@silvery/test": "workspace:*",
         "@silvery/theme": "workspace:*",
         "@sinonjs/fake-timers": "^15.1.1",
@@ -452,6 +453,10 @@
         "chalk": "^5.6.2",
       },
     },
+    "vendor/silvery/packages/scope": {
+      "name": "@silvery/scope",
+      "version": "0.1.0",
+    },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
       "version": "0.4.2",
@@ -701,6 +706,7 @@
     "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
     "@silvery/headless": "vendor/silvery/packages/headless",
+    "@silvery/scope": "vendor/silvery/packages/scope",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@termless/core": "vendor/termless",
@@ -1306,6 +1312,8 @@
     "@silvery/headless": ["@silvery/headless@workspace:vendor/silvery/packages/headless"],
 
     "@silvery/ink": ["@silvery/ink@workspace:vendor/silvery/packages/ink"],
+
+    "@silvery/scope": ["@silvery/scope@workspace:vendor/silvery/packages/scope"],
 
     "@silvery/test": ["@silvery/test@workspace:vendor/silvery/packages/test"],
 
