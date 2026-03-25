@@ -58,5 +58,8 @@
   "dependencies": {
     "commander": "^14.0.1",
     "tap-parser": "^18.3.0"
+  },
+  "engines": {
+    "node": ">=23.6.0"
   }
 }

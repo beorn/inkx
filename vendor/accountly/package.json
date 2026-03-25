@@ -28,10 +28,10 @@
   ],
   "type": "module",
   "module": "src/index.ts",
-  "types": "./dist/index.d.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./src/index.ts",
       "default": "./src/index.ts"
     }
   },
@@ -42,5 +42,8 @@
   "dependencies": {
     "commander": "^14.0.0",
     "picocolors": "^1.1.1"
+  },
+  "engines": {
+    "node": ">=23.6.0"
   }
 }
