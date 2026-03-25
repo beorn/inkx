@@ -177,6 +177,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-beads.6","issue_id":"km-beads.9","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-25T10:58:59Z","created_by":"claude:19080504","depends_on_id":"km-bearly","issue_id":"km-bearly.deprecate","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T13:22:37Z","created_by":"claude:19080504","depends_on_id":"km-bearly","issue_id":"km-bearly.github-channel","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:57:08Z","created_by":"claude:491faf6c","depends_on_id":"km-bearly","issue_id":"km-bearly.llm-images","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:58:58Z","created_by":"claude:19080504","depends_on_id":"km-bearly","issue_id":"km-bearly.npm-publish","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:58:48Z","created_by":"claude:19080504","depends_on_id":"km-bearly","issue_id":"km-bearly.plugins","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:58:58Z","created_by":"claude:19080504","depends_on_id":"km-bearly","issue_id":"km-bearly.restructure","metadata":"{}","type":"parent-child"}
@@ -1390,6 +1391,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-term-2","issue_id":"km-term-2.3","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-term-2","issue_id":"km-term-2.4","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-term-2","issue_id":"km-term-2.5","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:36:22Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.ai-analysis","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:01Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.api","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T12:43:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.app-harness-expand","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T15:03:33Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.baseline-pages","metadata":"{}","type":"parent-child"}
