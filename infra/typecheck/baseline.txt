@@ -14,7 +14,6 @@
 4 vendor/terminfo.dev/src/versions.ts
 3 vendor/termless/docs/census.data.ts
 8 vendor/termless/packages/kitty/src/backend.ts
-3 vendor/termless/packages/vterm/src/backend.ts
 20 vendor/termless/sites/terminfo.dev/docs/data/census.data.ts
 4 vendor/termless/sites/terminfo.dev/src/cli.ts
 4 vendor/termless/sites/terminfo.dev/src/versions.ts
