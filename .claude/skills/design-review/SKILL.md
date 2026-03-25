@@ -345,35 +345,91 @@ Output a structured markdown report:
 
 ---
 
-## Optional: Multi-LLM Review
+## Multi-Model Visual Review
 
-For a second opinion on visual design, use `/llm`:
+The `/llm` tool supports `--image` for sending screenshots directly to vision models — both cloud and local.
+
+### Quick commands
 
 ```bash
-# Quick visual critique from another model
-bun llm "Review this UI screenshot for design issues. The image shows: <describe what you see in detail — layout, colors, spacing, text hierarchy>. Measurements: <paste Phase 2 JSON>. What design problems do you notice?"
+# Cloud vision review (sends image directly to GPT-5.4 vision)
+bun llm --image /path/to/screenshot.png "Review this UI for design issues: alignment, spacing, typography, color, rendering defects"
 
-# Deep design research
+# Local vision review (free, instant, private — requires ollama)
+bun llm --model ollama:qwen2.5-vl:7b --image /path/to/screenshot.png "Review this UI screenshot for layout and rendering issues"
+
+# Multi-model comparison (run both, compare findings)
+bun llm --image screenshot.png "Rate this UI design 1-10 and list all issues"
+bun llm --model ollama:qwen2.5-vl:7b --image screenshot.png "Rate this UI design 1-10 and list all issues"
+
+# Deep design research (no image, text-only)
 bun llm --deep -y "Best practices for terminal UI design: spacing, color, typography, layout"
 ```
 
-When using `/llm`, describe the screenshot in detail since other models cannot see the image directly. Include the Phase 2 measurement data to give them concrete numbers to work with.
-
 ### Best reviewers (ranked by design review quality)
 
-| Reviewer | Can see images? | Quality | How to use |
-|---|---|---|---|
-| **v0.dev** (web) | Yes | Best — catches rendering bugs, truncation, data corruption | Manual: upload screenshot at v0.dev/chat |
-| **Claude** (built-in) | Yes | Excellent — Read tool shows images directly | `Read /path/to/screenshot.png` |
-| **Grok 3** | Text only via /llm | Good — most detailed text reviews (7/10 benchmark winner) | `bun llm --model grok-3` |
-| **GPT-5.4** | Text only via /llm | Good — concise, actionable | `bun llm --model gpt-5.4` |
-| **GPT-4o** | Text only via /llm | Good — cheapest, fastest | `bun llm --model gpt-4o` |
+| Reviewer | Can see images? | Cost | Quality | How to use |
+|---|---|---|---|---|
+| **v0.dev** (web) | Yes | Free | Best — catches rendering bugs, truncation, data corruption | Manual: upload screenshot at v0.dev/chat |
+| **Claude** (built-in) | Yes | Free | Excellent — Read tool shows images directly | `Read /path/to/screenshot.png` |
+| **GPT-5.4** | Yes via --image | ~$0.02 | Good — concise, actionable | `bun llm --image img.png "..."` |
+| **Grok 3** | Yes via --image | ~$0.02 | Good — detailed text reviews | `bun llm --model grok-3 --image img.png "..."` |
+| **Qwen2.5-VL 7B** (local) | Yes via --image | Free | Decent (60-80% of cloud) — fast iteration | `bun llm --model ollama:qwen2.5-vl:7b --image img.png "..."` |
+| **Qwen2.5-VL 32B** (local) | Yes via --image | Free | Good (70-85% of cloud) — best local quality | `bun llm --model ollama:qwen2.5-vl:32b --image img.png "..."` |
 
-**Key insight**: Models that can see the actual image catch rendering defects (truncated text, data corruption, misaligned columns) that text-description-based reviews miss entirely. Always use at least one visual reviewer.
+### Recommended workflow: tiered review
+
+1. **Fast local pass** (every iteration): `ollama:qwen2.5-vl:7b` — catches obvious issues instantly, free
+2. **Claude built-in** (always available): `Read screenshot.png` — excellent quality, no extra cost
+3. **Cloud escalation** (final QA): `--image` with GPT-5.4 or Grok — catches subtle defects
+4. **v0.dev** (high-stakes): manual upload — best for final polish before shipping
+
+### Local model setup
+
+```bash
+# Pull vision models (one-time)
+ollama pull qwen2.5-vl:7b     # 4.7GB, fast, good for iteration
+ollama pull qwen2.5-vl:32b    # ~20GB, slower, higher quality
+
+# List available models
+bun llm list-models
+
+# For 70B+ models (M5 Max 128GB can handle quantized):
+ollama pull qwen2.5-vl:72b    # ~45GB, best local quality but slow
+```
+
+### Structured output for heuristic checking
+
+When using any model for design review, ask for structured JSON output:
+
+```
+Review this UI screenshot against these design heuristics. For each, report:
+- heuristic: name
+- status: pass | fail | uncertain
+- evidence: what you see
+- severity: block | flag | ok
+- confidence: 0-100
+
+Heuristics: margin symmetry, edge margins, inner padding, section gaps, fill ratio,
+whitespace balance, alignment grid, heading hierarchy, text weight, dim/muted text,
+border consistency, border completeness, color consistency, text contrast, selection highlight,
+focus indication, content overflow, rendering artifacts, first impression, emotional response.
+```
+
+Local models work best when given explicit structure rather than open-ended "find all issues."
+
+### What local models are good/bad at
+
+| Good at (use local) | Bad at (escalate to cloud) |
+|---|---|
+| Coarse layout issues | Subtle 2px spacing differences |
+| Obvious misalignment | "Visual polish" judgment |
+| Text hierarchy | Tiny rendering artifacts |
+| Color contrast | Design taste / aesthetic feel |
+| Missing elements | Competitive quality comparison |
+| OCR / text extraction | Low-contrast text detection |
 
 **v0.dev workflow**: Upload the screenshot at v0.dev/chat and ask for a UI design evaluation. v0 uses Claude under the hood with vision, and is specifically tuned for UI critique. It caught truncation bugs, data corruption, and inconsistent color usage that 3 other LLMs all missed from text descriptions.
-
-**Future**: Add `--image` flag to `/llm` tool to send base64-encoded images directly to GPT/Gemini/Grok vision APIs. This would enable automated visual review without manual uploads.
 
 ---
 

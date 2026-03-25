@@ -96,6 +96,56 @@ bun llm --deep pro -y "topic"                     # WRONG: "pro" becomes part of
 |------|------|------|
 | `--deep`/`/deep` | OpenAI deep research (web search, citations, thorough) | ~$2-5 |
 | `--ask`/`/ask` | Explicit default mode (syntactic sugar) | ~$0.02 |
+| `--image <path>` | Send a screenshot/image to vision models (cloud or local) | varies |
+| `--model <id>` | Use specific model — cloud or local (see below) | varies |
+
+## Image / Vision
+
+Send screenshots directly to multimodal models:
+
+```bash
+# Cloud vision (GPT-5.4 vision)
+bun llm --image screenshot.png "Describe this UI"
+
+# Local vision (ollama, free)
+bun llm --model ollama:llava:7b --image screenshot.png "What issues do you see?"
+
+# Design review with structured output
+bun llm --image screenshot.png "Review this UI for: alignment, spacing, typography, contrast. Output JSON."
+```
+
+Supports PNG, JPG, WebP. Image is sent as base64 to cloud APIs or via ollama's `images` field for local models.
+
+## Local Models (Ollama)
+
+Run models locally — free, instant, private. Requires `ollama` installed and running.
+
+```bash
+# List available local models
+bun llm list-models
+
+# Pull a model (one-time download)
+ollama pull llava:7b           # 4.7GB, general vision
+ollama pull llava:34b          # ~20GB, higher quality
+ollama pull mistral:7b         # Text-only, fast
+ollama pull qwen2.5:72b        # Text-only, best local quality (M5 Max 128GB can handle)
+
+# Use local model
+bun llm --model ollama:llava:7b "question"
+bun llm --model ollama:mistral:7b "question"
+```
+
+**Model syntax**: `ollama:<model-name>` — model name matches what `ollama list` shows.
+
+**When to use local vs cloud**:
+| Use case | Recommendation |
+|---|---|
+| Quick questions, iteration | Local (instant, free) |
+| Vision/screenshot analysis | Local first, cloud for subtle issues |
+| Deep research (web search) | Cloud only (`--deep`) |
+| Pro code review ($5-15) | Cloud only (`pro`) |
+| Privacy-sensitive content | Local only |
+| 70B+ quality | Local if M5 Max 128GB, otherwise cloud |
 
 ## Context Flags
 
