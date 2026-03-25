@@ -9537,3 +9537,714 @@ time="2026-03-25T15:09:05-07:00" level=warning msg="error running query" connect
 time="2026-03-25T15:09:06-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3843
 time="2026-03-25T15:09:06-07:00" level=info msg=ConnectionClosed connectionID=3843
 time="2026-03-25T15:09:06-07:00" level=info msg=ConnectionClosed connectionID=3842
+time="2026-03-25T15:13:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3844
+time="2026-03-25T15:13:18-07:00" level=info msg=ConnectionClosed connectionID=3844
+time="2026-03-25T15:13:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3845
+time="2026-03-25T15:13:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3846
+time="2026-03-25T15:13:18-07:00" level=info msg=ConnectionClosed connectionID=3845
+time="2026-03-25T15:13:18-07:00" level=info msg=ConnectionClosed connectionID=3846
+time="2026-03-25T15:13:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3847
+time="2026-03-25T15:13:18-07:00" level=info msg=ConnectionClosed connectionID=3847
+time="2026-03-25T15:13:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3848
+time="2026-03-25T15:13:18-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3849
+time="2026-03-25T15:13:18-07:00" level=info msg=ConnectionClosed connectionID=3848
+time="2026-03-25T15:13:19-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:13:18.995998 -0700 PDT m=+217695.518788834" connectionDb=beads_km connectionID=3849 error="nothing to commit" queryTime="2026-03-25 15:13:19.003471 -0700 PDT m=+217695.526261834"
+time="2026-03-25T15:13:19-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3850
+time="2026-03-25T15:13:19-07:00" level=info msg=ConnectionClosed connectionID=3850
+time="2026-03-25T15:13:19-07:00" level=info msg=ConnectionClosed connectionID=3849
+time="2026-03-25T15:13:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3851
+time="2026-03-25T15:13:20-07:00" level=info msg=ConnectionClosed connectionID=3851
+time="2026-03-25T15:13:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3852
+time="2026-03-25T15:13:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3853
+time="2026-03-25T15:13:20-07:00" level=info msg=ConnectionClosed connectionID=3852
+time="2026-03-25T15:13:20-07:00" level=info msg=ConnectionClosed connectionID=3853
+time="2026-03-25T15:13:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3854
+time="2026-03-25T15:13:29-07:00" level=info msg=ConnectionClosed connectionID=3854
+time="2026-03-25T15:13:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3855
+time="2026-03-25T15:13:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3856
+time="2026-03-25T15:13:29-07:00" level=info msg=ConnectionClosed connectionID=3855
+time="2026-03-25T15:13:29-07:00" level=info msg=ConnectionClosed connectionID=3856
+time="2026-03-25T15:13:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3857
+time="2026-03-25T15:13:30-07:00" level=info msg=ConnectionClosed connectionID=3857
+time="2026-03-25T15:13:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3858
+time="2026-03-25T15:13:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3859
+time="2026-03-25T15:13:30-07:00" level=info msg=ConnectionClosed connectionID=3858
+time="2026-03-25T15:13:30-07:00" level=info msg=ConnectionClosed connectionID=3859
+time="2026-03-25T15:13:40-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3860
+time="2026-03-25T15:13:40-07:00" level=info msg=ConnectionClosed connectionID=3860
+time="2026-03-25T15:13:40-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3861
+time="2026-03-25T15:13:40-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3862
+time="2026-03-25T15:13:40-07:00" level=info msg=ConnectionClosed connectionID=3861
+time="2026-03-25T15:13:40-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:13:40.02971 -0700 PDT m=+217716.552427667" connectionDb=beads_km connectionID=3862 error="nothing to commit" queryTime="2026-03-25 15:13:40.038276 -0700 PDT m=+217716.560994084"
+time="2026-03-25T15:13:40-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3863
+time="2026-03-25T15:13:40-07:00" level=info msg=ConnectionClosed connectionID=3863
+time="2026-03-25T15:13:40-07:00" level=info msg=ConnectionClosed connectionID=3862
+time="2026-03-25T15:13:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3864
+time="2026-03-25T15:13:46-07:00" level=info msg=ConnectionClosed connectionID=3864
+time="2026-03-25T15:13:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3865
+time="2026-03-25T15:13:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3866
+time="2026-03-25T15:13:46-07:00" level=info msg=ConnectionClosed connectionID=3865
+time="2026-03-25T15:13:46-07:00" level=info msg=ConnectionClosed connectionID=3866
+time="2026-03-25T15:13:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3867
+time="2026-03-25T15:13:54-07:00" level=info msg=ConnectionClosed connectionID=3867
+time="2026-03-25T15:13:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3868
+time="2026-03-25T15:13:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3869
+time="2026-03-25T15:13:54-07:00" level=info msg=ConnectionClosed connectionID=3868
+time="2026-03-25T15:13:54-07:00" level=info msg=ConnectionClosed connectionID=3869
+time="2026-03-25T15:13:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3870
+time="2026-03-25T15:13:54-07:00" level=info msg=ConnectionClosed connectionID=3870
+time="2026-03-25T15:13:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3871
+time="2026-03-25T15:13:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3872
+time="2026-03-25T15:13:54-07:00" level=info msg=ConnectionClosed connectionID=3871
+time="2026-03-25T15:13:54-07:00" level=info msg=ConnectionClosed connectionID=3872
+time="2026-03-25T15:13:55-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3873
+time="2026-03-25T15:13:55-07:00" level=info msg=ConnectionClosed connectionID=3873
+time="2026-03-25T15:13:55-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3874
+time="2026-03-25T15:13:55-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3875
+time="2026-03-25T15:13:55-07:00" level=info msg=ConnectionClosed connectionID=3874
+time="2026-03-25T15:13:55-07:00" level=info msg=ConnectionClosed connectionID=3875
+time="2026-03-25T15:15:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3876
+time="2026-03-25T15:15:22-07:00" level=info msg=ConnectionClosed connectionID=3876
+time="2026-03-25T15:15:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3877
+time="2026-03-25T15:15:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3878
+time="2026-03-25T15:15:22-07:00" level=info msg=ConnectionClosed connectionID=3877
+time="2026-03-25T15:15:22-07:00" level=info msg=ConnectionClosed connectionID=3878
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3879
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3879
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3880
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3881
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3880
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3881
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3882
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3882
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3883
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3884
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3883
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3884
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3885
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3885
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3886
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3887
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3886
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3887
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3888
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3888
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3889
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3890
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3889
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3890
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3891
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3891
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3892
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3893
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3892
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3893
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3894
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3894
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3895
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3896
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3895
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3896
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3897
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3897
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3898
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3899
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3898
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3899
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3900
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3900
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3901
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3902
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3901
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3902
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3903
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3903
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3904
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3905
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3904
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3905
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3906
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3906
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3907
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3908
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3907
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3908
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3909
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3909
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3910
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3911
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3910
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3911
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3912
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3912
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3913
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3914
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3913
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3914
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3915
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3915
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3916
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3917
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3916
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3917
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3918
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3918
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3919
+time="2026-03-25T15:15:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3920
+time="2026-03-25T15:15:30-07:00" level=info msg=ConnectionClosed connectionID=3919
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3920
+time="2026-03-25T15:15:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3921
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3921
+time="2026-03-25T15:15:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3922
+time="2026-03-25T15:15:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3923
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3922
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3923
+time="2026-03-25T15:15:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3924
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3924
+time="2026-03-25T15:15:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3925
+time="2026-03-25T15:15:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3926
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3925
+time="2026-03-25T15:15:31-07:00" level=info msg=ConnectionClosed connectionID=3926
+time="2026-03-25T15:16:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3927
+time="2026-03-25T15:16:01-07:00" level=info msg=ConnectionClosed connectionID=3927
+time="2026-03-25T15:16:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3928
+time="2026-03-25T15:16:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3929
+time="2026-03-25T15:16:01-07:00" level=info msg=ConnectionClosed connectionID=3928
+time="2026-03-25T15:16:01-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:01.066189 -0700 PDT m=+217857.589279376" connectionDb=beads_km connectionID=3929 error="nothing to commit" queryTime="2026-03-25 15:16:01.073564 -0700 PDT m=+217857.596653876"
+time="2026-03-25T15:16:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3930
+time="2026-03-25T15:16:01-07:00" level=info msg=ConnectionClosed connectionID=3930
+time="2026-03-25T15:16:01-07:00" level=info msg=ConnectionClosed connectionID=3929
+time="2026-03-25T15:16:06-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3931
+time="2026-03-25T15:16:06-07:00" level=info msg=ConnectionClosed connectionID=3931
+time="2026-03-25T15:16:06-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3932
+time="2026-03-25T15:16:06-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3933
+time="2026-03-25T15:16:06-07:00" level=info msg=ConnectionClosed connectionID=3932
+time="2026-03-25T15:16:06-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:06.314035 -0700 PDT m=+217862.837115001" connectionDb=beads_km connectionID=3933 error="nothing to commit" queryTime="2026-03-25 15:16:06.327576 -0700 PDT m=+217862.850655667"
+time="2026-03-25T15:16:06-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3934
+time="2026-03-25T15:16:06-07:00" level=info msg=ConnectionClosed connectionID=3934
+time="2026-03-25T15:16:07-07:00" level=info msg=ConnectionClosed connectionID=3933
+time="2026-03-25T15:16:10-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3935
+time="2026-03-25T15:16:10-07:00" level=info msg=ConnectionClosed connectionID=3935
+time="2026-03-25T15:16:10-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3936
+time="2026-03-25T15:16:10-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3937
+time="2026-03-25T15:16:10-07:00" level=info msg=ConnectionClosed connectionID=3936
+time="2026-03-25T15:16:10-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:10.752994 -0700 PDT m=+217867.276064001" connectionDb=beads_km connectionID=3937 error="nothing to commit" queryTime="2026-03-25 15:16:10.761093 -0700 PDT m=+217867.284162459"
+time="2026-03-25T15:16:11-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3938
+time="2026-03-25T15:16:11-07:00" level=info msg=ConnectionClosed connectionID=3938
+time="2026-03-25T15:16:11-07:00" level=info msg=ConnectionClosed connectionID=3937
+time="2026-03-25T15:16:15-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3939
+time="2026-03-25T15:16:15-07:00" level=info msg=ConnectionClosed connectionID=3939
+time="2026-03-25T15:16:15-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3940
+time="2026-03-25T15:16:15-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3941
+time="2026-03-25T15:16:15-07:00" level=info msg=ConnectionClosed connectionID=3940
+time="2026-03-25T15:16:15-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:15.229001 -0700 PDT m=+217871.752059709" connectionDb=beads_km connectionID=3941 error="nothing to commit" queryTime="2026-03-25 15:16:15.237688 -0700 PDT m=+217871.760746001"
+time="2026-03-25T15:16:15-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3942
+time="2026-03-25T15:16:15-07:00" level=info msg=ConnectionClosed connectionID=3942
+time="2026-03-25T15:16:16-07:00" level=info msg=ConnectionClosed connectionID=3941
+time="2026-03-25T15:16:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3943
+time="2026-03-25T15:16:20-07:00" level=info msg=ConnectionClosed connectionID=3943
+time="2026-03-25T15:16:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3944
+time="2026-03-25T15:16:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3945
+time="2026-03-25T15:16:20-07:00" level=info msg=ConnectionClosed connectionID=3944
+time="2026-03-25T15:16:20-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:20.752918 -0700 PDT m=+217877.275961584" connectionDb=beads_km connectionID=3945 error="nothing to commit" queryTime="2026-03-25 15:16:20.764352 -0700 PDT m=+217877.287394792"
+time="2026-03-25T15:16:21-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3946
+time="2026-03-25T15:16:21-07:00" level=info msg=ConnectionClosed connectionID=3946
+time="2026-03-25T15:16:21-07:00" level=info msg=ConnectionClosed connectionID=3945
+time="2026-03-25T15:16:24-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3947
+time="2026-03-25T15:16:24-07:00" level=info msg=ConnectionClosed connectionID=3947
+time="2026-03-25T15:16:24-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3948
+time="2026-03-25T15:16:24-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3949
+time="2026-03-25T15:16:24-07:00" level=info msg=ConnectionClosed connectionID=3948
+time="2026-03-25T15:16:24-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:24.856797 -0700 PDT m=+217881.379828959" connectionDb=beads_km connectionID=3949 error="nothing to commit" queryTime="2026-03-25 15:16:24.863859 -0700 PDT m=+217881.386890417"
+time="2026-03-25T15:16:25-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3950
+time="2026-03-25T15:16:25-07:00" level=info msg=ConnectionClosed connectionID=3950
+time="2026-03-25T15:16:25-07:00" level=info msg=ConnectionClosed connectionID=3949
+time="2026-03-25T15:16:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3951
+time="2026-03-25T15:16:29-07:00" level=info msg=ConnectionClosed connectionID=3951
+time="2026-03-25T15:16:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3952
+time="2026-03-25T15:16:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3953
+time="2026-03-25T15:16:29-07:00" level=info msg=ConnectionClosed connectionID=3952
+time="2026-03-25T15:16:29-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:29.570573 -0700 PDT m=+217886.093590167" connectionDb=beads_km connectionID=3953 error="nothing to commit" queryTime="2026-03-25 15:16:29.577265 -0700 PDT m=+217886.100282959"
+time="2026-03-25T15:16:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3954
+time="2026-03-25T15:16:29-07:00" level=info msg=ConnectionClosed connectionID=3954
+time="2026-03-25T15:16:30-07:00" level=info msg=ConnectionClosed connectionID=3953
+time="2026-03-25T15:16:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3955
+time="2026-03-25T15:16:33-07:00" level=info msg=ConnectionClosed connectionID=3955
+time="2026-03-25T15:16:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3956
+time="2026-03-25T15:16:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3957
+time="2026-03-25T15:16:33-07:00" level=info msg=ConnectionClosed connectionID=3956
+time="2026-03-25T15:16:33-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:33.484286 -0700 PDT m=+217890.007292084" connectionDb=beads_km connectionID=3957 error="nothing to commit" queryTime="2026-03-25 15:16:33.492866 -0700 PDT m=+217890.015871292"
+time="2026-03-25T15:16:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3958
+time="2026-03-25T15:16:33-07:00" level=info msg=ConnectionClosed connectionID=3958
+time="2026-03-25T15:16:34-07:00" level=info msg=ConnectionClosed connectionID=3957
+time="2026-03-25T15:16:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3959
+time="2026-03-25T15:16:38-07:00" level=info msg=ConnectionClosed connectionID=3959
+time="2026-03-25T15:16:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3960
+time="2026-03-25T15:16:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3961
+time="2026-03-25T15:16:38-07:00" level=info msg=ConnectionClosed connectionID=3960
+time="2026-03-25T15:16:38-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:38.040683 -0700 PDT m=+217894.563675209" connectionDb=beads_km connectionID=3961 error="nothing to commit" queryTime="2026-03-25 15:16:38.047921 -0700 PDT m=+217894.570912459"
+time="2026-03-25T15:16:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3962
+time="2026-03-25T15:16:38-07:00" level=info msg=ConnectionClosed connectionID=3962
+time="2026-03-25T15:16:38-07:00" level=info msg=ConnectionClosed connectionID=3961
+time="2026-03-25T15:16:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3963
+time="2026-03-25T15:16:42-07:00" level=info msg=ConnectionClosed connectionID=3963
+time="2026-03-25T15:16:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3964
+time="2026-03-25T15:16:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3965
+time="2026-03-25T15:16:42-07:00" level=info msg=ConnectionClosed connectionID=3964
+time="2026-03-25T15:16:42-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:42.250021 -0700 PDT m=+217898.772999917" connectionDb=beads_km connectionID=3965 error="nothing to commit" queryTime="2026-03-25 15:16:42.258365 -0700 PDT m=+217898.781343334"
+time="2026-03-25T15:16:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3966
+time="2026-03-25T15:16:42-07:00" level=info msg=ConnectionClosed connectionID=3966
+time="2026-03-25T15:16:43-07:00" level=info msg=ConnectionClosed connectionID=3965
+time="2026-03-25T15:16:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3967
+time="2026-03-25T15:16:46-07:00" level=info msg=ConnectionClosed connectionID=3967
+time="2026-03-25T15:16:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3968
+time="2026-03-25T15:16:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3969
+time="2026-03-25T15:16:46-07:00" level=info msg=ConnectionClosed connectionID=3968
+time="2026-03-25T15:16:46-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:46.059974 -0700 PDT m=+217902.582940876" connectionDb=beads_km connectionID=3969 error="nothing to commit" queryTime="2026-03-25 15:16:46.066702 -0700 PDT m=+217902.589669001"
+time="2026-03-25T15:16:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3970
+time="2026-03-25T15:16:46-07:00" level=info msg=ConnectionClosed connectionID=3970
+time="2026-03-25T15:16:46-07:00" level=info msg=ConnectionClosed connectionID=3969
+time="2026-03-25T15:16:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3971
+time="2026-03-25T15:16:52-07:00" level=info msg=ConnectionClosed connectionID=3971
+time="2026-03-25T15:16:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3972
+time="2026-03-25T15:16:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3973
+time="2026-03-25T15:16:52-07:00" level=info msg=ConnectionClosed connectionID=3972
+time="2026-03-25T15:16:52-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:52.111028 -0700 PDT m=+217908.633975501" connectionDb=beads_km connectionID=3973 error="nothing to commit" queryTime="2026-03-25 15:16:52.120707 -0700 PDT m=+217908.643654876"
+time="2026-03-25T15:16:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3974
+time="2026-03-25T15:16:52-07:00" level=info msg=ConnectionClosed connectionID=3974
+time="2026-03-25T15:16:53-07:00" level=info msg=ConnectionClosed connectionID=3973
+time="2026-03-25T15:16:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3975
+time="2026-03-25T15:16:57-07:00" level=info msg=ConnectionClosed connectionID=3975
+time="2026-03-25T15:16:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3976
+time="2026-03-25T15:16:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3977
+time="2026-03-25T15:16:57-07:00" level=info msg=ConnectionClosed connectionID=3976
+time="2026-03-25T15:16:57-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:16:57.124723 -0700 PDT m=+217913.647654376" connectionDb=beads_km connectionID=3977 error="nothing to commit" queryTime="2026-03-25 15:16:57.132503 -0700 PDT m=+217913.655434542"
+time="2026-03-25T15:16:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3978
+time="2026-03-25T15:16:57-07:00" level=info msg=ConnectionClosed connectionID=3978
+time="2026-03-25T15:16:58-07:00" level=info msg=ConnectionClosed connectionID=3977
+time="2026-03-25T15:17:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3979
+time="2026-03-25T15:17:00-07:00" level=info msg=ConnectionClosed connectionID=3979
+time="2026-03-25T15:17:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3980
+time="2026-03-25T15:17:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3981
+time="2026-03-25T15:17:00-07:00" level=info msg=ConnectionClosed connectionID=3980
+time="2026-03-25T15:17:00-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:00.844882 -0700 PDT m=+217917.367802334" connectionDb=beads_km connectionID=3981 error="nothing to commit" queryTime="2026-03-25 15:17:00.851767 -0700 PDT m=+217917.374687292"
+time="2026-03-25T15:17:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3982
+time="2026-03-25T15:17:01-07:00" level=info msg=ConnectionClosed connectionID=3982
+time="2026-03-25T15:17:01-07:00" level=info msg=ConnectionClosed connectionID=3981
+time="2026-03-25T15:17:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3983
+time="2026-03-25T15:17:05-07:00" level=info msg=ConnectionClosed connectionID=3983
+time="2026-03-25T15:17:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3984
+time="2026-03-25T15:17:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3985
+time="2026-03-25T15:17:05-07:00" level=info msg=ConnectionClosed connectionID=3984
+time="2026-03-25T15:17:05-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:05.270068 -0700 PDT m=+217921.792973417" connectionDb=beads_km connectionID=3985 error="nothing to commit" queryTime="2026-03-25 15:17:05.279709 -0700 PDT m=+217921.802614459"
+time="2026-03-25T15:17:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3986
+time="2026-03-25T15:17:05-07:00" level=info msg=ConnectionClosed connectionID=3986
+time="2026-03-25T15:17:06-07:00" level=info msg=ConnectionClosed connectionID=3985
+time="2026-03-25T15:17:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3987
+time="2026-03-25T15:17:09-07:00" level=info msg=ConnectionClosed connectionID=3987
+time="2026-03-25T15:17:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3988
+time="2026-03-25T15:17:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3989
+time="2026-03-25T15:17:09-07:00" level=info msg=ConnectionClosed connectionID=3988
+time="2026-03-25T15:17:09-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:09.308717 -0700 PDT m=+217925.831609417" connectionDb=beads_km connectionID=3989 error="nothing to commit" queryTime="2026-03-25 15:17:09.31816 -0700 PDT m=+217925.841053251"
+time="2026-03-25T15:17:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3990
+time="2026-03-25T15:17:09-07:00" level=info msg=ConnectionClosed connectionID=3990
+time="2026-03-25T15:17:10-07:00" level=info msg=ConnectionClosed connectionID=3989
+time="2026-03-25T15:17:14-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3991
+time="2026-03-25T15:17:14-07:00" level=info msg=ConnectionClosed connectionID=3991
+time="2026-03-25T15:17:14-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3992
+time="2026-03-25T15:17:14-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3993
+time="2026-03-25T15:17:14-07:00" level=info msg=ConnectionClosed connectionID=3992
+time="2026-03-25T15:17:14-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:14.299103 -0700 PDT m=+217930.821979959" connectionDb=beads_km connectionID=3993 error="nothing to commit" queryTime="2026-03-25 15:17:14.308539 -0700 PDT m=+217930.831415376"
+time="2026-03-25T15:17:14-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3994
+time="2026-03-25T15:17:14-07:00" level=info msg=ConnectionClosed connectionID=3994
+time="2026-03-25T15:17:14-07:00" level=info msg=ConnectionClosed connectionID=3993
+time="2026-03-25T15:17:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3995
+time="2026-03-25T15:17:17-07:00" level=info msg=ConnectionClosed connectionID=3995
+time="2026-03-25T15:17:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3996
+time="2026-03-25T15:17:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3997
+time="2026-03-25T15:17:17-07:00" level=info msg=ConnectionClosed connectionID=3996
+time="2026-03-25T15:17:17-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:17.612185 -0700 PDT m=+217934.135051667" connectionDb=beads_km connectionID=3997 error="nothing to commit" queryTime="2026-03-25 15:17:17.619674 -0700 PDT m=+217934.142539834"
+time="2026-03-25T15:17:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3998
+time="2026-03-25T15:17:17-07:00" level=info msg=ConnectionClosed connectionID=3998
+time="2026-03-25T15:17:17-07:00" level=info msg=ConnectionClosed connectionID=3997
+time="2026-03-25T15:17:21-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=3999
+time="2026-03-25T15:17:21-07:00" level=info msg=ConnectionClosed connectionID=3999
+time="2026-03-25T15:17:21-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4000
+time="2026-03-25T15:17:21-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4001
+time="2026-03-25T15:17:21-07:00" level=info msg=ConnectionClosed connectionID=4000
+time="2026-03-25T15:17:21-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:21.953341 -0700 PDT m=+217938.476193626" connectionDb=beads_km connectionID=4001 error="nothing to commit" queryTime="2026-03-25 15:17:21.960638 -0700 PDT m=+217938.483489834"
+time="2026-03-25T15:17:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4002
+time="2026-03-25T15:17:22-07:00" level=info msg=ConnectionClosed connectionID=4002
+time="2026-03-25T15:17:22-07:00" level=info msg=ConnectionClosed connectionID=4001
+time="2026-03-25T15:17:25-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4003
+time="2026-03-25T15:17:25-07:00" level=info msg=ConnectionClosed connectionID=4003
+time="2026-03-25T15:17:25-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4004
+time="2026-03-25T15:17:25-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4005
+time="2026-03-25T15:17:25-07:00" level=info msg=ConnectionClosed connectionID=4004
+time="2026-03-25T15:17:25-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:25.160876 -0700 PDT m=+217941.683718001" connectionDb=beads_km connectionID=4005 error="nothing to commit" queryTime="2026-03-25 15:17:25.169911 -0700 PDT m=+217941.692752584"
+time="2026-03-25T15:17:25-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4006
+time="2026-03-25T15:17:25-07:00" level=info msg=ConnectionClosed connectionID=4006
+time="2026-03-25T15:17:25-07:00" level=info msg=ConnectionClosed connectionID=4005
+time="2026-03-25T15:17:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4007
+time="2026-03-25T15:17:30-07:00" level=info msg=ConnectionClosed connectionID=4007
+time="2026-03-25T15:17:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4008
+time="2026-03-25T15:17:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4009
+time="2026-03-25T15:17:30-07:00" level=info msg=ConnectionClosed connectionID=4008
+time="2026-03-25T15:17:30-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:30.11732 -0700 PDT m=+217946.640145709" connectionDb=beads_km connectionID=4009 error="nothing to commit" queryTime="2026-03-25 15:17:30.146405 -0700 PDT m=+217946.669231251"
+time="2026-03-25T15:17:30-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4010
+time="2026-03-25T15:17:30-07:00" level=info msg=ConnectionClosed connectionID=4010
+time="2026-03-25T15:17:30-07:00" level=info msg=ConnectionClosed connectionID=4009
+time="2026-03-25T15:17:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4011
+time="2026-03-25T15:17:33-07:00" level=info msg=ConnectionClosed connectionID=4011
+time="2026-03-25T15:17:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4012
+time="2026-03-25T15:17:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4013
+time="2026-03-25T15:17:33-07:00" level=info msg=ConnectionClosed connectionID=4012
+time="2026-03-25T15:17:33-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:33.399608 -0700 PDT m=+217949.922423042" connectionDb=beads_km connectionID=4013 error="nothing to commit" queryTime="2026-03-25 15:17:33.408037 -0700 PDT m=+217949.930852334"
+time="2026-03-25T15:17:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4014
+time="2026-03-25T15:17:33-07:00" level=info msg=ConnectionClosed connectionID=4014
+time="2026-03-25T15:17:33-07:00" level=info msg=ConnectionClosed connectionID=4013
+time="2026-03-25T15:17:36-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4015
+time="2026-03-25T15:17:36-07:00" level=info msg=ConnectionClosed connectionID=4015
+time="2026-03-25T15:17:36-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4016
+time="2026-03-25T15:17:36-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4017
+time="2026-03-25T15:17:36-07:00" level=info msg=ConnectionClosed connectionID=4016
+time="2026-03-25T15:17:36-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:36.835787 -0700 PDT m=+217953.358591917" connectionDb=beads_km connectionID=4017 error="nothing to commit" queryTime="2026-03-25 15:17:36.846019 -0700 PDT m=+217953.368823959"
+time="2026-03-25T15:17:37-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4018
+time="2026-03-25T15:17:37-07:00" level=info msg=ConnectionClosed connectionID=4018
+time="2026-03-25T15:17:37-07:00" level=info msg=ConnectionClosed connectionID=4017
+time="2026-03-25T15:17:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4019
+time="2026-03-25T15:17:41-07:00" level=info msg=ConnectionClosed connectionID=4019
+time="2026-03-25T15:17:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4020
+time="2026-03-25T15:17:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4021
+time="2026-03-25T15:17:41-07:00" level=info msg=ConnectionClosed connectionID=4020
+time="2026-03-25T15:17:41-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:41.299992 -0700 PDT m=+217957.822782042" connectionDb=beads_km connectionID=4021 error="nothing to commit" queryTime="2026-03-25 15:17:41.30848 -0700 PDT m=+217957.831270376"
+time="2026-03-25T15:17:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4022
+time="2026-03-25T15:17:41-07:00" level=info msg=ConnectionClosed connectionID=4022
+time="2026-03-25T15:17:41-07:00" level=info msg=ConnectionClosed connectionID=4021
+time="2026-03-25T15:17:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4023
+time="2026-03-25T15:17:44-07:00" level=info msg=ConnectionClosed connectionID=4023
+time="2026-03-25T15:17:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4024
+time="2026-03-25T15:17:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4025
+time="2026-03-25T15:17:44-07:00" level=info msg=ConnectionClosed connectionID=4024
+time="2026-03-25T15:17:44-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:44.265276 -0700 PDT m=+217960.788056667" connectionDb=beads_km connectionID=4025 error="nothing to commit" queryTime="2026-03-25 15:17:44.27183 -0700 PDT m=+217960.794610626"
+time="2026-03-25T15:17:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4026
+time="2026-03-25T15:17:44-07:00" level=info msg=ConnectionClosed connectionID=4026
+time="2026-03-25T15:17:44-07:00" level=info msg=ConnectionClosed connectionID=4025
+time="2026-03-25T15:17:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4027
+time="2026-03-25T15:17:47-07:00" level=info msg=ConnectionClosed connectionID=4027
+time="2026-03-25T15:17:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4028
+time="2026-03-25T15:17:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4029
+time="2026-03-25T15:17:47-07:00" level=info msg=ConnectionClosed connectionID=4028
+time="2026-03-25T15:17:47-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:47.621637 -0700 PDT m=+217964.144407126" connectionDb=beads_km connectionID=4029 error="nothing to commit" queryTime="2026-03-25 15:17:47.629103 -0700 PDT m=+217964.151872251"
+time="2026-03-25T15:17:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4030
+time="2026-03-25T15:17:47-07:00" level=info msg=ConnectionClosed connectionID=4030
+time="2026-03-25T15:17:47-07:00" level=info msg=ConnectionClosed connectionID=4029
+time="2026-03-25T15:17:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4031
+time="2026-03-25T15:17:52-07:00" level=info msg=ConnectionClosed connectionID=4031
+time="2026-03-25T15:17:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4032
+time="2026-03-25T15:17:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4033
+time="2026-03-25T15:17:52-07:00" level=info msg=ConnectionClosed connectionID=4032
+time="2026-03-25T15:17:52-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:52.016826 -0700 PDT m=+217968.539582001" connectionDb=beads_km connectionID=4033 error="nothing to commit" queryTime="2026-03-25 15:17:52.025445 -0700 PDT m=+217968.548200917"
+time="2026-03-25T15:17:52-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4034
+time="2026-03-25T15:17:52-07:00" level=info msg=ConnectionClosed connectionID=4034
+time="2026-03-25T15:17:52-07:00" level=info msg=ConnectionClosed connectionID=4033
+time="2026-03-25T15:17:56-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4035
+time="2026-03-25T15:17:56-07:00" level=info msg=ConnectionClosed connectionID=4035
+time="2026-03-25T15:17:56-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4036
+time="2026-03-25T15:17:56-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4037
+time="2026-03-25T15:17:56-07:00" level=info msg=ConnectionClosed connectionID=4036
+time="2026-03-25T15:17:56-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:17:56.944305 -0700 PDT m=+217973.467044876" connectionDb=beads_km connectionID=4037 error="nothing to commit" queryTime="2026-03-25 15:17:56.95389 -0700 PDT m=+217973.476630001"
+time="2026-03-25T15:17:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4038
+time="2026-03-25T15:17:57-07:00" level=info msg=ConnectionClosed connectionID=4038
+time="2026-03-25T15:17:57-07:00" level=info msg=ConnectionClosed connectionID=4037
+time="2026-03-25T15:18:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4039
+time="2026-03-25T15:18:00-07:00" level=info msg=ConnectionClosed connectionID=4039
+time="2026-03-25T15:18:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4040
+time="2026-03-25T15:18:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4041
+time="2026-03-25T15:18:00-07:00" level=info msg=ConnectionClosed connectionID=4040
+time="2026-03-25T15:18:00-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:00.370712 -0700 PDT m=+217976.893440917" connectionDb=beads_km connectionID=4041 error="nothing to commit" queryTime="2026-03-25 15:18:00.378181 -0700 PDT m=+217976.900909501"
+time="2026-03-25T15:18:00-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4042
+time="2026-03-25T15:18:00-07:00" level=info msg=ConnectionClosed connectionID=4042
+time="2026-03-25T15:18:00-07:00" level=info msg=ConnectionClosed connectionID=4041
+time="2026-03-25T15:18:04-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4043
+time="2026-03-25T15:18:04-07:00" level=info msg=ConnectionClosed connectionID=4043
+time="2026-03-25T15:18:04-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4044
+time="2026-03-25T15:18:04-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4045
+time="2026-03-25T15:18:04-07:00" level=info msg=ConnectionClosed connectionID=4044
+time="2026-03-25T15:18:04-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:04.791369 -0700 PDT m=+217981.314083751" connectionDb=beads_km connectionID=4045 error="nothing to commit" queryTime="2026-03-25 15:18:04.798725 -0700 PDT m=+217981.321439167"
+time="2026-03-25T15:18:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4046
+time="2026-03-25T15:18:05-07:00" level=info msg=ConnectionClosed connectionID=4046
+time="2026-03-25T15:18:05-07:00" level=info msg=ConnectionClosed connectionID=4045
+time="2026-03-25T15:18:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4047
+time="2026-03-25T15:18:08-07:00" level=info msg=ConnectionClosed connectionID=4047
+time="2026-03-25T15:18:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4048
+time="2026-03-25T15:18:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4049
+time="2026-03-25T15:18:08-07:00" level=info msg=ConnectionClosed connectionID=4048
+time="2026-03-25T15:18:08-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:08.034549 -0700 PDT m=+217984.557252667" connectionDb=beads_km connectionID=4049 error="nothing to commit" queryTime="2026-03-25 15:18:08.041882 -0700 PDT m=+217984.564585834"
+time="2026-03-25T15:18:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4050
+time="2026-03-25T15:18:08-07:00" level=info msg=ConnectionClosed connectionID=4050
+time="2026-03-25T15:18:08-07:00" level=info msg=ConnectionClosed connectionID=4049
+time="2026-03-25T15:18:11-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4051
+time="2026-03-25T15:18:11-07:00" level=info msg=ConnectionClosed connectionID=4051
+time="2026-03-25T15:18:11-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4052
+time="2026-03-25T15:18:11-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4053
+time="2026-03-25T15:18:11-07:00" level=info msg=ConnectionClosed connectionID=4052
+time="2026-03-25T15:18:11-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:11.624046 -0700 PDT m=+217988.146738792" connectionDb=beads_km connectionID=4053 error="nothing to commit" queryTime="2026-03-25 15:18:11.631507 -0700 PDT m=+217988.154199001"
+time="2026-03-25T15:18:11-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4054
+time="2026-03-25T15:18:11-07:00" level=info msg=ConnectionClosed connectionID=4054
+time="2026-03-25T15:18:11-07:00" level=info msg=ConnectionClosed connectionID=4053
+time="2026-03-25T15:18:16-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4055
+time="2026-03-25T15:18:16-07:00" level=info msg=ConnectionClosed connectionID=4055
+time="2026-03-25T15:18:16-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4056
+time="2026-03-25T15:18:16-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4057
+time="2026-03-25T15:18:16-07:00" level=info msg=ConnectionClosed connectionID=4056
+time="2026-03-25T15:18:16-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:16.525533 -0700 PDT m=+217993.048209667" connectionDb=beads_km connectionID=4057 error="nothing to commit" queryTime="2026-03-25 15:18:16.533844 -0700 PDT m=+217993.056520292"
+time="2026-03-25T15:18:16-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4058
+time="2026-03-25T15:18:16-07:00" level=info msg=ConnectionClosed connectionID=4058
+time="2026-03-25T15:18:16-07:00" level=info msg=ConnectionClosed connectionID=4057
+time="2026-03-25T15:18:27-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4059
+time="2026-03-25T15:18:27-07:00" level=info msg=ConnectionClosed connectionID=4059
+time="2026-03-25T15:18:27-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4060
+time="2026-03-25T15:18:27-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4061
+time="2026-03-25T15:18:27-07:00" level=info msg=ConnectionClosed connectionID=4060
+time="2026-03-25T15:18:27-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:27.306909 -0700 PDT m=+218003.829550917" connectionDb=beads_km connectionID=4061 error="nothing to commit" queryTime="2026-03-25 15:18:27.316792 -0700 PDT m=+218003.839434001"
+time="2026-03-25T15:18:27-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4062
+time="2026-03-25T15:18:27-07:00" level=info msg=ConnectionClosed connectionID=4062
+time="2026-03-25T15:18:27-07:00" level=info msg=ConnectionClosed connectionID=4061
+time="2026-03-25T15:18:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4063
+time="2026-03-25T15:18:31-07:00" level=info msg=ConnectionClosed connectionID=4063
+time="2026-03-25T15:18:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4064
+time="2026-03-25T15:18:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4065
+time="2026-03-25T15:18:31-07:00" level=info msg=ConnectionClosed connectionID=4064
+time="2026-03-25T15:18:31-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:31.334451 -0700 PDT m=+218007.857079751" connectionDb=beads_km connectionID=4065 error="nothing to commit" queryTime="2026-03-25 15:18:31.342615 -0700 PDT m=+218007.865244292"
+time="2026-03-25T15:18:31-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4066
+time="2026-03-25T15:18:31-07:00" level=info msg=ConnectionClosed connectionID=4066
+time="2026-03-25T15:18:31-07:00" level=info msg=ConnectionClosed connectionID=4065
+time="2026-03-25T15:18:34-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4067
+time="2026-03-25T15:18:34-07:00" level=info msg=ConnectionClosed connectionID=4067
+time="2026-03-25T15:18:34-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4068
+time="2026-03-25T15:18:34-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4069
+time="2026-03-25T15:18:34-07:00" level=info msg=ConnectionClosed connectionID=4068
+time="2026-03-25T15:18:34-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:34.659972 -0700 PDT m=+218011.182590542" connectionDb=beads_km connectionID=4069 error="nothing to commit" queryTime="2026-03-25 15:18:34.667341 -0700 PDT m=+218011.189959626"
+time="2026-03-25T15:18:34-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4070
+time="2026-03-25T15:18:34-07:00" level=info msg=ConnectionClosed connectionID=4070
+time="2026-03-25T15:18:35-07:00" level=info msg=ConnectionClosed connectionID=4069
+time="2026-03-25T15:18:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4071
+time="2026-03-25T15:18:38-07:00" level=info msg=ConnectionClosed connectionID=4071
+time="2026-03-25T15:18:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4072
+time="2026-03-25T15:18:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4073
+time="2026-03-25T15:18:38-07:00" level=info msg=ConnectionClosed connectionID=4072
+time="2026-03-25T15:18:38-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:38.216391 -0700 PDT m=+218014.738997876" connectionDb=beads_km connectionID=4073 error="nothing to commit" queryTime="2026-03-25 15:18:38.223561 -0700 PDT m=+218014.746168084"
+time="2026-03-25T15:18:38-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4074
+time="2026-03-25T15:18:38-07:00" level=info msg=ConnectionClosed connectionID=4074
+time="2026-03-25T15:18:38-07:00" level=info msg=ConnectionClosed connectionID=4073
+time="2026-03-25T15:18:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4075
+time="2026-03-25T15:18:41-07:00" level=info msg=ConnectionClosed connectionID=4075
+time="2026-03-25T15:18:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4076
+time="2026-03-25T15:18:41-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4077
+time="2026-03-25T15:18:41-07:00" level=info msg=ConnectionClosed connectionID=4076
+time="2026-03-25T15:18:41-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:41.937656 -0700 PDT m=+218018.460250792" connectionDb=beads_km connectionID=4077 error="nothing to commit" queryTime="2026-03-25 15:18:41.945107 -0700 PDT m=+218018.467701917"
+time="2026-03-25T15:18:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4078
+time="2026-03-25T15:18:42-07:00" level=info msg=ConnectionClosed connectionID=4078
+time="2026-03-25T15:18:42-07:00" level=info msg=ConnectionClosed connectionID=4077
+time="2026-03-25T15:18:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4079
+time="2026-03-25T15:18:50-07:00" level=info msg=ConnectionClosed connectionID=4079
+time="2026-03-25T15:18:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4080
+time="2026-03-25T15:18:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4081
+time="2026-03-25T15:18:50-07:00" level=info msg=ConnectionClosed connectionID=4080
+time="2026-03-25T15:18:50-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:50.584914 -0700 PDT m=+218027.107480834" connectionDb=beads_km connectionID=4081 error="nothing to commit" queryTime="2026-03-25 15:18:50.594406 -0700 PDT m=+218027.116972542"
+time="2026-03-25T15:18:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4082
+time="2026-03-25T15:18:50-07:00" level=info msg=ConnectionClosed connectionID=4082
+time="2026-03-25T15:18:50-07:00" level=info msg=ConnectionClosed connectionID=4081
+time="2026-03-25T15:18:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4083
+time="2026-03-25T15:18:57-07:00" level=info msg=ConnectionClosed connectionID=4083
+time="2026-03-25T15:18:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4084
+time="2026-03-25T15:18:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4085
+time="2026-03-25T15:18:57-07:00" level=info msg=ConnectionClosed connectionID=4084
+time="2026-03-25T15:18:57-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:18:57.038752 -0700 PDT m=+218033.561298417" connectionDb=beads_km connectionID=4085 error="nothing to commit" queryTime="2026-03-25 15:18:57.048985 -0700 PDT m=+218033.571531667"
+time="2026-03-25T15:18:57-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4086
+time="2026-03-25T15:18:57-07:00" level=info msg=ConnectionClosed connectionID=4086
+time="2026-03-25T15:18:57-07:00" level=info msg=ConnectionClosed connectionID=4085
+time="2026-03-25T15:19:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4087
+time="2026-03-25T15:19:01-07:00" level=info msg=ConnectionClosed connectionID=4087
+time="2026-03-25T15:19:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4088
+time="2026-03-25T15:19:01-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4089
+time="2026-03-25T15:19:01-07:00" level=info msg=ConnectionClosed connectionID=4088
+time="2026-03-25T15:19:01-07:00" level=info msg=ConnectionClosed connectionID=4089
+time="2026-03-25T15:19:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4090
+time="2026-03-25T15:19:05-07:00" level=info msg=ConnectionClosed connectionID=4090
+time="2026-03-25T15:19:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4091
+time="2026-03-25T15:19:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4092
+time="2026-03-25T15:19:05-07:00" level=info msg=ConnectionClosed connectionID=4091
+time="2026-03-25T15:19:05-07:00" level=info msg=ConnectionClosed connectionID=4092
+time="2026-03-25T15:19:19-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4093
+time="2026-03-25T15:19:19-07:00" level=info msg=ConnectionClosed connectionID=4093
+time="2026-03-25T15:19:19-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4094
+time="2026-03-25T15:19:19-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4095
+time="2026-03-25T15:19:19-07:00" level=info msg=ConnectionClosed connectionID=4094
+time="2026-03-25T15:19:19-07:00" level=info msg=ConnectionClosed connectionID=4095
+time="2026-03-25T15:19:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4096
+time="2026-03-25T15:19:22-07:00" level=info msg=ConnectionClosed connectionID=4096
+time="2026-03-25T15:19:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4097
+time="2026-03-25T15:19:22-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4098
+time="2026-03-25T15:19:22-07:00" level=info msg=ConnectionClosed connectionID=4097
+time="2026-03-25T15:19:22-07:00" level=info msg=ConnectionClosed connectionID=4098
+time="2026-03-25T15:19:26-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4099
+time="2026-03-25T15:19:26-07:00" level=info msg=ConnectionClosed connectionID=4099
+time="2026-03-25T15:19:26-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4100
+time="2026-03-25T15:19:26-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4101
+time="2026-03-25T15:19:26-07:00" level=info msg=ConnectionClosed connectionID=4100
+time="2026-03-25T15:19:26-07:00" level=info msg=ConnectionClosed connectionID=4101
+time="2026-03-25T15:19:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4102
+time="2026-03-25T15:19:29-07:00" level=info msg=ConnectionClosed connectionID=4102
+time="2026-03-25T15:19:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4103
+time="2026-03-25T15:19:29-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4104
+time="2026-03-25T15:19:29-07:00" level=info msg=ConnectionClosed connectionID=4103
+time="2026-03-25T15:19:29-07:00" level=info msg=ConnectionClosed connectionID=4104
+time="2026-03-25T15:19:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4105
+time="2026-03-25T15:19:33-07:00" level=info msg=ConnectionClosed connectionID=4105
+time="2026-03-25T15:19:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4106
+time="2026-03-25T15:19:33-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4107
+time="2026-03-25T15:19:33-07:00" level=info msg=ConnectionClosed connectionID=4106
+time="2026-03-25T15:19:33-07:00" level=info msg=ConnectionClosed connectionID=4107
+time="2026-03-25T15:19:39-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4108
+time="2026-03-25T15:19:39-07:00" level=info msg=ConnectionClosed connectionID=4108
+time="2026-03-25T15:19:39-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4109
+time="2026-03-25T15:19:39-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4110
+time="2026-03-25T15:19:39-07:00" level=info msg=ConnectionClosed connectionID=4109
+time="2026-03-25T15:19:39-07:00" level=info msg=ConnectionClosed connectionID=4110
+time="2026-03-25T15:19:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4111
+time="2026-03-25T15:19:42-07:00" level=info msg=ConnectionClosed connectionID=4111
+time="2026-03-25T15:19:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4112
+time="2026-03-25T15:19:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4113
+time="2026-03-25T15:19:42-07:00" level=info msg=ConnectionClosed connectionID=4112
+time="2026-03-25T15:19:42-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:42.563417 -0700 PDT m=+218079.085817042" connectionDb=beads_km connectionID=4113 error="nothing to commit" queryTime="2026-03-25 15:19:42.572131 -0700 PDT m=+218079.094530792"
+time="2026-03-25T15:19:42-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4114
+time="2026-03-25T15:19:42-07:00" level=info msg=ConnectionClosed connectionID=4114
+time="2026-03-25T15:19:43-07:00" level=info msg=ConnectionClosed connectionID=4113
+time="2026-03-25T15:19:43-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4115
+time="2026-03-25T15:19:43-07:00" level=info msg=ConnectionClosed connectionID=4115
+time="2026-03-25T15:19:43-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4116
+time="2026-03-25T15:19:43-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4117
+time="2026-03-25T15:19:43-07:00" level=info msg=ConnectionClosed connectionID=4116
+time="2026-03-25T15:19:43-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:43.488629 -0700 PDT m=+218080.011025667" connectionDb=beads_km connectionID=4117 error="nothing to commit" queryTime="2026-03-25 15:19:43.494855 -0700 PDT m=+218080.017251917"
+time="2026-03-25T15:19:43-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4118
+time="2026-03-25T15:19:43-07:00" level=info msg=ConnectionClosed connectionID=4118
+time="2026-03-25T15:19:44-07:00" level=info msg=ConnectionClosed connectionID=4117
+time="2026-03-25T15:19:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4119
+time="2026-03-25T15:19:44-07:00" level=info msg=ConnectionClosed connectionID=4119
+time="2026-03-25T15:19:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4120
+time="2026-03-25T15:19:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4121
+time="2026-03-25T15:19:44-07:00" level=info msg=ConnectionClosed connectionID=4120
+time="2026-03-25T15:19:44-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:44.428376 -0700 PDT m=+218080.950769251" connectionDb=beads_km connectionID=4121 error="nothing to commit" queryTime="2026-03-25 15:19:44.433515 -0700 PDT m=+218080.955908542"
+time="2026-03-25T15:19:44-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4122
+time="2026-03-25T15:19:44-07:00" level=info msg=ConnectionClosed connectionID=4122
+time="2026-03-25T15:19:45-07:00" level=info msg=ConnectionClosed connectionID=4121
+time="2026-03-25T15:19:45-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4123
+time="2026-03-25T15:19:45-07:00" level=info msg=ConnectionClosed connectionID=4123
+time="2026-03-25T15:19:45-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4124
+time="2026-03-25T15:19:45-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4125
+time="2026-03-25T15:19:45-07:00" level=info msg=ConnectionClosed connectionID=4124
+time="2026-03-25T15:19:45-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:45.337694 -0700 PDT m=+218081.860084917" connectionDb=beads_km connectionID=4125 error="nothing to commit" queryTime="2026-03-25 15:19:45.342849 -0700 PDT m=+218081.865239167"
+time="2026-03-25T15:19:45-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4126
+time="2026-03-25T15:19:45-07:00" level=info msg=ConnectionClosed connectionID=4126
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4125
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4127
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4127
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4128
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4129
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4128
+time="2026-03-25T15:19:46-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:46.252721 -0700 PDT m=+218082.775109126" connectionDb=beads_km connectionID=4129 error="nothing to commit" queryTime="2026-03-25 15:19:46.258431 -0700 PDT m=+218082.780818751"
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4130
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4130
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4131
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4131
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4132
+time="2026-03-25T15:19:46-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4133
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4132
+time="2026-03-25T15:19:46-07:00" level=info msg=ConnectionClosed connectionID=4133
+time="2026-03-25T15:19:47-07:00" level=info msg=ConnectionClosed connectionID=4129
+time="2026-03-25T15:19:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4134
+time="2026-03-25T15:19:47-07:00" level=info msg=ConnectionClosed connectionID=4134
+time="2026-03-25T15:19:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4135
+time="2026-03-25T15:19:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4136
+time="2026-03-25T15:19:47-07:00" level=info msg=ConnectionClosed connectionID=4135
+time="2026-03-25T15:19:47-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:47.173975 -0700 PDT m=+218083.696360292" connectionDb=beads_km connectionID=4136 error="nothing to commit" queryTime="2026-03-25 15:19:47.179289 -0700 PDT m=+218083.701674084"
+time="2026-03-25T15:19:47-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4137
+time="2026-03-25T15:19:47-07:00" level=info msg=ConnectionClosed connectionID=4137
+time="2026-03-25T15:19:48-07:00" level=info msg=ConnectionClosed connectionID=4136
+time="2026-03-25T15:19:48-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4138
+time="2026-03-25T15:19:48-07:00" level=info msg=ConnectionClosed connectionID=4138
+time="2026-03-25T15:19:48-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4139
+time="2026-03-25T15:19:48-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4140
+time="2026-03-25T15:19:48-07:00" level=info msg=ConnectionClosed connectionID=4139
+time="2026-03-25T15:19:48-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:19:48.079259 -0700 PDT m=+218084.601640417" connectionDb=beads_km connectionID=4140 error="nothing to commit" queryTime="2026-03-25 15:19:48.084793 -0700 PDT m=+218084.607175126"
+time="2026-03-25T15:19:48-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4141
+time="2026-03-25T15:19:48-07:00" level=info msg=ConnectionClosed connectionID=4141
+time="2026-03-25T15:19:48-07:00" level=info msg=ConnectionClosed connectionID=4140
+time="2026-03-25T15:19:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4142
+time="2026-03-25T15:19:50-07:00" level=info msg=ConnectionClosed connectionID=4142
+time="2026-03-25T15:19:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4143
+time="2026-03-25T15:19:50-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4144
+time="2026-03-25T15:19:50-07:00" level=info msg=ConnectionClosed connectionID=4143
+time="2026-03-25T15:19:50-07:00" level=info msg=ConnectionClosed connectionID=4144
+time="2026-03-25T15:19:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4145
+time="2026-03-25T15:19:54-07:00" level=info msg=ConnectionClosed connectionID=4145
+time="2026-03-25T15:19:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4146
+time="2026-03-25T15:19:54-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4147
+time="2026-03-25T15:19:54-07:00" level=info msg=ConnectionClosed connectionID=4146
+time="2026-03-25T15:19:54-07:00" level=info msg=ConnectionClosed connectionID=4147
+time="2026-03-25T15:19:59-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4148
+time="2026-03-25T15:19:59-07:00" level=info msg=ConnectionClosed connectionID=4148
+time="2026-03-25T15:19:59-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4149
+time="2026-03-25T15:19:59-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4150
+time="2026-03-25T15:19:59-07:00" level=info msg=ConnectionClosed connectionID=4149
+time="2026-03-25T15:19:59-07:00" level=info msg=ConnectionClosed connectionID=4150
+time="2026-03-25T15:20:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4151
+time="2026-03-25T15:20:05-07:00" level=info msg=ConnectionClosed connectionID=4151
+time="2026-03-25T15:20:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4152
+time="2026-03-25T15:20:05-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4153
+time="2026-03-25T15:20:05-07:00" level=info msg=ConnectionClosed connectionID=4152
+time="2026-03-25T15:20:05-07:00" level=info msg=ConnectionClosed connectionID=4153
+time="2026-03-25T15:20:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4154
+time="2026-03-25T15:20:08-07:00" level=info msg=ConnectionClosed connectionID=4154
+time="2026-03-25T15:20:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4155
+time="2026-03-25T15:20:08-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4156
+time="2026-03-25T15:20:08-07:00" level=info msg=ConnectionClosed connectionID=4155
+time="2026-03-25T15:20:08-07:00" level=info msg=ConnectionClosed connectionID=4156
+time="2026-03-25T15:20:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4157
+time="2026-03-25T15:20:09-07:00" level=info msg=ConnectionClosed connectionID=4157
+time="2026-03-25T15:20:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4158
+time="2026-03-25T15:20:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4159
+time="2026-03-25T15:20:09-07:00" level=info msg=ConnectionClosed connectionID=4158
+time="2026-03-25T15:20:09-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:20:09.716607 -0700 PDT m=+218106.238918959" connectionDb=beads_km connectionID=4159 error="nothing to commit" queryTime="2026-03-25 15:20:09.725158 -0700 PDT m=+218106.247470459"
+time="2026-03-25T15:20:09-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4160
+time="2026-03-25T15:20:09-07:00" level=info msg=ConnectionClosed connectionID=4160
+time="2026-03-25T15:20:10-07:00" level=info msg=ConnectionClosed connectionID=4159
+time="2026-03-25T15:20:12-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4161
+time="2026-03-25T15:20:12-07:00" level=info msg=ConnectionClosed connectionID=4161
+time="2026-03-25T15:20:12-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4162
+time="2026-03-25T15:20:12-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4163
+time="2026-03-25T15:20:12-07:00" level=info msg=ConnectionClosed connectionID=4162
+time="2026-03-25T15:20:12-07:00" level=warning msg="error running query" connectTime="2026-03-25 15:20:12.983688 -0700 PDT m=+218109.505990042" connectionDb=beads_km connectionID=4163 error="nothing to commit" queryTime="2026-03-25 15:20:12.993527 -0700 PDT m=+218109.515828376"
+time="2026-03-25T15:20:13-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4164
+time="2026-03-25T15:20:13-07:00" level=info msg=ConnectionClosed connectionID=4164
+time="2026-03-25T15:20:13-07:00" level=info msg=ConnectionClosed connectionID=4163
+time="2026-03-25T15:20:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4165
+time="2026-03-25T15:20:17-07:00" level=info msg=ConnectionClosed connectionID=4165
+time="2026-03-25T15:20:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4166
+time="2026-03-25T15:20:17-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4167
+time="2026-03-25T15:20:17-07:00" level=info msg=ConnectionClosed connectionID=4166
+time="2026-03-25T15:20:17-07:00" level=info msg=ConnectionClosed connectionID=4167
+time="2026-03-25T15:20:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4168
+time="2026-03-25T15:20:20-07:00" level=info msg=ConnectionClosed connectionID=4168
+time="2026-03-25T15:20:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4169
+time="2026-03-25T15:20:20-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4170
+time="2026-03-25T15:20:20-07:00" level=info msg=ConnectionClosed connectionID=4169
+time="2026-03-25T15:20:21-07:00" level=info msg=ConnectionClosed connectionID=4170
+time="2026-03-25T15:20:24-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4171
+time="2026-03-25T15:20:24-07:00" level=info msg=ConnectionClosed connectionID=4171
+time="2026-03-25T15:20:24-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4172
+time="2026-03-25T15:20:24-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=4173
+time="2026-03-25T15:20:24-07:00" level=info msg=ConnectionClosed connectionID=4172
+time="2026-03-25T15:20:24-07:00" level=info msg=ConnectionClosed connectionID=4173

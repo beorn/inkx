@@ -117,16 +117,28 @@ Then run:
 bd list --status closed --limit 20 --sort updated  # Recent completions for context
 ```
 
-#### Tribe Status Check
+#### Tribe Sync
 
-For any `in_progress` beads claimed by other tribe members (`claude:*` assignees), query the tribe for status before categorizing:
+Before categorizing, do a full tribe sync to get ground truth on what's actually happening:
+
+1. **Check health**: `mcp__tribe__tribe_health()` — shows active members, unread messages, warnings
+2. **List sessions**: `mcp__tribe__tribe_sessions()` — shows who's alive, their domains, uptime
+3. **Broadcast sync query**: Ask ALL members (not just questionable ones) to report:
 
 ```
-mcp__tribe__tribe_send(to="chief", type="query", bead="<bead-id>",
-  message="Backlog grooming: <bead-id> (<title>) is in_progress. Still active or should we release?")
+mcp__tribe__tribe_broadcast(type="notify",
+  message="Backlog grooming sync — please reply with:
+  1. Your session name and domain
+  2. Active beads: each in_progress bead with current status (still active? blocked? done but not closed?)
+  3. Beads you claimed but are no longer working on (so we can release them)
+  4. Bugs/issues found but not tracked yet
+  Reply via tribe_send to <this-session-name>.")
 ```
 
-Send queries **in parallel** for all questionable in_progress beads. Wait for responses before categorizing them in Phase 2. If no response within the grooming session, flag as "Clarify" with note "No tribe response — check next groom."
+4. **Wait for responses** before proceeding to Phase 2. Members typically respond within 1-2 minutes.
+5. **Cross-reference** responses against `bd list --status in_progress` — close beads members say are done, release claims on abandoned work, create beads for untracked issues.
+
+If a member doesn't respond within the grooming session, flag their in_progress beads as "Clarify" with note "No tribe response — check next groom."
 
 ### Phase 2: Analyze & Categorize
 
@@ -189,6 +201,7 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 | Orphaned subtask   | Related work should be under an epic  |
 | Wrong parent       | Issue miscategorized                  |
 | Scattered beads    | Related beads across mixed prefixes need consolidation |
+| Random/opaque ID   | Bead has auto-generated ID (e.g., `km-3edn9`) instead of scoped name |
 
 **Consolidation pattern** (for scattered beads sharing a theme):
 
@@ -197,6 +210,23 @@ This resets the staleness clock for ~1-2 weeks. During grooming, check the `note
 3. **Rename sub-beads**: Use `bd rename <old-id> <new-id>` to move beads to `km-<scope>.<suffix>` dot notation, then `bd update <new-id> --parent km-<scope>`
 4. **Categorize carefully**: A bead mentioning X isn't always *about* X — check if it's the primary subject
 5. **Verify**: `bd children <epic-id>` to confirm structure
+
+**Bead re-ID pattern** (for beads with random/opaque IDs):
+
+Every bead should have a human-readable scoped ID (`km-<scope>.<topic>`). During grooming, identify beads with auto-generated 5-char hex IDs and rename them:
+
+1. **Find random IDs**: `bd list --status open | grep -E 'km-[a-z0-9]{5} '`
+2. **Determine scope**: Which epic does this bead belong to? (silvery, tui, infra, etc.)
+3. **Choose a descriptive suffix**: Short, lowercase, hyphenated (e.g., `scrollback-v2`, `embed-click-jump`)
+4. **Use grouping prefixes** so related beads sort together alphabetically:
+   - `examples-*` for demo/example beads (examples-flagship, examples-dashboard)
+   - `dist-*` for distribution/packaging (dist-bundling, dist-wasm)
+   - `ai-*` for AI-related features (ai-chat, ai-demo, ai-apis)
+   - `tea.*` for TEA sub-beads (tea.migration, tea.standalone)
+   - `ink-*` for Ink migration (ink-codemod, ink-migration)
+5. **Rename**: `bd rename km-<random> km-<scope>.<suffix>` — this updates all internal references (deps, descriptions, events)
+6. **Search codebase**: `Grep pattern="km-<random>" glob="*.{ts,md,json}"` — update any references in code, docs, or config
+7. **Parent**: `bd update km-<scope>.<suffix> --parent km-<scope>`
 
 #### E. Clarify (ask user)
 

@@ -1,7 +1,6 @@
 {"created_at":"2026-03-12T19:27:14Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery.llm-review","issue_id":"km-00jkc","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-upsv","issue_id":"km-098m","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-yh2","issue_id":"km-0ps","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-24T12:24:47Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-0pusk","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-0q9i","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T19:27:12Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery.llm-review","issue_id":"km-0tl5m","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-17T08:06:50Z","created_by":"claude:b92140a2","depends_on_id":"km-all","issue_id":"km-1269w","metadata":"{}","type":"parent-child"}
@@ -29,7 +28,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-39k9","issue_id":"km-39k9.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui.asana-perf","issue_id":"km-39obx","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-7xli","issue_id":"km-3c3i","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-18T11:57:08Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-3edn9","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-3fr2m","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-c2n","issue_id":"km-3g8","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-43l","issue_id":"km-3he","metadata":"{}","type":"blocks"}
@@ -47,7 +45,6 @@
 {"created_at":"2026-03-09T23:27:37Z","created_by":"claude:2ce3230f","depends_on_id":"km-lhh37","issue_id":"km-4itju","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-12T19:27:11Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery.llm-review","issue_id":"km-4l31t","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-c2n","issue_id":"km-4qy","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-23T12:30:43Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-4s8vb","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-qft","issue_id":"km-539","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-53uqt","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-bde2","issue_id":"km-56jk","metadata":"{}","type":"blocks"}
@@ -88,7 +85,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-all.tea-machines","issue_id":"km-89pey","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-m88v3","issue_id":"km-89pey","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-flexx.test-infra","issue_id":"km-8clz9","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-18T11:57:11Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-8gj2a","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-e0d","issue_id":"km-8ia","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-c2n","issue_id":"km-8op","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-c2n","issue_id":"km-8rg","metadata":"{}","type":"blocks"}
@@ -99,11 +95,8 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-56jk","issue_id":"km-9pfp","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-9vcwk","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-9wdm6","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-18T15:37:11Z","created_by":"claude:d29abbfa","depends_on_id":"km-tui","issue_id":"km-9zp8q","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-9zu9f","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-43l","issue_id":"km-a7d","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-18T11:57:09Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-a9h3i","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-12T17:48:45Z","created_by":"claude:5d8a81be","depends_on_id":"km-infra","issue_id":"km-adqvz","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-j3m8","issue_id":"km-ajp4","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-all","issue_id":"km-all.announce","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-all.v1-roadmap","issue_id":"km-all.announce","metadata":"{}","type":"blocks"}
@@ -453,7 +446,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-silvery-legacy","issue_id":"km-hightea.showcase-tests","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-fpg4","issue_id":"km-hm96","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-43l","issue_id":"km-ho3","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-23T12:30:41Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-hobuf","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-1u2c","issue_id":"km-htr7","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-96kg","issue_id":"km-hv4n","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-ajp4","issue_id":"km-hv4n","metadata":"{}","type":"blocks"}
@@ -461,7 +453,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-w2q9","issue_id":"km-hv4n","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-zjy2","issue_id":"km-hv4n","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-hxaue","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-23T12:30:42Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-i8toa","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-dwlr","issue_id":"km-igws","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-igws","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-18T11:57:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-ii6qw","metadata":"{}","type":"parent-child"}
@@ -473,6 +464,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.bench-convert","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.bench-queries","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.bench-sync","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:18:11Z","created_by":"claude:19080504","depends_on_id":"km-infra","issue_id":"km-infra.cc-in-km","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.cc-silvery-flexily","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.ci-fuzz","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.dolt-migrate","metadata":"{}","type":"parent-child"}
@@ -494,6 +486,8 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.npm-hightea","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.npm-naming","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:18:13Z","created_by":"claude:55df8ef1","depends_on_id":"km-infra","issue_id":"km-infra.npm-releases","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:18:05Z","created_by":"claude:19080504","depends_on_id":"km-infra","issue_id":"km-infra.oxlint-warnings","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:18:08Z","created_by":"claude:19080504","depends_on_id":"km-infra","issue_id":"km-infra.oxlint-wouldblock","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T19:12:58Z","created_by":"claude:65d845d9","depends_on_id":"km-all.pro-review-4","issue_id":"km-infra.pro-review-4-termless","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.qa-done","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-infra.regression","metadata":"{}","type":"parent-child"}
@@ -746,7 +740,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-silvery-legacy","issue_id":"km-jlka4","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-silvery-legacy","issue_id":"km-jmxuh","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-t2q4","issue_id":"km-js8s","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-23T12:30:42Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-jsoyg","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-silvery-legacy","issue_id":"km-jz2qf","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-k5k3","issue_id":"km-k5k3.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-k5k3","issue_id":"km-k5k3.2","metadata":"{}","type":"parent-child"}
@@ -823,7 +816,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-7i3e","issue_id":"km-mz2g","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-domain-objects.4","issue_id":"km-mz2g","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-refactor1","issue_id":"km-mz2g","metadata":"{}","type":"parent"}
-{"created_at":"2026-03-23T12:30:41Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-n2sgr","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-2ehu","issue_id":"km-ndno","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-5uyl","issue_id":"km-ndno","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-9hev","issue_id":"km-ndno","metadata":"{}","type":"blocks"}
@@ -866,8 +858,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-oweta","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-15T00:30:23Z","created_by":"claude:c9beade3","depends_on_id":"km-kuphm","issue_id":"km-p7m2r","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-flexx-plan","issue_id":"km-pcbb5","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-24T12:24:53Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-0pusk","issue_id":"km-pfhxu","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-24T11:57:51Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-pfhxu","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T23:27:38Z","created_by":"claude:2ce3230f","depends_on_id":"km-4itju","issue_id":"km-pjejv","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-09T23:25:30Z","created_by":"claude:2ce3230f","depends_on_id":"km-9kwvz","issue_id":"km-pjejv","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T12:30:44Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-pkvfz","metadata":"{}","type":"parent-child"}
@@ -899,7 +889,6 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-c2uj","issue_id":"km-qzdv","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-qzdv","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-za5","issue_id":"km-r4u","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-23T12:30:43Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-rbmmg","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-refactor-legacy","issue_id":"km-refactor-audit","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-refactor-rename","issue_id":"km-refactor-legacy","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-refactor-repl","issue_id":"km-refactor-legacy","metadata":"{}","type":"blocks"}
@@ -976,8 +965,10 @@
 {"created_at":"2026-03-09T14:50:05Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.border-overflow","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-14T08:21:20Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.boundary-height-tests","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:51:27Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.box-in-text-warn","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:44Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.browser-playground","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:05Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.bundle-audit","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:17Z","created_by":"claude:474834b0","depends_on_id":"km-silvery.tree-shaking","issue_id":"km-silvery.bundle-audit","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-25T15:17:33Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.bundling","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T00:43:08Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.bunx-examples","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-14T08:21:26Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.capability-matrix","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:06Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.changelog","metadata":"{}","type":"parent-child"}
@@ -1006,6 +997,7 @@
 {"created_at":"2026-03-12T10:05:10Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.design-0312","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T18:05:16Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.diagnostics-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T11:22:15Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery","issue_id":"km-silvery.docs-reorg","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:25Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.doctor","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:50Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.dry-clip-rect","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:50Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.dry-content-box","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:49Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.dry-flag-clear","metadata":"{}","type":"parent-child"}
@@ -1085,6 +1077,7 @@
 {"created_at":"2026-03-12T09:46:47Z","created_by":"claude:73d7a332","depends_on_id":"km-silvery.examples-infra","issue_id":"km-silvery.examples-theme","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-25T14:52:31Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery","issue_id":"km-silvery.eye-for-design","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T05:02:46Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery","issue_id":"km-silvery.flag-emoji-garble","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:17Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.flagship-apps","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:51:26Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.flex-row-default","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:59:13Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.flicker-tests","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T00:13:17Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.focus-hidden","metadata":"{}","type":"parent-child"}
@@ -1096,6 +1089,7 @@
 {"created_at":"2026-03-23T07:37:07Z","created_by":"claude:c0da815b","depends_on_id":"km-silvery","issue_id":"km-silvery.hover-visual","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T23:46:08Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery","issue_id":"km-silvery.hvl-ceil-overflow","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T23:46:19Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery","issue_id":"km-silvery.hvl-test-coverage","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:41Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.ink-codemod","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T13:36:36Z","created_by":"claude:0b5ea482","depends_on_id":"km-silvery","issue_id":"km-silvery.ink-compat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:55:07Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.ink-compat-audit","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T00:12:21Z","created_by":"claude:474834b0","depends_on_id":"km-silvery.ink-compat-minimize","issue_id":"km-silvery.ink-compat-audit","metadata":"{}","type":"blocks"}
@@ -1136,6 +1130,7 @@
 {"created_at":"2026-03-09T11:28:28Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery.publish-stubs","issue_id":"km-silvery.monorepo","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-18T12:03:25Z","created_by":"claude:d29abbfa","depends_on_id":"km-silvery","issue_id":"km-silvery.mouse-leak","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:49Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.nested-scroll","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:37Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.non-tty","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:05Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.npm-pack","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:48Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.osc-mouse","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:16:01Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.osc66-emoji","metadata":"{}","type":"parent-child"}
@@ -1164,6 +1159,7 @@
 {"created_at":"2026-03-12T21:35:37Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.prevlayout-overload","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T08:22:24Z","created_by":"claude:e4e70c9a","depends_on_id":"km-all.pro-review-5","issue_id":"km-silvery.pro-review-0316","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T19:12:36Z","created_by":"claude:65d845d9","depends_on_id":"km-all.pro-review-4","issue_id":"km-silvery.pro-review-4","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:30Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.prompt-bridge","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:06Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.publish-1.0","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:15Z","created_by":"claude:474834b0","depends_on_id":"km-silvery.api-audit","issue_id":"km-silvery.publish-1.0","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-09T14:50:14Z","created_by":"claude:474834b0","depends_on_id":"km-silvery.border-overflow","issue_id":"km-silvery.publish-1.0","metadata":"{}","type":"blocks"}
@@ -1192,6 +1188,7 @@
 {"created_at":"2026-03-09T22:32:47Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.screen-reader","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:42Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.screen-rect-sticky","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T19:58:52Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.scroll-incr-fuzz","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:14Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.scrollback-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-17T00:13:33Z","created_by":"claude:def7f8a1","depends_on_id":"km-silvery.app-search-selection","issue_id":"km-silvery.scrollback-wrapper","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-17T00:13:32Z","created_by":"claude:def7f8a1","depends_on_id":"km-silvery.virtual-history","issue_id":"km-silvery.scrollback-wrapper","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-17T00:13:30Z","created_by":"claude:def7f8a1","depends_on_id":"km-silvery.virtual-inline-fix","issue_id":"km-silvery.scrollback-wrapper","metadata":"{}","type":"parent-child"}
@@ -1263,6 +1260,7 @@
 {"created_at":"2026-03-09T14:59:13Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.unicode-tests","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:22:25Z","created_by":"claude:491faf6c","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.unified-grid","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T20:43:54Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.use-cursor","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:22Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.use-term","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:47Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.use-textarea-hook","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T17:01:18Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.value-prop","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:40Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.verify-output-shrink","metadata":"{}","type":"parent-child"}
@@ -1394,6 +1392,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-term-2","issue_id":"km-term-2.5","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:01Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.api","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T12:43:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.app-harness-expand","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:03:33Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.baseline-pages","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:03Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.baselines","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T12:56:57Z","created_by":"claude:491faf6c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.broken-pages","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T08:29:03Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.compare","metadata":"{}","type":"parent-child"}
@@ -1573,6 +1572,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui.block-edit","issue_id":"km-tui.block-split","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui.outline-edit","issue_id":"km-tui.block-split","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.blockref-cleanup","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:57Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.blockref-resolve","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.board-spec-tests","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-blank-line","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-flexx.scroll-height-equalization","issue_id":"km-tui.body-block-spacing","metadata":"{}","type":"blocks"}
@@ -1614,6 +1614,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.card-wrap","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.chord-escape-artifact","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.chord-hint","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:18:00Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.chord-residue","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.chord-timeout","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.click-hit","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.click-precision","metadata":"{}","type":"parent-child"}
@@ -1658,6 +1659,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-after-ops","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-colors","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-init-collapsed","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-25T15:17:52Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.cursor-path","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.curswanty-clear","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.curswanty-regress","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.date-not-dim","metadata":"{}","type":"parent-child"}
@@ -1729,6 +1731,8 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.edit-focus-ring","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.edit-migrate","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui.edit-context","issue_id":"km-tui.edit-migrate","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-25T15:17:47Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.embed-click-jump","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T12:24:53Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui.cursor-path","issue_id":"km-tui.embed-click-jump","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.embed-display","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.embed-excl-sigil","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.embed-render-types","metadata":"{}","type":"parent-child"}
@@ -2154,7 +2158,6 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-c2uj","issue_id":"km-wi5o","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-wi5o","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T13:03:24Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-wze2d","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-19T09:44:15Z","created_by":"claude:21c57d63","depends_on_id":"km-infra","issue_id":"km-x22mg","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-5wb1","issue_id":"km-xnup","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-c2uj","issue_id":"km-xx2m","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-xx2m","metadata":"{}","type":"parent-child"}
@@ -2168,4 +2171,3 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-c2n","issue_id":"km-zf4","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-11T11:56:15Z","created_by":"claude:73d7a332","depends_on_id":"km-rnpg1","issue_id":"km-zjak5","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-96kg","issue_id":"km-zjy2","metadata":"{}","type":"blocks"}
-{"created_at":"2026-03-23T12:30:43Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-ztqtn","metadata":"{}","type":"parent-child"}
