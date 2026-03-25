@@ -78,7 +78,7 @@ If SILVERY_STRICT throws `IncrementalRenderMismatchError`, the error output auto
 - **Dirty flags** — whether the node was clean when it shouldn't have been
 - **Scroll context** — visible range, offset changes
 - **Fast-path analysis** — WHY the node was likely skipped
-- **Content-phase stats** — nodes visited/rendered/skipped, per-flag breakdown (why nodes weren't skipped), scroll container diagnostics
+- **Render-phase stats** — nodes visited/rendered/skipped, per-flag breakdown (why nodes weren't skipped), scroll container diagnostics
 - **Cell attribution** — mismatch debug context from `debug-mismatch.ts`
 
 This means you no longer need separate `SILVERY_INSTRUMENT` or `SILVERY_CELL_DEBUG` steps when diagnosing a STRICT failure — the error has everything.
@@ -116,7 +116,7 @@ console.log(formatMismatchContext(ctx))
 
 ### Step 5: Check the Five Critical Formulas
 
-In `content-phase.ts`, `renderNodeToBuffer`:
+In `render-phase.ts`, `renderNodeToBuffer`:
 
 ```typescript
 layoutChanged            = node.layoutChangedThisFrame
@@ -187,7 +187,7 @@ SILVERY_STRICT=1 bun km view /path
 
 | File | What to Check |
 |------|--------------|
-| `src/pipeline/content-phase.ts` | Fast-path logic, cascade formulas, scroll tiers, region clearing |
+| `src/pipeline/render-phase.ts` | Fast-path logic, cascade formulas, scroll tiers, region clearing |
 | `src/pipeline/render-text.ts` | `getCellBg` inheritance, BgSegment tracking |
 | `src/pipeline/render-box.ts` | `skipBgFill`, border rendering |
 | `src/pipeline/output-phase.ts` | Buffer diff, ANSI output generation |

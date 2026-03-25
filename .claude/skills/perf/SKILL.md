@@ -70,7 +70,7 @@ VAULT=<path> bun apps/km-tui/tests/profile-startup.ts
 
 | Variable | Effect |
 |----------|--------|
-| `SILVERY_INSTRUMENT=1` | Content-phase counters: nodes visited/rendered/skipped, per-flag breakdown |
+| `SILVERY_INSTRUMENT=1` | Render-phase counters: nodes visited/rendered/skipped, per-flag breakdown |
 | `SILVERY_STRICT=1` | Compare incremental vs fresh render every frame (crashes on mismatch) |
 | `SILVERY_DEV=1` | Enable inspector + warn on missing prevBuffer (incremental rendering disabled) |
 | `SILVERY_PROFILE_RENDER=1` | Per-phase pipeline timing to stderr (measure, layout, scroll, content, output) |
@@ -197,12 +197,12 @@ grep "event loop blocked" /tmp/km.log
 
 ## Diagnostic Output
 
-Diagnostic output is routed through loggily structured logging. Use `DEBUG=silvery:content` for content phase stats, `TRACE=silvery:pipeline` for phase timing spans.
+Diagnostic output is routed through loggily structured logging. Use `DEBUG=silvery:content` for render phase stats, `TRACE=silvery:pipeline` for phase timing spans.
 
 | Loggily Namespace | What |
 |-------------------|------|
 | `silvery:pipeline` | Frame-level spans with per-phase timing |
-| `silvery:content` | Content phase stats per frame (render/skip counts) |
+| `silvery:content` | Render phase stats per frame (render/skip counts) |
 | `silvery:content:trace` | Per-node trace entries (skip/render decisions) |
 | `silvery:content:cell` | Per-cell debug (node coverage at target coords) |
 | `silvery:measure` | Measure phase debug (text measurement calls) |
@@ -212,8 +212,8 @@ Stats are also retained on globalThis for programmatic access:
 | Variable | Set By | Contents |
 |----------|--------|----------|
 | `__silvery_last_pipeline` | `pipeline/index.ts` | Per-phase timing: `{ measure, layout, scroll, screenRect, notify, content, output, total }` |
-| `__silvery_content_detail` | `content-phase.ts` | Content-phase breakdown: nodes visited/rendered/skipped, per-flag counts, scroll tier info |
-| `__silvery_content_all` | `content-phase.ts` | Array of all per-frame content-phase snapshots |
+| `__silvery_content_detail` | `render-phase.ts` | Render-phase breakdown: nodes visited/rendered/skipped, per-flag counts, scroll tier info |
+| `__silvery_content_all` | `render-phase.ts` | Array of all per-frame render-phase snapshots |
 | `__km_last_key` | `board-app.ts` | Last key pressed + resolved command (e.g., `"j → cursor_down"`) |
 
 Requires `SILVERY_INSTRUMENT=1` for content detail. Pipeline timing is always available.

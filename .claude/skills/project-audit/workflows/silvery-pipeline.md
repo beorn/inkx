@@ -33,8 +33,8 @@ Include these files in order (the rendering pipeline's execution order):
 - `cascade-predicates.ts` — dirty-flag propagation logic
 - `measure-phase.ts` — text measurement
 - `layout-phase.ts` — flexbox layout (delegates to flexily)
-- `content-phase.ts` — content generation (text wrapping, truncation, backgrounds)
-- `content-phase-adapter.ts` — adapter bridging content phase to renderer
+- `render-phase.ts` — content generation (text wrapping, truncation, backgrounds)
+- `render-phase-adapter.ts` — adapter bridging render phase to renderer
 - `collect-text.ts` — text collection from node tree
 - `render-box.ts` — box element rendering (borders, padding, backgrounds)
 - `render-text.ts` — text element rendering (spans, styles, wrapping)
@@ -56,7 +56,7 @@ PIPELINE_DIR="vendor/silvery/packages/ag-term/src/pipeline"
 PIPELINE_FILES=(
   types.ts helpers.ts cascade-predicates.ts
   measure-phase.ts layout-phase.ts
-  content-phase.ts content-phase-adapter.ts collect-text.ts
+  render-phase.ts render-phase-adapter.ts collect-text.ts
   render-box.ts render-text.ts render-helpers.ts
   diff-buffers.ts output-phase.ts
   measure-stats.ts index.ts
@@ -184,7 +184,7 @@ You are reviewing the silvery rendering pipeline for ALGORITHM CLARITY.
 
 Read these pipeline source files in vendor/silvery/packages/ag-term/src/pipeline/:
 - cascade-predicates.ts (dirty-flag propagation)
-- content-phase.ts (content generation)
+- render-phase.ts (content generation)
 - diff-buffers.ts (incremental diff)
 - output-phase.ts (ANSI output)
 
@@ -327,7 +327,7 @@ For each finding, note the source(s):
 | 1 | Off-by-one in wide char diff | diff-buffers.ts:142 | P0 | GPT, Agent1 | Confirmed (2/4) |
 | 2 | Missing test for empty buffer | diff-buffers.test.ts | P1 | Agent2 | Single source |
 | 3 | RENDERING.md stale phase name | RENDERING.md:45 | P2 | Agent3, GPT | Confirmed (2/4) |
-| 4 | Log level too verbose | content-phase.ts:80 | P3 | Agent3 | Single source |
+| 4 | Log level too verbose | render-phase.ts:80 | P3 | Agent3 | Single source |
 ```
 
 **Divergent findings** (reviewers disagree) get escalated — present both perspectives to the user.
