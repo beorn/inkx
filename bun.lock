@@ -729,6 +729,8 @@
     "flexily": "vendor/flexily",
     "loggily": "vendor/loggily",
     "vimonkey": "vendor/vimonkey",
+    "vt100.js": "file:vendor/vt100/packages/vt100",
+    "vterm.js": "file:vendor/vt100/packages/vterm",
     "zod": "^4.3.6",
   },
   "catalog": {
@@ -2350,11 +2352,7 @@
 
     "vitest-silvery-dots": ["vitest-silvery-dots@workspace:vendor/bearlymade/packages/vitest-silvery-dots"],
 
-    "vt100.js": ["vt100.js@0.2.2", "", {}, "sha512-tLMYLzeIDNqYNBn/HdN+8rQzX0hrE8f2X8PixtlMmXqRQC8tpQrcWRv4JfFs2KkIFaJApcg6K3g/421TcDCINQ=="],
-
     "vterm": ["vterm@workspace:vendor/vt100"],
-
-    "vterm.js": ["vterm.js@0.1.2", "", {}, "sha512-PW5T5689gykeR4dexJ5Cm+R2tN6b3F9/de1MwZabYY5ghfGvQYupaJag++lazzoJ++QUuRgVW85/N2dsf19MMg=="],
 
     "vue": ["vue@3.5.30", "", { "dependencies": { "@vue/compiler-dom": "3.5.30", "@vue/compiler-sfc": "3.5.30", "@vue/runtime-dom": "3.5.30", "@vue/server-renderer": "3.5.30", "@vue/shared": "3.5.30" }, "peerDependencies": { "typescript": "*" }, "optionalPeers": ["typescript"] }, "sha512-hTHLc6VNZyzzEH/l7PFGjpcTvUgiaPK5mdLkbjrTeWSRcEfxFrv56g/XckIYlE9ckuobsdwqd5mk2g1sBkMewg=="],
 
@@ -2409,6 +2407,10 @@
     "@termless/cli/commander": ["commander@13.1.0", "", {}, "sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw=="],
 
     "@termless/core/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
+
+    "@termless/vt100/vt100.js": ["vt100.js@file:vendor/vt100/packages/vt100", {}],
+
+    "@termless/vterm/vterm.js": ["vterm.js@file:vendor/vt100/packages/vterm", {}],
 
     "@ts-morph/common/minimatch": ["minimatch@9.0.9", "", { "dependencies": { "brace-expansion": "^2.0.2" } }, "sha512-OBwBN9AL4dqmETlpS2zasx+vTeWclWzkblfZk7KTA5j3jeOONz/tRCnZomUyvNg83wL5Zv9Ss6HMJXAgL8R2Yg=="],
 
