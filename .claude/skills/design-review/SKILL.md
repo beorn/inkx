@@ -58,6 +58,42 @@ No capture needed. Verify the file exists with `ls`.
 
 ---
 
+## Phase 1.5: Design Intent (CRITICAL — do this before measuring)
+
+Before pixel-counting, establish the design context. Ask or determine:
+
+### What is this?
+- **Product type**: Marketing site? Developer docs? Dashboard? CLI tool? Demo/showcase?
+- **Target audience**: Developers? End users? Executives? Mixed?
+- **Primary goal**: Sell/convert? Teach? Enable workflow? Demonstrate capability?
+
+### What feeling should it convey?
+- **Professional & polished** — clean lines, generous whitespace, muted palette
+- **Powerful & dense** — information-rich, compact, many features visible
+- **Friendly & approachable** — warm colors, rounded corners, playful elements
+- **Technical & precise** — monospace, grid-aligned, data-forward
+
+### Design goals checklist
+| Question | Why it matters |
+|----------|---------------|
+| Does a first-time viewer understand what this is in 3 seconds? | First impression / hero clarity |
+| Is the primary action obvious? | Call-to-action visibility |
+| Does it make me want to try it? | Emotional response / desirability |
+| Does it look finished? | Polish / trustworthiness |
+| Would I show this to a colleague? | Share-worthiness |
+| Does it represent the product's actual quality? | Screenshot = promise, product = delivery |
+
+### For showcase/demo screenshots specifically
+- Does it showcase the product's best features?
+- Would someone seeing this for the first time be impressed?
+- Does the content feel real (not lorem ipsum / placeholder)?
+- Is the data interesting enough to draw the eye?
+- Does it look as good as competitors' screenshots?
+
+**Include your design intent assessment in the report.** A pixel-perfect screenshot of a boring layout is still a bad screenshot.
+
+---
+
 ## Phase 2: Measure
 
 Run this Python script to extract quantitative layout data from each screenshot. The script uses PIL (Pillow) to measure margins, detect background color, compute content bounding box, and score symmetry.
@@ -175,6 +211,18 @@ Read each screenshot with the `Read` tool. Evaluate against these design heurist
 | 9 | **Spacing consistency** | Are gaps between sections uniform? Same padding inside all cards/panels? |
 | 10 | **Visual grouping** | Are related elements visually grouped (proximity, borders, background)? Are unrelated elements separated? |
 
+### Higher-level design evaluation
+
+Beyond pixel heuristics, evaluate the design holistically:
+
+| # | Question | What to assess |
+|---|----------|---------------|
+| 11 | **First impression** | What do you notice first? Is that the right thing? |
+| 12 | **Emotional response** | Does this look professional? Impressive? Boring? Broken? |
+| 13 | **Content quality** | Is the demo content compelling? Real-feeling? Or placeholder/generic? |
+| 14 | **Showcase effectiveness** | Does this make someone want to use the product? |
+| 15 | **Competitive quality** | Would this hold up next to screenshots from Ink, BubbleTea, Textual? |
+
 **For each heuristic**, determine a verdict:
 
 | Verdict | Meaning |
@@ -191,6 +239,13 @@ Output a structured markdown report:
 
 ```markdown
 ## Design Review: <filename>
+
+### Design Intent
+- **What is this**: <product type, context>
+- **Target audience**: <who sees this>
+- **Goal**: <what it should achieve>
+- **Desired feeling**: <professional / powerful / friendly / technical>
+- **First impression**: <what you actually feel looking at it>
 
 **Image**: <width> x <height> px
 **Background**: <hex color>
