@@ -19,17 +19,17 @@ accountly auto             # Auto-switch to account with most remaining quota
 
 ## CLI Commands
 
-| Command | Description |
-|---|---|
-| `accountly` | Show discovered accounts with quota status |
-| `accountly status` | Show all accounts with quota usage |
-| `accountly import` | Import Claude Code credentials from macOS Keychain |
-| `accountly switch <name>` | Switch active Claude Code account |
-| `accountly auto` | Auto-switch to account with lowest utilization |
-| `accountly add <name> -p <provider>` | Add an account manually (with `--key` or `--env`) |
-| `accountly rename <old> <new>` | Rename an account |
-| `accountly remove <name>` | Remove an account and its credentials |
-| `accountly get-token` | Output the active access token (for apiKeyHelper) |
+| Command                              | Description                                        |
+| ------------------------------------ | -------------------------------------------------- |
+| `accountly`                          | Show discovered accounts with quota status         |
+| `accountly status`                   | Show all accounts with quota usage                 |
+| `accountly import`                   | Import Claude Code credentials from macOS Keychain |
+| `accountly switch <name>`            | Switch active Claude Code account                  |
+| `accountly auto`                     | Auto-switch to account with lowest utilization     |
+| `accountly add <name> -p <provider>` | Add an account manually (with `--key` or `--env`)  |
+| `accountly rename <old> <new>`       | Rename an account                                  |
+| `accountly remove <name>`            | Remove an account and its credentials              |
+| `accountly get-token`                | Output the active access token (for apiKeyHelper)  |
 
 ## Supported Providers
 

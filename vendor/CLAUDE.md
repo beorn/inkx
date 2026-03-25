@@ -51,7 +51,7 @@ For any vendor package to be "standalone-ready":
 | **termless**         | `@termless/*`          | Headless terminal testing (like Playwright for terminals) |
 | **ansi**             | `@silvery/ansi`        | ANSI escape sequence utilities                            |
 | **mdtest**           | `@beorn/mdtest`        | Markdown-driven test runner                               |
-| **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor    |
+| **bearly**           | `@bearly/*`            | Claude Code tools — tribe, tty, llm, recall, refactor     |
 | **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                          |
 | **loggily**          | `loggily`              | Structured logging                                        |
 | **accountly**        | `accountly`            | LLM API accounting/cost tracking                          |
