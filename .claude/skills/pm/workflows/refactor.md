@@ -10,6 +10,10 @@ Key takeaways to keep in mind throughout:
 - No backwards compat shims, re-exports, fallbacks, or `@deprecated`
 - "Phase N will handle deletion" never happens
 - Definition of Done includes code, tests, examples, README, API docs
+- Every new package needs tests in the same commit (era2 lesson)
+- Docstrings document reality, not plans (era2 lesson)
+- Copy without delete = debt. Delete old copy or create tracking bead (era2 lesson)
+- Write /complete criteria AFTER scoping, not before (era2 lesson)
 
 ## Step 1: Understand the Current State
 

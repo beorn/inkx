@@ -31,3 +31,23 @@ All commands load the refactoring workflow at [pm/workflows/refactor.md](../pm/w
 - Migrating from OldAPI to NewAPI across many consumers
 - Splitting a large file/module into multiple
 - Any change touching 10+ files that can't be done atomically
+
+## Package Extraction Rules (from era2)
+
+When extracting packages from a monolith:
+
+1. **Rename first, split later.** If the monolith is being renamed (e.g., @silvery/tea → @silvery/create), do the rename as one atomic operation before splitting into sub-packages. Renaming while splitting causes combinatorial breakage.
+
+2. **One package per session.** Extract one package fully (copy → delete from old → fix breaks → test) before starting the next. Extracting 5 packages in parallel leads to shallow implementations (copy without delete, missing tests).
+
+3. **Copy = debt until deletion.** When you copy code to a new package, the old copy is now tech debt. Either delete the old copy in the same commit, or create a tracking bead with explicit scope. Never leave both copies "temporarily."
+
+4. **Every new package needs tests in the same commit.** Not "will add tests later." At minimum: `test("exports are defined", () => expect(createFoo).toBeDefined())`. The era2 audit found @silvery/commands shipped with zero tests.
+
+5. **Docstrings document reality, not plans.** Only list APIs that exist. Future APIs belong in design docs (`silvery-internal/design/`), not source code comments. LLMs read docstrings literally — a listed-but-unimplemented function will be called and fail.
+
+6. **Barrel exports = discoverability.** If `withApp()` works and has tests but isn't in the barrel, users can't find it. Export from barrel or don't ship. Subpath-only exports are for internal/advanced use.
+
+7. **Write /complete criteria AFTER scoping, not before.** "grep for X → 0 hits" sounds good in a bead description but may be impossible if X has legitimate internal consumers. Update criteria when you discover the real blast radius.
+
+8. **Audit the entire feature set, not just your session's changes.** `/complete` checks what YOU changed. A systematic feature-by-feature audit (bead promise vs actual code) catches what `/complete` misses: unimplemented promises, missing tests, stale docstrings.

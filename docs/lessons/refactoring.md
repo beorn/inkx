@@ -226,6 +226,9 @@ Definition of Done (migration complete when ALL updated):
 - [ ] README uses NewWay
 - [ ] API docs (docs/site) use NewWay
 - [ ] `grep` finds no OldWay patterns
+- [ ] New packages have tests (at least 1 test file per package)
+- [ ] Docstrings/comments don't promise unimplemented APIs
+- [ ] /complete criteria updated to match actual scope (not aspirational)
 
 ---
 
@@ -244,6 +247,37 @@ Definition of Done (migration complete when ALL updated):
 **Lesson**: When removing a wrapper type, audit every property it provides. If a consumer used `wrapper.children`, you can't just delete it — you need to provide the equivalent access path (`repo.getChildren(id)`). Map every property to its replacement before starting.
 
 **Anti-pattern that caused the delay**: "Phase N will handle deletion." No it won't. The session that creates new types must delete old types. If you ship a commit with both old and new types coexisting, the old types will survive indefinitely.
+
+---
+
+## Case Study 5: Era2 Package Extraction (silvery)
+
+**Bead**: km-silvery.era2 epic (27 children, 13 closed in one session)
+
+**Problem**: Silvery's monolithic `@silvery/tea` package (6,253 LOC, 29 files) needed decomposition into focused packages: `@silvery/headless`, `@silvery/commands`, `@silvery/scope`, `@silvery/signals`, `@silvery/model`.
+
+**What went right**:
+- Package rename (@silvery/tea → @silvery/create) was clean: `sed` replaced 70+ imports in one pass, zero source hits remaining
+- New packages extracted with tests from day one (100 + 19 + 17 + 10 + 5 + 7 = 158 tests)
+- Barrel cleanup was thorough: AppHandle, RenderAdapter, TermDef all removed from public exports
+
+**What went wrong**:
+
+1. **Docstrings promised unimplemented APIs**. `compose.ts` header listed `withTest()` as if it existed — LLMs and developers reading the file would assume it's available. *Fix*: Only document what's shipped. Future APIs belong in design docs, not source comments.
+
+2. **"Absorb without Purge" creates dual paths**. New packages (@silvery/headless, @silvery/commands) were created by *copying* code from @silvery/create, not *moving* it. Both locations now have the same code. Old consumers still work — nothing forces migration. *Fix*: After copying to new package, immediately delete from old package and fix breaks. Or if deletion is too risky, create a tracking bead with explicit timeline.
+
+3. **Ambitious /complete criteria never enforced**. Bead era2a-6 said "grep for RenderAdapter → 0 hits" but the file has 14 internal consumers (browser adapters). The criteria was written before implementation revealed the dependency. *Fix*: Write /complete criteria AFTER understanding the blast radius, not before. Update criteria when scope changes.
+
+4. **New packages without tests get shipped**. @silvery/commands was extracted without a test file. Found during audit, not during implementation. *Fix*: Every new package gets at least one test file in the same commit. No exceptions — even if it's just `test("imports work", () => expect(createCommandRegistry).toBeDefined())`.
+
+5. **Barrel exports as discoverability gate**. `withApp()` was implemented and tested but not exported from the main barrel. Users importing `@silvery/create` couldn't find it without knowing the subpath. *Fix*: If it's ready for use, export it from the barrel. If it's not ready, don't ship it at all.
+
+**Lessons for multi-package extraction**:
+
+- **Rename first, split later**. The tea→create rename was clean because it was one operation. Splitting into multiple packages while renaming would have been a mess.
+- **One session = one package extraction**. Trying to extract 5 packages in one session led to shallow implementations (copy without delete, no tests for commands). Better: extract one package fully (copy, delete old, fix breaks, test) before starting the next.
+- **Audit before closing the epic**. The systematic feature-by-feature audit caught 3 gaps that 3 prior `/complete` runs missed. `/complete` checks for *your session's* changes; a systematic audit checks *the entire feature set*.
 
 ---
 

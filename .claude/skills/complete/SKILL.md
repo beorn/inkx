@@ -62,10 +62,18 @@ Run independent searches in parallel. Include variant spellings, partial matches
 | Re-export, compat shim, `@deprecated` keeping old way alive | **BLOCK** |
 | Dual pattern — old + new both work | **BLOCK** |
 | Doc/skill/comment describing old behavior | **FLAG** |
+| Docstring promising unimplemented API | **BLOCK** |
+| New package with zero tests | **BLOCK** |
+| New export not in barrel (undiscoverable) | **FLAG** |
 | `TODO`/`HACK`/`WORKAROUND` without tracking bead | **FLAG** |
+| /complete criteria that doesn't match reality | **FLAG** |
 | Changelog, git history, bead history | skip |
 
 **Any BLOCK = INCOMPLETE.** Report all findings with file:line.
+
+### For multi-phase or epic-level audits
+
+When auditing an entire epic (not just one session), add a **feature-by-feature verification** step: for each closed bead, check that the bead's specific promises match actual code. This catches gaps that per-session `/complete` misses — unimplemented promises, missing tests, stale docstrings across the full feature set.
 
 ## Step 3: Code Clean
 
