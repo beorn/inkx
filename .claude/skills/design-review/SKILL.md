@@ -12,14 +12,26 @@ Analyze screenshots for visual design issues. Combines AI visual analysis, progr
 ## Usage
 
 ```
-/design-review <url>              # Screenshot a URL and review
-/design-review <path.png>         # Review an existing screenshot
-/design-review <directory/>       # Review all PNGs in a directory
+/design-review <path.png>              # Default: Claude built-in visual review
+/design-review --local <path.png>      # Local vision model only (free, instant)
+/design-review --multi <path.png>      # Local + cloud comparison (diff findings)
+/design-review <url>                   # Screenshot a URL and review
+/design-review <directory/>            # Review all PNGs in a directory
 ```
+
+### Flags
+
+| Flag | Effect | Cost |
+|------|--------|------|
+| *(none)* | Claude built-in `Read` tool for image analysis | Free |
+| `--local` | Run through ollama vision model only | Free |
+| `--multi` | Run local + cloud, present comparison diff | ~$0.02 |
 
 ## Workflow
 
-Parse `$ARGUMENTS` and determine the input type:
+### Step 1: Parse flags and input
+
+Extract flags (`--local`, `--multi`) from `$ARGUMENTS`, then determine the input type:
 
 | Input | Detection | Action |
 |-------|-----------|--------|
@@ -27,6 +39,14 @@ Parse `$ARGUMENTS` and determine the input type:
 | PNG/JPG file | File exists, image extension | Skip to Phase 2 |
 | Directory | Path ends with `/` or is a directory | Glob for `*.png` / `*.jpg`, review each |
 | TTY screenshot | User says "screenshot the terminal" | Use `mcp__tty__screenshot` or `mcp__peekaboo__see` |
+
+### Step 2: Choose review tier
+
+| Flag | Phase 3 Mode | Speed | Cost | Best for |
+|------|-------------|-------|------|----------|
+| *(none)* | Mode A: Claude built-in `Read` | Instant | Free | Default, excellent quality |
+| `--local` | Mode B: ollama vision model | ~5s | Free | Rapid iteration, privacy |
+| `--multi` | Mode C: Local + cloud comparison | ~15s | ~$0.02 | Final QA, catching blind spots |
 
 ---
 
@@ -196,7 +216,116 @@ pip3 install Pillow numpy
 
 ## Phase 3: AI Visual Review
 
+Phase 3 has three modes, selected by flags. All modes evaluate against the same checklist below.
+
+### Mode A: Claude Built-in (default, no flag)
+
 Read each screenshot with the `Read` tool. Evaluate against this exhaustive checklist. **Be thorough — check every item. Report ALL issues found, no matter how small.**
+
+### Mode B: Local AI Review (`--local`)
+
+Run the screenshot through an ollama vision model. This is free, instant, and private. Best for rapid iteration.
+
+```bash
+# Save Phase 2 measurements for context
+python3 -c '...' "$IMAGE_PATH" > /tmp/design-measurements.json
+
+# Run local vision model with structured prompt
+bun llm --model ollama:qwen2.5-vl:7b --image "$IMAGE_PATH" --context "$(cat /tmp/design-measurements.json)" \
+  'Review this UI screenshot against these design heuristics. For each, report as JSON array:
+  - heuristic: name
+  - status: pass | fail | uncertain
+  - evidence: what you see (specific, with locations)
+  - severity: block | flag | ok
+  - confidence: 0-100
+
+  Heuristics to check:
+  1. Margin symmetry — left ≈ right, top ≈ bottom
+  2. Edge margins — content not touching edges (min 1 char / 8px)
+  3. Inner padding — consistent inside borders/panels
+  4. Section gaps — uniform vertical spacing
+  5. Fill ratio — content fills space, no unexplained empty areas
+  6. Alignment grid — left edges aligned, columns aligned
+  7. Heading hierarchy — H1 > H2 > H3 visually distinct
+  8. Text weight — bold for emphasis only, normal for body
+  9. Dim/muted text — secondary info dimmed but readable
+  10. Border consistency — same style throughout
+  11. Border completeness — all four sides, no gaps
+  12. Color consistency — same meaning = same color
+  13. Text contrast — text readable against background
+  14. Selection highlight — selected item clearly visible
+  15. Focus indication — focused element visually distinct
+  16. Content overflow — no text/elements past container
+  17. Rendering artifacts — no stray chars, ghost borders
+  18. First impression — what you notice first, is it right?
+  19. Emotional response — professional? trustworthy? polished?
+  20. Information density — right amount? too sparse or dense?
+
+  Also report any issues NOT on this list.
+  Rate overall quality 1-10.
+  Suggest specific fixes for each issue found.'
+```
+
+Read the output file and present findings using the same report format as Phase 4. Note in the report header that this was a local model review (model name, confidence caveat).
+
+**Tip**: Local models work best with the explicit structured prompt above. Open-ended "find all issues" produces weaker results. Always include the Phase 2 measurements as context — they ground the model's spatial reasoning.
+
+### Mode C: Multi-Model Comparison (`--multi`)
+
+Run the same image through local + cloud models, then compare findings. This catches issues that either model alone misses.
+
+```bash
+IMAGE_PATH="$1"
+
+# Save measurements for both passes
+python3 -c '...' "$IMAGE_PATH" > /tmp/design-measurements.json
+MEASUREMENTS=$(cat /tmp/design-measurements.json)
+
+# Local pass (free, instant) — run in foreground, fast
+bun llm --model ollama:qwen2.5-vl:7b --image "$IMAGE_PATH" \
+  --context "$MEASUREMENTS" \
+  'Review this UI screenshot for design issues. For each issue report: heuristic name, severity (block/flag/ok), evidence, confidence (0-100). Rate overall 1-10. Output as JSON.'
+
+# Cloud pass (paid, higher quality) — run in foreground
+bun llm --image "$IMAGE_PATH" \
+  --context "$MEASUREMENTS" \
+  'Review this UI screenshot for design issues. For each issue report: heuristic name, severity (block/flag/ok), evidence, confidence (0-100). Rate overall 1-10. Output as JSON.'
+```
+
+Read both output files, then present a **comparison report**:
+
+```markdown
+## Multi-Model Design Review: <filename>
+
+### Consensus (both models agree)
+| # | Heuristic | Verdict | Local Evidence | Cloud Evidence |
+|---|-----------|---------|----------------|----------------|
+
+### Local-only findings (cloud missed)
+| # | Heuristic | Verdict | Evidence | Confidence |
+|---|-----------|---------|----------|------------|
+
+### Cloud-only findings (local missed)
+| # | Heuristic | Verdict | Evidence | Confidence |
+|---|-----------|---------|----------|------------|
+
+### Disagreements
+| # | Heuristic | Local says | Cloud says | Recommended |
+|---|-----------|------------|------------|-------------|
+
+### Overall ratings
+- **Local model**: N/10
+- **Cloud model**: N/10
+
+### Suggested fixes (merged, deduplicated)
+1. ...
+```
+
+**When to use `--multi`**: Final QA before shipping screenshots, after major visual changes, when local-only review feels uncertain. The comparison reveals blind spots in both models — local catches coarse layout issues that cloud sometimes glosses over, while cloud catches subtle contrast/polish issues that local misses.
+
+---
+
+**Below: the exhaustive checklist used by all three modes.**
 
 ### Layout & Spacing
 
@@ -379,10 +508,10 @@ bun llm --deep -y "Best practices for terminal UI design: spacing, color, typogr
 
 ### Recommended workflow: tiered review
 
-1. **Fast local pass** (every iteration): `ollama:qwen2.5-vl:7b` — catches obvious issues instantly, free
-2. **Claude built-in** (always available): `Read screenshot.png` — excellent quality, no extra cost
-3. **Cloud escalation** (final QA): `--image` with GPT-5.4 or Grok — catches subtle defects
-4. **v0.dev** (high-stakes): manual upload — best for final polish before shipping
+1. **`/design-review --local`** (every iteration): ollama vision — catches obvious issues instantly, free
+2. **`/design-review`** (default, always available): Claude built-in `Read` — excellent quality, no extra cost
+3. **`/design-review --multi`** (final QA): local + cloud comparison — catches what either alone misses
+4. **v0.dev** (high-stakes): manual upload at v0.dev/chat — best for final polish before shipping
 
 ### Local model setup
 
