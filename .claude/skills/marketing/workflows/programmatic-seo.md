@@ -19,8 +19,9 @@ Generate and maintain programmatic pages from structured data.
 
 ```bash
 cd vendor/terminfo.dev
-bun run census:run    # Run census against all backends
-bun run build         # Rebuild site (comparisons auto-generated)
+bun terminfo probe termless --all   # Run headless probes
+bun terminfo probe app --all        # Run app probes
+bun run build                       # Rebuild site (comparisons auto-generated)
 ```
 
 ### Use-Case Profile Pages (Not Yet Implemented)

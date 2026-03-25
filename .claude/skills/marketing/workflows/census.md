@@ -15,27 +15,34 @@ Run terminal probes and update the measured data layer.
 
 ```bash
 cd /Users/beorn/Code/pim/km/vendor/terminfo.dev
-bun census:run              # All backends, cached
-bun census:run --force      # Force re-run (skip cache)
-bun census:run xtermjs/*    # Specific backend versions
+bun terminfo probe termless --all         # All backends, cached
+bun terminfo probe termless --all --force # Force re-run
+bun terminfo probe termless xtermjs/*     # Specific backend versions
 ```
 
 Results land in `content/probes-libs/{backend}-{version}.json`.
 
-### 2. Run App Census (Optional — requires macOS + installed terminals)
+### 2. Probe App Terminals (launches + daemon)
 
 ```bash
-bun census:apps             # All installed terminals
-bun census:apps ghostty     # Specific terminal
-bun census:apps --list      # Show available
+bun terminfo probe app --all              # Launch all + probe via daemon
+bun terminfo probe app ghostty            # Specific terminal
+bun terminfo probe app                    # List available
 ```
 
 Results land in `content/probes-apps/{terminal}-{version}-{os}.json`.
 
-### 3. Check for Unannotated Failures
+### 3. Probe Running Daemons (user starts `serve` in terminals)
 
 ```bash
-bun census:run  # Reports unannotated failures at the end
+bun terminfo probe server                 # List running daemons
+bun terminfo probe server --all           # Probe all
+```
+
+### 4. Check for Unannotated Failures
+
+```bash
+bun terminfo probe termless --all  # Reports unannotated failures at the end
 ```
 
 If new failures appear, add annotations to `content/annotations.json` explaining why.
@@ -63,6 +70,6 @@ bun census:status           # Cache status
 Push changes and let CI deploy:
 ```bash
 git add content/probes-apps/ content/probes-libs/ content/annotations.json
-git commit -m "census: update results"
+git commit -m "census: fresh probe results"
 git push
 ```

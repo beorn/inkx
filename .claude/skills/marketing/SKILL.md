@@ -134,8 +134,8 @@ content/              ← ALL input data (curated + measured)
   standards.json        10 standards with label, url, description
   categories.json       13 categories with label, order, description
   annotations.json      88 result overrides with notes
-  probes-apps/          real terminal results (bun census:apps)
-  probes-libs/          headless backend results (bun census:run)
+  probes-apps/          real terminal results (bun terminfo probe app/server)
+  probes-libs/          headless backend results (bun terminfo probe termless)
   probes-mux/           multiplexer results (future)
 
 packages/             ← ALL source code
@@ -155,7 +155,7 @@ docs/data/probes.data.ts ← DERIVED: computed at build time from content/
 
 ### Census Pipeline
 
-1. **`/marketing census`** — `bun census:run` + `bun census:apps`
+1. **`/marketing census`** — `bun terminfo probe termless --all` + `bun terminfo probe app --all`
 2. Check for unannotated failures → update `content/annotations.json`
 3. `bun run build` → pages auto-regenerate with new data
 4. Commit and deploy
