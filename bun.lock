@@ -40,6 +40,7 @@
         "@playwright/test": "^1.58.2",
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
+        "@silvery/commands": "workspace:*",
         "@silvery/create": "workspace:*",
         "@silvery/headless": "workspace:*",
         "@silvery/test": "workspace:*",
@@ -409,6 +410,13 @@
         "flexily": "github:beorn/flexily",
       },
     },
+    "vendor/silvery/packages/commands": {
+      "name": "@silvery/commands",
+      "version": "0.1.0",
+      "dependencies": {
+        "@silvery/ag-term": "workspace:*",
+      },
+    },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",
       "version": "0.5.0",
@@ -690,6 +698,7 @@
     "@silvery/ag": "vendor/silvery/packages/ag",
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
+    "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
     "@silvery/headless": "vendor/silvery/packages/headless",
     "@silvery/test": "vendor/silvery/packages/test",
@@ -1287,6 +1296,8 @@
     "@silvery/ag-react": ["@silvery/ag-react@workspace:vendor/silvery/packages/ag-react"],
 
     "@silvery/ag-term": ["@silvery/ag-term@workspace:vendor/silvery/packages/ag-term"],
+
+    "@silvery/commands": ["@silvery/commands@workspace:vendor/silvery/packages/commands"],
 
     "@silvery/create": ["@silvery/create@workspace:vendor/silvery/packages/create"],
 
