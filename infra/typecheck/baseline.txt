@@ -3,6 +3,7 @@
 1 vendor/silvery/examples/web/showcase-app.tsx
 1 vendor/silvery/packages/ag-term/src/compose.ts
 2 vendor/silvery/packages/ag-term/src/xterm/index.ts
+2 vendor/silvery/packages/commands/src/index.ts
 2 vendor/silvery/packages/examples/examples/apps/inline-bench.tsx
 14 vendor/silvery/scripts/publish.ts
 2 vendor/terminfo.dev/cli/src/index.ts
