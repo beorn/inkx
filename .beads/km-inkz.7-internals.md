@@ -254,7 +254,7 @@ function notifyLayoutSubscribers(node: InkxNode) {
 Render actual terminal content:
 
 ```typescript
-function contentPhase(root: InkxNode): TerminalBuffer {
+function renderPhase(root: InkxNode): TerminalBuffer {
   const buffer = createBuffer(
     root.computedLayout.width,
     root.computedLayout.height,
@@ -462,7 +462,7 @@ class RenderScheduler {
     // Run pipeline
     measurePhase(this.root)
     layoutPhase(this.root, columns, rows)
-    const buffer = contentPhase(this.root)
+    const buffer = renderPhase(this.root)
     const output = outputPhase(this.prevBuffer, buffer)
 
     // Write to terminal
@@ -587,7 +587,7 @@ function runPipeline(root: InkxNode) {
   try {
     measurePhase(root)
     layoutPhase(root, process.stdout.columns, process.stdout.rows)
-    const buffer = contentPhase(root)
+    const buffer = renderPhase(root)
     const output = outputPhase(prevBuffer, buffer)
     process.stdout.write(output)
     prevBuffer = buffer
