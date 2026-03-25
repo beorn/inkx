@@ -124,6 +124,7 @@
 {"issue_id":"km-hvlist","label":"virtualization"}
 {"issue_id":"km-infra-2","label":"chore"}
 {"issue_id":"km-infra-2","label":"infra"}
+{"issue_id":"km-infra.vite-plus-pilot","label":"recurring:weekly"}
 {"issue_id":"km-inkx-inline","label":"bug"}
 {"issue_id":"km-inkx-inline","label":"inkx"}
 {"issue_id":"km-inkx-render-purity","label":"inkx"}
