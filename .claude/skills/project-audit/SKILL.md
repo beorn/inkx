@@ -85,6 +85,24 @@ If package.json exists, check npm discoverability:
 For monorepos: spot-check 3-4 sub-packages for consistent metadata
 ```
 
+### 1E2: ESM Raw TypeScript Standard (vendor packages)
+
+All vendor packages in this monorepo follow the ESM raw TypeScript pattern (see `vendor/CLAUDE.md`). Check compliance:
+
+```
+For each package.json in vendor/:
+  - exports → ./src/index.ts (NOT dist/)
+  - files → ["src"] (NOT ["dist"])
+  - engines.node → ">=23.6.0" (required for native type stripping)
+  - type → "module"
+  - No dist/ tracked in git (check: git ls-files dist/)
+  - No build step required for consumers (tsc build OK for dev/typecheck, not for publishing)
+```
+
+**Why**: Node.js 23.6+ strips types natively. Bun always could. Modern bundlers handle .ts. Publishing raw .ts means no stale artifacts, no version skew, no "forgot to build." Source IS the artifact.
+
+Flag any package with `dist/` in exports as **BLOCK** — it should use `src/` instead.
+
 ### 1F: Security and dependency scan (optional)
 
 ```
