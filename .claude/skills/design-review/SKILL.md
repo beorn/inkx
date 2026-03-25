@@ -196,34 +196,97 @@ pip3 install Pillow numpy
 
 ## Phase 3: AI Visual Review
 
-Read each screenshot with the `Read` tool. Evaluate against these design heuristics:
+Read each screenshot with the `Read` tool. Evaluate against this exhaustive checklist. **Be thorough — check every item. Report ALL issues found, no matter how small.**
 
-| # | Heuristic | What to check |
-|---|-----------|---------------|
-| 1 | **Margin symmetry** | Are margins roughly equal on opposite sides? Left ~= right, top ~= bottom? |
-| 2 | **Visual balance** | Is content centered or intentionally aligned? Does it feel weighted to one side? |
-| 3 | **Whitespace** | Too cramped (elements touching, no breathing room)? Too empty (large unused areas)? |
-| 4 | **Alignment** | Are elements on a consistent grid? Do left edges line up? Do baselines align? |
-| 5 | **Hierarchy** | Are headings visually distinct from body text? Is the primary action obvious? |
-| 6 | **Color consistency** | Are semantic colors used correctly? Same meaning = same color throughout? |
-| 7 | **Contrast** | Is text readable against its background? Are borders visible but not dominant? |
-| 8 | **Overflow/clipping** | Any content cut off? Text running past its container? Scrollbar where there shouldn't be one? |
-| 9 | **Spacing consistency** | Are gaps between sections uniform? Same padding inside all cards/panels? |
-| 10 | **Visual grouping** | Are related elements visually grouped (proximity, borders, background)? Are unrelated elements separated? |
+### Layout & Spacing
 
-### Higher-level design evaluation
+| # | Check | What to look for |
+|---|-------|------------------|
+| 1 | **Margin symmetry** | Left ≈ right? Top ≈ bottom? Measure in pixels. |
+| 2 | **Edge margins** | Content touching any edge (0px margin)? Minimum 1 character / 8px. |
+| 3 | **Inner padding** | Padding inside borders/panels consistent? Same padding in all cards? |
+| 4 | **Section gaps** | Vertical space between sections uniform? No double-gaps or missing gaps? |
+| 5 | **Fill ratio** | Content fills available space? Large empty areas unexplained? |
+| 6 | **Whitespace balance** | Neither cramped nor sparse? Breathing room between elements? |
+| 7 | **Alignment grid** | Left edges of elements aligned? Columns aligned? Indentation consistent? |
+| 8 | **Baseline alignment** | Text on the same row starts at the same vertical position? |
+| 9 | **Centering** | Elements that should be centered actually are? No off-by-one? |
 
-Beyond pixel heuristics, evaluate the design holistically:
+### Typography & Text
 
-| # | Question | What to assess |
-|---|----------|---------------|
-| 11 | **First impression** | What do you notice first? Is that the right thing? |
-| 12 | **Emotional response** | Does this look professional? Impressive? Boring? Broken? |
-| 13 | **Content quality** | Is the demo content compelling? Real-feeling? Or placeholder/generic? |
-| 14 | **Showcase effectiveness** | Does this make someone want to use the product? |
-| 15 | **Competitive quality** | Would this hold up next to screenshots from Ink, BubbleTea, Textual? |
+| # | Check | What to look for |
+|---|-------|------------------|
+| 10 | **Heading hierarchy** | H1 > H2 > H3 visually distinct? Bold/color/size differentiation? |
+| 11 | **Text weight** | Bold used for emphasis, not for everything? Normal for body? |
+| 12 | **Dim/muted text** | Secondary info appropriately dimmed? Not invisible, not too prominent? |
+| 13 | **Text truncation** | Long text truncated with ellipsis? No text running past container? |
+| 14 | **Text wrapping** | Text wraps at word boundaries? No mid-word breaks? |
+| 15 | **Label alignment** | Labels and their values aligned? Colons/equals at consistent positions? |
+| 16 | **Number alignment** | Numbers right-aligned or decimal-aligned? Percentages consistent width? |
+| 17 | **Monospace consistency** | All text actually monospace? No proportional font artifacts? |
 
-**For each heuristic**, determine a verdict:
+### Borders & Containers
+
+| # | Check | What to look for |
+|---|-------|------------------|
+| 18 | **Border style consistency** | Same border style (single/round/double) used throughout? No mixing? |
+| 19 | **Border completeness** | All four sides drawn? No missing bottom/right borders? |
+| 20 | **Border overlap** | Nested borders not colliding? Proper gap between border and content? |
+| 21 | **Border color** | Active/focused borders distinct from inactive? Selection visible? |
+| 22 | **Container nesting** | Nested panels have clear visual separation? Not confusing depth? |
+
+### Color & Contrast
+
+| # | Check | What to look for |
+|---|-------|------------------|
+| 23 | **Semantic color usage** | Success=green, error=red, warning=yellow used correctly? |
+| 24 | **Color consistency** | Same meaning → same color everywhere? No conflicting uses? |
+| 25 | **Text contrast** | Text readable against background? Dim text not invisible? |
+| 26 | **Background contrast** | Highlighted/selected elements clearly visible? |
+| 27 | **Color count** | Not too many distinct colors (max 5-6)? Palette cohesive? |
+| 28 | **Colorblind safety** | Status conveyed by shape AND color (✓/✗ + green/red)? |
+
+### Rendering Defects
+
+| # | Check | What to look for |
+|---|-------|------------------|
+| 29 | **Content overflow** | Any text or elements extending past their container? |
+| 30 | **Content clipping** | Content cut off at bottom or right? Missing characters? |
+| 31 | **Rendering artifacts** | Stray characters, ghost borders, misaligned box-drawing chars? |
+| 32 | **Wide character handling** | CJK, emoji, or special chars causing alignment issues? |
+| 33 | **Crosshatch/fill patterns** | Progress bar fills look clean? No noisy/rough patterns? |
+| 34 | **Cursor artifacts** | Visible cursor in wrong position? Block cursor over content? |
+| 35 | **Scroll indicators** | Scrollbar/scroll arrows visible when content overflows? |
+
+### Interaction Indicators
+
+| # | Check | What to look for |
+|---|-------|------------------|
+| 36 | **Selection highlight** | Selected item clearly visible? Highlight spans full width? |
+| 37 | **Focus indication** | Focused panel/input visually distinct? Border color change? |
+| 38 | **Active tab** | Active tab clearly indicated? Inactive tabs visibly different? |
+| 39 | **Disabled state** | Disabled items visually distinct? Dimmed or struck through? |
+
+### Higher-Level Design
+
+| # | Check | What to assess |
+|---|-------|---------------|
+| 40 | **First impression** | What do you notice first? Is that the right thing to notice? |
+| 41 | **Emotional response** | Professional? Impressive? Boring? Broken? Would you trust this software? |
+| 42 | **Content quality** | Demo content compelling and real-feeling? Or placeholder/lorem ipsum? |
+| 43 | **Information density** | Right amount of info? Too sparse (wasted space) or too dense (overwhelming)? |
+| 44 | **Visual rhythm** | Consistent repeating pattern? Or jarring/random element placement? |
+| 45 | **Showcase effectiveness** | Does this make someone want to use the product? |
+| 46 | **Competitive quality** | Would this hold up next to screenshots from competing frameworks? |
+| 47 | **Twitter test** | Would you share this on social media? If not, what's missing? |
+
+**When using external LLMs** (Grok, GPT), include this checklist in the prompt and ask them to:
+1. Check every item on this list
+2. Add any issues they find that AREN'T on this list
+3. Suggest specific fixes for each issue
+4. Rate overall quality 1-10
+
+**For each check**, determine a verdict:
 
 | Verdict | Meaning |
 |---------|---------|
