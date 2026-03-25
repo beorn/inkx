@@ -1,4 +1,1 @@
-1 vendor/silvery/packages/ag-react/src/render.tsx
-1 vendor/silvery/packages/ag-term/src/renderer.ts
-1 vendor/silvery/packages/ag-term/src/xterm/index.ts
 4 vendor/terminfo.dev/scripts/generate-api.ts
