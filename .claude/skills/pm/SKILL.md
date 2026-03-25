@@ -98,15 +98,22 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 **Creating**: Use `km-<scope>.<suffix>` ID, then `bd update <id> --parent <epic>`.
 **Closing**: The parent-child link is preserved on closed beads automatically.
 
-### Managing Scope Epics
+### Two Kinds of Epics
 
-Check children and completion status using built-in commands:
+| Kind | Examples | Closes? | Meaning of 98% |
+|------|----------|---------|-----------------|
+| **Scope epic** (backlog) | `km-tui`, `km-silvery`, `km-infra` | **Never** — permanent backlog | "Only a few open items left" |
+| **Project epic** (finite) | `km-silvery.era2`, `km-silvery.tea` | **Yes** — when all children done | "Project complete" |
+
+**Scope epics are backlogs.** New bugs/features keep getting added. Don't close them even at 98%. `bd epic close-eligible` only applies to project epics.
+
+### Managing Epics
 
 ```bash
 bd children <epic-id>              # List children
 bd list --parent <epic-id>         # Alternative
 bd epic status                     # Completion % for all epics
-bd epic close-eligible             # Auto-close epics with all children done
+bd epic close-eligible             # Auto-close PROJECT epics (not scope epics)
 ```
 
 No need for `TRACKING:` or `(idle)` title prefixes — `type=epic` and `bd epic status` provide this information. Epic titles should be clean descriptions of the scope (e.g., "TUI app views & interaction").
