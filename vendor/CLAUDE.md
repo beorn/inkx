@@ -44,29 +44,31 @@ For any vendor package to be "standalone-ready":
 
 ## Packages
 
-| Package              | npm Scope       | Description                                               |
-| -------------------- | --------------- | --------------------------------------------------------- |
-| **silvery**          | `@silvery/*`    | React TUI framework — reconciler, components, theme       |
-| **flexily**          | `@flexily/*`    | Yoga-compatible flexbox layout engine                     |
-| **termless**         | `@termless/*`   | Headless terminal testing (like Playwright for terminals) |
-| **ansi**             | `@silvery/ansi` | ANSI escape sequence utilities                            |
-| **mdtest**           | `@beorn/mdtest` | Markdown-driven test runner                               |
-| **tools**            | `@beorn/tools`  | CLI tools, LLM integration, recall                        |
-| **vimonkey**         | `vimonkey`      | Vitest monkey-patching utilities                          |
-| **loggily**          | `loggily`       | Structured logging                                        |
-| **accountly**        | `accountly`     | LLM API accounting/cost tracking                          |
-| **tap**              | `@silvery/tap`  | Terminal app protocol                                     |
-| **bearlymade**       | —               | Bear.app integration                                      |
-| **watcher-chaos**    | —               | File watcher chaos testing                                |
-| **silvery-internal** | —               | Internal design docs (not published)                      |
+| Package              | npm Scope              | Description                                               |
+| -------------------- | ---------------------- | --------------------------------------------------------- |
+| **silvery**          | `@silvery/*`           | React TUI framework — reconciler, components, theme       |
+| **flexily**          | `@flexily/*`           | Yoga-compatible flexbox layout engine                     |
+| **termless**         | `@termless/*`          | Headless terminal testing (like Playwright for terminals) |
+| **ansi**             | `@silvery/ansi`        | ANSI escape sequence utilities                            |
+| **mdtest**           | `@beorn/mdtest`        | Markdown-driven test runner                               |
+| **tools**            | `@beorn/tools`         | CLI tools, LLM integration, recall                        |
+| **vimonkey**         | `vimonkey`             | Vitest monkey-patching utilities                          |
+| **loggily**          | `loggily`              | Structured logging                                        |
+| **accountly**        | `accountly`            | LLM API accounting/cost tracking                          |
+| **tap**              | `@silvery/tap`         | Terminal app protocol                                     |
+| **vt100** (vterm)    | `vt100.js`, `vterm.js` | VT terminal emulator monorepo — vt100 + modern            |
+| **bearlymade**       | —                      | Bear.app integration                                      |
+| **watcher-chaos**    | —                      | File watcher chaos testing                                |
+| **silvery-internal** | —                      | Internal design docs (not published)                      |
 
 ## ESM Publishing
 
 Publish raw TypeScript source — no build step. Node.js 23.6+ strips types natively; Bun always could.
 
-**Reference implementation**: vt100.js (`vendor/vt100/`)
+**Reference implementation**: vt100.js (`vendor/vt100/packages/vt100/`)
 
 ### package.json
+
 ```json
 {
   "type": "module",
@@ -79,6 +81,7 @@ Publish raw TypeScript source — no build step. Node.js 23.6+ strips types nati
 ```
 
 ### tsconfig.json (dev only — typecheck, not build)
+
 ```json
 {
   "compilerOptions": {
@@ -94,6 +97,7 @@ Publish raw TypeScript source — no build step. Node.js 23.6+ strips types nati
 ```
 
 ### Rules
+
 - **Publish `.ts` source** — no `dist/`, no build step, no `.js` output
 - **`exports` → `./src/index.ts`** — direct TypeScript
 - **`files` → `["src"]`** — ship source only
@@ -104,6 +108,7 @@ Publish raw TypeScript source — no build step. Node.js 23.6+ strips types nati
 - **No `dist/` directory** — nothing to build, nothing to forget
 
 ### Why not compiled `.js`?
+
 - Node.js 23.6+ handles `.ts` natively (type stripping, no transpilation)
 - Bun handles `.ts` natively
 - Bundlers (Vite, esbuild, webpack) handle `.ts` natively
@@ -111,6 +116,7 @@ Publish raw TypeScript source — no build step. Node.js 23.6+ strips types nati
 - Source IS the artifact
 
 ### When to add a build step
+
 - **Minification** for large packages (reduce npm install size)
 - **Backwards compat** with Node.js < 23.6
 - **Pre-built for performance** (skip type stripping on every import)
