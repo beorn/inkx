@@ -76,7 +76,7 @@ and isHiddenFile (experiment 7).
   tree creation, hooks, and effect scheduling. Not addressable with micro-optimizations.
 - **Silvery layout phase (65ms)**: Flexily layout is already optimized. Would need
   architectural changes (lazy layout, viewport-only) for further improvement.
-- **Silvery content phase (52ms)**: The incremental rendering pipeline is complex and
+- **Silvery render phase (52ms)**: The incremental rendering pipeline is complex and
   fragile. The `syncPrevLayout` iterative conversion (experiment 2) was the safe win.
 - **SQLite query performance**: Queries are already indexed and prepared. The `rowToNode`
   JSON.parse per row is unavoidable.

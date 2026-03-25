@@ -61,6 +61,6 @@ This means:
 ## Cross-References
 
 - `vendor/silvery/src/pipeline/CLAUDE.md` — Scroll container three-tier strategy, sticky children two-pass rendering
-- `vendor/silvery/src/pipeline/content-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
+- `vendor/silvery/src/pipeline/render-phase.ts` — `renderScrollContainerChildren`, `stickyForceRefresh`
 - `docs/lessons/debugging-rendering.md` — General silvery debugging methodology
 - `docs/lessons/incremental-rendering.md` — Fast-path logic and common bug patterns

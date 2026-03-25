@@ -98,7 +98,7 @@ process.env.SILVERY_STRICT = "1"
 // instead of a failure.
 
 // Known incremental rendering mismatches -- tracked as km-silvery.bg-bleed
-// These are real bugs in silvery's content-phase/output-phase that need fixing.
+// These are real bugs in silvery's render-phase/output-phase that need fixing.
 // Adding them here prevents blocking unrelated work while we fix the pipeline.
 //
 // IMPORTANT: Be SPECIFIC. Blanket patterns like "*incremental*" suppress tests

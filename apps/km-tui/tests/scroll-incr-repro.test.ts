@@ -4,7 +4,7 @@
  * Sequence G, g, h, g on a scrolling board with 3 columns (12+10+8 items)
  * at 80x16. The final "g" opens a chord overlay (absolute positioned) that
  * was missing from the incremental render because STRICT output verification threw
- * during the output phase, preventing the content-phase buffer from being
+ * during the output phase, preventing the render-phase buffer from being
  * saved to instance.prevBuffer.
  *
  * Bug: km-silvery.scroll-incr-fuzz

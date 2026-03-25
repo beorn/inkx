@@ -31,7 +31,7 @@ Pick ONE small, focused change. Good experiments:
 
 - **Algorithmic**: Replace O(n²) with O(n), add caching/memoization, batch operations
 - **Data structure**: Array→Map, linear search→index lookup, pre-compute derived values
-- **Hot path**: Reduce allocations in render/layout/content phases, avoid unnecessary work
+- **Hot path**: Reduce allocations in render/layout/render phases, avoid unnecessary work
 - **Remove waste**: Dead code paths, redundant computations, unnecessary copies
 
 Bad experiments (DO NOT):
@@ -116,7 +116,7 @@ An experiment is **DISCARD** when ANY of these hold:
 
 **Fair game** (these are the hot paths):
 
-- `vendor/silvery/` — Rendering pipeline, layout, content phase, output phase
+- `vendor/silvery/` — Rendering pipeline, layout, render phase, output phase
 - `vendor/flexily/` — Layout engine
 - `packages/km-storage/` — SQLite queries, node caching, tree traversal
 - `packages/km-board/` — Board state derivation, column computation

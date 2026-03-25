@@ -93,19 +93,46 @@ If work truly cannot be completed in the current phase (e.g., a dependency hasn'
 3. Make it block subsequent phases
 4. Never leave it as a TODO comment in code
 
-## Step 4: Create Beads
+## Step 4: Create Tracking Bead + Phase Beads
 
-For each phase, create a bead with:
+### Tracking Bead (the canonical status dashboard)
+
+Every large refactor needs **one canonical tracking bead** (type=epic) that serves as the top-down status dashboard. Anyone should be able to `bd show <tracking-bead>` at any time and understand: what's done, what's in progress, what's blocked, what's next.
+
+```bash
+bd create --id km-<scope>.<refactor-name> --type epic --priority 1 \
+  --title "[epic] <Refactor Name>" \
+  --description "<Overview: what, why, target state, design doc link, phase summary>"
+```
+
+The tracking bead's **description** must be kept up-to-date as phases complete. It should contain:
+- One-line summary of the refactor's goal
+- Link to the design doc
+- Current status: which phase is active, what's done, what's next
+- Any blocking issues or risks
+
+**Update the tracking bead every time**:
+- A phase is completed or started
+- The plan changes (phases added, split, or reordered)
+- A blocker is discovered or resolved
+- A design decision changes the approach
+
+This is non-negotiable. Stale tracking beads cause future sessions to work from outdated context — the #1 cause of reverted refactors (see Lesson 1: Update Beads First).
+
+### Phase Beads
+
+For each phase, create a child bead:
 - **Title**: `<Era/Scope> Phase N: <Name>`
 - **Description**: What changes, what's deleted, /complete criteria
 - **Dependencies**: Previous phase (sequential chain)
+- **Parent**: The tracking bead
 - **Notes**: `MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code.`
 
 ```bash
 bd create --id km-<scope>.phase-N-name --type task --priority 1 \
   --title "Phase N: <Name>" \
   --description "<paste phase template>"
-bd update km-<scope>.phase-N-name --parent <epic>
+bd update km-<scope>.phase-N-name --parent km-<scope>.<refactor-name>
 bd dep add km-<scope>.phase-N-name km-<scope>.phase-N-1-name
 bd update km-<scope>.phase-N-name --append-notes "MANDATORY first step: Read docs/lessons/refactoring.md IN FULL before writing any code."
 ```
@@ -162,6 +189,7 @@ For each phase:
 - **No compat shims**: If you're tempted to add `export { newThing as oldThing }`, don't. Fix callers.
 - **No deferred deletion**: If you're writing a TODO comment about cleanup, do the cleanup now.
 - **Track surprises**: If a phase reveals unexpected complexity, update the plan (add/split phases), don't push through.
+- **Update tracking bead**: After completing each phase, update the tracking epic's description with current status.
 
 ## `/refactor plan` — Quick Start
 

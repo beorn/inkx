@@ -110,7 +110,7 @@ Compare fast-path (incremental) vs slow-path (fresh) on every render:
 ```typescript
 // In scheduler.ts
 if (process.env.SILVERY_STRICT && this.stats.renderCount > 0) {
-  const freshBuffer = contentPhase(root, null)  // Force fresh render
+  const freshBuffer = renderPhase(root, null)  // Force fresh render
   const mismatches = compareBuffers(incrementalBuffer, freshBuffer)
 
   if (mismatches.length > 0) {
@@ -210,7 +210,7 @@ Children disappear after parent clears its region. SILVERY_STRICT catches
 mismatch but I can't find the root cause.
 
 ## Full Source Code
-[paste content-phase.ts - the ENTIRE file, not snippets]
+[paste render-phase.ts - the ENTIRE file, not snippets]
 
 ## What I've Tried
 1. Added contentRegionCleared flag - didn't help
@@ -356,9 +356,9 @@ test("children appear when viewport cleared", () => {
 
 ### 5. Trace the Code Path
 
-Key functions in `content-phase.ts`:
+Key functions in `render-phase.ts`:
 
-1. `contentPhase()` - Entry point, clones buffer
+1. `renderPhase()` - Entry point, clones buffer
 2. `renderNodeToBuffer()` - Fast-path check, region clear
 3. `renderScrollContainerChildren()` - Scroll-specific logic
 4. `renderNormalChildren()` - Standard child rendering
@@ -399,7 +399,7 @@ Goal: Skip as many nodes as possible while maintaining correctness.
 
 ## Related Files
 
-- `vendor/silvery/src/pipeline/content-phase.ts` - Fast-path logic
+- `vendor/silvery/src/pipeline/render-phase.ts` - Fast-path logic
 - `vendor/silvery/src/debug-mismatch.ts` - Error formatting
 - `vendor/silvery/src/scheduler.ts` - SILVERY_STRICT check
 - `apps/km-tui/tests/helpers/board-test.ts` - Test fixtures

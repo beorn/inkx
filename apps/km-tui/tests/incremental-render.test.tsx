@@ -1,7 +1,7 @@
 /**
  * Incremental Rendering Tests
  *
- * Verifies that buffer clone + subtree skip (incremental contentPhase)
+ * Verifies that buffer clone + subtree skip (incremental renderPhase)
  * doesn't leave stale pixels when cursor moves between cards.
  *
  * These tests use `incremental: true` to match live scheduler behavior.

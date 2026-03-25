@@ -9,7 +9,7 @@
 Ghost characters appeared in the storybook and km view when switching between sections of
 different widths. The investigation went like this:
 
-1. Read source code (content-phase.ts, output-phase.ts) tracing code paths
+1. Read source code (render-phase.ts, output-phase.ts) tracing code paths
 2. Hand-rolled toy VirtualTerminal tests outside the real app
 3. All tests passed — concluded "must be a Ghostty/terminal emulator bug"
 4. Three different terminals showed the same issue — still blamed the terminal
@@ -33,7 +33,7 @@ Failing test → fix → done.
 
 ### 1. Theorizing Before Testing
 
-Reading content-phase.ts, output-phase.ts, tracing code paths — all wasted time
+Reading render-phase.ts, output-phase.ts, tracing code paths — all wasted time
 without a failing test to anchor the analysis. Code reading should come AFTER
 you have a reproduction, not before.
 

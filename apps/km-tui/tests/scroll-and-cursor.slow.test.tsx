@@ -236,7 +236,7 @@ describe("Scroll virtualization doesn't hide content", () => {
   })
 
   test("scrolling down in cards mode produces no visual artifacts", () => {
-    // Regression test for incremental contentPhase rendering:
+    // Regression test for incremental renderPhase rendering:
     // When scrolling, stale pixels from the cloned buffer can bleed through
     // as extraneous background colors or misplaced content.
     const cards = Array.from({ length: 20 }, (_, i) => item(`scroll${i}`))
