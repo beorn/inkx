@@ -43,7 +43,9 @@
         "@silvery/commands": "workspace:*",
         "@silvery/create": "workspace:*",
         "@silvery/headless": "workspace:*",
+        "@silvery/model": "workspace:*",
         "@silvery/scope": "workspace:*",
+        "@silvery/signals": "workspace:*",
         "@silvery/test": "workspace:*",
         "@silvery/theme": "workspace:*",
         "@sinonjs/fake-timers": "^15.1.1",
@@ -453,9 +455,20 @@
         "chalk": "^5.6.2",
       },
     },
+    "vendor/silvery/packages/model": {
+      "name": "@silvery/model",
+      "version": "0.1.0",
+    },
     "vendor/silvery/packages/scope": {
       "name": "@silvery/scope",
       "version": "0.1.0",
+    },
+    "vendor/silvery/packages/signals": {
+      "name": "@silvery/signals",
+      "version": "0.1.0",
+      "dependencies": {
+        "alien-signals": "^3.1.2",
+      },
     },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
@@ -706,7 +719,9 @@
     "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
     "@silvery/headless": "vendor/silvery/packages/headless",
+    "@silvery/model": "vendor/silvery/packages/model",
     "@silvery/scope": "vendor/silvery/packages/scope",
+    "@silvery/signals": "vendor/silvery/packages/signals",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@termless/core": "vendor/termless",
@@ -1313,7 +1328,11 @@
 
     "@silvery/ink": ["@silvery/ink@workspace:vendor/silvery/packages/ink"],
 
+    "@silvery/model": ["@silvery/model@workspace:vendor/silvery/packages/model"],
+
     "@silvery/scope": ["@silvery/scope@workspace:vendor/silvery/packages/scope"],
+
+    "@silvery/signals": ["@silvery/signals@workspace:vendor/silvery/packages/signals"],
 
     "@silvery/test": ["@silvery/test@workspace:vendor/silvery/packages/test"],
 

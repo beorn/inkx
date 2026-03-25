@@ -20,3 +20,4 @@
 4 vendor/termless/sites/terminfo.dev/src/versions.ts
 1 vendor/termless/src/backends.ts
 16 vendor/tools/tests/tribe.test.ts
+8 vendor/vt100/packages/vterm/tests/screen.test.ts
