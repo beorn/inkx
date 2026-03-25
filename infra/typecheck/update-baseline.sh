@@ -22,7 +22,7 @@ echo "$TSC_OUTPUT" \
   | sort \
   | uniq -c \
   | sed 's/^ *//' \
-  > "$BASELINE"
+  > "$BASELINE" || true  # 0 errors = grep exits 1, which is fine
 
 TOTAL=$(awk '{sum += $1} END {print sum+0}' "$BASELINE")
 UNIQUE=$(wc -l < "$BASELINE" | tr -d ' ')

@@ -1,1 +1,0 @@
-4 vendor/terminfo.dev/scripts/generate-api.ts
