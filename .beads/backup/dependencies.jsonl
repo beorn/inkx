@@ -1006,6 +1006,8 @@
 {"created_at":"2026-03-24T20:52:19Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-5-plugins","issue_id":"km-silvery.era2a-6-unification","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-24T21:35:57Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2a-docs-launch","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T22:11:22Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-6-unification","issue_id":"km-silvery.era2a-docs-launch","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-24T22:22:46Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2a-type-convergence","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:23:19Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-1-textframe","issue_id":"km-silvery.era2a-type-convergence","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-20T13:06:48Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2b-0-tea","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T22:02:50Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2a-5-plugins","issue_id":"km-silvery.era2b-0-tea","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-20T13:06:49Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.era2","issue_id":"km-silvery.era2b-1-headless","metadata":"{}","type":"parent-child"}
@@ -1364,6 +1366,9 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.compat-matrix","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.contour","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.contributing","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:33Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.da1-sentinel","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:34Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.esctest-edge-cases","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:35Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.feature-reporting","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T14:48:05Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.fix-alacritty-census","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T14:48:07Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.fix-kitty-build","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T14:48:06Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.fix-libvterm-census","metadata":"{}","type":"parent-child"}
@@ -1380,6 +1385,7 @@
 {"created_at":"2026-03-23T16:38:11Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.peekaboo-census","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T16:20:13Z","created_by":"claude:c9beade3","depends_on_id":"km-all.pro-review-2","issue_id":"km-termless.pro-review-0313","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T19:12:52Z","created_by":"claude:65d845d9","depends_on_id":"km-all.pro-review-4","issue_id":"km-termless.pro-review-4","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:36Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.probe-methodology","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.readme-svgs","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T23:35:53Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.real-terminal-testing","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.record","metadata":"{}","type":"parent-child"}
@@ -1387,6 +1393,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.review-fixes","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-22T22:34:14Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.silvery-cli","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-22T22:48:54Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.silvery-cli-v2","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:35Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.svg-badges","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.svg-snapshots","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.switch-mcp","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T12:29:30Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.terminfo-crosslink","metadata":"{}","type":"parent-child"}
@@ -1394,10 +1401,12 @@
 {"created_at":"2026-03-23T22:06:54Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.terminfo-seo","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T12:29:29Z","created_by":"claude:4929065a","depends_on_id":"km-termless","issue_id":"km-termless.terminfo-site","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.test-coverage","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:34Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.unicode-probes","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.vt100","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.vte","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.wezterm","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-termless","issue_id":"km-termless.xtermjs","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-24T22:21:34Z","created_by":"claude:4929065a","depends_on_id":"km-termless.integrate-best","issue_id":"km-termless.xtgettcap","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-domain-objects.3","issue_id":"km-test-1","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-sync-m4","issue_id":"km-test-1","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-test-1","issue_id":"km-test-1.1","metadata":"{}","type":"parent-child"}
