@@ -105,8 +105,8 @@ function measureLint(): { warnings: number; errors: number } {
   })
   const output = res.stderr.toString() + res.stdout.toString()
   const match = output.match(/Found (\d+) warnings? and (\d+) errors?/)
-  const warnings = match ? parseInt(match[1], 10) : 0
-  const errors = match ? parseInt(match[2], 10) : 0
+  const warnings = match ? parseInt(match[1]!, 10) : 0
+  const errors = match ? parseInt(match[2]!, 10) : 0
   process.stderr.write(`${warnings} warnings, ${errors} errors\n`)
   return { warnings, errors }
 }
@@ -149,7 +149,7 @@ async function measureTests(): Promise<number> {
   const output = (res.stdout + res.stderr).replace(/\x1b\[[0-9;]*m/g, "")
   // Match the "Tests  N passed" line specifically (not "Test Files")
   const match = output.match(/Tests\s+(\d+) passed/)
-  const count = match ? parseInt(match[1], 10) : 0
+  const count = match ? parseInt(match[1]!, 10) : 0
   process.stderr.write(`${count} tests ${res.ok ? "passing" : "FAILING"}\n`)
   return res.ok ? count : -1 // -1 signals failure
 }
@@ -338,7 +338,7 @@ async function main() {
     process.exit(1)
   }
 
-  const baseline: QualityMeasurement = JSON.parse(readFileSync(BASELINE_FILE, "utf-8"))
+  const baseline = JSON.parse(readFileSync(BASELINE_FILE, "utf-8")) as QualityMeasurement
   const verdict = compare(measurement, baseline)
   printVerdict(verdict)
   appendResults(measurement, verdict)

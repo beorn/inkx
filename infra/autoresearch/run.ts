@@ -196,7 +196,7 @@ async function runProfile(): Promise<ProfileResult> {
 
   function extractMs(label: string): number {
     const match = output.match(new RegExp(`${label}[^:]*:\\s*([\\d.]+)ms`))
-    return match ? parseFloat(match[1]) : 0
+    return match ? parseFloat(match[1]!) : 0
   }
 
   const result: ProfileResult = {
@@ -453,7 +453,7 @@ async function main() {
     process.exit(1)
   }
 
-  const baseline: Measurement = JSON.parse(readFileSync(BASELINE_FILE, "utf-8"))
+  const baseline = JSON.parse(readFileSync(BASELINE_FILE, "utf-8")) as Measurement
   const verdict = compare(measurement, baseline)
   printVerdict(verdict)
   appendResults(measurement, verdict)
