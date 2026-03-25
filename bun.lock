@@ -41,6 +41,7 @@
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
         "@silvery/create": "workspace:*",
+        "@silvery/headless": "workspace:*",
         "@silvery/test": "workspace:*",
         "@silvery/theme": "workspace:*",
         "@sinonjs/fake-timers": "^15.1.1",
@@ -430,6 +431,10 @@
         "silvery": "workspace:*",
       },
     },
+    "vendor/silvery/packages/headless": {
+      "name": "@silvery/headless",
+      "version": "0.1.0",
+    },
     "vendor/silvery/packages/ink": {
       "name": "@silvery/ink",
       "version": "0.4.2",
@@ -686,6 +691,7 @@
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
     "@silvery/create": "vendor/silvery/packages/create",
+    "@silvery/headless": "vendor/silvery/packages/headless",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@termless/core": "vendor/termless",
@@ -1285,6 +1291,8 @@
     "@silvery/create": ["@silvery/create@workspace:vendor/silvery/packages/create"],
 
     "@silvery/examples": ["@silvery/examples@workspace:vendor/silvery/packages/examples"],
+
+    "@silvery/headless": ["@silvery/headless@workspace:vendor/silvery/packages/headless"],
 
     "@silvery/ink": ["@silvery/ink@workspace:vendor/silvery/packages/ink"],
 
