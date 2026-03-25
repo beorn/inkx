@@ -6,7 +6,7 @@
  * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
 
-import { createApp, type EventHandlerContext } from "@silvery/tea/create-app"
+import { createApp, type EventHandlerContext } from "@silvery/create/create-app"
 import type { Key, ParsedMouse, FocusManager, AgNode } from "@silvery/ag-react"
 import { activeEditTargetRef, activeEditContextRef, lastModifierState } from "@silvery/ag-react"
 import { createLogger } from "loggily"

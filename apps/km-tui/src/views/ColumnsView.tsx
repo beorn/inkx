@@ -16,7 +16,7 @@ const log = createLogger("km:tui:columns")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
-import { useApp as useAppStore } from "@silvery/tea/create-app"
+import { useApp as useAppStore } from "@silvery/create/create-app"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"

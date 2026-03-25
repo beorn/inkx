@@ -24,7 +24,7 @@ import {
   Link,
   type PatchedConsole,
 } from "@silvery/ag-react"
-import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/tea/create-app"
+import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/create/create-app"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../reactive.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"

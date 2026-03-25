@@ -25,7 +25,7 @@
 import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
-import { StoreContext } from "@silvery/tea/create-app"
+import { StoreContext } from "@silvery/create/create-app"
 import { parseKey } from "@silvery/ag-term/runtime"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { expect } from "vitest"

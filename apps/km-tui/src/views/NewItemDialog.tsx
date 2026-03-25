@@ -5,7 +5,7 @@
  * Uses context from the cursor item for defaults.
  */
 import React from "react"
-import { useApp as useAppStore } from "@silvery/tea/create-app"
+import { useApp as useAppStore } from "@silvery/create/create-app"
 import { Box, Text, CursorLine, ModalDialog } from "@silvery/ag-react"
 import { isOutline, type KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"

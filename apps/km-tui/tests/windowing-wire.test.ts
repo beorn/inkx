@@ -17,7 +17,7 @@ import React from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer } from "@silvery/test"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "@silvery/ag-react"
-import { StoreContext } from "@silvery/tea/create-app"
+import { StoreContext } from "@silvery/create/create-app"
 import {
   createBoardAppStoreState,
   getActiveBoardPane,

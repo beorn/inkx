@@ -1,5 +1,5 @@
 import { createBoardDriver } from "../apps/km-tui/src/driver.ts"
-import { withDiagnostics } from "@silvery/tea"
+import { withDiagnostics } from "@silvery/create"
 import { createFakeRepo } from "../packages/km-storage/src/testing/fake-repo.ts"
 import { item } from "../apps/km-tui/tests/helpers/board-test.ts"
 

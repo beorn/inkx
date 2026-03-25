@@ -44,8 +44,8 @@ import React, { act } from "react"
 import { createStore, type StoreApi } from "zustand"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
-import { pipe, withCommands, type AppWithCommands, type AppState } from "@silvery/tea/plugins"
-import { StoreContext, type EventHandlerContext } from "@silvery/tea/create-app"
+import { pipe, withCommands, type AppWithCommands, type AppState } from "@silvery/create/plugins"
+import { StoreContext, type EventHandlerContext } from "@silvery/create/create-app"
 import { parseKey } from "@silvery/ag-term/runtime"
 import {
   createCommandRegistry,

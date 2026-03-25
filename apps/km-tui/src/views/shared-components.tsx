@@ -6,7 +6,7 @@
  */
 import React, { useCallback } from "react"
 import { Box, Text, Muted, Small, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/ag-react"
-import { useApp as useAppStore } from "@silvery/tea/create-app"
+import { useApp as useAppStore } from "@silvery/create/create-app"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:layout")

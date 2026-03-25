@@ -1,4 +1,4 @@
-import { getWrappedLines } from "@silvery/tea/text-cursor"
+import { getWrappedLines } from "@silvery/create/text-cursor"
 import type { TermEditContext } from "@silvery/ag-react"
 import type { AgNode } from "@silvery/ag-react"
 
