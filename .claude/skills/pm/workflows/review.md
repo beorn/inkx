@@ -117,6 +117,17 @@ Then run:
 bd list --status closed --limit 20 --sort updated  # Recent completions for context
 ```
 
+#### Tribe Status Check
+
+For any `in_progress` beads claimed by other tribe members (`claude:*` assignees), query the tribe for status before categorizing:
+
+```
+mcp__tribe__tribe_send(to="chief", type="query", bead="<bead-id>",
+  message="Backlog grooming: <bead-id> (<title>) is in_progress. Still active or should we release?")
+```
+
+Send queries **in parallel** for all questionable in_progress beads. Wait for responses before categorizing them in Phase 2. If no response within the grooming session, flag as "Clarify" with note "No tribe response — check next groom."
+
 ### Phase 2: Analyze & Categorize
 
 Review survey data. For each open issue, assign to exactly one category:
@@ -127,10 +138,11 @@ Review survey data. For each open issue, assign to exactly one category:
 | ------------------------- | ---------------------------------------------------------- |
 | **Superseded**            | km-old describes same work as km-new which has more detail |
 | **Done differently**      | Feature shipped via a different implementation path        |
-| **Stale P4**              | Untouched 60+ days at lowest priority, no blockers         |
 | **Vague orphan**          | No description, no activity, unclear purpose               |
 | **Abandoned in_progress** | Claimed 30+ days ago, no commits, assignee moved on        |
 | **Requirements drifted**  | Feature/task >1 week old, codebase has changed, original requirements no longer apply |
+
+**P4 items are long-term roadmap** — do NOT close P4 beads just because they're stale. P4 is explicitly aspirational and can stay open for 2-3 years. Only close P4 if the feature was implemented differently or is genuinely no longer relevant. You may *suggest* closing specific P4s with evidence, but staleness alone is never sufficient reason.
 
 **Requirement**: Every close needs specific evidence.
 
