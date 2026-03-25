@@ -359,6 +359,22 @@ bun llm --deep -y "Best practices for terminal UI design: spacing, color, typogr
 
 When using `/llm`, describe the screenshot in detail since other models cannot see the image directly. Include the Phase 2 measurement data to give them concrete numbers to work with.
 
+### Best reviewers (ranked by design review quality)
+
+| Reviewer | Can see images? | Quality | How to use |
+|---|---|---|---|
+| **v0.dev** (web) | Yes | Best — catches rendering bugs, truncation, data corruption | Manual: upload screenshot at v0.dev/chat |
+| **Claude** (built-in) | Yes | Excellent — Read tool shows images directly | `Read /path/to/screenshot.png` |
+| **Grok 3** | Text only via /llm | Good — most detailed text reviews (7/10 benchmark winner) | `bun llm --model grok-3` |
+| **GPT-5.4** | Text only via /llm | Good — concise, actionable | `bun llm --model gpt-5.4` |
+| **GPT-4o** | Text only via /llm | Good — cheapest, fastest | `bun llm --model gpt-4o` |
+
+**Key insight**: Models that can see the actual image catch rendering defects (truncated text, data corruption, misaligned columns) that text-description-based reviews miss entirely. Always use at least one visual reviewer.
+
+**v0.dev workflow**: Upload the screenshot at v0.dev/chat and ask for a UI design evaluation. v0 uses Claude under the hood with vision, and is specifically tuned for UI critique. It caught truncation bugs, data corruption, and inconsistent color usage that 3 other LLMs all missed from text descriptions.
+
+**Future**: Add `--image` flag to `/llm` tool to send base64-encoded images directly to GPT/Gemini/Grok vision APIs. This would enable automated visual review without manual uploads.
+
 ---
 
 ## Terminal UI Design Principles
