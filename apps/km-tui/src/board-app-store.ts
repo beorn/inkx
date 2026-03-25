@@ -221,8 +221,6 @@ export interface CreateBoardAppStoreParams {
   dimensions: { columns: number; rows: number }
   /** Saved workspace to restore (layout + panes). If provided, overrides the default single-pane workspace. */
   savedWorkspace?: PersistedWorkspace | null
-  /** Persisted filter properties for single-pane sessions (workspace restore skipped but filters should persist) */
-  savedFilterProperties?: import("./ui-reducer.ts").FilterProperties
 }
 
 /**
@@ -343,11 +341,6 @@ function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoar
     viewMode: params.initialViewMode ?? "columns",
     cursorStore: params.cursorStore,
   })
-  // Restore persisted filter properties for single-pane sessions
-  if (params.savedFilterProperties && isBoardPane(initialPane)) {
-    ;(initialPane as BoardPaneState).filterProperties = params.savedFilterProperties
-  }
-
   const panes = new Map<string, PaneState>([[defaultPaneId, initialPane]])
   const layout: LayoutNode = { type: "leaf", paneId: defaultPaneId }
 

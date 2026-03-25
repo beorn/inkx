@@ -28,7 +28,7 @@ import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
-import { saveWorkspace, loadWorkspace, deserializeFilterProperties } from "./workspace-persist.ts"
+import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui") as any
@@ -261,20 +261,10 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     const viewMode = options?.initialViewMode ?? "cards"
 
-    // Try to load saved workspace for layout restoration
+    // Restore saved workspace (layout, view mode, filters, zoom location).
+    // Falls back gracefully if the saved state can't be resolved (deleted nodes, etc.).
     const vaultPath = options.repo.path
-    let savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
-
-    // Only restore layout if the saved workspace has a multi-pane layout (single pane = no value in restoring).
-    // But always extract filter properties from the first board pane — filters should persist across sessions.
-    let savedFilterProperties: import("./workspace-persist.ts").PersistedFilterProperties | undefined // eslint-disable-line -- inline type import for clarity
-    if (savedWorkspace) {
-      const firstBoardPane = savedWorkspace.panes.find((p) => p.viewType === "board")
-      savedFilterProperties = firstBoardPane?.filterProperties
-    }
-    if (savedWorkspace && savedWorkspace.panes.length <= 1) {
-      savedWorkspace = null
-    }
+    const savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
 
     if (savedWorkspace) {
       log.debug?.(`Restoring saved workspace (${savedWorkspace.panes.length} panes)`)
@@ -292,8 +282,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       cursorStore: createCursorStoreFromRepo(options.repo, state.rootId, initialCursorNodeId),
       initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
       initialUIState: createInitialUIState({ columns: cols, rows }, defaultIconStyle),
-      // Restore filter properties from saved workspace (persists even for single-pane sessions)
-      savedFilterProperties: savedFilterProperties ? deserializeFilterProperties(savedFilterProperties) : undefined,
       initialViewMode: viewMode,
       dimensions: { columns: cols, rows },
       savedWorkspace,
