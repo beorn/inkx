@@ -39,24 +39,12 @@ Keep output concise. For `tribe_sessions`, format as a table. For `tribe_health`
 Broadcast this message to all members:
 
 ```
-Sync check: ensure ALL your work is tracked in beads.
+Sync: ensure work is tracked in beads (bd create/update/close as needed).
 
-For each piece of work you did this session:
-1. If no bead exists, create one: bd create --title="<what>" --type=task|bug|feature --priority=2
-2. If bead exists but is open, update status: bd update <id> --claim (if not claimed)
-3. If work is done, close it: bd close <id> --reason="<what was done>"
-4. If you created new beads, parent them: bd update <id> --parent <epic>
+Reply in ONE short message, plain text, no markdown:
+"Name | Idle: Xm | Created: N, Closed: N | Blockers: none | Status: idle/busy"
 
-Also report:
-- Your Claude session ID: run `echo $CLAUDE_SESSION_ID` in bash
-- Your /rename session name (if set)
-- Beads summary: created/updated/closed counts
-- IDLE TIME: how long since your last meaningful action (commit, bead update, file edit)? Run `git log --oneline -1 --format='%ar'` and report. If idle >30min, explain why (waiting for user, blocked, out of work).
-- BLOCKERS: any open beads you're blocked on, what's blocking you, and what would unblock you
-- NEEDS: anything another member could help with (review, info, shared file access)
-- INFRASTRUCTURE: any active worktrees, in-flight refactors, running test suites, unpublished npm packages, or shared config changes
-
-After syncing, reply to chief with your summary.
+If you received multiple old messages, batch-acknowledge: "Ack N old messages" — don't respond individually.
 ```
 
 After responses come in:
@@ -106,3 +94,6 @@ bun tribe-retro            # Retrospective report
 - The tribe DB is at `.beads/tribe.db`
 - `/tribe whoami` reads from the MCP server instructions (check if "chief" or "member" appears)
 - After updating tribe.ts, use `tribe_reload` to pick up changes without restarting the session
+- **Chief runbook**: See [runbook.md](runbook.md) for operational procedures (health checks, version sync, troubleshooting)
+- **Message format**: Plain text only, 1-3 lines max. No markdown — it renders as ugly escaped text in MCP tool call display
+- **Naming**: Use "runbook" (not "playbook") for operational procedures
