@@ -171,4 +171,5 @@ docs/data/probes.data.ts ← DERIVED: computed at build time from content/
 | [workflows/newsletter.md](workflows/newsletter.md) | Monthly ecosystem digest |
 | [workflows/enrich.md](workflows/enrich.md) | AI content enrichment for terminfo.dev |
 | [workflows/census.md](workflows/census.md) | Census probe pipeline |
+| [workflows/content-review.md](workflows/content-review.md) | GPT Pro quality review (~$5-15, 10 dimensions) |
 | [workflows/audit.md](workflows/audit.md) | Content freshness and SEO health check |
