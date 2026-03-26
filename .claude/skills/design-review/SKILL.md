@@ -608,8 +608,29 @@ Compact reference for evaluating terminal UIs (the primary use case for km):
 
 ---
 
+## Workflows
+
+### Creating New Demos (Design-First)
+
+**Use [workflows/create.md](workflows/create.md)** when building or redesigning showcase demos.
+
+Instead of iterating on code (slow, expensive, can't visually verify), design at the ASCII text level first:
+1. Gather component catalog + constraints + brief
+2. Ask LLM for character-perfect ASCII mockup
+3. User reviews and iterates on TEXT (free, instant)
+4. Implement mechanically from approved mockup
+5. Verify with TTY diff
+6. Benchmark with Grok 4
+
+This workflow produced the btop-style dashboard redesign (3/10 → 6/10).
+
+### Reviewing Existing Screenshots
+
+Use the main SKILL.md workflow above (`/design-review <path.png>`).
+
 ## See Also
 
+- [workflows/create.md](workflows/create.md) — design-first screenshot creation workflow
 - [tui/design.md](../tui/design.md) — km TUI design system (colors, selection, icons)
 - [The Silvery Way](../../../vendor/silvery/docs/guide/the-silvery-way.md) — canonical component patterns
 - [Silvery Styling](../../../vendor/silvery/docs/guide/styling.md) — semantic theme tokens
