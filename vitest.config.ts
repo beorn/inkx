@@ -14,6 +14,7 @@ const alwaysExclude = [
 	"apps/km-tui/tests/pty-integration.slow.spec.ts",
 	// Playwright tests — run via `bun run test:showcase` in vendor/silvery, not vitest
 	"vendor/silvery/tests/web/**",
+	"vendor/silvery/tests/site-smoke.test.ts",
 ]
 
 // Performance note: each test file pays ~1.8s import overhead (React + silvery + zustand
