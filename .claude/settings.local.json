@@ -75,7 +75,7 @@
           {
             "type": "command",
             "command": "sqlite3 .beads/tribe.db \"UPDATE sessions SET claude_session_id = '${CLAUDE_SESSION_ID}' WHERE pid = (SELECT pid FROM sessions ORDER BY started_at DESC LIMIT 1)\" 2>/dev/null || true",
-            "timeout": 5
+            "timeout": 5000
           }
         ]
       }
