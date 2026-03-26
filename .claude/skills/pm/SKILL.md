@@ -89,7 +89,8 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | `km-vitestx` | Test framework package | `km-vitestx.mdspec` |
 | `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |
 | `km-storage` | Storage layer | `km-storage.split-query` |
-| `km-tools` | Claude Code skills & tooling (tools) | `km-tools.history` |
+| `km-tools` | km CLI tools & agent capabilities | `km-tools.bd-api` |
+| `km-bearly` | bearly: reusable Claude Code tools (@bearly/*) | `km-bearly.tribe-cli` |
 | `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
 | `km-review` | Code reviews (cross-cutting quality) | `km-review.feb-0203` |
 

@@ -51,6 +51,7 @@ Also report:
 - Your Claude session ID: run `echo $CLAUDE_SESSION_ID` in bash
 - Your /rename session name (if set)
 - Beads summary: created/updated/closed counts
+- IDLE TIME: how long since your last meaningful action (commit, bead update, file edit)? Run `git log --oneline -1 --format='%ar'` and report. If idle >30min, explain why (waiting for user, blocked, out of work).
 - BLOCKERS: any open beads you're blocked on, what's blocking you, and what would unblock you
 - NEEDS: anything another member could help with (review, info, shared file access)
 - INFRASTRUCTURE: any active worktrees, in-flight refactors, running test suites, unpublished npm packages, or shared config changes
@@ -75,8 +76,33 @@ Roll call: please report your current session name (/rename), what you're workin
 
 Collect responses and present as a table.
 
+## MCP Tools Available
+
+| Tool | Purpose |
+|------|---------|
+| `tribe_send` | Send message to a specific member |
+| `tribe_broadcast` | Message all members |
+| `tribe_sessions` | List active sessions |
+| `tribe_health` | Diagnostics: stale members, unread messages |
+| `tribe_history` | Recent message log |
+| `tribe_rename` | Rename this session |
+| `tribe_join` | Re-register name/role/domains (after compaction) |
+| `tribe_retro` | Generate retrospective report (metrics, timeline) |
+| `tribe_reload` | Hot-reload MCP server with latest code from disk |
+
+## CLI Tools (no MCP needed)
+
+```bash
+bun tribe status           # Active sessions
+bun tribe send <to> <msg>  # Send message
+bun tribe log              # Recent messages
+bun tribe health           # Diagnostics
+bun tribe-retro            # Retrospective report
+```
+
 ## Notes
 
 - If tribe tools are not available (MCP server not loaded), tell the user to run `claude-tribe` instead of `claude`
 - The tribe DB is at `.beads/tribe.db`
 - `/tribe whoami` reads from the MCP server instructions (check if "chief" or "member" appears)
+- After updating tribe.ts, use `tribe_reload` to pick up changes without restarting the session
