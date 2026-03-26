@@ -20,7 +20,33 @@ Monthly health check on content freshness, SEO performance, and quality.
   - Click-through rates (any titles worth A/B testing?)
 - [ ] Check sitemap is current
 - [ ] Verify canonical URLs are working
-- [ ] Check for broken links
+- [ ] Check for broken links (internal + external)
+
+### Linking Health
+
+Internal and external linking directly impacts SEO authority and user experience.
+
+**Internal links** (between your own pages):
+- [ ] Every entity mention auto-linked via glossary-links plugin + linkify-content.ts
+- [ ] New content files (terminals, features, standards) added to glossary map
+- [ ] Cross-links between related pages (terminal ↔ standard, feature ↔ baseline)
+- [ ] No orphan pages (every page reachable from sidebar + at least 2 internal links)
+
+**External links** (to authoritative sources):
+- [ ] Terminal pages link to official websites and GitHub repos
+- [ ] Standard pages link to specification documents (ECMA-48 PDF, VT manuals, xterm ctlseqs)
+- [ ] Framework pages link to official docs and repos
+- [ ] Glossary entries link to external references where appropriate
+- [ ] No `rel="nofollow"` on editorial links (only on user-generated or untrusted content)
+- [ ] All external links use `target="_blank" rel="noopener"`
+
+**Linking best practices**:
+- Every page should have 5+ internal links (to related terminals, features, standards, baselines)
+- Every substantive page should have 1-3 external links to authoritative sources
+- Anchor text should be descriptive (link "Kitty keyboard protocol" not "click here")
+- Auto-linking handles most internal links; manually add external links to editorial content
+- The glossary-links markdown-it plugin handles markdown content; linkify-content.ts handles Vue v-html params
+- Both systems load from the same content/*.json files — add terms there, not in code
 
 ### Content Quality
 
