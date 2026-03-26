@@ -90,7 +90,8 @@ Every bead belongs under a scope epic via `km-<scope>.<suffix>` dot notation. Sc
 | `km-infra` | Monorepo infra (cross-cutting: CI, benchmarks, packaging) | `km-infra.ci-fuzz` |
 | `km-storage` | Storage layer | `km-storage.split-query` |
 | `km-tools` | km CLI tools & agent capabilities | `km-tools.bd-api` |
-| `km-bearly` | bearly: reusable Claude Code tools (@bearly/*) | `km-bearly.tribe-cli` |
+| `km-bearly` | bearly: reusable Claude Code tools (@bearly/*) | `km-bearly.batch-refactor` |
+| `km-tribe` | Tribe coordination system | `km-tribe.testing` |
 | `km-markdown` | Markdown parser/serializer | `km-markdown.split-roundtrip` |
 | `km-review` | Code reviews (cross-cutting quality) | `km-review.feb-0203` |
 
