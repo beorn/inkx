@@ -452,18 +452,21 @@ Output a structured markdown report:
 
 Tested against dashboard + components screenshots at 2x resolution (2200x1400), scored against o3's findings as ground truth. All models received the same structured prompt.
 
-### Detection rates
+### Honest-prompt benchmark (same screenshot, same brutal prompt)
 
-| Reviewer | Detection | False Positives | Cost/Image | Speed | Actionability |
-|---|---|---|---|---|---|
-| **O3** (cloud) | ~95% | Medium-High | $0.02 | ~26s | High — specific locations |
-| **GPT-5.4** (cloud) | ~85% | Medium | $0.04 | ~37s | High — actionable fixes |
-| **GPT-5.4 Pro** (cloud) | ~80% | Medium | **$1.09** | ~255s | High — design-focused |
-| **Qwen2.5-VL 32B** (local) | ~55% | Medium | Free | ~85s | Medium — generic/vague |
-| **Claude Read** (2x) | ~40% | Low | Free | Instant | Medium |
-| **Claude Read** (1x) | ~10% | Low | Free | Instant | Low — thumbnails too small |
-| **TTY text scan** | ~100% overflow | None | Free | ~5s | Very High — exact locations |
-| **Qwen2.5-VL 7B** (local) | ~15% | Very High | Free | ~15s | **Non-viable** — analyzes data, not visuals |
+| Reviewer | Score | Cost | Speed | Use for |
+|---|---|---|---|---|
+| **GPT-5.4 Pro** | 3/10 | $1.85 | 284s | Final validation only |
+| **Grok 4** | **3/10** | **$0.03** | **45s** | **Primary iteration — matches Pro harshness** |
+| **GPT-5.4** | 4/10 | $0.05 | 48s | Second opinion |
+| **Claude Sonnet 4.6** | 4/10 | $0.03 | 42s | Fast alternative |
+| **GPT-5** | 4/10 | $0.03 | 47s | Alternative |
+| **O3 (honest)** | 5-6/10 | $0.01 | 20s | Quick check between edits |
+| **O3 (terminal-excuse)** | 9/10 | $0.02 | 40s | **NEVER USE — dishonest** |
+| **TTY text scan** | N/A | Free | ~5s | Structural overflow/alignment |
+| **Qwen2.5-VL 32B** (local) | 5/10 | Free | ~85s | Decent free option |
+| **Qwen2.5-VL 7B** (local) | N/A | Free | ~15s | Non-viable |
+| **Qwen3-VL 72B** (local) | N/A | Free | — | Returns null for images |
 
 ### Cost-effectiveness ranking
 
@@ -485,11 +488,23 @@ Research confirms LLM-based visual review is legitimate (Synthetic Heuristic Eva
 
 ### Recommended workflow: tiered review
 
-1. **TTY text scan** (every iteration): free, catches 100% of overflow/clipping — the bugs that make screenshots look "garbled"
-2. **Claude Read of 2x** (every iteration): free, catches ~40% — gross layout issues
-3. **Qwen 32B on 2x** (rapid iteration, optional): free, catches ~55% — decent for quick feedback when iterating fast
-4. **O3 on 2x** (after significant changes): $0.02, catches ~95% — the thorough review. Run this before considering work "done."
-5. **v0.dev** (high-stakes): manual upload at v0.dev/chat — best for final polish before shipping
+**CRITICAL: Use the HONEST prompt, never the terminal-excuse prompt.** The terminal-excuse prompt ("borders are box-drawing chars, alignment is cell precision only") inflates ratings by 3-4 points. A 9/10 with excuses = 3/10 honest. Always use: "Brutally honest. No excuses. Rate 1-10."
+
+1. **TTY text scan** (every edit): free, catches overflow/clipping structurally
+2. **O3 honest** ($0.01, 20s): fast iteration check after each change
+3. **Grok 4** ($0.03, 45s): milestone review — matches GPT-5.4 Pro harshness at 1/60th cost
+4. **GPT-5.4 Pro** ($1.85, 300s): final validation only when Grok says 8+
+5. **v0.dev** (manual): upload at v0.dev/chat for human-caliber design critique
+
+### Design iteration method (proven 2026-03-26)
+
+When a screenshot scores poorly, **don't just tweak — redesign from a reference**:
+1. Ask Claude Sonnet or GPT-5.4 Pro to design an ASCII mockup of the ideal layout
+2. Use the mockup as a character-perfect rendering target
+3. Implement toward the mockup, TTY-scanning for overflow after each change
+4. Review with Grok 4 at milestones
+
+This method produced the dashboard redesign (4-quadrant 3/10 → btop-style 6/10).
 
 ### Quick commands
 
