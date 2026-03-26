@@ -61,7 +61,9 @@
       "Skill(tribe)",
       "Skill(update-config)",
       "Skill(release)",
-      "Skill(project-audit)"
+      "Skill(project-audit)",
+      "mcp__tribe__tribe_reload",
+      "mcp__tribe__tribe_join"
     ],
     "deny": [],
     "ask": []
