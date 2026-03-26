@@ -1,7 +1,10 @@
 7 vendor/bearly/plugins/github/server.ts
+178 vendor/bearly/plugins/tribe/server.ts
 7 vendor/bearly/tools/github-channel.ts
+3 vendor/silvery/docs/public/screenshots/gen-components-mockup.ts
+1 vendor/silvery/docs/public/screenshots/gen-dashboard-mockup.ts
 1 vendor/silvery/examples/apps/components.tsx
-22 vendor/silvery/examples/layout/dashboard.tsx
+36 vendor/silvery/examples/layout/dashboard.tsx
 2 vendor/terminfo.dev/docs/compare/[id].paths.ts
 1 vendor/terminfo.dev/docs/data/glossary.data.ts
 2 vendor/terminfo.dev/packages/cli/entry.ts
