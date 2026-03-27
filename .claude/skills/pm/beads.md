@@ -8,12 +8,16 @@ description: Full bd CLI reference
 
 Full reference for the standalone `bd` CLI (v0.50+).
 
-## Important: Two bd Commands
+## Important: Two Separate Implementations
 
-- `bd` (standalone, installed via nix) - **Use this!** Has `--type`, `--description`, `--parent`, etc.
-- `bun km bd` (CLI wrapper) - Different flags, limited options
+There are two `bd` commands with **different data backends**:
 
-Always prefer standalone `bd` for creating and updating beads.
+- **`bd`** (standalone, installed via nix) — stores data in `.beads/` Dolt database. Full-featured: 50+ subcommands, `--description`, `--parent`, `--claim`, Dolt sync, etc. **Use this for all beads operations.**
+- **`km bd`** (km CLI subcommand) — reimplements beads on top of km's markdown/SQLite data model (`@km/beads` package). Fewer features (~15 subcommands), different flags. Useful for querying km's own task tree but lags behind `bd` in capabilities.
+
+These are NOT wrappers of each other. `km bd` queries km's repo node tree; `bd` queries the `.beads/` Dolt database. They share concepts (issues, dependencies, priorities) but have independent implementations and data stores.
+
+Always prefer standalone `bd` for creating and updating beads. Use `km bd` only for km-specific operations (querying the markdown task tree, board filtering).
 
 ## Data Model
 
