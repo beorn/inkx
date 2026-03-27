@@ -417,6 +417,17 @@ item.link = (content: string, linkTo: string): KNode[] => {
   return nodes
 }
 
+/** Standard 1-column board with 3 cards — the most common test fixture */
+item.simpleBoard = (): KNode[] => item("board", item("col1", item("1a"), item("1b"), item("1c")))
+
+/** 3-column board with 1 card each — for horizontal navigation tests */
+item.multiColBoard = (): KNode[] =>
+  item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a")))
+
+/** Board with nested folder — for zoom/fold tests */
+item.nestedBoard = (): KNode[] =>
+  item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling")))
+
 /**
  * Standard board fixture for common tests
  */
@@ -681,6 +692,17 @@ function createFluentBoardApi(ctx: {
       if (!dispatchCommand) throw new Error("command() requires testEnv() — not available in renderBoard()")
       dispatchCommand(commandId)
       return board
+    },
+    /** Navigate cursor to a specific node by pressing cursor_down repeatedly (max 50 steps).
+     *  Throws if target not reached. */
+    navigateTo: (target: string) => {
+      if (!dispatchCommand) throw new Error("navigateTo() requires testEnv() — not available in renderBoard()")
+      for (let i = 0; i < 50; i++) {
+        const loc = result.locator(`#${target}[data-cursor]`)
+        if (loc.count() > 0) return board
+        dispatchCommand("cursor_down")
+      }
+      throw new Error(`navigateTo: could not reach "${target}" in 50 steps`)
     },
     /** Simulate a left mouse click at screen coordinates (x, y). Chainable. */
     click: (x: number, y: number, opts?: { ctrl?: boolean }) => {
