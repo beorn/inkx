@@ -70,9 +70,9 @@ Use shared fixture factories instead of repeating common `item()` trees:
 
 ```typescript
 // Use shared fixtures instead of repeating common item() trees:
-const { board } = testEnv(item.simpleBoard)     // 1 col, 3 cards (1a, 1b, 1c)
-const { board } = testEnv(item.multiColBoard)    // 3 cols, 1 card each
-const { board } = testEnv(item.nestedBoard)      // 1 col, folder + sibling
+const { board } = testEnv(item.simpleBoard) // 1 col, 3 cards (1a, 1b, 1c)
+const { board } = testEnv(item.multiColBoard) // 3 cols, 1 card each
+const { board } = testEnv(item.nestedBoard) // 1 col, folder + sibling
 ```
 
 ### `navigateTo` Helper
@@ -80,7 +80,7 @@ const { board } = testEnv(item.nestedBoard)      // 1 col, folder + sibling
 Navigate directly to a card by name instead of chaining cursor commands:
 
 ```typescript
-board.navigateTo("task-name")  // instead of repeated board.command("cursor_down")
+board.navigateTo("task-name") // instead of repeated board.command("cursor_down")
 ```
 
 ### Prefer `board.app()` for New Tests
@@ -90,7 +90,7 @@ The `board.app()` DSL (from `helpers/board-app.ts`) is the preferred way to set 
 ```typescript
 const app = board.app(["Todo > Task 1", "Done > Task 2"])
 app.press("j")
-app.columns()  // spatial queries
+app.columns() // spatial queries
 ```
 
 ### Journey Tests Over Single-Step Tests
