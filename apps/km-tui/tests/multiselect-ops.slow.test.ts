@@ -131,22 +131,23 @@ describe("Multi-select delete", () => {
 
     expect(childIds(repo, "col1")).toEqual(["A", "C"])
   })
-})
 
-  test("delete card with only empty children skips confirmation", () => {
-    const { board, repo } = testEnv(() =>
+  test("delete card with only empty children reports zero childCount", () => {
+    const { board, store, repo } = testEnv(() =>
       item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
 
     // Clear content from children to make them empty
-    repo.updateNode("child1", { content: null })
-    repo.updateNode("child2", { content: null })
+    repo.updateNode("child1", { content: undefined })
+    repo.updateNode("child2", { content: undefined })
 
-    // Cursor starts on parent. Press Backspace — should delete immediately (no confirmation).
+    // Cursor starts on parent. Press Backspace — triggers confirmation (parent has metadata)
+    // but childCount should be 0 since both children are empty.
     board.press("Backspace")
 
-    // parent and its empty children are gone
-    expect(childIds(repo, "col1")).toEqual(["B"])
+    const dc = store.getState().ui.deleteConfirm
+    expect(dc).toBeTruthy()
+    expect(dc!.childCount).toBe(0)
   })
 
   test("delete card counts only non-empty children in confirmation", () => {
@@ -158,8 +159,8 @@ describe("Multi-select delete", () => {
     )
 
     // Make 2 of 4 children empty
-    repo.updateNode("empty1", { content: null })
-    repo.updateNode("empty2", { content: null })
+    repo.updateNode("empty1", { content: undefined })
+    repo.updateNode("empty2", { content: undefined })
 
     // Cursor starts on parent. Press Backspace — should show confirmation with childCount=2.
     board.press("Backspace")
