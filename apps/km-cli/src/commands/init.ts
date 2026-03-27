@@ -21,7 +21,7 @@ const term = createTerm(process)
 import { steps } from "@silvery/ag-react/ui/progress"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
-import { SyncManager } from "@km/storage"
+import { SyncManager, findKmRootFromPath } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -51,7 +51,7 @@ export const initCommand = new Command("init")
     }
 
     // Check if there's a .km/ in an ancestor directory
-    const ancestorKm = findAncestorKmDir(targetDir)
+    const ancestorKm = findKmRootFromPath(dirname(targetDir))
     if (ancestorKm && !options.force) {
       console.log(term.yellow(`Found existing km repo at ${ancestorKm}`))
       console.log(term.yellow(`Creating a nested repo may cause conflicts. Consider using the parent repo instead.`))
@@ -131,25 +131,6 @@ function resolveTargetDir(pathArg: string | undefined): string {
     console.log(term.dim(`Created directory: ${dir}`))
   }
   return dir
-}
-
-/**
- * Search for .km/ in ancestors of the given directory
- * Returns the path to the ancestor .km/ if found, undefined otherwise
- */
-function findAncestorKmDir(startDir: string): string | undefined {
-  let current = dirname(startDir)
-
-  while (current !== dirname(current)) {
-    // Stop at filesystem root
-    const kmPath = join(current, ".km")
-    if (existsSync(kmPath)) {
-      return kmPath
-    }
-    current = dirname(current)
-  }
-
-  return undefined
 }
 
 /**

@@ -948,6 +948,7 @@
 {"created_at":"2026-03-11T00:31:40Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.ai-demo","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T14:31:05Z","created_by":"claude:73d7a332","depends_on_id":"km-silvery","issue_id":"km-silvery.aichat-incr","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:40Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.align-self-auto","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-26T21:38:07Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.ansi-extract","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:14:17Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.ansi-merge","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:42Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.ansi-passthrough","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T23:43:05Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.ansi-rename","metadata":"{}","type":"parent-child"}
@@ -977,9 +978,11 @@
 {"created_at":"2026-03-13T07:48:01Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.clear-container-dirty","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:39Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.clear-region-clip","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T20:17:14Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.cli-commander","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-26T20:34:05Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.cli-ecosystem","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T12:23:51Z","created_by":"claude:4a5961be","depends_on_id":"km-silvery","issue_id":"km-silvery.click-to-position","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T00:32:09Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.collab-terminals","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:43Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.color-level-unused","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-26T22:45:37Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tea","issue_id":"km-silvery.commander-fs-types","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T11:27:44Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.compat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T11:28:28Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery.split","issue_id":"km-silvery.compat","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-09T11:11:03Z","created_by":"claude:55df8ef1","depends_on_id":"km-w297c","issue_id":"km-silvery.compat","metadata":"{}","type":"blocks"}
@@ -1562,6 +1565,7 @@
 {"created_at":"2026-03-26T10:11:35Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.poll-mutex","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:11:37Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.retention","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:11:35Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.seq-cursor","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-26T22:24:45Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.startup-version-check","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:06:05Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.testing","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:06:21Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.v1-epic","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-silvery-legacy","issue_id":"km-tskgp","metadata":"{}","type":"parent-child"}

@@ -319,7 +319,7 @@
     },
     "vendor/flexily": {
       "name": "flexily",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "devDependencies": {
         "typescript": "^5.9.3",
         "vitepress": "^1.6.3",
@@ -329,7 +329,7 @@
     },
     "vendor/loggily": {
       "name": "loggily",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "vitepress": "^1.6.4",
@@ -338,7 +338,7 @@
     },
     "vendor/mdtest": {
       "name": "mdspec",
-      "version": "0.3.3",
+      "version": "0.3.4",
       "bin": {
         "mdspec": "./src/index.ts",
       },
@@ -370,7 +370,7 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.6.0",
+      "version": "0.7.0",
       "dependencies": {
         "@silvery/commander": "workspace:*",
         "chalk": "^5.6.2",
@@ -427,10 +427,18 @@
       "dependencies": {
         "@silvery/ag": "workspace:*",
         "@silvery/ag-react": "workspace:*",
+        "@silvery/ansi": "workspace:*",
         "@silvery/create": "workspace:*",
         "@silvery/test": "workspace:*",
         "@silvery/theme": "workspace:*",
         "flexily": "github:beorn/flexily",
+      },
+    },
+    "vendor/silvery/packages/ansi": {
+      "name": "@silvery/ansi",
+      "version": "0.1.0",
+      "dependencies": {
+        "string-width": "^8.2.0",
       },
     },
     "vendor/silvery/packages/commander": {
@@ -438,10 +446,12 @@
       "version": "0.1.0",
       "peerDependencies": {
         "@commander-js/extra-typings": ">=12.0.0",
+        "@silvery/ansi": ">=0.1.0",
         "commander": ">=12.0.0",
       },
       "optionalPeers": [
         "@commander-js/extra-typings",
+        "@silvery/ansi",
         "commander",
       ],
     },
@@ -546,7 +556,7 @@
     },
     "vendor/termless": {
       "name": "@termless/core",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "devDependencies": {
         "@termless/alacritty": "workspace:*",
         "@termless/kitty": "workspace:*",
@@ -728,6 +738,7 @@
     "@silvery/ag": "vendor/silvery/packages/ag",
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
+    "@silvery/ansi": "vendor/silvery/packages/ansi",
     "@silvery/commander": "vendor/silvery/packages/commander",
     "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
@@ -1329,6 +1340,8 @@
     "@silvery/ag-react": ["@silvery/ag-react@workspace:vendor/silvery/packages/ag-react"],
 
     "@silvery/ag-term": ["@silvery/ag-term@workspace:vendor/silvery/packages/ag-term"],
+
+    "@silvery/ansi": ["@silvery/ansi@workspace:vendor/silvery/packages/ansi"],
 
     "@silvery/commander": ["@silvery/commander@workspace:vendor/silvery/packages/commander"],
 

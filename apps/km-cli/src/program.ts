@@ -13,6 +13,7 @@ import { colorizeHelp } from "@silvery/commander"
 import { existsSync, statSync } from "fs"
 import { createTerm } from "@silvery/ag-react"
 import { dirname, join, resolve } from "path"
+import { findKmRootFromPath } from "@km/storage"
 
 const term = createTerm(process)
 
@@ -220,13 +221,20 @@ Verbosity:
       rootExplicitlySet = false
     }
 
+    // Walk up parent directories to find .km/ (like git finds .git/)
+    const kmDir = join(rootPath, ".km")
+    if (!existsSync(kmDir)) {
+      const found = findKmRootFromPath(rootPath)
+      if (found) {
+        rootPath = dirname(found)
+      }
+    }
+
     resolvedRootPath = rootPath
 
     // Warn if using cwd in memory mode (no .km/ found, no explicit root)
     // Skip warning if we auto-detected from a path (user knows what they're doing)
-    // Check for .km/ directly without loading repo (fast)
-    const kmDir = join(rootPath, ".km")
-    const isMemoryMode = !existsSync(kmDir)
+    const isMemoryMode = !existsSync(join(rootPath, ".km"))
     if (!rootExplicitlySet && isMemoryMode && !pathArg) {
       console.error(term.yellow(`Using current directory: ${rootPath}`))
       console.error(term.yellow(`Hint: Use --repo <path> or set KM_ROOT, or run 'km init' for disk mode\n`))
