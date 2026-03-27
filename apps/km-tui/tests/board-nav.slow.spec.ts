@@ -12,7 +12,7 @@ describe("Cursoring", () => {
   // Default view mode tests (cards view)
   describe("Cards View", () => {
     test("vertical (j/k): cards → column → board → boundary", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+      const { board } = testEnv(item.simpleBoard)
       // j down through cards
       board.expect("#1a[data-cursor]").toExist()
       board.command("cursor_down")
@@ -50,9 +50,7 @@ describe("Cursoring", () => {
     })
 
     test("horizontal (h/l): columns at card level and header level → boundary", () => {
-      const { board } = testEnv(() =>
-        item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      )
+      const { board } = testEnv(item.multiColBoard)
 
       // --- Card level ---
       // l right through columns
@@ -111,7 +109,7 @@ describe("Cursoring", () => {
     })
 
     test("g/G: jump to first/last in column", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+      const { board } = testEnv(item.simpleBoard)
       // Start at middle
       board.command("cursor_down")
       board.expect("#1b[data-cursor]").toExist()
@@ -289,7 +287,7 @@ describe("Cursoring", () => {
   // View mode variations
   describe("List View", () => {
     test("vertical (j/k) navigation and g/G jump to first/last", () => {
-      const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+      const { board } = testEnv(item.simpleBoard, {
         viewMode: "list",
       })
 
@@ -344,10 +342,7 @@ describe("Cursoring", () => {
     })
 
     test("horizontal (h/l): moves between columns", () => {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-        { viewMode: "list" },
-      )
+      const { board } = testEnv(item.multiColBoard, { viewMode: "list" })
 
       // l right through columns (same as cards view)
       board.expect("#1a[data-cursor]").toExist()
@@ -410,10 +405,7 @@ describe("Cursoring", () => {
     })
 
     test("horizontal (h/l): switch between tabs", () => {
-      const { board } = testEnv(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-        { viewMode: "tabs" },
-      )
+      const { board } = testEnv(item.multiColBoard, { viewMode: "tabs" })
       // Start in col1 tab
       board.expect("#1a[data-cursor]").toExist()
 
@@ -556,7 +548,7 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("k stops at top boundary, j stops at bottom boundary", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
 
     // --- k boundary: move up through column header to board title ---
     board.expect("#1a[data-cursor]").toExist()
@@ -590,9 +582,7 @@ describe("Boundaries and Edge Cases", () => {
   })
 
   test("h stops at left boundary, l stops at right boundary", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
 
     // --- h boundary: navigate right then back to left edge ---
     board.expect("#1a[data-cursor]").toExist()

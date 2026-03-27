@@ -162,7 +162,7 @@ describe("Visual navigation integration: card position registration", () => {
   test("cards in single column register with increasing Y positions", () => {
     const registry = createGridNavigator()
 
-    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
+    const nodes = item.simpleBoard()
     const repo = createFakeRepo({ nodes })
 
     const app = renderBoardWithStore(repo, "board", {

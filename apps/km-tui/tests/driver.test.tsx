@@ -491,7 +491,7 @@ describe("createBoardDriver", () => {
   })
 
   test("press('j') navigates cursor down", async () => {
-    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
+    const nodes = item.simpleBoard()
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -626,7 +626,7 @@ describe("createBoardDriver", () => {
   })
 
   test("store state updates after navigation", async () => {
-    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
+    const nodes = item.simpleBoard()
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 

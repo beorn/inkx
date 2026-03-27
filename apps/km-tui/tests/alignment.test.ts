@@ -143,7 +143,7 @@ describe("alignment: single column 80x24", () => {
 describe("alignment: 3 cards in single column 80x24", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
-    const env = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+    const env = testEnv(item.simpleBoard, {
       columns: 80,
       rows: 24,
     })
@@ -199,7 +199,7 @@ describe("alignment: 3 cards in single column 80x24", () => {
 
 describe("alignment: card vertical stacking", () => {
   test("card vertical stacking has no overlap", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+    const { board } = testEnv(item.simpleBoard, {
       columns: 80,
       rows: 30,
     })
@@ -297,10 +297,7 @@ describe("alignment: 2 columns WIDE", () => {
 describe("alignment: 3 columns WIDE", () => {
   let board: ReturnType<typeof testEnv>["board"]
   beforeAll(() => {
-    const env = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      WIDE,
-    )
+    const env = testEnv(item.multiColBoard, WIDE)
     board = env.board
   })
 
@@ -596,10 +593,7 @@ describe("alignment: cross-cutting", () => {
 
 describe("visual invariant assertions", () => {
   test("expectColumnsAligned verifies column order and non-overlap", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      WIDE,
-    )
+    const { board } = testEnv(item.multiColBoard, WIDE)
     board.expectColumnsAligned(["col1", "col2", "col3"])
   })
 
@@ -634,7 +628,7 @@ describe("visual invariant assertions", () => {
   })
 
   test("expectAdjacentBorders verifies neighboring borders after navigation", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
     board.command("cursor_down").expectAdjacentBorders("1b")
   })
 })

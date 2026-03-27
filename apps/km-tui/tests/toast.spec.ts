@@ -148,7 +148,7 @@ describe("Toast rendering", () => {
     // bell state change that forces WorkspaceChrome to re-render, picking up
     // the toast from the queue. (Multi-column cursor moves are silent mutations
     // that don't trigger Zustand subscriber notifications.)
-    const { board, toastQueue } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+    const { board, toastQueue } = testEnv(item.simpleBoard, {
       incremental: false,
     })
 

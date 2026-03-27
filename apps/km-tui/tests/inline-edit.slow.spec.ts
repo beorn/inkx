@@ -112,7 +112,7 @@ describe("Inline Editing", () => {
   })
 
   test("inline edit then navigate works (Enter → Escape → j/k)", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
 
     // Edit first card then cancel
     board.press("Enter")
@@ -733,7 +733,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling is inserted AFTER current card, not before", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
 
     // Cursor on 1a, Enter → edit, Enter → save + new sibling
     board.press("Enter")
@@ -767,7 +767,7 @@ describe("Outliner Enter — save + new sibling", () => {
   })
 
   test("new sibling after MIDDLE card goes between neighbors", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
 
     // Navigate to middle card (1b)
     board.command("cursor_down")

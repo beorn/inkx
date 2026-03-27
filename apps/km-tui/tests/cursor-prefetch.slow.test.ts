@@ -81,10 +81,7 @@ describe("cursor prefetch on horizontal navigation", () => {
   })
 
   test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 20 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 20 })
 
     board.expect("#1a[data-cursor]").toExist()
 
@@ -259,10 +256,7 @@ describe("rapid repo.touch() coalescing", () => {
   })
 
   test("touch() during horizontal navigation doesn't cause rendering issues", () => {
-    const { board, repo } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 20 },
-    )
+    const { board, repo } = testEnv(item.multiColBoard, { columns: 120, rows: 20 })
 
     // Navigate right
     board.command("cursor_right")

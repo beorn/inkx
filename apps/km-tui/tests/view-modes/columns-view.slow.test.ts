@@ -52,7 +52,7 @@ describe("Columns View", () => {
     })
 
     test("column header hides count without WIP limit", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+      const { board } = columnsBoard(item.simpleBoard)
       const output = board.screenshot()
       expect(output).toContain("col1")
       // Count is hidden when no WIP limit — +N overflow indicator is sufficient
@@ -70,10 +70,7 @@ describe("Columns View", () => {
     })
 
     test("displays multiple columns side by side", () => {
-      const { board } = columnsBoard(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-        { columns: 120 },
-      )
+      const { board } = columnsBoard(item.multiColBoard, { columns: 120 })
       board.expect("#col1").toExist()
       board.expect("#col2").toExist()
       board.expect("#col3").toExist()
@@ -94,7 +91,7 @@ describe("Columns View", () => {
 
   describe("Navigation", () => {
     test("vertical (j/k): navigate through cards in column", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+      const { board } = columnsBoard(item.simpleBoard)
       board.expect("#1a[data-cursor]").toExist()
 
       // j down through cards
@@ -111,10 +108,7 @@ describe("Columns View", () => {
     })
 
     test("horizontal (h/l): navigate between columns", () => {
-      const { board } = columnsBoard(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-        { columns: 120 },
-      )
+      const { board } = columnsBoard(item.multiColBoard, { columns: 120 })
       board.expect("#1a[data-cursor]").toExist()
 
       // l right through columns
@@ -131,7 +125,7 @@ describe("Columns View", () => {
     })
 
     test("g/G: jump to first/last card in column", () => {
-      const { board } = columnsBoard(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+      const { board } = columnsBoard(item.simpleBoard)
       board.command("cursor_down")
       board.expect("#1b[data-cursor]").toExist()
 
@@ -234,10 +228,7 @@ describe("Columns View", () => {
     })
 
     test("preserves X position when moving up/down", () => {
-      const { board } = columnsBoard(
-        () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-        { columns: 120 },
-      )
+      const { board } = columnsBoard(item.multiColBoard, { columns: 120 })
       board.command("cursor_right")
       board.command("cursor_right")
       const col3Box = board.q("#3a").boundingBox()

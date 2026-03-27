@@ -181,9 +181,7 @@ describe("J/K block navigation", () => {
   // The old drill-in/drill-out behavior was removed in favor of unified navigation.
 
   test("J moves to next sibling card (same as j)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
-    )
+    const { board } = testEnv(item.nestedBoard)
 
     // Cursor starts on Parent
     board.expect("#Parent[data-cursor]").toExist()
@@ -194,9 +192,7 @@ describe("J/K block navigation", () => {
   })
 
   test("K moves to previous sibling card (same as k)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
-    )
+    const { board } = testEnv(item.nestedBoard)
 
     // Move to sibling first
     board.command("cursor_down")
@@ -230,9 +226,7 @@ describe("J/K block navigation", () => {
   })
 
   test("J on folded card moves to next sibling (does not auto-unfold)", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
-    )
+    const { board } = testEnv(item.nestedBoard)
 
     // Fold the parent
     board.command("fold_node")
@@ -245,9 +239,7 @@ describe("J/K block navigation", () => {
   })
 
   test("J then K round-trip between sibling cards", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
-    )
+    const { board } = testEnv(item.nestedBoard)
 
     board.expect("#Parent[data-cursor]").toExist()
 

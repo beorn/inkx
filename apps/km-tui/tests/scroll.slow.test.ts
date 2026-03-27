@@ -580,10 +580,7 @@ describe("column shift with collapsed columns", () => {
   })
 
   test("shift column right past collapsed column — cursor follows", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 24 })
 
     // Start on col1 card, go to header, collapse col2 from col1 side is complex.
     // Instead: go to col1 header first
@@ -604,10 +601,7 @@ describe("column shift with collapsed columns", () => {
   })
 
   test("shift non-collapsed column when some columns are collapsed", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 24 })
 
     // Navigate to col1 header and collapse it
     board.press("k")

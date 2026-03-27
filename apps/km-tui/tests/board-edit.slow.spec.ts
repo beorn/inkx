@@ -77,7 +77,7 @@ describe("Edit Operations", () => {
   })
 
   test("opt+j then opt+k round-trips card back to original position", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
     board.expect("#1a[data-cursor]").toExist()
 
     // Shift down then back up — should return to original position
@@ -114,7 +114,7 @@ describe("Edit Operations", () => {
   })
 
   test("opt+k then opt+j round-trips card back to original position", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
     // Move to 1b
     board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
@@ -135,7 +135,7 @@ describe("Edit Operations", () => {
   test("opt+j works when siblings have duplicate parent_idx (all zero)", () => {
     // Simulate the condition where nodes have parent_idx=0 (DB default)
     // This happens when nodes are created without explicit sort order
-    const nodes = item("board", item("col1", item("1a"), item("1b"), item("1c")))
+    const nodes = item.simpleBoard()
     // Force all cards to have parent_idx=0 (DB default scenario)
     for (const n of nodes) {
       if (n.type === "p" && n.item) {
@@ -211,9 +211,7 @@ describe("Edit Operations", () => {
   })
 
   test("opt+l at column header shifts column right", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     // Navigate to column header level
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
@@ -229,9 +227,7 @@ describe("Edit Operations", () => {
   })
 
   test("opt+h at column header shifts column left", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     // Navigate to col2 header
     board.command("cursor_right")
     board.command("cursor_up")
@@ -263,7 +259,7 @@ describe("Edit Operations", () => {
   })
 
   test("opt+l at column header works when columns have duplicate parent_idx", () => {
-    const nodes = item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a")))
+    const nodes = item.multiColBoard()
     // Force all columns to have parent_idx=0 (default scenario)
     for (const n of nodes) {
       if (n.type === "h") {
@@ -347,7 +343,7 @@ describe("Edit Operations", () => {
   })
 
   test("Backspace deletes the selected node", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("Backspace")

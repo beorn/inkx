@@ -12,9 +12,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 
 describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   test("opt+l shifts column right — cursor stays on same column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     // Navigate to col1 header
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
@@ -31,9 +29,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("opt+h shifts column left — cursor stays on same column header", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     // Navigate to col2 header
     board.command("cursor_right")
     board.command("cursor_up")
@@ -51,9 +47,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("opt+l shifts column right — pressing l from shifted column moves to next column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     // Navigate to col1 header
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
@@ -68,9 +62,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("opt+h shifts column left — pressing h from shifted column moves to previous column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     // Navigate to col3 header
     board.command("cursor_right").command("cursor_right").command("cursor_up")
     board.expect("#col3[data-cursor]").toExist()
@@ -133,10 +125,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("opt+l visually reorders columns — all 3 columns visible", () => {
     // Use wider terminal to ensure all columns fit without scrolling
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 24 })
     // Navigate to col1 header and shift right
     board.command("cursor_up")
     board.press("opt+l")
@@ -154,10 +143,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
 
   test("opt+h visually reorders columns — all 3 columns visible", () => {
     // Use wider terminal to ensure all columns fit without scrolling
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 24 })
     // Navigate to col2 header and shift left
     board.command("cursor_right").command("cursor_up")
     board.press("opt+h")
@@ -218,10 +204,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("shift right then left returns column to original position", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 160, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 160, rows: 24 })
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
@@ -241,10 +224,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   })
 
   test("shift right twice then left once — column ends in middle", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 160, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 160, rows: 24 })
     board.command("cursor_up")
 
     board.press("opt+l") // col1: pos 0 → 1
@@ -265,10 +245,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
   test("shift column with narrow viewport scrolls cursor into view", () => {
     // 80-wide viewport with 3 columns: maxCols = floor(80/35) = 2
     // So only 2 columns visible at once — scroll is active
-    const { board } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-      { columns: 80, rows: 24 },
-    )
+    const { board } = testEnv(item.multiColBoard, { columns: 80, rows: 24 })
     // Navigate to col1 header
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()

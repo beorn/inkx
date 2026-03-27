@@ -34,7 +34,7 @@ describe("Keyboard Navigation: j/k (vertical)", () => {
   })
 
   test("k moves cursor up to previous card", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    const { board } = testEnv(item.simpleBoard)
 
     // Navigate down first
     board.command("cursor_down").command("cursor_down")
@@ -121,9 +121,7 @@ describe("Keyboard Navigation: h/l (horizontal)", () => {
   })
 
   test("h moves cursor to previous column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
 
     // Navigate to third column
     board.command("cursor_right").command("cursor_right")
@@ -293,9 +291,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
   })
 
   test("navigation across multiple columns works correctly", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
 
     // Start at col1
     board.expect("#1a[data-cursor]").toExist()

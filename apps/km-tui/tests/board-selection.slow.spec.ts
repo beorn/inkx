@@ -119,9 +119,7 @@ describe("Selection", () => {
   })
 
   test("L then L extends to third column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("shift+ArrowRight")
@@ -132,9 +130,7 @@ describe("Selection", () => {
   })
 
   test("L then H shrinks column selection", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
-    )
+    const { board } = testEnv(item.multiColBoard)
     board.expect("#1a[data-cursor]").toExist()
 
     board.press("shift+ArrowRight") // cols 0-1
