@@ -446,14 +446,14 @@
       "name": "@silvery/commander",
       "version": "0.6.0",
       "dependencies": {
+        "@silvery/ansi": ">=0.1.0",
+        "@silvery/style": ">=0.1.0",
         "commander": ">=12.0.0",
       },
       "peerDependencies": {
-        "@silvery/ansi": ">=0.1.0",
         "zod": ">=3.0.0",
       },
       "optionalPeers": [
-        "@silvery/ansi",
         "zod",
       ],
     },

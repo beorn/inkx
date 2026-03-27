@@ -10,6 +10,6 @@
 1 vendor/silvery/packages/ag-react/src/ui/cli/multi-progress.ts
 2 vendor/silvery/packages/ag-react/src/ui/wrappers/with-text-input.ts
 18 vendor/silvery/tests/compat/chalk/chalk.test.ts
-2 vendor/silvery/tests/compat/chalk/instance.test.ts
-19 vendor/silvery/tests/compat/chalk/visible.test.ts
+3 vendor/silvery/tests/compat/chalk/instance.test.ts
+21 vendor/silvery/tests/compat/chalk/visible.test.ts
 2 vendor/termless/sites/terminfo.dev/src/cli.ts
