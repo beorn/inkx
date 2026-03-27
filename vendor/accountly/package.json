@@ -40,7 +40,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@silvery/commander": "^0.1.0",
+    "@silvery/commander": "^0.6.0",
     "commander": "^14.0.0",
     "picocolors": "^1.1.1"
   },
