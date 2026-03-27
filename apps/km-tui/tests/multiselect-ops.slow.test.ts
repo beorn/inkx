@@ -133,6 +133,43 @@ describe("Multi-select delete", () => {
   })
 })
 
+  test("delete card with only empty children skips confirmation", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
+    )
+
+    // Clear content from children to make them empty
+    repo.updateNode("child1", { content: null })
+    repo.updateNode("child2", { content: null })
+
+    // Cursor starts on parent. Press Backspace — should delete immediately (no confirmation).
+    board.press("Backspace")
+
+    // parent and its empty children are gone
+    expect(childIds(repo, "col1")).toEqual(["B"])
+  })
+
+  test("delete card counts only non-empty children in confirmation", () => {
+    const { board, store, repo } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("parent", item("child1"), item("empty1"), item("empty2"), item("child2")), item("B")),
+      ),
+    )
+
+    // Make 2 of 4 children empty
+    repo.updateNode("empty1", { content: null })
+    repo.updateNode("empty2", { content: null })
+
+    // Cursor starts on parent. Press Backspace — should show confirmation with childCount=2.
+    board.press("Backspace")
+
+    const dc = store.getState().ui.deleteConfirm
+    expect(dc).toBeTruthy()
+    expect(dc!.childCount).toBe(2)
+  })
+})
+
 // =============================================================================
 // Batch Status Toggle
 // =============================================================================
