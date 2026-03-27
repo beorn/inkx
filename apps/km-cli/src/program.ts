@@ -9,7 +9,6 @@
 import "./debug-log.ts"
 
 import { Command, type OptionValues } from "@silvery/commander"
-import { colorizeHelp } from "@silvery/commander"
 import { existsSync, statSync } from "fs"
 import { createTerm } from "@silvery/ag-react"
 import { dirname, join, resolve } from "path"
@@ -299,8 +298,6 @@ Verbosity:
       program.outputHelp()
     }
   })
-
-  colorizeHelp(program)
 
   return program
 }
