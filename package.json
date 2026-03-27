@@ -31,6 +31,7 @@
     "@silvery/theme": "$@silvery/theme",
     "@silvery/test": "$@silvery/test",
     "@silvery/commander": "$@silvery/commander",
+    "@commander-js/extra-typings": "$@silvery/commander",
     "flexily": "$flexily",
     "loggily": "$loggily",
     "@termless/core": "$@termless/core",
