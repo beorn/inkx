@@ -593,9 +593,31 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
  */
 export function handleShiftToExtreme(ctx: ActionCtx, direction: "top" | "bottom"): ActionResult {
   const col = ctx.columns[ctx.colIndex]
-  const card = ctx.card
-  if (!col || !card) return boundary(direction)
+  if (!col) return boundary(direction)
 
+  const card = ctx.card
+
+  // Column-level: move column to first/last position
+  if (!card) {
+    if (!ctx.rootId) return boundary(direction)
+    const columns = ctx.columns.filter((c) => !c.isVirtual)
+    if (columns.length <= 1) return ok()
+    const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
+    if (col.isVirtual) return boundary(direction)
+    const targetIndex = direction === "top" ? 0 : columns.length - 1
+    if (colIndex === targetIndex) return ok()
+
+    const targetCol = columns[targetIndex]
+    if (!targetCol) return boundary(direction)
+
+    ctx.undoHandle.setCursor(ctx.cursorNodeId)
+    const newSortOrder = direction === "top" ? targetCol.node.parent_idx - 1 : targetCol.node.parent_idx + 1
+    ctx.repo.moveNode(col.node.id, ctx.rootId, newSortOrder)
+    ctx.dispatchBoard({ type: "SELECT", nodeId: col.node.id })
+    return ok()
+  }
+
+  // Card-level: move card to first/last position within column
   const cards = col.cardNodes
   if (cards.length <= 1) return ok()
 
