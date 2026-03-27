@@ -6,7 +6,7 @@
  */
 
 import { join } from "path"
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createLogger, isOutline } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"

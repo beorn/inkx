@@ -5,7 +5,7 @@
  * Both commands share the same DSL, differing only in defaults.
  */
 
-import type { Command } from "@commander-js/extra-typings"
+import type { Command } from "@silvery/commander"
 
 /** Common CLI flags that both km list and km bd list accept */
 export interface SharedQueryFlags {

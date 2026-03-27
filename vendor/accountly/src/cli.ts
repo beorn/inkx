@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { readSync } from "node:fs"
 import { Command } from "commander"
-import { colorizeHelp } from "silvery/ui/cli"
+import { colorizeHelp } from "@silvery/commander"
 import pc from "picocolors"
 import {
   getAccounts,

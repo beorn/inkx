@@ -11,7 +11,7 @@
  * km add #urgent TASKID        # Link task to #urgent + add #urgent sigil
  * km add myboard TASKID        # Link only (no sigil — not a sigil target)
  */
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)

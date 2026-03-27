@@ -8,7 +8,7 @@
  *   bun km termtest colors sgr   # specific sections
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { runTermtest, TERMTEST_SECTIONS, type TermtestSection } from "@silvery/ag-react"
 
 export const termtestCommand = new Command("termtest")

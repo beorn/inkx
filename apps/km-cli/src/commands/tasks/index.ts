@@ -4,7 +4,7 @@
  * All task-related commands grouped under 'km task'
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { listTasks } from "./list.ts"
 import { createTask, markDone, claimTask, releaseTask, assignTask } from "./mutations.ts"
 import { createStatusCommand } from "./status.ts"

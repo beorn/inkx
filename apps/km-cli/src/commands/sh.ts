@@ -11,7 +11,7 @@
  *   km sh --json @next.md < commands.txt
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createInterface } from "readline"
 import { createReadStream, existsSync, readFileSync, appendFileSync } from "fs"
 import { homedir } from "os"

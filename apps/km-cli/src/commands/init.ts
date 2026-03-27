@@ -14,7 +14,7 @@
  * .km/ directory before any store exists. This is the bootstrap operation.
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)

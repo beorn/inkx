@@ -11,7 +11,7 @@ import type { Socket } from "net"
 const log = createLogger("km:cli:daemon")
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync, appendFileSync } from "fs"
 import { join, dirname } from "path"
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)

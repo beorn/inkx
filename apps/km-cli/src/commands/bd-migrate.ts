@@ -4,7 +4,7 @@
  * Commands for migrating between .beads/issues.jsonl and markdown formats.
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)

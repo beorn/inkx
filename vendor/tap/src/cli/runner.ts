@@ -7,7 +7,7 @@
  */
 
 import { Command } from "commander"
-import { colorizeHelp } from "silvery/ui/cli"
+import { colorizeHelp } from "@silvery/commander"
 import { Glob } from "bun"
 import { createConsumer } from "../consumer"
 import { mergeStreams } from "../merge"

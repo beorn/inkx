@@ -9,7 +9,7 @@
  * km worktree list                    # List all worktrees with status
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createWorktree, removeWorktree, listWorktrees, showDefaultInfo } from "bearly/tools/worktree"
 
 // ============================================

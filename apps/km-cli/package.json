@@ -13,7 +13,6 @@
     "./mdspec": "./tests/mdspec-plugin.ts"
   },
   "dependencies": {
-    "@commander-js/extra-typings": "^14.0.0",
     "@km/agent": "workspace:*",
     "@km/beads": "workspace:*",
     "@km/core": "workspace:*",

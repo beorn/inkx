@@ -99,7 +99,6 @@
         "km": "./src/bootstrap.ts",
       },
       "dependencies": {
-        "@commander-js/extra-typings": "^14.0.0",
         "@km/agent": "workspace:*",
         "@km/beads": "workspace:*",
         "@km/core": "workspace:*",
@@ -352,7 +351,6 @@
         "unified": "^11.0.5",
       },
       "devDependencies": {
-        "@commander-js/extra-typings": "^14.0.0",
         "@silvery/commander": "^0.1.0",
         "@types/bun": "latest",
         "@types/debug": "^4.1.12",
@@ -731,7 +729,6 @@
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
     "@silvery/commander": "vendor/silvery/packages/commander",
-    "@silvery/commander": "vendor/silvery/packages/commander",
     "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
     "@silvery/headless": "vendor/silvery/packages/headless",
@@ -826,8 +823,6 @@
     "@beorn/watcher-chaos": ["@beorn/watcher-chaos@workspace:vendor/watcher-chaos"],
 
     "@colors/colors": ["@colors/colors@1.6.0", "", {}, "sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA=="],
-
-    "@commander-js/extra-typings": ["@silvery/commander@workspace:vendor/silvery/packages/commander"],
 
     "@dabh/diagnostics": ["@dabh/diagnostics@2.0.8", "", { "dependencies": { "@so-ric/colorspace": "^1.1.6", "enabled": "2.0.x", "kuler": "^2.0.0" } }, "sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q=="],
 

@@ -10,7 +10,7 @@
  * 3. Access data through repo methods, not global functions
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { loadRepo } from "../load-repo.ts"
 
 export const statsCommand = new Command("stats")

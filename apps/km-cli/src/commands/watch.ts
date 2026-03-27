@@ -5,7 +5,7 @@
  * Kept for backwards compatibility - forwards to sync --watch.
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)

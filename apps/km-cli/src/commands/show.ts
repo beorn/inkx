@@ -4,7 +4,7 @@
  * Display details of a node
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import { join } from "path"
 

@@ -5,7 +5,7 @@
  * Useful for debugging, snapshot testing, and CI visual verification.
  */
 
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createLogger } from "loggily"
 import { setDebugRepoRoot } from "../debug-log.ts"
 import type { FullLogger } from "../logger-types.ts"

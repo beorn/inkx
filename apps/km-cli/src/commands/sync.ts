@@ -5,7 +5,7 @@
  */
 
 import { createLogger } from "loggily"
-import { Command } from "@commander-js/extra-typings"
+import { Command } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import type { FullLogger } from "../logger-types.ts"
 
