@@ -592,48 +592,27 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
  * Move card(s) to the first or last position among siblings.
  */
 export function handleShiftToExtreme(ctx: ActionCtx, direction: "top" | "bottom"): ActionResult {
-  const col = ctx.columns[ctx.colIndex]
-  if (!col) return boundary(direction)
+  // Structural: move current node to first/last among its siblings
+  const nodeId = ctx.cursorNodeId
+  if (!nodeId) return boundary(direction)
 
-  const card = ctx.card
+  const node = ctx.repo.getNode(nodeId)
+  if (!node?.parent_id) return boundary(direction)
 
-  // Column-level: move column to first/last position
-  if (!card) {
-    if (!ctx.rootId) return boundary(direction)
-    const columns = ctx.columns.filter((c) => !c.isVirtual)
-    if (columns.length <= 1) return ok()
-    const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
-    if (col.isVirtual) return boundary(direction)
-    const targetIndex = direction === "top" ? 0 : columns.length - 1
-    if (colIndex === targetIndex) return ok()
+  const siblings = ctx.repo.getChildren(node.parent_id)
+  if (siblings.length <= 1) return ok()
 
-    const targetCol = columns[targetIndex]
-    if (!targetCol) return boundary(direction)
-
-    ctx.undoHandle.setCursor(ctx.cursorNodeId)
-    const newSortOrder = direction === "top" ? targetCol.node.parent_idx - 1 : targetCol.node.parent_idx + 1
-    ctx.repo.moveNode(col.node.id, ctx.rootId, newSortOrder)
-    ctx.dispatchBoard({ type: "SELECT", nodeId: col.node.id })
-    return ok()
-  }
-
-  // Card-level: move card to first/last position within column
-  const cards = col.cardNodes
-  if (cards.length <= 1) return ok()
-
-  const currentIndex = ctx.cardIndex
-  const targetIndex = direction === "top" ? 0 : cards.length - 1
+  const currentIndex = siblings.findIndex((s) => s.id === nodeId)
+  const targetIndex = direction === "top" ? 0 : siblings.length - 1
   if (currentIndex === targetIndex) return ok()
 
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  const targetSibling = siblings[targetIndex]
+  if (!targetSibling) return boundary(direction)
 
-  // Move to before first card or after last card
-  const targetCard = cards[targetIndex]
-  if (!targetCard) return boundary(direction)
-  const newSortOrder = direction === "top" ? targetCard.parent_idx - 1 : targetCard.parent_idx + 1
-  ctx.repo.moveNode(card.id, col.node.id, newSortOrder)
-
-  ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
+  ctx.undoHandle.setCursor(nodeId)
+  const newSortOrder = direction === "top" ? targetSibling.parent_idx - 1 : targetSibling.parent_idx + 1
+  ctx.repo.moveNode(nodeId, node.parent_id, newSortOrder)
+  ctx.dispatchBoard({ type: "SELECT", nodeId })
   return ok()
 }
 

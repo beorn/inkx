@@ -1715,7 +1715,9 @@ function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
   }
 
   saveNavHistory(ctx)
-  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.id })
+  const children = ctx.repo.getChildren(targetNode.id)
+  const firstChild = children[0]?.id ?? null
+  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.id, cursorNodeId: firstChild })
   clearSelection(ctx)
 }
 
