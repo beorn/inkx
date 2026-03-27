@@ -109,31 +109,40 @@ export function configureProgram(): Command {
         write(term.red(str))
       },
     })
-    .addHelpText(
-      "after",
-      `
-Getting Started:
-  km init                    Initialize km in current directory
-  km view                    Open interactive TUI (Kanban board)
-  km new "My first task"     Create a task in inbox
-  km list                    List all nodes
-
-Quick Actions:
-  km view @next              View your Next Actions board
-  km add @next <id>          Add task to Next Actions board
-  km tasks                   List tasks with context
-  km status <id> done        Mark task complete
-  km bd ready                Show issues ready to work on
-
-Environment:
-  KM_ROOT=<path>             Set default repository path
-  LOG_LEVEL=<level>          Set log level (trace|debug|info|warn|error|silent)
-
-Verbosity:
-  -v, -vv, -vvv              Increase verbosity (-v=info, -vv=debug, -vvv=trace)
-  -q, -qq                    Decrease verbosity (-q=error, -qq=silent)
-  -v -q                      Offset (cancels out to warn)`,
-    )
+    .addSection({
+      title: "Getting Started:",
+      rows: [
+        ["km init", "Initialize km in current directory"],
+        ["km view", "Open interactive TUI (Kanban board)"],
+        ['km new "My first task"', "Create a task in inbox"],
+        ["km list", "List all nodes"],
+      ],
+    })
+    .addSection({
+      title: "Quick Actions:",
+      rows: [
+        ["km view @next", "View your Next Actions board"],
+        ["km add @next <id>", "Add task to Next Actions board"],
+        ["km tasks", "List tasks with context"],
+        ["km status <id> done", "Mark task complete"],
+        ["km bd ready", "Show issues ready to work on"],
+      ],
+    })
+    .addSection({
+      title: "Environment:",
+      rows: [
+        ["KM_ROOT=<path>", "Set default repository path"],
+        ["LOG_LEVEL=<level>", "Set log level (trace|debug|info|warn|error|silent)"],
+      ],
+    })
+    .addSection({
+      title: "Verbosity:",
+      rows: [
+        ["-v, -vv, -vvv", "Increase verbosity (-v=info, -vv=debug, -vvv=trace)"],
+        ["-q, -qq", "Decrease verbosity (-q=error, -qq=silent)"],
+        ["-v -q", "Offset (cancels out to warn)"],
+      ],
+    })
 
   // Pre-action hook: runs before any command
   program.hook("preAction", (thisCommand, actionCommand) => {
