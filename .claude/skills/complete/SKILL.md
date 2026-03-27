@@ -65,19 +65,26 @@ Run independent searches in parallel. Include variant spellings, partial matches
 
 | Finding | Verdict |
 |---|---|
-| Active code using removed/old API | **BLOCK** |
-| Test exercising removed API or old shape | **BLOCK** |
-| Re-export, compat shim, `@deprecated` keeping old way alive | **BLOCK** |
-| Dual pattern — old + new both work | **BLOCK** |
-| Doc/skill/comment describing old behavior | **FLAG** |
-| Docstring promising unimplemented API | **BLOCK** |
-| New package with zero tests | **BLOCK** |
-| New export not in barrel (undiscoverable) | **FLAG** |
-| `TODO`/`HACK`/`WORKAROUND` without tracking bead | **FLAG** |
-| /complete criteria that doesn't match reality | **FLAG** |
+| Active code using removed/old API | **FIX** |
+| Test exercising removed API or old shape | **FIX** |
+| Re-export, compat shim, `@deprecated` keeping old way alive | **FIX** |
+| Dual pattern — old + new both work | **FIX** |
+| Doc/skill/comment describing old behavior | **FIX** |
+| Docstring promising unimplemented API | **FIX** |
+| New package with zero tests | **FIX** |
+| New export not in barrel (undiscoverable) | **FIX** |
+| `TODO`/`HACK`/`WORKAROUND` without tracking bead | **FIX** |
+| /complete criteria that doesn't match reality | **FIX** |
 | Changelog, git history, bead history | skip |
 
-**Any BLOCK = INCOMPLETE.** Report all findings with file:line.
+**Default: fix everything you find.** Don't leave small issues as "FLAGS" to be cleaned up later — they rarely get cleaned up. The investigation IS the cleanup pass.
+
+Only escalate to the user when a fix would be:
+- **Architecturally significant** (changes public API, adds dependencies, restructures packages)
+- **Risky without context** (you're unsure if the old code is still needed by someone)
+- **Large blast radius** (touching 20+ files that weren't part of the original work)
+
+For everything else — stale docs, version bumps, redundant imports, missing exports, outdated comments — just fix it and note what you did in the report.
 
 ### For multi-phase or epic-level audits
 
@@ -113,8 +120,9 @@ Close completed beads. Sync (`bd sync`). Commit and push.
 | # | Hypothesis | Search | Result |
 |---|---|---|---|
 | 1 | "Callers of X still destructure old shape" | `Grep oldField *.ts` | PASS — 0 hits |
-| 2 | "docs/ref/ui.md still lists removed state" | `Grep oldState docs/` | FLAG — ui.md:42 |
-| 3 | "unfold has same bug as fold" | `Read unfold.ts:80` | BLOCK — identical pattern |
+| 2 | "docs/ref/ui.md still lists removed state" | `Grep oldState docs/` | FIXED — updated ui.md:42 |
+| 3 | "unfold has same bug as fold" | `Read unfold.ts:80` | FIXED — applied same fix |
+| 4 | "Major API redesign needed" | analysis | ESCALATE — ask user |
 
 ### Code Clean
 <Summary of /code clean --dry-run findings, or "No issues found">
