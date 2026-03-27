@@ -310,10 +310,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     }
   }
 
-  const CHORD_TIMEOUT_MS = 500
+  const CHORD_TIMEOUT_MS = 1500
 
   // After chord timeout fires, hints stay visible (dimmed) for this long before auto-dismissing.
-  const CHORD_DIMMED_DISPLAY_MS = 1200
+  const CHORD_DIMMED_DISPLAY_MS = 3600
 
   // Minimum display duration for the which-key popup (ms).
   // The popup stays visible for at least this long after appearing, even after
