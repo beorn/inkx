@@ -23,6 +23,7 @@
     "@silvery/ag-react": "$@silvery/ag-react",
     "@silvery/ag-term": "$@silvery/ag-term",
     "@silvery/ansi": "$@silvery/ansi",
+    "@silvery/color": "$@silvery/color",
     "@silvery/create": "$@silvery/create",
     "@silvery/headless": "$@silvery/headless",
     "@silvery/commands": "$@silvery/commands",

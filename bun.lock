@@ -439,8 +439,13 @@
       "name": "@silvery/ansi",
       "version": "0.1.0",
       "dependencies": {
+        "@silvery/color": ">=0.1.0",
         "string-width": "^8.2.0",
       },
+    },
+    "vendor/silvery/packages/color": {
+      "name": "@silvery/color",
+      "version": "0.1.0",
     },
     "vendor/silvery/packages/commander": {
       "name": "@silvery/commander",
@@ -521,6 +526,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@silvery/ansi": ">=0.1.0",
+        "@silvery/color": ">=0.1.0",
       },
     },
     "vendor/silvery/packages/test": {
@@ -537,6 +543,7 @@
       "name": "@silvery/theme",
       "version": "0.5.0",
       "dependencies": {
+        "@silvery/color": "workspace:*",
         "@silvery/style": "workspace:*",
       },
     },
@@ -752,6 +759,7 @@
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
     "@silvery/ansi": "vendor/silvery/packages/ansi",
+    "@silvery/color": "vendor/silvery/packages/color",
     "@silvery/commander": "vendor/silvery/packages/commander",
     "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
@@ -1356,6 +1364,8 @@
     "@silvery/ag-term": ["@silvery/ag-term@workspace:vendor/silvery/packages/ag-term"],
 
     "@silvery/ansi": ["@silvery/ansi@workspace:vendor/silvery/packages/ansi"],
+
+    "@silvery/color": ["@silvery/color@workspace:vendor/silvery/packages/color"],
 
     "@silvery/commander": ["@silvery/commander@workspace:vendor/silvery/packages/commander"],
 
