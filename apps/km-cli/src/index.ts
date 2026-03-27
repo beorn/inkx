@@ -11,6 +11,8 @@
 // Note: "Loading..." for view command is shown by bootstrap.ts before this module loads
 
 import { configureProgram } from "./program.ts"
+import { CliError } from "./errors.ts"
+import { createTerm } from "@silvery/ag-react"
 
 // Configure the program (all commands, hooks, options)
 const program = configureProgram()
@@ -28,5 +30,15 @@ if (firstArg && isBoardShortcut(firstArg)) {
   process.argv.splice(2, 0, "view")
 }
 
-// Parse and execute the command
-program.parse()
+// Parse and execute — CliError gets clean display, everything else propagates
+try {
+  await program.parseAsync()
+} catch (err) {
+  if (err instanceof CliError) {
+    const term = createTerm(process)
+    console.error(term.red(`✖ ${err.message}`))
+    if (err.hint) console.error(term.dim(`  ${err.hint}`))
+    process.exit(1)
+  }
+  throw err
+}

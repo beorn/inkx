@@ -6,10 +6,8 @@
  */
 
 import type { Repo, CreateRepoOptions } from "@km/storage"
-import { createTerm } from "@silvery/ag-react"
 import { existsSync } from "fs"
-
-const term = createTerm(process)
+import { CliError } from "./errors.ts"
 
 export interface LoadRepoOptions extends CreateRepoOptions {
   /** Show progress display during loading (default: auto-detect TTY) */
@@ -34,10 +32,7 @@ export interface LoadRepoOptions extends CreateRepoOptions {
  */
 export async function loadRepo(rootPath: string, options: LoadRepoOptions = {}): Promise<Repo> {
   if (!existsSync(rootPath)) {
-    console.error(term.red("✖ Vault not found\n"))
-    console.error(`  Path: ${term.dim(rootPath)}`)
-    console.error(term.dim("\n  Check the path exists, or use --repo <path> to specify a different vault."))
-    process.exit(1)
+    throw new CliError(`Vault not found: ${rootPath}`, "Check the path exists, or use --repo <path> to specify a different vault.")
   }
 
   // Auto-detect TTY: show progress in interactive mode, silent in scripts/pipes
