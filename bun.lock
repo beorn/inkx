@@ -429,7 +429,6 @@
         "@silvery/ag-react": "workspace:*",
         "@silvery/ansi": "workspace:*",
         "@silvery/create": "workspace:*",
-        "@silvery/style": "workspace:*",
         "@silvery/test": "workspace:*",
         "@silvery/theme": "workspace:*",
         "flexily": "github:beorn/flexily",
@@ -437,7 +436,7 @@
     },
     "vendor/silvery/packages/ansi": {
       "name": "@silvery/ansi",
-      "version": "0.1.0",
+      "version": "1.0.0",
       "dependencies": {
         "@silvery/color": ">=0.1.0",
         "string-width": "^8.2.0",
@@ -449,10 +448,9 @@
     },
     "vendor/silvery/packages/commander": {
       "name": "@silvery/commander",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "dependencies": {
-        "@silvery/ansi": ">=0.1.0",
-        "@silvery/style": ">=0.1.0",
+        "@silvery/ansi": ">=1.0.0",
         "commander": ">=12.0.0",
       },
       "peerDependencies": {
@@ -503,7 +501,7 @@
       "dependencies": {
         "@silvery/ag-react": "workspace:*",
         "@silvery/ag-term": "workspace:*",
-        "@silvery/style": "workspace:*",
+        "@silvery/ansi": "workspace:*",
       },
     },
     "vendor/silvery/packages/model": {
@@ -521,14 +519,6 @@
         "alien-signals": "^3.1.2",
       },
     },
-    "vendor/silvery/packages/style": {
-      "name": "@silvery/style",
-      "version": "0.1.0",
-      "dependencies": {
-        "@silvery/ansi": ">=0.1.0",
-        "@silvery/color": ">=0.1.0",
-      },
-    },
     "vendor/silvery/packages/test": {
       "name": "@silvery/test",
       "version": "0.5.0",
@@ -543,8 +533,8 @@
       "name": "@silvery/theme",
       "version": "0.5.0",
       "dependencies": {
+        "@silvery/ansi": "workspace:*",
         "@silvery/color": "workspace:*",
-        "@silvery/style": "workspace:*",
       },
     },
     "vendor/tap": {
@@ -767,7 +757,6 @@
     "@silvery/model": "vendor/silvery/packages/model",
     "@silvery/scope": "vendor/silvery/packages/scope",
     "@silvery/signals": "vendor/silvery/packages/signals",
-    "@silvery/style": "vendor/silvery/packages/style",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@termless/core": "vendor/termless",
@@ -1384,8 +1373,6 @@
     "@silvery/scope": ["@silvery/scope@workspace:vendor/silvery/packages/scope"],
 
     "@silvery/signals": ["@silvery/signals@workspace:vendor/silvery/packages/signals"],
-
-    "@silvery/style": ["@silvery/style@workspace:vendor/silvery/packages/style"],
 
     "@silvery/test": ["@silvery/test@workspace:vendor/silvery/packages/test"],
 
