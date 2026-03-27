@@ -281,7 +281,8 @@ describe("Untitled Columns", () => {
     expect(text).toContain("Another")
 
     // Untitled column should show (shortId) not "Named" or "Another"
-    expect(text).toContain("(untitled")
+    // slice(-8) of "untitled-col" = "tled-col"
+    expect(text).toContain("(tled-col")
 
     // "Named" appears once in column header, possibly once in top bar
     // But should NOT appear as the untitled column's name
@@ -320,6 +321,7 @@ describe("Untitled Columns", () => {
     expect(waitingMatches.length).toBe(1)
 
     // The stale column should show as untitled (shortId in parens)
-    expect(text).toContain("(stale")
+    // slice(-8) of "stale-col" = "tale-col"
+    expect(text).toContain("(tale-col")
   })
 })

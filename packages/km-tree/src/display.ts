@@ -126,11 +126,11 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   // This is intentional - we fall back to short ID rather than throwing.
   if (node.fs_path) {
     const filename = node.fs_path.split("/").pop() || ""
-    return filename.replace(/\.md$/, "") || `(${node.id.slice(0, 8)})`
+    return filename.replace(/\.md$/, "") || `(${node.id.slice(-8)})`
   }
 
   // 6. Fallback to short ID in parentheses (signals "untitled" to rendering layer)
-  return `(${node.id.slice(0, 8)})`
+  return `(${node.id.slice(-8)})`
 }
 
 /**

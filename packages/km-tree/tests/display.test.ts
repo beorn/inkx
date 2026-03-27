@@ -229,16 +229,16 @@ describe("getNodeDisplayName", () => {
   })
 
   describe("priority 6: short ID fallback", () => {
-    it("returns first 8 chars of ID in parens when nothing else available", () => {
+    it("returns last 8 chars of ID in parens when nothing else available", () => {
       const node = createNode("abcdefghijklmnop")
-      expect(getNodeDisplayName(node)).toBe("(abcdefgh)")
+      expect(getNodeDisplayName(node)).toBe("(ijklmnop)")
     })
 
     it("returns short ID in parens from fs_path if filename is .md only", () => {
       const node = createNode("abcdefgh12345", {
         fs_path: "/path/to/.md",
       })
-      expect(getNodeDisplayName(node)).toBe("(abcdefgh)")
+      expect(getNodeDisplayName(node)).toBe("(fgh12345)")
     })
 
     it("returns parens format for empty-titled outline items (## with no text)", () => {
@@ -249,7 +249,7 @@ describe("getNodeDisplayName", () => {
         title: "",
         content: "",
       })
-      expect(getNodeDisplayName(node)).toBe("(01JTEST1)")
+      expect(getNodeDisplayName(node)).toBe("(T1234567)")
     })
   })
 })
