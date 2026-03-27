@@ -161,7 +161,7 @@ export {
 } from "./favorites.ts"
 
 // Locations (composable command targets)
-export { REPO_LOCS, locationLabel, resolveLocations } from "./locations.ts"
+export { REPO_LOCS, locationLabel } from "./locations.ts"
 
 // Verb x Location composable vocabulary
 export type { TargetResolver, Execute, VerbDef } from "./verb-locations.ts"

@@ -29,7 +29,6 @@ import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
-import { resolveLocations } from "@km/commands"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui") as any
@@ -275,9 +274,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     const theme = await detectTheme({ caps })
     log.debug?.(`Theme: ${theme.name}`)
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
-
-    // Resolve well-known locations (@next, @inbox, etc.) to real node IDs
-    resolveLocations((name) => options.repo!.resolveNode(name))
 
     const storeParams: CreateBoardAppStoreParams = {
       repo: options.repo,
