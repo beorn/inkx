@@ -51,3 +51,18 @@ When extracting packages from a monolith:
 7. **Write /complete criteria AFTER scoping, not before.** "grep for X → 0 hits" sounds good in a bead description but may be impossible if X has legitimate internal consumers. Update criteria when you discover the real blast radius.
 
 8. **Audit the entire feature set, not just your session's changes.** `/complete` checks what YOU changed. A systematic feature-by-feature audit (bead promise vs actual code) catches what `/complete` misses: unimplemented promises, missing tests, stale docstrings.
+
+## Tribe Coordination
+
+When working on the main worktree (not an isolated git worktree), **notify the tribe before starting disruptive work**:
+
+- Before replacing imports across many files (tests may fail for other sessions)
+- Before changing shared config (package.json, tsconfig, .mcp.json)
+- Before modifying vendor/ packages that other sessions depend on
+- Before any multi-file refactor that could break the build for 5+ minutes
+
+Use `tribe_broadcast` or `tribe_send` to the chief: "Starting disruptive refactor on <scope>. Expect <description> to be broken for ~N min. Don't start <scope>-related work until all-clear."
+
+Send an all-clear when the refactor is stable (tests pass).
+
+**When to use a worktree instead**: If the refactor will take >30 min or touch >20 files, prefer `bun worktree` to avoid disrupting other sessions entirely. Worktrees are free — the overhead of creating one is far less than the cost of blocking the tribe.

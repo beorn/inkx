@@ -429,6 +429,7 @@
         "@silvery/ag-react": "workspace:*",
         "@silvery/ansi": "workspace:*",
         "@silvery/create": "workspace:*",
+        "@silvery/style": "workspace:*",
         "@silvery/test": "workspace:*",
         "@silvery/theme": "workspace:*",
         "flexily": "github:beorn/flexily",
@@ -443,16 +444,17 @@
     },
     "vendor/silvery/packages/commander": {
       "name": "@silvery/commander",
-      "version": "0.1.0",
-      "peerDependencies": {
-        "@commander-js/extra-typings": ">=12.0.0",
-        "@silvery/ansi": ">=0.1.0",
+      "version": "0.5.0",
+      "dependencies": {
         "commander": ">=12.0.0",
       },
+      "peerDependencies": {
+        "@silvery/ansi": ">=0.1.0",
+        "zod": ">=3.0.0",
+      },
       "optionalPeers": [
-        "@commander-js/extra-typings",
         "@silvery/ansi",
-        "commander",
+        "zod",
       ],
     },
     "vendor/silvery/packages/commands": {
@@ -512,6 +514,13 @@
       "version": "0.5.0",
       "dependencies": {
         "alien-signals": "^3.1.2",
+      },
+    },
+    "vendor/silvery/packages/style": {
+      "name": "@silvery/style",
+      "version": "0.1.0",
+      "dependencies": {
+        "@silvery/ansi": ">=0.1.0",
       },
     },
     "vendor/silvery/packages/test": {
@@ -746,6 +755,7 @@
     "@silvery/model": "vendor/silvery/packages/model",
     "@silvery/scope": "vendor/silvery/packages/scope",
     "@silvery/signals": "vendor/silvery/packages/signals",
+    "@silvery/style": "vendor/silvery/packages/style",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
     "@termless/core": "vendor/termless",
@@ -1360,6 +1370,8 @@
     "@silvery/scope": ["@silvery/scope@workspace:vendor/silvery/packages/scope"],
 
     "@silvery/signals": ["@silvery/signals@workspace:vendor/silvery/packages/signals"],
+
+    "@silvery/style": ["@silvery/style@workspace:vendor/silvery/packages/style"],
 
     "@silvery/test": ["@silvery/test@workspace:vendor/silvery/packages/test"],
 

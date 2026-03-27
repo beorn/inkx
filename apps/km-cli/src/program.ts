@@ -84,8 +84,13 @@ export function configureProgram(): Command {
     .version("0.1.0")
     .option("-r, --repo <path>", "Repository directory to operate on (overrides KM_ROOT env var)")
     .option("-s, --silent", "Suppress output except errors")
-    .option("-v, --verbose", "Increase verbosity (-v=info, -vv=debug, -vvv=trace)", (_, prev) => (prev ?? 0) + 1, 0)
-    .option("-q, --quiet", "Decrease verbosity (-q=error, -qq=silent)", (_, prev) => (prev ?? 0) + 1, 0)
+    .option(
+      "-v, --verbose",
+      "Increase verbosity (-v=info, -vv=debug, -vvv=trace)",
+      (_: string, prev: number) => (prev ?? 0) + 1,
+      0,
+    )
+    .option("-q, --quiet", "Decrease verbosity (-q=error, -qq=silent)", (_: string, prev: number) => (prev ?? 0) + 1, 0)
     .option("--log-level <level>", "Log level (trace|debug|info|warn|error|silent)")
     .allowUnknownOption(false)
     .allowExcessArguments(false)
