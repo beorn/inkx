@@ -13,6 +13,7 @@ import { describe, it, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
 import { createCardsViewNavigation, createDetailViewNavigation, type NavState } from "../src/view-navigation.ts"
+import { deriveCursorAncestors } from "../src/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
 
 function makeState(

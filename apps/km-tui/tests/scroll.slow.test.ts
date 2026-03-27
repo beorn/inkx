@@ -9,6 +9,7 @@
  */
 
 import { describe, test, expect } from "vitest"
+import { compareBuffers, formatMismatch } from "@silvery/test"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"

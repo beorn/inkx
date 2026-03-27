@@ -8,6 +8,7 @@
 import { describe, test, expect, beforeEach } from "vitest"
 import { createModeStack, type InputMode } from "../src/input-mode.ts"
 import { getEditMode, createInitialPaneUI } from "../src/ui-reducer.ts"
+import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("createModeStack", () => {
   let stack: ReturnType<typeof createModeStack>
@@ -192,5 +193,83 @@ describe("getEditMode", () => {
     expect(getEditMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 }, showSearchDialog: true })).toBe(
       "text",
     )
+  })
+})
+
+// =============================================================================
+// Command dispatch — board.command() parity with keypresses
+// =============================================================================
+
+describe("board.command()", () => {
+  test("cursor_down moves cursor same as press j", () => {
+    const { board: b1 } = testEnv(() => item("board", item("col", item("A"), item("B"), item("C"))))
+    const { board: b2 } = testEnv(() => item("board", item("col", item("A"), item("B"), item("C"))))
+
+    b1.press("j")
+    b2.command("cursor_down")
+
+    // Both should have cursor on B
+    b1.expect("#B[data-cursor]").toExist()
+    b2.expect("#B[data-cursor]").toExist()
+  })
+
+  test("fold_node folds same as press H", () => {
+    const { board: b1 } = testEnv(() => item("board", item("col", item("parent", item("child")))))
+    const { board: b2 } = testEnv(() => item("board", item("col", item("parent", item("child")))))
+
+    b1.press("H")
+    b2.command("fold_node")
+
+    b1.expect("#child").not.toExist()
+    b2.expect("#child").not.toExist()
+  })
+
+  test("chord command toggle_collapse works", () => {
+    const { board: b1 } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
+    const { board: b2 } = testEnv(() => item("board", item("col1", item("A")), item("col2", item("B"))))
+
+    b1.press("v").press("c")
+    b2.command("toggle_collapse")
+
+    // Both should collapse col1
+    b1.expect("#A").not.toExist()
+    b2.expect("#A").not.toExist()
+  })
+})
+
+// =============================================================================
+// Modifier key indicators — useModifierKeys integration in bottom bar
+// =============================================================================
+
+describe("modifier key indicators in bottom bar", () => {
+  test("Super+j shows ⌘ in bottom bar modifier indicator", () => {
+    const { board } = testEnv(() => item("board", item("Todo", item("Task 1"))))
+
+    // Before pressing modifier, no indicator should be present
+    board.expect("#modifier-keys").not.toExist()
+
+    // Super+j: keyToAnsi delegates to keyToKittyAnsi for Super modifier,
+    // producing CSI 106;9u (j with super bit). This goes through
+    // originalPress → inputEmitter → RuntimeContext → useModifierKeys.
+    board.press("Super+j")
+
+    // Bottom bar should show ⌘ indicator
+    board.expect("#modifier-keys").toExist()
+    const text = board.screenshot()
+    expect(text).toContain("⌘")
+  })
+
+  test("regular key clears modifier indicator", () => {
+    const { board } = testEnv(() => item("board", item("Todo", item("Task 1"))))
+
+    // Press Super+j to set modifier
+    board.press("Super+j")
+    board.expect("#modifier-keys").toExist()
+
+    // Press a regular key (no modifiers)
+    board.press("j")
+
+    // Modifier indicator should be cleared
+    board.expect("#modifier-keys").not.toExist()
   })
 })
