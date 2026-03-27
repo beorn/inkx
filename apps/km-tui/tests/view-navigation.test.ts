@@ -15,12 +15,17 @@ import { item } from "./helpers/board-test.ts"
 import { createCardsViewNavigation, createDetailViewNavigation, type NavState } from "../src/view-navigation.ts"
 import { createGridNavigator } from "@km/board"
 
-function makeState(cursorNodeId: string, rootId: string | null = "board"): NavState {
+function makeState(
+  cursorNodeId: string,
+  rootId: string | null = "board",
+  opts?: { ignoredNodeIds?: Set<string> },
+): NavState {
   return {
     cursorNodeId,
     rootId,
     foldDepths: new Map(),
     collapsedNodes: new Set(),
+    ignoredNodeIds: opts?.ignoredNodeIds,
   }
 }
 
@@ -85,6 +90,74 @@ describe("CardsViewNavigation", () => {
       const target = nav.navigate("down", makeState("board"), repo, registry)
       expect(target).toBe("col1")
       registry.clearStickyX()
+    })
+  })
+
+  describe("navigation with ignored nodes", () => {
+    // Board with 3 columns: col0 is ignored
+    const nodes = item("board", item("col0", item("c0")), item("col1", item("c1")), item("col2", item("c2")))
+    const repo = createFakeRepo({ nodes })
+    const registry = createGridNavigator()
+    const ignored = new Set(["col0"])
+
+    it("j from board skips ignored first column", () => {
+      const target = nav.navigate("down", makeState("board", "board", { ignoredNodeIds: ignored }), repo, registry)
+      expect(target).toBe("col1")
+    })
+
+    it("j from board skips ignored column even with stickyX=0", () => {
+      registry.setStickyX(0)
+      const target = nav.navigate("down", makeState("board", "board", { ignoredNodeIds: ignored }), repo, registry)
+      // stickyX=0 points to col0 which is ignored — should go to col1
+      expect(target).not.toBe("col0")
+      registry.clearStickyX()
+    })
+
+    it("j/k round-trip returns to same column", () => {
+      // j from board → col1, then k from col1 → board, then j again → should return to col1
+      registry.clearStickyX()
+      const state = makeState("board", "board", { ignoredNodeIds: ignored })
+
+      const down1 = nav.navigate("down", state, repo, registry)
+      expect(down1).toBe("col1")
+
+      const up1 = nav.navigate("up", makeState(down1!, "board", { ignoredNodeIds: ignored }), repo, registry)
+      expect(up1).toBe("board")
+
+      const down2 = nav.navigate("down", state, repo, registry)
+      expect(down2).toBe("col1") // should return to same column, not cycle
+    })
+
+    it("j between cards skips ignored cards", () => {
+      const cardsNodes = item("board", item("col", item("a"), item("b"), item("c")))
+      const cardsRepo = createFakeRepo({ nodes: cardsNodes })
+      const ignoredCards = new Set(["b"])
+      const target = nav.navigate(
+        "down",
+        makeState("a", "board", { ignoredNodeIds: ignoredCards }),
+        cardsRepo,
+        createGridNavigator(),
+      )
+      expect(target).toBe("c") // skips ignored "b"
+    })
+
+    it("k between cards skips ignored cards", () => {
+      const cardsNodes = item("board", item("col", item("a"), item("b"), item("c")))
+      const cardsRepo = createFakeRepo({ nodes: cardsNodes })
+      const ignoredCards = new Set(["b"])
+      const target = nav.navigate(
+        "up",
+        makeState("c", "board", { ignoredNodeIds: ignoredCards }),
+        cardsRepo,
+        createGridNavigator(),
+      )
+      expect(target).toBe("a") // skips ignored "b"
+    })
+
+    it("navigate never returns an ignored node", () => {
+      // Runtime invariant: any navigation result should not be in ignoredNodeIds
+      const target = nav.navigate("down", makeState("board", "board", { ignoredNodeIds: ignored }), repo, registry)
+      expect(ignored.has(target!)).toBe(false)
     })
   })
 

@@ -285,9 +285,11 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
 
     if (isAtColumnLevel) {
       // Column header → board (save structural column index for return via stickyX)
+      // Filter ignored columns so stickyX indexes match the j-from-board path
       const allChildren = repo.getChildren(rootId)
-      const { structuralCols } = splitBodyAndColumns(allChildren)
-      const colIdx = indexOfChild(structuralCols, cursorNodeId)
+      const { structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+      const visibleCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
+      const colIdx = indexOfChild(visibleCols, cursorNodeId)
       if (colIdx >= 0) navigator.setStickyX(colIdx)
       return rootId
     }
