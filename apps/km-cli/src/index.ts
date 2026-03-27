@@ -12,7 +12,7 @@
 
 import { configureProgram } from "./program.ts"
 import { CliError } from "./errors.ts"
-import { createTerm } from "@silvery/ag-react"
+import { style } from "@silvery/ansi"
 
 // Configure the program (all commands, hooks, options)
 const program = configureProgram()
@@ -35,9 +35,8 @@ try {
   await program.parseAsync()
 } catch (err) {
   if (err instanceof CliError) {
-    const term = createTerm(process)
-    console.error(`\n${term.bold(term.red("error:"))} ${err.message}`)
-    if (err.hint) console.error(term.yellow(`  ${err.hint}`))
+    console.error(`\n${style.error.bold("error:")} ${err.message}`)
+    if (err.hint) console.error(style.warning(`  ${err.hint}`))
     console.error()
     process.exit(1)
   }
