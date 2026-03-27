@@ -26,6 +26,8 @@ export interface ImportAttachment {
   type?: string
   /** Original creation timestamp (ISO 8601) from the source system */
   createdAt?: string
+  /** Parent item sourceId (for inline images that need re-fetching via parent task) */
+  parentSourceId?: string
 }
 
 /** A single importable item (task, note, etc.) */

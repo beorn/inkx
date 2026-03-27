@@ -6,8 +6,7 @@
  * For advanced usage, use the library API directly.
  */
 
-import { Command } from "commander"
-import { colorizeHelp } from "@silvery/commander"
+import { Command, uint } from "@silvery/commander"
 import { Glob } from "bun"
 import { createConsumer } from "../consumer"
 import { mergeStreams } from "../merge"
@@ -124,14 +123,13 @@ const program = new Command()
   .version(await getVersion())
   .argument("[patterns...]", "Test file glob patterns", ["**/*.test.ts", "**/*.spec.ts"])
   .option("-R, --reporter <type>", "Output format (tap|spec|dots|json)", "spec")
-  .option("-j, --jobs <n>", "Number of parallel workers", Number, 1)
+  .option("-j, --jobs <n>", "Number of parallel workers", uint, 1)
   .option("--dots", "Show colored dots (alias for -R dots)")
   .option("-b, --bail", "Stop on first failure", false)
-  .option("-t, --timeout <seconds>", "Test timeout in seconds", Number)
+  .option("-t, --timeout <seconds>", "Test timeout in seconds", uint)
   .option("--no-color", "Disable colored output")
   .action(async (patterns: string[], options: Options) => {
     await runTests(patterns, options)
   })
 
-colorizeHelp(program)
 program.parse()

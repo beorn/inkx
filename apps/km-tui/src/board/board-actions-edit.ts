@@ -68,13 +68,15 @@ export function handleDeleteNode(ctx: ActionCtx): void {
   if (cards.length === 0) return
 
   // Aggregate impact across all cards
+  // Empty children (no name/title/content) don't count — they're structural placeholders
   const TRIVIAL_DATA_KEYS = new Set(["rules", "lang", "meta", "completion"])
   let totalChildCount = 0
   let totalBacklinkCount = 0
   let anyHasMetadata = false
 
   for (const c of cards) {
-    totalChildCount += repo.getChildren(c.id).length
+    const children = repo.getChildren(c.id)
+    totalChildCount += children.filter((ch) => ch.name || ch.title || ch.content).length
     totalBacklinkCount += repo.getRenameImpact(c.id).backlinks.length
     const significantKeys = c.data
       ? Object.keys(c.data).filter((k) => !k.startsWith("_") && !TRIVIAL_DATA_KEYS.has(k))
@@ -121,16 +123,17 @@ function handleDeleteColumn(
   const { repo } = ctx
   const nodeId = col.node.id
 
-  // Count total descendants (cards + their children recursively).
+  // Count non-empty descendants (cards + their children recursively).
+  // Empty children (no name/title/content) are structural placeholders and don't count.
   // Cap at 10000 to avoid blocking the event loop on deep trees (118k+ nodes).
   const MAX_COUNT = 10000
   let totalDescendants = 0
   const countDescendants = (id: string) => {
     if (totalDescendants >= MAX_COUNT) return
     const children = repo.getChildren(id)
-    totalDescendants += children.length
     for (const child of children) {
       if (totalDescendants >= MAX_COUNT) return
+      if (child.name || child.title || child.content) totalDescendants++
       countDescendants(child.id)
     }
   }

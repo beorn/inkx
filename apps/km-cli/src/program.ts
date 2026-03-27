@@ -91,7 +91,7 @@ export function configureProgram(): Command {
       0,
     )
     .option("-q, --quiet", "Decrease verbosity (-q=error, -qq=silent)", (_: string, prev: number) => (prev ?? 0) + 1, 0)
-    .option("--log-level <level>", "Log level (trace|debug|info|warn|error|silent)")
+    .option("--log-level <level>", "Log level", ["trace", "debug", "info", "warn", "error", "silent"])
     .allowUnknownOption(false)
     .allowExcessArguments(false)
     .showSuggestionAfterError(true)

@@ -188,7 +188,9 @@ Pipeline:
 
       const startTime = Date.now()
       let importData: ImportData
-      let asanaToken: string | undefined
+      // Load token for attachment URL refresh (needed by --from and --import too)
+      const { loadConfig } = await import("../import/config.ts")
+      let asanaToken: string | undefined = options.authToken ?? loadConfig().asana?.token
 
       if (options.from) {
         // --from: load from a specific file or directory
@@ -294,9 +296,35 @@ Pipeline:
             dir: attachDir,
             relativePath: ".attachments",
             dryRun: options.dryRun,
+            authHeaders: asanaToken ? { Authorization: `Bearer ${asanaToken}` } : undefined,
             refreshUrl: asanaToken
               ? async (att) => {
                   if (!att.sourceId) return null
+                  // For inline images, re-fetch the parent task's html_notes to get fresh signed URLs
+                  if (att.sourceId.startsWith("inline-") && att.parentSourceId) {
+                    try {
+                      const res = await fetch(
+                        `https://app.asana.com/api/1.0/tasks/${att.parentSourceId}?opt_fields=html_notes`,
+                        { headers: { Authorization: `Bearer ${asanaToken}` } },
+                      )
+                      if (!res.ok) return null
+                      const json = (await res.json()) as { data?: { html_notes?: string } }
+                      const html = json.data?.html_notes ?? ""
+                      // Find the fresh URL matching the original URL's path
+                      const originalPath = new URL(att.url).pathname
+                      const srcRe = /src="([^"]+)"/g
+                      for (const m of html.matchAll(srcRe)) {
+                        const freshUrl = m[1]?.replace(/&amp;/g, "&")
+                        if (freshUrl && new URL(freshUrl).pathname === originalPath) {
+                          return freshUrl
+                        }
+                      }
+                    } catch {
+                      return null
+                    }
+                    return null
+                  }
+                  // For regular attachments, use the attachments API
                   try {
                     const res = await fetch(
                       `https://app.asana.com/api/1.0/attachments/${att.sourceId}?opt_fields=download_url`,

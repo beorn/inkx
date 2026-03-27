@@ -5,7 +5,7 @@
  */
 
 import { createLogger } from "loggily"
-import { Command } from "@silvery/commander"
+import { Command, uint } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 import type { FullLogger } from "../logger-types.ts"
 
@@ -29,7 +29,7 @@ export const syncCommand = new Command("sync")
   .option("--to-fs", "Sync from database to filesystem")
   .option("--dry-run", "Show what would be synced without making changes")
   .option("-w, --watch", "Watch for filesystem changes continuously")
-  .option("--debounce <ms>", "Debounce interval in ms (only with --watch)", "5000")
+  .option("--debounce <ms>", "Debounce interval in ms (only with --watch)", uint, 5000)
   .action(async (path, options) => {
     // Resolve repo path from argument or current directory
     const searchPath = path ? resolve(path) : process.cwd()
@@ -52,8 +52,7 @@ export const syncCommand = new Command("sync")
     ensureRepoRootNode(db, repoPath)
 
     if (options.watch) {
-      const debounceMs = parseInt(options.debounce, 10)
-      startWatch(repoPath, debounceMs, db)
+      startWatch(repoPath, options.debounce, db)
     } else {
       await runSync(repoPath, kmRoot, options, db)
     }

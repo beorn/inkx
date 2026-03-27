@@ -4,7 +4,7 @@
  * AI agent lifecycle and runtime management.
  */
 
-import { Command } from "@silvery/commander"
+import { Command, int } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
@@ -290,7 +290,7 @@ agentCommand
 agentCommand
   .command("sessions [agent-id]")
   .description("List sessions (optionally for a specific agent)")
-  .option("-n, --limit <n>", "Limit results", parseInt)
+  .option("-n, --limit <n>", "Limit results", int)
   .option("--json", "Output as JSON")
   .action((agentId: string | undefined, opts: SessionsOptions) => {
     const kmDir = findKmRootFromPath(process.cwd())
@@ -356,7 +356,7 @@ agentCommand
   .description("Run an agent (one-shot with prompt, or continuous)")
   .option("--target <path|id|@ref>", "Work on a specific task (path, ID, or @ref)")
   .option("--continuous", "Process work queue continuously")
-  .option("--max-tasks <n>", "Max tasks in continuous mode", parseInt)
+  .option("--max-tasks <n>", "Max tasks in continuous mode", int)
   .option("--dry-run", "Show plan without executing")
   .action(async (id: string, prompt: string | undefined, opts: RunOptions) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())

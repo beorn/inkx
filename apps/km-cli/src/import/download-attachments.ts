@@ -95,6 +95,8 @@ function collectInlineImages(data: ImportData): Map<string, ImportAttachment> {
             name,
             url,
             type: "image",
+            // Store parent task GID for re-fetching fresh signed URLs
+            parentSourceId: item.sourceId,
           }
           urlMap.set(url, att)
         }
@@ -163,6 +165,8 @@ export async function downloadAttachments(
     dryRun?: boolean
     /** Called on 403 to refresh an expired download URL. Returns fresh URL or null. */
     refreshUrl?: (att: ImportAttachment) => Promise<string | null>
+    /** Auth headers to include with download requests (e.g., Bearer token for signed URLs) */
+    authHeaders?: Record<string, string>
     /** Progress callback: called with (current, total) as items complete */
     onProgress?: (current: number, total: number) => void
   },
@@ -231,12 +235,17 @@ export async function downloadAttachments(
           let url = att.url
           let res = await fetch(url)
 
+          // On 403, try with auth headers (needed for asanausercontent.com signed URLs)
+          if (res.status === 403 && opts.authHeaders) {
+            res = await fetch(url, { headers: opts.authHeaders })
+          }
+
           // On 403, re-authenticate by fetching a fresh download URL
           if (res.status === 403 && opts.refreshUrl && att.sourceId) {
             const freshUrl = await opts.refreshUrl(att)
             if (freshUrl) {
               url = freshUrl
-              res = await fetch(url)
+              res = await fetch(url, opts.authHeaders ? { headers: opts.authHeaders } : undefined)
             }
           }
 

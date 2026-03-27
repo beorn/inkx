@@ -10,7 +10,7 @@
  */
 
 import { readFileSync } from "node:fs"
-import { Command } from "@silvery/commander"
+import { Command, int } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
@@ -119,7 +119,7 @@ perfCommand
   .argument("<file>", "Path to trace file (JSONL format)")
   .option("--json", "Output as JSON")
   .option("--sort <field>", "Sort by field (avg, total, count, max, p95)", "total")
-  .option("--limit <n>", "Limit output to top N spans", parseInt)
+  .option("--limit <n>", "Limit output to top N spans", int)
   .action((file: string, options: AnalyzeOptions) => {
     // Parse trace file
     let spans: SpanEntry[]
