@@ -347,14 +347,15 @@ function navigateHorizontal(
   repo: Repo,
   navigator: GridNavigator,
 ): string | null {
-  const { cursorNodeId, rootId } = state
+  const { cursorNodeId, rootId, ignoredNodeIds } = state
 
   // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
   // Treat as body column header: l → first structural column header, h → boundary.
   if (cursorNodeId.startsWith("__body__")) {
     if (dir === "left") return null // Body column is leftmost
     const allChildren = repo.getChildren(rootId)
-    const { structuralCols } = splitBodyAndColumns(allChildren)
+    const { structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+    const structuralCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
     if (structuralCols.length === 0) return null
     // Navigate to structural column header (column-to-column navigation)
     return structuralCols[0]?.id ?? null
@@ -373,7 +374,9 @@ function navigateHorizontal(
   // This mirrors the view layer's extractBody split — body nodes are grouped
   // into a single virtual "Description" column, only oi nodes are real columns.
   const allChildren = repo.getChildren(rootId)
-  const { bodyNodes, structuralCols } = splitBodyAndColumns(allChildren)
+  const { bodyNodes: rawBodyNodes, structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+  const bodyNodes = ignoredNodeIds ? rawBodyNodes.filter((n) => !ignoredNodeIds.has(n.id)) : rawBodyNodes
+  const structuralCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
   const hasBody = bodyNodes.length > 0
 
   // Determine if cursor is in body content (before the first oi node).
