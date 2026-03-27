@@ -109,9 +109,13 @@ CREATE TABLE IF NOT EXISTS links (
   alias TEXT,                  -- Display alias (|alias)
   embedded INTEGER DEFAULT 0,  -- 1 if this is an embedding (![[...]]), 0 otherwise
   relationship TEXT,           -- Property name for property-based links (null for wikilinks)
-  created_at INTEGER,
-  PRIMARY KEY (source_id, target_name, section, block_id, relationship)
+  created_at INTEGER
 );
+
+-- Unique constraint using COALESCE to handle NULLs (SQLite treats NULL != NULL in PRIMARY KEY,
+-- which caused duplicate rows for simple wikilinks where section/block_id/relationship are NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_links_unique
+  ON links(source_id, target_name, COALESCE(section, ''), COALESCE(block_id, ''), COALESCE(relationship, ''));
 
 CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);
 CREATE INDEX IF NOT EXISTS idx_links_target_name ON links(target_name);
@@ -171,6 +175,65 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
     db.run("DROP INDEX IF EXISTS idx_nodes_parent")
   } catch {
     /* ignore */
+  }
+
+  // Migrate links table: replace NULL-unfriendly PRIMARY KEY with COALESCE-based UNIQUE index.
+  // SQLite treats NULL != NULL in composite PRIMARY KEYs, so INSERT OR REPLACE didn't deduplicate
+  // rows where section/block_id/relationship were NULL — causing duplicate link rows.
+  migrateLinksTable(db)
+}
+
+/**
+ * Migrate links table from NULL-unfriendly PRIMARY KEY to COALESCE-based UNIQUE index.
+ *
+ * The old schema had `PRIMARY KEY (source_id, target_name, section, block_id, relationship)`
+ * but SQLite treats NULL != NULL in PRIMARY KEYs, so INSERT OR REPLACE couldn't deduplicate
+ * rows where section/block_id/relationship were NULL. This recreates the table without the
+ * composite PK, deduplicates existing data, and lets the SCHEMA's CREATE UNIQUE INDEX handle
+ * future deduplication.
+ */
+function migrateLinksTable(db: import("bun:sqlite").Database): void {
+  // Check if links table exists
+  const linksExists = db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='links'").get()
+  if (!linksExists) return
+
+  // Check if it still has the old PRIMARY KEY (by checking for our new unique index)
+  const hasNewIndex = db.query("SELECT name FROM sqlite_master WHERE type='index' AND name='idx_links_unique'").get()
+  if (hasNewIndex) return // Already migrated
+
+  // Recreate with deduplication: keep the row with the latest created_at per unique key
+  db.run("BEGIN IMMEDIATE")
+  try {
+    db.run("ALTER TABLE links RENAME TO links_old")
+
+    // Create new table without PRIMARY KEY (the UNIQUE index in SCHEMA handles uniqueness)
+    db.run(`
+      CREATE TABLE links (
+        source_id TEXT NOT NULL,
+        target_name TEXT NOT NULL,
+        target_id TEXT,
+        section TEXT,
+        block_id TEXT,
+        alias TEXT,
+        embedded INTEGER DEFAULT 0,
+        relationship TEXT,
+        created_at INTEGER
+      )
+    `)
+
+    // Copy deduplicated data — keep the row with the latest created_at per unique key
+    db.run(`
+      INSERT INTO links (source_id, target_name, target_id, section, block_id, alias, embedded, relationship, created_at)
+      SELECT source_id, target_name, target_id, section, block_id, alias, embedded, relationship, MAX(created_at)
+      FROM links_old
+      GROUP BY source_id, target_name, COALESCE(section, ''), COALESCE(block_id, ''), COALESCE(relationship, '')
+    `)
+
+    db.run("DROP TABLE links_old")
+    db.run("COMMIT")
+  } catch (error) {
+    db.run("ROLLBACK")
+    throw error
   }
 }
 
