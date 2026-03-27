@@ -6,6 +6,7 @@
  */
 
 import type { Repo, CreateRepoOptions } from "@km/storage"
+import { existsSync } from "fs"
 
 export interface LoadRepoOptions extends CreateRepoOptions {
   /** Show progress display during loading (default: auto-detect TTY) */
@@ -29,6 +30,11 @@ export interface LoadRepoOptions extends CreateRepoOptions {
  * })
  */
 export async function loadRepo(rootPath: string, options: LoadRepoOptions = {}): Promise<Repo> {
+  if (!existsSync(rootPath)) {
+    console.error(`error: vault not found: ${rootPath}`)
+    process.exit(1)
+  }
+
   // Auto-detect TTY: show progress in interactive mode, silent in scripts/pipes
   const { showProgress = process.stdout.isTTY === true, ...createOptions } = options
 
