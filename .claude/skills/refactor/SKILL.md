@@ -40,7 +40,7 @@ When extracting packages from a monolith:
 
 2. **One package per session.** Extract one package fully (copy → delete from old → fix breaks → test) before starting the next. Extracting 5 packages in parallel leads to shallow implementations (copy without delete, missing tests).
 
-3. **Copy = debt until deletion.** When you copy code to a new package, the old copy is now tech debt. Either delete the old copy in the same commit, or create a tracking bead with explicit scope. Never leave both copies "temporarily."
+3. **Copy = debt until deletion.** When you copy code to a new package, the old copy is now tech debt. In the SAME commit: (a) verify the new copy works, (b) replace the old copy with a re-export from the new location (or delete it entirely), (c) run tests. Never leave both copies as independent implementations — duplicated code that compiles is invisible to tests and types, so it will never be caught unless you fix it now. (See Case Study 7 in docs/lessons/refactoring.md.)
 
 4. **Every new package needs tests in the same commit.** Not "will add tests later." At minimum: `test("exports are defined", () => expect(createFoo).toBeDefined())`. The era2 audit found @silvery/commands shipped with zero tests.
 

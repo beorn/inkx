@@ -226,6 +226,27 @@ function oldApi(args) {
 
 ---
 
+## Case Study 7: @silvery/ansi 1.0 (copy without delete)
+
+**Bead**: km-silvery.style (final phase — merge @silvery/style into @silvery/ansi)
+
+**Problem**: Copied OSC query files from ag-term and theme types/derive from @silvery/theme into @silvery/ansi. The new copies worked and tests passed. But the old copies in ag-term and @silvery/theme remained as full local implementations — not re-exports. 5 dual-pattern issues found by /complete.
+
+**Root cause — copy-then-forget**: The /refactor skill says "copy → delete from old → fix breaks → test" as ONE sequence. But the implementation treated "copy to new location" and "replace old with re-export" as separate steps. By the time /complete ran, the old copies were forgotten because nothing was broken.
+
+**Root cause — no break = no urgency**: Unlike a deleted API (which produces tsc errors), a duplicated file causes zero errors. ag-term's barrel still exported from its local copy. ag-react re-exported from ag-term. Everything compiled. The duplication was invisible to tests and types.
+
+**Root cause — move verification not part of the commit**: "Move X from A to B" should be verified atomically: (1) B exports X, (2) A re-exports from B (or is deleted). The implementation verified (1) but not (2).
+
+**Lesson**: After any "move X from A to B" operation, in the SAME commit:
+1. Verify B has X: `grep X in B` (>0)
+2. Replace A's local copy with `export { X } from "B"` (re-export, not local code)
+3. Run tests to verify the re-export chain works
+
+If step 2 is deferred "for later," it will be forgotten. The old copy compiles, passes tests, and nobody notices until a manual audit.
+
+---
+
 ## Quick Checklist
 
 Before starting a big refactor:
