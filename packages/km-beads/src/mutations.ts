@@ -16,7 +16,10 @@ import { generateShortId, generateCustomId, generateSubId } from "./short-ids.ts
  * Note: This creates an in-memory node structure.
  * Actual persistence requires integration with km-storage.
  */
-export function createIssueNode(title: string, options: CreateIssueOptions = {}): { node: KNode; shortId: string } {
+export function createIssueNode(
+  title: string,
+  options: CreateIssueOptions = {},
+): { node: KNode; shortId: string; children: KNode[] } {
   const now = Date.now()
   const id = ulid()
 
@@ -81,7 +84,46 @@ export function createIssueNode(title: string, options: CreateIssueOptions = {})
     version: "",
   }
 
-  return { node, shortId }
+  // Build child nodes for description and notes
+  const children: KNode[] = []
+  if (options.description) {
+    children.push({
+      id: ulid(),
+      type: "p",
+      item: false,
+      list_marker: null,
+      parent_id: id,
+      parent_idx: 0,
+      content: options.description,
+      task_status: null,
+      task_marker: null,
+      priority: null,
+      data: {},
+      created_at: now,
+      updated_at: now,
+      version: "",
+    })
+  }
+  if (options.notes) {
+    children.push({
+      id: ulid(),
+      type: "p",
+      item: false,
+      list_marker: null,
+      parent_id: id,
+      parent_idx: children.length,
+      content: options.notes,
+      task_status: null,
+      task_marker: null,
+      priority: null,
+      data: {},
+      created_at: now,
+      updated_at: now,
+      version: "",
+    })
+  }
+
+  return { node, shortId, children }
 }
 
 /**
@@ -89,15 +131,15 @@ export function createIssueNode(title: string, options: CreateIssueOptions = {})
  *
  * Returns a partial node with updated fields.
  */
-export function updateIssueFields(
-  issue: Issue,
-  changes: {
-    status?: Issue["status"]
-    priority?: string
-    assignee?: string
-    title?: string
-  },
-): Partial<KNode> {
+export interface UpdateIssueChanges {
+  status?: Issue["status"]
+  priority?: string
+  assignee?: string
+  title?: string
+  type?: string
+}
+
+export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Partial<KNode> {
   const updates: Partial<KNode> = {
     updated_at: Date.now(),
   }

@@ -48,4 +48,6 @@ export interface CreateIssueOptions {
   customId?: string // Custom short ID
   parentId?: string // For sub-issues
   path?: string // Where to create
+  description?: string // Body text (created as child paragraph)
+  notes?: string // Additional notes (created as child paragraph after description)
 }

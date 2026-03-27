@@ -244,6 +244,8 @@ bdCommand
   .option("-p, --priority <value>", "Priority (e.g. P0-P4 or 0-4, default: P2)")
   .option("-a, --assignee <name>", "Assign to person")
   .option("-l, --label <labels...>", "Add labels")
+  .option("-d, --description <text>", "Issue description")
+  .option("-n, --notes <text>", "Additional notes")
   .option("--id <custom>", "Custom short ID")
   .option("--parent <id>", "Parent issue for sub-issues")
   .option("--json", "Output as JSON")
@@ -252,13 +254,15 @@ bdCommand
     const configObj = loadConfigObject(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const { node, shortId } = createIssueNode(title, {
+    const { node, shortId, children } = createIssueNode(title, {
       type: opts.type,
       priority: opts.priority,
       assignee: opts.assignee,
       labels: opts.label,
       customId: opts.id,
       parentId: opts.parent,
+      description: opts.description,
+      notes: opts.notes,
     })
 
     // Resolve parent: explicit --parent flag, or config default
@@ -275,7 +279,13 @@ bdCommand
       }
     }
 
-    repo.addNode(parentId, node)
+    const nodeId = repo.addNode(parentId, node)
+
+    // Add description/notes as child paragraph nodes
+    for (const child of children) {
+      child.parent_id = nodeId
+      repo.addNode(nodeId, child)
+    }
 
     if (opts.json) {
       console.log(JSON.stringify({ shortId, node }, null, 2))
@@ -283,19 +293,25 @@ bdCommand
     }
 
     console.log(term.green(`Created issue: ${shortId}`))
-    console.log(term.dim(`Title: ${title}`))
-    if (opts.type) console.log(term.dim(`Type: ${opts.type}`))
-    console.log(term.dim(`Priority: ${opts.priority ?? "P2"}`))
+    console.log(`Title: ${title}`)
+    if (opts.type) console.log(`Type: ${opts.type}`)
+    console.log(`Priority: ${opts.priority ?? "P2"}`)
+    if (opts.description)
+      console.log(`Description: ${opts.description.slice(0, 60)}${opts.description.length > 60 ? "..." : ""}`)
   })
 
 // bd update [id] - Update issue fields
 const updateCmd = bdCommand
   .command("update [id]")
-  .description("Update issue status, priority, or assignee")
+  .description("Update issue fields")
   .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
   .option("-p, --priority <value>", "Set priority (e.g. P0-P4 or 0-4)")
   .option("-a, --assignee <name>", "Set assignee")
   .option("-t, --title <title>", "Set title")
+  .option("-d, --description <text>", "Set description (replaces first child paragraph)")
+  .option("-n, --notes <text>", "Append notes (adds child paragraph)")
+  .option("--type <type>", "Set issue type")
+  .option("--claim", "Claim issue (set status=wip + assignee to you)")
   .action(async (id, opts) => {
     if (!id) {
       updateCmd.outputHelp()
@@ -311,25 +327,60 @@ const updateCmd = bdCommand
       return
     }
 
+    // Handle --claim: set status + assignee atomically
+    if (opts.claim) {
+      let gitUser = "unknown"
+      try {
+        const { execSync } = await import("child_process")
+        gitUser = execSync("git config user.name", { encoding: "utf-8" }).trim()
+      } catch {}
+      opts.status = opts.status ?? "wip"
+      opts.assignee = opts.assignee ?? gitUser
+    }
+
     const changes: Parameters<typeof updateIssueFields>[1] = {}
     if (opts.status) changes.status = opts.status as Issue["status"]
     if (opts.priority !== undefined) changes.priority = opts.priority
     if (opts.assignee) changes.assignee = opts.assignee
     if (opts.title) changes.title = opts.title
+    if (opts.type) changes.type = opts.type
 
     const updates = updateIssueFields(issue, changes)
     repo.updateNode(issue.id, updates)
 
+    // Handle --description: replace or create first child paragraph
+    if (opts.description) {
+      const children = repo.getChildren(issue.id)
+      const firstParagraph = children.find((c) => c.type === "p" && !c.task_status)
+      if (firstParagraph) {
+        repo.updateNode(firstParagraph.id, { content: opts.description, updated_at: Date.now() })
+      } else {
+        repo.addNode(issue.id, {
+          type: "p",
+          content: opts.description,
+          created_at: Date.now(),
+          updated_at: Date.now(),
+        })
+      }
+    }
+
+    // Handle --notes: append as new child paragraph
+    if (opts.notes) {
+      repo.addNode(issue.id, {
+        type: "p",
+        content: opts.notes,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      })
+    }
+
     console.log(term.green(`Updated ${issue.shortId}:`))
-    if (updates.task_status) {
-      console.log(term.dim(`  Status: ${updates.task_status}`))
-    }
-    if (updates.priority !== undefined) {
-      console.log(term.dim(`  Priority: ${updates.priority}`))
-    }
-    if (updates.content) {
-      console.log(term.dim(`  Title: ${updates.content}`))
-    }
+    if (opts.claim) console.log(`  Claimed by ${opts.assignee}`)
+    if (updates.task_status && !opts.claim) console.log(`  Status: ${updates.task_status}`)
+    if (updates.priority !== undefined) console.log(`  Priority: ${updates.priority}`)
+    if (updates.content) console.log(`  Title: ${updates.content}`)
+    if (opts.description) console.log(`  Description updated`)
+    if (opts.notes) console.log(`  Notes appended`)
   })
 
 // bd close [id] - Close an issue
@@ -761,6 +812,55 @@ bdCommand
     for (const issue of issues) {
       printIssue(issue)
     }
+  })
+
+// bd rename <old-id> <new-id> - Rename an issue
+const renameCmd = bdCommand
+  .command("rename <old-id> <new-id>")
+  .description("Rename an issue ID (updates all references)")
+  .action(async (oldId: string, newId: string) => {
+    const resolved = resolvePathArg(undefined)
+    using repo = await loadRepo(resolved.repoRoot)
+    const issue = resolveIssueArg(repo, oldId)
+    if (!issue) {
+      console.error(term.red(`Issue not found: ${oldId}`))
+      process.exitCode = 1
+      return
+    }
+
+    // Update the short_id on the node
+    const node = repo.getNode(issue.id)
+    const data = (node?.data as Record<string, unknown>) ?? {}
+    repo.updateNode(issue.id, {
+      data: { ...data, short_id: newId },
+      updated_at: Date.now(),
+    })
+
+    // Update blocked-by references across all issues
+    const allIssues = queryIssues({}, undefined, undefined, { repo })
+    let refCount = 0
+    for (const other of allIssues) {
+      if (other.blockedBy?.includes(oldId)) {
+        const otherNode = repo.getNode(other.id)
+        const otherData = (otherNode?.data as Record<string, unknown>) ?? {}
+        const props = otherData.props as Record<string, any> | undefined
+        if (props?.["blocked-by"]) {
+          const bp = props["blocked-by"]
+          if (bp.type === "link" && bp.target === oldId) {
+            bp.target = newId
+          } else if (bp.type === "list" && bp.values) {
+            for (const v of bp.values) {
+              if (v.target === oldId) v.target = newId
+            }
+          }
+          repo.updateNode(other.id, { data: { ...otherData, props }, updated_at: Date.now() })
+          refCount++
+        }
+      }
+    }
+
+    console.log(term.green(`Renamed ${oldId} → ${newId}`))
+    if (refCount > 0) console.log(`Updated ${refCount} dependency reference${refCount > 1 ? "s" : ""}`)
   })
 
 // Add extracted subcommands
