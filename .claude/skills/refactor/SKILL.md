@@ -80,3 +80,29 @@ Use `tribe_broadcast` or `tribe_send` to the chief: "Starting disruptive refacto
 Send an all-clear when the refactor is stable (tests pass).
 
 **When to use a worktree instead**: If the refactor will take >30 min or touch >20 files, prefer `bun worktree` to avoid disrupting other sessions entirely. Worktrees are free — the overhead of creating one is far less than the cost of blocking the tribe.
+
+## Retrospective (after all phases complete)
+
+After closing a refactoring bead, write a brief retrospective in the bead notes or as a commit message. Include:
+
+### Impact Analysis
+- **Lines**: total added/removed across all repos (`git diff --shortstat`)
+- **Files touched**: count and categories (new package, migration, docs, tests)
+- **Dependencies**: added/removed/moved (e.g., "chalk moved from deps to devDeps")
+- **npm**: packages published, version bumps
+- **Test delta**: tests added, test files added, coverage changes
+
+### What Went Well
+- Techniques that worked (parallel agents, break-then-fix, specific tooling)
+- Design decisions that held up under implementation
+
+### What Didn't Go Well
+- Bead drift (items marked done that weren't)
+- Pragmatic deviations that weren't recorded
+- Scope creep or missed scope
+- Time spent on unexpected issues
+
+### Value Assessment
+- **Before**: describe the problem state (duplication, missing types, stale deps)
+- **After**: describe what's better (unified API, validated inputs, fewer deps)
+- **Was it worth it?**: honest assessment — some refactors don't pay off
