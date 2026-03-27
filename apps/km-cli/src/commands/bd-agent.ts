@@ -26,18 +26,11 @@ import { getRootPath } from "../program.ts"
 export const bdAgentCommand = new Command("agent")
   .description("Assign issues to agents and manage work queues")
   .allowUnknownOption(false)
-  .addHelpText(
-    "after",
-    `
-Agents work through assigned issues autonomously. Create agents with
-'km agent spawn', then assign issues or let them auto-claim from the
-backlog with 'bd agent claim'.
-
-Example workflow:
-  km agent spawn "Worker" -h code-reviewer   # Create agent
-  bd agent assign agent-1 km-a1b2            # Assign issue
-  bd agent run agent-1                       # Start working`,
-  )
+  .addHelpSection("Example workflow:", [
+    ['km agent spawn "Worker" -h code-reviewer', "Create agent"],
+    ["bd agent assign agent-1 km-a1b2", "Assign issue"],
+    ["bd agent run agent-1", "Start working"],
+  ])
 
 // bd agent ls - List agents (alias for km agent ls)
 bdAgentCommand

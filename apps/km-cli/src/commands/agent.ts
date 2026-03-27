@@ -65,52 +65,26 @@ interface RunOptions {
 
 export const agentCommand = new Command("agent")
   .description("AI agent lifecycle and runtime management")
-  .addHelpText(
-    "after",
-    `
-Agents are AI assistants that can work on tasks autonomously. Each agent has:
-  - A model (e.g., claude-sonnet-4) that powers its reasoning
-  - A harness that defines available tools and constraints
-  - A work queue of assigned issues from the beads system
-
-Lifecycle Commands:
-  km agent ls              List all agents
-  km agent spawn <name>    Create a new agent
-  km agent stop <id>       Stop an agent gracefully
-  km agent kill <id>       Force kill an agent
-
-Execution Commands:
-  km agent run <id> [prompt]    Run agent with prompt (one-shot)
-    --target <path|id|@ref>     Work on ANY task in repo
-    --continuous                Process work queue continuously
-
-Configuration:
-  km agent harnesses       List available harnesses
-  km agent show <id>       Show agent details
-
-Sessions:
-  km agent sessions [id]   List agent sessions
-  km agent session <id>    View session transcript
-
-Related commands:
-  km bd agent queue <id>   Show agent's assigned issues
-  km bd agent assign       Assign beads issues to agents
-  km bd agent claim        Agent claims next ready beads issue
-
-Target Resolution (--target):
-  --target accepts any task reference that km can resolve:
-    ./path/to/file.md     File path (relative or absolute)
-    @next                 @ref shortcut
-    01ABC123              Node ID or prefix
-    km-a1b2               Beads issue short ID
-
-Examples:
-  km agent spawn "Code Assistant" -m claude-sonnet-4
-  km agent run agent-1 "Review the authentication code"
-  km agent run agent-1 --target ./Projects/auth.md
-  km agent run agent-1 --target @next
-  km agent run agent-1 --target km-a1b2
-  km agent ls --status running`,
+  .addHelpSection("Lifecycle:", [
+    ["km agent ls", "List all agents"],
+    ["km agent spawn <name>", "Create a new agent"],
+    ["km agent stop <id>", "Stop an agent gracefully"],
+    ["km agent kill <id>", "Force kill an agent"],
+  ])
+  .addHelpSection("Execution:", [
+    ["km agent run <id> [prompt]", "Run agent with prompt (one-shot)"],
+    ["  --target <path|id|@ref>", "Work on ANY task in repo"],
+    ["  --continuous", "Process work queue continuously"],
+  ])
+  .addHelpSection("Configuration:", [
+    ["km agent harnesses", "List available harnesses"],
+    ["km agent show <id>", "Show agent details"],
+    ["km agent sessions [id]", "List agent sessions"],
+    ["km agent session <id>", "View session transcript"],
+  ])
+  .addHelpSection(
+    "Examples:",
+    'km agent spawn "Code Assistant" -m claude-sonnet-4\nkm agent run agent-1 "Review the authentication code"\nkm agent run agent-1 --target @next',
   )
   .allowUnknownOption(false)
 

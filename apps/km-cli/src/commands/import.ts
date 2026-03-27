@@ -106,30 +106,14 @@ function logImportSuccess(action: string, count: number, source?: string): void 
 function createAsanaCommand(): Command {
   const cmd = new Command("asana")
     .description("Import from Asana")
-    .addHelpText(
-      "after",
-      `
-Pipeline:
-  1. Auth     Prompts for Asana PAT on first run, validates, saves to
-              ~/.config/km/import.json (token + default workspace).
-              Use --auth to reconfigure, --auth-token for one-time override.
-
-  2. Fetch    Asana API → .km/imports/asana-<ts>/<project>.json
-              One JSON file per project with tasks, subtasks, comments,
-              attachments. Also saves raw API responses (_recording.json).
-              Auto-resumes if interrupted (use --fetch-restart to start over).
-
-  3. Convert  Download → imports/asana/*.md (or --out)
-              One markdown file per project with sections, task metadata,
-              comments, attachments, and subtask hierarchy.
-
-  Downloads go to <root>/.km/imports/ (hidden from km).
-  Markdown output goes to <root>/imports/asana/ (browsable in km).
-  By default steps 2+3 run together. Use --fetch or --import to run one step.
-  Run with no flags to list your Asana projects and download history.
-
-  [root] can be a km repository path. If omitted, auto-detects from cwd.
-`,
+    .addHelpSection("Pipeline:", [
+      ["1. Auth", "Prompts for Asana PAT, saves to ~/.config/km/import.json"],
+      ["2. Fetch", "Asana API → .km/imports/asana-<ts>/<project>.json"],
+      ["3. Convert", "Download → imports/asana/*.md (or --out)"],
+    ])
+    .addHelpSection(
+      "Notes:",
+      "Downloads go to <root>/.km/imports/ (hidden from km).\nMarkdown output goes to <root>/imports/asana/ (browsable in km).\nUse --fetch or --import to run one step. No flags = list projects.",
     )
     .argument("[root]", "km repository root (default: auto-detect)")
 
@@ -410,28 +394,24 @@ Pipeline:
 function createCsvCommand(): Command {
   const cmd = new Command("csv")
     .description("Import from CSV or TSV file")
-    .addHelpText(
-      "after",
-      `
-Pipeline:
-  1. Parse    CSV/TSV → ImportData (auto-detects delimiter)
-  2. Convert  ImportData → markdown files
-  3. Write    Markdown → <root>/imports/csv/ (or --out)
-
-Expected columns (case-insensitive, all optional except title):
-  title (or name, task)  — Task title (required)
-  status                 — todo, done, wip, blocked, dropped
-  body (or description)  — Task body text
-  assignee               — @mention name
-  due (or due_date)      — Due date (YYYY-MM-DD)
-  start (or start_date)  — Start date
-  priority (or p)        — 1-4
-  tags (or labels)       — Comma-separated tags
-  project (or section)   — Groups tasks into sections
-  parent                 — Parent task title (for hierarchy)
-  id (or source_id)      — Unique identifier
-`,
-    )
+    .addHelpSection("Pipeline:", [
+      ["1. Parse", "CSV/TSV → ImportData (auto-detects delimiter)"],
+      ["2. Convert", "ImportData → markdown files"],
+      ["3. Write", "Markdown → <root>/imports/csv/ (or --out)"],
+    ])
+    .addHelpSection("Expected columns:", [
+      ["title (or name, task)", "Task title (required)"],
+      ["status", "todo, done, wip, blocked, dropped"],
+      ["body (or description)", "Task body text"],
+      ["assignee", "@mention name"],
+      ["due (or due_date)", "Due date (YYYY-MM-DD)"],
+      ["start (or start_date)", "Start date"],
+      ["priority (or p)", "1-4"],
+      ["tags (or labels)", "Comma-separated tags"],
+      ["project (or section)", "Groups tasks into sections"],
+      ["parent", "Parent task title (for hierarchy)"],
+      ["id (or source_id)", "Unique identifier"],
+    ])
     .argument("<file>", "CSV or TSV file to import")
     .argument("[root]", "km repository root (default: auto-detect)")
     .option("-o, --out <dir>", "Output directory (default: <root>/imports/csv/)")
