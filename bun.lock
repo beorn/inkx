@@ -108,6 +108,7 @@
         "@km/tree": "workspace:*",
         "@km/tui": "workspace:*",
         "@silvery/ag-react": "workspace:*",
+        "@silvery/commander": "workspace:*",
         "bearly": "workspace:*",
         "commander": "^13.1.0",
         "react": "catalog:",
@@ -263,13 +264,14 @@
         "accountly": "./src/cli.ts",
       },
       "dependencies": {
+        "@silvery/commander": "^0.1.0",
         "commander": "^14.0.0",
         "picocolors": "^1.1.1",
       },
     },
     "vendor/bearly": {
       "name": "bearly",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.63",
         "@ai-sdk/google": "^3.0.52",
@@ -277,6 +279,7 @@
         "@ai-sdk/perplexity": "^3.0.25",
         "@ai-sdk/xai": "^3.0.72",
         "@modelcontextprotocol/sdk": "^1.27.1",
+        "@silvery/commander": "^0.1.0",
         "@termless/core": "^0.3.0",
         "@termless/xtermjs": "^0.3.0",
         "ai": "^6.0.134",
@@ -317,7 +320,7 @@
     },
     "vendor/flexily": {
       "name": "flexily",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "devDependencies": {
         "typescript": "^5.9.3",
         "vitepress": "^1.6.3",
@@ -327,7 +330,7 @@
     },
     "vendor/loggily": {
       "name": "loggily",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "vitepress": "^1.6.4",
@@ -336,7 +339,7 @@
     },
     "vendor/mdtest": {
       "name": "mdspec",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "bin": {
         "mdspec": "./src/index.ts",
       },
@@ -350,6 +353,7 @@
       },
       "devDependencies": {
         "@commander-js/extra-typings": "^14.0.0",
+        "@silvery/commander": "^0.1.0",
         "@types/bun": "latest",
         "@types/debug": "^4.1.12",
         "@types/mdast": "^4.0.4",
@@ -368,8 +372,9 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.5.0",
+      "version": "0.6.0",
       "dependencies": {
+        "@silvery/commander": "workspace:*",
         "chalk": "^5.6.2",
         "loggily": "github:beorn/loggily",
         "react-reconciler": "^0.33.0",
@@ -429,6 +434,18 @@
         "@silvery/theme": "workspace:*",
         "flexily": "github:beorn/flexily",
       },
+    },
+    "vendor/silvery/packages/commander": {
+      "name": "@silvery/commander",
+      "version": "0.1.0",
+      "peerDependencies": {
+        "@commander-js/extra-typings": ">=12.0.0",
+        "commander": ">=12.0.0",
+      },
+      "optionalPeers": [
+        "@commander-js/extra-typings",
+        "commander",
+      ],
     },
     "vendor/silvery/packages/commands": {
       "name": "@silvery/commands",
@@ -510,6 +527,7 @@
         "tap": "./src/cli/runner.ts",
       },
       "dependencies": {
+        "@silvery/commander": "^0.1.0",
         "commander": "^14.0.1",
         "tap-parser": "^18.3.0",
       },
@@ -517,6 +535,7 @@
     "vendor/terminfo.dev": {
       "name": "terminfo.dev",
       "dependencies": {
+        "@silvery/commander": "^0.1.0",
         "@termless/core": "^0.4.0",
         "commander": "^13.1.0",
         "loggily": "^0.4.0",
@@ -529,7 +548,7 @@
     },
     "vendor/termless": {
       "name": "@termless/core",
-      "version": "0.4.0",
+      "version": "0.5.0",
       "devDependencies": {
         "@termless/alacritty": "workspace:*",
         "@termless/kitty": "workspace:*",
@@ -679,7 +698,7 @@
     },
     "vendor/vimonkey": {
       "name": "vimonkey",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "debug": "^4.4.0",
       },
@@ -711,6 +730,7 @@
     "@silvery/ag": "vendor/silvery/packages/ag",
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
+    "@silvery/commander": "vendor/silvery/packages/commander",
     "@silvery/commands": "vendor/silvery/packages/commands",
     "@silvery/create": "vendor/silvery/packages/create",
     "@silvery/headless": "vendor/silvery/packages/headless",
@@ -1313,6 +1333,8 @@
     "@silvery/ag-react": ["@silvery/ag-react@workspace:vendor/silvery/packages/ag-react"],
 
     "@silvery/ag-term": ["@silvery/ag-term@workspace:vendor/silvery/packages/ag-term"],
+
+    "@silvery/commander": ["@silvery/commander@workspace:vendor/silvery/packages/commander"],
 
     "@silvery/commands": ["@silvery/commands@workspace:vendor/silvery/packages/commands"],
 

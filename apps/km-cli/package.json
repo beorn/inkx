@@ -22,6 +22,7 @@
     "@km/tree": "workspace:*",
     "@km/tui": "workspace:*",
     "@silvery/ag-react": "workspace:*",
+    "@silvery/commander": "workspace:*",
     "bearly": "workspace:*",
     "commander": "^13.1.0",
     "react": "catalog:"
