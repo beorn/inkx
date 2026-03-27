@@ -57,7 +57,7 @@ export async function createTask(
     return
   }
 
-  console.log(term.green("Created task:"), nodeId.slice(0, 8))
+  console.log(term.green("Created task:"), nodeId.slice(-8))
 }
 
 /**
@@ -88,7 +88,7 @@ export async function markDone(pathOrId: string | undefined, options: { json?: b
     return
   }
 
-  console.log(term.green("✓"), "Marked as done:", task.id.slice(0, 8))
+  console.log(term.green("✓"), "Marked as done:", task.id.slice(-8))
 }
 
 /**
@@ -127,7 +127,7 @@ export async function claimTask(pathOrId: string | undefined, options: { json?: 
     return
   }
 
-  console.log(term.green("◐"), "Claimed:", task.id.slice(0, 8))
+  console.log(term.green("◐"), "Claimed:", task.id.slice(-8))
 }
 
 /**
@@ -159,7 +159,7 @@ export async function releaseTask(pathOrId: string | undefined, options: { json?
     return
   }
 
-  console.log(term.dim("○"), "Released:", task.id.slice(0, 8))
+  console.log(term.dim("○"), "Released:", task.id.slice(-8))
 }
 
 /**
@@ -193,5 +193,5 @@ export async function assignTask(
     return
   }
 
-  console.log(term.green("→"), `Assigned to ${user}:`, task.id.slice(0, 8))
+  console.log(term.green("→"), `Assigned to ${user}:`, task.id.slice(-8))
 }

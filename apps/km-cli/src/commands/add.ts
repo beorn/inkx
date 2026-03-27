@@ -281,7 +281,7 @@ export const addCommand = new Command("add")
         for (const task of tasksToLink) {
           const needsSigil = sigilStr && tasksToSigil.some((t) => t.id === task.id)
           const suffix = needsSigil ? term.cyan(` (+ ${sigilStr})`) : ""
-          console.log(`  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}${suffix}`)
+          console.log(`  ${term.dim(task.id.slice(-8))} ${(task.content || "").slice(0, 50)}${suffix}`)
         }
       }
       // Tasks that only need sigil (already linked but missing sigil)
@@ -290,14 +290,14 @@ export const addCommand = new Command("add")
         console.log(term.cyan(`\nWould add ${sigilStr} to (already linked):`))
         for (const task of sigilOnly) {
           console.log(
-            `  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)} ${term.cyan(`(+ ${sigilStr})`)}`,
+            `  ${term.dim(task.id.slice(-8))} ${(task.content || "").slice(0, 50)} ${term.cyan(`(+ ${sigilStr})`)}`,
           )
         }
       }
       if (skipped.length > 0) {
         console.log(term.yellow(`\nSkipped (already linked + tagged):`))
         for (const task of skipped) {
-          console.log(`  ${term.dim(task.id.slice(0, 8))} ${(task.content || "").slice(0, 50)}`)
+          console.log(`  ${term.dim(task.id.slice(-8))} ${(task.content || "").slice(0, 50)}`)
         }
       }
       console.log(term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`))
@@ -385,7 +385,7 @@ export const addCommand = new Command("add")
     if (tasksToLink.length > 0) {
       console.log(term.green("✓"), `Linked ${tasksToLink.length} task(s) to ${targetNode.content || target}`)
       for (const task of tasksToLink.slice(0, 5)) {
-        console.log(term.dim(`  ${task.id.slice(0, 8)} ${(task.content || "").slice(0, 40)}`))
+        console.log(term.dim(`  ${task.id.slice(-8)} ${(task.content || "").slice(0, 40)}`))
       }
       if (tasksToLink.length > 5) {
         console.log(term.dim(`  ... and ${tasksToLink.length - 5} more`))

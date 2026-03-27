@@ -152,7 +152,7 @@ export function getDisplayContent(
     const cleaned = cleanEmbedRef(src)
     if (cleaned) return cleaned
     // Bare block ref (^id) or empty — show broken link fallback with short ID
-    return `(broken: ^${src.slice(0, 8) || node.id.slice(0, 8)})`
+    return `(broken: ^${src.slice(-8) || node.id.slice(-8)})`
   }
   if (isOutline(displayNode.type, displayNode.item) && displayNode.fstype === "mdsection") {
     const name = getNodeDisplayName(repo, displayNode)

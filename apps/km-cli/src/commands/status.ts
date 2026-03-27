@@ -143,6 +143,6 @@ export const statusCommand = new Command("status")
 
     const icon = getStatusIcon(newStatus)
     console.log(
-      `${icon} ${term.dim(node.id.slice(0, 8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
+      `${icon} ${term.dim(node.id.slice(-8))} → ${newStatus}: ${node.content?.slice(0, 50) ?? "(no content)"}`,
     )
   })

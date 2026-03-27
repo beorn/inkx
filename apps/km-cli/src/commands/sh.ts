@@ -331,7 +331,7 @@ function getNodeName(node: KNode): string {
     }
   }
   // Last resort: short ID
-  return node.id.slice(0, 8)
+  return node.id.slice(-8)
 }
 
 /**

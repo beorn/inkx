@@ -297,7 +297,7 @@ function showTaskDetails(repo: Repo, task: KNode, options: { json?: boolean }): 
     console.log(term.dim("Assigned:"), task.assigned_to)
   }
   if (task.parent_id) {
-    console.log(term.dim("Parent:"), task.parent_id.slice(0, 8))
+    console.log(term.dim("Parent:"), task.parent_id.slice(-8))
   }
   console.log(term.dim("Created:"), new Date(task.created_at ?? Date.now()).toISOString())
 

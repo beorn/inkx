@@ -54,7 +54,7 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
   const style = createTermStyle()
   let prefix = ""
   if (showId) {
-    prefix = style.dim(`[${ca.node.id.slice(0, 5)}] `)
+    prefix = style.dim(`[${ca.node.id.slice(-5)}] `)
   }
 
   const name = getNodeDisplayNameBase(ca.node, (id) => repo.getChildren(id))
@@ -85,7 +85,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   const style = createTermStyle()
   let prefix = ""
   if (showId) {
-    prefix = style.dim(`[${node.id.slice(0, 5)}] `)
+    prefix = style.dim(`[${node.id.slice(-5)}] `)
   }
 
   const name = getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
@@ -167,7 +167,7 @@ export function formatNodeBrief(node: KNode): string {
   const style = createTermStyle()
   const parts: string[] = []
 
-  parts.push(style.dim(node.id.slice(0, 8)))
+  parts.push(style.dim(node.id.slice(-8)))
   parts.push(themeFg(node.type, "$link"))
 
   if (node.content) {

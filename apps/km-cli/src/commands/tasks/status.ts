@@ -87,7 +87,7 @@ export function createStatusCommand() {
       }
 
       console.log(
-        `${getStatusIcon(newStatus)} ${term.dim(task.id.slice(0, 8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
+        `${getStatusIcon(newStatus)} ${term.dim(task.id.slice(-8))} → ${newStatus}: ${task.content?.slice(0, 50) ?? "(no content)"}`,
       )
     })
 }

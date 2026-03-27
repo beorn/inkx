@@ -91,7 +91,7 @@ export function createSetCommand() {
         return
       }
 
-      console.log(term.green("✓"), `Updated ${Object.keys(updates).join(", ")}:`, task.id.slice(0, 8))
+      console.log(term.green("✓"), `Updated ${Object.keys(updates).join(", ")}:`, task.id.slice(-8))
     })
 }
 
@@ -160,6 +160,6 @@ export function createClearCommand() {
         return
       }
 
-      console.log(term.dim("○"), `Cleared ${fields.join(", ")}:`, task.id.slice(0, 8))
+      console.log(term.dim("○"), `Cleared ${fields.join(", ")}:`, task.id.slice(-8))
     })
 }

@@ -182,7 +182,7 @@ function formatLink(link: Link, repo: Repo): string {
   if (link.target_id) {
     const targetNode = repo.getNode(link.target_id)
     if (targetNode) {
-      parts.push(term.dim(`→ ${targetNode.fs_path || link.target_id.slice(0, 8)}`))
+      parts.push(term.dim(`→ ${targetNode.fs_path || link.target_id.slice(-8)}`))
     }
   } else {
     parts.push(term.yellow("(unresolved)"))
@@ -206,11 +206,11 @@ function formatBacklink(link: Link, repo: Repo): string {
   if (sourceNode) {
     const sourceName = sourceNode.fs_path
       ? sourceNode.fs_path.split("/").pop()
-      : sourceNode.content?.slice(0, 30) || link.source_id.slice(0, 8)
+      : sourceNode.content?.slice(0, 30) || link.source_id.slice(-8)
     parts.push(term.green(`← ${sourceName}`))
-    parts.push(term.dim(`(${link.source_id.slice(0, 8)})`))
+    parts.push(term.dim(`(${link.source_id.slice(-8)})`))
   } else {
-    parts.push(term.dim(`← ${link.source_id.slice(0, 8)}`))
+    parts.push(term.dim(`← ${link.source_id.slice(-8)}`))
   }
 
   return parts.join(" ")
@@ -253,7 +253,7 @@ const DISPLAY_FIELDS: DisplayField[] = [
   {
     key: "parent_id",
     label: "Parent",
-    get: (n) => (n.parent_id ? n.parent_id.slice(0, 8) : undefined),
+    get: (n) => (n.parent_id ? n.parent_id.slice(-8) : undefined),
   },
   {
     key: "created_at",
