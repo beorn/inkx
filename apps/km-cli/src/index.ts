@@ -36,8 +36,9 @@ try {
 } catch (err) {
   if (err instanceof CliError) {
     const term = createTerm(process)
-    console.error(term.red(`✖ ${err.message}`))
-    if (err.hint) console.error(term.dim(`  ${err.hint}`))
+    console.error(`\n${term.bold(term.red("error:"))} ${err.message}`)
+    if (err.hint) console.error(term.yellow(`  ${err.hint}`))
+    console.error()
     process.exit(1)
   }
   throw err
