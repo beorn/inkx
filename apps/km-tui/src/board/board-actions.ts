@@ -1707,7 +1707,7 @@ function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
     return
   }
 
-  const targetNode = ctx.repo.getNode(boardId)
+  const targetNode = ctx.repo.getNode(boardId) ?? ctx.repo.resolveNode(boardId)
   if (!targetNode) {
     ctx.toastQueue.warning(`Board "${boardId}" not found`)
     ctx.setUI({})
@@ -1715,7 +1715,7 @@ function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
   }
 
   saveNavHistory(ctx)
-  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: boardId })
+  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.id })
   clearSelection(ctx)
 }
 
@@ -1723,7 +1723,7 @@ function handleMoveToBoard(ctx: ActionCtx, boardId: string): void {
   const cards = getSelectedCards(ctx)
   if (cards.length === 0) return
 
-  const targetNode = ctx.repo.getNode(boardId)
+  const targetNode = ctx.repo.getNode(boardId) ?? ctx.repo.resolveNode(boardId)
   if (!targetNode) {
     ctx.toastQueue.warning(`Board "${boardId}" not found`)
     ctx.setUI({})
@@ -1731,20 +1731,20 @@ function handleMoveToBoard(ctx: ActionCtx, boardId: string): void {
   }
 
   // Compute sort order to append at end of target board's children
-  const targetChildren = ctx.repo.getChildren(boardId)
+  const targetChildren = ctx.repo.getChildren(targetNode.id)
   let sortOrder = targetChildren.length > 0 ? (targetChildren[targetChildren.length - 1]?.parent_idx ?? 0) + 1 : 0
 
   // Move each selected card to the target board as a child
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Move to board")
   for (const card of cards) {
-    if (card.id === boardId) continue // Don't move node into itself
-    ctx.repo.moveNode(card.id, boardId, sortOrder)
+    if (card.id === targetNode.id) continue // Don't move node into itself
+    ctx.repo.moveNode(card.id, targetNode.id, sortOrder)
     sortOrder++
   }
   ctx.undoHandle.endBatch()
   clearSelection(ctx)
-  ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${boardId}`)
+  ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${targetNode.name ?? targetNode.id}`)
   ctx.setUI({})
 }
 
