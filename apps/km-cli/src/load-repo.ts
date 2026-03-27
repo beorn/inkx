@@ -32,7 +32,10 @@ export interface LoadRepoOptions extends CreateRepoOptions {
  */
 export async function loadRepo(rootPath: string, options: LoadRepoOptions = {}): Promise<Repo> {
   if (!existsSync(rootPath)) {
-    throw new CliError(`Vault not found: ${rootPath}`, "Check the path exists, or use --repo <path> to specify a different vault.")
+    throw new CliError(
+      `Vault not found: ${rootPath}`,
+      "Check the path exists, or use --repo <path> to specify a different vault.",
+    )
   }
 
   // Auto-detect TTY: show progress in interactive mode, silent in scripts/pipes
