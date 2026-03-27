@@ -52,6 +52,20 @@ When extracting packages from a monolith:
 
 8. **Audit the entire feature set, not just your session's changes.** `/complete` checks what YOU changed. A systematic feature-by-feature audit (bead promise vs actual code) catches what `/complete` misses: unimplemented promises, missing tests, stale docstrings.
 
+## Phase Completion Protocol
+
+Each phase must end with literal verification, not memory-based checkmarks. The pattern from Case Study 6 (@silvery/style): 8 items marked done that weren't — because nobody verified before checking the box.
+
+1. **Run every /complete criteria grep from the bead description.** If the bead says "grep X in A → 0 hits", run that grep. If it doesn't pass, the phase isn't done.
+
+2. **For each checklist item: verify with grep/ls/read, not from memory.** "Move X from A to B" means: grep X in A (should be 0), grep X in B (should be >0). "Delete Y" means: ls Y (should not exist). "Re-export from Z" means: grep "from.*Z" in the barrel file.
+
+3. **If you deviated from the plan: update the bead description to match reality BEFORE marking done.** Bead says "delete chalk.ts" but you kept it for compat? Valid engineering — but update the bead to say "kept chalk.ts for compat (reason)" instead of marking "delete chalk.ts" as done.
+
+4. **If a checklist item is impossible or unnecessary: mark it as "SKIPPED: reason", not "done".** This prevents bead drift — where the bead describes a world that doesn't exist.
+
+The pattern is: bead says X, you did Y instead — that's fine engineering, but the bead must reflect Y, not X.
+
 ## Tribe Coordination
 
 When working on the main worktree (not an isolated git worktree), **notify the tribe before starting disruptive work**:

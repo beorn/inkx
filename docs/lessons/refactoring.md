@@ -202,6 +202,30 @@ function oldApi(args) {
 
 ---
 
+## Case Study 6: @silvery/style Extraction (bead drift)
+
+**Bead**: km-silvery.style
+
+**Problem**: A 6-phase bead with specific checklist items per phase. When systematically audited afterward, 8 gaps were found — items marked done in bead notes that weren't actually completed as specified.
+
+**Root cause — "aspirational done"**: Phase items were marked complete based on "I did work related to Phase N" rather than "I verified every checklist item in Phase N." Example: bead said "Move createStyleProxy from ag-term to @silvery/style" but what actually happened was rewriting it in-place. Nobody ran the /complete criteria (`grep createStyleProxy in ag-term → 0`) before marking Phase 1 done.
+
+**Root cause — unrecorded deviations**: When the implementer decided to keep chalk in ink/chalk.ts for backwards compatibility (instead of "delete chalk.ts wrapper"), that was a valid engineering decision. But the bead notes said "Phase 2 done" without noting the deviation. The bead now described a world that didn't exist.
+
+**Root cause — no bead-vs-reality verification**: The /complete skill checks for remnants in the codebase but didn't systematically compare each bead checklist item against reality. The gap between "what the bead says happened" and "what actually shipped" grew silently across 6 phases.
+
+**Lessons**:
+
+1. **Bead checklist items must be verified with exact /complete criteria before marking done.** Not from memory — with grep/ls/read. "Move X from A to B" means: grep X in A (0 hits), grep X in B (>0 hits).
+
+2. **When you deviate from the plan, update the bead immediately.** Kept chalk instead of deleting it? Rewrote instead of extracted? That's fine engineering — but update the bead description to match reality BEFORE marking the item done. Don't mark the original item as done when you did something different.
+
+3. **"Phase N done" must mean "every checklist item verified", not "I did work related to Phase N."** If 4 of 5 items are done and 1 was skipped, mark the 4 as done, mark the 1 as "SKIPPED: reason", and note the deviation.
+
+4. **Bead drift grows silently.** Each phase builds on the assumption that previous phases are accurate. By Phase 6, the bead may describe a completely different system than what exists. Nobody notices until a systematic audit.
+
+---
+
 ## Quick Checklist
 
 Before starting a big refactor:

@@ -90,6 +90,21 @@ For everything else — stale docs, version bumps, redundant imports, missing ex
 
 When auditing an entire epic (not just one session), add a **feature-by-feature verification** step: for each closed bead, check that the bead's specific promises match actual code. This catches gaps that per-session `/complete` misses — unimplemented promises, missing tests, stale docstrings across the full feature set.
 
+### Bead-vs-Reality Verification
+
+When auditing work tracked by a bead, verify each promise literally — not from memory, not from bead notes saying "done." This catches "bead drift" where the bead says one thing but reality diverged (see Case Study 6 in `docs/lessons/refactoring.md`).
+
+1. **Read the bead description**: `bd show <id>`. Identify every checklist item and /complete criteria.
+2. **For EACH checklist item**: verify it literally with grep/ls/read.
+   - "Move X from A to B" → grep X in A (should be 0), grep X in B (should be >0)
+   - "Delete Y" → ls Y (should not exist)
+   - "Re-export from Z" → grep "from.*Z" in the barrel file
+   - "Rename A to B" → grep A (should be 0 outside history/changelogs), grep B (should be >0)
+3. **For EACH /complete criteria in the bead**: run the exact grep command as written.
+4. **Flag any item that's marked done but doesn't match reality.** Report it as a finding with verdict FIX.
+
+This step is especially important after multi-phase work where each phase assumed previous phases were accurate.
+
 ## Step 3: Code Clean
 
 Run `/code clean --dry-run` on the files changed by this session's work. This catches things the hypothesis scan won't — simplification opportunities, anti-patterns from `docs/principles.md`, logging violations, narrative flow issues.
