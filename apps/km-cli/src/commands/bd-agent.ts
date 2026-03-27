@@ -5,7 +5,7 @@
  * Delegates to @km/agent for core functionality.
  */
 
-import { Command } from "@silvery/commander"
+import { Command, int } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
@@ -224,7 +224,7 @@ bdAgentCommand
 bdAgentCommand
   .command("run <agent-id>")
   .description("Run agent on its work queue (continuous mode)")
-  .option("--max-tasks <n>", "Maximum tasks to process", parseInt)
+  .option("--max-tasks <n>", "Maximum tasks to process", int)
   .option("--dry-run", "Show what would be done")
   .action(async (agentId, opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())

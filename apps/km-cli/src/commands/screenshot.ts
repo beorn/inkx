@@ -5,7 +5,7 @@
  * Useful for debugging, snapshot testing, and CI visual verification.
  */
 
-import { Command } from "@silvery/commander"
+import { Command, uint } from "@silvery/commander"
 import { createLogger } from "loggily"
 import { setDebugRepoRoot } from "../debug-log.ts"
 import type { FullLogger } from "../logger-types.ts"
@@ -22,14 +22,14 @@ export const screenshotCommand = new Command("screenshot")
   .argument("[root]", "Root node ID, filesystem path, or directory to view")
   .option("--as <mode>", `View mode: ${VIEW_MODES.join(", ")} (default: cards)`, "cards")
   .option("--format <format>", "Output format: text (plain), ansi (styled), debug (with metadata)", "text")
-  .option("--width <n>", "Terminal width", "80")
-  .option("--height <n>", "Terminal height", "24")
+  .option("--width <n>", "Terminal width", uint, 80)
+  .option("--height <n>", "Terminal height", uint, 24)
   .option("-o, --output <file>", "Output file (default: stdout)")
   .action(async (root, options) => {
     log.debug?.("screenshot command", { root, ...options })
 
-    const width = parseInt(options.width, 10)
-    const height = parseInt(options.height, 10)
+    const width = options.width
+    const height = options.height
     const viewMode: ViewMode = VIEW_MODES.includes(options.as) ? (options.as as ViewMode) : "cards"
     const format: OutputFormat = options.format as OutputFormat
 

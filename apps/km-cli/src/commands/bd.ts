@@ -5,7 +5,7 @@
  * Thin CLI wrapper around @km/beads package.
  */
 
-import { Command } from "@silvery/commander"
+import { Command, int } from "@silvery/commander"
 import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
@@ -483,7 +483,7 @@ bdCommand.addCommand(depCommand)
 bdCommand
   .command("stale")
   .description("List issues not updated in N days")
-  .option("-d, --days <n>", "Days threshold", parseInt, 14)
+  .option("-d, --days <n>", "Days threshold", int, 14)
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
