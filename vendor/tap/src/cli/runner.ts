@@ -7,6 +7,7 @@
  */
 
 import { Command } from "commander"
+import { colorizeHelp } from "silvery/ui/cli"
 import { Glob } from "bun"
 import { createConsumer } from "../consumer"
 import { mergeStreams } from "../merge"
@@ -132,4 +133,5 @@ const program = new Command()
     await runTests(patterns, options)
   })
 
+colorizeHelp(program)
 program.parse()

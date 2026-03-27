@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { readSync } from "node:fs"
 import { Command } from "commander"
+import { colorizeHelp } from "silvery/ui/cli"
 import pc from "picocolors"
 import {
   getAccounts,
@@ -282,4 +283,5 @@ function readlineSync(): string | undefined {
   }
 }
 
+colorizeHelp(program)
 program.parse()
