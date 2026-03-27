@@ -400,7 +400,10 @@ function navigateHorizontal(
   const cursorColId = cursorDirectChild
   const colIdx = indexOfChild(structuralCols, cursorColId)
   if (colIdx < 0) {
-    throw new Error(`[nav] column ${cursorColId} not found in structural children`)
+    // Cursor is on an ignored/hidden column — redirect to nearest visible column
+    if (structuralCols.length > 0) return structuralCols[0]!.id
+    if (hasBody) return bodyNodes[0]?.id ?? null
+    return null
   }
 
   const isAtColumnLevel = cursorNode.parent_id === rootId

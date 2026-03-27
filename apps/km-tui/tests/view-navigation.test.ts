@@ -214,6 +214,25 @@ describe("CardsViewNavigation", () => {
       const target = nav.navigate("right", makeState("a0"), emptyRepo, registry)
       expect(target).toBe("col1")
     })
+
+    it("h/l from cursor on ignored column → redirects to nearest visible column", () => {
+      // Cursor is on col1 header, but col1 is ignored (e.g. Contacts.base filtered out).
+      // Should not throw, should redirect to first visible column.
+      const ignored = new Set(["col1"])
+      const right = nav.navigate("right", makeState("b0", "board", { ignoredNodeIds: ignored }), repo, registry)
+      expect(right).not.toBeNull()
+      expect(ignored.has(right!)).toBe(false)
+
+      const left = nav.navigate("left", makeState("b0", "board", { ignoredNodeIds: ignored }), repo, registry)
+      expect(left).not.toBeNull()
+      expect(ignored.has(left!)).toBe(false)
+    })
+
+    it("h/l from cursor on ignored column when all columns ignored → null", () => {
+      const allIgnored = new Set(["col0", "col1", "col2"])
+      const target = nav.navigate("right", makeState("b0", "board", { ignoredNodeIds: allIgnored }), repo, registry)
+      expect(target).toBeNull()
+    })
   })
 })
 
