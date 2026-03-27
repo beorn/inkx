@@ -27,6 +27,7 @@ import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import { clearSelection } from "./keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
+import { readBoardIgnored, isIgnored } from "./ignored.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
@@ -163,6 +164,24 @@ export interface BoardAppHandlers {
  * Create all board-app handler functions, closed over a single BoardAppLocals bag.
  * Each createBoardApp() call gets its own locals, eliminating module-level mutable state.
  */
+/** Compute the set of ignored node IDs from columns + ignored paths.
+ * Checked per-keypress but cached via the ignore version counter. */
+function computeIgnoredNodeIds(
+  repo: { path: string; getNode: (id: string) => any; getChildren: (id: string | null) => any[] },
+  columns: ColumnView[],
+): Set<string> {
+  const ignoredPaths = readBoardIgnored(repo.path)
+  if (ignoredPaths.size === 0) return new Set()
+  const ids = new Set<string>()
+  for (const col of columns) {
+    if (isIgnored(ignoredPaths, col.node, repo as any)) ids.add(col.node.id)
+    for (const card of col.cardNodes) {
+      if (isIgnored(ignoredPaths, card, repo as any)) ids.add(card.id)
+    }
+  }
+  return ids
+}
+
 export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers {
   /**
    * Build an ActionCtx from store state.
@@ -213,6 +232,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       rootPath: board?.rootPath ?? null,
       cursorNodeId,
       cursorCardNodeId: s.cursorStore.getState().cursorCardNodeId,
+      ignoredNodeIds: computeIgnoredNodeIds(s.repo, columns),
       selectedNodes: board?.selectedNodes ?? new Set(),
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),

@@ -325,5 +325,6 @@ export function navStateFrom(ctx: ActionCtx): NavState {
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
     cursorCardNodeId: ctx.cursorCardNodeId,
+    ignoredNodeIds: ctx.ignoredNodeIds.size > 0 ? ctx.ignoredNodeIds : undefined,
   }
 }
