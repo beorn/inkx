@@ -62,6 +62,53 @@ app.cards() // all visible cards with positions
 | `helpers/fuzz-invariants.ts` | Invariant checkers for fuzz/chaos          |
 | `helpers/matchers.ts`        | Custom vitest matchers                     |
 
+## Fixture Best Practices
+
+### Shared Fixtures
+
+Use shared fixture factories instead of repeating common `item()` trees:
+
+```typescript
+// Use shared fixtures instead of repeating common item() trees:
+const { board } = testEnv(item.simpleBoard)     // 1 col, 3 cards (1a, 1b, 1c)
+const { board } = testEnv(item.multiColBoard)    // 3 cols, 1 card each
+const { board } = testEnv(item.nestedBoard)      // 1 col, folder + sibling
+```
+
+### `navigateTo` Helper
+
+Navigate directly to a card by name instead of chaining cursor commands:
+
+```typescript
+board.navigateTo("task-name")  // instead of repeated board.command("cursor_down")
+```
+
+### Prefer `board.app()` for New Tests
+
+The `board.app()` DSL (from `helpers/board-app.ts`) is the preferred way to set up fixtures in new tests — it's concise and supports spatial queries:
+
+```typescript
+const app = board.app(["Todo > Task 1", "Done > Task 2"])
+app.press("j")
+app.columns()  // spatial queries
+```
+
+### Journey Tests Over Single-Step Tests
+
+Prefer 3-5 step journey tests over many 1-step tests with identical fixtures. Each `testEnv()` costs ~1.8s — combine related assertions into a single journey that tells a coherent user story.
+
+### Consolidation Guidelines
+
+- Files <100 lines should merge into their domain parent
+- Current target: ~50-60 files (from ~112)
+- Before creating a new test file, check if the domain already has one
+
+### Anti-patterns
+
+- **Don't repeat `item("board", item("col1", item("1a"), item("1b"), item("1c")))`** — use `item.simpleBoard`
+- **Don't create new test files for <3 tests** — add to an existing domain file
+- **Don't use 10+ separate `testEnv()` calls with identical fixtures** — combine into journey tests
+
 ## Test File Organization
 
 Tests are organized **by domain, not by bug**. Always add to an existing thematic file first.
