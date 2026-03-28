@@ -49,7 +49,15 @@ import {
   getReservedKeyLabel,
   initDefaultKeybindings,
 } from "@km/commands"
-import { resolveLocationKey, isPickTarget, isAtPosition, moveTo } from "./position-resolver.ts"
+import {
+  resolveLocationKey,
+  isPickTarget,
+  isAtPosition,
+  moveTo,
+  nodeAt,
+  type Position,
+  type PickTarget,
+} from "./position-resolver.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
@@ -197,15 +205,68 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       })
       clearSelection(ctx)
       return ok()
-    case "CURSOR_TO":
-      handleCursorTo(ctx, action.locationKey)
+    case "CURSOR_TO": {
+      // "parent" is special: zoom outwards (view-level, not positional)
+      if (action.locationKey === "parent") {
+        handleZoomOutwards(ctx)
+        return ok()
+      }
+      const cursorTarget = resolveLocationKey(action.locationKey, ctx, ctx.repo)
+      if (!cursorTarget) {
+        ctx.toastQueue.warning(`"${action.locationKey}" not found`)
+        ctx.setUI({})
+        return ok()
+      }
+      if (isPickTarget(cursorTarget)) {
+        pushDialogMode("dialog:picker")
+        ctx.closeDetailPane()
+        ctx.setUI({ activePicker: { type: "project" } })
+        clearSelection(ctx)
+        return ok()
+      }
+      handleCursorTo(ctx, cursorTarget)
       return ok()
-    case "REPARENT_TO":
-      return handleReparentTo(ctx, action.locationKey)
-    case "LINK_TO":
-      return handleLinkTo(ctx, action.locationKey)
-    case "CREATE_AT":
-      return handleCreateAt(ctx, action.locationKey)
+    }
+    case "REPARENT_TO": {
+      // "parent" is special: structural outdent (tree-level, not positional)
+      if (action.locationKey === "parent") {
+        const nodeId = ctx.cursorNodeId
+        if (!nodeId) return boundary("outdent", "no cursor")
+        const node = ctx.repo.getNode(nodeId)
+        if (!node) return boundary("outdent", "node not found")
+        if (!outdentNode(ctx, node)) return boundary("outdent", "can't outdent further")
+        return ok()
+      }
+      const moveTarget = resolveLocationKey(action.locationKey, ctx, ctx.repo)
+      if (!moveTarget) {
+        ctx.toastQueue.warning(`"${action.locationKey}" not found`)
+        ctx.setUI({})
+        return ok()
+      }
+      if (isPickTarget(moveTarget)) {
+        ctx.setUI({ activePicker: { type: "project" } })
+        return ok()
+      }
+      return handleReparentTo(ctx, moveTarget)
+    }
+    case "LINK_TO": {
+      const linkTarget = resolveLocationKey(action.locationKey, ctx, ctx.repo)
+      if (!linkTarget) {
+        ctx.toastQueue.warning(`"${action.locationKey}" not found`)
+        ctx.setUI({})
+        return ok()
+      }
+      return handleLinkTo(ctx, linkTarget)
+    }
+    case "CREATE_AT": {
+      const createTarget = resolveLocationKey(action.locationKey, ctx, ctx.repo)
+      if (!createTarget) {
+        ctx.toastQueue.warning(`"${action.locationKey}" not found`)
+        ctx.setUI({})
+        return ok()
+      }
+      return handleCreateAt(ctx, createTarget)
+    }
     case "ADD_LINK":
       // Stub: link picker not yet implemented
       ctx.toastQueue.info("Link picker not yet implemented")
@@ -1654,35 +1715,24 @@ function handleFavoritesClear(ctx: ActionCtx): ActionResult {
   return ok()
 }
 
-function handleCursorTo(ctx: ActionCtx, locationKey: string): void {
-  // "parent" — zoom outwards
-  if (locationKey === "parent") {
-    handleZoomOutwards(ctx)
+/** Cursor to resolved Position: same-parent → SELECT sibling, cross-parent → ZOOM_IN to board. */
+function handleCursorTo(ctx: ActionCtx, to: Position): void {
+  const cursorNode = ctx.cursorNodeId ? ctx.repo.getNode(ctx.cursorNodeId) : null
+
+  // Same parent — cursor to sibling at position
+  if (cursorNode?.parent_id === to.parentId) {
+    const target = nodeAt(to, ctx.repo)
+    if (target) {
+      ctx.dispatchBoard({ type: "SELECT", nodeId: target.id })
+      clearSelection(ctx)
+    }
     return
   }
 
-  // "first" / "last" — cursor to first/last sibling
-  if (locationKey === "first" || locationKey === "last") {
-    const nodeId = ctx.cursorNodeId
-    if (!nodeId) return
-    const node = ctx.repo.getNode(nodeId)
-    if (!node?.parent_id) return
-    const siblings = ctx.repo.getChildren(node.parent_id)
-    if (siblings.length === 0) return
-    const target = locationKey === "first" ? siblings[0]! : siblings.at(-1)!
-    ctx.dispatchBoard({ type: "SELECT", nodeId: target.id })
-    clearSelection(ctx)
-    return
-  }
-
-  // "fav:X" — jump to favorite
-  if (locationKey.startsWith("fav:")) {
-    const favoriteId = getFavorite(locationKey.slice(4))
-    if (!favoriteId) return
-    const targetNode = ctx.repo.getNode(favoriteId)
-    if (!targetNode) return
+  // @home sentinel — go to root
+  if (to.parentId === "") {
     saveNavHistory(ctx)
-    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: favoriteId })
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: null })
     clearSelection(ctx)
     return
   }
@@ -1692,104 +1742,40 @@ function handleCursorTo(ctx: ActionCtx, locationKey: string): void {
     ctx.activateEmptyPane()
   }
 
-  // "@home" — go to root
-  if (locationKey === "@home") {
-    saveNavHistory(ctx)
-    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: null })
-    clearSelection(ctx)
-    return
-  }
-
-  // Board/node ID — navigate there
-  const targetNode = ctx.repo.getNode(locationKey) ?? ctx.repo.resolveNode(locationKey)
-  if (!targetNode) {
-    ctx.toastQueue.warning(`Board "${locationKey}" not found`)
-    ctx.setUI({})
-    return
-  }
-
+  // Cross-parent — navigate to that board
   saveNavHistory(ctx)
-  const children = ctx.repo.getChildren(targetNode.id)
-  const firstChild = children[0]?.id ?? null
-  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.id, cursorNodeId: firstChild })
+  const children = ctx.repo.getChildren(to.parentId)
+  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId, cursorNodeId: children[0]?.id ?? null })
   clearSelection(ctx)
 }
 
-/** Move selected nodes as last children of the given parent node. */
-function reparentToNode(ctx: ActionCtx, boardId: string): void {
+/** Move node(s) to resolved Position: same-parent → reorder, cross-parent → reparent batch. */
+function handleReparentTo(ctx: ActionCtx, to: Position): ActionResult {
   const cards = getSelectedCards(ctx)
-  if (cards.length === 0) return
+  if (cards.length === 0) return boundary("move", "no selection")
 
-  const targetNode = ctx.repo.getNode(boardId) ?? ctx.repo.resolveNode(boardId)
-  if (!targetNode) {
-    ctx.toastQueue.warning(`Board "${boardId}" not found`)
-    ctx.setUI({})
-    return
+  // Same-parent reorder (single node) — quick path
+  if (cards.length === 1 && cards[0]!.parent_id === to.parentId) {
+    const nodeId = cards[0]!.id
+    if (isAtPosition(nodeId, to, ctx.repo)) return ok()
+    ctx.undoHandle.setCursor(nodeId)
+    moveTo(ctx.repo, nodeId, to)
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
+    return ok()
   }
 
-  // Compute sort order to append at end of target board's children
-  const targetChildren = ctx.repo.getChildren(targetNode.id)
-  let sortOrder = targetChildren.length > 0 ? (targetChildren[targetChildren.length - 1]?.parent_idx ?? 0) + 1 : 0
-
-  // Move each selected card to the target board as a child
+  // Cross-parent or multi-selection — batch move
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
-  ctx.undoHandle.startBatch("Move to board")
+  ctx.undoHandle.startBatch("Move")
   for (const card of cards) {
-    if (card.id === targetNode.id) continue // Don't move node into itself
-    ctx.repo.moveNode(card.id, targetNode.id, sortOrder)
-    sortOrder++
+    if (card.id === to.parentId) continue // don't move into self
+    moveTo(ctx.repo, card.id, to)
   }
   ctx.undoHandle.endBatch()
   clearSelection(ctx)
-  ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${targetNode.name ?? targetNode.id}`)
+  const targetNode = ctx.repo.getNode(to.parentId)
+  ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${targetNode?.name ?? to.parentId}`)
   ctx.setUI({})
-}
-
-/**
- * Handle REPARENT_TO verb action — move node(s) to a new parent by locationKey.
- * Uses resolveLocationKey + Position helpers for all cases.
- */
-function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
-  // "parent" → structural outdent (special: changes tree depth, not just position)
-  if (locationKey === "parent") {
-    const nodeId = ctx.cursorNodeId
-    if (!nodeId) return boundary("outdent", "no cursor")
-    const node = ctx.repo.getNode(nodeId)
-    if (!node) return boundary("outdent", "node not found")
-    if (!outdentNode(ctx, node)) return boundary("outdent", "can't outdent further")
-    return ok()
-  }
-
-  // Resolve locationKey → Position or PickTarget
-  const resolved = resolveLocationKey(locationKey, ctx, ctx.repo)
-  if (!resolved) {
-    ctx.toastQueue.warning(`Target "${locationKey}" not found`)
-    ctx.setUI({})
-    return ok()
-  }
-
-  // Pick target → open picker dialog
-  if (isPickTarget(resolved)) {
-    ctx.setUI({ activePicker: { type: "project" } })
-    return ok()
-  }
-
-  // Position resolved — move cursor node there
-  const nodeId = ctx.cursorNodeId
-  if (!nodeId) return boundary("move", "no cursor")
-
-  // Same-parent move (first/last reorder) vs cross-parent move (reparent)
-  const node = ctx.repo.getNode(nodeId)
-  if (node?.parent_id === resolved.parentId) {
-    // Reorder among siblings — single node
-    if (isAtPosition(nodeId, resolved, ctx.repo)) return ok()
-    ctx.undoHandle.setCursor(nodeId)
-    moveTo(ctx.repo, nodeId, resolved)
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
-  } else {
-    // Cross-parent move — batch with selected nodes
-    reparentToNode(ctx, resolved.parentId)
-  }
   return ok()
 }
 
@@ -1798,57 +1784,38 @@ function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
  * Absorbs the old ADD_LINK_TO_BOARD, ADD_LINK_TO_FAVORITE, SET_LABEL,
  * SET_ASSIGNEE, ADD_LINK, and REPARENT_PICKER (for "pick:+") action types.
  */
-function handleLinkTo(ctx: ActionCtx, locationKey: string): ActionResult {
-  // Pickers
-  if (locationKey === "pick:#") {
-    pushDialogMode("dialog:picker")
-    ctx.closeDetailPane()
-    ctx.setUI({ activePicker: { type: "tag" } })
-    clearSelection(ctx)
-    return ok()
-  }
-  if (locationKey === "pick:@") {
-    pushDialogMode("dialog:picker")
-    ctx.closeDetailPane()
-    ctx.setUI({ activePicker: { type: "assignee" } })
-    clearSelection(ctx)
-    return ok()
-  }
-  if (locationKey === "pick:+") {
-    ctx.setUI({ activePicker: { type: "project" } })
-    return ok()
-  }
-  if (locationKey === "pick:[") {
-    ctx.toastQueue.info("Link picker not yet implemented")
-    ctx.setUI({})
-    return ok()
-  }
-
-  // "fav:X" → add link to favorite target
-  if (locationKey.startsWith("fav:")) {
-    const favBoardId = getFavorite(locationKey.slice(4))
-    if (favBoardId) {
-      ctx.toastQueue.info(`Add link to "${favBoardId}" not yet implemented`)
-    } else {
-      ctx.toastQueue.warning(`No favorite assigned to key '${locationKey.slice(4)}'`)
+/** Handle LINK_TO with resolved target. */
+function handleLinkTo(ctx: ActionCtx, to: Position | PickTarget): ActionResult {
+  if (isPickTarget(to)) {
+    const pickerType = to.pick === "#" ? "tag" : to.pick === "@" ? "assignee" : to.pick === "+" ? "project" : null
+    if (!pickerType) {
+      ctx.toastQueue.info("Link picker not yet implemented")
+      ctx.setUI({})
+      return ok()
     }
-    ctx.setUI({})
+    pushDialogMode("dialog:picker")
+    ctx.closeDetailPane()
+    ctx.setUI({ activePicker: { type: pickerType } })
+    clearSelection(ctx)
     return ok()
   }
 
-  // Board/node ID → add link (stub)
-  ctx.toastQueue.info(`Add link to "${locationKey}" not yet implemented`)
+  // Position → add link (stub)
+  const targetNode = ctx.repo.getNode(to.parentId)
+  ctx.toastQueue.info(`Add link to "${targetNode?.name ?? to.parentId}" not yet implemented`)
   ctx.setUI({})
   return ok()
 }
 
-/**
- * Handle CREATE_AT verb action — create a new node at the target location.
- * Absorbs the old CAPTURE action type for verb-grid usage.
- */
-function handleCreateAt(ctx: ActionCtx, locationKey: string): ActionResult {
-  // For now, capture is not yet implemented — stub with toast
-  ctx.toastQueue.info(`Create at "${locationKey}" not yet implemented`)
+/** Handle CREATE_AT with resolved target (stub). */
+function handleCreateAt(ctx: ActionCtx, to: Position | PickTarget): ActionResult {
+  if (isPickTarget(to)) {
+    ctx.toastQueue.info("Create with picker not yet implemented")
+    ctx.setUI({})
+    return ok()
+  }
+  const targetNode = ctx.repo.getNode(to.parentId)
+  ctx.toastQueue.info(`Create at "${targetNode?.name ?? to.parentId}" not yet implemented`)
   ctx.setUI({})
   return ok()
 }
