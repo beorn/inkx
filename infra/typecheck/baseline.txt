@@ -1,4 +1,3 @@
-8 packages/km-beads/src/mutations.ts
 7 vendor/bearly/plugins/github/server.ts
 179 vendor/bearly/plugins/tribe/server.ts
 7 vendor/bearly/tools/github-channel.ts

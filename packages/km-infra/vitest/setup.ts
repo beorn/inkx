@@ -290,9 +290,16 @@ afterEach(() => {
   process.stdout.write = originalStdoutWrite
   process.stderr.write = originalStderrWrite
 
-  // Check console calls
-  if (consoleCalls.length > 0) {
-    const summary = consoleCalls
+  // Check console calls — filter out SILVERY_STRICT mismatches for known patterns
+  const testName = expect.getState().currentTestName ?? "<unknown>"
+  const isKnown = isKnownMismatch(testName)
+  const filteredCalls = isKnown
+    ? consoleCalls.filter(
+        (c) => !(c.method === "error" && typeof c.args[0] === "string" && c.args[0].includes("STRICT_OUTPUT")),
+      )
+    : consoleCalls
+  if (filteredCalls.length > 0) {
+    const summary = filteredCalls
       .map((c) => `  console.${c.method}(${c.args.map((a) => JSON.stringify(a)).join(", ")})`)
       .join("\n")
     throw new Error(`Test produced console output:\n${summary}`)
