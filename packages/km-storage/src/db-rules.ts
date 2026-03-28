@@ -21,10 +21,10 @@ import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"
 import { removeLinksFromSourceByRelationship } from "./db-links.ts"
-import { rowToNode, getChildren, getEmbedTargetsOnBoard, getNode } from "./db-queries/index.ts"
+import { rowToNode, getChildren, getNode } from "./db-queries/index.ts"
 // Note: We insert embed nodes directly into DB rather than using emitNodeCreated
 // because that would require the event system to be set up (which isn't always the case)
-import { parseQuery, type KNode, type NodeRules } from "@km/core"
+import { parseQuery, isOutline, type KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
 
@@ -124,6 +124,14 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     return
   }
 
+  // Guard: rules must be on outline items (type: "h", item: true).
+  // Rule-created children are outline items, which can only nest inside outline parents.
+  if (!isOutline(section.type, section.item)) {
+    throw new Error(
+      `km.add:: rule on non-outline node (type=${section.type}, item=${section.item}). Rules are only supported on section headings.`,
+    )
+  }
+
   // Warn about path patterns that escape the repo root
   for (const query of queries) {
     const ast = parseQuery(query)
@@ -151,12 +159,15 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   const matchingIds = new Set(matchingMap.keys())
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
-  // Remove embeds that no longer match the query
-  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.type === "embed" && n.embed_source)
+  // Remove rule-created items that no longer match any query
+  // Identify by embed_source (set on all rule-materialized nodes)
+  const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db)))
+  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.embed_source != null)
   let removedCount = 0
   for (const embed of existingEmbedNodes) {
-    const linkTo = embed.embed_source
-    if (linkTo && !matchingIds.has(linkTo)) {
+    const embedData = typeof embed.data === "object" && embed.data ? (embed.data as Record<string, unknown>) : {}
+    const embedPath = (embedData.targetPath as string) ?? embed.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
+    if (embedPath && !matchingEmbedPaths.has(embedPath)) {
       db.run("DELETE FROM nodes WHERE id = ?", [embed.id])
       removedCount++
     }
@@ -166,14 +177,34 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   }
 
   // Get the board root (parent of section) to check board-wide deduplication
+  // Dedup by embed target path (stable across re-parses) instead of node ID (ULID, changes every parse)
+  // Embed paths: "filename" for file nodes, "filename#^block_id" for intra-file nodes
   const boardRootId = section.parent_id
-  const existingOnBoard = getEmbedTargetsOnBoard(db, boardRootId)
-  log.debug?.(`evaluateAddRule: existing embeds on board: ${existingOnBoard.size}`)
-
-  // Get existing embed children in this section (by embed_source) - refresh after cleanup
-  const existingEmbeds = getChildren(db, sectionId)
-    .filter((n) => n.embed_source)
-    .map((n) => n.embed_source as string)
+  // Collect existing embed paths on the board for deduplication
+  // Both exact paths ("file#^ref") and file-level paths ("file") are tracked
+  // so a file-level embed is deduped against a block-level embed of the same file
+  const existingEmbedPathsOnBoard = new Set<string>()
+  const existingEmbedFilesOnBoard = new Set<string>()
+  if (boardRootId) {
+    const boardDescendants = getChildren(db, boardRootId)
+    for (const section_node of boardDescendants) {
+      for (const child of getChildren(db, section_node.id)) {
+        if (child.embed_source != null) {
+          const childData = typeof child.data === "object" && child.data ? (child.data as Record<string, unknown>) : {}
+          const path = (childData.targetPath as string) ?? child.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
+          if (path) {
+            existingEmbedPathsOnBoard.add(path)
+            // Also track the file part (before #) for cross-level dedup
+            const filePart = path.split("#")[0]!
+            existingEmbedFilesOnBoard.add(filePart)
+          }
+        }
+      }
+    }
+  }
+  log.debug?.(
+    `evaluateAddRule: existing embed paths on board: ${existingEmbedPathsOnBoard.size} (${existingEmbedFilesOnBoard.size} files)`,
+  )
 
   // Get next parent_idx for new embeds
   const existingChildren = getChildren(db, sectionId)
@@ -187,33 +218,33 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
       continue
     }
 
-    // Skip if already on board anywhere (deduplication)
-    if (existingOnBoard.has(match.id)) {
+    // Compute the embed path for this match (stable identifier)
+    const candidatePath = getEmbedPath(match, db)
+
+    // Skip if this embed path already exists anywhere on the board (exact or file-level match)
+    const candidateFile = candidatePath.split("#")[0]!
+    if (existingEmbedPathsOnBoard.has(candidatePath) || existingEmbedFilesOnBoard.has(candidateFile)) {
       skippedCount++
       continue
     }
 
-    // Skip if already an embed in this section
-    if (existingEmbeds.includes(match.id)) {
-      skippedCount++
-      continue
-    }
-
-    // Create embed node directly in database
-    // Use a relative path or node ID for the embed link
-    const targetPath = getEmbedPath(match)
+    // Create outline item with embed_source pointing to the matched node.
+    // type: "h", item: true makes it a structural sub-item (card) on the board,
+    // not body content. embed_source enables transclusion (resolveEmbed).
+    const targetPath = getEmbedPath(match, db)
     const embedId = ulid()
     const now = Date.now()
     db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx, embed_source, content, data, created_at, updated_at, version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO nodes (id, type, item, parent_id, parent_idx, embed_source, content, data, created_at, updated_at, version)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         embedId,
-        "embed",
+        "h",
+        1,
         sectionId,
         nextIdx++,
         match.id,
-        `![[${targetPath}]]`,
+        match.content ?? `![[${targetPath}]]`,
         JSON.stringify({ targetPath }),
         now,
         now,
@@ -222,7 +253,8 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     )
 
     addedCount++
-    existingOnBoard.add(match.id) // Prevent adding same match twice
+    existingEmbedPathsOnBoard.add(targetPath)
+    existingEmbedFilesOnBoard.add(targetPath.split("#")[0]!)
   }
 
   ruleSpan.spanData.added = addedCount
@@ -266,20 +298,44 @@ function findFileAncestor(db: Database, nodeId: string, ctx: RuleContext): KNode
 
 /**
  * Get the embed path for a node.
- * Uses relative path from repo root, or a short ID for non-file nodes.
+ * - File nodes: filename without .md extension (stable across re-parses)
+ * - Intra-file nodes with block_id: filename#^block_id (stable)
+ * - Intra-file nodes without block_id: filename#^short_id (unstable — last resort)
  */
-function getEmbedPath(node: KNode): string {
+function getEmbedPath(node: KNode, db?: Database): string {
   // For file nodes, extract the relative path (filename without .md)
   if (node.fs_path) {
-    // Extract just the filename, removing .md extension
     const parts = node.fs_path.split("/")
     const filename = parts[parts.length - 1] || ""
     return filename.replace(/\.md$/, "")
   }
 
-  // For task/section nodes, use a short ID (last 8 chars)
-  // This allows linking to specific nodes within files
+  // For intra-file nodes, find the parent file and use file#^block_id
+  if (db && node.parent_id) {
+    const fileNode = findFileAncestorSimple(db, node.id)
+    if (fileNode?.fs_path) {
+      const parts = fileNode.fs_path.split("/")
+      const filename = (parts[parts.length - 1] || "").replace(/\.md$/, "")
+      if (node.block_id) {
+        return `${filename}#^${node.block_id}`
+      }
+    }
+  }
+
+  // Fallback: use block_id if available, otherwise short ID (unstable)
+  if (node.block_id) return `#^${node.block_id}`
   return node.id.slice(-8)
+}
+
+/** Walk up to find the file ancestor (simple version without cache) */
+function findFileAncestorSimple(db: Database, nodeId: string): KNode | null {
+  let current = getNode(db, nodeId)
+  while (current) {
+    if (current.fs_path) return current
+    if (!current.parent_id) return null
+    current = getNode(db, current.parent_id)
+  }
+  return null
 }
 
 /**

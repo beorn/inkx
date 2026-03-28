@@ -165,7 +165,7 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => c.type === "embed")
+          const embeds = children.filter((c) => c.embed_source != null)
 
           expect(embeds.length).toBe(2)
           expect(embeds.every((e) => e.embed_source)).toBe(true)
@@ -202,7 +202,7 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => c.type === "embed")
+          const embeds = children.filter((c) => c.embed_source != null)
           const directTasks = children.filter((c) => c.task_status != null)
 
           expect(embeds.length).toBe(1)
@@ -253,8 +253,8 @@ describe("Database Rules", () => {
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => c.type === "embed")
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => c.type === "embed")
+          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => c.embed_source != null)
+          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => c.embed_source != null)
 
           expect(todoEmbeds.length).toBe(2)
           expect(doneEmbeds.length).toBe(1)
@@ -296,7 +296,7 @@ describe("Database Rules", () => {
           const children = getChildren(store.getDatabase(), openSection!.id)
 
           expect(children.length).toBe(2)
-          expect(children.every((c) => c.type === "embed")).toBe(true)
+          expect(children.every((c) => c.embed_source != null)).toBe(true)
           expect(children.every((c) => c.embed_source)).toBe(true)
         },
       ))
