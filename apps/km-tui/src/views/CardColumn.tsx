@@ -67,8 +67,8 @@ export interface CardProps {
   width: number
   colIndex: number
   cardIndex: number
-  /** True if this card is in a virtual body column (renders borderless) */
-  isVirtualColumn?: boolean
+  /** True if this card is in a body column (renders borderless) */
+  isBodyColumn?: boolean
   /** True if the previous card is also a body block (for yield logic) */
   isPrevBodyBlock?: boolean
   /** True if this is the last body block before a structural card or end of column */
@@ -79,8 +79,8 @@ export interface CardProps {
   isColumnSelected?: boolean
   /** NodeId of the previous card (for body block yield-top logic) */
   prevCardNodeId?: string
-  /** Whether this card is a virtual body card */
-  isVirtualCard?: boolean
+  /** Whether this card is a body block (before first outline item) */
+  isBodyCard?: boolean
   /** Number of children (pre-computed to avoid DB lookup when folded) */
   childCount?: number
 }
@@ -153,13 +153,13 @@ export const Card = React.memo(
     width,
     colIndex,
     cardIndex,
-    isVirtualColumn,
+    isBodyColumn,
     isPrevBodyBlock,
     isLastBodyBlock,
     extraExcludedSigils,
     isColumnSelected: isColSelected = false,
     prevCardNodeId,
-    isVirtualCard = false,
+    isBodyCard = false,
     childCount: childCountProp,
   }: CardProps): React.ReactElement {
     const nodeId = card.id
@@ -284,7 +284,7 @@ export const Card = React.memo(
       )
     }
 
-    if (isVirtualColumn || isVirtualCard) {
+    if (isBodyColumn || isBodyCard) {
       const bodyBorderColor = isEditing ? "$focusborder" : "$selection-bg"
       return (
         <Box
@@ -661,6 +661,17 @@ export const Column = React.memo(function Column({
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
+  // Per-card height estimate for VirtualList. Uses actual child count (capped by maxContentLines)
+  // instead of a fixed maxContentLines+2, which overestimates for cards with few/no children.
+  const estimateCardHeight = useCallback(
+    (card: CardView) => {
+      if (card.isBody) return 2 // body blocks: content + border
+      const childCount = repo.getChildren(card.resolvedNode?.id ?? card.id).length
+      return Math.min(childCount, maxContentLines) + 2 // children + title + border
+    },
+    [repo, maxContentLines],
+  )
+
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from CursorStore self-subscription.
   const cardNodes = column.cardNodes
@@ -684,8 +695,8 @@ export const Column = React.memo(function Column({
           width={width - 1}
           colIndex={colIndex}
           cardIndex={actualIndex}
-          isVirtualColumn={isVirtual}
-          isVirtualCard={card.isBody}
+          isBodyColumn={isVirtual}
+          isBodyCard={card.isBody}
           isPrevBodyBlock={isPrevBody}
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
@@ -795,7 +806,7 @@ export const Column = React.memo(function Column({
           items={column.cardNodes}
           width={width - 1}
           height={height - 2}
-          itemHeight={maxContentLines + 2}
+          itemHeight={estimateCardHeight}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={keyExtractor}
