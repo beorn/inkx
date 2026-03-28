@@ -94,7 +94,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },
       { keys: ["⌘h/l"], command: "focus_board", description: "focus board / detail" },
       { keys: ["⌃⏎"], command: "follow_link", description: "follow link" },
-      { keys: ["+ / -"], command: "increase_content_lines", description: "more / less lines" },
+      { keys: ["= / -", ". / ,"], command: "increase_content_lines", description: "more / less lines" },
     ],
   },
   {
