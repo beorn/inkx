@@ -11,6 +11,7 @@ export { rowToNode, getLastEventId, getAllNodes, getNodeCount } from "./utils.ts
 // Core Lookup (getNode*, getNodeByPath, getNodesUnderPath)
 export {
   getNode,
+  getNodesBatch,
   getNodeByIdPrefix,
   getTaskByIdPrefix,
   getNodeByPath,

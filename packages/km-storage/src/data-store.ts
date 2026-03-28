@@ -16,7 +16,12 @@ import { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
 import { SCHEMA } from "./schema.ts"
-import { getNode as dbGetNode, getChildren as dbGetChildren, getAllNodes as dbGetAllNodes } from "./db-queries/index.ts"
+import {
+  getNode as dbGetNode,
+  getNodesBatch as dbGetNodesBatch,
+  getChildren as dbGetChildren,
+  getAllNodes as dbGetAllNodes,
+} from "./db-queries/index.ts"
 import { createDbOps } from "./db-ops.ts"
 import type { Emitter } from "./emitter.ts"
 import { search as dbSearch } from "./db-queries/full-text-search.ts"
@@ -39,6 +44,9 @@ export interface DataStore extends Disposable {
 
   /** Get a single node by ID */
   getNode(id: string): KNode | null
+
+  /** Get multiple nodes by ID in a single query */
+  getNodesBatch(ids: string[]): Map<string, KNode>
 
   /** Get children of a node (null for root-level nodes) */
   getChildren(parentId: string | null): KNode[]
@@ -151,6 +159,15 @@ export function createMapDataStore(): MapDataStore {
   return {
     getNode(id) {
       return nodes.get(id) ?? null
+    },
+
+    getNodesBatch(ids) {
+      const result = new Map<string, KNode>()
+      for (const id of ids) {
+        const node = nodes.get(id)
+        if (node) result.set(id, node)
+      }
+      return result
     },
 
     getChildren(parentId) {
@@ -279,6 +296,10 @@ export function createMemDataStore(): DataStore & HasDatabase {
       return dbGetNode(db, id)
     },
 
+    getNodesBatch(ids) {
+      return dbGetNodesBatch(db, ids)
+    },
+
     getChildren(parentId) {
       return dbGetChildren(db, parentId)
     },
@@ -350,6 +371,10 @@ export function createDBDataStore(db: Database, options?: DBDataStoreOptions): D
 
     getNode(id) {
       return dbGetNode(db, id)
+    },
+
+    getNodesBatch(ids) {
+      return dbGetNodesBatch(db, ids)
     },
 
     getChildren(parentId) {

@@ -189,6 +189,16 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return nodes.get(id) ?? null
     },
 
+    getNodesBatch(ids) {
+      ensureNotClosed()
+      const result = new Map<string, KNode>()
+      for (const id of ids) {
+        const node = nodes.get(id)
+        if (node) result.set(id, node)
+      }
+      return result
+    },
+
     getChildren(parentId) {
       ensureNotClosed()
       return [...nodes.values()]

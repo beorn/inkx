@@ -164,6 +164,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getNode(id: string) {
       return dataStore.getNode(id)
     },
+    getNodesBatch(ids: string[]) {
+      return dataStore.getNodesBatch(ids)
+    },
     getChildren(parentId: string | null) {
       return childrenCache.get(parentId)
     },
@@ -767,6 +770,9 @@ export interface Repo extends Disposable {
 
   /** Get a single node by ID */
   getNode(id: string): KNode | null
+
+  /** Get multiple nodes by ID in a single query */
+  getNodesBatch(ids: string[]): Map<string, KNode>
 
   /** Get children of a node (null for root) */
   getChildren(parentId: string | null): KNode[]

@@ -99,6 +99,25 @@ export function getTaskByIdPrefix(db: Database, idPrefix: string): KNode | null 
 }
 
 /**
+ * Get multiple nodes by ID in a single query. Returns a Map keyed by node ID.
+ * Missing IDs are not included in the result (no null entries).
+ */
+export function getNodesBatch(db: Database, ids: string[]): Map<string, KNode> {
+  const result = new Map<string, KNode>()
+  if (ids.length === 0) return result
+
+  const placeholders = ids.map(() => "?").join(",")
+  const rows = db.query(`SELECT * FROM nodes WHERE id IN (${placeholders})`).all(...ids) as Record<string, unknown>[]
+
+  for (const row of rows) {
+    const node = rowToNode(row)
+    result.set(node.id, node)
+  }
+
+  return result
+}
+
+/**
  * Get a node by filesystem path
  */
 export function getNodeByPath(db: Database, fsPath: string): KNode | null {
