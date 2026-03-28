@@ -4,10 +4,10 @@
  * - Plain hover → faint border highlight
  * - Click → select the card
  * - Cmd+click → zoom into the card (make it the board root)
- * - Cmd+hover → armed state visual (Kitty protocol)
+ * - Cmd+hover → armed state visual + detail popover after delay
  */
 
-import React, { useCallback } from "react"
+import React, { useCallback, useEffect, useRef } from "react"
 import { StoreContext } from "@silvery/create/create-app"
 import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
@@ -15,6 +15,8 @@ import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
+import { usePopover, nodeDetailPopoverContent } from "../views/Popover.tsx"
+import { useRepo } from "../repo-context.tsx"
 
 export interface CardInteraction {
   hovered: boolean
@@ -38,8 +40,22 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
 
   const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
 
-  const handleMouseEnter = useCallback(() => nodeStore.setHovered(nodeId), [nodeStore, nodeId])
-  const handleMouseLeave = useCallback(() => nodeStore.setHovered(null), [nodeStore])
+  // Track mouse position for popover anchor
+  const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+
+  const handleMouseEnter = useCallback(
+    (e: SilveryMouseEvent) => {
+      mousePos.current = { x: e.clientX, y: e.clientY }
+      nodeStore.setHovered(nodeId)
+    },
+    [nodeStore, nodeId],
+  )
+  const handleMouseLeave = useCallback(
+    () => {
+      nodeStore.setHovered(null)
+    },
+    [nodeStore],
+  )
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
@@ -76,6 +92,27 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     },
     [nodeId, cmdHeld, storeRef],
   )
+
+  // Cmd+hover detail popover — shows node metadata/preview after the
+  // popover system's built-in SHOW_DELAY (400ms). Uses the singleton
+  // popover, so link hovers naturally take precedence (last show wins).
+  const popover = usePopover()
+  const repo = useRepo()
+
+  useEffect(() => {
+    if (armed && popover) {
+      const node = repo.getNode(nodeId)
+      if (node) {
+        const children = repo.getChildren(nodeId)
+        const backlinkCount = repo.getBacklinks(nodeId).length
+        const content = nodeDetailPopoverContent(node, children, backlinkCount)
+        popover.show(content, mousePos.current)
+      }
+    } else if (!hovered && popover) {
+      // Mouse left the card — cancel/hide popover
+      popover.cancel()
+    }
+  }, [armed, hovered, popover, repo, nodeId])
 
   const hoverBorderColor = !isSelected && hovered ? (armed ? "$link" : "$muted") : undefined
 

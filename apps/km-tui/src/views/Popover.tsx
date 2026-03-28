@@ -16,6 +16,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import type { KNode } from "@km/core"
 
 // =============================================================================
 // Types
@@ -312,4 +313,48 @@ export function internalLinkPopoverContent(title: string, preview?: string): Pop
     lines.push({ text: preview, dim: true })
   }
   return { lines }
+}
+
+/** Build popover content for a node detail preview (Cmd+hover on card). */
+export function nodeDetailPopoverContent(
+  node: KNode,
+  children: KNode[],
+  backlinkCount: number,
+): PopoverContent {
+  const lines: PopoverLine[] = []
+
+  // Title
+  const title = node.content ?? "(untitled)"
+  lines.push({ text: title, bold: true, wrap: "truncate" })
+
+  // Metadata
+  if (node.task_status) lines.push({ text: `Status: ${node.task_status}`, dim: true })
+  if (node.due_at) lines.push({ text: `Due: ${node.due_at}`, dim: true })
+  if (node.assigned_to) lines.push({ text: `Assigned: ${node.assigned_to}`, dim: true })
+  if (node.priority) lines.push({ text: `Priority: P${node.priority}`, dim: true })
+
+  // Body preview: first few body children (non-item text blocks)
+  const bodyChildren = children.filter((c) => !c.item)
+  const maxBodyLines = 3
+  for (const child of bodyChildren.slice(0, maxBodyLines)) {
+    if (child.content) {
+      lines.push({ text: child.content, dim: true, wrap: "truncate" })
+    }
+  }
+  if (bodyChildren.length > maxBodyLines) {
+    lines.push({ text: `  +${bodyChildren.length - maxBodyLines} more`, dim: true })
+  }
+
+  // Structural children count
+  const itemChildren = children.filter((c) => c.item)
+  if (itemChildren.length > 0) {
+    lines.push({ text: `${itemChildren.length} children`, dim: true })
+  }
+
+  // Backlinks
+  if (backlinkCount > 0) {
+    lines.push({ text: `${backlinkCount} backlinks`, dim: true })
+  }
+
+  return { lines, maxWidth: 50 }
 }
