@@ -128,9 +128,8 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             items={children}
             width={cardWidth}
             height={childrenHeight}
-            itemHeight={treeConfig.maxContentLines + 2}
+            itemHeight={3}
             overscan={2}
-            maxRendered={20}
             keyExtractor={keyExtractor}
             renderItem={renderItem}
           />

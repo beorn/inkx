@@ -55,7 +55,9 @@ const OVERSCAN = 2
  * Cards are expensive (~15 hooks each), so keep this tight. VirtualList will
  * always window the list — no bypass for small columns.
  */
-const MAX_RENDERED_CARDS = 50
+// No MAX_RENDERED_CARDS — the virtualizer computes the render window from
+// itemHeight + viewport height + overscan. A fixed cap causes empty space
+// on tall terminals when cards are short.
 
 // =============================================================================
 // Card Component
@@ -796,7 +798,6 @@ export const Column = React.memo(function Column({
           height={height - 2}
           itemHeight={3}
           overscan={OVERSCAN}
-          maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
           overflowIndicator
