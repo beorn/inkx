@@ -1,24 +1,40 @@
+---
+description: "Design review + code simplification. Finds missing abstractions, wrong abstractions, verbose patterns, and unnecessary complexity. Combines strategic ('is this the right design?') with tactical ('can these 10 lines be 2?')."
+argument-hint: [file-or-directory] [--dry-run]
+---
+
+## Usage
+
+```bash
+/code improve                              # Review recent work — what could be dramatically better?
+/code improve packages/km-storage          # Review all files in directory
+/code improve src/board/board-actions.ts   # Review single file
+/code improve --dry-run                    # Analyze only, don't implement
+```
+
+**Arguments**: `[file-or-directory]` `[--dry-run]` (optional, defaults to recent commits)
+
+---
+
 # Improve — What Would This Look Like If It Were Easy?
 
-Not a code review. Not a bug hunt. This is a **design review of the code you just wrote** — asking whether the abstractions are right, whether the architecture serves the use case, and what a 10x simpler version would look like.
+Design review + systematic simplification. Not a bug hunt, not a style check. Asks whether the abstractions are right AND whether the code is as concise as it should be.
 
-## When to Use
+**Good refactoring reduces or maintains line count while improving clarity.** If changes add significant lines, you're probably over-engineering.
 
-After completing a feature, refactor, or bug fix. The code works and tests pass — now ask: is this the right shape?
+## Target
 
-## Process
+$ARGUMENTS
 
-### 1. Identify the Area
+If no target specified, review recent commits or prompt for scope.
 
-Read the recent commits, changed files, or user-specified area. Understand what was built and why.
+## Phase 1: Strategic Questions
 
-### 2. Ask the Hard Questions
-
-For each subsystem you touched, answer ALL of these:
+For each subsystem touched, answer ALL of these:
 
 **Abstraction quality:**
 - What concept is this code modeling? Is it the RIGHT concept, or a workaround for a missing concept?
-- Are there domain objects trying to emerge from the code? (Repeated parameter groups, shared validation, related operations scattered across files)
+- Are there domain objects trying to emerge? (Repeated parameter groups, shared validation, related operations scattered across files)
 - What would a domain expert call this? Does the code use that name?
 
 **Simplicity:**
@@ -48,7 +64,72 @@ For each subsystem you touched, answer ALL of these:
 - What's the next feature someone will want? Does the current design make it easy or hard?
 - If this needed to work in both TUI and browser, what would need to change?
 
-### 3. Synthesize
+## Phase 2: Tactical Patterns
+
+Use the Agent tool with subagent_type=Explore to analyze files in parallel when reviewing a directory.
+
+Catalog opportunities in these categories:
+
+### Simplification Patterns
+
+| Pattern                | Replace With      | Example                                                             |
+| ---------------------- | ----------------- | ------------------------------------------------------------------- |
+| Switch with shared patterns | Lookup object + factories | `switch(x){case 'a': return 1}` → `{a:1}[x] ?? default` (exception: exhaustive switches validated by TS) |
+| Multi-condition if     | Set.has()         | `if(x==='a'\|\|x==='b')` → `new Set(['a','b']).has(x)`              |
+| IIFE for derivation    | Direct expression | `const x = (() => {...})()` → ternary chain or named helper         |
+| Repeated regex matches | Extract helper    | 4x identical `while(match.exec())` → `extractMatches(str, pattern)` |
+| Verbose conditionals   | Early returns     | Nested if/else → guard clauses at top                               |
+| High-complexity function (>30) | <15-line orchestrator + helpers | 200-line function with 5 phases → orchestrator + 5 focused helpers |
+| Duplicated loop body   | Shared helper called N times | 3 identical viewport-fill loops → `fillViewport()` called 3x |
+| Sequential if/else type dispatch | Classifier chain or lookup | Token type chain → `classifiers.find(c => c(token))` |
+
+### Alignment Patterns (from docs/principles.md)
+
+| Pattern                | Replace With           | Example                                                          |
+| ---------------------- | ---------------------- | ---------------------------------------------------------------- |
+| `let` with mutation    | `const` with transform | `let x; x = f(x)` → `const x = f(initial)`                       |
+| Manual field copying   | Spread                 | `{a: o.a, b: o.b}` → `{...defaults, ...overrides}`               |
+| Mutating wrapper       | Composing wrapper      | `addHooks(obj)` mutates → `withHooks(obj)` returns new           |
+| Misaligned names       | Aligned names          | `const rootPath` → `const path` (enables `{path}` shorthand)     |
+| Mixed visual weight    | Uniform weight         | 20-line method + one-liners → extract all to same level          |
+| `ensure*` checks       | Delete                 | `ensureOpen()` → let lower layer throw naturally                 |
+| Pure delegators        | Direct call            | `f(x) { return g(x) }` → call `g(x)` directly                    |
+
+### Narrative Flow (Inverse Pyramid)
+
+**Don't bury the lead.** Main export → major sub-components → minor sub-components → helpers → constants/types. A reader scanning top-down should get the big picture before any details.
+
+- **Core logic <15 lines** (from principles.md). Main function reads as a summary. Helpers go after return (hoisted `function` declarations).
+- **React/view files**: Top-level component first. Sub-components follow in descending importance. Utilities last.
+
+### Silvery & Vendor Philosophy
+
+**Silvery should be the most ergonomic TUI framework out there.** If a consumer has to do something complicated that the framework could handle, that's a framework bug — fix it in silvery. **km is silvery's perfect showcase.** Never work around vendor bugs; fix them at the source.
+
+#### Theme & Token Patterns
+
+| Anti-Pattern | Correct Pattern | Why |
+|---|---|---|
+| `color="red"` | `color="$error"` | Theme portability |
+| `backgroundColor="black"` | `backgroundColor="$surface-bg"` | Semantic token |
+| `"#5599dd"` (hex literal) | `"$primary"` | Breaks on non-truecolor |
+| `kitty: true` (hardcoded) | `kitty: caps.kittyKeyboard` | Use `detectTerminalCaps()` |
+| `.padEnd(n)` in TSX | `<Box width={n}>` | Layout is silvery's job |
+
+### Logging Standards
+
+| Pattern | Replace With | Exception |
+|---------|--------------|-----------|
+| `console.log/debug/info/warn` | `@beorn/logger` | CLI user output in `apps/km-cli/src/commands/*` |
+| `log.method(...)` without `?.` | `log.method?.(...)` | None — always use `?.` |
+
+### Fail Loudly (No Silent Fallbacks)
+
+**Programming errors must throw, never return defaults.** If a code path should be unreachable, throw. Silent fallbacks turn immediate crashes into mysterious downstream failures.
+
+**When fallbacks ARE appropriate:** User input, optional config with documented defaults, graceful degradation for external systems.
+
+## Phase 3: Synthesize
 
 For each finding, classify:
 
@@ -56,12 +137,12 @@ For each finding, classify:
 |----------|-------------|--------|
 | **Missing abstraction** | A domain object or helper that would eliminate a class of boilerplate | Create bead, implement if small |
 | **Wrong abstraction** | An abstraction that doesn't match the domain — forces callers to fight it | Create bead for redesign |
-| **Misplaced code** | Code in the wrong layer — will cause coupling pain later | Move it or create bead |
 | **Dramatic simplification** | A way to delete 50%+ of the code by changing the approach | Discuss with user, then implement |
-| **Missing interface** | A method that should exist on a type/object but doesn't | Add it |
-| **Unnecessary complexity** | Code that handles cases that can't happen, or defends against things the type system guarantees | Delete it |
+| **Verbose pattern** | 10 lines that should be 2 — known simplification pattern applies | Fix it |
+| **Misplaced code** | Code in the wrong layer — will cause coupling pain later | Move it or create bead |
+| **Unnecessary complexity** | Code that handles cases that can't happen or defends against things the type system guarantees | Delete it |
 
-### 4. Present
+### Present
 
 ```markdown
 ## Improve: <area>
@@ -72,8 +153,8 @@ For each finding, classify:
 ### Findings
 | # | Category | Finding | Impact | Effort |
 |---|----------|---------|--------|--------|
-| 1 | Missing abstraction | Selection type with batch ops | Eliminates 50+ lines of repeated gather/validate/execute | P2 |
-| 2 | Dramatic simplification | repo.moveNode handles -1 natively | Eliminates toSortOrder adapter entirely | P3 |
+| 1 | Missing abstraction | Selection type with batch ops | Eliminates 50+ lines | P2 |
+| 2 | Verbose pattern | Manual sibling iteration | 10 lines → moveTo() | Fix now |
 
 ### Quick wins (implement now)
 <List of small improvements to make immediately>
@@ -82,13 +163,34 @@ For each finding, classify:
 <List of beads for larger work>
 ```
 
+**Stop here if `--dry-run`**. Otherwise, ask for confirmation before Phase 4.
+
+## Phase 4: Implementation
+
+1. Apply one logical change at a time
+2. After each file: verify no type errors
+3. Run targeted tests on changed files
+4. `bun fix && bun run test:fast`
+
+## When NOT to Refactor
+
+| Pattern | Why it's fine |
+|---------|---------------|
+| React components with many conditionals | JSX conditionals inflate scores but structure is readable |
+| Exhaustive `switch` validated by TypeScript | Lookup table **loses** compile-time completeness checking |
+| Test setup helpers | Tests are consumers — setup complexity is fine |
+| CLI action handlers (<45 complexity) | Sequential parse→resolve→execute is mostly irreducible |
+
+**Threshold**: >50 always refactor. 30-50 usually suppress. <30 skip.
+
 ## Anti-Patterns
 
-- Reviewing style/formatting — that's `/code clean`
 - Hunting for bugs — that's `/troubleshoot`
 - Checking for stale docs — that's `/complete`
 - Suggesting changes without understanding WHY the code is shaped this way
 - Proposing abstractions for one-off code (premature abstraction is worse than duplication)
+- Creating abstractions "for future flexibility" — solve today's problem only
+- Adding lines to reduce complexity scores — if refactoring adds 50+ lines, stop
 - Ignoring the TEA/universal-editor vision when evaluating architecture
 
 ## Key Insight
