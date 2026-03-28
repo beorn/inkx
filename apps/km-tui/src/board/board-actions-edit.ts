@@ -21,9 +21,10 @@
  * - Cards modified in place → keep selection (status toggle)
  */
 
-import { getMarkerForStatus, decomposeDatetime, type KNode, type TaskStatus } from "@km/core"
+import { getMarkerForStatus, decomposeDatetime, Position, type KNode, type TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
+import { TreeOps } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
@@ -320,9 +321,7 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
   if (!currentNode) return
 
   // Add as last child of current node
-  const children = repo.getChildren(cursorId)
-  const lastChild = children[children.length - 1]
-  const newSortOrder = lastChild ? (lastChild.parent_idx ?? 0) + 1 : 0
+  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.last(cursorId))
 
   const newNode: Partial<KNode> = {
     type: "h",
@@ -443,8 +442,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Move cards")
 
-  let newSortOrder =
-    targetCol.cardNodes.length > 0 ? (targetCol.cardNodes[targetCol.cardNodes.length - 1]?.parent_idx ?? 0) + 1 : 0
+  let newSortOrder = TreeOps.toSortOrder(repo, Position.last(targetCol.node.id)).sortOrder
   for (const nodeId of sourceNodeIds) {
     repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
@@ -681,9 +679,7 @@ export function handleIndentColumn(ctx: ActionCtx, col: ColumnView): ActionResul
   if (!prevCol) return boundary("indent", "No previous column")
 
   // Calculate sort order: after last card in target column
-  const targetCards = repo.getChildren(prevCol.node.id)
-  const lastCard = targetCards[targetCards.length - 1]
-  const newSortOrder = lastCard ? lastCard.parent_idx + 1 : 0
+  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.last(prevCol.node.id))
 
   // Record cursor for undo
   ctx.undoHandle.setCursor(ctx.cursorNodeId)

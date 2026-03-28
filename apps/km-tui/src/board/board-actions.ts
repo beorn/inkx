@@ -39,7 +39,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { KNode, extractTitleTaskMarker } from "@km/core"
+import { KNode, Position, extractTitleTaskMarker } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
 import {
@@ -50,7 +50,7 @@ import {
   getReservedKeyLabel,
   initDefaultKeybindings,
 } from "@km/commands"
-import { resolveLocationKey, isPickTarget, type Position, type PickTarget } from "./position-resolver.ts"
+import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { TreeOps } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
@@ -1645,9 +1645,7 @@ function splitAsChild(repo: ActionCtx["repo"], nodeId: string, offset: number): 
   const afterText = text.slice(clamped)
 
   // Find sort order before existing first child
-  const children = repo.getChildren(nodeId)
-  const firstChild = children[0]
-  const newSortOrder = firstChild ? (firstChild.parent_idx ?? 0) - 1 : 0
+  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.first(nodeId))
 
   const isTask = node.task_marker !== undefined
   const newChild: Partial<KNode> = {
@@ -1674,10 +1672,8 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
   if (!cursorId) return
 
   const { repo } = ctx
-  const children = repo.getChildren(cursorId)
-  const firstChild = children[0]
   // Sort order before existing first child (or 0 if none)
-  const newSortOrder = firstChild ? (firstChild.parent_idx ?? 0) - 1 : 0
+  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.first(cursorId))
 
   const newNode: Partial<KNode> = {
     type: "h",

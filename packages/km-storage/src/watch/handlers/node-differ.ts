@@ -4,7 +4,7 @@
  * Used by update handlers to determine what changed in a file.
  */
 
-import type { KNode } from "@km/core"
+import { KNode } from "@km/core"
 
 /**
  * A change detected during node diffing
@@ -34,7 +34,7 @@ export interface DiffResult {
 function computeOrdinals(nodes: KNode[]): Map<string, number> {
   const byParent = new Map<string, KNode[]>()
   for (const node of nodes) {
-    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
     const parentId = node.parent_id ?? "root"
     let group = byParent.get(parentId)
     if (!group) {
@@ -80,7 +80,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const existingOrdinals = computeOrdinals(existing)
   const existingByKey = new Map<string, KNode>()
   for (const node of existing) {
-    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
     const ordinal = existingOrdinals.get(node.id) ?? 0
     const key = makeStructuralKey(node.parent_id, ordinal, node.type)
     existingByKey.set(key, node)
@@ -90,8 +90,8 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const idMap = new Map<string, string>()
 
   // First pass: match file nodes by type (always root)
-  const existingFile = existing.find((n) => n.type === "h" && n.item && (n.fstype === "file" || n.fstype === "mdfile"))
-  const newFile = newNodes.find((n) => n.type === "h" && n.item && (n.fstype === "file" || n.fstype === "mdfile"))
+  const existingFile = existing.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
+  const newFile = newNodes.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
   if (existingFile && newFile) {
     idMap.set(newFile.id, existingFile.id)
   }
@@ -99,7 +99,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   // Process non-file nodes with remapped parent IDs
   const newOrdinals = computeOrdinals(newNodes)
   for (const node of newNodes) {
-    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
 
     // Remap parent_id for key lookup
     const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
@@ -162,7 +162,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   // Remaining existing nodes were deleted
   for (const [, node] of existingByKey) {
     // Don't delete file nodes
-    if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) continue
+    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
     changes.push({
       type: "deleted",
       nodeId: node.id,

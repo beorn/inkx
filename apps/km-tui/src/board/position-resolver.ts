@@ -13,7 +13,7 @@
  */
 
 import { getFavorite } from "@km/commands"
-import type { Position } from "@km/core"
+import { Position } from "@km/core"
 
 /** Deferred resolution — open a picker filtered by prefix. */
 export interface PickTarget {
@@ -57,7 +57,7 @@ export function resolveLocationKey(locationKey: string, cursor: CursorContext, r
     if (!favId) return null
     const favNode = repo.getNode(favId)
     if (!favNode) return null
-    return { parentId: favNode.id, childIdx: -1 }
+    return Position.last(favNode.id)
   }
 
   // --- Positional targets (relative to cursor) ---
@@ -79,7 +79,7 @@ export function resolveLocationKey(locationKey: string, cursor: CursorContext, r
   // --- Board/node ID (e.g., @next, @inbox, or a concrete node ID) ---
   const targetNode = repo.getNode(locationKey) ?? repo.resolveNode(locationKey)
   if (!targetNode) return null
-  return { parentId: targetNode.id, childIdx: -1 }
+  return Position.last(targetNode.id)
 }
 
 /** Resolve "parent" — the parent's slot in its grandparent. */
@@ -90,12 +90,9 @@ function resolveParent(cursor: CursorContext, repo: ResolverRepo): Position | nu
   if (!node?.parent_id) return null
   const parentNode = repo.getNode(node.parent_id)
   if (!parentNode) return null
-  // Parent's slot = { grandparent, parent's index }
-  if (!parentNode.parent_id) {
-    // Parent is root — return root position
-    return { parentId: parentNode.id, childIdx: 0 }
-  }
-  return { parentId: parentNode.parent_id, childIdx: parentNode.parent_idx }
+  // Parent's slot in grandparent (or root sentinel if parent IS root)
+  if (!parentNode.parent_id) return Position.first(parentNode.id)
+  return Position.of(parentNode)!
 }
 
 /** Resolve "first" or "last" — first/last sibling slot relative to cursor. */
@@ -104,7 +101,7 @@ function resolveFirstLast(cursor: CursorContext, repo: ResolverRepo, which: "fir
   if (!nodeId) return null
   const node = repo.getNode(nodeId)
   if (!node?.parent_id) return null
-  return { parentId: node.parent_id, childIdx: which === "first" ? 0 : -1 }
+  return which === "first" ? Position.first(node.parent_id) : Position.last(node.parent_id)
 }
 
 /** Type guard: is this a PickTarget? */

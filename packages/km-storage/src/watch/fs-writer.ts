@@ -12,7 +12,7 @@ import { createLogger } from "loggily"
 import { existsSync, mkdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
-import type { Event, KNode } from "@km/core"
+import { type Event, KNode } from "@km/core"
 import type { Emitter, FsSync } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getIgnorePatterns } from "../ignore.ts"
@@ -116,13 +116,13 @@ export class FsWriter implements FsSync {
     const changes = event.data as Partial<KNode>
 
     // Folder rename: content change on a folder → rename directory on disk
-    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path && changes.content) {
+    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path && changes.content) {
       this.handleFolderRename(node, changes.content, event.id)
       return
     }
 
     // Folder metadata update: update or create index file
-    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path) {
+    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path) {
       this.handleFolderIndexUpdate(node)
       return
     }

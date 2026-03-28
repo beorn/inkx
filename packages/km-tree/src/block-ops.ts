@@ -96,7 +96,7 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   }
 
   // Inherit item trait
-  if (node.item) {
+  if (KNode.isItem(node)) {
     newNode.item = true
   }
 
@@ -461,7 +461,7 @@ export function backspaceDegradation(node: KNode): Partial<KNode> | null {
   }
 
   // Step 2: Strip item trait (p+item → p, h+item → p)
-  if (node.item) {
+  if (KNode.isItem(node)) {
     return {
       type: "p",
       item: undefined,

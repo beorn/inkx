@@ -21,7 +21,7 @@ import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
-import type { Event, KNode } from "@km/core"
+import { type Event, KNode } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
 import { findIndexFile, namesAreSimilar } from "@km/tree"
 import { getFolderIndexConfig } from "../config.ts"
@@ -579,13 +579,13 @@ export class SyncManager extends EventEmitter {
     const changes = event.data as Partial<KNode>
 
     // Folder rename: content change on a folder → rename directory on disk
-    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path && changes.content) {
+    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path && changes.content) {
       this.handleFolderRename(node, changes.content, event.id)
       return
     }
 
     // Folder metadata update: update or create index file
-    if (node.type === "h" && node.item && node.fstype === "folder" && node.fs_path) {
+    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path) {
       this.handleFolderIndexUpdate(node, event.id)
       return
     }

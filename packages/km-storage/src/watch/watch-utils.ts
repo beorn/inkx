@@ -3,14 +3,14 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode } from "@km/core"
+import { KNode } from "@km/core"
 import { getNode } from "../index.ts"
 
 /**
  * Find the file node that contains a given node (walk up parent chain).
  */
 export function findFileNode(db: Database, node: KNode): KNode | null {
-  if (node.type === "h" && node.item && (node.fstype === "file" || node.fstype === "mdfile")) return node
+  if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) return node
   if (!node.parent_id) return null
 
   const parent = getNode(db, node.parent_id)
