@@ -22,7 +22,7 @@ import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"
 import { removeLinksFromSourceByRelationship } from "./db-links.ts"
 import { rowToNode, getChildren, getNode } from "./db-queries/index.ts"
-// Note: We insert embed nodes directly into DB rather than using emitNodeCreated
+// Note: We insert rule-materialized nodes directly into DB rather than using emitNodeCreated
 // because that would require the event system to be set up (which isn't always the case)
 import { parseQuery, isOutline, type KNode, type NodeRules } from "@km/core"
 
@@ -109,9 +109,10 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
 }
 
 /**
- * Evaluate km.add:: rule(s) and materialize results as embed nodes.
- * Creates embed nodes as children of the section, which get written back to markdown.
- * Removes embeds that no longer match any query (e.g., after status change).
+ * Evaluate km.add:: rule(s) and materialize results as outline items with embed_source.
+ * Creates outline items (type: "h", item: true) as children of the section.
+ * embed_source on each item enables transclusion (resolveEmbed renders the target's content).
+ * Removes items that no longer match any query (e.g., after status change).
  * Multiple queries are unioned — a node matching any query is included.
  */
 function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx: RuleContext): void {
