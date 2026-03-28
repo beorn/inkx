@@ -201,41 +201,11 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       handleCursorTo(ctx, action.locationKey)
       return ok()
     case "REPARENT_TO":
+      return handleReparentTo(ctx, action.locationKey)
     case "LINK_TO":
+      return handleLinkTo(ctx, action.locationKey)
     case "CREATE_AT":
-      // Phase 2 will implement these
-      ctx.toastQueue.info(`${action.type} not yet implemented`)
-      ctx.setUI({})
-      return ok()
-    case "MOVE_TO_BOARD":
-      handleMoveToBoard(ctx, action.boardId)
-      return ok()
-    case "MOVE_TO_FAVORITE": {
-      const favBoardId = getFavorite(action.favoriteKey)
-      if (favBoardId) {
-        handleMoveToBoard(ctx, favBoardId)
-      } else {
-        ctx.toastQueue.warning(`No favorite assigned to key '${action.favoriteKey}'`)
-        ctx.setUI({})
-      }
-      return ok()
-    }
-    case "SHIFT_TO_TOP":
-      // Move node to first position among siblings
-      handleShiftToExtreme(ctx, "top")
-      return ok()
-    case "SHIFT_TO_BOTTOM":
-      // Move node to last position among siblings
-      handleShiftToExtreme(ctx, "bottom")
-      return ok()
-    case "ADD_LINK_TO_BOARD":
-      ctx.toastQueue.info(`Add link to board not yet implemented`)
-      ctx.setUI({})
-      return ok()
-    case "ADD_LINK_TO_FAVORITE":
-      ctx.toastQueue.info(`Add link to favorite '${action.favoriteKey}' not yet implemented`)
-      ctx.setUI({})
-      return ok()
+      return handleCreateAt(ctx, action.locationKey)
     case "ADD_LINK":
       // Stub: link picker not yet implemented
       ctx.toastQueue.info("Link picker not yet implemented")
@@ -1745,7 +1715,8 @@ function handleCursorTo(ctx: ActionCtx, locationKey: string): void {
   clearSelection(ctx)
 }
 
-function handleMoveToBoard(ctx: ActionCtx, boardId: string): void {
+/** Move selected nodes as last children of the given parent node. */
+function reparentToNode(ctx: ActionCtx, boardId: string): void {
   const cards = getSelectedCards(ctx)
   if (cards.length === 0) return
 
@@ -1772,6 +1743,111 @@ function handleMoveToBoard(ctx: ActionCtx, boardId: string): void {
   clearSelection(ctx)
   ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${targetNode.name ?? targetNode.id}`)
   ctx.setUI({})
+}
+
+/**
+ * Handle REPARENT_TO verb action — move node(s) to a new parent by locationKey.
+ * Absorbs the old MOVE_TO_BOARD, MOVE_TO_FAVORITE, SHIFT_TO_TOP, SHIFT_TO_BOTTOM,
+ * OUTDENT_NODE (for "parent"), and REPARENT_PICKER (for "pick:+") action types.
+ */
+function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
+  // "parent" → structural outdent
+  if (locationKey === "parent") {
+    outdentNode(ctx)
+    return ok()
+  }
+
+  // "first" / "last" → shift to top/bottom among siblings
+  if (locationKey === "first") {
+    handleShiftToExtreme(ctx, "top")
+    return ok()
+  }
+  if (locationKey === "last") {
+    handleShiftToExtreme(ctx, "bottom")
+    return ok()
+  }
+
+  // "pick:+" → open project picker
+  if (locationKey === "pick:+") {
+    ctx.setUI({ activePicker: { type: "project" } })
+    return ok()
+  }
+
+  // "fav:X" → resolve favorite → reparent as last child
+  if (locationKey.startsWith("fav:")) {
+    const favBoardId = getFavorite(locationKey.slice(4))
+    if (favBoardId) {
+      reparentToNode(ctx, favBoardId)
+    } else {
+      ctx.toastQueue.warning(`No favorite assigned to key '${locationKey.slice(4)}'`)
+      ctx.setUI({})
+    }
+    return ok()
+  }
+
+  // Board/node ID — move selected nodes as last children
+  reparentToNode(ctx, locationKey)
+  return ok()
+}
+
+/**
+ * Handle LINK_TO verb action — add link/property by locationKey.
+ * Absorbs the old ADD_LINK_TO_BOARD, ADD_LINK_TO_FAVORITE, SET_LABEL,
+ * SET_ASSIGNEE, ADD_LINK, and REPARENT_PICKER (for "pick:+") action types.
+ */
+function handleLinkTo(ctx: ActionCtx, locationKey: string): ActionResult {
+  // Pickers
+  if (locationKey === "pick:#") {
+    pushDialogMode("dialog:picker")
+    ctx.closeDetailPane()
+    ctx.setUI({ activePicker: { type: "tag" } })
+    clearSelection(ctx)
+    return ok()
+  }
+  if (locationKey === "pick:@") {
+    pushDialogMode("dialog:picker")
+    ctx.closeDetailPane()
+    ctx.setUI({ activePicker: { type: "assignee" } })
+    clearSelection(ctx)
+    return ok()
+  }
+  if (locationKey === "pick:+") {
+    ctx.setUI({ activePicker: { type: "project" } })
+    return ok()
+  }
+  if (locationKey === "pick:[") {
+    ctx.toastQueue.info("Link picker not yet implemented")
+    ctx.setUI({})
+    return ok()
+  }
+
+  // "fav:X" → add link to favorite target
+  if (locationKey.startsWith("fav:")) {
+    const favBoardId = getFavorite(locationKey.slice(4))
+    if (favBoardId) {
+      ctx.toastQueue.info(`Add link to "${favBoardId}" not yet implemented`)
+    } else {
+      ctx.toastQueue.warning(`No favorite assigned to key '${locationKey.slice(4)}'`)
+    }
+    ctx.setUI({})
+    return ok()
+  }
+
+  // Board/node ID → add link (stub)
+  ctx.toastQueue.info(`Add link to "${locationKey}" not yet implemented`)
+  ctx.setUI({})
+  return ok()
+}
+
+/**
+ * Handle CREATE_AT verb action — create a new node at the target location.
+ * Absorbs the old CAPTURE action type for verb-grid usage.
+ */
+function handleCreateAt(ctx: ActionCtx, locationKey: string): ActionResult {
+  // For now, capture is not yet implemented — stub with toast
+  ctx.toastQueue.info(`Create at "${locationKey}" not yet implemented`)
+  ctx.setUI({})
+  return ok()
 }
 
 function handleJumpToColumn(ctx: ActionCtx, columnNumber: number): ActionResult {

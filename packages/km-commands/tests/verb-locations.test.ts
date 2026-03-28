@@ -174,32 +174,32 @@ describe("verb-locations", () => {
     })
 
     describe("moveTo", () => {
-      it("returns MOVE_TO_BOARD for board node IDs", () => {
-        expect(moveTo(inbox)(emptyCtx)).toEqual({ type: "MOVE_TO_BOARD", boardId: "@inbox" })
-        expect(moveTo(journal)(emptyCtx)).toEqual({ type: "MOVE_TO_BOARD", boardId: "@journal" })
-        expect(moveTo(home)(emptyCtx)).toEqual({ type: "MOVE_TO_BOARD", boardId: "@next" })
-        expect(moveTo(archive)(emptyCtx)).toEqual({ type: "MOVE_TO_BOARD", boardId: "@archive" })
+      it("returns REPARENT_TO for board node IDs", () => {
+        expect(moveTo(inbox)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@inbox" })
+        expect(moveTo(journal)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@journal" })
+        expect(moveTo(home)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@next" })
+        expect(moveTo(archive)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@archive" })
       })
 
-      it("returns MOVE_TO_FAVORITE for fav:KEY", () => {
-        expect(moveTo(fav("3"))(emptyCtx)).toEqual({ type: "MOVE_TO_FAVORITE", favoriteKey: "3" })
-        expect(moveTo(fav("0"))(emptyCtx)).toEqual({ type: "MOVE_TO_FAVORITE", favoriteKey: "0" })
+      it("returns REPARENT_TO for fav:KEY", () => {
+        expect(moveTo(fav("3"))(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "fav:3" })
+        expect(moveTo(fav("0"))(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "fav:0" })
       })
 
-      it("returns OUTDENT_NODE for parent", () => {
-        expect(moveTo(parent)(emptyCtx)).toEqual({ type: "OUTDENT_NODE" })
+      it("returns REPARENT_TO for parent", () => {
+        expect(moveTo(parent)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "parent" })
       })
 
-      it("returns SHIFT_TO_TOP for first", () => {
-        expect(moveTo(first)(emptyCtx)).toEqual({ type: "SHIFT_TO_TOP" })
+      it("returns REPARENT_TO for first", () => {
+        expect(moveTo(first)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "first" })
       })
 
-      it("returns SHIFT_TO_BOTTOM for last", () => {
-        expect(moveTo(last)(emptyCtx)).toEqual({ type: "SHIFT_TO_BOTTOM" })
+      it("returns REPARENT_TO for last", () => {
+        expect(moveTo(last)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "last" })
       })
 
-      it("returns REPARENT_PICKER for pick:+", () => {
-        expect(moveTo(pick("+"))(emptyCtx)).toEqual({ type: "REPARENT_PICKER" })
+      it("returns REPARENT_TO for pick:+", () => {
+        expect(moveTo(pick("+"))(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "pick:+" })
       })
 
       it("returns null when target resolver returns null", () => {
@@ -209,30 +209,30 @@ describe("verb-locations", () => {
     })
 
     describe("addTo", () => {
-      it("returns ADD_LINK_TO_BOARD for board node IDs", () => {
-        expect(addTo(inbox)(emptyCtx)).toEqual({ type: "ADD_LINK_TO_BOARD", boardId: "@inbox" })
-        expect(addTo(journal)(emptyCtx)).toEqual({ type: "ADD_LINK_TO_BOARD", boardId: "@journal" })
+      it("returns LINK_TO for board node IDs", () => {
+        expect(addTo(inbox)(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "@inbox" })
+        expect(addTo(journal)(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "@journal" })
       })
 
-      it("returns SET_LABEL for pick:#", () => {
-        expect(addTo(pick("#"))(emptyCtx)).toEqual({ type: "SET_LABEL" })
+      it("returns LINK_TO for pick:#", () => {
+        expect(addTo(pick("#"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:#" })
       })
 
-      it("returns SET_ASSIGNEE for pick:@", () => {
-        expect(addTo(pick("@"))(emptyCtx)).toEqual({ type: "SET_ASSIGNEE" })
+      it("returns LINK_TO for pick:@", () => {
+        expect(addTo(pick("@"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:@" })
       })
 
-      it("returns REPARENT_PICKER for pick:+", () => {
-        expect(addTo(pick("+"))(emptyCtx)).toEqual({ type: "REPARENT_PICKER" })
+      it("returns LINK_TO for pick:+", () => {
+        expect(addTo(pick("+"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:+" })
       })
 
-      it("returns ADD_LINK for pick:[", () => {
-        expect(addTo(pick("["))(emptyCtx)).toEqual({ type: "ADD_LINK" })
+      it("returns LINK_TO for pick:[", () => {
+        expect(addTo(pick("["))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:[" })
       })
 
-      it("returns ADD_LINK_TO_FAVORITE for fav:KEY", () => {
-        expect(addTo(fav("1"))(emptyCtx)).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: "1" })
-        expect(addTo(fav("7"))(emptyCtx)).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: "7" })
+      it("returns LINK_TO for fav:KEY", () => {
+        expect(addTo(fav("1"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "fav:1" })
+        expect(addTo(fav("7"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "fav:7" })
       })
 
       it("returns null when target resolver returns null", () => {
@@ -242,15 +242,15 @@ describe("verb-locations", () => {
     })
 
     describe("createIn", () => {
-      it("returns CAPTURE for any target", () => {
-        expect(createIn(inbox)(emptyCtx)).toEqual({ type: "CAPTURE" })
-        expect(createIn(journal)(emptyCtx)).toEqual({ type: "CAPTURE" })
-        expect(createIn(fav("1"))(emptyCtx)).toEqual({ type: "CAPTURE" })
+      it("returns CREATE_AT for any target", () => {
+        expect(createIn(inbox)(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "@inbox" })
+        expect(createIn(journal)(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "@journal" })
+        expect(createIn(fav("1"))(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "fav:1" })
       })
 
-      it("returns CAPTURE even with null target resolver", () => {
+      it("returns null when target resolver returns null", () => {
         const nullTarget: TargetResolver = () => null
-        expect(createIn(nullTarget)(emptyCtx)).toEqual({ type: "CAPTURE" })
+        expect(createIn(nullTarget)(emptyCtx)).toBeNull()
       })
     })
   })
@@ -378,7 +378,7 @@ describe("verb-locations", () => {
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("move")
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "MOVE_TO_BOARD", boardId: "@journal" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "@journal" })
     })
 
     it("produces g p (goTo parent = CURSOR_TO parent)", () => {
@@ -388,21 +388,21 @@ describe("verb-locations", () => {
       expect(action).toEqual({ type: "CURSOR_TO", locationKey: "parent" })
     })
 
-    it("produces m p (moveTo parent = OUTDENT_NODE)", () => {
+    it("produces m p (moveTo parent = REPARENT_TO parent)", () => {
       const b = findBinding(grid, "m", "p")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "OUTDENT_NODE" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "parent" })
     })
 
-    it("produces m g (moveTo first = SHIFT_TO_TOP)", () => {
+    it("produces m g (moveTo first = REPARENT_TO first)", () => {
       const b = findBinding(grid, "m", "g")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "SHIFT_TO_TOP" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "first" })
     })
 
-    it("produces m shift-g (moveTo last = SHIFT_TO_BOTTOM)", () => {
+    it("produces m shift-g (moveTo last = REPARENT_TO last)", () => {
       // findBinding matches on parsed.key only; find shift-g by checking parsed.shift too
       const b = grid.find((binding) => {
         const parsed = parseKeyString(binding.key)
@@ -410,10 +410,10 @@ describe("verb-locations", () => {
       })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "SHIFT_TO_BOTTOM" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "last" })
     })
 
-    it("produces a shift-3 (addTo pick # = SET_LABEL)", () => {
+    it("produces a shift-3 (addTo pick # = LINK_TO pick:#)", () => {
       // Picker key is now "shift-3" (parsed.key="3", parsed.shift=true)
       const b = grid.find((binding) => {
         const parsed = parseKeyString(binding.key)
@@ -421,10 +421,10 @@ describe("verb-locations", () => {
       })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "SET_LABEL" })
+      expect(action).toEqual({ type: "LINK_TO", locationKey: "pick:#" })
     })
 
-    it("produces a shift-2 (addTo pick @ = SET_ASSIGNEE)", () => {
+    it("produces a shift-2 (addTo pick @ = LINK_TO pick:@)", () => {
       // Picker key is now "shift-2" (parsed.key="2", parsed.shift=true)
       const b = grid.find((binding) => {
         const parsed = parseKeyString(binding.key)
@@ -432,14 +432,14 @@ describe("verb-locations", () => {
       })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "SET_ASSIGNEE" })
+      expect(action).toEqual({ type: "LINK_TO", locationKey: "pick:@" })
     })
 
-    it("produces a [ (addTo pick [ = ADD_LINK)", () => {
+    it("produces a [ (addTo pick [ = LINK_TO pick:[)", () => {
       const b = findBinding(grid, "a", "[")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "ADD_LINK" })
+      expect(action).toEqual({ type: "LINK_TO", locationKey: "pick:[" })
     })
 
     it("produces g + favorites 0-9", () => {
@@ -458,7 +458,7 @@ describe("verb-locations", () => {
         expect(b).toBeDefined()
         expect(b!.targetId).toBe(`fav:${n}`)
         const action = b!.execute!(emptyCtx)
-        expect(action).toEqual({ type: "MOVE_TO_FAVORITE", favoriteKey: String(n) })
+        expect(action).toEqual({ type: "REPARENT_TO", locationKey: `fav:${n}` })
       }
     })
 
@@ -467,16 +467,16 @@ describe("verb-locations", () => {
         const b = findBinding(grid, "a", String(n))
         expect(b).toBeDefined()
         const action = b!.execute!(emptyCtx)
-        expect(action).toEqual({ type: "ADD_LINK_TO_FAVORITE", favoriteKey: String(n) })
+        expect(action).toEqual({ type: "LINK_TO", locationKey: `fav:${n}` })
       }
     })
 
-    it("produces c i (createIn inbox = CAPTURE)", () => {
+    it("produces c i (createIn inbox = CREATE_AT @inbox)", () => {
       const b = findBinding(grid, "c", "i")
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("create_in")
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "CAPTURE" })
+      expect(action).toEqual({ type: "CREATE_AT", locationKey: "@inbox" })
     })
 
     it("has a reasonable total count", () => {
