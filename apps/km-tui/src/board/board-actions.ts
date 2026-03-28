@@ -1753,7 +1753,11 @@ function reparentToNode(ctx: ActionCtx, boardId: string): void {
 function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
   // "parent" → structural outdent
   if (locationKey === "parent") {
-    outdentNode(ctx)
+    const nodeId = ctx.cursorNodeId
+    if (!nodeId) return boundary("outdent", "no cursor")
+    const node = ctx.repo.getNode(nodeId)
+    if (!node) return boundary("outdent", "node not found")
+    if (!outdentNode(ctx, node)) return boundary("outdent", "can't outdent further")
     return ok()
   }
 
