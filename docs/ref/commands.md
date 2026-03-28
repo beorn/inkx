@@ -97,7 +97,7 @@ The union of all action types a command can return:
 | `TaskSetStatusAction` | Storage layer    | `TASK_SET_STATUS`                            |
 | `HistoryAction`    | App layer           | `HISTORY_UNDO`, `HISTORY_REDO`              |
 | `UIAction`         | TUI handler         | `QUIT`, `SHOW_HELP`, `CYCLE_VIEW_MODE`      |
-| `TUIAction`        | TUI handler         | `JUMP_TO_FAVORITE`, `CLOSE_OR_QUIT`         |
+| `TUIAction`        | TUI handler         | `CURSOR_TO`, `CLOSE_OR_QUIT`                |
 
 ### ActionError (Result type)
 

@@ -54,11 +54,8 @@ export const goTo =
   (ctx) => {
     const t = target(ctx)
     if (!t) return null
-    // Delegate to existing goto command logic
-    if (t === "parent") return { type: "ZOOM_OUTWARDS" }
-    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteKey: t.slice(4) }
-    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" }
-    return { type: "GOTO_BOARD", boardId: t }
+    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // pickers stay for now
+    return { type: "CURSOR_TO", locationKey: t }
   }
 
 /** Move selected node(s) to a target */

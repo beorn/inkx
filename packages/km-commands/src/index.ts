@@ -26,7 +26,7 @@ export type {
   QuitAction,
   ShowNewItemDialogAction,
   ShowItemPickerAction,
-  JumpToFavoriteAction,
+  VerbAction,
   JumpToColumnAction,
   CloseOrQuitAction,
   EditBlockNavigateAction,

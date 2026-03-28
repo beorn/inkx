@@ -184,9 +184,10 @@ interface ShowSearchDialogAction {
   type: "SHOW_SEARCH_DIALOG"
 }
 
-export interface JumpToFavoriteAction {
-  type: "JUMP_TO_FAVORITE"
-  favoriteKey: string
+/** Unified verb x location action. Replaces stringly-typed action types like GOTO_BOARD, JUMP_TO_FAVORITE. */
+export interface VerbAction {
+  type: "CURSOR_TO" | "REPARENT_TO" | "LINK_TO" | "CREATE_AT"
+  locationKey: string // location key — resolved by handler using repo context
 }
 
 export interface JumpToColumnAction {
@@ -198,10 +199,6 @@ export interface CloseOrQuitAction {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
-interface GotoBoardAction {
-  type: "GOTO_BOARD"
-  boardId: string // Well-known board ID (e.g., "@inbox", "@journal")
-}
 
 interface MoveToBoardAction {
   type: "MOVE_TO_BOARD"
@@ -765,7 +762,7 @@ export type TUIAction =
   | ShowNewItemDialogAction
   | ShowItemPickerAction
   | ShowSearchDialogAction
-  | JumpToFavoriteAction
+  | VerbAction
   | JumpToColumnAction
   | CloseOrQuitAction
   | EnterInlineEditAction
@@ -828,7 +825,6 @@ export type TUIAction =
   | ClipboardCopyAction
   | ClipboardCutAction
   | ClipboardPasteAction
-  | GotoBoardAction
   | MoveToBoardAction
   | AddLinkAction
   | AddLinkToBoardAction

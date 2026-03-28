@@ -144,21 +144,21 @@ describe("verb-locations", () => {
 
   describe("verb constructors", () => {
     describe("goTo", () => {
-      it("returns GOTO_BOARD for board node IDs", () => {
-        expect(goTo(inbox)(emptyCtx)).toEqual({ type: "GOTO_BOARD", boardId: "@inbox" })
-        expect(goTo(journal)(emptyCtx)).toEqual({ type: "GOTO_BOARD", boardId: "@journal" })
-        expect(goTo(home)(emptyCtx)).toEqual({ type: "GOTO_BOARD", boardId: "@next" })
-        expect(goTo(archive)(emptyCtx)).toEqual({ type: "GOTO_BOARD", boardId: "@archive" })
+      it("returns CURSOR_TO for board node IDs", () => {
+        expect(goTo(inbox)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@inbox" })
+        expect(goTo(journal)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@journal" })
+        expect(goTo(home)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@next" })
+        expect(goTo(archive)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@archive" })
       })
 
-      it("returns JUMP_TO_FAVORITE for fav:KEY", () => {
-        expect(goTo(fav("1"))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: "1" })
-        expect(goTo(fav("0"))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: "0" })
-        expect(goTo(fav("9"))(emptyCtx)).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: "9" })
+      it("returns CURSOR_TO for fav:KEY", () => {
+        expect(goTo(fav("1"))(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:1" })
+        expect(goTo(fav("0"))(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:0" })
+        expect(goTo(fav("9"))(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:9" })
       })
 
-      it("returns ZOOM_OUTWARDS for parent", () => {
-        expect(goTo(parent)(emptyCtx)).toEqual({ type: "ZOOM_OUTWARDS" })
+      it("returns CURSOR_TO for parent", () => {
+        expect(goTo(parent)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "parent" })
       })
 
       it("returns SHOW_ITEM_PICKER for pick:*", () => {
@@ -370,7 +370,7 @@ describe("verb-locations", () => {
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("goto")
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "GOTO_BOARD", boardId: "@inbox" })
+      expect(action).toEqual({ type: "CURSOR_TO", locationKey: "@inbox" })
     })
 
     it("produces m j (moveTo journal)", () => {
@@ -381,11 +381,11 @@ describe("verb-locations", () => {
       expect(action).toEqual({ type: "MOVE_TO_BOARD", boardId: "@journal" })
     })
 
-    it("produces g p (goTo parent = ZOOM_OUTWARDS)", () => {
+    it("produces g p (goTo parent = CURSOR_TO parent)", () => {
       const b = findBinding(grid, "g", "p")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "ZOOM_OUTWARDS" })
+      expect(action).toEqual({ type: "CURSOR_TO", locationKey: "parent" })
     })
 
     it("produces m p (moveTo parent = OUTDENT_NODE)", () => {
@@ -448,7 +448,7 @@ describe("verb-locations", () => {
         expect(b).toBeDefined()
         expect(b!.targetId).toBe(`fav:${n}`)
         const action = b!.execute!(emptyCtx)
-        expect(action).toEqual({ type: "JUMP_TO_FAVORITE", favoriteKey: String(n) })
+        expect(action).toEqual({ type: "CURSOR_TO", locationKey: `fav:${n}` })
       }
     })
 
@@ -607,7 +607,7 @@ describe("verb-locations", () => {
       expect(resolved).not.toBeNull()
       expect(resolved!.execute).toBeDefined()
       const action = resolved!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "GOTO_BOARD", boardId: "@inbox" })
+      expect(action).toEqual({ type: "CURSOR_TO", locationKey: "@inbox" })
     })
 
     it("Ctrl+g i chord resolves the same as g i", () => {

@@ -197,11 +197,8 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       })
       clearSelection(ctx)
       return ok()
-    case "JUMP_TO_FAVORITE":
-      handleJumpToFavorite(ctx, action.favoriteKey)
-      return ok()
-    case "GOTO_BOARD":
-      handleGotoBoard(ctx, action.boardId)
+    case "CURSOR_TO":
+      handleCursorTo(ctx, action.locationKey)
       return ok()
     case "MOVE_TO_BOARD":
       handleMoveToBoard(ctx, action.boardId)
@@ -1680,36 +1677,54 @@ function handleFavoritesClear(ctx: ActionCtx): ActionResult {
   return ok()
 }
 
-function handleJumpToFavorite(ctx: ActionCtx, favoriteKey: string): void {
-  const favoriteId = getFavorite(favoriteKey)
+function handleCursorTo(ctx: ActionCtx, locationKey: string): void {
+  // "parent" — zoom outwards
+  if (locationKey === "parent") {
+    handleZoomOutwards(ctx)
+    return
+  }
 
-  if (!favoriteId) return
+  // "first" / "last" — cursor to first/last sibling
+  if (locationKey === "first" || locationKey === "last") {
+    const boardNode = ctx.getBoardNodeId()
+    if (!boardNode) return
+    const siblings = ctx.repo.getChildren(boardNode)
+    if (siblings.length === 0) return
+    const target = locationKey === "first" ? siblings[0]! : siblings[siblings.length - 1]!
+    ctx.dispatchBoard({ type: "SET_CURSOR", nodeId: target.id })
+    clearSelection(ctx)
+    return
+  }
 
-  const targetNode = ctx.repo.getNode(favoriteId)
-  if (!targetNode) return
+  // "fav:X" — jump to favorite
+  if (locationKey.startsWith("fav:")) {
+    const favoriteId = getFavorite(locationKey.slice(4))
+    if (!favoriteId) return
+    const targetNode = ctx.repo.getNode(favoriteId)
+    if (!targetNode) return
+    saveNavHistory(ctx)
+    ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: favoriteId })
+    clearSelection(ctx)
+    return
+  }
 
-  saveNavHistory(ctx)
-  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: favoriteId })
-  clearSelection(ctx)
-}
-
-function handleGotoBoard(ctx: ActionCtx, boardId: string): void {
   // If focused pane is empty, activate it as a board pane first
   if (ctx.focusedPaneViewType() === "empty") {
     ctx.activateEmptyPane()
   }
 
-  if (boardId === "@home") {
-    // Go to root — zoom all the way out
+  // "@home" — go to root
+  if (locationKey === "@home") {
     saveNavHistory(ctx)
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: null })
     clearSelection(ctx)
     return
   }
 
-  const targetNode = ctx.repo.getNode(boardId) ?? ctx.repo.resolveNode(boardId)
+  // Board/node ID — navigate there
+  const targetNode = ctx.repo.getNode(locationKey) ?? ctx.repo.resolveNode(locationKey)
   if (!targetNode) {
-    ctx.toastQueue.warning(`Board "${boardId}" not found`)
+    ctx.toastQueue.warning(`Board "${locationKey}" not found`)
     ctx.setUI({})
     return
   }

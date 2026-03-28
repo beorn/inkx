@@ -205,12 +205,8 @@ const goto = {
     const t = ctx.targetId
     if (!t) return null
 
-    if (t === "parent") return { type: "ZOOM_OUTWARDS" }
-    if (t.startsWith("fav:")) return { type: "JUMP_TO_FAVORITE", favoriteKey: t.slice(4) }
-    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // TODO: generic picker
-
-    // Real node ID — navigate there
-    return { type: "GOTO_BOARD", boardId: t }
+    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // pickers stay for now
+    return { type: "CURSOR_TO", locationKey: t }
   },
 } satisfies CommandDef
 

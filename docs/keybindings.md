@@ -281,7 +281,7 @@ Functions `(target: TargetResolver) => Execute` that create actions:
 
 | Verb | Action Types | Description |
 |------|-------------|-------------|
-| `goTo` | GOTO_BOARD, JUMP_TO_FAVORITE, ZOOM_OUTWARDS | Navigate to target |
+| `goTo` | CURSOR_TO | Navigate to target (locationKey: "@inbox", "fav:1", "parent", etc.) |
 | `moveTo` | MOVE_TO_BOARD, MOVE_TO_FAVORITE, OUTDENT_NODE, SHIFT_TO_TOP/BOTTOM | Move node to target |
 | `addTo` | ADD_LINK_TO_BOARD, SET_LABEL, SET_ASSIGNEE, ADD_LINK | Add link/property |
 | `createIn` | CAPTURE_DIALOG | Create item in target |
@@ -289,7 +289,7 @@ Functions `(target: TargetResolver) => Execute` that create actions:
 ### Grid Helper
 
 `verbLocationGrid()` generates chord keybindings from the cross-product of verbs and locations. For example:
-- `g i` -> goTo(inbox) -> GOTO_BOARD { boardId: "@inbox" }
+- `g i` -> goTo(inbox) -> CURSOR_TO { locationKey: "@inbox" }
 - `m j` -> moveTo(journal) -> MOVE_TO_BOARD { boardId: "@journal" }
 - `a #` -> addTo(pick("#")) -> SET_LABEL
 
