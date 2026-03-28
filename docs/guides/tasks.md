@@ -203,7 +203,7 @@ Board items are **embeddings** (symlinks) to tasks. The `![[...]]` syntax create
 
 | Board      | Purpose           | Populated By                                             |
 | ---------- | ----------------- | -------------------------------------------------------- |
-| `@next`    | Next actions      | Inbox column (`km.add:: ./inbox/**`), overdue/starting rules |
+| `@next`    | Next actions      | Inbox column (`km.add:: ./inbox/*`), overdue/starting rules |
 | `@someday` | Maybe/later       | Manual curation only                                     |
 
 ---
@@ -330,7 +330,7 @@ recurrence design and cross-system comparison.
 
 ### Inbox Folder
 
-Items in `inbox/` are unprocessed. The `km.add:: ./inbox/**` column rule on `@next/inbox` adds them automatically.
+Items in `inbox/` are unprocessed. The `km.add:: ./inbox/*` column rule on `@next/inbox` adds them automatically.
 
 ### Archive Folder
 

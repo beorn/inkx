@@ -240,6 +240,15 @@ describe("parseQuery - path patterns", () => {
     expect(ast.paths[0]?.pattern).toBe("/inbox")
   })
 
+  test("parses single-level glob: './inbox/*'", () => {
+    const ast = parseQuery("./inbox/*")
+    expect(ast.paths).toHaveLength(1)
+    expect(ast.paths[0]).toMatchObject({
+      pattern: "./inbox$",
+      recursive: false,
+    })
+  })
+
   test("parses negated path: '-./archive/**'", () => {
     const ast = parseQuery("-./archive/**")
     expect(ast.paths).toHaveLength(1)
