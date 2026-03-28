@@ -63,13 +63,15 @@ Match nodes by location:
 
 ```bash
 ./inbox             # Under ./inbox (relative to cwd, recursive)
-./inbox/*           # Direct children of ./inbox only
+./inbox$            # Direct children of ./inbox only (non-recursive)
+./inbox/*           # Same as ./inbox$ (but * conflicts with markdown emphasis in headings)
 ./inbox/**          # Under ./inbox, recursive (same as ./inbox)
 /projects/web       # Under /projects/web (absolute)
 projects/           # Path contains "projects/"
 projects/**         # Contains "projects/", recursive
-./tasks/budget$     # Exactly this path
 ```
+
+> **Note:** Use `./path$` instead of `./path/*` in `km.add::` heading rules. The `*` character triggers markdown emphasis parsing, corrupting the heading content.
 
 ---
 
