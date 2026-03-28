@@ -12,6 +12,7 @@ import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
+import type { CardView } from "../types.ts"
 import { isTask, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -226,7 +227,18 @@ function TreeNodeImpl({
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
-  const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = resolveEmbed(repo, node)
+  // At depth 0 (card level), use pre-resolved data from CardView.
+  // At depth > 0 (nested children), resolve per-node.
+  const cardView = depth === 0 && "hasBodyChildren" in node ? (node as CardView) : undefined
+  const embedRes = cardView
+    ? {
+        isEmbedded: cardView.resolvedNode !== undefined || cardView.isBrokenEmbed,
+        resolvedNode: cardView.resolvedNode ?? null,
+        displayNode: cardView.resolvedNode ?? node,
+        isBrokenEmbed: cardView.isBrokenEmbed,
+      }
+    : resolveEmbed(repo, node)
+  const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = embedRes
 
   // Use provided children or fetch from repo
   // For embeds, get children from the TARGET node (transclusion shows target's children)
@@ -398,8 +410,9 @@ function TreeNodeImpl({
   // (paragraphs, quotes, code blocks, etc. — not just structural oi items)
   const hasBody = useMemo(() => {
     if (depth !== 0 || isOneliner) return false
+    if (cardView) return cardView.hasBodyChildren
     return extractBody(children).body.length > 0
-  }, [depth, isOneliner, children])
+  }, [depth, isOneliner, children, cardView])
 
   // Subtask progress badge: "3/7" showing done/total task children (cards only)
   const subtaskBadge = useMemo(() => {
