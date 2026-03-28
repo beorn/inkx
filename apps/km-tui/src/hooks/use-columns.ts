@@ -99,12 +99,18 @@ function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView
   return nodes.map((node) => {
     const isBody = bodyIds.has(node.id)
     const resolvedNode = node.embed_source ? resolvedMap.get(node.embed_source) : undefined
+    // For hasBodyChildren: check if first child is a non-outline node (= body content).
+    // Cheaper than extractBody — getChildren is cached via preloadSubtree.
+    const sourceId = resolvedNode?.id ?? node.id
+    const firstChild = isBody ? undefined : repo.getChildren(sourceId)[0]
+    const hasBodyChildren = firstChild != null && !KNode.isOutline(firstChild)
     return {
       ...node,
+      __cardView: true as const,
       resolvedNode,
       isBody,
       isBrokenEmbed: node.embed_source != null && resolvedNode === undefined,
-      hasBodyChildren: isBody ? false : extractBody(repo.getChildren(node.id)).body.length > 0,
+      hasBodyChildren,
     } as CardView
   })
 }

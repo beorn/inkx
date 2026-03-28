@@ -31,12 +31,18 @@ function buildColumnCards(bodyNodes: KNode[], structuralNodes: KNode[]): CardVie
   const cards: CardView[] = []
 
   for (const node of bodyNodes) {
-    cards.push({ ...node, isBody: !KNode.isEmbed(node), isBrokenEmbed: false, hasBodyChildren: false })
+    cards.push({
+      ...node,
+      __cardView: true as const,
+      isBody: !KNode.isEmbed(node),
+      isBrokenEmbed: false,
+      hasBodyChildren: false,
+    })
   }
 
   for (const node of structuralNodes) {
     if (isCollapsedChild(node)) continue
-    cards.push({ ...node, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })
+    cards.push({ ...node, __cardView: true as const, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })
   }
 
   return cards
@@ -183,6 +189,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       node: createVirtualBodyNode(rootId),
       cardNodes: meaningfulBody.map((n) => ({
         ...n,
+        __cardView: true as const,
         isBody: !KNode.isEmbed(n),
         isBrokenEmbed: false,
         hasBodyChildren: false,

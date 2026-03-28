@@ -30,6 +30,8 @@ export interface InitialBoardData {
  * card.content, etc. work unchanged.
  */
 export interface CardView extends KNode {
+  /** Discriminator — distinguishes CardView from plain KNode at runtime */
+  readonly __cardView: true
   /** Pre-resolved embed target (undefined = not an embed) */
   resolvedNode?: KNode
   /** True if this is a body block (before first outline item in parent) */
@@ -38,6 +40,11 @@ export interface CardView extends KNode {
   isBrokenEmbed: boolean
   /** True if this card has body children (for ··· indicator) */
   hasBodyChildren: boolean
+}
+
+/** Runtime type guard for CardView (checks discriminator, not property sniffing) */
+export function isCardView(node: KNode): node is CardView {
+  return "__cardView" in node
 }
 
 /**

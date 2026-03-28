@@ -965,7 +965,13 @@ function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: stri
 function mockColumn(name: string, cardNodes: KNode[]): ColumnView {
   return {
     node: mockNode(`col-${name}`, name, undefined, "h", { fstype: "mdsection" }),
-    cardNodes: cardNodes.map((c) => ({ ...c, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })),
+    cardNodes: cardNodes.map((c) => ({
+      ...c,
+      __cardView: true as const,
+      isBody: false,
+      isBrokenEmbed: false,
+      hasBodyChildren: false,
+    })),
   }
 }
 

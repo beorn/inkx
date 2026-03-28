@@ -53,7 +53,13 @@ export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: 
   })
   return {
     node,
-    cardNodes: cardNodes.map((c) => ({ ...c, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })),
+    cardNodes: cardNodes.map((c) => ({
+      ...c,
+      __cardView: true as const,
+      isBody: false,
+      isBrokenEmbed: false,
+      hasBodyChildren: false,
+    })),
   }
 }
 

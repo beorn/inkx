@@ -11,8 +11,8 @@ import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
-import { KNode, getStatusForMarker } from "@km/core"
-import type { CardView } from "../types.ts"
+import { KNode, getStatusForMarker, hasTaskProperties } from "@km/core"
+import { isCardView, type CardView } from "../types.ts"
 import { useRepo } from "../repo-context.tsx"
 import {
   isNodeUntitled,
@@ -228,7 +228,7 @@ function TreeNodeImpl({
   const isCardChild = variant === "multiline" && depth > 0
   // At depth 0 (card level), use pre-resolved data from CardView.
   // At depth > 0 (nested children), resolve per-node.
-  const cardView = depth === 0 && "hasBodyChildren" in node ? (node as CardView) : undefined
+  const cardView = depth === 0 && isCardView(node) ? node : undefined
   const embedRes = cardView
     ? {
         isEmbedded: cardView.resolvedNode !== undefined || cardView.isBrokenEmbed,
@@ -259,7 +259,7 @@ function TreeNodeImpl({
     )
   }
 
-  const nodeIsTask = KNode.isTask(displayNode)
+  const nodeIsTask = KNode.isTask(displayNode) || hasTaskProperties(displayNode)
 
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
@@ -882,7 +882,7 @@ const FoldedChildRow = React.memo(
     } = useTreeRenderContext()
     const repo = useRepo()
 
-    const nodeIsTask = KNode.isTask(node)
+    const nodeIsTask = KNode.isTask(node) || hasTaskProperties(node)
     const hasChildren = childCount > 0
     const style = getNodeStyle(node, false, false, false, depth, false)
     if (dim) style.shouldDim = true
