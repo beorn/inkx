@@ -74,11 +74,12 @@ export {
   resolveLinks,
   // Mutation operations (factory pattern - use createDbOps())
   createDbOps,
+  buildEmbedChild,
   // Event application (internal use)
   applyEventWithDb,
 } from "./db.ts"
 
-export type { Link, SearchResult, QueryAST, DbOps } from "./db.ts"
+export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db.ts"
 
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()

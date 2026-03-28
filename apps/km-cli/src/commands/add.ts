@@ -17,9 +17,9 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { realpathSync } from "fs"
 import { resolve } from "path"
-import { resolvePathArg } from "@km/storage"
+import { resolvePathArg, buildEmbedChild } from "@km/storage"
 import type { KNode } from "@km/core"
-import { getMarkerForStatus, isOutline, isEmbed } from "@km/core"
+import { isOutline, isEmbed } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -312,16 +312,7 @@ export const addCommand = new Command("add")
     repo.withDeferredFs(() => {
       // Create link nodes
       for (const task of tasksToLink) {
-        repo.addNode(actualTarget.id, {
-          type: "p",
-          item: true,
-          list_marker: "-",
-          task_marker: task.task_marker ?? getMarkerForStatus(task.task_status ?? "todo"),
-          parent_idx: nextIdx++,
-          embed_source: task.id,
-          content: task.content,
-          task_status: task.task_status,
-        })
+        repo.addNode(actualTarget.id, buildEmbedChild({ source: task, parentIdx: nextIdx++, type: "p" }))
       }
 
       // Append sigil to source task content (dedup: skip if already present)

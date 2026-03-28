@@ -17,13 +17,11 @@
  */
 
 import { createLogger } from "loggily"
-import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"
 import { removeLinksFromSourceByRelationship } from "./db-links.ts"
 import { rowToNode, getChildren, getNode } from "./db-queries/index.ts"
-// Note: We insert rule-materialized nodes directly into DB rather than using emitNodeCreated
-// because that would require the event system to be set up (which isn't always the case)
+import { createDbOps, buildEmbedChild } from "./db-ops.ts"
 import { parseQuery, isOutline, isEmbed, type KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
@@ -211,6 +209,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   const existingChildren = getChildren(db, sectionId)
   let nextIdx = existingChildren.length
 
+  const ops = createDbOps(db)
   let addedCount = 0
   let skippedCount = 0
   for (const match of matchingNodes) {
@@ -233,25 +232,8 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     // type: "h", item: true makes it a structural sub-item (card) on the board,
     // not body content. embed_source enables transclusion (resolveEmbed).
     const targetPath = getEmbedPath(match, db)
-    const embedId = ulid()
-    const now = Date.now()
-    db.run(
-      `INSERT INTO nodes (id, type, item, parent_id, parent_idx, embed_source, content, data, created_at, updated_at, version)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        embedId,
-        "h",
-        1,
-        sectionId,
-        nextIdx++,
-        match.id,
-        match.content ?? `![[${targetPath}]]`,
-        JSON.stringify({ targetPath }),
-        now,
-        now,
-        ulid(),
-      ],
-    )
+    const embedNode = buildEmbedChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath })
+    ops.addNode(sectionId, embedNode)
 
     addedCount++
     existingEmbedPathsOnBoard.add(targetPath)

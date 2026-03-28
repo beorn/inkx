@@ -7,7 +7,7 @@ One unified tree stored in SQLite. All content (markdown files, folders, list it
 Every node IS a block (has a content type). Orthogonal traits add capabilities:
 
 ```typescript
-type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math" | "embed"  // 9
+type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math"  // 8
 
 interface KNode {
   id: string
@@ -22,7 +22,7 @@ interface KNode {
   task_status?: TaskStatus       // "todo" | "done" | "wip" | "blocked" | "dropped"
   task_marker?: TaskMarker       // "[ ]" | "[x]" | "[/]" | "[!]" | "[-]"
 
-  // Embed (only valid when type = "embed")
+  // Embed trait (orthogonal to type — any node type can be an embed)
   embed_source?: string | null   // Target node ID (null = unresolved)
 
   // Tree
@@ -50,7 +50,7 @@ The old categorical types (oi, li, link) are derived from block type + traits:
 | `type:"p", item:true` | List item (was `li`) | `- content` |
 | `type:"quote", item:true` | Quote list item | `- > content` |
 | `type:"code", item:true` | Code list item | `- \`\`\`code\`\`\`` |
-| `type:"embed"` | Embed (was `link`) | `![[target]]` |
+| any type + `embed_source` | Embed (was `link`) | `![[target]]` |
 | `type:"p"` (no item) | Paragraph block | `content` |
 | `type:"code"` (no item) | Code block | ` ```code``` ` |
 | etc. | Leaf block | Various |
@@ -61,7 +61,7 @@ The old categorical types (oi, li, link) are derived from block type + traits:
 isOutline(type, item?)  // type === "h" && item === true
 isListItem(type, item?) // type !== "h" && item === true
 isItem(type, item?)     // item === true
-isEmbed(type)           // type === "embed"
+isEmbed(node)           // node.embed_source != null (orthogonal to type)
 isBlock(type, item?)    // !item (leaf node)
 ```
 
@@ -73,10 +73,9 @@ isBlock(type, item?)    // !item (leaf node)
 |---|---|
 | h requires item | `type === "h"` implies `item === true` |
 | task requires item | `task_status` or `task_marker` implies `item === true` |
-| embed requires embed_source | `type === "embed"` implies `embed_source` field present (null = unresolved) |
-| embed not an item | `type === "embed"` implies `item !== true` |
-| embed no children | `type === "embed"` cannot have children |
-| item-allowed types | h, p, quote, code can be items; table, hr, html, math, embed cannot |
+| embed is orthogonal | `embed_source != null` marks a node as an embed — any type can be an embed |
+| embed children from source | Embed nodes' children come from the target node (resolved at render time) |
+| item-allowed types | h, p, quote, code can be items; table, hr, html, math cannot |
 | h-children ordering | `body*, h*` — body content first, sub-sections last, no interleaving |
 | li-children ordering | `(body|li)*` — free interleaving |
 
@@ -137,24 +136,25 @@ Content leaf. Has a `content` string. No children (except `quote`).
 | `hr` | Empty (horizontal rule) |
 | `html` | Raw HTML |
 | `math` | Block math (LaTeX) |
-| `embed` | Transclusion reference |
+### Embed Trait (orthogonal to type)
 
-### Embed (type:"embed")
+Any node with `embed_source != null` is an embed — a block-level transclusion. The node's `type` stays as-is (`p`, `h`, etc.). Embeds created by different paths:
 
-References another node. Block-level transclusion.
+- **Markdown parser**: `![[target]]` → sets `embed_source` on the parsed node (type preserved from context)
+- **Board rules** (`km.add::`): creates `type:"h", item:true, embed_source:<id>` (outline item)
+- **CLI add**: creates `type:"p", item:true, embed_source:<id>` (list item)
 
 | Field | Type | Notes |
 |---|---|---|
-| `type` | `"embed"` | Always "embed" |
 | `embed_source` | `string?` | Target node ID (null = unresolved) |
-| `name` | `string?` | Alias (from `![[target|alias]]`) |
-| `content` | `string?` | Display text / reference name |
+| `name` | `string?` | Alias (from `![[target\|alias]]`) |
+| `content` | `string?` | Display text (source node's content) |
 
 `![[target|alias]]` → embed with `name` as alias. When absent, display falls back to target's title.
 
 **Links vs Embeds**:
 - `[[wikilink]]` is **inline text** — NOT a node. Tracked in `links` table for graph queries.
-- `![[embed]]` is `type:"embed"` — a **block-level transclusion**.
+- `![[embed]]` is a node with `embed_source` set — a **block-level transclusion**.
 
 ## Children Model
 
@@ -300,17 +300,17 @@ Footnote definitions (`[^1]: text`) are list items with footnote markers. Refere
 What can contain what:
 
 ```
-h item   → any node types as children (blocks, list items, embeds; sub-items are h items)
-p item   → any node types as children (blocks, embeds; sub-items are p items; can interleave)
-quote    → blocks (p, code, math, table, hr, html, embed, list items)
-embed    → no children (content transcluded from source)
+h item   → any node types as children (blocks, list items; sub-items are h items)
+p item   → any node types as children (blocks; sub-items are p items; can interleave)
+quote    → blocks (p, code, math, table, hr, html, list items)
 p, code, math, table, hr, html → no children (leaf nodes)
+(embed nodes with embed_source: children resolved from target at render time)
 ```
 
 Key constraints:
 - **h items only under h items**: A heading inside a list item becomes a child list item, not an h item
 - **list items anywhere a block can**: Lists can appear inside h item children, list item children, or blockquotes
-- **embed is a leaf**: Never contains children — transclusion resolved at render time
+- **embeds transclude from source**: Embed nodes' displayed children come from the target node (resolved at render time)
 
 ## Full Example Tree
 
@@ -325,7 +325,7 @@ h item  name:"vault"           fstype:"repo"
           p item  marker:"-"  status:"todo"  "Eggs"
           quote "note"
         quote item  marker:"-"  "quote list item"
-        embed  embed_source:"<id>"
+        p  embed_source:"<id>"          # embed (any type + embed_source)
         h item  name:"sub"   fstype:"mdsection"
 ```
 
@@ -365,8 +365,8 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 | Section (H2+ heading) | `h item (fstype:"mdsection")` — title in `.content` |
 | Repository root | `h item (fstype:"repo")` |
 | **Links & embeds** | |
-| `![[target]]` (embed) | `embed (embed_source:"<id>")` |
-| `![[target\|alias]]` | `embed (embed_source:"<id>", name:"alias")` |
+| `![[target]]` (embed) | node with `embed_source:"<id>"` (type from context) |
+| `![[target\|alias]]` | node with `embed_source:"<id>", name:"alias"` |
 | `[[target]]` inline | Stays in `p.content`, indexed in `links` table |
 | `[text](url)` | Stays in `p.content` (inline) |
 | `![alt](url)` | Stays in `p.content` (inline image) |
@@ -391,7 +391,7 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 
 - `**bold**` → stored as-is in `p.content`
 - `![alt](url)` → stored as-is in `p.content` (standard MD images)
-- `![[vault-image.png]]` → becomes an `embed` node (Obsidian-style)
+- `![[vault-image.png]]` → becomes a node with `embed_source` (Obsidian-style)
 - `[[wiki-link]]` inline → stays in content string, extracted to `links` table
 - `[^1]` reference → stays in content string
 
@@ -411,7 +411,7 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 | `list_marker` as literal string | Preserves user's bullet style | Requires parsing for ordered list logic |
 | Footnotes as list items with `[^id]` marker | Reuses list structure for multi-paragraph footnotes | Unconventional |
 | No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive item siblings |
-| Embeds as block type (not separate category) | Consistent with block+trait model. One fewer type category. | Must check `type === "embed"` instead of category |
+| Embeds as orthogonal trait (not a type) | Any node type can be an embed via `embed_source`. Consistent with block+trait model. | Must check `embed_source != null` instead of type |
 | Block-level AST only | Sufficient for TUI outline/kanban views | No inline node manipulation |
 | Callouts as `quote` + data | Syntactically they ARE blockquotes | Requires `data.callout_type` check |
 | Frontmatter as `data` field | Metadata, not content | Must serialize back from JSON |
@@ -422,12 +422,12 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 |---|---|
 | `type: "oi"` | `type: "h", item: true` |
 | `type: "li"` | `type: "p", item: true` (or actual block type) |
-| `type: "link"` | `type: "embed"` |
+| `type: "link"` | any type + `embed_source` |
 | `link_to` field | `embed_source` field |
 | `link_alias` field | `name` field |
-| `embed` boolean | Derived from `type === "embed"` |
+| `embed` boolean | Derived from `embed_source != null` |
 | `data.depth` | Derived from tree nesting |
 
-Existing databases are auto-migrated by `migrateSchema()` in `schema.ts` — it converts `oi`→`h`+item, `li`→`p`+item, `link`→`embed`+embed_source.
+Existing databases are auto-migrated by `migrateSchema()` in `schema.ts` — it converts `oi`→`h`+item, `li`→`p`+item, `link`→`p`+embed_source.
 
 The old types (`"oi"`, `"li"`, `"link"`) and fields (`link_to`, `link_alias`, `embed` boolean) have been fully removed from the codebase.

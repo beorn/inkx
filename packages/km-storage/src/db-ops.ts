@@ -12,7 +12,7 @@ import { createLogger } from "loggily"
 import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")
-import type { KNode } from "@km/core"
+import { getMarkerForStatus, type KNode, type TaskStatus } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 import type { Emitter } from "./emitter.ts"
 
@@ -56,6 +56,59 @@ export function createDbOps(db: Database, emitter?: Emitter): DbOps {
     deleteNode: (nodeId) => deleteNodeImpl(db, nodeId, emitter),
     moveNode: (nodeId, newParentId, newParentIdx) => moveNodeImpl(db, nodeId, newParentId, newParentIdx, emitter),
   }
+}
+
+// =============================================================================
+// Embed Child Builder
+// =============================================================================
+
+/**
+ * Options for building an embedded child node.
+ */
+export interface EmbedChildOpts {
+  /** Source node being embedded — its id becomes embed_source */
+  source: KNode
+  /** Sort order within parent */
+  parentIdx: number
+  /** Block type: "h" for outline items (boards), "p" for list items (CLI). Default: "h" */
+  type?: "h" | "p"
+  /** Stable embed path for deduplication (stored in data.targetPath) */
+  targetPath?: string
+}
+
+/**
+ * Build a Partial<KNode> for an embedded child. Pure function — caller chooses
+ * write mechanism: createDbOps(db).addNode() (direct SQL) or repo.addNode() (with events).
+ *
+ * Content is always the source node's real content (no ![[path]] fallback).
+ * Task traits (marker, status) are carried from the source with marker derivation.
+ */
+export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
+  const { source, parentIdx, type = "h", targetPath } = opts
+
+  const node: Partial<KNode> = {
+    type,
+    item: true,
+    embed_source: source.id,
+    content: source.content ?? undefined,
+    parent_idx: parentIdx,
+  }
+
+  if (type === "p") {
+    node.list_marker = "-"
+    // List items carry task traits for correct rendering.
+    // Outline items (type "h") don't — the display layer resolves them via resolveEmbed.
+    if (source.task_status != null || source.task_marker != null) {
+      node.task_marker = source.task_marker ?? getMarkerForStatus((source.task_status ?? "todo") as TaskStatus)
+      node.task_status = source.task_status
+    }
+  }
+
+  if (targetPath) {
+    node.data = { targetPath }
+  }
+
+  return node
 }
 
 // =============================================================================
