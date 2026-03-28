@@ -55,10 +55,10 @@ RIGHT:  if (hasSubitems(node)) renderWithSubitems()
         if (hasTaskMarker(node)) renderTaskStatus()
 ```
 
-The structural API provides the right predicates:
-- `isOutline(type)` — is it an outline item (`oi`)?
-- `isItem(type)` — can it have children (`oi` or `li`)?
-- `isBlock(type)` — is it a content leaf?
+The structural API provides the right predicates (via `KNode` namespace from `@km/core`):
+- `KNode.isOutline(node)` — is it an outline item (`oi`)?
+- `KNode.isItem(node)` — can it have children (`oi` or `li`)?
+- `KNode.isBlock(node)` — is it a content leaf?
 - `extractBody(children)` — separate body content from structural children
 
 These never check `fstype`. The visual layer should use these, not physical metadata.

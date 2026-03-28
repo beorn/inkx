@@ -370,7 +370,7 @@ if (node.task_marker) renderTaskStatus()
 **Guidelines:**
 - [ ] Views branch on structure — `type`, `content`, `children` / not `fstype`
 - [ ] Physical in storage only — `fstype` checks in `@km/storage` and `@km/markdown` / not in views
-- [ ] Predicates from tree — `isOutline()`, `extractBody()` / not `fstype === "mdsection"`
+- [ ] Predicates from tree — `KNode.isOutline(node)`, `extractBody()` / not `fstype === "mdsection"`
 
 > **Lessons learned**: [docs/lessons/structural-visual-physical.md](lessons/structural-visual-physical.md)
 

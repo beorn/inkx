@@ -58,14 +58,16 @@ The old categorical types (oi, li, link) are derived from block type + traits:
 ## Type Predicates
 
 ```typescript
-isOutline(type, item?)  // type === "h" && item === true
-isListItem(type, item?) // type !== "h" && item === true
-isItem(type, item?)     // item === true
-isEmbed(node)           // node.embed_source != null (orthogonal to type)
-isBlock(type, item?)    // !item (leaf node)
+import { KNode } from "@km/core"
+
+KNode.isOutline(node) // node.type === "h" && node.item === true
+KNode.isListItem(node) // node.type !== "h" && node.item === true
+KNode.isItem(node)     // node.item === true
+KNode.isEmbed(node)    // node.embed_source != null (orthogonal to type)
+KNode.isBlock(node)    // !node.item (leaf node)
 ```
 
-`isItem` is the primary structural predicate — items are containers, blocks are leaves.
+`KNode.isItem` is the primary structural predicate — items are containers, blocks are leaves.
 
 ## Constraints
 
