@@ -1,19 +1,13 @@
 /**
  * Tree node helper tests
  *
- * Consolidated from:
- * - implicit-task.test.ts (hasTaskProperties, getNodeStyle, formatInfoSuffix, visual rendering)
- * - short-names.test.ts (shortName, formatInfoSuffix with short names, visual rendering)
- *
  * Tests for the display helpers in tree-node-helpers.tsx:
- * - hasTaskProperties: detects implicit tasks (due_at, priority, start_at, assigned_to, rrule)
  * - getNodeStyle: task status icons, dimming
  * - shortName: assignee name abbreviation
  * - formatInfoSuffix: info suffix with board pills, assignee codes
  */
 import { describe, it, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { hasTaskProperties } from "@km/core"
 import {
   formatDateBadge,
   formatInfoSuffix,
@@ -25,35 +19,6 @@ import { computeBulletIcon } from "../src/views/tree-node-shared.ts"
 import { FOLDED_MARKER } from "../src/icons.ts"
 import { makeSelectionKey, parseSelectionKey } from "../src/types.ts"
 import type { KNode } from "@km/core"
-
-// =============================================================================
-// Unit tests: hasTaskProperties helper
-// =============================================================================
-
-describe("hasTaskProperties", () => {
-  it("returns false for node with no task properties", () => {
-    expect(hasTaskProperties({} as KNode)).toBe(false)
-  })
-
-  const taskProps: Array<[string, Record<string, unknown>]> = [
-    ["due_at", { due_at: "2026-02-20" }],
-    ["priority", { priority: "P2" }],
-    ["start_at", { start_at: "2026-02-20" }],
-    ["assigned_to", { assigned_to: "beorn" }],
-    ["rrule", { rrule: "FREQ=WEEKLY" }],
-  ]
-
-  for (const [name, props] of taskProps) {
-    it(`returns true for node with ${name}`, () => {
-      expect(hasTaskProperties(props as unknown as KNode)).toBe(true)
-    })
-  }
-
-  it("returns false for empty string priority (falsy but set)", () => {
-    // empty string priority is not a valid priority
-    expect(hasTaskProperties({ priority: "" } as KNode)).toBe(false)
-  })
-})
 
 // =============================================================================
 // Unit tests: getNodeStyle for implicit tasks

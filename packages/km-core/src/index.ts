@@ -45,13 +45,7 @@ export { validateNode } from "./types.ts"
 export type { ValidationError } from "./types.ts"
 
 // Task utilities
-export {
-  getMarkerForStatus,
-  getStatusForMarker,
-  markToMarker,
-  extractTitleTaskMarker,
-  hasTaskProperties,
-} from "./types.ts"
+export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker } from "./types.ts"
 
 // Date utilities (due_at / start_at ↔ date/time/tz)
 export { composeDatetime, decomposeDatetime, dateOnly, timeOnly } from "./date-utils.ts"

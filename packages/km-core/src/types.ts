@@ -156,28 +156,8 @@ export function extractTitleTaskMarker(text: string): {
   }
 }
 
-// =============================================================================
-// Implicit Task Detection
-// =============================================================================
-
-/**
- * Check if a node has task-related properties set, indicating it should be
- * treated as an implicit task even without an explicit task_status.
- *
- * Properties checked: due_at, priority (any truthy string), start_at, assigned_to, rrule.
- *
- * @example hasTaskProperties({ due_at: "2026-02-20" } as KNode) // true
- * @example hasTaskProperties({ priority: "P2" } as KNode) // true
- * @example hasTaskProperties({} as KNode) // false
- */
-export function hasTaskProperties(
-  node: Pick<KNode, "due_at" | "priority" | "start_at" | "assigned_to" | "rrule">,
-): boolean {
-  return !!(node.due_at || node.priority || node.start_at || node.assigned_to || node.rrule)
-}
-
-// isTask moved to KNode namespace (km-core/src/interfaces/node.ts)
-// Use KNode.isTask(node)
+// isTask is in KNode namespace (km-core/src/interfaces/node.ts)
+// KNode.isTask(node) checks task_marker or task_status — strict definition
 
 // =============================================================================
 // Node Validation (kmast v2 constraints)

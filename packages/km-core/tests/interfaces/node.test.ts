@@ -86,7 +86,7 @@ describe("KNode namespace", () => {
 
     it("implicit task properties alone do NOT make a task", () => {
       // due_at, priority, etc. without marker/status → not a task
-      // Use hasTaskProperties() for implicit detection
+      // due_at/priority alone don't make a task — strict definition
       expect(KNode.isTask({})).toBe(false)
     })
   })
