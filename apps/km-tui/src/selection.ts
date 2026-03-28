@@ -9,7 +9,8 @@
  * to operate on. Single card = batch of 1.
  */
 
-import type { KNode } from "@km/core"
+import type { KNode, Position } from "@km/core"
+import { TreeOps } from "@km/tree"
 import type { SelectionKey } from "./types.ts"
 import { parseSelectionKey } from "./types.ts"
 
@@ -32,6 +33,20 @@ export interface SelectionCtx {
   nodeIndex: ReadonlyMap<string, { colIndex: number; cardIndex: number }> | null
   /** Repository for node lookups */
   repo: { getNode(id: string): KNode | null }
+}
+
+/** Extended context for undo-batched operations (moveTo, forEach). */
+export interface BatchCtx extends SelectionCtx {
+  cursorNodeId: string | null
+  undoHandle: { setCursor(id: string | null): void; startBatch(label: string): void; endBatch(): void }
+}
+
+/** Extended context for batch move operations. */
+export interface MoveCtx extends BatchCtx {
+  repo: SelectionCtx["repo"] & {
+    moveNode(id: string, parentId: string, sortOrder: number): void
+    getChildren(parentId: string | null): { id: string; parent_idx: number }[]
+  }
 }
 
 // =============================================================================
@@ -113,5 +128,38 @@ export const Selection = {
    */
   contains(ctx: SelectionCtx, nodeId: string): boolean {
     return ctx.ui.multiSelected.has(nodeId)
+  },
+
+  /**
+   * Batch move all selected nodes to a Position, with undo batching.
+   * Skips nodes that would move into themselves. Returns the count moved.
+   */
+  moveTo(ctx: MoveCtx, to: Position): { moved: number } {
+    const cards = Selection.nodes(ctx)
+    if (cards.length === 0) return { moved: 0 }
+    ctx.undoHandle.setCursor(ctx.cursorNodeId)
+    ctx.undoHandle.startBatch("Move")
+    let moved = 0
+    for (const card of cards) {
+      if (card.id === to.parentId) continue // don't move into self
+      if (TreeOps.moveTo(ctx.repo, card.id, to)) moved++
+    }
+    ctx.undoHandle.endBatch()
+    return { moved }
+  },
+
+  /**
+   * Iterate over selected nodes with automatic undo batch wrapping.
+   * Batches only when >1 node (single node doesn't need batch overhead).
+   * Returns the number of nodes iterated.
+   */
+  forEach(ctx: BatchCtx, label: string, fn: (node: KNode) => void): number {
+    const cards = Selection.nodes(ctx)
+    if (cards.length === 0) return 0
+    ctx.undoHandle.setCursor(ctx.cursorNodeId)
+    if (cards.length > 1) ctx.undoHandle.startBatch(label)
+    for (const card of cards) fn(card)
+    if (cards.length > 1) ctx.undoHandle.endBatch()
+    return cards.length
   },
 } as const

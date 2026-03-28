@@ -1865,16 +1865,10 @@ function handleReparentTo(ctx: ActionCtx, to: Position): ActionResult {
   }
 
   // Cross-parent or multi-selection — batch move
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
-  ctx.undoHandle.startBatch("Move")
-  for (const card of cards) {
-    if (card.id === to.parentId) continue // don't move into self
-    TreeOps.moveTo(ctx.repo, card.id, to)
-  }
-  ctx.undoHandle.endBatch()
+  const { moved } = Selection.moveTo(ctx, to)
   clearSelection(ctx)
   const targetNode = ctx.repo.getNode(to.parentId)
-  ctx.toastQueue.success(`Moved ${cards.length} item(s) to ${targetNode?.name ?? to.parentId}`)
+  ctx.toastQueue.success(`Moved ${moved} item(s) to ${targetNode?.name ?? to.parentId}`)
   ctx.setUI({})
   return ok()
 }

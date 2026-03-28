@@ -4,8 +4,8 @@
  * Uses mock context — no testEnv/repo needed.
  */
 
-import { describe, expect, test } from "vitest"
-import { type SelectionCtx, Selection } from "../src/selection.ts"
+import { describe, expect, test, vi } from "vitest"
+import { type SelectionCtx, type BatchCtx, type MoveCtx, Selection } from "../src/selection.ts"
 import type { KNode } from "@km/core"
 
 // =============================================================================
@@ -190,5 +190,168 @@ describe("Selection.contains", () => {
   test("false when nothing selected", () => {
     const ctx = mockCtx({ cards: [makeNode("a")], cardIndex: 0 })
     expect(Selection.contains(ctx, "a")).toBe(false)
+  })
+})
+
+// =============================================================================
+// Mock helpers for batch/move contexts
+// =============================================================================
+
+function mockUndoHandle() {
+  return {
+    setCursor: vi.fn(),
+    startBatch: vi.fn(),
+    endBatch: vi.fn(),
+  }
+}
+
+function mockBatchCtx(opts: Parameters<typeof mockCtx>[0] & { cursorNodeId?: string | null }): BatchCtx {
+  return {
+    ...mockCtx(opts),
+    cursorNodeId: opts.cursorNodeId ?? null,
+    undoHandle: mockUndoHandle(),
+  }
+}
+
+function mockMoveCtx(
+  opts: Parameters<typeof mockCtx>[0] & {
+    cursorNodeId?: string | null
+    children?: Map<string | null, { id: string; parent_idx: number }[]>
+  },
+): MoveCtx {
+  const children = opts.children ?? new Map()
+  const base = mockCtx(opts)
+  return {
+    ...base,
+    cursorNodeId: opts.cursorNodeId ?? null,
+    undoHandle: mockUndoHandle(),
+    repo: {
+      ...base.repo,
+      moveNode: vi.fn(),
+      getChildren: (parentId: string | null) => children.get(parentId) ?? [],
+    },
+  }
+}
+
+// =============================================================================
+// Selection.moveTo tests
+// =============================================================================
+
+describe("Selection.moveTo", () => {
+  test("returns { moved: 0 } when no selection", () => {
+    const ctx = mockMoveCtx({ cards: [], cardIndex: 0 })
+    const result = Selection.moveTo(ctx, { parentId: "target", childIdx: -1 })
+    expect(result).toEqual({ moved: 0 })
+  })
+
+  test("moves selected nodes and returns count", () => {
+    const a = makeNode("a", "old")
+    const b = makeNode("b", "old")
+    const ctx = mockMoveCtx({
+      cards: [a, b],
+      cardIndex: 0,
+      multiSelected: new Set(["a", "b"]),
+      children: new Map([["target", []]]),
+    })
+
+    const result = Selection.moveTo(ctx, { parentId: "target", childIdx: -1 })
+    // TreeOps.moveTo returns true for actual moves
+    expect(result.moved).toBe(2)
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
+    expect(ctx.undoHandle.startBatch).toHaveBeenCalledWith("Move")
+    expect(ctx.undoHandle.endBatch).toHaveBeenCalledTimes(1)
+  })
+
+  test("skips self-move (card.id === to.parentId)", () => {
+    const a = makeNode("a", "old")
+    const b = makeNode("b", "old")
+    const ctx = mockMoveCtx({
+      cards: [a, b],
+      cardIndex: 0,
+      multiSelected: new Set(["a", "b"]),
+      children: new Map([["a", []]]),
+    })
+
+    const result = Selection.moveTo(ctx, { parentId: "a", childIdx: -1 })
+    // "a" is skipped (self-move), only "b" is moved
+    expect(result.moved).toBe(1)
+  })
+
+  test("sets cursor before batch", () => {
+    const a = makeNode("a", "old")
+    const ctx = mockMoveCtx({
+      cards: [a],
+      cardIndex: 0,
+      cursorNodeId: "a",
+      children: new Map([["target", []]]),
+    })
+
+    Selection.moveTo(ctx, { parentId: "target", childIdx: -1 })
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith("a")
+  })
+})
+
+// =============================================================================
+// Selection.forEach tests
+// =============================================================================
+
+describe("Selection.forEach", () => {
+  test("calls fn for each node", () => {
+    const a = makeNode("a")
+    const b = makeNode("b")
+    const ctx = mockBatchCtx({
+      cards: [a, b],
+      cardIndex: 0,
+      multiSelected: new Set(["a", "b"]),
+    })
+
+    const visited: string[] = []
+    const count = Selection.forEach(ctx, "Test", (n) => visited.push(n.id))
+
+    expect(count).toBe(2)
+    expect(visited).toEqual(["a", "b"])
+  })
+
+  test("wraps in batch when >1 node", () => {
+    const a = makeNode("a")
+    const b = makeNode("b")
+    const ctx = mockBatchCtx({
+      cards: [a, b],
+      cardIndex: 0,
+      multiSelected: new Set(["a", "b"]),
+    })
+
+    Selection.forEach(ctx, "Batch op", (_n) => {})
+
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
+    expect(ctx.undoHandle.startBatch).toHaveBeenCalledWith("Batch op")
+    expect(ctx.undoHandle.endBatch).toHaveBeenCalledTimes(1)
+  })
+
+  test("does not batch for single node", () => {
+    const a = makeNode("a")
+    const ctx = mockBatchCtx({
+      cards: [a],
+      cardIndex: 0,
+    })
+
+    const visited: string[] = []
+    const count = Selection.forEach(ctx, "Single", (n) => visited.push(n.id))
+
+    expect(count).toBe(1)
+    expect(visited).toEqual(["a"])
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
+    expect(ctx.undoHandle.startBatch).not.toHaveBeenCalled()
+    expect(ctx.undoHandle.endBatch).not.toHaveBeenCalled()
+  })
+
+  test("returns 0 when no selection", () => {
+    const ctx = mockBatchCtx({ cards: [], cardIndex: 0 })
+
+    const fn = vi.fn()
+    const count = Selection.forEach(ctx, "Empty", fn)
+
+    expect(count).toBe(0)
+    expect(fn).not.toHaveBeenCalled()
   })
 })

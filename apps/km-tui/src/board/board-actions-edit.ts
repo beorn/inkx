@@ -465,16 +465,9 @@ export function handleConfirmMove(ctx: ActionCtx): void {
  * Selection is preserved — status is an in-place modification.
  */
 export function handleTaskStatusCycle(ctx: ActionCtx): void {
-  const cards = Selection.nodes(ctx)
-  if (cards.length === 0) return
-
-  // Batch all status changes (especially recurring task clone: updateNode + addNode)
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
-  ctx.undoHandle.startBatch("Toggle status")
-
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
-  for (const c of cards) {
+  const count = Selection.forEach(ctx, "Toggle status", (c) => {
     const embedSource = c.embed_source
     const targetId = embedSource || c.id
     const targetNode = embedSource ? ctx.repo.getNode(embedSource) : c
@@ -522,9 +515,9 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
         task_marker: getMarkerForStatus(nextStatus),
       })
     }
-  }
+  })
 
-  ctx.undoHandle.endBatch()
+  if (count === 0) return
 
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
@@ -537,13 +530,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
  * Batch-aware: when multi-selection is active, clears all selected cards.
  */
 export function handleClearTask(ctx: ActionCtx): void {
-  const cards = Selection.nodes(ctx)
-  if (cards.length === 0) return
-
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
-  ctx.undoHandle.startBatch("Clear task")
-
-  for (const c of cards) {
+  const count = Selection.forEach(ctx, "Clear task", (c) => {
     const targetId = c.embed_source || c.id
     ctx.repo.updateNode(targetId, {
       task_status: undefined,
@@ -555,9 +542,9 @@ export function handleClearTask(ctx: ActionCtx): void {
       rrule: undefined,
       completed_at: undefined,
     })
-  }
+  })
 
-  ctx.undoHandle.endBatch()
+  if (count === 0) return
   ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
 }
 
