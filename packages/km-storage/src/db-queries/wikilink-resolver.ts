@@ -36,8 +36,7 @@ export function findFileByName(db: Database, name: string): KNode | null {
     .all(normalizedName, normalizedName, normalizedName) as Array<Record<string, unknown>>
 
   if (rows.length === 0) return null
-  // Ambiguous — multiple nodes match, return null to avoid arbitrary resolution
-  if (rows.length > 1) return null
+  // Ambiguous — multiple nodes match, but still return first match (best effort)
   const row = rows[0]
   if (!row) return null
   return rowToNode(row)

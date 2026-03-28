@@ -17,8 +17,11 @@ import { findChildByContent } from "./db-queries/wikilink-resolver.ts"
 const log = createLogger("km:storage:link-resolver")
 
 export interface LinkResolver {
-  /** Resolve a wikilink target name to a node ID */
+  /** Resolve a wikilink target name to a node ID (picks first match if ambiguous) */
   resolveTarget(targetName: string): string | null
+
+  /** Check if a target name is ambiguous (multiple nodes share the name) */
+  isAmbiguous(targetName: string): boolean
 
   /** Resolve a section reference within a file */
   resolveSection(fileId: string, sectionName: string): string | null
@@ -37,10 +40,12 @@ export interface LinkResolver {
  * Create a LinkResolver pre-populated with all file nodes from the database.
  */
 export function createLinkResolver(db: Database): LinkResolver {
-  // Build lookup map: normalized name → node id
+  // Build lookup map: normalized name → first matching node id
   // Use name field for capability-based matching (any named node is linkable)
   // This includes files, folders, and sections
-  const filesByName = new Map<string, string | null>()
+  const filesByName = new Map<string, string>()
+  // Track ambiguous names (multiple nodes share the same name)
+  const ambiguousNames = new Set<string>()
 
   const rows = db
     .query(
@@ -58,22 +63,20 @@ export function createLinkResolver(db: Database): LinkResolver {
       const basename = row.fs_path.split("/").pop()?.replace(/\.md$/i, "")
       if (basename) {
         const key = basename.toLowerCase()
-        const existing = filesByName.get(key)
-        if (existing === undefined) {
+        if (!filesByName.has(key)) {
           filesByName.set(key, row.id)
-        } else if (existing !== null && existing !== row.id) {
-          filesByName.set(key, null) // ambiguous — multiple nodes share this name
+        } else if (filesByName.get(key) !== row.id) {
+          ambiguousNames.add(key) // keep first match, mark as ambiguous
         }
       }
     }
     // Also index by name from data field
     if (row.name) {
       const key = row.name.toLowerCase()
-      const existing = filesByName.get(key)
-      if (existing === undefined) {
+      if (!filesByName.has(key)) {
         filesByName.set(key, row.id)
-      } else if (existing !== null && existing !== row.id) {
-        filesByName.set(key, null) // ambiguous — multiple nodes share this name
+      } else if (filesByName.get(key) !== row.id) {
+        ambiguousNames.add(key) // keep first match, mark as ambiguous
       }
     }
   }
@@ -94,13 +97,15 @@ export function createLinkResolver(db: Database): LinkResolver {
       const normalized = targetName.toLowerCase().replace(/\.md$/i, "")
       const byName = filesByName.get(normalized)
       if (byName) return byName
-      // null means ambiguous (multiple nodes with that name) — don't resolve
-      if (byName === null) return null
 
       // Fallback: check if target is a node ID directly.
       // Handles ![[ULID]] embeds serialized from embed_source task targets.
       const byId = nodeIdStmt.get(targetName) as { id: string } | null
       return byId?.id ?? null
+    },
+
+    isAmbiguous(targetName: string): boolean {
+      return ambiguousNames.has(targetName.toLowerCase().replace(/\.md$/i, ""))
     },
 
     resolveSection(fileId: string, sectionName: string): string | null {
@@ -123,11 +128,10 @@ export function createLinkResolver(db: Database): LinkResolver {
 
     addFile(id: string, name: string): void {
       const normalized = name.toLowerCase().replace(/\.md$/i, "")
-      const existing = filesByName.get(normalized)
-      if (existing === undefined) {
+      if (!filesByName.has(normalized)) {
         filesByName.set(normalized, id)
-      } else if (existing !== null && existing !== id) {
-        filesByName.set(normalized, null) // ambiguous — multiple nodes share this name
+      } else if (filesByName.get(normalized) !== id) {
+        ambiguousNames.add(normalized)
       }
     },
 

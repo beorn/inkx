@@ -39,8 +39,9 @@ describe("Bug 1a: name collision in link resolver", () => {
 
     const resolver = createLinkResolver(db)
 
-    // Should return null because "project" is ambiguous (two nodes share that name)
-    expect(resolver.resolveTarget("Project")).toBeNull()
+    // Ambiguous — returns first match, marks as ambiguous
+    expect(resolver.resolveTarget("Project")).toBe("id-alpha")
+    expect(resolver.isAmbiguous("Project")).toBe(true)
 
     db.close()
   })
@@ -78,8 +79,9 @@ describe("Bug 1a: name collision in link resolver", () => {
     // Add a second file with the same name
     resolver.addFile("id-second", "Notes")
 
-    // Now it's ambiguous — should return null
-    expect(resolver.resolveTarget("Notes")).toBeNull()
+    // Now it's ambiguous — should still resolve to first match, but be marked ambiguous
+    expect(resolver.resolveTarget("Notes")).toBe("id-first")
+    expect(resolver.isAmbiguous("Notes")).toBe(true)
 
     db.close()
   })
@@ -100,8 +102,9 @@ describe("Bug 1a: name collision in link resolver", () => {
 
     const result = findFileByName(db, "Report")
 
-    // Should return null for ambiguous name, not pick one arbitrarily
-    expect(result).toBeNull()
+    // Ambiguous — returns first match (best effort) instead of null
+    expect(result).not.toBeNull()
+    expect(result!.name).toBe("Report")
 
     db.close()
   })

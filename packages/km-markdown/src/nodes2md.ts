@@ -311,13 +311,10 @@ function getEmbedPath(target: KNode, ctx: SerializeContext): string {
     return filename.replace(/\.md$/, "")
   }
 
-  // Named node (folder without fs_path, named section)
-  if (target.name) {
-    return target.name
-  }
-
-  // Section with title — find ancestor file for qualified reference
-  if (target.title) {
+  // Named section inside a file — qualify with ancestor file path
+  // (bare names like "source-text" are ambiguous when multiple files have the same section name)
+  if (target.name || target.title) {
+    const displayName = target.title ?? target.name!
     const filePath = findAncestorFilePath(target, ctx)
     // If section has a block_id, prefer it for stability
     if (target.block_id) {
@@ -325,9 +322,10 @@ function getEmbedPath(target: KNode, ctx: SerializeContext): string {
       return `^${target.block_id}`
     }
     if (filePath) {
-      return `${filePath}#${target.title}`
+      return `${filePath}#${displayName}`
     }
-    return target.title
+    // No ancestor file — use bare name (top-level named node like a folder)
+    return displayName
   }
 
   // Task or other inline node — prefer block_id for stable references
