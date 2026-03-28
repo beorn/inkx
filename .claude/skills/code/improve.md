@@ -1,12 +1,4 @@
----
-description: Step back from recent work and find opportunities for dramatic simplification, missing abstractions, and structural improvements. Not about bugs or style — about whether the code could be fundamentally better.
-argument-hint: [area or recent work to review]
-allowed-tools: Read, Glob, Grep, Bash, Agent, Edit, Write, AskUserQuestion
----
-
 # Improve — What Would This Look Like If It Were Easy?
-
-**Keywords**: improve, simplify, streamline, rethink, step back, what if, dramatically better
 
 Not a code review. Not a bug hunt. This is a **design review of the code you just wrote** — asking whether the abstractions are right, whether the architecture serves the use case, and what a 10x simpler version would look like.
 
