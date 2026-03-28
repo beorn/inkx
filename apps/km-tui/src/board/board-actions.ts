@@ -49,6 +49,7 @@ import {
   getReservedKeyLabel,
   initDefaultKeybindings,
 } from "@km/commands"
+import { resolveLocationKey, isPickTarget, isAtPosition, moveTo } from "./position-resolver.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
@@ -1746,11 +1747,10 @@ function reparentToNode(ctx: ActionCtx, boardId: string): void {
 
 /**
  * Handle REPARENT_TO verb action — move node(s) to a new parent by locationKey.
- * Absorbs the old MOVE_TO_BOARD, MOVE_TO_FAVORITE, SHIFT_TO_TOP, SHIFT_TO_BOTTOM,
- * OUTDENT_NODE (for "parent"), and REPARENT_PICKER (for "pick:+") action types.
+ * Uses resolveLocationKey + Position helpers for all cases.
  */
 function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
-  // "parent" → structural outdent
+  // "parent" → structural outdent (special: changes tree depth, not just position)
   if (locationKey === "parent") {
     const nodeId = ctx.cursorNodeId
     if (!nodeId) return boundary("outdent", "no cursor")
@@ -1760,45 +1760,36 @@ function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
     return ok()
   }
 
-  // "first" / "last" → reorder among siblings
-  if (locationKey === "first" || locationKey === "last") {
-    const nodeId = ctx.cursorNodeId
-    if (!nodeId) return boundary(locationKey)
-    const node = ctx.repo.getNode(nodeId)
-    if (!node?.parent_id) return boundary(locationKey)
-    const siblings = ctx.repo.getChildren(node.parent_id)
-    if (siblings.length <= 1) return ok()
-    const targetIndex = locationKey === "first" ? 0 : siblings.length - 1
-    if (siblings.findIndex((s) => s.id === nodeId) === targetIndex) return ok()
-    const targetSibling = siblings[targetIndex]
-    if (!targetSibling) return boundary(locationKey)
-    ctx.undoHandle.setCursor(nodeId)
-    const newSortOrder = locationKey === "first" ? targetSibling.parent_idx - 1 : targetSibling.parent_idx + 1
-    ctx.repo.moveNode(nodeId, node.parent_id, newSortOrder)
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
+  // Resolve locationKey → Position or PickTarget
+  const resolved = resolveLocationKey(locationKey, ctx, ctx.repo)
+  if (!resolved) {
+    ctx.toastQueue.warning(`Target "${locationKey}" not found`)
+    ctx.setUI({})
     return ok()
   }
 
-  // "pick:+" → open project picker
-  if (locationKey === "pick:+") {
+  // Pick target → open picker dialog
+  if (isPickTarget(resolved)) {
     ctx.setUI({ activePicker: { type: "project" } })
     return ok()
   }
 
-  // "fav:X" → resolve favorite → reparent as last child
-  if (locationKey.startsWith("fav:")) {
-    const favBoardId = getFavorite(locationKey.slice(4))
-    if (favBoardId) {
-      reparentToNode(ctx, favBoardId)
-    } else {
-      ctx.toastQueue.warning(`No favorite assigned to key '${locationKey.slice(4)}'`)
-      ctx.setUI({})
-    }
-    return ok()
-  }
+  // Position resolved — move cursor node there
+  const nodeId = ctx.cursorNodeId
+  if (!nodeId) return boundary("move", "no cursor")
 
-  // Board/node ID — move selected nodes as last children
-  reparentToNode(ctx, locationKey)
+  // Same-parent move (first/last reorder) vs cross-parent move (reparent)
+  const node = ctx.repo.getNode(nodeId)
+  if (node?.parent_id === resolved.parentId) {
+    // Reorder among siblings — single node
+    if (isAtPosition(nodeId, resolved, ctx.repo)) return ok()
+    ctx.undoHandle.setCursor(nodeId)
+    moveTo(ctx.repo, nodeId, resolved)
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
+  } else {
+    // Cross-parent move — batch with selected nodes
+    reparentToNode(ctx, resolved.parentId)
+  }
   return ok()
 }
 

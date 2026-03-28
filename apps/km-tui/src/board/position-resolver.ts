@@ -118,3 +118,79 @@ export function isPickTarget(loc: ResolvedLocation): loc is PickTarget {
 export function isPosition(loc: ResolvedLocation): loc is Position {
   return loc !== null && "parentId" in loc
 }
+
+// =========================================================================
+// Position domain helpers — ergonomic tree slot operations
+// =========================================================================
+
+/** A node-like shape with the fields Position helpers need. */
+type NodeLike = { id: string; parent_id: string | null; parent_idx: number; name?: string | null }
+
+/** Position of a node — its current slot in its parent. */
+export function positionOf(node: NodeLike): Position | null {
+  if (!node.parent_id) return null
+  return { parentId: node.parent_id, childIdx: node.parent_idx }
+}
+
+/** First child slot of a parent. */
+export function firstChild(parentId: string): Position {
+  return { parentId, childIdx: 0 }
+}
+
+/** Last child slot of a parent. */
+export function lastChild(parentId: string): Position {
+  return { parentId, childIdx: -1 }
+}
+
+/**
+ * Convert an abstract Position to a concrete sort order for repo.moveNode().
+ * childIdx 0 → before the first child, childIdx -1 → after the last child.
+ * A concrete childIdx (>0) is passed through.
+ */
+export function toSortOrder(pos: Position, repo: ResolverRepo): { parentId: string; sortOrder: number } {
+  const children = repo.getChildren(pos.parentId)
+  if (children.length === 0) return { parentId: pos.parentId, sortOrder: 0 }
+  if (pos.childIdx === 0) {
+    return { parentId: pos.parentId, sortOrder: children[0]!.parent_idx - 1 }
+  }
+  if (pos.childIdx === -1) {
+    return { parentId: pos.parentId, sortOrder: children.at(-1)!.parent_idx + 1 }
+  }
+  return { parentId: pos.parentId, sortOrder: pos.childIdx }
+}
+
+/** Get the node currently at a position (or null if the slot is empty). */
+export function nodeAt(pos: Position, repo: ResolverRepo): NodeLike | null {
+  const children = repo.getChildren(pos.parentId)
+  if (children.length === 0) return null
+  if (pos.childIdx === 0) return (repo.getNode(children[0]!.id) as NodeLike) ?? null
+  if (pos.childIdx === -1) return (repo.getNode(children.at(-1)!.id) as NodeLike) ?? null
+  const match = children.find((c) => c.parent_idx === pos.childIdx)
+  return match ? ((repo.getNode(match.id) as NodeLike) ?? null) : null
+}
+
+/** Check if a node is already at the given position. */
+export function isAtPosition(nodeId: string, pos: Position, repo: ResolverRepo): boolean {
+  const children = repo.getChildren(pos.parentId)
+  if (children.length === 0) return false
+  if (pos.childIdx === 0) return children[0]!.id === nodeId
+  if (pos.childIdx === -1) return children.at(-1)!.id === nodeId
+  const match = children.find((c) => c.parent_idx === pos.childIdx)
+  return match?.id === nodeId
+}
+
+/** Repo interface extended with moveNode for the moveTo helper. */
+export interface MoveRepo extends ResolverRepo {
+  moveNode(id: string, parentId: string, sortOrder: number): void
+}
+
+/**
+ * Move a node to a Position. Resolves abstract childIdx (-1, 0) to concrete
+ * sort order, then calls repo.moveNode. Returns false if already there.
+ */
+export function moveTo(repo: MoveRepo, nodeId: string, pos: Position): boolean {
+  if (isAtPosition(nodeId, pos, repo)) return false
+  const { parentId, sortOrder } = toSortOrder(pos, repo)
+  repo.moveNode(nodeId, parentId, sortOrder)
+  return true
+}
