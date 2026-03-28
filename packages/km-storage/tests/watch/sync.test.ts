@@ -227,7 +227,7 @@ code
 
         const allNodes = getAllNodes(db)
 
-        const validTypes = ["p", "h", "code", "quote", "table", "hr", "html", "math", "embed"]
+        const validTypes = ["p", "h", "code", "quote", "table", "hr", "html", "math"]
 
         for (const node of allNodes) {
           expect(node.type).toBeDefined()

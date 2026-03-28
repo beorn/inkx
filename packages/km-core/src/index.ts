@@ -37,7 +37,7 @@ export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } fr
 export type { BuildInfo } from "./build-info.gen.ts"
 
 // Type predicates (km-ast v2)
-export { isOutline, isListItem, isItem, isEmbed, isBlock, validateNode } from "./types.ts"
+export { isOutline, isListItem, isItem, isBlock, isEmbed, validateNode } from "./types.ts"
 export type { ValidationError } from "./types.ts"
 
 // Task utilities (new names)

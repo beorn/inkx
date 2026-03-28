@@ -91,11 +91,11 @@ function applyResolvedLinks(db: Database, result: LinkResolutionResult): void {
       )
     }
 
-    // Batch UPDATE for embedded links (update source node's embed_source)
-    // Set type='embed', embed_source on embed nodes when link resolves
+    // Batch UPDATE for embedded links — set embed_source on the source node.
+    // Node type stays as-is (p, h, etc.) — embed_source is orthogonal to type.
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
-        UPDATE nodes SET type = 'embed', embed_source = ?, name = ?, updated_at = ? WHERE id = ?
+        UPDATE nodes SET embed_source = ?, name = ?, updated_at = ? WHERE id = ?
       `)
       for (const update of embeddedUpdates) {
         updateStmt.run(update.target_id, update.alias, now, update.source_id)

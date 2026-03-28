@@ -79,23 +79,11 @@ describe("validateNode", () => {
     })
   })
 
-  describe("embed constraints", () => {
-    test("valid: embed with embed_source=null (unresolved)", () => {
-      expect(validateNode({ type: "embed", embed_source: null })).toEqual([])
-    })
-    test("valid: embed with embed_source=id", () => {
-      expect(validateNode({ type: "embed", embed_source: "some-id" })).toEqual([])
-    })
-    test("invalid: embed without embed_source field", () => {
-      const errors = validateNode({ type: "embed" })
-      expect(errors).toHaveLength(1)
-      expect(errors[0]!.field).toBe("embed_source")
-    })
-    test("invalid: embed + item=true", () => {
-      const errors = validateNode({ type: "embed", item: true, embed_source: "x" })
-      // Gets both "embed cannot be an item" and "item-forbidden block type" errors
-      expect(errors.length).toBeGreaterThanOrEqual(1)
-      expect(errors.some((e) => e.message.includes("cannot be an item"))).toBe(true)
+  describe("embed_source (transclusion)", () => {
+    test("embed_source is orthogonal to type — any type can have it", () => {
+      expect(validateNode({ type: "p", embed_source: "some-id" })).toEqual([])
+      expect(validateNode({ type: "h", item: true, embed_source: "some-id" })).toEqual([])
+      expect(validateNode({ type: "p", item: true, embed_source: null })).toEqual([])
     })
   })
 
@@ -141,13 +129,9 @@ describe("validateNode", () => {
   })
 
   describe("multiple errors", () => {
-    test("embed + item=true + no embed_source = 3 errors", () => {
-      const errors = validateNode({ type: "embed", item: true })
-      expect(errors).toHaveLength(3) // embed_source missing, embed not item, item-forbidden type
-      const fields = errors.map((e) => e.field)
-      expect(fields).toContain("embed_source")
-      expect(fields).toContain("item")
-      expect(fields).toContain("type")
+    test("table + item + task = 2 errors (item-forbidden + task needs item that is forbidden)", () => {
+      const errors = validateNode({ type: "table", item: true, task_status: "todo" })
+      expect(errors.length).toBeGreaterThanOrEqual(1)
     })
   })
 })

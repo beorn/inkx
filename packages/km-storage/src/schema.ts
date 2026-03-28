@@ -152,11 +152,11 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   if (hasOldTypes > 0) {
     db.run("UPDATE nodes SET type = 'h', item = 1 WHERE type = 'oi'")
     db.run("UPDATE nodes SET type = 'p', item = 1 WHERE type = 'li'")
-    // Copy link_to → embed_source if link_to column exists
+    // Copy link_to → embed_source. Old "link" type becomes "p" with embed_source.
     if (columnNames.has("link_to")) {
-      db.run("UPDATE nodes SET type = 'embed', embed_source = link_to WHERE type = 'link'")
+      db.run("UPDATE nodes SET type = 'p', embed_source = link_to WHERE type = 'link'")
     } else {
-      db.run("UPDATE nodes SET type = 'embed' WHERE type = 'link'")
+      db.run("UPDATE nodes SET type = 'p' WHERE type = 'link'")
     }
   }
 

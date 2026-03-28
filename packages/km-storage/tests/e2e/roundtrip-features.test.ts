@@ -294,7 +294,7 @@ describe("E2E Round-Trip Features", () => {
           ts: Date.now(),
           data: {
             id: "embed-alpha",
-            type: "embed",
+            type: "p",
             parent_id: targetFile.id,
             parent_idx: 0,
             embed_source: taskAlpha.id,
@@ -363,7 +363,7 @@ describe("E2E Round-Trip Features", () => {
           ts: Date.now(),
           data: {
             id: "embed-alias",
-            type: "embed",
+            type: "p",
             parent_id: tgtFile.id,
             parent_idx: 0,
             embed_source: srcTask.id,

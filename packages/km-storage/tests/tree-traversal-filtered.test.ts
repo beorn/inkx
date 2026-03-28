@@ -121,16 +121,15 @@ describe("getBodyChildren", () => {
     expect(result.map((n) => n.type)).toEqual(["p", "code", "quote", "table", "hr", "html", "math"])
   })
 
-  test("excludes item and embed types", () => {
+  test("excludes outline items, includes block types", () => {
     insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0, "paragraph")
     insertNode("c2", "h", "parent", 1, "outline item", true)
     insertNode("c3", "p", "parent", 2, "list item", true)
-    insertNode("c4", "embed", "parent", 3, "embed")
-    insertNode("c5", "code", "parent", 4, "code block")
+    insertNode("c4", "code", "parent", 3, "code block")
 
     const result = getBodyChildren(db, "parent")
-    // getBodyChildren filters by type IN (p, code, quote, ...) — excludes h and embed
+    // getBodyChildren filters by type IN (p, code, quote, ...) — excludes h
     // Note: p items (item=1) are also returned since getBodyChildren filters by type only
     expect(result).toHaveLength(3)
     expect(result[0]!.type).toBe("p")
@@ -165,11 +164,11 @@ describe("getSubitems", () => {
     expect(result[1]!.type).toBe("p")
   })
 
-  test("excludes block and embed types", () => {
+  test("excludes block types, includes items", () => {
     insertNode("parent", "h", null, 0, undefined, true)
     insertNode("c1", "p", "parent", 0)
     insertNode("c2", "code", "parent", 1)
-    insertNode("c3", "embed", "parent", 2)
+    insertNode("c3", "p", "parent", 2)
     insertNode("c4", "h", "parent", 3, undefined, true)
 
     const result = getSubitems(db, "parent")
@@ -197,17 +196,17 @@ describe("mixed node types under same parent", () => {
     insertNode("c1", "p", "parent", 0, "paragraph")
     insertNode("c2", "h", "parent", 1, "outline", true)
     insertNode("c3", "code", "parent", 2, "code")
-    insertNode("c4", "embed", "parent", 3, "embed ref")
+    insertNode("c4", "quote", "parent", 3, "quote block")
 
     const body = getBodyChildren(db, "parent")
     const items = getSubitems(db, "parent")
     const all = getChildren(db, "parent")
 
-    // Body: p, code (getBodyChildren filters by BLOCK_TYPES)
-    expect(body).toHaveLength(2)
+    // Body: p, code, quote (getBodyChildren filters by BLOCK_TYPES)
+    expect(body).toHaveLength(3)
     // Items: h with item=1 (getSubitems filters by item=1)
     expect(items).toHaveLength(1)
-    expect(all).toHaveLength(4) // all types including embed
+    expect(all).toHaveLength(4)
 
     // No overlap between body and items
     const bodyIds = new Set(body.map((n) => n.id))

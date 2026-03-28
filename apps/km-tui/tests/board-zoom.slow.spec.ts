@@ -585,7 +585,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       }),
       makeNode({
         id: embed1Id,
-        type: "embed",
+        type: "p",
         content: "Embed 1",
         parent_id: sectionId,
         parent_idx: 0,
@@ -593,7 +593,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       }),
       makeNode({
         id: embed2Id,
-        type: "embed",
+        type: "p",
         content: "Embed 2",
         parent_id: sectionId,
         parent_idx: 1,
@@ -680,7 +680,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
       makeNode({ id: paraId, type: "p", content: "Intro text", parent_id: sectionId, parent_idx: 0 }),
       makeNode({
         id: embedId,
-        type: "embed",
+        type: "p",
         content: "Embed ref",
         parent_id: sectionId,
         parent_idx: 1,
@@ -777,7 +777,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
       makeNode({
         id: embedId,
-        type: "embed",
+        type: "p",
         content: "Leading embed",
         parent_id: rootId,
         parent_idx: 0,

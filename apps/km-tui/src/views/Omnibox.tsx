@@ -184,7 +184,7 @@ function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
   for (const node of nodes) {
     if (results.length >= MAX_SEARCH_RESULTS) break
     if (isOutline(node.type, node.item) && node.fstype === "folder") continue
-    if (isEmbed(node.type)) continue
+    if (isEmbed(node)) continue
 
     const title = getNodeDisplayName(repo, node)
     const parentContext = getParentName(node, repo.getNode.bind(repo), (n) => getNodeDisplayName(repo, n))

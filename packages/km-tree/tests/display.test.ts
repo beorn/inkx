@@ -339,7 +339,7 @@ describe("getTypeIndicator", () => {
     { type: "h", item: true, fstype: undefined, expected: "" },
     { type: "p", item: true, fstype: undefined, expected: "" },
     { type: "p", fstype: undefined, expected: "" },
-    { type: "embed", fstype: undefined, expected: "" },
+    { type: "code", fstype: undefined, expected: "" },
   ])("returns $expected for type=$type fstype=$fstype", ({ type, fstype, item, expected }) => {
     expect(getTypeIndicator(type, fstype, item)).toBe(expected)
   })

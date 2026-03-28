@@ -502,13 +502,13 @@ describe("folded embed display (FoldedChildRow)", () => {
         // Content uses ![[^blockid]] which resolveNode can't resolve for short IDs.
         for (const n of nodes) {
           if (n.id === "embed-child-1") {
-            n.type = "embed"
+            n.type = "p"
             n.embed_source = "target-task-abc"
             n.content = "![[^abc]]"
             n.data = {}
           }
           if (n.id === "embed-child-2") {
-            n.type = "embed"
+            n.type = "p"
             n.embed_source = "target-task-xyz"
             n.content = "![[^xyz]]"
             n.data = {}
@@ -565,7 +565,7 @@ describe("link title resolution", () => {
         // This simulates what the rules engine creates + markdown serialization round-trip
         nodes.push({
           id: "embed-1",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[^1203128650780856]]",
           embed_source: "target-task-1",
 
@@ -616,7 +616,7 @@ describe("link title resolution", () => {
         // Embed with file#^blockid path format
         nodes.push({
           id: "embed-2",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[shopping#^abc123]]",
           embed_source: "target-task-2",
 
@@ -650,7 +650,7 @@ describe("link title resolution", () => {
         // Embed with embed_source pointing to nonexistent target
         nodes.push({
           id: "stale-embed",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[^9999999999999999]]",
           embed_source: "nonexistent-target",
 
@@ -847,7 +847,7 @@ describe("context-dependent rendering", () => {
         // Embed link pointing to the li task, placed in a column
         nodes.push({
           id: "embed-link",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[target-li]]",
           embed_source: "target-li",
 
@@ -947,7 +947,7 @@ describe("context-dependent rendering", () => {
         // Embed in column
         nodes.push({
           id: "embed-done",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[done-target]]",
           embed_source: "done-target",
 
@@ -1013,7 +1013,7 @@ describe("context-dependent rendering", () => {
         // Embed in column pointing to the parent
         nodes.push({
           id: "embed-parent",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[target-parent]]",
           embed_source: "target-parent",
 
@@ -1052,13 +1052,13 @@ describe("embed task status cycling (km-79kld)", () => {
       // Set up embed-a and embed-b as embed nodes pointing to task targets
       for (const n of nodes) {
         if (n.id === "embed-a") {
-          n.type = "embed"
+          n.type = "p"
           n.embed_source = "target-a"
           n.task_status = undefined
           n.data = {}
         }
         if (n.id === "embed-b") {
-          n.type = "embed"
+          n.type = "p"
           n.embed_source = "target-b"
           n.task_status = undefined
           n.data = {}
@@ -1296,7 +1296,7 @@ describe("embed alias override (km-wk17l)", () => {
         // Embed with alias override — content is plain text, not ![[...]]
         nodes.push({
           id: "alias-embed",
-          type: "embed" as const,
+          type: "p" as const,
           content: "My custom alias",
           embed_source: "target-aliased",
           parent_id: "col1",
@@ -1346,7 +1346,7 @@ describe("embed alias override (km-wk17l)", () => {
         // Embed whose content is embed syntax (not an alias)
         nodes.push({
           id: "syntax-embed",
-          type: "embed" as const,
+          type: "p" as const,
           content: "![[target-no-alias]]",
           embed_source: "target-no-alias",
           parent_id: "col1",
@@ -1383,7 +1383,7 @@ describe("broken embed rendering (km-wk17l)", () => {
 
         nodes.push({
           id: "broken-embed-with-content",
-          type: "embed" as const,
+          type: "p" as const,
           content: "Some alias text",
           embed_source: "nonexistent-node",
           parent_id: "col1",
@@ -1413,7 +1413,7 @@ describe("broken embed rendering (km-wk17l)", () => {
 
         nodes.push({
           id: "broken-no-content",
-          type: "embed" as const,
+          type: "p" as const,
           content: null,
           embed_source: "deadbeef-missing",
           parent_id: "col1",
@@ -1444,7 +1444,7 @@ describe("broken embed rendering (km-wk17l)", () => {
 
         nodes.push({
           id: "broken-bare-ref",
-          type: "embed" as const,
+          type: "p" as const,
           content: null,
           embed_source: "^deadbeef12345678",
           parent_id: "col1",

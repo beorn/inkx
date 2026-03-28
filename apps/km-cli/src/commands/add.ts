@@ -313,7 +313,8 @@ export const addCommand = new Command("add")
       // Create link nodes
       for (const task of tasksToLink) {
         repo.addNode(actualTarget.id, {
-          type: "embed",
+          type: "p",
+          item: true,
           list_marker: "-",
           task_marker: task.task_marker ?? getMarkerForStatus(task.task_status ?? "todo"),
           parent_idx: nextIdx++,
@@ -327,8 +328,8 @@ export const addCommand = new Command("add")
       if (sigilStr && sigilPrefix && sigilName) {
         const dataKey = SIGIL_DATA_KEY[sigilPrefix] ?? "mentions"
         for (const task of tasksToSigil) {
-          // Skip embed nodes — they mirror the source, don't tag them
-          if (isEmbed(task.type)) continue
+          // Skip transclusion nodes — they mirror the source, don't tag them
+          if (isEmbed(task)) continue
 
           // Re-check dedup (content may have changed since we checked)
           if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) {
@@ -366,7 +367,7 @@ export const addCommand = new Command("add")
       phaseOk("Sync to disk", `${syncCount} file${syncCount !== 1 ? "s" : ""}`, t0)
     }
 
-    const sigilCount = tasksToSigil.filter((t) => !isEmbed(t.type)).length
+    const sigilCount = tasksToSigil.filter((t) => !isEmbed(t)).length
 
     if (options.json) {
       console.log(

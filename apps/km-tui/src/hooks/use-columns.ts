@@ -14,7 +14,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
-import { isEmbed, isOutline } from "@km/core"
+import { isOutline, isEmbed } from "@km/core"
 import { createLogger } from "loggily"
 import { extractBody, extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/tree"
 import type { ColumnView } from "../types.ts"
@@ -332,7 +332,7 @@ export function deriveColumnsFromRepo(
   if (filteredBody.length > 0) {
     const virtualCardIds = new Set<string>()
     for (const n of filteredBody) {
-      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
+      if (!isEmbed(n)) virtualCardIds.add(n.id)
     }
     columns.push({
       node: createVirtualBodyNode(rootId),
@@ -448,7 +448,7 @@ export function* deriveColumnsIncremental(
   if (filteredBody.length > 0) {
     const virtualCardIds = new Set<string>()
     for (const n of filteredBody) {
-      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
+      if (!isEmbed(n)) virtualCardIds.add(n.id)
     }
     yield {
       node: createVirtualBodyNode(rootId),
@@ -602,7 +602,7 @@ function expandIndexFileColumns(
   if (allBodyNodes.length > 0) {
     const virtualCardIds = new Set<string>()
     for (const n of allBodyNodes) {
-      if (!isEmbed(n.type)) virtualCardIds.add(n.id)
+      if (!isEmbed(n)) virtualCardIds.add(n.id)
     }
     columns.splice(bodyInsertIdx, 0, {
       node: createVirtualBodyNode(indexFile.parent_id),
@@ -752,7 +752,7 @@ function kNodeToColumnView(
   for (const child of bodyNodes) {
     if (isCollapsedChild(child)) continue
     cardNodes.push(child)
-    if (!isEmbed(child.type)) virtualCardIds.add(child.id)
+    if (!isEmbed(child)) virtualCardIds.add(child.id)
   }
   for (const child of structuralNodes) {
     if (isCollapsedChild(child)) continue

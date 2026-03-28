@@ -55,8 +55,8 @@ function searchNodes(repo: Repo, query: string, scopeNodeIds?: string[]): Search
   for (const node of nodes) {
     // Skip folders (not meaningful for search)
     if (isOutline(node.type, node.item) && node.fstype === "folder") continue
-    // Skip embeds (search target instead)
-    if (isEmbed(node.type)) continue
+    // Skip transclusions (search target instead)
+    if (isEmbed(node)) continue
     // Skip nodes outside scope
     if (scopeSet && !scopeSet.has(node.id)) continue
 

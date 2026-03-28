@@ -216,7 +216,6 @@ function handleMarkdownCreate(
     // but the node was already emitted via emitNodeCreated with embed_source: null.
     if (link.embedded && link.target_id) {
       emitNodeUpdated(emitter, "fs-watch", link.source_id, {
-        type: "embed",
         embed_source: link.target_id,
         name: link.alias,
       })

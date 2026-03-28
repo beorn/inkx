@@ -410,7 +410,7 @@ item.task = (content: string, status?: string): KNode[] => {
 }
 
 item.link = (content: string, linkTo: string): KNode[] => {
-  const nodes = makeNodeWithType(content, "embed", {})
+  const nodes = makeNodeWithType(content, "p", {})
   if (nodes[0]) {
     nodes[0].embed_source = linkTo
   }

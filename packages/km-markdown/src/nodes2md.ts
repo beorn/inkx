@@ -7,7 +7,7 @@
 import { createLogger } from "loggily"
 import { stringify as stringifyYaml } from "yaml"
 import type { KNode, TaskStatus } from "@km/core"
-import { getMarkerForStatus, isOutline, isItem, isEmbed, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
+import { getMarkerForStatus, isOutline, isItem, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 import { serializeRules } from "./parser.ts"
 
@@ -189,10 +189,10 @@ function serializeNode(
 ): string {
   const children = ctx.tree.get(node.id) ?? []
 
-  // Embed nodes (type === "embed" or nodes with embed_source)
+  // Nodes with embed_source serialize as transclusions ![[target]].
   // Exception: outline heading nodes with task_marker + embed_source serialize as
   // headings with inline embed ref (import cross-project dedup)
-  if (isEmbed(node.type) || (node.embed_source && !(isOutline(node.type, node.item) && node.task_marker))) {
+  if (node.embed_source && !(isOutline(node.type, node.item) && node.task_marker)) {
     return serializeEmbedding(node, ctx)
   }
 

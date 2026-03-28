@@ -296,8 +296,9 @@ bdCommand
     console.log(`Title: ${title}`)
     if (opts.type) console.log(`Type: ${opts.type}`)
     console.log(`Priority: ${opts.priority ?? "P2"}`)
-    if (opts.description)
+    if (opts.description) {
       console.log(`Description: ${opts.description.slice(0, 60)}${opts.description.length > 60 ? "..." : ""}`)
+    }
   })
 
 // bd update [id] - Update issue fields

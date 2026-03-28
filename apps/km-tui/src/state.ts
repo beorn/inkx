@@ -40,7 +40,7 @@ function buildColumnCards(
   // Embed nodes are discrete items — not virtual.
   for (const node of bodyNodes) {
     cardNodes.push(node)
-    if (!isEmbed(node.type)) {
+    if (!isEmbed(node)) {
       virtualCardIds.add(node.id)
     }
   }
@@ -194,7 +194,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   if (meaningfulBody.length > 0) {
     const bodyVirtualIds = new Set<string>()
     for (const n of meaningfulBody) {
-      if (!isEmbed(n.type)) bodyVirtualIds.add(n.id)
+      if (!isEmbed(n)) bodyVirtualIds.add(n.id)
     }
     columns.push({
       node: createVirtualBodyNode(rootId),

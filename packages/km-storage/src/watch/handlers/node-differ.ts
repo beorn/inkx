@@ -61,9 +61,8 @@ function computeOrdinals(nodes: KNode[]): Map<string, number> {
  * which normalizes fractional and integer indices.
  */
 function makeStructuralKey(parentId: string | null, ordinal: number, type: string): string {
-  // Normalize embed → p for matching. The parser always creates embed content as "p" paragraphs;
-  // link resolution later promotes them to "embed". Without normalization, re-parse would fail
-  // to match existing embed nodes back to their parsed "p" counterparts.
+  // Legacy: normalize "embed" → "p" for matching old databases that still have type="embed" nodes.
+  // In current model, embed_source is orthogonal to type — nodes stay as their parsed type.
   const normalizedType = type === "embed" ? "p" : type
   return `${parentId ?? "root"}:${ordinal}:${normalizedType}`
 }

@@ -178,7 +178,6 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     // but the TUI reads from the in-memory store which needs the event.
     if (link.embedded && link.target_id) {
       emitNodeUpdated(emitter, "fs-watch", sourceId, {
-        type: "embed",
         embed_source: link.target_id,
         name: link.alias ?? undefined,
       })

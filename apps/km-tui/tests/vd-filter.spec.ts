@@ -107,7 +107,7 @@ describe("vd (toggle_hide_done)", () => {
     // Embed nodes in the tag column (no task_status themselves)
     const todoEmbed: KNode = {
       id: "todo-embed",
-      type: "embed",
+      type: "p",
       item: true,
       list_marker: "-",
       content: "![[todo-src]]",
@@ -121,7 +121,7 @@ describe("vd (toggle_hide_done)", () => {
     }
     const doneEmbed: KNode = {
       id: "done-embed",
-      type: "embed",
+      type: "p",
       item: true,
       list_marker: "-",
       content: "![[done-src]]",
@@ -242,7 +242,7 @@ describe("vd (toggle_hide_done)", () => {
     // Embed children of the card
     const todoEmbedChild: KNode = {
       id: "todo-embed-child",
-      type: "embed",
+      type: "p",
       item: true,
       list_marker: "-",
       content: "![[todo-child-src]]",
@@ -256,7 +256,7 @@ describe("vd (toggle_hide_done)", () => {
     }
     const doneEmbedChild: KNode = {
       id: "done-embed-child",
-      type: "embed",
+      type: "p",
       item: true,
       list_marker: "-",
       content: "![[done-child-src]]",

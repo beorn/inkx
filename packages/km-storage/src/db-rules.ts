@@ -24,7 +24,7 @@ import { removeLinksFromSourceByRelationship } from "./db-links.ts"
 import { rowToNode, getChildren, getNode } from "./db-queries/index.ts"
 // Note: We insert rule-materialized nodes directly into DB rather than using emitNodeCreated
 // because that would require the event system to be set up (which isn't always the case)
-import { parseQuery, isOutline, type KNode, type NodeRules } from "@km/core"
+import { parseQuery, isOutline, isEmbed, type KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
 
@@ -163,7 +163,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Remove rule-created items that no longer match any query
   // Identify by embed_source (set on all rule-materialized nodes)
   const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db)))
-  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => n.embed_source != null)
+  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => isEmbed(n))
   let removedCount = 0
   for (const embed of existingEmbedNodes) {
     const embedData = typeof embed.data === "object" && embed.data ? (embed.data as Record<string, unknown>) : {}
@@ -190,7 +190,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     const boardDescendants = getChildren(db, boardRootId)
     for (const section_node of boardDescendants) {
       for (const child of getChildren(db, section_node.id)) {
-        if (child.embed_source != null) {
+        if (isEmbed(child)) {
           const childData = typeof child.data === "object" && child.data ? (child.data as Record<string, unknown>) : {}
           const path = (childData.targetPath as string) ?? child.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
           if (path) {

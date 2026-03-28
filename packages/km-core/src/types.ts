@@ -2,14 +2,16 @@
  * km Node Types — km-ast v2 trait-based model
  *
  * Every node IS a block (has a content type). Orthogonal traits add capabilities:
- * - Block type (10): p, h, code, quote, table, hr, html, math, embed
+ * - Block type (9): p, h, code, quote, table, hr, html, math
  * - Item trait: item=true makes a node navigable with children
  * - Task trait: status field on items
+ * - Embed trait: embed_source field enables transclusion (orthogonal to type)
  *
  * Derivation rules:
  * - item && type === "h" → outline item (oi) — serializes as ## Title
  * - item && type !== "h" → list item (li) — serializes as - content
  * - !item → leaf block
+ * - embed_source != null → transcludes content from target node
  *
  * See docs/design/km-ast/model.md for the full specification.
  */
@@ -29,7 +31,7 @@ export type NotificationLevel = "info" | "success" | "warning" | "error"
 // =============================================================================
 
 /** Block content types — every node has one */
-export type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math" | "embed"
+export type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" | "math"
 
 /** Node type = block type */
 export type NodeType = BlockType
@@ -56,14 +58,14 @@ export function isItem(type: string, item?: boolean): boolean {
   return item === true
 }
 
-/** Embed — block-level transclusion. */
-export function isEmbed(type: string): boolean {
-  return type === "embed"
-}
-
 /** Block — leaf node (not an item). */
 export function isBlock(type: string, item?: boolean): boolean {
   return !item
+}
+
+/** Embed — node that displays content from another node via embed_source. Orthogonal to type. */
+export function isEmbed(node: { embed_source?: string | null }): boolean {
+  return node.embed_source != null
 }
 
 // =============================================================================
@@ -215,7 +217,7 @@ export function isTask(
 // =============================================================================
 
 /** Block types that can never be items */
-const ITEM_FORBIDDEN_BLOCK_TYPES = new Set(["table", "hr", "html", "math", "embed"])
+const ITEM_FORBIDDEN_BLOCK_TYPES = new Set(["table", "hr", "html", "math"])
 
 export interface ValidationError {
   field: string
@@ -229,10 +231,7 @@ export interface ValidationError {
  * Constraints checked:
  * - h requires item: type === "h" implies item === true
  * - task requires item: task_status/task_marker implies item === true
- * - embed requires embed_source field: type === "embed" implies embed_source present
- * - embed not an item: type === "embed" implies item !== true
- * - embed no children (checked at tree level, not here)
- * - item-allowed block types: table/hr/html/math/embed cannot be items
+ * - item-allowed block types: table/hr/html/math cannot be items
  */
 export function validateNode(
   node: Pick<KNode, "type" | "item" | "task_status" | "task_marker" | "embed_source">,
@@ -247,16 +246,6 @@ export function validateNode(
   // task requires item
   if ((node.task_status != null || node.task_marker != null) && node.item !== true) {
     errors.push({ field: "item", message: "task (task_status/task_marker) requires item = true" })
-  }
-
-  // embed requires embed_source field present (can be null for unresolved)
-  if (node.type === "embed" && node.embed_source === undefined) {
-    errors.push({ field: "embed_source", message: "type 'embed' requires embed_source field (null = unresolved)" })
-  }
-
-  // embed not an item
-  if (node.type === "embed" && node.item === true) {
-    errors.push({ field: "item", message: "type 'embed' cannot be an item" })
   }
 
   // item-allowed block types
@@ -326,7 +315,7 @@ export interface NodeRules {
  * - `item && type === "h"` → outline item — serializes as `## Title`
  * - `item && type !== "h"` → list item — serializes as `- content`
  * - `!item` → leaf block
- * - `type === "embed"` → block-level transclusion (`![[target]]`)
+ * - `embed_source != null` → transclusion (orthogonal to type/item)
  *
  * ## Task Definition
  *
@@ -346,7 +335,7 @@ export interface KNode {
   list_marker?: string // For list items: "-", "*", "+", "1.", "1)", "[^1]", etc.
   task_marker?: TaskMarker // For items: "[ ]", "[x]", "[/]", "[!]", "[-]"
 
-  // Embed fields (meaningful for type: "embed")
+  // Transclusion trait (orthogonal to type — any node can transclude)
   embed_source?: string | null // Target node ID whose content is transcluded (null = unresolved)
 
   // Filesystem mapping (for outline items with fstype folder/file/mdfile)

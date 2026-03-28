@@ -266,11 +266,11 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-lzbz","issue_id":"km-cmd.migrate","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-cnn5z","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T16:42:57Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-commands.position-type","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-27T17:39:11Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase1-cursor-to","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-27T17:39:12Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase2-reparent-to","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-27T17:39:13Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase1-cursor-to","issue_id":"km-commands.position-type.phase2-reparent-to","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-27T17:39:11Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase1-goto","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:12Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase2-move-add-create","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:13Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase1-goto","issue_id":"km-commands.position-type.phase2-move-add-create","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-27T17:39:12Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase3-resolver","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-27T17:39:13Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase2-reparent-to","issue_id":"km-commands.position-type.phase3-resolver","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-27T17:39:13Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase2-move-add-create","issue_id":"km-commands.position-type.phase3-resolver","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-dwlr","issue_id":"km-cuqe","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-cuqe","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T12:30:46Z","created_by":"claude:f8196c1c","depends_on_id":"km-kk0x1","issue_id":"km-cy82q","metadata":"{}","type":"blocks"}
@@ -800,7 +800,10 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-markdown","issue_id":"km-markdown.tree-structure","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:34:59Z","created_by":"claude:f8196c1c","depends_on_id":"km-market","issue_id":"km-market.content-strategy","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:34:58Z","created_by":"claude:f8196c1c","depends_on_id":"km-market","issue_id":"km-market.execution","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T22:46:44Z","created_by":"claude:4929065a","depends_on_id":"km-market","issue_id":"km-market.flexily-breadcrumbs","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T10:34:59Z","created_by":"claude:f8196c1c","depends_on_id":"km-market","issue_id":"km-market.launch","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T22:46:43Z","created_by":"claude:4929065a","depends_on_id":"km-market","issue_id":"km-market.og-images","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T22:46:43Z","created_by":"claude:4929065a","depends_on_id":"km-market","issue_id":"km-market.search-console","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-mchcv","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T17:12:48Z","created_by":"claude:65d845d9","depends_on_id":"km-mdtest.pro-review-3","issue_id":"km-mdtest.bash-plugin-bun-only","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T17:12:56Z","created_by":"claude:65d845d9","depends_on_id":"km-mdtest.pro-review-3","issue_id":"km-mdtest.before-all-first-block","metadata":"{}","type":"parent-child"}
@@ -1711,6 +1714,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-after-ops","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-colors","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-init-collapsed","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T18:52:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.cursor-invariant","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T17:41:10Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.cursor-lost","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T15:17:52Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.cursor-path","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.curswanty-clear","metadata":"{}","type":"parent-child"}
