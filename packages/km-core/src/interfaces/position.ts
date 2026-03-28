@@ -2,8 +2,8 @@
  * Position — a slot in the tree among a parent's children.
  *
  * SlateJS namespace pattern: interface Position + const Position with static helpers.
- * Pure data type — no repo dependencies. Repo-dependent helpers (resolve, nodeAt,
- * moveTo, toSortOrder) stay in km-tui/position-resolver.ts.
+ * Pure data type — no repo dependencies. Repo-dependent helpers (toSortOrder,
+ * nodeAt, isAtPosition, moveTo) are in TreeOps (@km/tree).
  */
 
 /** A slot in the tree: a position among a parent's children. */
