@@ -40,7 +40,8 @@ import {
   setNodeText,
 } from "@km/tree"
 import { KNode, extractTitleTaskMarker } from "@km/core"
-import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
+import { Selection } from "../selection.ts"
 import {
   getFavorite,
   setFavorite,
@@ -49,15 +50,8 @@ import {
   getReservedKeyLabel,
   initDefaultKeybindings,
 } from "@km/commands"
-import {
-  resolveLocationKey,
-  isPickTarget,
-  isAtPosition,
-  moveTo,
-  nodeAt,
-  type Position,
-  type PickTarget,
-} from "./position-resolver.ts"
+import { resolveLocationKey, isPickTarget, type Position, type PickTarget } from "./position-resolver.ts"
+import { TreeOps } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
@@ -73,7 +67,7 @@ export const MAX_FOLD_DEPTH = 20
 
 /** Determine fold target node IDs from selection → card → column fallback. */
 function getFoldTargetRoots(ctx: ActionCtx, card: KNode | null | undefined): string[] {
-  const selected = getSelectedCards(ctx)
+  const selected = Selection.nodes(ctx)
   return selected.length > 0
     ? selected.map((c) => c.id)
     : card
@@ -1725,7 +1719,7 @@ function handleCursorTo(ctx: ActionCtx, to: Position): void {
 
   // Same parent — cursor to sibling at position
   if (cursorNode?.parent_id === to.parentId) {
-    const target = nodeAt(to, ctx.repo)
+    const target = TreeOps.nodeAt(ctx.repo, to)
     if (target) {
       ctx.dispatchBoard({ type: "SELECT", nodeId: target.id })
       clearSelection(ctx)
@@ -1755,15 +1749,15 @@ function handleCursorTo(ctx: ActionCtx, to: Position): void {
 
 /** Move node(s) to resolved Position: same-parent → reorder, cross-parent → reparent batch. */
 function handleReparentTo(ctx: ActionCtx, to: Position): ActionResult {
-  const cards = getSelectedCards(ctx)
+  const cards = Selection.nodes(ctx)
   if (cards.length === 0) return boundary("move", "no selection")
 
   // Same-parent reorder (single node) — quick path
   if (cards.length === 1 && cards[0]!.parent_id === to.parentId) {
     const nodeId = cards[0]!.id
-    if (isAtPosition(nodeId, to, ctx.repo)) return ok()
+    if (TreeOps.isAtPosition(ctx.repo, nodeId, to)) return ok()
     ctx.undoHandle.setCursor(nodeId)
-    moveTo(ctx.repo, nodeId, to)
+    TreeOps.moveTo(ctx.repo, nodeId, to)
     ctx.dispatchBoard({ type: "SELECT", nodeId })
     return ok()
   }
@@ -1773,7 +1767,7 @@ function handleReparentTo(ctx: ActionCtx, to: Position): ActionResult {
   ctx.undoHandle.startBatch("Move")
   for (const card of cards) {
     if (card.id === to.parentId) continue // don't move into self
-    moveTo(ctx.repo, card.id, to)
+    TreeOps.moveTo(ctx.repo, card.id, to)
   }
   ctx.undoHandle.endBatch()
   clearSelection(ctx)
@@ -2077,8 +2071,7 @@ function handleOpenInTerminal(ctx: ActionCtx, nodeId: string): void {
 
 /** Get node IDs from selected cards (batch-aware). */
 function getSelectedCardNodeIds(ctx: ActionCtx): string[] {
-  const cards = getSelectedCards(ctx)
-  return cards.map((c) => c.id)
+  return Selection.nodeIds(ctx)
 }
 
 /** Open the date prompt dialog for a given field. */
@@ -2264,7 +2257,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
 
 /** Copy or cut selected nodes to clipboard. */
 function handleClipboardCopy(ctx: ActionCtx, mode: "copy" | "cut"): ActionResult {
-  const cards = getSelectedCards(ctx)
+  const cards = Selection.nodes(ctx)
   if (cards.length === 0) return boundary("clipboard", "No card to copy")
 
   const nodeIds = cards.map((c) => c.id)

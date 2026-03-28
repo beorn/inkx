@@ -13,7 +13,7 @@
  * Selection behavior:
  * - First J from card: sets anchor + adds anchor to multiSelected (1 item)
  * - Second J: builds range from anchor to cursor (3+ items via updateSelectionRange)
- * - Batch operations require getSelectedCardIndices().length > 1 to activate
+ * - Batch operations require Selection.cardIndices(ctx).length > 1 to activate
  */
 
 import { describe, test, expect } from "vitest"

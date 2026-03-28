@@ -269,7 +269,7 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
  * - Batch operations (x toggle, Backspace) should affect both nodes
  *
  * Actual: multiSelected contains only 1 item (the anchor A).
- * getSelectedCardIndices returns [0] (1 index), so batch ops
+ * Selection.cardIndices returns [0] (1 index), so batch ops
  * fall through to single-node path and only operate on cursor (B).
  */
 describe("Shift-J single press range (km-cnn5z)", () => {

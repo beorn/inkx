@@ -8,7 +8,7 @@
  * Every card operation is inherently batch-aware (single = batch of 1).
  * Each handler follows this structure:
  *
- * 1. GATHER — `getSelectedCards(ctx)` returns multi-selected or cursor card
+ * 1. GATHER — `Selection.nodes(ctx)` returns multi-selected or cursor card
  * 2. VALIDATE — all-or-nothing: if ANY card fails, NONE execute
  * 3. CONFIRM (optional) — set UI state, re-enter via separate action
  * 4. EXECUTE — perform mutations on all cards
@@ -25,7 +25,8 @@ import { getMarkerForStatus, decomposeDatetime, type KNode, type TaskStatus } fr
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
-import { clearSelection, getSelectedCards } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection } from "../keyboard/keyboard-helpers.ts"
+import { Selection } from "../selection.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 
@@ -64,7 +65,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
 
   if (!card) return // Board level — nothing to delete
 
-  const cards = getSelectedCards(ctx)
+  const cards = Selection.nodes(ctx)
   if (cards.length === 0) return
 
   // Aggregate impact across all cards
@@ -466,7 +467,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
  * Selection is preserved — status is an in-place modification.
  */
 export function handleTaskStatusCycle(ctx: ActionCtx): void {
-  const cards = getSelectedCards(ctx)
+  const cards = Selection.nodes(ctx)
   if (cards.length === 0) return
 
   // Batch all status changes (especially recurring task clone: updateNode + addNode)
@@ -538,7 +539,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
  * Batch-aware: when multi-selection is active, clears all selected cards.
  */
 export function handleClearTask(ctx: ActionCtx): void {
-  const cards = getSelectedCards(ctx)
+  const cards = Selection.nodes(ctx)
   if (cards.length === 0) return
 
   ctx.undoHandle.setCursor(ctx.cursorNodeId)

@@ -9,7 +9,8 @@ import { KNode } from "@km/core"
 import type { SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { clearSelection, getSelectedCardIndices } from "./keyboard-helpers.ts"
+import { clearSelection } from "./keyboard-helpers.ts"
+import { Selection } from "../selection.ts"
 import { indexOfChild } from "../sibling-index.ts"
 
 // =============================================================================
@@ -101,7 +102,7 @@ export function moveCardInColumn(ctx: ActionCtx, card: KNode, direction: "up" | 
   // Fix duplicate parent_idx before calculating new sort order
   normalizeSortOrders(ctx, col)
 
-  const selectedIndices = getSelectedCardIndices(ctx)
+  const selectedIndices = Selection.cardIndices(ctx)
   const cardsToMove =
     selectedIndices.length > 0
       ? selectedIndices.map((i: number) => ({ index: i, card: col.cardNodes[i] }))
@@ -162,7 +163,7 @@ export function moveCardToColumn(ctx: ActionCtx, card: KNode, direction: "left" 
   const targetCol = ctx.columns[targetColIndex]
   if (!targetCol) return boundary(direction)
 
-  const selectedIndices = getSelectedCardIndices(ctx)
+  const selectedIndices = Selection.cardIndices(ctx)
   const cardsToMove =
     selectedIndices.length > 0
       ? selectedIndices.map((i: number) => col.cardNodes[i]).filter((c) => c !== undefined)
@@ -207,7 +208,7 @@ export function indentNode(ctx: ActionCtx, card: KNode): boolean {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
-  const selectedIndices = getSelectedCardIndices(ctx)
+  const selectedIndices = Selection.cardIndices(ctx)
   if (selectedIndices.length > 1) {
     return indentNodesAtomically(ctx, col, selectedIndices)
   }
@@ -229,7 +230,7 @@ export function outdentNode(ctx: ActionCtx, card: KNode): boolean {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
-  const selectedIndices = getSelectedCardIndices(ctx)
+  const selectedIndices = Selection.cardIndices(ctx)
   if (selectedIndices.length > 1) {
     return outdentNodesAtomically(ctx, col, selectedIndices)
   }

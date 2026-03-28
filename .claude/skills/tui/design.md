@@ -90,8 +90,8 @@ All card operations in `board-actions-edit.ts` and `keyboard-card-ops.ts` follow
 
 ```typescript
 export function handleFoo(ctx: ActionCtx): ActionResult {
-  // 1. GATHER — getSelectedCards returns multi-selected or cursor card
-  const cards = getSelectedCards(ctx)
+  // 1. GATHER — Selection.nodes returns multi-selected or cursor card
+  const cards = Selection.nodes(ctx)
   if (cards.length === 0) return boundary("foo", "no cards")
 
   // 2. VALIDATE — all-or-nothing: if ANY card fails, NONE execute
@@ -126,7 +126,7 @@ NOT every operation clears the selection. The rule depends on what happened to t
 | Cards moved in column (positions shifted) | `rebuildSelection` at new positions | Move up/down, move left/right |
 | Cards modified in place | Keep selection | Status toggle |
 
-**Key files**: `getSelectedCards()` in `keyboard-helpers.ts`, handlers in `board-actions-edit.ts` and `keyboard-card-ops.ts`.
+**Key files**: `Selection` namespace in `selection.ts`, handlers in `board-actions-edit.ts` and `keyboard-card-ops.ts`.
 
 ## Input Architecture
 

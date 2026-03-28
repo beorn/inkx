@@ -6,7 +6,7 @@
 
 import type { KNode } from "@km/core"
 import type { SelectionKey } from "../types.ts"
-import { makeSelectionKey, parseSelectionKey } from "../types.ts"
+import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
@@ -146,54 +146,6 @@ export function clearSelection(ctx: ActionCtx): void {
     selectAllLevel: 0,
     status: null,
   })
-}
-
-/**
- * Get cards to operate on: multi-selected cards if multiple are selected,
- * otherwise just the cursor card. Returns cards in column order.
- *
- * This is the standard way to make any card operation batch-aware:
- * `const cards = getSelectedCards(ctx)` gives you the right set to iterate.
- */
-export function getSelectedCards(ctx: ActionCtx): KNode[] {
-  const col = ctx.columns[ctx.colIndex]
-  const cursorCard = col?.cardNodes[ctx.cardIndex]
-  if (!col || !cursorCard) return []
-
-  const indices = getSelectedCardIndices(ctx)
-  if (indices.length > 1) {
-    return indices.map((i) => col.cardNodes[i]).filter((c) => c !== undefined)
-  }
-  return [cursorCard]
-}
-
-/** Get unique selected card indices from multi-selection */
-export function getSelectedCardIndices(ctx: ActionCtx): number[] {
-  if (ctx.ui.multiSelected.size === 0) return []
-  const nodeIndex = ctx.nodeIndex
-  if (!nodeIndex) return []
-  const indices = new Set<number>()
-  for (const key of ctx.ui.multiSelected) {
-    const { nodeId } = parseSelectionKey(key)
-    // Check nodeIndex for card roots
-    const pos = nodeIndex.get(nodeId)
-    if (pos && pos.colIndex === ctx.colIndex) {
-      indices.add(pos.cardIndex)
-    }
-    // For sub-items not in nodeIndex, walk parent chain
-    if (!pos) {
-      let current = ctx.repo.getNode(nodeId)
-      while (current?.parent_id) {
-        const parentPos = nodeIndex.get(current.parent_id)
-        if (parentPos && parentPos.colIndex === ctx.colIndex) {
-          indices.add(parentPos.cardIndex)
-          break
-        }
-        current = ctx.repo.getNode(current.parent_id)
-      }
-    }
-  }
-  return Array.from(indices).sort((a, b) => a - b)
 }
 
 // =============================================================================
