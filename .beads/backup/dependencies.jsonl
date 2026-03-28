@@ -265,6 +265,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-cmd.7","issue_id":"km-cmd.9","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-lzbz","issue_id":"km-cmd.migrate","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-cnn5z","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T23:12:22Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-commands.domain-objects","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T16:42:57Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-commands.position-type","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T17:39:11Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase1-goto","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T17:39:12Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase2-move-add-create","metadata":"{}","type":"parent-child"}
