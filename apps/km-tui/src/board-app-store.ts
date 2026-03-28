@@ -516,10 +516,14 @@ export function createBoardAppStoreState(
           if (detailPane) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
+              // Embed transparency: resolve to target for metadata/children
+              const newRawNode = s.repo.getNode(newCardId)
+              const newResolved = newRawNode?.embed_source ? s.repo.getNode(newRawNode.embed_source) : null
+              const newEffective = newResolved ?? newRawNode
+              const newEffectiveId = newEffective?.id ?? newCardId
               // Initial cursor = first metadata row, then first child
-              const newRootNode = s.repo.getNode(newCardId)
-              const newMetaKeys = newRootNode ? computeMetadataKeys(newRootNode) : []
-              const newChildren = s.repo.getChildren(newCardId)
+              const newMetaKeys = newEffective ? computeMetadataKeys(newEffective) : []
+              const newChildren = s.repo.getChildren(newEffectiveId)
               const newFirstItemId =
                 newMetaKeys.length > 0
                   ? `${DETAIL_META_PREFIX}${newMetaKeys[0]}`
@@ -835,10 +839,15 @@ export function createBoardAppStoreState(
           const cursorState = state.cursorStore.getState()
           const detailRootId = cursorState.cursorCardNodeId ?? cursorState.cursorColumnNodeId ?? parentPane.rootId
 
+          // Embed transparency: resolve to target for metadata/children computation
+          const rawNode = detailRootId ? state.repo.getNode(detailRootId) : null
+          const resolvedTarget = rawNode?.embed_source ? state.repo.getNode(rawNode.embed_source) : null
+          const effectiveNode = resolvedTarget ?? rawNode
+          const effectiveId = effectiveNode?.id ?? detailRootId
+
           // Initial cursor = first metadata row, then first child
-          const rootNode = detailRootId ? state.repo.getNode(detailRootId) : null
-          const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
-          const children = state.repo.getChildren(detailRootId)
+          const metaKeys = effectiveNode ? computeMetadataKeys(effectiveNode) : []
+          const children = state.repo.getChildren(effectiveId)
           const firstItemId =
             metaKeys.length > 0
               ? `${DETAIL_META_PREFIX}${metaKeys[0]}`

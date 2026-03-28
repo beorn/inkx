@@ -56,7 +56,11 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
   const { treeConfig } = useTreeRenderContext()
 
-  const rootNode = rootId ? repo.getNode(rootId) : null
+  const rawNode = rootId ? repo.getNode(rootId) : null
+  // Embed transparency: if root is an embed, show the target's identity
+  const resolvedTarget = rawNode?.embed_source ? repo.getNode(rawNode.embed_source) : null
+  const rootNode = resolvedTarget ?? rawNode
+  const effectiveId = rootNode?.id ?? rootId
   if (!rootNode) {
     return (
       <Box flexDirection="column" width={width} height={height} paddingX={1}>
@@ -65,9 +69,9 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     )
   }
 
-  // Compute metadata keys and children
+  // Compute metadata keys and children from the effective node (target for embeds)
   const metaKeys = computeMetadataKeys(rootNode)
-  const children = useMemo(() => repo.getChildren(rootId), [repo, rootId])
+  const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
 
   // Effective content width (minus padding)
   const contentWidth = Math.max(8, width - 2)

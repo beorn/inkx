@@ -11,6 +11,7 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
+import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 
 // =============================================================================
 // Embed create depth
@@ -1872,5 +1873,121 @@ describe("hide redundant parent sigil on embedded links", () => {
     const lines = screenshot.split("\n")
     const headerLine = lines.find((l) => l.includes("@next") && !l.includes("Buy") && !l.includes("Write"))
     expect(headerLine).toBeDefined()
+  })
+})
+
+// =============================================================================
+// Embed transparency — detail pane shows target's metadata + children
+// =============================================================================
+
+describe("embed transparency in detail pane", () => {
+  /** Build a board where an embed card points to a target node with children */
+  function buildEmbedDetailBoard() {
+    const nodes = item(
+      "board",
+      item(
+        "col1",
+        item("regular-card"),
+        item("embed-card"),
+      ),
+    )
+    // Target node (lives outside the board — e.g., in another file)
+    const targetNode: KNode = {
+      id: "target-node",
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      content: "Target Section",
+      parent_id: null,
+      parent_idx: 0,
+      embed_source: null,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+      task_status: "wip",
+      task_marker: "[/]",
+      due_at: "2026-04-01",
+    }
+    // Target's children
+    const targetChild1: KNode = {
+      id: "target-child-1",
+      type: "p",
+      item: true,
+      content: "Target Child Alpha",
+      parent_id: "target-node",
+      parent_idx: 0,
+      embed_source: null,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    const targetChild2: KNode = {
+      id: "target-child-2",
+      type: "p",
+      item: true,
+      content: "Target Child Beta",
+      parent_id: "target-node",
+      parent_idx: 1,
+      embed_source: null,
+      data: {},
+      created_at: Date.now(),
+      updated_at: Date.now(),
+      version: "v1",
+    }
+    // Make embed-card point to target-node
+    for (const n of nodes) {
+      if (n.id === "embed-card") {
+        n.embed_source = "target-node"
+        n.content = ""
+      }
+    }
+    nodes.push(targetNode, targetChild1, targetChild2)
+    return nodes
+  }
+
+  test("detail pane for embed card shows target's children", () => {
+    const { board, store } = testEnv(buildEmbedDetailBoard, {
+      columns: 120,
+      rows: 24,
+    })
+
+    // Navigate to the embed card (second card in col1)
+    board.command("cursor_down")
+
+    // Open detail pane
+    board.press("D")
+
+    // Verify detail pane is open
+    const ws = store.getState().workspace
+    expect(ws.panes.has("main-detail")).toBe(true)
+
+    // The detail pane's rootId should be the embed card's ID
+    const detailPane = ws.panes.get("main-detail")!
+    expect((detailPane as any).rootId).toBe("embed-card")
+
+    // But the rendered detail should show the TARGET's children
+    const screenshot = board.screenshot()
+    expect(screenshot).toContain("Target Child Alpha")
+    expect(screenshot).toContain("Target Child Beta")
+  })
+
+  test("detail pane metadata shows target properties for embed card", () => {
+    const { board, store } = testEnv(buildEmbedDetailBoard, {
+      columns: 120,
+      rows: 24,
+    })
+
+    // Navigate to the embed card
+    board.command("cursor_down")
+
+    // Open detail pane
+    board.press("D")
+
+    // The rendered detail should show the target's metadata (task status, due date)
+    const screenshot = board.screenshot()
+    expect(screenshot).toContain("wip")
+    // The embed card itself has no task_status — this proves the target's metadata is shown
   })
 })
