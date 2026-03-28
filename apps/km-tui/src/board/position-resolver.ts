@@ -73,7 +73,7 @@ export function resolveLocationKey(locationKey: string, cursor: CursorContext, r
 
   // --- Special locations ---
   if (locationKey === "@home") {
-    return { parentId: "", childIdx: 0 } // root sentinel
+    return Position.first("") // root sentinel
   }
 
   // --- Board/node ID (e.g., @next, @inbox, or a concrete node ID) ---

@@ -23,6 +23,15 @@ export interface TreeMover extends TreeReader {
 
 /** Node shape returned by Tree methods. */
 type NodeLike = { id: string; parent_id: string | null; parent_idx: number; name?: string | null }
+type ChildLike = { id: string; parent_idx: number }
+
+/** Resolve abstract childIdx (0=first, -1=last) to a concrete child in the array. */
+function childAt(children: ChildLike[], childIdx: number): ChildLike | undefined {
+  if (children.length === 0) return undefined
+  if (childIdx === 0) return children[0]
+  if (childIdx === -1) return children[children.length - 1]
+  return children.find((c) => c.parent_idx === childIdx)
+}
 
 export const Tree = {
   // =========================================================================
@@ -63,22 +72,13 @@ export const Tree = {
 
   /** Get the node at a position (or null if empty). */
   nodeAt(tree: TreeReader, pos: Position): NodeLike | null {
-    const children = tree.getChildren(pos.parentId)
-    if (children.length === 0) return null
-    if (pos.childIdx === 0) return (tree.getNode(children[0]!.id) as NodeLike) ?? null
-    if (pos.childIdx === -1) return (tree.getNode(children.at(-1)!.id) as NodeLike) ?? null
-    const match = children.find((c) => c.parent_idx === pos.childIdx)
-    return match ? ((tree.getNode(match.id) as NodeLike) ?? null) : null
+    const child = childAt(tree.getChildren(pos.parentId), pos.childIdx)
+    return child ? ((tree.getNode(child.id) as NodeLike) ?? null) : null
   },
 
   /** Check if a node is at the given position. */
   isAtPosition(tree: TreeReader, nodeId: string, pos: Position): boolean {
-    const children = tree.getChildren(pos.parentId)
-    if (children.length === 0) return false
-    if (pos.childIdx === 0) return children[0]!.id === nodeId
-    if (pos.childIdx === -1) return children.at(-1)!.id === nodeId
-    const match = children.find((c) => c.parent_idx === pos.childIdx)
-    return match?.id === nodeId
+    return childAt(tree.getChildren(pos.parentId), pos.childIdx)?.id === nodeId
   },
 
   // =========================================================================
@@ -87,11 +87,14 @@ export const Tree = {
 
   /** Convert abstract Position to concrete sort order for repo.moveNode(). */
   toSortOrder(tree: TreeReader, pos: Position): { parentId: string; sortOrder: number } {
-    const children = tree.getChildren(pos.parentId)
-    if (children.length === 0) return { parentId: pos.parentId, sortOrder: 0 }
-    if (pos.childIdx === 0) return { parentId: pos.parentId, sortOrder: children[0]!.parent_idx - 1 }
-    if (pos.childIdx === -1) return { parentId: pos.parentId, sortOrder: children.at(-1)!.parent_idx + 1 }
-    return { parentId: pos.parentId, sortOrder: pos.childIdx }
+    // Concrete childIdx (not 0 or -1) passes through directly as sort order
+    if (pos.childIdx !== 0 && pos.childIdx !== -1) return { parentId: pos.parentId, sortOrder: pos.childIdx }
+    const child = childAt(tree.getChildren(pos.parentId), pos.childIdx)
+    if (!child) return { parentId: pos.parentId, sortOrder: 0 }
+    return {
+      parentId: pos.parentId,
+      sortOrder: pos.childIdx === 0 ? child.parent_idx - 1 : child.parent_idx + 1,
+    }
   },
 
   /** Sort order midpoint between two sibling indices. For inserting between neighbors. */
