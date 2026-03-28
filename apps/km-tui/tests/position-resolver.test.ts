@@ -280,4 +280,118 @@ describe("resolveLocationKey", () => {
       expect(isPosition(null)).toBe(false)
     })
   })
+
+  // =========================================================================
+  // Domain helpers
+  // =========================================================================
+
+  describe("positionOf", () => {
+    it("returns slot of a node in its parent", () => {
+      expect(positionOf({ id: "card-2", parent_id: "board-A", parent_idx: 1 })).toEqual({
+        parentId: "board-A",
+        childIdx: 1,
+      })
+    })
+
+    it("returns null for root (no parent)", () => {
+      expect(positionOf({ id: "root", parent_id: null, parent_idx: 0 })).toBeNull()
+    })
+  })
+
+  describe("firstChild / lastChild", () => {
+    it("firstChild creates Position with childIdx 0", () => {
+      expect(firstChild("board-A")).toEqual({ parentId: "board-A", childIdx: 0 })
+    })
+
+    it("lastChild creates Position with childIdx -1", () => {
+      expect(lastChild("board-A")).toEqual({ parentId: "board-A", childIdx: -1 })
+    })
+  })
+
+  describe("toSortOrder", () => {
+    it("childIdx 0 → before first child's parent_idx", () => {
+      const result = toSortOrder({ parentId: "board-A", childIdx: 0 }, repo)
+      expect(result.parentId).toBe("board-A")
+      expect(result.sortOrder).toBeLessThan(0) // first child has parent_idx 0
+    })
+
+    it("childIdx -1 → after last child's parent_idx", () => {
+      const result = toSortOrder({ parentId: "board-A", childIdx: -1 }, repo)
+      expect(result.parentId).toBe("board-A")
+      expect(result.sortOrder).toBeGreaterThan(2) // last child has parent_idx 2
+    })
+
+    it("concrete childIdx passed through", () => {
+      const result = toSortOrder({ parentId: "board-A", childIdx: 5 }, repo)
+      expect(result.sortOrder).toBe(5)
+    })
+
+    it("empty parent → sortOrder 0", () => {
+      const result = toSortOrder({ parentId: "board-C", childIdx: -1 }, repo)
+      expect(result.sortOrder).toBe(0)
+    })
+  })
+
+  describe("nodeAt", () => {
+    it("childIdx 0 → first child", () => {
+      const node = nodeAt({ parentId: "board-A", childIdx: 0 }, repo)
+      expect(node?.id).toBe("card-1")
+    })
+
+    it("childIdx -1 → last child", () => {
+      const node = nodeAt({ parentId: "board-A", childIdx: -1 }, repo)
+      expect(node?.id).toBe("card-3")
+    })
+
+    it("empty parent → null", () => {
+      const node = nodeAt({ parentId: "board-C", childIdx: 0 }, repo)
+      expect(node).toBeNull()
+    })
+  })
+
+  describe("isAtPosition", () => {
+    it("true when node is at first position", () => {
+      expect(isAtPosition("card-1", { parentId: "board-A", childIdx: 0 }, repo)).toBe(true)
+    })
+
+    it("true when node is at last position", () => {
+      expect(isAtPosition("card-3", { parentId: "board-A", childIdx: -1 }, repo)).toBe(true)
+    })
+
+    it("false when node is not at position", () => {
+      expect(isAtPosition("card-2", { parentId: "board-A", childIdx: 0 }, repo)).toBe(false)
+    })
+
+    it("false for empty parent", () => {
+      expect(isAtPosition("card-1", { parentId: "board-C", childIdx: 0 }, repo)).toBe(false)
+    })
+  })
+
+  describe("moveTo", () => {
+    it("moves node to position", () => {
+      const moves: Array<{ id: string; parentId: string; sortOrder: number }> = []
+      const moveRepo: MoveRepo = {
+        ...repo,
+        moveNode(id, parentId, sortOrder) {
+          moves.push({ id, parentId, sortOrder })
+        },
+      }
+      const moved = moveTo(moveRepo, "card-2", { parentId: "board-A", childIdx: -1 })
+      expect(moved).toBe(true)
+      expect(moves).toHaveLength(1)
+      expect(moves[0]!.id).toBe("card-2")
+      expect(moves[0]!.parentId).toBe("board-A")
+    })
+
+    it("returns false if already at position", () => {
+      const moveRepo: MoveRepo = {
+        ...repo,
+        moveNode() {
+          throw new Error("should not be called")
+        },
+      }
+      const moved = moveTo(moveRepo, "card-1", { parentId: "board-A", childIdx: 0 })
+      expect(moved).toBe(false)
+    })
+  })
 })
