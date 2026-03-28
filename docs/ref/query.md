@@ -62,8 +62,9 @@ Match nodes by their references:
 Match nodes by location:
 
 ```bash
-./inbox             # Under ./inbox (relative to cwd)
-./inbox/**          # Under ./inbox, recursive
+./inbox             # Under ./inbox (relative to cwd, recursive)
+./inbox/*           # Direct children of ./inbox only
+./inbox/**          # Under ./inbox, recursive (same as ./inbox)
 /projects/web       # Under /projects/web (absolute)
 projects/           # Path contains "projects/"
 projects/**         # Contains "projects/", recursive

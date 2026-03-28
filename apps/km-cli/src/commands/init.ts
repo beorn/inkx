@@ -187,7 +187,7 @@ function createGtdStructure(targetDir: string, force: boolean): void {
  */
 const GTD_NEXT_MD = `# Next Actions km.color:: cyan
 
-## Inbox km.add:: ./inbox/** km.add:: due:past -status:done -status:dropped km.add:: due:today -status:done -status:dropped km.add:: due:week -status:done -status:dropped km.add:: start:past -status:done -status:dropped
+## Inbox km.add:: ./inbox/* km.add:: due:past -status:done -status:dropped km.add:: due:today -status:done -status:dropped km.add:: due:week -status:done -status:dropped km.add:: start:past -status:done -status:dropped
 
 ## Next
 
