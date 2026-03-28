@@ -40,15 +40,19 @@ import { useCardInteraction } from "../hooks/use-card-interaction.ts"
 
 /**
  * Estimated card height in rows (border + content + padding).
- * Cards in CARDS view are taller (have borders) compared to COLUMNS view.
+ * Cards have borders (2 rows) + title (1 row) + possible children/wrap.
+ * Using 4 rather than 3 avoids underestimating cards with long titles
+ * that wrap to 2 lines, which causes blank space at the top of tall terminals.
  */
-const _ESTIMATED_CARD_HEIGHT = 4
+const ESTIMATED_CARD_HEIGHT = 4
 
 /**
  * Number of extra cards to render above and below visible area.
- * TUI scrolling is discrete (j/k keys), so 2 is sufficient to prevent pop-in.
+ * Higher overscan compensates for variable card heights: cards with long titles
+ * or children can be 4-6 rows, so we need extra buffer beyond the viewport to
+ * prevent blank gaps when scrolling on tall terminals (60+ rows).
  */
-const OVERSCAN = 2
+const OVERSCAN = 5
 
 /**
  * Maximum number of cards to render at once.
@@ -796,7 +800,7 @@ export const Column = React.memo(function Column({
           items={column.cardNodes}
           width={width - 1}
           height={height - 2}
-          itemHeight={3}
+          itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
