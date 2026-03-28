@@ -660,17 +660,6 @@ export const Column = React.memo(function Column({
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
-  // Per-card height estimate for VirtualList. Uses actual child count (capped by maxContentLines)
-  // instead of a fixed maxContentLines+2, which overestimates for cards with few/no children.
-  const estimateCardHeight = useCallback(
-    (card: CardView) => {
-      if (card.isBody) return 2 // body blocks: content + border
-      const childCount = repo.getChildren(card.resolvedNode?.id ?? card.id).length
-      return Math.min(childCount, maxContentLines) + 2 // children + title + border
-    },
-    [repo, maxContentLines],
-  )
-
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from CursorStore self-subscription.
   const cardNodes = column.cardNodes
@@ -805,7 +794,7 @@ export const Column = React.memo(function Column({
           items={column.cardNodes}
           width={width - 1}
           height={height - 2}
-          itemHeight={estimateCardHeight}
+          itemHeight={3}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_CARDS}
           keyExtractor={keyExtractor}
