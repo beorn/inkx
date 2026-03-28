@@ -16,7 +16,7 @@ import { Box, Text, Small, useScreenRectCallback } from "@silvery/ag-react"
 import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board-types.ts"
-import type { ColumnView } from "../types.ts"
+import type { CardView, ColumnView } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
@@ -664,21 +664,19 @@ export const Column = React.memo(function Column({
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from CursorStore self-subscription.
   const cardNodes = column.cardNodes
-  const virtualCardIds = column.virtualCardIds
   const renderItem = useCallback(
-    (card: KNode, actualIndex: number) => {
+    (card: CardView, actualIndex: number) => {
       layoutLog.trace?.(
         `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.id)} content=${card.content?.slice(0, 30) ?? "(empty)"}`,
       )
       // For body blocks: compute neighbor info for layout stability.
       // Only yield paddingTop when prev is also a body block (not structural).
       // Last body block before a structural card gets paddingBottom=1.
-      const isCardVirtual = virtualCardIds.has(card.id)
-      const isBody = isVirtual || isCardVirtual
+      const isBody = isVirtual || card.isBody
       const prevCard = actualIndex > 0 ? cardNodes[actualIndex - 1] : undefined
       const nextCard = actualIndex < cardNodes.length - 1 ? cardNodes[actualIndex + 1] : undefined
-      const isPrevBody = isVirtual || (prevCard ? virtualCardIds.has(prevCard.id) : false)
-      const isLastBody = isBody && (!nextCard || !(isVirtual || virtualCardIds.has(nextCard.id)))
+      const isPrevBody = isVirtual || (prevCard ? prevCard.isBody : false)
+      const isLastBody = isBody && (!nextCard || !(isVirtual || nextCard.isBody))
       return (
         <Card
           key={`${card.id}-${actualIndex}`}
@@ -687,7 +685,7 @@ export const Column = React.memo(function Column({
           colIndex={colIndex}
           cardIndex={actualIndex}
           isVirtualColumn={isVirtual}
-          isVirtualCard={isCardVirtual}
+          isVirtualCard={card.isBody}
           isPrevBodyBlock={isPrevBody}
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
@@ -696,7 +694,7 @@ export const Column = React.memo(function Column({
         />
       )
     },
-    [colIndex, width, isVirtual, cardNodes, virtualCardIds, extraExcludedSigils, isColumnSelected],
+    [colIndex, width, isVirtual, cardNodes, extraExcludedSigils, isColumnSelected],
   )
 
   const keyExtractor = useCallback((card: KNode) => card.id, [])

@@ -616,10 +616,9 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     // Cards should be the embeds
     expect(processingCol.cardNodes.length).toBe(2)
 
-    // BUG: embeds were marked as virtual because they're not tasks and not structural
-    // FIX: embeds should NOT be virtual — they are discrete items
+    // Embeds should NOT be body — they are discrete items
     for (const card of processingCol.cardNodes) {
-      expect(processingCol.virtualCardIds.has(card.id)).toBeFalsy()
+      expect(card.isBody).toBeFalsy()
     }
   })
 
@@ -651,9 +650,9 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     expect(columns.length).toBe(1)
     const col = columns[0]!
 
-    // Paragraphs in a column with no structural children and no tasks = all virtual
+    // Paragraphs in a column with no structural children and no tasks = all body
     for (const card of col.cardNodes) {
-      expect(col.virtualCardIds.has(card.id)).toBe(true)
+      expect(card.isBody).toBe(true)
     }
   })
 
@@ -702,8 +701,8 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const paraCard = col.cardNodes.find((c) => c.id === paraId)
     const embedCard = col.cardNodes.find((c) => c.id === embedId)
 
-    // After fix: embed should not be virtual (embed_source nodes are not added to virtualCardIds)
-    expect(col.virtualCardIds.has(embedId)).toBeFalsy()
+    // Embed should not be body (embed_source nodes get isBody: false)
+    expect(embedCard?.isBody).toBeFalsy()
   })
 })
 

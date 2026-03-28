@@ -162,7 +162,7 @@ export function getSelectedCards(ctx: ActionCtx): KNode[] {
 
   const indices = getSelectedCardIndices(ctx)
   if (indices.length > 1) {
-    return indices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
+    return indices.map((i) => col.cardNodes[i]).filter((c) => c !== undefined)
   }
   return [cursorCard]
 }

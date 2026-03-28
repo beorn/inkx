@@ -9,7 +9,7 @@ import { isEmbed } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { InitialBoardData, ColumnView } from "./types.ts"
+import type { InitialBoardData, CardView, ColumnView } from "./types.ts"
 import { deduplicateByFsPath, isCollapsedChild } from "./hooks/use-columns.ts"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
@@ -25,34 +25,22 @@ import {
 
 /**
  * Build cards for a column from its body and structural children.
- * Each body node is its own navigable card (virtual for styling).
+ * Each body node is its own navigable card (body for styling).
  * Structural (oi) nodes are regular cards.
- * Returns plain KNode[] and a Set of virtual card IDs.
  */
-function buildColumnCards(
-  bodyNodes: KNode[],
-  structuralNodes: KNode[],
-): { cardNodes: KNode[]; virtualCardIds: Set<string> } {
-  const cardNodes: KNode[] = []
-  const virtualCardIds = new Set<string>()
+function buildColumnCards(bodyNodes: KNode[], structuralNodes: KNode[]): CardView[] {
+  const cards: CardView[] = []
 
-  // Each body node becomes its own navigable card.
-  // Embed nodes are discrete items — not virtual.
   for (const node of bodyNodes) {
-    cardNodes.push(node)
-    if (!isEmbed(node)) {
-      virtualCardIds.add(node.id)
-    }
+    cards.push({ ...node, isBody: !isEmbed(node), isBrokenEmbed: false, hasBodyChildren: false })
   }
 
-  // Structural (oi) nodes are regular cards — except collapsed ones
-  // (e.g., imported Activity/Comments/Attachments with km.collapse:: true)
   for (const node of structuralNodes) {
     if (isCollapsedChild(node)) continue
-    cardNodes.push(node)
+    cards.push({ ...node, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })
   }
 
-  return { cardNodes, virtualCardIds }
+  return cards
 }
 
 // Note: Card position tracking is now handled via LayoutContext in board-actions.ts
@@ -192,14 +180,14 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
   // Add virtual body column if there's meaningful leading content
   // Filter out nodes with empty/whitespace-only content (e.g., HTML anchor tags)
   if (meaningfulBody.length > 0) {
-    const bodyVirtualIds = new Set<string>()
-    for (const n of meaningfulBody) {
-      if (!isEmbed(n)) bodyVirtualIds.add(n.id)
-    }
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cardNodes: meaningfulBody,
-      virtualCardIds: bodyVirtualIds,
+      cardNodes: meaningfulBody.map((n) => ({
+        ...n,
+        isBody: !isEmbed(n),
+        isBrokenEmbed: false,
+        hasBodyChildren: false,
+      })),
       isVirtual: true,
     })
   }
@@ -218,7 +206,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
     // All body nodes merge into one virtual card; structural nodes are regular cards.
     const { body: colBodyNodes, items: structuralCards } = extractBody(cardNodes)
 
-    const { cardNodes: colCardNodes, virtualCardIds } = buildColumnCards(colBodyNodes, structuralCards)
+    const colCardNodes = buildColumnCards(colBodyNodes, structuralCards)
 
     const colName = getNodeDisplayName(repo, colNode)
     const normalizedName = normalizeColumnName(colName)
@@ -232,7 +220,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       collapsedNodeIds.add(colNode.id)
     }
 
-    columns.push({ node: colNode, cardNodes: colCardNodes, virtualCardIds, wipLimit, rules })
+    columns.push({ node: colNode, cardNodes: colCardNodes, wipLimit, rules })
   }
 
   return {

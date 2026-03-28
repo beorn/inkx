@@ -25,14 +25,27 @@ export interface InitialBoardData {
 }
 
 /**
- * VIEW MODEL: A column is a parent KNode whose children render as cards.
- * Cards are plain KNode[] — no wrapper type.
+ * VIEW MODEL: A card is a KNode enriched with pre-resolved display data.
+ * Extends KNode via structural typing — all 50+ consumers that read card.id,
+ * card.content, etc. work unchanged.
+ */
+export interface CardView extends KNode {
+  /** Pre-resolved embed target (undefined = not an embed) */
+  resolvedNode?: KNode
+  /** True if this is a body block (before first outline item in parent) */
+  isBody: boolean
+  /** True if embed_source points to a missing node */
+  isBrokenEmbed: boolean
+  /** True if this card has body children (for ··· indicator) */
+  hasBodyChildren: boolean
+}
+
+/**
+ * VIEW MODEL: A column is a parent KNode whose children render as CardView[].
  */
 export interface ColumnView {
   node: KNode
-  cardNodes: KNode[]
-  /** Set of card IDs that are virtual (leading body content, not structural items) */
-  virtualCardIds: Set<string>
+  cardNodes: CardView[]
   wipLimit?: number
   rules?: SectionRules
   /** True for virtual body column (displays leading non-section content) */

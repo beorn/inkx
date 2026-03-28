@@ -17,7 +17,7 @@ import type { KNode } from "@km/core"
 import { isOutline, isEmbed } from "@km/core"
 import { createLogger } from "loggily"
 import { extractBody, extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/tree"
-import type { ColumnView } from "../types.ts"
+import type { CardView, ColumnView } from "../types.ts"
 import type { SectionRules } from "@km/markdown"
 import { parseHeadingRules } from "@km/markdown"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
@@ -82,6 +82,32 @@ export function isDetailOnly(node: KNode): boolean {
     if (COLLAPSED_SECTION_NAMES.has(rawName)) return true
   }
   return false
+}
+
+// =============================================================================
+// CardView Builder — converts KNode[] to CardView[] with batch embed resolution
+// =============================================================================
+
+/**
+ * Convert KNode[] to CardView[] with batch-resolved embeds.
+ * bodyIds: Set of node IDs that are body blocks (before first outline item).
+ */
+function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView[] {
+  // Batch-resolve embed targets in one SQL query
+  const embedSourceIds = nodes.filter((n) => n.embed_source).map((n) => n.embed_source!)
+  const resolvedMap = embedSourceIds.length > 0 ? repo.getNodesBatch(embedSourceIds) : new Map<string, KNode>()
+
+  return nodes.map((node) => {
+    const isBody = bodyIds.has(node.id)
+    const resolvedNode = node.embed_source ? resolvedMap.get(node.embed_source) : undefined
+    return {
+      ...node,
+      resolvedNode,
+      isBody,
+      isBrokenEmbed: node.embed_source != null && resolvedNode === undefined,
+      hasBodyChildren: isBody ? false : extractBody(repo.getChildren(node.id)).body.length > 0,
+    } as CardView
+  })
 }
 
 // =============================================================================
@@ -330,14 +356,10 @@ export function deriveColumnsFromRepo(
   )
 
   if (filteredBody.length > 0) {
-    const virtualCardIds = new Set<string>()
-    for (const n of filteredBody) {
-      if (!isEmbed(n)) virtualCardIds.add(n.id)
-    }
+    const bodyIds = new Set(filteredBody.filter((n) => !isEmbed(n)).map((n) => n.id))
     columns.push({
       node: createVirtualBodyNode(rootId),
-      cardNodes: filteredBody,
-      virtualCardIds,
+      cardNodes: toCardViews(repo, filteredBody, bodyIds),
       isVirtual: true,
     })
   }
@@ -388,18 +410,14 @@ export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDept
   // If no metadata rows and no children, still show an empty column
   if (metaNodes.length === 0 && allChildren.length === 0) return []
 
-  // All items (meta + children) are virtual for the column
-  const virtualCardIds = new Set<string>()
-  for (const n of metaNodes) virtualCardIds.add(n.id)
-  for (const n of allChildren) virtualCardIds.add(n.id)
-
-  const cardNodes = [...metaNodes, ...allChildren]
+  // All items (meta + children) are virtual/body for the detail column
+  const allNodes = [...metaNodes, ...allChildren]
+  const bodyIds = new Set(allNodes.map((n) => n.id))
 
   return [
     {
       node: createVirtualBodyNode(rootId),
-      cardNodes,
-      virtualCardIds,
+      cardNodes: toCardViews(repo, allNodes, bodyIds),
       isVirtual: true,
     },
   ]
@@ -446,14 +464,10 @@ export function* deriveColumnsIncremental(
     (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
   )
   if (filteredBody.length > 0) {
-    const virtualCardIds = new Set<string>()
-    for (const n of filteredBody) {
-      if (!isEmbed(n)) virtualCardIds.add(n.id)
-    }
+    const bodyIds = new Set(filteredBody.filter((n) => !isEmbed(n)).map((n) => n.id))
     yield {
       node: createVirtualBodyNode(rootId),
-      cardNodes: filteredBody,
-      virtualCardIds,
+      cardNodes: toCardViews(repo, filteredBody, bodyIds),
       isVirtual: true,
     }
   }
@@ -600,14 +614,10 @@ function expandIndexFileColumns(
   // Create virtual body column from pre-section body + post-section fallback body
   const allBodyNodes = [...filteredIndexBody, ...fallbackBody]
   if (allBodyNodes.length > 0) {
-    const virtualCardIds = new Set<string>()
-    for (const n of allBodyNodes) {
-      if (!isEmbed(n)) virtualCardIds.add(n.id)
-    }
+    const bodyIds = new Set(allBodyNodes.filter((n) => !isEmbed(n)).map((n) => n.id))
     columns.splice(bodyInsertIdx, 0, {
       node: createVirtualBodyNode(indexFile.parent_id),
-      cardNodes: allBodyNodes,
-      virtualCardIds,
+      cardNodes: toCardViews(repo, allBodyNodes, bodyIds),
       isVirtual: true,
     })
   }
@@ -746,20 +756,20 @@ function kNodeToColumnView(
   const filteredCardNodes = folderIndex ? allCardNodes.filter((c) => c.id !== folderIndex.id) : allCardNodes
   const { body: bodyNodes, items: structuralNodes } = extractBody(filteredCardNodes)
 
-  const cardNodes: KNode[] = []
-  const virtualCardIds = new Set<string>()
+  const rawCards: KNode[] = []
+  const bodyIds = new Set<string>()
 
   for (const child of bodyNodes) {
     if (isCollapsedChild(child)) continue
-    cardNodes.push(child)
-    if (!isEmbed(child)) virtualCardIds.add(child.id)
+    rawCards.push(child)
+    if (!isEmbed(child)) bodyIds.add(child.id)
   }
   for (const child of structuralNodes) {
     if (isCollapsedChild(child)) continue
-    cardNodes.push(child)
+    rawCards.push(child)
   }
 
-  return { node, cardNodes, virtualCardIds, wipLimit, rules }
+  return { node, cardNodes: toCardViews(repo, rawCards, bodyIds), wipLimit, rules }
 }
 
 /**

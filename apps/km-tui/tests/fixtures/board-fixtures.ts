@@ -51,7 +51,10 @@ export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: 
     fstype: "folder",
     ...nodeOverrides,
   })
-  return { node, cardNodes, virtualCardIds: new Set() }
+  return {
+    node,
+    cardNodes: cardNodes.map((c) => ({ ...c, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })),
+  }
 }
 
 /**

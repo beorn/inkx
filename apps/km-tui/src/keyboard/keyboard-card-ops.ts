@@ -164,9 +164,9 @@ export function moveCardToColumn(ctx: ActionCtx, card: KNode, direction: "left" 
   if (!targetCol) return boundary(direction)
 
   const selectedIndices = getSelectedCardIndices(ctx)
-  const cardsToMove: KNode[] =
+  const cardsToMove =
     selectedIndices.length > 0
-      ? selectedIndices.map((i: number) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
+      ? selectedIndices.map((i: number) => col.cardNodes[i]).filter((c) => c !== undefined)
       : [card]
 
   if (cardsToMove.length === 0) return boundary(direction)
