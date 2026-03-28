@@ -4,7 +4,7 @@
  * Generates keybindings from the cross-product of verbs (goto, move, add, create)
  * and locations (inbox, journal, home, archive, favorites, pickers).
  *
- * Each verb constructor takes a target resolver and returns an Execute function.
+ * Each verb constructor takes a locationKey string and returns an Execute function.
  * The grid helper generates Keybinding objects from the cross-product.
  */
 
@@ -15,102 +15,60 @@ import { hasKitty } from "./when.ts"
 import { REPO_LOCS } from "./locations.ts"
 import { getAllFavorites } from "./favorites.ts"
 
-// --- Target Resolvers ---
-// Functions that resolve a target nodeId from context
-
-export type TargetResolver = (ctx: CommandContext) => string | null
-
-// Constant targets — always resolve to the same node
-export const inbox: TargetResolver = () => REPO_LOCS.inbox // "@inbox"
-export const journal: TargetResolver = () => REPO_LOCS.journal // "@journal"
-export const home: TargetResolver = () => REPO_LOCS.home // "@next"
-export const archive: TargetResolver = () => REPO_LOCS.archive // "@archive"
-
-// Positional targets — resolve from ctx
-export const parent: TargetResolver = () => "parent"
-export const first: TargetResolver = () => "first"
-export const last: TargetResolver = () => "last"
-
-// Favorite target factory
-export const fav =
-  (key: string): TargetResolver =>
-  () =>
-    `fav:${key}`
-
-// Picker target factory — return marker strings the TUI interprets
-export const pick =
-  (prefix: string): TargetResolver =>
-  () =>
-    `pick:${prefix}`
-
 // --- Verb Constructors ---
-// Functions that take a target resolver and return a command execute function
+// Functions that take a locationKey and return a command execute function
 
 export type Execute = (ctx: CommandContext) => CommandAction | CommandAction[] | null
 
 /** Go to a target (navigates there) */
 export const goTo =
-  (target: TargetResolver): Execute =>
-  (ctx) => {
-    const t = target(ctx)
-    if (!t) return null
-    if (t.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // pickers stay for now
-    return { type: "CURSOR_TO", locationKey: t }
+  (locationKey: string): Execute =>
+  () => {
+    if (locationKey.startsWith("pick:")) return { type: "SHOW_ITEM_PICKER" } // pickers stay for now
+    return { type: "CURSOR_TO", locationKey }
   }
 
 /** Move selected node(s) to a target */
 export const moveTo =
-  (target: TargetResolver): Execute =>
-  (ctx) => {
-    const t = target(ctx)
-    if (!t) return null
-    return { type: "REPARENT_TO", locationKey: t }
-  }
+  (locationKey: string): Execute =>
+  () => ({ type: "REPARENT_TO", locationKey })
 
 /** Add a link/property to a target */
 export const addTo =
-  (target: TargetResolver): Execute =>
-  (ctx) => {
-    const t = target(ctx)
-    if (!t) return null
-    return { type: "LINK_TO", locationKey: t }
-  }
+  (locationKey: string): Execute =>
+  () => ({ type: "LINK_TO", locationKey })
 
 /** Create in a target (capture) */
 export const createIn =
-  (target: TargetResolver): Execute =>
-  (ctx) => {
-    const t = target(ctx)
-    if (!t) return null
-    return { type: "CREATE_AT", locationKey: t }
-  }
+  (locationKey: string): Execute =>
+  () => ({ type: "CREATE_AT", locationKey })
 
 // --- Location and Verb Registries ---
 
 /** System locations — hardcoded, always available */
-export const SYSTEM_LOCS: Record<string, { resolve: TargetResolver; label: string }> = {
-  h: { resolve: home, label: "home" },
-  i: { resolve: inbox, label: "inbox" },
-  j: { resolve: journal, label: "journal" },
-  a: { resolve: archive, label: "archive" },
-  p: { resolve: parent, label: "parent" },
-  g: { resolve: first, label: "first" },
-  "shift-g": { resolve: last, label: "last" }, // G (shift+g)
+export const SYSTEM_LOCS: Record<string, { key: string; label: string }> = {
+  h: { key: REPO_LOCS.home, label: "home" },
+  i: { key: REPO_LOCS.inbox, label: "inbox" },
+  j: { key: REPO_LOCS.journal, label: "journal" },
+  a: { key: REPO_LOCS.archive, label: "archive" },
+  p: { key: "parent", label: "parent" },
+  g: { key: "first", label: "first" },
+  "shift-g": { key: "last", label: "last" }, // G (shift+g)
 }
 
 /** Picker locations */
-export const PICKER_LOCS: Record<string, { resolve: TargetResolver; label: string }> = {
-  "shift-3": { resolve: pick("#"), label: "tag" }, // #
-  "shift-2": { resolve: pick("@"), label: "assignee" }, // @
-  "shift-=": { resolve: pick("+"), label: "project" }, // +
-  "[": { resolve: pick("["), label: "item" },
+export const PICKER_LOCS: Record<string, { key: string; label: string }> = {
+  "shift-3": { key: "pick:#", label: "tag" }, // #
+  "shift-2": { key: "pick:@", label: "assignee" }, // @
+  "shift-=": { key: "pick:+", label: "project" }, // +
+  "[": { key: "pick:[", label: "item" },
 }
 
 /** Verb definitions used in the grid */
 export interface VerbDef {
   prefix: string
   commandId: string
-  fn: (target: TargetResolver) => Execute
+  fn: (locationKey: string) => Execute
   label: string
 }
 
@@ -141,19 +99,20 @@ export function verbLocationGrid(prefixes?: string[]): Keybinding[] {
       bindings.push({
         key: `${verb.prefix} ${lKey}`,
         commandId: verb.commandId,
-        targetId: loc.resolve({} as CommandContext) ?? undefined,
-        execute: verb.fn(loc.resolve),
+        targetId: loc.key,
+        execute: verb.fn(loc.key),
       })
     }
 
     // Favorites — for all verbs except c (create)
     if (vKey !== "c") {
       for (const [favKey] of getAllFavorites()) {
+        const locationKey = `fav:${favKey}`
         bindings.push({
           key: `${verb.prefix} ${favKey}`,
           commandId: verb.commandId,
-          targetId: `fav:${favKey}`,
-          execute: verb.fn(fav(favKey)),
+          targetId: locationKey,
+          execute: verb.fn(locationKey),
         })
       }
     }
@@ -164,8 +123,8 @@ export function verbLocationGrid(prefixes?: string[]): Keybinding[] {
       bindings.push({
         key: `${verb.prefix} ${pKey}`,
         commandId: verb.commandId,
-        targetId: ploc.resolve({} as CommandContext) ?? undefined,
-        execute: verb.fn(ploc.resolve),
+        targetId: ploc.key,
+        execute: verb.fn(ploc.key),
       })
     }
   }

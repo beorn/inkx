@@ -172,7 +172,7 @@ const move = {
   execute: (ctx): CommandAction | null => {
     const t = ctx.targetId
     if (!t) return null
-    return moveToVerb(() => t)(ctx) as CommandAction | null
+    return moveToVerb(t)(ctx) as CommandAction | null
   },
 } satisfies CommandDef
 
@@ -187,7 +187,7 @@ const add = {
   execute: (ctx): CommandAction | null => {
     const t = ctx.targetId
     if (!t) return null
-    return addToVerb(() => t)(ctx) as CommandAction | null
+    return addToVerb(t)(ctx) as CommandAction | null
   },
 } satisfies CommandDef
 

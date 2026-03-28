@@ -164,18 +164,8 @@ export {
 export { REPO_LOCS, locationLabel } from "./locations.ts"
 
 // Verb x Location composable vocabulary
-export type { TargetResolver, Execute, VerbDef } from "./verb-locations.ts"
+export type { Execute, VerbDef } from "./verb-locations.ts"
 export {
-  // Target resolvers
-  inbox,
-  journal,
-  home,
-  archive,
-  parent,
-  first,
-  last,
-  fav,
-  pick,
   // Verb constructors
   goTo,
   moveTo,

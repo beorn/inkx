@@ -2,20 +2,11 @@
  * Verb x Location Tests
  *
  * Tests for the composable verb x location vocabulary:
- * target resolvers, verb constructors, grid generators, and integration.
+ * verb constructors, grid generators, and integration.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import {
-  inbox,
-  journal,
-  home,
-  archive,
-  parent,
-  first,
-  last,
-  fav,
-  pick,
   goTo,
   moveTo,
   addTo,
@@ -25,7 +16,6 @@ import {
   SYSTEM_LOCS,
   PICKER_LOCS,
   VERBS,
-  type TargetResolver,
 } from "../src/verb-locations.ts"
 import { REPO_LOCS } from "../src/locations.ts"
 import { initCommandSystem } from "../src/key-adapter.ts"
@@ -86,177 +76,7 @@ function defaultKbCtx(): KeybindingContext {
 
 describe("verb-locations", () => {
   // =========================================================================
-  // Target Resolvers
-  // =========================================================================
-
-  describe("target resolvers", () => {
-    it("inbox returns REPO_LOCS.inbox", () => {
-      expect(inbox(emptyCtx)).toBe(REPO_LOCS.inbox)
-      expect(inbox(emptyCtx)).toBe("@inbox")
-    })
-
-    it("journal returns REPO_LOCS.journal", () => {
-      expect(journal(emptyCtx)).toBe(REPO_LOCS.journal)
-      expect(journal(emptyCtx)).toBe("@journal")
-    })
-
-    it("home returns REPO_LOCS.home", () => {
-      expect(home(emptyCtx)).toBe(REPO_LOCS.home)
-      expect(home(emptyCtx)).toBe("@next")
-    })
-
-    it("archive returns REPO_LOCS.archive", () => {
-      expect(archive(emptyCtx)).toBe(REPO_LOCS.archive)
-      expect(archive(emptyCtx)).toBe("@archive")
-    })
-
-    it("parent returns 'parent'", () => {
-      expect(parent(emptyCtx)).toBe("parent")
-    })
-
-    it("first returns 'first'", () => {
-      expect(first(emptyCtx)).toBe("first")
-    })
-
-    it("last returns 'last'", () => {
-      expect(last(emptyCtx)).toBe("last")
-    })
-
-    it("fav(key) returns 'fav:KEY' for various keys", () => {
-      expect(fav("0")(emptyCtx)).toBe("fav:0")
-      expect(fav("1")(emptyCtx)).toBe("fav:1")
-      expect(fav("5")(emptyCtx)).toBe("fav:5")
-      expect(fav("9")(emptyCtx)).toBe("fav:9")
-      expect(fav("q")(emptyCtx)).toBe("fav:q")
-    })
-
-    it("pick(prefix) returns 'pick:PREFIX'", () => {
-      expect(pick("#")(emptyCtx)).toBe("pick:#")
-      expect(pick("@")(emptyCtx)).toBe("pick:@")
-      expect(pick("+")(emptyCtx)).toBe("pick:+")
-      expect(pick("[")(emptyCtx)).toBe("pick:[")
-    })
-  })
-
-  // =========================================================================
-  // Verb Constructors
-  // =========================================================================
-
-  describe("verb constructors", () => {
-    describe("goTo", () => {
-      it("returns CURSOR_TO for board node IDs", () => {
-        expect(goTo(inbox)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@inbox" })
-        expect(goTo(journal)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@journal" })
-        expect(goTo(home)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@next" })
-        expect(goTo(archive)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@archive" })
-      })
-
-      it("returns CURSOR_TO for fav:KEY", () => {
-        expect(goTo(fav("1"))(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:1" })
-        expect(goTo(fav("0"))(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:0" })
-        expect(goTo(fav("9"))(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:9" })
-      })
-
-      it("returns CURSOR_TO for parent", () => {
-        expect(goTo(parent)(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "parent" })
-      })
-
-      it("returns SHOW_ITEM_PICKER for pick:*", () => {
-        expect(goTo(pick("+"))(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-        expect(goTo(pick("#"))(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-        expect(goTo(pick("@"))(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
-      })
-
-      it("returns null when target resolver returns null", () => {
-        const nullTarget: TargetResolver = () => null
-        expect(goTo(nullTarget)(emptyCtx)).toBeNull()
-      })
-    })
-
-    describe("moveTo", () => {
-      it("returns REPARENT_TO for board node IDs", () => {
-        expect(moveTo(inbox)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@inbox" })
-        expect(moveTo(journal)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@journal" })
-        expect(moveTo(home)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@next" })
-        expect(moveTo(archive)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@archive" })
-      })
-
-      it("returns REPARENT_TO for fav:KEY", () => {
-        expect(moveTo(fav("3"))(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "fav:3" })
-        expect(moveTo(fav("0"))(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "fav:0" })
-      })
-
-      it("returns REPARENT_TO for parent", () => {
-        expect(moveTo(parent)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "parent" })
-      })
-
-      it("returns REPARENT_TO for first", () => {
-        expect(moveTo(first)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "first" })
-      })
-
-      it("returns REPARENT_TO for last", () => {
-        expect(moveTo(last)(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "last" })
-      })
-
-      it("returns REPARENT_TO for pick:+", () => {
-        expect(moveTo(pick("+"))(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "pick:+" })
-      })
-
-      it("returns null when target resolver returns null", () => {
-        const nullTarget: TargetResolver = () => null
-        expect(moveTo(nullTarget)(emptyCtx)).toBeNull()
-      })
-    })
-
-    describe("addTo", () => {
-      it("returns LINK_TO for board node IDs", () => {
-        expect(addTo(inbox)(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "@inbox" })
-        expect(addTo(journal)(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "@journal" })
-      })
-
-      it("returns LINK_TO for pick:#", () => {
-        expect(addTo(pick("#"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:#" })
-      })
-
-      it("returns LINK_TO for pick:@", () => {
-        expect(addTo(pick("@"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:@" })
-      })
-
-      it("returns LINK_TO for pick:+", () => {
-        expect(addTo(pick("+"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:+" })
-      })
-
-      it("returns LINK_TO for pick:[", () => {
-        expect(addTo(pick("["))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:[" })
-      })
-
-      it("returns LINK_TO for fav:KEY", () => {
-        expect(addTo(fav("1"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "fav:1" })
-        expect(addTo(fav("7"))(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "fav:7" })
-      })
-
-      it("returns null when target resolver returns null", () => {
-        const nullTarget: TargetResolver = () => null
-        expect(addTo(nullTarget)(emptyCtx)).toBeNull()
-      })
-    })
-
-    describe("createIn", () => {
-      it("returns CREATE_AT for any target", () => {
-        expect(createIn(inbox)(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "@inbox" })
-        expect(createIn(journal)(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "@journal" })
-        expect(createIn(fav("1"))(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "fav:1" })
-      })
-
-      it("returns null when target resolver returns null", () => {
-        const nullTarget: TargetResolver = () => null
-        expect(createIn(nullTarget)(emptyCtx)).toBeNull()
-      })
-    })
-  })
-
-  // =========================================================================
-  // Registries
+  // Registries — SYSTEM_LOCS & PICKER_LOCS now carry { key, label }
   // =========================================================================
 
   describe("registries", () => {
@@ -264,8 +84,31 @@ describe("verb-locations", () => {
       expect(Object.keys(SYSTEM_LOCS).sort()).toEqual(["a", "g", "h", "i", "j", "p", "shift-g"])
     })
 
+    it("SYSTEM_LOCS maps keys to locationKey strings", () => {
+      expect(SYSTEM_LOCS.h!.key).toBe("@next")
+      expect(SYSTEM_LOCS.i!.key).toBe("@inbox")
+      expect(SYSTEM_LOCS.j!.key).toBe("@journal")
+      expect(SYSTEM_LOCS.a!.key).toBe("@archive")
+      expect(SYSTEM_LOCS.p!.key).toBe("parent")
+      expect(SYSTEM_LOCS.g!.key).toBe("first")
+      expect(SYSTEM_LOCS["shift-g"]!.key).toBe("last")
+    })
+
+    it("SYSTEM_LOCS labels are human-readable", () => {
+      expect(SYSTEM_LOCS.h!.label).toBe("home")
+      expect(SYSTEM_LOCS.i!.label).toBe("inbox")
+      expect(SYSTEM_LOCS.p!.label).toBe("parent")
+    })
+
     it("PICKER_LOCS has expected keys", () => {
       expect(Object.keys(PICKER_LOCS).sort()).toEqual(["[", "shift-2", "shift-3", "shift-="])
+    })
+
+    it("PICKER_LOCS maps keys to pick: prefixed strings", () => {
+      expect(PICKER_LOCS["shift-3"]!.key).toBe("pick:#")
+      expect(PICKER_LOCS["shift-2"]!.key).toBe("pick:@")
+      expect(PICKER_LOCS["shift-="]!.key).toBe("pick:+")
+      expect(PICKER_LOCS["["]!.key).toBe("pick:[")
     })
 
     it("VERBS has expected keys", () => {
@@ -276,6 +119,93 @@ describe("verb-locations", () => {
       for (const [key, verb] of Object.entries(VERBS)) {
         expect(verb.prefix).toBe(key)
       }
+    })
+  })
+
+  // =========================================================================
+  // Verb Constructors — take locationKey string directly
+  // =========================================================================
+
+  describe("verb constructors", () => {
+    describe("goTo", () => {
+      it("returns CURSOR_TO for board node IDs", () => {
+        expect(goTo("@inbox")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@inbox" })
+        expect(goTo("@journal")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@journal" })
+        expect(goTo("@next")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@next" })
+        expect(goTo("@archive")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "@archive" })
+      })
+
+      it("returns CURSOR_TO for fav:KEY", () => {
+        expect(goTo("fav:1")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:1" })
+        expect(goTo("fav:0")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:0" })
+        expect(goTo("fav:9")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "fav:9" })
+      })
+
+      it("returns CURSOR_TO for parent", () => {
+        expect(goTo("parent")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "parent" })
+      })
+
+      it("returns CURSOR_TO for first/last", () => {
+        expect(goTo("first")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "first" })
+        expect(goTo("last")(emptyCtx)).toEqual({ type: "CURSOR_TO", locationKey: "last" })
+      })
+
+      it("returns SHOW_ITEM_PICKER for pick:*", () => {
+        expect(goTo("pick:+")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
+        expect(goTo("pick:#")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
+        expect(goTo("pick:@")(emptyCtx)).toEqual({ type: "SHOW_ITEM_PICKER" })
+      })
+    })
+
+    describe("moveTo", () => {
+      it("returns REPARENT_TO for board node IDs", () => {
+        expect(moveTo("@inbox")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@inbox" })
+        expect(moveTo("@journal")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@journal" })
+        expect(moveTo("@next")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@next" })
+        expect(moveTo("@archive")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "@archive" })
+      })
+
+      it("returns REPARENT_TO for fav:KEY", () => {
+        expect(moveTo("fav:3")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "fav:3" })
+        expect(moveTo("fav:0")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "fav:0" })
+      })
+
+      it("returns REPARENT_TO for parent/first/last", () => {
+        expect(moveTo("parent")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "parent" })
+        expect(moveTo("first")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "first" })
+        expect(moveTo("last")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "last" })
+      })
+
+      it("returns REPARENT_TO for pick:+", () => {
+        expect(moveTo("pick:+")(emptyCtx)).toEqual({ type: "REPARENT_TO", locationKey: "pick:+" })
+      })
+    })
+
+    describe("addTo", () => {
+      it("returns LINK_TO for board node IDs", () => {
+        expect(addTo("@inbox")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "@inbox" })
+        expect(addTo("@journal")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "@journal" })
+      })
+
+      it("returns LINK_TO for pick: prefixes", () => {
+        expect(addTo("pick:#")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:#" })
+        expect(addTo("pick:@")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:@" })
+        expect(addTo("pick:+")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:+" })
+        expect(addTo("pick:[")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "pick:[" })
+      })
+
+      it("returns LINK_TO for fav:KEY", () => {
+        expect(addTo("fav:1")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "fav:1" })
+        expect(addTo("fav:7")(emptyCtx)).toEqual({ type: "LINK_TO", locationKey: "fav:7" })
+      })
+    })
+
+    describe("createIn", () => {
+      it("returns CREATE_AT for any target", () => {
+        expect(createIn("@inbox")(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "@inbox" })
+        expect(createIn("@journal")(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "@journal" })
+        expect(createIn("fav:1")(emptyCtx)).toEqual({ type: "CREATE_AT", locationKey: "fav:1" })
+      })
     })
   })
 
