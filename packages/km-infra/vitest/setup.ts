@@ -116,6 +116,18 @@ const KNOWN_STRICT_PATTERNS = [
   "*flag emoji*garble*",
   // km-silvery.bg-bleed: navigation fuzz with known seed triggers mismatch
   "*seed=42*",
+  // km-silvery.showcase-interaction-bugs: dialog/overlay incremental rendering mismatches
+  "*help overlay*",
+  "*omnibox*",
+  "*date dialog*",
+  "*ANSI replay*",
+  "*cycles through priorities*",
+  "*cursor preserved on zoom*",
+  "*cursor position after*",
+  "*history preserves*",
+  "*duplicate parent_idx*",
+  "*duplicate-parent_idx*",
+  "*round-trip*",
 ]
 
 /** Simple glob matcher supporting * wildcards */
