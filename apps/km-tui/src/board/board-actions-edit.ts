@@ -589,34 +589,6 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
 }
 
 /**
- * Move card(s) to the first or last position among siblings.
- */
-export function handleShiftToExtreme(ctx: ActionCtx, direction: "top" | "bottom"): ActionResult {
-  // Structural: move current node to first/last among its siblings
-  const nodeId = ctx.cursorNodeId
-  if (!nodeId) return boundary(direction)
-
-  const node = ctx.repo.getNode(nodeId)
-  if (!node?.parent_id) return boundary(direction)
-
-  const siblings = ctx.repo.getChildren(node.parent_id)
-  if (siblings.length <= 1) return ok()
-
-  const currentIndex = siblings.findIndex((s) => s.id === nodeId)
-  const targetIndex = direction === "top" ? 0 : siblings.length - 1
-  if (currentIndex === targetIndex) return ok()
-
-  const targetSibling = siblings[targetIndex]
-  if (!targetSibling) return boundary(direction)
-
-  ctx.undoHandle.setCursor(nodeId)
-  const newSortOrder = direction === "top" ? targetSibling.parent_idx - 1 : targetSibling.parent_idx + 1
-  ctx.repo.moveNode(nodeId, node.parent_id, newSortOrder)
-  ctx.dispatchBoard({ type: "SELECT", nodeId })
-  return ok()
-}
-
-/**
  * Reorder a column by swapping its sort order with the adjacent column.
  */
 function moveColumn(

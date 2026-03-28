@@ -104,7 +104,6 @@ import {
   handleDuplicateNode,
   handleIndentColumn,
   handleShiftCard,
-  handleShiftToExtreme,
   handleTaskStatusCycle,
   handleClearTask,
 } from "./board-actions-edit.ts"
@@ -1761,13 +1760,22 @@ function handleReparentTo(ctx: ActionCtx, locationKey: string): ActionResult {
     return ok()
   }
 
-  // "first" / "last" → shift to top/bottom among siblings
-  if (locationKey === "first") {
-    handleShiftToExtreme(ctx, "top")
-    return ok()
-  }
-  if (locationKey === "last") {
-    handleShiftToExtreme(ctx, "bottom")
+  // "first" / "last" → reorder among siblings
+  if (locationKey === "first" || locationKey === "last") {
+    const nodeId = ctx.cursorNodeId
+    if (!nodeId) return boundary(locationKey)
+    const node = ctx.repo.getNode(nodeId)
+    if (!node?.parent_id) return boundary(locationKey)
+    const siblings = ctx.repo.getChildren(node.parent_id)
+    if (siblings.length <= 1) return ok()
+    const targetIndex = locationKey === "first" ? 0 : siblings.length - 1
+    if (siblings.findIndex((s) => s.id === nodeId) === targetIndex) return ok()
+    const targetSibling = siblings[targetIndex]
+    if (!targetSibling) return boundary(locationKey)
+    ctx.undoHandle.setCursor(nodeId)
+    const newSortOrder = locationKey === "first" ? targetSibling.parent_idx - 1 : targetSibling.parent_idx + 1
+    ctx.repo.moveNode(nodeId, node.parent_id, newSortOrder)
+    ctx.dispatchBoard({ type: "SELECT", nodeId })
     return ok()
   }
 
