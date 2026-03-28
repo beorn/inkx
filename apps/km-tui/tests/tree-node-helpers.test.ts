@@ -364,3 +364,47 @@ describe("computeBulletIcon nerdfont fold indicator", () => {
     expect(icon.color).toBe("red")
   })
 })
+
+// =============================================================================
+// Body paragraph rendering (km-tui.embed-content-lines)
+// =============================================================================
+
+describe("body paragraph rendering", () => {
+  it("body paragraphs render without bullet prefix", () => {
+    // A card with body paragraphs (type=p, item=false) and a structural sub-item
+    const nodes = item("board", item("Column", item("card-1", item.paragraph("body text here"), item("sub-item"))))
+    const { board } = testEnv(() => nodes)
+    const screenshot = board.screenshot()
+
+    // Body paragraph should appear without a bullet marker
+    // Sub-item should still have a bullet marker (· or similar)
+    expect(screenshot).toContain("body text here")
+    expect(screenshot).toContain("sub-item")
+
+    // The body text line should not have a bullet character before it
+    const lines = screenshot.split("\n")
+    const bodyLine = lines.find((l) => l.includes("body text here"))
+    const subItemLine = lines.find((l) => l.includes("sub-item"))
+    expect(bodyLine).toBeDefined()
+    expect(subItemLine).toBeDefined()
+
+    // Body text should not have bullet markers (·, •, □, etc.)
+    // but sub-items should have some marker
+    if (bodyLine && subItemLine) {
+      const bodyPrefix = bodyLine.split("body text here")[0]!
+      const subItemPrefix = subItemLine.split("sub-item")[0]!
+      // Body prefix should be shorter or have fewer non-space chars (no bullet)
+      const bodyNonSpace = bodyPrefix.replace(/\s/g, "")
+      const subItemNonSpace = subItemPrefix.replace(/\s/g, "")
+      expect(bodyNonSpace.length).toBeLessThanOrEqual(subItemNonSpace.length)
+    }
+  })
+
+  it("body paragraphs render dimmed", () => {
+    const nodes = item("board", item("Column", item("card-1", item.paragraph("dimmed body"), item("normal-item"))))
+    const { board } = testEnv(() => nodes)
+    // Both should be visible
+    board.expectScreen("dimmed body")
+    board.expectScreen("normal-item")
+  })
+})

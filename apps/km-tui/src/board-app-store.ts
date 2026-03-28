@@ -310,13 +310,29 @@ function resolvePersistedPane(persisted: PersistedPane, repo: Repo, fallback: Bo
   // Try to resolve the file path to a node
   const node = repo.resolveNode(persisted.rootNodePath)
   if (node) {
-    // Carry the fallback cursor if the root matches, otherwise null (will be resolved on first keypress)
-    const cursor = node.id === fallback.rootId ? fallback.cursorNodeId : null
+    // Carry the fallback cursor if the root matches, otherwise compute a fresh cursor
+    // for the restored board. Without this, cursor is null and navigation is broken.
+    const cursor = node.id === fallback.rootId ? fallback.cursorNodeId : computeInitialCursorFromRepo(repo, node.id)
     return createBoardState(node.id, fallback.rootPath, cursor)
   }
 
   // File no longer exists — fall back to default root
   return createBoardState(fallback.rootId, fallback.rootPath, fallback.cursorNodeId)
+}
+
+/**
+ * Compute an initial cursor for a board root by finding the first card
+ * in the first column (section). Used when restoring a workspace to a
+ * board that differs from the default.
+ */
+function computeInitialCursorFromRepo(repo: Repo, rootId: string): string | null {
+  const columns = repo.getChildren(rootId)
+  if (columns.length === 0) return null
+  const firstCol = columns[0]
+  if (!firstCol) return null
+  const cards = repo.getChildren(firstCol.id)
+  if (cards.length > 0) return cards[0]?.id ?? firstCol.id
+  return firstCol.id
 }
 
 /** Convert persisted layout to live LayoutNode (structurally identical). */
@@ -391,6 +407,26 @@ export function createBoardAppStoreState(
       )
       if (restored) {
         workspace = restored
+        // Sync cursor stores for all board panes. Each pane's cursor store was
+        // initialized generically — sync them to match their BoardState cursors
+        // so the Board component reads a valid cursor on first render.
+        for (const pane of restored.panes.values()) {
+          if (isBoardPane(pane)) {
+            const board = pane as BoardPaneState
+            if (board.cursorNodeId && board.cursorStore) {
+              const ancestors = deriveCursorAncestors(
+                (id) => params.repo.getNode(id),
+                board.rootId,
+                board.cursorNodeId,
+                (pid) => params.repo.getChildren(pid),
+              )
+              board.cursorStore.setState({
+                cursorNodeId: board.cursorNodeId,
+                ...ancestors,
+              })
+            }
+          }
+        }
       } else {
         workspace = createDefaultWorkspace(initialPaneBoard, params)
       }

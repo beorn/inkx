@@ -77,6 +77,8 @@ interface TreeNodeProps {
    * If a node has an override in foldDepths, that takes precedence.
    * Default: Infinity (show everything). */
   remainingDepth?: number
+  /** Body content node — render without bullet prefix, dimmed. */
+  isBody?: boolean
 }
 
 /**
@@ -135,6 +137,9 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Fold depth
   if (prev.remainingDepth !== next.remainingDepth) return false
 
+  // Body flag
+  if (prev.isBody !== next.isBody) return false
+
   // Pre-computed props
   if (prev.parentContext !== next.parentContext) return false
   if (prev.childCount !== next.childCount) return false
@@ -172,6 +177,7 @@ function TreeNodeImpl({
   compactContent = false,
   hideChildCount = false,
   remainingDepth = Infinity,
+  isBody = false,
 }: TreeNodeProps): React.ReactElement {
   // @ts-expect-error -- loggily's conditional debug may be undefined at runtime but tsc sees it as always-defined
   const _tnStart = renderLog.debug ? performance.now() : 0
@@ -249,7 +255,7 @@ function TreeNodeImpl({
   // Include implicit task properties in deps so style recalculates when they change
   const style = useMemo(() => {
     const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
-    if (dim) s.shouldDim = true
+    if (dim || isBody) s.shouldDim = true
     return s
   }, [
     displayNode.id,
@@ -265,6 +271,7 @@ function TreeNodeImpl({
     depth,
     isInlineEditing,
     dim,
+    isBody,
   ])
 
   // Card title highlight: when cursor is on a sub-item (not the card title),
@@ -285,23 +292,29 @@ function TreeNodeImpl({
   const untitled = isNodeUntitled(repo, displayNode)
   const dimUntitled = untitled && !isSelected && !isMultiSelected
 
-  // Compute the bullet icon based on icon style
+  // Compute the bullet icon based on icon style (body nodes get no bullet)
   const bulletIcon = useMemo(
     () =>
-      computeBulletIcon(
-        displayNode,
-        nodeIsTask,
-        style.taskStatusIcon,
-        hasChildren,
-        isFolded,
-        style.ownColor,
-        iconStyle,
-      ),
-    [nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon],
+      isBody
+        ? null
+        : computeBulletIcon(
+            displayNode,
+            nodeIsTask,
+            style.taskStatusIcon,
+            hasChildren,
+            isFolded,
+            style.ownColor,
+            iconStyle,
+          ),
+    [isBody, nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon],
   )
 
-  // Memoize prefix - only recalc when bullet icon changes
-  const prefix = useMemo(() => buildPrefix(bulletIcon), [bulletIcon])
+  // Memoize prefix - body nodes get empty prefix (just indentation space)
+  const prefix = useMemo(
+    () =>
+      bulletIcon ? buildPrefix(bulletIcon) : { markerChar: "", markerColor: undefined, afterMarker: " ", length: 1 },
+    [bulletIcon],
+  )
 
   // Get content, stripping task marks for nodes with task_status
   // The task mark is displayed via the icon, so we don't need it in the text
@@ -759,6 +772,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   getBoardPills,
   extraExcludedSigils,
   childCount,
+  isBody,
 }: {
   node: KNode
   isSelected: boolean
@@ -772,6 +786,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   getBoardPills?: GetBoardPillsFn
   extraExcludedSigils?: string[]
   childCount: number
+  isBody?: boolean
 }): React.ReactElement {
   const nodeStore = useNodeStore()
   const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
@@ -793,6 +808,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
         getBoardPills={getBoardPills}
         extraExcludedSigils={extraExcludedSigils}
         remainingDepth={foldOverride ?? 0}
+        isBody={isBody}
       />
     )
   }
@@ -801,9 +817,10 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
     <FoldedChildRow
       node={node}
       depth={depth}
-      dim={dim}
+      dim={dim || isBody}
       childCount={childCount}
       extraExcludedSigils={extraExcludedSigils}
+      isBody={isBody}
     />
   )
 })
@@ -831,12 +848,14 @@ const FoldedChildRow = React.memo(
     dim = false,
     childCount = 0,
     extraExcludedSigils,
+    isBody = false,
   }: {
     node: KNode
     depth: number
     dim?: boolean
     childCount?: number
     extraExcludedSigils?: string[]
+    isBody?: boolean
   }): React.ReactElement {
     renderLog.debug?.(`FoldedChildRow ${sid(node.id)} depth=${depth}`)
 
@@ -865,17 +884,14 @@ const FoldedChildRow = React.memo(
     const foldSd = style.shouldDim
 
     // Bullet icon — always folded (isFolded=true for computeBulletIcon)
+    // Body nodes get no bullet — just indentation space
     const { iconStyle } = treeConfig
-    const bulletIcon = computeBulletIcon(
-      node,
-      nodeIsTask,
-      style.taskStatusIcon,
-      hasChildren,
-      true,
-      style.ownColor,
-      iconStyle,
-    )
-    const prefix = buildPrefix(bulletIcon)
+    const bulletIcon = isBody
+      ? null
+      : computeBulletIcon(node, nodeIsTask, style.taskStatusIcon, hasChildren, true, style.ownColor, iconStyle)
+    const prefix = bulletIcon
+      ? buildPrefix(bulletIcon)
+      : { markerChar: "", markerColor: undefined as string | undefined, afterMarker: " ", length: 1 }
 
     // Content — resolve embeds
     const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = resolveEmbed(repo, node)
@@ -1035,6 +1051,7 @@ function NodeChildren({
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
             childCount={childCounts?.get(item.node.id) ?? 0}
+            isBody={item.isBody}
           />
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
@@ -1066,6 +1083,7 @@ function NodeChildren({
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
             remainingDepth={remainingDepth}
+            isBody={item.isBody}
           />
         )
       })}

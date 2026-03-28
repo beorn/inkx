@@ -265,6 +265,12 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-cmd.7","issue_id":"km-cmd.9","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-lzbz","issue_id":"km-cmd.migrate","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-cnn5z","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T16:42:57Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-commands.position-type","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:11Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase1-cursor-to","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:12Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase2-reparent-to","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:13Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase1-cursor-to","issue_id":"km-commands.position-type.phase2-reparent-to","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-27T17:39:12Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type","issue_id":"km-commands.position-type.phase3-resolver","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:13Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase2-reparent-to","issue_id":"km-commands.position-type.phase3-resolver","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-dwlr","issue_id":"km-cuqe","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-z8xf","issue_id":"km-cuqe","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T12:30:46Z","created_by":"claude:f8196c1c","depends_on_id":"km-kk0x1","issue_id":"km-cy82q","metadata":"{}","type":"blocks"}
@@ -1524,6 +1530,8 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.bd-api","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools.bd-api","issue_id":"km-tools.bd-api.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools.bd-api","issue_id":"km-tools.bd-api.2","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T16:22:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-tools","issue_id":"km-tools.bd-cli-fields","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T16:14:08Z","created_by":"claude:f8196c1c","depends_on_id":"km-tools","issue_id":"km-tools.bd-cli-sync","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.bd-proxy","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.clean-dims","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.commit-perf","metadata":"{}","type":"parent-child"}
@@ -1703,6 +1711,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-after-ops","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-colors","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-init-collapsed","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:41:10Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.cursor-lost","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T15:17:52Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.cursor-path","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.curswanty-clear","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.curswanty-regress","metadata":"{}","type":"parent-child"}
@@ -1777,6 +1786,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui.edit-context","issue_id":"km-tui.edit-migrate","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-25T15:17:47Z","created_by":"claude:19080504","depends_on_id":"km-tui","issue_id":"km-tui.embed-click-jump","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-24T12:24:53Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui.cursor-path","issue_id":"km-tui.embed-click-jump","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-27T17:33:16Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.embed-content-lines","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.embed-display","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.embed-excl-sigil","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.embed-render-types","metadata":"{}","type":"parent-child"}
@@ -2094,6 +2104,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.v-cycle","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.vbody-nav","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.vd-filter","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-27T17:39:44Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-commands.position-type.phase3-resolver","issue_id":"km-tui.verb-grid-cmds","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.verb-grid-cmds","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.view-ghost-chars","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.virtual-cursor","metadata":"{}","type":"parent-child"}
