@@ -9,7 +9,7 @@
  * A target is "visible" if it's a child or grandchild of the current root.
  */
 
-import { type KNode, isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:navigate")
@@ -87,7 +87,7 @@ export function navigateToNode(targetId: string, rootId: string | null, repo: Na
   // We still zoom so the node becomes visible, but signal the caller to also
   // open the detail pane.
   const zoomChildren = repo.getChildren(zoomTarget)
-  const hasStructure = zoomChildren.some((c) => isOutline(c.type, c.item))
+  const hasStructure = zoomChildren.some((c) => KNode.isOutline(c))
   if (!hasStructure) {
     log.debug?.(
       `navigateToNode: DETAIL_VIEW for ${cursorTarget.slice(-8)} (zoom target ${zoomTarget.slice(-8)} is flat)`,
@@ -143,7 +143,7 @@ export function resolveZoomTarget(target: KNode, repo: NavigateRepo): { zoomTarg
 
     // If the zoom target has no oi children, it will produce a body-only board.
     const zoomChildren = repo.getChildren(grandparent.id)
-    const hasOiChildren = zoomChildren.some((c) => isOutline(c.type, c.item))
+    const hasOiChildren = zoomChildren.some((c) => KNode.isOutline(c))
     if (!hasOiChildren && parent && parent.parent_id === grandparent.id) {
       // Grandparent is a body-only board (no oi children).
       // If there's a great-grandparent, zoom there instead so grandparent

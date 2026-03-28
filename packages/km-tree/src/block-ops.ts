@@ -9,8 +9,7 @@
  * No UI, no rendering - just tree structure manipulation.
  */
 
-import type { KNode, TaskMarker, TaskStatus } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode, type TaskMarker, type TaskStatus } from "@km/core"
 
 // =============================================================================
 // Minimal Interface (subset of Repo that these operations need)
@@ -291,7 +290,7 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
  */
 export function getNodeText(node: KNode): string {
   // Outline items use name as their heading text
-  if (isOutline(node.type, node.item)) return node.name ?? node.content ?? ""
+  if (KNode.isOutline(node)) return node.name ?? node.content ?? ""
   // Tasks (list items with task_marker): content includes the checkbox prefix "- [x] ..."
   // Strip exactly the prefix "- [.] " (dash, space, bracket, mark, bracket, space)
   if (node.task_marker && node.content) {
@@ -305,7 +304,7 @@ export function getNodeText(node: KNode): string {
  * Returns the new content string (does NOT mutate).
  */
 export function setNodeText(node: KNode, text: string): string {
-  if (isOutline(node.type, node.item)) return text
+  if (KNode.isOutline(node)) return text
   if (node.task_marker) {
     // Extract inner character from marker: "[x]" → "x"
     const inner = node.task_marker.length === 3 ? node.task_marker[1] : " "

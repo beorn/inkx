@@ -4,21 +4,16 @@
  * Resolves a locationKey string (from VerbAction) into a concrete Position
  * in the tree. Pure function — no side effects, no dispatching.
  *
- * The Position type represents a slot among a parent's children:
- *   { parentId, childIdx }
- * where childIdx -1 means "last" and 0 means "first".
+ * Position type and construction helpers (of, first, last, equals) live in
+ * @km/core (Position namespace). This file has the repo-dependent helpers:
+ * resolve, toSortOrder, nodeAt, isAtPosition, moveTo.
  *
  * Picker locations (pick:#, pick:@, etc.) resolve to { pick: prefix }
  * which the verb handler interprets as "open picker filtered by prefix."
  */
 
 import { getFavorite } from "@km/commands"
-
-/** A slot in the tree: a position among a parent's children. */
-export interface Position {
-  parentId: string
-  childIdx: number // -1 = last, 0 = first
-}
+import type { Position } from "@km/core"
 
 /** Deferred resolution — open a picker filtered by prefix. */
 export interface PickTarget {
@@ -27,6 +22,9 @@ export interface PickTarget {
 
 /** Result of resolving a locationKey. */
 export type ResolvedLocation = Position | PickTarget | null
+
+// Re-export Position from @km/core for consumers that import from here
+export type { Position } from "@km/core"
 
 /** Minimal repo interface needed for position resolution. */
 export interface ResolverRepo {
@@ -120,27 +118,14 @@ export function isPosition(loc: ResolvedLocation): loc is Position {
 }
 
 // =========================================================================
-// Position domain helpers — ergonomic tree slot operations
+// Position domain helpers — repo-dependent operations
 // =========================================================================
 
-/** A node-like shape with the fields Position helpers need. */
+/** A node-like shape with the fields position helpers need. */
 type NodeLike = { id: string; parent_id: string | null; parent_idx: number; name?: string | null }
 
-/** Position of a node — its current slot in its parent. */
-export function positionOf(node: NodeLike): Position | null {
-  if (!node.parent_id) return null
-  return { parentId: node.parent_id, childIdx: node.parent_idx }
-}
-
-/** First child slot of a parent. */
-export function firstChild(parentId: string): Position {
-  return { parentId, childIdx: 0 }
-}
-
-/** Last child slot of a parent. */
-export function lastChild(parentId: string): Position {
-  return { parentId, childIdx: -1 }
-}
+// Pure construction helpers are now in Position namespace (km-core):
+// Position.of(node), Position.first(parentId), Position.last(parentId), Position.equals(a, b)
 
 /**
  * Convert an abstract Position to a concrete sort order for repo.moveNode().

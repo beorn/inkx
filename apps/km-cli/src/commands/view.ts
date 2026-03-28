@@ -7,7 +7,7 @@
 
 import { join } from "path"
 import { Command } from "@silvery/commander"
-import { createLogger, isOutline } from "@km/core"
+import { createLogger, KNode } from "@km/core"
 import { enableConsoleDebug, setDebugRepoRoot } from "../debug-log.ts"
 import { getRootPath } from "../program.ts"
 import { restoreTerminalState } from "@silvery/ag-term/runtime"
@@ -117,7 +117,8 @@ export const viewCommand = new Command("view")
 
             // km-view-stub: If targeting a stub file, parse it eagerly
             if (
-              isOutline(node?.type ?? "", node?.item) &&
+              node &&
+              KNode.isOutline(node) &&
               (node?.fstype === "file" || node?.fstype === "mdfile") &&
               interactive
             ) {

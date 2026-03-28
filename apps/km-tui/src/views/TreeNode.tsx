@@ -11,9 +11,8 @@ import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
-import type { KNode } from "@km/core"
+import { KNode, getStatusForMarker } from "@km/core"
 import type { CardView } from "../types.ts"
-import { isTask, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
   isNodeUntitled,
@@ -260,7 +259,7 @@ function TreeNodeImpl({
     )
   }
 
-  const nodeIsTask = isTask(displayNode)
+  const nodeIsTask = KNode.isTask(displayNode)
 
   // Memoize style calculation - only recalc when selection or node status changes
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
@@ -883,7 +882,7 @@ const FoldedChildRow = React.memo(
     } = useTreeRenderContext()
     const repo = useRepo()
 
-    const nodeIsTask = isTask(node)
+    const nodeIsTask = KNode.isTask(node)
     const hasChildren = childCount > 0
     const style = getNodeStyle(node, false, false, false, depth, false)
     if (dim) style.shouldDim = true

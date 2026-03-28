@@ -1,4 +1,4 @@
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 
 /**
  * CursorStore — Lightweight pub/sub for cursor state.
@@ -101,8 +101,7 @@ export function deriveCursorAncestors(
   // Determine if the child-of-root is a body card or structural item.
   // Body cards are non-outline nodes that appear BEFORE the first outline sibling
   // (matching extractBody's logic). Non-outline nodes AFTER the first outline are structural.
-  const isBodyCard =
-    !isOutline(childOfRootNode.type, childOfRootNode.item) && isInBodyRegion(childOfRootId, rootId, getChildren)
+  const isBodyCard = !KNode.isOutline(childOfRootNode) && isInBodyRegion(childOfRootId, rootId, getChildren)
 
   if (isBodyCard) {
     // Body cards are direct children of root but displayed as cards in a virtual body column.
@@ -142,7 +141,7 @@ function isInBodyRegion(
   if (!getChildren) return true // Conservative default: no children → assume body
   const siblings = getChildren(rootId)
   for (const sibling of siblings) {
-    if (isOutline(sibling.type, sibling.item)) return false // Found an outline item before this node → structural region
+    if (KNode.isOutline(sibling)) return false // Found an outline item before this node → structural region
     if (sibling.id === nodeId) return true // Found our node before any outline item → body region
   }
   return true // Node not found in siblings (shouldn't happen) → default to body

@@ -8,9 +8,7 @@
 
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
-import { extractTitleTaskMarker, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
+import { KNode, extractTitleTaskMarker, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import type { NodeEditState } from "../reactive.ts"
@@ -143,7 +141,7 @@ export function TitleEditor({
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
       const hrMatch = isHRContent(newContent)
       const currentType = displayNode.type
-      if (hrMatch && currentType === "p" && !isOutline(currentType, displayNode.item)) {
+      if (hrMatch && currentType === "p" && !KNode.isOutline(displayNode)) {
         repo.updateNode(displayNode.id, { type: "hr" })
       } else if (!hrMatch && currentType === "hr") {
         repo.updateNode(displayNode.id, { type: "p" })

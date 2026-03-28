@@ -18,8 +18,7 @@ const term = createTerm(process)
 import { realpathSync } from "fs"
 import { resolve } from "path"
 import { resolvePathArg, buildEmbedChild } from "@km/storage"
-import type { KNode } from "@km/core"
-import { isOutline, isEmbed } from "@km/core"
+import { KNode, type KNode as KNodeType } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -45,7 +44,7 @@ const SIGIL_DATA_KEY: Record<string, string> = {
 }
 
 /** Check if a task's content already contains the sigil (e.g., @next, +project, #tag) */
-function contentHasSigil(node: KNode, prefix: string, name: string): boolean {
+function contentHasSigil(node: KNodeType, prefix: string, name: string): boolean {
   const dataKey = SIGIL_DATA_KEY[prefix]
   if (!dataKey) return false
 
@@ -131,7 +130,7 @@ export const addCommand = new Command("add")
 
     // Collect candidate tasks
     t0 = Date.now()
-    const candidates: KNode[] = []
+    const candidates: KNodeType[] = []
 
     for (const source of sources) {
       // Glob patterns (e.g., ./inbox/**, /tmp/vt/projects/**) — query directly
@@ -194,11 +193,11 @@ export const addCommand = new Command("add")
     // If no sections exist, items are added directly to the target node.
     t0 = Date.now()
     let actualTarget = targetNode
-    const findDefaultSection = (parentId: string): KNode | undefined => {
+    const findDefaultSection = (parentId: string): KNodeType | undefined => {
       const children = repo.getChildren(parentId)
-      let firstEligible: KNode | undefined
+      let firstEligible: KNodeType | undefined
       for (const child of children) {
-        if (isOutline(child.type, child.item) && child.fstype === "mdsection") {
+        if (KNode.isOutline(child) && child.fstype === "mdsection") {
           const rules = child.data?.rules as { default?: boolean; collapse?: boolean; removed?: boolean } | undefined
           if (rules?.default) {
             return child // explicit override
@@ -234,9 +233,9 @@ export const addCommand = new Command("add")
             .map((n) => n.embed_source),
         )
 
-    const tasksToLink: KNode[] = []
-    const tasksToSigil: KNode[] = []
-    const skipped: KNode[] = []
+    const tasksToLink: KNodeType[] = []
+    const tasksToSigil: KNodeType[] = []
+    const skipped: KNodeType[] = []
 
     for (const task of candidates) {
       const hasLink = existingLinkTargets.has(task.id)
@@ -320,7 +319,7 @@ export const addCommand = new Command("add")
         const dataKey = SIGIL_DATA_KEY[sigilPrefix] ?? "mentions"
         for (const task of tasksToSigil) {
           // Skip transclusion nodes — they mirror the source, don't tag them
-          if (isEmbed(task)) continue
+          if (KNode.isEmbed(task)) continue
 
           // Re-check dedup (content may have changed since we checked)
           if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) {
@@ -358,7 +357,7 @@ export const addCommand = new Command("add")
       phaseOk("Sync to disk", `${syncCount} file${syncCount !== 1 ? "s" : ""}`, t0)
     }
 
-    const sigilCount = tasksToSigil.filter((t) => !isEmbed(t)).length
+    const sigilCount = tasksToSigil.filter((t) => !KNode.isEmbed(t)).length
 
     if (options.json) {
       console.log(

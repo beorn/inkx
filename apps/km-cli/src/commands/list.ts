@@ -15,8 +15,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode, type KNode as KNodeType } from "@km/core"
 import { loadRepo } from "../load-repo.ts"
 import { getRootPath } from "../program.ts"
 import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
@@ -101,7 +100,7 @@ export const listCommand = new Command("list")
  * Match a query against a node
  * Query can be: node ID prefix, path pattern, or relative path
  */
-function matchesQuery(node: KNode, query: string, ancestors: KNode[]): boolean {
+function matchesQuery(node: KNodeType, query: string, ancestors: KNodeType[]): boolean {
   // ID prefix match
   if (node.id.toLowerCase().startsWith(query.toLowerCase())) {
     return true
@@ -140,9 +139,9 @@ function getFilteredNodesWithQuery(
     blocked?: boolean
     unblocked?: boolean
   },
-): KNode[] {
+): KNodeType[] {
   // Build query expression based on options
-  let nodes: KNode[]
+  let nodes: KNodeType[]
 
   // If assignee/priority flags are set, build a query string and use repo.query()
   const hasAdvancedFilters = options.assignee || options.priority !== undefined
@@ -157,12 +156,12 @@ function getFilteredNodesWithQuery(
     nodes = repo.query(parts.join(" ") || "*")
   } else if (options.type === "task") {
     if (options.status) {
-      nodes = repo.getTasksByStatus(options.status as NonNullable<KNode["task_status"]>)
+      nodes = repo.getTasksByStatus(options.status as NonNullable<KNodeType["task_status"]>)
     } else if (options.all) {
       nodes = repo.getAllTasks()
     } else {
       // Exclude done tasks by default
-      nodes = repo.getAllTasks().filter((n: KNode) => n.task_status !== "done")
+      nodes = repo.getAllTasks().filter((n: KNodeType) => n.task_status !== "done")
     }
   } else if (options.type) {
     // Use query for other types
@@ -171,9 +170,9 @@ function getFilteredNodesWithQuery(
     // No type filter - get all nodes via subtree from root
     // Include root node itself, then all descendants
     const rootNode = repo.getRepoRootNode()
-    const getAllDescendants = (parentId: string | null, depth: number): Array<KNode & { _depth: number }> => {
+    const getAllDescendants = (parentId: string | null, depth: number): Array<KNodeType & { _depth: number }> => {
       const children = repo.getChildren(parentId)
-      return children.flatMap((child: KNode) => [
+      return children.flatMap((child: KNodeType) => [
         Object.assign(child, { _depth: depth }),
         ...getAllDescendants(child.id, depth + 1),
       ])
@@ -214,10 +213,10 @@ function getFilteredNodesWithQuery(
 /**
  * Display nodes with context (ancestor paths)
  */
-function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boolean; flat: boolean }): void {
+function displayWithContext(repo: Repo, nodes: KNodeType[], options: { showId: boolean; flat: boolean }): void {
   // Group nodes by their collapsed ancestor paths
   interface NodeWithContext {
-    node: KNode
+    node: KNodeType
     collapsed: CollapsedAncestor[]
     pathKey: string
   }
@@ -252,7 +251,7 @@ function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boole
         for (const ca of collapsed) {
           const prefix = " ".repeat(depth)
           console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca, options.showId)))
-          if (!(isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection")) {
+          if (!(KNode.isOutline(ca.node) && ca.node.fstype === "mdsection")) {
             depth++
           }
         }
@@ -269,9 +268,9 @@ function displayWithContext(repo: Repo, nodes: KNode[], options: { showId: boole
 /**
  * Display nodes as a tree with indentation
  */
-function displaySimple(repo: Repo, nodes: KNode[], options: { showId: boolean }): void {
+function displaySimple(repo: Repo, nodes: KNodeType[], options: { showId: boolean }): void {
   for (const node of nodes) {
-    const depth = (node as KNode & { _depth?: number })._depth ?? 0
+    const depth = (node as KNodeType & { _depth?: number })._depth ?? 0
     const indent = "  ".repeat(depth)
     console.log(indent + formatNode(repo, node, options.showId))
   }

@@ -5,8 +5,7 @@
  * Used by view layer (column promotion) and storage layer (write path).
  */
 
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { namesAreSimilar } from "./display.ts"
 
 /**
@@ -119,5 +118,5 @@ export function extractSlotTargets(children: KNode[]): string[] {
 
 /** Check if a node is an md file (outline item with fstype mdfile) */
 function isMdFile(node: KNode): boolean {
-  return isOutline(node.type, node.item) && node.fstype === "mdfile"
+  return KNode.isOutline(node) && node.fstype === "mdfile"
 }

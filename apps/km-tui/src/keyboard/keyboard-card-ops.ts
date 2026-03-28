@@ -4,9 +4,8 @@
  * Functions for moving, indenting, and outdenting cards.
  */
 
-import { isBlock, isItem } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
-import type { KNode } from "@km/core"
+import { KNode } from "@km/core"
 import type { SelectionKey } from "../types.ts"
 import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
@@ -72,7 +71,7 @@ function calculateSortOrder(col: { cardNodes: KNode[] }, targetIndex: number, di
 function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
   const newSelected = new Set<SelectionKey>()
   const allChildren = ctx.repo.getChildren(ctx.rootId)
-  const columns = allChildren.filter((n) => !isBlock(n.type, n.item))
+  const columns = allChildren.filter((n) => !KNode.isBlock(n))
   const newCol = columns[colIndex]
   if (newCol) {
     const cards = ctx.repo.getChildren(newCol.id)
@@ -250,7 +249,7 @@ export function outdentNode(ctx: ActionCtx, card: KNode): boolean {
 
 /** Check if a card can be indented (has a previous sibling to nest under) */
 function canIndent(ctx: ActionCtx, card: KNode): boolean {
-  if (!isItem(card.type, card.item)) return false
+  if (!KNode.isItem(card)) return false
 
   const parentId = card.parent_id
   if (!parentId) return false
@@ -262,7 +261,7 @@ function canIndent(ctx: ActionCtx, card: KNode): boolean {
 
 /** Check if a card can be outdented (has a grandparent to move to) */
 function canOutdent(ctx: ActionCtx, card: KNode): boolean {
-  if (!isItem(card.type, card.item)) return false
+  if (!KNode.isItem(card)) return false
 
   const parentId = card.parent_id
   if (!parentId) return false

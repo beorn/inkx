@@ -6,7 +6,7 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
@@ -26,7 +26,7 @@ function firstCardId(
   if (children.length === 0) return null
 
   // Split children into body (before first oi) and structural (oi).
-  const firstOiIdx = children.findIndex((c) => isOutline(c.type, c.item))
+  const firstOiIdx = children.findIndex((c) => KNode.isOutline(c))
   const bodyNodes = firstOiIdx === -1 ? children : firstOiIdx === 0 ? [] : children.slice(0, firstOiIdx)
   const structuralNodes = firstOiIdx === -1 ? [] : children.slice(firstOiIdx)
 

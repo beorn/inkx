@@ -6,14 +6,13 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { extractBody } from "@km/tree"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../sibling-index.ts"
 import { detailPaneIdFor } from "../board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import type { KNode } from "@km/core"
 import type { NavState } from "../view-navigation.ts"
 
 /**
@@ -114,7 +113,7 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
         // itemIndex from findItemAtY maps to the correct node.
         const targetNode = ctx.repo.getNode(targetId)
         const columnId = targetNode?.parent_id
-        const isBodyCard = columnId === ctx.rootId && targetNode && !isOutline(targetNode.type, targetNode.item)
+        const isBodyCard = columnId === ctx.rootId && targetNode && !KNode.isOutline(targetNode)
         navigator.setDeferredResolve((itemIndex) => {
           if (columnId) {
             let children: { id: string; type: string; content?: string }[]

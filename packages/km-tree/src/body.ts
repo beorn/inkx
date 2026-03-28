@@ -8,7 +8,7 @@
  * is grouped at display time for rendering as virtual columns/cards.
  */
 
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 
 /**
  * Result of extracting body content from children.
@@ -61,7 +61,7 @@ export function extractBody<T extends { type: string; item?: boolean }>(
   dbOpts?: ExtractBodyDbOpts<T>,
 ): BodyExtraction<T> {
   // Items are always derived from the children array (outline nodes)
-  const firstStructuralIdx = children.findIndex((c) => isOutline(c.type, c.item))
+  const firstStructuralIdx = children.findIndex((c) => KNode.isOutline(c))
   const items = firstStructuralIdx === -1 ? [] : children.slice(firstStructuralIdx)
 
   // When pre-fetched body children are provided, use them directly

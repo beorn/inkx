@@ -13,8 +13,7 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs"
 import { join, dirname } from "node:path"
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 
 // =============================================================================
@@ -97,7 +96,7 @@ export function removeIgnored(repoPath: string, path: string): void {
 export function computeIgnorePath(node: KNode, repo: Repo): string | null {
   // File or folder with fs_path
   if (node.fs_path) {
-    return isOutline(node.type, node.item) && node.fstype === "folder" ? node.fs_path + "/" : node.fs_path
+    return KNode.isOutline(node) && node.fstype === "folder" ? node.fs_path + "/" : node.fs_path
   }
 
   // Section or child item — walk up to find parent file
@@ -114,7 +113,7 @@ export function computeIgnorePath(node: KNode, repo: Repo): string | null {
       parentFile = current
       break
     }
-    if (isOutline(current.type, current.item) && current.fstype === "mdsection" && !parentSection) {
+    if (KNode.isOutline(current) && current.fstype === "mdsection" && !parentSection) {
       parentSection = current
     }
     current = current.parent_id ? repo.getNode(current.parent_id) : undefined
@@ -125,7 +124,7 @@ export function computeIgnorePath(node: KNode, repo: Repo): string | null {
     return `#${slug}`
   }
 
-  if (isOutline(node.type, node.item) && node.fstype === "mdsection") {
+  if (KNode.isOutline(node) && node.fstype === "mdsection") {
     return `${parentFile.fs_path}#${slug}`
   }
 

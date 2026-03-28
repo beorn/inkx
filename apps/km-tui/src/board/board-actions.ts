@@ -39,7 +39,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { type KNode, isOutline, isListItem, extractTitleTaskMarker } from "@km/core"
+import { KNode, extractTitleTaskMarker } from "@km/core"
 import { clearSelection, getSelectedCards, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import {
   getFavorite,
@@ -91,11 +91,11 @@ function applyDegradation(node: KNode, degradation: Record<string, unknown>, con
   if (node.task_marker && degradation.task_marker === undefined) {
     degradation.content = content
   }
-  if (degradation.type === "p" && isOutline(node.type, node.item)) {
+  if (degradation.type === "p" && KNode.isOutline(node)) {
     degradation.content = content
     degradation.name = undefined
   }
-  if (degradation.type === "p" && isListItem(node.type, node.item)) {
+  if (degradation.type === "p" && KNode.isListItem(node)) {
     degradation.content = content
   }
 }
@@ -972,7 +972,7 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
             // Build repo update with type change + correctly formatted content
             const changes: Partial<typeof node> = { ...conversion.nodeChanges }
             // Set content formatted for the new type
-            if (isOutline(changes.type ?? node.type, changes.item ?? node.item)) {
+            if (KNode.isOutline({ type: changes.type ?? node.type, item: changes.item ?? node.item })) {
               changes.name = remainingText
               changes.content = remainingText
             } else if (changes.task_marker) {
@@ -986,11 +986,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               changes.content = remainingText
             }
             // Clear fields that don't apply to the new type
-            if (changes.type && !isOutline(changes.type, changes.item) && isOutline(node.type, node.item)) {
+            if (changes.type && !KNode.isOutline({ type: changes.type, item: changes.item }) && KNode.isOutline(node)) {
               changes.name = undefined
               changes.fstype = undefined
             }
-            if (changes.type && !isListItem(changes.type, changes.item) && isListItem(node.type, node.item)) {
+            if (
+              changes.type &&
+              !KNode.isListItem({ type: changes.type, item: changes.item }) &&
+              KNode.isListItem(node)
+            ) {
               changes.list_marker = undefined
             }
             ctx.repo.updateNode(nodeId, changes)
@@ -1969,7 +1973,7 @@ function resolveNodeFsPath(repo: ActionCtx["repo"], nodeId: string): { fsPath: s
       const absPath = join(repo.path, current.fs_path)
       return {
         fsPath: absPath,
-        isFolder: isOutline(current.type, current.item) && current.fstype === "folder",
+        isFolder: KNode.isOutline(current) && current.fstype === "folder",
       }
     }
     if (!current.parent_id) break

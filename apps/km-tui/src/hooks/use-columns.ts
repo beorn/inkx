@@ -13,8 +13,7 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
-import type { KNode } from "@km/core"
-import { isOutline, isEmbed } from "@km/core"
+import { KNode } from "@km/core"
 import { createLogger } from "loggily"
 import { extractBody, extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/tree"
 import type { CardView, ColumnView } from "../types.ts"
@@ -356,7 +355,7 @@ export function deriveColumnsFromRepo(
   )
 
   if (filteredBody.length > 0) {
-    const bodyIds = new Set(filteredBody.filter((n) => !isEmbed(n)).map((n) => n.id))
+    const bodyIds = new Set(filteredBody.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
     columns.push({
       node: createVirtualBodyNode(rootId),
       cardNodes: toCardViews(repo, filteredBody, bodyIds),
@@ -464,7 +463,7 @@ export function* deriveColumnsIncremental(
     (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
   )
   if (filteredBody.length > 0) {
-    const bodyIds = new Set(filteredBody.filter((n) => !isEmbed(n)).map((n) => n.id))
+    const bodyIds = new Set(filteredBody.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
     yield {
       node: createVirtualBodyNode(rootId),
       cardNodes: toCardViews(repo, filteredBody, bodyIds),
@@ -592,13 +591,13 @@ function expandIndexFileColumns(
       // Unresolved slot: classify by node type, not extractBody position.
       // Outline (heading) slots fall through to become inline sections.
       // Non-outline (paragraph) slots → body fallback content (unless already in indexBody).
-      if (!isOutline(child.type, child.item)) {
+      if (!KNode.isOutline(child)) {
         if (!indexBody.includes(child) && isBodyContent(child)) fallbackBody.push(child)
         continue
       }
     }
     // Outline children (sections or unresolved heading slots) become inline columns
-    if (isOutline(child.type, child.item)) {
+    if (KNode.isOutline(child)) {
       if (!isDetailOnly(child)) {
         columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
       }
@@ -614,7 +613,7 @@ function expandIndexFileColumns(
   // Create virtual body column from pre-section body + post-section fallback body
   const allBodyNodes = [...filteredIndexBody, ...fallbackBody]
   if (allBodyNodes.length > 0) {
-    const bodyIds = new Set(allBodyNodes.filter((n) => !isEmbed(n)).map((n) => n.id))
+    const bodyIds = new Set(allBodyNodes.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
     columns.splice(bodyInsertIdx, 0, {
       node: createVirtualBodyNode(indexFile.parent_id),
       cardNodes: toCardViews(repo, allBodyNodes, bodyIds),
@@ -762,7 +761,7 @@ function kNodeToColumnView(
   for (const child of bodyNodes) {
     if (isCollapsedChild(child)) continue
     rawCards.push(child)
-    if (!isEmbed(child)) bodyIds.add(child.id)
+    if (!KNode.isEmbed(child)) bodyIds.add(child.id)
   }
   for (const child of structuralNodes) {
     if (isCollapsedChild(child)) continue

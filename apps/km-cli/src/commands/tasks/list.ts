@@ -10,8 +10,7 @@ const term = createTerm(process)
 import { resolvePathArg, type Repo } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
 import { collapseAncestorsWithTypes } from "@km/tree"
-import type { KNode } from "@km/core"
-import { isOutline, isItem } from "@km/core"
+import { KNode, type KNode as KNodeType } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { getNodeDisplayName, formatCollapsedAncestor, formatTaskWithPath, formatTaskLine } from "./formatters.ts"
 import {
@@ -35,8 +34,8 @@ export interface ListTasksOptions {
 
 /** Result of resolving input arguments into a filtered task list */
 interface ResolvedInput {
-  tasks: KNode[]
-  rootNode: KNode | null
+  tasks: KNodeType[]
+  rootNode: KNodeType | null
   pathFilter: string | null
 }
 
@@ -48,10 +47,10 @@ interface ResolvedInput {
  *                      "active" keeps only todo/wip tasks (root-scoped default)
  */
 function filterTasksByStatus(
-  tasks: KNode[],
+  tasks: KNodeType[],
   options: Pick<ListTasksOptions, "status" | "all">,
   defaultMode: "excludeDone" | "active" = "excludeDone",
-): KNode[] {
+): KNodeType[] {
   if (options.status) {
     return tasks.filter((t) => t.task_status === options.status)
   }
@@ -68,7 +67,11 @@ function filterTasksByStatus(
  * Resolve tasks from a query argument (--query flag or query-like positional).
  * Builds the query string with default status filters and runs it against the repo.
  */
-function resolveFromQuery(repo: Repo, queryArg: string, options: Pick<ListTasksOptions, "status" | "all">): KNode[] {
+function resolveFromQuery(
+  repo: Repo,
+  queryArg: string,
+  options: Pick<ListTasksOptions, "status" | "all">,
+): KNodeType[] {
   let queryStr = queryArg
   if (!options.all && !queryStr.includes("status:")) {
     queryStr = `-status:done ${queryStr}`
@@ -93,11 +96,7 @@ function resolveFromPathOrId(
 
   if (rootNode) {
     // If the root IS a task, signal the caller to show details
-    if (
-      isItem(rootNode.type, rootNode.item) &&
-      !isOutline(rootNode.type, rootNode.item) &&
-      rootNode.task_marker !== undefined
-    ) {
+    if (KNode.isListItem(rootNode) && rootNode.task_marker !== undefined) {
       return null
     }
 
@@ -150,7 +149,7 @@ function resolveInput(repo: Repo, pathOrId: string | undefined, options: ListTas
 /**
  * Render tasks in flat mode (one line per task with breadcrumb path).
  */
-function renderFlat(repo: Repo, tasks: KNode[], options: ListTasksOptions): void {
+function renderFlat(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): void {
   for (const task of tasks) {
     const rawAncestors = repo.getAncestors(task.id)
     const collapsedAncestors = collapseAncestorsWithTypes(rawAncestors)
@@ -169,7 +168,7 @@ function renderFlat(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
  * Render tasks in tree mode, grouping by shared ancestor paths.
  * Uses incremental path divergence to avoid repeating shared prefixes.
  */
-function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void {
+function renderTree(repo: Repo, tasks: KNodeType[], options: ListTasksOptions): void {
   const tasksWithAncestors = buildTaskTree(repo, tasks)
   const sorted = sortByPath(tasksWithAncestors)
 
@@ -190,7 +189,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
     let fsDepth = 0
     for (let i = 0; i < divergeIndex && i < collapsedAncestors.length; i++) {
       const ca = collapsedAncestors[i]
-      if (ca && !(isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection")) {
+      if (ca && !(KNode.isOutline(ca.node) && ca.node.fstype === "mdsection")) {
         fsDepth++
       }
     }
@@ -204,7 +203,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
       if (!ca) continue
       const prefix = " ".repeat(fsDepth)
       console.log(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
-      if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
+      if (KNode.isOutline(ca.node) && ca.node.fstype === "mdsection") {
         hasSection = true
       } else {
         // Only folders/files increase the depth
@@ -214,9 +213,7 @@ function renderTree(repo: Repo, tasks: KNode[], options: ListTasksOptions): void
 
     // Check if any ancestor was a section (for task indent)
     if (!hasSection) {
-      hasSection = collapsedAncestors.some(
-        (ca) => isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection",
-      )
+      hasSection = collapsedAncestors.some((ca) => KNode.isOutline(ca.node) && ca.node.fstype === "mdsection")
     }
 
     // Task indent: fsDepth + 3 spaces if under a section (to align with section content)
@@ -279,7 +276,7 @@ export async function listTasks(pathOrId: string | undefined, options: ListTasks
 /**
  * Show task details
  */
-function showTaskDetails(repo: Repo, task: KNode, options: { json?: boolean }): void {
+function showTaskDetails(repo: Repo, task: KNodeType, options: { json?: boolean }): void {
   if (options.json) {
     console.log(JSON.stringify(task, null, 2))
     return

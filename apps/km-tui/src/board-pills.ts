@@ -8,7 +8,7 @@
  * 3. Inherited from parent section
  */
 
-import { isOutline, type KNode } from "@km/core"
+import { KNode } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
 import { getNodeDisplayName } from "./state.ts"
 import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
@@ -66,14 +66,14 @@ function getBoardForLink(repo: Repo, linkNode: KNode): KNode | null {
 
   // The link's parent is typically the board column (an outline item)
   // If the parent is an outline item (section/file/folder), that's our board
-  if (isOutline(parent.type, parent.item)) {
+  if (KNode.isOutline(parent)) {
     return parent
   }
 
   // Otherwise, look up ancestors to find the board
   const ancestors = repo.getAncestors(linkNode.id)
   for (const ancestor of ancestors) {
-    if (isOutline(ancestor.type, ancestor.item)) {
+    if (KNode.isOutline(ancestor)) {
       return ancestor
     }
   }

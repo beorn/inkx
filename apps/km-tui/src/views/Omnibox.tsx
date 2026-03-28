@@ -14,7 +14,7 @@ import { Box, Text, Small, Muted, Strong, ModalDialog } from "@silvery/ag-react"
 import { InputBox, NodeLine } from "./shared-components.tsx"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
 import { getAllCommands, getAllKeybindings, fuzzyMatch, formatKeybinding } from "@km/commands"
-import { isOutline, isEmbed, type KNode } from "@km/core"
+import { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -183,8 +183,8 @@ function buildSearchResults(repo: Repo, query: string): OmniboxResult[] {
 
   for (const node of nodes) {
     if (results.length >= MAX_SEARCH_RESULTS) break
-    if (isOutline(node.type, node.item) && node.fstype === "folder") continue
-    if (isEmbed(node)) continue
+    if (KNode.isOutline(node) && node.fstype === "folder") continue
+    if (KNode.isEmbed(node)) continue
 
     const title = getNodeDisplayName(repo, node)
     const parentContext = getParentName(node, repo.getNode.bind(repo), (n) => getNodeDisplayName(repo, n))

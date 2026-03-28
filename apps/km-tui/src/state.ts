@@ -4,8 +4,7 @@
  * Pure functions for managing board state - fully testable
  */
 
-import type { KNode } from "@km/core"
-import { isEmbed } from "@km/core"
+import { KNode } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
@@ -32,7 +31,7 @@ function buildColumnCards(bodyNodes: KNode[], structuralNodes: KNode[]): CardVie
   const cards: CardView[] = []
 
   for (const node of bodyNodes) {
-    cards.push({ ...node, isBody: !isEmbed(node), isBrokenEmbed: false, hasBodyChildren: false })
+    cards.push({ ...node, isBody: !KNode.isEmbed(node), isBrokenEmbed: false, hasBodyChildren: false })
   }
 
   for (const node of structuralNodes) {
@@ -184,7 +183,7 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       node: createVirtualBodyNode(rootId),
       cardNodes: meaningfulBody.map((n) => ({
         ...n,
-        isBody: !isEmbed(n),
+        isBody: !KNode.isEmbed(n),
         isBrokenEmbed: false,
         hasBodyChildren: false,
       })),

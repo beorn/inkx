@@ -6,8 +6,8 @@
 
 import { createLogger } from "loggily"
 import { stringify as stringifyYaml } from "yaml"
-import type { KNode, TaskStatus } from "@km/core"
-import { getMarkerForStatus, isOutline, isItem, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
+import type { TaskStatus } from "@km/core"
+import { KNode, getMarkerForStatus, stringifyMetadata, stringifyTaskMetadata } from "@km/core"
 import { buildNodeTree } from "./ast2nodes.ts"
 import { serializeRules } from "./parser.ts"
 
@@ -70,7 +70,7 @@ export function nodesToMarkdown(
 
   // Find root node (file node: outline item with fstype mdfile, txtfile, or file)
   const fileNode = nodes.find(
-    (n) => isOutline(n.type, n.item) && (n.fstype === "mdfile" || n.fstype === "txtfile" || n.fstype === "file"),
+    (n) => KNode.isOutline(n) && (n.fstype === "mdfile" || n.fstype === "txtfile" || n.fstype === "file"),
   )
   if (!fileNode) {
     // No file node, serialize all nodes flat
@@ -99,10 +99,8 @@ function serializeChildren(children: KNode[], ctx: SerializeContext, depth = 2):
     const child = children[i]!
     const nextChild = children[i + 1]
 
-    const isCurrentList = isItem(child.type, child.item) && !isOutline(child.type, child.item)
-    const isNextList = nextChild
-      ? isItem(nextChild.type, nextChild.item) && !isOutline(nextChild.type, nextChild.item)
-      : false
+    const isCurrentList = KNode.isListItem(child)
+    const isNextList = nextChild ? KNode.isListItem(nextChild) : false
 
     if (isCurrentList) {
       // For list items: serialize without trailing newline, add blank line only at end of group
@@ -192,12 +190,12 @@ function serializeNode(
   // Nodes with embed_source serialize as transclusions ![[target]].
   // Exception: outline heading nodes with task_marker + embed_source serialize as
   // headings with inline embed ref (import cross-project dedup)
-  if (node.embed_source && !(isOutline(node.type, node.item) && node.task_marker)) {
+  if (node.embed_source && !(KNode.isOutline(node) && node.task_marker)) {
     return serializeEmbedding(node, ctx)
   }
 
   // Outline items (type === "h" && item === true)
-  if (isOutline(node.type, node.item)) {
+  if (KNode.isOutline(node)) {
     // Dispatch by fstype
     if (node.fstype === "txtfile") {
       return node.content ?? ""
@@ -210,7 +208,7 @@ function serializeNode(
   }
 
   // List items (item === true && not outline)
-  if (isItem(node.type, node.item) && !isOutline(node.type, node.item)) {
+  if (KNode.isListItem(node)) {
     return serializeLi(node, children, ctx, indent, addTrailingNewline, orderedIndex)
   }
 
@@ -368,7 +366,7 @@ function findAncestorFilePath(node: KNode, ctx: SerializeContext): string | null
     const parent = ctx.nodeMap.get(current.parent_id)
     if (!parent) return null
     if (
-      isOutline(parent.type, parent.item) &&
+      KNode.isOutline(parent) &&
       (parent.fstype === "file" || parent.fstype === "mdfile" || parent.fstype === "txtfile") &&
       parent.fs_path
     ) {
@@ -464,7 +462,7 @@ function serializeLi(
 
   // Child nodes: list items nested, block content indented under this item
   for (const child of children) {
-    if (isItem(child.type, child.item) && !isOutline(child.type, child.item)) {
+    if (KNode.isListItem(child)) {
       md += serializeNode(child, ctx, indent + 1)
     } else if (child.type === "quote") {
       const content = child.content ?? ""

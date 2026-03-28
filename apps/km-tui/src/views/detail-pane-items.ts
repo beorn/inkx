@@ -2,8 +2,7 @@
  * Detail Pane Items — metadata key computation for detail pane rendering.
  */
 
-import type { KNode } from "@km/core"
-import { isTask, decomposeDatetime } from "@km/core"
+import { KNode, decomposeDatetime } from "@km/core"
 import { capitalize } from "./detail-pane-helpers.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
 
@@ -58,7 +57,7 @@ export const KNOWN_DATA_KEYS = new Set([
  */
 export function computeMetadataKeys(node: KNode): string[] {
   const keys: string[] = []
-  const nodeIsTask = isTask(node)
+  const nodeIsTask = KNode.isTask(node)
 
   // Status — always shown for tasks (with "none" fallback)
   if (node.task_status || nodeIsTask) keys.push("Status")

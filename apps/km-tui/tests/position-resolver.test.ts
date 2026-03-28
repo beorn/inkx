@@ -12,9 +12,6 @@ import {
   resolveLocationKey,
   isPickTarget,
   isPosition,
-  positionOf,
-  firstChild,
-  lastChild,
   toSortOrder,
   nodeAt,
   isAtPosition,
@@ -22,9 +19,9 @@ import {
   type ResolverRepo,
   type MoveRepo,
   type CursorContext,
-  type Position,
   type PickTarget,
 } from "../src/board/position-resolver.ts"
+import { Position } from "@km/core"
 import { setFavorite, clearFavorite } from "@km/commands"
 
 // --- Test helpers ---
@@ -285,26 +282,26 @@ describe("resolveLocationKey", () => {
   // Domain helpers
   // =========================================================================
 
-  describe("positionOf", () => {
+  describe("Position.of", () => {
     it("returns slot of a node in its parent", () => {
-      expect(positionOf({ id: "card-2", parent_id: "board-A", parent_idx: 1 })).toEqual({
+      expect(Position.of({ id: "card-2", parent_id: "board-A", parent_idx: 1 })).toEqual({
         parentId: "board-A",
         childIdx: 1,
       })
     })
 
     it("returns null for root (no parent)", () => {
-      expect(positionOf({ id: "root", parent_id: null, parent_idx: 0 })).toBeNull()
+      expect(Position.of({ id: "root", parent_id: null, parent_idx: 0 })).toBeNull()
     })
   })
 
-  describe("firstChild / lastChild", () => {
-    it("firstChild creates Position with childIdx 0", () => {
-      expect(firstChild("board-A")).toEqual({ parentId: "board-A", childIdx: 0 })
+  describe("Position.first / Position.last", () => {
+    it("Position.first creates Position with childIdx 0", () => {
+      expect(Position.first("board-A")).toEqual({ parentId: "board-A", childIdx: 0 })
     })
 
-    it("lastChild creates Position with childIdx -1", () => {
-      expect(lastChild("board-A")).toEqual({ parentId: "board-A", childIdx: -1 })
+    it("Position.last creates Position with childIdx -1", () => {
+      expect(Position.last("board-A")).toEqual({ parentId: "board-A", childIdx: -1 })
     })
   })
 

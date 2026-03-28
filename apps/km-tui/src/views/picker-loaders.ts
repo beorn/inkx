@@ -4,7 +4,7 @@
  * Each loader function produces PickerOption[] from the repo for a specific
  * picker type (project, tag, assignee). Used with the generic Picker component.
  */
-import { isOutline, type KNode } from "@km/core"
+import { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { getParentName, extractTags } from "./search-utils.ts"
@@ -27,7 +27,7 @@ function getProjectPath(
 
   while (current) {
     if (
-      isOutline(current.type, current.item) &&
+      KNode.isOutline(current) &&
       (current.fstype === "folder" || current.fstype === "file" || current.fstype === "mdfile")
     ) {
       parts.unshift(displayName(current))
@@ -50,7 +50,7 @@ export function loadProjectOptions(repo: Repo, recentIds: string[]): PickerOptio
 
   for (const node of allNodes) {
     // Only show outline items (sections, files, folders) as valid targets
-    if (isOutline(node.type, node.item)) {
+    if (KNode.isOutline(node)) {
       const title = displayName(node)
       const parentContext = getParentName(node, repo.getNode.bind(repo), displayName)
       const path = getProjectPath(node, repo.getNode.bind(repo), displayName)

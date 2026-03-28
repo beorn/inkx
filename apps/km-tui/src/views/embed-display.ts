@@ -4,8 +4,7 @@
  * across search, CLI, detail pane, and tests.
  */
 
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
 /** Minimal repo interface for embed resolution (subset of full Repo). */
@@ -135,10 +134,10 @@ export function getDisplayContent(
     if (alias && node.content && !EMBED_EXTRACT_RE.test(node.content)) return alias
     if (resolvedNode) {
       // Resolved embed — show target's display name/content
-      if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "folder") {
+      if (KNode.isOutline(resolvedNode) && resolvedNode.fstype === "folder") {
         return getNodeDisplayName(repo, resolvedNode) + "/"
       }
-      if (isOutline(resolvedNode.type, resolvedNode.item) && resolvedNode.fstype === "mdsection") {
+      if (KNode.isOutline(resolvedNode) && resolvedNode.fstype === "mdsection") {
         return getNodeDisplayName(repo, resolvedNode)
       }
       return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
@@ -154,7 +153,7 @@ export function getDisplayContent(
     // Bare block ref (^id) or empty — show broken link fallback with short ID
     return `(broken: ^${src.slice(-8) || node.id.slice(-8)})`
   }
-  if (isOutline(displayNode.type, displayNode.item) && displayNode.fstype === "mdsection") {
+  if (KNode.isOutline(displayNode) && displayNode.fstype === "mdsection") {
     const name = getNodeDisplayName(repo, displayNode)
     // Untitled sections (empty Asana sections) show "(shortId)" fallback from getNodeDisplayName.
     // Replace with a human-readable label instead of a raw GID like "(01KHW5W9)".

@@ -29,8 +29,7 @@
  */
 import React from "react"
 import { Box, Link, Muted, Text, Small } from "@silvery/ag-react"
-import type { KNode } from "@km/core"
-import { isTask } from "@km/core"
+import { KNode } from "@km/core"
 import {
   getColumnHeaderIcon,
   getNodeIcon,
@@ -258,7 +257,7 @@ export function NodeLineView({
   displayName,
   indent = 0,
 }: NodeLineViewProps): React.ReactElement {
-  const nodeIsTask = isTask(node)
+  const nodeIsTask = KNode.isTask(node)
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
   const shouldDim = isDoneOrDropped || ancestorDone
 
@@ -332,7 +331,7 @@ export function NodeCardView({
   parentContext,
   parentNodeId,
 }: NodeCardViewProps): React.ReactElement {
-  const nodeIsTask = isTask(node)
+  const nodeIsTask = KNode.isTask(node)
   const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
   const shouldDim = isDoneOrDropped || ancestorDone
 
@@ -574,7 +573,7 @@ export function NodeDetailView({
   height,
   isSelected: _isSelected = false,
 }: NodeDetailViewProps): React.ReactElement {
-  const nodeIsTask = isTask(node)
+  const nodeIsTask = KNode.isTask(node)
   const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 

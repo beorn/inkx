@@ -1,0 +1,81 @@
+/**
+ * KNode namespace — SlateJS-style static helpers for node type guards.
+ *
+ * The KNode interface lives in types.ts (too many fields to move).
+ * We re-declare it here (declaration merging) so that a single
+ * `export { KNode }` from the barrel gives consumers BOTH the interface
+ * (type) and the namespace (value) — the SlateJS pattern.
+ *
+ * All helpers take a node-like object (not raw fields). Callers that previously
+ * passed (type, item) must now pass the node directly.
+ */
+
+import type { KNode as _KNodeInterface } from "../types.ts"
+
+/**
+ * KNode interface — re-declared for declaration merging with the const below.
+ * The canonical definition with all fields is in types.ts; this declaration
+ * enables `import { KNode } from "@km/core"` to provide both type + value
+ * under verbatimModuleSyntax.
+ */
+// eslint-disable-next-line @typescript-eslint/no-redeclare, @typescript-eslint/no-empty-object-type -- SlateJS declaration merging pattern
+export interface KNode extends _KNodeInterface {}
+
+/** Minimal node shape for type guards. */
+type NodeLike = { type: string; item?: boolean }
+
+/** Extended node shape for embed detection. */
+type EmbedLike = { embed_source?: string | null }
+
+/** Extended node shape for task detection. */
+type TaskLike = {
+  task_status?: string | null
+  due_at?: string | null
+  priority?: string | null
+  start_at?: string | null
+  assigned_to?: string | null
+  rrule?: string | null
+}
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare -- SlateJS namespace pattern
+export const KNode = {
+  /** Outline item — heading item that creates outline hierarchy. */
+  isOutline(node: NodeLike): boolean {
+    return node.type === "h" && node.item === true
+  },
+
+  /** List item — non-heading item in body content. */
+  isListItem(node: NodeLike): boolean {
+    return node.type !== "h" && node.item === true
+  },
+
+  /** Any item — structural node with children (outline or list item). */
+  isItem(node: NodeLike): boolean {
+    return node.item === true
+  },
+
+  /** Block — leaf node (not an item). */
+  isBlock(node: NodeLike): boolean {
+    return !node.item
+  },
+
+  /** Embed — node that displays content from another node via embed_source. */
+  isEmbed(node: EmbedLike): boolean {
+    return node.embed_source != null
+  },
+
+  /** Task — has explicit task_status OR implicit task properties. */
+  isTask(node: TaskLike): boolean {
+    return (
+      node.task_status != null || !!(node.due_at || node.priority || node.start_at || node.assigned_to || node.rrule)
+    )
+  },
+
+  /** Check if node properties match a partial shape. */
+  matches(node: NodeLike & Record<string, unknown>, props: Record<string, unknown>): boolean {
+    for (const key in props) {
+      if ((node as Record<string, unknown>)[key] !== props[key]) return false
+    }
+    return true
+  },
+} as const

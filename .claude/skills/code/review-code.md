@@ -50,11 +50,26 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 - Config files (sensible defaults → arguments → config as last resort)
 - Classes (exception: infrastructure extending EventEmitter)
 
-**Architecture:**
+**Architecture** (see [docs/design/architecture-layers.md](../../../docs/design/architecture-layers.md)):
 
-- Layers: App → Board → Tree → Storage → Parser → Filesystem
-- Each layer calls only layer below
-- UI never touches filesystem directly
+Three layers — Domain (km-core) → Operations (km-tree) → Application (km-tui, km-cli).
+Each layer calls only the layer below. Domain never imports Operations or Application.
+
+Correct pattern — use the KNode/Position namespace helpers:
+
+```ts
+import { KNode } from "@km/core"
+if (KNode.isOutline(node)) { ... }   // namespace type guard
+if (KNode.isTask(node)) { ... }      // namespace type guard
+const pos = Position.of(node)        // namespace constructor
+```
+
+Anti-pattern — raw field checks instead of namespace helpers (layer violation: duplicates Domain logic):
+
+```ts
+if (node.type === "h" && node.item === true) { ... }  // use KNode.isOutline(node)
+function isOutline(type: string, item: boolean) { ... }  // standalone fn duplicating KNode.isOutline
+```
 
 ## Contents
 
@@ -70,7 +85,7 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 
 | Type               | Signal                                                                      |
 | ------------------ | --------------------------------------------------------------------------- |
-| Layer violation    | `km-cli` imports `fs`/`path`, parser has state, sync writes SQLite directly |
+| Layer violation    | `km-cli` imports `fs`/`path`, parser has state, sync writes SQLite directly, raw field checks instead of KNode/Position namespace |
 | Over-engineering   | 1-implementation interface, unused config, single-use generic               |
 | Code smell         | Duplicated logic, dead export, 400+ line file                               |
 | Test gap           | Untested public API, `test1()` name, mock of internal                       |

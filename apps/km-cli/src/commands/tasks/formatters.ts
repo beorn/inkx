@@ -9,13 +9,12 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { getNodeDisplayName as getNodeDisplayNameRaw, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "@km/storage"
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode, type KNode as KNodeType } from "@km/core"
 
 /**
  * Get display name for a node (using repo for children lookup)
  */
-export function getNodeDisplayName(repo: Repo, node: KNode): string {
+export function getNodeDisplayName(repo: Repo, node: KNodeType): string {
   return getNodeDisplayNameRaw(node, (parentId) => repo.getChildren(parentId))
 }
 
@@ -28,16 +27,16 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): stri
     return name + term.gray(` ${ca.typeSuffix}`)
   }
   // No collapsed suffix - show individual type indicator
-  if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "folder") {
+  if (KNode.isOutline(ca.node) && ca.node.fstype === "folder") {
     return name + term.gray("/")
-  } else if (isOutline(ca.node.type, ca.node.item) && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
+  } else if (KNode.isOutline(ca.node) && (ca.node.fstype === "file" || ca.node.fstype === "mdfile")) {
     // Only add .md if name doesn't already end with it
     return name.endsWith(".md") ? name : name + term.gray(".md")
-  } else if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
+  } else if (KNode.isOutline(ca.node) && ca.node.fstype === "mdsection") {
     // Compute depth from tree nesting (direct file children = H2)
     let depth = 2
-    let current: KNode | null | undefined = ca.node.parent_id ? repo.getNode(ca.node.parent_id) : undefined
-    while (isOutline(current?.type ?? "", current?.item) && current?.fstype === "mdsection") {
+    let current: KNodeType | null | undefined = ca.node.parent_id ? repo.getNode(ca.node.parent_id) : undefined
+    while (current && KNode.isOutline(current) && current.fstype === "mdsection") {
       depth++
       current = current.parent_id ? repo.getNode(current.parent_id) : undefined
     }
@@ -51,7 +50,7 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor): stri
  */
 export function formatTaskWithPath(
   repo: Repo,
-  task: KNode,
+  task: KNodeType,
   collapsedAncestors: CollapsedAncestor[],
   options: { detail?: boolean; flat?: boolean; showId?: boolean } = {},
 ): string[] {
@@ -71,7 +70,7 @@ export function formatTaskWithPath(
     for (const ca of collapsedAncestors) {
       const prefix = " ".repeat(fsDepth)
       lines.push(prefix + term.dim(formatCollapsedAncestor(repo, ca)))
-      if (isOutline(ca.node.type, ca.node.item) && ca.node.fstype === "mdsection") {
+      if (KNode.isOutline(ca.node) && ca.node.fstype === "mdsection") {
         hasSection = true
       } else {
         // Only folders/files increase the depth
@@ -90,7 +89,7 @@ export function formatTaskWithPath(
 /**
  * Format the task line itself (checkbox, id, content)
  */
-export function formatTaskLine(task: KNode, options: { detail?: boolean; showId?: boolean } = {}): string {
+export function formatTaskLine(task: KNodeType, options: { detail?: boolean; showId?: boolean } = {}): string {
   const marker = task.task_marker ?? "[ ]"
   const status = task.task_status ?? "todo"
 

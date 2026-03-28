@@ -2,7 +2,7 @@
  * Board top bar - path segments rendering
  */
 import { createTerm, type StyleChain } from "@silvery/ag-react"
-import { isOutline, type KNode } from "@km/core"
+import { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { parseToPlainText, colorize } from "../text/index.ts"
@@ -88,16 +88,13 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
     const name = parseToPlainText(rawName.replace(/#@/g, "@"))
     const isWithinBoard = boardRootIndex >= 0 && i > boardRootIndex
 
-    if (
-      isOutline(node.type, node.item) &&
-      (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")
-    ) {
+    if (KNode.isOutline(node) && (node.fstype === "folder" || node.fstype === "file" || node.fstype === "mdfile")) {
       const sep = segments.length === 0 ? "" : isWithinBoard ? ">" : "/"
       segments.push({ id: node.id, name, sep, isWithinBoard, node })
-    } else if (isOutline(node.type, node.item) && node.fstype === "mdsection") {
+    } else if (KNode.isOutline(node) && node.fstype === "mdsection") {
       const sep = isWithinBoard ? ">" : "#"
       segments.push({ id: node.id, name, sep, isWithinBoard, node })
-    } else if (isOutline(node.type, node.item)) {
+    } else if (KNode.isOutline(node)) {
       if (segments.length === 0) {
         segments.push({
           id: node.id,

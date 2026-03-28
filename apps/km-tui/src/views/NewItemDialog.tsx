@@ -7,7 +7,7 @@
 import React from "react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import { Box, Text, CursorLine, ModalDialog } from "@silvery/ag-react"
-import { isOutline, type KNode } from "@km/core"
+import { KNode } from "@km/core"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { useRepo } from "../repo-context.tsx"
@@ -34,7 +34,7 @@ export interface NewItemDialogProps {
  */
 function getInsertParentId(cursorNode: KNode | null): string | null {
   if (!cursorNode) return null
-  return isOutline(cursorNode.type, cursorNode.item) ? cursorNode.id : cursorNode.parent_id
+  return KNode.isOutline(cursorNode) ? cursorNode.id : cursorNode.parent_id
 }
 
 /**

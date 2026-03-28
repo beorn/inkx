@@ -21,7 +21,7 @@ import {
   createRuleContext,
 } from "../src/db-rules.ts"
 import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts"
-import { isEmbed } from "@km/core"
+import { KNode } from "@km/core"
 
 interface TestEnv {
   store: MemoryStore
@@ -166,7 +166,7 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => isEmbed(c))
+          const embeds = children.filter((c) => KNode.isEmbed(c))
 
           expect(embeds.length).toBe(2)
           expect(embeds.every((e) => e.embed_source)).toBe(true)
@@ -203,7 +203,7 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => isEmbed(c))
+          const embeds = children.filter((c) => KNode.isEmbed(c))
           const directTasks = children.filter((c) => c.task_status != null)
 
           expect(embeds.length).toBe(1)
@@ -254,8 +254,8 @@ describe("Database Rules", () => {
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => isEmbed(c))
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => isEmbed(c))
+          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => KNode.isEmbed(c))
+          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => KNode.isEmbed(c))
 
           expect(todoEmbeds.length).toBe(2)
           expect(doneEmbeds.length).toBe(1)
@@ -297,7 +297,7 @@ describe("Database Rules", () => {
           const children = getChildren(store.getDatabase(), openSection!.id)
 
           expect(children.length).toBe(2)
-          expect(children.every((c) => isEmbed(c))).toBe(true)
+          expect(children.every((c) => KNode.isEmbed(c))).toBe(true)
           expect(children.every((c) => c.embed_source)).toBe(true)
         },
       ))

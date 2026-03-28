@@ -5,8 +5,7 @@
  * Moved from @km/tui-core to @km/tree during architecture restructuring.
  */
 
-import type { KNode } from "@km/core"
-import { extractMetadata, isOutline } from "@km/core"
+import { KNode, extractMetadata } from "@km/core"
 import { PROP_REGEX } from "@km/markdown"
 import { findIndexFile } from "./index-file.ts"
 
@@ -91,9 +90,9 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   }
 
   // 3. For file/mdfile nodes, use first section's title or content (H1 heading)
-  if (isOutline(node.type, node.item) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
+  if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
-    const firstSection = children.find((c: KNode) => isOutline(c.type, c.item) && c.fstype === "mdsection")
+    const firstSection = children.find((c: KNode) => KNode.isOutline(c) && c.fstype === "mdsection")
     if (firstSection) {
       // Use pre-parsed title if available (node.title takes precedence over data.title)
       if (firstSection.title) {
@@ -143,9 +142,9 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
   if (node.title) return false
   // Only check data.title when node.title is undefined (not just empty "")
   if (node.title == null && node.data?.title) return false
-  if (isOutline(node.type, node.item) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
+  if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile") && getChildren) {
     const children = getChildren(node.id)
-    const firstSection = children.find((c: KNode) => isOutline(c.type, c.item) && c.fstype === "mdsection")
+    const firstSection = children.find((c: KNode) => KNode.isOutline(c) && c.fstype === "mdsection")
     if (firstSection?.title || firstSection?.data?.title || firstSection?.content) return false
   }
   if (node.content) return false
@@ -160,7 +159,7 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
  * - mdsection: #
  */
 export function getTypeIndicator(type: string, fstype?: string, item?: boolean): string {
-  if (!isOutline(type, item)) return ""
+  if (!KNode.isOutline({ type, item })) return ""
   switch (fstype) {
     case "folder":
     case "repo":
@@ -411,12 +410,12 @@ function findParentContextNode(node: KNode, skipParentId?: string | null, getNod
     if (!parent) break
 
     // File/mdfile node — meaningful context
-    if (isOutline(parent.type, parent.item) && (parent.fstype === "file" || parent.fstype === "mdfile")) {
+    if (KNode.isOutline(parent) && (parent.fstype === "file" || parent.fstype === "mdfile")) {
       return parent
     }
 
     // Meaningful section (not a board column — those have rules)
-    if (isOutline(parent.type, parent.item) && parent.fstype === "mdsection" && !parent.rules) {
+    if (KNode.isOutline(parent) && parent.fstype === "mdsection" && !parent.rules) {
       return parent
     }
 

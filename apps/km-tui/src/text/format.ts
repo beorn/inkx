@@ -12,7 +12,7 @@
  */
 
 import { createTerm, type StyleChain } from "@silvery/ag-react"
-import { getStatusForMarker, isOutline, type KNode } from "@km/core"
+import { getStatusForMarker, KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase, type CollapsedAncestor } from "@km/tree"
 import type { Repo } from "../repo-context.tsx"
 import { themeFg } from "./colors.ts"
@@ -25,7 +25,7 @@ import { themeFg } from "./colors.ts"
 function computeSectionDepth(node: KNode, getNode: (id: string) => KNode | null | undefined): number {
   let depth = 2 // Direct file children are H2
   let current = node.parent_id ? getNode(node.parent_id) : undefined
-  while (isOutline(current?.type ?? "", current?.item) && current?.fstype === "mdsection") {
+  while (current && KNode.isOutline(current) && current.fstype === "mdsection") {
     depth++
     current = current.parent_id ? getNode(current.parent_id) : undefined
   }
@@ -62,7 +62,7 @@ export function formatCollapsedAncestor(repo: Repo, ca: CollapsedAncestor, showI
     return prefix + name + themeFg(` ${ca.typeSuffix}`, "$disabled-fg")
   }
   // No collapsed suffix - show individual type indicator based on fstype
-  if (isOutline(ca.node.type, ca.node.item)) {
+  if (KNode.isOutline(ca.node)) {
     switch (ca.node.fstype) {
       case "folder":
         return prefix + name + themeFg("/", "$disabled-fg")
@@ -91,7 +91,7 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   const name = getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 
   // Handle outline items by fstype
-  if (isOutline(node.type, node.item)) {
+  if (KNode.isOutline(node)) {
     switch (node.fstype) {
       case "folder":
         return prefix + themeFg(name, "$link") + themeFg("/", "$disabled-fg")

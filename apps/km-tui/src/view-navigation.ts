@@ -9,7 +9,7 @@
  */
 
 import type { Repo } from "@km/storage"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { createLogger } from "loggily"
 import { extractBody, findIndexFile } from "@km/tree"
 import type { GridNavigator } from "@km/board"
@@ -132,7 +132,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
   // layer (see extractBody). The navigation layer must treat them as card-level,
   // not column-level, even though their parent_id === rootId.
   const isDirectChildOfRoot = cursorNode.parent_id === rootId && !isAtBoardLevel
-  const isBodyContent = isDirectChildOfRoot && !isOutline(cursorNode.type, cursorNode.item)
+  const isBodyContent = isDirectChildOfRoot && !KNode.isOutline(cursorNode)
 
   const isAtColumnLevel = isDirectChildOfRoot && !isBodyContent
   const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
@@ -151,11 +151,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       const directChildOfRoot = findAncestorAtDepth(state.cursorCardNodeId, rootId, 0, repo)
       if (directChildOfRoot) {
         const directChildNode = repo.getNode(state.cursorCardNodeId)
-        if (
-          directChildNode &&
-          directChildNode.parent_id === rootId &&
-          !isOutline(directChildNode.type, directChildNode.item)
-        ) {
+        if (directChildNode && directChildNode.parent_id === rootId && !KNode.isOutline(directChildNode)) {
           isBodyCardDescendant = true
         }
       }
@@ -163,7 +159,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
       if (directChildOfRoot) {
         const directChildNode = repo.getNode(directChildOfRoot)
-        if (directChildNode && !isOutline(directChildNode.type, directChildNode.item)) {
+        if (directChildNode && !KNode.isOutline(directChildNode)) {
           cardNodeId = directChildOfRoot
           isBodyCardDescendant = true
         } else {
@@ -332,7 +328,7 @@ function splitBodyAndColumns(allChildren: { id: string; type: string; item?: boo
   bodyNodes: { id: string; type: string; item?: boolean; content?: string }[]
   structuralCols: { id: string; type: string; item?: boolean; content?: string }[]
 } {
-  const firstStructuralIdx = allChildren.findIndex((c) => isOutline(c.type, c.item))
+  const firstStructuralIdx = allChildren.findIndex((c) => KNode.isOutline(c))
   if (firstStructuralIdx === -1) return { bodyNodes: filterMeaningfulBody(allChildren), structuralCols: [] }
   if (firstStructuralIdx === 0) return { bodyNodes: [], structuralCols: allChildren }
   return {

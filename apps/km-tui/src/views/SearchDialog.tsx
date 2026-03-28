@@ -6,8 +6,7 @@
  */
 import React from "react"
 import { Box, Text, Small, Muted, Strong, ErrorBoundary, ModalDialog } from "@silvery/ag-react"
-import type { KNode } from "@km/core"
-import { isOutline, isEmbed } from "@km/core"
+import { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -54,9 +53,9 @@ function searchNodes(repo: Repo, query: string, scopeNodeIds?: string[]): Search
   const results: SearchResult[] = []
   for (const node of nodes) {
     // Skip folders (not meaningful for search)
-    if (isOutline(node.type, node.item) && node.fstype === "folder") continue
+    if (KNode.isOutline(node) && node.fstype === "folder") continue
     // Skip transclusions (search target instead)
-    if (isEmbed(node)) continue
+    if (KNode.isEmbed(node)) continue
     // Skip nodes outside scope
     if (scopeSet && !scopeSet.has(node.id)) continue
 

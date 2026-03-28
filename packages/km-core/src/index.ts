@@ -8,9 +8,8 @@
  * - Tree queries → @km/tree
  */
 
-// Types
+// Types (KNode type is re-exported via interfaces/node.ts alongside the KNode namespace)
 export type {
-  KNode,
   TNode,
   Source,
   NodeType,
@@ -36,18 +35,22 @@ export type {
 export { VERSION, BUILD_INFO, BUILD_TIME, GIT_COMMIT, GIT_BRANCH, GIT_DIRTY } from "./build-info.gen.ts"
 export type { BuildInfo } from "./build-info.gen.ts"
 
-// Type predicates (km-ast v2)
-export { isOutline, isListItem, isItem, isBlock, isEmbed, validateNode } from "./types.ts"
+// Domain interfaces — SlateJS namespace pattern (interface + const with same name)
+// Position: value (Position.of, .first, .last, .equals) + type ({ parentId, childIdx })
+// KNode: value (KNode.isOutline, .isItem, etc.) + type (interface from types.ts via declaration merge)
+export { Position, KNode } from "./interfaces/index.ts"
+
+// Node validation
+export { validateNode } from "./types.ts"
 export type { ValidationError } from "./types.ts"
 
-// Task utilities (new names)
+// Task utilities
 export {
   getMarkerForStatus,
   getStatusForMarker,
   markToMarker,
   extractTitleTaskMarker,
   hasTaskProperties,
-  isTask,
 } from "./types.ts"
 
 // Date utilities (due_at / start_at ↔ date/time/tz)

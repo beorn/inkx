@@ -6,8 +6,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode } from "@km/core"
-import { isOutline } from "@km/core"
+import { KNode } from "@km/core"
 import { findIndexFile, isSlotNode } from "@km/tree"
 import { getChildren, getSubtree } from "./db-queries/tree-traversal.ts"
 import { getAllNodes } from "./db-queries/utils.ts"
@@ -38,7 +37,7 @@ export function buildIndexContent(
   // Preserve existing body from index file using proper serialization
   const body = existingIndex ? extractBodyFromIndex(db, existingIndex) : ""
 
-  const childSlots = children.filter((c) => (!existingIndex || c.id !== existingIndex.id) && isOutline(c.type, c.item))
+  const childSlots = children.filter((c) => (!existingIndex || c.id !== existingIndex.id) && KNode.isOutline(c))
 
   return generateIndexFileContent(
     title,

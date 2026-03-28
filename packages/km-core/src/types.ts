@@ -39,34 +39,8 @@ export type NodeType = BlockType
 /** Filesystem subtype for outline item nodes (type:"h", item:true) */
 export type FsType = "repo" | "folder" | "file" | "mdfile" | "txtfile" | "mdsection"
 
-// =============================================================================
-// Type Predicates (v2 trait-based)
-// =============================================================================
-
-/** Outline item — heading item that creates outline hierarchy. */
-export function isOutline(type: string, item?: boolean): boolean {
-  return type === "h" && item === true
-}
-
-/** List item — non-heading item in body content. */
-export function isListItem(type: string, item?: boolean): boolean {
-  return type !== "h" && item === true
-}
-
-/** Any item — structural node with children (outline or list item). */
-export function isItem(type: string, item?: boolean): boolean {
-  return item === true
-}
-
-/** Block — leaf node (not an item). */
-export function isBlock(type: string, item?: boolean): boolean {
-  return !item
-}
-
-/** Embed — node that displays content from another node via embed_source. Orthogonal to type. */
-export function isEmbed(node: { embed_source?: string | null }): boolean {
-  return node.embed_source != null
-}
+// Type predicates moved to KNode namespace (km-core/src/interfaces/node.ts)
+// Use KNode.isOutline(node), KNode.isItem(node), etc.
 
 // =============================================================================
 // Task Status and Markers
@@ -202,15 +176,8 @@ export function hasTaskProperties(
   return !!(node.due_at || node.priority || node.start_at || node.assigned_to || node.rrule)
 }
 
-/**
- * Check if a node is a task (explicit task_status OR implicit task properties).
- * Single source of truth for task detection — use this instead of inline checks.
- */
-export function isTask(
-  node: Pick<KNode, "task_status" | "due_at" | "priority" | "start_at" | "assigned_to" | "rrule">,
-): boolean {
-  return node.task_status != null || hasTaskProperties(node)
-}
+// isTask moved to KNode namespace (km-core/src/interfaces/node.ts)
+// Use KNode.isTask(node)
 
 // =============================================================================
 // Node Validation (kmast v2 constraints)

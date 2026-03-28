@@ -22,7 +22,7 @@ import { queryNodes } from "./query.ts"
 import { removeLinksFromSourceByRelationship } from "./db-links.ts"
 import { rowToNode, getChildren, getNode } from "./db-queries/index.ts"
 import { createDbOps, buildEmbedChild } from "./db-ops.ts"
-import { parseQuery, isOutline, isEmbed, type KNode, type NodeRules } from "@km/core"
+import { parseQuery, KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
 
@@ -125,7 +125,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
 
   // Guard: rules must be on outline items (type: "h", item: true).
   // Rule-created children are outline items, which can only nest inside outline parents.
-  if (!isOutline(section.type, section.item)) {
+  if (!KNode.isOutline(section)) {
     throw new Error(
       `km.add:: rule on non-outline node (type=${section.type}, item=${section.item}). Rules are only supported on section headings.`,
     )
@@ -161,7 +161,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Remove rule-created items that no longer match any query
   // Identify by embed_source (set on all rule-materialized nodes)
   const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db)))
-  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => isEmbed(n))
+  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => KNode.isEmbed(n))
   let removedCount = 0
   for (const embed of existingEmbedNodes) {
     const embedData = typeof embed.data === "object" && embed.data ? (embed.data as Record<string, unknown>) : {}
@@ -188,7 +188,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     const boardDescendants = getChildren(db, boardRootId)
     for (const section_node of boardDescendants) {
       for (const child of getChildren(db, section_node.id)) {
-        if (isEmbed(child)) {
+        if (KNode.isEmbed(child)) {
           const childData = typeof child.data === "object" && child.data ? (child.data as Record<string, unknown>) : {}
           const path = (childData.targetPath as string) ?? child.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
           if (path) {
