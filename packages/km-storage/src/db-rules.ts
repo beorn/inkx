@@ -231,13 +231,12 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     // Create outline item with embed_source pointing to the matched node.
     // type: "h", item: true makes it a structural sub-item (card) on the board,
     // not body content. embed_source enables transclusion (resolveEmbed).
-    const targetPath = getEmbedPath(match, db)
-    const embedNode = buildEmbedChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath })
+    const embedNode = buildEmbedChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath: candidatePath })
     ops.addNode(sectionId, embedNode)
 
     addedCount++
-    existingEmbedPathsOnBoard.add(targetPath)
-    existingEmbedFilesOnBoard.add(targetPath.split("#")[0]!)
+    existingEmbedPathsOnBoard.add(candidatePath)
+    existingEmbedFilesOnBoard.add(candidatePath.split("#")[0]!)
   }
 
   ruleSpan.spanData.added = addedCount
