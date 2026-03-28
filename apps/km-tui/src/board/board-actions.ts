@@ -15,7 +15,7 @@
 
 import { spawn } from "node:child_process"
 import { dirname, join } from "node:path"
-import type { CommandAction } from "@km/commands"
+import type { CommandAction, VerbOp, NavOp, EditOp, TextOp, BoardOp, DialogOp, PaneOp, ViewOp } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "loggily"
 import * as chrono from "chrono-node"
@@ -58,6 +58,209 @@ import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from ".
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:board-actions") as any
+
+// =============================================================================
+// Type Guards — O(1) dispatch via Sets of type strings
+// =============================================================================
+
+const VERB_TYPES: ReadonlySet<string> = new Set(["CURSOR_TO", "REPARENT_TO", "LINK_TO", "CREATE_AT"])
+
+const NAV_TYPES: ReadonlySet<string> = new Set([
+  "CURSOR_MOVE",
+  "NAV_BACK",
+  "NAV_FORWARD",
+  "NAV_SIBLING_BOARD",
+  "ZOOM_INWARDS",
+  "ZOOM_OUTWARDS",
+  "ZOOM_TO_ROOT",
+  "FOLLOW_LINK",
+  "PAGE_JUMP",
+  "JUMP_TO_COLUMN",
+  "FOLD_LEVEL",
+  "UNFOLD_LEVEL",
+])
+
+const EDIT_TYPES: ReadonlySet<string> = new Set([
+  "ENTER_INLINE_EDIT",
+  "EDIT_BLOCK_NAVIGATE",
+  "INDENT_NODE",
+  "OUTDENT_NODE",
+  "INSERT_ABOVE",
+  "INSERT_BELOW",
+  "INSERT_CHILD",
+  "INSERT_AT_PARENT",
+  "DELETE_NODE",
+  "DUPLICATE_NODE",
+  "OPEN_IN_SYSTEM",
+  "OPEN_IN_TERMINAL",
+  "CLIPBOARD_COPY",
+  "CLIPBOARD_CUT",
+  "CLIPBOARD_PASTE",
+  "ADD_LINK",
+  "REPARENT_PICKER",
+  "ARCHIVE_NODE",
+  "TASK_SET_STATUS",
+  "CLEAR_TASK",
+  "SHIFT_UP",
+  "SHIFT_DOWN",
+  "SHIFT_LEFT",
+  "SHIFT_RIGHT",
+])
+
+const TEXT_TYPES: ReadonlySet<string> = new Set([
+  "TEXT_INSERT",
+  "TEXT_DELETE_BACKWARD",
+  "TEXT_DELETE_FORWARD",
+  "TEXT_CURSOR_LEFT",
+  "TEXT_CURSOR_RIGHT",
+  "TEXT_CURSOR_UP",
+  "TEXT_CURSOR_DOWN",
+  "TEXT_CURSOR_START",
+  "TEXT_CURSOR_END",
+  "TEXT_DELETE_WORD",
+  "TEXT_DELETE_TO_START",
+  "TEXT_DELETE_TO_END",
+  "TEXT_CONFIRM",
+  "TEXT_EXIT_EDIT",
+  "TEXT_YANK",
+  "TEXT_LINEBREAK_SPLIT",
+  "TEXT_LINEBREAK_BEFORE",
+  "TEXT_LINEBREAK_CHILD",
+  "TEXT_LINEBREAK_AFTER",
+  "TEXT_CHILD_BLOCK",
+  "TEXT_BOLD",
+  "TEXT_ITALIC",
+])
+
+const BOARD_TYPES: ReadonlySet<string> = new Set([
+  "SELECT",
+  "SET_ROOT",
+  "SET_CURSWANT",
+  "TOGGLE_FOLD",
+  "TOGGLE_COLLAPSE",
+  "ZOOM_IN",
+  "FOLD_NODE",
+  "UNFOLD_NODE",
+  "UNFOLD_RECURSIVE",
+  "SELECT_ALL",
+  "SELECT_NODE_ADD",
+  "SELECT_NODE_REMOVE",
+  "SELECT_NODE_TOGGLE",
+  "CLEAR_SELECTION",
+  "VISUAL_MODE_ENTER",
+  "VISUAL_MODE_EXIT",
+  "EXTEND_SELECT_UP",
+  "EXTEND_SELECT_DOWN",
+  "EXTEND_SELECT_LEFT",
+  "EXTEND_SELECT_RIGHT",
+  "SELECT_ALL_SIBLINGS",
+  "ENTER_MOVE_MODE",
+  "CONFIRM_MOVE",
+  "CANCEL_MOVE",
+  "INCREASE_CONTENT_LINES",
+  "DECREASE_CONTENT_LINES",
+  "IGNORE_NODE",
+  "TOGGLE_SHOW_IGNORED",
+])
+
+const DIALOG_TYPES: ReadonlySet<string> = new Set([
+  "SHOW_NEW_ITEM_DIALOG",
+  "SHOW_ITEM_PICKER",
+  "SHOW_TASK_DIALOG",
+  "SHOW_SEARCH_DIALOG",
+  "SHOW_FILTER_DIALOG",
+  "SET_FILTER",
+  "CLEAR_FILTER",
+  "TOGGLE_FILTER_PROPERTY",
+  "CLEAR_FILTER_CATEGORY",
+  "CLEAR_ALL_FILTER_PROPERTIES",
+  "TOGGLE_HIDE_DONE",
+  "CLEAR_FILTERS",
+  "COMMAND_PALETTE",
+  "DIALOG_NAV_UP",
+  "DIALOG_NAV_DOWN",
+  "DIALOG_NAV_LEFT",
+  "DIALOG_NAV_RIGHT",
+  "DIALOG_CONFIRM",
+  "DIALOG_CANCEL",
+  "TOGGLE_SEARCH_SCOPE",
+  "DELETE_CONFIRM_EXECUTE",
+  "DELETE_CONFIRM_CANCEL",
+  "MANAGE_FAVORITES",
+  "FAVORITES_SELECT_KEY",
+  "FAVORITES_ASSIGN",
+  "FAVORITES_CLEAR",
+  "FAVORITES_BACK",
+  "SET_DUE_DATE",
+  "SET_START_DATE",
+  "SET_RECURRING",
+  "SET_PRIORITY",
+  "SET_PRIORITY_0",
+  "SET_PRIORITY_1",
+  "SET_PRIORITY_2",
+  "SET_PRIORITY_3",
+  "SET_PRIORITY_4",
+  "SET_LABEL",
+  "SET_ASSIGNEE",
+  "DATE_PROMPT_CONFIRM",
+  "DATE_PROMPT_CANCEL",
+  "LOCAL_FIND_OPEN",
+  "LOCAL_FIND_NEXT",
+  "LOCAL_FIND_PREV",
+  "LOCAL_FIND_CLOSE",
+  "LOCAL_FIND_CONFIRM",
+  "SEARCH_REPLACE_OPEN",
+  "SEARCH_REPLACE_CLOSE",
+  "SEARCH_REPLACE_NEXT",
+  "SEARCH_REPLACE_PREV",
+  "SEARCH_REPLACE_DO_REPLACE",
+  "SEARCH_REPLACE_DO_REPLACE_ALL",
+  "SEARCH_REPLACE_TOGGLE_REGEX",
+  "FOCUS_NEXT",
+  "FOCUS_PREV",
+])
+
+const PANE_TYPES: ReadonlySet<string> = new Set([
+  "PANE_SPLIT",
+  "PANE_CLOSE",
+  "PANE_FOCUS",
+  "PANE_FOCUS_PREVIOUS",
+  "PANE_FOCUS_CYCLE",
+  "PANE_FOCUS_NUMBER",
+  "PANE_RESIZE",
+  "PANE_RESIZE_VERTICAL",
+  "PANE_EQUALIZE",
+  "PANE_ZOOM",
+  "PANE_ONLY",
+  "PANE_SWAP",
+  "PANE_SPLIT_AND_PICK",
+  "CLOSE_DETAIL_PANE",
+  "TOGGLE_DETAIL_PANE",
+])
+
+// ViewOp types: everything not matched above (no Set needed — it's the fallback)
+
+function isVerbOp(action: CommandAction): action is VerbOp {
+  return VERB_TYPES.has(action.type)
+}
+function isNavOp(action: CommandAction): action is NavOp {
+  return NAV_TYPES.has(action.type)
+}
+function isEditOp(action: CommandAction): action is EditOp {
+  return EDIT_TYPES.has(action.type)
+}
+function isTextOp(action: CommandAction): action is TextOp {
+  return TEXT_TYPES.has(action.type)
+}
+function isBoardOp(action: CommandAction): action is BoardOp {
+  return BOARD_TYPES.has(action.type)
+}
+function isDialogOp(action: CommandAction): action is DialogOp {
+  return DIALOG_TYPES.has(action.type)
+}
+function isPaneOp(action: CommandAction): action is PaneOp {
+  return PANE_TYPES.has(action.type)
+}
 
 /**
  * Maximum fold depth. Prevents runaway expansion when unfolding.
@@ -141,64 +344,37 @@ export { updateLocalSearchMatches } from "./board-actions-find.ts"
 export { updateSearchReplaceMatches } from "./board-actions-search-replace.ts"
 
 // =============================================================================
-// Main Action Dispatcher
+// Main Action Dispatcher (Router)
 // =============================================================================
 
 /**
  * Handle a command action from the command system.
  *
- * Uses exhaustive switch - TypeScript errors if any action type is missing.
- * See km-y00m for why this pattern replaced the layered type guard approach.
+ * Routes to focused sub-handlers by action category. Each sub-handler has its
+ * own exhaustive switch with assertNever, so TypeScript catches missing cases.
  *
  * Returns ActionResult: ok() on success, boundary/precondition/unimplemented on expected failure.
  * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
-// oxlint-disable-next-line complexity/complexity -- Exhaustive action switch — TS validates completeness
 export function handleCommandAction(ctx: ActionCtx, action: CommandAction): ActionResult {
-  const { exit } = ctx
-  const col = ctx.column
-  const card = ctx.card
+  if (isVerbOp(action)) return handleVerbAction(ctx, action)
+  if (isNavOp(action)) return handleNavAction(ctx, action)
+  if (isEditOp(action)) return handleEditAction(ctx, action)
+  if (isTextOp(action)) return handleTextAction(ctx, action)
+  if (isBoardOp(action)) return handleBoardAction(ctx, action)
+  if (isDialogOp(action)) return handleDialogAction(ctx, action)
+  if (isPaneOp(action)) return handlePaneAction(ctx, action)
+  // ViewOp is the fallback — no type guard needed
+  return handleViewAction(ctx, action as ViewOp)
+}
 
+// =============================================================================
+// Sub-Handlers (focused switches, each ≤25 cases)
+// =============================================================================
+
+/** VerbOp: verb x location actions (4 cases). */
+function handleVerbAction(ctx: ActionCtx, action: VerbOp): ActionResult {
   switch (action.type) {
-    // === TUI-specific actions ===
-    case "QUIT":
-      exit()
-      return ok()
-    case "SHOW_NEW_ITEM_DIALOG":
-      pushDialogMode("dialog:newItem")
-      ctx.closeDetailPane()
-      ctx.setUI({
-        showNewItemDialog: true,
-      })
-      clearSelection(ctx)
-      return ok()
-    case "SHOW_ITEM_PICKER":
-      // Allow item picker in empty panes (no card required) or when a card is selected
-      if (card || ctx.focusedPaneViewType() === "empty") {
-        pushDialogMode("dialog:picker")
-        ctx.closeDetailPane()
-        ctx.setUI({
-          activePicker: { type: "project" },
-        })
-        clearSelection(ctx)
-      }
-      return ok()
-    case "SHOW_TASK_DIALOG":
-      // Stub: task properties dialog — not yet implemented
-      ctx.toastQueue.info("Task dialog not yet implemented")
-      ctx.setUI({})
-      return ok()
-    case "SHOW_SEARCH_DIALOG":
-      pushDialogMode("dialog:search")
-      ctx.closeDetailPane()
-      ctx.setUI({
-        showSearchDialog: true,
-        searchDialogInitialInput: "",
-        searchScope: "all",
-        searchScopeNodeIds: ctx.cursorNodeId ? [ctx.cursorNodeId] : [],
-      })
-      clearSelection(ctx)
-      return ok()
     case "CURSOR_TO": {
       // "parent" is special: zoom outwards (view-level, not positional)
       if (action.locationKey === "parent") {
@@ -261,27 +437,68 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       }
       return handleCreateAt(ctx, createTarget)
     }
-    case "ADD_LINK":
-      // Stub: link picker not yet implemented
-      ctx.toastQueue.info("Link picker not yet implemented")
-      ctx.setUI({})
-      return ok()
-    case "REPARENT_PICKER":
-      ctx.setUI({ activePicker: { type: "project" } })
+    // VerbAction is a single interface (not a DU) — TS can't narrow to never.
+    // The isVerbOp type guard guarantees only verb types reach here.
+  }
+}
+
+/** NavOp: cursor movement, zoom, page jumps, history (12 cases). */
+function handleNavAction(ctx: ActionCtx, action: NavOp): ActionResult {
+  switch (action.type) {
+    case "CURSOR_MOVE":
+      // Navigate-away saves: confirm inline edit before moving cursor.
+      if (ctx.ui.inlineEditBlock && activeEditTargetRef.current) {
+        activeEditTargetRef.current.confirm()
+      }
+      return handleCursorMove(ctx, action.dir)
+    case "NAV_BACK":
+      return handleNavBack(ctx)
+    case "NAV_FORWARD":
+      return handleNavForward(ctx)
+    case "NAV_SIBLING_BOARD":
+      return handleNavSiblingBoard(ctx, action.direction)
+    case "ZOOM_INWARDS":
+      return handleZoomInwards(ctx)
+    case "ZOOM_OUTWARDS":
+      return handleZoomOutwards(ctx)
+    case "ZOOM_TO_ROOT":
+      return handleZoomToRoot(ctx)
+    case "FOLLOW_LINK":
+      return handleFollowLink(ctx)
+    case "PAGE_JUMP":
+      handlePageJump(ctx, action.direction)
       return ok()
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
+    case "FOLD_LEVEL": {
+      const newDepths = new Map(ctx.foldDepths)
+      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.set(c.id, 0)
+      ctx.setFoldDepths(newDepths)
+      return ok()
+    }
+    case "UNFOLD_LEVEL": {
+      const newDepths = new Map(ctx.foldDepths)
+      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.delete(c.id)
+      ctx.setFoldDepths(newDepths)
+      return ok()
+    }
+    default:
+      assertNever(action)
+  }
+}
+
+/** EditOp: structural editing — insert, delete, move, indent, clipboard (24 cases). */
+// oxlint-disable-next-line complexity/complexity -- Exhaustive edit action switch
+function handleEditAction(ctx: ActionCtx, action: EditOp): ActionResult {
+  const col = ctx.column
+  const card = ctx.card
+
+  switch (action.type) {
     case "ENTER_INLINE_EDIT": {
-      // P1 fix (km-tui.keys-as-text): Suppress edit mode entry if a dialog was
-      // just confirmed. When the user presses Enter to select a search result,
-      // the Enter can propagate (in the same event batch or via rapid double-tap)
-      // to the newly-focused card, triggering edit mode. Subsequent navigation
-      // keys then corrupt the card title instead of navigating.
       if (isDialogConfirmGracePeriod()) {
         log.debug?.("ENTER_INLINE_EDIT suppressed: dialog confirm grace period")
         return ok()
       }
-      // Virtual metadata rows in the detail pane are not editable nodes
       if (action.nodeId?.startsWith(DETAIL_META_PREFIX)) {
         log.debug?.("ENTER_INLINE_EDIT suppressed: virtual metadata row")
         return ok()
@@ -296,8 +513,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     }
     case "EDIT_BLOCK_NAVIGATE":
       return handleEditBlockNavigate(ctx, action.direction)
-    case "CLOSE_OR_QUIT":
-      return handleCloseOrQuit(ctx)
     case "INDENT_NODE":
       if (!card && col) return handleIndentColumn(ctx, col)
       if (!card) return boundary("indent", "No card to indent")
@@ -307,404 +522,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       if (!card) return boundary("outdent", "No card to outdent")
       if (!outdentNode(ctx, card)) return boundary("outdent", "Can't outdent further")
       return ok()
-    case "NAV_SIBLING_BOARD":
-      return handleNavSiblingBoard(ctx, action.direction)
-    case "ZOOM_INWARDS":
-      return handleZoomInwards(ctx)
-    case "FOLLOW_LINK":
-      return handleFollowLink(ctx)
-    case "PAGE_JUMP":
-      handlePageJump(ctx, action.direction)
-      return ok()
-    case "OPEN_IN_SYSTEM":
-      handleOpenInSystem(ctx, action.nodeId)
-      return ok()
-    case "OPEN_IN_TERMINAL":
-      handleOpenInTerminal(ctx, action.nodeId)
-      return ok()
-
-    // === UI actions ===
-    case "CYCLE_VIEW_MODE":
-      // Clear stickyY when changing view mode - Y coordinates are incomparable across views
-      // (cards view has borders, columns view is single-row items, etc.)
-      ctx.navigator.clearStickyY()
-      ctx.setUI((prev) => {
-        const modes: ViewMode[] = ["cards", "columns", /* "list", */ "tabs"]
-        const idx = modes.indexOf(prev.viewMode)
-        return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
-      })
-      return ok()
-    case "CYCLE_ICON_STYLE": {
-      ctx.setUI((prev) => {
-        const iconStyles = ["nerdfont", "workflowy", "regular"] as const
-        const borderModes = ["normal", "black"] as const
-        const iconIdx = iconStyles.indexOf(prev.iconStyle)
-        const borderIdx = borderModes.indexOf(prev.borderMode)
-        // Cycle: increment icon first, when it wraps, advance border
-        const nextIconIdx = (iconIdx + 1) % iconStyles.length
-        const nextBorderIdx = nextIconIdx === 0 ? (borderIdx + 1) % borderModes.length : borderIdx
-        const nextIcon = iconStyles[nextIconIdx] ?? "nerdfont"
-        const nextBorder = borderModes[nextBorderIdx] ?? "normal"
-        const label = nextBorder === "black" ? `${nextIcon} (dark borders)` : nextIcon
-        return {
-          iconStyle: nextIcon,
-          borderMode: nextBorder,
-          status: { level: "info" as const, message: `Style: ${label}` },
-        }
-      })
-      return ok()
-    }
-    case "SHOW_HELP":
-      ctx.setUI({ showHelp: true, helpScrollOffset: 0 })
-      return ok()
-    case "HIDE_HELP":
-      ctx.setUI({ showHelp: false, helpScrollOffset: 0 })
-      return ok()
-    case "HELP_SCROLL_UP":
-      ctx.setUI((prev) => ({ helpScrollOffset: Math.max(0, prev.helpScrollOffset - 1) }))
-      return ok()
-    case "HELP_SCROLL_DOWN":
-      ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
-      return ok()
-    case "CLOSE_DETAIL_PANE": {
-      const boardPane = ownerPaneId(ctx.focusedPaneId())
-      ctx.closeDetailPane()
-      ctx.focusPaneById(boardPane)
-      ctx.syncFocusScope()
-      return ok()
-    }
-    case "FOCUS_BOARD": {
-      const boardPane = ownerPaneId(ctx.focusedPaneId())
-      ctx.focusPaneById(boardPane)
-      ctx.syncFocusScope()
-      return ok()
-    }
-    case "FOCUS_DETAIL": {
-      if (!ctx.hasDetailPane) {
-        ctx.openDetailPane()
-      }
-      const detailPane = detailPaneIdFor(ownerPaneId(ctx.focusedPaneId()))
-      ctx.focusPaneById(detailPane)
-      ctx.syncFocusScope()
-      return ok()
-    }
-    case "TOGGLE_DETAIL_PANE": {
-      const boardPaneId = ownerPaneId(ctx.focusedPaneId())
-      const wasOpen = ctx.hasDetailPane
-      ctx.toggleDetailPane()
-      // Opening → focus the detail pane; Closing → focus the board pane
-      if (!wasOpen) {
-        ctx.focusPaneById(detailPaneIdFor(boardPaneId))
-      } else {
-        ctx.focusPaneById(boardPaneId)
-      }
-      ctx.syncFocusScope()
-      return ok()
-    }
-    case "ZOOM_OUTWARDS":
-      return handleZoomOutwards(ctx)
-    case "ZOOM_TO_ROOT":
-      return handleZoomToRoot(ctx)
-    case "DELETE_NODE":
-      handleDeleteNode(ctx)
-      return ok()
-    case "SELECT_ALL":
-      progressiveSelectAll(ctx)
-      return ok()
-
-    // === Task actions ===
-    case "TASK_SET_STATUS":
-      handleTaskStatusCycle(ctx)
-      return ok()
-    case "CLEAR_TASK":
-      handleClearTask(ctx)
-      return ok()
-
-    // === History actions (undo/redo) ===
-    case "HISTORY_UNDO": {
-      if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
-      const result = ctx.undoHandle.undo()
-      // Restore cursor to saved position if available, otherwise keep current
-      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
-      ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
-      if (result.label) ctx.setUI({ status: { level: "info", message: `Undo: ${result.label}` } })
-      return ok()
-    }
-    case "HISTORY_REDO": {
-      if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
-      const result = ctx.undoHandle.redo()
-      ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
-      if (result.label) ctx.setUI({ status: { level: "info", message: `Redo: ${result.label}` } })
-      return ok()
-    }
-
-    // === Board/navigation actions (scope-aware) ===
-    case "CURSOR_MOVE":
-      // Navigate-away saves: confirm inline edit before moving cursor.
-      // Calling confirm() saves the value and exits inline edit mode.
-      // This fires synchronously before navigation so React picks up
-      // both the repo mutation and cursor change in the same render.
-      if (ctx.ui.inlineEditBlock && activeEditTargetRef.current) {
-        activeEditTargetRef.current.confirm()
-      }
-      return handleCursorMove(ctx, action.dir)
-    case "TOGGLE_FOLD":
-      return handleToggleFold(ctx)
-    case "FOLD_LEVEL": {
-      const newDepths = new Map(ctx.foldDepths)
-      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.set(c.id, 0)
-      ctx.setFoldDepths(newDepths)
-      return ok()
-    }
-    case "UNFOLD_LEVEL": {
-      const newDepths = new Map(ctx.foldDepths)
-      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.delete(c.id)
-      ctx.setFoldDepths(newDepths)
-      return ok()
-    }
-    case "TOGGLE_COLLAPSE": {
-      // Collapse the column (not the card) — use column node ID
-      const collapseNodeId = col?.node.id
-      if (!collapseNodeId) return boundary("collapse", "No column to collapse")
-      // Virtual body columns (synthetic __body__ IDs) don't exist in the repo
-      // and cannot be collapsed — return boundary to ring the bell.
-      if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
-      const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
-      // Record cursor for undo
-      ctx.undoHandle.setCursor(ctx.cursorNodeId)
-      // Persist collapsed state to node.data so it survives across sessions
-      const colNode = ctx.repo.getNode(collapseNodeId)
-      if (colNode) {
-        const existingData = colNode.data
-        if (!wasCollapsed) {
-          ctx.repo.updateNode(collapseNodeId, { data: { ...existingData, collapsed: true } })
-        } else {
-          // Remove the collapsed key to keep data clean
-          const { collapsed: _, ...rest } = existingData
-          ctx.repo.updateNode(collapseNodeId, { data: rest })
-        }
-      }
-      ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
-      // When collapsing, move cursor to column header so it's on a visible element.
-      // Without this, the cursor stays on an invisible card inside the collapsed column,
-      // causing the column to not show as selected and j/k to behave unexpectedly.
-      if (!wasCollapsed && ctx.cursorNodeId !== collapseNodeId) {
-        ctx.dispatchBoard({ type: "SELECT", nodeId: collapseNodeId })
-      }
-      return ok()
-    }
-    case "NAV_BACK":
-      return handleNavBack(ctx)
-    case "NAV_FORWARD":
-      return handleNavForward(ctx)
-    case "ZOOM_IN":
-      return handleZoomIn(ctx)
-    case "CLEAR_SELECTION":
-      clearSelection(ctx)
-      return ok()
-
-    // === Visual mode ===
-    case "VISUAL_MODE_ENTER": {
-      if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
-      // Set visual mode with anchor at current cursor, and select the anchor node
-      const anchorKey = makeSelectionKey(ctx.cursorNodeId)
-      const selected = new Set(ctx.ui.multiSelected)
-      selected.add(anchorKey)
-      ctx.setUI({
-        visualMode: true,
-        visualAnchor: ctx.cursorNodeId,
-        selectionAnchor: { nodeId: ctx.cursorNodeId },
-        multiSelected: selected,
-        status: { level: "info", message: "-- VISUAL --" },
-      })
-      return ok()
-    }
-    case "VISUAL_MODE_EXIT":
-      clearSelection(ctx)
-      ctx.setUI({
-        visualMode: false,
-        visualAnchor: null,
-        status: null,
-      })
-      return ok()
-
-    // === BoardAction passthrough (forward to board reducer) ===
-    case "SELECT":
-      // Reset scroll anchor so viewport snaps back to follow cursor
-      if (ctx.ui.columnScrollAnchor !== null) {
-        ctx.setUI({ columnScrollAnchor: null })
-      }
-      ctx.dispatchBoard(action)
-      return ok()
-    case "SET_ROOT":
-    case "SET_CURSWANT":
-      ctx.dispatchBoard(action)
-      return ok()
-
-    case "EXTEND_SELECT_UP":
-      handleExtendSelectVertical(ctx, "up")
-      return ok()
-    case "EXTEND_SELECT_DOWN":
-      handleExtendSelectVertical(ctx, "down")
-      return ok()
-    case "EXTEND_SELECT_LEFT":
-      handleExtendSelectHorizontal(ctx, "left")
-      return ok()
-    case "EXTEND_SELECT_RIGHT":
-      handleExtendSelectHorizontal(ctx, "right")
-      return ok()
-    case "INCREASE_CONTENT_LINES": {
-      ctx.setUI((prev) => {
-        const next = Math.min(10, prev.maxContentLines + 1)
-        return {
-          maxContentLines: next,
-          status: { level: "info" as const, message: `Content lines: ${next}` },
-        }
-      })
-      return ok()
-    }
-    case "DECREASE_CONTENT_LINES": {
-      ctx.setUI((prev) => {
-        const next = Math.max(1, prev.maxContentLines - 1)
-        return {
-          maxContentLines: next,
-          status: { level: "info" as const, message: `Content lines: ${next}` },
-        }
-      })
-      return ok()
-    }
-    case "SHIFT_UP":
-      return handleShiftCard(ctx, "up")
-    case "SHIFT_DOWN":
-      return handleShiftCard(ctx, "down")
-    case "SHIFT_LEFT":
-      return handleShiftCard(ctx, "left")
-    case "SHIFT_RIGHT":
-      return handleShiftCard(ctx, "right")
-
-    // === Selection actions (passthrough to board reducer) ===
-    case "SELECT_NODE_ADD":
-    case "SELECT_NODE_REMOVE":
-    case "SELECT_NODE_TOGGLE":
-      ctx.dispatchBoard(action)
-      return ok()
-
-    // === Selection actions (not yet implemented) ===
-    case "SELECT_ALL_SIBLINGS":
-      return unimplemented("selection")
-
-    // === Fold operations (depth-based progressive fold/unfold) ===
-    // Visibility is driven by foldDepths: Map<string, number>.
-    // depth 0 = fully folded, no entry = inherit parent's remaining depth, 999 = infinite.
-    // MAX_FOLD_DEPTH caps how deep unfold can go (prevents runaway expansion).
-    case "FOLD_NODE": {
-      const newDepths = new Map(ctx.foldDepths)
-      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
-
-      // scope:"root" → modify the board-level depth directly
-      if (action.scope === "root") {
-        if (boardDepth <= 0) return boundary("fold", "already fully folded")
-        newDepths.set(ctx.rootId ?? "", boardDepth - 1)
-        // Clear per-card overrides so all cards inherit the new root depth
-        for (const column of ctx.columns) {
-          for (const c of column.cardNodes) newDepths.delete(c.id)
-        }
-        ctx.setFoldDepths(newDepths)
-        return ok()
-      }
-
-      // Per-card fold: determine fold targets
-      const roots = getFoldTargetRoots(ctx, card)
-      if (roots.length === 0) return boundary("fold", "no card or column selected")
-      let changed = false
-      for (const nodeId of roots) {
-        const current = newDepths.get(nodeId)
-        if (current === 0) continue // already fully folded
-        if (current === undefined) {
-          // Inheriting from board root — decrement from inherited depth
-          newDepths.set(nodeId, Math.max(0, boardDepth - 1))
-          changed = true
-        } else {
-          newDepths.set(nodeId, Math.max(0, current - 1))
-          changed = true
-        }
-      }
-      if (!changed) return boundary("fold", "already fully folded")
-      ctx.setFoldDepths(newDepths)
-      return ok()
-    }
-    case "UNFOLD_NODE": {
-      const newDepths = new Map(ctx.foldDepths)
-      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
-
-      // scope:"root" → modify the board-level depth directly
-      if (action.scope === "root") {
-        if (boardDepth >= MAX_FOLD_DEPTH) return boundary("fold", "maximum depth reached")
-        newDepths.set(ctx.rootId ?? "", boardDepth + 1)
-        // Clear per-card overrides so all cards inherit the new root depth
-        for (const column of ctx.columns) {
-          for (const c of column.cardNodes) newDepths.delete(c.id)
-        }
-        ctx.setFoldDepths(newDepths)
-        return ok()
-      }
-
-      // Per-card unfold: determine targets
-      const roots = getFoldTargetRoots(ctx, card)
-      if (roots.length === 0) return boundary("fold", "no card or column selected")
-      let changed = false
-      for (const nodeId of roots) {
-        const current = newDepths.get(nodeId)
-        const effectiveDepth = current ?? boardDepth
-        if (effectiveDepth >= MAX_FOLD_DEPTH) continue // already at max
-        if (current === undefined) {
-          // Inheriting from board root — increment from inherited depth
-          newDepths.set(nodeId, boardDepth + 1)
-          changed = true
-        } else {
-          newDepths.set(nodeId, current + 1)
-          changed = true
-        }
-      }
-      if (!changed) return boundary("fold", "maximum depth reached")
-
-      ctx.setFoldDepths(newDepths)
-      return ok()
-    }
-    case "UNFOLD_RECURSIVE": {
-      if (!card) return boundary("fold", "no card selected")
-      const newDepths = new Map(ctx.foldDepths)
-      // Set depth to 999 (effectively infinite) for the card
-      newDepths.set(card.id, 999)
-      // Remove explicit depth entries for descendants so they inherit the parent's 999.
-      // Instead of walking all descendants (can be 100k+ nodes), iterate foldDepths
-      // entries (typically <20) and check ancestry via parent chain.
-      const cardId = card.id
-      for (const [id] of newDepths) {
-        if (id === cardId) continue
-        let nodeId: string | null = id
-        while (nodeId) {
-          const n = ctx.repo.getNode(nodeId)
-          if (!n?.parent_id) break
-          if (n.parent_id === cardId) {
-            newDepths.delete(id)
-            break
-          }
-          nodeId = n.parent_id
-        }
-      }
-      ctx.setFoldDepths(newDepths)
-      return ok()
-    }
-
-    // === Ignore operations ===
-    case "IGNORE_NODE":
-      return handleIgnoreNode(ctx)
-    case "TOGGLE_SHOW_IGNORED":
-      ctx.setUI((prev) => ({ showIgnored: !prev.showIgnored }))
-      return ok()
-
-    // === Edit operations ===
     case "INSERT_ABOVE":
       handleAddNodeBefore(ctx)
       return ok()
@@ -717,239 +534,56 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "INSERT_AT_PARENT":
       handleAddNodeAtParent(ctx)
       return ok()
+    case "DELETE_NODE":
+      handleDeleteNode(ctx)
+      return ok()
     case "DUPLICATE_NODE":
       handleDuplicateNode(ctx, action.nodeId)
       return ok()
-
-    // === Filter ===
-    case "SHOW_FILTER_DIALOG":
-      if (ctx.ui.showFilterDialog) {
-        popDialogMode()
-      } else {
-        pushDialogMode("dialog:filter")
-      }
-      ctx.closeDetailPane()
-      ctx.setUI({
-        showFilterDialog: !ctx.ui.showFilterDialog,
-        inlineEditBlock: null,
-      })
+    case "OPEN_IN_SYSTEM":
+      handleOpenInSystem(ctx, action.nodeId)
       return ok()
-    case "SET_FILTER":
-      popDialogMode()
-      ctx.setUI({
-        filterText: action.text,
-        showFilterDialog: false,
-      })
+    case "OPEN_IN_TERMINAL":
+      handleOpenInTerminal(ctx, action.nodeId)
       return ok()
-    case "CLEAR_FILTER":
-      popDialogMode()
-      ctx.setUI({
-        filterText: "",
-        filterProperties: createEmptyFilterProperties(),
-        showFilterDialog: false,
-      })
-      return ok()
-    case "TOGGLE_FILTER_PROPERTY": {
-      const current = ctx.ui.filterProperties[action.category]
-      const next = new Set(current)
-      if (next.has(action.value)) {
-        next.delete(action.value)
-      } else {
-        next.add(action.value)
-      }
-      ctx.setUI({
-        filterProperties: { ...ctx.ui.filterProperties, [action.category]: next },
-      })
-      return ok()
-    }
-    case "CLEAR_FILTER_CATEGORY":
-      ctx.setUI({
-        filterProperties: { ...ctx.ui.filterProperties, [action.category]: new Set() },
-      })
-      return ok()
-    case "CLEAR_ALL_FILTER_PROPERTIES":
-      ctx.setUI({
-        filterProperties: createEmptyFilterProperties(),
-        filterCursorRow: 0,
-        filterCursorVal: 0,
-      })
-      return ok()
-    case "CLEAR_FILTERS":
-      popDialogMode()
-      ctx.setUI({
-        filterText: "",
-        filterProperties: createEmptyFilterProperties(),
-        filterCursorRow: 0,
-        filterCursorVal: 0,
-        showFilterDialog: false,
-      })
-      return ok()
-    case "TOGGLE_HIDE_DONE": {
-      const activeStatuses = new Set(["todo", "wip", "blocked"])
-      const current = ctx.ui.filterProperties.taskStatus
-      // If currently showing only active (hiding done), toggle off → show all
-      const isHidingDone = current.size === activeStatuses.size && [...activeStatuses].every((s) => current.has(s))
-      const nextTaskStatus = isHidingDone ? new Set<string>() : activeStatuses
-      ctx.setUI({
-        filterProperties: { ...ctx.ui.filterProperties, taskStatus: nextTaskStatus },
-        status: {
-          level: "info" as const,
-          message: isHidingDone ? "Showing all tasks" : "Hiding done/dropped tasks",
-        },
-      })
-      return ok()
-    }
-
-    // === Command palette (omnibox) ===
-    case "COMMAND_PALETTE":
-      if (ctx.ui.showOmnibox) {
-        // Already open — close (toggle behavior)
-        popDialogMode()
-        ctx.setUI({ showOmnibox: false })
-      } else {
-        pushDialogMode("dialog:omnibox")
-        ctx.setUI({ showOmnibox: true })
-        clearSelection(ctx)
-      }
-      return ok()
-
-    // === Local find (inline search bar) ===
-    case "LOCAL_FIND_OPEN":
-      return handleLocalFindOpen(ctx)
-    case "LOCAL_FIND_NEXT":
-      return handleLocalFindNext(ctx)
-    case "LOCAL_FIND_PREV":
-      return handleLocalFindPrev(ctx)
-    case "LOCAL_FIND_CLOSE":
-      ctx.setUI({ localSearch: null })
-      return ok()
-    case "LOCAL_FIND_CONFIRM":
-      // Close input but keep matches for n/N navigation
-      if (ctx.ui.localSearch) {
-        ctx.setUI({
-          localSearch: { ...ctx.ui.localSearch, isInputActive: false },
-        })
-      }
-      return ok()
-
-    // === Search & replace dialog ===
-    case "SEARCH_REPLACE_OPEN":
-      return handleSearchReplaceOpen(ctx)
-    case "SEARCH_REPLACE_CLOSE":
-      ctx.setUI({ searchReplace: null })
-      return ok()
-    case "SEARCH_REPLACE_NEXT":
-      return handleSearchReplaceNext(ctx)
-    case "SEARCH_REPLACE_PREV":
-      return handleSearchReplacePrev(ctx)
-    case "SEARCH_REPLACE_DO_REPLACE":
-      return handleSearchReplaceDoReplace(ctx)
-    case "SEARCH_REPLACE_DO_REPLACE_ALL":
-      return handleSearchReplaceDoReplaceAll(ctx)
-    case "SEARCH_REPLACE_TOGGLE_REGEX":
-      return handleSearchReplaceToggleRegex(ctx)
-    case "FOCUS_NEXT":
-    case "FOCUS_PREV":
-      return handleSearchReplaceTabField(ctx)
-
-    // === UI stubs (future features) ===
-    case "ARCHIVE_NODE":
-    case "CAPTURE":
-    case "SETTINGS":
-      return unimplemented("ui")
-    case "MANAGE_FAVORITES":
-      pushDialogMode("dialog:favorites")
-      ctx.setUI({ showFavoritesDialog: true, favoritesSelectedKey: null })
-      clearSelection(ctx)
-      return ok()
-    case "FAVORITES_SELECT_KEY":
-      return handleFavoritesSelectKey(ctx, action.key)
-    case "FAVORITES_ASSIGN":
-      return handleFavoritesAssign(ctx)
-    case "FAVORITES_CLEAR":
-      return handleFavoritesClear(ctx)
-    case "FAVORITES_BACK":
-      ctx.setUI({ favoritesSelectedKey: null })
-      return ok()
-
-    // === Property actions ===
-    case "SET_DUE_DATE":
-      return handleSetDatePrompt(ctx, "due_at")
-    case "SET_START_DATE":
-      return handleSetDatePrompt(ctx, "start_at")
-    case "SET_RECURRING":
-      return handleSetDatePrompt(ctx, "rrule")
-    case "SET_PRIORITY":
-      return handleSetPriority(ctx)
-    case "SET_PRIORITY_0":
-      return handleSetPriority(ctx, "P0")
-    case "SET_PRIORITY_1":
-      return handleSetPriority(ctx, "P1")
-    case "SET_PRIORITY_2":
-      return handleSetPriority(ctx, "P2")
-    case "SET_PRIORITY_3":
-      return handleSetPriority(ctx, "P3")
-    case "SET_PRIORITY_4":
-      return handleSetPriority(ctx, "P4")
-    case "DATE_PROMPT_CONFIRM":
-      return handleDatePromptConfirm(ctx)
-    case "DATE_PROMPT_CANCEL":
-      popDialogMode()
-      ctx.setUI({ datePrompt: null })
-      return ok()
-
-    // === Clipboard operations ===
     case "CLIPBOARD_COPY":
       return handleClipboardCopy(ctx, "copy")
     case "CLIPBOARD_CUT":
       return handleClipboardCopy(ctx, "cut")
     case "CLIPBOARD_PASTE":
       return handleClipboardPaste(ctx)
+    case "ADD_LINK":
+      ctx.toastQueue.info("Link picker not yet implemented")
+      ctx.setUI({})
+      return ok()
+    case "REPARENT_PICKER":
+      ctx.setUI({ activePicker: { type: "project" } })
+      return ok()
+    case "ARCHIVE_NODE":
+      return unimplemented("ui")
+    case "TASK_SET_STATUS":
+      handleTaskStatusCycle(ctx)
+      return ok()
+    case "CLEAR_TASK":
+      handleClearTask(ctx)
+      return ok()
+    case "SHIFT_UP":
+      return handleShiftCard(ctx, "up")
+    case "SHIFT_DOWN":
+      return handleShiftCard(ctx, "down")
+    case "SHIFT_LEFT":
+      return handleShiftCard(ctx, "left")
+    case "SHIFT_RIGHT":
+      return handleShiftCard(ctx, "right")
+    default:
+      assertNever(action)
+  }
+}
 
-    // === Property pickers ===
-    case "SET_LABEL":
-      pushDialogMode("dialog:picker")
-      ctx.closeDetailPane()
-      ctx.setUI({ activePicker: { type: "tag" } })
-      clearSelection(ctx)
-      return ok()
-    case "SET_ASSIGNEE":
-      pushDialogMode("dialog:picker")
-      ctx.closeDetailPane()
-      ctx.setUI({ activePicker: { type: "assignee" } })
-      clearSelection(ctx)
-      return ok()
-
-    // === Move mode actions ===
-    // Commands return minimal actions; TUI augments with context before dispatching
-    case "ENTER_MOVE_MODE": {
-      // SelectionKey IS nodeId — direct conversion
-      const nodeIds: string[] = []
-      if (ctx.ui.multiSelected.size > 0) {
-        for (const selKey of ctx.ui.multiSelected) {
-          if (selKey && !nodeIds.includes(selKey)) {
-            nodeIds.push(selKey)
-          }
-        }
-      }
-      // Fall back to cursor node if no selection
-      if (nodeIds.length === 0 && ctx.cursorNodeId) {
-        nodeIds.push(ctx.cursorNodeId)
-      }
-      const cursorNodeId = ctx.cursorNodeId
-      ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
-      return ok()
-    }
-    case "CONFIRM_MOVE":
-      handleConfirmMove(ctx)
-      return ok()
-    case "CANCEL_MOVE":
-      ctx.dispatchBoard(action)
-      return ok()
-
-    // === Text editing actions (dispatched to EditTarget via activeEditTargetRef) ===
-    // Read from shared ref directly (not ActionCtx snapshot) because
-    // the target is set by useEffect after render.
+/** TextOp: character-level editing dispatched to EditTarget (22 cases). */
+// oxlint-disable-next-line complexity/complexity -- Exhaustive text action switch with inline edit logic
+function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
+  switch (action.type) {
     case "TEXT_INSERT": {
       const insertTarget = activeEditTargetRef.current
       insertTarget?.insertChar(action.char)
@@ -963,23 +597,18 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
           if (node) {
             const remainingText = content.slice(conversion.prefixLength)
             ctx.undoHandle.setCursor(ctx.cursorNodeId)
-            // Build repo update with type change + correctly formatted content
             const changes: Partial<typeof node> = { ...conversion.nodeChanges }
-            // Set content formatted for the new type
             if (KNode.isOutline({ type: changes.type ?? node.type, item: changes.item ?? node.item })) {
               changes.name = remainingText
               changes.content = remainingText
             } else if (changes.task_marker) {
-              // Task: format content with checkbox prefix
               const fakeNode = { ...node, ...changes } as typeof node
               changes.content = setNodeText(fakeNode, remainingText)
-              // Ensure item flag is set for tasks
               if (!changes.type) changes.type = "p"
               if (changes.item === undefined) changes.item = true
             } else {
               changes.content = remainingText
             }
-            // Clear fields that don't apply to the new type
             if (changes.type && !KNode.isOutline({ type: changes.type, item: changes.item }) && KNode.isOutline(node)) {
               changes.name = undefined
               changes.fstype = undefined
@@ -992,7 +621,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               changes.list_marker = undefined
             }
             ctx.repo.updateNode(nodeId, changes)
-            // Update edit field to show remaining text (prefix stripped)
             insertTarget.replaceContent?.(remainingText, remainingText.length)
           }
         }
@@ -1005,12 +633,10 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         const nodeId = ctx.ui.inlineEditBlock.nodeId
         const content = bsTarget.getContent()
         if (content === "") {
-          // Empty node: delete it
           ctx.setUI({ inlineEditBlock: null })
           executeDelete(ctx, nodeId)
           return ok()
         }
-        // Backspace degradation: strip traits/type before merging
         const node = ctx.repo.getNode(nodeId)
         if (node) {
           const degradation = backspaceDegradation(node)
@@ -1021,7 +647,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
             ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
             return ok()
           }
-          // No degradation possible (plain p) → merge with previous
           bsTarget.save()
           ctx.undoHandle.setCursor(ctx.cursorNodeId)
           ctx.undoHandle.startBatch("Merge backward")
@@ -1043,18 +668,15 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         const content = fwdTarget.getContent()
         const cursor = fwdTarget.getCursorOffset()
         if (content === "" && cursor === 0) {
-          // Empty node: delete it (same as backspace-on-empty)
           const nodeId = ctx.ui.inlineEditBlock.nodeId
           ctx.setUI({ inlineEditBlock: null })
           executeDelete(ctx, nodeId)
         } else if (cursor >= content.length) {
-          // At end of content: degrade next sibling's traits before merging
           const nodeId = ctx.ui.inlineEditBlock.nodeId
           const nextNode = getNextSibling(ctx.repo, nodeId)
           if (nextNode) {
             const degradation = backspaceDegradation(nextNode)
             if (degradation) {
-              // Strip next node's traits progressively (task → type → merge)
               ctx.undoHandle.setCursor(ctx.cursorNodeId)
               applyDegradation(nextNode, degradation, getNodeText(nextNode))
               ctx.repo.updateNode(nextNode.id, degradation)
@@ -1062,16 +684,12 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               return ok()
             }
           }
-          // No next sibling or next is already plain p → merge
           fwdTarget.save()
           ctx.undoHandle.setCursor(ctx.cursorNodeId)
           ctx.undoHandle.startBatch("Merge forward")
           const result = mergeWithNext(ctx.repo, nodeId)
           ctx.undoHandle.endBatch()
           if (result) {
-            // Exit edit mode — the merged content is visible on the card.
-            // Staying in edit mode would require remounting InlineEditField
-            // since the content changed but the nodeId didn't.
             ctx.setUI({ inlineEditBlock: null })
             ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
           }
@@ -1113,7 +731,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
       activeEditTargetRef.current?.deleteToEnd()
       return ok()
     case "TEXT_CONFIRM": {
-      // Enter in detail pane or dialog: save and exit.
       const target = activeEditTargetRef.current
       if (target) target.save()
       if (ctx.ui.inlineEditBlock) ctx.setUI({ inlineEditBlock: null })
@@ -1121,125 +738,382 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     }
     case "TEXT_LINEBREAK_SPLIT":
       return handleLinebreakSplit(ctx)
-    case "TEXT_LINEBREAK_BEFORE": {
+    case "TEXT_LINEBREAK_BEFORE":
       activeEditTargetRef.current?.save()
       handleLinebreakSibling(ctx, "before")
       return ok()
-    }
-    case "TEXT_LINEBREAK_AFTER": {
+    case "TEXT_LINEBREAK_AFTER":
       activeEditTargetRef.current?.save()
       handleLinebreakSibling(ctx, "after")
       return ok()
-    }
-    case "TEXT_LINEBREAK_CHILD": {
-      // Enter at end of title with visible children → insert as FIRST child
-      // (right after the title, like outliner flow)
+    case "TEXT_LINEBREAK_CHILD":
       activeEditTargetRef.current?.save()
       handleAddNodeChildFirst(ctx)
       return ok()
-    }
-    case "TEXT_CHILD_BLOCK": {
-      // Shift+Enter → add child at end (same as normal "add child" command)
+    case "TEXT_CHILD_BLOCK":
       activeEditTargetRef.current?.save()
       handleAddNodeChild(ctx)
       return ok()
-    }
     case "TEXT_EXIT_EDIT": {
       const target = activeEditTargetRef.current
       if (ctx.ui.inlineEditBlock) {
-        // Escape saves and exits: save() persists content synchronously via
-        // handleTitleSave (repo.updateNode), then we exit edit mode.
-        // We use save() (not confirm()) because confirm → handleInlineEditConfirm
-        // goes through the async jobRunner path for renames, which doesn't
-        // complete before the React render cycle.
         target?.save()
         ctx.setUI({ inlineEditBlock: null })
       } else {
-        // Dialog text input (date prompt, etc.): cancel the dialog
         target?.cancel()
       }
       return ok()
     }
     case "TEXT_BOLD":
     case "TEXT_ITALIC":
-      // Stub: rich text formatting — not yet implemented (needs rich text editor)
       return unimplemented("text.formatting")
     case "TEXT_YANK":
-      // Stub: yank (paste kill ring) — not yet implemented
       return unimplemented("text.yank")
+    default:
+      assertNever(action)
+  }
+}
 
-    // === Pane operations (windowing) ===
-    case "PANE_SPLIT": {
-      // "split vertical" = divider is vertical = panes side by side = layout direction "h"
-      // "split horizontal" = divider is horizontal = panes stacked = layout direction "v"
-      const layoutDir = action.direction === "vertical" ? "h" : "v"
-      ctx.splitFocusedPane(layoutDir)
+/** BoardOp: selection, fold, visual mode, move mode, content lines (25+ cases). */
+// oxlint-disable-next-line complexity/complexity -- Exhaustive board state switch with fold logic
+function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
+  const col = ctx.column
+  const card = ctx.card
+
+  switch (action.type) {
+    case "SELECT":
+      if (ctx.ui.columnScrollAnchor !== null) {
+        ctx.setUI({ columnScrollAnchor: null })
+      }
+      ctx.dispatchBoard(action)
+      return ok()
+    case "SET_ROOT":
+    case "SET_CURSWANT":
+      ctx.dispatchBoard(action)
+      return ok()
+    case "TOGGLE_FOLD":
+      return handleToggleFold(ctx)
+    case "TOGGLE_COLLAPSE": {
+      const collapseNodeId = col?.node.id
+      if (!collapseNodeId) return boundary("collapse", "No column to collapse")
+      if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
+      const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
+      ctx.undoHandle.setCursor(ctx.cursorNodeId)
+      const colNode = ctx.repo.getNode(collapseNodeId)
+      if (colNode) {
+        const existingData = colNode.data
+        if (!wasCollapsed) {
+          ctx.repo.updateNode(collapseNodeId, { data: { ...existingData, collapsed: true } })
+        } else {
+          const { collapsed: _, ...rest } = existingData
+          ctx.repo.updateNode(collapseNodeId, { data: rest })
+        }
+      }
+      ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
+      if (!wasCollapsed && ctx.cursorNodeId !== collapseNodeId) {
+        ctx.dispatchBoard({ type: "SELECT", nodeId: collapseNodeId })
+      }
       return ok()
     }
-    case "PANE_CLOSE": {
-      ctx.closeFocusedPane()
+    case "ZOOM_IN":
+      return handleZoomIn(ctx)
+    case "FOLD_NODE": {
+      const newDepths = new Map(ctx.foldDepths)
+      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
+      if (action.scope === "root") {
+        if (boardDepth <= 0) return boundary("fold", "already fully folded")
+        newDepths.set(ctx.rootId ?? "", boardDepth - 1)
+        for (const column of ctx.columns) {
+          for (const c of column.cardNodes) newDepths.delete(c.id)
+        }
+        ctx.setFoldDepths(newDepths)
+        return ok()
+      }
+      const roots = getFoldTargetRoots(ctx, card)
+      if (roots.length === 0) return boundary("fold", "no card or column selected")
+      let changed = false
+      for (const nodeId of roots) {
+        const current = newDepths.get(nodeId)
+        if (current === 0) continue
+        if (current === undefined) {
+          newDepths.set(nodeId, Math.max(0, boardDepth - 1))
+          changed = true
+        } else {
+          newDepths.set(nodeId, Math.max(0, current - 1))
+          changed = true
+        }
+      }
+      if (!changed) return boundary("fold", "already fully folded")
+      ctx.setFoldDepths(newDepths)
       return ok()
     }
-    case "PANE_FOCUS": {
-      ctx.focusPaneInDirection(action.direction)
-      ctx.syncFocusScope()
+    case "UNFOLD_NODE": {
+      const newDepths = new Map(ctx.foldDepths)
+      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
+      if (action.scope === "root") {
+        if (boardDepth >= MAX_FOLD_DEPTH) return boundary("fold", "maximum depth reached")
+        newDepths.set(ctx.rootId ?? "", boardDepth + 1)
+        for (const column of ctx.columns) {
+          for (const c of column.cardNodes) newDepths.delete(c.id)
+        }
+        ctx.setFoldDepths(newDepths)
+        return ok()
+      }
+      const roots = getFoldTargetRoots(ctx, card)
+      if (roots.length === 0) return boundary("fold", "no card or column selected")
+      let changed = false
+      for (const nodeId of roots) {
+        const current = newDepths.get(nodeId)
+        const effectiveDepth = current ?? boardDepth
+        if (effectiveDepth >= MAX_FOLD_DEPTH) continue
+        if (current === undefined) {
+          newDepths.set(nodeId, boardDepth + 1)
+          changed = true
+        } else {
+          newDepths.set(nodeId, current + 1)
+          changed = true
+        }
+      }
+      if (!changed) return boundary("fold", "maximum depth reached")
+      ctx.setFoldDepths(newDepths)
       return ok()
     }
-    case "PANE_FOCUS_PREVIOUS": {
-      ctx.focusPreviousPane()
-      ctx.syncFocusScope()
+    case "UNFOLD_RECURSIVE": {
+      if (!card) return boundary("fold", "no card selected")
+      const newDepths = new Map(ctx.foldDepths)
+      newDepths.set(card.id, 999)
+      const cardId = card.id
+      for (const [id] of newDepths) {
+        if (id === cardId) continue
+        let nodeId: string | null = id
+        while (nodeId) {
+          const n = ctx.repo.getNode(nodeId)
+          if (!n?.parent_id) break
+          if (n.parent_id === cardId) {
+            newDepths.delete(id)
+            break
+          }
+          nodeId = n.parent_id
+        }
+      }
+      ctx.setFoldDepths(newDepths)
       return ok()
     }
-    case "PANE_FOCUS_CYCLE": {
-      ctx.cyclePaneFocus(action.direction)
-      ctx.syncFocusScope()
+    case "SELECT_ALL":
+      progressiveSelectAll(ctx)
+      return ok()
+    case "SELECT_NODE_ADD":
+    case "SELECT_NODE_REMOVE":
+    case "SELECT_NODE_TOGGLE":
+      ctx.dispatchBoard(action)
+      return ok()
+    case "CLEAR_SELECTION":
+      clearSelection(ctx)
+      return ok()
+    case "VISUAL_MODE_ENTER": {
+      if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
+      const anchorKey = makeSelectionKey(ctx.cursorNodeId)
+      const selected = new Set(ctx.ui.multiSelected)
+      selected.add(anchorKey)
+      ctx.setUI({
+        visualMode: true,
+        visualAnchor: ctx.cursorNodeId,
+        selectionAnchor: { nodeId: ctx.cursorNodeId },
+        multiSelected: selected,
+        status: { level: "info", message: "-- VISUAL --" },
+      })
       return ok()
     }
-    case "PANE_FOCUS_NUMBER": {
-      ctx.focusPaneByNumber(action.number)
-      ctx.syncFocusScope()
+    case "VISUAL_MODE_EXIT":
+      clearSelection(ctx)
+      ctx.setUI({
+        visualMode: false,
+        visualAnchor: null,
+        status: null,
+      })
+      return ok()
+    case "EXTEND_SELECT_UP":
+      handleExtendSelectVertical(ctx, "up")
+      return ok()
+    case "EXTEND_SELECT_DOWN":
+      handleExtendSelectVertical(ctx, "down")
+      return ok()
+    case "EXTEND_SELECT_LEFT":
+      handleExtendSelectHorizontal(ctx, "left")
+      return ok()
+    case "EXTEND_SELECT_RIGHT":
+      handleExtendSelectHorizontal(ctx, "right")
+      return ok()
+    case "SELECT_ALL_SIBLINGS":
+      return unimplemented("selection")
+    case "ENTER_MOVE_MODE": {
+      const nodeIds: string[] = []
+      if (ctx.ui.multiSelected.size > 0) {
+        for (const selKey of ctx.ui.multiSelected) {
+          if (selKey && !nodeIds.includes(selKey)) {
+            nodeIds.push(selKey)
+          }
+        }
+      }
+      if (nodeIds.length === 0 && ctx.cursorNodeId) {
+        nodeIds.push(ctx.cursorNodeId)
+      }
+      const cursorNodeId = ctx.cursorNodeId
+      ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
       return ok()
     }
-    case "PANE_RESIZE": {
-      ctx.resizeFocusedPane(action.delta, "h")
+    case "CONFIRM_MOVE":
+      handleConfirmMove(ctx)
+      return ok()
+    case "CANCEL_MOVE":
+      ctx.dispatchBoard(action)
+      return ok()
+    case "INCREASE_CONTENT_LINES": {
+      ctx.setUI((prev) => {
+        const next = Math.min(10, prev.maxContentLines + 1)
+        return {
+          maxContentLines: next,
+          status: { level: "info" as const, message: `Content lines: ${next}` },
+        }
+      })
       return ok()
     }
-    case "PANE_RESIZE_VERTICAL": {
-      ctx.resizeFocusedPane(action.delta, "v")
+    case "DECREASE_CONTENT_LINES": {
+      ctx.setUI((prev) => {
+        const next = Math.max(1, prev.maxContentLines - 1)
+        return {
+          maxContentLines: next,
+          status: { level: "info" as const, message: `Content lines: ${next}` },
+        }
+      })
       return ok()
     }
-    case "PANE_EQUALIZE": {
-      ctx.equalizePanes()
+    case "IGNORE_NODE":
+      return handleIgnoreNode(ctx)
+    case "TOGGLE_SHOW_IGNORED":
+      ctx.setUI((prev) => ({ showIgnored: !prev.showIgnored }))
       return ok()
-    }
-    case "PANE_ZOOM": {
-      ctx.zoomFocusedPane()
+    default:
+      assertNever(action)
+  }
+}
+
+/** DialogOp: pickers, filter, favorites, date prompts, search, confirmations (44 cases). */
+// oxlint-disable-next-line complexity/complexity -- Exhaustive dialog switch covering all dialog/filter/search/property actions
+function handleDialogAction(ctx: ActionCtx, action: DialogOp): ActionResult {
+  switch (action.type) {
+    case "SHOW_NEW_ITEM_DIALOG":
+      pushDialogMode("dialog:newItem")
+      ctx.closeDetailPane()
+      ctx.setUI({ showNewItemDialog: true })
+      clearSelection(ctx)
       return ok()
-    }
-    case "PANE_ONLY": {
-      ctx.closeAllButFocused()
+    case "SHOW_ITEM_PICKER":
+      if (ctx.card || ctx.focusedPaneViewType() === "empty") {
+        pushDialogMode("dialog:picker")
+        ctx.closeDetailPane()
+        ctx.setUI({ activePicker: { type: "project" } })
+        clearSelection(ctx)
+      }
       return ok()
-    }
-    case "PANE_SWAP": {
-      ctx.swapPaneInDirection(action.direction)
+    case "SHOW_TASK_DIALOG":
+      ctx.toastQueue.info("Task dialog not yet implemented")
+      ctx.setUI({})
       return ok()
-    }
-    case "PANE_SPLIT_AND_PICK": {
-      // Split vertical (side by side) then show item picker in the new (empty) pane
-      ctx.splitFocusedPane("h")
-      // Focus moves to the new pane on next cycle; for now, show the item picker
-      // which will navigate when the user picks a board
-      pushDialogMode("dialog:picker")
+    case "SHOW_SEARCH_DIALOG":
+      pushDialogMode("dialog:search")
       ctx.closeDetailPane()
       ctx.setUI({
-        activePicker: { type: "project" },
+        showSearchDialog: true,
+        searchDialogInitialInput: "",
+        searchScope: "all",
+        searchScopeNodeIds: ctx.cursorNodeId ? [ctx.cursorNodeId] : [],
       })
       clearSelection(ctx)
       return ok()
+    case "SHOW_FILTER_DIALOG":
+      if (ctx.ui.showFilterDialog) {
+        popDialogMode()
+      } else {
+        pushDialogMode("dialog:filter")
+      }
+      ctx.closeDetailPane()
+      ctx.setUI({
+        showFilterDialog: !ctx.ui.showFilterDialog,
+        inlineEditBlock: null,
+      })
+      return ok()
+    case "SET_FILTER":
+      popDialogMode()
+      ctx.setUI({ filterText: action.text, showFilterDialog: false })
+      return ok()
+    case "CLEAR_FILTER":
+      popDialogMode()
+      ctx.setUI({
+        filterText: "",
+        filterProperties: createEmptyFilterProperties(),
+        showFilterDialog: false,
+      })
+      return ok()
+    case "TOGGLE_FILTER_PROPERTY": {
+      const current = ctx.ui.filterProperties[action.category]
+      const next = new Set(current)
+      if (next.has(action.value)) {
+        next.delete(action.value)
+      } else {
+        next.add(action.value)
+      }
+      ctx.setUI({
+        filterProperties: { ...ctx.ui.filterProperties, [action.category]: next },
+      })
+      return ok()
     }
-
-    // === Dialog navigation (dispatched to active dialog via dialogTargetRef) ===
-    // Filter dialog handles nav/confirm/cancel directly via state, not dialogTargetRef
+    case "CLEAR_FILTER_CATEGORY":
+      ctx.setUI({
+        filterProperties: { ...ctx.ui.filterProperties, [action.category]: new Set() },
+      })
+      return ok()
+    case "CLEAR_ALL_FILTER_PROPERTIES":
+      ctx.setUI({
+        filterProperties: createEmptyFilterProperties(),
+        filterCursorRow: 0,
+        filterCursorVal: 0,
+      })
+      return ok()
+    case "TOGGLE_HIDE_DONE": {
+      const activeStatuses = new Set(["todo", "wip", "blocked"])
+      const current = ctx.ui.filterProperties.taskStatus
+      const isHidingDone = current.size === activeStatuses.size && [...activeStatuses].every((s) => current.has(s))
+      const nextTaskStatus = isHidingDone ? new Set<string>() : activeStatuses
+      ctx.setUI({
+        filterProperties: { ...ctx.ui.filterProperties, taskStatus: nextTaskStatus },
+        status: {
+          level: "info" as const,
+          message: isHidingDone ? "Showing all tasks" : "Hiding done/dropped tasks",
+        },
+      })
+      return ok()
+    }
+    case "CLEAR_FILTERS":
+      popDialogMode()
+      ctx.setUI({
+        filterText: "",
+        filterProperties: createEmptyFilterProperties(),
+        filterCursorRow: 0,
+        filterCursorVal: 0,
+        showFilterDialog: false,
+      })
+      return ok()
+    case "COMMAND_PALETTE":
+      if (ctx.ui.showOmnibox) {
+        popDialogMode()
+        ctx.setUI({ showOmnibox: false })
+      } else {
+        pushDialogMode("dialog:omnibox")
+        ctx.setUI({ showOmnibox: true })
+        clearSelection(ctx)
+      }
+      return ok()
     case "DIALOG_NAV_UP":
       if (ctx.ui.showFilterDialog) {
         ctx.setUI((prev) => ({
@@ -1283,7 +1157,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         const val = row?.values[ctx.ui.filterCursorVal]
         if (row && val) {
           if (row.kind === "radio") {
-            // Radio: set the value directly
             if (row.key === "viewMode") {
               ctx.navigator.clearStickyY()
               ctx.setUI({ viewMode: val.value as ViewMode })
@@ -1291,7 +1164,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
               ctx.setUI({ [row.key]: val.value as IconStyle })
             }
           } else {
-            // Checkbox: toggle filter property
             const current = ctx.ui.filterProperties[row.category]
             const next = new Set(current)
             if (next.has(val.value)) {
@@ -1306,9 +1178,6 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         }
         return ok()
       }
-      // P1 fix (km-tui.keys-as-text): Mark that a dialog was just confirmed.
-      // This prevents the Enter key from propagating to trigger ENTER_INLINE_EDIT
-      // on the newly-focused card within the same event batch or rapid double-tap.
       markDialogConfirmed()
       popDialogMode()
       if (dialogTargetRef.current) {
@@ -1350,16 +1219,262 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
         else if (ctx.ui.activePicker) ctx.setUI({ activePicker: null })
       }
       return ok()
-
     case "TOGGLE_SEARCH_SCOPE":
       ctx.setUI((prev) => ({
         searchScope: prev.searchScope === "all" ? "selected" : "all",
       }))
       return ok()
-
-    // === Modal commands (routed through command system via when predicates) ===
-    case "NOOP":
+    case "DELETE_CONFIRM_EXECUTE":
+      if (ctx.ui.deleteConfirm) {
+        executeBatchDelete(ctx, ctx.ui.deleteConfirm.nodeIds)
+      }
+      ctx.setUI({ deleteConfirm: null })
       return ok()
+    case "DELETE_CONFIRM_CANCEL":
+      ctx.setUI({ deleteConfirm: null })
+      return ok()
+    case "MANAGE_FAVORITES":
+      pushDialogMode("dialog:favorites")
+      ctx.setUI({ showFavoritesDialog: true, favoritesSelectedKey: null })
+      clearSelection(ctx)
+      return ok()
+    case "FAVORITES_SELECT_KEY":
+      return handleFavoritesSelectKey(ctx, action.key)
+    case "FAVORITES_ASSIGN":
+      return handleFavoritesAssign(ctx)
+    case "FAVORITES_CLEAR":
+      return handleFavoritesClear(ctx)
+    case "FAVORITES_BACK":
+      ctx.setUI({ favoritesSelectedKey: null })
+      return ok()
+    case "SET_DUE_DATE":
+      return handleSetDatePrompt(ctx, "due_at")
+    case "SET_START_DATE":
+      return handleSetDatePrompt(ctx, "start_at")
+    case "SET_RECURRING":
+      return handleSetDatePrompt(ctx, "rrule")
+    case "SET_PRIORITY":
+      return handleSetPriority(ctx)
+    case "SET_PRIORITY_0":
+      return handleSetPriority(ctx, "P0")
+    case "SET_PRIORITY_1":
+      return handleSetPriority(ctx, "P1")
+    case "SET_PRIORITY_2":
+      return handleSetPriority(ctx, "P2")
+    case "SET_PRIORITY_3":
+      return handleSetPriority(ctx, "P3")
+    case "SET_PRIORITY_4":
+      return handleSetPriority(ctx, "P4")
+    case "SET_LABEL":
+      pushDialogMode("dialog:picker")
+      ctx.closeDetailPane()
+      ctx.setUI({ activePicker: { type: "tag" } })
+      clearSelection(ctx)
+      return ok()
+    case "SET_ASSIGNEE":
+      pushDialogMode("dialog:picker")
+      ctx.closeDetailPane()
+      ctx.setUI({ activePicker: { type: "assignee" } })
+      clearSelection(ctx)
+      return ok()
+    case "DATE_PROMPT_CONFIRM":
+      return handleDatePromptConfirm(ctx)
+    case "DATE_PROMPT_CANCEL":
+      popDialogMode()
+      ctx.setUI({ datePrompt: null })
+      return ok()
+    case "LOCAL_FIND_OPEN":
+      return handleLocalFindOpen(ctx)
+    case "LOCAL_FIND_NEXT":
+      return handleLocalFindNext(ctx)
+    case "LOCAL_FIND_PREV":
+      return handleLocalFindPrev(ctx)
+    case "LOCAL_FIND_CLOSE":
+      ctx.setUI({ localSearch: null })
+      return ok()
+    case "LOCAL_FIND_CONFIRM":
+      if (ctx.ui.localSearch) {
+        ctx.setUI({
+          localSearch: { ...ctx.ui.localSearch, isInputActive: false },
+        })
+      }
+      return ok()
+    case "SEARCH_REPLACE_OPEN":
+      return handleSearchReplaceOpen(ctx)
+    case "SEARCH_REPLACE_CLOSE":
+      ctx.setUI({ searchReplace: null })
+      return ok()
+    case "SEARCH_REPLACE_NEXT":
+      return handleSearchReplaceNext(ctx)
+    case "SEARCH_REPLACE_PREV":
+      return handleSearchReplacePrev(ctx)
+    case "SEARCH_REPLACE_DO_REPLACE":
+      return handleSearchReplaceDoReplace(ctx)
+    case "SEARCH_REPLACE_DO_REPLACE_ALL":
+      return handleSearchReplaceDoReplaceAll(ctx)
+    case "SEARCH_REPLACE_TOGGLE_REGEX":
+      return handleSearchReplaceToggleRegex(ctx)
+    case "FOCUS_NEXT":
+    case "FOCUS_PREV":
+      return handleSearchReplaceTabField(ctx)
+    default:
+      assertNever(action)
+  }
+}
+
+/** PaneOp: split, close, focus, resize, detail pane (15 cases). */
+function handlePaneAction(ctx: ActionCtx, action: PaneOp): ActionResult {
+  switch (action.type) {
+    case "PANE_SPLIT": {
+      const layoutDir = action.direction === "vertical" ? "h" : "v"
+      ctx.splitFocusedPane(layoutDir)
+      return ok()
+    }
+    case "PANE_CLOSE":
+      ctx.closeFocusedPane()
+      return ok()
+    case "PANE_FOCUS":
+      ctx.focusPaneInDirection(action.direction)
+      ctx.syncFocusScope()
+      return ok()
+    case "PANE_FOCUS_PREVIOUS":
+      ctx.focusPreviousPane()
+      ctx.syncFocusScope()
+      return ok()
+    case "PANE_FOCUS_CYCLE":
+      ctx.cyclePaneFocus(action.direction)
+      ctx.syncFocusScope()
+      return ok()
+    case "PANE_FOCUS_NUMBER":
+      ctx.focusPaneByNumber(action.number)
+      ctx.syncFocusScope()
+      return ok()
+    case "PANE_RESIZE":
+      ctx.resizeFocusedPane(action.delta, "h")
+      return ok()
+    case "PANE_RESIZE_VERTICAL":
+      ctx.resizeFocusedPane(action.delta, "v")
+      return ok()
+    case "PANE_EQUALIZE":
+      ctx.equalizePanes()
+      return ok()
+    case "PANE_ZOOM":
+      ctx.zoomFocusedPane()
+      return ok()
+    case "PANE_ONLY":
+      ctx.closeAllButFocused()
+      return ok()
+    case "PANE_SWAP":
+      ctx.swapPaneInDirection(action.direction)
+      return ok()
+    case "PANE_SPLIT_AND_PICK":
+      ctx.splitFocusedPane("h")
+      pushDialogMode("dialog:picker")
+      ctx.closeDetailPane()
+      ctx.setUI({ activePicker: { type: "project" } })
+      clearSelection(ctx)
+      return ok()
+    case "CLOSE_DETAIL_PANE": {
+      const boardPane = ownerPaneId(ctx.focusedPaneId())
+      ctx.closeDetailPane()
+      ctx.focusPaneById(boardPane)
+      ctx.syncFocusScope()
+      return ok()
+    }
+    case "TOGGLE_DETAIL_PANE": {
+      const boardPaneId = ownerPaneId(ctx.focusedPaneId())
+      const wasOpen = ctx.hasDetailPane
+      ctx.toggleDetailPane()
+      if (!wasOpen) {
+        ctx.focusPaneById(detailPaneIdFor(boardPaneId))
+      } else {
+        ctx.focusPaneById(boardPaneId)
+      }
+      ctx.syncFocusScope()
+      return ok()
+    }
+    default:
+      assertNever(action)
+  }
+}
+
+/** ViewOp: lifecycle, view modes, help, console, history, misc (23 cases). */
+function handleViewAction(ctx: ActionCtx, action: ViewOp): ActionResult {
+  switch (action.type) {
+    case "QUIT":
+      ctx.exit()
+      return ok()
+    case "CLOSE_OR_QUIT":
+      return handleCloseOrQuit(ctx)
+    case "CYCLE_VIEW_MODE":
+      ctx.navigator.clearStickyY()
+      ctx.setUI((prev) => {
+        const modes: ViewMode[] = ["cards", "columns", /* "list", */ "tabs"]
+        const idx = modes.indexOf(prev.viewMode)
+        return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
+      })
+      return ok()
+    case "CYCLE_ICON_STYLE": {
+      ctx.setUI((prev) => {
+        const iconStyles = ["nerdfont", "workflowy", "regular"] as const
+        const borderModes = ["normal", "black"] as const
+        const iconIdx = iconStyles.indexOf(prev.iconStyle)
+        const borderIdx = borderModes.indexOf(prev.borderMode)
+        const nextIconIdx = (iconIdx + 1) % iconStyles.length
+        const nextBorderIdx = nextIconIdx === 0 ? (borderIdx + 1) % borderModes.length : borderIdx
+        const nextIcon = iconStyles[nextIconIdx] ?? "nerdfont"
+        const nextBorder = borderModes[nextBorderIdx] ?? "normal"
+        const label = nextBorder === "black" ? `${nextIcon} (dark borders)` : nextIcon
+        return {
+          iconStyle: nextIcon,
+          borderMode: nextBorder,
+          status: { level: "info" as const, message: `Style: ${label}` },
+        }
+      })
+      return ok()
+    }
+    case "SHOW_HELP":
+      ctx.setUI({ showHelp: true, helpScrollOffset: 0 })
+      return ok()
+    case "HIDE_HELP":
+      ctx.setUI({ showHelp: false, helpScrollOffset: 0 })
+      return ok()
+    case "HELP_SCROLL_UP":
+      ctx.setUI((prev) => ({ helpScrollOffset: Math.max(0, prev.helpScrollOffset - 1) }))
+      return ok()
+    case "HELP_SCROLL_DOWN":
+      ctx.setUI((prev) => ({ helpScrollOffset: prev.helpScrollOffset + 1 }))
+      return ok()
+    case "FOCUS_BOARD": {
+      const boardPane = ownerPaneId(ctx.focusedPaneId())
+      ctx.focusPaneById(boardPane)
+      ctx.syncFocusScope()
+      return ok()
+    }
+    case "FOCUS_DETAIL": {
+      if (!ctx.hasDetailPane) {
+        ctx.openDetailPane()
+      }
+      const detailPane = detailPaneIdFor(ownerPaneId(ctx.focusedPaneId()))
+      ctx.focusPaneById(detailPane)
+      ctx.syncFocusScope()
+      return ok()
+    }
+    case "HISTORY_UNDO": {
+      if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
+      const result = ctx.undoHandle.undo()
+      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
+      ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
+      if (result.label) ctx.setUI({ status: { level: "info", message: `Undo: ${result.label}` } })
+      return ok()
+    }
+    case "HISTORY_REDO": {
+      if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
+      const result = ctx.undoHandle.redo()
+      ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+      if (result.label) ctx.setUI({ status: { level: "info", message: `Redo: ${result.label}` } })
+      return ok()
+    }
     case "CONSOLE_TOGGLE":
       ctx.setUI((prev) => ({ showConsole: !prev.showConsole }))
       return ok()
@@ -1372,37 +1487,28 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "SYNC_PANE_CLOSE":
       ctx.setUI({ showSyncPane: false })
       return ok()
-    case "DELETE_CONFIRM_EXECUTE":
-      if (ctx.ui.deleteConfirm) {
-        executeBatchDelete(ctx, ctx.ui.deleteConfirm.nodeIds)
-      }
-      ctx.setUI({ deleteConfirm: null })
-      return ok()
-    case "DELETE_CONFIRM_CANCEL":
-      ctx.setUI({ deleteConfirm: null })
-      return ok()
     case "TOAST_DISMISS": {
       const latest = ctx.toastQueue.getLatest()
       if (latest?.action && typeof latest.action.trigger === "function") {
-        // Job cancel — the callback handles its own toast dismissal
         latest.action.trigger()
       } else {
         ctx.toastQueue.dismissAll()
       }
-      // Force re-render (toastQueue is external state, not in Zustand)
       ctx.setUI({})
       return ok()
     }
-
+    case "NOOP":
+      return ok()
     case "INCREASE_OUTLINE_DEPTH":
     case "DECREASE_OUTLINE_DEPTH":
-      // Outline depth changes are handled by view-level reducers
       return ok()
+    case "CAPTURE":
+    case "SETTINGS":
+      return unimplemented("ui")
     case "DEV_TEST_TOAST":
       ctx.toastQueue.info("Test toast from DEV_TEST_TOAST action")
       ctx.setUI({})
       return ok()
-
     default:
       assertNever(action)
   }

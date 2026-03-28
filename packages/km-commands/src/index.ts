@@ -14,15 +14,26 @@ export type {
   HistoryAction,
   HistoryUndoAction,
   HistoryRedoAction,
+  // Focused sub-unions (preferred)
+  VerbOp,
+  NavOp,
+  EditOp,
+  TextOp,
+  BoardOp,
+  DialogOp,
+  PaneOp,
+  ViewOp,
+  // Legacy aliases (deprecated — use sub-unions)
   UIAction,
+  TUIAction,
+  NavigationAction,
+  // Individual action types (for specific consumers)
   CloseDetailPaneAction,
   ShowHelpAction,
   HideHelpAction,
   CycleViewModeAction,
   DeleteNodeAction,
   SelectAllProgressiveAction, // now type: "SELECT_ALL" (progressive behavior)
-  // TUI-specific action types
-  TUIAction,
   QuitAction,
   ShowNewItemDialogAction,
   ShowItemPickerAction,

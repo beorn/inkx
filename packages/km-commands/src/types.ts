@@ -728,127 +728,15 @@ type SearchReplaceAction =
   | SearchReplaceDoReplaceAllAction
   | SearchReplaceToggleRegexAction
 
-export type TUIAction =
-  | QuitAction
-  | ShowNewItemDialogAction
-  | ShowItemPickerAction
-  | ShowSearchDialogAction
-  | VerbAction
-  | JumpToColumnAction
-  | CloseOrQuitAction
-  | EnterInlineEditAction
-  | EditBlockNavigateAction
-  | IndentNodeAction
-  | OutdentNodeAction
-  | NavSiblingBoardAction
-  | ZoomInwardsAction
-  | FollowLinkAction
-  | PageJumpAction
-  | ShiftUpAction
-  | ShiftDownAction
-  | ShiftLeftAction
-  | ShiftRightAction
-  | VisualModeEnterAction
-  | VisualModeExitAction
-  | MoveAction
-  | OpenInSystemAction
-  | OpenInTerminalAction
-  | DialogNavUpAction
-  | DialogNavDownAction
-  | DialogNavLeftAction
-  | DialogNavRightAction
-  | DialogConfirmAction
-  | DialogCancelAction
-  | ToggleSearchScopeAction
-  | ConsoleToggleAction
-  | ConsoleCloseAction
-  | SyncPaneToggleAction
-  | SyncPaneCloseAction
-  | DeleteConfirmExecuteAction
-  | DeleteConfirmCancelAction
-  | ToastDismissAction
-  | NoopAction
-  | FoldNodeAction
-  | UnfoldNodeAction
-  | UnfoldRecursiveAction
-  | IgnoreNodeAction
-  | ToggleShowIgnoredAction
-  | FilterAction
-  | CommandPaletteAction
-  | InsertAboveAction
-  | InsertBelowAction
-  | InsertChildAction
-  | InsertAtParentAction
-  | DuplicateNodeAction
-  | SetDueDateAction
-  | SetStartDateAction
-  | SetRecurringAction
-  | SetPriorityAction
-  | SetPriority0Action
-  | SetPriority1Action
-  | SetPriority2Action
-  | SetPriority3Action
-  | SetPriority4Action
-  | SetLabelAction
-  | SetAssigneeAction
-  | DatePromptConfirmAction
-  | DatePromptCancelAction
-  | ClipboardCopyAction
-  | ClipboardCutAction
-  | ClipboardPasteAction
-  | AddLinkAction
-  | ReparentPickerAction
-  | ArchiveNodeAction
-  | CaptureAction
-  | SettingsAction
-  | PaneSplitAction
-  | PaneCloseAction
-  | PaneFocusAction
-  | PaneFocusPreviousAction
-  | PaneFocusCycleAction
-  | PaneFocusNumberAction
-  | PaneResizeAction
-  | PaneResizeVerticalAction
-  | PaneEqualizeAction
-  | PaneZoomAction
-  | PaneOnlyAction
-  | PaneSwapAction
-  | PaneSplitAndPickAction
-  | FocusBoardAction
-  | FocusDetailAction
-  | TextBoldAction
-  | TextItalicAction
-  | ShowTaskDialogAction
-  | LocalFindAction
-  | SearchReplaceAction
-  | FocusNextAction
-  | FocusPrevAction
-  | ManageFavoritesAction
-  | FavoritesSelectKeyAction
-  | FavoritesAssignAction
-  | FavoritesClearAction
-  | FavoritesBackAction
-  | IncreaseOutlineDepthAction
-  | DecreaseOutlineDepthAction
-  | DevTestToastAction
-
-export type UIAction =
-  | ZoomOutwardsAction
-  | ZoomToRootAction
-  | CloseDetailPaneAction
-  | ToggleDetailPaneAction
-  | ShowHelpAction
-  | HideHelpAction
-  | HelpScrollUpAction
-  | HelpScrollDownAction
-  | CycleViewModeAction
-  | CycleIconStyleAction
-  | DeleteNodeAction
-  | SelectAllProgressiveAction
-  | TUIAction
+// =============================================================================
+// Focused Sub-Unions
+//
+// CommandAction is decomposed into focused sub-unions by domain. Each sub-union
+// maps to a dedicated handler function in board-actions.ts. The individual action
+// interfaces above are unchanged — only the grouping is new.
+// =============================================================================
 
 // High-level navigation actions (interpreted by TUI, not dispatched to reducer)
-// These are returned by commands and converted to BoardAction by the TUI handler
 interface CursorMoveAction {
   type: "CURSOR_MOVE"
   dir: NodeDirection
@@ -892,6 +780,174 @@ interface ExtendSelectRightAction {
   type: "EXTEND_SELECT_RIGHT"
 }
 
+/** Verb x Location actions — structured as VerbAction with locationKey. */
+export type VerbOp = VerbAction
+
+/** Navigation — cursor movement, zoom, page jumps, history. */
+export type NavOp =
+  | CursorMoveAction
+  | NavBackAction
+  | NavForwardAction
+  | NavSiblingBoardAction
+  | ZoomInwardsAction
+  | ZoomOutwardsAction
+  | ZoomToRootAction
+  | FollowLinkAction
+  | PageJumpAction
+  | JumpToColumnAction
+  | FoldLevelAction
+  | UnfoldLevelAction
+
+/** Structural editing — insert, delete, move, indent, clipboard, open. */
+export type EditOp =
+  | EnterInlineEditAction
+  | EditBlockNavigateAction
+  | IndentNodeAction
+  | OutdentNodeAction
+  | InsertAboveAction
+  | InsertBelowAction
+  | InsertChildAction
+  | InsertAtParentAction
+  | DeleteNodeAction
+  | DuplicateNodeAction
+  | OpenInSystemAction
+  | OpenInTerminalAction
+  | ClipboardCopyAction
+  | ClipboardCutAction
+  | ClipboardPasteAction
+  | AddLinkAction
+  | ReparentPickerAction
+  | ArchiveNodeAction
+  | TaskSetStatusAction
+  | ClearTaskAction
+  | ShiftUpAction
+  | ShiftDownAction
+  | ShiftLeftAction
+  | ShiftRightAction
+
+/** Text editing — character-level operations dispatched to EditTarget. */
+export type TextOp = TextEditAction | TextBoldAction | TextItalicAction
+
+/** Board state — selection, fold, visual mode, move mode, content lines. */
+export type BoardOp =
+  | BoardAction
+  | FoldNodeAction
+  | UnfoldNodeAction
+  | UnfoldRecursiveAction
+  | SelectAllProgressiveAction
+  | VisualModeEnterAction
+  | VisualModeExitAction
+  | ExtendSelectUpAction
+  | ExtendSelectDownAction
+  | ExtendSelectLeftAction
+  | ExtendSelectRightAction
+  | SelectAllSiblingsAction
+  | MoveAction
+  | IgnoreNodeAction
+  | ToggleShowIgnoredAction
+
+/** Dialogs — pickers, filter, favorites, date prompts, confirmations, search. */
+export type DialogOp =
+  | ShowNewItemDialogAction
+  | ShowItemPickerAction
+  | ShowTaskDialogAction
+  | ShowSearchDialogAction
+  | ShowFilterDialogAction
+  | SetFilterAction
+  | ClearFilterAction
+  | ToggleFilterPropertyAction
+  | ClearFilterCategoryAction
+  | ClearAllFilterPropertiesAction
+  | ToggleHideDoneAction
+  | ClearFiltersAction
+  | CommandPaletteAction
+  | DialogNavUpAction
+  | DialogNavDownAction
+  | DialogNavLeftAction
+  | DialogNavRightAction
+  | DialogConfirmAction
+  | DialogCancelAction
+  | ToggleSearchScopeAction
+  | DeleteConfirmExecuteAction
+  | DeleteConfirmCancelAction
+  | ManageFavoritesAction
+  | FavoritesSelectKeyAction
+  | FavoritesAssignAction
+  | FavoritesClearAction
+  | FavoritesBackAction
+  | SetDueDateAction
+  | SetStartDateAction
+  | SetRecurringAction
+  | SetPriorityAction
+  | SetPriority0Action
+  | SetPriority1Action
+  | SetPriority2Action
+  | SetPriority3Action
+  | SetPriority4Action
+  | SetLabelAction
+  | SetAssigneeAction
+  | DatePromptConfirmAction
+  | DatePromptCancelAction
+  | LocalFindAction
+  | SearchReplaceAction
+  | FocusNextAction
+  | FocusPrevAction
+
+/** Pane management — split, close, focus, resize, detail pane. */
+export type PaneOp =
+  | PaneSplitAction
+  | PaneCloseAction
+  | PaneFocusAction
+  | PaneFocusPreviousAction
+  | PaneFocusCycleAction
+  | PaneFocusNumberAction
+  | PaneResizeAction
+  | PaneResizeVerticalAction
+  | PaneEqualizeAction
+  | PaneZoomAction
+  | PaneOnlyAction
+  | PaneSwapAction
+  | PaneSplitAndPickAction
+  | CloseDetailPaneAction
+  | ToggleDetailPaneAction
+
+/** View & app — lifecycle, view modes, help, console, history, misc. */
+export type ViewOp =
+  | QuitAction
+  | CloseOrQuitAction
+  | CycleViewModeAction
+  | CycleIconStyleAction
+  | ShowHelpAction
+  | HideHelpAction
+  | HelpScrollUpAction
+  | HelpScrollDownAction
+  | FocusBoardAction
+  | FocusDetailAction
+  | HistoryUndoAction
+  | HistoryRedoAction
+  | ConsoleToggleAction
+  | ConsoleCloseAction
+  | SyncPaneToggleAction
+  | SyncPaneCloseAction
+  | ToastDismissAction
+  | NoopAction
+  | IncreaseOutlineDepthAction
+  | DecreaseOutlineDepthAction
+  | CaptureAction
+  | SettingsAction
+  | DevTestToastAction
+
+// =============================================================================
+// Legacy type aliases (preserved for backward compatibility with exports)
+// =============================================================================
+
+/** @deprecated Use focused sub-unions (VerbOp, NavOp, EditOp, etc.) instead. */
+export type TUIAction = VerbOp | NavOp | EditOp | DialogOp | PaneOp | ViewOp
+
+/** @deprecated Use focused sub-unions instead. */
+export type UIAction = TUIAction | TextOp | BoardOp
+
+/** @deprecated Use NavOp instead. */
 export type NavigationAction =
   | CursorMoveAction
   | NavBackAction
@@ -904,15 +960,8 @@ export type NavigationAction =
   | ExtendSelectLeftAction
   | ExtendSelectRightAction
 
-// Combined action type that commands can return
-export type CommandAction =
-  | BoardAction
-  | NavigationAction
-  | TaskSetStatusAction
-  | ClearTaskAction
-  | HistoryAction
-  | UIAction
-  | TextEditAction
+// Combined action type — union of all focused sub-unions
+export type CommandAction = VerbOp | NavOp | EditOp | TextOp | BoardOp | DialogOp | PaneOp | ViewOp
 
 // Re-export for convenience
 export type { BoardAction, TNode, ViewMode, TaskStatus }
