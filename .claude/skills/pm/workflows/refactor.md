@@ -75,7 +75,14 @@ Split the refactor into sequential phases where **each phase is independently sh
 - `path/to/other.ts` — what happens
 
 **Delete**: <what old APIs/files/exports are removed in this phase>
-**/complete**: `grep` for <old patterns> → 0 hits. <other criteria>.
+**New tests**: <what test files are created — era2 rule: new files need tests in same commit>
+**Definition of Done** (ALL must be true — from refactoring.md Quick Checklist):
+- [ ] Source code uses NewWay
+- [ ] Tests use NewWay
+- [ ] CLAUDE.md / skill files / docs updated
+- [ ] grep finds NO OldWay patterns
+- [ ] New files have tests
+**/complete**: exact grep commands that verify the above. No vague criteria.
 ```
 
 ### Anti-Patterns to Watch For
@@ -148,11 +155,13 @@ Before executing, review holistically:
 ### Self-Review Checklist
 
 - [ ] Every phase has a **Delete** section — nothing deferred
-- [ ] Every phase has a **/complete** section with grep criteria
+- [ ] Every phase has a **New tests** section — era2 rule
+- [ ] Every phase has a **Definition of Done** section (source + tests + docs + grep)
+- [ ] Every phase has a **/complete** section with EXACT grep commands (not vague criteria)
 - [ ] Phases are sequential — each depends on the previous
 - [ ] No phase leaves dual paths (old + new both working)
 - [ ] Design doc and beads are aligned (same phases, same scope)
-- [ ] Blast radius is covered — docs, tests, examples, not just code
+- [ ] Blast radius is covered — docs, tests, CLAUDE.md, skill files, not just code
 - [ ] Performance impact considered — any phase add non-trivial overhead?
 - [ ] Focus/scope/headless classified correctly (which era/layer owns it?)
 
