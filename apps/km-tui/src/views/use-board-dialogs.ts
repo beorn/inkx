@@ -7,7 +7,7 @@
 import { useCallback } from "react"
 import { type KNode, Position, resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
-import { TreeOps } from "@km/tree"
+import { Tree } from "@km/tree"
 import type { BoardAction } from "../board-types.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -104,7 +104,7 @@ export function useBoardDialogs({
       const nodeToMove = cursorNode.embed_source ?? cursorNode.id
 
       // Calculate sort order (add at end of target)
-      const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.last(targetNode.id))
+      const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(targetNode.id))
 
       // Record cursor for undo
       undoHandle.setCursor(cursorNodeId)

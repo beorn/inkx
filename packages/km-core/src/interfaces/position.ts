@@ -3,7 +3,7 @@
  *
  * SlateJS namespace pattern: interface Position + const Position with static helpers.
  * Pure data type — no repo dependencies. Repo-dependent helpers (toSortOrder,
- * nodeAt, isAtPosition, moveTo) are in TreeOps (@km/tree).
+ * nodeAt, isAtPosition, moveTo) are in Tree (@km/tree).
  */
 
 /** A slot in the tree: a position among a parent's children. */

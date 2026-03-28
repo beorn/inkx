@@ -255,7 +255,7 @@ describe("Selection.moveTo", () => {
     })
 
     const result = Selection.moveTo(ctx, { parentId: "target", childIdx: -1 })
-    // TreeOps.moveTo returns true for actual moves
+    // Tree.moveTo returns true for actual moves
     expect(result.moved).toBe(2)
     expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
     expect(ctx.undoHandle.startBatch).toHaveBeenCalledWith("Move")

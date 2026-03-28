@@ -1883,14 +1883,7 @@ describe("hide redundant parent sigil on embedded links", () => {
 describe("embed transparency in detail pane", () => {
   /** Build a board where an embed card points to a target node with children */
   function buildEmbedDetailBoard() {
-    const nodes = item(
-      "board",
-      item(
-        "col1",
-        item("regular-card"),
-        item("embed-card"),
-      ),
-    )
+    const nodes = item("board", item("col1", item("regular-card"), item("embed-card")))
     // Target node (lives outside the board — e.g., in another file)
     const targetNode: KNode = {
       id: "target-node",

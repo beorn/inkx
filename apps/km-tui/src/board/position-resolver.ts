@@ -6,7 +6,7 @@
  *
  * Position type and construction helpers (of, first, last, equals) live in
  * @km/core (Position namespace). Repo-dependent helpers (toSortOrder, nodeAt,
- * isAtPosition, moveTo) are in TreeOps (@km/tree).
+ * isAtPosition, moveTo) are in Tree (@km/tree).
  *
  * Picker locations (pick:#, pick:@, etc.) resolve to { pick: prefix }
  * which the verb handler interprets as "open picker filtered by prefix."
@@ -115,4 +115,4 @@ export function isPosition(loc: ResolvedLocation): loc is Position {
 }
 
 // Repo-dependent Position helpers (toSortOrder, nodeAt, isAtPosition, moveTo)
-// have moved to TreeOps in @km/tree.
+// have moved to Tree in @km/tree.

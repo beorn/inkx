@@ -17,7 +17,7 @@ import {
   type PickTarget,
 } from "../src/board/position-resolver.ts"
 import { Position } from "@km/core"
-import { TreeOps, type TreeMover } from "@km/tree"
+import { Tree, type TreeMover } from "@km/tree"
 import { setFavorite, clearFavorite } from "@km/commands"
 
 // --- Test helpers ---
@@ -301,66 +301,66 @@ describe("resolveLocationKey", () => {
     })
   })
 
-  describe("TreeOps.toSortOrder", () => {
+  describe("Tree.toSortOrder", () => {
     it("childIdx 0 → before first child's parent_idx", () => {
-      const result = TreeOps.toSortOrder(repo, { parentId: "board-A", childIdx: 0 })
+      const result = Tree.toSortOrder(repo, { parentId: "board-A", childIdx: 0 })
       expect(result.parentId).toBe("board-A")
       expect(result.sortOrder).toBeLessThan(0) // first child has parent_idx 0
     })
 
     it("childIdx -1 → after last child's parent_idx", () => {
-      const result = TreeOps.toSortOrder(repo, { parentId: "board-A", childIdx: -1 })
+      const result = Tree.toSortOrder(repo, { parentId: "board-A", childIdx: -1 })
       expect(result.parentId).toBe("board-A")
       expect(result.sortOrder).toBeGreaterThan(2) // last child has parent_idx 2
     })
 
     it("concrete childIdx passed through", () => {
-      const result = TreeOps.toSortOrder(repo, { parentId: "board-A", childIdx: 5 })
+      const result = Tree.toSortOrder(repo, { parentId: "board-A", childIdx: 5 })
       expect(result.sortOrder).toBe(5)
     })
 
     it("empty parent → sortOrder 0", () => {
-      const result = TreeOps.toSortOrder(repo, { parentId: "board-C", childIdx: -1 })
+      const result = Tree.toSortOrder(repo, { parentId: "board-C", childIdx: -1 })
       expect(result.sortOrder).toBe(0)
     })
   })
 
-  describe("TreeOps.nodeAt", () => {
+  describe("Tree.nodeAt", () => {
     it("childIdx 0 → first child", () => {
-      const node = TreeOps.nodeAt(repo, { parentId: "board-A", childIdx: 0 })
+      const node = Tree.nodeAt(repo, { parentId: "board-A", childIdx: 0 })
       expect(node?.id).toBe("card-1")
     })
 
     it("childIdx -1 → last child", () => {
-      const node = TreeOps.nodeAt(repo, { parentId: "board-A", childIdx: -1 })
+      const node = Tree.nodeAt(repo, { parentId: "board-A", childIdx: -1 })
       expect(node?.id).toBe("card-3")
     })
 
     it("empty parent → null", () => {
-      const node = TreeOps.nodeAt(repo, { parentId: "board-C", childIdx: 0 })
+      const node = Tree.nodeAt(repo, { parentId: "board-C", childIdx: 0 })
       expect(node).toBeNull()
     })
   })
 
-  describe("TreeOps.isAtPosition", () => {
+  describe("Tree.isAtPosition", () => {
     it("true when node is at first position", () => {
-      expect(TreeOps.isAtPosition(repo, "card-1", { parentId: "board-A", childIdx: 0 })).toBe(true)
+      expect(Tree.isAtPosition(repo, "card-1", { parentId: "board-A", childIdx: 0 })).toBe(true)
     })
 
     it("true when node is at last position", () => {
-      expect(TreeOps.isAtPosition(repo, "card-3", { parentId: "board-A", childIdx: -1 })).toBe(true)
+      expect(Tree.isAtPosition(repo, "card-3", { parentId: "board-A", childIdx: -1 })).toBe(true)
     })
 
     it("false when node is not at position", () => {
-      expect(TreeOps.isAtPosition(repo, "card-2", { parentId: "board-A", childIdx: 0 })).toBe(false)
+      expect(Tree.isAtPosition(repo, "card-2", { parentId: "board-A", childIdx: 0 })).toBe(false)
     })
 
     it("false for empty parent", () => {
-      expect(TreeOps.isAtPosition(repo, "card-1", { parentId: "board-C", childIdx: 0 })).toBe(false)
+      expect(Tree.isAtPosition(repo, "card-1", { parentId: "board-C", childIdx: 0 })).toBe(false)
     })
   })
 
-  describe("TreeOps.moveTo", () => {
+  describe("Tree.moveTo", () => {
     it("moves node to position", () => {
       const moves: Array<{ id: string; parentId: string; sortOrder: number }> = []
       const moveRepo: TreeMover = {
@@ -369,7 +369,7 @@ describe("resolveLocationKey", () => {
           moves.push({ id, parentId, sortOrder })
         },
       }
-      const moved = TreeOps.moveTo(moveRepo, "card-2", { parentId: "board-A", childIdx: -1 })
+      const moved = Tree.moveTo(moveRepo, "card-2", { parentId: "board-A", childIdx: -1 })
       expect(moved).toBe(true)
       expect(moves).toHaveLength(1)
       expect(moves[0]!.id).toBe("card-2")
@@ -383,7 +383,7 @@ describe("resolveLocationKey", () => {
           throw new Error("should not be called")
         },
       }
-      const moved = TreeOps.moveTo(moveRepo, "card-1", { parentId: "board-A", childIdx: 0 })
+      const moved = Tree.moveTo(moveRepo, "card-1", { parentId: "board-A", childIdx: 0 })
       expect(moved).toBe(false)
     })
   })

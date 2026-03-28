@@ -24,7 +24,7 @@
 import { getMarkerForStatus, decomposeDatetime, Position, type KNode, type TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
-import { TreeOps } from "@km/tree"
+import { Tree } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
@@ -321,7 +321,7 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
   if (!currentNode) return
 
   // Add as last child of current node
-  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.last(cursorId))
+  const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(cursorId))
 
   const newNode: Partial<KNode> = {
     type: "h",
@@ -442,7 +442,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Move cards")
 
-  let newSortOrder = TreeOps.toSortOrder(repo, Position.last(targetCol.node.id)).sortOrder
+  let newSortOrder = Tree.toSortOrder(repo, Position.last(targetCol.node.id)).sortOrder
   for (const nodeId of sourceNodeIds) {
     repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
     newSortOrder++
@@ -666,7 +666,7 @@ export function handleIndentColumn(ctx: ActionCtx, col: ColumnView): ActionResul
   if (!prevCol) return boundary("indent", "No previous column")
 
   // Calculate sort order: after last card in target column
-  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.last(prevCol.node.id))
+  const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(prevCol.node.id))
 
   // Record cursor for undo
   ctx.undoHandle.setCursor(ctx.cursorNodeId)

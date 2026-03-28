@@ -51,7 +51,7 @@ import {
   initDefaultKeybindings,
 } from "@km/commands"
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
-import { TreeOps } from "@km/tree"
+import { Tree } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import { makeSelectionKey, type ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
@@ -1645,7 +1645,7 @@ function splitAsChild(repo: ActionCtx["repo"], nodeId: string, offset: number): 
   const afterText = text.slice(clamped)
 
   // Find sort order before existing first child
-  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.first(nodeId))
+  const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.first(nodeId))
 
   const isTask = node.task_marker !== undefined
   const newChild: Partial<KNode> = {
@@ -1673,7 +1673,7 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
 
   const { repo } = ctx
   // Sort order before existing first child (or 0 if none)
-  const { sortOrder: newSortOrder } = TreeOps.toSortOrder(repo, Position.first(cursorId))
+  const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.first(cursorId))
 
   const newNode: Partial<KNode> = {
     type: "h",
@@ -1821,7 +1821,7 @@ function handleCursorTo(ctx: ActionCtx, to: Position): void {
 
   // Same parent — cursor to sibling at position
   if (cursorNode?.parent_id === to.parentId) {
-    const target = TreeOps.nodeAt(ctx.repo, to)
+    const target = Tree.nodeAt(ctx.repo, to)
     if (target) {
       ctx.dispatchBoard({ type: "SELECT", nodeId: target.id })
       clearSelection(ctx)
@@ -1857,9 +1857,9 @@ function handleReparentTo(ctx: ActionCtx, to: Position): ActionResult {
   // Same-parent reorder (single node) — quick path
   if (cards.length === 1 && cards[0]!.parent_id === to.parentId) {
     const nodeId = cards[0]!.id
-    if (TreeOps.isAtPosition(ctx.repo, nodeId, to)) return ok()
+    if (Tree.isAtPosition(ctx.repo, nodeId, to)) return ok()
     ctx.undoHandle.setCursor(nodeId)
-    TreeOps.moveTo(ctx.repo, nodeId, to)
+    Tree.moveTo(ctx.repo, nodeId, to)
     ctx.dispatchBoard({ type: "SELECT", nodeId })
     return ok()
   }

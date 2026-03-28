@@ -10,7 +10,7 @@
  */
 
 import type { KNode, Position } from "@km/core"
-import { TreeOps } from "@km/tree"
+import { Tree } from "@km/tree"
 import type { SelectionKey } from "./types.ts"
 import { parseSelectionKey } from "./types.ts"
 
@@ -142,7 +142,7 @@ export const Selection = {
     let moved = 0
     for (const card of cards) {
       if (card.id === to.parentId) continue // don't move into self
-      if (TreeOps.moveTo(ctx.repo, card.id, to)) moved++
+      if (Tree.moveTo(ctx.repo, card.id, to)) moved++
     }
     ctx.undoHandle.endBatch()
     return { moved }

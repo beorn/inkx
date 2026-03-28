@@ -307,7 +307,7 @@ Node.get(root, id)         // → Node                      (O(1) Map lookup)
 
 `Node.parent(root, id)` is O(1) because every node stores `parentId`. Child ordering uses the existing children array. `Path` still exists for local tree math (e.g., computing relative positions) but is never used as an address.
 
-### TreeOps — 9 Structural Types, ID-Based
+### Tree — 9 Structural Types, ID-Based
 
 The 9 structural operation types at the Tree level (Phase 4). These are distinct from PlainTextOps (Phase 1) — different abstraction levels, different scope.
 
@@ -621,7 +621,7 @@ The persistent layer uses **Automerge** (or Yjs) as the source of truth. `Tree.a
 ┌─────────────────────────────────────────────┐
 │  Hierarchy Doc (one per workspace)          │
 │  Automerge Map of nodes + ordering          │
-│  Tree.apply() translates TreeOps            │
+│  Tree.apply() translates Tree ops            │
 │  → Automerge.change() calls                 │
 ├─────────────────────────────────────────────┤
 │  Item Body Docs (one per item)              │
@@ -735,7 +735,7 @@ Replace Zustand's imperative `setUI()` with composed pure machines. Machines com
 Integrate SlateJS as the body editor for individual nodes:
 
 - **Terminal adapter**: Translate SlateJS element/leaf tree to silvery components for rendering
-- **Shared operations**: Same op names as km's TreeOps where applicable (`insert_text`, `split_node`)
+- **Shared operations**: Same op names as km's Tree where applicable (`insert_text`, `split_node`)
 - **Kill ring integration**: Same effect pattern as PlainText
 - **Selection bridge**: When editing a body, the global selection is `TextSelection` with the body node's ID; SlateJS manages the internal cursor
 
@@ -751,7 +751,7 @@ PlainText.apply() continues to serve simple inputs (search bars, dialogs). Slate
 
 ### Phase 4: Tree (km) — document tree model
 
-Full document tree with undo, CRDT, plugins. See [Tree (document tree, Phase 4)](#tree-document-tree-phase-4) for the `Tree` namespace API and [TreeOps](#treeops--9-structural-types-id-based) for the operation types.
+Full document tree with undo, CRDT, plugins. See [Tree (document tree, Phase 4)](#tree-document-tree-phase-4) for the `Tree` namespace API and [Tree — 9 Structural Types](#tree--9-structural-types-id-based) for the operation types.
 
 TreeState adds undo and flush tracking:
 

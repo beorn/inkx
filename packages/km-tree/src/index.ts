@@ -51,11 +51,8 @@ export { findIndexFile, isIndexFile, getChildSlotTarget, isSlotNode, extractSlot
 // Body content utilities
 export { extractBody, type BodyExtraction, type ExtractBodyDbOpts } from "./body.ts"
 
-// Tree position operations (repo-dependent Position helpers)
-export { TreeOps, type TreeReader, type TreeMover } from "./tree-ops.ts"
-
-// Tree navigation queries (parent, children, ancestors, siblings)
-export { NodeQuery } from "./node-queries.ts"
+// Tree namespace — queries + mutations (SlateJS pattern)
+export { Tree, type TreeReader, type TreeMover } from "./tree.ts"
 
 // Block operations (split/merge for outline editing)
 export {
