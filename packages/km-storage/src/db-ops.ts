@@ -80,7 +80,9 @@ export interface EmbedChildOpts {
  * Build a Partial<KNode> for an embedded child. Pure function — caller chooses
  * write mechanism: createDbOps(db).addNode() (direct SQL) or repo.addNode() (with events).
  *
- * Content is always the source node's real content (no ![[path]] fallback).
+ * Content is left empty — the display layer resolves it from embed_source
+ * at render time via getDisplayContent(). Setting content would freeze it
+ * at creation time and be treated as an alias override.
  * Task traits (marker, status) are carried from the source with marker derivation.
  */
 export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
@@ -90,7 +92,6 @@ export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
     type,
     item: true,
     embed_source: source.id,
-    content: source.content ?? undefined,
     parent_idx: parentIdx,
   }
 
