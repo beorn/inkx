@@ -635,7 +635,7 @@ function TreeNodeImpl({
                     {contextSuffix}
                   </Text>
                 )}
-                {hasBody && !childrenVisible && <Text dimColor>{" ···"}</Text>}
+                {hasBody && (!childrenVisible || hiddenCount > 0) && <Text dimColor>{" ···"}</Text>}
               </Text>
             )}
           </Box>
