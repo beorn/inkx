@@ -259,39 +259,40 @@ y/d/p  Cmd+c/Cmd+x/Cmd+v ···· copy/cut/paste
 
 The keybinding system uses a composable verb x location pattern to generate chord keybindings from a cross-product of verbs and locations. This replaces manually-defined chord entries with a functional vocabulary.
 
-### Target Resolvers
+### Location Registry
 
-Functions `(ctx: CommandContext) => string | null` that resolve a target:
+`SYSTEM_LOCS` maps chord suffix keys to `{ key, label }` pairs:
 
-| Resolver | Returns | Description |
-|----------|---------|-------------|
-| `inbox` | `@inbox` | Inbox board |
-| `journal` | `@journal` | Journal board |
-| `home` | `@next` | Home board |
-| `archive` | `@archive` | Archive board |
-| `parent` | `"parent"` | Parent of current node |
-| `first` | `"first"` | First sibling |
-| `last` | `"last"` | Last sibling |
-| `fav(n)` | `fav:${n}` | Favorite by number |
-| `pick(p)` | `pick:${p}` | Open picker dialog |
+| Suffix | locationKey | Description |
+|--------|-------------|-------------|
+| `h` | `@next` | Home board |
+| `i` | `@inbox` | Inbox board |
+| `j` | `@journal` | Journal board |
+| `a` | `@archive` | Archive board |
+| `p` | `parent` | Parent of current node |
+| `g` | `first` | First sibling |
+| `G` | `last` | Last sibling |
+| `0-9` | `fav:${n}` | Favorite by number |
+
+`PICKER_LOCS` maps to deferred locations: `#`→`pick:#`, `@`→`pick:@`, `+`→`pick:+`, `[`→`pick:[`.
 
 ### Verb Constructors
 
-Functions `(target: TargetResolver) => Execute` that create actions:
+Functions `(locationKey: string) => Execute` that create VerbActions:
 
-| Verb | Action Types | Description |
+| Verb | Action Type | Description |
 |------|-------------|-------------|
-| `goTo` | CURSOR_TO | Navigate to target (locationKey: "@inbox", "fav:1", "parent", etc.) |
-| `moveTo` | MOVE_TO_BOARD, MOVE_TO_FAVORITE, OUTDENT_NODE, SHIFT_TO_TOP/BOTTOM | Move node to target |
-| `addTo` | ADD_LINK_TO_BOARD, SET_LABEL, SET_ASSIGNEE, ADD_LINK | Add link/property |
-| `createIn` | CAPTURE_DIALOG | Create item in target |
+| `goTo` | CURSOR_TO | Navigate to target |
+| `moveTo` | REPARENT_TO | Move node(s) to target |
+| `addTo` | LINK_TO | Add link/property to target |
+| `createIn` | CREATE_AT | Create item at target |
 
 ### Grid Helper
 
 `verbLocationGrid()` generates chord keybindings from the cross-product of verbs and locations. For example:
-- `g i` -> goTo(inbox) -> CURSOR_TO { locationKey: "@inbox" }
-- `m j` -> moveTo(journal) -> MOVE_TO_BOARD { boardId: "@journal" }
-- `a #` -> addTo(pick("#")) -> SET_LABEL
+- `g i` -> goTo("@inbox") -> CURSOR_TO { locationKey: "@inbox" }
+- `m j` -> moveTo("@journal") -> REPARENT_TO { locationKey: "@journal" }
+- `a #` -> addTo("pick:#") -> LINK_TO { locationKey: "pick:#" }
 
 Nonsensical combinations are skipped (e.g., `a g`, `c j`).
 
@@ -312,6 +313,6 @@ Nonsensical combinations are skipped (e.g., `a g`, `c j`).
 
 ### Adding a New Location
 
-1. Add target resolver in `verb-locations.ts`
-2. Add to `SYSTEM_LOCS` or `PICKER_LOCS`
+1. Add `{ key, label }` entry to `SYSTEM_LOCS` or `PICKER_LOCS` in `verb-locations.ts`
+2. Add handler logic for the new locationKey in the verb handlers (`handleCursorTo`, etc.)
 3. Grid automatically generates all verb combinations

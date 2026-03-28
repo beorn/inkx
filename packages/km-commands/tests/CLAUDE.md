@@ -10,7 +10,7 @@
 - Executor: command execution, context building, action dispatch
 - Key adapter: key event normalization, modifier extraction, key-to-command bridging
 - Error constructors: boundary, precondition, unimplemented result types
-- Verb x location vocabulary: target resolvers, verb constructors, grid generation
+- Verb x location vocabulary: verb constructors, location registries, grid generation
 
 ## What NOT to Test Here
 
