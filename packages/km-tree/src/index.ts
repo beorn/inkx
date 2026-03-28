@@ -54,6 +54,9 @@ export { extractBody, type BodyExtraction, type ExtractBodyDbOpts } from "./body
 // Tree position operations (repo-dependent Position helpers)
 export { TreeOps, type TreeReader, type TreeMover } from "./tree-ops.ts"
 
+// Tree navigation queries (parent, children, ancestors, siblings)
+export { NodeQuery } from "./node-queries.ts"
+
 // Block operations (split/merge for outline editing)
 export {
   splitNode,

@@ -37,4 +37,16 @@ export const Position = {
   equals(a: Position, b: Position): boolean {
     return a.parentId === b.parentId && a.childIdx === b.childIdx
   },
+
+  /** Slot after a node among its siblings (for inserting after). Null for root nodes. */
+  after(node: NodeLike): Position | null {
+    if (!node.parent_id) return null
+    return { parentId: node.parent_id, childIdx: node.parent_idx + 1 }
+  },
+
+  /** Slot before a node among its siblings (for inserting before). Null for root nodes. */
+  before(node: NodeLike): Position | null {
+    if (!node.parent_id) return null
+    return { parentId: node.parent_id, childIdx: node.parent_idx - 1 }
+  },
 } as const
