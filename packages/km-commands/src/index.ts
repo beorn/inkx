@@ -23,10 +23,6 @@ export type {
   DialogOp,
   PaneOp,
   ViewOp,
-  // Legacy aliases (deprecated — use sub-unions)
-  UIAction,
-  TUIAction,
-  NavigationAction,
   // Individual action types (for specific consumers)
   CloseDetailPaneAction,
   ShowHelpAction,

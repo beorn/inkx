@@ -30,11 +30,7 @@ type EmbedLike = { embed_source?: string | null }
 /** Extended node shape for task detection. */
 type TaskLike = {
   task_status?: string | null
-  due_at?: string | null
-  priority?: string | null
-  start_at?: string | null
-  assigned_to?: string | null
-  rrule?: string | null
+  task_marker?: string | null
 }
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- SlateJS namespace pattern
@@ -64,11 +60,9 @@ export const KNode = {
     return node.embed_source != null
   },
 
-  /** Task — has explicit task_status OR implicit task properties. */
+  /** Task — has explicit task_marker or task_status. Use hasTaskProperties() for implicit detection. */
   isTask(node: TaskLike): boolean {
-    return (
-      node.task_status != null || !!(node.due_at || node.priority || node.start_at || node.assigned_to || node.rrule)
-    )
+    return node.task_marker != null || node.task_status != null
   },
 
   /** Check if node properties match a partial shape. */

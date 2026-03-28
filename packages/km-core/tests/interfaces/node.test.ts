@@ -67,24 +67,27 @@ describe("KNode namespace", () => {
   })
 
   describe("KNode.isTask", () => {
-    it("true with explicit task_status", () => {
+    it("true with task_marker", () => {
+      expect(KNode.isTask({ task_marker: "[ ]" })).toBe(true)
+      expect(KNode.isTask({ task_marker: "[x]" })).toBe(true)
+    })
+
+    it("true with task_status", () => {
       expect(KNode.isTask({ task_status: "todo" })).toBe(true)
     })
 
-    it("true with implicit task properties", () => {
-      expect(KNode.isTask({ due_at: "2026-02-20" })).toBe(true)
-      expect(KNode.isTask({ priority: "P2" })).toBe(true)
-      expect(KNode.isTask({ start_at: "2026-01-01" })).toBe(true)
-      expect(KNode.isTask({ assigned_to: "bjorn" })).toBe(true)
-      expect(KNode.isTask({ rrule: "FREQ=DAILY" })).toBe(true)
-    })
-
-    it("false with no task properties", () => {
+    it("false without marker or status", () => {
       expect(KNode.isTask({})).toBe(false)
     })
 
-    it("false with null/empty properties", () => {
-      expect(KNode.isTask({ task_status: null, due_at: null, priority: null })).toBe(false)
+    it("false with null marker and status", () => {
+      expect(KNode.isTask({ task_marker: null, task_status: null })).toBe(false)
+    })
+
+    it("implicit task properties alone do NOT make a task", () => {
+      // due_at, priority, etc. without marker/status → not a task
+      // Use hasTaskProperties() for implicit detection
+      expect(KNode.isTask({})).toBe(false)
     })
   })
 

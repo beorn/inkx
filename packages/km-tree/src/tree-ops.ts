@@ -84,4 +84,17 @@ export const TreeOps = {
     tree.moveNode(nodeId, parentId, sortOrder)
     return true
   },
+
+  /**
+   * Sort order midpoint between two sibling indices. For inserting between neighbors.
+   * If no neighbor exists in that direction, places beyond the boundary.
+   */
+  sortOrderBetween(tree: TreeReader, parentId: string, index: number, direction: "before" | "after"): number {
+    const children = tree.getChildren(parentId)
+    const order = (i: number) => children[i]?.parent_idx ?? i
+    if (direction === "before") {
+      return index === 0 ? order(0) - 1 : (order(index - 1) + order(index)) / 2
+    }
+    return index >= children.length - 1 ? order(children.length - 1) + 1 : (order(index) + order(index + 1)) / 2
+  },
 } as const

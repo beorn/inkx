@@ -937,29 +937,6 @@ export type ViewOp =
   | SettingsAction
   | DevTestToastAction
 
-// =============================================================================
-// Legacy type aliases (preserved for backward compatibility with exports)
-// =============================================================================
-
-/** @deprecated Use focused sub-unions (VerbOp, NavOp, EditOp, etc.) instead. */
-export type TUIAction = VerbOp | NavOp | EditOp | DialogOp | PaneOp | ViewOp
-
-/** @deprecated Use focused sub-unions instead. */
-export type UIAction = TUIAction | TextOp | BoardOp
-
-/** @deprecated Use NavOp instead. */
-export type NavigationAction =
-  | CursorMoveAction
-  | NavBackAction
-  | NavForwardAction
-  | FoldLevelAction
-  | UnfoldLevelAction
-  | SelectAllSiblingsAction
-  | ExtendSelectUpAction
-  | ExtendSelectDownAction
-  | ExtendSelectLeftAction
-  | ExtendSelectRightAction
-
 // Combined action type — union of all focused sub-unions
 export type CommandAction = VerbOp | NavOp | EditOp | TextOp | BoardOp | DialogOp | PaneOp | ViewOp
 
