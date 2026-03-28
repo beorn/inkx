@@ -19,6 +19,7 @@ import { useNodeStore, useReactive } from "../reactive.ts"
 import { getNodeDisplayName } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
+import { resolveEmbed } from "./embed-display.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
 import { Card } from "./CardColumn.tsx"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
@@ -58,8 +59,8 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
   const rawNode = rootId ? repo.getNode(rootId) : null
   // Embed transparency: if root is an embed, show the target's identity
-  const resolvedTarget = rawNode?.embed_source ? repo.getNode(rawNode.embed_source) : null
-  const rootNode = resolvedTarget ?? rawNode
+  const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
+  const rootNode = displayNode ?? rawNode
   const effectiveId = rootNode?.id ?? rootId
   if (!rootNode) {
     return (

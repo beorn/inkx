@@ -55,6 +55,7 @@ import {
 import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./workspace-persist.ts"
 import { deserializeFilterProperties } from "./workspace-persist.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
+import { resolveEmbed } from "./views/embed-display.ts"
 
 // =============================================================================
 // Store Types
@@ -371,6 +372,21 @@ function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoar
 }
 
 /**
+ * Compute the initial cursor ID for a detail pane showing the given node.
+ * Resolves embeds to their target, then picks first metadata key or first child.
+ */
+function computeDetailInitialCursor(repo: Repo, nodeId: string | null): string | null {
+  if (!nodeId) return null
+  const rawNode = repo.getNode(nodeId)
+  const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
+  const effectiveId = displayNode?.id ?? nodeId
+  const metaKeys = displayNode ? computeMetadataKeys(displayNode) : []
+  if (metaKeys.length > 0) return `${DETAIL_META_PREFIX}${metaKeys[0]}`
+  const children = repo.getChildren(effectiveId)
+  return children[0]?.id ?? null
+}
+
+/**
  * Create the initial store state for the board app.
  * Used as the Zustand StateCreator in createApp().
  */
@@ -516,20 +532,7 @@ export function createBoardAppStoreState(
           if (detailPane) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
-              // Embed transparency: resolve to target for metadata/children
-              const newRawNode = s.repo.getNode(newCardId)
-              const newResolved = newRawNode?.embed_source ? s.repo.getNode(newRawNode.embed_source) : null
-              const newEffective = newResolved ?? newRawNode
-              const newEffectiveId = newEffective?.id ?? newCardId
-              // Initial cursor = first metadata row, then first child
-              const newMetaKeys = newEffective ? computeMetadataKeys(newEffective) : []
-              const newChildren = s.repo.getChildren(newEffectiveId)
-              const newFirstItemId =
-                newMetaKeys.length > 0
-                  ? `${DETAIL_META_PREFIX}${newMetaKeys[0]}`
-                  : newChildren.length > 0
-                    ? (newChildren[0]?.id ?? null)
-                    : null
+              const newFirstItemId = computeDetailInitialCursor(s.repo, newCardId)
               const newPanes = new Map(s.workspace.panes)
               const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: newFirstItemId }
               newPanes.set(detailPane.id, updatedDetail)
@@ -839,21 +842,7 @@ export function createBoardAppStoreState(
           const cursorState = state.cursorStore.getState()
           const detailRootId = cursorState.cursorCardNodeId ?? cursorState.cursorColumnNodeId ?? parentPane.rootId
 
-          // Embed transparency: resolve to target for metadata/children computation
-          const rawNode = detailRootId ? state.repo.getNode(detailRootId) : null
-          const resolvedTarget = rawNode?.embed_source ? state.repo.getNode(rawNode.embed_source) : null
-          const effectiveNode = resolvedTarget ?? rawNode
-          const effectiveId = effectiveNode?.id ?? detailRootId
-
-          // Initial cursor = first metadata row, then first child
-          const metaKeys = effectiveNode ? computeMetadataKeys(effectiveNode) : []
-          const children = state.repo.getChildren(effectiveId)
-          const firstItemId =
-            metaKeys.length > 0
-              ? `${DETAIL_META_PREFIX}${metaKeys[0]}`
-              : children.length > 0
-                ? (children[0]?.id ?? null)
-                : null
+          const firstItemId = computeDetailInitialCursor(state.repo, detailRootId)
 
           // Create a BoardPaneState with its OWN CursorStore (independent cursor)
           const detailCursorStore = createCursorStore({
