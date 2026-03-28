@@ -200,6 +200,13 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
     case "CURSOR_TO":
       handleCursorTo(ctx, action.locationKey)
       return ok()
+    case "REPARENT_TO":
+    case "LINK_TO":
+    case "CREATE_AT":
+      // Phase 2 will implement these
+      ctx.toastQueue.info(`${action.type} not yet implemented`)
+      ctx.setUI({})
+      return ok()
     case "MOVE_TO_BOARD":
       handleMoveToBoard(ctx, action.boardId)
       return ok()
@@ -1686,12 +1693,14 @@ function handleCursorTo(ctx: ActionCtx, locationKey: string): void {
 
   // "first" / "last" — cursor to first/last sibling
   if (locationKey === "first" || locationKey === "last") {
-    const boardNode = ctx.getBoardNodeId()
-    if (!boardNode) return
-    const siblings = ctx.repo.getChildren(boardNode)
+    const nodeId = ctx.cursorNodeId
+    if (!nodeId) return
+    const node = ctx.repo.getNode(nodeId)
+    if (!node?.parent_id) return
+    const siblings = ctx.repo.getChildren(node.parent_id)
     if (siblings.length === 0) return
-    const target = locationKey === "first" ? siblings[0]! : siblings[siblings.length - 1]!
-    ctx.dispatchBoard({ type: "SET_CURSOR", nodeId: target.id })
+    const target = locationKey === "first" ? siblings[0]! : siblings.at(-1)!
+    ctx.dispatchBoard({ type: "SELECT", nodeId: target.id })
     clearSelection(ctx)
     return
   }
