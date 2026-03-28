@@ -6,7 +6,7 @@
 
 import React from "react"
 import { Text } from "@silvery/ag-react"
-import { extractTitleTaskMarker, KNode, decomposeDatetime, hasTaskProperties } from "@km/core"
+import { extractTitleTaskMarker, KNode, decomposeDatetime } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
@@ -92,7 +92,7 @@ export function getNodeStyle(
   isInlineEditing = false,
   _paneFocused = true,
 ): NodeStyleResult {
-  const nodeIsTask = KNode.isTask(node) || hasTaskProperties(node)
+  const nodeIsTask = KNode.isTask(node)
   const ownColor = getOwnColor(node)
 
   // Task status icon: prepended to content for tasks
@@ -330,7 +330,7 @@ export function formatInfoSuffix(
   getBoardPills: GetBoardPillsFn,
 ): string {
   // Board pills - show which boards this task is on
-  const boardPills = KNode.isTask(node) || hasTaskProperties(node) ? getBoardPills(node, excludeBoardIds) : []
+  const boardPills = KNode.isTask(node) ? getBoardPills(node, excludeBoardIds) : []
   const boardPillsStr = formatBoardPills(boardPills, isCompact)
 
   if (!isCompact) {
@@ -359,7 +359,7 @@ export function formatSubtaskBadge(children: KNode[]): string | null {
   let total = 0
   let done = 0
   for (const child of children) {
-    if (!KNode.isTask(child) && !hasTaskProperties(child)) continue
+    if (!KNode.isTask(child)) continue
     total++
     if (child.task_status === "done" || child.task_status === "dropped") done++
   }
@@ -571,7 +571,7 @@ export function InfoSuffix({
   getBoardPills: GetBoardPillsFn
   stripColor?: boolean
 }): React.ReactElement | null {
-  const boardPills = KNode.isTask(node) || hasTaskProperties(node) ? getBoardPills(node, excludeBoardIds) : []
+  const boardPills = KNode.isTask(node) ? getBoardPills(node, excludeBoardIds) : []
 
   if (!isCompact) {
     const hasAssignee = !!node.assigned_to

@@ -6,7 +6,7 @@
  */
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
-import type { KNode, TaskStatus, Event } from "@km/core"
+import { KNode, type TaskStatus, type Event } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"
 import type { LoadError } from "../repo-loader.ts"
 import type { Link } from "../db.ts"
@@ -361,7 +361,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       ensureNotClosed()
       // Find the folder node with no parent (repo root)
       for (const node of nodes.values()) {
-        if (node.parent_id === null && node.type === "h" && node.item === true && node.fstype === "folder") {
+        if (node.parent_id === null && KNode.isOutline(node) && node.fstype === "folder") {
           return node
         }
       }

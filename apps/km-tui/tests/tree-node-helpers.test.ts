@@ -59,31 +59,31 @@ describe("hasTaskProperties", () => {
 // Unit tests: getNodeStyle for implicit tasks
 // =============================================================================
 
-describe("getNodeStyle with implicit tasks", () => {
-  it("returns taskStatusIcon for node with due_at but no task_status", () => {
-    const node = { due_at: "2026-02-20" } as KNode
+describe("getNodeStyle task detection", () => {
+  it("node with task_marker shows task icon", () => {
+    const node = { task_marker: "[ ]" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
     expect(style.taskStatusIcon!.char).toBe("\u25A1") // □ todo icon
   })
 
-  it("returns taskStatusIcon for node with priority but no task_status", () => {
-    const node = { priority: "P2" } as KNode
-    const style = getNodeStyle(node, false, false, false, 0)
-    expect(style.taskStatusIcon).not.toBeNull()
-  })
-
-  it("explicit task_status takes precedence over implicit", () => {
-    const node = { due_at: "2026-02-20", task_status: "done" } as KNode
+  it("node with task_status shows task icon", () => {
+    const node = { task_status: "done" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
     expect(style.taskStatusIcon!.char).toBe("\u2713") // ✓ done icon
   })
 
-  it("implicit task with no status is not dimmed", () => {
+  it("node with only due_at is NOT a task (no icon)", () => {
     const node = { due_at: "2026-02-20" } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
-    expect(style.shouldDim).toBe(false)
+    expect(style.taskStatusIcon).toBeNull()
+  })
+
+  it("node with only priority is NOT a task (no icon)", () => {
+    const node = { priority: "P2" } as KNode
+    const style = getNodeStyle(node, false, false, false, 0)
+    expect(style.taskStatusIcon).toBeNull()
   })
 })
 
@@ -137,14 +137,19 @@ describe("shortName", () => {
 // Unit tests: formatInfoSuffix
 // =============================================================================
 
-describe("formatInfoSuffix with implicit tasks", () => {
-  it("shows board pills for node with task properties", () => {
-    const node = { due_at: "2026-02-20" } as KNode
-    // getBoardPills returns pills when called for a task
+describe("formatInfoSuffix task detection", () => {
+  it("shows board pills for node with task_marker", () => {
+    const node = { task_marker: "[ ]" } as KNode
     const mockGetBoardPills: GetBoardPillsFn = () => [{ name: "board", color: "cyan" }]
     const suffix = formatInfoSuffix(node, false, new Set(), mockGetBoardPills)
-    // Should have called getBoardPills (non-empty suffix)
     expect(suffix).not.toBe("")
+  })
+
+  it("no board pills for node with only due_at (not a task)", () => {
+    const node = { due_at: "2026-02-20" } as KNode
+    const mockGetBoardPills: GetBoardPillsFn = () => [{ name: "board", color: "cyan" }]
+    const suffix = formatInfoSuffix(node, false, new Set(), mockGetBoardPills)
+    expect(suffix).toBe("")
   })
 
   it("does not show board pills for plain node", () => {
@@ -210,7 +215,7 @@ describe("implicit task rendering", () => {
     board.expectScreen("P2")
   })
 
-  it("node with due_at shows task icon (\u25A1)", () => {
+  it("node with only due_at does NOT show task icon (not a task)", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.due_at = "2026-03-20"
@@ -218,8 +223,8 @@ describe("implicit task rendering", () => {
     taskNode.task_marker = undefined
 
     const { board } = testEnv(() => nodes)
-    // The \u25A1 (white square) todo icon should appear
-    board.expectScreen("\u25A1")
+    // No task icon — due_at alone doesn't make it a task
+    board.expectScreenNot("\u25A1")
   })
 
   it("plain node without task properties has no task icon", () => {

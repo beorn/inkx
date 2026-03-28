@@ -60,7 +60,7 @@ export const KNode = {
     return node.embed_source != null
   },
 
-  /** Task — has explicit task_marker or task_status. Use hasTaskProperties() for implicit detection. */
+  /** Task — has explicit task_marker or task_status. */
   isTask(node: TaskLike): boolean {
     return node.task_marker != null || node.task_status != null
   },
