@@ -4,8 +4,8 @@
  * These types describe how nodes are presented in the TUI, not how they're stored.
  * The data model is KNode (from @km/core) — a single tree of nodes.
  *
- * ColumnView wraps a column KNode with its pre-fetched card KNodes.
- * Cards are plain KNode — children fetched via repo.getChildren() on demand.
+ * ColumnView wraps a column KNode with its pre-fetched CardView cards.
+ * CardView extends KNode with pre-resolved embed data, body classification, etc.
  */
 
 import type { KNode } from "@km/core"

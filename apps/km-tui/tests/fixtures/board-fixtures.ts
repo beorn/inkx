@@ -35,7 +35,7 @@ function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNod
 }
 
 /**
- * Create a card KNode (cards are plain KNode — no wrapper type)
+ * Create a card KNode for testing (callers wrap with CardView fields as needed)
  */
 export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KNode[] = []): KNode {
   return createTestKNode(nodeOverrides)
@@ -124,7 +124,7 @@ function createSimpleTestBoard(): {
 
   const col2 = createColumnView({ id: col2Id, parent_id: rootId, parent_idx: 1, content: "Done" }, [card3])
 
-  // Note: createCardNode now returns KNode directly (no wrapper)
+  // Note: createCardNode returns KNode; createColumnView wraps with CardView fields
 
   return {
     state: createBoardState([col1, col2], { rootId }),

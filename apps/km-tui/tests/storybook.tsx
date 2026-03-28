@@ -930,7 +930,7 @@ function Layer3Views(): React.ReactElement {
 
 // Helper to create a card KNode and register its children.
 // Children are created with proper parent_id for getChildren() to work.
-// Cards are now plain KNode — no wrapper type.
+// Cards are CardView (KNode + resolved embed data).
 function mockCard(node: KNode, childDefs: Array<{ content: string; status?: string }> = []): KNode {
   // Register children so getChildrenFromStore() works
   childDefs.forEach((def, i) =>

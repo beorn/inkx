@@ -2,7 +2,7 @@
  * useColumns Hook — VIEW MODEL DERIVATION
  *
  * Derives ColumnView[] from Repo. This is the main view model construction point:
- * it reads data model (KNode tree via Repo) and produces view model (ColumnView with KNode cards).
+ * it reads data model (KNode tree via Repo) and produces view model (ColumnView with CardView cards).
  *
  * Structure:
  * 1. useColumns() — React hook with repo subscription

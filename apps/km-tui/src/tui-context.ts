@@ -64,7 +64,7 @@ export interface ActionCtx {
   selectedNode: KNode | null
   /** Current column from layout */
   column: ColumnView | undefined
-  /** Current card from layout (plain KNode) */
+  /** Current card from layout (CardView at top level) */
   card: KNode | undefined
 
   // === Dispatchers ===

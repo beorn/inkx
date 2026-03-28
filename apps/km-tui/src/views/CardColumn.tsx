@@ -3,9 +3,8 @@
  *
  * Uses silvery VirtualList for React-level virtualization of large card lists.
  *
- * NODE MODEL V2: Receives ColumnView (with KNode cards directly).
- * "column" is a parent KNode wrapped in ColumnView, "card" is a child KNode.
- * No CardState wrapper — cards are plain KNode objects.
+ * NODE MODEL V2: Receives ColumnView with CardView cards.
+ * "column" is a parent KNode wrapped in ColumnView, "card" is a CardView (KNode + resolved embed data).
  */
 import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "@silvery/create/create-app"

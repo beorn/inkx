@@ -241,7 +241,7 @@ km adopts this pattern with ID-based addressing:
 | `Path` | `Path` | Retained for local tree navigation, but not for addressing |
 | `Point` | `Point` | `{ nodeId, offset }` instead of `{ path, offset }` |
 | `Range` | `Range` | `{ anchor: Point, focus: Point }` — same shape, ID-based Points |
-| `Operation` | `TreeOp` | Same 9 types, `nodeId` replaces `path` |
+| `Operation` | `TreeOp` | Same 8 types, `nodeId` replaces `path` |
 | `Transforms` | `Transforms` | Same API, pure: `Transforms.insertText(tree, text) → [TreeState, TreeEffect[]]` |
 
 ### `.apply()` — The Universal Verb
