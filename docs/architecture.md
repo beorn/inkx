@@ -212,13 +212,15 @@ See [ref/commands.md](ref/commands.md) for full documentation.
 
 ### Action Types and Boundaries
 
-| Action Type   | State Owner | Side Effects       |
-| ------------- | ----------- | ------------------ |
-| `BoardAction` | BoardState  | None (pure)        |
-| `UIAction`    | UIState     | None (pure)        |
-| Storage calls | Storage     | SQLite + file sync |
+| Action Type    | State Owner | Side Effects       |
+| -------------- | ----------- | ------------------ |
+| `BoardAction`  | BoardState  | None (pure)        |
+| `CommandAction` | Handlers   | Repo mutations     |
+| Storage calls  | Storage     | SQLite + file sync |
 
-**Key principle:** Reducers are pure. Storage mutations happen directly in commands via `ctx.storage`.
+`CommandAction` = `VerbOp | NavOp | EditOp | TextOp | BoardOp | DialogOp | PaneOp | ViewOp`. The 8-line router in `board-actions.ts` dispatches to focused sub-handlers.
+
+**Key principle:** Reducers are pure. Storage mutations happen directly in handlers via `ctx.repo`.
 
 ### Why This Matters
 

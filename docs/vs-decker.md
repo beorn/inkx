@@ -130,11 +130,10 @@ Keyboard Input
   ↓ No
 processKeyWithBoardState() → @km/commands
   ↓
-Route by action type:
-  ├─ BoardAction → dispatchBoard()
-  ├─ UIAction → dispatch()
-  ├─ TaskStatusAction → updateNode()
-  └─ HistoryAction → (future)
+Route by sub-union (8-line router):
+  ├─ VerbOp → handleVerbAction()
+  ├─ NavOp → handleNavAction()
+  ├─ EditOp/TextOp/BoardOp/DialogOp/PaneOp/ViewOp → focused handlers
 ```
 
 Decker - Direct Command Dispatch:
@@ -283,7 +282,7 @@ ed.$maybe(id)  // Optional variant
 
 1. File-Based Portability: Markdown files are human-editable; Yjs binary is not
 
-1. Action Type System: Explicit BoardAction/UIAction/TaskAction routing is more maintainable
+1. Action Type System: 8 focused sub-unions (VerbOp, NavOp, EditOp...) with router dispatch
 
 1. Layered Architecture: Clear storage→tree→board→UI layers vs Decker's tighter coupling
 

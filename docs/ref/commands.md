@@ -90,14 +90,16 @@ interface CommandDef {
 
 The union of all action types a command can return:
 
-| Action group       | Dispatched by       | Examples                                    |
-| ------------------ | ------------------- | ------------------------------------------- |
-| `BoardAction`      | Board reducer       | `ZOOM_IN`, `TOGGLE_FOLD`, `SELECT`          |
-| `NavigationAction` | TUI handler         | `CURSOR_MOVE`, `NAV_BACK`, `NAV_FORWARD`    |
-| `TaskSetStatusAction` | Storage layer    | `TASK_SET_STATUS`                            |
-| `HistoryAction`    | App layer           | `HISTORY_UNDO`, `HISTORY_REDO`              |
-| `UIAction`         | TUI handler         | `QUIT`, `SHOW_HELP`, `CYCLE_VIEW_MODE`      |
-| `TUIAction`        | TUI handler         | `CURSOR_TO`, `CLOSE_OR_QUIT`                |
+| Sub-union    | Cases | Examples                                    |
+| ------------ | ----- | ------------------------------------------- |
+| `VerbOp`     | 4     | `CURSOR_TO`, `REPARENT_TO`, `LINK_TO`, `CREATE_AT` |
+| `NavOp`      | 13    | `CURSOR_MOVE`, `NAV_BACK`, `ZOOM_IN`        |
+| `EditOp`     | 25    | `ADD_NODE`, `DELETE_NODE`, `INDENT_NODE`     |
+| `TextOp`     | 22    | `INSERT_CHAR`, `DELETE_CHAR`, `TEXT_BOLD`    |
+| `BoardOp`    | 16    | `SELECT`, `TOGGLE_FOLD`, `MOVE_MODE`        |
+| `DialogOp`   | 54    | `SHOW_SEARCH_DIALOG`, `SET_FILTER`          |
+| `PaneOp`     | 16    | `SPLIT_PANE`, `CLOSE_PANE`, `RESIZE_PANE`   |
+| `ViewOp`     | 24    | `QUIT`, `SHOW_HELP`, `CYCLE_VIEW_MODE`      |
 
 ### ActionError (Result type)
 
