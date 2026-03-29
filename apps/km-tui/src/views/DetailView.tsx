@@ -138,7 +138,7 @@ interface DocContentProps {
 /** Max heading depth to render content for. Deeper levels show collapsed summary. */
 const MAX_EXPAND_DEPTH = 3
 /** Max items to render per level before truncating. */
-const MAX_ITEMS_PER_LEVEL = 50
+const MAX_ITEMS_PER_LEVEL = 30
 
 function DocContent({ nodes, depth, repo, cursorNodeId }: DocContentProps): React.ReactElement {
   const visible = nodes.slice(0, MAX_ITEMS_PER_LEVEL)
@@ -168,25 +168,28 @@ function DocNode({
   repo: DocContentProps["repo"]
   cursorNodeId?: string | null
 }): React.ReactElement {
-  const children = useMemo(() => repo.getChildren(node.id), [repo, node.id])
   const content = node.content ?? node.name ?? ""
   const isHeading = KNode.isOutline(node)
   const isTask = KNode.isTask(node)
   const isItem = KNode.isItem(node)
   const isCursor = node.id === cursorNodeId
   const indent = depth * 2
+  const shouldExpand = depth < MAX_EXPAND_DEPTH
+
+  // Only fetch children if we'll render them (avoid N+1 queries on deep/large trees)
+  const children = useMemo(
+    () => (isItem || isHeading ? repo.getChildren(node.id) : []),
+    [repo, node.id, isItem, isHeading],
+  )
+  const childCount = children.length
 
   const bg = isCursor ? "$selection-bg" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
 
-  // Should children be expanded or shown as collapsed summary?
-  const shouldExpand = depth < MAX_EXPAND_DEPTH
-  const childCount = children.length
-  const itemCount = children.filter((c) => c.item).length
-
-  // Collapsed children indicator (for items beyond MAX_EXPAND_DEPTH)
+  // Collapsed children indicator
   function CollapsedIndicator() {
     if (childCount === 0) return null
+    const itemCount = children.filter((c) => c.item).length
     const label = itemCount > 0 ? `▸ ${itemCount} items` : `▸ ${childCount} blocks`
     return (
       <Box paddingLeft={indent + 2}>
