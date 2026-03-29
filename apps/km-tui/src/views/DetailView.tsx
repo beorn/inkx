@@ -11,9 +11,10 @@
  */
 
 import React, { useMemo } from "react"
-import { Box, Text, Small } from "@silvery/ag-react"
+import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
+import { getStatusIcon } from "../icons.ts"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { getNodeDisplayName } from "../state.ts"
@@ -97,7 +98,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
         {/* Doc-style content tree */}
         {children.length > 0 ? (
-          <DocContent nodes={children} width={contentWidth} depth={0} repo={repo} cursorNodeId={cursorCardNodeId} />
+          <DocContent nodes={children} depth={0} repo={repo} cursorNodeId={cursorCardNodeId} />
         ) : metaKeys.length === 0 ? (
           <Box paddingX={1}>
             <Small>(empty)</Small>
@@ -114,31 +115,18 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
 interface DocContentProps {
   nodes: KNodeType[]
-  width: number
   depth: number
   repo: { getChildren(parentId: string): KNodeType[]; getNode(id: string): KNodeType | null }
   cursorNodeId?: string | null
 }
 
-const MAX_DOC_DEPTH = 4
+const MAX_DOC_DEPTH = 6
 
-function DocContent({ nodes, width, depth, repo, cursorNodeId }: DocContentProps): React.ReactElement {
-  const indent = depth * 2
-  const contentWidth = Math.max(4, width - indent)
-
+function DocContent({ nodes, depth, repo, cursorNodeId }: DocContentProps): React.ReactElement {
   return (
     <Box flexDirection="column">
       {nodes.map((node) => (
-        <DocNode
-          key={node.id}
-          node={node}
-          depth={depth}
-          contentWidth={contentWidth}
-          indent={indent}
-          repo={repo}
-          isCursor={node.id === cursorNodeId}
-          cursorNodeId={cursorNodeId}
-        />
+        <DocNode key={node.id} node={node} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
       ))}
     </Box>
   )
@@ -147,18 +135,12 @@ function DocContent({ nodes, width, depth, repo, cursorNodeId }: DocContentProps
 function DocNode({
   node,
   depth,
-  contentWidth,
-  indent,
   repo,
-  isCursor,
   cursorNodeId,
 }: {
   node: KNodeType
   depth: number
-  contentWidth: number
-  indent: number
   repo: DocContentProps["repo"]
-  isCursor: boolean
   cursorNodeId?: string | null
 }): React.ReactElement {
   const children = useMemo(() => repo.getChildren(node.id), [repo, node.id])
@@ -166,75 +148,89 @@ function DocNode({
   const isHeading = KNode.isOutline(node)
   const isTask = KNode.isTask(node)
   const isItem = KNode.isItem(node)
-
-  // Choose marker
-  const marker = isTask
-    ? (node.task_marker ?? "·")
-    : isHeading
-      ? "#".repeat(Math.min(depth + 1, 4))
-      : isItem
-        ? (node.list_marker ?? "·")
-        : ""
+  const isCursor = node.id === cursorNodeId
+  const indent = depth * 2
 
   const bg = isCursor ? "$selection-bg" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
 
-  // Heading style: bold, spaced
+  // ── Heading ── H1/H2/H3 with spacing
   if (isHeading) {
+    const Heading = depth === 0 ? H1 : depth === 1 ? H2 : H3
     return (
       <Box flexDirection="column">
-        {depth > 0 && <Box height={1} />}
+        {depth <= 1 && <Box height={1} />}
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
-          <Text bold wrap="truncate">
-            {marker} {content}
-          </Text>
+          <Heading wrap="wrap">{content}</Heading>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
-          <DocContent
-            nodes={children}
-            width={contentWidth + indent}
-            depth={depth + 1}
-            repo={repo}
-            cursorNodeId={cursorNodeId}
-          />
+          <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
         )}
       </Box>
     )
   }
 
-  // Item (list item, task)
+  // ── Task item ── status icon + content (matching board card style)
+  if (isTask) {
+    const icon = getStatusIcon(node.task_status ?? "todo")
+    const isDone = node.task_status === "done" || node.task_status === "dropped"
+    return (
+      <Box flexDirection="column">
+        <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+          <Text color={icon.color}>{icon.char} </Text>
+          <Text color={isDone ? "$muted" : undefined} strikethrough={isDone} wrap="wrap">
+            {content}
+          </Text>
+        </Box>
+        {children.length > 0 && depth < MAX_DOC_DEPTH && (
+          <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+        )}
+      </Box>
+    )
+  }
+
+  // ── List item ── bullet + content
   if (isItem) {
-    const statusColor = node.task_status === "done" ? "$muted" : undefined
     return (
       <Box flexDirection="column">
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
-          <Text color={statusColor} strikethrough={node.task_status === "done"} wrap="truncate">
-            {marker} {content}
-          </Text>
+          <Muted>{node.list_marker ?? "•"} </Muted>
+          <Text wrap="wrap">{content}</Text>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
-          <DocContent
-            nodes={children}
-            width={contentWidth + indent}
-            depth={depth + 1}
-            repo={repo}
-            cursorNodeId={cursorNodeId}
-          />
+          <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
         )}
       </Box>
     )
   }
 
-  // Block (paragraph, code, quote — leaf content)
+  // ── Block content (paragraph, quote, code, hr) ──
+  if (node.type === "hr") {
+    return (
+      <Box paddingLeft={indent}>
+        <HR />
+      </Box>
+    )
+  }
   if (!content) return <Box />
-  const prefix = node.type === "quote" ? "│ " : node.type === "code" ? "  " : ""
-  const color = node.type === "quote" ? "$muted" : node.type === "code" ? "$link" : undefined
+  if (node.type === "quote") {
+    return (
+      <Box paddingLeft={indent}>
+        <Blockquote>{content}</Blockquote>
+      </Box>
+    )
+  }
+  if (node.type === "code") {
+    return (
+      <Box paddingLeft={indent}>
+        <CodeBlock>{content}</CodeBlock>
+      </Box>
+    )
+  }
+  // Paragraph
   return (
     <Box paddingLeft={indent}>
-      <Text color={color} wrap="wrap">
-        {prefix}
-        {content}
-      </Text>
+      <Text wrap="wrap">{content}</Text>
     </Box>
   )
 }
