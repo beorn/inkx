@@ -584,12 +584,14 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       if (dir === "left" || dir === "right") return null
 
-      // Build the flat list of navigable items: metadata keys + direct children
+      // Build the flat list of navigable items: root node + metadata keys + flattened doc tree
       const rootNode = rootId ? repo.getNode(rootId) : null
       const metaKeys = rootNode ? computeDetailMetadataKeys(rootNode) : []
       const metaIds = metaKeys.map((key) => `${DETAIL_META_PREFIX}${key}`)
       const allChildren = repo.getChildren(rootId)
-      const allItems = [...metaIds, ...allChildren.map((c) => c.id)]
+      // Flatten the doc tree to match what DocContent renders (items only, up to depth 3)
+      const flatNodes = flattenDocTree(allChildren, repo, 1, 3, 30)
+      const allItems = [rootId, ...metaIds, ...flatNodes].filter(Boolean) as string[]
 
       if (allItems.length === 0) return null
 
@@ -606,18 +608,16 @@ export function createDetailViewNavigation(): ViewNavigation {
         return allItems[targetIdx] ?? null
       }
 
-      // Cursor might be a descendant of a child — walk up to find the card-level ancestor
-      const cardId = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
-      if (!cardId) {
-        throw new Error(`[detail-nav] cursor ${cursorNodeId} has no ancestor under root ${rootId}`)
+      // Cursor is a descendant not in our flat list — find nearest ancestor in the list
+      for (let current = repo.getNode(cursorNodeId); current?.parent_id; current = repo.getNode(current.parent_id)) {
+        const ancestorIdx = allItems.indexOf(current.parent_id)
+        if (ancestorIdx >= 0) {
+          const targetIdx = dir === "down" ? ancestorIdx + 1 : ancestorIdx - 1
+          if (targetIdx < 0 || targetIdx >= allItems.length) return null
+          return allItems[targetIdx] ?? null
+        }
       }
-      const cardIdx = allItems.indexOf(cardId)
-      if (cardIdx < 0) {
-        throw new Error(`[detail-nav] ancestor ${cardId} not found in detail items of ${rootId}`)
-      }
-      const targetIdx = dir === "down" ? cardIdx + 1 : cardIdx - 1
-      if (targetIdx < 0 || targetIdx >= allItems.length) return null
-      return allItems[targetIdx] ?? null
+      return null
     },
   }
 }
@@ -646,6 +646,37 @@ const navigations: Record<ViewMode, ViewNavigation> = {
 
 export function getViewNavigation(viewMode: ViewMode): ViewNavigation {
   return navigations[viewMode]
+}
+
+/**
+ * Flatten a doc tree into a navigable node ID list.
+ * Matches what DocContent renders — items at each depth, up to maxDepth,
+ * capped at maxPerLevel per sibling group. Leaf blocks (paragraphs) are skipped
+ * since they aren't independently selectable.
+ */
+function flattenDocTree(
+  nodes: { id: string; type: string; item?: boolean }[],
+  repo: { getChildren(parentId: string): { id: string; type: string; item?: boolean }[] },
+  depth: number,
+  maxDepth: number,
+  maxPerLevel: number,
+): string[] {
+  const result: string[] = []
+  const visible = nodes.slice(0, maxPerLevel)
+  for (const node of visible) {
+    const isItem = node.item === true
+    // Only items (headings, list items, tasks) are navigable
+    if (isItem) {
+      result.push(node.id)
+      if (depth < maxDepth) {
+        const children = repo.getChildren(node.id)
+        // Headings don't indent (depth stays same), items indent
+        const childDepth = node.type === "h" ? depth : depth + 1
+        result.push(...flattenDocTree(children, repo, childDepth, maxDepth, maxPerLevel))
+      }
+    }
+  }
+  return result
 }
 
 // =============================================================================

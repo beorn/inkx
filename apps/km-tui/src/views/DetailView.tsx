@@ -15,7 +15,8 @@ import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
-import { InlineText } from "../text/InlineComponents.tsx"
+import { InlineText, InlineRenderProvider, type InlineRenderContext } from "../text/InlineComponents.tsx"
+import { useTreeInlineContext } from "./tree-node-shared.ts"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { getNodeDisplayName } from "../state.ts"
@@ -72,54 +73,63 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const contentWidth = Math.max(8, width - 2)
 
   const title = rootNode.content ?? rootNode.name ?? "(untitled)"
+  const isTitleCursor = cursorCardNodeId === effectiveId
+  const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined)
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
-      <Box flexDirection="column" flexGrow={1} overflow="hidden" paddingRight={2}>
-        {/* Document title — H1 */}
-        <Box paddingX={1}>
-          <H1 wrap="wrap">
-            <InlineText text={title} />
-          </H1>
+      <InlineRenderProvider value={inlineCtx}>
+        <Box flexDirection="column" flexGrow={1} overflow="hidden" paddingRight={2}>
+          {/* Document title — H1 (selectable) */}
+          <Box
+            id={effectiveId}
+            paddingX={1}
+            backgroundColor={isTitleCursor ? "$selection-bg" : undefined}
+            {...(isTitleCursor ? { "data-cursor": true } : {})}
+          >
+            <H1 color={isTitleCursor ? "$selection" : undefined} wrap="wrap">
+              <InlineText text={title} />
+            </H1>
+          </Box>
+
+          {/* Metadata property rows */}
+          {metaKeys.length > 0 && (
+            <>
+              <Box height={1} />
+              {metaKeys.map((key) => {
+                const metaId = `${DETAIL_META_PREFIX}${key}`
+                const isSelected = cursorCardNodeId === metaId
+                return (
+                  <MetadataRow
+                    key={key}
+                    metaId={metaId}
+                    label={key}
+                    node={rootNode}
+                    isSelected={isSelected}
+                    width={contentWidth}
+                  />
+                )
+              })}
+            </>
+          )}
+
+          {/* Separator */}
+          {(metaKeys.length > 0 || true) && children.length > 0 && (
+            <Box height={1} flexShrink={0} width={width}>
+              <HR />
+            </Box>
+          )}
+
+          {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1 */}
+          {children.length > 0 ? (
+            <DocContent nodes={children} depth={1} repo={repo} cursorNodeId={cursorCardNodeId} />
+          ) : metaKeys.length === 0 ? (
+            <Box paddingX={1}>
+              <Small>(empty)</Small>
+            </Box>
+          ) : null}
         </Box>
-
-        {/* Metadata property rows */}
-        {metaKeys.length > 0 && (
-          <>
-            <Box height={1} />
-            {metaKeys.map((key) => {
-              const metaId = `${DETAIL_META_PREFIX}${key}`
-              const isSelected = cursorCardNodeId === metaId
-              return (
-                <MetadataRow
-                  key={key}
-                  metaId={metaId}
-                  label={key}
-                  node={rootNode}
-                  isSelected={isSelected}
-                  width={contentWidth}
-                />
-              )
-            })}
-          </>
-        )}
-
-        {/* Separator */}
-        {(metaKeys.length > 0 || true) && children.length > 0 && (
-          <Box height={1} flexShrink={0} width={width}>
-            <HR />
-          </Box>
-        )}
-
-        {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1 */}
-        {children.length > 0 ? (
-          <DocContent nodes={children} depth={1} repo={repo} cursorNodeId={cursorCardNodeId} />
-        ) : metaKeys.length === 0 ? (
-          <Box paddingX={1}>
-            <Small>(empty)</Small>
-          </Box>
-        ) : null}
-      </Box>
+      </InlineRenderProvider>
     </Box>
   )
 }
