@@ -1043,6 +1043,13 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       const boardPane = getActiveBoardPane(state)
       const rootId = boardPane?.rootId ?? null
 
+      // In detail view: clicking a link zooms the detail view to that node
+      if (boardPane?.viewMode === "detail") {
+        if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
+        return
+      }
+
       const nav = navigateToNode(targetId, rootId, repo)
       if (!nav) return
 
