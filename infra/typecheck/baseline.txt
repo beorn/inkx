@@ -9,7 +9,7 @@
 3 vendor/silvery-internal/design/mockups/gen-components-mockup.ts
 1 vendor/silvery-internal/design/mockups/gen-dashboard-mockup.ts
 1 vendor/silvery/examples/apps/components.tsx
-32 vendor/silvery/examples/layout/dashboard.tsx
+36 vendor/silvery/examples/layout/dashboard.tsx
 2 vendor/silvery/packages/commander/tests/commander.test.ts
 9 vendor/silvery/tests/compat/chalk/chalk.test.ts
 3 vendor/silvery/tests/compat/chalk/instance.test.ts

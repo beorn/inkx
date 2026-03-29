@@ -54,6 +54,7 @@ function stripInlineRules(text: string): string {
     .replace(PROP_REGEX, "")
     .replace(/\s*!\[\[\^\d+\]\]/g, "") // Strip embed block references ![[^numericId]]
     .replace(/!\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, target: string, alias?: string) => alias ?? target) // Strip embed wikilinks ![[target]] / ![[target|alias]]
+    .replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2") // Strip regular wikilinks [[target]] / [[target|display]]
     .replace(/\s+/g, " ")
     .trim()
 }
