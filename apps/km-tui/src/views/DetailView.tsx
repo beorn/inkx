@@ -15,6 +15,7 @@ import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
+import { InlineText } from "../text/InlineComponents.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { getNodeDisplayName } from "../state.ts"
@@ -70,12 +71,22 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
   const contentWidth = Math.max(8, width - 2)
 
+  const title = rootNode.content ?? rootNode.name ?? "(untitled)"
+
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
-      <Box flexDirection="column" flexGrow={1} overflow="hidden">
-        {/* Metadata property rows (title is in the breadcrumb bar already) */}
+      <Box flexDirection="column" flexGrow={1} overflow="hidden" paddingRight={2}>
+        {/* Document title — H1 */}
+        <Box paddingX={1}>
+          <H1 wrap="wrap">
+            <InlineText text={title} />
+          </H1>
+        </Box>
+
+        {/* Metadata property rows */}
         {metaKeys.length > 0 && (
           <>
+            <Box height={1} />
             {metaKeys.map((key) => {
               const metaId = `${DETAIL_META_PREFIX}${key}`
               const isSelected = cursorCardNodeId === metaId
@@ -170,14 +181,15 @@ function DocNode({
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
             <Heading color={headingColor} wrap="wrap">
-              {stripWikilinks(content)}
+              <InlineText text={content} />
             </Heading>
           ) : (
             <Text bold color={headingColor ?? "$muted"} wrap="wrap">
-              {stripWikilinks(content)}
+              <InlineText text={content} />
             </Text>
           )}
         </Box>
+        <Box height={1} />
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
           <DocContent nodes={children} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
         )}
@@ -195,7 +207,7 @@ function DocNode({
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : icon.color}>{icon.char} </Text>
           <Text color={textColor} strikethrough={isDone} wrap="wrap">
-            {stripWikilinks(content)}
+            <InlineText text={content} />
           </Text>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
@@ -212,7 +224,7 @@ function DocNode({
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : "$muted"}>{node.list_marker ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
-            {stripWikilinks(content)}
+            <InlineText text={content} />
           </Text>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
@@ -223,7 +235,6 @@ function DocNode({
   }
 
   // ── Block content (paragraph, quote, code, hr) ──
-  const text = stripWikilinks(content)
   if (node.type === "hr") {
     return (
       <Box paddingLeft={indent}>
@@ -231,32 +242,31 @@ function DocNode({
       </Box>
     )
   }
-  if (!text) return <Box />
+  if (!content) return <Box />
   if (node.type === "quote") {
     return (
       <Box paddingLeft={indent}>
-        <Blockquote>{text}</Blockquote>
+        <Blockquote>
+          <InlineText text={content} />
+        </Blockquote>
       </Box>
     )
   }
   if (node.type === "code") {
     return (
       <Box paddingLeft={indent}>
-        <CodeBlock>{text}</CodeBlock>
+        <CodeBlock>{content}</CodeBlock>
       </Box>
     )
   }
   // Paragraph
   return (
     <Box paddingLeft={indent}>
-      <Text wrap="wrap">{text}</Text>
+      <Text wrap="wrap">
+        <InlineText text={content} />
+      </Text>
     </Box>
   )
-}
-
-/** Strip [[wikilink]] brackets → plain text. Preserves display text from [[target|display]]. */
-function stripWikilinks(text: string): string {
-  return text.replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2")
 }
 
 // =============================================================================
