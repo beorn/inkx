@@ -91,9 +91,7 @@ function EntryLine({ keys, desc }: { keys: string[]; desc: string }): React.Reac
       <Text> </Text>
       <Box flexGrow={1} flexBasis={0}>
         <Fill>
-          <Text color={"$muted"} dimColor>
-            {"·"}
-          </Text>
+          <Text color={"$disabled-fg"}>{"·"}</Text>
         </Fill>
       </Box>
       <Text> </Text>

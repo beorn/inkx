@@ -300,7 +300,7 @@ function KeySegment({ segment, color }: { segment: string; color?: string }): Re
         <Text bold color={color}>
           {prefix}
         </Text>
-        <Text dimColor>{"·"}</Text>
+        <Text color={"$muted"}>{"·"}</Text>
         <KeySegment segment={suffix} color={color} />
       </>
     )
