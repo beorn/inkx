@@ -35,12 +35,10 @@ Append `(...)` after the glob to filter by node properties.
 
 | Char | Matches | fstype values |
 |------|---------|---------------|
-| `.` | all files (md + non-md) | `file`, `mdfile` |
-| `f` | non-md files (PDFs, images, etc) | `file` |
-| `n` | notes (markdown files) | `mdfile` |
+| `.` | files (md + non-md) | `file`, `mdfile` |
 | `/` | folders | `folder` |
 
-`.` = `f` + `n`. No section qualifier — bare globs match everything including sections. Use `(.)` to get files only.
+No section qualifier — bare globs match everything including sections. Use `(.)` to get files only.
 
 #### Node type
 
@@ -66,7 +64,7 @@ Task date qualifiers (`p`, `w`, `s`) implicitly exclude done/dropped tasks.
 
 | Char | Will match |
 |------|-----------|
-| `n` | notes (markdown files) — implemented as fstype above |
+| `n` | notes |
 | `c` | contacts |
 | `e` | calendar events |
 | `m` | messages/mail |
