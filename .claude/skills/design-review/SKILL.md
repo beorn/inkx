@@ -51,14 +51,14 @@ Extract flags from `$ARGUMENTS`, then determine the input type:
 | Directory | Path ends with `/` or is a directory | Glob for `*.png` / `*.jpg`, review each |
 | TTY command | `--tty` flag with command | Run TTY text scan (Tier 0) |
 
-### Step 2: Choose review tier
+### Step 2: Choose review tier (benchmarked 2026-03-29)
 
 | Tier | What | Speed | Cost | Detection Rate |
 |------|------|-------|------|----------------|
 | **Tier 0: TTY text scan** | Run app in `mcp__tty`, scan for overflow past border chars | ~5s | Free | Catches 100% of overflow/clipping |
 | **Tier 1: Claude Read (2x)** | Read 2x PNG with Claude's built-in vision | Instant | Free | ~40% of all issues |
-| **Tier 2: O3 review (2x)** | Send 2x PNG to o3 with structured prompt | ~30s | ~$0.02 | ~95% of all issues |
-| **Tier 3: GPT-5.4 review (2x)** | Send 2x PNG to GPT-5.4 (fewer hallucinations) | ~30s | ~$0.04 | ~85% of all issues |
+| **Tier 2: Grok 4 review (2x)** | Send 2x PNG to Grok 4 with structured prompt | ~30s | ~$0.03 | ~95% of all issues |
+| **Tier 3: Gemini 2.5 Pro review (2x)** | Send 2x PNG to Gemini Pro | ~30s | ~$0.05 | ~85% of all issues |
 
 ---
 

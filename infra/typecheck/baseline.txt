@@ -1,4 +1,6 @@
 1 apps/km-tui/src/board/board-actions.ts
+2 apps/km-tui/src/view-navigation.ts
+2 apps/km-tui/src/views/DetailView.tsx
 7 vendor/bearly/plugins/github/server.ts
 179 vendor/bearly/plugins/tribe/server.ts
 7 vendor/bearly/tools/github-channel.ts

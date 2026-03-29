@@ -112,10 +112,22 @@ CONSTRAINTS — the design MUST follow these:
 
 Combine all materials into one prompt and send to an LLM.
 
-### Model selection
-- **Claude Sonnet 4.6** ($0.08): good ASCII mockups, understands box-drawing chars
-- **GPT-5.4 Pro** ($0.80-2.00): most detailed, accounts for exact column widths
-- **GPT-5.4** ($0.05): good balance of cost and quality
+### Model selection for mockup generation (benchmarked 2026-03-29)
+
+| Model | Cost | Lines | Width accuracy | Design | Overall | Use when |
+|-------|------|-------|---------------|--------|---------|----------|
+| **GPT-5.4 Pro** | $0.80-2 | exact | exact (135) | 9/10 | Best | Final polish, budget allows |
+| **Gemini 2.5 Pro** | $0.05 | off by 1 | 79-141 | 7/10 | Strong | Default choice — 16x cheaper than GPT Pro |
+| **Claude Sonnet 4.6** | $0.08 | off by 5 | 128-192 | 6/10 | Decent | Quick drafts, iteration |
+| **Gemini 2.5 Flash** | $0.01 | off by 1 | varies | 5/10 | OK | Very cheap drafts |
+| **Grok 4** | $0.13 | ~correct | varies | 3/10 | Poor | Review/critique ONLY, not generation |
+
+**Key finding**: No model except GPT-5.4 Pro nails exact character widths consistently.
+All models produce usable layouts, but width/line precision requires manual cleanup or iteration.
+
+**Recommended workflow**: Gemini 2.5 Pro for first draft → iterate at text level → GPT-5.4 Pro
+only if Gemini output needs >3 rounds. For budget-sensitive work, Gemini Pro alone is sufficient
+(fix widths manually during implementation).
 
 ### Prompt template
 
@@ -146,8 +158,11 @@ silvery component each visual element maps to.
 ### Send it
 
 ```bash
-bun llm --model claude-sonnet-4-6 -y "{FULL_PROMPT}"
-# or for maximum quality:
+# Default — best value:
+bun llm --model gemini-2.5-pro -y "{FULL_PROMPT}"
+# Budget option:
+bun llm --model gemini-2.5-flash -y "{FULL_PROMPT}"
+# Maximum quality (expensive):
 bun llm --model gpt-5.4-pro -y "{FULL_PROMPT}"
 ```
 
