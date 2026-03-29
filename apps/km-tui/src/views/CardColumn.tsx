@@ -40,17 +40,17 @@ import { useCardInteraction } from "../hooks/use-card-interaction.ts"
 
 /**
  * Estimated card height in rows (border + content + padding).
- * Cards have borders (2 rows) + title (1 row) + possible children/wrap.
- * Using 4 rather than 3 avoids underestimating cards with long titles
- * that wrap to 2 lines, which causes blank space at the top of tall terminals.
+ * Used as fallback before actual heights are measured. After the first render,
+ * VirtualList measures real card heights and uses those for scroll math.
+ * This estimate only matters for the initial render — a reasonable value
+ * (4 rows = border + title + 1 child) prevents noticeable jumpiness.
  */
 const ESTIMATED_CARD_HEIGHT = 4
 
 /**
  * Number of extra cards to render above and below visible area.
- * Higher overscan compensates for variable card heights: cards with long titles
- * or children can be 4-6 rows, so we need extra buffer beyond the viewport to
- * prevent blank gaps when scrolling on tall terminals (60+ rows).
+ * Provides buffer for smooth scrolling and covers the gap between
+ * estimated and actual heights during the measurement stabilization pass.
  */
 const OVERSCAN = 5
 
