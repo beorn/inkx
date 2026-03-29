@@ -316,41 +316,77 @@ export function internalLinkPopoverContent(title: string, preview?: string): Pop
 }
 
 /** Build popover content for a node detail preview (Cmd+hover on card). */
-export function nodeDetailPopoverContent(node: KNode, children: KNode[], backlinkCount: number): PopoverContent {
+export function nodeDetailPopoverContent(
+  node: KNode,
+  children: KNode[],
+  backlinkCount: number,
+  getChildren?: (parentId: string) => KNode[],
+): PopoverContent {
   const lines: PopoverLine[] = []
 
   // Title
-  const title = node.content ?? "(untitled)"
+  const title = node.content ?? node.name ?? "(untitled)"
   lines.push({ text: title, bold: true, wrap: "truncate" })
 
-  // Metadata
-  if (node.task_status) lines.push({ text: `Status: ${node.task_status}`, dim: true })
-  if (node.due_at) lines.push({ text: `Due: ${node.due_at}`, dim: true })
-  if (node.assigned_to) lines.push({ text: `Assigned: ${node.assigned_to}`, dim: true })
-  if (node.priority) lines.push({ text: `Priority: P${node.priority}`, dim: true })
+  // Metadata line (compact: "due Mar 20 · P2 · beorn")
+  const meta: string[] = []
+  if (node.task_marker) meta.push(node.task_marker)
+  if (node.due_at) meta.push(`due ${formatShortDate(node.due_at)}`)
+  if (node.priority) meta.push(`P${node.priority}`)
+  if (node.assigned_to) meta.push(node.assigned_to)
+  if (meta.length > 0) lines.push({ text: meta.join(" · "), dim: true })
 
-  // Body preview: first few body children (non-item text blocks)
+  // Body paragraphs (non-item text blocks)
   const bodyChildren = children.filter((c) => !c.item)
-  const maxBodyLines = 3
-  for (const child of bodyChildren.slice(0, maxBodyLines)) {
-    if (child.content) {
-      lines.push({ text: child.content, dim: true, wrap: "truncate" })
+  if (bodyChildren.length > 0) {
+    lines.push({ text: "" }) // separator
+    const maxBody = 4
+    for (const child of bodyChildren.slice(0, maxBody)) {
+      if (child.content) lines.push({ text: child.content, wrap: "truncate" })
+    }
+    if (bodyChildren.length > maxBody) {
+      lines.push({ text: `… +${bodyChildren.length - maxBody} more`, dim: true })
     }
   }
-  if (bodyChildren.length > maxBodyLines) {
-    lines.push({ text: `  +${bodyChildren.length - maxBodyLines} more`, dim: true })
-  }
 
-  // Structural children count
+  // Subitems (outline/list items) — rendered like a doc outline
   const itemChildren = children.filter((c) => c.item)
   if (itemChildren.length > 0) {
-    lines.push({ text: `${itemChildren.length} children`, dim: true })
+    lines.push({ text: "" }) // separator
+    const maxItems = 6
+    for (const child of itemChildren.slice(0, maxItems)) {
+      const marker = child.task_marker ?? (child.type === "h" ? "§" : "·")
+      const text = child.content ?? child.name ?? ""
+      lines.push({ text: `${marker} ${text}`, wrap: "truncate" })
+
+      // Show first 2 sub-children if available (nested preview)
+      if (getChildren) {
+        const grandchildren = getChildren(child.id)
+        for (const gc of grandchildren.slice(0, 2)) {
+          const gcMarker = gc.task_marker ?? "·"
+          lines.push({ text: `  ${gcMarker} ${gc.content ?? gc.name ?? ""}`, dim: true, wrap: "truncate" })
+        }
+        if (grandchildren.length > 2) {
+          lines.push({ text: `  … +${grandchildren.length - 2}`, dim: true })
+        }
+      }
+    }
+    if (itemChildren.length > maxItems) {
+      lines.push({ text: `… +${itemChildren.length - maxItems} more items`, dim: true })
+    }
   }
 
   // Backlinks
   if (backlinkCount > 0) {
-    lines.push({ text: `${backlinkCount} backlinks`, dim: true })
+    lines.push({ text: "" })
+    lines.push({ text: `${backlinkCount} backlink${backlinkCount > 1 ? "s" : ""}`, dim: true })
   }
 
-  return { lines, maxWidth: 50 }
+  return { lines, maxWidth: 55 }
+}
+
+function formatShortDate(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return iso
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }

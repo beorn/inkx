@@ -102,7 +102,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       if (node) {
         const children = repo.getChildren(nodeId)
         const backlinkCount = repo.getBacklinks(nodeId).length
-        const content = nodeDetailPopoverContent(node, children, backlinkCount)
+        const content = nodeDetailPopoverContent(node, children, backlinkCount, (id) => repo.getChildren(id))
         popover.show(content, mousePos.current)
       }
     } else if (!hovered && popover) {
