@@ -40,6 +40,10 @@ export type { BuildInfo } from "./build-info.gen.ts"
 // KNode: value (KNode.isOutline, .isItem, etc.) + type (interface from types.ts via declaration merge)
 export { Position, KNode } from "./interfaces/index.ts"
 
+// Tree globs — zsh-style path glob parser with node qualifiers
+export { parseTreeGlob } from "./tree-glob.ts"
+export type { TreeGlob, GlobQualifier } from "./tree-glob.ts"
+
 // Node validation
 export { validateNode } from "./types.ts"
 export type { ValidationError } from "./types.ts"

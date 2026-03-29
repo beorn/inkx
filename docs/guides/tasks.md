@@ -150,7 +150,7 @@ Columns can have rules that control task membership:
 ```markdown
 ## today km.add:: due:past status:todo # Overdue open tasks appear here
 
-## inbox km.add:: ./inbox/\*\* # Files in inbox/ folder
+## inbox km.add:: ./inbox/**(.) # Files in inbox/ folder
 ```
 
 **`km.sync:: field:value`** — Bidirectional synchronization:
@@ -203,7 +203,7 @@ Board items are **embeddings** (symlinks) to tasks. The `![[...]]` syntax create
 
 | Board      | Purpose           | Populated By                                             |
 | ---------- | ----------------- | -------------------------------------------------------- |
-| `@next`    | Next actions      | Inbox column (`km.add:: ./inbox$`), overdue/starting rules |
+| `@next`    | Next actions      | Inbox column (`km.add:: ./inbox/**(.)`), overdue/starting rules |
 | `@someday` | Maybe/later       | Manual curation only                                     |
 
 ---
@@ -330,7 +330,7 @@ recurrence design and cross-system comparison.
 
 ### Inbox Folder
 
-Items in `inbox/` are unprocessed. The `km.add:: ./inbox$` column rule on `@next/inbox` adds them automatically.
+Items in `inbox/` are unprocessed. The `km.add:: ./inbox/**(.)` column rule on `@next/inbox` adds them automatically.
 
 ### Archive Folder
 
@@ -411,7 +411,7 @@ km init gtd --dry-run      # Preview what would be created
 
 ## Today km.add:: due:today status:todo km.add:: start:past status:todo km.color:: yellow
 
-## inbox km.add:: ./inbox/\*\*
+## inbox km.add:: ./inbox/**(.)
 
 ## processing
 

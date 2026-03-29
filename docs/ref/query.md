@@ -62,16 +62,32 @@ Match nodes by their references:
 Match nodes by location:
 
 ```bash
-./inbox             # Under ./inbox (relative to cwd, recursive)
-./inbox$            # Direct children of ./inbox only (non-recursive)
-./inbox/*           # Same as ./inbox$ (but * conflicts with markdown emphasis in headings)
-./inbox/**          # Under ./inbox, recursive (same as ./inbox)
+./inbox             # Under ./inbox (recursive, default)
+./inbox/*           # Direct children of ./inbox only (non-recursive)
+./inbox/**          # Under ./inbox, recursive (same as bare)
 /projects/web       # Under /projects/web (absolute)
 projects/           # Path contains "projects/"
-projects/**         # Contains "projects/", recursive
 ```
 
-> **Note:** Use `./path$` instead of `./path/*` in `km.add::` heading rules. The `*` character triggers markdown emphasis parsing, corrupting the heading content.
+### Tree Glob Qualifiers
+
+Append `(...)` to filter by node type (zsh-style). Multiple qualifiers OR together.
+
+```bash
+./inbox/**(.)       # Files only (recursive)
+./inbox/**(/)       # Folders only
+./inbox/**(#)       # Sections only
+./inbox/**(./)      # Files or folders (not sections)
+./inbox/**(^#)      # Everything except sections
+./inbox/*(./)       # Direct children, files or folders
+```
+
+| Qualifier | Meaning |
+|-----------|---------|
+| `.` | files (`fstype` file or mdfile) |
+| `/` | folders |
+| `#` | sections (mdsection) |
+| `^` | negate the next qualifier |
 
 ---
 

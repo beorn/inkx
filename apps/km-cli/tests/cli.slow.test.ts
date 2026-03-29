@@ -524,7 +524,7 @@ describe("km init", () => {
       const { dir } = await initInDir("gtd-next")
       const content = readFileSync(join(dir, "@next.md"), "utf-8")
       expect(content).toContain("# Next Actions")
-      expect(content).toContain("## Inbox km.add:: ./inbox$")
+      expect(content).toContain("## Inbox km.add:: ./inbox/**(.)")
       expect(content).toContain("km.add:: due:past -status:done -status:dropped")
       expect(content).toContain("## Next")
       expect(content).toContain("## Waiting")

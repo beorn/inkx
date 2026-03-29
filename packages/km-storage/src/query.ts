@@ -8,6 +8,7 @@
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { rowToNode } from "./db-queries/index.ts"
+import { parseTreeGlob, type TreeGlob } from "@km/core"
 
 const log = createLogger("km:storage:query")
 import {
@@ -439,24 +440,39 @@ function buildNonRecursivePathSQL(
 /**
  * Build SQL for path pattern matching.
  * Path patterns match against effective_path (includes ancestor lookup for child nodes).
+ * Uses Tree.glob() for parsing — supports qualifiers like `./inbox/**(.)`.
  */
 function buildPathCondition(pathFilter: QueryPath, pathColumn: string, params: (string | number)[]): string {
-  const { pattern, recursive, negated = false } = pathFilter
+  const { pattern, negated = false } = pathFilter
 
-  let normalizedPattern = normalizePathPattern(pattern)
+  // Parse the full pattern with Tree.glob (handles *, **, qualifiers, normalization)
+  const glob = parseTreeGlob((negated ? "-" : "") + pattern)
 
-  // Default to recursive matching (./folder matches all contents)
-  // Use ./folder$ for non-recursive (direct children only)
-  const isNonRecursive = normalizedPattern.endsWith("$")
-  if (isNonRecursive) {
-    normalizedPattern = normalizedPattern.slice(0, -1)
+  // Legacy: bare patterns without ./ prefix or glob suffix — normalize manually
+  let normalizedPattern = glob.path
+  if (!normalizedPattern) normalizedPattern = normalizePathPattern(pattern)
+
+  // Build path SQL
+  let sql: string
+  if (glob.recursive) {
+    const includesSelf = !pattern.includes("**") // bare ./inbox includes self
+    sql = buildRecursivePathSQL(normalizedPattern, pathColumn, negated, includesSelf, params)
+  } else {
+    sql = buildNonRecursivePathSQL(normalizedPattern, pathColumn, negated, params)
   }
-  const effectiveRecursive = recursive || !isNonRecursive
 
-  if (effectiveRecursive) {
-    const includesSelf = !recursive // bare ./inbox includes self, ./inbox/** does not
-    return buildRecursivePathSQL(normalizedPattern, pathColumn, negated, includesSelf, params)
+  // Append qualifier filters (e.g., (.) → fstype IN ('file', 'mdfile'))
+  for (const q of glob.qualifiers) {
+    if (q.type === "fstype") {
+      const placeholders = q.values.map(() => "?").join(", ")
+      params.push(...q.values)
+      if (q.negated) {
+        sql += ` AND (fstype IS NULL OR fstype NOT IN (${placeholders}))`
+      } else {
+        sql += ` AND fstype IN (${placeholders})`
+      }
+    }
   }
 
-  return buildNonRecursivePathSQL(normalizedPattern, pathColumn, negated, params)
+  return sql
 }
