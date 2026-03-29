@@ -46,8 +46,7 @@ Append `(...)` after the glob to filter by node properties.
 
 | Char | Matches |
 |------|---------|
-| `i` | any item (outline or list) |
-| `h` | outline items (headings) |
+| `i` | outline items (headings) |
 | `l` | list items |
 
 #### Task
