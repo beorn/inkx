@@ -1,18 +1,18 @@
 /**
- * DetailView — renders the detail pane as a single column.
+ * DetailView — renders a node as a readable document.
  *
- * Shows the focused item's metadata properties as navigable rows,
- * followed by tree children as Card components (matching column card
- * rendering: borders, fold indicators, overflow counts, virtualization).
+ * Layout: metadata rows at top, then the content tree rendered as a
+ * document outline — headings, body paragraphs, task items with markers,
+ * nested lists with indentation. Like reading the .md file in the TUI.
  *
  * Cursor navigation: j/k moves through __meta__ property rows first,
- * then tree children. The cursor ID uses the DETAIL_META_PREFIX
+ * then document lines. The cursor ID uses the DETAIL_META_PREFIX
  * convention (e.g., "__meta__Status", "__meta__Due").
  */
 
-import React, { useCallback, useMemo } from "react"
+import React, { useMemo } from "react"
 import { Box, Text, Small } from "@silvery/ag-react"
-import type { KNode } from "@km/core"
+import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
@@ -21,9 +21,6 @@ import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
 import { resolveEmbed } from "./embed-display.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
-import { Card } from "./CardColumn.tsx"
-import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
-import { useTreeRenderContext } from "../ui-context.tsx"
 
 // =============================================================================
 // DetailView Component
@@ -55,10 +52,8 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const repo = useRepo()
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-  const { treeConfig } = useTreeRenderContext()
 
   const rawNode = rootId ? repo.getNode(rootId) : null
-  // Embed transparency: if root is an embed, show the target's identity
   const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
   const rootNode = displayNode ?? rawNode
   const effectiveId = rootNode?.id ?? rootId
@@ -70,36 +65,12 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     )
   }
 
-  // Compute metadata keys and children from the effective node (target for embeds)
   const metaKeys = computeMetadataKeys(rootNode)
   const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
-
-  // Effective content width (minus padding)
   const contentWidth = Math.max(8, width - 2)
-
-  // Height consumed by metadata section (rows + separator)
-  const metaHeight = metaKeys.length + (metaKeys.length > 0 && children.length > 0 ? 1 : 0)
-  // Remaining height for children cards (virtualized)
-  const childrenHeight = Math.max(1, height - metaHeight)
-
-  // Card width matches column convention: width - 1 for scroll indicator space
-  const cardWidth = Math.max(8, width - 1)
-
-  // Stable renderItem callback for VirtualList — Card self-subscribes to cursor
-  const renderItem = useCallback(
-    (child: KNode, index: number) => (
-      <Card key={child.id} card={child} width={cardWidth} colIndex={0} cardIndex={index} />
-    ),
-    [cardWidth],
-  )
-
-  const keyExtractor = useCallback((child: KNode) => child.id, [])
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
-      {/* Title is shown in the pane bar — no duplicate header needed */}
-
-      {/* Scrollable content: metadata rows + children */}
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
         {/* Metadata property rows */}
         {metaKeys.map((key) => {
@@ -117,34 +88,153 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           )
         })}
 
-        {/* Separator between metadata and children */}
+        {/* Separator */}
         {metaKeys.length > 0 && children.length > 0 && (
           <Box height={1} flexShrink={0} width={width}>
-            <Text color="$disabled-fg">{"\u2500".repeat(Math.max(0, width))}</Text>
+            <Text color="$disabled-fg">{"─".repeat(Math.max(0, width))}</Text>
           </Box>
         )}
 
-        {/* Children as Cards — uses Card infrastructure for borders, fold
-            indicators, overflow counts, and VirtualList for virtualization.
-            Matches column card rendering (embedding rule). */}
+        {/* Doc-style content tree */}
         {children.length > 0 ? (
-          <ScrollTrackingVirtualList
-            isSelected={true}
-            items={children}
-            width={cardWidth}
-            height={childrenHeight}
-            itemHeight={3}
-            overscan={2}
-            keyExtractor={keyExtractor}
-            renderItem={renderItem}
-          />
+          <DocContent nodes={children} width={contentWidth} depth={0} repo={repo} cursorNodeId={cursorCardNodeId} />
         ) : metaKeys.length === 0 ? (
-          /* Empty state — no metadata and no children */
           <Box paddingX={1}>
             <Small>(empty)</Small>
           </Box>
         ) : null}
       </Box>
+    </Box>
+  )
+}
+
+// =============================================================================
+// DocContent — renders a node tree as a readable document
+// =============================================================================
+
+interface DocContentProps {
+  nodes: KNodeType[]
+  width: number
+  depth: number
+  repo: { getChildren(parentId: string): KNodeType[]; getNode(id: string): KNodeType | null }
+  cursorNodeId?: string | null
+}
+
+const MAX_DOC_DEPTH = 4
+
+function DocContent({ nodes, width, depth, repo, cursorNodeId }: DocContentProps): React.ReactElement {
+  const indent = depth * 2
+  const contentWidth = Math.max(4, width - indent)
+
+  return (
+    <Box flexDirection="column">
+      {nodes.map((node) => (
+        <DocNode
+          key={node.id}
+          node={node}
+          depth={depth}
+          contentWidth={contentWidth}
+          indent={indent}
+          repo={repo}
+          isCursor={node.id === cursorNodeId}
+          cursorNodeId={cursorNodeId}
+        />
+      ))}
+    </Box>
+  )
+}
+
+function DocNode({
+  node,
+  depth,
+  contentWidth,
+  indent,
+  repo,
+  isCursor,
+  cursorNodeId,
+}: {
+  node: KNodeType
+  depth: number
+  contentWidth: number
+  indent: number
+  repo: DocContentProps["repo"]
+  isCursor: boolean
+  cursorNodeId?: string | null
+}): React.ReactElement {
+  const children = useMemo(() => repo.getChildren(node.id), [repo, node.id])
+  const content = node.content ?? node.name ?? ""
+  const isHeading = KNode.isOutline(node)
+  const isTask = KNode.isTask(node)
+  const isItem = KNode.isItem(node)
+
+  // Choose marker
+  const marker = isTask
+    ? (node.task_marker ?? "·")
+    : isHeading
+      ? "#".repeat(Math.min(depth + 1, 4))
+      : isItem
+        ? (node.list_marker ?? "·")
+        : ""
+
+  const bg = isCursor ? "$selection-bg" : undefined
+  const cursorProps = isCursor ? { "data-cursor": true } : {}
+
+  // Heading style: bold, spaced
+  if (isHeading) {
+    return (
+      <Box flexDirection="column">
+        {depth > 0 && <Box height={1} />}
+        <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+          <Text bold wrap="truncate">
+            {marker} {content}
+          </Text>
+        </Box>
+        {children.length > 0 && depth < MAX_DOC_DEPTH && (
+          <DocContent
+            nodes={children}
+            width={contentWidth + indent}
+            depth={depth + 1}
+            repo={repo}
+            cursorNodeId={cursorNodeId}
+          />
+        )}
+      </Box>
+    )
+  }
+
+  // Item (list item, task)
+  if (isItem) {
+    const statusColor = node.task_status === "done" ? "$muted" : undefined
+    return (
+      <Box flexDirection="column">
+        <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+          <Text color={statusColor} strikethrough={node.task_status === "done"} wrap="truncate">
+            {marker} {content}
+          </Text>
+        </Box>
+        {children.length > 0 && depth < MAX_DOC_DEPTH && (
+          <DocContent
+            nodes={children}
+            width={contentWidth + indent}
+            depth={depth + 1}
+            repo={repo}
+            cursorNodeId={cursorNodeId}
+          />
+        )}
+      </Box>
+    )
+  }
+
+  // Block (paragraph, code, quote — leaf content)
+  if (!content) return <Box />
+  const prefix = node.type === "quote" ? "│ " : node.type === "code" ? "  " : ""
+  const color = node.type === "quote" ? "$muted" : node.type === "code" ? "$link" : undefined
+  return (
+    <Box paddingLeft={indent}>
+      <Text color={color} wrap="wrap">
+        {prefix}
+        {content}
+      </Text>
     </Box>
   )
 }
