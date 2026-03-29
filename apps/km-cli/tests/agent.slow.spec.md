@@ -23,7 +23,7 @@ Usage: km agent [options] [command]
 AI agent lifecycle and runtime management
 
 Options:
-  -h, --help                      display help for command
+  -h, --help                      Display help for command
 [...]
 ```
 
@@ -111,10 +111,7 @@ Usage: km bd agent [options] [command]
 Assign issues to agents and manage work queues
 
 Options:
-  -h, --help                      display help for command
-
-Commands:
-  ls [options]                    List all agents
+  -h, --help[...]Display help for command
 [...]
 ```
 
