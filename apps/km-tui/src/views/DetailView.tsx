@@ -135,14 +135,24 @@ interface DocContentProps {
   cursorNodeId?: string | null
 }
 
-const MAX_DOC_DEPTH = 6
+/** Max heading depth to render content for. Deeper levels show collapsed summary. */
+const MAX_EXPAND_DEPTH = 3
+/** Max items to render per level before truncating. */
+const MAX_ITEMS_PER_LEVEL = 50
 
 function DocContent({ nodes, depth, repo, cursorNodeId }: DocContentProps): React.ReactElement {
+  const visible = nodes.slice(0, MAX_ITEMS_PER_LEVEL)
+  const truncated = nodes.length - visible.length
   return (
     <Box flexDirection="column">
-      {nodes.map((node) => (
+      {visible.map((node) => (
         <DocNode key={node.id} node={node} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
       ))}
+      {truncated > 0 && (
+        <Box paddingLeft={depth * 2}>
+          <Muted>… +{truncated} more items</Muted>
+        </Box>
+      )}
     </Box>
   )
 }
@@ -169,6 +179,22 @@ function DocNode({
   const bg = isCursor ? "$selection-bg" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
 
+  // Should children be expanded or shown as collapsed summary?
+  const shouldExpand = depth < MAX_EXPAND_DEPTH
+  const childCount = children.length
+  const itemCount = children.filter((c) => c.item).length
+
+  // Collapsed children indicator (for items beyond MAX_EXPAND_DEPTH)
+  function CollapsedIndicator() {
+    if (childCount === 0) return null
+    const label = itemCount > 0 ? `▸ ${itemCount} items` : `▸ ${childCount} blocks`
+    return (
+      <Box paddingLeft={indent + 2}>
+        <Small>{label}</Small>
+      </Box>
+    )
+  }
+
   // ── Heading ── H2/H3/muted-bold with spacing
   // Headings do NOT indent their children — content flows at current indent level.
   // A blank line after the heading provides visual separation.
@@ -190,8 +216,10 @@ function DocNode({
           )}
         </Box>
         <Box height={1} />
-        {children.length > 0 && depth < MAX_DOC_DEPTH && (
-          <DocContent nodes={children} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
+        {shouldExpand ? (
+          childCount > 0 && <DocContent nodes={children} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
+        ) : (
+          <CollapsedIndicator />
         )}
       </Box>
     )
@@ -210,8 +238,10 @@ function DocNode({
             <InlineText text={content} />
           </Text>
         </Box>
-        {children.length > 0 && depth < MAX_DOC_DEPTH && (
-          <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+        {shouldExpand ? (
+          childCount > 0 && <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+        ) : (
+          <CollapsedIndicator />
         )}
       </Box>
     )
@@ -227,8 +257,10 @@ function DocNode({
             <InlineText text={content} />
           </Text>
         </Box>
-        {children.length > 0 && depth < MAX_DOC_DEPTH && (
-          <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+        {shouldExpand ? (
+          childCount > 0 && <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+        ) : (
+          <CollapsedIndicator />
         )}
       </Box>
     )
