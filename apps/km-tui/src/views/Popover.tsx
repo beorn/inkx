@@ -316,11 +316,7 @@ export function internalLinkPopoverContent(title: string, preview?: string): Pop
 }
 
 /** Build popover content for a node detail preview (Cmd+hover on card). */
-export function nodeDetailPopoverContent(
-  node: KNode,
-  children: KNode[],
-  backlinkCount: number,
-): PopoverContent {
+export function nodeDetailPopoverContent(node: KNode, children: KNode[], backlinkCount: number): PopoverContent {
   const lines: PopoverLine[] = []
 
   // Title

@@ -50,12 +50,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     },
     [nodeStore, nodeId],
   )
-  const handleMouseLeave = useCallback(
-    () => {
-      nodeStore.setHovered(null)
-    },
-    [nodeStore],
-  )
+  const handleMouseLeave = useCallback(() => {
+    nodeStore.setHovered(null)
+  }, [nodeStore])
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
