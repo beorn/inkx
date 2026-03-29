@@ -140,3 +140,83 @@ describe("parseTreeGlob — real-world patterns", () => {
     expect(g.qualifiers[0]?.values).toEqual(["file", "mdfile"])
   })
 })
+
+describe("parseTreeGlob — task qualifiers", () => {
+  test("(t) = any task", () => {
+    const g = parseTreeGlob("./**(t)")
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["task"], negated: false }])
+  })
+
+  test("(p) = past due", () => {
+    const g = parseTreeGlob("./**(p)")
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["past_due"], negated: false }])
+  })
+
+  test("(pw) = past due OR this week", () => {
+    const g = parseTreeGlob("./**(pw)")
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["past_due", "this_week"], negated: false }])
+  })
+
+  test("(pws) = overdue OR this week OR started", () => {
+    const g = parseTreeGlob("./**(pws)")
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["past_due", "this_week", "started"], negated: false }])
+  })
+
+  test("(x) = done tasks", () => {
+    const g = parseTreeGlob("./**(x)")
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["done"], negated: false }])
+  })
+
+  test("(d) = has due date", () => {
+    const g = parseTreeGlob("./**(d)")
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["has_due"], negated: false }])
+  })
+})
+
+describe("parseTreeGlob — nodetype qualifiers", () => {
+  test("(i) = outline items", () => {
+    const g = parseTreeGlob("./**(i)")
+    expect(g.qualifiers).toEqual([{ type: "nodetype", values: ["outline"], negated: false }])
+  })
+
+  test("(l) = list items", () => {
+    const g = parseTreeGlob("./**(l)")
+    expect(g.qualifiers).toEqual([{ type: "nodetype", values: ["list"], negated: false }])
+  })
+
+  test("(li) = list OR outline", () => {
+    const g = parseTreeGlob("./**(li)")
+    expect(g.qualifiers).toEqual([{ type: "nodetype", values: ["list", "outline"], negated: false }])
+  })
+})
+
+describe("parseTreeGlob — cross-dimension (AND across, OR within)", () => {
+  test("(.p) = files AND past-due", () => {
+    const g = parseTreeGlob("./inbox/**(.p)")
+    expect(g.qualifiers).toHaveLength(2)
+    expect(g.qualifiers[0]).toEqual({ type: "fstype", values: ["file", "mdfile"], negated: false })
+    expect(g.qualifiers[1]).toEqual({ type: "task", values: ["past_due"], negated: false })
+  })
+
+  test("(.pw) = files AND (overdue OR this-week)", () => {
+    const g = parseTreeGlob("./inbox/**(.pw)")
+    expect(g.qualifiers).toHaveLength(2)
+    expect(g.qualifiers[0]).toEqual({ type: "fstype", values: ["file", "mdfile"], negated: false })
+    expect(g.qualifiers[1]).toEqual({ type: "task", values: ["past_due", "this_week"], negated: false })
+  })
+
+  test("(.ipw) = files AND outline AND (overdue OR this-week)", () => {
+    const g = parseTreeGlob("./**(.ipw)")
+    expect(g.qualifiers).toHaveLength(3)
+    expect(g.qualifiers[0]).toEqual({ type: "fstype", values: ["file", "mdfile"], negated: false })
+    expect(g.qualifiers[1]).toEqual({ type: "nodetype", values: ["outline"], negated: false })
+    expect(g.qualifiers[2]).toEqual({ type: "task", values: ["past_due", "this_week"], negated: false })
+  })
+
+  test("@next endgame: ./**(pw)", () => {
+    const g = parseTreeGlob("./**(pw)")
+    expect(g.path).toBe(".")
+    expect(g.recursive).toBe(true)
+    expect(g.qualifiers).toEqual([{ type: "task", values: ["past_due", "this_week"], negated: false }])
+  })
+})

@@ -461,18 +461,64 @@ function buildPathCondition(pathFilter: QueryPath, pathColumn: string, params: (
     sql = buildNonRecursivePathSQL(normalizedPattern, pathColumn, negated, params)
   }
 
-  // Append qualifier filters (e.g., (.) → fstype IN ('file', 'mdfile'))
+  // Append qualifier filters — each dimension ANDs, values within OR
   for (const q of glob.qualifiers) {
-    if (q.type === "fstype") {
-      const placeholders = q.values.map(() => "?").join(", ")
-      params.push(...q.values)
-      if (q.negated) {
-        sql += ` AND (fstype IS NULL OR fstype NOT IN (${placeholders}))`
-      } else {
-        sql += ` AND fstype IN (${placeholders})`
-      }
-    }
+    sql += buildQualifierSQL(q, params)
   }
 
   return sql
+}
+
+/** Translate a glob qualifier to SQL conditions. */
+function buildQualifierSQL(q: import("@km/core").GlobQualifier, params: (string | number)[]): string {
+  if (q.type === "fstype") {
+    const placeholders = q.values.map(() => "?").join(", ")
+    params.push(...q.values)
+    return q.negated ? ` AND (fstype IS NULL OR fstype NOT IN (${placeholders}))` : ` AND fstype IN (${placeholders})`
+  }
+
+  if (q.type === "nodetype") {
+    // outline = type='h' AND item=1, list = type='p' AND item=1
+    const conditions: string[] = []
+    for (const v of q.values) {
+      if (v === "outline") conditions.push("(type = 'h' AND item = 1)")
+      if (v === "list") conditions.push("(type = 'p' AND item = 1)")
+    }
+    if (conditions.length === 0) return ""
+    const joined = conditions.join(" OR ")
+    return q.negated ? ` AND NOT (${joined})` : ` AND (${joined})`
+  }
+
+  if (q.type === "task") {
+    // Task qualifiers: each value is a condition, OR together
+    const conditions: string[] = []
+    const notDone = "task_status NOT IN ('done', 'dropped')"
+    for (const v of q.values) {
+      switch (v) {
+        case "task":
+          conditions.push("task_marker IS NOT NULL")
+          break
+        case "past_due":
+          conditions.push(`(due_at < date('now', 'localtime') AND ${notDone})`)
+          break
+        case "this_week":
+          conditions.push(`(due_at <= date('now', 'localtime', 'weekday 0', '+1 day') AND ${notDone})`)
+          break
+        case "has_due":
+          conditions.push("due_at IS NOT NULL")
+          break
+        case "started":
+          conditions.push(`(start_at <= date('now', 'localtime') AND ${notDone})`)
+          break
+        case "done":
+          conditions.push("task_status IN ('done', 'dropped')")
+          break
+      }
+    }
+    if (conditions.length === 0) return ""
+    const joined = conditions.join(" OR ")
+    return q.negated ? ` AND NOT (${joined})` : ` AND (${joined})`
+  }
+
+  return ""
 }

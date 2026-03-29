@@ -155,7 +155,7 @@ describe("Query Parser", () => {
     test("parses relative path pattern with recursive glob", () => {
       const ast = parseQuery("./inbox/**")
       expect(ast.paths[0]).toMatchObject({
-        pattern: "./inbox",
+        pattern: "./inbox/**",
         recursive: true,
         negated: false,
       })
@@ -173,7 +173,7 @@ describe("Query Parser", () => {
     test("parses negated path pattern", () => {
       const ast = parseQuery("-./archive/**")
       expect(ast.paths[0]).toMatchObject({
-        pattern: "./archive",
+        pattern: "./archive/**",
         recursive: true,
         negated: true,
       })

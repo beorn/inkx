@@ -42,7 +42,7 @@ export { Position, KNode } from "./interfaces/index.ts"
 
 // Tree globs — zsh-style path glob parser with node qualifiers
 export { parseTreeGlob } from "./tree-glob.ts"
-export type { TreeGlob, GlobQualifier } from "./tree-glob.ts"
+export type { TreeGlob, GlobQualifier, QualifierType } from "./tree-glob.ts"
 
 // Node validation
 export { validateNode } from "./types.ts"

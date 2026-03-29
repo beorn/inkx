@@ -244,8 +244,17 @@ describe("parseQuery - path patterns", () => {
     const ast = parseQuery("./inbox/*")
     expect(ast.paths).toHaveLength(1)
     expect(ast.paths[0]).toMatchObject({
-      pattern: "./inbox$",
+      pattern: "./inbox/*",
       recursive: false,
+    })
+  })
+
+  test("parses glob with qualifier: './inbox/**(.)'", () => {
+    const ast = parseQuery("./inbox/**(.)")
+    expect(ast.paths).toHaveLength(1)
+    expect(ast.paths[0]).toMatchObject({
+      pattern: "./inbox/**(.)",
+      recursive: true,
     })
   })
 

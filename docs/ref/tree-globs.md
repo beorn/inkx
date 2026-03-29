@@ -109,7 +109,7 @@ km list ./inbox/**(.)         # files in inbox
 | `./**(pw)` | overdue or due this week |
 | `./**(pws)` | overdue, this week, or started |
 | `./archive/**(x)` | done tasks in archive |
-| `./**(h.)` | outline items that are files |
+| `./**(i.)` | outline items that are files |
 | `./inbox/*(.)` | direct children of inbox, files only |
 
 ## Keyboard Chord Correspondence

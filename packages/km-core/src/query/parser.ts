@@ -230,33 +230,23 @@ function classifyRef(term: string, negated: boolean, offset: QueryOffset, ast: Q
   return true
 }
 
-/** Classify path patterns: ./path, /path, path/, ./path/*, ./path/** */
+/** Classify path patterns: ./path, /path, path/, ./path/*, ./path/**, ./path/**(.) */
 function classifyPath(term: string, negated: boolean, offset: QueryOffset, ast: QueryAST): boolean {
   if (
     !term.startsWith("./") &&
     !term.startsWith("/") &&
     !term.endsWith("/") &&
     !term.includes("**") &&
-    !term.includes("/*")
+    !term.includes("/*") &&
+    !term.includes("(")
   ) {
     return false
   }
 
-  const recursive = term.endsWith("**")
-  const singleLevel = !recursive && term.endsWith("/*")
-  let pattern = term
-
-  if (recursive) {
-    // Remove ** suffix for cleaner pattern matching
-    pattern = term.slice(0, -2)
-    if (pattern.endsWith("/")) pattern = pattern.slice(0, -1)
-  } else if (singleLevel) {
-    // ./inbox/* → non-recursive (direct children only)
-    // Strip /* and append $ (internal marker for non-recursive)
-    pattern = term.slice(0, -2) + "$"
-  }
-
-  ast.paths.push({ pattern, recursive, negated, offset })
+  // Pass the raw pattern through — parseTreeGlob in the executor handles
+  // normalization, recursion detection, and qualifier parsing.
+  const recursive = term.includes("**")
+  ast.paths.push({ pattern: term, recursive, negated, offset })
   return true
 }
 
