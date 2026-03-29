@@ -13,7 +13,6 @@ import {
   InputLayerProvider,
   ThemeProvider,
   detectTerminalCaps,
-  KittyFlags,
 } from "@silvery/ag-react"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
@@ -318,9 +317,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         isInteractive
           ? {
               alternateScreen: true,
-              kitty: caps.kittyKeyboard
-                ? KittyFlags.DISAMBIGUATE | KittyFlags.REPORT_EVENTS | KittyFlags.REPORT_ALL_KEYS
-                : false,
+              kitty: caps.kittyKeyboard,
               mouse: caps.mouse,
               focusReporting: true,
               textSizing: "auto",
