@@ -70,35 +70,47 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
   const contentWidth = Math.max(8, width - 2)
 
+  const title = rootNode.content ?? rootNode.name ?? "(untitled)"
+
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
+        {/* Document title — H1 */}
+        <Box paddingX={1}>
+          <H1 wrap="wrap">{title}</H1>
+        </Box>
+
         {/* Metadata property rows */}
-        {metaKeys.map((key) => {
-          const metaId = `${DETAIL_META_PREFIX}${key}`
-          const isSelected = cursorCardNodeId === metaId
-          return (
-            <MetadataRow
-              key={key}
-              metaId={metaId}
-              label={key}
-              node={rootNode}
-              isSelected={isSelected}
-              width={contentWidth}
-            />
-          )
-        })}
+        {metaKeys.length > 0 && (
+          <>
+            <Box height={1} />
+            {metaKeys.map((key) => {
+              const metaId = `${DETAIL_META_PREFIX}${key}`
+              const isSelected = cursorCardNodeId === metaId
+              return (
+                <MetadataRow
+                  key={key}
+                  metaId={metaId}
+                  label={key}
+                  node={rootNode}
+                  isSelected={isSelected}
+                  width={contentWidth}
+                />
+              )
+            })}
+          </>
+        )}
 
         {/* Separator */}
-        {metaKeys.length > 0 && children.length > 0 && (
+        {(metaKeys.length > 0 || true) && children.length > 0 && (
           <Box height={1} flexShrink={0} width={width}>
-            <Text color="$disabled-fg">{"─".repeat(Math.max(0, width))}</Text>
+            <HR />
           </Box>
         )}
 
-        {/* Doc-style content tree */}
+        {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1 */}
         {children.length > 0 ? (
-          <DocContent nodes={children} depth={0} repo={repo} cursorNodeId={cursorCardNodeId} />
+          <DocContent nodes={children} depth={1} repo={repo} cursorNodeId={cursorCardNodeId} />
         ) : metaKeys.length === 0 ? (
           <Box paddingX={1}>
             <Small>(empty)</Small>
@@ -154,14 +166,26 @@ function DocNode({
   const bg = isCursor ? "$selection-bg" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
 
-  // ── Heading ── H1/H2/H3 with spacing
+  // ── Heading ── H2/H3/muted-bold with spacing
+  // Depth 1 = H2 (section), 2 = H3 (subsection), 3+ = bold muted
+  // (H1 is reserved for the document title rendered by DetailView)
   if (isHeading) {
-    const Heading = depth === 0 ? H1 : depth === 1 ? H2 : H3
+    const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
+    // When cursor is on a heading, override color to avoid yellow-on-yellow
+    const headingColor = isCursor ? "$selection" : undefined
     return (
       <Box flexDirection="column">
-        {depth <= 1 && <Box height={1} />}
+        <Box height={1} />
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
-          <Heading wrap="wrap">{content}</Heading>
+          {Heading ? (
+            <Heading color={headingColor} wrap="wrap">
+              {content}
+            </Heading>
+          ) : (
+            <Text bold color={headingColor ?? "$muted"} wrap="wrap">
+              {content}
+            </Text>
+          )}
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
           <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
@@ -174,11 +198,12 @@ function DocNode({
   if (isTask) {
     const icon = getStatusIcon(node.task_status ?? "todo")
     const isDone = node.task_status === "done" || node.task_status === "dropped"
+    const textColor = isCursor ? "$selection" : isDone ? "$muted" : undefined
     return (
       <Box flexDirection="column">
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
-          <Text color={icon.color}>{icon.char} </Text>
-          <Text color={isDone ? "$muted" : undefined} strikethrough={isDone} wrap="wrap">
+          <Text color={isCursor ? "$selection" : icon.color}>{icon.char} </Text>
+          <Text color={textColor} strikethrough={isDone} wrap="wrap">
             {content}
           </Text>
         </Box>
@@ -194,8 +219,10 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
-          <Muted>{node.list_marker ?? "•"} </Muted>
-          <Text wrap="wrap">{content}</Text>
+          <Text color={isCursor ? "$selection" : "$muted"}>{node.list_marker ?? "•"} </Text>
+          <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
+            {content}
+          </Text>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
           <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
