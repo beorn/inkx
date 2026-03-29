@@ -460,9 +460,9 @@ describe("Cursoring", () => {
       board.command("cursor_down")
       board.expect("#2b[data-cursor]").toExist()
 
-      // Switch back to col1 - returns to first card
+      // Switch back to col1 - cursor returns to previous position (1b)
       board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
+      board.expect("#1b[data-cursor]").toExist()
     })
 
     test("tab header selection with k", () => {
