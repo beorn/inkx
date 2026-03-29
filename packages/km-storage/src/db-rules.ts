@@ -20,7 +20,7 @@ import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "./query.ts"
 import { removeLinksFromSourceByRelationship } from "./db-links.ts"
-import { rowToNode, getChildren, getNode } from "./db-queries/index.ts"
+import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./db-queries/index.ts"
 import { createDbOps, buildEmbedChild } from "./db-ops.ts"
 import { parseQuery, KNode, type NodeRules } from "@km/core"
 
@@ -47,6 +47,8 @@ export interface RuleContext {
   fileAncestorCache: Map<string, KNode | null> | null
   /** Files pending write-back after materialization */
   pendingWriteBack: Set<string>
+  /** Cache for nodes with add rules — avoids repeated json_extract queries */
+  nodesWithAddRuleCache?: KNode[] | null
 }
 
 /**
@@ -158,10 +160,16 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   const matchingIds = new Set(matchingMap.keys())
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
+  // Pre-build file ancestor cache for all matching nodes to avoid O(matches * depth) tree walks
+  const matchFileAncestorCache = buildFileAncestorCacheForNodes(db, matchingNodes)
+
+  // Fetch section children once — used for stale embed removal and next parent_idx
+  const sectionChildren = getChildren(db, sectionId)
+
   // Remove rule-created items that no longer match any query
   // Identify by embed_source (set on all rule-materialized nodes)
-  const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db)))
-  const existingEmbedNodes = getChildren(db, sectionId).filter((n) => KNode.isEmbed(n))
+  const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db, matchFileAncestorCache)))
+  const existingEmbedNodes = sectionChildren.filter((n) => KNode.isEmbed(n))
   let removedCount = 0
   for (const embed of existingEmbedNodes) {
     const embedData = typeof embed.data === "object" && embed.data ? (embed.data as Record<string, unknown>) : {}
@@ -179,35 +187,17 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Dedup by embed target path (stable across re-parses) instead of node ID (ULID, changes every parse)
   // Embed paths: "filename" for file nodes, "filename#^block_id" for intra-file nodes
   const boardRootId = section.parent_id
-  // Collect existing embed paths on the board for deduplication
-  // Both exact paths ("file#^ref") and file-level paths ("file") are tracked
-  // so a file-level embed is deduped against a block-level embed of the same file
-  const existingEmbedPathsOnBoard = new Set<string>()
-  const existingEmbedFilesOnBoard = new Set<string>()
-  if (boardRootId) {
-    const boardDescendants = getChildren(db, boardRootId)
-    for (const section_node of boardDescendants) {
-      for (const child of getChildren(db, section_node.id)) {
-        if (KNode.isEmbed(child)) {
-          const childData = typeof child.data === "object" && child.data ? (child.data as Record<string, unknown>) : {}
-          const path = (childData.targetPath as string) ?? child.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
-          if (path) {
-            existingEmbedPathsOnBoard.add(path)
-            // Also track the file part (before #) for cross-level dedup
-            const filePart = path.split("#")[0]!
-            existingEmbedFilesOnBoard.add(filePart)
-          }
-        }
-      }
-    }
-  }
+  // Single SQL query replaces N+1 getChildren loop (was: 1 query per section on the board)
+  const { exactPaths: existingEmbedPathsOnBoard, filePaths: existingEmbedFilesOnBoard } = getEmbedPathsOnBoard(
+    db,
+    boardRootId,
+  )
   log.debug?.(
     `evaluateAddRule: existing embed paths on board: ${existingEmbedPathsOnBoard.size} (${existingEmbedFilesOnBoard.size} files)`,
   )
 
-  // Get next parent_idx for new embeds
-  const existingChildren = getChildren(db, sectionId)
-  let nextIdx = existingChildren.length
+  // Get next parent_idx for new embeds (reuse sectionChildren from above)
+  let nextIdx = sectionChildren.length
 
   const ops = createDbOps(db)
   let addedCount = 0
@@ -218,8 +208,8 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
       continue
     }
 
-    // Compute the embed path for this match (stable identifier)
-    const candidatePath = getEmbedPath(match, db)
+    // Compute the embed path for this match (stable identifier, uses pre-built cache)
+    const candidatePath = getEmbedPath(match, db, matchFileAncestorCache)
 
     // Skip if this embed path already exists anywhere on the board (exact or file-level match)
     const candidateFile = candidatePath.split("#")[0]!
@@ -283,8 +273,10 @@ function findFileAncestor(db: Database, nodeId: string, ctx: RuleContext): KNode
  * - File nodes: filename without .md extension (stable across re-parses)
  * - Intra-file nodes with block_id: filename#^block_id (stable)
  * - Intra-file nodes without block_id: filename#^short_id (unstable — last resort)
+ *
+ * @param fileAncestorCache - Optional pre-built cache to avoid per-node tree walks
  */
-function getEmbedPath(node: KNode, db?: Database): string {
+function getEmbedPath(node: KNode, db?: Database, fileAncestorCache?: Map<string, KNode | null>): string {
   // For file nodes, extract the relative path (filename without .md)
   if (node.fs_path) {
     const parts = node.fs_path.split("/")
@@ -294,7 +286,7 @@ function getEmbedPath(node: KNode, db?: Database): string {
 
   // For intra-file nodes, find the parent file and use file#^block_id
   if (db && node.parent_id) {
-    const fileNode = findFileAncestorSimple(db, node.id)
+    const fileNode = fileAncestorCache ? (fileAncestorCache.get(node.id) ?? null) : findFileAncestorSimple(db, node.id)
     if (fileNode?.fs_path) {
       const parts = fileNode.fs_path.split("/")
       const filename = (parts[parts.length - 1] || "").replace(/\.md$/, "")
@@ -307,6 +299,90 @@ function getEmbedPath(node: KNode, db?: Database): string {
   // Fallback: use block_id if available, otherwise short ID (unstable)
   if (node.block_id) return `#^${node.block_id}`
   return node.id.slice(-8)
+}
+
+/**
+ * Build a file ancestor cache for a set of nodes.
+ * For small sets (<10 intra-file nodes), walks up per-node.
+ * For larger sets, fetches all parent chains in one query.
+ */
+function buildFileAncestorCacheForNodes(db: Database, nodes: KNode[]): Map<string, KNode | null> {
+  const cache = new Map<string, KNode | null>()
+
+  // File nodes are their own ancestor
+  for (const node of nodes) {
+    if (node.fs_path) {
+      cache.set(node.id, node)
+    }
+  }
+
+  const needLookup = nodes.filter((n) => !n.fs_path && n.parent_id)
+  if (needLookup.length === 0) return cache
+
+  // Small set: walk up per-node (fewer queries than a full table scan)
+  if (needLookup.length < 10) {
+    for (const node of needLookup) {
+      if (!cache.has(node.id)) {
+        const fileNode = findFileAncestorSimple(db, node.id)
+        cache.set(node.id, fileNode)
+      }
+    }
+    return cache
+  }
+
+  // Large set: bulk-load parent chain in one query
+  const parentRows = db.query("SELECT id, parent_id, fs_path FROM nodes").all() as Array<{
+    id: string
+    parent_id: string | null
+    fs_path: string | null
+  }>
+
+  const parentMap = new Map<string, { parent_id: string | null; fs_path: string | null }>()
+  const fileNodesByid = new Map<string, KNode>()
+
+  for (const row of parentRows) {
+    parentMap.set(row.id, { parent_id: row.parent_id, fs_path: row.fs_path })
+  }
+
+  // Walk up from each node that needs lookup
+  for (const node of needLookup) {
+    if (cache.has(node.id)) continue
+
+    let currentId: string | null = node.parent_id
+    const visited = [node.id]
+
+    while (currentId) {
+      if (cache.has(currentId)) {
+        const result = cache.get(currentId) ?? null
+        for (const id of visited) cache.set(id, result)
+        break
+      }
+
+      const info = parentMap.get(currentId)
+      if (!info) {
+        for (const id of visited) cache.set(id, null)
+        break
+      }
+
+      if (info.fs_path) {
+        // Found a file ancestor — get full KNode
+        let fileNode = fileNodesByid.get(currentId)
+        if (!fileNode) {
+          fileNode = getNode(db, currentId) ?? undefined
+          if (fileNode) fileNodesByid.set(currentId, fileNode)
+        }
+        const result = fileNode ?? null
+        cache.set(currentId, result)
+        for (const id of visited) cache.set(id, result)
+        break
+      }
+
+      visited.push(currentId)
+      currentId = info.parent_id
+    }
+  }
+
+  return cache
 }
 
 /** Walk up to find the file ancestor (simple version without cache) */
@@ -472,6 +548,9 @@ export function* evaluateAllRules(db: Database, ctx: RuleContext): Generator<Rul
  * Called when any node changes to re-evaluate rules that might be affected.
  * This is the incremental update path - more efficient than evaluateAllRules.
  *
+ * When calling in a loop (e.g., batch date changes), reuse the same RuleContext
+ * to avoid repeated json_extract queries for nodes with add rules.
+ *
  * @param db - Database instance
  * @param changedNodeId - The ID of the node that changed
  * @param ctx - Rule context for caching and tracking pending writes
@@ -492,7 +571,12 @@ export function onNodeChanged(
   // rules whose terms match the changed fields (e.g., if task_status
   // changed, only re-evaluate rules containing "status:").
 
-  const nodesWithAddRule = getNodesWithRule(db, "add")
+  // Cache the add-rule nodes on the context to avoid repeated json_extract queries
+  // when onNodeChanged is called in a loop (e.g., batch date changes on N nodes)
+  if (ctx.nodesWithAddRuleCache === undefined) {
+    ctx.nodesWithAddRuleCache = getNodesWithRule(db, "add")
+  }
+  const nodesWithAddRule = ctx.nodesWithAddRuleCache ?? []
 
   for (const node of nodesWithAddRule) {
     if (node.rules?.add) {

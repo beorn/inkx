@@ -146,6 +146,54 @@ export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null)
 }
 
 /**
+ * Get all embed paths on a board in a single query (for deduplication).
+ * Returns both exact paths and file-level paths.
+ * Replaces the N+1 pattern of getChildren(boardRoot) + getChildren(section) loops.
+ */
+export function getEmbedPathsOnBoard(
+  db: Database,
+  boardRootId: string | null,
+): { exactPaths: Set<string>; filePaths: Set<string> } {
+  const exactPaths = new Set<string>()
+  const filePaths = new Set<string>()
+  if (!boardRootId) return { exactPaths, filePaths }
+
+  // Single CTE query: get all embed nodes under the board root (depth 2: sections + their children)
+  const rows = db
+    .query(
+      `
+    SELECT data, content FROM nodes
+    WHERE parent_id IN (SELECT id FROM nodes WHERE parent_id = ?)
+    AND embed_source IS NOT NULL
+  `,
+    )
+    .all(boardRootId) as Array<{ data: string | null; content: string | null }>
+
+  for (const row of rows) {
+    let path: string | undefined
+    if (row.data) {
+      try {
+        const parsed = JSON.parse(row.data) as Record<string, unknown>
+        path = parsed.targetPath as string | undefined
+      } catch {
+        // ignore malformed JSON
+      }
+    }
+    if (!path && row.content) {
+      const match = row.content.match(/!\[\[([^\]]+)\]\]/)
+      if (match) path = match[1]
+    }
+    if (path) {
+      exactPaths.add(path)
+      const filePart = path.split("#")[0] ?? path
+      filePaths.add(filePart)
+    }
+  }
+
+  return { exactPaths, filePaths }
+}
+
+/**
  * Get ancestors of a node (from root to parent).
  * Returns array from root down to immediate parent (excludes the node itself).
  * Filters out the repo root node (is_repo_root) since it's a virtual container.
