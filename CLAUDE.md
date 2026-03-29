@@ -57,6 +57,26 @@ bun vitest run --changed  # Tests affected by uncommitted changes (~instant)
 
 **Never** use bare `bun test`. You must read [.claude/skills/tests/] for test commands, test types, and TDD workflow to use.
 
+### Debug Logging
+
+TUI apps occupy the terminal — debug output must go to a file via `DEBUG_LOG`:
+
+```bash
+# Debug km code
+DEBUG=km:* DEBUG_LOG=/tmp/km.log bun km view /path/to/vault
+
+# Debug silvery rendering/mouse/layout
+DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view /path/to/vault
+
+# Debug everything
+DEBUG=km:*,silvery:*,flexily:* DEBUG_LOG=/tmp/debug.log bun km view /path
+
+# In another terminal
+tail -f /tmp/debug.log
+```
+
+Common namespaces: `silvery:mouse` (mouse events), `silvery:render` (rendering), `flexily:layout` (layout), `km:storage:*` (sync), `km:board:*` (board state). See [.claude/skills/logging/](/.claude/skills/logging/) for full reference.
+
 **When iterating on a specific package**, run vitest directly:
 
 ```bash
