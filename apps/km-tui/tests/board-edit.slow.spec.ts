@@ -266,17 +266,19 @@ describe("Edit Operations", () => {
         n.parent_idx = 0
       }
     }
-    const { board } = testEnv(() => nodes)
+    // Use wide terminal so all 3 columns are visible after reorder
+    const { board, repo } = testEnv(() => nodes, { columns: 160 })
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
     board.press("opt+l")
 
     board.expect("#col1[data-cursor]").toExist()
-    // col1 should now be to the right of col2
-    const col1Box = board.q("#col1").boundingBox()
-    const col2Box = board.q("#col2").boundingBox()
-    expect(col2Box!.x).toBeLessThan(col1Box!.x)
+    // col1 moved right — verify via sort order instead of bounding box
+    // (bounding box depends on viewport scroll position)
+    const col1Idx = repo.getNode("col1")?.parent_idx ?? -1
+    const col2Idx = repo.getNode("col2")?.parent_idx ?? -1
+    expect(col1Idx).toBeGreaterThan(col2Idx)
   })
 
   test("opt+l at column header with many duplicate-parent_idx columns completes without hanging", () => {
@@ -287,7 +289,7 @@ describe("Edit Operations", () => {
     for (const n of nodes) {
       if (n.type === "h") n.parent_idx = 0
     }
-    const { board } = testEnv(() => nodes)
+    const { board, repo } = testEnv(() => nodes)
     board.command("cursor_up")
     board.expect("#col1[data-cursor]").toExist()
 
@@ -295,9 +297,10 @@ describe("Edit Operations", () => {
     board.press("opt+l")
 
     board.expect("#col1[data-cursor]").toExist()
-    const col1Box = board.q("#col1").boundingBox()
-    const col2Box = board.q("#col2").boundingBox()
-    expect(col2Box!.x).toBeLessThan(col1Box!.x)
+    // Verify col1 moved right via sort order (not bounding box — col2 may be off-screen)
+    const col1Idx = repo.getNode("col1")?.parent_idx ?? -1
+    const col2Idx = repo.getNode("col2")?.parent_idx ?? -1
+    expect(col1Idx).toBeGreaterThan(col2Idx)
   })
 
   test("opt+h at leftmost column header does nothing", () => {
