@@ -70,20 +70,12 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
   const contentWidth = Math.max(8, width - 2)
 
-  const title = rootNode.content ?? rootNode.name ?? "(untitled)"
-
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       <Box flexDirection="column" flexGrow={1} overflow="hidden">
-        {/* Document title — H1 */}
-        <Box paddingX={1}>
-          <H1 wrap="wrap">{title}</H1>
-        </Box>
-
-        {/* Metadata property rows */}
+        {/* Metadata property rows (title is in the breadcrumb bar already) */}
         {metaKeys.length > 0 && (
           <>
-            <Box height={1} />
             {metaKeys.map((key) => {
               const metaId = `${DETAIL_META_PREFIX}${key}`
               const isSelected = cursorCardNodeId === metaId
@@ -167,11 +159,10 @@ function DocNode({
   const cursorProps = isCursor ? { "data-cursor": true } : {}
 
   // ── Heading ── H2/H3/muted-bold with spacing
-  // Depth 1 = H2 (section), 2 = H3 (subsection), 3+ = bold muted
-  // (H1 is reserved for the document title rendered by DetailView)
+  // Headings do NOT indent their children — content flows at current indent level.
+  // A blank line after the heading provides visual separation.
   if (isHeading) {
     const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
-    // When cursor is on a heading, override color to avoid yellow-on-yellow
     const headingColor = isCursor ? "$selection" : undefined
     return (
       <Box flexDirection="column">
@@ -179,16 +170,16 @@ function DocNode({
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
             <Heading color={headingColor} wrap="wrap">
-              {content}
+              {stripWikilinks(content)}
             </Heading>
           ) : (
             <Text bold color={headingColor ?? "$muted"} wrap="wrap">
-              {content}
+              {stripWikilinks(content)}
             </Text>
           )}
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
-          <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+          <DocContent nodes={children} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
         )}
       </Box>
     )
@@ -204,7 +195,7 @@ function DocNode({
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : icon.color}>{icon.char} </Text>
           <Text color={textColor} strikethrough={isDone} wrap="wrap">
-            {content}
+            {stripWikilinks(content)}
           </Text>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
@@ -221,7 +212,7 @@ function DocNode({
         <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : "$muted"}>{node.list_marker ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
-            {content}
+            {stripWikilinks(content)}
           </Text>
         </Box>
         {children.length > 0 && depth < MAX_DOC_DEPTH && (
@@ -232,6 +223,7 @@ function DocNode({
   }
 
   // ── Block content (paragraph, quote, code, hr) ──
+  const text = stripWikilinks(content)
   if (node.type === "hr") {
     return (
       <Box paddingLeft={indent}>
@@ -239,27 +231,32 @@ function DocNode({
       </Box>
     )
   }
-  if (!content) return <Box />
+  if (!text) return <Box />
   if (node.type === "quote") {
     return (
       <Box paddingLeft={indent}>
-        <Blockquote>{content}</Blockquote>
+        <Blockquote>{text}</Blockquote>
       </Box>
     )
   }
   if (node.type === "code") {
     return (
       <Box paddingLeft={indent}>
-        <CodeBlock>{content}</CodeBlock>
+        <CodeBlock>{text}</CodeBlock>
       </Box>
     )
   }
   // Paragraph
   return (
     <Box paddingLeft={indent}>
-      <Text wrap="wrap">{content}</Text>
+      <Text wrap="wrap">{text}</Text>
     </Box>
   )
+}
+
+/** Strip [[wikilink]] brackets → plain text. Preserves display text from [[target|display]]. */
+function stripWikilinks(text: string): string {
+  return text.replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2")
 }
 
 // =============================================================================
