@@ -97,7 +97,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   }
 
   log.debug?.(
-    `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive} caps=${caps.program}/${caps.colorLevel} kitty=${caps.kittyKeyboard} dark=${caps.darkBackground} nerdfont=${caps.nerdfont}`,
+    `TTY detection interactive=${interactive} hasInput=${term.hasInput()} isInteractive=${isInteractive} caps=${caps.program}/${caps.colorLevel} kitty=${caps.kittyKeyboard} mouse=${caps.mouse} dark=${caps.darkBackground} nerdfont=${caps.nerdfont}`,
   )
 
   // Initialize filesystem sync if we have a repo path (only for interactive)
