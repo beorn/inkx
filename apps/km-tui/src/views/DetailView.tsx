@@ -282,7 +282,7 @@ function DocNode({
   // ── Block content (paragraph, quote, code, hr) ──
   if (node.type === "hr") {
     return (
-      <Box paddingLeft={indent}>
+      <Box id={node.id} paddingLeft={indent}>
         <HR />
       </Box>
     )
@@ -290,7 +290,7 @@ function DocNode({
   if (!content) return <Box />
   if (node.type === "quote") {
     return (
-      <Box paddingLeft={indent}>
+      <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
         <Blockquote>
           <InlineText text={content} />
         </Blockquote>
@@ -299,14 +299,14 @@ function DocNode({
   }
   if (node.type === "code") {
     return (
-      <Box paddingLeft={indent}>
+      <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
         <CodeBlock>{content}</CodeBlock>
       </Box>
     )
   }
   // Paragraph
   return (
-    <Box paddingLeft={indent}>
+    <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
       <Text wrap="wrap">
         <InlineText text={content} />
       </Text>

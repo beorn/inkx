@@ -615,23 +615,49 @@ export function createDetailViewNavigation(): ViewNavigation {
         return prev >= 0 ? metaIds[prev]! : rootId // before first meta → H1
       }
 
-      // Cursor is a child node — navigate siblings (same parent)
+      // Cursor is a child node
       const cursorNode = repo.getNode(cursorNodeId)
       if (!cursorNode) return null
       const parentId = cursorNode.parent_id ?? rootId
+
+      if (dir === "down") {
+        // j on a heading/item with children → enter first child
+        if (cursorNode.item) {
+          const nodeChildren = repo.getChildren(cursorNodeId)
+          if (nodeChildren.length > 0) return nodeChildren[0]!.id
+        }
+        // j on a leaf or item with no children → next sibling
+        const siblings = repo.getChildren(parentId)
+        const sibIdx = siblings.findIndex((c) => c.id === cursorNodeId)
+        if (sibIdx >= 0 && sibIdx + 1 < siblings.length) return siblings[sibIdx + 1]!.id
+        // Past last sibling → go to parent's next sibling (bubble up)
+        if (parentId === rootId) return null
+        const parent = repo.getNode(parentId)
+        if (parent?.parent_id) {
+          const parentSiblings = repo.getChildren(parent.parent_id)
+          const parentIdx = parentSiblings.findIndex((c) => c.id === parentId)
+          if (parentIdx >= 0 && parentIdx + 1 < parentSiblings.length) return parentSiblings[parentIdx + 1]!.id
+        }
+        return null
+      }
+
+      // k — go to previous sibling, or parent
       const siblings = repo.getChildren(parentId)
       const sibIdx = siblings.findIndex((c) => c.id === cursorNodeId)
       if (sibIdx >= 0) {
-        if (dir === "down") {
-          if (sibIdx + 1 < siblings.length) return siblings[sibIdx + 1]!.id
-          // Past last sibling — if parent is root, boundary. Otherwise go to parent's next sibling.
-          if (parentId === rootId) return null
-          return null // boundary at end of sibling group
+        if (sibIdx - 1 >= 0) {
+          // k → previous sibling. If that sibling has children, go to its LAST descendant.
+          let target = siblings[sibIdx - 1]!
+          while (target.item) {
+            const targetChildren = repo.getChildren(target.id)
+            if (targetChildren.length === 0) break
+            target = targetChildren[targetChildren.length - 1]!
+          }
+          return target.id
         }
-        if (sibIdx - 1 >= 0) return siblings[sibIdx - 1]!.id
-        // Before first sibling — go to parent (heading)
+        // k before first sibling → parent
         if (parentId === rootId) return metaIds.length > 0 ? metaIds[metaIds.length - 1]! : rootId
-        return parentId // navigate up to parent heading
+        return parentId
       }
 
       // Fallback
