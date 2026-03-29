@@ -84,19 +84,18 @@ For `@mentions`, `#tags`, and `+projects`, use path glob patterns instead of qua
 ### Board rules (`km.add::`)
 
 ```markdown
-## Inbox km.add:: ./inbox/**(.) km.add:: ./**(pw) km.add:: ./**(s)
+## Inbox km.add:: ./inbox/**(.) km.add:: **(tpws)
 ```
 
-Three rules:
+Two rules:
 1. All files in inbox (recursive)
-2. Overdue or due this week tasks (anywhere)
-3. Started tasks (anywhere)
+2. Tasks that are overdue, due this week, or started (anywhere)
 
 ### CLI
 
 ```bash
-km tasks ./**(p)              # overdue tasks
-km tasks ./projects/**(w)     # due this week in projects/
+km tasks **(tp)              # overdue tasks
+km tasks ./projects/**(tw)    # due this week in projects/
 km list ./inbox/**(.)         # files in inbox
 ```
 
@@ -105,9 +104,9 @@ km list ./inbox/**(.)         # files in inbox
 | Pattern | Meaning |
 |---------|---------|
 | `./inbox/**(.)` | all files in inbox |
-| `./**(t)` | all tasks |
-| `./**(pw)` | overdue or due this week |
-| `./**(pws)` | overdue, this week, or started |
+| `**(t)` | all tasks |
+| `**(tpw)` | overdue or due this week |
+| `**(tpws)` | overdue, this week, or started |
 | `./archive/**(x)` | done tasks in archive |
 | `./**(i.)` | outline items that are files |
 | `./inbox/*(.)` | direct children of inbox, files only |

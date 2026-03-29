@@ -187,7 +187,7 @@ function createGtdStructure(targetDir: string, force: boolean): void {
  */
 const GTD_NEXT_MD = `# Next Actions km.color:: cyan
 
-## Inbox km.add:: ./inbox/**(.) km.add:: ./**(pw) km.add:: ./**(s)
+## Inbox km.add:: ./inbox/**(.) km.add:: **(tpws)
 
 ## Next
 
