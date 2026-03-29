@@ -474,8 +474,7 @@ interface BoardState {
   // Cursor - single source of truth for position
   cursorNodeId: string | null // Which node the cursor is on (stable across zoom)
 
-  // Selection state
-  selectedNodes: Set<string> // Multi-selection (visual mode)
+  // Tree state
   foldDepths: Map<string, number> // Depth budget per node (0 = fully folded)
   collapsedNodes: Set<string> // Collapsed columns (toggle with 'c')
 

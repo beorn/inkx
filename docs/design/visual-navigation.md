@@ -140,7 +140,6 @@ Minimal — only primary state, no derived fields:
 cursorNodeId: string
 rootId: string | null
 foldDepths: Map<string, number>
-selectedNodes: Set<string>
 viewMode: ViewMode
 ```
 
