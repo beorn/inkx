@@ -48,6 +48,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-qft","issue_id":"km-539","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-53uqt","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-bde2","issue_id":"km-56jk","metadata":"{}","type":"blocks"}
+{"created_at":"2026-03-29T00:05:43Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery","issue_id":"km-59ntw","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-yggf","issue_id":"km-5akw","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-refactor1","issue_id":"km-5efp","metadata":"{}","type":"parent"}
 {"created_at":"2026-03-10T15:12:34Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-5kh9r","metadata":"{}","type":"parent-child"}
@@ -2223,6 +2224,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui2","issue_id":"km-tui2.8","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui2","issue_id":"km-tui2.9","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tup3z","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-29T00:11:43Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery","issue_id":"km-tvxro","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-u25nj","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-23T12:30:46Z","created_by":"claude:f8196c1c","depends_on_id":"km-4gzec","issue_id":"km-uf4yd","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-23T12:30:40Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery.tealess","issue_id":"km-uf4yd","metadata":"{}","type":"parent-child"}
