@@ -210,23 +210,67 @@ Translate the approved mockup to React components. This is mechanical, not creat
 
 ## Step 5: Verify with TTY Diff
 
-After implementation, compare TTY output to the approved mockup:
+After implementation — and **after every subsequent refactor** — verify the output matches the mockup.
+
+### 5a. Capture baseline (first implementation)
 
 ```bash
 # Start TTY at exact mockup dimensions
 mcp__tty__start  # command: "bun <demo>", cols: 137, rows: 43
 mcp__tty__wait   # stable
-mcp__tty__text   # capture
+mcp__tty__text   # capture → save to /tmp/<demo>-baseline.txt
 mcp__tty__stop
 ```
 
-Compare the captured text against the mockup:
-- Every border character should match
-- Content should be in the same rows
-- No content past border characters (overflow)
-- No missing borders or garbled characters
+### 5b. Structural diff against mockup
 
-Fix any discrepancies — the mockup is the source of truth.
+Strip ANSI from the approved mockup and diff against the TTY text:
+
+```bash
+# Strip ANSI escape codes from mockup
+sed 's/\x1b\[[0-9;]*m//g' vendor/silvery-internal/design/mockups/<demo>-mockup.ansi > /tmp/mockup-plain.txt
+
+# Compare (ignore live data lines — CPU %, sparklines change each render)
+diff /tmp/mockup-plain.txt /tmp/<demo>-baseline.txt
+```
+
+What must match exactly:
+- Border characters (╭╮╰╯│─) and their positions
+- Panel titles (` CPU / Compute `, ` Memory `, etc.)
+- Static labels (Muted text: Load, Temp, Tasks, Used, Cache, etc.)
+- Row count per panel
+
+What will differ (live data — acceptable):
+- CPU/memory percentages, sparkline patterns, process order
+- Progress bar fill levels
+
+### 5c. After refactoring
+
+**MANDATORY:** Re-capture TTY text and diff against the baseline:
+
+```bash
+mcp__tty__start → mcp__tty__text → save to /tmp/<demo>-after.txt
+diff /tmp/<demo>-baseline.txt /tmp/<demo>-after.txt
+```
+
+The diff should show ONLY live data changes (percentages, sparklines). Any structural change (missing border, moved label, changed padding) means the refactor broke something.
+
+### 5d. Snapshot test (permanent regression guard)
+
+Write a termless test that renders the component at the mockup dimensions and asserts structural invariants. This runs in `test:fast` and catches regressions automatically:
+
+```tsx
+using term = createTermless({ cols: 137, rows: 43 })
+const handle = await run(<Dashboard />, term)
+// Structural assertions — these never change
+expect(term.screen).toContainText("CPU / Compute")
+expect(term.screen).toContainText("Memory")
+expect(term.screen).toContainText("Network")
+expect(term.screen).toContainText("Processes")
+expect(term.screen).toContainText("sorted by CPU%")
+```
+
+This is the **only reliable guard** against visual regressions after refactoring.
 
 ---
 
