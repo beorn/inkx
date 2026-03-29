@@ -366,9 +366,9 @@ describe("DetailViewNavigation", () => {
     expect(target).toBe("child0")
   })
 
-  it("cursor === root, up → last child", () => {
+  it("cursor === root, up → null (boundary)", () => {
     const target = nav.navigate("up", makeState("root", "root"), repo, grid)
-    expect(target).toBe("child2")
+    expect(target).toBeNull()
   })
 
   it("j from first child → second child", () => {
@@ -376,9 +376,9 @@ describe("DetailViewNavigation", () => {
     expect(target).toBe("child1")
   })
 
-  it("k from first child → null (boundary)", () => {
+  it("k from first child → root (parent)", () => {
     const target = nav.navigate("up", makeState("child0", "root"), repo, grid)
-    expect(target).toBeNull()
+    expect(target).toBe("root")
   })
 
   it("j from last child → null (boundary)", () => {
@@ -391,11 +391,19 @@ describe("DetailViewNavigation", () => {
     expect(nav.navigate("right", makeState("child0", "root"), repo, grid)).toBeNull()
   })
 
-  it("j navigates between siblings only (no DFS into children)", () => {
+  it("j on heading with children → enters first child", () => {
     const nested = item("root", item("parent", item("child")), item("sibling"))
     const nestedRepo = createFakeRepo({ nodes: nested })
-    // j from parent → sibling (not into parent's child)
+    // j from parent → first child (enters heading content)
     const target = nav.navigate("down", makeState("parent", "root"), nestedRepo, grid)
+    expect(target).toBe("child")
+  })
+
+  it("j past last child → parent's next sibling", () => {
+    const nested = item("root", item("parent", item("child")), item("sibling"))
+    const nestedRepo = createFakeRepo({ nodes: nested })
+    // j from child (last in parent) → sibling (bubbles up)
+    const target = nav.navigate("down", makeState("child", "root"), nestedRepo, grid)
     expect(target).toBe("sibling")
   })
 })

@@ -324,8 +324,8 @@ export function nodeDetailPopoverContent(
 ): PopoverContent {
   const lines: PopoverLine[] = []
 
-  // Title
-  const title = node.content ?? node.name ?? "(untitled)"
+  // Title (strip [[wikilinks]] since popover is plain text, not React components)
+  const title = stripWikilinks(node.content ?? node.name ?? "(untitled)")
   lines.push({ text: title, bold: true, wrap: "truncate" })
 
   // Metadata line (compact: "due Mar 20 · P2 · beorn")
@@ -342,7 +342,7 @@ export function nodeDetailPopoverContent(
     lines.push({ text: "" }) // separator
     const maxBody = 4
     for (const child of bodyChildren.slice(0, maxBody)) {
-      if (child.content) lines.push({ text: child.content, wrap: "truncate" })
+      if (child.content) lines.push({ text: stripWikilinks(child.content), wrap: "truncate" })
     }
     if (bodyChildren.length > maxBody) {
       lines.push({ text: `… +${bodyChildren.length - maxBody} more`, dim: true })
@@ -356,7 +356,7 @@ export function nodeDetailPopoverContent(
     const maxItems = 6
     for (const child of itemChildren.slice(0, maxItems)) {
       const marker = child.task_marker ?? (child.type === "h" ? "§" : "·")
-      const text = child.content ?? child.name ?? ""
+      const text = stripWikilinks(child.content ?? child.name ?? "")
       lines.push({ text: `${marker} ${text}`, wrap: "truncate" })
 
       // Show first 2 sub-children if available (nested preview)
@@ -364,7 +364,11 @@ export function nodeDetailPopoverContent(
         const grandchildren = getChildren(child.id)
         for (const gc of grandchildren.slice(0, 2)) {
           const gcMarker = gc.task_marker ?? "·"
-          lines.push({ text: `  ${gcMarker} ${gc.content ?? gc.name ?? ""}`, dim: true, wrap: "truncate" })
+          lines.push({
+            text: `  ${gcMarker} ${stripWikilinks(gc.content ?? gc.name ?? "")}`,
+            dim: true,
+            wrap: "truncate",
+          })
         }
         if (grandchildren.length > 2) {
           lines.push({ text: `  … +${grandchildren.length - 2}`, dim: true })
@@ -383,6 +387,11 @@ export function nodeDetailPopoverContent(
   }
 
   return { lines, maxWidth: 55 }
+}
+
+/** Strip [[wikilink]] brackets → plain text. Preserves display text from [[target|display]]. */
+function stripWikilinks(text: string): string {
+  return text.replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2")
 }
 
 function formatShortDate(iso: string): string {

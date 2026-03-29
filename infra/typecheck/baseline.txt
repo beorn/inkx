@@ -4,10 +4,10 @@
 7 vendor/bearly/plugins/github/server.ts
 179 vendor/bearly/plugins/tribe/server.ts
 7 vendor/bearly/tools/github-channel.ts
-1 vendor/silvery/docs/public/screenshots/gen-chat-mockup.ts
-14 vendor/silvery/docs/public/screenshots/gen-components-mockup-v2.ts
-3 vendor/silvery/docs/public/screenshots/gen-components-mockup.ts
-1 vendor/silvery/docs/public/screenshots/gen-dashboard-mockup.ts
+1 vendor/silvery-internal/design/mockups/gen-chat-mockup.ts
+14 vendor/silvery-internal/design/mockups/gen-components-mockup-v2.ts
+3 vendor/silvery-internal/design/mockups/gen-components-mockup.ts
+1 vendor/silvery-internal/design/mockups/gen-dashboard-mockup.ts
 1 vendor/silvery/examples/apps/components.tsx
 32 vendor/silvery/examples/layout/dashboard.tsx
 2 vendor/silvery/packages/commander/tests/commander.test.ts
