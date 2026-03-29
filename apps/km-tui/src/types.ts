@@ -72,32 +72,6 @@ export interface ColumnView {
  */
 export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
 
-/**
- * Selection key — just the node ID.
- *
- * Every node has a globally unique ID, so there's no need to encode
- * positional indices. This replaced the old "nodeId:subIndex" format.
- */
-export type SelectionKey = string
-
-/**
- * Create a selection key from a node ID.
- * Thin wrapper for migration — returns the nodeId directly.
- */
-export function makeSelectionKey(nodeId: string): SelectionKey {
-  return nodeId
-}
-
-/**
- * Parse a selection key into its components.
- * Thin wrapper for migration — returns `{ nodeId }`.
- */
-export function parseSelectionKey(key: SelectionKey): {
-  nodeId: string
-} {
-  return { nodeId: key }
-}
-
 export interface RenderOptions {
   width: number
   height: number

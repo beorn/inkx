@@ -53,7 +53,7 @@ import {
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
-import { makeSelectionKey, type ViewMode } from "../types.ts"
+import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
@@ -143,10 +143,6 @@ const BOARD_TYPES: ReadonlySet<string> = new Set([
   "UNFOLD_NODE",
   "UNFOLD_RECURSIVE",
   "SELECT_ALL",
-  "SELECT_NODE_ADD",
-  "SELECT_NODE_REMOVE",
-  "SELECT_NODE_TOGGLE",
-  "CLEAR_SELECTION",
   "VISUAL_MODE_ENTER",
   "VISUAL_MODE_EXIT",
   "EXTEND_SELECT_UP",
@@ -902,17 +898,9 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
     case "SELECT_ALL":
       progressiveSelectAll(ctx)
       return ok()
-    case "SELECT_NODE_ADD":
-    case "SELECT_NODE_REMOVE":
-    case "SELECT_NODE_TOGGLE":
-      ctx.dispatchBoard(action)
-      return ok()
-    case "CLEAR_SELECTION":
-      clearSelection(ctx)
-      return ok()
     case "VISUAL_MODE_ENTER": {
       if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
-      const anchorKey = makeSelectionKey(ctx.cursorNodeId)
+      const anchorKey = ctx.cursorNodeId
       const selected = new Set(ctx.ui.multiSelected)
       selected.add(anchorKey)
       ctx.setUI({

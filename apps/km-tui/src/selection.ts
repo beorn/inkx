@@ -1,35 +1,34 @@
 /**
  * Selection Namespace
  *
- * Typed helpers for operating on the current selection (multi-selected cards
- * or cursor card fallback). Replaces ad-hoc getSelectedCards() with a
- * discoverable, testable namespace.
+ * Typed helpers for operating on the current selection (multi-selected nodes
+ * or cursor node fallback). Tree-level — does not depend on view layout.
  *
- * Every card operation should use `Selection.nodes(ctx)` to get the cards
- * to operate on. Single card = batch of 1.
+ * Every node operation should use `Selection.nodes(ctx)` to get the nodes
+ * to operate on. Single cursor = batch of 1.
  */
 
 import type { KNode, Position } from "@km/core"
 import { Tree } from "@km/tree"
-import type { SelectionKey } from "./types.ts"
-import { parseSelectionKey } from "./types.ts"
 
 // =============================================================================
 // Minimal context interface — keeps Selection testable without full ActionCtx
 // =============================================================================
 
 export interface SelectionCtx {
-  /** Visual multi-selection set (SelectionKey ≡ nodeId) */
-  ui: { readonly multiSelected: ReadonlySet<SelectionKey> }
-  /** Board column layout */
+  /** Multi-selection set (node IDs). Empty = use cursor as single selection. */
+  ui: { readonly multiSelected: ReadonlySet<string> }
+  /** Board column layout (needed only for multi-selection ordering) */
   columns: ReadonlyArray<{
     readonly cardNodes: readonly KNode[]
   }>
-  /** Current column index */
+  /** Current cursor node (tree-level, single source of truth) */
+  cursorNodeId: string | null
+  /** Current column index (view-level, for multi-selection ordering) */
   colIndex: number
-  /** Current card index within column */
+  /** Current card index within column (view-level, for multi-selection ordering) */
   cardIndex: number
-  /** Node index: nodeId → { colIndex, cardIndex } */
+  /** Node index: nodeId → { colIndex, cardIndex } (for multi-selection ordering) */
   nodeIndex: ReadonlyMap<string, { colIndex: number; cardIndex: number }> | null
   /** Repository for node lookups */
   repo: { getNode(id: string): KNode | null }
@@ -37,7 +36,6 @@ export interface SelectionCtx {
 
 /** Extended context for undo-batched operations (moveTo, forEach). */
 export interface BatchCtx extends SelectionCtx {
-  cursorNodeId: string | null
   undoHandle: { setCursor(id: string | null): void; startBatch(label: string): void; endBatch(): void }
 }
 
@@ -55,28 +53,28 @@ export interface MoveCtx extends BatchCtx {
 
 export const Selection = {
   /**
-   * Get selected card nodes (or cursor card if nothing selected).
+   * Get selected nodes (or cursor node if no multi-selection).
    *
-   * When multiSelected has entries, resolves them to card nodes in the
-   * current column. Otherwise returns the cursor card as a single-item array.
-   * Returns cards in column order (sorted by cardIndex).
+   * Multi-selection: resolves node IDs to KNodes, ordered by column position.
+   * Single selection: returns the cursor node as a single-item array.
    */
   nodes(ctx: SelectionCtx): KNode[] {
-    const col = ctx.columns[ctx.colIndex]
-    const cursorCard = col?.cardNodes[ctx.cardIndex]
-    if (!col || !cursorCard) return []
-
+    // Multi-selection: resolve from card positions
     const indices = Selection.cardIndices(ctx)
     if (indices.length > 1) {
+      const col = ctx.columns[ctx.colIndex]
+      if (!col) return []
       return indices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
     }
-    return [cursorCard]
+
+    // Single selection: the cursor node (tree-level)
+    if (!ctx.cursorNodeId) return []
+    const node = ctx.repo.getNode(ctx.cursorNodeId)
+    return node ? [node] : []
   },
 
   /**
-   * Get selected node IDs (or cursor card ID if nothing selected).
-   *
-   * Convenience wrapper over `Selection.nodes()`.
+   * Get selected node IDs (or cursor node ID if no multi-selection).
    */
   nodeIds(ctx: SelectionCtx): string[] {
     return Selection.nodes(ctx).map((n) => n.id)
@@ -85,7 +83,7 @@ export const Selection = {
   /**
    * Get unique selected card indices from multi-selection, sorted ascending.
    *
-   * Maps SelectionKeys back to card positions in the current column via
+   * Maps node IDs back to card positions in the current column via
    * nodeIndex. For sub-items not in nodeIndex, walks the parent chain.
    */
   cardIndices(ctx: SelectionCtx): number[] {
@@ -93,9 +91,7 @@ export const Selection = {
     const nodeIndex = ctx.nodeIndex
     if (!nodeIndex) return []
     const indices = new Set<number>()
-    for (const key of ctx.ui.multiSelected) {
-      const { nodeId } = parseSelectionKey(key)
-      // Check nodeIndex for card roots
+    for (const nodeId of ctx.ui.multiSelected) {
       const pos = nodeIndex.get(nodeId)
       if (pos && pos.colIndex === ctx.colIndex) {
         indices.add(pos.cardIndex)

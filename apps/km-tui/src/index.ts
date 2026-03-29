@@ -13,7 +13,7 @@ export * from "./render.ts"
 export * from "./tui.tsx"
 
 // Export views
-export { BoardCore, BoardApp, makeSelectionKey } from "./views/index.ts"
+export { BoardCore, BoardApp } from "./views/index.ts"
 
 // Export repo context for wrapping components
 export { RepoProvider, useRepo, type Repo } from "./repo-context.tsx"

@@ -22,7 +22,6 @@ import {
 import { extractBody } from "@km/tree"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
 import { isSigilName, InlineText } from "../text/index.ts"
-import { makeSelectionKey } from "../types.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
 import {
   getNodeStyle,
@@ -201,7 +200,7 @@ function TreeNodeImpl({
 
   // Per-node state via reactive signals — only this node re-renders when its state changes
   const nodeStore = useNodeStore()
-  const isMultiSelected = useReactive(nodeStore.getOrCreate(makeSelectionKey(node.id)).multiSelected)
+  const isMultiSelected = useReactive(nodeStore.getOrCreate(node.id).multiSelected)
   const editState = useReactive(nodeStore.getOrCreate(node.id).edit)
   const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)

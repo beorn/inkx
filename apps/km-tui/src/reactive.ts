@@ -10,8 +10,6 @@ import { createContext, useContext, useSyncExternalStore } from "react"
 import type { Repo } from "./repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
 import { getNodeDisplayName } from "./state.ts"
-import type { SelectionKey } from "./types.ts"
-import { makeSelectionKey } from "./types.ts"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:hydrate")
@@ -186,7 +184,7 @@ export class ReactiveNodeStore {
    * Sets parent links, own sigils, excluded sigils, fold depths, multi-selection.
    * Replaces hydrateNodeAtoms from node-atoms-hydrate.ts.
    */
-  hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, multiSelected: Set<SelectionKey>): void {
+  hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, multiSelected: Set<string>): void {
     // Clean up old nodes
     if (this.knownNodeIds.size > 0) {
       this.cleanup(this.knownNodeIds)
@@ -250,7 +248,7 @@ export class ReactiveNodeStore {
         }
 
         // Multi-selection
-        if (multiSelected.has(makeSelectionKey(card.id))) {
+        if (multiSelected.has(card.id)) {
           cardState.multiSelected.value = true
         }
 
@@ -277,7 +275,7 @@ export class ReactiveNodeStore {
   }
 
   /** Sync multi-selection changes. Replaces syncMultiSelectedToAtoms. */
-  syncMultiSelected(oldSelected: Set<SelectionKey>, newSelected: Set<SelectionKey>): void {
+  syncMultiSelected(oldSelected: Set<string>, newSelected: Set<string>): void {
     for (const key of oldSelected) {
       if (!newSelected.has(key)) {
         this.getOrCreate(key).multiSelected.value = false

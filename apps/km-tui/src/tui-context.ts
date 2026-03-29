@@ -39,7 +39,6 @@ export interface ActionCtx {
   cursorCardNodeId: string | null
   /** Node IDs that are ignored (hidden) — navigation skips them */
   ignoredNodeIds: Set<string>
-  selectedNodes: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
   moveMode: boolean

@@ -15,6 +15,6 @@
  */
 
 // Main board component and views
-export { BoardCore, BoardApp, makeSelectionKey } from "./Board.tsx"
+export { BoardCore, BoardApp } from "./Board.tsx"
 
 // Re-export text utilities

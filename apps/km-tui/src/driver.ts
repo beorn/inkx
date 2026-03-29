@@ -264,7 +264,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       currentNode: selectedNode as CommandContext["currentNode"],
       currentNodeId: selectedNode?.id ?? null,
       cursorNodeId,
-      selectedNodes: Array.from(board?.selectedNodes ?? []),
+      selectedNodes: Array.from(board?.multiSelected ?? []),
       viewMode: board?.viewMode ?? "columns",
       siblingIndex: cursor.cardIndex,
       siblingCount: column?.cardNodes.length ?? 0,

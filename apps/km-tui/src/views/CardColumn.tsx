@@ -16,7 +16,6 @@ import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board-types.ts"
 import type { CardView, ColumnView } from "../types.ts"
-import { makeSelectionKey } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
@@ -192,7 +191,7 @@ export const Card = React.memo(
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useAppStore<BoardAppStore, boolean>(
-      (s) => getActiveBoardPane(s)?.multiSelected.has(makeSelectionKey(nodeId)) ?? false,
+      (s) => getActiveBoardPane(s)?.multiSelected.has(nodeId) ?? false,
     )
 
     // Compute overflow: check if any children are hidden by maxContentLines.

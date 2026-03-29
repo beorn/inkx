@@ -207,14 +207,14 @@ describe("Clipboard operations", () => {
     expect(childContents(repo, "col1")).toEqual(["A", "B", "C"])
   })
 
-  test("copy on empty column rings bell", () => {
+  test("copy on empty column copies the column heading", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2")))
 
-    // Navigate to col2 (empty column — cursor on column header)
+    // Navigate to col2 (empty column — cursor on column heading node)
     board.command("cursor_right")
 
-    // Copy should fail — no card to copy
+    // Copy works — cursor is on column heading (tree-level selection)
     board.press("y")
-    expect(board.bell).toBe(true)
+    expect(board.bell).toBe(false)
   })
 })

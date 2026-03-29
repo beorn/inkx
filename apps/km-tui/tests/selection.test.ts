@@ -26,11 +26,13 @@ function mockCtx(opts: {
   cards?: KNode[]
   colIndex?: number
   cardIndex?: number
+  cursorNodeId?: string | null
   multiSelected?: Set<string>
   nodeIndex?: Map<string, { colIndex: number; cardIndex: number }>
   extraNodes?: Map<string, KNode>
 }): SelectionCtx {
   const cards = opts.cards ?? []
+  const cardIndex = opts.cardIndex ?? 0
   const nodeIndex =
     opts.nodeIndex ?? new Map(cards.map((c, i) => [c.id, { colIndex: opts.colIndex ?? 0, cardIndex: i }]))
   const allNodes = new Map(cards.map((c) => [c.id, c]))
@@ -41,8 +43,9 @@ function mockCtx(opts: {
   return {
     ui: { multiSelected: opts.multiSelected ?? new Set() },
     columns: [{ cardNodes: cards }],
+    cursorNodeId: opts.cursorNodeId ?? cards[cardIndex]?.id ?? null,
     colIndex: opts.colIndex ?? 0,
-    cardIndex: opts.cardIndex ?? 0,
+    cardIndex,
     nodeIndex,
     repo: { getNode: (id: string) => allNodes.get(id) ?? null },
   }
@@ -76,9 +79,20 @@ describe("Selection.nodes", () => {
     expect(result.map((n) => n.id)).toEqual(["a", "c"])
   })
 
-  test("returns empty array when no column/cursor card", () => {
-    const ctx = mockCtx({ cards: [], cardIndex: 0 })
+  test("returns empty array when no cursor node", () => {
+    const ctx = mockCtx({ cards: [], cardIndex: 0, cursorNodeId: null })
     expect(Selection.nodes(ctx)).toEqual([])
+  })
+
+  test("returns column heading node when cardIndex is -1", () => {
+    const col = makeNode("col-heading")
+    const ctx = mockCtx({
+      cards: [],
+      cardIndex: -1,
+      cursorNodeId: "col-heading",
+      extraNodes: new Map([["col-heading", col]]),
+    })
+    expect(Selection.nodes(ctx)).toEqual([col])
   })
 
   test("returns cursor card even with 1-item selection (same as cursor)", () => {
@@ -206,9 +220,10 @@ function mockUndoHandle() {
 }
 
 function mockBatchCtx(opts: Parameters<typeof mockCtx>[0] & { cursorNodeId?: string | null }): BatchCtx {
+  const base = mockCtx(opts)
   return {
-    ...mockCtx(opts),
-    cursorNodeId: opts.cursorNodeId ?? null,
+    ...base,
+    cursorNodeId: opts.cursorNodeId !== undefined ? opts.cursorNodeId : base.cursorNodeId,
     undoHandle: mockUndoHandle(),
   }
 }
@@ -223,7 +238,7 @@ function mockMoveCtx(
   const base = mockCtx(opts)
   return {
     ...base,
-    cursorNodeId: opts.cursorNodeId ?? null,
+    cursorNodeId: opts.cursorNodeId !== undefined ? opts.cursorNodeId : base.cursorNodeId,
     undoHandle: mockUndoHandle(),
     repo: {
       ...base.repo,
@@ -257,7 +272,7 @@ describe("Selection.moveTo", () => {
     const result = Selection.moveTo(ctx, { parentId: "target", childIdx: -1 })
     // Tree.moveTo returns true for actual moves
     expect(result.moved).toBe(2)
-    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith("a") // cursor node
     expect(ctx.undoHandle.startBatch).toHaveBeenCalledWith("Move")
     expect(ctx.undoHandle.endBatch).toHaveBeenCalledTimes(1)
   })
@@ -323,7 +338,7 @@ describe("Selection.forEach", () => {
 
     Selection.forEach(ctx, "Batch op", (_n) => {})
 
-    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith("a") // cursor node
     expect(ctx.undoHandle.startBatch).toHaveBeenCalledWith("Batch op")
     expect(ctx.undoHandle.endBatch).toHaveBeenCalledTimes(1)
   })
@@ -340,7 +355,7 @@ describe("Selection.forEach", () => {
 
     expect(count).toBe(1)
     expect(visited).toEqual(["a"])
-    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith(null)
+    expect(ctx.undoHandle.setCursor).toHaveBeenCalledWith("a") // cursor node
     expect(ctx.undoHandle.startBatch).not.toHaveBeenCalled()
     expect(ctx.undoHandle.endBatch).not.toHaveBeenCalled()
   })

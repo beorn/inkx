@@ -233,7 +233,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       cursorNodeId,
       cursorCardNodeId: s.cursorStore.getState().cursorCardNodeId,
       ignoredNodeIds: computeIgnoredNodeIds(s.repo, columns),
-      selectedNodes: board?.selectedNodes ?? new Set(),
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),
       moveMode: board?.moveMode ?? false,
@@ -472,7 +471,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         : null,
       currentNodeId: ctx.selectedNode?.id ?? null,
       cursorNodeId: ctx.cursorNodeId,
-      selectedNodes: Array.from(ctx.selectedNodes),
+      selectedNodes: Array.from(ctx.ui.multiSelected),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
       siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
@@ -876,7 +875,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       } else if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        actionCtx.dispatchBoard({ type: "SELECT_NODE_TOGGLE", nodeId: selectId })
+        const selected = new Set(actionCtx.ui.multiSelected)
+        if (selected.has(selectId)) selected.delete(selectId)
+        else selected.add(selectId)
+        actionCtx.setUI({ multiSelected: selected })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       } else {
         // Single click → select the card (not sub-block)

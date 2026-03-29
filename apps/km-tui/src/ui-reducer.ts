@@ -80,7 +80,7 @@ export interface UIState {
     colIndex: number
     cardIndex: number
     cursorNodeId: string | null
-    multiSelected: Set<import("./types.ts").SelectionKey>
+    multiSelected: Set<string>
     foldDepths?: Map<string, number>
   }>
   navHistoryIndex: number

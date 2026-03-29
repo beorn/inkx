@@ -6,8 +6,6 @@
 
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
-import type { SelectionKey } from "../types.ts"
-import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { clearSelection } from "./keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
@@ -70,7 +68,7 @@ function calculateSortOrder(col: { cardNodes: KNode[] }, targetIndex: number, di
  * the current column's children after a board state refresh.
  */
 function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
-  const newSelected = new Set<SelectionKey>()
+  const newSelected = new Set<string>()
   const allChildren = ctx.repo.getChildren(ctx.rootId)
   const columns = allChildren.filter((n) => !KNode.isBlock(n))
   const newCol = columns[colIndex]
@@ -79,7 +77,7 @@ function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCa
     for (let cardIdx = 0; cardIdx < cards.length; cardIdx++) {
       const c = cards[cardIdx]
       if (c && movedCardIds.includes(c.id)) {
-        newSelected.add(makeSelectionKey(c.id))
+        newSelected.add(c.id)
       }
     }
   }

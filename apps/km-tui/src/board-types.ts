@@ -10,7 +10,6 @@
 import type { TNode } from "@km/core"
 import type { TPath } from "@km/tree"
 import type { CursorStore } from "./cursor-store.ts"
-import type { SelectionKey } from "./types.ts"
 import type { SelectionRange } from "./handlers/mouse-handler.ts"
 import {
   createEmptyFilterProperties,
@@ -60,8 +59,6 @@ export interface BoardState {
   // "cursor" = single focused node; "selection" is reserved for multi-select
   cursorNodeId: string | null
 
-  // Selection state
-  selectedNodes: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string> // Top-level nodes that are collapsed
 
@@ -104,12 +101,6 @@ export type BoardAction =
       rootPath: string | null
       cursorNodeId: string | null
     }
-
-  // Multi-select
-  | { type: "SELECT_NODE_ADD"; nodeId: string }
-  | { type: "SELECT_NODE_REMOVE"; nodeId: string }
-  | { type: "SELECT_NODE_TOGGLE"; nodeId: string }
-  | { type: "CLEAR_SELECTION" }
 
   // Move mode (caller provides node IDs)
   | { type: "ENTER_MOVE_MODE"; nodeIds: string[]; cursorNodeId: string | null }
@@ -162,7 +153,6 @@ export interface BoardViewModel {
   rootPath: string | null
   nodes: TNode[]
   cursor: TPath
-  selectedNodes: Set<string>
   foldDepths: Map<string, number>
   viewMode: ViewMode
 }
@@ -182,7 +172,6 @@ export function createBoardState(
     rootId,
     rootPath,
     cursorNodeId,
-    selectedNodes: new Set(),
     foldDepths: new Map(),
     collapsedNodes: collapsedNodeIds ?? new Set(),
     navHistory: [],
@@ -207,7 +196,7 @@ export type PaneViewType = "board" | "detail" | "empty"
 export interface PerPaneUIFields {
   viewMode: ViewMode
   maxContentLines: number
-  multiSelected: Set<SelectionKey>
+  multiSelected: Set<string>
   selectionAnchor: { nodeId: string } | null
   selectAllLevel: number
   visualMode: boolean
@@ -306,7 +295,6 @@ export interface BoardPaneState extends PaneStateBase {
   rootId: string | null
   rootPath: string | null
   cursorNodeId: string | null
-  selectedNodes: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
   navHistory: NavHistoryEntry[]
@@ -322,7 +310,7 @@ export interface BoardPaneState extends PaneStateBase {
   maxContentLines: number
 
   // Per-pane selection
-  multiSelected: Set<SelectionKey>
+  multiSelected: Set<string>
   selectionAnchor: { nodeId: string } | null
   selectAllLevel: number
   visualMode: boolean
@@ -477,7 +465,6 @@ export function createPaneState(
     rootId: board.rootId,
     rootPath: board.rootPath,
     cursorNodeId: board.cursorNodeId,
-    selectedNodes: board.selectedNodes,
     foldDepths: board.foldDepths,
     collapsedNodes: board.collapsedNodes,
     navHistory: board.navHistory,

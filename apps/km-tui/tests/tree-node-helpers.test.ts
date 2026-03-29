@@ -17,7 +17,6 @@ import {
 } from "../src/views/tree-node-helpers.tsx"
 import { computeBulletIcon } from "../src/views/tree-node-shared.ts"
 import { FOLDED_MARKER } from "../src/icons.ts"
-import { makeSelectionKey, parseSelectionKey } from "../src/types.ts"
 import type { KNode } from "@km/core"
 
 // =============================================================================
@@ -235,38 +234,6 @@ describe("short-names integration", () => {
 
     const { board } = testEnv(() => nodes, { viewMode: "columns" })
     board.expectScreen("@A")
-  })
-})
-
-// =============================================================================
-// Selection key helpers (from views/TreeNode.test.ts)
-// =============================================================================
-
-describe("makeSelectionKey", () => {
-  it("creates key from nodeId", () => {
-    expect(makeSelectionKey("node-abc")).toBe("node-abc")
-    expect(makeSelectionKey("node-xyz")).toBe("node-xyz")
-  })
-
-  it("handles node IDs with special characters", () => {
-    expect(makeSelectionKey("a:b:c")).toBe("a:b:c")
-  })
-
-  it("creates unique keys for different nodes", () => {
-    const keys = new Set([makeSelectionKey("node-1"), makeSelectionKey("node-2"), makeSelectionKey("node-3")])
-    expect(keys.size).toBe(3)
-  })
-})
-
-describe("parseSelectionKey", () => {
-  it("parses nodeId from key", () => {
-    const result = parseSelectionKey("node-abc")
-    expect(result.nodeId).toBe("node-abc")
-  })
-
-  it("handles node IDs with colons", () => {
-    const result = parseSelectionKey("a:b:c")
-    expect(result.nodeId).toBe("a:b:c")
   })
 })
 

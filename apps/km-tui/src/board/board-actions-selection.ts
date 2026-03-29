@@ -13,7 +13,6 @@
 import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { makeSelectionKey, type SelectionKey } from "../types.ts"
 
 /**
  * Extend selection vertically (up or down).
@@ -44,7 +43,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
     // At boundary: if we just initialized the anchor, select the current card
     if (initAnchor) {
       const newSelected = new Set(ui.multiSelected)
-      newSelected.add(makeSelectionKey(card.id))
+      newSelected.add(card.id)
       ctx.setUI({
         multiSelected: newSelected,
         status: { level: "info", message: "1 item selected" },
@@ -125,8 +124,8 @@ function resolveAnchorCol(ctx: ActionCtx): number | null {
 }
 
 /** Select all cards in all columns between fromCol and toCol (inclusive). */
-function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<SelectionKey> {
-  const selected = new Set<SelectionKey>()
+function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<string> {
+  const selected = new Set<string>()
   const minCol = Math.min(fromCol, toCol)
   const maxCol = Math.max(fromCol, toCol)
 
@@ -134,7 +133,7 @@ function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<
     const col = ctx.columns[colIdx]
     if (col) {
       for (const card of col.cardNodes) {
-        selected.add(makeSelectionKey(card.id))
+        selected.add(card.id)
       }
     }
   }

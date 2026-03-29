@@ -5,8 +5,6 @@
  */
 
 import type { KNode } from "@km/core"
-import type { SelectionKey } from "../types.ts"
-import { makeSelectionKey } from "../types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
@@ -19,7 +17,7 @@ function pushNavHistoryEntry(
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
-  multiSelected: Set<SelectionKey>,
+  multiSelected: Set<string>,
   cursorNodeId: string | null = null,
   foldDepths?: Map<string, number>,
 ): void {
@@ -56,7 +54,7 @@ export function saveNavHistoryFromPane(
   pane: {
     rootId: string | null
     cursorNodeId: string | null
-    multiSelected: Set<SelectionKey>
+    multiSelected: Set<string>
     foldDepths: Map<string, number>
   },
 ): void {
@@ -85,7 +83,7 @@ export function saveNavHistoryFromPane(
 export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: number): void {
   if (!ctx.ui.selectionAnchor) return
   const anchor = ctx.ui.selectionAnchor
-  const newSelected = new Set<SelectionKey>()
+  const newSelected = new Set<string>()
 
   // Resolve anchor position from nodeId
   const anchorPos = ctx.nodeIndex?.get(anchor.nodeId)
@@ -155,30 +153,30 @@ export function clearSelection(ctx: ActionCtx): void {
 type SelectionScope = "card" | "column" | "board"
 
 /** Add the card node ID to the selection set */
-function addCardItems(selected: Set<SelectionKey>, _ctx: ActionCtx, card: KNode): void {
-  selected.add(makeSelectionKey(card.id))
+function addCardItems(selected: Set<string>, _ctx: ActionCtx, card: KNode): void {
+  selected.add(card.id)
 }
 
 /** Build a selection set for the given scope (card, column, or board) */
-function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<SelectionKey> {
-  const selected = new Set<SelectionKey>()
+function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<string> {
+  const selected = new Set<string>()
 
   if (scope === "card") {
     const card = ctx.columns[ctx.colIndex]?.cardNodes[ctx.cardIndex]
     if (card) {
-      selected.add(makeSelectionKey(card.id))
+      selected.add(card.id)
     }
   } else if (scope === "column") {
     const col = ctx.columns[ctx.colIndex]
     if (col) {
       for (const c of col.cardNodes) {
-        selected.add(makeSelectionKey(c.id))
+        selected.add(c.id)
       }
     }
   } else {
     for (const column of ctx.columns) {
       for (const c of column.cardNodes) {
-        selected.add(makeSelectionKey(c.id))
+        selected.add(c.id)
       }
     }
   }

@@ -75,7 +75,7 @@ function buildCommandContexts(ctx: ActionCtx) {
       ui.showOmnibox ||
       !!ui.localSearch?.isInputActive ||
       !!ui.searchReplace,
-    hasMultiSelection: ctx.selectedNodes.size > 0 || ui.multiSelected.size > 0,
+    hasMultiSelection: ui.multiSelected.size > 0,
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
     isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
     currentNode: nodeForCtx,
@@ -123,7 +123,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
     cursorNodeId: ctx.cursorNodeId,
-    selectedNodes: Array.from(ctx.selectedNodes),
+    selectedNodes: Array.from(ui.multiSelected),
     siblingCount: column?.cardNodes.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,

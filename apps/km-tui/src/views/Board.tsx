@@ -83,8 +83,6 @@ import { navigateToNode } from "../navigate-to-node.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
 import { parseKmUrl, resolveKmLink } from "../internal-link.ts"
 
-export { makeSelectionKey } from "../types.ts"
-
 // =============================================================================
 // BoardCore - Pure Rendering (No Hooks)
 // =============================================================================

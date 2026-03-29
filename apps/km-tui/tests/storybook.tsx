@@ -74,7 +74,6 @@ interface TUIBoardState {
   rootId: string | null
   rootPath: string | null
   columns: ColumnView[]
-  selectedNodes: Set<string>
   visualMode: boolean
   foldDepths: Map<string, number>
   collapsedColumns: Set<number>
@@ -1161,7 +1160,6 @@ function createMockTUIBoardState(): TUIBoardState {
       mockColumn("Formatting", formattingCards),
       mockColumn("Markdown", markdownCards), // Shows body content types
     ],
-    selectedNodes: new Set<string>(),
     visualMode: false,
     foldDepths: new Map<string, number>(),
     collapsedColumns: new Set<number>(),

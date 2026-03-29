@@ -639,36 +639,6 @@ export function createBoardAppStoreState(
               break
             }
 
-            case "SELECT_NODE_ADD": {
-              const newSelected = new Set(pane.selectedNodes)
-              newSelected.add(action.nodeId)
-              paneUpdate = { selectedNodes: newSelected }
-              break
-            }
-
-            case "SELECT_NODE_REMOVE": {
-              const newSelected = new Set(pane.selectedNodes)
-              newSelected.delete(action.nodeId)
-              paneUpdate = { selectedNodes: newSelected }
-              break
-            }
-
-            case "SELECT_NODE_TOGGLE": {
-              const newSelected = new Set(pane.selectedNodes)
-              if (newSelected.has(action.nodeId)) {
-                newSelected.delete(action.nodeId)
-              } else {
-                newSelected.add(action.nodeId)
-              }
-              paneUpdate = { selectedNodes: newSelected }
-              break
-            }
-
-            case "CLEAR_SELECTION": {
-              paneUpdate = { selectedNodes: new Set() }
-              break
-            }
-
             case "ENTER_MOVE_MODE": {
               if (action.nodeIds.length === 0) return state
               paneUpdate = {
@@ -684,7 +654,6 @@ export function createBoardAppStoreState(
                 moveMode: false,
                 moveSourceNodes: [],
                 moveSourceCursorNodeId: null,
-                selectedNodes: new Set(),
               }
               break
             }
