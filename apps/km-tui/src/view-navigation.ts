@@ -590,34 +590,52 @@ export function createDetailViewNavigation(): ViewNavigation {
       const metaIds = metaKeys.map((key) => `${DETAIL_META_PREFIX}${key}`)
       const allChildren = repo.getChildren(rootId)
       // Flatten the doc tree to match what DocContent renders (items only, up to depth 3)
-      const flatNodes = flattenDocTree(allChildren, repo, 1, 3, 30)
-      const allItems = [rootId, ...metaIds, ...flatNodes].filter(Boolean) as string[]
+      if (allChildren.length === 0 && metaIds.length === 0) return null
 
-      if (allItems.length === 0) return null
+      // j/k = sibling navigation (same parent level), like cards view.
+      // H1 (rootId) → meta rows → direct children of root.
+      // Within a heading's children, j/k moves between siblings at that level.
+      // Use z/l to enter a heading's children (zoom in).
 
-      // Cursor IS the root — move to first/last item
+      // Cursor is the H1 (root)
       if (cursorNodeId === rootId) {
-        return dir === "down" ? (allItems[0] ?? null) : (allItems[allItems.length - 1] ?? null)
+        if (dir === "down") return metaIds[0] ?? allChildren[0]?.id ?? null
+        return null // k on H1 = boundary
       }
 
-      // Find cursor in the flat list
-      const idx = allItems.indexOf(cursorNodeId)
-      if (idx >= 0) {
-        const targetIdx = dir === "down" ? idx + 1 : idx - 1
-        if (targetIdx < 0 || targetIdx >= allItems.length) return null
-        return allItems[targetIdx] ?? null
-      }
-
-      // Cursor is a descendant not in our flat list — find nearest ancestor in the list
-      for (let current = repo.getNode(cursorNodeId); current?.parent_id; current = repo.getNode(current.parent_id)) {
-        const ancestorIdx = allItems.indexOf(current.parent_id)
-        if (ancestorIdx >= 0) {
-          const targetIdx = dir === "down" ? ancestorIdx + 1 : ancestorIdx - 1
-          if (targetIdx < 0 || targetIdx >= allItems.length) return null
-          return allItems[targetIdx] ?? null
+      // Cursor is a meta row
+      const metaIdx = metaIds.indexOf(cursorNodeId)
+      if (metaIdx >= 0) {
+        if (dir === "down") {
+          const next = metaIdx + 1
+          if (next < metaIds.length) return metaIds[next]!
+          return allChildren[0]?.id ?? null // past meta → first child
         }
+        const prev = metaIdx - 1
+        return prev >= 0 ? metaIds[prev]! : rootId // before first meta → H1
       }
-      return null
+
+      // Cursor is a child node — navigate siblings (same parent)
+      const cursorNode = repo.getNode(cursorNodeId)
+      if (!cursorNode) return null
+      const parentId = cursorNode.parent_id ?? rootId
+      const siblings = repo.getChildren(parentId)
+      const sibIdx = siblings.findIndex((c) => c.id === cursorNodeId)
+      if (sibIdx >= 0) {
+        if (dir === "down") {
+          if (sibIdx + 1 < siblings.length) return siblings[sibIdx + 1]!.id
+          // Past last sibling — if parent is root, boundary. Otherwise go to parent's next sibling.
+          if (parentId === rootId) return null
+          return null // boundary at end of sibling group
+        }
+        if (sibIdx - 1 >= 0) return siblings[sibIdx - 1]!.id
+        // Before first sibling — go to parent (heading)
+        if (parentId === rootId) return metaIds.length > 0 ? metaIds[metaIds.length - 1]! : rootId
+        return parentId // navigate up to parent heading
+      }
+
+      // Fallback
+      return dir === "down" ? (allChildren[0]?.id ?? null) : rootId
     },
   }
 }
