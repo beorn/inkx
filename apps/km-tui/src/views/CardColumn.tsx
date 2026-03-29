@@ -31,7 +31,7 @@ import { useNodeStore, useReactive } from "../reactive.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
 import { isCollapsedChild } from "../hooks/use-columns.ts"
-import { useCardInteraction } from "../hooks/use-card-interaction.ts"
+import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 
 // =============================================================================
 // Virtualization Constants

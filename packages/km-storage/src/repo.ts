@@ -160,6 +160,7 @@ interface RepoMethodDeps {
 /** Create query methods shared by createRepo and createBareRepo */
 function createQueryMethods(deps: RepoMethodDeps) {
   const { db, dataStore, childrenCache, rootPath } = deps
+  const backlinksCache = new Map<string, Link[]>()
   return {
     getNode(id: string) {
       return dataStore.getNode(id)
@@ -237,7 +238,11 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return dbGetOutgoingLinks(db, sourceId)
     },
     getBacklinks(nodeId: string): Link[] {
-      return dbGetBacklinks(db, nodeId)
+      const cached = backlinksCache.get(nodeId)
+      if (cached) return cached
+      const result = dbGetBacklinks(db, nodeId)
+      backlinksCache.set(nodeId, result)
+      return result
     },
     getRenameImpact(nodeId: string) {
       const node = dataStore.getNode(nodeId)

@@ -9,14 +9,18 @@
 
 import React, { useCallback, useEffect, useRef } from "react"
 import { StoreContext } from "@silvery/create/create-app"
-import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
+import { useModifierKeys, useMouseCursor, H1 } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { usePopover, nodeDetailPopoverContent } from "../views/Popover.tsx"
+import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
+import { DocContent } from "../views/DetailView.tsx"
+import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
+import { useTreeInlineContext } from "../views/tree-node-shared.ts"
+import { useTreeRenderContext } from "../ui-context.tsx"
 
 export interface CardInteraction {
   hovered: boolean
@@ -59,9 +63,6 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       if (!storeRef) return
       const state = storeRef.getState()
 
-      // Find the deepest node with an id under the click target.
-      // Sub-items inside cards have id={node.id} — clicking them selects
-      // the sub-item, not the card.
       let targetId = nodeId
       let node: typeof e.target | null = e.target
       while (node) {
@@ -74,14 +75,10 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       }
 
       if (e.metaKey || cmdHeld) {
-        // Cmd+click → zoom into the clicked node
         const boardPane = getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
       } else {
-        // Plain click → select the clicked item (sub-item or card)
-        // Pass cardNodeId hint so embedded sub-items resolve to the visual card,
-        // not the data model parent (which may be in a different column).
         state.dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: nodeId, cardHintSource: "click" })
       }
 
@@ -90,26 +87,41 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     [nodeId, cmdHeld, storeRef],
   )
 
-  // Cmd+hover detail popover — shows node metadata/preview after the
-  // popover system's built-in SHOW_DELAY (400ms). Uses the singleton
-  // popover, so link hovers naturally take precedence (last show wins).
+  // Cmd+hover detail popover — lazy render callback.
+  // Data fetching (getChildren) happens inside the callback, only when the popover
+  // is actually visible (after SHOW_DELAY). The render callback captures nodeId and repo.
   const popover = usePopover()
   const repo = useRepo()
+  const { rootBoardId, sigilColors, resolveSigilColor } = useTreeRenderContext()
+  const inlineCtx = useTreeInlineContext(repo, rootBoardId, undefined, sigilColors, resolveSigilColor)
 
   useEffect(() => {
     if (armed && popover) {
-      const node = repo.getNode(nodeId)
-      if (node) {
-        const children = repo.getChildren(nodeId)
-        const backlinkCount = repo.getBacklinks(nodeId).length
-        const content = nodeDetailPopoverContent(node, children, backlinkCount, (id) => repo.getChildren(id))
-        popover.show(content, mousePos.current)
-      }
+      popover.show(
+        {
+          lines: [],
+          render: () => {
+            const node = repo.getNode(nodeId)
+            if (!node) return null
+            const children = repo.getChildren(nodeId)
+            const title = node.content ?? node.name ?? "(untitled)"
+            return (
+              <InlineRenderProvider value={inlineCtx}>
+                <H1 wrap="wrap">
+                  <InlineText text={title} />
+                </H1>
+                {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
+              </InlineRenderProvider>
+            )
+          },
+          maxWidth: 55,
+        },
+        mousePos.current,
+      )
     } else if (!hovered && popover) {
-      // Mouse left the card — cancel/hide popover
       popover.cancel()
     }
-  }, [armed, hovered, popover, repo, nodeId])
+  }, [armed, hovered, popover, repo, nodeId, inlineCtx])
 
   const hoverBorderColor = !isSelected && hovered ? (armed ? "$link" : "$muted") : undefined
 

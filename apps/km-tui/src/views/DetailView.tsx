@@ -138,11 +138,12 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 // DocContent — renders a node tree as a readable document
 // =============================================================================
 
-interface DocContentProps {
+export interface DocContentProps {
   nodes: KNodeType[]
   depth: number
   repo: { getChildren(parentId: string): KNodeType[]; getNode(id: string): KNodeType | null }
   cursorNodeId?: string | null
+  maxExpandDepth?: number
 }
 
 /** Max heading depth to render content for. Deeper levels show collapsed summary. */
@@ -150,13 +151,21 @@ const MAX_EXPAND_DEPTH = 3
 /** Max items to render per level before truncating. */
 const MAX_ITEMS_PER_LEVEL = 30
 
-function DocContent({ nodes, depth, repo, cursorNodeId }: DocContentProps): React.ReactElement {
+export function DocContent({ nodes, depth, repo, cursorNodeId, maxExpandDepth }: DocContentProps): React.ReactElement {
+  const effectiveMaxDepth = maxExpandDepth ?? MAX_EXPAND_DEPTH
   const visible = nodes.slice(0, MAX_ITEMS_PER_LEVEL)
   const truncated = nodes.length - visible.length
   return (
     <Box flexDirection="column">
       {visible.map((node) => (
-        <DocNode key={node.id} node={node} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
+        <DocNode
+          key={node.id}
+          node={node}
+          depth={depth}
+          repo={repo}
+          cursorNodeId={cursorNodeId}
+          maxExpandDepth={effectiveMaxDepth}
+        />
       ))}
       {truncated > 0 && (
         <Box paddingLeft={depth * 2}>
@@ -172,11 +181,13 @@ function DocNode({
   depth,
   repo,
   cursorNodeId,
+  maxExpandDepth,
 }: {
   node: KNodeType
   depth: number
   repo: DocContentProps["repo"]
   cursorNodeId?: string | null
+  maxExpandDepth?: number
 }): React.ReactElement {
   const content = node.content ?? node.name ?? ""
   const isHeading = KNode.isOutline(node)
@@ -184,7 +195,7 @@ function DocNode({
   const isItem = KNode.isItem(node)
   const isCursor = node.id === cursorNodeId
   const indent = depth * 2
-  const shouldExpand = depth < MAX_EXPAND_DEPTH
+  const shouldExpand = depth < (maxExpandDepth ?? MAX_EXPAND_DEPTH)
 
   // Only fetch children if we'll render them (avoid N+1 queries on deep/large trees)
   const children = useMemo(
@@ -230,7 +241,15 @@ function DocNode({
         </Box>
         <Box height={1} />
         {shouldExpand ? (
-          childCount > 0 && <DocContent nodes={children} depth={depth} repo={repo} cursorNodeId={cursorNodeId} />
+          childCount > 0 && (
+            <DocContent
+              nodes={children}
+              depth={depth}
+              repo={repo}
+              cursorNodeId={cursorNodeId}
+              maxExpandDepth={maxExpandDepth}
+            />
+          )
         ) : (
           <CollapsedIndicator />
         )}
@@ -252,7 +271,15 @@ function DocNode({
           </Text>
         </Box>
         {shouldExpand ? (
-          childCount > 0 && <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+          childCount > 0 && (
+            <DocContent
+              nodes={children}
+              depth={depth + 1}
+              repo={repo}
+              cursorNodeId={cursorNodeId}
+              maxExpandDepth={maxExpandDepth}
+            />
+          )
         ) : (
           <CollapsedIndicator />
         )}
@@ -271,7 +298,15 @@ function DocNode({
           </Text>
         </Box>
         {shouldExpand ? (
-          childCount > 0 && <DocContent nodes={children} depth={depth + 1} repo={repo} cursorNodeId={cursorNodeId} />
+          childCount > 0 && (
+            <DocContent
+              nodes={children}
+              depth={depth + 1}
+              repo={repo}
+              cursorNodeId={cursorNodeId}
+              maxExpandDepth={maxExpandDepth}
+            />
+          )
         ) : (
           <CollapsedIndicator />
         )}

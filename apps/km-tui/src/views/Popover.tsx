@@ -1,30 +1,32 @@
 /**
- * Popover System — hover-to-preview for links and other content.
+ * Popover System — hover-to-preview for links and node details.
  *
- * Architecture:
- * - PopoverProvider at the root provides show/hide API via context
- * - PopoverOverlay renders the floating popover using absolute positioning
- * - Link components trigger popovers via onMouseEnter/onMouseLeave
+ * Architecture (Tippy.js singleton + Floating UI patterns):
+ * - Zustand store holds popover state (content, anchor, timers)
+ * - PopoverProvider creates the store and renders a persistent overlay
+ * - PopoverOverlay subscribes to store — swaps content in place (no remount)
+ * - Show delay (400ms) for cold start, instant swap when already visible
+ * - Hide delay (150ms) grace period to move into popover
+ * - Warm window (200ms) for instant re-show after recent hide
+ * - Lazy render callback: expensive React trees only built when popover is visible
  *
- * Hover intent best practices:
- * - Show delay (400ms): prevents flicker when mousing across many links
- * - Hide delay (150ms): allows moving mouse into the popover itself
- * - Warm window (200ms): moving between targets shows immediately
- * - Popover is hoverable: entering it cancels the hide timer
+ * Era2b migration path: Zustand store → createModel() with signal() accessors.
  */
 
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
+import React, { createContext, useContext, useMemo } from "react"
+import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
-import type { KNode } from "@km/core"
 
 // =============================================================================
 // Types
 // =============================================================================
 
 export interface PopoverContent {
-  /** Lines to display in the popover */
+  /** Lines to display (text-only mode for URL popovers) */
   lines: PopoverLine[]
+  /** Lazy React content (rich mode — called only when popover is visible) */
+  render?: () => React.ReactNode
   /** URL for the popover (used for clickable title + URL display) */
   href?: string
   /** Max width of the popover box (default: 60) */
@@ -38,162 +40,158 @@ export interface PopoverLine {
   dim?: boolean
   color?: string
   bold?: boolean
-  /** Wrap mode: "wrap" (default) or "truncate" */
   wrap?: "wrap" | "truncate"
-  /** Render as a clickable link (opens on click, no Cmd required) */
   link?: boolean
 }
 
 export interface PopoverAnchor {
-  /** Terminal column (0-indexed) */
   x: number
-  /** Terminal row (0-indexed) */
   y: number
 }
 
-interface PopoverState {
-  content: PopoverContent
-  anchor: PopoverAnchor
-}
-
 // =============================================================================
-// Context
+// Timing constants (aligned with Floating UI / Tippy.js)
 // =============================================================================
 
-interface PopoverAPI {
-  /** Request a popover to show (subject to delay) */
-  show(content: PopoverContent, anchor: PopoverAnchor): void
-  /** Update content of a currently visible popover. No-op if not visible. */
-  update(content: PopoverContent): void
-  /** Request the popover to hide (subject to delay) */
-  hide(): void
-  /** Cancel any pending show — used when mouse leaves before delay fires */
-  cancel(): void
-}
-
-const PopoverCtx = createContext<PopoverAPI | null>(null)
-
-/** Access the popover API from any child component */
-export function usePopover(): PopoverAPI | null {
-  return useContext(PopoverCtx)
-}
-
-// =============================================================================
-// Timing constants
-// =============================================================================
-
-/** Delay before showing popover on hover (ms) */
+/** Delay before showing popover on hover (cold start) */
 const SHOW_DELAY = 400
-/** Delay before hiding popover when mouse leaves (ms) */
+/** Delay before hiding popover when mouse leaves (grace period) */
 const HIDE_DELAY = 150
-/** Window after hiding where re-hover shows immediately (ms) */
+/** Window after hiding where re-hover shows immediately */
 const WARM_WINDOW = 200
+
+// =============================================================================
+// Zustand store
+// =============================================================================
+
+interface PopoverStoreState {
+  content: PopoverContent | null
+  anchor: PopoverAnchor | null
+  show(content: PopoverContent, anchor: PopoverAnchor): void
+  update(content: PopoverContent): void
+  hide(): void
+  cancel(): void
+  /** Cancel hide timer — used when mouse enters the popover itself */
+  cancelHide(): void
+}
+
+type PopoverStore = ReturnType<typeof createPopoverStore>
+
+function createPopoverStore() {
+  // Timers live outside the reactive state — they don't trigger renders
+  let showTimer: ReturnType<typeof setTimeout> | null = null
+  let hideTimer: ReturnType<typeof setTimeout> | null = null
+  let lastHideTime = 0
+
+  function clearShow() {
+    if (showTimer) {
+      clearTimeout(showTimer)
+      showTimer = null
+    }
+  }
+  function clearHide() {
+    if (hideTimer) {
+      clearTimeout(hideTimer)
+      hideTimer = null
+    }
+  }
+
+  return createStore<PopoverStoreState>((set, get) => ({
+    content: null,
+    anchor: null,
+
+    show(content, anchor) {
+      clearHide()
+
+      // Already visible → instant swap (Tippy.js singleton pattern)
+      if (get().content !== null) {
+        clearShow()
+        set({ content, anchor })
+        return
+      }
+
+      // Warm window → instant show
+      if (Date.now() - lastHideTime < WARM_WINDOW) {
+        clearShow()
+        set({ content, anchor })
+        return
+      }
+
+      // Cold start → delayed show
+      clearShow()
+      showTimer = setTimeout(() => {
+        showTimer = null
+        set({ content, anchor })
+      }, SHOW_DELAY)
+    },
+
+    update(content) {
+      if (get().content) set({ content })
+    },
+
+    hide() {
+      clearShow()
+      if (hideTimer) return // already hiding
+      hideTimer = setTimeout(() => {
+        hideTimer = null
+        lastHideTime = Date.now()
+        set({ content: null, anchor: null })
+      }, HIDE_DELAY)
+    },
+
+    cancel() {
+      clearShow()
+      clearHide()
+    },
+
+    cancelHide() {
+      clearHide()
+    },
+  }))
+}
+
+// =============================================================================
+// Context + hooks
+// =============================================================================
+
+const PopoverCtx = createContext<PopoverStore | null>(null)
+
+/** Access the popover store from any child component */
+export function usePopover(): PopoverStoreState | null {
+  const store = useContext(PopoverCtx)
+  // Return the store's getState() so callers get stable action refs
+  return store ? store.getState() : null
+}
 
 // =============================================================================
 // Provider
 // =============================================================================
 
 export function PopoverProvider({ children }: { children: React.ReactNode }): React.ReactElement {
-  const [popover, setPopover] = useState<PopoverState | null>(null)
-  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const lastHideTimeRef = useRef(0)
-
-  const clearTimers = useCallback(() => {
-    if (showTimerRef.current) {
-      clearTimeout(showTimerRef.current)
-      showTimerRef.current = null
-    }
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current)
-      hideTimerRef.current = null
-    }
-  }, [])
-
-  const api = useMemo<PopoverAPI>(
-    () => ({
-      show(content: PopoverContent, anchor: PopoverAnchor) {
-        // Cancel any pending hide
-        if (hideTimerRef.current) {
-          clearTimeout(hideTimerRef.current)
-          hideTimerRef.current = null
-        }
-
-        // If warm (recently hidden), show immediately
-        const sinceLastHide = Date.now() - lastHideTimeRef.current
-        if (sinceLastHide < WARM_WINDOW) {
-          if (showTimerRef.current) {
-            clearTimeout(showTimerRef.current)
-            showTimerRef.current = null
-          }
-          setPopover({ content, anchor })
-          return
-        }
-
-        // Cancel existing show timer and start new one
-        if (showTimerRef.current) {
-          clearTimeout(showTimerRef.current)
-        }
-        showTimerRef.current = setTimeout(() => {
-          showTimerRef.current = null
-          setPopover({ content, anchor })
-        }, SHOW_DELAY)
-      },
-
-      update(content: PopoverContent) {
-        // Only update if currently visible (not pending show/hide)
-        setPopover((prev) => (prev ? { ...prev, content } : null))
-      },
-
-      hide() {
-        // Cancel pending show
-        if (showTimerRef.current) {
-          clearTimeout(showTimerRef.current)
-          showTimerRef.current = null
-        }
-
-        // Delay hide to allow moving into popover
-        if (hideTimerRef.current) return // already hiding
-        hideTimerRef.current = setTimeout(() => {
-          hideTimerRef.current = null
-          lastHideTimeRef.current = Date.now()
-          setPopover(null)
-        }, HIDE_DELAY)
-      },
-
-      cancel() {
-        clearTimers()
-      },
-    }),
-    [clearTimers],
-  )
+  const store = useMemo(() => createPopoverStore(), [])
 
   return (
-    <PopoverCtx.Provider value={api}>
+    <PopoverCtx.Provider value={store}>
       {children}
-      {popover && <PopoverOverlay state={popover} onMouseEnter={clearTimers} onHide={() => api.hide()} />}
+      <PopoverOverlay store={store} />
     </PopoverCtx.Provider>
   )
 }
 
 // =============================================================================
-// Overlay
+// Overlay (persistent mount — subscribes to store, swaps content in place)
 // =============================================================================
 
-interface PopoverOverlayProps {
-  state: PopoverState
-  onMouseEnter: () => void
-  onHide: () => void
-}
+const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: PopoverStore }) {
+  const content = useStore(store, (s) => s.content)
+  const anchor = useStore(store, (s) => s.anchor)
 
-function PopoverOverlay({ state, onMouseEnter, onHide }: PopoverOverlayProps): React.ReactElement {
-  const { content, anchor } = state
+  if (!content || !anchor) return null
+
   const maxWidth = content.maxWidth ?? 60
-
-  // Position: below the anchor, offset right by 1
-  // The marginTop/marginLeft use absolute positioning
   const top = anchor.y + 1
   const left = anchor.x
+  const { cancelHide, hide } = store.getState()
 
   return (
     <Box
@@ -211,39 +209,41 @@ function PopoverOverlay({ state, onMouseEnter, onHide }: PopoverOverlayProps): R
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
         e.stopPropagation()
-        onMouseEnter()
+        cancelHide()
       }}
       onMouseLeave={(e: SilveryMouseEvent) => {
         e.stopPropagation()
-        onHide()
+        hide()
       }}
     >
-      {content.lines.map((line, i) =>
-        line.link && content.href ? (
-          <Link
-            key={i}
-            href={content.href}
-            variant="arm-on-hover"
-            color={line.color}
-            dimColor={line.dim}
-            bold={line.bold}
-            wrap={line.wrap ?? "wrap"}
-          >
-            {line.text}
-          </Link>
-        ) : (
-          <Text key={i} color={line.color} dimColor={line.dim} bold={line.bold} wrap={line.wrap ?? "wrap"}>
-            {line.text}
-          </Text>
-        ),
-      )}
+      {content.render
+        ? content.render()
+        : content.lines.map((line, i) =>
+            line.link && content.href ? (
+              <Link
+                key={i}
+                href={content.href}
+                variant="arm-on-hover"
+                color={line.color}
+                dimColor={line.dim}
+                bold={line.bold}
+                wrap={line.wrap ?? "wrap"}
+              >
+                {line.text}
+              </Link>
+            ) : (
+              <Text key={i} color={line.color} dimColor={line.dim} bold={line.bold} wrap={line.wrap ?? "wrap"}>
+                {line.text}
+              </Text>
+            ),
+          )}
       {content.loading && <Spinner label="Loading" color="$muted" />}
     </Box>
   )
-}
+})
 
 // =============================================================================
-// Helpers for building popover content
+// Content builders (for URL popovers — text-only mode)
 // =============================================================================
 
 /** Build popover content for an external URL (before metadata is fetched) */
@@ -262,7 +262,6 @@ export function urlPopoverContent(url: string, options?: { loading?: boolean }):
 
   const lines: PopoverLine[] = [{ text: domain, bold: true, color: "$link", link: true }]
 
-  // Show path if non-trivial
   if (path && path !== "/") {
     const fullPath = path + (query || "") + (fragment || "")
     lines.push({ text: fullPath, dim: true })
@@ -288,18 +287,10 @@ export function richUrlPopoverContent(
   const domain = parsed.hostname.replace(/^www\./, "")
   const lines: PopoverLine[] = []
 
-  // Title — clickable link (opens on click, no Cmd required)
   const title = meta.title ?? meta.siteName
-  if (title) {
-    lines.push({ text: title, bold: true, link: true })
-  }
+  if (title) lines.push({ text: title, bold: true, link: true })
+  if (meta.description) lines.push({ text: meta.description, dim: true })
 
-  // Description (wraps naturally)
-  if (meta.description) {
-    lines.push({ text: meta.description, dim: true })
-  }
-
-  // URL — rendered as a clickable link
   const prettyUrl = domain + (parsed.pathname !== "/" ? decodeURIComponent(parsed.pathname) : "")
   lines.push({ text: prettyUrl, color: "$link", link: true, wrap: "truncate" })
 
@@ -309,93 +300,6 @@ export function richUrlPopoverContent(
 /** Build popover content for an internal link (wikilink/blockref) */
 export function internalLinkPopoverContent(title: string, preview?: string): PopoverContent {
   const lines: PopoverLine[] = [{ text: title, bold: true }]
-  if (preview) {
-    lines.push({ text: preview, dim: true })
-  }
+  if (preview) lines.push({ text: preview, dim: true })
   return { lines }
-}
-
-/** Build popover content for a node detail preview (Cmd+hover on card). */
-export function nodeDetailPopoverContent(
-  node: KNode,
-  children: KNode[],
-  backlinkCount: number,
-  getChildren?: (parentId: string) => KNode[],
-): PopoverContent {
-  const lines: PopoverLine[] = []
-
-  // Title (strip [[wikilinks]] since popover is plain text, not React components)
-  const title = stripWikilinks(node.content ?? node.name ?? "(untitled)")
-  lines.push({ text: title, bold: true, wrap: "truncate" })
-
-  // Metadata line (compact: "due Mar 20 · P2 · beorn")
-  const meta: string[] = []
-  if (node.task_marker) meta.push(node.task_marker)
-  if (node.due_at) meta.push(`due ${formatShortDate(node.due_at)}`)
-  if (node.priority) meta.push(`P${node.priority}`)
-  if (node.assigned_to) meta.push(node.assigned_to)
-  if (meta.length > 0) lines.push({ text: meta.join(" · "), dim: true })
-
-  // Body paragraphs (non-item text blocks)
-  const bodyChildren = children.filter((c) => !c.item)
-  if (bodyChildren.length > 0) {
-    lines.push({ text: "" }) // separator
-    const maxBody = 4
-    for (const child of bodyChildren.slice(0, maxBody)) {
-      if (child.content) lines.push({ text: stripWikilinks(child.content), wrap: "truncate" })
-    }
-    if (bodyChildren.length > maxBody) {
-      lines.push({ text: `… +${bodyChildren.length - maxBody} more`, dim: true })
-    }
-  }
-
-  // Subitems (outline/list items) — rendered like a doc outline
-  const itemChildren = children.filter((c) => c.item)
-  if (itemChildren.length > 0) {
-    lines.push({ text: "" }) // separator
-    const maxItems = 6
-    for (const child of itemChildren.slice(0, maxItems)) {
-      const marker = child.task_marker ?? (child.type === "h" ? "§" : "·")
-      const text = stripWikilinks(child.content ?? child.name ?? "")
-      lines.push({ text: `${marker} ${text}`, wrap: "truncate" })
-
-      // Show first 2 sub-children if available (nested preview)
-      if (getChildren) {
-        const grandchildren = getChildren(child.id)
-        for (const gc of grandchildren.slice(0, 2)) {
-          const gcMarker = gc.task_marker ?? "·"
-          lines.push({
-            text: `  ${gcMarker} ${stripWikilinks(gc.content ?? gc.name ?? "")}`,
-            dim: true,
-            wrap: "truncate",
-          })
-        }
-        if (grandchildren.length > 2) {
-          lines.push({ text: `  … +${grandchildren.length - 2}`, dim: true })
-        }
-      }
-    }
-    if (itemChildren.length > maxItems) {
-      lines.push({ text: `… +${itemChildren.length - maxItems} more items`, dim: true })
-    }
-  }
-
-  // Backlinks
-  if (backlinkCount > 0) {
-    lines.push({ text: "" })
-    lines.push({ text: `${backlinkCount} backlink${backlinkCount > 1 ? "s" : ""}`, dim: true })
-  }
-
-  return { lines, maxWidth: 55 }
-}
-
-/** Strip [[wikilink]] brackets → plain text. Preserves display text from [[target|display]]. */
-function stripWikilinks(text: string): string {
-  return text.replace(/\[\[([^\]|]*\|)?([^\]]*)\]\]/g, "$2")
-}
-
-function formatShortDate(iso: string): string {
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
 }
