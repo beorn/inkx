@@ -119,7 +119,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         mousePos.current,
       )
     } else if (!hovered && popover) {
-      popover.cancel()
+      // Delayed hide — gives mouse time to enter the popover (Tippy.js grace period pattern).
+      // popover.cancel() would kill it instantly; hide() waits HIDE_DELAY (150ms).
+      popover.hide()
     }
   }, [armed, hovered, popover, repo, nodeId, inlineCtx])
 
