@@ -5,10 +5,12 @@
  * without circular imports.
  */
 
-import { useMemo } from "react"
+import React, { useMemo } from "react"
+import { H1 } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
+import type { PopoverContent } from "./Popover.tsx"
 import { deriveExcludedSigils } from "../ui-context.tsx"
 import {
   getTypeBullet,
@@ -94,12 +96,40 @@ export function useTreeInlineContext(
       wikiLinkCache.set(cacheKey, result)
       return result
     }
+    // Rich popover for internal links — lazily imports DocContent to avoid circular deps.
+    // Only called at runtime when user hovers a link, not at import time.
+    const buildLinkPopover = (target: string): PopoverContent | null => {
+      const node = repo.resolveByName?.(target) ?? repo.getNode(target)
+      if (!node) return null
+      const nodeChildren = repo.getChildren(node.id)
+      const nodeTitle = node.content ?? node.name ?? target
+      const ctx = { resolveWikiLink, resolveBlockRef, hideFields: true }
+      return {
+        lines: [],
+        render: () => {
+          // Lazy import — DetailView.tsx is only loaded when the popover actually renders
+          const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
+          const { InlineText, InlineRenderProvider } =
+            require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
+          return React.createElement(
+            InlineRenderProvider,
+            { value: ctx },
+            React.createElement(H1, { wrap: "wrap" }, React.createElement(InlineText, { text: nodeTitle })),
+            nodeChildren.length > 0 &&
+              React.createElement(DocContent, { nodes: nodeChildren, depth: 1, repo, maxExpandDepth: 2 }),
+          )
+        },
+        maxWidth: 55,
+      }
+    }
+
     return {
       excludeSigils: excludeSet,
       sigilColors,
       resolveSigilColor,
       resolveWikiLink,
       resolveBlockRef,
+      buildLinkPopover,
       hideFields: true,
     }
   }, [excludedSigils, sigilColors, resolveSigilColor, repo])

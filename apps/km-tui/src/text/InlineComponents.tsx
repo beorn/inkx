@@ -267,12 +267,12 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   )
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
-    // Wikilinks inherit parent color — they're internal refs, not external URLs.
-    // Bold distinguishes from plain text. No Link component (its default $link
-    // color can't be overridden with undefined due to JS destructuring defaults).
+    // Pill-style internal link: subtle background + padding, like Notion/Obsidian.
+    // Works in any color context (yellow H1, white body) without clashing.
+    const color = resolveColor(ctx, "$link")
     return (
-      <Text bold onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-        {resolved}
+      <Text backgroundColor="$mutedbg" color={color} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+        {` ${resolved} `}
       </Text>
     )
   }
