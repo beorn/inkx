@@ -18,7 +18,7 @@ import { useNodeStore, useReactive } from "../reactive.ts"
 import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { DocContent } from "../views/DetailView.tsx"
-import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
+import { InlineText, InlineRenderProvider, HeadingLinkProvider } from "../text/InlineComponents.tsx"
 import { getNodeDisplayName } from "../state.ts"
 
 export interface CardInteraction {
@@ -121,7 +121,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
             return (
               <InlineRenderProvider value={inlineCtx}>
                 <H1 wrap="wrap">
-                  <InlineText text={title} />
+                  <HeadingLinkProvider>
+                    <InlineText text={title} />
+                  </HeadingLinkProvider>
                 </H1>
                 {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
               </InlineRenderProvider>

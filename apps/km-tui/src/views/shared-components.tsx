@@ -480,7 +480,11 @@ export function NodeLine({
         <Text color={isSelected ? "$selection" : undefined} wrap="truncate">
           {prefix}
           <Text color={isSelected ? "$selection" : icon.color}>{icon.char} </Text>
-          <InlineText text={title} decorations={decorations} />
+          <InlineText
+            text={title}
+            decorations={decorations}
+            context={isSelected ? { colorOverride: "$selection" } : undefined}
+          />
         </Text>
       </Box>
       {/* Parent context + suffix: fixed width, never truncated */}
