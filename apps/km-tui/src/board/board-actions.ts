@@ -132,7 +132,8 @@ const TEXT_TYPES: ReadonlySet<string> = new Set([
   "TEXT_ITALIC",
 ])
 
-const BOARD_TYPES: ReadonlySet<string> = new Set([
+// Type-safe: if a new BoardOp type is added but not listed here, TypeScript errors.
+const BOARD_TYPE_LIST = [
   "SELECT",
   "SET_ROOT",
   "SET_CURSWANT",
@@ -161,7 +162,17 @@ const BOARD_TYPES: ReadonlySet<string> = new Set([
   "DECREASE_CONTENT_LINES",
   "IGNORE_NODE",
   "TOGGLE_SHOW_IGNORED",
-])
+] as const satisfies readonly BoardOp["type"][]
+
+// Verify completeness: every BoardOp type must be in the list above.
+// If a new action type is added to BoardOp but not here, this line errors.
+type _AssertComplete =
+  Exclude<BoardOp["type"], (typeof BOARD_TYPE_LIST)[number]> extends never
+    ? true
+    : { error: "BOARD_TYPE_LIST is missing types"; missing: Exclude<BoardOp["type"], (typeof BOARD_TYPE_LIST)[number]> }
+const _: _AssertComplete = true
+
+const BOARD_TYPES: ReadonlySet<string> = new Set(BOARD_TYPE_LIST)
 
 const DIALOG_TYPES: ReadonlySet<string> = new Set([
   "SHOW_NEW_ITEM_DIALOG",
