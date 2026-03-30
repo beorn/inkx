@@ -275,9 +275,8 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   }, [popover])
   if (resolved) {
     // Wikilink styling:
-    // - Default: solid underline, inherits parent color (visible in nested Text)
-    // - Hovered: $link color + underline (clearly interactive)
-    // Note: underlineStyle="dotted" doesn't work in nested Text (km-silvery.nested-underline-style)
+    // - Default: dotted underline, inherits parent color
+    // - Hovered: $link color + dotted underline (clearly interactive)
     // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
     const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
     if (hovered) {
@@ -285,7 +284,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
         <Text
           id={linkNodeId ?? undefined}
           color="$link"
-          underline
+          underlineStyle="dotted"
           underlineColor="$link"
           onMouseEnter={onMouseEnter}
           onMouseLeave={onMouseLeave}
@@ -297,7 +296,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
     return (
       <Text
         id={linkNodeId ?? undefined}
-        underline
+        underlineStyle="dotted"
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
