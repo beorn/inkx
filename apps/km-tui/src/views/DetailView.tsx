@@ -79,7 +79,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       <InlineRenderProvider value={inlineCtx}>
-        <Box flexDirection="column" flexGrow={1} overflow="hidden" paddingX={1}>
+        <Box flexDirection="column" flexGrow={1} overflow="hidden">
           {/* Document title — H1 (selectable) */}
           <Box
             id={effectiveId}
@@ -168,7 +168,7 @@ export function DocContent({ nodes, depth, repo, cursorNodeId, maxExpandDepth }:
         />
       ))}
       {truncated > 0 && (
-        <Box paddingLeft={depth * 2}>
+        <Box>
           <Muted>… +{truncated} more items</Muted>
         </Box>
       )}
@@ -194,7 +194,6 @@ function DocNode({
   const isTask = KNode.isTask(node)
   const isItem = KNode.isItem(node)
   const isCursor = node.id === cursorNodeId
-  const indent = depth * 2
   const shouldExpand = depth < (maxExpandDepth ?? MAX_EXPAND_DEPTH)
 
   // Only fetch children if we'll render them (avoid N+1 queries on deep/large trees)
@@ -213,7 +212,7 @@ function DocNode({
     const itemCount = children.filter((c) => c.item).length
     const label = itemCount > 0 ? `▸ ${itemCount} items` : `▸ ${childCount} blocks`
     return (
-      <Box paddingLeft={indent + 2}>
+      <Box>
         <Small>{label}</Small>
       </Box>
     )
@@ -228,7 +227,7 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box height={1} />
-        <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+        <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
             <Heading color={headingColor} wrap="wrap">
               <InlineText text={content} />
@@ -264,7 +263,7 @@ function DocNode({
     const textColor = isCursor ? "$selection" : isDone ? "$muted" : undefined
     return (
       <Box flexDirection="column">
-        <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+        <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : icon.color}>{icon.char} </Text>
           <Text color={textColor} strikethrough={isDone} wrap="wrap">
             <InlineText text={content} />
@@ -291,7 +290,7 @@ function DocNode({
   if (isItem) {
     return (
       <Box flexDirection="column">
-        <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+        <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : "$muted"}>{node.list_marker ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
             <InlineText text={content} />
@@ -317,7 +316,7 @@ function DocNode({
   // ── Block content (paragraph, quote, code, hr) ──
   if (node.type === "hr") {
     return (
-      <Box id={node.id} paddingLeft={indent}>
+      <Box id={node.id} paddingLeft={0}>
         <HR />
       </Box>
     )
@@ -325,7 +324,7 @@ function DocNode({
   if (!content) return <Box />
   if (node.type === "quote") {
     return (
-      <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+      <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
         <Blockquote>
           <InlineText text={content} />
         </Blockquote>
@@ -334,14 +333,14 @@ function DocNode({
   }
   if (node.type === "code") {
     return (
-      <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+      <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
         <CodeBlock>{content}</CodeBlock>
       </Box>
     )
   }
   // Paragraph
   return (
-    <Box id={node.id} paddingLeft={indent} backgroundColor={bg} {...cursorProps}>
+    <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
       <Text wrap="wrap">
         <InlineText text={content} />
       </Text>
