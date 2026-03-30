@@ -88,7 +88,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
             <H1 color={isTitleCursor ? "$selection" : undefined} wrap="wrap">
-              <InlineText text={title} context={{ colorOverride: null }} />
+              <InlineText text={title} />
             </H1>
           </Box>
 

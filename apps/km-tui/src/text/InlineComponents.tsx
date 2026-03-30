@@ -262,7 +262,9 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
     )
   }
   // Unresolved: show target dimmed (avoids prominent raw IDs like ^1210156063601370)
-  return <Text dim>{node.target}</Text>
+  // Unresolved wikilink — render as plain text (same weight as surrounding text).
+  // Don't dim — the target name is meaningful content, just not a resolvable node.
+  return <Text>{node.target}</Text>
 }
 
 export function InlineMention({ node }: { node: MentionNode }): React.ReactElement | null {

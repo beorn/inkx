@@ -121,7 +121,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
             return (
               <InlineRenderProvider value={inlineCtx}>
                 <H1 wrap="wrap">
-                  <InlineText text={title} context={{ ...inlineCtx, colorOverride: null }} />
+                  <InlineText text={title} />
                 </H1>
                 {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
               </InlineRenderProvider>
