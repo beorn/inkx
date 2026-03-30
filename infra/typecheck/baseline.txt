@@ -1,4 +1,3 @@
-1 apps/km-tui/src/board/board-actions.ts
 1 apps/km-tui/src/text/InlineComponents.tsx
 2 apps/km-tui/src/view-navigation.ts
 2 apps/km-tui/src/views/DetailView.tsx
@@ -11,7 +10,15 @@
 1 vendor/silvery-internal/mockups/gen-dashboard-mockup.ts
 1 vendor/silvery/examples/apps/components.tsx
 34 vendor/silvery/examples/layout/dashboard.tsx
+1 vendor/silvery/packages/ag-react/src/reconciler/host-config.ts
+2 vendor/silvery/packages/ag-term/src/devtools.ts
+1 vendor/silvery/packages/ag-term/src/pipeline/index.ts
+14 vendor/silvery/packages/ag-term/src/pipeline/output-phase.ts
+1 vendor/silvery/packages/ag-term/src/pipeline/render-text.ts
+2 vendor/silvery/packages/ag-term/src/renderer.ts
+1 vendor/silvery/packages/ag/src/keys.ts
 2 vendor/silvery/packages/commander/tests/commander.test.ts
+4 vendor/silvery/packages/create/src/create-app.tsx
 9 vendor/silvery/tests/compat/chalk/chalk.test.ts
 3 vendor/silvery/tests/compat/chalk/instance.test.ts
 21 vendor/silvery/tests/compat/chalk/visible.test.ts
