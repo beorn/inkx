@@ -295,7 +295,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
       <Text
         id={linkNodeId ?? undefined}
         underlineStyle="dashed"
-        dimColor
+        underlineColor="$muted"
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
