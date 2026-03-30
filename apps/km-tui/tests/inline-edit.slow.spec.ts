@@ -1373,3 +1373,74 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     })
   })
 })
+
+describe("Inline Edit — Folder/Section Nodes", () => {
+  test("editing column header via Escape updates both content and name", () => {
+    const { board, repo } = testEnv(() => item("board", item("Views", item("task1"))))
+
+    // Navigate to column header
+    board.command("cursor_up")
+    board.expect("#Views[data-cursor]").toExist()
+
+    // Enter inline edit on column header
+    board.press("Enter")
+
+    // Type a character (cursor starts at end of "Views")
+    board.press("k")
+
+    // Save and exit via Escape
+    board.press("Escape")
+
+    // Verify repo: both content and name should reflect the edit
+    const node = repo.getNode("Views")
+    expect(node?.content).toBe("Viewsk")
+    expect(node?.name).toBe("Viewsk")
+
+    // Verify screen shows the new name
+    expect(board.screenshot()).toContain("Viewsk")
+  })
+
+  test("folder node name is updated (not just content) after save-on-exit", () => {
+    const { board, repo } = testEnv(() => item("board", item("Col", item("task1"))))
+
+    // Navigate to column header
+    board.command("cursor_up")
+    board.expect("#Col[data-cursor]").toExist()
+
+    // Enter inline edit and modify
+    board.press("Enter")
+    board.press("X")
+    board.press("Escape")
+
+    // After editing, both content and name should be updated
+    const node = repo.getNode("Col")
+    expect(node?.content).toBe("ColX")
+    expect(node?.name).toBe("ColX")
+  })
+
+  test("editing column header fully replaces name after clearing text", () => {
+    const { board, repo } = testEnv(() => item("board", item("Old", item("task1"))))
+
+    // Navigate to column header
+    board.command("cursor_up")
+    board.expect("#Old[data-cursor]").toExist()
+
+    // Enter inline edit
+    board.press("Enter")
+
+    // Delete existing text with Ctrl+U (kill to start — cursor is at end)
+    board.press("Control+u")
+
+    // Type new name
+    for (const c of "New") board.press(c)
+
+    // Save and exit
+    board.press("Escape")
+
+    // Both content and name should be "New", not "OldNew" or "New" with stale name
+    const node = repo.getNode("Old")
+    expect(node?.content).toBe("New")
+    expect(node?.name).toBe("New")
+    expect(board.screenshot()).toContain("New")
+  })
+})

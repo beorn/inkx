@@ -72,6 +72,8 @@ export function TitleEditor({
   // Title save callback (persists without exiting edit mode)
   // Strips inline metadata (due:, start:, p:, recur:) from edited text and
   // restores them as structured fields on the node.
+  // For outline/heading nodes (folders, sections), also updates `name` so that
+  // filesystem sync and display name stay in sync with the edited content.
   const handleTitleSave = useCallback(
     (newValue: string) => {
       const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
@@ -81,9 +83,16 @@ export function TitleEditor({
       // No-op: value didn't change and no metadata to update
       if (newContent === originalContent && Object.keys(metaFields).length === 0) return
       undoHandle.setCursor(displayNode.id)
-      repo.updateNode(displayNode.id, { content: newContent, ...metaFields })
+      // For outline nodes (headings, folders, sections), update name alongside content.
+      // Without this, save-on-exit (Escape) would set content but leave name stale,
+      // causing the filesystem sync to create new folders instead of renaming.
+      const changes: Partial<KNode> = { content: newContent, ...metaFields }
+      if (KNode.isOutline(displayNode)) {
+        changes.name = newContent.replace(/^- \[.\]\s*/, "")
+      }
+      repo.updateNode(displayNode.id, changes)
     },
-    [displayNode.id, displayNode.content, repo, undoHandle],
+    [displayNode.id, displayNode.content, displayNode.type, displayNode.item, repo, undoHandle],
   )
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames.
