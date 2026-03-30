@@ -6,7 +6,7 @@
  * - PopoverProvider creates the store and renders a persistent overlay
  * - PopoverOverlay subscribes to store — swaps content in place (no remount)
  * - Show delay (400ms) for cold start, instant swap when already visible
- * - Hide delay (150ms) grace period to move into popover
+ * - Hide delay (300ms) grace period to move into popover
  * - Warm window (200ms) for instant re-show after recent hide
  * - Lazy render callback: expensive React trees only built when popover is visible
  *
@@ -16,8 +16,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
 import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
-import type { SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
-import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
 
 // =============================================================================
 // Types

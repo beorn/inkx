@@ -19,7 +19,7 @@ import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { DocContent } from "../views/DetailView.tsx"
 import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
-import { getNodeDisplayName } from "../state.ts"
+import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 
 export interface CardInteraction {
   hovered: boolean
@@ -135,9 +135,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
               resolveBlockRef,
               hideFields: true,
             }
-            const basename = node.fs_path?.split("/").pop()
-            const fstype = node.fstype ?? node.type
-            const badge = basename ? `${basename} (${fstype})` : `${node.id.slice(-8)} (${fstype})`
+            const badge = nodeBadgeLabel(node)
             return (
               <InlineRenderProvider value={inlineCtx}>
                 <Box>

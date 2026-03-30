@@ -19,7 +19,7 @@ import { InlineText, InlineRenderProvider, type InlineRenderContext } from "../t
 import { useTreeInlineContext } from "./tree-node-shared.ts"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
-import { getNodeDisplayName } from "../state.ts"
+import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
 import { resolveEmbed } from "./embed-display.ts"
@@ -360,13 +360,9 @@ function DocNode({
 // =============================================================================
 
 function NodeBadge({ node }: { node: KNodeType }): React.ReactElement | null {
-  // Show basename of fs_path (e.g., "my-note.md") or short ID + type
-  const basename = node.fs_path?.split("/").pop()
-  const fstype = node.fstype ?? node.type
-  const label = basename ? `${basename} (${fstype})` : `${node.id.slice(-8)} (${fstype})`
   return (
     <Box flexShrink={0} paddingLeft={1}>
-      <Small wrap="truncate">{label}</Small>
+      <Small wrap="truncate">{nodeBadgeLabel(node)}</Small>
     </Box>
   )
 }
