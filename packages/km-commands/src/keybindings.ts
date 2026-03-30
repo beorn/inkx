@@ -847,28 +847,28 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "Escape", commandId: "cancel_move", modes: ["move"] },
 
         // I = enter body edit at start, Shift+Enter = enter body edit at end
-        { key: "shift-i", commandId: "enter_body_edit" },
-        { key: "shift-Enter", commandId: "enter_body_edit" },
+        { key: "shift-i", commandId: "enter_body_edit", when: not(textInputFocused) },
+        { key: "shift-Enter", commandId: "enter_body_edit", when: not(textInputFocused) },
 
         // d = cut (forward, cursor → next), Backspace = cut backward (cursor → prev)
-        { key: "d", commandId: "clipboard_cut", when: not(hasKitty) },
-        { key: "shift-Backspace", commandId: "clipboard_cut" },
-        { key: "Backspace", commandId: "delete_node" },
-        { key: "Delete", commandId: "delete_node" },
+        { key: "d", commandId: "clipboard_cut", when: and(not(hasKitty), not(textInputFocused)) },
+        { key: "shift-Backspace", commandId: "clipboard_cut", when: not(textInputFocused) },
+        { key: "Backspace", commandId: "delete_node", when: not(textInputFocused) },
+        { key: "Delete", commandId: "delete_node", when: not(textInputFocused) },
 
         // y = copy (yank), p = paste — only without Kitty (conflicts with Kitty key protocol)
         { key: "y", commandId: "clipboard_copy", when: not(hasKitty) },
         { key: "p", commandId: "clipboard_paste", when: not(hasKitty) },
 
         // o/O = new item below/above (outliner-style)
-        { key: "o", commandId: "insert_below" },
-        { key: "shift-o", commandId: "insert_above" },
+        { key: "o", commandId: "insert_below", when: not(textInputFocused) },
+        { key: "shift-o", commandId: "insert_above", when: not(textInputFocused) },
         { key: "cmd-Enter", commandId: "insert_below" },
         { key: "cmd-shift-Enter", commandId: "new_item" },
 
         // u/U = undo/redo (vim-style)
-        { key: "u", commandId: "undo" },
-        { key: "shift-u", commandId: "redo" },
+        { key: "u", commandId: "undo", when: not(textInputFocused) },
+        { key: "shift-u", commandId: "redo", when: not(textInputFocused) },
 
         // Cmd+arrows — NOT usable: Ghostty/iTerm consume them
         // (Up/Down = scroll, Left = Home/Ctrl+E, Right = End/Ctrl+A)
@@ -885,8 +885,8 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "opt-l", commandId: "shift_right" },
 
         // Tab indents (structural: reparent under prev sibling), Shift+Tab outdents
-        { key: "Tab", commandId: "indent_node" },
-        { key: "shift-Tab", commandId: "outdent" },
+        { key: "Tab", commandId: "indent_node", when: not(textInputFocused) },
+        { key: "shift-Tab", commandId: "outdent", when: not(textInputFocused) },
 
         // Clipboard (Cmd — macOS; Ctrl fallbacks when Kitty unavailable)
         { key: "ctrl-c", commandId: "clipboard_copy", when: and(not(textInputFocused), not(hasKitty)) },
