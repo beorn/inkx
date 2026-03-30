@@ -71,6 +71,8 @@ export function useTreeInlineContext(
   return useMemo(() => {
     const excludeSet = excludedSigils.length > 0 ? new Set(excludedSigils) : undefined
     const wikiLinkCache = new Map<string, string | null>()
+    // Cache stores both display name and node ID for each target
+    const wikiLinkIdCache = new Map<string, string | null>()
     const resolveWikiLink = (target: string): string | null => {
       if (!target?.trim()) return null
       const cached = wikiLinkCache.get(target)
@@ -79,12 +81,37 @@ export function useTreeInlineContext(
       let result: string | null = null
       if (resolved) {
         result = getNodeDisplayName(repo, resolved)
+        wikiLinkIdCache.set(target, resolved.id)
       } else if (target.startsWith("^")) {
         const byId = repo.getNode(target.slice(1))
-        if (byId) result = getNodeDisplayName(repo, byId)
+        if (byId) {
+          result = getNodeDisplayName(repo, byId)
+          wikiLinkIdCache.set(target, byId.id)
+        }
       }
       wikiLinkCache.set(target, result)
       return result
+    }
+    const resolveWikiLinkId = (target: string): string | null => {
+      if (!target?.trim()) return null
+      // Ensure the target has been resolved (populates idCache)
+      const idCached = wikiLinkIdCache.get(target)
+      if (idCached !== undefined) return idCached
+      // Resolve fresh
+      const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+      if (resolved) {
+        wikiLinkIdCache.set(target, resolved.id)
+        return resolved.id
+      }
+      if (target.startsWith("^")) {
+        const byId = repo.getNode(target.slice(1))
+        if (byId) {
+          wikiLinkIdCache.set(target, byId.id)
+          return byId.id
+        }
+      }
+      wikiLinkIdCache.set(target, null)
+      return null
     }
     const resolveBlockRef = (id: string): string | null => {
       if (!id?.trim()) return null
@@ -128,6 +155,7 @@ export function useTreeInlineContext(
       sigilColors,
       resolveSigilColor,
       resolveWikiLink,
+      resolveWikiLinkId,
       resolveBlockRef,
       buildLinkPopover,
       hideFields: true,

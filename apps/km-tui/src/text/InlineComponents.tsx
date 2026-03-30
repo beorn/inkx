@@ -65,6 +65,8 @@ export interface InlineRenderContext {
   stripKnownMentions?: boolean
   /** Resolve wiki link targets to display titles */
   resolveWikiLink?: (target: string) => string | null
+  /** Resolve wiki link targets to node IDs (for Cmd-click navigation) */
+  resolveWikiLinkId?: (target: string) => string | null
   /** Resolve block ref IDs to display titles */
   resolveBlockRef?: (id: string) => string | null
   /**
@@ -268,10 +270,21 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
     // Pill-style internal link: background + link color, like Notion/Obsidian.
+    // Skip pill bg when card has custom colors (e.g. yellow heading bg) —
+    // the dark pill clashes with colored backgrounds.
+    // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
     const color = resolveColor(ctx, "$link")
+    const pillBg = ctx.colorOverride === undefined ? "#404050" : undefined
+    const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
     return (
-      <Text backgroundColor="#333333" color={color} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-        {` ${resolved} `}
+      <Text
+        id={linkNodeId ?? undefined}
+        backgroundColor={pillBg}
+        color={color}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        {resolved}
       </Text>
     )
   }

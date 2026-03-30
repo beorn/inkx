@@ -619,7 +619,10 @@ function TreeNodeImpl({
                     text={processedContent}
                     context={{
                       ...inlineContext,
-                      colorOverride: searchHighlight || shouldStripColor ? null : undefined,
+                      // Strip inline colors when: selected/done (shouldStripColor),
+                      // search highlighted, or heading has own color (link blue clashes
+                      // with heading colors — pill bg provides visual distinction instead).
+                      colorOverride: searchHighlight || shouldStripColor || style.ownColor ? null : undefined,
                     }}
                     decorations={searchDecorations}
                   />

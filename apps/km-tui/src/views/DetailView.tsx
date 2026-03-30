@@ -205,6 +205,8 @@ function DocNode({
 
   const bg = isCursor ? "$selection-bg" : undefined
   const cursorProps = isCursor ? { "data-cursor": true } : {}
+  // Strip inline colors on cursor row — blue links on gold bg are unreadable
+  const cursorCtx = isCursor ? { colorOverride: null as null } : undefined
 
   // Collapsed children indicator
   function CollapsedIndicator() {
@@ -230,11 +232,11 @@ function DocNode({
         <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
             <Heading color={headingColor} wrap="wrap">
-              <InlineText text={content} />
+              <InlineText text={content} context={cursorCtx} />
             </Heading>
           ) : (
             <Text bold color={headingColor ?? "$muted"} wrap="wrap">
-              <InlineText text={content} />
+              <InlineText text={content} context={cursorCtx} />
             </Text>
           )}
         </Box>
@@ -266,7 +268,7 @@ function DocNode({
         <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : icon.color}>{icon.char} </Text>
           <Text color={textColor} strikethrough={isDone} wrap="wrap">
-            <InlineText text={content} />
+            <InlineText text={content} context={cursorCtx} />
           </Text>
         </Box>
         {shouldExpand ? (
@@ -293,7 +295,7 @@ function DocNode({
         <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           <Text color={isCursor ? "$selection" : "$muted"}>{node.list_marker ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
-            <InlineText text={content} />
+            <InlineText text={content} context={cursorCtx} />
           </Text>
         </Box>
         {shouldExpand ? (
@@ -326,7 +328,7 @@ function DocNode({
     return (
       <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
         <Blockquote>
-          <InlineText text={content} />
+          <InlineText text={content} context={cursorCtx} />
         </Blockquote>
       </Box>
     )
@@ -342,7 +344,7 @@ function DocNode({
   return (
     <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
       <Text wrap="wrap">
-        <InlineText text={content} />
+        <InlineText text={content} context={cursorCtx} />
       </Text>
     </Box>
   )
