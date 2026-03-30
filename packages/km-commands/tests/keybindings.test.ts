@@ -1245,9 +1245,9 @@ describe("text mode keybinding separation", () => {
   })
 
   describe("Ctrl combos from node-mode are blocked during inline editing", () => {
-    it("Ctrl+d (page down) is blocked", () => {
+    it("Ctrl+d (page down in node mode, forward delete in text mode)", () => {
       expect(resolveKeybinding("d", { ctrl: true }, nodeCtx)).toEqual({ commandId: "page_down" })
-      expect(resolveKeybinding("d", { ctrl: true }, inlineCtx)).toEqual({ commandId: "noop" })
+      expect(resolveKeybinding("d", { ctrl: true }, inlineCtx)).toEqual({ commandId: "text.delete_forward" })
     })
 
     it("Ctrl+j (sibling board next) is blocked", () => {
