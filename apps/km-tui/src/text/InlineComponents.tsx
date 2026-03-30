@@ -540,9 +540,13 @@ export function InlineText({
   decorations?: TextDecoration[]
 }): React.ReactElement {
   const nodes = React.useMemo(() => parseInlineText(text), [text])
+  const parentCtx = useInlineRenderContext()
   const inner = <InlineNodes nodes={nodes} decorations={decorations} />
   if (context) {
-    return <InlineRenderProvider value={context}>{inner}</InlineRenderProvider>
+    // Merge with parent context so overrides (e.g. colorOverride) don't wipe
+    // resolution functions (resolveWikiLink, resolveBlockRef, buildLinkPopover)
+    const merged = { ...parentCtx, ...context }
+    return <InlineRenderProvider value={merged}>{inner}</InlineRenderProvider>
   }
   return inner
 }

@@ -116,15 +116,23 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
             const children = repo.getChildren(nodeId)
             const title = node.content ?? node.name ?? "(untitled)"
             // Build inline context lazily (not a hook — just data for wikilink resolution)
-            const inlineCtx = {
-              resolveWikiLink: (target: string) => {
-                const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-                return resolved ? getNodeDisplayName(repo, resolved) : null
-              },
-              resolveWikiLinkId: (target: string) => {
-                const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-                return resolved?.id ?? null
-              },
+            const resolveWikiLink = (target: string) => {
+              const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+              return resolved ? getNodeDisplayName(repo, resolved) : null
+            }
+            const resolveWikiLinkId = (target: string) => {
+              const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+              return resolved?.id ?? null
+            }
+            const resolveBlockRef = (id: string): string | null => {
+              if (!id?.trim()) return null
+              const resolved = repo.getNode(id)
+              return resolved ? getNodeDisplayName(repo, resolved) : null
+            }
+            const inlineCtx: import("../text/InlineComponents.tsx").InlineRenderContext = {
+              resolveWikiLink,
+              resolveWikiLinkId,
+              resolveBlockRef,
               hideFields: true,
             }
             return (

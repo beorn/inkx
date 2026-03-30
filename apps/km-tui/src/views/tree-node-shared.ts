@@ -130,7 +130,7 @@ export function useTreeInlineContext(
       if (!node) return null
       const nodeChildren = repo.getChildren(node.id)
       const nodeTitle = node.content ?? node.name ?? target
-      const ctx = { resolveWikiLink, resolveBlockRef, hideFields: true }
+      const ctx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, buildLinkPopover, hideFields: true }
       return {
         lines: [],
         render: () => {
