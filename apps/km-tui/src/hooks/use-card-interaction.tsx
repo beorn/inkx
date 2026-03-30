@@ -9,7 +9,7 @@
 
 import React, { useCallback, useEffect, useRef } from "react"
 import { StoreContext } from "@silvery/create/create-app"
-import { useMouseCursor, H1 } from "@silvery/ag-react"
+import { useModifierKeys, useMouseCursor, H1 } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
@@ -39,10 +39,12 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   const nodeStore = useNodeStore()
   const hovered = useReactive(nodeStore.getOrCreate(nodeId).hovered)
 
-  // Track Cmd (meta) key state from mouse events — avoids needing Kitty
-  // REPORT_ALL_KEYS which breaks hover interactions entirely.
-  const [cmdFromMouse, setCmdFromMouse] = React.useState(false)
-  const armed = hovered && cmdFromMouse
+  // Cmd detection via Kitty keyboard protocol. The store tracks modifier
+  // state from all key events, so getSnapshot() returns the current Cmd state
+  // immediately — even if Cmd was held before hovering started.
+  // Only subscribes when hovered (zero cost for non-hovered cards).
+  const { super: cmdHeld } = useModifierKeys({ enabled: hovered })
+  const armed = hovered && cmdHeld
   useMouseCursor(armed ? "pointer" : null)
 
   const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
@@ -55,18 +57,15 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   const handleMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
       mousePos.current = { x: e.clientX, y: e.clientY }
-      setCmdFromMouse(!!e.metaKey)
       nodeStore.setHovered(nodeId)
     },
     [nodeStore, nodeId],
   )
   const handleMouseMove = useCallback((e: SilveryMouseEvent) => {
     mousePos.current = { x: e.clientX, y: e.clientY }
-    setCmdFromMouse(!!e.metaKey)
   }, [])
   const handleMouseLeave = useCallback(() => {
     nodeStore.setHovered(null)
-    setCmdFromMouse(false)
     // The effect (below) calls popover.cancel() when hovered goes false,
     // cancelling any pending show. The popover's own onMouseLeave handles
     // hiding when the mouse leaves the popover box.
@@ -88,7 +87,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         node = node.parent
       }
 
-      if (e.metaKey || cmdFromMouse) {
+      if (e.metaKey || cmdHeld) {
         const boardPane = getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
@@ -98,7 +97,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
 
       e.stopPropagation()
     },
-    [nodeId, cmdFromMouse, storeRef],
+    [nodeId, cmdHeld, storeRef],
   )
 
   // Cmd+hover detail popover — lazy render callback.
