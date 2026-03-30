@@ -72,7 +72,7 @@ function ToastItem({ toast }: { toast: ToastType }): React.ReactElement {
       flexShrink={0}
       borderStyle="round"
       borderColor="$border"
-      backgroundColor={"$surface-bg"}
+      backgroundColor={"$popover-bg"}
       paddingLeft={1}
       paddingRight={1}
       minWidth={40}

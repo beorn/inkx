@@ -602,7 +602,7 @@ export function NodeDetailView({
       height={height}
       borderStyle="round"
       borderColor={"$selection-bg"}
-      backgroundColor={"$surface-bg"}
+      backgroundColor={"$popover-bg"}
     >
       {/* Title header — yellow bg */}
       <Box flexDirection="column" width={width - 2} backgroundColor={"$selection-bg"} paddingX={1}>

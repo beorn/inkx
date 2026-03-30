@@ -71,7 +71,7 @@ function FlashMessage({ message, color }: { message: string; color?: string }): 
       flexDirection="row"
       borderStyle="round"
       borderColor={isFlash ? "$muted" : "$border"}
-      backgroundColor="$surface-bg"
+      backgroundColor="$popover-bg"
       paddingX={1}
       overflow="hidden"
     >
@@ -98,7 +98,7 @@ function ChordHints({ prefix, dimmed }: { prefix: string; dimmed: boolean }): Re
       flexDirection="column"
       borderStyle="round"
       borderColor={dimmed ? "$disabled-fg" : "$border"}
-      backgroundColor="$surface-bg"
+      backgroundColor="$popover-bg"
       paddingX={1}
       paddingY={1}
       overflow="hidden"
@@ -258,7 +258,7 @@ export function CommandBox({
           flexDirection="row"
           borderStyle="round"
           borderColor={borderColor}
-          backgroundColor="$surface-bg"
+          backgroundColor="$popover-bg"
           overflow="hidden"
         >
           <Text color={modeColor} bold id="mode-label">
