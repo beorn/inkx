@@ -18,9 +18,7 @@ import { useNodeStore, useReactive } from "../reactive.ts"
 import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { DocContent } from "../views/DetailView.tsx"
-import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
-import { useTreeInlineContext } from "../views/tree-node-shared.ts"
-import { useTreeRenderContext } from "../ui-context.tsx"
+import { InlineText } from "../text/InlineComponents.tsx"
 
 export interface CardInteraction {
   hovered: boolean
@@ -44,6 +42,8 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   useMouseCursor(armed ? "pointer" : null)
 
   const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
+  const popover = usePopover()
+  const repo = useRepo()
 
   // Track mouse position for popover anchor
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
@@ -112,11 +112,6 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   // Cmd+hover detail popover — lazy render callback.
   // Data fetching (getChildren) happens inside the callback, only when the popover
   // is actually visible (after SHOW_DELAY). The render callback captures nodeId and repo.
-  const popover = usePopover()
-  const repo = useRepo()
-  const { rootBoardId, sigilColors, resolveSigilColor } = useTreeRenderContext()
-  const inlineCtx = useTreeInlineContext(repo, rootBoardId, undefined, sigilColors, resolveSigilColor)
-
   useEffect(() => {
     if (armed && popover) {
       popover.show(
@@ -128,12 +123,12 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
             const children = repo.getChildren(nodeId)
             const title = node.content ?? node.name ?? "(untitled)"
             return (
-              <InlineRenderProvider value={inlineCtx}>
+              <>
                 <H1 wrap="wrap">
                   <InlineText text={title} />
                 </H1>
                 {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
-              </InlineRenderProvider>
+              </>
             )
           },
           maxWidth: 55,
@@ -141,11 +136,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         mousePos.current,
       )
     } else if (!hovered && !armed && popover) {
-      // Card lost hover — start delayed hide. The popover's own onMouseEnter
-      // calls cancelHide() if the mouse enters it within HIDE_DELAY.
       popover.hide()
     }
-  }, [armed, hovered, popover, repo, nodeId, inlineCtx])
+  }, [armed, hovered, popover, repo, nodeId])
 
   const hoverBorderColor = !isSelected && hovered ? (armed ? "$link" : "$muted") : undefined
 
