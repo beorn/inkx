@@ -10,7 +10,7 @@
  * convention (e.g., "__meta__Status", "__meta__Due").
  */
 
-import React, { useMemo } from "react"
+import React, { useEffect, useMemo } from "react"
 import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
@@ -59,7 +59,14 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const rawNode = rootId ? repo.getNode(rootId) : null
   const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
   const rootNode = displayNode ?? rawNode
-  if (!rootNode) {
+
+  // All hooks must be called unconditionally (before any early return)
+  const effectiveId = rootNode?.id ?? null
+  const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
+  const children = useMemo(() => (effectiveId ? repo.getChildren(effectiveId) : []), [repo, effectiveId])
+  const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined, undefined)
+
+  if (!rootNode || !effectiveId) {
     return (
       <Box flexDirection="column" width={width} height={height} paddingX={1}>
         <Small>(no item selected)</Small>
@@ -67,14 +74,10 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     )
   }
 
-  const effectiveId = rootNode.id
-  const metaKeys = computeMetadataKeys(rootNode)
-  const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
   const contentWidth = Math.max(8, width - 2)
 
   const title = rootNode.content ?? rootNode.name ?? "(untitled)"
   const isTitleCursor = cursorCardNodeId === effectiveId
-  const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined, undefined)
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
@@ -117,7 +120,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           )}
 
           {/* Separator */}
-          {(metaKeys.length > 0 || true) && children.length > 0 && (
+          {children.length > 0 && (
             <Box height={1} flexShrink={0} width={width}>
               <HR />
             </Box>

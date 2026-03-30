@@ -65,7 +65,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   }, [])
   const handleMouseLeave = useCallback(() => {
     nodeStore.setHovered(null)
-    // The effect (below) calls popover.cancel() when hovered goes false,
+    // The effect (below) calls popover.hide() when hovered goes false,
     // cancelling any pending show. The popover's own onMouseLeave handles
     // hiding when the mouse leaves the popover box.
   }, [nodeStore])
@@ -100,8 +100,8 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   )
 
   // Cmd+hover detail popover — lazy render callback.
-  // Data fetching (getChildren) happens inside the callback, only when the popover
-  // is actually visible (after SHOW_DELAY). The render callback captures nodeId and repo.
+  // Node lookup happens in the effect; render callback is lazy
+  // (getChildren only called when the popover is actually visible after SHOW_DELAY).
   useEffect(() => {
     if (!popover) return
     if (armed) {
@@ -117,7 +117,12 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
           const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
           return resolved?.id ?? null
         }
-        const inlineCtx = { resolveWikiLink, resolveWikiLinkId, hideFields: true }
+        const resolveBlockRef = (id: string): string | null => {
+          if (!id?.trim()) return null
+          const resolved = repo.getNode(id)
+          return resolved ? getNodeDisplayName(repo, resolved) : null
+        }
+        const inlineCtx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, hideFields: true }
         popover.show(buildNodePopoverContent(node, repo, inlineCtx), mousePos.current)
       }
     } else if (!armed) {

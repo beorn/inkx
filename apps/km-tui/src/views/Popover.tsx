@@ -13,7 +13,7 @@
  * Era2b migration path: Zustand store → createModel() with signal() accessors.
  */
 
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
 import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
@@ -186,6 +186,8 @@ export function usePopover(): PopoverStoreState | null {
 
 export function PopoverProvider({ children }: { children: React.ReactNode }): React.ReactElement {
   const store = useMemo(() => createPopoverStore(), [])
+  // Cancel all pending timers on unmount to prevent stale callbacks
+  useEffect(() => () => { store.getState().cancel() }, [store])
 
   return (
     <PopoverCtx.Provider value={store}>
@@ -205,11 +207,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
   const [scrollOffset, setScrollOffset] = useState(0)
 
   // Reset scroll when content changes
-  const prevContentRef = React.useRef(content)
-  if (content !== prevContentRef.current) {
-    prevContentRef.current = content
-    if (scrollOffset !== 0) setScrollOffset(0)
-  }
+  useEffect(() => { setScrollOffset(0) }, [content])
 
   const onWheel = useCallback((e: SilveryWheelEvent) => {
     e.stopPropagation()

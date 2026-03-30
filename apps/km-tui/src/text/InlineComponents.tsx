@@ -10,7 +10,7 @@
  * into an AST and renders via InlineNodes.
  */
 
-import React, { useCallback, useRef } from "react"
+import React, { useCallback, useEffect, useRef } from "react"
 import { Link, Text } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getTermColor } from "./colors.ts"
@@ -79,7 +79,7 @@ export interface InlineRenderContext {
   /** Hide inline fields from display */
   hideFields?: boolean
   /** Build rich popover content for an internal link (wikilink/blockref) — returns render callback for DocContent */
-  buildLinkPopover?: (nodeId: string) => PopoverContent | null
+  buildLinkPopover?: (target: string) => PopoverContent | null
 }
 
 const InlineRenderCtx = React.createContext<InlineRenderContext>({})
@@ -480,6 +480,8 @@ function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode
   const ctx = useInlineRenderContext()
   const popover = usePopover()
   const hoveredRef = useRef(false)
+  // Cleanup: mark as unhovered on unmount so stale fetches don't call update
+  useEffect(() => () => { hoveredRef.current = false }, [])
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
       hoveredRef.current = true
@@ -489,17 +491,14 @@ function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode
         popover?.show(richUrlPopoverContent(url, cached), anchor)
       } else {
         popover?.show(urlPopoverContent(url, { loading: true }), anchor)
-        void fetchUrlMetadata(url)
-          .then((meta) => {
-            if (!hoveredRef.current) return
-            if (meta) {
-              popover?.update(richUrlPopoverContent(url, meta))
-            } else {
-              popover?.update(urlPopoverContent(url))
-            }
-            return
-          })
-          .catch(() => {})
+        void fetchUrlMetadata(url).then((meta) => {
+          if (!hoveredRef.current) return
+          if (meta) {
+            popover?.update(richUrlPopoverContent(url, meta))
+          } else {
+            popover?.update(urlPopoverContent(url))
+          }
+        })
       }
     },
     [popover, url],

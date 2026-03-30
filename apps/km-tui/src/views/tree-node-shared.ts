@@ -61,12 +61,13 @@ export function buildNodePopoverContent(
   inlineCtx: InlineRenderContext,
   maxWidth = 55,
 ): PopoverContent {
-  const nodeChildren = repo.getChildren(node.id)
-  const nodeTitle = node.content ?? node.name ?? "(untitled)"
-  const badge = nodeBadgeLabel(node)
   return {
     lines: [],
     render: () => {
+      // Heavy work is deferred to render time — only runs when the popover is actually visible
+      const nodeChildren = repo.getChildren(node.id)
+      const nodeTitle = node.content ?? node.name ?? "(untitled)"
+      const badge = nodeBadgeLabel(node)
       const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
       const { InlineText, InlineRenderProvider } =
         require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
