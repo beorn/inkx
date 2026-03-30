@@ -1,9 +1,9 @@
-1 apps/km-tui/src/text/InlineComponents.tsx
-2 apps/km-tui/src/view-navigation.ts
-2 apps/km-tui/src/views/DetailView.tsx
 7 vendor/bearly/plugins/github/server.ts
-179 vendor/bearly/plugins/tribe/server.ts
+195 vendor/bearly/plugins/tribe/server.ts
+5 vendor/bearly/tests/tribe-daemon.test.ts
 7 vendor/bearly/tools/github-channel.ts
+2 vendor/bearly/tools/lib/tribe/socket.ts
+1 vendor/bearly/tools/tribe-proxy.ts
 1 vendor/silvery-internal/mockups/gen-chat-mockup.ts
 14 vendor/silvery-internal/mockups/gen-components-mockup-v2.ts
 3 vendor/silvery-internal/mockups/gen-components-mockup.ts
