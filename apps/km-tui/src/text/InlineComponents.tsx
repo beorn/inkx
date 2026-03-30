@@ -76,14 +76,6 @@ const InlineRenderCtx = React.createContext<InlineRenderContext>({})
 
 export const InlineRenderProvider = InlineRenderCtx.Provider
 
-/**
- * Links inside headings inherit the heading color instead of using $link.
- * Wrap heading content in this provider.
- */
-const HeadingCtx = React.createContext(false)
-export function HeadingLinkProvider({ children }: { children: React.ReactNode }) {
-  return <HeadingCtx.Provider value={true}>{children}</HeadingCtx.Provider>
-}
 
 function useInlineRenderContext(): InlineRenderContext {
   return React.useContext(InlineRenderCtx)
@@ -250,7 +242,6 @@ export function InlineLink({ node }: { node: LinkNode }): React.ReactElement {
 
 export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
-  const insideHeading = React.useContext(HeadingCtx)
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
   const popover = usePopover()
   const onMouseEnter = useCallback(
@@ -262,13 +253,13 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   )
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
-    // Inside headings: inherit the heading's color (undefined = inherit).
-    // In body text: use $link (blue) for visual distinction.
-    const linkColor = insideHeading ? undefined : resolveColor(ctx, "$link")
+    // Wikilinks inherit parent color (not $link blue) — they're internal refs, not URLs.
+    // Bold distinguishes them from plain text; underline on Cmd+hover signals clickability.
     return (
       <Link
         href={`km://wiki/${encodeURIComponent(node.target)}`}
-        color={linkColor}
+        color={resolveColor(ctx, undefined)}
+        bold
         underline={false}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
@@ -344,7 +335,6 @@ export function InlineBareURL({ node }: { node: BareURLNode }): React.ReactEleme
 
 export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactElement {
   const ctx = useInlineRenderContext()
-  const insideHeading = React.useContext(HeadingCtx)
   const resolved = ctx.resolveBlockRef?.(node.id)
   const popover = usePopover()
   const onMouseEnter = useCallback(
@@ -356,11 +346,11 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
   )
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
-    const linkColor = insideHeading ? undefined : resolveColor(ctx, "$link")
     return (
       <Link
         href={`km://block/${encodeURIComponent(node.id)}`}
-        color={linkColor}
+        color={resolveColor(ctx, undefined)}
+        bold
         underline={false}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}

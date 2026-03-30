@@ -15,7 +15,7 @@ import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
-import { InlineText, InlineRenderProvider, HeadingLinkProvider, type InlineRenderContext } from "../text/InlineComponents.tsx"
+import { InlineText, InlineRenderProvider, type InlineRenderContext } from "../text/InlineComponents.tsx"
 import { useTreeInlineContext } from "./tree-node-shared.ts"
 import { useRepo } from "../repo-context.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
@@ -88,9 +88,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
             <H1 color={isTitleCursor ? "$selection" : undefined} wrap="wrap">
-              <HeadingLinkProvider>
-                <InlineText text={title} />
-              </HeadingLinkProvider>
+              <InlineText text={title} />
             </H1>
           </Box>
 
