@@ -79,7 +79,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       <InlineRenderProvider value={inlineCtx}>
-        <Box flexDirection="column" flexGrow={1} overflow="hidden" paddingRight={2}>
+        <Box flexDirection="column" flexGrow={1} overflow="hidden" paddingX={1}>
           {/* Document title — H1 (selectable) */}
           <Box
             id={effectiveId}

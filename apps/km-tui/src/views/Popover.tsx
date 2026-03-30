@@ -199,11 +199,13 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       marginTop={top}
       marginLeft={left}
       maxWidth={maxWidth}
+      maxHeight={20}
       flexDirection="column"
       borderStyle="round"
       borderColor="$border"
       backgroundColor="$surface-bg"
-      paddingX={0}
+      paddingX={1}
+      overflow="hidden"
       id="popover"
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
