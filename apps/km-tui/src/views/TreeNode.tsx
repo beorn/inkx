@@ -619,10 +619,9 @@ function TreeNodeImpl({
                     text={processedContent}
                     context={{
                       ...inlineContext,
-                      // Strip inline colors when: selected/done (shouldStripColor),
-                      // search highlighted, or heading has own color (link blue clashes
-                      // with heading colors — pill bg provides visual distinction instead).
-                      colorOverride: searchHighlight || shouldStripColor || style.ownColor ? null : undefined,
+                      // Strip inline colors when selected/done or search highlighted.
+                      // Links use dotted underline (no color) by default, so no heading clash.
+                      colorOverride: searchHighlight || shouldStripColor ? null : undefined,
                     }}
                     decorations={searchDecorations}
                   />

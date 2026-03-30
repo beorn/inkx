@@ -253,8 +253,10 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const ctx = useInlineRenderContext()
   const resolved = node.alias ?? ctx.resolveWikiLink?.(node.target)
   const popover = usePopover()
+  const [hovered, setHovered] = React.useState(false)
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
+      setHovered(true)
       if (!popover) return
       // Rich popover with DocContent (same as card hover) if available
       const richContent = ctx.buildLinkPopover?.(node.target)
@@ -267,20 +269,35 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
     },
     [popover, resolved, node.target, ctx],
   )
-  const onMouseLeave = useCallback(() => popover?.hide(), [popover])
+  const onMouseLeave = useCallback(() => {
+    setHovered(false)
+    popover?.hide()
+  }, [popover])
   if (resolved) {
-    // Pill-style internal link: background + link color, like Notion/Obsidian.
-    // Skip pill bg when card has custom colors (e.g. yellow heading bg) —
-    // the dark pill clashes with colored backgrounds.
+    // Wikilink styling:
+    // - Default: no color change, faint dotted underline (blends with surrounding text)
+    // - Hovered: blue color + brighter underline (clearly interactive)
     // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
-    const color = resolveColor(ctx, "$link")
-    const pillBg = ctx.colorOverride === undefined ? "#404050" : undefined
     const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
+    if (hovered) {
+      return (
+        <Text
+          id={linkNodeId ?? undefined}
+          color="$link"
+          underlineStyle="dotted"
+          underlineColor="$link"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          {resolved}
+        </Text>
+      )
+    }
     return (
       <Text
         id={linkNodeId ?? undefined}
-        backgroundColor={pillBg}
-        color={color}
+        underlineStyle="dotted"
+        underlineColor="$border"
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
@@ -288,9 +305,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
       </Text>
     )
   }
-  // Unresolved: show target dimmed (avoids prominent raw IDs like ^1210156063601370)
-  // Unresolved wikilink — render as plain text (same weight as surrounding text).
-  // Don't dim — the target name is meaningful content, just not a resolvable node.
+  // Unresolved: plain text (same weight as surrounding text).
   return <Text>{node.target}</Text>
 }
 
