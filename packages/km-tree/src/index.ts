@@ -31,8 +31,6 @@ export {
   getNodeDisplayName,
   isNodeUntitled,
   getTypeIndicator,
-  normalizeName,
-  namesAreSimilar,
   getCollapsedTypeSuffix,
   collapseRedundantAncestors,
   collapseAncestorsWithTypes,
@@ -44,9 +42,6 @@ export {
   type GetNodeFn,
   type CollapsedAncestor,
 } from "./display.ts"
-
-// Index file detection (folder-file merge)
-export { findIndexFile, isIndexFile, getChildSlotTarget, isSlotNode, extractSlotTargets } from "./index-file.ts"
 
 // Body content utilities
 export { extractBody, type BodyExtraction, type ExtractBodyDbOpts } from "./body.ts"

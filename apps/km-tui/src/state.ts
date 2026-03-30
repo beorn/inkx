@@ -4,7 +4,7 @@
  * Pure functions for managing board state - fully testable
  */
 
-import { KNode } from "@km/core"
+import { KNode, findIndexFile } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
@@ -19,7 +19,6 @@ import {
   getParentContext as getParentContextBase,
   getParentContextEx as getParentContextExBase,
   extractBody,
-  findIndexFile,
 } from "@km/tree"
 
 /**

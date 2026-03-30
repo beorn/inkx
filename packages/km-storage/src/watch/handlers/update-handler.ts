@@ -8,7 +8,7 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import type { KNode } from "@km/core"
+import { type KNode, isIndexFile, extractSlotTargets, namesAreSimilar } from "@km/core"
 import { toRelativeFsPath } from "../../path-utils.ts"
 import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
 import { getFileWithChildren, getNodeContentHash } from "../../db-queries/core-lookup.ts"
@@ -25,8 +25,6 @@ import type { ParseResult } from "../../parse-pool.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
 import { getNode, getChildren } from "../../index.ts"
-import { isIndexFile, extractSlotTargets } from "@km/tree"
-import { namesAreSimilar } from "@km/tree"
 
 const log = createLogger("km:storage:watch:reconcile")
 

@@ -129,7 +129,7 @@ export interface TUIDriverState extends AppState {
 /**
  * Board driver interface for AI/test automation
  */
-export interface BoardDriver extends AppWithCommands {
+export interface BoardDriver extends AppWithCommands<App> {
   /** Get rich state for AI decision-making */
   getState(): TUIDriverState
   /** The underlying silvery App */

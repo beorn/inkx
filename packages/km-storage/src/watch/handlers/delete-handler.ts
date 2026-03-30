@@ -12,7 +12,7 @@ import type { ReconcileContext } from "./create-handler.ts"
 import { getNode } from "../../index.ts"
 import { getNodeByPath } from "../../db-queries/core-lookup.ts"
 import type { Database } from "bun:sqlite"
-import { isIndexFile } from "@km/tree"
+import { isIndexFile } from "@km/core"
 
 /**
  * Handle file/folder rename

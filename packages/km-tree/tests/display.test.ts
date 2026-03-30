@@ -5,13 +5,11 @@
  */
 
 import { describe, it, expect, test } from "vitest"
-import type { KNode } from "@km/core"
+import { type KNode, normalizeName, namesAreSimilar } from "@km/core"
 import {
   getNodeDisplayName,
   isNodeUntitled,
   getTypeIndicator,
-  normalizeName,
-  namesAreSimilar,
   getCollapsedTypeSuffix,
   collapseRedundantAncestors,
   collapseAncestorsWithTypes,

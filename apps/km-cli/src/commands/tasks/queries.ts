@@ -5,7 +5,8 @@
  */
 
 import type { Repo } from "@km/storage"
-import { normalizeName, collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
+import { normalizeName } from "@km/core"
+import { collapseAncestorsWithTypes, type CollapsedAncestor } from "@km/tree"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameWithRepo } from "./formatters.ts"
 

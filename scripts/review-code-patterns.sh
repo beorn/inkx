@@ -327,4 +327,33 @@ grep -rn "switch\s*(" packages apps --include="*.ts" --exclude="*.test.ts" \
 echo "..."
 echo ""
 
+# =============================================================================
+# SILVERY LAYER VIOLATIONS (Patterns 40-41)
+# =============================================================================
+
+echo "=== PATTERN 40: Silvery ag imports from ag-term/ag-react (inverted dependency) ==="
+# ag is the base package — it must NEVER import from ag-term or ag-react
+grep -rn 'from "@silvery/ag-term\|from "@silvery/ag-react' vendor/silvery/packages/ag/src \
+  --include="*.ts" 2>/dev/null || true
+echo ""
+
+echo "=== PATTERN 41: Silvery package dependency direction violations ==="
+# commands, signals, scope, model, headless should NOT import from ag-term
+for pkg in commands signals scope model headless; do
+  hits=$(grep -rn 'from "@silvery/ag-term' "vendor/silvery/packages/$pkg/src" \
+    --include="*.ts" 2>/dev/null || true)
+  if [ -n "$hits" ]; then
+    echo "[$pkg -> ag-term]"
+    echo "$hits"
+  fi
+done
+# tea should not import from ag-term
+hits=$(grep -rn 'from "@silvery/ag-term' vendor/silvery/packages/tea/src \
+  --include="*.ts" 2>/dev/null || true)
+if [ -n "$hits" ]; then
+  echo "[tea -> ag-term]"
+  echo "$hits"
+fi
+echo ""
+
 echo "Pattern detection complete."

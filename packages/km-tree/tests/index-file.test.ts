@@ -6,7 +6,7 @@
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { findIndexFile, isIndexFile, getChildSlotTarget, extractSlotTargets } from "../src/index-file.ts"
+import { findIndexFile, isIndexFile, getChildSlotTarget, extractSlotTargets } from "@km/core"
 
 function makeNode(overrides: Partial<KNode> & { id: string }): KNode {
   return {

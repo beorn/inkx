@@ -107,6 +107,17 @@ export type { KmEvents, Subscription } from "./events.ts"
 export { createToastQueue } from "./toast.ts"
 export type { Toast, ToastOptions, ToastAction, ToastQueue } from "./toast.ts"
 
+// Index file detection & name utilities (pure KNode functions)
+export {
+  normalizeName,
+  namesAreSimilar,
+  findIndexFile,
+  isIndexFile,
+  getChildSlotTarget,
+  isSlotNode,
+  extractSlotTargets,
+} from "./index-file.ts"
+
 // Job runner
 export { createJobRunner } from "./job.ts"
 export type { JobSpec, JobHandle, JobRunner } from "./job.ts"

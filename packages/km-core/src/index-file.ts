@@ -1,12 +1,43 @@
 /**
- * Index File Detection
+ * Index File Detection & Name Utilities
  *
- * Pure functions for detecting folder index files (same-name.md, index.md, .md).
- * Used by view layer (column promotion) and storage layer (write path).
+ * Pure functions for detecting folder index files (same-name.md, index.md, .md)
+ * and comparing node names. These depend only on KNode types and string operations.
+ *
+ * Used by storage layer (write path) and view layer (column promotion).
+ * Moved from @km/tree to @km/core to fix layer violations (@km/storage → @km/tree).
  */
 
-import { KNode } from "@km/core"
-import { namesAreSimilar } from "./display.ts"
+import { KNode } from "./interfaces/index.ts"
+
+// ── Name normalization ──────────────────────────────────────────────
+
+/**
+ * Normalize a name for comparison
+ * - Removes # prefixes from sections
+ * - Removes .md extension
+ * - Treats underscores and hyphens as spaces
+ * - Lowercases everything
+ */
+export function normalizeName(name: string): string {
+  return name
+    .replace(/^#+\s*/, "") // Remove leading # from sections
+    .replace(/\.md$/i, "") // Remove .md extension
+    .replace(/[-_]/g, " ") // Treat - and _ as spaces
+    .replace(/[^\w\s]/g, "") // Remove special chars
+    .replace(/\s+/g, " ") // Collapse whitespace
+    .trim()
+    .toLowerCase()
+}
+
+/**
+ * Check if two names are substantially the same
+ */
+export function namesAreSimilar(a: string, b: string): boolean {
+  return normalizeName(a) === normalizeName(b)
+}
+
+// ── Index file detection ────────────────────────────────────────────
 
 /**
  * Find the index file among a folder's children.

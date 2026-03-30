@@ -5,9 +5,8 @@
  * Moved from @km/tui-core to @km/tree during architecture restructuring.
  */
 
-import { KNode, extractMetadata } from "@km/core"
+import { KNode, extractMetadata, normalizeName, findIndexFile } from "@km/core"
 import { PROP_REGEX } from "@km/markdown"
-import { findIndexFile } from "./index-file.ts"
 
 /** Strip inline metadata (key:: value) and block IDs (^id) from display text */
 export function stripForDisplay(text: string): string {
@@ -173,31 +172,6 @@ export function getTypeIndicator(type: string, fstype?: string, item?: boolean):
     default:
       return ""
   }
-}
-
-/**
- * Normalize a name for comparison
- * - Removes # prefixes from sections
- * - Removes .md extension
- * - Treats underscores and hyphens as spaces
- * - Lowercases everything
- */
-export function normalizeName(name: string): string {
-  return name
-    .replace(/^#+\s*/, "") // Remove leading # from sections
-    .replace(/\.md$/i, "") // Remove .md extension
-    .replace(/[-_]/g, " ") // Treat - and _ as spaces
-    .replace(/[^\w\s]/g, "") // Remove special chars
-    .replace(/\s+/g, " ") // Collapse whitespace
-    .trim()
-    .toLowerCase()
-}
-
-/**
- * Check if two names are substantially the same
- */
-export function namesAreSimilar(a: string, b: string): boolean {
-  return normalizeName(a) === normalizeName(b)
 }
 
 /**

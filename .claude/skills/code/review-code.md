@@ -52,8 +52,23 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 
 **Architecture** (see [docs/design/architecture-layers.md](../../../docs/design/architecture-layers.md)):
 
+### km Layers
+
 Three layers — Domain (km-core) → Operations (km-tree) → Application (km-tui, km-cli).
 Each layer calls only the layer below. Domain never imports Operations or Application.
+
+```
+Application   @km/tui, @km/cli-app, @km/repl     UI, commands, state machines
+              @km/agent, @km/beads                AI, issue tracking
+                ↓ imports from
+Operations    @km/tree, @km/board, @km/commands   tree mutations, visual state
+                ↓ imports from
+Infrastructure @km/storage                        SQLite, file watching, Repo
+                ↓ imports from
+Domain        @km/core, @km/markdown              pure types, parsing
+```
+
+**Known violation**: @km/storage imports from @km/tree (6 files — utility functions for index files). Fix: move those utilities to @km/core.
 
 Correct pattern — use the KNode/Position namespace helpers:
 
@@ -70,6 +85,61 @@ Anti-pattern — raw field checks instead of namespace helpers (layer violation:
 if (node.type === "h" && node.item === true) { ... }  // use KNode.isOutline(node)
 function isOutline(type: string, item: boolean) { ... }  // standalone fn duplicating KNode.isOutline
 ```
+
+### Silvery Layers (vendor/silvery)
+
+16 internal packages with strict dependency directions. See bead km-silvery.layer-violations.
+
+```
+Components    silvery (barrel)                     30+ React components
+                ↓ imports from everything
+App layer     @silvery/create, commands, tea,      state, commands, lifecycle
+              signals, scope, model
+                ↓ imports from
+Surface       @silvery/ag-term, ag-canvas          terminal, canvas adapters
+              @silvery/ag-react                    React reconciler
+                ↓ imports from
+Engine        @silvery/ag                          AgNode tree, types, focus, keys
+              flexily                              layout (standalone)
+                ↓ imports from
+Primitives    @silvery/ansi, color, theme          ANSI codes, color math, tokens
+              @silvery/headless                    pure state machines (no deps)
+```
+
+**Allowed exceptions**: ag-react ↔ ag-term (reconciler needs runtime context and vice versa).
+
+**Violations to watch for** (Patterns 40-41 in review script):
+- ag importing from ag-term or ag-react (inverts foundation)
+- commands/tea/signals/scope/model/headless importing from ag-term (state layer → surface)
+
+### Flexily (vendor/flexily)
+
+Single package, no internal layers. Zero dependencies. Pure layout engine.
+
+### Termless (vendor/termless)
+
+12 packages with clean architecture:
+
+```
+Testing       @termless/test                       Vitest matchers
+                ↓
+Core          @termless/core                       Terminal API, PTY, screenshots
+                ↓
+Backends      @termless/ghostty, xtermjs, vt100... pluggable implementations
+```
+
+No cross-backend imports — backends implement the TerminalBackend interface independently.
+
+### Bearly (vendor/bearly)
+
+Single package, flat structure. Claude Code tools (tribe, tty, llm, recall, refactor).
+
+### Layer Enforcement
+
+TypeScript's `verbatimModuleSyntax` (in tsconfig base) enforces `import type` for type-only imports but does NOT prevent cross-package layer violations. There is no built-in TS mechanism for import direction rules. Enforcement is via:
+1. `scripts/review-code-patterns.sh` Patterns 17-18 (km paths), 40-41 (silvery layers)
+2. `/code review layers` agent checks
+3. Code review during PR
 
 ## Contents
 
@@ -94,6 +164,7 @@ function isOutline(type: string, item: boolean) { ... }  // standalone fn duplic
 | Arch violation     | Classes (not factories), module-level state, global getters                 |
 | Deprecated code    | Functions marked @deprecated, backwards compat shims                        |
 | Vendor path        | Import via path (e.g., `../vendor/`) instead of package name                |
+| Silvery layer viol.| ag imports from ag-term/ag-react, or commands/signals/etc. import from ag-term |
 | Promise.all chain  | `Promise.all(x.map(...))` instead of async generator pipeline               |
 | Missing dispose    | Resource without `Symbol.dispose`, no `using` for cleanup                   |
 | Not using dispose  | Manual `.close()`/`.dispose()`/`.release()` instead of `using` + disposable |
@@ -213,6 +284,11 @@ The script detects:
 - Pattern 26: Direct chalk imports (should use `createTerm`/`useTerm`)
 - Pattern 27: High complexity functions (cyclomatic>20 or cognitive>15, candidates for refactoring)
 - Pattern 36: silvery string composition (`useTerm()`/`useStyle()` to build ANSI strings in `<Text>`, `.padEnd()` for layout instead of `<Box width={}>` + `<Text>` style props)
+
+**Silvery layer violations (2 patterns)**:
+
+- Pattern 40: ag imports from ag-term/ag-react (inverted dependency — ag is the base package)
+- Pattern 41: commands/signals/scope/model/headless/tea import from ag-term (wrong direction)
 
 **Theme/protocol issues (3 patterns)**:
 
@@ -418,6 +494,15 @@ For each finding (from Iteration 0.5 + Iteration 1):
 | ------------------- | ---------------- | ------------------------------------------------- |
 | High cyclomatic     | Medium           | High if >30, Critical if >40 (deeply nested)      |
 | High cognitive      | Medium           | High if >25, Critical if >35 (hard to understand) |
+
+**Silvery layer violation findings:**
+
+| Finding Type              | Default Severity | Context Adjustments                                     |
+| ------------------------- | ---------------- | ------------------------------------------------------- |
+| ag imports from ag-term   | Critical         | Inverts the foundation — blocks multi-surface story     |
+| ag imports from ag-react  | Critical         | Core types must be framework-agnostic                   |
+| commands/tea → ag-term    | High             | State layer shouldn't know about surface adapters       |
+| signals/scope/model/headless → ag-term | High | Pure packages must stay pure                            |
 
 **Alignment/pattern findings (from docs/principles.md Quick Reference):**
 

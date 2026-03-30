@@ -377,13 +377,13 @@ projects/
 
 ## Display Functions
 
-Located in `@km/tree`:
+Located in `@km/tree` (except `normalizeName` which is in `@km/core`):
 
 ```typescript
 // Get display name (strips .md, # markers)
 getNodeDisplayName(node: Node): string
 
-// Normalize for comparison
+// Normalize for comparison (from @km/core)
 normalizeName(name: string): string
 
 // Type indicator: "/", ".md", "#", ""

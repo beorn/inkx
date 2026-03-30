@@ -20,7 +20,7 @@ import { createSeededRandom, type SeededRandom } from "vimonkey"
 
 import { SyncManager } from "../../../src/watch/sync.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
-import { findIndexFile, extractSlotTargets } from "@km/tree"
+import { findIndexFile, extractSlotTargets } from "@km/core"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers

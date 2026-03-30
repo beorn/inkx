@@ -65,7 +65,7 @@
         "@types/node": "^25.5.0",
         "@types/react": "^19.2.14",
         "@types/sinonjs__fake-timers": "^15.0.1",
-        "@vitest/ui": "^4.1.1",
+        "@vitest/ui": "^4.1.2",
         "alien-signals": "^3.1.2",
         "boxen": "^8.0.1",
         "flexily": "workspace:*",
@@ -73,7 +73,7 @@
         "loggily": "workspace:*",
         "mdspec": "workspace:*",
         "oxfmt": "^0.38.0",
-        "oxlint": "^1.56.0",
+        "oxlint": "^1.57.0",
         "oxlint-plugin-complexity": "^2.0.3",
         "oxlint-tsgolint": "^0.16.0",
         "pino": "^10.3.1",
@@ -84,7 +84,7 @@
         "type-coverage": "^2.29.7",
         "typescript": "^5.9.3",
         "vimonkey": "workspace:*",
-        "vitest": "^4.1.1",
+        "vitest": "^4.1.2",
         "vitest-silvery-dots": "workspace:*",
         "winston": "^3.19.0",
         "ws": "^8.20.0",
@@ -319,7 +319,7 @@
     },
     "vendor/flexily": {
       "name": "flexily",
-      "version": "0.3.2",
+      "version": "0.3.3",
       "devDependencies": {
         "typescript": "^5.9.3",
         "vitepress": "^1.6.3",
@@ -338,7 +338,7 @@
     },
     "vendor/mdtest": {
       "name": "mdspec",
-      "version": "0.3.4",
+      "version": "0.3.5",
       "bin": {
         "mdspec": "./src/index.ts",
       },
@@ -370,7 +370,7 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.7.0",
+      "version": "0.9.0",
       "dependencies": {
         "@silvery/commander": "workspace:*",
         "loggily": "github:beorn/loggily",
@@ -406,8 +406,7 @@
       "name": "@silvery/ag",
       "version": "0.5.0",
       "dependencies": {
-        "@silvery/ag-term": "workspace:*",
-        "@silvery/create": "workspace:*",
+        "@silvery/ansi": "workspace:*",
       },
     },
     "vendor/silvery/packages/ag-react": {
@@ -436,7 +435,7 @@
     },
     "vendor/silvery/packages/ansi": {
       "name": "@silvery/ansi",
-      "version": "0.2.0",
+      "version": "0.3.1",
       "dependencies": {
         "@silvery/color": ">=0.1.0",
         "string-width": "^8.2.0",
@@ -448,9 +447,9 @@
     },
     "vendor/silvery/packages/commander": {
       "name": "@silvery/commander",
-      "version": "0.7.0",
+      "version": "0.8.1",
       "dependencies": {
-        "@silvery/ansi": ">=0.2.0",
+        "@silvery/ansi": ">=0.3.0",
         "commander": ">=12.0.0",
       },
       "peerDependencies": {
@@ -463,9 +462,6 @@
     "vendor/silvery/packages/commands": {
       "name": "@silvery/commands",
       "version": "0.5.0",
-      "dependencies": {
-        "@silvery/ag-term": "workspace:*",
-      },
     },
     "vendor/silvery/packages/create": {
       "name": "@silvery/create",

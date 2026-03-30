@@ -19,7 +19,7 @@ import { FsWriter } from "../../src/watch/fs-writer.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
 import { emitNodeUpdated } from "../../src/emitter.ts"
 import { indexFileName } from "../../src/index-file-writer.ts"
-import { findIndexFile } from "@km/tree"
+import { findIndexFile } from "@km/core"
 
 function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
   // Clear config cache to ensure no stale config from previous tests
