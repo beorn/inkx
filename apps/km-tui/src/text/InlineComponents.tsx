@@ -285,8 +285,8 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
       <Text
         id={linkNodeId ?? undefined}
         color={hovered ? "$link" : undefined}
-        underline
-        dimColor={!hovered}
+        underline={!hovered}
+        underlineColor={hovered ? undefined : "$border"}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
       >
