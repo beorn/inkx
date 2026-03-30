@@ -13,9 +13,10 @@
  * Era2b migration path: Zustand store → createModel() with signal() accessors.
  */
 
-import React, { createContext, useContext, useMemo } from "react"
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react"
 import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
+import type { SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 
 // =============================================================================
@@ -202,6 +203,21 @@ export function PopoverProvider({ children }: { children: React.ReactNode }): Re
 const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: PopoverStore }) {
   const content = useStore(store, (s) => s.content)
   const anchor = useStore(store, (s) => s.anchor)
+  const [scrollOffset, setScrollOffset] = useState(0)
+
+  // Reset scroll when content changes
+  const prevContentRef = React.useRef(content)
+  if (content !== prevContentRef.current) {
+    prevContentRef.current = content
+    if (scrollOffset !== 0) setScrollOffset(0)
+  }
+
+  const onWheel = useCallback((e: SilveryWheelEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    // Clamp at 0 — silvery's scroll container handles the upper bound
+    setScrollOffset((prev) => Math.max(0, prev + (e.deltaY > 0 ? 1 : -1)))
+  }, [])
 
   if (!content || !anchor) return null
 
@@ -222,7 +238,8 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       borderColor="$border"
       backgroundColor="$popover-bg"
       paddingX={1}
-      overflow="hidden"
+      overflow="scroll"
+      scrollOffset={scrollOffset}
       id="popover"
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
@@ -236,6 +253,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
         hide()
       }}
       onClick={(e: SilveryMouseEvent) => e.stopPropagation()}
+      onWheel={onWheel}
     >
       {content.render
         ? content.render()
