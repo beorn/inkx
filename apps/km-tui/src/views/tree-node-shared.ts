@@ -51,6 +51,50 @@ export function computeBulletIcon(
   return getFoldMarker(hasChildren, isFolded, ownColor)
 }
 
+/**
+ * Build popover content for a node — used by both card hover and link hover.
+ * Lazy-imports DetailView/InlineComponents to avoid circular deps.
+ */
+export function buildNodePopoverContent(
+  node: KNode,
+  repo: Repo,
+  inlineCtx: InlineRenderContext,
+  maxWidth = 55,
+): PopoverContent {
+  const nodeChildren = repo.getChildren(node.id)
+  const nodeTitle = node.content ?? node.name ?? "(untitled)"
+  const badge = nodeBadgeLabel(node)
+  return {
+    lines: [],
+    render: () => {
+      const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
+      const { InlineText, InlineRenderProvider } =
+        require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
+      return React.createElement(
+        InlineRenderProvider,
+        { value: inlineCtx },
+        React.createElement(
+          Box,
+          null,
+          React.createElement(
+            Box,
+            { flexGrow: 1, flexShrink: 1 },
+            React.createElement(H1, { wrap: "wrap" }, React.createElement(InlineText, { text: nodeTitle })),
+          ),
+          React.createElement(
+            Box,
+            { flexShrink: 0, paddingLeft: 1 },
+            React.createElement(Small, { wrap: "truncate" }, badge),
+          ),
+        ),
+        nodeChildren.length > 0 &&
+          React.createElement(DocContent, { nodes: nodeChildren, depth: 1, repo, maxExpandDepth: 2 }),
+      )
+    },
+    maxWidth,
+  }
+}
+
 /** Hook: build InlineRenderContext with wikilink/blockref resolution and sigil exclusion. */
 export function useTreeInlineContext(
   repo: Repo,
@@ -128,40 +172,8 @@ export function useTreeInlineContext(
     const buildLinkPopover = (target: string): PopoverContent | null => {
       const node = repo.resolveByName?.(target) ?? repo.getNode(target)
       if (!node) return null
-      const nodeChildren = repo.getChildren(node.id)
-      const nodeTitle = node.content ?? node.name ?? target
       const ctx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, buildLinkPopover, hideFields: true }
-      const badge = nodeBadgeLabel(node)
-      return {
-        lines: [],
-        render: () => {
-          // Lazy import — DetailView.tsx is only loaded when the popover actually renders
-          const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
-          const { InlineText, InlineRenderProvider } =
-            require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
-          return React.createElement(
-            InlineRenderProvider,
-            { value: ctx },
-            React.createElement(
-              Box,
-              null,
-              React.createElement(
-                Box,
-                { flexGrow: 1, flexShrink: 1 },
-                React.createElement(H1, { wrap: "wrap" }, React.createElement(InlineText, { text: nodeTitle })),
-              ),
-              React.createElement(
-                Box,
-                { flexShrink: 0, paddingLeft: 1 },
-                React.createElement(Small, { wrap: "truncate" }, badge),
-              ),
-            ),
-            nodeChildren.length > 0 &&
-              React.createElement(DocContent, { nodes: nodeChildren, depth: 1, repo, maxExpandDepth: 2 }),
-          )
-        },
-        maxWidth: 55,
-      }
+      return buildNodePopoverContent(node, repo, ctx)
     }
 
     return {

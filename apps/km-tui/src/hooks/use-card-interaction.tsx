@@ -9,7 +9,7 @@
 
 import React, { useCallback, useEffect, useRef } from "react"
 import { StoreContext } from "@silvery/create/create-app"
-import { useModifierKeys, useMouseCursor, Box, H1, Small } from "@silvery/ag-react"
+import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
@@ -17,9 +17,8 @@ import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
-import { DocContent } from "../views/DetailView.tsx"
-import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
-import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
+import { buildNodePopoverContent } from "../views/tree-node-shared.ts"
+import { getNodeDisplayName } from "../state.ts"
 
 export interface CardInteraction {
   hovered: boolean
@@ -107,55 +106,20 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     if (!popover) return
     if (armed) {
       // Cmd held + hovered → show popover (with delay for cold start, instant if already visible)
-      popover.show(
-        {
-          lines: [],
-          render: () => {
-            const node = repo.getNode(nodeId)
-            if (!node) return null
-            const children = repo.getChildren(nodeId)
-            const title = node.content ?? node.name ?? "(untitled)"
-            // Build inline context lazily (not a hook — just data for wikilink resolution)
-            const resolveWikiLink = (target: string) => {
-              const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-              return resolved ? getNodeDisplayName(repo, resolved) : null
-            }
-            const resolveWikiLinkId = (target: string) => {
-              const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
-              return resolved?.id ?? null
-            }
-            const resolveBlockRef = (id: string): string | null => {
-              if (!id?.trim()) return null
-              const resolved = repo.getNode(id)
-              return resolved ? getNodeDisplayName(repo, resolved) : null
-            }
-            const inlineCtx: import("../text/InlineComponents.tsx").InlineRenderContext = {
-              resolveWikiLink,
-              resolveWikiLinkId,
-              resolveBlockRef,
-              hideFields: true,
-            }
-            const badge = nodeBadgeLabel(node)
-            return (
-              <InlineRenderProvider value={inlineCtx}>
-                <Box>
-                  <Box flexGrow={1} flexShrink={1}>
-                    <H1 wrap="wrap">
-                      <InlineText text={title} />
-                    </H1>
-                  </Box>
-                  <Box flexShrink={0} paddingLeft={1}>
-                    <Small wrap="truncate">{badge}</Small>
-                  </Box>
-                </Box>
-                {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
-              </InlineRenderProvider>
-            )
-          },
-          maxWidth: 55,
-        },
-        mousePos.current,
-      )
+      const node = repo.getNode(nodeId)
+      if (node) {
+        // Build resolvers without caching (popover content is transient)
+        const resolveWikiLink = (target: string) => {
+          const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+          return resolved ? getNodeDisplayName(repo, resolved) : null
+        }
+        const resolveWikiLinkId = (target: string) => {
+          const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+          return resolved?.id ?? null
+        }
+        const inlineCtx = { resolveWikiLink, resolveWikiLinkId, hideFields: true }
+        popover.show(buildNodePopoverContent(node, repo, inlineCtx), mousePos.current)
+      }
     } else if (!armed) {
       // Cmd released or mouse left → hide the popover.
       // If mouse is still on card (!armed but hovered), Cmd was released — hide.
