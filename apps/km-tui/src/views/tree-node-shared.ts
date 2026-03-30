@@ -6,7 +6,7 @@
  */
 
 import React, { useMemo } from "react"
-import { H1 } from "@silvery/ag-react"
+import { Box, H1, Small } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -131,6 +131,9 @@ export function useTreeInlineContext(
       const nodeChildren = repo.getChildren(node.id)
       const nodeTitle = node.content ?? node.name ?? target
       const ctx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, buildLinkPopover, hideFields: true }
+      const basename = node.fs_path?.split("/").pop()
+      const fstype = node.fstype ?? node.type
+      const badge = basename ? `${basename} (${fstype})` : `${node.id.slice(-8)} (${fstype})`
       return {
         lines: [],
         render: () => {
@@ -141,7 +144,20 @@ export function useTreeInlineContext(
           return React.createElement(
             InlineRenderProvider,
             { value: ctx },
-            React.createElement(H1, { wrap: "wrap" }, React.createElement(InlineText, { text: nodeTitle })),
+            React.createElement(
+              Box,
+              null,
+              React.createElement(
+                Box,
+                { flexGrow: 1, flexShrink: 1 },
+                React.createElement(H1, { wrap: "wrap" }, React.createElement(InlineText, { text: nodeTitle })),
+              ),
+              React.createElement(
+                Box,
+                { flexShrink: 0, paddingLeft: 1 },
+                React.createElement(Small, { wrap: "truncate" }, badge),
+              ),
+            ),
             nodeChildren.length > 0 &&
               React.createElement(DocContent, { nodes: nodeChildren, depth: 1, repo, maxExpandDepth: 2 }),
           )

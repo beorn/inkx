@@ -9,7 +9,7 @@
 
 import React, { useCallback, useEffect, useRef } from "react"
 import { StoreContext } from "@silvery/create/create-app"
-import { useModifierKeys, useMouseCursor, H1 } from "@silvery/ag-react"
+import { useModifierKeys, useMouseCursor, Box, H1, Small } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import type { BoardAppStore } from "../board-app-store.ts"
 import { getActiveBoardPane } from "../board-app-store.ts"
@@ -135,11 +135,21 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
               resolveBlockRef,
               hideFields: true,
             }
+            const basename = node.fs_path?.split("/").pop()
+            const fstype = node.fstype ?? node.type
+            const badge = basename ? `${basename} (${fstype})` : `${node.id.slice(-8)} (${fstype})`
             return (
               <InlineRenderProvider value={inlineCtx}>
-                <H1 wrap="wrap">
-                  <InlineText text={title} />
-                </H1>
+                <Box>
+                  <Box flexGrow={1} flexShrink={1}>
+                    <H1 wrap="wrap">
+                      <InlineText text={title} />
+                    </H1>
+                  </Box>
+                  <Box flexShrink={0} paddingLeft={1}>
+                    <Small wrap="truncate">{badge}</Small>
+                  </Box>
+                </Box>
                 {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
               </InlineRenderProvider>
             )
