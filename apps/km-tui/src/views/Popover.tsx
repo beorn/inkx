@@ -106,6 +106,10 @@ function createPopoverStore() {
     show(content, anchor) {
       clearHide()
 
+      // Mouse is inside the popover — don't replace content (prevents link hover
+      // inside popover from replacing the node detail with a tiny link preview)
+      if (get().popoverHovered) return
+
       // Already visible → instant swap (Tippy.js singleton pattern)
       if (get().content !== null) {
         clearShow()
@@ -134,6 +138,8 @@ function createPopoverStore() {
 
     hide() {
       clearShow()
+      // Don't hide while mouse is inside the popover
+      if (get().popoverHovered) return
       if (hideTimer) return // already hiding
       hideTimer = setTimeout(() => {
         hideTimer = null
