@@ -76,7 +76,6 @@ const InlineRenderCtx = React.createContext<InlineRenderContext>({})
 
 export const InlineRenderProvider = InlineRenderCtx.Provider
 
-
 function useInlineRenderContext(): InlineRenderContext {
   return React.useContext(InlineRenderCtx)
 }
@@ -253,19 +252,13 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   )
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
-    // Wikilinks inherit parent color (not $link blue) — they're internal refs, not URLs.
-    // Bold distinguishes them from plain text; underline on Cmd+hover signals clickability.
+    // Wikilinks inherit parent color — they're internal refs, not external URLs.
+    // Bold distinguishes from plain text. No Link component (its default $link
+    // color can't be overridden with undefined due to JS destructuring defaults).
     return (
-      <Link
-        href={`km://wiki/${encodeURIComponent(node.target)}`}
-        color={resolveColor(ctx, undefined)}
-        bold
-        underline={false}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-      >
+      <Text bold onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
         {resolved}
-      </Link>
+      </Text>
     )
   }
   // Unresolved: show target dimmed (avoids prominent raw IDs like ^1210156063601370)
@@ -347,16 +340,9 @@ export function InlineBlockRef({ node }: { node: BlockRefNode }): React.ReactEle
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
     return (
-      <Link
-        href={`km://block/${encodeURIComponent(node.id)}`}
-        color={resolveColor(ctx, undefined)}
-        bold
-        underline={false}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-      >
+      <Text bold onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
         {resolved}
-      </Link>
+      </Text>
     )
   }
   // Unresolved block refs: show ID in red so broken refs are visible
