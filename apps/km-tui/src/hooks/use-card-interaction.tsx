@@ -28,6 +28,7 @@ export interface CardInteraction {
   hoverBorderColor: string | undefined
   handlers: {
     onMouseEnter: (e: SilveryMouseEvent) => void
+    onMouseMove: (e: SilveryMouseEvent) => void
     onMouseLeave: (e: SilveryMouseEvent) => void
     onClick: (e: SilveryMouseEvent) => void
   }
@@ -54,6 +55,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     },
     [nodeStore, nodeId],
   )
+  const handleMouseMove = useCallback((e: SilveryMouseEvent) => {
+    mousePos.current = { x: e.clientX, y: e.clientY }
+  }, [])
   const handleMouseLeave = useCallback(() => {
     nodeStore.setHovered(null)
   }, [nodeStore])
@@ -118,9 +122,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         },
         mousePos.current,
       )
-    } else if (!hovered && popover) {
-      // Delayed hide — gives mouse time to enter the popover (Tippy.js grace period pattern).
-      // popover.cancel() would kill it instantly; hide() waits HIDE_DELAY (150ms).
+    } else if (!hovered && !armed && popover) {
+      // Card lost hover — start delayed hide. The popover's own onMouseEnter
+      // calls cancelHide() if the mouse enters it within HIDE_DELAY.
       popover.hide()
     }
   }, [armed, hovered, popover, repo, nodeId, inlineCtx])
@@ -133,6 +137,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     hoverBorderColor,
     handlers: {
       onMouseEnter: handleMouseEnter,
+      onMouseMove: handleMouseMove,
       onMouseLeave: handleMouseLeave,
       onClick: handleClick,
     },

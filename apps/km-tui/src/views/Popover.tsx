@@ -56,7 +56,7 @@ export interface PopoverAnchor {
 /** Delay before showing popover on hover (cold start) */
 const SHOW_DELAY = 400
 /** Delay before hiding popover when mouse leaves (grace period) */
-const HIDE_DELAY = 150
+const HIDE_DELAY = 300
 /** Window after hiding where re-hover shows immediately */
 const WARM_WINDOW = 200
 
@@ -67,6 +67,8 @@ const WARM_WINDOW = 200
 interface PopoverStoreState {
   content: PopoverContent | null
   anchor: PopoverAnchor | null
+  /** True when mouse is inside the popover box */
+  popoverHovered: boolean
   show(content: PopoverContent, anchor: PopoverAnchor): void
   update(content: PopoverContent): void
   hide(): void
@@ -99,6 +101,7 @@ function createPopoverStore() {
   return createStore<PopoverStoreState>((set, get) => ({
     content: null,
     anchor: null,
+    popoverHovered: false,
 
     show(content, anchor) {
       clearHide()
@@ -210,10 +213,12 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
         e.stopPropagation()
+        store.setState({ popoverHovered: true })
         cancelHide()
       }}
       onMouseLeave={(e: SilveryMouseEvent) => {
         e.stopPropagation()
+        store.setState({ popoverHovered: false })
         hide()
       }}
     >
