@@ -114,7 +114,7 @@ function createPopoverStore() {
       // Already visible → instant swap (Tippy.js singleton pattern)
       if (get().content !== null) {
         clearShow()
-        set({ content, anchor })
+        set({ content, anchor, popoverHovered: false })
         return
       }
 

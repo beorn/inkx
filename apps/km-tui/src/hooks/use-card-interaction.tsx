@@ -131,11 +131,11 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         },
         mousePos.current,
       )
-    } else if (!armed && !hovered) {
-      // Mouse left card AND Cmd released → cancel any pending show timer.
-      // Don't call hide() here — handleMouseLeave already started the hide timer.
-      // The popover's own onMouseEnter cancels the hide if mouse enters it.
-      popover.cancel()
+    } else if (!armed) {
+      // Cmd released or mouse left → hide the popover.
+      // If mouse is still on card (!armed but hovered), Cmd was released — hide.
+      // If mouse left card (!armed and !hovered), cancel pending show + start hide.
+      popover.hide()
     }
   }, [armed, hovered, popover, repo, nodeId])
 
