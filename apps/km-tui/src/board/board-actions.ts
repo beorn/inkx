@@ -61,15 +61,18 @@ const log = createLogger("km:tui:board-actions") as any
 
 // =============================================================================
 // Type Guards — O(1) dispatch via Sets of type strings
+//
+// Each list uses `satisfies` (catches invalid entries) + `AssertComplete`
+// (catches missing entries). Adding a new action type without listing it errors.
 // =============================================================================
 
+/** True if List covers every member of Union; descriptive error type otherwise. */
+type AssertComplete<Union extends string, List extends readonly Union[]> =
+  Exclude<Union, List[number]> extends never ? true : ["MISSING", Exclude<Union, List[number]>]
+
 const VERB_TYPE_LIST = ["CURSOR_TO", "REPARENT_TO", "LINK_TO", "CREATE_AT"] as const satisfies readonly VerbOp["type"][]
-type _AssertVerbComplete =
-  Exclude<VerbOp["type"], (typeof VERB_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "VERB_TYPE_LIST is missing types"; missing: Exclude<VerbOp["type"], (typeof VERB_TYPE_LIST)[number]> }
-const _verb: _AssertVerbComplete = true
-const VERB_TYPES: ReadonlySet<VerbOp["type"]> = new Set(VERB_TYPE_LIST)
+const _verb: AssertComplete<VerbOp["type"], typeof VERB_TYPE_LIST> = true
+const VERB_TYPES: ReadonlySet<string> = new Set(VERB_TYPE_LIST)
 
 const NAV_TYPE_LIST = [
   "CURSOR_MOVE",
@@ -85,12 +88,8 @@ const NAV_TYPE_LIST = [
   "FOLD_LEVEL",
   "UNFOLD_LEVEL",
 ] as const satisfies readonly NavOp["type"][]
-type _AssertNavComplete =
-  Exclude<NavOp["type"], (typeof NAV_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "NAV_TYPE_LIST is missing types"; missing: Exclude<NavOp["type"], (typeof NAV_TYPE_LIST)[number]> }
-const _nav: _AssertNavComplete = true
-const NAV_TYPES: ReadonlySet<NavOp["type"]> = new Set(NAV_TYPE_LIST)
+const _nav: AssertComplete<NavOp["type"], typeof NAV_TYPE_LIST> = true
+const NAV_TYPES: ReadonlySet<string> = new Set(NAV_TYPE_LIST)
 
 const EDIT_TYPE_LIST = [
   "ENTER_INLINE_EDIT",
@@ -118,12 +117,8 @@ const EDIT_TYPE_LIST = [
   "SHIFT_LEFT",
   "SHIFT_RIGHT",
 ] as const satisfies readonly EditOp["type"][]
-type _AssertEditComplete =
-  Exclude<EditOp["type"], (typeof EDIT_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "EDIT_TYPE_LIST is missing types"; missing: Exclude<EditOp["type"], (typeof EDIT_TYPE_LIST)[number]> }
-const _edit: _AssertEditComplete = true
-const EDIT_TYPES: ReadonlySet<EditOp["type"]> = new Set(EDIT_TYPE_LIST)
+const _edit: AssertComplete<EditOp["type"], typeof EDIT_TYPE_LIST> = true
+const EDIT_TYPES: ReadonlySet<string> = new Set(EDIT_TYPE_LIST)
 
 const TEXT_TYPE_LIST = [
   "TEXT_INSERT",
@@ -149,12 +144,8 @@ const TEXT_TYPE_LIST = [
   "TEXT_BOLD",
   "TEXT_ITALIC",
 ] as const satisfies readonly TextOp["type"][]
-type _AssertTextComplete =
-  Exclude<TextOp["type"], (typeof TEXT_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "TEXT_TYPE_LIST is missing types"; missing: Exclude<TextOp["type"], (typeof TEXT_TYPE_LIST)[number]> }
-const _text: _AssertTextComplete = true
-const TEXT_TYPES: ReadonlySet<TextOp["type"]> = new Set(TEXT_TYPE_LIST)
+const _text: AssertComplete<TextOp["type"], typeof TEXT_TYPE_LIST> = true
+const TEXT_TYPES: ReadonlySet<string> = new Set(TEXT_TYPE_LIST)
 
 // Type-safe: if a new BoardOp type is added but not listed here, TypeScript errors.
 const BOARD_TYPE_LIST = [
@@ -188,15 +179,8 @@ const BOARD_TYPE_LIST = [
   "TOGGLE_SHOW_IGNORED",
 ] as const satisfies readonly BoardOp["type"][]
 
-// Verify completeness: every BoardOp type must be in the list above.
-// If a new action type is added to BoardOp but not here, this line errors.
-type _AssertComplete =
-  Exclude<BoardOp["type"], (typeof BOARD_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "BOARD_TYPE_LIST is missing types"; missing: Exclude<BoardOp["type"], (typeof BOARD_TYPE_LIST)[number]> }
-const _: _AssertComplete = true
-
-const BOARD_TYPES: ReadonlySet<BoardOp["type"]> = new Set(BOARD_TYPE_LIST)
+const _board: AssertComplete<BoardOp["type"], typeof BOARD_TYPE_LIST> = true
+const BOARD_TYPES: ReadonlySet<string> = new Set(BOARD_TYPE_LIST)
 
 const DIALOG_TYPE_LIST = [
   "SHOW_NEW_ITEM_DIALOG",
@@ -254,12 +238,8 @@ const DIALOG_TYPE_LIST = [
   "FOCUS_NEXT",
   "FOCUS_PREV",
 ] as const satisfies readonly DialogOp["type"][]
-type _AssertDialogComplete =
-  Exclude<DialogOp["type"], (typeof DIALOG_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "DIALOG_TYPE_LIST is missing types"; missing: Exclude<DialogOp["type"], (typeof DIALOG_TYPE_LIST)[number]> }
-const _dialog: _AssertDialogComplete = true
-const DIALOG_TYPES: ReadonlySet<DialogOp["type"]> = new Set(DIALOG_TYPE_LIST)
+const _dialog: AssertComplete<DialogOp["type"], typeof DIALOG_TYPE_LIST> = true
+const DIALOG_TYPES: ReadonlySet<string> = new Set(DIALOG_TYPE_LIST)
 
 const PANE_TYPE_LIST = [
   "PANE_SPLIT",
@@ -278,12 +258,8 @@ const PANE_TYPE_LIST = [
   "CLOSE_DETAIL_PANE",
   "TOGGLE_DETAIL_PANE",
 ] as const satisfies readonly PaneOp["type"][]
-type _AssertPaneComplete =
-  Exclude<PaneOp["type"], (typeof PANE_TYPE_LIST)[number]> extends never
-    ? true
-    : { error: "PANE_TYPE_LIST is missing types"; missing: Exclude<PaneOp["type"], (typeof PANE_TYPE_LIST)[number]> }
-const _pane: _AssertPaneComplete = true
-const PANE_TYPES: ReadonlySet<PaneOp["type"]> = new Set(PANE_TYPE_LIST)
+const _pane: AssertComplete<PaneOp["type"], typeof PANE_TYPE_LIST> = true
+const PANE_TYPES: ReadonlySet<string> = new Set(PANE_TYPE_LIST)
 
 // ViewOp types: everything not matched above (no Set needed — it's the fallback)
 

@@ -481,7 +481,12 @@ function UrlHoverBox({ url, children }: { url: string; children: React.ReactNode
   const popover = usePopover()
   const hoveredRef = useRef(false)
   // Cleanup: mark as unhovered on unmount so stale fetches don't call update
-  useEffect(() => () => { hoveredRef.current = false }, [])
+  useEffect(
+    () => () => {
+      hoveredRef.current = false
+    },
+    [],
+  )
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
       hoveredRef.current = true
