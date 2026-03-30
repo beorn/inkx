@@ -61,10 +61,10 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   }, [])
   const handleMouseLeave = useCallback(() => {
     nodeStore.setHovered(null)
-    // Start the hide timer. The popover's own onMouseEnter calls cancelHide()
-    // if the mouse enters the popover within HIDE_DELAY (300ms).
-    if (popover) popover.hide()
-  }, [nodeStore, popover])
+    // The effect (below) calls popover.cancel() when hovered goes false,
+    // cancelling any pending show. The popover's own onMouseLeave handles
+    // hiding when the mouse leaves the popover box.
+  }, [nodeStore])
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
