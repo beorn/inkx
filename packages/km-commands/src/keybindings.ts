@@ -642,6 +642,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       bindings: [
         { key: "Backspace", commandId: "text.delete_backward", when: textInputFocused },
         { key: "Delete", commandId: "text.delete_forward", when: textInputFocused },
+        { key: "ctrl-d", commandId: "text.delete_forward", when: textInputFocused },
         { key: "ArrowLeft", commandId: "text.cursor_left", when: textInputFocused },
         { key: "ArrowRight", commandId: "text.cursor_right", when: textInputFocused },
         { key: "ctrl-a", commandId: "text.cursor_start", when: textInputFocused },
@@ -773,8 +774,8 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "shift-]", commandId: "nav_forward" }, // }
 
         // Page-based cursor jump (vim Ctrl+D/Ctrl+U style)
-        { key: "ctrl-d", commandId: "page_down" },
-        { key: "ctrl-u", commandId: "page_up" },
+        { key: "ctrl-d", commandId: "page_down", when: not(textInputFocused) },
+        { key: "ctrl-u", commandId: "page_up", when: not(textInputFocused) },
         { key: "PageDown", commandId: "page_down" },
         { key: "PageUp", commandId: "page_up" },
 
