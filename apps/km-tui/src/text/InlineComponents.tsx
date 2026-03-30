@@ -276,14 +276,17 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   if (resolved) {
     // Wikilink styling:
     // - Default: dashed underline in $border (faint, always consistent)
-    // - Hovered: $link fg + subtle blue bg, no underline
+    // - Hovered: $link fg + subtle pill bg (#404050 blue-tinted gray), no underline
+    // Skip pill bg when card has custom colors (e.g. yellow heading bg) —
+    // the dark pill clashes with colored backgrounds.
     // id = resolved node ID so Cmd-click navigates to the link target, not the containing block.
     const linkNodeId = ctx.resolveWikiLinkId?.(node.target)
+    const pillBg = hovered && ctx.colorOverride === undefined ? "#404050" : undefined
     return (
       <Text
         id={linkNodeId ?? undefined}
-        color={hovered ? "$link" : resolveColor(ctx, undefined)}
-        backgroundColor={hovered ? "$popover-bg" : undefined}
+        color={hovered ? resolveColor(ctx, "$link") : resolveColor(ctx, undefined)}
+        backgroundColor={pillBg}
         underlineStyle={hovered ? false : "dashed"}
         underlineColor="$border"
         onMouseEnter={onMouseEnter}
