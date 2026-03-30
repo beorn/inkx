@@ -106,9 +106,10 @@ function createPopoverStore() {
     show(content, anchor) {
       clearHide()
 
-      // Mouse is inside the popover — don't replace content (prevents link hover
-      // inside popover from replacing the node detail with a tiny link preview)
-      if (get().popoverHovered) return
+      // Mouse is inside the popover and this is a link-hover (lines, no render callback):
+      // suppress to prevent links inside the popover from replacing the node detail.
+      // Card hovers (with render callback) are always allowed through.
+      if (get().popoverHovered && !content.render) return
 
       // Already visible → instant swap (Tippy.js singleton pattern)
       if (get().content !== null) {
