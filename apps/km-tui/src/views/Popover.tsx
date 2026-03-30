@@ -13,10 +13,10 @@
  * Era2b migration path: Zustand store → createModel() with signal() accessors.
  */
 
-import React, { createContext, useContext, useMemo } from "react"
+import React, { createContext, useContext, useMemo, useState, useCallback } from "react"
 import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
-import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
+import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
 
 // =============================================================================
 // Types
@@ -55,6 +55,8 @@ export interface PopoverAnchor {
 
 /** Delay before showing popover on hover (cold start) */
 const SHOW_DELAY = 400
+/** Delay before swapping popover content when already visible (coalesce rapid mouse movement) */
+const SWAP_DELAY = 100
 /** Delay before hiding popover when mouse leaves (grace period) */
 const HIDE_DELAY = 300
 /** Window after hiding where re-hover shows immediately */
@@ -111,10 +113,15 @@ function createPopoverStore() {
       // Card hovers (with render callback) are always allowed through.
       if (get().popoverHovered && !content.render) return
 
-      // Already visible → instant swap (Tippy.js singleton pattern)
+      // Already visible → debounced swap to coalesce rapid mouse movement.
+      // Without this, moving the mouse across cards with Cmd held causes each
+      // card's popover to render sequentially, "chasing" the cursor.
       if (get().content !== null) {
         clearShow()
-        set({ content, anchor, popoverHovered: false })
+        showTimer = setTimeout(() => {
+          showTimer = null
+          set({ content, anchor, popoverHovered: false })
+        }, SWAP_DELAY)
         return
       }
 
@@ -195,6 +202,20 @@ export function PopoverProvider({ children }: { children: React.ReactNode }): Re
 const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: PopoverStore }) {
   const content = useStore(store, (s) => s.content)
   const anchor = useStore(store, (s) => s.anchor)
+  const [scrollOffset, setScrollOffset] = useState(0)
+
+  // Reset scroll when content changes
+  const prevContentRef = React.useRef(content)
+  if (content !== prevContentRef.current) {
+    prevContentRef.current = content
+    if (scrollOffset !== 0) setScrollOffset(0)
+  }
+
+  const onWheel = useCallback((e: SilveryWheelEvent) => {
+    e.stopPropagation()
+    e.preventDefault()
+    setScrollOffset((prev) => Math.max(0, prev + (e.deltaY > 0 ? 3 : -3)))
+  }, [])
 
   if (!content || !anchor) return null
 
@@ -215,7 +236,8 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       borderColor="$border"
       backgroundColor="$popover-bg"
       paddingX={1}
-      overflow="hidden"
+      overflow="scroll"
+      scrollOffset={scrollOffset}
       id="popover"
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
@@ -228,6 +250,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
         store.setState({ popoverHovered: false })
         hide()
       }}
+      onWheel={onWheel}
     >
       {content.render
         ? content.render()
