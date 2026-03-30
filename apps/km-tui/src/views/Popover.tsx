@@ -215,7 +215,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       borderColor="$border"
       backgroundColor="$surface-bg"
       paddingX={1}
-      overflow="hidden"
+      overflow="scroll"
       id="popover"
       data-popover="true"
       onMouseEnter={(e: SilveryMouseEvent) => {
