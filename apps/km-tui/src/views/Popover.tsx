@@ -235,13 +235,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
         store.setState({ popoverHovered: false })
         hide()
       }}
-      onClick={(e: SilveryMouseEvent) => {
-        // Stop clicks inside the popover from selecting cards behind it.
-        // Wikilink navigation (Cmd-click) is handled by the Link/Text id prop
-        // via the board's click handler — but only if the click reaches it.
-        // For now, just prevent passthrough.
-        e.stopPropagation()
-      }}
+      onClick={(e: SilveryMouseEvent) => e.stopPropagation()}
     >
       {content.render
         ? content.render()
