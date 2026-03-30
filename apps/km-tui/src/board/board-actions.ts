@@ -143,6 +143,10 @@ const BOARD_TYPES: ReadonlySet<string> = new Set([
   "UNFOLD_NODE",
   "UNFOLD_RECURSIVE",
   "SELECT_ALL",
+  "SELECT_NODE_TOGGLE",
+  "SELECT_NODE_ADD",
+  "SELECT_NODE_REMOVE",
+  "CLEAR_SELECTION",
   "VISUAL_MODE_ENTER",
   "VISUAL_MODE_EXIT",
   "EXTEND_SELECT_UP",
@@ -897,6 +901,28 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
     }
     case "SELECT_ALL":
       progressiveSelectAll(ctx)
+      return ok()
+    case "SELECT_NODE_TOGGLE": {
+      const selected = new Set(ctx.ui.multiSelected)
+      if (selected.has(action.nodeId)) selected.delete(action.nodeId)
+      else selected.add(action.nodeId)
+      ctx.setUI({ multiSelected: selected })
+      return ok()
+    }
+    case "SELECT_NODE_ADD": {
+      const selected = new Set(ctx.ui.multiSelected)
+      selected.add(action.nodeId)
+      ctx.setUI({ multiSelected: selected })
+      return ok()
+    }
+    case "SELECT_NODE_REMOVE": {
+      const selected = new Set(ctx.ui.multiSelected)
+      selected.delete(action.nodeId)
+      ctx.setUI({ multiSelected: selected })
+      return ok()
+    }
+    case "CLEAR_SELECTION":
+      clearSelection(ctx)
       return ok()
     case "VISUAL_MODE_ENTER": {
       if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
