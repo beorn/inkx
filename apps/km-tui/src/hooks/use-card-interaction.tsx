@@ -18,7 +18,8 @@ import { useNodeStore, useReactive } from "../reactive.ts"
 import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { DocContent } from "../views/DetailView.tsx"
-import { InlineText } from "../text/InlineComponents.tsx"
+import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
+import { getNodeDisplayName } from "../state.ts"
 
 export interface CardInteraction {
   hovered: boolean
@@ -109,13 +110,21 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
             if (!node) return null
             const children = repo.getChildren(nodeId)
             const title = node.content ?? node.name ?? "(untitled)"
+            // Build inline context lazily (not a hook — just data for wikilink resolution)
+            const inlineCtx = {
+              resolveWikiLink: (target: string) => {
+                const resolved = repo.resolveByName?.(target) ?? repo.getNode(target)
+                return resolved ? getNodeDisplayName(repo, resolved) : null
+              },
+              hideFields: true,
+            }
             return (
-              <>
+              <InlineRenderProvider value={inlineCtx}>
                 <H1 wrap="wrap">
                   <InlineText text={title} />
                 </H1>
                 {children.length > 0 && <DocContent nodes={children} depth={1} repo={repo} maxExpandDepth={2} />}
-              </>
+              </InlineRenderProvider>
             )
           },
           maxWidth: 55,
