@@ -58,27 +58,12 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   const handleMouseMove = useCallback((e: SilveryMouseEvent) => {
     mousePos.current = { x: e.clientX, y: e.clientY }
   }, [])
-  const handleMouseLeave = useCallback(
-    (e: SilveryMouseEvent) => {
-      // Don't clear hover if mouse moved into the popover's bounding box.
-      // We check mouse position against the popover anchor + dimensions
-      // because silvery's mouseLeave doesn't expose the new target.
-      if (popover) {
-        const { content, anchor } = popover
-        if (content && anchor) {
-          const pw = content.maxWidth ?? 60
-          const ph = 20
-          const px = anchor.x
-          const py = anchor.y + 1
-          if (e.clientX >= px && e.clientX < px + pw && e.clientY >= py && e.clientY < py + ph) {
-            return // Mouse entered the popover area — don't clear hover
-          }
-        }
-      }
-      nodeStore.setHovered(null)
-    },
-    [nodeStore, popover],
-  )
+  const handleMouseLeave = useCallback(() => {
+    nodeStore.setHovered(null)
+    // Start the hide timer. The popover's own onMouseEnter calls cancelHide()
+    // if the mouse enters the popover within HIDE_DELAY (300ms).
+    if (popover) popover.hide()
+  }, [nodeStore, popover])
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
@@ -113,7 +98,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   // Data fetching (getChildren) happens inside the callback, only when the popover
   // is actually visible (after SHOW_DELAY). The render callback captures nodeId and repo.
   useEffect(() => {
-    if (armed && popover) {
+    if (!popover) return
+    if (armed) {
+      // Cmd held + hovered → show popover (with delay for cold start, instant if already visible)
       popover.show(
         {
           lines: [],
@@ -135,8 +122,11 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         },
         mousePos.current,
       )
-    } else if (!hovered && !armed && popover) {
-      popover.hide()
+    } else if (!armed && !hovered) {
+      // Mouse left card AND Cmd released → cancel any pending show timer.
+      // Don't call hide() here — handleMouseLeave already started the hide timer.
+      // The popover's own onMouseEnter cancels the hide if mouse enters it.
+      popover.cancel()
     }
   }, [armed, hovered, popover, repo, nodeId])
 
