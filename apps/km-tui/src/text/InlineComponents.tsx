@@ -267,12 +267,12 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   )
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
-    // Pill-style internal link: subtle background + padding, like Notion/Obsidian.
-    // Works in any color context (yellow H1, white body) without clashing.
+    // Internal link: link color + underline. Underline is reliable on virtual text
+    // nodes inside <Text> (backgroundColor doesn't work on virtual text).
     const color = resolveColor(ctx, "$link")
     return (
-      <Text backgroundColor="$mutedbg" color={color} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-        {` ${resolved} `}
+      <Text color={color} underline onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+        {resolved}
       </Text>
     )
   }
