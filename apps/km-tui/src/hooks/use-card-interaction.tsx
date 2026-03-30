@@ -58,9 +58,27 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   const handleMouseMove = useCallback((e: SilveryMouseEvent) => {
     mousePos.current = { x: e.clientX, y: e.clientY }
   }, [])
-  const handleMouseLeave = useCallback(() => {
-    nodeStore.setHovered(null)
-  }, [nodeStore])
+  const handleMouseLeave = useCallback(
+    (e: SilveryMouseEvent) => {
+      // Don't clear hover if mouse moved into the popover's bounding box.
+      // We check mouse position against the popover anchor + dimensions
+      // because silvery's mouseLeave doesn't expose the new target.
+      if (popover) {
+        const { content, anchor } = popover
+        if (content && anchor) {
+          const pw = content.maxWidth ?? 60
+          const ph = 20
+          const px = anchor.x
+          const py = anchor.y + 1
+          if (e.clientX >= px && e.clientX < px + pw && e.clientY >= py && e.clientY < py + ph) {
+            return // Mouse entered the popover area — don't clear hover
+          }
+        }
+      }
+      nodeStore.setHovered(null)
+    },
+    [nodeStore, popover],
+  )
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
