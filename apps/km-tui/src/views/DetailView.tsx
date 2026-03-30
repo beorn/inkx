@@ -59,7 +59,6 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const rawNode = rootId ? repo.getNode(rootId) : null
   const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
   const rootNode = displayNode ?? rawNode
-  const effectiveId = rootNode?.id ?? rootId
   if (!rootNode) {
     return (
       <Box flexDirection="column" width={width} height={height} paddingX={1}>
@@ -68,13 +67,14 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     )
   }
 
+  const effectiveId = rootNode.id
   const metaKeys = computeMetadataKeys(rootNode)
   const children = useMemo(() => repo.getChildren(effectiveId), [repo, effectiveId])
   const contentWidth = Math.max(8, width - 2)
 
   const title = rootNode.content ?? rootNode.name ?? "(untitled)"
   const isTitleCursor = cursorCardNodeId === effectiveId
-  const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined)
+  const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined, undefined)
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">

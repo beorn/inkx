@@ -632,7 +632,7 @@ export function createDetailViewNavigation(): ViewNavigation {
         const sibIdx = siblings.findIndex((c) => c.id === cursorNodeId)
         if (sibIdx >= 0 && sibIdx + 1 < siblings.length) return siblings[sibIdx + 1]!.id
         // Past last sibling → go to parent's next sibling (bubble up)
-        if (parentId === rootId) return null
+        if (parentId === rootId || !parentId) return null
         const parent = repo.getNode(parentId)
         if (parent?.parent_id) {
           const parentSiblings = repo.getChildren(parent.parent_id)
@@ -662,7 +662,7 @@ export function createDetailViewNavigation(): ViewNavigation {
       }
 
       // Fallback
-      return dir === "down" ? (allChildren[0]?.id ?? null) : rootId
+      return rootId
     },
   }
 }

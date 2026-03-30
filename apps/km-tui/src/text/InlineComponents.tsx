@@ -285,7 +285,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
     return (
       <Text
         id={linkNodeId ?? undefined}
-        color={hovered ? resolveColor(ctx, "$link") : resolveColor(ctx, undefined)}
+        color={hovered ? resolveColor(ctx, "$link") : resolveColor(ctx, "")}
         backgroundColor={pillBg}
         underlineStyle={hovered ? false : "dashed"}
         underlineColor="$border"

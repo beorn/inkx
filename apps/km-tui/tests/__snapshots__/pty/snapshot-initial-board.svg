@@ -1,88 +1,59 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1008" height="720">
 <rect width="100%" height="100%" fill="#1e1e1e"/>
-<rect x="16.8" y="90" width="966" height="18" fill="#ebcb8b"/>
 <text x="0" y="14" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                                        </tspan>
+<tspan x="0" fill="#800080" opacity="0.5">$</tspan>
+<tspan x="8.4"> </tspan>
+<tspan x="16.8" font-weight="bold" opacity="0.5">bun run ./apps/km-cli/src/index.ts view /tmp/vt</tspan>
+<tspan x="411.6">                                                                       </tspan>
 </text>
 <text x="0" y="32" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">  </tspan>
-<tspan x="16.8" font-weight="bold"></tspan>
-<tspan x="25.200000000000003" fill="#ebcb8b" font-weight="bold"> Board</tspan>
-<tspan x="75.60000000000001">                                                                                                               </tspan>
+<tspan x="0">Fatal error: Cannot resolve repo root: /tmp/vt                                                                          </tspan>
 </text>
 <text x="0" y="50" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#707070">─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">Error: Cannot resolve repo root: /tmp/vt                                                                                </tspan>
 </text>
 <text x="0" y="68" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">╭────────────────────────────────���──────────────────────────────────────────────────────────────────────────────────╮</tspan>
+<tspan x="0">    at discoverFiles (/Users/beorn/Code/pim/km/packages/km-storage/src/discovery.ts:138:15)                             </tspan>
 </text>
 <text x="0" y="86" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                                        </tspan>
+<tspan x="0">    at discoverMemoryMode (/Users/beorn/Code/pim/km/packages/km-storage/src/repo-loader.ts:417:17)                      </tspan>
 </text>
 <text x="0" y="104" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">│</tspan>
-<tspan x="16.8" fill="#1a1a1a"> </tspan>
-<tspan x="33.6" fill="#1a1a1a" font-weight="bold">Todo</tspan>
-<tspan x="67.2">                                                                                                             </tspan>
-<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">    at loadRepo (/Users/beorn/Code/pim/km/packages/km-storage/src/repo-loader.ts:193:16)                                </tspan>
 </text>
 <text x="0" y="122" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">│</tspan>
-<tspan x="16.8"> Fix bug                                                                                                          </tspan>
-<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">    at initWithFileLoading (/Users/beorn/Code/pim/km/packages/km-storage/src/repo.ts:1389:29)                           </tspan>
 </text>
 <text x="0" y="140" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">│</tspan>
-<tspan x="16.8"> Buy milk                                                                                                         </tspan>
-<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">    at createRepo (/Users/beorn/Code/pim/km/packages/km-storage/src/repo.ts:1578:14)                                    </tspan>
 </text>
 <text x="0" y="158" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">│</tspan>
-<tspan x="16.8"> Project A                                                                                                      </tspan>
-<tspan x="966" fill="#707070"> 2</tspan>
-<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">    at &lt;anonymous&gt; (/Users/beorn/Code/pim/km/apps/km-cli/src/commands/view.ts:103:32)                                   </tspan>
 </text>
 <text x="0" y="176" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">│</tspan>
-<tspan x="16.8">  Subtask 1                                                                                                       </tspan>
-<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">    at runGenerator (/Users/beorn/Code/pim/km/vendor/silvery/packages/ag-react/src/ui/progress/declarative.ts:377:18)   </tspan>
 </text>
 <text x="0" y="194" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">│</tspan>
-<tspan x="16.8">  Subtask 2                                                                                                       </tspan>
-<tspan x="982.8000000000001" fill="#ebcb8b">│</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">    at async executeStep (/Users/beorn/Code/pim/km/vendor/silvery/packages/ag-react/src/ui/progress/declarative.ts:288:2</tspan>
 </text>
 <text x="0" y="212" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0"> </tspan>
-<tspan x="8.4" fill="#ebcb8b">╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">0)                                                                                                                      </tspan>
 </text>
 <text x="0" y="230" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                                        </tspan>
+<tspan x="0">    at async run (/Users/beorn/Code/pim/km/vendor/silvery/packages/ag-react/src/ui/progress/declarative.ts:154:34)      </tspan>
 </text>
 <text x="0" y="248" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                                        </tspan>
+<tspan x="0">    at async &lt;anonymous&gt; (/Users/beorn/Code/pim/km/apps/km-cli/src/commands/view.ts:162:10)                             </tspan>
 </text>
 <text x="0" y="266" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                                        </tspan>
+<tspan x="0">    at processTicksAndRejections (native:7:39)                                                                          </tspan>
 </text>
 <text x="0" y="284" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                                        </tspan>
+<tspan x="0" fill="#800000">error</tspan>
+<tspan x="42" opacity="0.5">:</tspan>
+<tspan x="50.400000000000006"> script </tspan>
+<tspan x="117.60000000000001" font-weight="bold">&quot;km&quot;</tspan>
+<tspan x="151.20000000000002"> exited with code 1                                                                                   </tspan>
 </text>
 <text x="0" y="302" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
 <tspan x="0">                                                                                                                        </tspan>
@@ -154,9 +125,7 @@
 <tspan x="0">                                                                                                                        </tspan>
 </text>
 <text x="0" y="716" font-family="&apos;Menlo&apos;, &apos;Monaco&apos;, &apos;Courier New&apos;, monospace" font-size="14" fill="#d4d4d4">
-<tspan x="0">                                                                                                </tspan>
-<tspan x="806.4000000000001" opacity="0.5">MEM /private/tmp/vt 📋8</tspan>
-<tspan x="991.2">  </tspan>
+<tspan x="0">                                                                                                                        </tspan>
 </text>
-<rect x="999.6" y="702" width="8.4" height="18" fill="#aeafad" opacity="0.5"/>
+<rect x="0" y="288" width="8.4" height="18" fill="#aeafad" opacity="0.5"/>
 </svg>
