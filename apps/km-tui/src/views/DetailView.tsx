@@ -74,7 +74,31 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
   const title = rootNode.content ?? rootNode.name ?? "(untitled)"
   const isTitleCursor = cursorCardNodeId === effectiveId
-  const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined)
+  const baseInlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined)
+  const inlineCtx = useMemo(
+    () => ({
+      ...baseInlineCtx,
+      buildLinkPopover: (target: string) => {
+        const node = repo.resolveByName?.(target) ?? repo.getNode(target)
+        if (!node) return null
+        const nodeChildren = repo.getChildren(node.id)
+        const nodeTitle = node.content ?? node.name ?? target
+        return {
+          lines: [],
+          render: () => (
+            <InlineRenderProvider value={baseInlineCtx}>
+              <H1 wrap="wrap">
+                <InlineText text={nodeTitle} />
+              </H1>
+              {nodeChildren.length > 0 && <DocContent nodes={nodeChildren} depth={1} repo={repo} maxExpandDepth={2} />}
+            </InlineRenderProvider>
+          ),
+          maxWidth: 55,
+        }
+      },
+    }),
+    [baseInlineCtx, repo],
+  )
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">

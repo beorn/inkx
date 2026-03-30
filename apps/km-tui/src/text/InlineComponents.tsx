@@ -16,7 +16,13 @@ import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getTermColor } from "./colors.ts"
 import { parseInlineText } from "./inline-parser.ts"
 import { prettifyUrl } from "./text-pipeline.ts"
-import { usePopover, urlPopoverContent, richUrlPopoverContent, internalLinkPopoverContent } from "../views/Popover.tsx"
+import {
+  usePopover,
+  urlPopoverContent,
+  richUrlPopoverContent,
+  internalLinkPopoverContent,
+  type PopoverContent,
+} from "../views/Popover.tsx"
 import { getCachedMetadata, fetchUrlMetadata } from "./url-metadata.ts"
 import type {
   BareURLNode,
@@ -70,6 +76,8 @@ export interface InlineRenderContext {
   colorOverride?: string | null
   /** Hide inline fields from display */
   hideFields?: boolean
+  /** Build rich popover content for an internal link (wikilink/blockref) — returns render callback for DocContent */
+  buildLinkPopover?: (nodeId: string) => PopoverContent | null
 }
 
 const InlineRenderCtx = React.createContext<InlineRenderContext>({})
@@ -245,10 +253,17 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   const popover = usePopover()
   const onMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
-      const title = resolved ?? node.target
-      popover?.show(internalLinkPopoverContent(title), { x: e.clientX, y: e.clientY })
+      if (!popover) return
+      // Rich popover with DocContent (same as card hover) if available
+      const richContent = ctx.buildLinkPopover?.(node.target)
+      if (richContent) {
+        popover.show(richContent, { x: e.clientX, y: e.clientY })
+      } else {
+        const title = resolved ?? node.target
+        popover.show(internalLinkPopoverContent(title), { x: e.clientX, y: e.clientY })
+      }
     },
-    [popover, resolved, node.target],
+    [popover, resolved, node.target, ctx],
   )
   const onMouseLeave = useCallback(() => popover?.hide(), [popover])
   if (resolved) {
