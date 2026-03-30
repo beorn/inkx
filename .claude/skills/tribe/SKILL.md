@@ -86,6 +86,10 @@ bun tribe send <to> <msg>  # Send message
 bun tribe log              # Recent messages
 bun tribe health           # Diagnostics
 bun tribe-retro            # Retrospective report
+bun tribe start            # Start daemon foreground
+bun tribe stop             # Stop daemon
+bun tribe reload           # Hot-reload daemon
+bun tribe watch            # Live event dashboard
 ```
 
 ## Notes
@@ -97,3 +101,22 @@ bun tribe-retro            # Retrospective report
 - **Chief runbook**: See [runbook.md](runbook.md) for operational procedures (health checks, version sync, troubleshooting)
 - **Message format**: Plain text only, 1-3 lines max. No markdown — it renders as ugly escaped text in MCP tool call display
 - **Naming**: Use "runbook" (not "playbook") for operational procedures
+
+## Daemon Mode
+
+Tribe can run as a single daemon process per project. Sessions connect via Unix socket instead of each embedding the full tribe server.
+
+### Daemon CLI
+| Command | Action |
+|---------|--------|
+| `bun tribe start` | Start daemon in foreground (for debugging) |
+| `bun tribe stop` | Stop daemon (SIGTERM) |
+| `bun tribe reload` | Hot-reload daemon code (SIGHUP) |
+| `bun tribe watch` | Live event stream dashboard |
+
+### Architecture
+- **Daemon** (`tribe-daemon.ts`): Single process, owns DB, plugins, session registry. Unix socket IPC.
+- **Proxy** (`tribe-proxy.ts`): Thin MCP server forwarding to daemon. ~186 lines, no DB access.
+- **Auto-start**: Proxy spawns daemon if not running. Auto-quit after 30s with no clients.
+- **Hot-reload**: SIGHUP re-execs daemon with socket fd transfer. No connection loss.
+- **Socket**: `.beads/tribe.sock` (per-project, auto-discovered)
