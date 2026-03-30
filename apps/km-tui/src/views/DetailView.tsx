@@ -80,16 +80,19 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
       <InlineRenderProvider value={inlineCtx}>
         <Box flexDirection="column" flexGrow={1} overflow="hidden">
-          {/* Document title — H1 (selectable) */}
+          {/* Document title — H1 (selectable) + node badge */}
           <Box
             id={effectiveId}
             paddingX={1}
             backgroundColor={isTitleCursor ? "$selection-bg" : undefined}
             {...(isTitleCursor ? { "data-cursor": true } : {})}
           >
-            <H1 color={isTitleCursor ? "$selection" : undefined} wrap="wrap">
-              <InlineText text={title} />
-            </H1>
+            <Box flexGrow={1} flexShrink={1}>
+              <H1 color={isTitleCursor ? "$selection" : undefined} wrap="wrap">
+                <InlineText text={title} />
+              </H1>
+            </Box>
+            <NodeBadge node={rootNode} />
           </Box>
 
           {/* Metadata property rows */}
@@ -348,6 +351,22 @@ function DocNode({
       <Text wrap="wrap">
         <InlineText text={content} context={cursorCtx} />
       </Text>
+    </Box>
+  )
+}
+
+// =============================================================================
+// NodeBadge — floating badge showing node id/name/type
+// =============================================================================
+
+function NodeBadge({ node }: { node: KNodeType }): React.ReactElement | null {
+  // Show basename of fs_path (e.g., "my-note.md") or short ID + type
+  const basename = node.fs_path?.split("/").pop()
+  const fstype = node.fstype ?? node.type
+  const label = basename ? `${basename} (${fstype})` : `${node.id.slice(-8)} (${fstype})`
+  return (
+    <Box flexShrink={0} paddingLeft={1}>
+      <Small wrap="truncate">{label}</Small>
     </Box>
   )
 }
