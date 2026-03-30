@@ -619,7 +619,7 @@ function TreeNodeImpl({
                     text={processedContent}
                     context={{
                       ...inlineContext,
-                      colorOverride: searchHighlight || shouldStripColor ? null : undefined,
+                      colorOverride: searchHighlight || shouldStripColor || depth === 0 ? null : undefined,
                     }}
                     decorations={searchDecorations}
                   />
