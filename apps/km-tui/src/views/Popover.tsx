@@ -138,13 +138,13 @@ function createPopoverStore() {
 
     hide() {
       clearShow()
-      // Don't hide while mouse is inside the popover
-      if (get().popoverHovered) return
       if (hideTimer) return // already hiding
       hideTimer = setTimeout(() => {
         hideTimer = null
+        // Re-check: if mouse entered popover during the delay, don't hide
+        if (get().popoverHovered) return
         lastHideTime = Date.now()
-        set({ content: null, anchor: null })
+        set({ content: null, anchor: null, popoverHovered: false })
       }, HIDE_DELAY)
     },
 
