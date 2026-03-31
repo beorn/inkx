@@ -28,7 +28,7 @@ import type {
 import { useInput } from "../../../vendor/silvery/packages/ag-react/src/hooks/useInput.ts"
 import type { Key } from "../../../vendor/silvery/packages/ag/src/keys.ts"
 import { useColumns } from "../src/hooks/use-columns.ts"
-import type { ColumnView as RealColumnView, CardView as RealCardView } from "../src/types.ts"
+import type { ColumnView as RealColumnView } from "../src/types.ts"
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
 
 // ============================================================================
@@ -196,20 +196,21 @@ function KeyBar({ width, hasRepo, isEditing }: { width: number; hasRepo?: boolea
 // BoardView — shared board rendering with cursor navigation
 // ============================================================================
 
+type AgNode = import("../../../vendor/silvery/packages/ag/src/types.js").AgNode
+
+/** Walk through single-child wrapper nodes to find the BoardView layout node */
+function findBoardBox(root: AgNode): AgNode {
+  let node = root
+  while (node.children.length === 1) node = node.children[0]
+  return node
+}
+
 /** Find a card node in the ag tree by column and card index */
-function findCardNode(
-  root: import("../../../vendor/silvery/packages/ag/src/types.js").AgNode,
-  colIdx: number,
-  cardIdx: number,
-): import("../../../vendor/silvery/packages/ag/src/types.js").AgNode | null {
-  // Tree: root > wrapper(s) > BoardView Box > [TopBar, columnsContainer, KeyBar]
-  let boardBox = root
-  while (boardBox.children.length === 1) boardBox = boardBox.children[0]
-  const columnsContainer = boardBox.children[1]
+function findCardNode(root: AgNode, colIdx: number, cardIdx: number): AgNode | null {
+  const columnsContainer = findBoardBox(root).children[1]
   if (!columnsContainer) return null
   const column = columnsContainer.children[colIdx]
   if (!column) return null
-  // column > [header, cardsContainer]
   const cardsContainer = column.children[1]
   if (!cardsContainer) return null
   return cardsContainer.children[cardIdx] ?? null
@@ -225,16 +226,7 @@ function findCardAtPixel(
   const root = instance.getRoot()
   if (!root) return null
 
-  // Tree structure: root > BoardView Box > [TopBar, columnsRow, KeyBar]
-  // root may have one wrapper child (the BoardView Box)
-  let boardBox = root
-  while (boardBox.children.length === 1) {
-    boardBox = boardBox.children[0]
-  }
-
-  // boardBox should now have [TopBar, columnsContainer, KeyBar]
-  // Find the columns container (the child with multiple column children)
-  const columnsContainer = boardBox.children[1]
+  const columnsContainer = findBoardBox(root).children[1]
   if (!columnsContainer) return null
 
   for (let ci = 0; ci < numColumns; ci++) {
@@ -436,17 +428,20 @@ function BoardView({
         setCardIndex(hit.cardIdx)
       }
     }
+    let lastHoverCol = -1
+    let lastHoverCard = -1
     onCanvasHover = (pixelX: number, pixelY: number) => {
       const viewport = document.getElementById("viewport")
       const scrollY = viewport?.scrollTop ?? 0
       const hit = findCardAtPixel(pixelX, pixelY + scrollY, columns.length)
-      if (hit) {
-        setHoverCol(hit.colIdx)
-        setHoverCard(hit.cardIdx)
-      } else {
-        setHoverCol(-1)
-        setHoverCard(-1)
-      }
+      const nextCol = hit?.colIdx ?? -1
+      const nextCard = hit?.cardIdx ?? -1
+      // Skip re-render if hover target unchanged
+      if (nextCol === lastHoverCol && nextCard === lastHoverCard) return
+      lastHoverCol = nextCol
+      lastHoverCard = nextCard
+      setHoverCol(nextCol)
+      setHoverCard(nextCard)
     }
     return () => {
       onCanvasClick = null
@@ -646,9 +641,9 @@ let remoteRepo: RepoLike | null = null
 let lastFont = ""
 
 /** Module-level click handler — set by BoardView, called by mount() onMouse */
-let onCanvasClick: ((col: number, row: number) => void) | null = null
+let onCanvasClick: ((pixelX: number, pixelY: number) => void) | null = null
 /** Module-level hover handler — set by BoardView, called by mount() onMouse */
-let onCanvasHover: ((col: number, row: number) => void) | null = null
+let onCanvasHover: ((pixelX: number, pixelY: number) => void) | null = null
 
 function mount(width: number) {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -708,7 +703,7 @@ function mount(width: number) {
   const elapsed = (performance.now() - t0).toFixed(1)
   const root = instance.getRoot()
   let nodeCount = 0
-  function countNodes(node: import("../../../vendor/silvery/packages/ag/src/types.js").AgNode) {
+  function countNodes(node: AgNode) {
     nodeCount++
     for (const child of node.children) countNodes(child)
   }
