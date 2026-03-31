@@ -565,6 +565,16 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
   const realColumns = useColumns(repo as Parameters<typeof useColumns>[0], rootId, emptyFoldDepths)
   const columns = toColumns(realColumns)
 
+  // Auto-zoom-out if we landed on a leaf node with no columns
+  useEffect(() => {
+    if (columns.length === 0 && rootId !== null && rootHistory.length > 0) {
+      setRootHistory((prev) => {
+        setRootId(prev[prev.length - 1] ?? null)
+        return prev.slice(0, -1)
+      })
+    }
+  }, [columns.length, rootId, rootHistory.length])
+
   const rootNode = rootId ? repo.getNode(rootId) : null
   const breadcrumb = rootNode ? nodeName(rootNode) : undefined
 
