@@ -65,7 +65,9 @@
       "mcp__tribe__tribe_reload",
       "mcp__tribe__tribe_join",
       "Skill(browse)",
-      "Skill(refactor)"
+      "Skill(refactor)",
+      "mcp__plugin_tribe_tribe__tribe_sessions",
+      "mcp__plugin_tribe_tribe__tribe_join"
     ],
     "deny": [],
     "ask": []

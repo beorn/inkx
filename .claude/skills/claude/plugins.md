@@ -74,6 +74,8 @@ my-plugin/
 
 Required: `name` only. Optional: `repository`, `license`, `keywords`
 
+**DO NOT add a `"skills"` field** to plugin.json. Claude Code auto-discovers skills from the `skills/` directory — listing them in the manifest causes a validation error (`skills: Invalid input`) and the plugin fails to install silently. The telegram plugin (official, working) uses the same pattern: no `skills` in manifest, just a `skills/` directory.
+
 Path variables: Use `${CLAUDE_PLUGIN_ROOT}` in configs.
 
 ## Development Workflow
@@ -113,3 +115,25 @@ claude plugin validate ./path/to/plugin
 | Plugin not loading | `claude plugin validate`, check enabled, restart |
 | Command not found  | Use `/plugin-name:command-name` (namespaced)     |
 | Paths failing      | Start paths with `./` in plugin.json             |
+| `skills: Invalid input` | Remove `"skills"` from plugin.json — skills auto-discover from `skills/` dir |
+
+### Global Plugin Installation (bearly)
+
+The bearly plugins are configured as a local marketplace:
+
+```json
+// ~/.claude/settings.json
+"extraKnownMarketplaces": {
+  "bearly": {
+    "source": { "source": "directory", "path": "/Users/beorn/Code/pim/km/vendor/bearly" }
+  }
+}
+```
+
+**Key distinction**: `extraKnownMarketplaces` makes plugins *discoverable*, but doesn't install them. You must explicitly install:
+
+```bash
+claude plugin install tribe@bearly    # Install globally (user scope)
+```
+
+After install, the plugin works in ALL projects — no need for per-project `.mcp.json` entries. The plugin's `.mcp.json` defines the MCP server, and Claude Code starts it automatically.

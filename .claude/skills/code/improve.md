@@ -123,6 +123,17 @@ Catalog opportunities in these categories:
 | `console.log/debug/info/warn` | `@beorn/logger` | CLI user output in `apps/km-cli/src/commands/*` |
 | `log.method(...)` without `?.` | `log.method?.(...)` | None — always use `?.` |
 
+### Process Lifecycle
+
+| Pattern | Replace With | Exception |
+|---------|--------------|-----------|
+| `process.exit(0)` | Let event loop drain naturally | CLI tools that must exit after one-shot command |
+| `process.exit(1)` | `throw` or let error propagate | Startup validation (before event loop starts) |
+| Intervals/sockets keeping process alive | `AbortController` signal + cleanup in effects | — |
+| Manual `term[Symbol.dispose]()` + `process.exit()` | `using term` + `await waitUntilExit()` | — |
+
+`process.exit()` bypasses `using`/`await using` cleanup, skips `finally` blocks, and prevents proper terminal restore. Use `AbortController` to signal all intervals/handlers, then let the event loop drain.
+
 ### Fail Loudly (No Silent Fallbacks)
 
 **Programming errors must throw, never return defaults.** If a code path should be unreachable, throw. Silent fallbacks turn immediate crashes into mysterious downstream failures.

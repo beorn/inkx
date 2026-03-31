@@ -85,7 +85,7 @@ bun tribe status           # Active sessions
 bun tribe send <to> <msg>  # Send message
 bun tribe log              # Recent messages
 bun tribe health           # Diagnostics
-bun tribe-retro            # Retrospective report
+bun tools/tribe-retro.ts   # Retrospective report
 bun tribe start            # Start daemon foreground
 bun tribe stop             # Stop daemon
 bun tribe reload           # Hot-reload daemon
@@ -116,7 +116,7 @@ Tribe can run as a single daemon process per project. Sessions connect via Unix 
 
 ### Architecture
 - **Daemon** (`tribe-daemon.ts`): Single process, owns DB, plugins, session registry. Unix socket IPC.
-- **Proxy** (`tribe-proxy.ts`): Thin MCP server forwarding to daemon. ~186 lines, no DB access.
+- **Proxy** (`tribe-proxy.ts`): Thin MCP server forwarding to daemon. ~230 lines, no DB access.
 - **Auto-start**: Proxy spawns daemon if not running. Auto-quit after 30s with no clients.
 - **Hot-reload**: SIGHUP re-execs daemon with socket fd transfer. No connection loss.
 - **Socket**: `.beads/tribe.sock` (per-project, auto-discovered)
