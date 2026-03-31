@@ -157,8 +157,8 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
   cycle_view_mode: ["v", "m"],
 
   visual_mode_enter: ["v", "v"],
-  ignore_node: ["v", "x"],
-  toggle_show_ignored: ["v", "X"],
+  hide_node: ["v", "x"],
+  toggle_show_hidden: ["v", "X"],
   clear_filters: ["v", "-"],
   pane_split_vertical: ["v", "s"],
   pane_focus_left: ["v", "h"],

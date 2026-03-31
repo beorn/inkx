@@ -35,8 +35,8 @@ export interface NavState {
   /** Current card containing the cursor (from CursorStore). Used as embed-aware
    * card boundary hint — overrides findAncestorAtDepth when available. */
   cursorCardNodeId?: string | null
-  /** Ignored node IDs — navigation skips these nodes */
-  ignoredNodeIds?: Set<string>
+  /** Hidden node IDs — navigation skips these nodes */
+  hiddenNodeIds?: Set<string>
 }
 
 /**
@@ -80,9 +80,9 @@ export function createCardsViewNavigation(): ViewNavigation {
       } else {
         result = navigateHorizontal(dir, state, repo, navigator)
       }
-      // Runtime invariant: navigation must never land on an ignored node
-      if (result && state.ignoredNodeIds?.has(result)) {
-        log.error?.(`navigate(${dir}) landed on ignored node ${result} — this is a navigation bug`)
+      // Runtime invariant: navigation must never land on a hidden node
+      if (result && state.hiddenNodeIds?.has(result)) {
+        log.error?.(`navigate(${dir}) landed on hidden node ${result} — this is a navigation bug`)
         return null // Refuse to navigate to hidden node
       }
       return result
@@ -103,7 +103,7 @@ export function createCardsViewNavigation(): ViewNavigation {
 // =============================================================================
 
 function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navigator: GridNavigator): string | null {
-  const { cursorNodeId, rootId, ignoredNodeIds } = state
+  const { cursorNodeId, rootId, hiddenNodeIds } = state
 
   // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
   // Treat as a column header for the body column: j → first body card, k → board.
@@ -178,20 +178,20 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
   const isInsideCard = isAtCardLevel && !isBodyContent && cursorNodeId !== cardNodeId
   if (isInsideCard) {
     if (dir === "down") {
-      const next = getSibling(cursorNodeId, repo, 1, ignoredNodeIds)
+      const next = getSibling(cursorNodeId, repo, 1, hiddenNodeIds)
       if (next) return next
       // Walk up ancestors to find one with a next sibling (DFS next)
       let walkId: string | null = cursorNode.parent_id
       while (walkId && walkId !== cardNodeId) {
-        const parentNext = getSibling(walkId, repo, 1, ignoredNodeIds)
+        const parentNext = getSibling(walkId, repo, 1, hiddenNodeIds)
         if (parentNext) return parentNext
         const walkNode = repo.getNode(walkId)
         walkId = walkNode?.parent_id ?? null
       }
       // Reached card level: jump to next card
-      return getSibling(cardNodeId, repo, 1, ignoredNodeIds)
+      return getSibling(cardNodeId, repo, 1, hiddenNodeIds)
     } else {
-      const prev = getSibling(cursorNodeId, repo, -1, ignoredNodeIds)
+      const prev = getSibling(cursorNodeId, repo, -1, hiddenNodeIds)
       if (prev) return prev
       // At first sibling: go to parent
       return cursorNode.parent_id
@@ -205,8 +205,8 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       const stickyX = navigator.stickyX
       const allChildren = repo.getChildren(rootId)
       const { bodyNodes: rawBodyNodes, structuralCols: rawCols } = splitBodyAndColumns(allChildren)
-      const bodyNodes = ignoredNodeIds ? rawBodyNodes.filter((n) => !ignoredNodeIds.has(n.id)) : rawBodyNodes
-      const structuralCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
+      const bodyNodes = hiddenNodeIds ? rawBodyNodes.filter((n) => !hiddenNodeIds.has(n.id)) : rawBodyNodes
+      const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
 
       if (stickyX !== null) {
         // stickyX indexes into structural columns (set by column-level k)
@@ -219,7 +219,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       if (bodyNodes.length > 0) {
         return bodyNodes[0]?.id ?? null
       }
-      const visibleChildren = ignoredNodeIds ? allChildren.filter((n) => !ignoredNodeIds.has(n.id)) : allChildren
+      const visibleChildren = hiddenNodeIds ? allChildren.filter((n) => !hiddenNodeIds.has(n.id)) : allChildren
       return structuralCols[0]?.id ?? visibleChildren[0]?.id ?? null
     }
 
@@ -243,15 +243,15 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
     if (isAtColumnLevel) {
       // Collapsed column → can't go down into cards (they're not rendered)
       if (state.collapsedNodes.has(cursorNodeId)) return null
-      // Column header → first navigable card in column (skip index files + ignored)
+      // Column header → first navigable card in column (skip index files + hidden)
       const cards = getNavigableChildren(cursorNodeId, repo)
-      const firstVisible = ignoredNodeIds ? cards.find((c) => !ignoredNodeIds.has(c.id)) : cards[0]
+      const firstVisible = hiddenNodeIds ? cards.find((c) => !hiddenNodeIds.has(c.id)) : cards[0]
       return firstVisible?.id ?? null
     }
 
     if (isAtCardLevel) {
       // Card → next sibling (using card-level ancestor)
-      return getSibling(cardNodeId, repo, 1, ignoredNodeIds)
+      return getSibling(cardNodeId, repo, 1, hiddenNodeIds)
     }
   } else {
     // k: move up
@@ -273,7 +273,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
 
     if (isAtCardLevel) {
       // Try previous sibling first (using card-level ancestor)
-      const prev = getSibling(cardNodeId, repo, -1, ignoredNodeIds)
+      const prev = getSibling(cardNodeId, repo, -1, hiddenNodeIds)
       if (prev) return prev
       // At first card → parent (column header)
       const cardNode = repo.getNode(cardNodeId)
@@ -282,10 +282,10 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
 
     if (isAtColumnLevel) {
       // Column header → board (save structural column index for return via stickyX)
-      // Filter ignored columns so stickyX indexes match the j-from-board path
+      // Filter hidden columns so stickyX indexes match the j-from-board path
       const allChildren = repo.getChildren(rootId)
       const { structuralCols: rawCols } = splitBodyAndColumns(allChildren)
-      const visibleCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
+      const visibleCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
       const colIdx = indexOfChild(visibleCols, cursorNodeId)
       if (colIdx >= 0) navigator.setStickyX(colIdx)
       return rootId
@@ -344,7 +344,7 @@ function navigateHorizontal(
   repo: Repo,
   navigator: GridNavigator,
 ): string | null {
-  const { cursorNodeId, rootId, ignoredNodeIds } = state
+  const { cursorNodeId, rootId, hiddenNodeIds } = state
 
   // Virtual body column header (__body__<rootId>) — synthetic node not in repo.
   // Treat as body column header: l → first structural column header, h → boundary.
@@ -352,7 +352,7 @@ function navigateHorizontal(
     if (dir === "left") return null // Body column is leftmost
     const allChildren = repo.getChildren(rootId)
     const { structuralCols: rawCols } = splitBodyAndColumns(allChildren)
-    const structuralCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
+    const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
     if (structuralCols.length === 0) return null
     // Navigate to structural column header (column-to-column navigation)
     return structuralCols[0]?.id ?? null
@@ -372,8 +372,8 @@ function navigateHorizontal(
   // into a single virtual "Description" column, only oi nodes are real columns.
   const allChildren = repo.getChildren(rootId)
   const { bodyNodes: rawBodyNodes, structuralCols: rawCols } = splitBodyAndColumns(allChildren)
-  const bodyNodes = ignoredNodeIds ? rawBodyNodes.filter((n) => !ignoredNodeIds.has(n.id)) : rawBodyNodes
-  const structuralCols = ignoredNodeIds ? rawCols.filter((n) => !ignoredNodeIds.has(n.id)) : rawCols
+  const bodyNodes = hiddenNodeIds ? rawBodyNodes.filter((n) => !hiddenNodeIds.has(n.id)) : rawBodyNodes
+  const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
   const hasBody = bodyNodes.length > 0
 
   // Determine if cursor is in body content (before the first oi node).
@@ -397,7 +397,7 @@ function navigateHorizontal(
   const cursorColId = cursorDirectChild
   const colIdx = indexOfChild(structuralCols, cursorColId)
   if (colIdx < 0) {
-    // Cursor is on an ignored/hidden column — redirect to nearest visible column
+    // Cursor is on a hidden column — redirect to nearest visible column
     if (structuralCols.length > 0) return structuralCols[0]!.id
     if (hasBody) return bodyNodes[0]?.id ?? null
     return null
@@ -765,7 +765,7 @@ export function getNavigableChildren(parentId: string | null, repo: Repo): impor
   return children.filter((c) => c.id !== indexFile.id)
 }
 
-function getSibling(nodeId: string, repo: Repo, delta: 1 | -1, ignoredNodeIds?: Set<string>): string | null {
+function getSibling(nodeId: string, repo: Repo, delta: 1 | -1, hiddenNodeIds?: Set<string>): string | null {
   const node = repo.getNode(nodeId)
   if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
   const siblings = getNavigableChildren(node.parent_id, repo)
@@ -773,9 +773,9 @@ function getSibling(nodeId: string, repo: Repo, delta: 1 | -1, ignoredNodeIds?: 
   if (idx < 0) {
     throw new Error(`[nav] node ${nodeId} not found in parent's children`)
   }
-  // Skip ignored nodes in the given direction
+  // Skip hidden nodes in the given direction
   let targetIdx = idx + delta
-  while (targetIdx >= 0 && targetIdx < siblings.length && ignoredNodeIds?.has(siblings[targetIdx]!.id)) {
+  while (targetIdx >= 0 && targetIdx < siblings.length && hiddenNodeIds?.has(siblings[targetIdx]!.id)) {
     targetIdx += delta
   }
   if (targetIdx < 0 || targetIdx >= siblings.length) return null

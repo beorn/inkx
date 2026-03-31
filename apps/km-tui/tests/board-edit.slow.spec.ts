@@ -303,6 +303,32 @@ describe("Edit Operations", () => {
     expect(col1Idx).toBeGreaterThan(col2Idx)
   })
 
+  test("opt+l at column header works correctly with virtual body column present", () => {
+    // When the board has body content (paragraphs before headings), a virtual __body__
+    // column is inserted at index 0, shifting real column array indices by 1.
+    // normalizeColumnSortOrders must use shared parent_idx values, not array positions.
+    const nodes = [
+      ...item("board", item.paragraph("Board description"), item("col1", item("1a")), item("col2", item("2a"))),
+    ]
+    // Force duplicate parent_idx to trigger normalization
+    for (const n of nodes) {
+      if (n.type === "h" && n.parent_id === "board") n.parent_idx = 0
+    }
+    const { board, repo } = testEnv(() => nodes, { columns: 160 })
+    // Navigate past the virtual body column to col1 header
+    board.command("cursor_right")
+    board.command("cursor_up")
+    board.expect("#col1[data-cursor]").toExist()
+
+    board.press("opt+l")
+
+    board.expect("#col1[data-cursor]").toExist()
+    // col1 should have moved right of col2
+    const col1Idx = repo.getNode("col1")?.parent_idx ?? -1
+    const col2Idx = repo.getNode("col2")?.parent_idx ?? -1
+    expect(col1Idx).toBeGreaterThan(col2Idx)
+  })
+
   test("opt+h at leftmost column header does nothing", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
     board.command("cursor_up")

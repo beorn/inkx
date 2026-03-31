@@ -19,14 +19,14 @@ import { createGridNavigator } from "@km/board"
 function makeState(
   cursorNodeId: string,
   rootId: string | null = "board",
-  opts?: { ignoredNodeIds?: Set<string> },
+  opts?: { hiddenNodeIds?: Set<string> },
 ): NavState {
   return {
     cursorNodeId,
     rootId,
     foldDepths: new Map(),
     collapsedNodes: new Set(),
-    ignoredNodeIds: opts?.ignoredNodeIds,
+    hiddenNodeIds: opts?.hiddenNodeIds,
   }
 }
 
@@ -94,22 +94,22 @@ describe("CardsViewNavigation", () => {
     })
   })
 
-  describe("navigation with ignored nodes", () => {
-    // Board with 3 columns: col0 is ignored
+  describe("navigation with hidden nodes", () => {
+    // Board with 3 columns: col0 is hidden
     const nodes = item("board", item("col0", item("c0")), item("col1", item("c1")), item("col2", item("c2")))
     const repo = createFakeRepo({ nodes })
     const registry = createGridNavigator()
-    const ignored = new Set(["col0"])
+    const hidden = new Set(["col0"])
 
-    it("j from board skips ignored first column", () => {
-      const target = nav.navigate("down", makeState("board", "board", { ignoredNodeIds: ignored }), repo, registry)
+    it("j from board skips hidden first column", () => {
+      const target = nav.navigate("down", makeState("board", "board", { hiddenNodeIds: hidden }), repo, registry)
       expect(target).toBe("col1")
     })
 
-    it("j from board skips ignored column even with stickyX=0", () => {
+    it("j from board skips hidden column even with stickyX=0", () => {
       registry.setStickyX(0)
-      const target = nav.navigate("down", makeState("board", "board", { ignoredNodeIds: ignored }), repo, registry)
-      // stickyX=0 points to col0 which is ignored — should go to col1
+      const target = nav.navigate("down", makeState("board", "board", { hiddenNodeIds: hidden }), repo, registry)
+      // stickyX=0 points to col0 which is hidden — should go to col1
       expect(target).not.toBe("col0")
       registry.clearStickyX()
     })
@@ -117,48 +117,48 @@ describe("CardsViewNavigation", () => {
     it("j/k round-trip returns to same column", () => {
       // j from board → col1, then k from col1 → board, then j again → should return to col1
       registry.clearStickyX()
-      const state = makeState("board", "board", { ignoredNodeIds: ignored })
+      const state = makeState("board", "board", { hiddenNodeIds: hidden })
 
       const down1 = nav.navigate("down", state, repo, registry)
       expect(down1).toBe("col1")
 
-      const up1 = nav.navigate("up", makeState(down1!, "board", { ignoredNodeIds: ignored }), repo, registry)
+      const up1 = nav.navigate("up", makeState(down1!, "board", { hiddenNodeIds: hidden }), repo, registry)
       expect(up1).toBe("board")
 
       const down2 = nav.navigate("down", state, repo, registry)
       expect(down2).toBe("col1") // should return to same column, not cycle
     })
 
-    it("j between cards skips ignored cards", () => {
+    it("j between cards skips hidden cards", () => {
       const cardsNodes = item("board", item("col", item("a"), item("b"), item("c")))
       const cardsRepo = createFakeRepo({ nodes: cardsNodes })
-      const ignoredCards = new Set(["b"])
+      const hiddenCards = new Set(["b"])
       const target = nav.navigate(
         "down",
-        makeState("a", "board", { ignoredNodeIds: ignoredCards }),
+        makeState("a", "board", { hiddenNodeIds: hiddenCards }),
         cardsRepo,
         createGridNavigator(),
       )
-      expect(target).toBe("c") // skips ignored "b"
+      expect(target).toBe("c") // skips hidden "b"
     })
 
-    it("k between cards skips ignored cards", () => {
+    it("k between cards skips hidden cards", () => {
       const cardsNodes = item("board", item("col", item("a"), item("b"), item("c")))
       const cardsRepo = createFakeRepo({ nodes: cardsNodes })
-      const ignoredCards = new Set(["b"])
+      const hiddenCards = new Set(["b"])
       const target = nav.navigate(
         "up",
-        makeState("c", "board", { ignoredNodeIds: ignoredCards }),
+        makeState("c", "board", { hiddenNodeIds: hiddenCards }),
         cardsRepo,
         createGridNavigator(),
       )
-      expect(target).toBe("a") // skips ignored "b"
+      expect(target).toBe("a") // skips hidden "b"
     })
 
-    it("navigate never returns an ignored node", () => {
-      // Runtime invariant: any navigation result should not be in ignoredNodeIds
-      const target = nav.navigate("down", makeState("board", "board", { ignoredNodeIds: ignored }), repo, registry)
-      expect(ignored.has(target!)).toBe(false)
+    it("navigate never returns an hidden node", () => {
+      // Runtime invariant: any navigation result should not be in hiddenNodeIds
+      const target = nav.navigate("down", makeState("board", "board", { hiddenNodeIds: hidden }), repo, registry)
+      expect(hidden.has(target!)).toBe(false)
     })
   })
 
@@ -215,22 +215,22 @@ describe("CardsViewNavigation", () => {
       expect(target).toBe("col1")
     })
 
-    it("h/l from cursor on ignored column → redirects to nearest visible column", () => {
-      // Cursor is on col1 header, but col1 is ignored (e.g. Contacts.base filtered out).
+    it("h/l from cursor on hidden column → redirects to nearest visible column", () => {
+      // Cursor is on col1 header, but col1 is hidden (e.g. Contacts.base filtered out).
       // Should not throw, should redirect to first visible column.
-      const ignored = new Set(["col1"])
-      const right = nav.navigate("right", makeState("b0", "board", { ignoredNodeIds: ignored }), repo, registry)
+      const hidden = new Set(["col1"])
+      const right = nav.navigate("right", makeState("b0", "board", { hiddenNodeIds: hidden }), repo, registry)
       expect(right).not.toBeNull()
-      expect(ignored.has(right!)).toBe(false)
+      expect(hidden.has(right!)).toBe(false)
 
-      const left = nav.navigate("left", makeState("b0", "board", { ignoredNodeIds: ignored }), repo, registry)
+      const left = nav.navigate("left", makeState("b0", "board", { hiddenNodeIds: hidden }), repo, registry)
       expect(left).not.toBeNull()
-      expect(ignored.has(left!)).toBe(false)
+      expect(hidden.has(left!)).toBe(false)
     })
 
-    it("h/l from cursor on ignored column when all columns ignored → null", () => {
+    it("h/l from cursor on hidden column when all columns hidden → null", () => {
       const allIgnored = new Set(["col0", "col1", "col2"])
-      const target = nav.navigate("right", makeState("b0", "board", { ignoredNodeIds: allIgnored }), repo, registry)
+      const target = nav.navigate("right", makeState("b0", "board", { hiddenNodeIds: allIgnored }), repo, registry)
       expect(target).toBeNull()
     })
   })

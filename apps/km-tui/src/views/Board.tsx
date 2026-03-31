@@ -76,7 +76,7 @@ import { getStatusForMarker } from "@km/core"
 import { getOwnColor } from "../board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
-import { readBoardIgnored, isIgnored } from "../ignored.ts"
+import { readBoardHidden, isHidden } from "../hidden.ts"
 import { findMatchingNodeIds } from "../board/board-actions-find.ts"
 import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
 import { navigateToNode } from "../navigate-to-node.ts"
@@ -727,18 +727,18 @@ export function Board({ patchedConsole }: BoardProps) {
   const derivedSelectionLevel: "board" | "column" | "card" =
     cursorPosition.colIndex < 0 ? "board" : cursorPosition.isAtCardLevel ? "card" : "column"
 
-  // Read ignored paths for filtering (re-read only when ignore list actually changes)
-  const ignoredPaths = useMemo(() => readBoardIgnored(repo.path), [repo.path, ui.ignoreVersion])
+  // Read hidden paths for filtering (re-read only when hidden list actually changes)
+  const hiddenPaths = useMemo(() => readBoardHidden(repo.path), [repo.path, ui.hiddenVersion])
 
-  // Filter ignored columns for rendering (keep all columns in layout for cursor positioning)
+  // Filter hidden columns for rendering (keep all columns in layout for cursor positioning)
   const visibleColumns = useMemo(() => {
-    if (ignoredPaths.size === 0 || ui.showIgnored) return columnsLayout.columns
-    return columnsLayout.columns.filter((col) => !isIgnored(ignoredPaths, col.node, repo))
-  }, [columnsLayout.columns, ignoredPaths, ui.showIgnored, repo])
+    if (hiddenPaths.size === 0 || ui.showHidden) return columnsLayout.columns
+    return columnsLayout.columns.filter((col) => !isHidden(hiddenPaths, col.node, repo))
+  }, [columnsLayout.columns, hiddenPaths, ui.showHidden, repo])
 
-  // When ignored filtering removes columns, remap the cursor's colIndex from the
+  // When hidden filtering removes columns, remap the cursor's colIndex from the
   // full columns array to the visible columns array. Without this, colIndex can
-  // be out-of-bounds, causing blank board after ignore.
+  // be out-of-bounds, causing blank board after hiding.
   const visibleColIndex = useMemo(() => {
     if (visibleColumns === columnsLayout.columns) return columnsLayout.colIndex
     // Find the cursor's column in the visible list by node ID

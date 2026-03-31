@@ -663,16 +663,21 @@ function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB:
   // Only normalize if the two columns share the same parent_idx
   if (colA.node.parent_idx !== colB.node.parent_idx) return
 
-  // Assign distinct indices: use their layout positions, which are guaranteed unique
+  // Assign distinct indices based on the shared parent_idx value, not array position.
+  // Array indices include virtual columns (e.g., __body__ at index 0), so using them
+  // as parent_idx values would produce wrong offsets.
   const parentId = ctx.rootId
   if (!parentId) return
-  if (!colA.isVirtual && colA.node.parent_idx !== colIndexA) {
-    repo.moveNode(colA.node.id, parentId, colIndexA)
-    colA.node.parent_idx = colIndexA
+  const base = colA.node.parent_idx
+  // colIndexA < colIndexB means A is visually left of B in the layout
+  const [leftCol, rightCol] = colIndexA < colIndexB ? [colA, colB] : [colB, colA]
+  if (!leftCol.isVirtual && leftCol.node.parent_idx !== base) {
+    repo.moveNode(leftCol.node.id, parentId, base)
+    leftCol.node.parent_idx = base
   }
-  if (!colB.isVirtual && colB.node.parent_idx !== colIndexB) {
-    repo.moveNode(colB.node.id, parentId, colIndexB)
-    colB.node.parent_idx = colIndexB
+  if (!rightCol.isVirtual && rightCol.node.parent_idx !== base + 1) {
+    repo.moveNode(rightCol.node.id, parentId, base + 1)
+    rightCol.node.parent_idx = base + 1
   }
 }
 

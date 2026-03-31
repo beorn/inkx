@@ -20,7 +20,7 @@ import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "loggily"
 import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
-import { addIgnored, removeIgnored, computeIgnorePath, isIgnored, readBoardIgnored } from "../ignored.ts"
+import { addHidden, removeHidden, computeHiddenPath, isHidden, readBoardHidden } from "../hidden.ts"
 import { ownerPaneId, detailPaneIdFor } from "../board-types.ts"
 import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
@@ -212,8 +212,8 @@ const BOARD_TYPE_LIST = [
   "CANCEL_MOVE",
   "INCREASE_CONTENT_LINES",
   "DECREASE_CONTENT_LINES",
-  "IGNORE_NODE",
-  "TOGGLE_SHOW_IGNORED",
+  "HIDE_NODE",
+  "TOGGLE_SHOW_HIDDEN",
 ] as const satisfies readonly BoardOp["type"][]
 
 const _board: AssertComplete<BoardOp["type"], typeof BOARD_TYPE_LIST> = true
@@ -1072,10 +1072,10 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
       })
       return ok()
     }
-    case "IGNORE_NODE":
-      return handleIgnoreNode(ctx)
-    case "TOGGLE_SHOW_IGNORED":
-      ctx.setUI((prev) => ({ showIgnored: !prev.showIgnored }))
+    case "HIDE_NODE":
+      return handleHideNode(ctx)
+    case "TOGGLE_SHOW_HIDDEN":
+      ctx.setUI((prev) => ({ showHidden: !prev.showHidden }))
       return ok()
     default:
       assertNever(action)
@@ -2187,51 +2187,35 @@ function handleOpenInSystem(ctx: ActionCtx, nodeId: string): void {
   spawnOpen(ctx, [result.fsPath], "open_in_system")
 }
 
-function handleIgnoreNode(ctx: ActionCtx): ActionResult {
+function handleHideNode(ctx: ActionCtx): ActionResult {
   const { repo } = ctx
-  // Always ignore at column level — Board.tsx filters columns, not individual cards.
-  // Using card?.node would write an ignore path for the task, but the column would
-  // stay visible because isIgnored only checks col.node during rendering.
+  // Always hide at column level — Board.tsx filters columns, not individual cards.
   const node = ctx.column?.node
-  if (!node) return boundary("ignore", "No node to ignore")
+  if (!node) return boundary("hide", "No node to hide")
 
-  const ignorePath = computeIgnorePath(node, repo)
-  if (!ignorePath) return boundary("ignore", "Cannot compute ignore path")
+  const hiddenPath = computeHiddenPath(node, repo)
+  if (!hiddenPath) return boundary("hide", "Cannot compute hidden path")
 
-  try {
-    const ignoredPaths = readBoardIgnored(repo.path)
-    const alreadyIgnored = isIgnored(ignoredPaths, node, repo)
+  const hiddenPaths = readBoardHidden(repo.path)
+  if (isHidden(hiddenPaths, node, repo)) {
+    removeHidden(repo.path, hiddenPath)
+    ctx.toastQueue.info(`Un-hidden: ${hiddenPath}`)
+  } else {
+    addHidden(repo.path, hiddenPath)
+    ctx.toastQueue.info(`Hidden: ${hiddenPath}`)
 
-    if (alreadyIgnored) {
-      // Un-ignore (only works in reveal mode)
-      removeIgnored(repo.path, ignorePath)
-      ctx.toastQueue.info(`Un-ignored: ${ignorePath}`)
-    } else {
-      addIgnored(repo.path, ignorePath)
-      ctx.toastQueue.info(`Ignored: ${ignorePath}`)
-
-      // Move cursor to adjacent column since this column is now hidden.
-      // Find current column position, then pick adjacent
-      const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
-      const nextCol = ctx.columns[colIndex + 1]
-      const prevCol = colIndex > 0 ? ctx.columns[colIndex - 1] : undefined
-      const targetCol = nextCol ?? prevCol
-      if (targetCol) {
-        // Select first card in target column, or column header if empty
-        const firstCard = targetCol.cardNodes[0]
-        ctx.dispatchBoard({
-          type: "SELECT",
-          nodeId: firstCard?.id ?? targetCol.node.id,
-        })
-      }
+    // Move cursor to adjacent column since this one is now hidden
+    const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
+    const targetCol = ctx.columns[colIndex + 1] ?? (colIndex > 0 ? ctx.columns[colIndex - 1] : undefined)
+    if (targetCol) {
+      ctx.dispatchBoard({
+        type: "SELECT",
+        nodeId: targetCol.cardNodes[0]?.id ?? targetCol.node.id,
+      })
     }
-
-    // Bump ignore version so readBoardIgnored memo invalidates
-    ctx.setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    ctx.toastQueue.error(`Failed to ignore: ${msg}`)
   }
+
+  ctx.setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
   return ok()
 }
 

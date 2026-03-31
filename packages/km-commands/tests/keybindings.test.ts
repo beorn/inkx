@@ -77,6 +77,7 @@ function createContext(overrides?: Partial<KeybindingContext>): KeybindingContex
     cursorAtStart: () => false,
     cursorAtEnd: () => true,
     hasVisibleChildren: () => false,
+    isEditingOutlineNode: () => false,
     ...overrides,
   }
 }
@@ -777,10 +778,10 @@ describe("chord keybindings", () => {
       ["g", "o", { shift: true }, "open_in_terminal"],
       // v-prefix chords (view operations)
       ["v", "c", {}, "toggle_collapse"],
-      ["v", "x", { shift: true }, "toggle_show_ignored"],
+      ["v", "x", { shift: true }, "toggle_show_hidden"],
       ["v", "m", {}, "cycle_view_mode"],
       ["v", "d", {}, "toggle_hide_done"],
-      ["v", "x", {}, "ignore_node"],
+      ["v", "x", {}, "hide_node"],
 
       ["v", "-", {}, "clear_filters"],
       ["v", ",", {}, "filter"],
@@ -1180,8 +1181,27 @@ describe("text mode keybinding separation", () => {
       expect(resolveKeybinding("Escape", {}, inlineCtx)).toEqual({ commandId: "text.exit_edit" })
     })
 
-    it("Enter → text.linebreak_after (cursor at end, no children)", () => {
+    it("Enter → text.linebreak_after (cursor at end, no children, non-outline node)", () => {
       expect(resolveKeybinding("Enter", {}, inlineCtx)).toEqual({ commandId: "text.linebreak_after" })
+    })
+
+    it("Enter → text.linebreak_child (cursor at end, outline node, even without children)", () => {
+      // Board/column titles always create children — "down" means "inside the column/board"
+      const outlineCtx = createContext({
+        isInlineEditing: true,
+        textInputFocused: true,
+        isEditingOutlineNode: () => true,
+      })
+      expect(resolveKeybinding("Enter", {}, outlineCtx)).toEqual({ commandId: "text.linebreak_child" })
+    })
+
+    it("Enter → text.linebreak_child (cursor at end, with visible children)", () => {
+      const childrenCtx = createContext({
+        isInlineEditing: true,
+        textInputFocused: true,
+        hasVisibleChildren: () => true,
+      })
+      expect(resolveKeybinding("Enter", {}, childrenCtx)).toEqual({ commandId: "text.linebreak_child" })
     })
 
     it("Backspace → text.delete_backward", () => {

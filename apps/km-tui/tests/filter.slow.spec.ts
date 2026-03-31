@@ -5,7 +5,7 @@
  * workflows verifying BOTH screen output AND state consistency.
  *
  * Complements filter.slow.test.ts (property-based filters, embed filters,
- * hidden count indicators, ignore_node) and vd-filter.spec.ts (toggle_hide_done
+ * hidden count indicators, hide_node) and vd-filter.spec.ts (toggle_hide_done
  * for embeds). These journey tests cover user stories:
  * - Toggle done visibility (vd chord), verify cards appear/disappear
  * - Filter -> navigate -> unfilter round-trip

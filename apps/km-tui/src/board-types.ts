@@ -216,8 +216,8 @@ export interface PerPaneUIFields {
   filterProperties: FilterProperties
   filterCursorRow: number
   filterCursorVal: number
-  showIgnored: boolean
-  ignoreVersion: number
+  showHidden: boolean
+  hiddenVersion: number
   mouseSelection: SelectionRange | null
   isMouseDragging: boolean
 }
@@ -241,8 +241,8 @@ export const PANE_UI_FIELD_NAMES: ReadonlySet<string> = new Set([
   "filterProperties",
   "filterCursorRow",
   "filterCursorVal",
-  "showIgnored",
-  "ignoreVersion",
+  "showHidden",
+  "hiddenVersion",
   "mouseSelection",
   "isMouseDragging",
 ])
@@ -268,8 +268,8 @@ export function mergePaneUI(ui: UIState, pane: BoardPaneState): PaneUI {
     filterProperties: pane.filterProperties,
     filterCursorRow: pane.filterCursorRow,
     filterCursorVal: pane.filterCursorVal,
-    showIgnored: pane.showIgnored,
-    ignoreVersion: pane.ignoreVersion,
+    showHidden: pane.showHidden,
+    hiddenVersion: pane.hiddenVersion,
     mouseSelection: pane.mouseSelection,
     isMouseDragging: pane.isMouseDragging,
   } as PaneUI
@@ -340,8 +340,8 @@ export interface BoardPaneState extends PaneStateBase {
   filterCursorVal: number
 
   // Per-pane ignore mode
-  showIgnored: boolean
-  ignoreVersion: number
+  showHidden: boolean
+  hiddenVersion: number
 
   // Per-pane mouse state
   mouseSelection: SelectionRange | null
@@ -493,8 +493,8 @@ export function createPaneState(
     filterProperties: createEmptyFilterProperties(),
     filterCursorRow: 0,
     filterCursorVal: 0,
-    showIgnored: false,
-    ignoreVersion: 0,
+    showHidden: false,
+    hiddenVersion: 0,
     mouseSelection: null,
     isMouseDragging: false,
   }

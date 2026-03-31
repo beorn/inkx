@@ -1,7 +1,7 @@
 /**
- * Board Ignore System
+ * Board Hidden System
  *
- * Reads/writes `.km/ignored` to hide nodes from the board view.
+ * Reads/writes `.km/hidden` to hide nodes from the board view.
  * Nodes still exist in SQLite — they're just filtered at display time.
  *
  * Format: one path per line, # comments, blank lines ignored.
@@ -9,9 +9,11 @@
  * - Folders: relative fs_path + "/" (e.g., "archive/")
  * - Sections: "file#slug" (e.g., "tasks.md#done")
  * - Bare slugs: "#slug" (matches in any file)
+ *
+ * Migration: reads `.km/ignored` as fallback for backwards compatibility.
  */
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, existsSync, renameSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { KNode } from "@km/core"
 import type { Repo } from "./repo-context.tsx"
@@ -20,16 +22,29 @@ import type { Repo } from "./repo-context.tsx"
 // File I/O
 // =============================================================================
 
-function ignoredFilePath(repoPath: string): string {
-  return join(repoPath, ".km", "ignored")
+function hiddenFilePath(repoPath: string): string {
+  const newPath = join(repoPath, ".km", "hidden")
+  if (!existsSync(newPath)) {
+    // One-time migration: rename .km/ignored → .km/hidden
+    const oldPath = join(repoPath, ".km", "ignored")
+    if (existsSync(oldPath)) {
+      try {
+        renameSync(oldPath, newPath)
+      } catch {
+        return oldPath // Fall back to old path if rename fails
+      }
+    }
+  }
+  return newPath
 }
 
 /**
- * Read the set of ignored paths from `.km/ignored`.
- * Returns empty set if the file doesn't exist.
+ * Read the set of hidden paths from `.km/hidden`.
+ * Auto-migrates from `.km/ignored` on first access.
+ * Returns empty set if file doesn't exist.
  */
-export function readBoardIgnored(repoPath: string): Set<string> {
-  const filePath = ignoredFilePath(repoPath)
+export function readBoardHidden(repoPath: string): Set<string> {
+  const filePath = hiddenFilePath(repoPath)
   if (!existsSync(filePath)) return new Set()
 
   try {
@@ -48,28 +63,27 @@ export function readBoardIgnored(repoPath: string): Set<string> {
 }
 
 /**
- * Add a path to `.km/ignored`.
+ * Add a path to `.km/hidden`.
  * Creates the file and `.km/` directory if needed.
  */
-export function addIgnored(repoPath: string, path: string): void {
-  const filePath = ignoredFilePath(repoPath)
+export function addHidden(repoPath: string, path: string): void {
+  const filePath = hiddenFilePath(repoPath)
   const dir = dirname(filePath)
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
 
-  const existing = readBoardIgnored(repoPath)
+  const existing = readBoardHidden(repoPath)
   if (existing.has(path)) return
 
-  // Append to file
   const fileExists = existsSync(filePath)
-  const content = fileExists ? `\n${path}\n` : `# .km/ignored — paths hidden from board view\n\n${path}\n`
+  const content = fileExists ? `\n${path}\n` : `# .km/hidden — paths hidden from board view\n\n${path}\n`
   writeFileSync(filePath, content, { flag: "a" })
 }
 
 /**
- * Remove a path from `.km/ignored`.
+ * Remove a path from `.km/hidden`.
  */
-export function removeIgnored(repoPath: string, path: string): void {
-  const filePath = ignoredFilePath(repoPath)
+export function removeHidden(repoPath: string, path: string): void {
+  const filePath = hiddenFilePath(repoPath)
   if (!existsSync(filePath)) return
 
   try {
@@ -83,17 +97,17 @@ export function removeIgnored(repoPath: string, path: string): void {
 }
 
 // =============================================================================
-// Ignore Path Computation
+// Hidden Path Computation
 // =============================================================================
 
 /**
- * Compute the ignore path for a node.
+ * Compute the hidden path for a node.
  *
  * - Files/folders: use fs_path relative to repo root
  * - Sections: "parent-file#slug"
  * - Other: "parent-file#parent-section/slug"
  */
-export function computeIgnorePath(node: KNode, repo: Repo): string | null {
+export function computeHiddenPath(node: KNode, repo: Repo): string | null {
   // File or folder with fs_path
   if (node.fs_path) {
     return KNode.isOutline(node) && node.fstype === "folder" ? node.fs_path + "/" : node.fs_path
@@ -137,20 +151,20 @@ export function computeIgnorePath(node: KNode, repo: Repo): string | null {
 }
 
 /**
- * Check if a node is ignored by the given set of ignore paths.
+ * Check if a node is hidden by the given set of hidden paths.
  */
-export function isIgnored(ignoredPaths: Set<string>, node: KNode, repo: Repo): boolean {
-  if (ignoredPaths.size === 0) return false
+export function isHidden(hiddenPaths: Set<string>, node: KNode, repo: Repo): boolean {
+  if (hiddenPaths.size === 0) return false
 
-  const path = computeIgnorePath(node, repo)
+  const path = computeHiddenPath(node, repo)
   if (!path) return false
 
   // Direct match
-  if (ignoredPaths.has(path)) return true
+  if (hiddenPaths.has(path)) return true
 
   // Folder prefix match (e.g., "archive/" matches "archive/old.md")
   if (node.fs_path) {
-    for (const p of ignoredPaths) {
+    for (const p of hiddenPaths) {
       if (p.endsWith("/") && node.fs_path.startsWith(p)) return true
     }
   }

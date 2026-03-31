@@ -53,8 +53,8 @@ function makeUI(overrides: Partial<PaneUI> = {}): PaneUI {
     },
     filterCursorRow: 0,
     filterCursorVal: 0,
-    showIgnored: false,
-    ignoreVersion: 0,
+    showHidden: false,
+    hiddenVersion: 0,
     mouseSelection: null,
     isMouseDragging: false,
 

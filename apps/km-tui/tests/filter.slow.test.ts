@@ -19,7 +19,7 @@ import { join } from "node:path"
 import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
-import { addIgnored, computeIgnorePath, readBoardIgnored, isIgnored } from "../src/ignored.ts"
+import { addHidden, computeHiddenPath, readBoardHidden, isHidden } from "../src/hidden.ts"
 
 describe("P2: Filter feature", () => {
   test("V toggles filter panel", () => {
@@ -453,24 +453,24 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
 })
 
 // =============================================================================
-// Bug: ignore_node at card level doesn't hide the column (km-tui.hide-broken)
+// Bug: hide_node at card level doesn't hide the column (km-tui.hide-broken)
 // =============================================================================
 
 /**
- * Bug: ignore_node at card level doesn't hide the column
+ * Bug: hide_node at card level doesn't hide the column
  *
  * Bead: km-tui.hide-broken
  *
- * Root cause: handleIgnoreNode used `card?.node ?? col?.node`, so when cursor
- * was at card level it ignored the card node. But Board.tsx only filters at
- * column level (`isIgnored(ignoredPaths, col.node, repo)`), so the column
+ * Root cause: handleHideNode used `card?.node ?? col?.node`, so when cursor
+ * was at card level it hid the card node. But Board.tsx only filters at
+ * column level (`isHidden(hiddenPaths, col.node, repo)`), so the column
  * stayed visible. The cursor then moved to an adjacent column via SELECT,
  * creating a visual artifact the user reported as "big area selected."
  *
- * Fix: Always ignore at column level (`col?.node`), not card level.
+ * Fix: Always hide at column level (`col?.node`), not card level.
  *
- * Note: ignore_node is unbound in v2 keybindings. Integration tests call
- * addIgnored directly to simulate the command behavior.
+ * Note: hide_node is unbound in v2 keybindings. Integration tests call
+ * addHidden directly to simulate the command behavior.
  */
 
 /**
@@ -571,7 +571,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
   return [fileNode, col1, col2, taskA, taskB, taskC]
 }
 
-describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
+describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
   let tmpDir: string | null = null
 
   afterEach(() => {
@@ -581,31 +581,31 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
     }
   })
 
-  test("computeIgnorePath produces correct path for mdsection column node", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+  test("computeHiddenPath produces correct path for mdsection column node", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
     const col1 = repo.getNode("col1")!
     expect(col1).toBeTruthy()
 
-    const ignorePath = computeIgnorePath(col1, repo)
+    const hiddenPath = computeHiddenPath(col1, repo)
     // mdsection node should produce "parentFile#slug" format
-    expect(ignorePath).toBe("tasks.md#todo")
+    expect(hiddenPath).toBe("tasks.md#todo")
   })
 
-  test("computeIgnorePath for card node differs from column node", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+  test("computeHiddenPath for card node differs from column node", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
     const taskA = repo.getNode("task-a")!
     const col1 = repo.getNode("col1")!
 
-    const cardPath = computeIgnorePath(taskA, repo)
-    const colPath = computeIgnorePath(col1, repo)
+    const cardPath = computeHiddenPath(taskA, repo)
+    const colPath = computeHiddenPath(col1, repo)
 
-    // Card and column should produce different ignore paths
+    // Card and column should produce different hidden paths
     expect(cardPath).not.toBe(colPath)
     // Card is nested: "tasks.md#todo/task-a"
     expect(cardPath).toBe("tasks.md#todo/task-a")
@@ -613,35 +613,35 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
     expect(colPath).toBe("tasks.md#todo")
   })
 
-  test("isIgnored matches column node after ignoring column (not card)", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+  test("isHidden matches column node after ignoring column (not card)", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
     const col1 = repo.getNode("col1")!
-    const colPath = computeIgnorePath(col1, repo)!
+    const colPath = computeHiddenPath(col1, repo)!
 
-    // Simulate writing the column's ignore path
-    const ignoredPaths = new Set([colPath])
-    expect(isIgnored(ignoredPaths, col1, repo)).toBe(true)
+    // Simulate writing the column's hidden path
+    const hiddenPaths = new Set([colPath])
+    expect(isHidden(hiddenPaths, col1, repo)).toBe(true)
   })
 
-  test("isIgnored does NOT match column node when card was ignored instead", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+  test("isHidden does NOT match column node when card was hidden instead", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
     const taskA = repo.getNode("task-a")!
     const col1 = repo.getNode("col1")!
-    const cardPath = computeIgnorePath(taskA, repo)!
+    const cardPath = computeHiddenPath(taskA, repo)!
 
     // If we wrote the card's path, the column should NOT match
-    const ignoredPaths = new Set([cardPath])
-    expect(isIgnored(ignoredPaths, col1, repo)).toBe(false)
+    const hiddenPaths = new Set([cardPath])
+    expect(isHidden(hiddenPaths, col1, repo)).toBe(false)
   })
 
-  test("ignoring column at card level writes column ignore path and hides column", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+  test("hiding column at card level writes column hidden path and hides column", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
@@ -656,23 +656,23 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
     expect(before).toContain("Done")
     expect(before).toContain("Task A")
 
-    // ignore_node is unbound in v2 keybindings — invoke addIgnored directly
-    // to simulate what handleIgnoreNode does (always ignores at column level)
+    // hide_node is unbound in v2 keybindings — invoke addHidden directly
+    // to simulate what handleHideNode does (always hides at column level)
     const col1 = repo.getNode("col1")!
-    const ignorePath = computeIgnorePath(col1, repo)!
-    addIgnored(tmpDir, ignorePath)
+    const hiddenPath = computeHiddenPath(col1, repo)!
+    addHidden(tmpDir, hiddenPath)
 
-    // Verify the .km/ignored file was written with the COLUMN path
-    const ignoredFilePath = join(tmpDir, ".km", "ignored")
-    expect(existsSync(ignoredFilePath)).toBe(true)
-    const ignoredContent = readFileSync(ignoredFilePath, "utf-8")
+    // Verify the .km/hidden file was written with the COLUMN path
+    const hiddenFilePath = join(tmpDir, ".km", "hidden")
+    expect(existsSync(hiddenFilePath)).toBe(true)
+    const hiddenContent = readFileSync(hiddenFilePath, "utf-8")
     // Should contain column path (tasks.md#todo), NOT card path (tasks.md#todo/task-a)
-    expect(ignoredContent).toContain("tasks.md#todo")
-    expect(ignoredContent).not.toContain("tasks.md#todo/task-a")
+    expect(hiddenContent).toContain("tasks.md#todo")
+    expect(hiddenContent).not.toContain("tasks.md#todo/task-a")
 
-    // Bump ignoreVersion to invalidate the readBoardIgnored memo cache,
+    // Bump hiddenVersion to invalidate the readBoardHidden memo cache,
     // then press a key to flush the React render tree
-    store.getState().setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
+    store.getState().setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
     board.command("cursor_right") // navigate right to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden after ignoring.
@@ -684,7 +684,7 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
   })
 
   test("ignoring column at header level also hides column", () => {
-    tmpDir = mkdtempSync(join(tmpdir(), "km-ignore-test-"))
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
@@ -696,20 +696,20 @@ describe("Bug: ignore_node should hide column (km-tui.hide-broken)", () => {
     const headerView = board.screenshot()
     expect(headerView).toContain("Todo")
 
-    // ignore_node is unbound in v2 keybindings — invoke addIgnored directly
+    // hide_node is unbound in v2 keybindings — invoke addHidden directly
     const col1 = repo.getNode("col1")!
-    const ignorePath = computeIgnorePath(col1, repo)!
-    addIgnored(tmpDir, ignorePath)
+    const hiddenPath = computeHiddenPath(col1, repo)!
+    addHidden(tmpDir, hiddenPath)
 
-    // The .km/ignored file should exist with the column path
-    const ignoredFilePath = join(tmpDir, ".km", "ignored")
-    expect(existsSync(ignoredFilePath)).toBe(true)
-    const ignoredContent = readFileSync(ignoredFilePath, "utf-8")
-    expect(ignoredContent).toContain("tasks.md#todo")
+    // The .km/hidden file should exist with the column path
+    const hiddenFilePath = join(tmpDir, ".km", "hidden")
+    expect(existsSync(hiddenFilePath)).toBe(true)
+    const hiddenContent = readFileSync(hiddenFilePath, "utf-8")
+    expect(hiddenContent).toContain("tasks.md#todo")
 
-    // Bump ignoreVersion to invalidate the readBoardIgnored memo cache,
+    // Bump hiddenVersion to invalidate the readBoardHidden memo cache,
     // then press a key to flush the React render tree
-    store.getState().setUI((prev) => ({ ignoreVersion: prev.ignoreVersion + 1 }))
+    store.getState().setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
     board.command("cursor_right") // navigate to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden

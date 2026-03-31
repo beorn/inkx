@@ -13,10 +13,10 @@ import { testEnv, item } from "./helpers/board-test.ts"
 const FAST = { checkIncremental: false } as const
 
 // ---------------------------------------------------------------------------
-// km-bc1xj: IGNORE_NODE crashes with EROFS on fake/readonly repos
+// km-bc1xj: HIDE_NODE crashes with EROFS on fake/readonly repos
 // ---------------------------------------------------------------------------
 
-describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
+describe("Bug: HIDE_NODE crashes on fake repos (km-bc1xj)", () => {
   function makeBoard() {
     return testEnv(() => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))), {
       columns: 80,
@@ -25,7 +25,7 @@ describe("Bug: IGNORE_NODE crashes on fake repos (km-bc1xj)", () => {
     })
   }
 
-  test("pressing C (ignore_node) does not crash on fake repo", () => {
+  test("pressing C (hide_node) does not crash on fake repo", () => {
     const { board } = makeBoard()
 
     // Cursor should be on first card

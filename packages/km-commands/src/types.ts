@@ -280,13 +280,13 @@ interface UnfoldRecursiveAction {
   type: "UNFOLD_RECURSIVE"
 }
 
-// Ignore operations (hide nodes from board)
-interface IgnoreNodeAction {
-  type: "IGNORE_NODE"
+// Hide operations (hide nodes from board)
+interface HideNodeAction {
+  type: "HIDE_NODE"
 }
 
-interface ToggleShowIgnoredAction {
-  type: "TOGGLE_SHOW_IGNORED"
+interface ToggleShowHiddenAction {
+  type: "TOGGLE_SHOW_HIDDEN"
 }
 
 // Filter
@@ -843,8 +843,8 @@ export type BoardOp =
   | ExtendSelectRightAction
   | SelectAllSiblingsAction
   | MoveAction
-  | IgnoreNodeAction
-  | ToggleShowIgnoredAction
+  | HideNodeAction
+  | ToggleShowHiddenAction
 
 /** Dialogs — pickers, filter, favorites, date prompts, confirmations, search. */
 export type DialogOp =

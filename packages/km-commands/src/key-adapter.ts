@@ -56,6 +56,8 @@ export interface KeyEvent {
   shift?: boolean
   meta?: boolean // Alt/Option on macOS
   super?: boolean // Cmd on macOS (requires Kitty protocol)
+  /** Actual typed character (pre-normalization). '#' not '3' for Shift+3. */
+  text?: string
 }
 
 /** Initialize the command system with default commands and keybindings */
@@ -144,13 +146,15 @@ export function processKey(
 
   // Text input priority: when textInputFocused and input is a printable character
   // (not a special key), short-circuit to text insert BEFORE keybinding resolution.
-  // Also cancel any pending chord since we're in text mode.
+  // Use key.text (the actual typed character) instead of input (which is normalized
+  // for keybinding matching — e.g., '#' → '3' + shift). This ensures shifted chars,
+  // opt+key composed chars, and IME output insert correctly.
+  const textChar = key.text ?? input
   if (
     kbCtx.textInputFocused &&
-    input.length === 1 &&
-    input >= " " &&
+    textChar.length >= 1 &&
+    textChar >= " " &&
     !key.ctrl &&
-    !key.meta &&
     !key.super &&
     !key.return &&
     !key.escape &&
@@ -161,7 +165,7 @@ export function processKey(
     chordState.cancel()
     return {
       commandId: "text.insert",
-      actions: { type: "TEXT_INSERT", char: input },
+      actions: { type: "TEXT_INSERT", char: textChar },
       handled: true,
     }
   }
@@ -296,6 +300,8 @@ export function buildKeybindingContext(options: {
   cursorAtEnd?: () => boolean
   /** True when the edited node has visible (unfolded) structural children */
   hasVisibleChildren?: () => boolean
+  /** True when the edited node is a structural outline node (board/column title, not a task card) */
+  isEditingOutlineNode?: () => boolean
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -332,6 +338,7 @@ export function buildKeybindingContext(options: {
     cursorAtStart: options.cursorAtStart ?? (() => false),
     cursorAtEnd: options.cursorAtEnd ?? (() => true),
     hasVisibleChildren: options.hasVisibleChildren ?? (() => false),
+    isEditingOutlineNode: options.isEditingOutlineNode ?? (() => false),
   }
 }
 

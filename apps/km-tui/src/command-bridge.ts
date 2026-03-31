@@ -114,6 +114,14 @@ function buildCommandContexts(ctx: ActionCtx) {
       const children = ctx.repo.getChildren(ui.inlineEditBlock.nodeId)
       return children.some((c) => c.item)
     },
+    isEditingOutlineNode() {
+      // A node is an outline/structural node (board title, column title) when it's
+      // a heading without a task marker. Enter at end of these always creates a child,
+      // because "down" from a column/board title means "inside" it.
+      if (!ui.inlineEditBlock) return false
+      const node = ctx.repo.getNode(ui.inlineEditBlock.nodeId)
+      return node?.type === "h" && node.task_marker == null
+    },
   })
 
   const { colIndex, cardIndex, columns } = ctx

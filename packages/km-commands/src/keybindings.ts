@@ -156,6 +156,8 @@ export interface KeybindingContext {
   cursorAtEnd(): boolean
   /** True when the edited node has visible (unfolded) structural children */
   hasVisibleChildren(): boolean
+  /** True when the edited node is a structural outline node (board/column title, not a task card) */
+  isEditingOutlineNode(): boolean
 }
 
 // Internal binding with registration order and pre-parsed key data for fast matching
@@ -432,9 +434,9 @@ const V_CHORD_SUFFIXES: Array<{ suffix: string; commandId: string; when?: WhenPr
   { suffix: "m", commandId: "cycle_view_mode" },
   // View operations
   { suffix: "c", commandId: "toggle_collapse" },
-  { suffix: "shift-x", commandId: "toggle_show_ignored" },
+  { suffix: "shift-x", commandId: "toggle_show_hidden" },
   { suffix: "d", commandId: "toggle_hide_done" },
-  { suffix: "x", commandId: "ignore_node" },
+  { suffix: "x", commandId: "hide_node" },
   { suffix: "-", commandId: "clear_filters" },
   { suffix: ",", commandId: "filter" },
   // Pane operations
@@ -656,7 +658,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ctrl-k", commandId: "command_palette", when: and(textInputFocused, not(hasKitty)) },
 
         // Enter — inline edit: cursor-position-aware behavior
-        // Title: start → insert before, middle → split, end+children → child, end → sibling
+        // Title: start → insert before, middle → split, end → child or sibling
+        // At end: outline nodes (board/column titles) ALWAYS create child (= visually "down"),
+        // other nodes create child only if they have visible children, else sibling.
         { key: "Enter", commandId: "text.linebreak_before", when: (ctx) => editingTitle(ctx) && ctx.cursorAtStart() },
         {
           key: "Enter",
@@ -666,12 +670,14 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         {
           key: "Enter",
           commandId: "text.linebreak_child",
-          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && ctx.hasVisibleChildren(),
+          when: (ctx) =>
+            editingTitle(ctx) && ctx.cursorAtEnd() && (ctx.hasVisibleChildren() || ctx.isEditingOutlineNode()),
         },
         {
           key: "Enter",
           commandId: "text.linebreak_after",
-          when: (ctx) => editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren(),
+          when: (ctx) =>
+            editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren() && !ctx.isEditingOutlineNode(),
         },
         // Body block → split paragraph
         { key: "Enter", commandId: "text.linebreak_split", when: editingBody },

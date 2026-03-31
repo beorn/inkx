@@ -88,7 +88,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["v -"], command: "clear_filters", description: "reset view" },
       { keys: ["V", "v ,"], command: "filter", description: "view settings" },
       { keys: ["v m/i"], command: "cycle_view_mode", description: "cycle view / icons" },
-      { keys: ["v X"], command: "toggle_show_ignored", description: "show ignored" },
+      { keys: ["v X"], command: "toggle_show_hidden", description: "show hidden" },
       { keys: ["H / L"], command: "fold_node", description: "fold / unfold" },
       { keys: ["< / >"], command: "fold_all", description: "fold / unfold all" },
       { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },

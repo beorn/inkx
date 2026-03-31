@@ -94,23 +94,23 @@ const unfoldAll = {
   execute: () => ({ type: "UNFOLD_LEVEL", depth: 99 }),
 } satisfies CommandDef
 
-// Ignore operations
-const ignoreNode = {
-  id: "ignore_node",
-  name: "Ignore Node",
-  description: "Hide or un-hide node from board (persisted in .km/ignored)",
+// Hide operations
+const hideNode = {
+  id: "hide_node",
+  name: "Hide Node",
+  description: "Hide or un-hide node from board (persisted in .km/hidden)",
   category: "Fold",
-  shortLabel: "ignore",
-  execute: () => ({ type: "IGNORE_NODE" }),
+  shortLabel: "hide",
+  execute: () => ({ type: "HIDE_NODE" }),
 } satisfies CommandDef
 
-const toggleShowIgnored = {
-  id: "toggle_show_ignored",
-  name: "Toggle Show Ignored",
-  description: "Reveal/hide ignored nodes (dimmed) for un-ignoring",
+const toggleShowHidden = {
+  id: "toggle_show_hidden",
+  name: "Toggle Show Hidden",
+  description: "Reveal/hide hidden nodes (dimmed) for un-hiding",
   category: "Fold",
-  shortLabel: "ignored",
-  execute: () => ({ type: "TOGGLE_SHOW_IGNORED" }),
+  shortLabel: "hidden",
+  execute: () => ({ type: "TOGGLE_SHOW_HIDDEN" }),
 } satisfies CommandDef
 
 // View configuration
@@ -151,7 +151,7 @@ const decreaseContentLines = {
 const clearFilters = {
   id: "clear_filters",
   name: "Clear Filters",
-  description: "Remove all active view filters (hide-done, ignore, etc.)",
+  description: "Remove all active view filters (hide-done, hidden, etc.)",
   category: "View",
   shortLabel: "clear",
   execute: () => ({ type: "CLEAR_FILTERS" }),
@@ -166,8 +166,8 @@ export const viewCommands: CommandDef[] = [
   unfoldNode,
   unfoldRecursive,
   toggleCollapse,
-  ignoreNode,
-  toggleShowIgnored,
+  hideNode,
+  toggleShowHidden,
   foldAll,
   unfoldAll,
   increaseOutlineDepth,

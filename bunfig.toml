@@ -1,6 +1,2 @@
-[test]
-# Run tests concurrently by default for faster execution
-# Tests that share state should use describe.serial() or test.serial()
-# NOTE: Use 'bun run test:fast' or 'bun run test:all' instead of bare 'bun test'
-#       to avoid running archived tests
-timeout = 120000
+# bunfig.toml
+

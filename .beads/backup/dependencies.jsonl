@@ -1298,6 +1298,7 @@
 {"created_at":"2026-03-26T23:30:59Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.style","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T00:13:11Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.suspense-invalidation","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T20:44:01Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.tab-focus","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T11:20:59Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.table-component","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T11:27:44Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.targets","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T11:28:29Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery.split","issue_id":"km-silvery.targets","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-09T11:21:05Z","created_by":"claude:55df8ef1","depends_on_id":"km-w297c","issue_id":"km-silvery.targets","metadata":"{}","type":"blocks"}
@@ -1514,6 +1515,7 @@
 {"created_at":"2026-03-24T22:21:34Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.integrate-best","issue_id":"km-terminfo.unicode-probes","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T12:35:22Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.unified-cli","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T14:29:49Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo.next","issue_id":"km-terminfo.unified-probes","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T11:56:57Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo","issue_id":"km-terminfo.version-dedup","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T01:14:46Z","created_by":"claude:4929065a","depends_on_id":"km-terminfo","issue_id":"km-terminfo.vterm-declrmm","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T00:04:54Z","created_by":"claude:f8196c1c","depends_on_id":"km-terminfo","issue_id":"km-terminfo.vue-template-linkify","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T23:51:43Z","created_by":"claude:27beac99","depends_on_id":"km-terminfo","issue_id":"km-terminfo.xtermjs-6.1-kitty-keyboard","metadata":"{}","type":"parent-child"}
@@ -1644,6 +1646,7 @@
 {"created_at":"2026-03-26T10:11:36Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.indexes","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:11:36Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.input-validation","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:11:35Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.leader-lease","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T11:24:51Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.message-ttl","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:06:06Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.npm-sync","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:06:05Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.plugin-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-26T10:11:35Z","created_by":"claude:19080504","depends_on_id":"km-tribe","issue_id":"km-tribe.poll-mutex","metadata":"{}","type":"parent-child"}
@@ -1780,6 +1783,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.collapse-width","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.collapsed-shift","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.colsep-removal","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T11:33:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.column-move","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T23:25:14Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.column-resolve-pipeline","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.comments-as-cards","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.comments-in-body","metadata":"{}","type":"parent-child"}
@@ -2003,6 +2007,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.log-file-only","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.manual-dims","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.md-prefix-convert","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T12:13:52Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.md-shortcuts","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-30T11:50:11Z","created_by":"claude:db326126","depends_on_id":"km-tui","issue_id":"km-tui.memory-leak","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.modal-unify","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.mouse-click","metadata":"{}","type":"parent-child"}
@@ -2013,6 +2018,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.my-tasks-flat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.nav-regression","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-all.node-model-v2","issue_id":"km-tui.navigate-to-node","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T11:42:25Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.next-md-sync","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.no-section-label","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.nocolor-dry","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.node-header-unify","metadata":"{}","type":"parent-child"}
@@ -2126,6 +2132,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.selection-model","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.selection-nodeid","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.selection-visual","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T12:13:54Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.shift-chars","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.shift-col-hang","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.shift-cursor","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.shift-hl","metadata":"{}","type":"parent-child"}
@@ -2149,6 +2156,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.startup-progress","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.statusbar-corrupt","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.sticky-clear-on-direction-change","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-03-31T12:13:51Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.sticky-type","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.sticky-y-reset","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.stickyx-reset","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.storybook-md","metadata":"{}","type":"parent-child"}

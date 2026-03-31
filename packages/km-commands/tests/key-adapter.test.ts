@@ -331,6 +331,53 @@ describe("processKey", () => {
     expect(result.commandId).toBe("close_or_quit")
   })
 
+  it("inserts shifted punctuation character, not base key, when text editing", () => {
+    // Simulates Shift+3 on legacy terminal: parseKey normalizes '#' → input='3', shift=true, text='#'
+    const kbCtx = buildKeybindingContext({ textInputFocused: true })
+    const cmdCtx = createCommandContext()
+
+    const result = processKey("3", { shift: true, text: "#" }, cmdCtx, kbCtx)
+
+    expect(result.handled).toBe(true)
+    expect(result.commandId).toBe("text.insert")
+    expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "#" })
+  })
+
+  it("inserts correct char for all shifted punctuation in text mode", () => {
+    const kbCtx = buildKeybindingContext({ textInputFocused: true })
+    const cmdCtx = createCommandContext()
+
+    // Each pair: [base key (normalized input), shifted char (original text)]
+    const pairs: [string, string][] = [
+      ["1", "!"],
+      ["2", "@"],
+      ["3", "#"],
+      ["4", "$"],
+      ["5", "%"],
+      ["/", "?"],
+      [";", ":"],
+      ["'", '"'],
+    ]
+
+    for (const [base, shifted] of pairs) {
+      const result = processKey(base, { shift: true, text: shifted }, cmdCtx, kbCtx)
+      expect(result.commandId).toBe("text.insert")
+      expect(result.actions).toEqual({ type: "TEXT_INSERT", char: shifted })
+    }
+  })
+
+  it("inserts normal characters without text field", () => {
+    // When key.text is not set, falls back to input
+    const kbCtx = buildKeybindingContext({ textInputFocused: true })
+    const cmdCtx = createCommandContext()
+
+    const result = processKey("a", {}, cmdCtx, kbCtx)
+
+    expect(result.handled).toBe(true)
+    expect(result.commandId).toBe("text.insert")
+    expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "a" })
+  })
+
   it("v starts chord, then c resolves to toggle_collapse", () => {
     const kbCtx = buildKeybindingContext({})
     const cmdCtx = createCommandContext()
