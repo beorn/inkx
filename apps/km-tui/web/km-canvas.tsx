@@ -215,9 +215,9 @@ function KeyBar({ width }: { width: number }) {
   const keys = [
     { key: "j/k", desc: "navigate" },
     { key: "h/l", desc: "columns" },
-    { key: "Enter", desc: "edit" },
-    { key: "z", desc: "zoom" },
-    { key: "?", desc: "help" },
+    { key: "z/Enter", desc: "zoom in" },
+    { key: "Esc/Z", desc: "zoom out" },
+    { key: "g/G", desc: "top/bottom" },
   ]
   return (
     <Box backgroundColor="#181825" paddingX={8} paddingY={3} width={width} gap={12}>
@@ -308,12 +308,14 @@ function nodeName(node: Record<string, unknown>): string {
 }
 
 function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
-  // Real useColumns hook — same column derivation as the TUI
-  const columns = useColumns(repo as Parameters<typeof useColumns>[0], null, emptyFoldDepths)
-
-  // Era 2a cursor state — pure React useState, no signals/commands
+  // Era 2a state — pure React useState
+  const [rootId, setRootId] = useState<string | null>(null)
+  const [rootHistory, setRootHistory] = useState<(string | null)[]>([])
   const [colIndex, setColIndex] = useState(0)
   const [cardIndex, setCardIndex] = useState(0)
+
+  // Real useColumns hook — same column derivation as the TUI
+  const columns = useColumns(repo as Parameters<typeof useColumns>[0], rootId, emptyFoldDepths)
 
   // Keyboard navigation (era2a style: useInput + useState)
   const handleInput = useCallback(
@@ -321,26 +323,20 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
       if (columns.length === 0) return
 
       if (input === "j" || key.downArrow) {
-        // Move cursor down within column
         setCardIndex((prev) => {
           const col = columns[colIndex]
-          if (!col) return prev
-          return Math.min(prev + 1, col.cardNodes.length - 1)
+          return col ? Math.min(prev + 1, col.cardNodes.length - 1) : prev
         })
       } else if (input === "k" || key.upArrow) {
-        // Move cursor up within column
         setCardIndex((prev) => Math.max(prev - 1, 0))
       } else if (input === "h" || key.leftArrow) {
-        // Move to previous column (sticky card index)
         setColIndex((prev) => {
           const next = Math.max(prev - 1, 0)
-          // Clamp card index to new column's length
           const col = columns[next]
           if (col) setCardIndex((ci) => Math.min(ci, col.cardNodes.length - 1))
           return next
         })
       } else if (input === "l" || key.rightArrow) {
-        // Move to next column (sticky card index)
         setColIndex((prev) => {
           const next = Math.min(prev + 1, columns.length - 1)
           const col = columns[next]
@@ -348,15 +344,33 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
           return next
         })
       } else if (input === "g") {
-        // Jump to top
         setCardIndex(0)
       } else if (input === "G") {
-        // Jump to bottom
         const col = columns[colIndex]
         if (col) setCardIndex(col.cardNodes.length - 1)
+      } else if (input === "z" || (key.return && !key.shift)) {
+        // Zoom into selected card
+        const col = columns[colIndex]
+        const card = col?.cardNodes[cardIndex]
+        if (card) {
+          setRootHistory((prev) => [...prev, rootId])
+          setRootId(card.id)
+          setColIndex(0)
+          setCardIndex(0)
+        }
+      } else if (key.escape || (input === "Z")) {
+        // Zoom out (back to parent)
+        setRootHistory((prev) => {
+          if (prev.length === 0) return prev
+          const parent = prev[prev.length - 1]
+          setRootId(parent ?? null)
+          setColIndex(0)
+          setCardIndex(0)
+          return prev.slice(0, -1)
+        })
       }
     },
-    [columns, colIndex],
+    [columns, colIndex, cardIndex, rootId],
   )
 
   useInput(handleInput)
@@ -365,14 +379,18 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
   const colWidth = Math.floor(width / Math.max(colCount, 1))
   const totalCards = columns.reduce((sum, col) => sum + col.cardNodes.length, 0)
 
-  // Current card info for breadcrumb
+  // Breadcrumb: show zoom path + current selection
   const currentCol = columns[colIndex]
   const currentCard = currentCol?.cardNodes[cardIndex]
+  const rootNode = rootId ? repo.getNode(rootId) : null
+  const zoomPrefix = rootNode ? `${nodeName(rootNode as Record<string, unknown>)} \u203a ` : ""
   const breadcrumb = currentCard
-    ? `${nodeName(currentCol.node)} \u203a ${nodeName(currentCard)}`
+    ? `${zoomPrefix}${nodeName(currentCol.node)} \u203a ${nodeName(currentCard)}`
     : currentCol
-      ? nodeName(currentCol.node)
-      : "remote"
+      ? `${zoomPrefix}${nodeName(currentCol.node)}`
+      : rootNode
+        ? nodeName(rootNode as Record<string, unknown>)
+        : "remote"
 
   return (
     <Box flexDirection="column" width={width}>
