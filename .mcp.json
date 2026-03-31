@@ -1,16 +1,12 @@
 {
   "mcpServers": {
-    "tty": {
-      "command": "bun",
-      "args": ["vendor/termless/packages/cli/src/cli.ts", "mcp"]
-    },
     "tribe": {
       "command": "bun",
       "args": ["vendor/bearly/tools/tribe-proxy.ts"]
     },
-    "github": {
+    "tty": {
       "command": "bun",
-      "args": ["vendor/bearly/tools/github-channel.ts", "--repos", "all"]
+      "args": ["vendor/termless/packages/cli/src/cli.ts", "mcp"]
     }
   }
 }
