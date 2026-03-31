@@ -8,7 +8,7 @@ Content marketing plan for four developer tool websites. All content is AI-gener
 - **silvery.dev** — React TUI framework (primary)
 - **termless.dev** — Headless terminal testing
 - **terminfo.dev** — Terminal feature compatibility database
-- **flexily.dev** — Pure JS flexbox layout engine
+- **beorn.codes/flexily** — Pure JS flexbox layout engine
 
 ## Content Strategy Principles
 
@@ -106,7 +106,7 @@ Drop to **1 article/week per site** (4 total/week). Focus on depth and quality.
 | Monday | silvery.dev | Tutorial or Deep Dive |
 | Tuesday | termless.dev | Tutorial or Ecosystem |
 | Wednesday | terminfo.dev | Deep Dive or Comparison |
-| Thursday | flexily.dev | Tutorial or Deep Dive |
+| Thursday | beorn.codes/flexily | Tutorial or Deep Dive |
 
 ### Seasonal Content
 
@@ -135,7 +135,7 @@ Drop to **1 article/week per site** (4 total/week). Focus on depth and quality.
 - Secondary: "terminal feature support", "kitty keyboard protocol", "osc sequences"
 - Long-tail: "which terminals support truecolor", "terminal hyperlink support"
 
-**flexily.dev** (low-competition, framework author audience):
+**beorn.codes/flexily** (low-competition, framework author audience):
 - Primary: "flexbox layout engine", "yoga alternative", "javascript layout"
 - Secondary: "pure js flexbox", "layout engine no wasm", "flexbox tui"
 - Long-tail: "flexbox layout engine without yoga", "css flexbox javascript library"
@@ -374,7 +374,7 @@ Drop to **1 article/week per site** (4 total/week). Focus on depth and quality.
 
 ---
 
-## flexily.dev — 50 Article Ideas
+## beorn.codes/flexily — 50 Article Ideas
 
 ### Tutorials (20)
 
@@ -468,7 +468,7 @@ Drop to **1 article/week per site** (4 total/week). Focus on depth and quality.
 | silvery.dev | r/reactjs, r/node, r/commandline, r/programming, r/typescript |
 | termless.dev | r/programming, r/testing, r/commandline, r/typescript |
 | terminfo.dev | r/commandline, r/terminal, r/linux, r/programming |
-| flexily.dev | r/javascript, r/gamedev, r/webdev, r/programming |
+| beorn.codes/flexily | r/javascript, r/gamedev, r/webdev, r/programming |
 
 ### Content Repurposing
 
@@ -492,7 +492,7 @@ Each blog post becomes:
 
 ## Priority Order
 
-Start with **silvery.dev** (broadest audience, most SEO competition to win). Then **terminfo.dev** (unique reference value, low competition). Then **termless.dev** and **flexily.dev** in parallel.
+Start with **silvery.dev** (broadest audience, most SEO competition to win). Then **terminfo.dev** (unique reference value, low competition). Then **termless.dev** and **beorn.codes/flexily** in parallel.
 
 ### First 10 Articles to Write
 
@@ -500,7 +500,7 @@ Start with **silvery.dev** (broadest audience, most SEO competition to win). The
 2. silvery.dev: "Build a Git Status TUI in 50 Lines of React" — shows the DX advantage
 3. terminfo.dev: "The Complete Guide to ANSI Escape Sequences" — definitive reference, massive SEO potential
 4. silvery.dev: "How Silvery's Incremental Renderer Achieves 100x Faster Updates" — technical credibility
-5. flexily.dev: "Flexily vs Yoga: 2026 Benchmark" — competitive positioning
+5. beorn.codes/flexily: "Flexily vs Yoga: 2026 Benchmark" — competitive positioning
 6. termless.dev: "Your First Terminal Test in 5 Minutes" — getting started content
 7. silvery.dev: "Migrating from Ink to Silvery: A Step-by-Step Guide" — capture Ink users
 8. terminfo.dev: "Terminal Emulators in 2026: Feature Comparison" — high-value reference
@@ -587,7 +587,7 @@ That's ~140 indexed pages from structured data. But we're leaving massive SEO va
 **SEO value**: Cross-links to terminfo.dev, targets "terminal [protocol]" queries
 **Page count**: ~15 pages
 
-#### flexily.dev — CSS Property Support Pages
+#### beorn.codes/flexily — CSS Property Support Pages
 
 **URL**: `/properties/{css-property}`
 **Data source**: Generate from flexily's test suite / supported properties
@@ -621,7 +621,7 @@ That's ~140 indexed pages from structured data. But we're leaving massive SEO va
 |------|--------------|-----------------|-------|
 | terminfo.dev | ~140 | ~200 (comparisons + use-cases + adoption) | ~340 |
 | silvery.dev | ~50 (docs) | ~45 (components + protocols) | ~95 |
-| flexily.dev | ~20 (docs) | ~20 (properties) | ~40 |
+| beorn.codes/flexily | ~20 (docs) | ~20 (properties) | ~40 |
 | termless.dev | ~15 (docs) | ~10 (backend pages) | ~25 |
 | **Total** | **~225** | **~275** | **~500** |
 
@@ -681,13 +681,13 @@ The first 12 hand-crafted articles, sequenced for maximum impact. Mix of editori
 | 5 | 2.3 | Migrating from Ink to Silvery | silvery.dev | Migration | "migrate from ink" |
 | 5 | 2.4 | OSC 8 Hyperlinks: Complete Guide | terminfo.dev | Reference | "terminal hyperlinks" |
 | 6 | 2.5 | Your First Terminal Test in 5 Minutes | termless.dev | Tutorial | "terminal testing" |
-| 6 | 2.6 | Flexily vs Yoga: 2026 Benchmark | flexily.dev | Comparison | "yoga alternative" |
+| 6 | 2.6 | Flexily vs Yoga: 2026 Benchmark | beorn.codes/flexily | Comparison | "yoga alternative" |
 | 7 | 2.7 | Why Your Terminal Is 80 Characters Wide | terminfo.dev | History | Shareable/viral potential |
 | 7 | 2.8 | Build a CLI Dashboard in 50 Lines of React | silvery.dev | Tutorial | "react terminal dashboard" |
 | 8 | 2.9 | Runtime Terminal Capability Detection | terminfo.dev | Reference | "detect terminal features" |
 | 8 | 2.10 | expect/pexpect vs Termless | termless.dev | Comparison | "expect alternative" |
 | 8 | 2.11 | Terminal Emulators in 2026: Feature Comparison | terminfo.dev | Reference | "terminal comparison 2026" |
-| 8 | 2.12 | Migrating from Yoga to Flexily | flexily.dev | Migration | "yoga replacement" |
+| 8 | 2.12 | Migrating from Yoga to Flexily | beorn.codes/flexily | Migration | "yoga replacement" |
 
 ### Phase 3: Origin Story + Deep Dives (Week 9-14)
 
@@ -761,7 +761,7 @@ Build authority and thought leadership. Alternate between silvery.dev narrative 
 4. Testing Responsive Layouts (#19)
 5. Property-Based Testing for TUIs (#15)
 
-#### flexily.dev (monthly)
+#### beorn.codes/flexily (monthly)
 
 1. Architecture Differences: Flexily vs Yoga (#24)
 2. Zero-Allocation Algorithm (#21)

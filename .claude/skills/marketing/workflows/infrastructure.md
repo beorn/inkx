@@ -6,7 +6,7 @@ Set up and maintain the content marketing platform.
 
 ### Per-Site SEO Foundations
 
-For each site (terminfo.dev, silvery.dev, termless.dev, flexily.dev):
+For each site (terminfo.dev, silvery.dev, termless.dev, beorn.codes/flexily):
 
 1. **robots.txt** — Add to `docs/public/robots.txt`:
    ```
@@ -62,7 +62,7 @@ Every site should have automatic entity linking in both markdown content and Vue
 - Brand color on hover for linked terms
 - data-tooltip shows on hover (max-width 300px, wraps)
 
-**For new sites** (silvery.dev, termless.dev, flexily.dev): copy the plugin + linkifier + CSS pattern. Create site-specific content JSON files with the entities relevant to that site.
+**For new sites** (silvery.dev, termless.dev, beorn.codes/flexily): copy the plugin + linkifier + CSS pattern. Create site-specific content JSON files with the entities relevant to that site.
 
 ### Blog Infrastructure (silvery.dev)
 

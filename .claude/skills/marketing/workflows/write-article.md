@@ -13,7 +13,7 @@ Article ID from the strategy doc (e.g., "2.1" for Phase 2 article 1, "A3" for Bu
 Read `docs/content-marketing-strategy.md` and find the article by ID. Extract:
 - Title
 - Description
-- Site (silvery.dev / terminfo.dev / termless.dev / flexily.dev)
+- Site (silvery.dev / terminfo.dev / termless.dev / beorn.codes/flexily)
 - Tags
 - Content type (tutorial / deep-dive / comparison / ecosystem / reference / history)
 
@@ -92,7 +92,7 @@ Write the article to the appropriate site's blog directory:
 - silvery.dev: `vendor/silvery/docs/blog/posts/YYYY-MM-DD-slug.md`
 - terminfo.dev: `vendor/terminfo.dev/docs/blog/posts/YYYY-MM-DD-slug.md`
 - termless.dev: `vendor/termless/docs/blog/posts/YYYY-MM-DD-slug.md`
-- flexily.dev: `vendor/flexily/docs/blog/posts/YYYY-MM-DD-slug.md`
+- beorn.codes/flexily: `vendor/flexily/docs/blog/posts/YYYY-MM-DD-slug.md`
 
 ### 9. Update Tracker
 

@@ -2,7 +2,7 @@
 
 **Keywords**: marketing, blog, SEO, content, article, newsletter, distribution, programmatic
 
-Coordinates the entire content marketing effort across silvery.dev, termless.dev, terminfo.dev, and flexily.dev. Tracks what's been done, what's next, and when each workflow should run.
+Coordinates the entire content marketing effort across silvery.dev, termless.dev, terminfo.dev, and beorn.codes/flexily. Tracks what's been done, what's next, and when each workflow should run.
 
 **Strategy doc**: `docs/content-marketing-strategy.md` — the canonical plan with all 240 article ideas, programmatic SEO strategy, Greg Isenberg framework, and GPT Pro review findings.
 
@@ -69,13 +69,13 @@ This section tracks when each workflow was last run. Update after each execution
 | 2.3 | Migrating from Ink to Silvery | silvery.dev | not started | — |
 | 2.4 | OSC 8 Hyperlinks: Complete Guide | terminfo.dev | not started | — |
 | 2.5 | Your First Terminal Test in 5 Min | termless.dev | not started | — |
-| 2.6 | Flexily vs Yoga: 2026 Benchmark | flexily.dev | not started | — |
+| 2.6 | Flexily vs Yoga: 2026 Benchmark | beorn.codes/flexily | not started | — |
 | 2.7 | Why Your Terminal Is 80 Chars Wide | terminfo.dev | not started | — |
 | 2.8 | Build a CLI Dashboard in 50 Lines | silvery.dev | not started | — |
 | 2.9 | Runtime Terminal Capability Detection | terminfo.dev | not started | — |
 | 2.10 | expect/pexpect vs Termless | termless.dev | not started | — |
 | 2.11 | Terminal Emulators in 2026 | terminfo.dev | not started | — |
-| 2.12 | Migrating from Yoga to Flexily | flexily.dev | not started | — |
+| 2.12 | Migrating from Yoga to Flexily | beorn.codes/flexily | not started | — |
 
 ### Phase 3: Origin Story + Deep Dives
 (See strategy doc for full list — 12 articles, weeks 9-14)
@@ -112,7 +112,7 @@ Last measured: 2026-03-25
 | **terminfo.dev** | VitePress + Cloudflare Pages | No blog yet | ~140 existing + 66 compare = ~206 |
 | **silvery.dev** | VitePress + GitHub Pages | /blog/ exists (placeholder) | ~50 docs pages |
 | **termless.dev** | VitePress | No blog yet | ~15 docs pages |
-| **flexily.dev** | VitePress | No blog yet | ~20 docs pages |
+| **beorn.codes/flexily** | VitePress | No blog yet | ~20 docs pages |
 
 ## Key Principles
 
