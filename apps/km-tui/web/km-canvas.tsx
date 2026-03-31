@@ -149,11 +149,7 @@ function CardRow({
       <Box>
         <Text color={iconColor}>{icon} </Text>
         <Box flexShrink={1}>
-          <Text
-            color={status === "done" ? "#6c7086" : "#cdd6f4"}
-            strikethrough={status === "done"}
-            wrap="wrap"
-          >
+          <Text color={status === "done" ? "#6c7086" : "#cdd6f4"} strikethrough={status === "done"} wrap="wrap">
             {title}
           </Text>
         </Box>
@@ -293,7 +289,12 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
         {columns.map((col: RealColumnView, i: number) => (
           <Box key={col.node.id} flexDirection="column" width={colWidth}>
             <ColumnHeader
-              name={col.node.content || col.node.title || (col.node as Record<string, unknown>).name as string || "(untitled)"}
+              name={
+                col.node.content ||
+                col.node.title ||
+                ((col.node as Record<string, unknown>).name as string) ||
+                "(untitled)"
+              }
               count={col.cardNodes.length}
               isActive={i === 0}
             />
@@ -301,7 +302,9 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
               {col.cardNodes.map((card: RealCardView, j: number) => (
                 <CardRow
                   key={card.id}
-                  title={card.content || card.title || (card as Record<string, unknown>).name as string || "(untitled)"}
+                  title={
+                    card.content || card.title || ((card as Record<string, unknown>).name as string) || "(untitled)"
+                  }
                   status={card.task_status as string | undefined}
                   isSelected={i === 0 && j === 0}
                   width={colWidth}
@@ -348,9 +351,8 @@ function mount(width: number) {
 
   const t0 = performance.now()
 
-  const element = isRemoteMode && remoteRepo
-    ? <RemoteBoard width={width} repo={remoteRepo} />
-    : <MockBoard width={width} />
+  const element =
+    isRemoteMode && remoteRepo ? <RemoteBoard width={width} repo={remoteRepo} /> : <MockBoard width={width} />
 
   instance = renderToCanvas(element, canvas, opts)
 
