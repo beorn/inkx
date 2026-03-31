@@ -441,11 +441,12 @@ function BoardView({
               borderBottom
               borderColor="#45475a"
               borderStyle="single"
+              justifyContent="space-between"
             >
               <Text bold color={i === colIndex ? "#89b4fa" : "#a6adc8"}>
                 {col.name}
               </Text>
-              <Text color="#585b70"> ({col.cards.length})</Text>
+              <Text color="#585b70">{col.cards.length}</Text>
             </Box>
             <Box flexDirection="column" paddingTop={2}>
               {col.cards.map((card, j) => (
@@ -635,7 +636,7 @@ function mount(width: number) {
       input: true,
       onMouse: (event: CanvasMouseEvent) => {
         if (event.type === "click") {
-          onCanvasClick?.(event.col, event.row)
+          onCanvasClick?.(event.pixelX, event.pixelY)
         }
       },
     }
