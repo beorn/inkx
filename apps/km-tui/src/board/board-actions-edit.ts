@@ -42,6 +42,11 @@ export function needsRenderFlush(): boolean {
   return result
 }
 
+/** Request a synchronous render flush after the current event handler. */
+export function requestRenderFlush(): void {
+  _needsFlush = true
+}
+
 /**
  * Delete the selected node(s) — with confirmation for non-empty nodes.
  *
@@ -277,6 +282,7 @@ function handleAddFirstChild(ctx: ActionCtx): void {
   const newId = repo.addNode(ctx.rootId, newNode)
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  requestRenderFlush()
 }
 
 /**
@@ -333,7 +339,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
 
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
-  _needsFlush = true
+  requestRenderFlush()
 }
 
 /**
@@ -364,7 +370,7 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
 
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
-  _needsFlush = true
+  requestRenderFlush()
 }
 
 /**
@@ -405,7 +411,7 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
 
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
-  _needsFlush = true
+  requestRenderFlush()
 }
 
 /**

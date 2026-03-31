@@ -82,6 +82,14 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResult {
   const { ui, dispatchBoard, navigator, viewNavigation } = ctx
 
+  // When at leftmost card pressing h, position at column header instead of moving columns
+  if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.column) {
+    const columnNode = ctx.column.node
+    dispatchBoard({ type: "SELECT", nodeId: columnNode.id })
+    navigator.clearStickyY()
+    return ok()
+  }
+
   // Lazy capture: if stickyY not yet set, capture from current card by nodeId.
   // At h/l time, the focused card is always rendered (no dispatch has happened yet).
   // j/k clears stickyY; subsequent h/l preserves it.

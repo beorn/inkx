@@ -5,7 +5,7 @@
  */
 
 import { createLogger } from "loggily"
-import { existsSync, mkdirSync, statSync } from "fs"
+import { existsSync, mkdirSync, renameSync } from "fs"
 import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
@@ -16,15 +16,19 @@ import { FileSystemWatcher, scanDirectoryRecursiveGen, type ScanEntry } from "./
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
-import { reconcileDirectory, reconcileDirectoryAsync, applyReconcileOps, applyReconcileOpsAsync } from "./reconcile.ts"
+import {
+  reconcileDirectory,
+  reconcileDirectoryAsync,
+  reconcileIfChanged,
+  applyReconcileOps,
+  applyReconcileOpsAsync,
+} from "./reconcile.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
-import { findFileNode, titleToFilename } from "./watch-utils.ts"
-import { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
+import { WriteQueue } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
-import { type Event, KNode, findIndexFile, namesAreSimilar } from "@km/core"
+import { type Event } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
-import { getFolderIndexConfig } from "../config.ts"
-import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
+import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 
 /** Progress info for sync operations */
 interface SyncProgress {
@@ -45,6 +49,7 @@ import {
   createRuleContext,
   type StepYield,
 } from "../index.ts"
+import { findFileNode } from "./watch-utils.ts"
 
 /** Result from syncFromFs */
 export interface SyncFromFsResult {
@@ -101,6 +106,7 @@ export class SyncManager extends EventEmitter {
   private kmDir: string
   private emitter: Emitter // Emitter domain object for event emission
   private parsePool: ParsePoolService | undefined
+  private handlers: EventHandlers
 
   // In-flight sync tracking — prevents teardown from closing DB while syncs are running
   private inFlightSyncs: Set<Promise<void>> = new Set()
@@ -149,6 +155,35 @@ export class SyncManager extends EventEmitter {
 
     this.writeQueue.setWatcher(this.watcher)
 
+    // Create async FsWriteTarget that queues writes to WriteQueue
+    const fsTarget: FsWriteTarget = {
+      writeFile: (absPath: string, content: string, eventId?: string) => {
+        this.writeQueue.queue({
+          path: absPath,
+          content,
+          sourceEventId: eventId || "",
+        })
+      },
+      deleteFile: (absPath: string, eventId?: string) => {
+        this.writeQueue.queueDelete(absPath, eventId || "")
+      },
+      renameFile: (oldPath: string, newPath: string) => {
+        // Renames are handled synchronously to maintain fs/db consistency
+        renameSync(oldPath, newPath)
+      },
+      mkdir: (absPath: string) => {
+        mkdirSync(absPath, { recursive: true })
+      },
+      markInFlight: (absPath: string) => {
+        this.watcher.markInFlight(absPath)
+      },
+      clearInFlight: (absPath: string, delayMs?: number) => {
+        this.watcher.clearInFlight(absPath, delayMs)
+      },
+    }
+
+    this.handlers = new EventHandlers(this.db, this.config.repoPath, this.emitter, fsTarget)
+
     // Wire up events
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Watcher event data is untyped
     this.watcher.on("sync", (data) => this.handleFsSync(data))
@@ -191,12 +226,13 @@ export class SyncManager extends EventEmitter {
     this.stopped = true
     this.stopHeartbeat()
     await this.watcher.stop()
-    // Wait for in-flight syncs to complete before clearing resources
+    // Wait for in-flight syncs to complete before flushing writes
     if (this.inFlightSyncs.size > 0) {
       log.debug?.(`waiting for ${this.inFlightSyncs.size} in-flight syncs`)
       await Promise.allSettled(this.inFlightSyncs)
     }
-    this.writeQueue.clear()
+    // Flush pending writes to disk instead of dropping them (clear() would lose data)
+    await this.writeQueue.flush()
     if (this.parsePool) {
       await this.parsePool[Symbol.asyncDispose]()
       this.parsePool = undefined
@@ -455,467 +491,9 @@ export class SyncManager extends EventEmitter {
    * Apply a database event to filesystem
    */
   applyEventToFs(event: Event): void {
-    if (!shouldApplyToFs(event.actor)) {
-      log.debug?.(`skipping fs apply for actor=${event.actor} event=${event.type}`)
-      return
-    }
-
-    log.debug?.(`applying ${event.type} to fs: ${event.target ?? "no-target"}`)
-
-    switch (event.type) {
-      case "node_updated":
-        this.handleNodeUpdated(event)
-        break
-      case "node_created":
-        this.handleNodeCreated(event)
-        break
-      case "node_deleted":
-        this.handleNodeDeleted(event)
-        break
-      case "node_moved":
-        this.handleNodeMoved(event)
-        break
-    }
-  }
-
-  /**
-   * Create an assignBlockId callback that collects newly assigned IDs.
-   * After serialization, call rewriteSourceFiles to queue ^block-id
-   * suffix writes into the files that contain the referenced nodes.
-   */
-  private createBlockIdAssigner(eventId: string): {
-    assign: (nodeId: string, blockId: string) => void
-    rewriteSourceFiles: (excludeFileId?: string) => void
-  } {
-    const assigned = new Map<string, string>() // nodeId → blockId
-    return {
-      assign: (nodeId: string, blockId: string) => {
-        this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
-        assigned.set(nodeId, blockId)
-      },
-      rewriteSourceFiles: (excludeFileId?: string) => {
-        if (assigned.size === 0) return
-        // Group by containing file
-        const fileIds = new Set<string>()
-        for (const [nodeId, blockId] of assigned) {
-          const node = getNode(this.db, nodeId)
-          if (!node) {
-            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after block_id assignment`)
-            continue
-          }
-          node.block_id = blockId // Update in-memory for serialization
-          const file = this.findFileNode(node)
-          if (file && file.id !== excludeFileId) fileIds.add(file.id)
-        }
-        // Queue rewrites for affected source files (no assignBlockId to prevent cascading)
-        for (const fileId of fileIds) {
-          const file = getNode(this.db, fileId)
-          if (!file?.fs_path) {
-            log.error?.(`rewriteSourceFiles: file node ${fileId} missing or has no fs_path`)
-            continue
-          }
-          const absPath = toAbsoluteFsPath(this.config.repoPath, file.fs_path)
-          const subtreeNodes = getSubtree(this.db, fileId)
-          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          this.writeQueue.queue({
-            path: absPath,
-            content,
-            sourceEventId: eventId,
-          })
-        }
-      },
-    }
-  }
-
-  /** Walk up parent chain to find the containing file node */
-  private findFileNode(node: KNode): KNode | null {
-    return findFileNode(this.db, node)
-  }
-
-  /**
-   * Regenerate the file containing a given node.
-   * Looks up the parent chain to find the file node, then serializes
-   * its subtree to markdown and queues a write.
-   *
-   * @param nodeOrParentId - A node to find the file for, or a parent_id to look up first
-   * @param eventId - The event ID that triggered the regeneration
-   * @param reconcileFirst - If true, reconcile pending FS changes before regenerating
-   */
-  private regenerateFileForNode(nodeOrParentId: KNode | string, eventId: string, reconcileFirst = false): void {
-    const node = typeof nodeOrParentId === "string" ? getNode(this.db, nodeOrParentId) : nodeOrParentId
-    if (!node) return
-    const fileNode = findFileNode(this.db, node)
-    if (!fileNode?.fs_path) return
-
-    if (reconcileFirst) {
-      this.reconcileIfChanged(fileNode)
-    }
-
-    const blockIds = this.createBlockIdAssigner(eventId)
-    const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-    const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-    this.writeQueue.queue({
-      path: absPath,
-      content,
-      sourceEventId: eventId,
-    })
-    blockIds.rewriteSourceFiles(fileNode.id)
-  }
-
-  /**
-   * Handle node updated event - regenerate file
-   *
-   * CRITICAL: Before regenerating, we must reconcile any pending FS changes
-   * to avoid data loss. If the file was modified externally (mtime differs),
-   * we reconcile first to bring FS changes into DB, then regenerate.
-   */
-  private handleNodeUpdated(event: Event): void {
-    if (!event.target) return
-
-    const node = getNode(this.db, event.target)
-    if (!node) return
-    const changes = event.data as Partial<KNode>
-
-    // Folder rename: content change on a folder → rename directory on disk
-    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path && changes.content) {
-      this.handleFolderRename(node, changes.content, event.id)
-      return
-    }
-
-    // Folder metadata update: update or create index file
-    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path) {
-      this.handleFolderIndexUpdate(node, event.id)
-      return
-    }
-
-    // Find the file this node belongs to
-    const fileNode = findFileNode(this.db, node)
-    if (!fileNode?.fs_path) {
-      log.warn?.(`handleNodeUpdated: no file node found for ${node.id} (type=${node.type})`)
-      return
-    }
-
-    // File rename: content change on the file node itself → rename .md file on disk
-    if (node.id === fileNode.id && changes.content && fileNode.fs_path.endsWith(".md")) {
-      this.handleFileRename(fileNode, changes.content, event.id)
-      // After rename, still regenerate content at the new path (fall through)
-    }
-
-    const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-
-    // Check if file has been modified externally (mtime differs from DB)
-    // If so, reconcile first to avoid losing external changes
-    this.reconcileIfChanged(fileNode)
-
-    // Regenerate the file from (now-updated) DB state
-    const blockIds = this.createBlockIdAssigner(event.id)
-    const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-
-    this.writeQueue.queue({
-      path: absPath,
-      content,
-      sourceEventId: event.id,
-    })
-    blockIds.rewriteSourceFiles(fileNode.id)
-  }
-
-  /**
-   * Rename a folder directory on disk and update all descendant fs_path values.
-   */
-  /**
-   * Update or create an index file for a folder node.
-   * Respects the folderIndex config — does nothing if materialization is "none".
-   */
-  private handleFolderIndexUpdate(node: KNode, eventId: string): void {
-    const config = getFolderIndexConfig(this.config.repoPath)
-    if (config.materialization === "none") return
-    const indexConfig = { materialization: config.materialization, naming: config.naming }
-
-    const folderPath = node.fs_path
-    if (!folderPath) return
-
-    const content = buildIndexContent(this.db, node, indexConfig)
-    if (!content) {
-      log.warn?.(`handleFolderIndexUpdate: folder ${node.id} has no title or name, skipping index file`)
-      return
-    }
-
-    const children = getChildren(this.db, node.id)
-    const existingIndex = findIndexFile(node, children)
-
-    if (existingIndex?.fs_path) {
-      const absPath = toAbsoluteFsPath(this.config.repoPath, existingIndex.fs_path)
-      this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
-    } else if (config.materialization === "full") {
-      // Only "full" mode auto-creates index files. "metadata" mode only updates existing ones.
-      const filename = indexFileName(node.name ?? "", config.naming)
-      const newFsPath = join(folderPath, filename)
-      const absPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)
-      this.writeQueue.queue({ path: absPath, content, sourceEventId: eventId })
-    }
-  }
-
-  private handleFolderRename(node: KNode, newName: string, eventId: string): void {
-    const oldFsPath = node.fs_path ?? ""
-    const oldAbsPath = toAbsoluteFsPath(this.config.repoPath, oldFsPath)
-    const parentDir = dirname(oldFsPath)
-    const newFsPath = parentDir === "." ? newName : join(parentDir, newName)
-    const newAbsPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)
-
-    if (oldAbsPath === newAbsPath) return
-
-    // Collision check: don't overwrite an existing directory
-    if (existsSync(newAbsPath)) {
-      log.warn?.(`folder rename aborted: target already exists: ${newFsPath}`)
-      return
-    }
-
-    // Before renaming the folder, check for a same-name index file that needs renaming too
-    const oldFolderName = node.name ?? ""
-    const children = getChildren(this.db, node.id)
-    const indexFile = findIndexFile(node, children)
-    const indexNeedsRename = indexFile?.fs_path && indexFile.name && namesAreSimilar(oldFolderName, indexFile.name)
-
-    log.info?.(`folder rename: ${oldFsPath} → ${newFsPath}`)
-
-    // Queue the directory rename
-    this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
-
-    // Queue the same-name index file rename inside the (now renamed) folder
-    // Only queue + update DB if the target doesn't already exist (failure-safe)
-    let indexRenameQueued = false
-    if (indexNeedsRename && indexFile?.fs_path) {
-      const oldIndexName = indexFile.fs_path.split("/").pop() ?? ""
-      const newIndexName = newName + ".md"
-      if (oldIndexName !== newIndexName) {
-        // Check if a file with the new name already exists in the current folder
-        // (it will still be there after the folder rename)
-        const conflictCheckPath = toAbsoluteFsPath(this.config.repoPath, join(oldFsPath, newIndexName))
-        if (!existsSync(conflictCheckPath)) {
-          const oldIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, oldIndexName))
-          const newIndexAbsPath = toAbsoluteFsPath(this.config.repoPath, join(newFsPath, newIndexName))
-          this.writeQueue.queueRename(oldIndexAbsPath, newIndexAbsPath, eventId)
-          indexRenameQueued = true
-        } else {
-          log.warn?.(`index file rename skipped: target already exists: ${newIndexName}`)
-        }
-      } else {
-        // Names are the same, no rename needed — treat as success for DB update
-        indexRenameQueued = true
-      }
-    }
-
-    // Update fs_path for this node and all descendants in DB
-    // Use REPLACE to update paths that start with the old prefix
-    const oldPrefix = oldFsPath + "/"
-    const newPrefix = newFsPath + "/"
-    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
-      newFsPath,
-      newName,
-      Date.now(),
-      node.id,
-    ])
-    // Update all descendants whose fs_path starts with oldPrefix
-    this.db.run(`UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?), updated_at = ? WHERE fs_path LIKE ?`, [
-      newPrefix,
-      oldPrefix.length + 1,
-      Date.now(),
-      oldPrefix + "%",
-    ])
-
-    // Only update the index file's name and fs_path in DB if the rename was queued
-    if (indexNeedsRename && indexFile && indexRenameQueued) {
-      const newIndexFsPath = join(newFsPath, newName + ".md")
-      this.db.run("UPDATE nodes SET fs_path = ?, name = ?, updated_at = ? WHERE id = ?", [
-        newIndexFsPath,
-        newName,
-        Date.now(),
-        indexFile.id,
-      ])
-    }
-
-    // Refresh index file content with new title (node already updated in DB)
-    const updatedFolder = getNode(this.db, node.id)
-    if (updatedFolder) {
-      this.handleFolderIndexUpdate(updatedFolder, eventId)
-    }
-  }
-
-  /**
-   * Rename a .md file on disk when its H1 title changes.
-   * Derives new filename from the title, renames the file, updates DB.
-   * Mutates fileNode.fs_path and fileNode.name in place so callers use the new path.
-   */
-  private handleFileRename(fileNode: KNode, newTitle: string, eventId: string): void {
-    const oldFsPath = fileNode.fs_path
-    if (!oldFsPath) {
-      throw new Error("[sync] handleFileRename: fileNode has no fs_path")
-    }
-    const newFileName = titleToFilename(newTitle)
-    const parentDir = dirname(oldFsPath)
-    const newFsPath = parentDir === "." ? newFileName : join(parentDir, newFileName)
-
-    if (oldFsPath === newFsPath) return
-
-    const oldAbsPath = toAbsoluteFsPath(this.config.repoPath, oldFsPath)
-    const newAbsPath = toAbsoluteFsPath(this.config.repoPath, newFsPath)
-
-    // Collision check: don't overwrite an existing file
-    if (existsSync(newAbsPath)) {
-      log.warn?.(`file rename aborted: target already exists: ${newFsPath}`)
-      return
-    }
-
-    log.info?.(`file rename: ${oldFsPath} → ${newFsPath}`)
-
-    // Queue the file rename
-    this.writeQueue.queueRename(oldAbsPath, newAbsPath, eventId)
-
-    // Update DB: fs_path, name, and title (title is used by nodesToMarkdown for H1 heading)
-    const newName = newFileName.replace(/\.md$/i, "")
-    this.db.run("UPDATE nodes SET fs_path = ?, name = ?, title = ?, updated_at = ? WHERE id = ?", [
-      newFsPath,
-      newName,
-      newTitle,
-      Date.now(),
-      fileNode.id,
-    ])
-
-    // Mutate the node so the caller writes content to the new path
-    fileNode.fs_path = newFsPath
-    fileNode.name = newName
-
-    // If parent folder has materialization enabled, refresh its index file
-    // so slots reflect the new filename
-    if (fileNode.parent_id && fileNode.parent_id !== ".") {
-      const parent = getNode(this.db, fileNode.parent_id)
-      if (parent?.fstype === "folder" && parent.fs_path) {
-        this.handleFolderIndexUpdate(parent, eventId)
-      }
-    }
-  }
-
-  /**
-   * Reconcile a file if it has been modified externally (mtime differs from DB).
-   * This prevents data loss when DB changes race with FS changes.
-   */
-  private reconcileIfChanged(fileNode: KNode): void {
-    if (!fileNode.fs_path) return
-    const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-    if (!existsSync(absPath)) return
-
-    try {
-      const stat = statSync(absPath)
-      const dbMtime = fileNode.fs_mtime
-
-      if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
-        log.debug?.(
-          `reconcile-before-write: file changed externally, reconciling path=${absPath} dbMtime=${dbMtime} fsMtime=${stat.mtimeMs}`,
-        )
-
-        // Reconcile this directory to bring FS changes into DB
-        const dir = dirname(absPath)
-        const ops = reconcileDirectory(this.db, dir, this.config.repoPath, this.ignorePatterns)
-
-        if (ops.length > 0) {
-          log.debug?.(`reconcile-before-write: applying ${ops.length} ops`)
-          // Apply synchronously to ensure DB is updated before we regenerate
-          applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
-        }
-      }
-    } catch (err) {
-      log.error?.(`reconcile-before-write: error checking file ${absPath}: ${String(err)}`)
-    }
-  }
-
-  /**
-   * Handle node created event
-   */
-  private handleNodeCreated(event: Event): void {
-    const data = event.data as Partial<KNode>
-
-    if (data.type === "h" && data.item && data.fstype === "folder" && data.fs_path) {
-      // Create directory — resolve relative path for FS operation
-      const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
-      try {
-        mkdirSync(absPath, { recursive: true })
-      } catch (err) {
-        this.emit("error", err instanceof Error ? err : new Error(String(err)))
-      }
-    } else if (data.type === "h" && data.item && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
-      // Create file — resolve relative path for FS operation
-      const absPath = toAbsoluteFsPath(this.config.repoPath, data.fs_path)
-      this.writeQueue.queue({
-        path: absPath,
-        content: "",
-        sourceEventId: event.id,
-      })
-    } else if (data.parent_id && data.parent_id !== ".") {
-      // Section/task/paragraph node: regenerate parent file to include it
-      this.regenerateFileForNode(data.parent_id, event.id)
-    }
-  }
-
-  /**
-   * Handle node deleted event
-   */
-  private handleNodeDeleted(event: Event): void {
-    if (!event.target) return
-
-    // Node is already deleted from DB — use data passed in event payload
-    const data = event.data as
-      | {
-          fs_path?: string
-          type?: string
-          parent_id?: string | null
-          item?: boolean
-        }
-      | undefined
-    const fsPath = data?.fs_path
-    const nodeType = data?.type
-
-    if (fsPath && nodeType === "h" && data?.item) {
-      // File/folder node: delete the file from disk
-      const absPath = toAbsoluteFsPath(this.config.repoPath, fsPath)
-      this.writeQueue.queueDelete(absPath, event.id)
-
-      // If deleted node's parent is a folder, regenerate index file (in case it was the index)
-      const parentId = data.parent_id
-      if (parentId && parentId !== ".") {
-        const parent = getNode(this.db, parentId)
-        if (parent?.fstype === "folder" && parent.fs_path) {
-          this.handleFolderIndexUpdate(parent, event.id)
-        }
-      }
-    } else if (data?.parent_id) {
-      // Section node: regenerate the parent file to reflect the deletion
-      this.regenerateFileForNode(data.parent_id, event.id)
-    }
-  }
-
-  /**
-   * Handle node moved event
-   *
-   * CRITICAL: Before regenerating, we must reconcile any pending FS changes
-   * to avoid data loss (same as handleNodeUpdated).
-   */
-  private handleNodeMoved(event: Event): void {
-    // Movement might require file regeneration
-    if (!event.target) return
-
-    const node = getNode(this.db, event.target)
-    if (!node) return
-
-    // Regenerate affected files (reconcile first to avoid losing external changes)
-    this.regenerateFileForNode(node, event.id, true)
-
-    // If moved node's parent is a folder with materialization, regenerate its index file
-    const parent = node.parent_id ? getNode(this.db, node.parent_id) : null
-    if (parent?.fstype === "folder" && parent.fs_path) {
-      this.handleFolderIndexUpdate(parent, event.id)
-    }
+    // Delegated to EventHandlers via shared handler logic
+    // (See EventHandlers class for handler implementations)
+    void this.handlers.applyEventToFs(event)
   }
 
   /**
@@ -1155,5 +733,55 @@ export class SyncManager extends EventEmitter {
       return this.watcher.getStatus()
     }
     return null
+  }
+
+  /**
+   * Create an assignBlockId callback that collects newly assigned IDs.
+   * After serialization, call rewriteSourceFiles to write ^block-id
+   * suffixes into the files that contain the referenced nodes.
+   */
+  private createBlockIdAssigner(_eventId: string): {
+    assign: (nodeId: string, blockId: string) => void
+    rewriteSourceFiles: (excludeFileId?: string) => void
+  } {
+    const assigned = new Map<string, string>() // nodeId → blockId
+    return {
+      assign: (nodeId: string, blockId: string) => {
+        this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
+        assigned.set(nodeId, blockId)
+      },
+      rewriteSourceFiles: (excludeFileId?: string) => {
+        if (assigned.size === 0) return
+        // Group by containing file
+        const fileIds = new Set<string>()
+        for (const [nodeId, blockId] of assigned) {
+          const node = getNode(this.db, nodeId)
+          if (!node) {
+            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after block_id assignment`)
+            continue
+          }
+          // Update in-memory node for serialization
+          node.block_id = blockId
+          const file = findFileNode(this.db, node)
+          if (file && file.id !== excludeFileId) fileIds.add(file.id)
+        }
+        // Rewrite each affected source file (without assignBlockId to prevent cascading)
+        for (const fileId of fileIds) {
+          const file = getNode(this.db, fileId)
+          if (!file?.fs_path) {
+            log.error?.(`rewriteSourceFiles: file node ${fileId} missing or has no fs_path`)
+            continue
+          }
+          const absPath = toAbsoluteFsPath(this.config.repoPath, file.fs_path)
+          const subtreeNodes = getSubtree(this.db, fileId)
+          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
+          this.writeQueue.queue({
+            path: absPath,
+            content,
+            sourceEventId: _eventId,
+          })
+        }
+      },
+    }
   }
 }

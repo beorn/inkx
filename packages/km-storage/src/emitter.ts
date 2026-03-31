@@ -20,7 +20,7 @@ import type { Event } from "@km/core"
 import type { Database } from "bun:sqlite"
 import { applyEventWithDb } from "./db-events.ts"
 
-const _log = createLogger("km:storage:emitter")
+const log = createLogger("km:storage:emitter")
 
 // --- Types ---
 
@@ -139,20 +139,34 @@ export function createEmitter(options: EmitterOptions): Emitter {
         appendFileSync(eventsPath, JSON.stringify(event) + "\n")
       }
 
-      // 2. Apply to database (use per-call db or default db from options)
+      // 2. Apply to database — primary operation, must succeed or throw
       const db = emitOptions.db ?? defaultDb
       if (db) {
         applyEventWithDb(db, event)
       }
 
-      // 3. Broadcast via event hub
+      // 3. Broadcast via event hub — isolated so failure doesn't block fs sync
       if (eventHub && !emitOptions.skipBroadcast) {
-        eventHub.broadcast(event)
+        try {
+          eventHub.broadcast(event)
+        } catch (err) {
+          log.error?.(`broadcast failed for ${event.type}: ${err}`)
+        }
       }
 
-      // 4. Sync to filesystem
+      // 4. Sync to filesystem — isolated from broadcast
       if (fsSync) {
-        fsSync.applyEventToFs(event)
+        try {
+          fsSync.applyEventToFs(event)
+        } catch (err) {
+          // Re-throw programming errors; swallow only filesystem I/O errors
+          if (err instanceof Error && (err as NodeJS.ErrnoException).code) {
+            // Has an errno code (ENOENT, EACCES, etc.) — filesystem error, log and continue
+            log.error?.(`fs sync failed for ${event.type}: ${err}`)
+          } else {
+            throw err
+          }
+        }
       }
 
       return event

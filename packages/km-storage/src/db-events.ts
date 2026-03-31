@@ -9,9 +9,7 @@ import { createLogger } from "loggily"
 import type { Database, SQLQueryBindings } from "bun:sqlite"
 
 const log = createLogger("km:storage:db:events")
-import { readFileSync } from "fs"
-import { getMarkerForStatus } from "@km/core"
-import type { Event, TaskStatus } from "@km/core"
+import type { Event } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 import { deleteSubtree } from "./db-ops.ts"
 
@@ -121,7 +119,6 @@ function applyNodeCreated(db: Database, event: Event): void {
   )
 }
 
-// oxlint-disable-next-line complexity/complexity -- Write-through logic for task_status + dates
 function applyNodeUpdated(db: Database, event: Event): void {
   if (!event.target) return
 
@@ -157,150 +154,10 @@ function applyNodeUpdated(db: Database, event: Event): void {
   const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`
   db.run(sql, values as SQLQueryBindings[])
 
-  // Bidirectional sync: write task status changes back to markdown file
-  if (data.task_status !== undefined) {
-    // Get the task's md_line and fs_path (may be on task or parent file)
-    const task = db.query("SELECT parent_id, md_line, fs_path FROM nodes WHERE id = ?").get(event.target) as {
-      parent_id: string | null
-      md_line: number | null
-      fs_path: string | null
-    } | null
-
-    if (task && task.md_line !== null) {
-      let fsPath = task.fs_path
-
-      // If task doesn't have fs_path directly, walk up to find parent file
-      if (!fsPath && task.parent_id) {
-        const file = db
-          .query(
-            `
-            WITH RECURSIVE ancestors AS (
-              SELECT id, parent_id, fs_path, type, fstype, item FROM nodes WHERE id = ?
-              UNION ALL
-              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype, n.item
-              FROM nodes n
-              JOIN ancestors a ON n.id = a.parent_id
-            )
-            SELECT fs_path FROM ancestors WHERE type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1
-          `,
-          )
-          .get(task.parent_id) as { fs_path: string } | null
-        fsPath = file?.fs_path ?? null
-      }
-
-      if (fsPath) {
-        writeTaskStatusToFile(fsPath, task.md_line, data.task_status as TaskStatus)
-      }
-    }
-  }
-
-  // Bidirectional sync: write date field changes back to markdown file
-  if (data.due_at !== undefined || data.start_at !== undefined) {
-    const task = db.query("SELECT * FROM nodes WHERE id = ?").get(event.target) as Record<string, unknown> | null
-    if (task && task.md_line !== null) {
-      let fsPath = task.fs_path as string | null
-      if (!fsPath && task.parent_id) {
-        const file = db
-          .query(
-            `WITH RECURSIVE ancestors AS (
-              SELECT id, parent_id, fs_path, type, fstype, item FROM nodes WHERE id = ?
-              UNION ALL
-              SELECT n.id, n.parent_id, n.fs_path, n.type, n.fstype, n.item
-              FROM nodes n JOIN ancestors a ON n.id = a.parent_id
-            )
-            SELECT fs_path FROM ancestors WHERE type = 'h' AND item = 1 AND fstype IN ('file', 'mdfile') AND fs_path IS NOT NULL LIMIT 1`,
-          )
-          .get(task.parent_id as string) as { fs_path: string } | null
-        fsPath = file?.fs_path ?? null
-      }
-      if (fsPath) {
-        writeDateToFile(fsPath, task.md_line as number, task.due_at as string | null, task.start_at as string | null)
-      }
-    }
-  }
-}
-
-/**
- * Write task status change back to markdown file (bidirectional sync)
- */
-function writeTaskStatusToFile(fsPath: string, mdLine: number, newStatus: TaskStatus): void {
-  try {
-    const content = readFileSync(fsPath, "utf-8")
-    const lines = content.split("\n")
-
-    if (mdLine >= lines.length) return
-
-    const line = lines[mdLine]
-    if (!line) return
-
-    const marker = getMarkerForStatus(newStatus)
-    const mark = marker[1] // Extract inner char from "[x]" → "x"
-
-    lines[mdLine] = line.replace(/^(\s*-\s+\[).(])/, `$1${mark}$2`)
-
-    void Bun.write(fsPath, lines.join("\n"))
-  } catch {
-    // Ignore write errors
-  }
-}
-
-/**
- * Write date field changes back to markdown file (bidirectional sync).
- * Updates existing emoji (📅/⏳) or inline (due:/start:) markers, or appends inline format.
- */
-function writeDateToFile(fsPath: string, mdLine: number, dueAt: string | null, startAt: string | null): void {
-  try {
-    const content = readFileSync(fsPath, "utf-8")
-    const lines = content.split("\n")
-    if (mdLine >= lines.length) return
-    let line = lines[mdLine]
-    if (!line) return
-
-    line = updateDateField(line, dueAt, "due")
-    line = updateDateField(line, startAt, "scheduled")
-
-    lines[mdLine] = line
-    void Bun.write(fsPath, lines.join("\n"))
-  } catch {
-    // Ignore write errors
-  }
-}
-
-function updateDateField(line: string, date: string | null, field: "due" | "scheduled"): string {
-  const emojiRegex =
-    field === "due" ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-  const inlineRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
-
-  const hasEmoji = emojiRegex.test(line)
-  const hasInline = inlineRegex.test(line)
-
-  if (date) {
-    if (hasEmoji) {
-      const emoji = field === "due" ? "📅" : "⏳"
-      const replaceRegex =
-        field === "due" ? /📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/ : /⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/
-      line = line.replace(replaceRegex, `${emoji} ${date}`)
-    } else if (hasInline) {
-      const replaceRegex = field === "due" ? /\bdue:\d{4}-\d{2}-\d{2}\b/ : /\bstart:\d{4}-\d{2}-\d{2}\b/
-      const inlineKey = field === "due" ? "due" : "start"
-      line = line.replace(replaceRegex, `${inlineKey}:${date}`)
-    } else {
-      const inlineKey = field === "due" ? "due" : "start"
-      line = line.trimEnd() + ` ${inlineKey}:${date}`
-    }
-  } else {
-    if (hasEmoji) {
-      const clearRegex =
-        field === "due" ? /\s*📅\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g : /\s*⏳\s*\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2})?/g
-      line = line.replace(clearRegex, "")
-    }
-    if (hasInline) {
-      const clearRegex = field === "due" ? /\s*\bdue:\d{4}-\d{2}-\d{2}\b/g : /\s*\bstart:\d{4}-\d{2}-\d{2}\b/g
-      line = line.replace(clearRegex, "")
-    }
-  }
-
-  return line
+  // NOTE: Filesystem write-back (task_status, dates) is handled by
+  // SyncManager.applyEventToFs / FsWriter.applyEventToFs, which regenerate
+  // the entire file from DB state via the WriteQueue pipeline.
+  // Direct FS writes here would race with that pipeline.
 }
 
 function applyNodeMoved(db: Database, event: Event): void {

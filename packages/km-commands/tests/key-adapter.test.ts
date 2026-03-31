@@ -454,3 +454,114 @@ describe("wouldHandleKey", () => {
     expect(wouldHandleKey("", { escape: true }, moveCtx)).toBe(true)
   })
 })
+
+/**
+ * Shifted key dual-path tests.
+ *
+ * `input` from parseKey serves TWO purposes:
+ *   1. Keybinding resolution: keyMap.get(input) finds the bucket (e.g., "/" for "shift-/")
+ *   2. Text insertion fallback: when key.text is absent, input is inserted
+ *
+ * key.text serves ONE purpose:
+ *   - The actual character to insert in text mode (e.g., "?" for Shift+/)
+ *
+ * These tests verify BOTH paths work correctly for shifted punctuation,
+ * catching the regression where changing input for text insertion broke keybinding resolution.
+ */
+describe("shifted key dual-path: keybinding resolution AND text insertion", () => {
+  beforeEach(() => {
+    clearRegistry()
+    clearKeybindings()
+    initCommandSystem()
+  })
+
+  // All 21 US QWERTY shifted punctuation: [base key, shifted char]
+  const SHIFTED_PAIRS: [string, string][] = [
+    ["1", "!"],
+    ["2", "@"],
+    ["3", "#"],
+    ["4", "$"],
+    ["5", "%"],
+    ["6", "^"],
+    ["7", "&"],
+    ["8", "*"],
+    ["9", "("],
+    ["0", ")"],
+    ["-", "_"],
+    ["=", "+"],
+    ["`", "~"],
+    ["[", "{"],
+    ["]", "}"],
+    ["\\", "|"],
+    [";", ":"],
+    ["'", '"'],
+    [",", "<"],
+    [".", ">"],
+    ["/", "?"],
+  ]
+
+  describe("text insertion path: key.text is used, not input", () => {
+    // Kitty protocol: input = base key (e.g., "/"), key.text = shifted char (e.g., "?")
+    // Text mode should insert key.text, not input
+    it.each(SHIFTED_PAIRS)("Shift+%s inserts '%s' in text mode (Kitty-style)", (base, shifted) => {
+      const kbCtx = buildKeybindingContext({ textInputFocused: true })
+      const cmdCtx = createCommandContext()
+
+      // Simulates Kitty parseKey output: input=base, key.text=shifted, shift=true
+      const result = processKey(base, { shift: true, text: shifted }, cmdCtx, kbCtx)
+
+      expect(result.commandId).toBe("text.insert")
+      expect(result.actions).toEqual({ type: "TEXT_INSERT", char: shifted })
+    })
+  })
+
+  describe("keybinding resolution path: input (base key) is used for keyMap lookup", () => {
+    // The critical regression test: Shift+/ must resolve to "show_help" (bound to "shift-/").
+    // This requires input="/" so keyMap.get("/") finds the bucket, then shift=true matches.
+    // If input were "?", keyMap.get("?") would miss the bucket entirely.
+    it("Shift+/ resolves to show_help in normal mode", () => {
+      const kbCtx = buildKeybindingContext({})
+      const cmdCtx = createCommandContext()
+
+      // Simulates Kitty parseKey output for Shift+/: input="/", shift=true, text="?"
+      const result = processKey("/", { shift: true, text: "?" }, cmdCtx, kbCtx)
+
+      expect(result.handled).toBe(true)
+      expect(result.commandId).toBe("show_help")
+    })
+
+    it("Shift+/ resolves to noop during inline editing (wildcard catch-all)", () => {
+      const kbCtx = buildKeybindingContext({ textInputFocused: true })
+      const cmdCtx = createCommandContext()
+
+      // In text mode, Shift+/ inserts "?" (caught by text insertion path above)
+      const result = processKey("/", { shift: true, text: "?" }, cmdCtx, kbCtx)
+
+      expect(result.commandId).toBe("text.insert")
+      expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "?" })
+    })
+
+    it("Shift+[ resolves to nav_back (bound to 'shift-[')", () => {
+      const kbCtx = buildKeybindingContext({})
+      const cmdCtx = createCommandContext()
+
+      // Kitty Shift+[ → input="[", shift=true, text="{"
+      // keyMap.get("[") finds bucket, shift=true matches "shift-["
+      const result = processKey("[", { shift: true, text: "{" }, cmdCtx, kbCtx)
+
+      expect(result.handled).toBe(true)
+      expect(result.commandId).toBe("nav_back")
+    })
+
+    it("Shift+] resolves to nav_forward (bound to 'shift-]')", () => {
+      const kbCtx = buildKeybindingContext({})
+      const cmdCtx = createCommandContext()
+
+      // Kitty Shift+] → input="]", shift=true, text="}"
+      const result = processKey("]", { shift: true, text: "}" }, cmdCtx, kbCtx)
+
+      expect(result.handled).toBe(true)
+      expect(result.commandId).toBe("nav_forward")
+    })
+  })
+})

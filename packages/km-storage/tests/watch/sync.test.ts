@@ -488,6 +488,57 @@ code
       }))
   })
 
+  describe("stop() flushes pending writes", () => {
+    test("stop() writes pending changes to disk instead of dropping them", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const testFile = join(repoDir, "tasks.md")
+        writeFileSync(
+          testFile,
+          `# Tasks
+
+- [ ] Alpha
+- [ ] Beta
+`,
+        )
+
+        // Use a long debounce so writes stay pending until stop()
+        const manager = new SyncManager({
+          db: db,
+          repoPath: repoDir,
+          debounceFs: 0,
+          debounceApply: 60_000,
+          conflictStrategy: "last_write_wins",
+        })
+
+        await manager.syncFromFs()
+
+        // Find Alpha task and mark it done in DB
+        const allNodes = getAllNodes(db)
+        const alpha = allNodes.find((n) => n.content === "Alpha")
+        expect(alpha).toBeDefined()
+
+        db.run("UPDATE nodes SET task_status = 'done', updated_at = ? WHERE id = ?", [Date.now(), alpha!.id])
+
+        // Apply event to trigger a writeQueue entry
+        manager.applyEventToFs({
+          id: "test-stop-flush",
+          ts: Date.now(),
+          type: "node_updated",
+          actor: "user",
+          target: alpha!.id,
+          data: { task_status: "done" },
+        })
+
+        // Stop immediately — pending write should be flushed, not dropped
+        await manager.stop()
+
+        // Verify the file on disk has the updated task status
+        const content = readFileSync(testFile, "utf-8")
+        expect(content).toContain("[x] Alpha")
+        expect(content).toContain("[ ] Beta")
+      }))
+  })
+
   describe("applyEventToFs — node_created for section nodes", () => {
     test("creating a section node regenerates parent file", () =>
       withTestEnv(async ({ repoDir, db }) => {

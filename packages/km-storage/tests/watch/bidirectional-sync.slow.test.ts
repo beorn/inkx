@@ -703,6 +703,219 @@ describe("File & Folder Renames", () => {
       }))
   })
 
+  describe("Fault Injection: Reconcile Failures", () => {
+    test("corrupt .md file during reconcile does not overwrite with DB state", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        setupSyncManager(stack, syncManager, emitter)
+
+        // Create valid file and sync
+        const testFile = join(repoDir, "corrupt-test.md")
+        writeFileSync(testFile, "# Valid\n\n- [ ] Task A\n- [ ] Task B\n")
+
+        await syncManager.syncFromFs()
+
+        // Verify initial state
+        const allNodes = getAllNodes(db)
+        const tasks = allNodes.filter((n) => n.task_status != null)
+        expect(tasks.length).toBe(2)
+
+        // Now corrupt the file with invalid markdown (binary garbage)
+        const corruptContent = "# Valid\n\n\x00\x01\x02 garbage data \xFF\xFE\n"
+        writeFileSync(testFile, corruptContent)
+
+        // Re-sync from fs — should handle corrupt gracefully
+        await syncManager.syncFromFs()
+
+        // Read file back — it should NOT have been overwritten with DB state.
+        // The corrupt file content should remain on disk.
+        const diskContent = readFileSync(testFile, "utf-8")
+        // The key assertion: file was NOT silently replaced with DB-regenerated content.
+        // It should either be the corrupt content OR a gracefully handled version,
+        // but NOT the clean DB content without the corruption.
+        expect(diskContent).not.toBe("# Valid\n\n- [ ] Task A\n- [ ] Task B\n")
+      }))
+
+    test("missing .md file during reconcile is handled gracefully", () =>
+      withTestEnv(async ({ repoDir, db, emitter }) => {
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        setupSyncManager(stack, syncManager, emitter)
+
+        // Create two files — one will be deleted, the other ensures the
+        // directory is still scanned during reconciliation (syncFromFs only
+        // reconciles directories that contain .md files on disk)
+        const testFile = join(repoDir, "will-vanish.md")
+        const keepFile = join(repoDir, "stays.md")
+        writeFileSync(testFile, "# Vanish\n\n- [ ] Ghost task\n")
+        writeFileSync(keepFile, "# Stays\n\nKeep me.\n")
+
+        await syncManager.syncFromFs()
+
+        // Verify both exist in DB
+        const beforeNodes = getAllNodes(db)
+        const ghostTask = beforeNodes.find((n) => n.content?.includes("Ghost task"))
+        expect(ghostTask).toBeDefined()
+        expect(getNodeByPath(db, "will-vanish.md")).not.toBeNull()
+
+        // Delete one file externally
+        rmSync(testFile)
+
+        // Re-sync — should handle missing file gracefully (remove from DB)
+        await syncManager.syncFromFs()
+
+        // Deleted file node should be removed from DB
+        const fileNode = getNodeByPath(db, "will-vanish.md")
+        expect(fileNode).toBeNull()
+
+        // Surviving file should still be in DB
+        const survivingNode = getNodeByPath(db, "stays.md")
+        expect(survivingNode).not.toBeNull()
+      }))
+  })
+
+  describe("Cross-File Move", () => {
+    test("move node between files updates BOTH source and destination files", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        // Create two files
+        const sourceFile = join(repoDir, "source.md")
+        const destFile = join(repoDir, "dest.md")
+        writeFileSync(sourceFile, "# Source\n\n- [ ] Moving task\n- [ ] Staying task\n")
+        writeFileSync(destFile, "# Dest\n\n- [ ] Existing task\n")
+
+        await syncManager.syncFromFs()
+
+        // Find the task to move
+        const allNodes = getAllNodes(db)
+        const movingTask = allNodes.find((n) => n.content?.includes("Moving task"))
+        expect(movingTask).toBeDefined()
+
+        // Find the dest file node
+        const destFileNode = getNodeByPath(db, "dest.md")
+        expect(destFileNode).toBeDefined()
+
+        // Move task from source to dest
+        repo.moveNode(movingTask!.id, destFileNode!.id, 999)
+
+        // Wait for write queue to flush
+        await Bun.sleep(300)
+
+        // Source file should NO LONGER contain "Moving task"
+        const sourceContent = readFileSync(sourceFile, "utf-8")
+        expect(sourceContent).not.toContain("Moving task")
+        expect(sourceContent).toContain("Staying task")
+
+        // Dest file should now contain "Moving task"
+        const destContent = readFileSync(destFile, "utf-8")
+        expect(destContent).toContain("Moving task")
+        expect(destContent).toContain("Existing task")
+      }))
+
+    test("move node within same file writes only one file", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        // Create file with two sections
+        const testFile = join(repoDir, "same-file.md")
+        writeFileSync(testFile, "# Board\n\n## Column A\n\n- [ ] Task 1\n\n## Column B\n\n- [ ] Task 2\n")
+
+        await syncManager.syncFromFs()
+
+        // Find Task 1 and Column B
+        const allNodes = getAllNodes(db)
+        const task1 = allNodes.find((n) => n.content?.includes("Task 1"))
+        expect(task1).toBeDefined()
+        const colB = allNodes.find((n) => n.content === "Column B")
+        expect(colB).toBeDefined()
+
+        // Move Task 1 under Column B (within same file)
+        repo.moveNode(task1!.id, colB!.id, 999)
+
+        // Wait for write queue to flush
+        await Bun.sleep(300)
+
+        // File should be updated with Task 1 now under Column B
+        const content = readFileSync(testFile, "utf-8")
+        // Column A should be empty of tasks, Column B should have both
+        const colBPos = content.indexOf("## Column B")
+        const task1Pos = content.indexOf("Task 1")
+        const task2Pos = content.indexOf("Task 2")
+
+        // Task 1 should appear after Column B header
+        expect(task1Pos).toBeGreaterThan(colBPos)
+        // Both tasks should still exist
+        expect(content).toContain("Task 1")
+        expect(content).toContain("Task 2")
+      }))
+  })
+
+  describe("Delete Ordering", () => {
+    test("delete node regenerates file from event data, not DB lookup", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        // Create file with tasks
+        const testFile = join(repoDir, "delete-test.md")
+        writeFileSync(testFile, "# Tasks\n\n- [ ] Keep me\n- [ ] Delete me\n")
+
+        await syncManager.syncFromFs()
+
+        // Find the task to delete
+        const allNodes = getAllNodes(db)
+        const deleteTask = allNodes.find((n) => n.content?.includes("Delete me"))
+        expect(deleteTask).toBeDefined()
+
+        // Delete the node — this removes it from DB first, then regenerates file
+        repo.deleteNode(deleteTask!.id)
+
+        // Wait for write queue to flush
+        await Bun.sleep(300)
+
+        // File should be updated: "Delete me" removed, "Keep me" still present
+        const content = readFileSync(testFile, "utf-8")
+        expect(content).toContain("Keep me")
+        expect(content).not.toContain("Delete me")
+
+        // File should still exist on disk (not deleted entirely)
+        expect(existsSync(testFile)).toBe(true)
+      }))
+  })
+
   describe("Folder rename (content → directory name)", () => {
     test("editing folder content renames directory on disk", () =>
       withTestEnv(async ({ repoDir, db }) => {

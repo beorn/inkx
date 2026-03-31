@@ -798,6 +798,239 @@ describe("redo-duplicate-broken (km-wacsx)", () => {
 })
 
 // =============================================================================
+// Undo fold/collapse state (km-tui.undo-collapse-state)
+// =============================================================================
+
+/** Helper to get the active board pane from app state */
+function getActiveBoardPane(appState: any) {
+  const pane = Array.from(appState.workspace.panes.values()).find((p: any) => p.type === "board")
+  if (!pane || pane.type !== "board") throw new Error("No active board pane found")
+  return pane
+}
+
+describe("undo: fold/collapse state", () => {
+  test("folding a node creates undoable entry", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child-a"), item("child-b")), item("sibling"))),
+    )
+
+    // Navigate to parent
+    board.navigateTo("parent")
+
+    // Verify parent has children
+    expect(repo.getChildren("parent").length).toBe(2)
+
+    // Fold the parent (f key)
+    board.press("f")
+
+    // Parent should be in foldDepths with depth 0 (collapsed)
+    const appState = board.getAppState()
+    const pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+    expect(pane.foldDepths.get("parent")).toBe(0)
+  })
+
+  test("undo fold restores expanded state", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child-a"), item("child-b")), item("sibling"))),
+    )
+
+    // Navigate to parent
+    board.navigateTo("parent")
+
+    // Initial: parent is expanded (not in foldDepths)
+    let appState = board.getAppState()
+    let pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(false)
+
+    // Fold the parent
+    board.press("f")
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+
+    // Undo fold
+    board.command("undo")
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(false)
+  })
+
+  test("redo fold restores collapsed state", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child-a"), item("child-b")), item("sibling"))),
+    )
+
+    // Navigate to parent and fold
+    board.navigateTo("parent")
+    board.press("f")
+
+    // Verify folded
+    let appState = board.getAppState()
+    let pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+
+    // Undo fold
+    board.command("undo")
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(false)
+
+    // Redo fold
+    board.command("redo")
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+    expect(pane.foldDepths.get("parent")).toBe(0)
+  })
+
+  test("collapsing a list item creates undoable entry", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2")),
+    )
+
+    // Navigate to col1 (list item)
+    board.navigateTo("col1")
+
+    // Initial: col1 is not collapsed
+    let appState = board.getAppState()
+    let pane = getActiveBoardPane(appState)
+    expect(pane.collapsedNodes.has("col1")).toBe(false)
+
+    // Collapse col1 (x key)
+    board.press("x")
+
+    // Verify collapsed
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.collapsedNodes.has("col1")).toBe(true)
+  })
+
+  test("undo collapse restores expanded list item", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2")),
+    )
+
+    // Navigate to col1
+    board.navigateTo("col1")
+
+    // Collapse col1
+    board.press("x")
+    let appState = board.getAppState()
+    let pane = getActiveBoardPane(appState)
+    expect(pane.collapsedNodes.has("col1")).toBe(true)
+
+    // Undo collapse
+    board.command("undo")
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.collapsedNodes.has("col1")).toBe(false)
+  })
+
+  test("redo collapse restores collapsed list item", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("A"), item("B"), item("C")), item("col2")),
+    )
+
+    // Navigate to col1, collapse, undo
+    board.navigateTo("col1")
+    board.press("x")
+    board.command("undo")
+
+    // Verify expanded
+    let appState = board.getAppState()
+    let pane = getActiveBoardPane(appState)
+    expect(pane.collapsedNodes.has("col1")).toBe(false)
+
+    // Redo collapse
+    board.command("redo")
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.collapsedNodes.has("col1")).toBe(true)
+  })
+
+  test("fold state is independent of node mutations", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("parent", item("child-a")), item("sibling"))),
+    )
+
+    // Navigate to parent and fold it
+    board.navigateTo("parent")
+    board.press("f")
+
+    let appState = board.getAppState()
+    let pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+
+    // Edit the parent node
+    board.press("Enter")
+    board.type("!")
+    board.press("Escape")
+
+    // Verify parent is still folded after edit
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+
+    // Undo the edit (node change only)
+    board.command("undo")
+
+    // Parent should remain folded
+    appState = board.getAppState()
+    pane = getActiveBoardPane(appState)
+    expect(pane.foldDepths.has("parent")).toBe(true)
+  })
+
+  test("multiple folds can be individually undone", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("p1", item("c1")), item("p2", item("c2")), item("p3", item("c3"))),
+      ),
+    )
+
+    // Fold p1
+    board.navigateTo("p1")
+    board.press("f")
+
+    // Fold p2
+    board.navigateTo("p2")
+    board.press("f")
+
+    // Fold p3
+    board.navigateTo("p3")
+    board.press("f")
+
+    // Verify all folded
+    let appState = board.getAppState()
+    expect(appState.foldDepths.has("p1")).toBe(true)
+    expect(appState.foldDepths.has("p2")).toBe(true)
+    expect(appState.foldDepths.has("p3")).toBe(true)
+
+    // Undo p3 fold
+    board.command("undo")
+    appState = board.getAppState()
+    expect(appState.foldDepths.has("p1")).toBe(true)
+    expect(appState.foldDepths.has("p2")).toBe(true)
+    expect(appState.foldDepths.has("p3")).toBe(false)
+
+    // Undo p2 fold
+    board.command("undo")
+    appState = board.getAppState()
+    expect(appState.foldDepths.has("p1")).toBe(true)
+    expect(appState.foldDepths.has("p2")).toBe(false)
+    expect(appState.foldDepths.has("p3")).toBe(false)
+
+    // Undo p1 fold
+    board.command("undo")
+    appState = board.getAppState()
+    expect(appState.foldDepths.has("p1")).toBe(false)
+    expect(appState.foldDepths.has("p2")).toBe(false)
+    expect(appState.foldDepths.has("p3")).toBe(false)
+  })
+})
+
+// =============================================================================
 // Undo/Redo Journeys (screen + persistence verification)
 // =============================================================================
 
@@ -970,5 +1203,231 @@ describe("Undo/Redo Journeys", () => {
     board.expect("#t1").toExist()
     board.expect("#t2").toExist()
     board.expect("#t3").toExist()
+  })
+})
+
+// =============================================================================
+// Undo indent (Tab) — km-tui.tab-undo-corruption
+// =============================================================================
+
+describe("undo: indent node (Tab)", () => {
+  test("indent -> undo restores original parent and position", () => {
+    const { repo, handle } = setup(item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))))
+
+    // task-b is under col1 at position 1
+    expect(repo.getNode("task-b")?.parent_id).toBe("col1")
+    const originalIdx = repo.getNode("task-b")?.parent_idx ?? -1
+
+    // Simulate indent: move task-b under task-a (its previous sibling)
+    handle.setCursor("task-b")
+    repo.moveNode("task-b", "task-a", 0)
+
+    // Verify indent took effect
+    expect(repo.getNode("task-b")?.parent_id).toBe("task-a")
+    expect(childIds(repo, "task-a")).toContain("task-b")
+    expect(childIds(repo, "col1")).toEqual(["task-a", "task-c"])
+
+    // Undo
+    const result = handle.undo()
+    expect(result.ok).toBe(true)
+
+    // task-b should be back under col1 with original parent_idx
+    const restored = repo.getNode("task-b")
+    expect(restored?.parent_id).toBe("col1")
+    expect(restored?.parent_idx).toBe(originalIdx)
+
+    // All three should be children of col1 in original order
+    expect(childIds(repo, "col1")).toEqual(["task-a", "task-b", "task-c"])
+  })
+
+  test("TUI: Tab to indent, u to undo restores card hierarchy", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"), item("gamma"))))
+
+    // Navigate to beta (second card)
+    board.command("cursor_down")
+    board.expect("#beta[data-cursor]").toExist()
+
+    // Verify initial state
+    expect(childIds(repo, "col1")).toEqual(["alpha", "beta", "gamma"])
+
+    // Indent beta (should reparent under alpha)
+    board.command("indent_node")
+
+    // beta should now be a child of alpha
+    expect(repo.getNode("beta")?.parent_id).toBe("alpha")
+    expect(childIds(repo, "alpha")).toContain("beta")
+    // col1 should have only alpha and gamma as direct children
+    expect(childIds(repo, "col1")).toEqual(["alpha", "gamma"])
+
+    // Undo the indent
+    board.command("undo")
+
+    // beta should be back under col1
+    expect(repo.getNode("beta")?.parent_id).toBe("col1")
+    expect(childIds(repo, "col1")).toEqual(["alpha", "beta", "gamma"])
+    expect(childIds(repo, "alpha")).toEqual([])
+
+    // Screen should show all three cards
+    board.expect("#alpha").toExist()
+    board.expect("#beta").toExist()
+    board.expect("#gamma").toExist()
+  })
+
+  test("TUI: indent + undo + redo cycle preserves data", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("first"), item("second"))))
+
+    // Navigate to second
+    board.command("cursor_down")
+    board.expect("#second[data-cursor]").toExist()
+
+    // Indent
+    board.command("indent_node")
+    expect(repo.getNode("second")?.parent_id).toBe("first")
+
+    // Undo
+    board.command("undo")
+    expect(repo.getNode("second")?.parent_id).toBe("col1")
+    expect(childIds(repo, "col1")).toEqual(["first", "second"])
+
+    // Redo
+    board.command("redo")
+    expect(repo.getNode("second")?.parent_id).toBe("first")
+
+    // Undo again
+    board.command("undo")
+    expect(repo.getNode("second")?.parent_id).toBe("col1")
+    expect(childIds(repo, "col1")).toEqual(["first", "second"])
+
+    // No node should be lost
+    expect(repo.getNode("first")).not.toBeNull()
+    expect(repo.getNode("second")).not.toBeNull()
+  })
+
+  test("TUI: indent does not corrupt sibling content", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("aaa"), item("bbb"), item("ccc"))))
+
+    // Navigate to bbb
+    board.command("cursor_down")
+
+    // Indent bbb under aaa
+    board.command("indent_node")
+
+    // Undo
+    board.command("undo")
+
+    // Verify no content shuffling: each node retains its original content
+    expect(repo.getNode("aaa")?.content).toBe("aaa")
+    expect(repo.getNode("bbb")?.content).toBe("bbb")
+    expect(repo.getNode("ccc")?.content).toBe("ccc")
+
+    // Verify hierarchy is fully restored
+    expect(repo.getNode("aaa")?.parent_id).toBe("col1")
+    expect(repo.getNode("bbb")?.parent_id).toBe("col1")
+    expect(repo.getNode("ccc")?.parent_id).toBe("col1")
+  })
+})
+
+// =============================================================================
+// Fold state undo/redo (km-tui.undo-collapse-state)
+// =============================================================================
+
+describe("undo: fold state", () => {
+  test("TUI: fold node is undoable", () => {
+    const nodes = item("board", item("col1", item("task-parent", item("child-1"), item("child-2"))))
+    const { board, store } = testEnv(() => nodes)
+
+    // Get initial fold state
+    const pane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(pane).toBeDefined()
+    const initialFoldDepths = new Map(pane!.foldDepths)
+
+    // Fold task-parent (navigate to parent first)
+    board.command("cursor_down") // navigate to col1
+    board.command("cursor_right") // navigate to task-parent
+    board.command("fold_node")
+
+    // Verify fold state changed (parent should now be folded)
+    const foldedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(foldedPane?.foldDepths.size).toBeGreaterThan(0)
+
+    // Undo fold
+    board.command("undo")
+
+    // Verify fold state is restored
+    const unfoldedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(unfoldedPane?.foldDepths).toEqual(initialFoldDepths)
+
+    // Redo fold
+    board.command("redo")
+
+    // Verify fold state is re-applied
+    const refoldedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(refoldedPane?.foldDepths.size).toBeGreaterThan(0)
+  })
+
+  test("TUI: toggle collapse is undoable", () => {
+    const nodes = item("board", item("col1", item("task-1"), item("task-2"), item("task-3")))
+    const { board, store } = testEnv(() => nodes)
+
+    // Navigate to col1 (left column - the column with tasks)
+    board.command("cursor_right") // col1 is to the right
+
+    // Get initial collapsed state
+    const pane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    const initialCollapsed = new Set(pane!.collapsedNodes)
+
+    // Toggle collapse on col1
+    board.command("toggle_collapse")
+
+    // Verify collapse state changed
+    const collapsedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(collapsedPane?.collapsedNodes.has("col1")).toBe(true)
+
+    // Undo collapse
+    board.command("undo")
+
+    // Verify collapse state is restored
+    const uncollapsedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(uncollapsedPane?.collapsedNodes).toEqual(initialCollapsed)
+
+    // Redo collapse
+    board.command("redo")
+
+    // Verify collapse state is re-applied
+    const recollapsedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(recollapsedPane?.collapsedNodes.has("col1")).toBe(true)
+  })
+
+  test("TUI: fold + edit, undo restores both", () => {
+    const nodes = item("board", item("col1", item("task-a", item("child"))))
+    const { board, repo, store } = testEnv(() => nodes)
+
+    // Get initial state
+    const pane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    const initialFoldDepths = new Map(pane!.foldDepths)
+
+    // Navigate to task-a
+    board.command("cursor_right") // navigate to col1
+    board.command("cursor_right") // navigate to task-a
+
+    // Edit task-a first
+    board.command("enter_edit")
+    board.type(" (edited)")
+    board.command("exit_edit")
+
+    // Then fold task-a
+    board.command("fold_node")
+
+    // Verify both changes applied
+    expect(repo.getNode("task-a")?.content).toBe("task-a (edited)")
+    const editedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(editedPane?.foldDepths.size).toBeGreaterThan(0)
+
+    // Undo fold — both fold state and recent edit should be undone
+    board.command("undo")
+
+    // After undo, fold state should be reset
+    const unfoldedPane = Array.from(store.getState().workspace.panes.values()).find((p) => p.rootId === "board")
+    expect(unfoldedPane?.foldDepths).toEqual(initialFoldDepths)
   })
 })

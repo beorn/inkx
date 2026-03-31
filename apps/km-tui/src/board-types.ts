@@ -90,6 +90,7 @@ export type BoardAction =
   // Fold/unfold (manipulates foldDepths Map)
   | { type: "TOGGLE_FOLD"; nodeId: string }
   | { type: "TOGGLE_COLLAPSE"; nodeId: string }
+  | { type: "SET_COLLAPSED_NODES"; nodeIds: string[] }
 
   // Zoom
   | { type: "ZOOM_IN"; nodeId: string | null; cursorNodeId?: string | null }

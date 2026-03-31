@@ -18,6 +18,24 @@ import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:undo")
 
+/**
+ * Create a deep copy of fold state for snapshotting.
+ * Maps and Sets are serialized to JSON then deserialized to avoid references.
+ */
+export function copyFoldState(state: FoldState): FoldState {
+  return {
+    foldDepths: new Map(state.foldDepths),
+    collapsedNodes: new Set(state.collapsedNodes),
+  }
+}
+
+export interface FoldState {
+  /** Map of nodeId → fold depth (0 means collapsed outline) */
+  foldDepths: Map<string, number>
+  /** Set of nodeId → collapsed list/task items */
+  collapsedNodes: Set<string>
+}
+
 export interface UndoEntry {
   /** Human-readable description (e.g., "Duplicate node") */
   label: string
@@ -27,6 +45,10 @@ export interface UndoEntry {
   redo: () => void
   /** Cursor node to restore on undo (position before the operation) */
   cursorNodeId?: string | null
+  /** Optional fold state snapshot to restore on undo */
+  foldStateBefore?: FoldState
+  /** Optional fold state snapshot to restore on redo */
+  foldStateAfter?: FoldState
 }
 
 export interface UndoResult {
@@ -36,6 +58,8 @@ export interface UndoResult {
   cursorNodeId?: string | null
   /** Human-readable label of the operation (e.g., "Delete", "Move cards") */
   label?: string
+  /** Fold state to restore (to be applied by the caller) */
+  foldState?: FoldState
 }
 
 export interface UndoStack {
@@ -85,7 +109,12 @@ export function createUndoStack(maxSize = 100): UndoStack {
 
       log.info?.(`undo: "${entry.label}"`)
       entry.undo()
-      return { ok: true, cursorNodeId: entry.cursorNodeId, label: entry.label }
+      return {
+        ok: true,
+        cursorNodeId: entry.cursorNodeId,
+        label: entry.label,
+        foldState: entry.foldStateBefore,
+      }
     },
 
     redo(): UndoResult {
@@ -96,7 +125,11 @@ export function createUndoStack(maxSize = 100): UndoStack {
       log.info?.(`redo: "${entry.label}"`)
       entry.redo()
       cursor++
-      return { ok: true, label: entry.label }
+      return {
+        ok: true,
+        label: entry.label,
+        foldState: entry.foldStateAfter,
+      }
     },
 
     canUndo(): boolean {

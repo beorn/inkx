@@ -11,7 +11,7 @@
  * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
  */
 
-import { useEffect, useRef, useState, useSyncExternalStore } from "react"
+import { useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
 import { createLogger } from "loggily"
@@ -206,23 +206,11 @@ export function useColumns(
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
-  // Coalesce rapid version bumps — multiple mutations within one frame
-  // (e.g., background link resolution firing touch() multiple times)
-  // only trigger one derivation. Disabled in test env where act() needs sync updates.
-  // @ts-expect-error - React internal flag set by silvery test renderer
-  const isTest = globalThis.IS_REACT_ACT_ENVIRONMENT as boolean
-  const [debouncedVersion, setDebouncedVersion] = useState(repoVersion)
-  useEffect(() => {
-    if (isTest) {
-      setDebouncedVersion(repoVersion)
-      return
-    }
-    const id = setTimeout(() => setDebouncedVersion(repoVersion), 0)
-    return () => clearTimeout(id)
-  }, [repoVersion, isTest])
-
-  // In test mode, use repoVersion directly for synchronous updates
-  const effectiveVersion = isTest ? repoVersion : debouncedVersion
+  // Use repoVersion directly — column derivation is fast (per-column memoization),
+  // so debouncing adds complexity without meaningful benefit. Previous setTimeout(0)
+  // debounce caused newly created nodes to be invisible until the next frame because
+  // the column derivation lagged behind the edit state.
+  const effectiveVersion = repoVersion
 
   // Batch-preload children cache before column derivation + Card mount.
   // Without this, each Card component individually queries SQLite for children
@@ -243,35 +231,18 @@ export function useColumns(
   const foldDepthsRef = useRef(foldDepths)
   foldDepthsRef.current = foldDepths
 
-  // Synchronous column derivation on rootId change.
-  // When rootId changes (e.g., detail pane following cursor), columns must update
-  // in the SAME render — deferring to useEffect causes a frame where the title
-  // (from rootId) shows the new node but content shows stale columns.
+  // Synchronous column derivation on rootId or version change.
+  // Columns must update in the SAME render cycle as the state change —
+  // deferring to useEffect causes a frame where the edit state targets a
+  // node that doesn't have a TreeNode yet (newly created nodes are invisible).
   // React handles setState-during-render by immediately re-rendering with the
   // new state without committing the intermediate frame.
-  if (depsRef.current.rootId !== rootId) {
+  if (depsRef.current.rootId !== rootId || depsRef.current.version !== effectiveVersion) {
     repo.preloadSubtree(rootId, 3)
     const newColumns = derive(repo, rootId, foldDepthsRef.current)
     depsRef.current = { rootId, version: effectiveVersion }
     setColumns(newColumns)
   }
-
-  // Version-driven re-derivation (repo mutations) uses useEffect for coalescing.
-  // Multiple rapid version bumps settle to a single derivation via debouncedVersion.
-  useEffect(() => {
-    const prev = depsRef.current
-    if (prev.version === effectiveVersion) return
-    depsRef.current = { rootId, version: effectiveVersion }
-
-    if (isTest) {
-      setColumns(derive(repo, rootId, foldDepthsRef.current))
-      return
-    }
-
-    // Coalesced derivation — runs after rapid version bumps settle.
-    // Per-column memoization makes non-zoom derivation fast (cache hits).
-    setColumns(derive(repo, rootId, foldDepthsRef.current))
-  }, [effectiveVersion, rootId, isTest, repo])
 
   return columns
 }

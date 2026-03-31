@@ -73,6 +73,7 @@ import { TreeRenderProvider, deriveTreeConfig } from "../../src/ui-context.tsx"
 import {
   createBoardAppStoreState,
   type BoardAppStore,
+  type BoardAppState,
   type CreateBoardAppStoreParams,
 } from "../../src/board-app-store.ts"
 import { handleKey, handleMouse, resetBoardAppState } from "../../src/board-app.ts"
@@ -653,6 +654,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     sendMouseEvent,
     sendTreeMouseEvent,
     dispatchCommand,
+    store,
   })
 
   return { board, registry, toastQueue, store, focusManager, result }
@@ -674,8 +676,9 @@ function createFluentBoardApi(ctx: {
   sendMouseEvent: (mouse: ParsedMouse) => void
   sendTreeMouseEvent?: (mouse: ParsedMouse) => void
   dispatchCommand?: (commandId: string) => void
+  store?: StoreApi<BoardAppStore>
 }) {
-  const { result, columns, rows, pressKey, sendMouseEvent, sendTreeMouseEvent, dispatchCommand } = ctx
+  const { result, columns, rows, pressKey, sendMouseEvent, sendTreeMouseEvent, dispatchCommand, store } = ctx
 
   // Create fluent API using App's auto-refreshing locators
   const board = {
@@ -1654,6 +1657,22 @@ function createFluentBoardApi(ctx: {
       }
 
       return board
+    },
+
+    /**
+     * Get the current app state (fold depths, collapsed nodes, etc.)
+     * Useful for testing fold/collapse state changes.
+     *
+     * @example
+     * ```typescript
+     * board.press("f") // toggle fold
+     * const state = board.getAppState()
+     * expect(state.foldDepths.has("parent")).toBe(true)
+     * ```
+     */
+    getAppState(): BoardAppState {
+      if (!store) throw new Error("getAppState() requires testEnv() — not available in renderBoard()")
+      return store.getState()
     },
   }
 

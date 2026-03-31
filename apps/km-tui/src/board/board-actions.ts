@@ -373,6 +373,7 @@ import {
   handleShiftCard,
   handleTaskStatusCycle,
   handleClearTask,
+  requestRenderFlush,
 } from "./board-actions-edit.ts"
 import {
   handleCursorMove,
@@ -870,6 +871,25 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
       if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
       const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
       ctx.undoHandle.setCursor(ctx.cursorNodeId)
+
+      // Snapshot fold state before toggle (for undo)
+      const foldStateBefore = {
+        foldDepths: new Map(ctx.foldDepths),
+        collapsedNodes: new Set(ctx.collapsedNodes),
+      }
+
+      // Calculate new fold state after toggle
+      const newCollapsed = new Set(ctx.collapsedNodes)
+      if (newCollapsed.has(collapseNodeId)) {
+        newCollapsed.delete(collapseNodeId)
+      } else {
+        newCollapsed.add(collapseNodeId)
+      }
+      const foldStateAfter = {
+        foldDepths: new Map(ctx.foldDepths),
+        collapsedNodes: newCollapsed,
+      }
+
       const colNode = ctx.repo.getNode(collapseNodeId)
       if (colNode) {
         const existingData = colNode.data
@@ -880,6 +900,21 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
           ctx.repo.updateNode(collapseNodeId, { data: rest })
         }
       }
+
+      // Push undo entry with fold state
+      ctx.undoStack.push({
+        label: "Collapse",
+        cursorNodeId: ctx.cursorNodeId,
+        foldStateBefore,
+        foldStateAfter,
+        undo: () => {
+          // Fold state restoration is handled by the caller (undo handler in board-actions.ts)
+        },
+        redo: () => {
+          // Fold state restoration is handled by the caller (redo handler in board-actions.ts)
+        },
+      })
+
       ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
       if (!wasCollapsed && ctx.cursorNodeId !== collapseNodeId) {
         ctx.dispatchBoard({ type: "SELECT", nodeId: collapseNodeId })
@@ -1550,6 +1585,11 @@ function handleViewAction(ctx: ActionCtx, action: ViewOp): ActionResult {
       const result = ctx.undoHandle.undo()
       const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
       ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
+      // Restore fold state if captured in the undo entry
+      if (result.foldState) {
+        ctx.setFoldDepths(result.foldState.foldDepths)
+        ctx.dispatchBoard({ type: "SET_COLLAPSED_NODES", nodeIds: Array.from(result.foldState.collapsedNodes) })
+      }
       if (result.label) ctx.setUI({ status: { level: "info", message: `Undo: ${result.label}` } })
       return ok()
     }
@@ -1557,6 +1597,11 @@ function handleViewAction(ctx: ActionCtx, action: ViewOp): ActionResult {
       if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
       const result = ctx.undoHandle.redo()
       ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+      // Restore fold state if captured in the redo entry
+      if (result.foldState) {
+        ctx.setFoldDepths(result.foldState.foldDepths)
+        ctx.dispatchBoard({ type: "SET_COLLAPSED_NODES", nodeIds: Array.from(result.foldState.collapsedNodes) })
+      }
       if (result.label) ctx.setUI({ status: { level: "info", message: `Redo: ${result.label}` } })
       return ok()
     }
@@ -1644,6 +1689,7 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
   const newId = repo.addNode(parentId, newNode)
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  requestRenderFlush()
 }
 
 /** Enter in inline edit — split node at cursor position, adjusting for task markers and body blocks.
@@ -1702,6 +1748,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
       ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
       ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
     }
+    requestRenderFlush()
   } catch {
     ctx.undoHandle.endBatch()
     ctx.setUI({ bellState: "split-failed" })
@@ -1751,27 +1798,39 @@ function splitAsChild(repo: ActionCtx["repo"], nodeId: string, offset: number): 
   return { beforeId: nodeId, afterId }
 }
 
-/** Enter at end of title with visible children → insert empty node as FIRST child. */
+/** Enter at end of title with visible children → insert empty node as FIRST child.
+ *  Inherits task_marker, list_marker, and task_status from the parent node so that
+ *  pressing Enter on a task creates another task (not a plain list item). */
 function handleAddNodeChildFirst(ctx: ActionCtx): void {
   const cursorId = ctx.cursorNodeId
   if (!cursorId) return
 
   const { repo } = ctx
+  const parentNode = repo.getNode(cursorId)
+  if (!parentNode) return
+
   // Sort order before existing first child (or 0 if none)
   const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.first(cursorId))
 
+  const isParentTask = parentNode.task_marker != null
   const newNode: Partial<KNode> = {
-    type: "h",
+    type: isParentTask ? "p" : "h",
     item: true,
     content: "",
     parent_idx: newSortOrder,
     data: {},
+  }
+  if (isParentTask) {
+    newNode.task_status = "todo"
+    newNode.task_marker = "[ ]"
+    newNode.list_marker = parentNode.list_marker ?? "-"
   }
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
   ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  requestRenderFlush()
 }
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
@@ -1846,6 +1905,38 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
   if (children.length === 0) {
     return boundary("fold", "no children to fold")
   }
+
+  // Snapshot fold state before toggle
+  const foldStateBefore = {
+    foldDepths: new Map(ctx.foldDepths),
+    collapsedNodes: new Set(ctx.collapsedNodes),
+  }
+
+  // Calculate what the new fold state will be
+  const newDepths = new Map(ctx.foldDepths)
+  if (newDepths.has(card.id)) {
+    newDepths.delete(card.id)
+  } else {
+    newDepths.set(card.id, 0)
+  }
+  const foldStateAfter = {
+    foldDepths: newDepths,
+    collapsedNodes: new Set(ctx.collapsedNodes),
+  }
+
+  // Push undo entry with fold state
+  ctx.undoStack.push({
+    label: "Fold",
+    cursorNodeId: ctx.cursorNodeId,
+    foldStateBefore,
+    foldStateAfter,
+    undo: () => {
+      // Fold state restoration is handled by the caller (undo handler in board-actions.ts)
+    },
+    redo: () => {
+      // Fold state restoration is handled by the caller (redo handler in board-actions.ts)
+    },
+  })
 
   ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.id })
   return ok()

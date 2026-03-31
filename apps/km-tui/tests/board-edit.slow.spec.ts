@@ -774,4 +774,49 @@ describe("Enter on task cards", () => {
       expect(child.list_marker).toBe("-")
     }
   })
+
+  // Enter at end of task title with visible children → first child inherits task type.
+  // Regression: handleAddNodeChildFirst created plain "h" nodes without task properties.
+  test("Enter on task with visible children creates task first child", () => {
+    const nodes = item("board", item("col1", item("parentTask", item("existingChild")), item("sibling")))
+    // Patch parentTask to be a task (item() makes nodes with children folders by default)
+    for (const n of nodes) {
+      if (n.id === "parentTask") {
+        n.task_marker = "[ ]"
+        n.task_status = "todo"
+        n.list_marker = "-"
+      }
+    }
+    const { board, repo } = testEnv(() => nodes)
+
+    // Verify parentTask is a task
+    const parentTask = repo.getNode("parentTask")!
+    expect(parentTask.task_marker).toBe("[ ]")
+    expect(parentTask.task_status).toBe("todo")
+    expect(parentTask.list_marker).toBe("-")
+
+    // Navigate to parentTask and enter edit mode
+    board.expect("#parentTask[data-cursor]").toExist()
+    board.press("Enter") // enter inline edit, cursor at end
+
+    // Press Enter at end — parentTask has visible children, so new node becomes first child
+    board.press("Enter")
+
+    // Exit edit mode on the new node
+    board.press("Escape")
+
+    // New node should be a child of parentTask (not a sibling)
+    const parentChildren = repo.getChildren("parentTask")
+    expect(parentChildren.length).toBe(2) // new node + existingChild
+    const newNode = parentChildren.find((n: KNode) => n.id !== "existingChild")!
+    expect(newNode).toBeDefined()
+
+    // The new child must inherit task properties from the parent
+    expect(newNode.task_marker).toBe("[ ]")
+    expect(newNode.task_status).toBe("todo")
+    expect(newNode.list_marker).toBe("-")
+
+    // existingChild should still be present and unchanged
+    expect(parentChildren.some((n: KNode) => n.id === "existingChild")).toBe(true)
+  })
 })

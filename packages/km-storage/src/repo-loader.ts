@@ -426,12 +426,10 @@ function* discoverMemoryMode(
 // ============================================================================
 
 /**
- * Read all events from events.jsonl.
- * Handles deduplication and sorting by ULID.
- *
- * @param kmDir - Path to .km directory
+ * Parse events.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
+ * Returns empty array if file doesn't exist.
  */
-export function readEvents(kmDir: string): Event[] {
+function parseEventsFile(kmDir: string, caller: string): Event[] {
   const eventsPath = join(kmDir, "events.jsonl")
 
   if (!existsSync(eventsPath)) {
@@ -446,16 +444,22 @@ export function readEvents(kmDir: string): Event[] {
 
   const events: Event[] = []
   const seen = new Set<string>()
+  let skippedCount = 0
 
   for (const line of lines) {
     try {
       const event = JSON.parse(line) as Event
-      if (seen.has(event.id)) continue
-      seen.add(event.id)
-      events.push(event)
+      if (!seen.has(event.id)) {
+        seen.add(event.id)
+        events.push(event)
+      }
     } catch {
-      // Skip malformed lines
+      skippedCount++
     }
+  }
+
+  if (skippedCount > 0) {
+    log.warn?.(`${caller}: skipped ${skippedCount} malformed line(s) in events.jsonl`)
   }
 
   // Sort by ULID (lexicographic = chronological)
@@ -463,6 +467,10 @@ export function readEvents(kmDir: string): Event[] {
 
   log.debug?.(`read ${events.length} events`)
   return events
+}
+
+export function readEvents(kmDir: string): Event[] {
+  return parseEventsFile(kmDir, "readEvents")
 }
 
 // ============================================================================
@@ -477,33 +485,7 @@ function* discoverFromEvents(
 ): Generator<StepYield, EventSource, unknown> {
   yield "Reading events"
 
-  const eventsPath = join(kmDir, "events.jsonl")
-  if (!existsSync(eventsPath)) {
-    log.debug?.(`no events file at ${eventsPath}`)
-    yield { current: 0, total: 0 }
-    return { events: [], pendingLinks: [] }
-  }
-
-  const content = readFileSync(eventsPath, "utf-8")
-  const lines = content.split("\n").filter((line) => line.trim())
-
-  const allEvents: Event[] = []
-  const seen = new Set<string>()
-
-  for (const line of lines) {
-    try {
-      const event = JSON.parse(line) as Event
-      if (!seen.has(event.id)) {
-        seen.add(event.id)
-        allEvents.push(event)
-      }
-    } catch {
-      // Skip malformed lines
-    }
-  }
-
-  // Sort by ULID (lexicographic = chronological)
-  allEvents.sort((a, b) => a.id.localeCompare(b.id))
+  const allEvents = parseEventsFile(kmDir, "discoverFromEvents")
 
   // Filter to only new events (unless force rebuild)
   let events: Event[]
@@ -799,8 +781,23 @@ function* applyEvents(
   db.run("BEGIN IMMEDIATE")
   try {
     const insertStmt = db.prepare(INSERT_NODE_SQL)
+    // Track node IDs whose creation failed — skip subsequent events targeting them.
+    // The event log is append-only and ordered; if a node_created fails, all
+    // subsequent events referencing that node would cascade-fail. Skipping them
+    // avoids noise and preserves ordered-event semantics within a node's lifecycle.
+    const failedNodeIds = new Set<string>()
+    let unexpectedFailureCount = 0
+    let skippedCascadeCount = 0
 
     for (const [i, event] of events.entries()) {
+      // Skip events targeting a node whose creation failed (prevents cascade failures)
+      const targetId = event.target ?? (event.data as Record<string, unknown>)?.id
+      if (typeof targetId === "string" && failedNodeIds.has(targetId)) {
+        log.debug?.(`skipping ${event.type} for failed node ${targetId.slice(-8)}`)
+        skippedCascadeCount++
+        continue
+      }
+
       try {
         if (event.type === "node_created") {
           const data = event.data as Record<string, unknown>
@@ -812,6 +809,7 @@ function* applyEvents(
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
           // from km sync that events.jsonl also references (last_event cursor
           // may not cover all events). Matches applyEventWithDb behavior.
+          // Expected duplicates are silently ignored (no exception thrown).
           insertStmt.run(
             data.id as string,
             data.type as string,
@@ -846,14 +844,40 @@ function* applyEvents(
           applyEventWithDb(db, event)
         }
       } catch (err) {
+        // Any error reaching here is unexpected — expected duplicates are handled
+        // by INSERT OR IGNORE (no exception). We continue replaying remaining
+        // events because the event log is append-only and may contain stale/duplicate
+        // events from prior sessions that fail harmlessly.
+        unexpectedFailureCount++
         const message = err instanceof Error ? err.message : String(err)
         errors.push({ phase: "apply", message })
+
+        if (event.type === "node_created") {
+          // Track the node ID so dependent events (update, move, delete) are skipped
+          const nodeId = (event.data as Record<string, unknown>)?.id as string | undefined
+          if (nodeId) {
+            failedNodeIds.add(nodeId)
+            log.warn?.(`node_created failed for ${nodeId.slice(-8)}, will skip dependent events: ${message}`)
+          }
+        } else {
+          log.warn?.(`${event.type} failed for ${(event.target ?? "?").slice(-8)}: ${message}`)
+        }
       }
 
       if (i % 100 === 0 || i === total - 1) {
         yield { current: i + 1, total }
       }
     }
+
+    // Summary warning so the user knows replay had issues
+    if (unexpectedFailureCount > 0) {
+      log.warn?.(
+        `applyEvents: ${unexpectedFailureCount} unexpected failure(s) during replay` +
+          (failedNodeIds.size > 0 ? `, ${failedNodeIds.size} node(s) failed creation` : "") +
+          (skippedCascadeCount > 0 ? `, ${skippedCascadeCount} dependent event(s) skipped` : ""),
+      )
+    }
+
     db.run("COMMIT")
   } catch (error) {
     db.run("ROLLBACK")

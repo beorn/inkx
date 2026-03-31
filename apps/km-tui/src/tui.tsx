@@ -129,7 +129,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     // via useSyncExternalStore in useColumns.
     syncManager.on("state-change", (newState) => {
       if (newState === "idle") {
-        options.repo.touch()
+        options.repo?.touch()
       }
     })
 

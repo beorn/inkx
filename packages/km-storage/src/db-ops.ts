@@ -158,6 +158,11 @@ function moveNodeImpl(
 ): void {
   log.debug?.(`moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`)
   if (emitter) {
+    // Snapshot old parent before emission so downstream handlers (FsWriter, SyncManager)
+    // can regenerate the source file after a cross-file move
+    const row = db.query("SELECT parent_id FROM nodes WHERE id = ?").get(nodeId) as { parent_id: string | null } | null
+    const oldParentId = row?.parent_id ?? null
+
     emitter.emit(
       {
         type: "node_moved",
@@ -166,6 +171,7 @@ function moveNodeImpl(
         data: {
           parent_id: newParentId,
           parent_idx: newParentIdx,
+          old_parent_id: oldParentId,
         },
       },
       { db },

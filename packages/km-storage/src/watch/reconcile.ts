@@ -6,13 +6,16 @@
  */
 
 import { createLogger } from "loggily"
+import { existsSync, statSync } from "fs"
 import type { Database } from "bun:sqlite"
 import { dirname, join } from "path"
 import type { KNode } from "@km/core"
 import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
 import { scanDirectory, scanDirectoryAsync } from "./watcher.ts"
 import type { PatternMatcher } from "../ignore.ts"
-import { toRelativeFsPath } from "../path-utils.ts"
+import { toAbsoluteFsPath, toRelativeFsPath } from "../path-utils.ts"
+import type { Emitter } from "../emitter.ts"
+import { applyReconcileOps } from "./applier.ts"
 
 const log = createLogger("km:storage:watch:reconcile")
 
@@ -280,6 +283,48 @@ export function getParentNodeId(db: Database, fsPath: string): string | null {
   const parentPath = dirname(fsPath)
   const parentNode = getNodeByPath(db, parentPath)
   return parentNode?.id ?? null
+}
+
+/**
+ * Reconcile a file if it has been modified externally (mtime differs from DB).
+ * Prevents data loss when DB changes race with FS changes.
+ *
+ * Shared by FsWriter and SyncManager — both need to reconcile before overwriting.
+ */
+export function reconcileIfChanged(
+  db: Database,
+  fileNode: KNode,
+  repoPath: string,
+  ignorePatterns: string[] | PatternMatcher,
+  emitter: Emitter,
+): void {
+  if (!fileNode.fs_path) return
+  const absPath = toAbsoluteFsPath(repoPath, fileNode.fs_path)
+  if (!existsSync(absPath)) return
+
+  try {
+    const stat = statSync(absPath)
+    const dbMtime = fileNode.fs_mtime
+
+    if (dbMtime !== undefined && stat.mtimeMs !== dbMtime) {
+      log.debug?.(
+        `reconcile-before-write: file changed externally, reconciling path=${absPath} dbMtime=${dbMtime} fsMtime=${stat.mtimeMs}`,
+      )
+
+      const dir = dirname(absPath)
+      const ops = reconcileDirectory(db, dir, repoPath, ignorePatterns)
+
+      if (ops.length > 0) {
+        log.debug?.(`reconcile-before-write: applying ${ops.length} ops`)
+        applyReconcileOps(db, ops, repoPath, emitter)
+      }
+    }
+  } catch (err) {
+    log.error?.(`reconcile-before-write: error checking file ${absPath}: ${String(err)}`)
+    // Re-throw so caller does NOT proceed to overwrite the file,
+    // which would destroy external edits that failed to reconcile
+    throw err
+  }
 }
 
 // Re-export applier functions for backwards compatibility

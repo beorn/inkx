@@ -7,6 +7,7 @@
 import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../src/schema.ts"
+import { applyEventWithDb } from "../src/db-events.ts"
 import {
   parseFiles,
   applyNodes,
@@ -474,6 +475,157 @@ describe("applyLinks()", () => {
 // ============================================================================
 // Pipeline composition tests
 // ============================================================================
+
+// ============================================================================
+// Event replay with failures
+// ============================================================================
+
+describe("event replay with failures", () => {
+  test("failed node_created causes dependent events to be skippable", () => {
+    const db = createTestDb()
+
+    // Simulate replay: first create a node that exists (to establish the pattern)
+    const createEvent = {
+      id: "evt-001",
+      ts: Date.now(),
+      type: "node_created" as const,
+      actor: "user",
+      data: {
+        id: "node-alpha",
+        type: "h",
+        parent_id: null,
+        parent_idx: 0,
+        data: {},
+      },
+    }
+
+    // This should succeed
+    applyEventWithDb(db, createEvent)
+
+    // Verify node exists
+    const node = db.query("SELECT id FROM nodes WHERE id = ?").get("node-alpha") as { id: string } | null
+    expect(node).not.toBeNull()
+
+    // Now simulate a dependent update event for this node
+    const updateEvent = {
+      id: "evt-002",
+      ts: Date.now(),
+      type: "node_updated" as const,
+      actor: "user",
+      target: "node-alpha",
+      data: { content: "Updated content" },
+    }
+
+    // This should succeed
+    applyEventWithDb(db, updateEvent)
+
+    // Verify update applied
+    const updated = db.query("SELECT content FROM nodes WHERE id = ?").get("node-alpha") as { content: string } | null
+    expect(updated?.content).toBe("Updated content")
+
+    // Now simulate an update for a node that was NEVER created (simulates
+    // the cascade-skip scenario where node_created failed)
+    const orphanUpdate = {
+      id: "evt-003",
+      ts: Date.now(),
+      type: "node_updated" as const,
+      actor: "user",
+      target: "node-never-created",
+      data: { content: "This should be a no-op" },
+    }
+
+    // This should NOT throw — applyNodeUpdated just runs UPDATE with 0 rows affected
+    expect(() => applyEventWithDb(db, orphanUpdate)).not.toThrow()
+
+    // The non-existent node should still not exist (no accidental creation)
+    const ghost = db.query("SELECT id FROM nodes WHERE id = ?").get("node-never-created")
+    expect(ghost).toBeNull()
+  })
+
+  test("delete event for non-existent node does not throw", () => {
+    const db = createTestDb()
+
+    // Simulate replaying a delete event for a node that was never created
+    // (cascade scenario: node_created failed, then node_deleted replays)
+    const deleteEvent = {
+      id: "evt-del-001",
+      ts: Date.now(),
+      type: "node_deleted" as const,
+      actor: "user",
+      target: "nonexistent-node",
+      data: { reason: "test" },
+    }
+
+    // Should not throw — deleteSubtree handles missing nodes gracefully
+    expect(() => applyEventWithDb(db, deleteEvent)).not.toThrow()
+  })
+
+  test("move event for non-existent node does not throw", () => {
+    const db = createTestDb()
+
+    // Simulate replaying a move event for a node that was never created
+    const moveEvent = {
+      id: "evt-move-001",
+      ts: Date.now(),
+      type: "node_moved" as const,
+      actor: "user",
+      target: "nonexistent-node",
+      data: { parent_id: "also-nonexistent", parent_idx: 0 },
+    }
+
+    // Should not throw — UPDATE with 0 rows affected is a no-op
+    expect(() => applyEventWithDb(db, moveEvent)).not.toThrow()
+  })
+
+  test("duplicate node_created (INSERT OR IGNORE) does not corrupt existing node", () => {
+    const db = createTestDb()
+
+    // Create a node
+    const createEvent1 = {
+      id: "evt-dup-001",
+      ts: Date.now(),
+      type: "node_created" as const,
+      actor: "user",
+      data: {
+        id: "dup-node",
+        type: "h",
+        content: "Original content",
+        parent_id: null,
+        parent_idx: 0,
+        data: {},
+      },
+    }
+
+    applyEventWithDb(db, createEvent1)
+
+    // Verify original content
+    const original = db.query("SELECT content FROM nodes WHERE id = ?").get("dup-node") as { content: string } | null
+    expect(original?.content).toBe("Original content")
+
+    // Now replay a duplicate create with different content (simulates stale event log)
+    const createEvent2 = {
+      id: "evt-dup-002",
+      ts: Date.now(),
+      type: "node_created" as const,
+      actor: "user",
+      data: {
+        id: "dup-node",
+        type: "h",
+        content: "Duplicate content",
+        parent_id: null,
+        parent_idx: 0,
+        data: {},
+      },
+    }
+
+    // Should not throw (INSERT OR IGNORE)
+    expect(() => applyEventWithDb(db, createEvent2)).not.toThrow()
+
+    // Original content should be preserved (not overwritten by duplicate)
+    const afterDup = db.query("SELECT content FROM nodes WHERE id = ?").get("dup-node") as { content: string } | null
+    expect(afterDup?.content).toBe("Original content")
+  })
+})
 
 describe("pipeline composition", () => {
   test("full pipeline: parse → apply → resolve → applyLinks", async () => {

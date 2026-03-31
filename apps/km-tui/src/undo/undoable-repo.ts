@@ -20,7 +20,7 @@
 import { createLogger } from "loggily"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
-import type { UndoStack } from "../undo-stack.ts"
+import type { UndoStack, FoldState } from "../undo-stack.ts"
 import { type Operation, type HistoryEntry, invertOperations } from "./operations.ts"
 
 const log = createLogger("km:tui:undo:repo")
@@ -66,6 +66,8 @@ export interface UndoResult {
   cursorNodeId?: string | null
   /** Human-readable label of the operation (e.g., "Delete", "Move cards") */
   label?: string
+  /** Fold state to restore (to be applied by the caller) */
+  foldState?: FoldState
 }
 
 // =============================================================================

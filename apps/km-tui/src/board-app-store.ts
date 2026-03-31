@@ -596,6 +596,11 @@ export function createBoardAppStoreState(
               break
             }
 
+            case "SET_COLLAPSED_NODES": {
+              paneUpdate = { collapsedNodes: new Set(action.nodeIds) }
+              break
+            }
+
             case "ZOOM_IN": {
               const zoomNodeId = action.nodeId
               const zoomDepths = computeDefaultFoldDepths(zoomNodeId, new Map())

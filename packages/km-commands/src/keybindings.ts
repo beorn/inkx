@@ -791,6 +791,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
 
         // Edit entry: i = edit title at start, Enter = edit title at end
         { key: "i", commandId: "enter_inline_edit", modes: ["normal"] },
+        // Note: no column-level Enter binding needed — when cursor is at column,
+        // !ctx.isAtCardLevel is true, and the card-level Enter handler below
+        // dispatches ENTER_INLINE_EDIT with the column nodeId via the same logic
         { key: "Enter", commandId: "enter_inline_edit", modes: ["normal"] },
 
         // Zoom: z = zoom inwards one level, Z = zoom out one level
