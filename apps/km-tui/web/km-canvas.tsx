@@ -154,6 +154,21 @@ function KeyBar({ width }: { width: number }) {
 // BoardView — shared board rendering with cursor navigation
 // ============================================================================
 
+/** Scroll the viewport to keep the cursor roughly visible */
+function scrollToCursor(cardIndex: number) {
+  const viewport = document.getElementById("viewport")
+  if (!viewport) return
+  // Approximate: topbar ~30px, each card ~30px (fontSize 13 * lineHeight 1.4 + padding)
+  const approxCardY = 30 + cardIndex * 30
+  const viewTop = viewport.scrollTop
+  const viewBottom = viewTop + viewport.clientHeight
+  if (approxCardY < viewTop + 30) {
+    viewport.scrollTop = Math.max(0, approxCardY - 30)
+  } else if (approxCardY > viewBottom - 60) {
+    viewport.scrollTop = approxCardY - viewport.clientHeight + 60
+  }
+}
+
 function BoardView({
   width,
   columns,
@@ -178,10 +193,16 @@ function BoardView({
         if (input === "j" || key.downArrow) {
           setCardIndex((prev) => {
             const col = columns[colIndex]
-            return col ? Math.min(prev + 1, col.cards.length - 1) : prev
+            const next = col ? Math.min(prev + 1, col.cards.length - 1) : prev
+            scrollToCursor(next)
+            return next
           })
         } else if (input === "k" || key.upArrow) {
-          setCardIndex((prev) => Math.max(prev - 1, 0))
+          setCardIndex((prev) => {
+            const next = Math.max(prev - 1, 0)
+            scrollToCursor(next)
+            return next
+          })
         } else if (input === "h" || key.leftArrow) {
           setColIndex((prev) => {
             const next = Math.max(prev - 1, 0)
