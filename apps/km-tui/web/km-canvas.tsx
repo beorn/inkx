@@ -194,8 +194,10 @@ function findCardNode(
   colIdx: number,
   cardIdx: number,
 ): import("../../../vendor/silvery/packages/ag/src/types.js").AgNode | null {
-  // Tree: root > [TopBar, columnsContainer, KeyBar]
-  const columnsContainer = root.children[1]
+  // Tree: root > wrapper(s) > BoardView Box > [TopBar, columnsContainer, KeyBar]
+  let boardBox = root
+  while (boardBox.children.length === 1) boardBox = boardBox.children[0]
+  const columnsContainer = boardBox.children[1]
   if (!columnsContainer) return null
   const column = columnsContainer.children[colIdx]
   if (!column) return null
@@ -215,8 +217,16 @@ function findCardAtPixel(
   const root = instance.getRoot()
   if (!root) return null
 
-  // Walk columns to find which one contains the X coordinate
-  const columnsContainer = root.children[1]
+  // Tree structure: root > BoardView Box > [TopBar, columnsRow, KeyBar]
+  // root may have one wrapper child (the BoardView Box)
+  let boardBox = root
+  while (boardBox.children.length === 1) {
+    boardBox = boardBox.children[0]
+  }
+
+  // boardBox should now have [TopBar, columnsContainer, KeyBar]
+  // Find the columns container (the child with multiple column children)
+  const columnsContainer = boardBox.children[1]
   if (!columnsContainer) return null
 
   for (let ci = 0; ci < numColumns; ci++) {
@@ -408,7 +418,6 @@ function BoardView({
   // Register click handler for mouse-to-card selection
   useEffect(() => {
     onCanvasClick = (pixelX: number, pixelY: number) => {
-      // Account for viewport scroll offset
       const viewport = document.getElementById("viewport")
       const scrollY = viewport?.scrollTop ?? 0
       const hit = findCardAtPixel(pixelX, pixelY + scrollY, columns.length)
