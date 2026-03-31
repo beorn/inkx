@@ -42,6 +42,10 @@ interface Card {
   tags?: string[]
   due?: string
   priority?: string
+  /** Number of children (for content indicator) */
+  childCount?: number
+  /** Has body content (··· indicator) */
+  hasBody?: boolean
 }
 
 interface Column {
@@ -78,12 +82,14 @@ function CardRow({
   width,
   isEditing,
   editText,
+  isHovered,
 }: {
   card: Card
   isSelected: boolean
   width: number
   isEditing?: boolean
   editText?: string
+  isHovered?: boolean
 }) {
   const icon = STATUS_ICONS[card.status ?? ""] ?? "\u25cb"
   const iconColor = STATUS_COLORS[card.status ?? ""] ?? "#6c7086"
@@ -93,7 +99,7 @@ function CardRow({
   return (
     <Box
       flexDirection="column"
-      backgroundColor={isEditing ? "#45475a" : isSelected ? "#313244" : undefined}
+      backgroundColor={isEditing ? "#45475a" : isSelected ? "#313244" : isHovered ? "#262637" : undefined}
       paddingX={8}
       paddingY={4}
       width={width}
@@ -110,8 +116,10 @@ function CardRow({
           </Text>
         </Box>
       </Box>
-      {(card.priority || card.tags || card.due) && (
+      {(card.priority || card.tags || card.due || card.childCount || card.hasBody) && (
         <Box marginLeft={14} marginTop={2} gap={6}>
+          {card.childCount ? <Text color="#585b70">{card.childCount} ▸</Text> : null}
+          {card.hasBody && !card.childCount ? <Text color="#585b70">···</Text> : null}
           {card.priority && (
             <Text color={PRIORITY_COLORS[card.priority] ?? ""} bold>
               {card.priority}
@@ -315,6 +323,8 @@ function BoardView({
   const [isEditing, setIsEditing] = useState(false)
   const [editText, setEditText] = useState("")
   const [isAdding, setIsAdding] = useState(false)
+  const [hoverCol, setHoverCol] = useState(-1)
+  const [hoverCard, setHoverCard] = useState(-1)
 
   useInput(
     useCallback(
@@ -426,8 +436,21 @@ function BoardView({
         setCardIndex(hit.cardIdx)
       }
     }
+    onCanvasHover = (pixelX: number, pixelY: number) => {
+      const viewport = document.getElementById("viewport")
+      const scrollY = viewport?.scrollTop ?? 0
+      const hit = findCardAtPixel(pixelX, pixelY + scrollY, columns.length)
+      if (hit) {
+        setHoverCol(hit.colIdx)
+        setHoverCard(hit.cardIdx)
+      } else {
+        setHoverCol(-1)
+        setHoverCard(-1)
+      }
+    }
     return () => {
       onCanvasClick = null
+      onCanvasHover = null
     }
   }, [columns.length])
 
@@ -463,6 +486,7 @@ function BoardView({
                   key={card.id}
                   card={card}
                   isSelected={i === colIndex && j === cardIndex}
+                  isHovered={i === hoverCol && j === hoverCard && !(i === colIndex && j === cardIndex)}
                   width={colWidth}
                   isEditing={isEditing && !isAdding && i === colIndex && j === cardIndex}
                   editText={editText}
@@ -546,15 +570,20 @@ function nodeName(node: { content?: string; title?: string; name?: string }): st
 }
 
 /** Convert RealColumnView[] to the generic Column[] for BoardView */
-function toColumns(columns: RealColumnView[]): Column[] {
+function toColumns(columns: RealColumnView[], repo: RepoLike): Column[] {
   return columns.map((col) => ({
     id: col.node.id,
     name: nodeName(col.node),
-    cards: col.cardNodes.map((card) => ({
-      id: card.id,
-      title: nodeName(card),
-      status: card.task_status as string | undefined,
-    })),
+    cards: col.cardNodes.map((card) => {
+      const children = repo.getChildren(card.id)
+      return {
+        id: card.id,
+        title: nodeName(card),
+        status: card.task_status as string | undefined,
+        childCount: children.length || undefined,
+        hasBody: card.hasBodyChildren || undefined,
+      }
+    }),
   }))
 }
 
@@ -563,7 +592,7 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
   const [rootHistory, setRootHistory] = useState<(string | null)[]>([])
 
   const realColumns = useColumns(repo as Parameters<typeof useColumns>[0], rootId, emptyFoldDepths)
-  const columns = toColumns(realColumns)
+  const columns = toColumns(realColumns, repo)
 
   // Auto-zoom-out if we landed on a leaf node with no columns
   useEffect(() => {
@@ -618,6 +647,8 @@ let lastFont = ""
 
 /** Module-level click handler — set by BoardView, called by mount() onMouse */
 let onCanvasClick: ((col: number, row: number) => void) | null = null
+/** Module-level hover handler — set by BoardView, called by mount() onMouse */
+let onCanvasHover: ((col: number, row: number) => void) | null = null
 
 function mount(width: number) {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -656,6 +687,8 @@ function mount(width: number) {
       onMouse: (event: CanvasMouseEvent) => {
         if (event.type === "click") {
           onCanvasClick?.(event.pixelX, event.pixelY)
+        } else if (event.type === "mousemove") {
+          onCanvasHover?.(event.pixelX, event.pixelY)
         }
       },
     }
