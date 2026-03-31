@@ -241,6 +241,11 @@ export function createRemoteRepo(opts: RemoteRepoOptions): Promise<RemoteRepo> {
             },
           })
         }
+      } else if (msg.type === "delta") {
+        // Incremental update — patch cache instead of full rebuild
+        cache.applyDelta(msg.updates as KNode[], (msg.removals as string[]) ?? [])
+        version++
+        notify()
       } else if (typeof msg.id === "number") {
         // RPC response
         const handler = pending.get(msg.id as number)

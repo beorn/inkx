@@ -14,6 +14,8 @@ import type { KNode } from "@km/core"
 export interface NodeCache {
   /** Replace all data with new nodes */
   hydrate(nodes: KNode[]): void
+  /** Apply incremental updates without full rebuild */
+  applyDelta(updates: KNode[], removals: string[]): void
   /** Get a single node by ID */
   getNode(id: string): KNode | null
   /** Get multiple nodes by ID */
@@ -60,6 +62,40 @@ export function createNodeCache(): NodeCache {
         nodes.set(node.id, node)
       }
       rebuildChildrenIndex()
+    },
+
+    applyDelta(updates: KNode[], removals: string[]) {
+      const affectedParents = new Set<string | null>()
+
+      // Process removals
+      for (const id of removals) {
+        const existing = nodes.get(id)
+        if (existing) {
+          affectedParents.add(existing.parent_id)
+          nodes.delete(id)
+        }
+      }
+
+      // Process updates (add or replace)
+      for (const node of updates) {
+        const existing = nodes.get(node.id)
+        if (existing && existing.parent_id !== node.parent_id) {
+          // Parent changed — need to rebuild both old and new parent's children
+          affectedParents.add(existing.parent_id)
+        }
+        affectedParents.add(node.parent_id)
+        nodes.set(node.id, node)
+      }
+
+      // Rebuild only affected parent groups in children index
+      for (const pid of affectedParents) {
+        const children: KNode[] = []
+        for (const node of nodes.values()) {
+          if (node.parent_id === pid) children.push(node)
+        }
+        children.sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
+        childrenIndex.set(pid, children)
+      }
     },
 
     getNode(id) {

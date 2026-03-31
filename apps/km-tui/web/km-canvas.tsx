@@ -19,6 +19,7 @@ import {
   Box,
   Text,
   type CanvasRenderOptions,
+  type CanvasMouseEvent,
 } from "../../../vendor/silvery/packages/ag-react/src/ui/canvas/index.js"
 import type {
   CanvasInstance,
@@ -44,6 +45,7 @@ interface Card {
 }
 
 interface Column {
+  id: string
   name: string
   cards: Card[]
 }
@@ -70,14 +72,28 @@ const PRIORITY_COLORS: Record<string, string> = { P0: "#f38ba8", P1: "#fab387", 
 // Shared rendering components
 // ============================================================================
 
-function CardRow({ card, isSelected, width }: { card: Card; isSelected: boolean; width: number }) {
+function CardRow({
+  card,
+  isSelected,
+  width,
+  isEditing,
+  editText,
+}: {
+  card: Card
+  isSelected: boolean
+  width: number
+  isEditing?: boolean
+  editText?: string
+}) {
   const icon = STATUS_ICONS[card.status ?? ""] ?? "\u25cb"
   const iconColor = STATUS_COLORS[card.status ?? ""] ?? "#6c7086"
+
+  const displayTitle = isEditing ? `${editText}▌` : card.title
 
   return (
     <Box
       flexDirection="column"
-      backgroundColor={isSelected ? "#313244" : undefined}
+      backgroundColor={isEditing ? "#45475a" : isSelected ? "#313244" : undefined}
       paddingX={8}
       paddingY={4}
       width={width}
@@ -86,11 +102,11 @@ function CardRow({ card, isSelected, width }: { card: Card; isSelected: boolean;
         <Text color={iconColor}>{icon} </Text>
         <Box flexShrink={1}>
           <Text
-            color={card.status === "done" ? "#6c7086" : "#cdd6f4"}
-            strikethrough={card.status === "done"}
+            color={isEditing ? "#f9e2af" : card.status === "done" ? "#6c7086" : "#cdd6f4"}
+            strikethrough={!isEditing && card.status === "done"}
             wrap="wrap"
           >
-            {card.title}
+            {displayTitle}
           </Text>
         </Box>
       </Box>
@@ -113,7 +129,7 @@ function CardRow({ card, isSelected, width }: { card: Card; isSelected: boolean;
   )
 }
 
-function TopBar({ width, breadcrumb }: { width: number; breadcrumb?: string }) {
+function TopBar({ width, breadcrumb, mode }: { width: number; breadcrumb?: string; mode?: string }) {
   return (
     <Box backgroundColor="#181825" paddingX={8} paddingY={4} width={width} justifyContent="space-between">
       <Box gap={6}>
@@ -122,20 +138,38 @@ function TopBar({ width, breadcrumb }: { width: number; breadcrumb?: string }) {
         </Text>
         <Text color="#6c7086">/</Text>
         <Text color="#cdd6f4">{breadcrumb ?? "canvas prototype"}</Text>
+        {mode && (
+          <Text color="#f9e2af" bold>
+            {" "}
+            [{mode}]
+          </Text>
+        )}
       </Box>
       <Text color="#585b70">canvas</Text>
     </Box>
   )
 }
 
-function KeyBar({ width }: { width: number }) {
-  const keys = [
+function KeyBar({ width, hasRepo, isEditing }: { width: number; hasRepo?: boolean; isEditing?: boolean }) {
+  const editKeys = [
+    { key: "Enter", desc: "save" },
+    { key: "Esc", desc: "cancel" },
+  ]
+  const normalKeys = [
     { key: "j/k", desc: "navigate" },
     { key: "h/l", desc: "columns" },
-    { key: "z/Enter", desc: "zoom in" },
-    { key: "Esc/Z", desc: "zoom out" },
+    { key: "z", desc: "zoom in" },
+    { key: "Esc", desc: "zoom out" },
     { key: "g/G", desc: "top/bottom" },
+    ...(hasRepo
+      ? [
+          { key: "e", desc: "edit" },
+          { key: "a", desc: "add" },
+          { key: "d", desc: "delete" },
+        ]
+      : []),
   ]
+  const keys = isEditing ? editKeys : normalKeys
   return (
     <Box backgroundColor="#181825" paddingX={8} paddingY={3} width={width} gap={12}>
       {keys.map(({ key, desc }) => (
@@ -154,12 +188,56 @@ function KeyBar({ width }: { width: number }) {
 // BoardView — shared board rendering with cursor navigation
 // ============================================================================
 
-/** Scroll the viewport to keep the cursor roughly visible */
-function scrollToCursor(cardIndex: number) {
+/** Find a card node in the ag tree by column and card index */
+function findCardNode(
+  root: import("../../../vendor/silvery/packages/ag/src/types.js").AgNode,
+  colIdx: number,
+  cardIdx: number,
+): import("../../../vendor/silvery/packages/ag/src/types.js").AgNode | null {
+  // Tree: root > [TopBar, columnsContainer, KeyBar]
+  const columnsContainer = root.children[1]
+  if (!columnsContainer) return null
+  const column = columnsContainer.children[colIdx]
+  if (!column) return null
+  // column > [header, cardsContainer]
+  const cardsContainer = column.children[1]
+  if (!cardsContainer) return null
+  return cardsContainer.children[cardIdx] ?? null
+}
+
+/** Scroll the viewport to keep the cursor visible, using ag tree positions when available */
+function scrollToCursor(colIdx: number, cardIdx: number, instant?: boolean) {
   const viewport = document.getElementById("viewport")
   if (!viewport) return
-  // Approximate: topbar ~30px, each card ~30px (fontSize 13 * lineHeight 1.4 + padding)
-  const approxCardY = 30 + cardIndex * 30
+
+  // Try accurate scroll via ag tree
+  if (instance) {
+    const root = instance.getRoot()
+    if (root) {
+      const cardNode = findCardNode(root, colIdx, cardIdx)
+      if (cardNode?.renderRect) {
+        // In proportional mode, renderRect coords are already in CSS pixels
+        const pixelY = cardNode.renderRect.y
+        const pixelH = cardNode.renderRect.height
+        const viewTop = viewport.scrollTop
+        const viewBottom = viewTop + viewport.clientHeight
+        const padding = 40
+
+        if (pixelY < viewTop + padding) {
+          viewport.scrollTo({ top: Math.max(0, pixelY - padding), behavior: instant ? "instant" : "smooth" })
+        } else if (pixelY + pixelH > viewBottom - padding) {
+          viewport.scrollTo({
+            top: pixelY + pixelH - viewport.clientHeight + padding,
+            behavior: instant ? "instant" : "smooth",
+          })
+        }
+        return
+      }
+    }
+  }
+
+  // Fallback: approximate
+  const approxCardY = 30 + cardIdx * 30
   const viewTop = viewport.scrollTop
   const viewBottom = viewTop + viewport.clientHeight
   if (approxCardY < viewTop + 30) {
@@ -175,32 +253,67 @@ function BoardView({
   breadcrumb,
   onZoomIn,
   onZoomOut,
+  repo,
 }: {
   width: number
   columns: Column[]
   breadcrumb?: string
   onZoomIn?: (cardId: string) => void
   onZoomOut?: () => void
+  repo?: RepoLike
 }) {
   const [colIndex, setColIndex] = useState(0)
   const [cardIndex, setCardIndex] = useState(0)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editText, setEditText] = useState("")
+  const [isAdding, setIsAdding] = useState(false)
 
   useInput(
     useCallback(
       (input: string, key: Key) => {
         if (columns.length === 0) return
 
+        const currentCard = columns[colIndex]?.cards[cardIndex]
+
+        // ---- Edit mode ----
+        if (isEditing) {
+          if (key.escape) {
+            setIsEditing(false)
+            setIsAdding(false)
+          } else if (key.return) {
+            // Save
+            if (isAdding) {
+              const col = columns[colIndex]
+              if (repo && col && editText.trim()) {
+                repo.addNode(col.id, { type: "p", content: editText.trim(), item: true } as Partial<
+                  import("@km/core").KNode
+                >)
+              }
+            } else if (currentCard && repo) {
+              repo.updateNode(currentCard.id, { content: editText })
+            }
+            setIsEditing(false)
+            setIsAdding(false)
+          } else if (key.backspace) {
+            setEditText((prev) => prev.slice(0, -1))
+          } else if (input.length === 1 && !key.ctrl && !key.meta) {
+            setEditText((prev) => prev + input)
+          }
+          return
+        }
+
+        // ---- Normal mode ----
         if (input === "j" || key.downArrow) {
           setCardIndex((prev) => {
             const col = columns[colIndex]
             const next = col ? Math.min(prev + 1, col.cards.length - 1) : prev
-            scrollToCursor(next)
+            scrollToCursor(colIndex, next)
             return next
           })
         } else if (input === "k" || key.upArrow) {
           setCardIndex((prev) => {
             const next = Math.max(prev - 1, 0)
-            scrollToCursor(next)
+            scrollToCursor(colIndex, next)
             return next
           })
         } else if (input === "h" || key.leftArrow) {
@@ -208,6 +321,7 @@ function BoardView({
             const next = Math.max(prev - 1, 0)
             const col = columns[next]
             if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
+            scrollToCursor(next, cardIndex)
             return next
           })
         } else if (input === "l" || key.rightArrow) {
@@ -215,21 +329,41 @@ function BoardView({
             const next = Math.min(prev + 1, columns.length - 1)
             const col = columns[next]
             if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
+            scrollToCursor(next, cardIndex)
             return next
           })
         } else if (input === "g") {
           setCardIndex(0)
+          scrollToCursor(colIndex, 0, true)
         } else if (input === "G") {
           const col = columns[colIndex]
-          if (col) setCardIndex(col.cards.length - 1)
-        } else if ((input === "z" || (key.return && !key.shift)) && onZoomIn) {
-          const card = columns[colIndex]?.cards[cardIndex]
-          if (card) onZoomIn(card.id)
+          if (col) {
+            const last = col.cards.length - 1
+            setCardIndex(last)
+            scrollToCursor(colIndex, last, true)
+          }
+        } else if (input === "z" && onZoomIn) {
+          if (currentCard) onZoomIn(currentCard.id)
         } else if ((key.escape || input === "Z") && onZoomOut) {
           onZoomOut()
+        } else if (input === "e" && repo && currentCard) {
+          setEditText(currentCard.title)
+          setIsEditing(true)
+          setIsAdding(false)
+        } else if (input === "a" && repo) {
+          setEditText("")
+          setIsEditing(true)
+          setIsAdding(true)
+        } else if ((input === "d" || input === "D") && repo && currentCard) {
+          repo.deleteNode(currentCard.id)
+          // Clamp card index
+          const col = columns[colIndex]
+          if (col && cardIndex >= col.cards.length - 1) {
+            setCardIndex(Math.max(0, col.cards.length - 2))
+          }
         }
       },
-      [columns, colIndex, cardIndex, onZoomIn, onZoomOut],
+      [columns, colIndex, cardIndex, onZoomIn, onZoomOut, repo, isEditing, editText, isAdding],
     ),
   )
 
@@ -241,7 +375,7 @@ function BoardView({
 
   return (
     <Box flexDirection="column" width={width}>
-      <TopBar width={width} breadcrumb={crumb} />
+      <TopBar width={width} breadcrumb={crumb} mode={isEditing ? (isAdding ? "ADD" : "EDIT") : undefined} />
       <Box>
         {columns.map((col, i) => (
           <Box key={col.name + i} flexDirection="column" width={colWidth}>
@@ -260,13 +394,20 @@ function BoardView({
             </Box>
             <Box flexDirection="column" paddingTop={2}>
               {col.cards.map((card, j) => (
-                <CardRow key={card.id} card={card} isSelected={i === colIndex && j === cardIndex} width={colWidth} />
+                <CardRow
+                  key={card.id}
+                  card={card}
+                  isSelected={i === colIndex && j === cardIndex}
+                  width={colWidth}
+                  isEditing={isEditing && !isAdding && i === colIndex && j === cardIndex}
+                  editText={editText}
+                />
               ))}
             </Box>
           </Box>
         ))}
       </Box>
-      <KeyBar width={width} />
+      <KeyBar width={width} hasRepo={!!repo} isEditing={isEditing} />
     </Box>
   )
 }
@@ -277,6 +418,7 @@ function BoardView({
 
 const mockBoard: Column[] = [
   {
+    id: "mock-inbox",
     name: "Inbox",
     cards: [
       { id: "1", title: "Review PR #847 — canvas adapter HiDPI scaling", status: "todo", priority: "P1" },
@@ -285,6 +427,7 @@ const mockBoard: Column[] = [
     ],
   },
   {
+    id: "mock-progress",
     name: "In Progress",
     cards: [
       {
@@ -304,6 +447,7 @@ const mockBoard: Column[] = [
     ],
   },
   {
+    id: "mock-done",
     name: "Done",
     cards: [
       { id: "7", title: "keyToAnsi Shift encoding for legacy terminals", status: "done" },
@@ -313,6 +457,7 @@ const mockBoard: Column[] = [
     ],
   },
   {
+    id: "mock-blocked",
     name: "Blocked",
     cards: [
       { id: "11", title: "Mouse input for canvas — needs hit testing from ag tree", status: "blocked", priority: "P3" },
@@ -338,6 +483,7 @@ function nodeName(node: { content?: string; title?: string; name?: string }): st
 /** Convert RealColumnView[] to the generic Column[] for BoardView */
 function toColumns(columns: RealColumnView[]): Column[] {
   return columns.map((col) => ({
+    id: col.node.id,
     name: nodeName(col.node),
     cards: col.cardNodes.map((card) => ({
       id: card.id,
@@ -373,7 +519,16 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
     })
   }, [])
 
-  return <BoardView width={width} columns={columns} breadcrumb={breadcrumb} onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
+  return (
+    <BoardView
+      width={width}
+      columns={columns}
+      breadcrumb={breadcrumb}
+      onZoomIn={onZoomIn}
+      onZoomOut={onZoomOut}
+      repo={repo}
+    />
+  )
 }
 
 // ============================================================================
@@ -391,6 +546,10 @@ function mount(width: number) {
   const viewport = document.getElementById("viewport") as HTMLDivElement
   const status = document.getElementById("status") as HTMLDivElement
   if (!canvas) return
+
+  const t0 = performance.now()
+  // Preserve scroll position across re-renders
+  const savedScroll = viewport.scrollTop
 
   viewport.style.width = `${width}px`
 
@@ -416,6 +575,11 @@ function mount(width: number) {
       width,
       height: 800,
       input: true,
+      onMouse: (event: CanvasMouseEvent) => {
+        if (event.type === "wheel" && event.delta) {
+          viewport.scrollTop += event.delta * 60
+        }
+      },
     }
 
     instance = renderToCanvas(element, canvas, opts)
@@ -441,6 +605,9 @@ function mount(width: number) {
 
   const fontName = (currentFont.split(",")[0] ?? "").replace(/"/g, "")
   status.textContent = `${elapsed}ms \u00b7 ${nodeCount} nodes \u00b7 ${width}\u00d7${contentHeight}px \u00b7 ${dpr}x \u00b7 ${isRemoteMode ? "remote" : "mock"} \u00b7 ${fontName}`
+
+  // Restore scroll position
+  viewport.scrollTop = savedScroll
 }
 
 // ============================================================================
