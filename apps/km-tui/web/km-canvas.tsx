@@ -13,7 +13,7 @@
  *   ?mode=remote&url=ws://localhost:3847/ws — real vault data
  */
 
-import React, { useState } from "react"
+import React, { useState, useCallback } from "react"
 import {
   renderToCanvas,
   Box,
@@ -24,6 +24,8 @@ import type {
   CanvasInstance,
   CanvasRenderBuffer,
 } from "../../../vendor/silvery/packages/ag-react/src/ui/canvas/index.js"
+import { useInput } from "../../../vendor/silvery/packages/ag-react/src/hooks/useInput.ts"
+import type { Key } from "../../../vendor/silvery/packages/ag/src/keys.ts"
 import { useColumns } from "../src/hooks/use-columns.ts"
 import type { ColumnView as RealColumnView, CardView as RealCardView } from "../src/types.ts"
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
@@ -236,22 +238,50 @@ function KeyBar({ width }: { width: number }) {
 // ============================================================================
 
 function MockBoard({ width }: { width: number }) {
+  const [colIndex, setColIndex] = useState(0)
+  const [cardIndex, setCardIndex] = useState(0)
+
+  useInput((input: string, key: Key) => {
+    if (input === "j" || key.downArrow) {
+      setCardIndex((prev) => {
+        const col = mockBoard[colIndex]
+        return col ? Math.min(prev + 1, col.cards.length - 1) : prev
+      })
+    } else if (input === "k" || key.upArrow) {
+      setCardIndex((prev) => Math.max(prev - 1, 0))
+    } else if (input === "h" || key.leftArrow) {
+      setColIndex((prev) => {
+        const next = Math.max(prev - 1, 0)
+        const col = mockBoard[next]
+        if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
+        return next
+      })
+    } else if (input === "l" || key.rightArrow) {
+      setColIndex((prev) => {
+        const next = Math.min(prev + 1, mockBoard.length - 1)
+        const col = mockBoard[next]
+        if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
+        return next
+      })
+    }
+  })
+
   const colWidth = Math.floor(width / Math.max(mockBoard.length, 1))
 
   return (
     <Box flexDirection="column" width={width}>
-      <TopBar width={width} />
+      <TopBar width={width} breadcrumb={mockBoard[colIndex]?.cards[cardIndex]?.title} />
       <Box>
         {mockBoard.map((col, i) => (
           <Box key={col.name} flexDirection="column" width={colWidth}>
-            <ColumnHeader name={col.name} count={col.cards.length} isActive={i === 0} />
+            <ColumnHeader name={col.name} count={col.cards.length} isActive={i === colIndex} />
             <Box flexDirection="column" paddingTop={2}>
-              {col.cards.map((card) => (
+              {col.cards.map((card, j) => (
                 <CardRow
                   key={card.id}
                   title={card.title}
                   status={card.status}
-                  isSelected={i === 0 && card.id === "1"}
+                  isSelected={i === colIndex && j === cardIndex}
                   width={colWidth}
                   priority={card.priority}
                   tags={card.tags}
@@ -268,45 +298,100 @@ function MockBoard({ width }: { width: number }) {
 }
 
 // ============================================================================
-// Remote Board (real useColumns from km-tui)
+// Remote Board (real useColumns + era2a keyboard navigation)
 // ============================================================================
 
 const emptyFoldDepths = new Map<string, number>()
 
+function nodeName(node: Record<string, unknown>): string {
+  return (node.content as string) || (node.title as string) || (node.name as string) || "(untitled)"
+}
+
 function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
-  // Use the REAL useColumns hook — same column derivation as the TUI
-  // Cast RepoLike to the expected type — useColumns only uses the subset we implement
+  // Real useColumns hook — same column derivation as the TUI
   const columns = useColumns(repo as Parameters<typeof useColumns>[0], null, emptyFoldDepths)
+
+  // Era 2a cursor state — pure React useState, no signals/commands
+  const [colIndex, setColIndex] = useState(0)
+  const [cardIndex, setCardIndex] = useState(0)
+
+  // Keyboard navigation (era2a style: useInput + useState)
+  const handleInput = useCallback(
+    (input: string, key: Key) => {
+      if (columns.length === 0) return
+
+      if (input === "j" || key.downArrow) {
+        // Move cursor down within column
+        setCardIndex((prev) => {
+          const col = columns[colIndex]
+          if (!col) return prev
+          return Math.min(prev + 1, col.cardNodes.length - 1)
+        })
+      } else if (input === "k" || key.upArrow) {
+        // Move cursor up within column
+        setCardIndex((prev) => Math.max(prev - 1, 0))
+      } else if (input === "h" || key.leftArrow) {
+        // Move to previous column (sticky card index)
+        setColIndex((prev) => {
+          const next = Math.max(prev - 1, 0)
+          // Clamp card index to new column's length
+          const col = columns[next]
+          if (col) setCardIndex((ci) => Math.min(ci, col.cardNodes.length - 1))
+          return next
+        })
+      } else if (input === "l" || key.rightArrow) {
+        // Move to next column (sticky card index)
+        setColIndex((prev) => {
+          const next = Math.min(prev + 1, columns.length - 1)
+          const col = columns[next]
+          if (col) setCardIndex((ci) => Math.min(ci, col.cardNodes.length - 1))
+          return next
+        })
+      } else if (input === "g") {
+        // Jump to top
+        setCardIndex(0)
+      } else if (input === "G") {
+        // Jump to bottom
+        const col = columns[colIndex]
+        if (col) setCardIndex(col.cardNodes.length - 1)
+      }
+    },
+    [columns, colIndex],
+  )
+
+  useInput(handleInput)
 
   const colCount = columns.length
   const colWidth = Math.floor(width / Math.max(colCount, 1))
   const totalCards = columns.reduce((sum, col) => sum + col.cardNodes.length, 0)
 
+  // Current card info for breadcrumb
+  const currentCol = columns[colIndex]
+  const currentCard = currentCol?.cardNodes[cardIndex]
+  const breadcrumb = currentCard
+    ? `${nodeName(currentCol.node)} \u203a ${nodeName(currentCard)}`
+    : currentCol
+      ? nodeName(currentCol.node)
+      : "remote"
+
   return (
     <Box flexDirection="column" width={width}>
-      <TopBar width={width} breadcrumb={`${colCount} columns \u00b7 ${totalCards} cards \u00b7 remote`} />
+      <TopBar width={width} breadcrumb={breadcrumb} />
       <Box>
         {columns.map((col: RealColumnView, i: number) => (
           <Box key={col.node.id} flexDirection="column" width={colWidth}>
             <ColumnHeader
-              name={
-                col.node.content ||
-                col.node.title ||
-                ((col.node as Record<string, unknown>).name as string) ||
-                "(untitled)"
-              }
+              name={nodeName(col.node)}
               count={col.cardNodes.length}
-              isActive={i === 0}
+              isActive={i === colIndex}
             />
             <Box flexDirection="column" paddingTop={2}>
               {col.cardNodes.map((card: RealCardView, j: number) => (
                 <CardRow
                   key={card.id}
-                  title={
-                    card.content || card.title || ((card as Record<string, unknown>).name as string) || "(untitled)"
-                  }
+                  title={nodeName(card)}
                   status={card.task_status as string | undefined}
-                  isSelected={i === 0 && j === 0}
+                  isSelected={i === colIndex && j === cardIndex}
                   width={colWidth}
                 />
               ))}
