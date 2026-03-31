@@ -1444,3 +1444,121 @@ describe("Inline Edit — Folder/Section Nodes", () => {
     expect(board.screenshot()).toContain("New")
   })
 })
+
+// =============================================================================
+// Empty Board — first child creation (km-tui.empty-board-edit)
+// =============================================================================
+
+describe("Empty Board — first child creation", () => {
+  test("o creates column, Enter creates column, Escape cancels edit", () => {
+    const { board, repo } = testEnv(() => item("board"))
+    expect(board.screenshot()).toContain("Empty board")
+
+    // --- o creates first column heading, enters edit ---
+    board.press("o")
+    expect(board.screenshot()).not.toContain("Empty board")
+    const children1 = repo.getChildren("board")
+    expect(children1.length).toBe(1)
+    expect(children1[0]!.type).toBe("h")
+
+    // Type name and save
+    for (const ch of "Todo") board.press(ch)
+    board.press("Escape")
+    expect(repo.getNode(children1[0]!.id)?.content).toBe("Todo")
+    expect(board.screenshot()).toContain("Todo")
+  })
+
+  test("Enter on empty board also creates first column", () => {
+    const { board, repo } = testEnv(() => item("board"))
+    expect(board.screenshot()).toContain("Empty board")
+
+    board.press("Enter")
+    expect(board.screenshot()).not.toContain("Empty board")
+
+    for (const ch of "Inbox") board.press(ch)
+    board.press("Escape")
+
+    const children = repo.getChildren("board")
+    expect(children.find((c: KNode) => c.content === "Inbox")).toBeDefined()
+    expect(board.screenshot()).toContain("Inbox")
+  })
+
+  test("Escape during first-column edit saves empty content (column persists)", () => {
+    const { board, repo } = testEnv(() => item("board"))
+
+    // Create column but immediately Escape without typing
+    board.press("o")
+    board.press("Escape")
+
+    // Column should still exist (with empty content)
+    const children = repo.getChildren("board")
+    expect(children.length).toBe(1)
+    // Board should not show "Empty board" anymore — a column exists
+    expect(board.screenshot()).not.toContain("Empty board")
+  })
+
+  test("journey: add cards to column, edit, delete", () => {
+    // Board with one column and one card — standard starting point
+    const { board, repo } = testEnv(() => item("board", item("Todo", item("First"))))
+
+    expect(board.screenshot()).toContain("Todo")
+    expect(board.screenshot()).toContain("First")
+
+    // Step 1: Cursor on "First" card, press o to add sibling below
+    board.press("o")
+    for (const ch of "Second") board.press(ch)
+    board.press("Escape")
+
+    // Verify both cards exist
+    let cards = repo.getChildren("Todo")
+    expect(cards.find((c: KNode) => c.content === "First")).toBeDefined()
+    expect(cards.find((c: KNode) => c.content === "Second")).toBeDefined()
+    expect(board.screenshot()).toContain("Second")
+
+    // Step 2: Add a third card
+    board.press("o")
+    for (const ch of "Third") board.press(ch)
+    board.press("Escape")
+
+    cards = repo.getChildren("Todo")
+    expect(cards.find((c: KNode) => c.content === "Third")).toBeDefined()
+
+    // Step 3: Delete last card (cursor on "Third")
+    board.press("Backspace")
+
+    cards = repo.getChildren("Todo")
+    expect(cards.find((c: KNode) => c.content === "Third")).toBeUndefined()
+    expect(cards.find((c: KNode) => c.content === "Second")).toBeDefined()
+    expect(board.screenshot()).not.toContain("Third")
+    expect(board.screenshot()).toContain("Second")
+
+    // Step 4: Edit "Second" — Enter appends text
+    board.press("Enter")
+    for (const ch of " task") board.press(ch)
+    board.press("Escape")
+
+    const secondNode = cards.find((c: KNode) => c.content === "Second")!
+    expect(repo.getNode(secondNode.id)?.content).toBe("Second task")
+  })
+
+  test("edit existing column title via Enter, append and save", () => {
+    const { board, repo } = testEnv(() => item("board"))
+
+    // Create a column
+    board.press("o")
+    for (const ch of "Col") board.press(ch)
+    board.press("Escape")
+
+    const colNode = repo.getChildren("board")[0]!
+    expect(colNode.content).toBe("Col")
+
+    // Edit the column title: Enter enters edit at end, type more, Escape saves
+    board.press("Enter")
+    for (const ch of "umn") board.press(ch)
+    board.press("Escape")
+
+    // Content should have "umn" appended
+    expect(repo.getNode(colNode.id)?.content).toBe("Column")
+    expect(board.screenshot()).toContain("Column")
+  })
+})

@@ -260,10 +260,10 @@ describe("computeBulletIcon nerdfont fold indicator", () => {
     }
   }
 
-  it("shows fold marker (▶) for folded non-task node with children in nerdfont mode", () => {
+  it("shows fold marker (▸) for folded non-task node with children in nerdfont mode", () => {
     const node = makeNode()
     const icon = computeBulletIcon(node, false, null, true, true, undefined, "nerdfont")
-    // When folded with children, the bullet MUST be the fold marker (▶)
+    // When folded with children, the bullet MUST be the fold marker (▸)
     // to indicate hidden content the user can unfold
     expect(icon.char).toBe(FOLDED_MARKER.char)
   })

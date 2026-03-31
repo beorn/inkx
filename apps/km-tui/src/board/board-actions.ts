@@ -51,13 +51,50 @@ import {
   initDefaultKeybindings,
 } from "@km/commands"
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
+import { expandLocationTemplate, isDateTemplate } from "../config-persist.ts"
 import { Tree } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
+import { mkdirSync, writeFileSync, existsSync } from "node:fs"
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:board-actions") as any
+
+// =============================================================================
+// Auto-create files for date-template locations
+// =============================================================================
+
+/**
+ * If locationKey is a date-template (contains {YYYY} etc.), expand it and
+ * create the file on disk if it doesn't exist. The file watcher will pick it
+ * up and add it to the DB. Returns true if a file was created.
+ */
+function autoCreateDateTemplateFile(locationKey: string, ctx: ActionCtx): boolean {
+  if (!isDateTemplate(locationKey)) return false
+
+  const expanded = expandLocationTemplate(locationKey)
+  if (expanded.type !== "resolved") return false
+
+  const vaultPath = ctx.repo.path
+  if (!vaultPath) return false
+
+  const fullPath = join(vaultPath, expanded.value)
+  if (existsSync(fullPath)) return false
+
+  // Create directory structure and markdown file with date heading
+  const dir = dirname(fullPath)
+  mkdirSync(dir, { recursive: true })
+  // Derive title from filename (e.g., "2026-03-30.md" → "# 2026-03-30\n")
+  const filename = expanded.value.split("/").pop() ?? ""
+  const title = filename.replace(/\.md$/, "")
+  writeFileSync(fullPath, `# ${title}\n`, "utf-8")
+  log.debug?.(`auto-created date-template file: ${expanded.value}`)
+
+  ctx.toastQueue.success(`Created ${expanded.value}`)
+  return true
+}
 
 // =============================================================================
 // Type Guards — O(1) dispatch via Sets of type strings
@@ -399,12 +436,22 @@ export function handleCommandAction(ctx: ActionCtx, action: CommandAction): Acti
 function handleVerbAction(ctx: ActionCtx, action: VerbOp): ActionResult {
   switch (action.type) {
     case "CURSOR_TO": {
-      // "parent" is special: zoom outwards (view-level, not positional)
-      if (action.locationKey === "parent") {
+      // "{parent}" is special: zoom outwards (view-level, not positional)
+      if (action.locationKey === "{parent}" || action.locationKey === "parent") {
         handleZoomOutwards(ctx)
         return ok()
       }
       const cursorTarget = resolveLocationKey(action.locationKey, ctx, ctx.repo)
+      // Auto-create missing files for date-template locations (e.g., journal)
+      if (!cursorTarget) {
+        const created = autoCreateDateTemplateFile(action.locationKey, ctx)
+        if (created) {
+          // File created — watcher will pick it up. Press g j again to navigate.
+          ctx.toastQueue.success("Press again to navigate")
+          ctx.setUI({})
+          return ok()
+        }
+      }
       if (!cursorTarget) {
         ctx.toastQueue.warning(`"${action.locationKey}" not found`)
         ctx.setUI({})
@@ -421,8 +468,8 @@ function handleVerbAction(ctx: ActionCtx, action: VerbOp): ActionResult {
       return ok()
     }
     case "REPARENT_TO": {
-      // "parent" is special: structural outdent (tree-level, not positional)
-      if (action.locationKey === "parent") {
+      // "{parent}" is special: structural outdent (tree-level, not positional)
+      if (action.locationKey === "{parent}" || action.locationKey === "parent") {
         const nodeId = ctx.cursorNodeId
         if (!nodeId) return boundary("outdent", "no cursor")
         const node = ctx.repo.getNode(nodeId)

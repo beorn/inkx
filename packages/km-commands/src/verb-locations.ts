@@ -12,8 +12,7 @@ import type { CommandContext, CommandAction } from "./types.ts"
 import type { Keybinding, KeybindingContext } from "./keybindings.ts"
 import type { WhenPredicate } from "./when.ts"
 import { hasKitty } from "./when.ts"
-import { REPO_LOCS } from "./locations.ts"
-import { getAllFavorites } from "./favorites.ts"
+import { getSystemLocation, getAllFavorites, SYSTEM_LOCATION_KEYS, getReservedKeyLabel } from "./favorites.ts"
 
 // --- Verb Constructors ---
 // Functions that take a locationKey and return a command execute function
@@ -45,15 +44,18 @@ export const createIn =
 
 // --- Location and Verb Registries ---
 
-/** System locations — hardcoded, always available */
-export const SYSTEM_LOCS: Record<string, { key: string; label: string }> = {
-  h: { key: REPO_LOCS.home, label: "home" },
-  i: { key: REPO_LOCS.inbox, label: "inbox" },
-  j: { key: REPO_LOCS.journal, label: "journal" },
-  a: { key: REPO_LOCS.archive, label: "archive" },
-  p: { key: "parent", label: "parent" },
-  g: { key: "first", label: "first" },
-  "shift-g": { key: "last", label: "last" }, // G (shift+g)
+/** System locations — reads from config store (live values). */
+export function getSystemLocs(): Record<string, { key: string; label: string }> {
+  const result: Record<string, { key: string; label: string }> = {}
+  for (const key of SYSTEM_LOCATION_KEYS) {
+    const value = getSystemLocation(key)
+    if (value) {
+      // Map G → shift-g for keybinding encoding
+      const bindingKey = key === "G" ? "shift-g" : key
+      result[bindingKey] = { key: value, label: getReservedKeyLabel(key) ?? key }
+    }
+  }
+  return result
 }
 
 /** Picker locations */
@@ -84,10 +86,12 @@ export const VERBS: Record<string, VerbDef> = {
 export function verbLocationGrid(prefixes?: string[]): Keybinding[] {
   const bindings: Keybinding[] = []
 
+  const systemLocs = getSystemLocs()
+
   for (const [vKey, verb] of Object.entries(VERBS)) {
     if (prefixes && !prefixes.includes(vKey)) continue
     // System locations
-    for (const [lKey, loc] of Object.entries(SYSTEM_LOCS)) {
+    for (const [lKey, loc] of Object.entries(systemLocs)) {
       // Skip combos that don't make sense
       // g g -> first, g shift-g -> last are special (cursor movement, not goto board)
       // m g -> first, m shift-g -> last are shift-to-top/bottom

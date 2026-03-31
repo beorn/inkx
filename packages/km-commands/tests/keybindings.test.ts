@@ -826,21 +826,21 @@ describe("chord keybindings", () => {
     it.each([
       // g-prefix composable goto
       ["g", "i", {}, "goto", "@inbox"],
-      ["g", "j", {}, "goto", "@journal"],
+      ["g", "j", {}, "goto", "journals/{YYYY}/{YYYY-MM-DD}.md"],
       ["g", "h", {}, "goto", "@next"],
       ["g", "a", {}, "goto", "@archive"],
-      ["g", "p", {}, "goto", "parent"],
+      ["g", "p", {}, "goto", "{parent}"],
       ["g", "=", { shift: true }, "goto", "pick:+"],
       ["g", "[", {}, "goto", "pick:["],
       ["g", "3", { shift: true }, "goto", "pick:#"],
       ["g", "2", { shift: true }, "goto", "pick:@"],
       // m-prefix composable move
       ["m", "i", {}, "move", "@inbox"],
-      ["m", "j", {}, "move", "@journal"],
+      ["m", "j", {}, "move", "journals/{YYYY}/{YYYY-MM-DD}.md"],
       ["m", "h", {}, "move", "@next"],
-      ["m", "p", {}, "move", "parent"],
-      ["m", "g", {}, "move", "first"],
-      ["m", "g", { shift: true }, "move", "last"],
+      ["m", "p", {}, "move", "{parent}"],
+      ["m", "g", {}, "move", "{first}"],
+      ["m", "g", { shift: true }, "move", "{last}"],
       ["m", "=", { shift: true }, "move", "pick:+"],
       ["m", "[", {}, "move", "pick:["],
       ["m", "3", { shift: true }, "move", "pick:#"],
@@ -852,7 +852,7 @@ describe("chord keybindings", () => {
       ["a", "[", {}, "add", "pick:["],
       ["a", "h", {}, "add", "@next"],
       ["a", "i", {}, "add", "@inbox"],
-      ["a", "j", {}, "add", "@journal"],
+      ["a", "j", {}, "add", "journals/{YYYY}/{YYYY-MM-DD}.md"],
       // c-prefix composable create
       ["c", "i", {}, "create_in", "@inbox"],
     ] as const)("chord %s%s resolves to %s (targetId: %s)", (prefix, key, mods, commandId, targetId) => {
@@ -906,7 +906,7 @@ describe("chord keybindings", () => {
       a: { commandId: "add", targetId: "@archive" },
       h: { commandId: "add", targetId: "@next" },
       i: { commandId: "add", targetId: "@inbox" },
-      j: { commandId: "add", targetId: "@journal" },
+      j: { commandId: "add", targetId: "journals/{YYYY}/{YYYY-MM-DD}.md" },
     })
   })
 
@@ -1075,7 +1075,10 @@ describe("chord keybindings", () => {
     expect(resolveChord("a", "=", { shift: true }, ctx)).toMatchObject({ commandId: "add", targetId: "pick:+" })
     expect(resolveChord("a", "[", {}, ctx)).toMatchObject({ commandId: "add", targetId: "pick:[" })
     expect(resolveChord("a", "i", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@inbox" })
-    expect(resolveChord("a", "j", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@journal" })
+    expect(resolveChord("a", "j", {}, ctx)).toMatchObject({
+      commandId: "add",
+      targetId: "journals/{YYYY}/{YYYY-MM-DD}.md",
+    })
     expect(resolveChord("a", "h", {}, ctx)).toMatchObject({ commandId: "add", targetId: "@next" })
   })
 

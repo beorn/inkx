@@ -13,7 +13,7 @@ import {
   createIn,
   verbLocationGrid,
   ctrlVerbLocationGrid,
-  SYSTEM_LOCS,
+  getSystemLocs,
   PICKER_LOCS,
   VERBS,
 } from "../src/verb-locations.ts"
@@ -76,28 +76,28 @@ function defaultKbCtx(): KeybindingContext {
 
 describe("verb-locations", () => {
   // =========================================================================
-  // Registries — SYSTEM_LOCS & PICKER_LOCS now carry { key, label }
+  // Registries — getSystemLocs() & PICKER_LOCS now carry { key, label }
   // =========================================================================
 
   describe("registries", () => {
-    it("SYSTEM_LOCS has expected keys", () => {
-      expect(Object.keys(SYSTEM_LOCS).sort()).toEqual(["a", "g", "h", "i", "j", "p", "shift-g"])
+    it("getSystemLocs() has expected keys", () => {
+      expect(Object.keys(getSystemLocs()).sort()).toEqual(["a", "g", "h", "i", "j", "p", "shift-g"])
     })
 
-    it("SYSTEM_LOCS maps keys to locationKey strings", () => {
-      expect(SYSTEM_LOCS.h!.key).toBe("@next")
-      expect(SYSTEM_LOCS.i!.key).toBe("@inbox")
-      expect(SYSTEM_LOCS.j!.key).toBe("@journal")
-      expect(SYSTEM_LOCS.a!.key).toBe("@archive")
-      expect(SYSTEM_LOCS.p!.key).toBe("parent")
-      expect(SYSTEM_LOCS.g!.key).toBe("first")
-      expect(SYSTEM_LOCS["shift-g"]!.key).toBe("last")
+    it("getSystemLocs() maps keys to locationKey strings", () => {
+      expect(getSystemLocs().h!.key).toBe("@next")
+      expect(getSystemLocs().i!.key).toBe("@inbox")
+      expect(getSystemLocs().j!.key).toBe("journals/{YYYY}/{YYYY-MM-DD}.md")
+      expect(getSystemLocs().a!.key).toBe("@archive")
+      expect(getSystemLocs().p!.key).toBe("{parent}")
+      expect(getSystemLocs().g!.key).toBe("{first}")
+      expect(getSystemLocs()["shift-g"]!.key).toBe("{last}")
     })
 
-    it("SYSTEM_LOCS labels are human-readable", () => {
-      expect(SYSTEM_LOCS.h!.label).toBe("home")
-      expect(SYSTEM_LOCS.i!.label).toBe("inbox")
-      expect(SYSTEM_LOCS.p!.label).toBe("parent")
+    it("getSystemLocs() labels are human-readable", () => {
+      expect(getSystemLocs().h!.label).toBe("home")
+      expect(getSystemLocs().i!.label).toBe("inbox")
+      expect(getSystemLocs().p!.label).toBe("parent")
     })
 
     it("PICKER_LOCS has expected keys", () => {
@@ -265,7 +265,7 @@ describe("verb-locations", () => {
 
     it("does NOT produce c + system locations except c i", () => {
       const cBindings = filterByChord(grid, "c")
-      const cSystemBindings = cBindings.filter((b) => Object.keys(SYSTEM_LOCS).includes(suffixKey(b)))
+      const cSystemBindings = cBindings.filter((b) => Object.keys(getSystemLocs()).includes(suffixKey(b)))
       // Only c i should exist
       expect(cSystemBindings).toHaveLength(1)
       expect(suffixKey(cSystemBindings[0]!)).toBe("i")
@@ -308,31 +308,31 @@ describe("verb-locations", () => {
       expect(b).toBeDefined()
       expect(b!.commandId).toBe("move")
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "@journal" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "journals/{YYYY}/{YYYY-MM-DD}.md" })
     })
 
-    it("produces g p (goTo parent = CURSOR_TO parent)", () => {
+    it("produces g p (goTo parent = CURSOR_TO {parent})", () => {
       const b = findBinding(grid, "g", "p")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "CURSOR_TO", locationKey: "parent" })
+      expect(action).toEqual({ type: "CURSOR_TO", locationKey: "{parent}" })
     })
 
-    it("produces m p (moveTo parent = REPARENT_TO parent)", () => {
+    it("produces m p (moveTo parent = REPARENT_TO {parent})", () => {
       const b = findBinding(grid, "m", "p")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "parent" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "{parent}" })
     })
 
-    it("produces m g (moveTo first = REPARENT_TO first)", () => {
+    it("produces m g (moveTo first = REPARENT_TO {first})", () => {
       const b = findBinding(grid, "m", "g")
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "first" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "{first}" })
     })
 
-    it("produces m shift-g (moveTo last = REPARENT_TO last)", () => {
+    it("produces m shift-g (moveTo last = REPARENT_TO {last})", () => {
       // findBinding matches on parsed.key only; find shift-g by checking parsed.shift too
       const b = grid.find((binding) => {
         const parsed = parseKeyString(binding.key)
@@ -340,7 +340,7 @@ describe("verb-locations", () => {
       })
       expect(b).toBeDefined()
       const action = b!.execute!(emptyCtx)
-      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "last" })
+      expect(action).toEqual({ type: "REPARENT_TO", locationKey: "{last}" })
     })
 
     it("produces a shift-3 (addTo pick # = LINK_TO pick:#)", () => {
@@ -507,12 +507,12 @@ describe("verb-locations", () => {
       expect(resolved!.targetId).toBe("@inbox")
     })
 
-    it("m j chord resolves to move with @journal target", () => {
+    it("m j chord resolves to move with journal template target", () => {
       const kbCtx = defaultKbCtx()
       const resolved = resolveChord("m", "j", {}, kbCtx)
       expect(resolved).not.toBeNull()
       expect(resolved!.commandId).toBe("move")
-      expect(resolved!.targetId).toBe("@journal")
+      expect(resolved!.targetId).toBe("journals/{YYYY}/{YYYY-MM-DD}.md")
     })
 
     it("g 5 chord resolves to goto with fav:5 target", () => {

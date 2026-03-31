@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest"
-import { goTo, moveTo, addTo, createIn, SYSTEM_LOCS, PICKER_LOCS } from "@km/commands"
+import { goTo, moveTo, addTo, createIn, getSystemLocs, PICKER_LOCS } from "@km/commands"
 import { setFavorite, clearFavorite } from "@km/commands"
 import {
   resolveLocationKey,
@@ -121,48 +121,53 @@ describe("verb × position orthogonality", () => {
 
   describe("resolution × system locations", () => {
     it("h (home/@next) → Position at @next board", () => {
-      const key = SYSTEM_LOCS.h!.key
+      const key = getSystemLocs().h!.key
       expect(key).toBe("@next")
       const pos = resolveLocationKey(key, cursor("card-1"), repo)
       expect(pos).toEqual({ parentId: "@next-id", childIdx: -1 })
     })
 
     it("i (inbox) → Position at @inbox board", () => {
-      const key = SYSTEM_LOCS.i!.key
+      const key = getSystemLocs().i!.key
       expect(key).toBe("@inbox")
       const pos = resolveLocationKey(key, cursor("card-1"), repo)
       expect(pos).toEqual({ parentId: "@inbox-id", childIdx: -1 })
     })
 
-    it("j (journal) → Position at @journal board", () => {
-      const key = SYSTEM_LOCS.j!.key
+    it("j (journal) → date template resolves to today's journal file", () => {
+      const key = getSystemLocs().j!.key
+      expect(key).toContain("{YYYY}")
+      // The expanded path (e.g. "journals/2026/2026-03-30.md") won't match the mock repo,
+      // so resolveLocationKey returns null. This is correct — the TUI layer handles
+      // auto-creating missing journal files. Template expansion itself is tested in
+      // config-persist.test.ts.
       const pos = resolveLocationKey(key, cursor("card-1"), repo)
-      expect(pos).toEqual({ parentId: "@journal-id", childIdx: -1 })
+      expect(pos).toBeNull()
     })
 
     it("a (archive) → Position at @archive board", () => {
-      const key = SYSTEM_LOCS.a!.key
+      const key = getSystemLocs().a!.key
       const pos = resolveLocationKey(key, cursor("card-1"), repo)
       expect(pos).toEqual({ parentId: "@archive-id", childIdx: -1 })
     })
 
     it("p (parent) → parent's slot in grandparent", () => {
-      const key = SYSTEM_LOCS.p!.key
-      expect(key).toBe("parent")
+      const key = getSystemLocs().p!.key
+      expect(key).toBe("{parent}")
       const pos = resolveLocationKey(key, cursor("card-2"), repo)
       expect(pos).toEqual({ parentId: "root", childIdx: 0 })
     })
 
     it("g (first) → first sibling slot", () => {
-      const key = SYSTEM_LOCS.g!.key
-      expect(key).toBe("first")
+      const key = getSystemLocs().g!.key
+      expect(key).toBe("{first}")
       const pos = resolveLocationKey(key, cursor("card-2"), repo)
       expect(pos).toEqual({ parentId: "board-A", childIdx: 0 })
     })
 
     it("G (last) → last sibling slot", () => {
-      const key = SYSTEM_LOCS["shift-g"]!.key
-      expect(key).toBe("last")
+      const key = getSystemLocs()["shift-g"]!.key
+      expect(key).toBe("{last}")
       const pos = resolveLocationKey(key, cursor("card-1"), repo)
       expect(pos).toEqual({ parentId: "board-A", childIdx: -1 })
     })
@@ -196,22 +201,22 @@ describe("verb × position orthogonality", () => {
   // =========================================================================
 
   describe("end-to-end: verb action → resolution", () => {
-    it("goTo('first') → CURSOR_TO { first } → resolves to (board-A, 0)", () => {
-      const action = goTo("first")(emptyCtx) as { type: string; locationKey: string }
+    it("goTo('{first}') → CURSOR_TO → resolves to (board-A, 0)", () => {
+      const action = goTo("{first}")(emptyCtx) as { type: string; locationKey: string }
       expect(action.type).toBe("CURSOR_TO")
       const pos = resolveLocationKey(action.locationKey, cursor("card-2"), repo)
       expect(isPosition(pos)).toBe(true)
       expect(pos).toEqual({ parentId: "board-A", childIdx: 0 })
     })
 
-    it("moveTo('last') → REPARENT_TO { last } → resolves to (board-A, -1)", () => {
-      const action = moveTo("last")(emptyCtx) as { type: string; locationKey: string }
+    it("moveTo('{last}') → REPARENT_TO → resolves to (board-A, -1)", () => {
+      const action = moveTo("{last}")(emptyCtx) as { type: string; locationKey: string }
       expect(action.type).toBe("REPARENT_TO")
       const pos = resolveLocationKey(action.locationKey, cursor("card-1"), repo)
       expect(pos).toEqual({ parentId: "board-A", childIdx: -1 })
     })
 
-    it("addTo('pick:#') → LINK_TO { pick:# } → resolves to { pick: '#' }", () => {
+    it("addTo('pick:#') → LINK_TO → resolves to { pick: '#' }", () => {
       const action = addTo("pick:#")(emptyCtx) as { type: string; locationKey: string }
       expect(action.type).toBe("LINK_TO")
       const result = resolveLocationKey(action.locationKey, cursor("card-1"), repo)
@@ -219,8 +224,8 @@ describe("verb × position orthogonality", () => {
       expect(result).toEqual({ pick: "#" })
     })
 
-    it("moveTo('parent') → REPARENT_TO { parent } → resolves to grandparent slot", () => {
-      const action = moveTo("parent")(emptyCtx) as { type: string; locationKey: string }
+    it("moveTo('{parent}') → REPARENT_TO → resolves to grandparent slot", () => {
+      const action = moveTo("{parent}")(emptyCtx) as { type: string; locationKey: string }
       expect(action.type).toBe("REPARENT_TO")
       const pos = resolveLocationKey(action.locationKey, cursor("card-2"), repo)
       expect(pos).toEqual({ parentId: "root", childIdx: 0 })

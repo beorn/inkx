@@ -17,7 +17,7 @@
  */
 import React from "react"
 import { Box, Text, ModalDialog, H1, H2, Muted, Small, Strong } from "@silvery/ag-react"
-import { getAllFavorites, getFavorite, SYSTEM_LOCS, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
+import { getAllFavorites, getFavorite, getSystemLocs, PICKER_LOCS, DIGIT_KEYS } from "@km/commands"
 import { useRepo } from "../repo-context.tsx"
 import { NodeLine } from "./shared-components.tsx"
 
@@ -122,7 +122,8 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
 
   // Collect custom favorites (non-digit, non-reserved keys)
   const digitKeySet = new Set<string>(DIGIT_KEYS)
-  const systemKeySet = new Set(Object.keys(SYSTEM_LOCS))
+  const systemLocs = getSystemLocs()
+  const systemKeySet = new Set(Object.keys(systemLocs))
   const pickerKeySet = new Set(Object.keys(PICKER_LOCS))
   const customEntries: Array<[string, string]> = []
   for (const [key, nodeId] of allFavorites) {
@@ -138,7 +139,7 @@ export function FavoritesDialog({ selectedKey, width, assignNodeId }: FavoritesD
         {/* Left column: System + Picker locations */}
         <Box flexDirection="column" flexGrow={1} flexBasis={0}>
           <SectionHeader label="System" />
-          {Object.entries(SYSTEM_LOCS).map(([key, loc]) => (
+          {Object.entries(systemLocs).map(([key, loc]) => (
             <KeyRow key={key} keyChar={key} label={loc.label} />
           ))}
           <Box height={1} />

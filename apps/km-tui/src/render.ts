@@ -187,7 +187,7 @@ export function renderCard(
       )
     }
   } else if (children.length > 0) {
-    lines.push(style.dim(`  ▶ ${children.length}`).padEnd(width).slice(0, width))
+    lines.push(style.dim(`  ▸ ${children.length}`).padEnd(width).slice(0, width))
   }
 
   // Card border bottom

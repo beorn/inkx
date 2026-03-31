@@ -38,7 +38,7 @@ export function computeBulletIcon(
     return ownColor ? { ...bullet, color: ownColor } : bullet
   }
   if (iconStyle === "nerdfont") {
-    // Fold marker (▶) takes priority when children are hidden — the user must see
+    // Fold marker (▸) takes priority when children are hidden — the user must see
     // that content is folded and can be unfolded. Type bullets only show when
     // the node is unfolded or has no children (no fold state to communicate).
     const bullet =

@@ -169,13 +169,7 @@ export function ColumnHeader({
                 <Text bold={!isVirtual} color={headerStyle.color} dimColor={headerStyle.dimColor} wrap="truncate">
                   <Text color={iconColor}>{icon.char}</Text>{" "}
                   <Text color={isColumnSelected ? undefined : ownColor}>
-                    {untitled ? (
-                      <Text dimColor color={"$muted"}>
-                        {displayName}
-                      </Text>
-                    ) : (
-                      displayName
-                    )}
+                    {untitled ? <Text color={"$warning"}>{displayName}</Text> : displayName}
                     {!isVirtual && isSigilName(node.name) && node.name && !slugsMatch(node.name, displayName) && (
                       <>
                         {" "}

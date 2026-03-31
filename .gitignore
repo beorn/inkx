@@ -71,3 +71,4 @@ imports/
 # Batch refactor tool editsets
 .editsets/
 editset.json
+.claude/worktrees/

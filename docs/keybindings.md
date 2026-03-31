@@ -261,17 +261,17 @@ The keybinding system uses a composable verb x location pattern to generate chor
 
 ### Location Registry
 
-`SYSTEM_LOCS` maps chord suffix keys to `{ key, label }` pairs:
+`getSystemLocs()` maps chord suffix keys to `{ key, label }` pairs. Values come from `<vault>/.km/config.json` (with defaults):
 
-| Suffix | locationKey | Description |
+| Suffix | locationKey (default) | Description |
 |--------|-------------|-------------|
 | `h` | `@next` | Home board |
 | `i` | `@inbox` | Inbox board |
-| `j` | `@journal` | Journal board |
+| `j` | `journals/{YYYY}/{YYYY-MM-DD}.md` | Today's journal (date template) |
 | `a` | `@archive` | Archive board |
-| `p` | `parent` | Parent of current node |
-| `g` | `first` | First sibling |
-| `G` | `last` | Last sibling |
+| `p` | `{parent}` | Parent of current node |
+| `g` | `{first}` | First sibling |
+| `G` | `{last}` | Last sibling |
 | `0-9` | `fav:${n}` | Favorite by number |
 
 `PICKER_LOCS` maps to deferred locations: `#`→`pick:#`, `@`→`pick:@`, `+`→`pick:+`, `[`→`pick:[`.
@@ -313,6 +313,6 @@ Nonsensical combinations are skipped (e.g., `a g`, `c j`).
 
 ### Adding a New Location
 
-1. Add `{ key, label }` entry to `SYSTEM_LOCS` or `PICKER_LOCS` in `verb-locations.ts`
+1. Add a default entry to `DEFAULT_SYSTEM_LOCATIONS` in `favorites.ts`, or add to `<vault>/.km/config.json`
 2. Add handler logic for the new locationKey in the verb handlers (`handleCursorTo`, etc.)
 3. Grid automatically generates all verb combinations

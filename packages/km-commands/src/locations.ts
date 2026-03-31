@@ -2,28 +2,30 @@
  * Repository Locations
  *
  * Well-known node IDs and dynamic location conventions for composable verbs.
- * Keybindings carry real node IDs (@inbox, @next) or resolvable references
- * (parent, fav:3) as targetId — no intermediate naming layer.
+ * Keybindings carry location templates (@inbox, journals/{YYYY}/..., {parent})
+ * or resolvable references (fav:3) as targetId — no intermediate naming layer.
+ *
+ * System location values come from config (via favorites.ts initLocations).
+ * REPO_LOCS is kept for backward compatibility but reads from the live store.
  */
 
-/** Well-known repository location names. Resolved at use time via repo.resolveNode(). */
-export const REPO_LOCS = {
-  home: "@next",
-  inbox: "@inbox",
-  journal: "@journal",
-  archive: "@archive",
-} as const
+import { getSystemLocation, SYSTEM_LOCATION_KEYS, getReservedKeyLabel } from "./favorites.ts"
 
-/** Human-readable names for targetId values (used by which-key popup) */
-const TARGET_LABELS: Record<string, string> = {
-  "@next": "home",
-  "@inbox": "inbox",
-  "@journal": "journal",
-  "@archive": "archive",
-  parent: "parent",
-  first: "first",
-  last: "last",
-}
+/** Well-known repository location names. Reads from config store (live values). */
+export const REPO_LOCS = {
+  get home() {
+    return getSystemLocation("h")!
+  },
+  get inbox() {
+    return getSystemLocation("i")!
+  },
+  get journal() {
+    return getSystemLocation("j")!
+  },
+  get archive() {
+    return getSystemLocation("a")!
+  },
+} as const
 
 /** Picker labels for pick:* targets */
 const PICKER_LABELS: Record<string, string> = {
@@ -33,11 +35,13 @@ const PICKER_LABELS: Record<string, string> = {
   "[": "item",
 }
 
-/** Get display label for a targetId */
+/** Get display label for a targetId (sigil, template, fav:N, or pick:X) */
 export function locationLabel(targetId: string): string {
-  const label = TARGET_LABELS[targetId]
-  if (label) return label
   if (targetId.startsWith("fav:")) return `fav ${targetId.slice(4)}`
   if (targetId.startsWith("pick:")) return PICKER_LABELS[targetId.slice(5)] ?? targetId.slice(5)
+  // Reverse-lookup: is this a system location's current value?
+  for (const key of SYSTEM_LOCATION_KEYS) {
+    if (getSystemLocation(key) === targetId) return getReservedKeyLabel(key) ?? key
+  }
   return targetId.replace(/^@/, "")
 }

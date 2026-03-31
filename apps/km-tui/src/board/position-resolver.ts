@@ -4,16 +4,21 @@
  * Resolves a locationKey string (from VerbAction) into a concrete Position
  * in the tree. Pure function — no side effects, no dispatching.
  *
+ * Location keys are template strings from the config:
+ * - "{parent}", "{first}", "{last}" → positional (cursor-relative)
+ * - "journals/{YYYY}/{YYYY-MM-DD}.md" → date-expanded path → resolveNode
+ * - "@inbox", "@next" → literal node reference → resolveNode
+ * - "pick:#" → picker dialog
+ * - "fav:3" → legacy favorite lookup (deprecated, kept for compat)
+ *
  * Position type and construction helpers (of, first, last, equals) live in
  * @km/core (Position namespace). Repo-dependent helpers (toSortOrder, nodeAt,
  * isAtPosition, moveTo) are in Tree (@km/tree).
- *
- * Picker locations (pick:#, pick:@, etc.) resolve to { pick: prefix }
- * which the verb handler interprets as "open picker filtered by prefix."
  */
 
 import { getFavorite } from "@km/commands"
 import { Position } from "@km/core"
+import { expandLocationTemplate } from "../config-persist.ts"
 
 /** Deferred resolution — open a picker filtered by prefix. */
 export interface PickTarget {
@@ -51,33 +56,40 @@ export function resolveLocationKey(locationKey: string, cursor: CursorContext, r
     return { pick: locationKey.slice(5) }
   }
 
-  // --- Favorites ---
+  // --- Legacy favorites (fav:N) — deprecated, kept for compat ---
   if (locationKey.startsWith("fav:")) {
-    const favId = getFavorite(locationKey.slice(4))
-    if (!favId) return null
-    const favNode = repo.getNode(favId)
-    if (!favNode) return null
-    return Position.last(favNode.id)
+    const favValue = getFavorite(locationKey.slice(4))
+    if (!favValue) return null
+    // Favorite value may itself be a template — recurse
+    return resolveLocationKey(favValue, cursor, repo)
   }
 
-  // --- Positional targets (relative to cursor) ---
-  if (locationKey === "parent") {
-    return resolveParent(cursor, repo)
+  // --- Template expansion ---
+  const expanded = expandLocationTemplate(locationKey)
+
+  if (expanded.type === "positional") {
+    switch (expanded.key) {
+      case "parent":
+        return resolveParent(cursor, repo)
+      case "first":
+        return resolveFirstLast(cursor, repo, "first")
+      case "last":
+        return resolveFirstLast(cursor, repo, "last")
+      default:
+        return null
+    }
   }
-  if (locationKey === "first") {
-    return resolveFirstLast(cursor, repo, "first")
-  }
-  if (locationKey === "last") {
-    return resolveFirstLast(cursor, repo, "last")
-  }
+
+  // expanded.type === "resolved" — either date-expanded path or literal ref
+  const resolvedValue = expanded.value
 
   // --- Special locations ---
-  if (locationKey === "@home") {
+  if (resolvedValue === "@home") {
     return Position.first("") // root sentinel
   }
 
-  // --- Board/node ID (e.g., @next, @inbox, or a concrete node ID) ---
-  const targetNode = repo.getNode(locationKey) ?? repo.resolveNode(locationKey)
+  // --- Board/node ID (e.g., @next, @inbox, or a concrete node ID / path) ---
+  const targetNode = repo.getNode(resolvedValue) ?? repo.resolveNode(resolvedValue)
   if (!targetNode) return null
   return Position.last(targetNode.id)
 }

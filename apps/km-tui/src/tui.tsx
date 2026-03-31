@@ -29,6 +29,8 @@ import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
+import { loadConfig, saveConfig } from "./config-persist.ts"
+import { initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui") as any
@@ -261,9 +263,19 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     const viewMode = options?.initialViewMode ?? "cards"
 
+    // Load locations config (favorites, system locations, journal template)
+    const vaultPath = options.repo.path
+    if (vaultPath) {
+      const config = loadConfig(vaultPath)
+      initLocations(config.locations)
+      // Persist favorites changes back to config
+      onFavoritesChange(() => {
+        saveConfig(vaultPath, { locations: getAllLocations() })
+      })
+    }
+
     // Restore saved workspace (layout, view mode, filters, zoom location).
     // Falls back gracefully if the saved state can't be resolved (deleted nodes, etc.).
-    const vaultPath = options.repo.path
     const savedWorkspace = isInteractive && vaultPath ? loadWorkspace("default", vaultPath) : null
 
     if (savedWorkspace) {

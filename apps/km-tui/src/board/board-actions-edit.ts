@@ -258,6 +258,28 @@ export function handleAddNodeBefore(ctx: ActionCtx): void {
 }
 
 /**
+ * Create the first child node under the root on an empty board.
+ * Node type depends on the root: heading root → list item (card),
+ * file/folder root → heading (column).
+ */
+function handleAddFirstChild(ctx: ActionCtx): void {
+  const { repo } = ctx
+  if (!ctx.rootId) return
+
+  const rootNode = repo.getNode(ctx.rootId)
+  const rootIsHeading = rootNode?.type === "h"
+
+  const newNode: Partial<KNode> = rootIsHeading
+    ? { type: "p", item: true, content: "", parent_idx: 0 }
+    : { type: "h", item: true, content: "", parent_idx: 0, fstype: "mdsection" }
+
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  const newId = repo.addNode(ctx.rootId, newNode)
+  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+}
+
+/**
  * Shared implementation: create sibling node before/after cursor and enter inline edit.
  *
  * Sort order is placed as midpoint between cursor and adjacent sibling.
@@ -266,7 +288,13 @@ export function handleAddNodeBefore(ctx: ActionCtx): void {
 function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   const { repo } = ctx
   const col = ctx.column
-  if (!col) return
+  if (!col) {
+    // Empty board — create first child (heading) under root
+    if (ctx.rootId) {
+      handleAddFirstChild(ctx)
+    }
+    return
+  }
 
   // Query repo for fresh children (columns may be stale after prior addNode)
   const siblings = repo.getChildren(col.node.id)

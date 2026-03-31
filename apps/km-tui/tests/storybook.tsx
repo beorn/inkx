@@ -592,7 +592,8 @@ function Layer1FoldMarkers(): React.ReactElement {
       <SubsectionHeader title="Marker Constants" />
       <Text>
         {" "}
-        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text> FOLDED_MARKER (● U+25CF) - big filled circle
+        <Text color={FOLDED_MARKER.color}>{FOLDED_MARKER.char}</Text> FOLDED_MARKER (▸ U+25B8) - small right-pointing
+        triangle
       </Text>
       <Text>
         {" "}

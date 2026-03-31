@@ -34,7 +34,13 @@ import { InlineText } from "../text/index.ts"
 export function composeRawEditContent(node: KNode): string {
   // Use content if available, falling back to data.name for folder-type nodes
   // (oi nodes store their title in data.name, not content).
-  const baseContent = node.content ?? (node.data?.name as string) ?? ""
+  let baseContent = node.content ?? (node.data?.name as string) ?? ""
+  // For empty files, pre-populate with the basename so the user edits what they see
+  // (display layer shows basename via getNodeDisplayName fallback).
+  if (!baseContent && node.fs_path) {
+    const filename = node.fs_path.split("/").pop() || ""
+    baseContent = filename.replace(/\.md$/, "")
+  }
   return stringifyTaskMetadata(baseContent, node, { includeAssignedTo: true })
 }
 
@@ -76,7 +82,13 @@ export function TitleEditor({
   // filesystem sync and display name stay in sync with the edited content.
   const handleTitleSave = useCallback(
     (newValue: string) => {
-      const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
+      // Use the same fallback chain as composeRawEditContent so that
+      // Esc-without-changes is a no-op (basename pre-fill matches originalContent).
+      let originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
+      if (!originalContent && displayNode.fs_path) {
+        const filename = displayNode.fs_path.split("/").pop() || ""
+        originalContent = filename.replace(/\.md$/, "")
+      }
       const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
       const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent

@@ -23,6 +23,7 @@ import { TreeNode } from "./TreeNode.tsx"
 import { parseToPlainText, InlineText } from "../text/index.ts"
 import { displayLength } from "../text/rich.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
+import { composeRawEditContent } from "./tree-node-edit.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { usePaneId } from "../pane-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
@@ -789,7 +790,11 @@ export const Column = React.memo(function Column({
         showSeparator
       >
         {isInlineEditing ? (
-          <InlineEditField initialValue={name} onConfirm={handleInlineEditConfirm} onCancel={handleInlineEditCancel} />
+          <InlineEditField
+            initialValue={composeRawEditContent(column.node)}
+            onConfirm={handleInlineEditConfirm}
+            onCancel={handleInlineEditCancel}
+          />
         ) : undefined}
       </ColumnHeader>
 

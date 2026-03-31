@@ -156,12 +156,18 @@ export {
   inDialogFilter,
 } from "./when.ts"
 
-// Favorites
+// Favorites & Locations (unified store)
 export {
   getFavorite,
   setFavorite,
   clearFavorite,
   getAllFavorites,
+  getAllLocations,
+  getSystemLocation,
+  initLocations,
+  onFavoritesChange,
+  DEFAULT_SYSTEM_LOCATIONS,
+  SYSTEM_LOCATION_KEYS,
   RESERVED_KEYS,
   DIGIT_KEYS,
   getReservedKeyLabel,
@@ -179,7 +185,7 @@ export {
   addTo,
   createIn,
   // Registries
-  SYSTEM_LOCS,
+  getSystemLocs,
   PICKER_LOCS,
   VERBS,
   // Grid generators

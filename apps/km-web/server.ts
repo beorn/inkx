@@ -28,11 +28,14 @@ log.info?.(`Vault loaded in ${elapsed}ms — ${repo.stats.nodeCount} nodes, ${re
 
 // Start file watcher for live sync (file changes → DB update → WebSocket push)
 const watcher = repo.watch({ debounceFs: 1000, debounceApply: 500 })
-watcher.start().then(() => {
-  log.info?.("File watcher started — edits to .md files will sync to browser")
-}).catch((err: unknown) => {
-  log.warn?.(`File watcher failed to start: ${err instanceof Error ? err.message : err}`)
-})
+watcher
+  .start()
+  .then(() => {
+    log.info?.("File watcher started — edits to .md files will sync to browser")
+  })
+  .catch((err: unknown) => {
+    log.warn?.(`File watcher failed to start: ${err instanceof Error ? err.message : err}`)
+  })
 
 const server = serveRepo(repo, { port })
 

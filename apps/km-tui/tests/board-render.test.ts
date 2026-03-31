@@ -157,7 +157,7 @@ describe("Board Pure Rendering", () => {
     }
 
     const output = renderCard(repo, card, 40, false, false, true)
-    expect(output).toContain("▶ 2") // Collapsed indicator with count
+    expect(output).toContain("▸ 2") // Collapsed indicator with count
     expect(output).not.toContain("Child 1")
   })
 

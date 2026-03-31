@@ -220,7 +220,7 @@ describe("Render", () => {
     })
     const card = repo.getNode("test-card")!
     const output = renderCard(repo, card, 40, false, false, true)
-    expect(output).toContain("\u25b6 2")
+    expect(output).toContain("\u25b8 2")
     expect(output).not.toContain("Child 1")
   })
 })

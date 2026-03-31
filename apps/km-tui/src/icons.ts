@@ -27,7 +27,7 @@ export interface StatusIcon {
 
 /** Marker for nodes with children that are hidden (folded) - BIG */
 export const FOLDED_MARKER: StatusIcon = {
-  char: "\u25B6", // ▶ right-pointing triangle
+  char: "\u25B8", // ▸ small right-pointing triangle (single-width)
   color: "$fg",
 }
 

@@ -66,11 +66,13 @@ const shiftRight = {
 const enterInlineEdit = {
   id: "enter_inline_edit",
   name: "Edit Inline",
-  description: "Edit node title inline",
+  description: "Edit node title inline (or create first item on empty board)",
   category: "Edit",
   execute: (ctx) => {
     const nodeId = ctx.cursorNodeId ?? ctx.currentNodeId
-    return nodeId ? { type: "ENTER_INLINE_EDIT", nodeId } : null
+    if (nodeId) return { type: "ENTER_INLINE_EDIT", nodeId }
+    // Empty board — fall back to insert below (creates first child)
+    return { type: "INSERT_BELOW" }
   },
 } satisfies CommandDef
 
