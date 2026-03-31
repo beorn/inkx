@@ -96,58 +96,22 @@ const board: Column[] = [
 // Status icons (matching km's TUI style)
 // ============================================================================
 
-function statusIcon(status?: string): string {
-  switch (status) {
-    case "todo":
-      return "\u25cb" // ○
-    case "in_progress":
-      return "\u25d0" // ◐
-    case "done":
-      return "\u2713" // ✓
-    case "blocked":
-      return "\u2717" // ✗
-    default:
-      return "\u25cb"
-  }
+const STATUS_ICONS: Record<string, string> = { todo: "\u25cb", in_progress: "\u25d0", done: "\u2713", blocked: "\u2717" }
+const STATUS_COLORS: Record<string, string> = {
+  todo: "#cdd6f4",
+  in_progress: "#89b4fa",
+  done: "#a6e3a1",
+  blocked: "#f38ba8",
 }
-
-function statusColor(status?: string): string {
-  switch (status) {
-    case "todo":
-      return "#cdd6f4"
-    case "in_progress":
-      return "#89b4fa"
-    case "done":
-      return "#a6e3a1"
-    case "blocked":
-      return "#f38ba8"
-    default:
-      return "#6c7086"
-  }
-}
-
-function priorityColor(p?: string): string {
-  switch (p) {
-    case "P0":
-      return "#f38ba8"
-    case "P1":
-      return "#fab387"
-    case "P2":
-      return "#f9e2af"
-    case "P3":
-      return "#6c7086"
-    default:
-      return ""
-  }
-}
+const PRIORITY_COLORS: Record<string, string> = { P0: "#f38ba8", P1: "#fab387", P2: "#f9e2af", P3: "#6c7086" }
 
 // ============================================================================
 // Components
 // ============================================================================
 
 function CardView({ card, isSelected, width }: { card: Card; isSelected: boolean; width: number }) {
-  const icon = statusIcon(card.status)
-  const iconColor = statusColor(card.status)
+  const icon = STATUS_ICONS[card.status ?? ""] ?? "\u25cb"
+  const iconColor = STATUS_COLORS[card.status ?? ""] ?? "#6c7086"
   const bg = isSelected ? "#313244" : undefined
 
   return (
@@ -167,7 +131,7 @@ function CardView({ card, isSelected, width }: { card: Card; isSelected: boolean
       {(card.priority || card.tags || card.due) && (
         <Box marginLeft={14} marginTop={2} gap={6}>
           {card.priority && (
-            <Text color={priorityColor(card.priority)} bold>
+            <Text color={PRIORITY_COLORS[card.priority!] ?? ""} bold>
               {card.priority}
             </Text>
           )}
@@ -252,7 +216,7 @@ function KeyBar({ width }: { width: number }) {
   )
 }
 
-function KmBoard({ width, height }: { width: number; height: number }) {
+function KmBoard({ width }: { width: number }) {
   const colCount = board.length
   const colWidth = Math.floor(width / colCount)
 
@@ -304,7 +268,7 @@ function mount(width: number) {
   }
 
   const t0 = performance.now()
-  instance = renderToCanvas(<KmBoard width={width} height={800} />, canvas, opts)
+  instance = renderToCanvas(<KmBoard width={width} />, canvas, opts)
 
   // Auto-size height
   const dpr = window.devicePixelRatio || 1
