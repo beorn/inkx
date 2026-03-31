@@ -303,8 +303,8 @@ function MockBoard({ width }: { width: number }) {
 
 const emptyFoldDepths = new Map<string, number>()
 
-function nodeName(node: Record<string, unknown>): string {
-  return (node.content as string) || (node.title as string) || (node.name as string) || "(untitled)"
+function nodeName(node: { content?: string; title?: string; name?: string }): string {
+  return node.content || node.title || node.name || "(untitled)"
 }
 
 function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
@@ -358,7 +358,7 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
           setColIndex(0)
           setCardIndex(0)
         }
-      } else if (key.escape || (input === "Z")) {
+      } else if (key.escape || input === "Z") {
         // Zoom out (back to parent)
         setRootHistory((prev) => {
           if (prev.length === 0) return prev
@@ -383,13 +383,13 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
   const currentCol = columns[colIndex]
   const currentCard = currentCol?.cardNodes[cardIndex]
   const rootNode = rootId ? repo.getNode(rootId) : null
-  const zoomPrefix = rootNode ? `${nodeName(rootNode as Record<string, unknown>)} \u203a ` : ""
+  const zoomPrefix = rootNode ? `${nodeName(rootNode as { content?: string; title?: string; name?: string })} \u203a ` : ""
   const breadcrumb = currentCard
     ? `${zoomPrefix}${nodeName(currentCol.node)} \u203a ${nodeName(currentCard)}`
     : currentCol
       ? `${zoomPrefix}${nodeName(currentCol.node)}`
       : rootNode
-        ? nodeName(rootNode as Record<string, unknown>)
+        ? nodeName(rootNode as { content?: string; title?: string; name?: string })
         : "remote"
 
   return (
@@ -398,11 +398,7 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
       <Box>
         {columns.map((col: RealColumnView, i: number) => (
           <Box key={col.node.id} flexDirection="column" width={colWidth}>
-            <ColumnHeader
-              name={nodeName(col.node)}
-              count={col.cardNodes.length}
-              isActive={i === colIndex}
-            />
+            <ColumnHeader name={nodeName(col.node)} count={col.cardNodes.length} isActive={i === colIndex} />
             <Box flexDirection="column" paddingTop={2}>
               {col.cardNodes.map((card: RealCardView, j: number) => (
                 <CardRow
