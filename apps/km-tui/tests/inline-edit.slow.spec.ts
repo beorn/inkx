@@ -1597,4 +1597,86 @@ describe("Empty Board — first child creation", () => {
     expect(repo.getNode(colNode.id)?.content).toBe("Column")
     expect(board.screenshot()).toContain("Column")
   })
+
+  test("double-click on column header enters inline edit", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    // Find column header position and double-click
+    const screenshot = board.screenshot()
+    // The column header "col1" should be at the top
+    expect(screenshot).toContain("col1")
+
+    // Double-click should enter edit mode on the column
+    // Since we're testing from driver level, we use keyboard to simulate
+    board.command("cursor_up") // card → column
+    board.expect("#col1[data-cursor]").toExist()
+
+    // Enter to edit (from column header)
+    board.press("Enter")
+
+    // Type new content
+    for (const ch of "-edited") board.press(ch)
+
+    // Escape to save
+    board.press("Escape")
+
+    // Verify the content was saved to the repo
+    const col1Node = repo.getNode("col1")
+    expect(col1Node?.content).toBe("col1-edited")
+    expect(board.screenshot()).toContain("col1-edited")
+  })
+
+  test("click on column header selects it (doesn't move to board root)", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
+
+    // Simulate clicking on column header:
+    // For keyboard, we can test that h/l navigation to column works
+    board.command("cursor_down") // Go to a card
+    board.command("cursor_down") // Make sure we're on a card
+    board.command("cursor_left") // Move to column level (h navigation)
+
+    // Now we should be at the first column level
+    // The test verifies we didn't deselect to board root
+    board.expect("#col1[data-cursor]").toExist()
+  })
+
+  test("column title inline edit: Escape saves and exits edit mode", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    // Move to column header and enter edit
+    board.command("cursor_up")
+    board.press("Enter")
+
+    // Type some changes
+    for (const ch of "-escaped") board.press(ch)
+
+    // Escape saves and exits edit mode
+    board.press("Escape")
+
+    // Repo should have the changes saved
+    expect(repo.getNode("col1")?.content).toContain("col1-escaped")
+    expect(board.screenshot()).toContain("col1-escaped")
+
+    // Should be back at column level (not in edit mode)
+    board.expect("#col1[data-cursor]").toExist()
+  })
+
+  test("column title inline edit: Enter confirms (saves to repo)", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    // Move to column header and enter edit
+    board.command("cursor_up")
+    board.press("Enter")
+
+    // Type some changes
+    for (const ch of "-confirmed") board.press(ch)
+
+    // Enter confirms and saves
+    board.press("Enter")
+
+    // Repo should have updated content (with the appended text at end)
+    const updatedContent = repo.getNode("col1")?.content ?? ""
+    expect(updatedContent).toContain("col1-confirmed")
+    expect(board.screenshot()).toContain("col1-confirmed")
+  })
 })

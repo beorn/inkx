@@ -852,9 +852,16 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         actionCtx.setUI({ inlineEditBlock: null })
       }
 
-      if (!selectId || isColumnNode) {
-        // Column header / empty space click → deselect all, cursor to board root
+      if (!selectId) {
+        // Empty space click → deselect all, cursor to board root
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        return
+      }
+
+      if (isColumnNode) {
+        // Column header click → select the column (not board root)
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }

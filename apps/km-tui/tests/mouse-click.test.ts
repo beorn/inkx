@@ -16,7 +16,7 @@ import { getActiveBoardPane } from "../src/board-app-store.ts"
 // =============================================================================
 
 describe("mouse click targeting", () => {
-  test("clicking a column header deselects all cards (cursor to board root)", () => {
+  test("clicking a column header selects the column", () => {
     const { board, store } = testEnv(
       () =>
         item.root(
@@ -40,8 +40,8 @@ describe("mouse click targeting", () => {
     // Click on the column header area (row 0 of the column, which is the header)
     board.click(col2Box!.x + 2, col2Box!.y)
 
-    // After clicking column background, cursor should be on the board root (no card selected)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe(getActiveBoardPane(store.getState())!.rootId)
+    // After clicking column header, cursor should be on the column (Projects)
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("Projects")
   })
 
   test("clicking a card selects that card", () => {
@@ -296,7 +296,7 @@ describe("mouse click targeting", () => {
     expect(pane().inlineEditBlock?.nodeId).toBe("task-2")
   })
 
-  test("clicking column header deselects card in same column", () => {
+  test("clicking column header selects the column (not board root)", () => {
     const { board, store } = testEnv(
       () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
       { columns: 80, rows: 24 },
@@ -312,10 +312,10 @@ describe("mouse click targeting", () => {
     const col1Box = col1.boundingBox()
     expect(col1Box).not.toBeNull()
 
-    // Click on the column header → deselects to board root
+    // Click on the column header → selects the column
     board.click(col1Box!.x + 2, col1Box!.y)
 
-    // Cursor should be on board root (no card selected)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe(getActiveBoardPane(store.getState())!.rootId)
+    // Cursor should be on the column (Inbox), not board root
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("Inbox")
   })
 })

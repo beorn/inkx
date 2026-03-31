@@ -68,8 +68,8 @@ export interface Emitter {
 
   /**
    * Emit an event.
-   * 1. Appends to events.jsonl (unless skipPersist)
-   * 2. Applies to database (if db provided)
+   * 1. Applies to database (if db provided) — primary operation, DB consistency is non-negotiable
+   * 2. Appends to events.jsonl (unless skipPersist) — if crash between 1 and 2, event is lost from journal but DB is correct
    * 3. Broadcasts via eventHub (unless skipBroadcast)
    * 4. Syncs to filesystem (if fsSync set)
    */
@@ -132,17 +132,17 @@ export function createEmitter(options: EmitterOptions): Emitter {
 
       // Debug logging removed - db:events logs the apply
 
-      // 1. Persist to events.jsonl (unless skipPersist is set per-call or as default)
+      // 1. Apply to database — primary operation, must succeed or throw
+      const db = emitOptions.db ?? defaultDb
+      if (db) {
+        applyEventWithDb(db, event)
+      }
+
+      // 2. Persist to events.jsonl (unless skipPersist is set per-call or as default)
       const shouldPersist = !(emitOptions.skipPersist ?? defaultSkipPersist)
       if (shouldPersist) {
         ensureKmDir()
         appendFileSync(eventsPath, JSON.stringify(event) + "\n")
-      }
-
-      // 2. Apply to database — primary operation, must succeed or throw
-      const db = emitOptions.db ?? defaultDb
-      if (db) {
-        applyEventWithDb(db, event)
       }
 
       // 3. Broadcast via event hub — isolated so failure doesn't block fs sync

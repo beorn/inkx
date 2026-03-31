@@ -14,10 +14,9 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
        |
   Emitter.emit(event)
        |
-       |-- 1. Persist ----------> append to .km/events.jsonl
+       |-- 1. Apply to DB ------> applyEventWithDb() [db-events.ts]
        |
-       |-- 2. Apply to DB ------> applyEventWithDb() [db-events.ts]
-       |                           switch(event.type) -> INSERT/UPDATE/DELETE on nodes
+       |-- 2. Persist ----------> append to .km/events.jsonl
        |
        |-- 3. Broadcast --------> eventHub.broadcast(event)
        |                           (React re-render via Zustand store)
@@ -74,7 +73,7 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
 | -------------- | ------------------------------------------------------------------------- |
 | `sync.ts`      | TUI mode: watcher lifecycle, WriteQueue, heartbeat reconciliation, DB->FS |
 | `fs-writer.ts` | CLI mode: synchronous DB->FS write-back, no watcher, no debouncing        |
-| `emitter.ts`   | 4-step event pipeline: persist -> DB apply -> broadcast -> FS sync        |
+| `emitter.ts`   | 4-step event pipeline: DB apply -> persist -> broadcast -> FS sync        |
 
 ### FS -> DB
 
@@ -131,7 +130,7 @@ All events update the `meta.last_event` cursor in SQLite.
 
 ### Emitter (emitter.ts)
 
-- **Step 2 (DB apply)**: throws on failure -- DB consistency is non-negotiable.
+- **Step 1 (DB apply)**: throws on failure -- DB consistency is non-negotiable.
 - **Step 3 (broadcast)**: caught, logged. Broadcast failure must not block FS sync.
 - **Step 4 (FS sync)**: errors with an `errno` code (ENOENT, EACCES, etc.) are logged
   and swallowed -- filesystem is best-effort. Errors WITHOUT an errno code are re-thrown
@@ -168,9 +167,9 @@ All events update the `meta.last_event` cursor in SQLite.
    writes so the watcher does not re-trigger reconciliation for our own changes.
    Uses generation counters to prevent stale clear timers from clearing newer marks.
 
-4. **Persist before apply**: events.jsonl is appended before the DB is updated.
-   This means a crash between steps 1 and 2 leaves a "ghost" event in the journal
-   that was never applied to SQLite. See Known Limitations.
+4. **Apply before persist**: The DB is updated before events.jsonl is appended.
+   A crash between steps 1 and 2 loses the event from the journal but the DB is
+   correct — safer than the reverse, which would leave ghost events in the journal.
 
 ## SyncManager vs FsWriter
 
@@ -187,9 +186,10 @@ which handles all node mutation logic. Differ only in the `FsWriteTarget` they i
 
 ## Known Limitations
 
-1. **Persist-before-apply ordering**: A crash between step 1 (append to events.jsonl)
-   and step 2 (apply to SQLite) leaves ghost events in the journal. On restart the DB
-   is rebuilt from the journal, so this is self-healing -- but the window exists.
+1. **~~Persist-before-apply ordering~~ (fixed)**: The emit pipeline now applies to the
+   DB first (step 1), then persists to events.jsonl (step 2). A crash between these
+   steps loses the event from the journal but leaves the DB in a correct state — the
+   safer failure mode.
 
 2. **Handler logic refactored**: SyncManager and FsWriter previously duplicated ~400 lines
    of event-to-FS handler logic. This is now unified via the `EventHandlers` class,
