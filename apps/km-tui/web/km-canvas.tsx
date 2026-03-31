@@ -449,15 +449,19 @@ function BoardView({
     }
   }, [columns.length])
 
-  const colWidth = Math.floor(width / Math.max(columns.length, 1))
+  // Min 250px per column, use full width if few columns
+  const minColWidth = 250
+  const naturalWidth = Math.floor(width / Math.max(columns.length, 1))
+  const colWidth = Math.max(naturalWidth, minColWidth)
+  const totalWidth = colWidth * columns.length
   const currentCard = columns[colIndex]?.cards[cardIndex]
   const crumb = currentCard
     ? `${breadcrumb ? breadcrumb + " \u203a " : ""}${columns[colIndex]?.name} \u203a ${currentCard.title}`
     : (breadcrumb ?? columns[colIndex]?.name)
 
   return (
-    <Box flexDirection="column" width={width}>
-      <TopBar width={width} breadcrumb={crumb} mode={isEditing ? (isAdding ? "ADD" : "EDIT") : undefined} />
+    <Box flexDirection="column" width={totalWidth}>
+      <TopBar width={totalWidth} breadcrumb={crumb} mode={isEditing ? (isAdding ? "ADD" : "EDIT") : undefined} />
       <Box>
         {columns.map((col, i) => (
           <Box key={col.name + i} flexDirection="column" width={colWidth}>
@@ -491,7 +495,7 @@ function BoardView({
           </Box>
         ))}
       </Box>
-      <KeyBar width={width} hasRepo={!!repo} isEditing={isEditing} />
+      <KeyBar width={totalWidth} hasRepo={!!repo} isEditing={isEditing} />
     </Box>
   )
 }
