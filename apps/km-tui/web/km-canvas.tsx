@@ -5,14 +5,15 @@
  * with proportional text. Supports two modes:
  *
  * 1. Mock data (default) — static demo board
- * 2. Remote repo — connects to km-web server for real vault data
+ * 2. Remote repo — connects to km-web server via WebSocket, uses real
+ *    useColumns hook for column derivation matching the TUI exactly
  *
  * Usage:
  *   ?mode=mock   — mock data (default)
  *   ?mode=remote&url=ws://localhost:3847/ws — real vault data
  */
 
-import React from "react"
+import React, { useState } from "react"
 import {
   renderToCanvas,
   Box,
@@ -23,9 +24,12 @@ import type {
   CanvasInstance,
   CanvasRenderBuffer,
 } from "../../../vendor/silvery/packages/ag-react/src/ui/canvas/index.js"
+import { useColumns } from "../src/hooks/use-columns.ts"
+import type { ColumnView as RealColumnView, CardView as RealCardView } from "../src/types.ts"
+import type { RepoLike } from "../../km-web/src/remote-repo.ts"
 
 // ============================================================================
-// Types
+// Types (simplified for mock mode)
 // ============================================================================
 
 interface Card {
@@ -116,12 +120,28 @@ const STATUS_COLORS: Record<string, string> = {
 const PRIORITY_COLORS: Record<string, string> = { P0: "#f38ba8", P1: "#fab387", P2: "#f9e2af", P3: "#6c7086" }
 
 // ============================================================================
-// Components
+// Shared rendering components
 // ============================================================================
 
-function CardView({ card, isSelected, width }: { card: Card; isSelected: boolean; width: number }) {
-  const icon = STATUS_ICONS[card.status ?? ""] ?? "\u25cb"
-  const iconColor = STATUS_COLORS[card.status ?? ""] ?? "#6c7086"
+function CardRow({
+  title,
+  status,
+  isSelected,
+  width,
+  priority,
+  tags,
+  due,
+}: {
+  title: string
+  status?: string
+  isSelected: boolean
+  width: number
+  priority?: string
+  tags?: string[]
+  due?: string
+}) {
+  const icon = STATUS_ICONS[status ?? ""] ?? "\u25cb"
+  const iconColor = STATUS_COLORS[status ?? ""] ?? "#6c7086"
   const bg = isSelected ? "#313244" : undefined
 
   return (
@@ -130,59 +150,41 @@ function CardView({ card, isSelected, width }: { card: Card; isSelected: boolean
         <Text color={iconColor}>{icon} </Text>
         <Box flexShrink={1}>
           <Text
-            color={card.status === "done" ? "#6c7086" : "#cdd6f4"}
-            strikethrough={card.status === "done"}
+            color={status === "done" ? "#6c7086" : "#cdd6f4"}
+            strikethrough={status === "done"}
             wrap="wrap"
           >
-            {card.title}
+            {title}
           </Text>
         </Box>
       </Box>
-      {(card.priority || card.tags || card.due) && (
+      {(priority || tags || due) && (
         <Box marginLeft={14} marginTop={2} gap={6}>
-          {card.priority && (
-            <Text color={PRIORITY_COLORS[card.priority ?? ""] ?? ""} bold>
-              {card.priority}
+          {priority && (
+            <Text color={PRIORITY_COLORS[priority] ?? ""} bold>
+              {priority}
             </Text>
           )}
-          {card.tags?.map((tag) => (
+          {tags?.map((tag) => (
             <Text key={tag} color="#585b70">
               #{tag}
             </Text>
           ))}
-          {card.due && <Text color="#f9e2af">{card.due}</Text>}
+          {due && <Text color="#f9e2af">{due}</Text>}
         </Box>
       )}
     </Box>
   )
 }
 
-function ColumnView({
-  col,
-  width,
-  selectedCardId,
-  isActive,
-}: {
-  col: Column
-  width: number
-  selectedCardId: string | null
-  isActive: boolean
-}) {
+function ColumnHeader({ name, count, isActive }: { name: string; count: number; isActive: boolean }) {
   const headerBg = isActive ? "#313244" : "#1e1e2e"
-
   return (
-    <Box flexDirection="column" width={width}>
-      <Box backgroundColor={headerBg} paddingX={8} paddingY={4} borderBottom borderColor="#45475a" borderStyle="single">
-        <Text bold color={isActive ? "#89b4fa" : "#a6adc8"}>
-          {col.name}
-        </Text>
-        <Text color="#585b70"> ({col.cards.length})</Text>
-      </Box>
-      <Box flexDirection="column" paddingTop={2}>
-        {col.cards.map((card) => (
-          <CardView key={card.id} card={card} isSelected={card.id === selectedCardId} width={width} />
-        ))}
-      </Box>
+    <Box backgroundColor={headerBg} paddingX={8} paddingY={4} borderBottom borderColor="#45475a" borderStyle="single">
+      <Text bold color={isActive ? "#89b4fa" : "#a6adc8"}>
+        {name}
+      </Text>
+      <Text color="#585b70"> ({count})</Text>
     </Box>
   )
 }
@@ -202,13 +204,11 @@ function TopBar({ width, breadcrumb }: { width: number; breadcrumb?: string }) {
         ) : (
           <>
             <Text color="#6c7086">/</Text>
-            <Text color="#cdd6f4">Inbox</Text>
-            <Text color="#6c7086">&gt;</Text>
-            <Text color="#cdd6f4">Review PR #847</Text>
+            <Text color="#cdd6f4">canvas prototype</Text>
           </>
         )}
       </Box>
-      <Text color="#585b70">canvas prototype</Text>
+      <Text color="#585b70">canvas</Text>
     </Box>
   )
 }
@@ -235,22 +235,35 @@ function KeyBar({ width }: { width: number }) {
   )
 }
 
-function KmBoard({ width, board, breadcrumb }: { width: number; board: Column[]; breadcrumb?: string }) {
-  const colCount = board.length
-  const colWidth = Math.floor(width / Math.max(colCount, 1))
+// ============================================================================
+// Mock Board (static data)
+// ============================================================================
+
+function MockBoard({ width }: { width: number }) {
+  const colWidth = Math.floor(width / Math.max(mockBoard.length, 1))
 
   return (
     <Box flexDirection="column" width={width}>
-      <TopBar width={width} breadcrumb={breadcrumb} />
+      <TopBar width={width} />
       <Box>
-        {board.map((col, i) => (
-          <ColumnView
-            key={col.name}
-            col={col}
-            width={colWidth}
-            selectedCardId={i === 0 ? (board[0]?.cards[0]?.id ?? null) : null}
-            isActive={i === 0}
-          />
+        {mockBoard.map((col, i) => (
+          <Box key={col.name} flexDirection="column" width={colWidth}>
+            <ColumnHeader name={col.name} count={col.cards.length} isActive={i === 0} />
+            <Box flexDirection="column" paddingTop={2}>
+              {col.cards.map((card) => (
+                <CardRow
+                  key={card.id}
+                  title={card.title}
+                  status={card.status}
+                  isSelected={i === 0 && card.id === "1"}
+                  width={colWidth}
+                  priority={card.priority}
+                  tags={card.tags}
+                  due={card.due}
+                />
+              ))}
+            </Box>
+          </Box>
         ))}
       </Box>
       <KeyBar width={width} />
@@ -259,81 +272,48 @@ function KmBoard({ width, board, breadcrumb }: { width: number; board: Column[];
 }
 
 // ============================================================================
-// Remote repo → Column[] derivation
+// Remote Board (real useColumns from km-tui)
 // ============================================================================
 
-interface KNode {
-  id: string
-  type: string
-  parent_id: string | null
-  parent_idx?: number
-  content?: string
-  title?: string
-  name?: string
-  task_status?: string
-  task_marker?: string
-  item?: boolean
-  fstype?: string
-  data?: Record<string, unknown>
-  [key: string]: unknown
-}
+const emptyFoldDepths = new Map<string, number>()
 
-interface RepoLikeMinimal {
-  getChildren(parentId: string | null): KNode[]
-  getNode(id: string): KNode | null
-}
+function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
+  // Use the REAL useColumns hook — same column derivation as the TUI
+  // Cast RepoLike to the expected type — useColumns only uses the subset we implement
+  const columns = useColumns(repo as Parameters<typeof useColumns>[0], null, emptyFoldDepths)
 
-/** Derive Column[] from a repo-like interface for rendering */
-function deriveColumnsFromRepo(repo: RepoLikeMinimal, rootId: string | null): Column[] {
-  // getChildren(null) maps to "." in the cache, returning root-level items directly
-  const children = repo.getChildren(rootId)
-  const columns: Column[] = []
+  const colCount = columns.length
+  const colWidth = Math.floor(width / Math.max(colCount, 1))
+  const totalCards = columns.reduce((sum, col) => sum + col.cardNodes.length, 0)
 
-  for (const child of children) {
-    // Any node with children can be a column — don't filter too aggressively
-    const isOutline =
-      child.item === true ||
-      child.type === "h" ||
-      child.fstype === "mdsection" ||
-      child.fstype === "mdfile" ||
-      child.fstype === "folder"
-    if (!isOutline) continue
-
-    const cardNodes = repo.getChildren(child.id)
-    const cards: Card[] = cardNodes.map((node) => ({
-      id: node.id,
-      title: node.content || node.title || node.name || "(untitled)",
-      status: (node.task_status as Card["status"]) ?? undefined,
-      priority: extractPriority(node),
-      tags: extractTags(node),
-      due: extractDue(node),
-    }))
-
-    columns.push({
-      name: child.content || child.title || child.name || "(untitled)",
-      cards,
-    })
-  }
-
-  return columns
-}
-
-function extractPriority(node: KNode): Card["priority"] | undefined {
-  const content = node.content ?? ""
-  const match = content.match(/\b(P[0-3])\b/)
-  return match ? (match[1] as Card["priority"]) : undefined
-}
-
-function extractTags(node: KNode): string[] | undefined {
-  const content = node.content ?? ""
-  const tags = [...content.matchAll(/#(\w+)/g)].map((m) => m[1] ?? "")
-  return tags.length > 0 ? tags : undefined
-}
-
-function extractDue(node: KNode): string | undefined {
-  const due = node.data?.due_at ?? (node as Record<string, unknown>).due_at
-  if (typeof due === "string") return due.slice(0, 10) // YYYY-MM-DD
-  return undefined
+  return (
+    <Box flexDirection="column" width={width}>
+      <TopBar width={width} breadcrumb={`${colCount} columns \u00b7 ${totalCards} cards \u00b7 remote`} />
+      <Box>
+        {columns.map((col: RealColumnView, i: number) => (
+          <Box key={col.node.id} flexDirection="column" width={colWidth}>
+            <ColumnHeader
+              name={col.node.content || col.node.title || (col.node as Record<string, unknown>).name as string || "(untitled)"}
+              count={col.cardNodes.length}
+              isActive={i === 0}
+            />
+            <Box flexDirection="column" paddingTop={2}>
+              {col.cardNodes.map((card: RealCardView, j: number) => (
+                <CardRow
+                  key={card.id}
+                  title={card.content || card.title || (card as Record<string, unknown>).name as string || "(untitled)"}
+                  status={card.task_status as string | undefined}
+                  isSelected={i === 0 && j === 0}
+                  width={colWidth}
+                />
+              ))}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+      <KeyBar width={width} />
+    </Box>
+  )
 }
 
 // ============================================================================
@@ -342,8 +322,7 @@ function extractDue(node: KNode): string | undefined {
 
 let instance: CanvasInstance | null = null
 let currentFont = '"Inter", system-ui, sans-serif'
-let currentBoard: Column[] = mockBoard
-let currentBreadcrumb: string | undefined
+let remoteRepo: RepoLike | null = null
 
 function mount(width: number) {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
@@ -368,7 +347,12 @@ function mount(width: number) {
   }
 
   const t0 = performance.now()
-  instance = renderToCanvas(<KmBoard width={width} board={currentBoard} breadcrumb={currentBreadcrumb} />, canvas, opts)
+
+  const element = isRemoteMode && remoteRepo
+    ? <RemoteBoard width={width} repo={remoteRepo} />
+    : <MockBoard width={width} />
+
+  instance = renderToCanvas(element, canvas, opts)
 
   // Auto-size height
   const dpr = window.devicePixelRatio || 1
@@ -390,10 +374,9 @@ function mount(width: number) {
   }
   if (root) countNodes(root)
 
-  const cardCount = currentBoard.reduce((sum, col) => sum + col.cards.length, 0)
   const modeLabel = isRemoteMode ? "remote" : "mock"
   const fontName = (currentFont.split(",")[0] ?? "").replace(/"/g, "")
-  status.textContent = `Rendered in ${elapsed}ms \u00b7 ${nodeCount} ag nodes \u00b7 ${currentBoard.length} columns \u00b7 ${cardCount} cards \u00b7 ${width}\u00d7${contentHeight}px \u00b7 ${dpr}x DPR \u00b7 ${modeLabel} \u00b7 font: ${fontName}`
+  status.textContent = `Rendered in ${elapsed}ms \u00b7 ${nodeCount} ag nodes \u00b7 ${width}\u00d7${contentHeight}px \u00b7 ${dpr}x DPR \u00b7 ${modeLabel} \u00b7 font: ${fontName}`
 }
 
 // ============================================================================
@@ -475,21 +458,10 @@ async function init() {
     try {
       const { createRemoteRepo } = await import("../../km-web/src/remote-repo.ts")
       const remote = await createRemoteRepo({ url: wsUrl })
-
-      // Derive columns from repo
-      currentBoard = deriveColumnsFromRepo(remote.repo as unknown as RepoLikeMinimal, null)
-      currentBreadcrumb = `${currentBoard.length} columns \u00b7 remote`
-
-      // Re-render on changes
-      remote.repo.subscribe(() => {
-        currentBoard = deriveColumnsFromRepo(remote.repo as unknown as RepoLikeMinimal, null)
-        updateWidth()
-      })
-
-      status.textContent = `Connected — ${currentBoard.length} columns`
+      remoteRepo = remote.repo
+      status.textContent = `Connected — loading...`
     } catch (err) {
       status.textContent = `Connection failed: ${err instanceof Error ? err.message : err}. Using mock data.`
-      currentBoard = mockBoard
     }
   }
 

@@ -38,11 +38,18 @@ export default defineConfig({
       "@silvery/color": resolve(root, "vendor/silvery/packages/color/src"),
       silvery: resolve(root, "vendor/silvery/src"),
       flexily: resolve(root, "vendor/flexily/src"),
-      // km packages (types only — no runtime Node.js deps)
+      // km packages — browser-safe (pure TS, no Node.js deps)
       "@km/core": resolve(root, "packages/km-core/src"),
-      // Stub out Node.js-only modules for browser
+      "@km/tree": resolve(root, "packages/km-tree/src"),
+      "@km/markdown": resolve(root, "packages/km-markdown/src"),
+      // @km/storage: only types are used at runtime, but Vite resolves the barrel
+      // which pulls in bun:sqlite. Stub it at the module level instead.
+      "@km/storage": resolve(root, "packages/km-storage/src"),
+      // Stub out Node.js-only / Bun-only modules for browser
+      "bun:sqlite": resolve(__dirname, "stubs/bun-sqlite.ts"),
       "node:fs": resolve(__dirname, "stubs/node-fs.ts"),
       "node:fs/promises": resolve(__dirname, "stubs/node-fs.ts"),
+      "node:path": resolve(__dirname, "stubs/node-path.ts"),
       loggily: resolve(__dirname, "stubs/loggily.ts"),
       "@resvg/resvg-js": resolve(__dirname, "stubs/empty.ts"),
     },
