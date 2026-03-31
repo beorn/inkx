@@ -55,7 +55,7 @@ All tree rendering uses TreeNode with variants:
    │ - folded nodes │            │                     │
    └────────────────┘            │                     │
             │                    ▼                     ▼
-            └──────────► Re-render ◄───────── tuiEvents.emit("refresh")
+            └──────────► Re-render ◄───────── repo.touch() (cache bust + version bump)
 ```
 
 ## State Management
@@ -122,8 +122,8 @@ External .md edits → SyncManager → emit events → TUI refreshes
 1. `tui.ts` creates a `SyncManager` with file watching enabled
 2. `setFsSync(syncManager)` wires TUI changes → filesystem writes
 3. `syncManager.start()` watches for external filesystem changes
-4. On external change: reconcile → emit events → `tuiEvents.emit("refresh")`
-5. `Board.tsx` subscribes to `tuiEvents` and rebuilds state on refresh
+4. On external change: reconcile → apply ops to DB → `repo.touch()`
+5. `repo.touch()` busts cache + bumps version → `useColumns` re-derives via `useSyncExternalStore`
 
 **Debounce timings:**
 

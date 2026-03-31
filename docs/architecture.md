@@ -253,8 +253,8 @@ Commands directly access storage via `ctx.storage` for mutations, and use `ctx.d
 2. Watcher    Chokidar detects change (5s debounce)
 3. Reconcile  Parse file, diff against DB, emit events
 4. Storage    Updates SQLite state
-5. Signal     SyncManager emits "state-change" → tuiEvents.emit("refresh")
-6. App        refreshTree() → dispatch(REFRESH) → re-render
+5. Signal     SyncManager emits "state-change" → repo.touch() (cache bust + version bump)
+6. App        useColumns re-derives via useSyncExternalStore → re-render
 ```
 
 See [storage.md](storage.md) for details on how @km/storage implements bidirectional sync.

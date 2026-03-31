@@ -149,29 +149,29 @@ describe("resolveLocationKey", () => {
 
   describe("parent", () => {
     it("cursor on card-2 → parent's slot (root, 0) = board-A's position", () => {
-      const result = resolveLocationKey("parent", cursor("card-2"), repo) as Position
+      const result = resolveLocationKey("{parent}", cursor("card-2"), repo) as Position
       expect(result).toEqual({ parentId: "root", childIdx: 0 })
     })
 
     it("cursor on card-4 → parent's slot (root, 1) = board-B's position", () => {
-      const result = resolveLocationKey("parent", cursor("card-4"), repo) as Position
+      const result = resolveLocationKey("{parent}", cursor("card-4"), repo) as Position
       expect(result).toEqual({ parentId: "root", childIdx: 1 })
     })
 
     it("cursor on board-A → parent is root (root level)", () => {
-      const result = resolveLocationKey("parent", cursor("board-A"), repo) as Position
+      const result = resolveLocationKey("{parent}", cursor("board-A"), repo) as Position
       // root has no parent_id, so parentNode = root, root.parent_id = null
       // Returns { parentId: root.id, childIdx: 0 } sentinel
       expect(result).toEqual({ parentId: "root", childIdx: 0 })
     })
 
     it("cursor on root → null (no parent)", () => {
-      const result = resolveLocationKey("parent", cursor("root"), repo)
+      const result = resolveLocationKey("{parent}", cursor("root"), repo)
       expect(result).toBeNull()
     })
 
     it("no cursor → null", () => {
-      const result = resolveLocationKey("parent", cursor(null), repo)
+      const result = resolveLocationKey("{parent}", cursor(null), repo)
       expect(result).toBeNull()
     })
   })
@@ -182,39 +182,39 @@ describe("resolveLocationKey", () => {
 
   describe("first", () => {
     it("cursor on card-2 → first sibling slot (board-A, 0)", () => {
-      const result = resolveLocationKey("first", cursor("card-2"), repo)
+      const result = resolveLocationKey("{first}", cursor("card-2"), repo)
       expect(result).toEqual({ parentId: "board-A", childIdx: 0 })
     })
 
     it("cursor on card-1 (already first) → still (board-A, 0)", () => {
-      const result = resolveLocationKey("first", cursor("card-1"), repo)
+      const result = resolveLocationKey("{first}", cursor("card-1"), repo)
       expect(result).toEqual({ parentId: "board-A", childIdx: 0 })
     })
 
     it("no cursor → null", () => {
-      const result = resolveLocationKey("first", cursor(null), repo)
+      const result = resolveLocationKey("{first}", cursor(null), repo)
       expect(result).toBeNull()
     })
 
     it("cursor on root (no parent) → null", () => {
-      const result = resolveLocationKey("first", cursor("root"), repo)
+      const result = resolveLocationKey("{first}", cursor("root"), repo)
       expect(result).toBeNull()
     })
   })
 
   describe("last", () => {
     it("cursor on card-1 → last sibling slot (board-A, -1)", () => {
-      const result = resolveLocationKey("last", cursor("card-1"), repo)
+      const result = resolveLocationKey("{last}", cursor("card-1"), repo)
       expect(result).toEqual({ parentId: "board-A", childIdx: -1 })
     })
 
     it("cursor on card-3 (already last) → still (board-A, -1)", () => {
-      const result = resolveLocationKey("last", cursor("card-3"), repo)
+      const result = resolveLocationKey("{last}", cursor("card-3"), repo)
       expect(result).toEqual({ parentId: "board-A", childIdx: -1 })
     })
 
     it("no cursor → null", () => {
-      const result = resolveLocationKey("last", cursor(null), repo)
+      const result = resolveLocationKey("{last}", cursor(null), repo)
       expect(result).toBeNull()
     })
   })

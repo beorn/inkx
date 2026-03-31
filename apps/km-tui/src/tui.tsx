@@ -29,8 +29,7 @@ import { createInitialUIState } from "./ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
-import { loadConfig, saveConfig } from "./config-persist.ts"
-import { initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
+import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui") as any
@@ -124,10 +123,13 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     // Wire up TUI changes → filesystem (always enabled for writes)
     options.repo.emitter.setFsSync(syncManager)
 
-    // Wire up filesystem changes → TUI refresh
+    // Wire up filesystem changes → TUI refresh.
+    // When SyncManager finishes reconciling external file changes (DB updated),
+    // bust the Repo's children cache and bump version so React re-renders
+    // via useSyncExternalStore in useColumns.
     syncManager.on("state-change", (newState) => {
       if (newState === "idle") {
-        tuiEvents.emit("refresh")
+        options.repo.touch()
       }
     })
 

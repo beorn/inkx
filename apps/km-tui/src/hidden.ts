@@ -22,20 +22,28 @@ import type { Repo } from "./repo-context.tsx"
 // File I/O
 // =============================================================================
 
+/** Cached per-repo migration state — avoids redundant existsSync on every call. */
+const migratedRepos = new Set<string>()
+
 function hiddenFilePath(repoPath: string): string {
-  const newPath = join(repoPath, ".km", "hidden")
-  if (!existsSync(newPath)) {
-    // One-time migration: rename .km/ignored → .km/hidden
-    const oldPath = join(repoPath, ".km", "ignored")
-    if (existsSync(oldPath)) {
-      try {
-        renameSync(oldPath, newPath)
-      } catch {
-        return oldPath // Fall back to old path if rename fails
-      }
-    }
+  if (!migratedRepos.has(repoPath)) {
+    migrateIgnoredToHidden(repoPath)
+    migratedRepos.add(repoPath)
   }
-  return newPath
+  return join(repoPath, ".km", "hidden")
+}
+
+/** One-time migration: rename .km/ignored → .km/hidden. */
+function migrateIgnoredToHidden(repoPath: string): void {
+  const newPath = join(repoPath, ".km", "hidden")
+  if (existsSync(newPath)) return
+  const oldPath = join(repoPath, ".km", "ignored")
+  if (!existsSync(oldPath)) return
+  try {
+    renameSync(oldPath, newPath)
+  } catch {
+    // Fall back silently — readBoardHidden will return empty if neither exists
+  }
 }
 
 /**

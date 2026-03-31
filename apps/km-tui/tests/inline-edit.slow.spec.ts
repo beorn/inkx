@@ -111,6 +111,42 @@ describe("Inline Editing", () => {
     board.expect("#1b[data-cursor]").toExist()
   })
 
+  test("shifted punctuation chars insert correctly during inline edit", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("task"), item("1b"))))
+
+    board.expect("#task[data-cursor]").toExist()
+    board.press("Enter")
+
+    // Type shifted punctuation: "#$%^&*"
+    for (const ch of "#$%^&*") board.press(ch)
+
+    board.press("Escape")
+
+    // Verify repo has the shifted chars (data layer)
+    expect(repo.getNode("task")?.content).toBe("task#$%^&*")
+
+    // Verify screenshot shows them (rendering layer)
+    expect(board.screenshot()).toContain("task#$%^&*")
+  })
+
+  test("mixed text with shifted chars saves correctly", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("item"), item("1b"))))
+
+    board.expect("#item[data-cursor]").toExist()
+    board.press("Enter")
+
+    // Type realistic content: " (v2!)"
+    for (const ch of " (v2!)") {
+      if (ch === " ") board.press("Space")
+      else board.press(ch)
+    }
+
+    board.press("Escape")
+
+    expect(repo.getNode("item")?.content).toBe("item (v2!)")
+    expect(board.screenshot()).toContain("item (v2!)")
+  })
+
   test("inline edit then navigate works (Enter → Escape → j/k)", () => {
     const { board } = testEnv(item.simpleBoard)
 

@@ -156,6 +156,17 @@ export {
   inDialogFilter,
 } from "./when.ts"
 
+// Config (types, defaults, I/O, template expansion)
+export type { KmConfig, ExpandedLocation } from "./config.ts"
+export {
+  DEFAULT_LOCATIONS,
+  loadConfig,
+  saveConfig,
+  expandLocationTemplate,
+  isDateTemplate,
+  isPositionalTemplate,
+} from "./config.ts"
+
 // Favorites & Locations (unified store)
 export {
   getFavorite,

@@ -300,8 +300,8 @@ export function buildKeybindingContext(options: {
   cursorAtEnd?: () => boolean
   /** True when the edited node has visible (unfolded) structural children */
   hasVisibleChildren?: () => boolean
-  /** True when the edited node is a structural outline node (board/column title, not a task card) */
-  isEditingOutlineNode?: () => boolean
+  /** Visual role of the edited node in the board layout */
+  editLevel?: () => "board" | "column" | "card"
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -338,7 +338,7 @@ export function buildKeybindingContext(options: {
     cursorAtStart: options.cursorAtStart ?? (() => false),
     cursorAtEnd: options.cursorAtEnd ?? (() => true),
     hasVisibleChildren: options.hasVisibleChildren ?? (() => false),
-    isEditingOutlineNode: options.isEditingOutlineNode ?? (() => false),
+    editLevel: options.editLevel ?? (() => "card"),
   }
 }
 

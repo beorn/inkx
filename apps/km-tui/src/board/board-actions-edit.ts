@@ -669,13 +669,9 @@ function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB:
   const parentId = ctx.rootId
   if (!parentId) return
   const base = colA.node.parent_idx
-  // colIndexA < colIndexB means A is visually left of B in the layout
-  const [leftCol, rightCol] = colIndexA < colIndexB ? [colA, colB] : [colB, colA]
-  if (!leftCol.isVirtual && leftCol.node.parent_idx !== base) {
-    repo.moveNode(leftCol.node.id, parentId, base)
-    leftCol.node.parent_idx = base
-  }
-  if (!rightCol.isVirtual && rightCol.node.parent_idx !== base + 1) {
+  // Both columns share `base` — only the right one needs to change to `base + 1`.
+  const rightCol = colIndexA < colIndexB ? colB : colA
+  if (!rightCol.isVirtual) {
     repo.moveNode(rightCol.node.id, parentId, base + 1)
     rightCol.node.parent_idx = base + 1
   }

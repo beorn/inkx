@@ -77,7 +77,7 @@ function createContext(overrides?: Partial<KeybindingContext>): KeybindingContex
     cursorAtStart: () => false,
     cursorAtEnd: () => true,
     hasVisibleChildren: () => false,
-    isEditingOutlineNode: () => false,
+    editLevel: () => "card" as const,
     ...overrides,
   }
 }
@@ -1185,12 +1185,12 @@ describe("text mode keybinding separation", () => {
       expect(resolveKeybinding("Enter", {}, inlineCtx)).toEqual({ commandId: "text.linebreak_after" })
     })
 
-    it("Enter → text.linebreak_child (cursor at end, outline node, even without children)", () => {
+    it("Enter → text.linebreak_child (cursor at end, column-level node, even without children)", () => {
       // Board/column titles always create children — "down" means "inside the column/board"
       const outlineCtx = createContext({
         isInlineEditing: true,
         textInputFocused: true,
-        isEditingOutlineNode: () => true,
+        editLevel: () => "column" as const,
       })
       expect(resolveKeybinding("Enter", {}, outlineCtx)).toEqual({ commandId: "text.linebreak_child" })
     })

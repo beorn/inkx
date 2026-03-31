@@ -49,9 +49,10 @@ import {
   RESERVED_KEYS,
   getReservedKeyLabel,
   initDefaultKeybindings,
+  expandLocationTemplate,
+  isDateTemplate,
 } from "@km/commands"
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
-import { expandLocationTemplate, isDateTemplate } from "../config-persist.ts"
 import { Tree } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ViewMode } from "../types.ts"

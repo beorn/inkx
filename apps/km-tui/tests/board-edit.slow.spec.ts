@@ -7,6 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import type { KNode } from "@km/core"
 
 // =============================================================================
 // Edit Operations
@@ -625,5 +626,152 @@ describe("Move Mode", () => {
 
     board.command("cursor_up")
     expect(board.screenshot()).not.toContain("MOVE")
+  })
+})
+
+// =============================================================================
+// Enter on Task — Sibling Creation & Type Preservation
+// =============================================================================
+
+describe("Enter on task cards", () => {
+  // BUG: Enter on task creates task siblings, but repeated Enter corrupts
+  // earlier tasks (task_marker lost, "[ ]" leaks into content) and new items
+  // may not inherit task type from siblings.
+  // Related: sticky type inheritance (bead km-tui.sticky-type)
+  // BUG VARIANT 1: Using item() default tasks (content without prefix).
+  // This variant passes — the bug may only manifest with prefixed content
+  // from real vault materialization. Kept as a regression guard.
+  test("repeated Enter on task preserves task type and does not corrupt siblings", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("taskA"), item("taskB"))))
+
+    // Verify initial state: both items are tasks (item() creates tasks by default for leaf nodes)
+    const taskA = repo.getNode("taskA")!
+    expect(taskA.task_marker).toBe("[ ]")
+    expect(taskA.task_status).toBe("todo")
+    expect(taskA.list_marker).toBe("-")
+
+    const taskB = repo.getNode("taskB")!
+    expect(taskB.task_marker).toBe("[ ]")
+
+    // Step 1: Navigate to taskA and enter edit mode
+    board.expect("#taskA[data-cursor]").toExist()
+    board.press("Enter") // enter inline edit
+
+    // Step 2: Press Enter at end of title — should create a new task sibling after taskA
+    board.press("Enter")
+
+    // Find the newly created node (not taskA, not taskB)
+    const col1Children = repo.getChildren("col1")
+    expect(col1Children.length).toBe(3) // taskA, new node, taskB
+    const newNode1 = col1Children.find((n: KNode) => n.id !== "taskA" && n.id !== "taskB")!
+    expect(newNode1).toBeDefined()
+
+    // The new node should be a task (inherited from current node)
+    expect(newNode1.task_marker).toBe("[ ]")
+    expect(newNode1.task_status).toBe("todo")
+    expect(newNode1.list_marker).toBe("-")
+
+    // taskA should still be a task (not corrupted by the save)
+    const taskAAfterFirstEnter = repo.getNode("taskA")!
+    expect(taskAAfterFirstEnter.task_marker).toBe("[ ]")
+    expect(taskAAfterFirstEnter.task_status).toBe("todo")
+    // Content should NOT contain literal "[ ]" — that means the marker leaked into content
+    expect(taskAAfterFirstEnter.content).not.toContain("[ ] [ ]")
+
+    // Step 3: Type "asdf" in the new (empty) task node
+    board.press("a")
+    board.press("s")
+    board.press("d")
+    board.press("f")
+
+    // Step 4: Press Enter again — should create another task sibling
+    board.press("Enter")
+
+    // Verify taskA is STILL a task (not converted to regular li)
+    const taskAAfterSecondEnter = repo.getNode("taskA")!
+    expect(taskAAfterSecondEnter.task_marker).toBe("[ ]")
+    expect(taskAAfterSecondEnter.task_status).toBe("todo")
+    expect(taskAAfterSecondEnter.list_marker).toBe("-")
+    // Content must not have literal "[ ]" leaked in
+    expect(taskAAfterSecondEnter.content).not.toMatch(/\[ \] \[ \]/)
+
+    // Verify the "asdf" node is saved as a task with correct content
+    const asdfNode = repo.getNode(newNode1.id)!
+    expect(asdfNode.task_marker).toBe("[ ]")
+    expect(asdfNode.task_status).toBe("todo")
+    // Content should include "asdf" — either as raw or with task prefix
+    const asdfText = asdfNode.content ?? ""
+    expect(asdfText).toContain("asdf")
+    // Content should NOT contain literal unstructured "[ ]"
+    expect(asdfText).not.toMatch(/\[ \].*\[ \]/)
+
+    // Verify the newest node (created by second Enter) is also a task
+    const col1ChildrenAfter = repo.getChildren("col1")
+    expect(col1ChildrenAfter.length).toBe(4) // taskA, asdf node, newest node, taskB
+    const newestNode = col1ChildrenAfter.find(
+      (n: KNode) => n.id !== "taskA" && n.id !== "taskB" && n.id !== newNode1.id,
+    )!
+    expect(newestNode).toBeDefined()
+    expect(newestNode.task_marker).toBe("[ ]")
+    expect(newestNode.task_status).toBe("todo")
+    expect(newestNode.list_marker).toBe("-")
+  })
+
+  // BUG VARIANT 2: Tasks with prefixed content (as produced by splitNode or
+  // real vault materialization where content = "- [ ] text").
+  // Targets: handleTitleSave re-adding the task marker prefix when content
+  // already has it, causing double-prefix corruption; and task type loss
+  // during repeated Enter cycles.
+  // NOTE: This test passes with fake repo because handleTitleSave correctly
+  // extracts the marker from content. The real bug likely involves the
+  // markdown->DB round-trip (fs sync) which is not exercised in fake repo tests.
+  // A .slow.spec with withTestEnv (real DB + vault) is needed to fully reproduce.
+  test.skip("repeated Enter on prefixed-content task does not double-prefix or lose task type", () => {
+    // Simulate real vault storage: content includes the "- [ ] " prefix
+    const nodes = item("board", item("col1", item("taskA"), item("taskB")))
+    // Patch content to match real vault format (content includes task prefix)
+    for (const n of nodes) {
+      if (n.id === "taskA") n.content = "- [ ] taskA"
+      if (n.id === "taskB") n.content = "- [ ] taskB"
+    }
+    const { board, repo } = testEnv(() => nodes)
+
+    // Verify initial state
+    const taskA = repo.getNode("taskA")!
+    expect(taskA.task_marker).toBe("[ ]")
+    expect(taskA.content).toBe("- [ ] taskA")
+
+    // Step 1: Enter edit mode on taskA
+    board.expect("#taskA[data-cursor]").toExist()
+    board.press("Enter")
+
+    // Step 2: Enter at end of title — new task sibling
+    board.press("Enter")
+
+    // taskA content should not be double-prefixed (e.g. "- [ ] [ ] taskA")
+    const taskAAfter = repo.getNode("taskA")!
+    expect(taskAAfter.task_marker).toBe("[ ]")
+    expect(taskAAfter.content).not.toMatch(/\[ \].*\[ \]/)
+
+    // Step 3: Type "asdf" and press Enter
+    board.press("a")
+    board.press("s")
+    board.press("d")
+    board.press("f")
+    board.press("Enter")
+
+    // taskA must still have task_marker (not converted to regular li)
+    const taskAFinal = repo.getNode("taskA")!
+    expect(taskAFinal.task_marker).toBe("[ ]")
+    expect(taskAFinal.task_status).toBe("todo")
+    // Content must not have accumulated multiple "[ ]" prefixes
+    expect(taskAFinal.content).not.toMatch(/\[ \].*\[ \]/)
+
+    // All created siblings should be tasks
+    const children = repo.getChildren("col1")
+    for (const child of children) {
+      expect(child.task_marker).toBe("[ ]")
+      expect(child.list_marker).toBe("-")
+    }
   })
 })

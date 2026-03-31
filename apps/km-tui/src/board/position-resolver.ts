@@ -16,9 +16,8 @@
  * isAtPosition, moveTo) are in Tree (@km/tree).
  */
 
-import { getFavorite } from "@km/commands"
+import { getFavorite, expandLocationTemplate } from "@km/commands"
 import { Position } from "@km/core"
-import { expandLocationTemplate } from "../config-persist.ts"
 
 /** Deferred resolution — open a picker filtered by prefix. */
 export interface PickTarget {

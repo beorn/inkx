@@ -65,6 +65,8 @@ km currently handles status and priority. This horizon adds the fields and views
 
 ## Horizon 4: Links & Navigation
 
+### 
+
 Turn km into a connected knowledge base.
 
 Markdown already supports links; km should make them first-class navigable objects.
@@ -83,8 +85,9 @@ From task board to document editor.
 Currently km edits task titles inline. This horizon brings rich, markdown-native editing to the detail pane and beyond.
 
 - Undo/redo: integrated across text edits and node mutations via the event log
-- Rich text editing (markdown-native):
-  - - creates/converts bulleted lists
+- 
+  - Rich text editing (markdown-native):
+  - creates/converts bulleted lists
   - Bold, italic, code, strikethrough via inline markdown syntax
   - Code blocks with syntax highlighting
   - Block quotes, headings, horizontal rules

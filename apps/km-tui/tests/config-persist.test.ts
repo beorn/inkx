@@ -7,7 +7,7 @@ import {
   saveConfig,
   DEFAULT_LOCATIONS,
   type KmConfig,
-} from "../src/config-persist.ts"
+} from "@km/commands"
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"

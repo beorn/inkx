@@ -1,33 +1,28 @@
 /**
  * Favorites Registry
  *
- * Mutable map of key → location template for quick navigation.
+ * Mutable map of key -> location template for quick navigation.
  * Accessible to both keybinding generation and TUI action handlers.
  *
  * Any single printable key can be a favorite, except reserved keys
  * used by system locations and picker locations.
  *
  * The favorites map is populated from <vault>/.km/config.json on startup
- * by km-tui's config-persist module. This module provides the in-memory
+ * via loadConfig() from config.ts. This module provides the in-memory
  * store; persistence is handled at the app layer.
  */
 
-/** User-assigned favorites: key → location template. Starts empty; populated from config on startup. */
+import { DEFAULT_LOCATIONS } from "./config.ts"
+
+/** User-assigned favorites: key -> location template. Starts empty; populated from config on startup. */
 const favorites = new Map<string, string>()
 
 /**
- * Default system locations — used as fallback when not overridden.
- * Keys are the chord suffix characters (h, i, j, a, p, g, G).
+ * Default system locations -- re-exported from config.ts for backwards compatibility.
+ * Prefer importing DEFAULT_LOCATIONS from config.ts directly.
+ * @deprecated Use DEFAULT_LOCATIONS from config.ts (re-exported from index.ts)
  */
-export const DEFAULT_SYSTEM_LOCATIONS: Record<string, string> = {
-  h: "@next",
-  i: "@inbox",
-  j: "journals/{YYYY}/{YYYY-MM-DD}.md",
-  a: "@archive",
-  p: "{parent}",
-  g: "{first}",
-  G: "{last}",
-}
+export const DEFAULT_SYSTEM_LOCATIONS: Record<string, string> = DEFAULT_LOCATIONS
 
 /** Human-readable labels for system location keys */
 const SYSTEM_KEY_LABELS: Record<string, string> = {
@@ -90,12 +85,12 @@ export function getAllFavorites(): ReadonlyMap<string, string> {
 // System Locations API (h,i,j,a,p,g,G — from config or defaults)
 // =============================================================================
 
-/** System location overrides from config. Falls back to DEFAULT_SYSTEM_LOCATIONS. */
+/** System location overrides from config. Falls back to DEFAULT_LOCATIONS. */
 const systemOverrides = new Map<string, string>()
 
 /** Get the location template for a system key (h,i,j,a,p,g,G). */
 export function getSystemLocation(key: string): string | undefined {
-  return systemOverrides.get(key) ?? DEFAULT_SYSTEM_LOCATIONS[key]
+  return systemOverrides.get(key) ?? DEFAULT_LOCATIONS[key]
 }
 
 // =============================================================================
@@ -113,7 +108,7 @@ export function initLocations(locations: Record<string, string>): void {
   for (const [key, value] of Object.entries(locations)) {
     if (SYSTEM_LOCATION_KEYS.has(key)) {
       // Only store if different from default
-      if (DEFAULT_SYSTEM_LOCATIONS[key] !== value) {
+      if (DEFAULT_LOCATIONS[key] !== value) {
         systemOverrides.set(key, value)
       }
     } else {
@@ -143,7 +138,7 @@ export function getAllLocations(): Record<string, string> {
   const result: Record<string, string> = {}
   // System locations (defaults + overrides)
   for (const key of SYSTEM_LOCATION_KEYS) {
-    result[key] = systemOverrides.get(key) ?? DEFAULT_SYSTEM_LOCATIONS[key]!
+    result[key] = systemOverrides.get(key) ?? DEFAULT_LOCATIONS[key]!
   }
   // User favorites
   for (const [key, value] of favorites) {

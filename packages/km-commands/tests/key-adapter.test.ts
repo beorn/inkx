@@ -343,20 +343,33 @@ describe("processKey", () => {
     expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "#" })
   })
 
-  it("inserts correct char for all shifted punctuation in text mode", () => {
+  it("inserts correct char for ALL 21 shifted punctuation in text mode", () => {
     const kbCtx = buildKeybindingContext({ textInputFocused: true })
     const cmdCtx = createCommandContext()
 
-    // Each pair: [base key (normalized input), shifted char (original text)]
+    // All 21 US QWERTY shifted punctuation: [base key (normalized), shifted char (text)]
     const pairs: [string, string][] = [
       ["1", "!"],
       ["2", "@"],
       ["3", "#"],
       ["4", "$"],
       ["5", "%"],
-      ["/", "?"],
+      ["6", "^"],
+      ["7", "&"],
+      ["8", "*"],
+      ["9", "("],
+      ["0", ")"],
+      ["-", "_"],
+      ["=", "+"],
+      ["`", "~"],
+      ["[", "{"],
+      ["]", "}"],
+      ["\\", "|"],
       [";", ":"],
       ["'", '"'],
+      [",", "<"],
+      [".", ">"],
+      ["/", "?"],
     ]
 
     for (const [base, shifted] of pairs) {
