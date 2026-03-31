@@ -31,21 +31,223 @@ import type { ColumnView as RealColumnView, CardView as RealCardView } from "../
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
 
 // ============================================================================
-// Types (simplified for mock mode)
+// Types
 // ============================================================================
 
 interface Card {
   id: string
   title: string
-  status?: "todo" | "in_progress" | "done" | "blocked"
+  status?: string
   tags?: string[]
   due?: string
-  priority?: "P0" | "P1" | "P2" | "P3"
+  priority?: string
 }
 
 interface Column {
   name: string
   cards: Card[]
+}
+
+// ============================================================================
+// Style constants (Catppuccin Mocha)
+// ============================================================================
+
+const STATUS_ICONS: Record<string, string> = {
+  todo: "\u25cb",
+  in_progress: "\u25d0",
+  done: "\u2713",
+  blocked: "\u2717",
+}
+const STATUS_COLORS: Record<string, string> = {
+  todo: "#cdd6f4",
+  in_progress: "#89b4fa",
+  done: "#a6e3a1",
+  blocked: "#f38ba8",
+}
+const PRIORITY_COLORS: Record<string, string> = { P0: "#f38ba8", P1: "#fab387", P2: "#f9e2af", P3: "#6c7086" }
+
+// ============================================================================
+// Shared rendering components
+// ============================================================================
+
+function CardRow({ card, isSelected, width }: { card: Card; isSelected: boolean; width: number }) {
+  const icon = STATUS_ICONS[card.status ?? ""] ?? "\u25cb"
+  const iconColor = STATUS_COLORS[card.status ?? ""] ?? "#6c7086"
+
+  return (
+    <Box
+      flexDirection="column"
+      backgroundColor={isSelected ? "#313244" : undefined}
+      paddingX={8}
+      paddingY={4}
+      width={width}
+    >
+      <Box>
+        <Text color={iconColor}>{icon} </Text>
+        <Box flexShrink={1}>
+          <Text
+            color={card.status === "done" ? "#6c7086" : "#cdd6f4"}
+            strikethrough={card.status === "done"}
+            wrap="wrap"
+          >
+            {card.title}
+          </Text>
+        </Box>
+      </Box>
+      {(card.priority || card.tags || card.due) && (
+        <Box marginLeft={14} marginTop={2} gap={6}>
+          {card.priority && (
+            <Text color={PRIORITY_COLORS[card.priority] ?? ""} bold>
+              {card.priority}
+            </Text>
+          )}
+          {card.tags?.map((tag) => (
+            <Text key={tag} color="#585b70">
+              #{tag}
+            </Text>
+          ))}
+          {card.due && <Text color="#f9e2af">{card.due}</Text>}
+        </Box>
+      )}
+    </Box>
+  )
+}
+
+function TopBar({ width, breadcrumb }: { width: number; breadcrumb?: string }) {
+  return (
+    <Box backgroundColor="#181825" paddingX={8} paddingY={4} width={width} justifyContent="space-between">
+      <Box gap={6}>
+        <Text bold color="#89b4fa">
+          km
+        </Text>
+        <Text color="#6c7086">/</Text>
+        <Text color="#cdd6f4">{breadcrumb ?? "canvas prototype"}</Text>
+      </Box>
+      <Text color="#585b70">canvas</Text>
+    </Box>
+  )
+}
+
+function KeyBar({ width }: { width: number }) {
+  const keys = [
+    { key: "j/k", desc: "navigate" },
+    { key: "h/l", desc: "columns" },
+    { key: "z/Enter", desc: "zoom in" },
+    { key: "Esc/Z", desc: "zoom out" },
+    { key: "g/G", desc: "top/bottom" },
+  ]
+  return (
+    <Box backgroundColor="#181825" paddingX={8} paddingY={3} width={width} gap={12}>
+      {keys.map(({ key, desc }) => (
+        <Box key={key} gap={4}>
+          <Text bold color="#a6adc8">
+            {key}
+          </Text>
+          <Text color="#585b70">{desc}</Text>
+        </Box>
+      ))}
+    </Box>
+  )
+}
+
+// ============================================================================
+// BoardView — shared board rendering with cursor navigation
+// ============================================================================
+
+function BoardView({
+  width,
+  columns,
+  breadcrumb,
+  onZoomIn,
+  onZoomOut,
+}: {
+  width: number
+  columns: Column[]
+  breadcrumb?: string
+  onZoomIn?: (cardId: string) => void
+  onZoomOut?: () => void
+}) {
+  const [colIndex, setColIndex] = useState(0)
+  const [cardIndex, setCardIndex] = useState(0)
+
+  useInput(
+    useCallback(
+      (input: string, key: Key) => {
+        if (columns.length === 0) return
+
+        if (input === "j" || key.downArrow) {
+          setCardIndex((prev) => {
+            const col = columns[colIndex]
+            return col ? Math.min(prev + 1, col.cards.length - 1) : prev
+          })
+        } else if (input === "k" || key.upArrow) {
+          setCardIndex((prev) => Math.max(prev - 1, 0))
+        } else if (input === "h" || key.leftArrow) {
+          setColIndex((prev) => {
+            const next = Math.max(prev - 1, 0)
+            const col = columns[next]
+            if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
+            return next
+          })
+        } else if (input === "l" || key.rightArrow) {
+          setColIndex((prev) => {
+            const next = Math.min(prev + 1, columns.length - 1)
+            const col = columns[next]
+            if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
+            return next
+          })
+        } else if (input === "g") {
+          setCardIndex(0)
+        } else if (input === "G") {
+          const col = columns[colIndex]
+          if (col) setCardIndex(col.cards.length - 1)
+        } else if ((input === "z" || (key.return && !key.shift)) && onZoomIn) {
+          const card = columns[colIndex]?.cards[cardIndex]
+          if (card) onZoomIn(card.id)
+        } else if ((key.escape || input === "Z") && onZoomOut) {
+          onZoomOut()
+        }
+      },
+      [columns, colIndex, cardIndex, onZoomIn, onZoomOut],
+    ),
+  )
+
+  const colWidth = Math.floor(width / Math.max(columns.length, 1))
+  const currentCard = columns[colIndex]?.cards[cardIndex]
+  const crumb = currentCard
+    ? `${breadcrumb ? breadcrumb + " \u203a " : ""}${columns[colIndex]?.name} \u203a ${currentCard.title}`
+    : (breadcrumb ?? columns[colIndex]?.name)
+
+  return (
+    <Box flexDirection="column" width={width}>
+      <TopBar width={width} breadcrumb={crumb} />
+      <Box>
+        {columns.map((col, i) => (
+          <Box key={col.name + i} flexDirection="column" width={colWidth}>
+            <Box
+              backgroundColor={i === colIndex ? "#313244" : "#1e1e2e"}
+              paddingX={8}
+              paddingY={4}
+              borderBottom
+              borderColor="#45475a"
+              borderStyle="single"
+            >
+              <Text bold color={i === colIndex ? "#89b4fa" : "#a6adc8"}>
+                {col.name}
+              </Text>
+              <Text color="#585b70"> ({col.cards.length})</Text>
+            </Box>
+            <Box flexDirection="column" paddingTop={2}>
+              {col.cards.map((card, j) => (
+                <CardRow key={card.id} card={card} isSelected={i === colIndex && j === cardIndex} width={colWidth} />
+              ))}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+      <KeyBar width={width} />
+    </Box>
+  )
 }
 
 // ============================================================================
@@ -92,213 +294,18 @@ const mockBoard: Column[] = [
   {
     name: "Blocked",
     cards: [
-      {
-        id: "11",
-        title: "Mouse input for canvas — needs hit testing from ag tree",
-        status: "blocked",
-        priority: "P3",
-      },
+      { id: "11", title: "Mouse input for canvas — needs hit testing from ag tree", status: "blocked", priority: "P3" },
       { id: "12", title: "Ship @silvery/canvas as standalone npm package", status: "blocked", tags: ["release"] },
     ],
   },
 ]
 
-// ============================================================================
-// Status icons (matching km's TUI style)
-// ============================================================================
-
-const STATUS_ICONS: Record<string, string> = {
-  todo: "\u25cb",
-  in_progress: "\u25d0",
-  done: "\u2713",
-  blocked: "\u2717",
-}
-const STATUS_COLORS: Record<string, string> = {
-  todo: "#cdd6f4",
-  in_progress: "#89b4fa",
-  done: "#a6e3a1",
-  blocked: "#f38ba8",
-}
-const PRIORITY_COLORS: Record<string, string> = { P0: "#f38ba8", P1: "#fab387", P2: "#f9e2af", P3: "#6c7086" }
-
-// ============================================================================
-// Shared rendering components
-// ============================================================================
-
-function CardRow({
-  title,
-  status,
-  isSelected,
-  width,
-  priority,
-  tags,
-  due,
-}: {
-  title: string
-  status?: string
-  isSelected: boolean
-  width: number
-  priority?: string
-  tags?: string[]
-  due?: string
-}) {
-  const icon = STATUS_ICONS[status ?? ""] ?? "\u25cb"
-  const iconColor = STATUS_COLORS[status ?? ""] ?? "#6c7086"
-  const bg = isSelected ? "#313244" : undefined
-
-  return (
-    <Box flexDirection="column" backgroundColor={bg} paddingX={8} paddingY={4} width={width}>
-      <Box>
-        <Text color={iconColor}>{icon} </Text>
-        <Box flexShrink={1}>
-          <Text color={status === "done" ? "#6c7086" : "#cdd6f4"} strikethrough={status === "done"} wrap="wrap">
-            {title}
-          </Text>
-        </Box>
-      </Box>
-      {(priority || tags || due) && (
-        <Box marginLeft={14} marginTop={2} gap={6}>
-          {priority && (
-            <Text color={PRIORITY_COLORS[priority] ?? ""} bold>
-              {priority}
-            </Text>
-          )}
-          {tags?.map((tag) => (
-            <Text key={tag} color="#585b70">
-              #{tag}
-            </Text>
-          ))}
-          {due && <Text color="#f9e2af">{due}</Text>}
-        </Box>
-      )}
-    </Box>
-  )
-}
-
-function ColumnHeader({ name, count, isActive }: { name: string; count: number; isActive: boolean }) {
-  const headerBg = isActive ? "#313244" : "#1e1e2e"
-  return (
-    <Box backgroundColor={headerBg} paddingX={8} paddingY={4} borderBottom borderColor="#45475a" borderStyle="single">
-      <Text bold color={isActive ? "#89b4fa" : "#a6adc8"}>
-        {name}
-      </Text>
-      <Text color="#585b70"> ({count})</Text>
-    </Box>
-  )
-}
-
-function TopBar({ width, breadcrumb }: { width: number; breadcrumb?: string }) {
-  return (
-    <Box backgroundColor="#181825" paddingX={8} paddingY={4} width={width} justifyContent="space-between">
-      <Box gap={6}>
-        <Text bold color="#89b4fa">
-          km
-        </Text>
-        {breadcrumb ? (
-          <>
-            <Text color="#6c7086">/</Text>
-            <Text color="#cdd6f4">{breadcrumb}</Text>
-          </>
-        ) : (
-          <>
-            <Text color="#6c7086">/</Text>
-            <Text color="#cdd6f4">canvas prototype</Text>
-          </>
-        )}
-      </Box>
-      <Text color="#585b70">canvas</Text>
-    </Box>
-  )
-}
-
-function KeyBar({ width }: { width: number }) {
-  const keys = [
-    { key: "j/k", desc: "navigate" },
-    { key: "h/l", desc: "columns" },
-    { key: "z/Enter", desc: "zoom in" },
-    { key: "Esc/Z", desc: "zoom out" },
-    { key: "g/G", desc: "top/bottom" },
-  ]
-  return (
-    <Box backgroundColor="#181825" paddingX={8} paddingY={3} width={width} gap={12}>
-      {keys.map(({ key, desc }) => (
-        <Box key={key} gap={4}>
-          <Text bold color="#a6adc8">
-            {key}
-          </Text>
-          <Text color="#585b70">{desc}</Text>
-        </Box>
-      ))}
-    </Box>
-  )
+function MockBoardWrapper({ width }: { width: number }) {
+  return <BoardView width={width} columns={mockBoard} />
 }
 
 // ============================================================================
-// Mock Board (static data)
-// ============================================================================
-
-function MockBoard({ width }: { width: number }) {
-  const [colIndex, setColIndex] = useState(0)
-  const [cardIndex, setCardIndex] = useState(0)
-
-  useInput((input: string, key: Key) => {
-    if (input === "j" || key.downArrow) {
-      setCardIndex((prev) => {
-        const col = mockBoard[colIndex]
-        return col ? Math.min(prev + 1, col.cards.length - 1) : prev
-      })
-    } else if (input === "k" || key.upArrow) {
-      setCardIndex((prev) => Math.max(prev - 1, 0))
-    } else if (input === "h" || key.leftArrow) {
-      setColIndex((prev) => {
-        const next = Math.max(prev - 1, 0)
-        const col = mockBoard[next]
-        if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
-        return next
-      })
-    } else if (input === "l" || key.rightArrow) {
-      setColIndex((prev) => {
-        const next = Math.min(prev + 1, mockBoard.length - 1)
-        const col = mockBoard[next]
-        if (col) setCardIndex((ci) => Math.min(ci, col.cards.length - 1))
-        return next
-      })
-    }
-  })
-
-  const colWidth = Math.floor(width / Math.max(mockBoard.length, 1))
-
-  return (
-    <Box flexDirection="column" width={width}>
-      <TopBar width={width} breadcrumb={mockBoard[colIndex]?.cards[cardIndex]?.title} />
-      <Box>
-        {mockBoard.map((col, i) => (
-          <Box key={col.name} flexDirection="column" width={colWidth}>
-            <ColumnHeader name={col.name} count={col.cards.length} isActive={i === colIndex} />
-            <Box flexDirection="column" paddingTop={2}>
-              {col.cards.map((card, j) => (
-                <CardRow
-                  key={card.id}
-                  title={card.title}
-                  status={card.status}
-                  isSelected={i === colIndex && j === cardIndex}
-                  width={colWidth}
-                  priority={card.priority}
-                  tags={card.tags}
-                  due={card.due}
-                />
-              ))}
-            </Box>
-          </Box>
-        ))}
-      </Box>
-      <KeyBar width={width} />
-    </Box>
-  )
-}
-
-// ============================================================================
-// Remote Board (real useColumns + era2a keyboard navigation)
+// Remote Board — real useColumns, zoom, live sync
 // ============================================================================
 
 const emptyFoldDepths = new Map<string, number>()
@@ -307,115 +314,45 @@ function nodeName(node: { content?: string; title?: string; name?: string }): st
   return node.content || node.title || node.name || "(untitled)"
 }
 
+/** Convert RealColumnView[] to the generic Column[] for BoardView */
+function toColumns(columns: RealColumnView[]): Column[] {
+  return columns.map((col) => ({
+    name: nodeName(col.node),
+    cards: col.cardNodes.map((card) => ({
+      id: card.id,
+      title: nodeName(card),
+      status: card.task_status as string | undefined,
+    })),
+  }))
+}
+
 function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
-  // Era 2a state — pure React useState
   const [rootId, setRootId] = useState<string | null>(null)
   const [rootHistory, setRootHistory] = useState<(string | null)[]>([])
-  const [colIndex, setColIndex] = useState(0)
-  const [cardIndex, setCardIndex] = useState(0)
 
-  // Real useColumns hook — same column derivation as the TUI
-  const columns = useColumns(repo as Parameters<typeof useColumns>[0], rootId, emptyFoldDepths)
+  const realColumns = useColumns(repo as Parameters<typeof useColumns>[0], rootId, emptyFoldDepths)
+  const columns = toColumns(realColumns)
 
-  // Keyboard navigation (era2a style: useInput + useState)
-  const handleInput = useCallback(
-    (input: string, key: Key) => {
-      if (columns.length === 0) return
-
-      if (input === "j" || key.downArrow) {
-        setCardIndex((prev) => {
-          const col = columns[colIndex]
-          return col ? Math.min(prev + 1, col.cardNodes.length - 1) : prev
-        })
-      } else if (input === "k" || key.upArrow) {
-        setCardIndex((prev) => Math.max(prev - 1, 0))
-      } else if (input === "h" || key.leftArrow) {
-        setColIndex((prev) => {
-          const next = Math.max(prev - 1, 0)
-          const col = columns[next]
-          if (col) setCardIndex((ci) => Math.min(ci, col.cardNodes.length - 1))
-          return next
-        })
-      } else if (input === "l" || key.rightArrow) {
-        setColIndex((prev) => {
-          const next = Math.min(prev + 1, columns.length - 1)
-          const col = columns[next]
-          if (col) setCardIndex((ci) => Math.min(ci, col.cardNodes.length - 1))
-          return next
-        })
-      } else if (input === "g") {
-        setCardIndex(0)
-      } else if (input === "G") {
-        const col = columns[colIndex]
-        if (col) setCardIndex(col.cardNodes.length - 1)
-      } else if (input === "z" || (key.return && !key.shift)) {
-        // Zoom into selected card
-        const col = columns[colIndex]
-        const card = col?.cardNodes[cardIndex]
-        if (card) {
-          setRootHistory((prev) => [...prev, rootId])
-          setRootId(card.id)
-          setColIndex(0)
-          setCardIndex(0)
-        }
-      } else if (key.escape || input === "Z") {
-        // Zoom out (back to parent)
-        setRootHistory((prev) => {
-          if (prev.length === 0) return prev
-          const parent = prev[prev.length - 1]
-          setRootId(parent ?? null)
-          setColIndex(0)
-          setCardIndex(0)
-          return prev.slice(0, -1)
-        })
-      }
-    },
-    [columns, colIndex, cardIndex, rootId],
-  )
-
-  useInput(handleInput)
-
-  const colCount = columns.length
-  const colWidth = Math.floor(width / Math.max(colCount, 1))
-  const totalCards = columns.reduce((sum, col) => sum + col.cardNodes.length, 0)
-
-  // Breadcrumb: show zoom path + current selection
-  const currentCol = columns[colIndex]
-  const currentCard = currentCol?.cardNodes[cardIndex]
   const rootNode = rootId ? repo.getNode(rootId) : null
-  const zoomPrefix = rootNode ? `${nodeName(rootNode as { content?: string; title?: string; name?: string })} \u203a ` : ""
-  const breadcrumb = currentCard
-    ? `${zoomPrefix}${nodeName(currentCol.node)} \u203a ${nodeName(currentCard)}`
-    : currentCol
-      ? `${zoomPrefix}${nodeName(currentCol.node)}`
-      : rootNode
-        ? nodeName(rootNode as { content?: string; title?: string; name?: string })
-        : "remote"
+  const breadcrumb = rootNode ? nodeName(rootNode) : undefined
 
-  return (
-    <Box flexDirection="column" width={width}>
-      <TopBar width={width} breadcrumb={breadcrumb} />
-      <Box>
-        {columns.map((col: RealColumnView, i: number) => (
-          <Box key={col.node.id} flexDirection="column" width={colWidth}>
-            <ColumnHeader name={nodeName(col.node)} count={col.cardNodes.length} isActive={i === colIndex} />
-            <Box flexDirection="column" paddingTop={2}>
-              {col.cardNodes.map((card: RealCardView, j: number) => (
-                <CardRow
-                  key={card.id}
-                  title={nodeName(card)}
-                  status={card.task_status as string | undefined}
-                  isSelected={i === colIndex && j === cardIndex}
-                  width={colWidth}
-                />
-              ))}
-            </Box>
-          </Box>
-        ))}
-      </Box>
-      <KeyBar width={width} />
-    </Box>
+  const onZoomIn = useCallback(
+    (cardId: string) => {
+      setRootHistory((prev) => [...prev, rootId])
+      setRootId(cardId)
+    },
+    [rootId],
   )
+
+  const onZoomOut = useCallback(() => {
+    setRootHistory((prev) => {
+      if (prev.length === 0) return prev
+      setRootId(prev[prev.length - 1] ?? null)
+      return prev.slice(0, -1)
+    })
+  }, [])
+
+  return <BoardView width={width} columns={columns} breadcrumb={breadcrumb} onZoomIn={onZoomIn} onZoomOut={onZoomOut} />
 }
 
 // ============================================================================
@@ -449,9 +386,8 @@ function mount(width: number) {
   }
 
   const t0 = performance.now()
-
   const element =
-    isRemoteMode && remoteRepo ? <RemoteBoard width={width} repo={remoteRepo} /> : <MockBoard width={width} />
+    isRemoteMode && remoteRepo ? <RemoteBoard width={width} repo={remoteRepo} /> : <MockBoardWrapper width={width} />
 
   instance = renderToCanvas(element, canvas, opts)
 
@@ -465,8 +401,6 @@ function mount(width: number) {
   }
 
   const elapsed = (performance.now() - t0).toFixed(1)
-
-  // Count nodes in ag tree
   const root = instance.getRoot()
   let nodeCount = 0
   function countNodes(node: import("../../../vendor/silvery/packages/ag/src/types.js").AgNode) {
@@ -475,40 +409,29 @@ function mount(width: number) {
   }
   if (root) countNodes(root)
 
-  const modeLabel = isRemoteMode ? "remote" : "mock"
   const fontName = (currentFont.split(",")[0] ?? "").replace(/"/g, "")
-  status.textContent = `Rendered in ${elapsed}ms \u00b7 ${nodeCount} ag nodes \u00b7 ${width}\u00d7${contentHeight}px \u00b7 ${dpr}x DPR \u00b7 ${modeLabel} \u00b7 font: ${fontName}`
+  status.textContent = `${elapsed}ms \u00b7 ${nodeCount} nodes \u00b7 ${width}\u00d7${contentHeight}px \u00b7 ${dpr}x \u00b7 ${isRemoteMode ? "remote" : "mock"} \u00b7 ${fontName}`
 }
 
 // ============================================================================
-// Mode detection and initialization
+// Controls + initialization
 // ============================================================================
 
 const params = new URLSearchParams(window.location.search)
-const mode = params.get("mode") ?? "mock"
+const isRemoteMode = (params.get("mode") ?? "mock") === "remote"
 const wsUrl = params.get("url") ?? "ws://localhost:3847/ws"
-const isRemoteMode = mode === "remote"
-
-// ============================================================================
-// Controls
-// ============================================================================
 
 const slider = document.getElementById("width-slider") as HTMLInputElement
 const valueLabel = document.getElementById("width-value") as HTMLSpanElement
 const fontSelect = document.getElementById("font-select") as HTMLSelectElement
 const autoWidthCheckbox = document.getElementById("auto-width") as HTMLInputElement | null
 
-let autoWidth = true // default: match window width
-
-// Set initial slider to window width immediately (before fonts load)
+let autoWidth = true
 slider.value = String(window.innerWidth - 32)
 valueLabel.textContent = `${slider.value}px`
 
 function getEffectiveWidth(): number {
-  if (autoWidth) {
-    return window.innerWidth - 32 // 16px padding each side
-  }
-  return parseInt(slider.value)
+  return autoWidth ? window.innerWidth - 32 : parseInt(slider.value)
 }
 
 function updateWidth() {
@@ -521,24 +444,18 @@ function updateWidth() {
 slider.addEventListener("input", () => {
   autoWidth = false
   if (autoWidthCheckbox) autoWidthCheckbox.checked = false
-  const w = parseInt(slider.value)
-  valueLabel.textContent = `${w}px`
-  mount(w)
+  valueLabel.textContent = `${slider.value}px`
+  mount(parseInt(slider.value))
 })
-
 fontSelect.addEventListener("change", () => {
   currentFont = fontSelect.value
   updateWidth()
 })
+autoWidthCheckbox?.addEventListener("change", () => {
+  autoWidth = autoWidthCheckbox.checked
+  if (autoWidth) updateWidth()
+})
 
-if (autoWidthCheckbox) {
-  autoWidthCheckbox.addEventListener("change", () => {
-    autoWidth = autoWidthCheckbox.checked
-    if (autoWidth) updateWidth()
-  })
-}
-
-// Responsive: re-render on window resize
 let resizeTimer: ReturnType<typeof setTimeout>
 window.addEventListener("resize", () => {
   clearTimeout(resizeTimer)
@@ -547,25 +464,18 @@ window.addEventListener("resize", () => {
   }, 16)
 })
 
-// ============================================================================
-// Start
-// ============================================================================
-
 async function init() {
   const status = document.getElementById("status") as HTMLDivElement
-
   if (isRemoteMode) {
     status.textContent = `Connecting to ${wsUrl}...`
     try {
       const { createRemoteRepo } = await import("../../km-web/src/remote-repo.ts")
       const remote = await createRemoteRepo({ url: wsUrl })
       remoteRepo = remote.repo
-      status.textContent = `Connected — loading...`
     } catch (err) {
       status.textContent = `Connection failed: ${err instanceof Error ? err.message : err}. Using mock data.`
     }
   }
-
   await document.fonts.ready
   updateWidth()
 }
