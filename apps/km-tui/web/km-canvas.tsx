@@ -384,6 +384,8 @@ let instance: CanvasInstance | null = null
 let currentFont = '"Inter", system-ui, sans-serif'
 let remoteRepo: RepoLike | null = null
 
+let lastFont = ""
+
 function mount(width: number) {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
   const viewport = document.getElementById("viewport") as HTMLDivElement
@@ -392,25 +394,32 @@ function mount(width: number) {
 
   viewport.style.width = `${width}px`
 
-  if (instance) instance.unmount()
-
-  const opts: CanvasRenderOptions = {
-    monospace: false,
-    fontSize: 13,
-    fontFamily: currentFont,
-    lineHeight: 1.4,
-    backgroundColor: "#1e1e2e",
-    foregroundColor: "#cdd6f4",
-    width,
-    height: 800,
-    input: true,
-  }
-
-  const t0 = performance.now()
   const element =
     isRemoteMode && remoteRepo ? <RemoteBoard width={width} repo={remoteRepo} /> : <MockBoardWrapper width={width} />
 
-  instance = renderToCanvas(element, canvas, opts)
+  // Reuse existing instance on resize (preserves React state: cursor, zoom)
+  // Only full remount when font changes or no instance exists
+  if (instance && currentFont === lastFont) {
+    instance.resize(width, 800)
+    instance.rerender(element)
+  } else {
+    if (instance) instance.unmount()
+    lastFont = currentFont
+
+    const opts: CanvasRenderOptions = {
+      monospace: false,
+      fontSize: 13,
+      fontFamily: currentFont,
+      lineHeight: 1.4,
+      backgroundColor: "#1e1e2e",
+      foregroundColor: "#cdd6f4",
+      width,
+      height: 800,
+      input: true,
+    }
+
+    instance = renderToCanvas(element, canvas, opts)
+  }
 
   // Auto-size height
   const dpr = window.devicePixelRatio || 1
