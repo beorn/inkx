@@ -13,7 +13,7 @@
  *   ?mode=remote&url=ws://localhost:3847/ws — real vault data
  */
 
-import React, { useState, useCallback } from "react"
+import React, { useState, useCallback, useEffect } from "react"
 import {
   renderToCanvas,
   Box,
@@ -205,6 +205,44 @@ function findCardNode(
   return cardsContainer.children[cardIdx] ?? null
 }
 
+/** Find which column and card index a pixel position falls on */
+function findCardAtPixel(
+  pixelX: number,
+  pixelY: number,
+  numColumns: number,
+): { colIdx: number; cardIdx: number } | null {
+  if (!instance) return null
+  const root = instance.getRoot()
+  if (!root) return null
+
+  // Walk columns to find which one contains the X coordinate
+  const columnsContainer = root.children[1]
+  if (!columnsContainer) return null
+
+  for (let ci = 0; ci < numColumns; ci++) {
+    const col = columnsContainer.children[ci]
+    if (!col?.renderRect) continue
+    const colRect = col.renderRect
+    if (pixelX < colRect.x || pixelX >= colRect.x + colRect.width) continue
+
+    // Found the column — now find the card
+    const cardsContainer = col.children[1]
+    if (!cardsContainer) return { colIdx: ci, cardIdx: 0 }
+
+    for (let ri = 0; ri < cardsContainer.children.length; ri++) {
+      const card = cardsContainer.children[ri]
+      if (!card?.renderRect) continue
+      const r = card.renderRect
+      if (pixelY >= r.y && pixelY < r.y + r.height) {
+        return { colIdx: ci, cardIdx: ri }
+      }
+    }
+    // Clicked in column but not on a card — select last card
+    return { colIdx: ci, cardIdx: Math.max(0, cardsContainer.children.length - 1) }
+  }
+  return null
+}
+
 /** Scroll the viewport to keep the cursor visible, using ag tree positions when available */
 function scrollToCursor(colIdx: number, cardIdx: number, instant?: boolean) {
   const viewport = document.getElementById("viewport")
@@ -366,6 +404,23 @@ function BoardView({
       [columns, colIndex, cardIndex, onZoomIn, onZoomOut, repo, isEditing, editText, isAdding],
     ),
   )
+
+  // Register click handler for mouse-to-card selection
+  useEffect(() => {
+    onCanvasClick = (pixelX: number, pixelY: number) => {
+      // Account for viewport scroll offset
+      const viewport = document.getElementById("viewport")
+      const scrollY = viewport?.scrollTop ?? 0
+      const hit = findCardAtPixel(pixelX, pixelY + scrollY, columns.length)
+      if (hit) {
+        setColIndex(hit.colIdx)
+        setCardIndex(hit.cardIdx)
+      }
+    }
+    return () => {
+      onCanvasClick = null
+    }
+  }, [columns.length])
 
   const colWidth = Math.floor(width / Math.max(columns.length, 1))
   const currentCard = columns[colIndex]?.cards[cardIndex]
@@ -541,6 +596,9 @@ let remoteRepo: RepoLike | null = null
 
 let lastFont = ""
 
+/** Module-level click handler — set by BoardView, called by mount() onMouse */
+let onCanvasClick: ((col: number, row: number) => void) | null = null
+
 function mount(width: number) {
   const canvas = document.getElementById("canvas") as HTMLCanvasElement
   const viewport = document.getElementById("viewport") as HTMLDivElement
@@ -576,8 +634,8 @@ function mount(width: number) {
       height: 800,
       input: true,
       onMouse: (event: CanvasMouseEvent) => {
-        if (event.type === "wheel" && event.delta) {
-          viewport.scrollTop += event.delta * 60
+        if (event.type === "click") {
+          onCanvasClick?.(event.col, event.row)
         }
       },
     }
