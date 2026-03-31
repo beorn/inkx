@@ -74,11 +74,14 @@
   </head>
   <body>
     <h1>km on Canvas</h1>
-    <p class="subtitle">Same BoardCore component rendered via renderToCanvas() with proportional text</p>
+    <p class="subtitle">
+      Kanban board via renderToCanvas() — <a href="?mode=mock" style="color: #89b4fa">mock</a> |
+      <a href="?mode=remote" style="color: #89b4fa">remote</a>
+    </p>
 
     <div class="controls">
-      <label>Width</label>
-      <input type="range" id="width-slider" min="400" max="1200" value="800" step="1" />
+      <label><input type="checkbox" id="auto-width" checked style="accent-color:#89b4fa" /> Auto</label>
+      <input type="range" id="width-slider" min="400" max="3000" value="800" step="1" />
       <span class="value" id="width-value">800px</span>
       <label>Font</label>
       <select id="font-select">

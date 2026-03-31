@@ -5,6 +5,7 @@
     "": {
       "name": "km",
       "dependencies": {
+        "@chenglou/pretext": "^0.0.3",
         "@types/debug": "^4.1.13",
         "chokidar": "^5.0.0",
         "chrono-node": "^2.9.0",
@@ -148,6 +149,14 @@
         "vimonkey": "workspace:*",
       },
     },
+    "apps/km-web": {
+      "name": "@km/web",
+      "version": "0.0.1",
+      "dependencies": {
+        "@km/core": "workspace:*",
+        "@km/storage": "workspace:*",
+      },
+    },
     "packages/km-agent": {
       "name": "@km/agent",
       "version": "0.0.0",
@@ -270,7 +279,7 @@
     },
     "vendor/bearly": {
       "name": "bearly",
-      "version": "0.6.1",
+      "version": "0.7.0",
       "dependencies": {
         "@ai-sdk/anthropic": "^3.0.63",
         "@ai-sdk/google": "^3.0.52",
@@ -283,6 +292,7 @@
         "@termless/xtermjs": "^0.3.0",
         "ai": "^6.0.134",
         "commander": "^14.0.3",
+        "loggily": "^0.4.2",
         "openai": "^6.32.0",
         "playwright": "^1.58.2",
         "ts-morph": "^24.0.0",
@@ -319,7 +329,7 @@
     },
     "vendor/flexily": {
       "name": "flexily",
-      "version": "0.3.3",
+      "version": "0.5.0",
       "devDependencies": {
         "typescript": "^5.9.3",
         "vitepress": "^1.6.3",
@@ -372,6 +382,7 @@
       "name": "silvery",
       "version": "0.9.0",
       "dependencies": {
+        "@chenglou/pretext": "^0.0.3",
         "@silvery/commander": "workspace:*",
         "loggily": "github:beorn/loggily",
         "react-reconciler": "^0.33.0",
@@ -405,9 +416,6 @@
     "vendor/silvery/packages/ag": {
       "name": "@silvery/ag",
       "version": "0.5.0",
-      "dependencies": {
-        "@silvery/ansi": "workspace:*",
-      },
     },
     "vendor/silvery/packages/ag-react": {
       "name": "@silvery/ag-react",
@@ -840,6 +848,8 @@
 
     "@beorn/watcher-chaos": ["@beorn/watcher-chaos@workspace:vendor/watcher-chaos"],
 
+    "@chenglou/pretext": ["@chenglou/pretext@0.0.3", "", {}, "sha512-RQmqMqUAPRCyv4R3LlRi/ao6KbNWYclqLA+V1HS7sWgyUUbjn3JmmlfXZSY/BjM4rbmIaMSyIVisYocYGYftiQ=="],
+
     "@colors/colors": ["@colors/colors@1.6.0", "", {}, "sha512-Ir+AOibqzrIsL6ajt3Rz3LskB7OiMVHqltZmspbW/TJuTVuyOMirVqAkjfY6JISiLHgyNqicAC8AyHHGzNd/dA=="],
 
     "@dabh/diagnostics": ["@dabh/diagnostics@2.0.8", "", { "dependencies": { "@so-ric/colorspace": "^1.1.6", "enabled": "2.0.x", "kuler": "^2.0.0" } }, "sha512-R4MSXTVnuMzGD7bzHdW2ZhhdPC/igELENcq5IjEverBvq5hn1SXCWcsi6eSsdWP0/Ur+SItRRjAktmdoX/8R/Q=="],
@@ -975,6 +985,8 @@
     "@km/tree": ["@km/tree@workspace:packages/km-tree"],
 
     "@km/tui": ["@km/tui@workspace:apps/km-tui"],
+
+    "@km/web": ["@km/web@workspace:apps/km-web"],
 
     "@modelcontextprotocol/sdk": ["@modelcontextprotocol/sdk@1.27.1", "", { "dependencies": { "@hono/node-server": "^1.19.9", "ajv": "^8.17.1", "ajv-formats": "^3.0.1", "content-type": "^1.0.5", "cors": "^2.8.5", "cross-spawn": "^7.0.5", "eventsource": "^3.0.2", "eventsource-parser": "^3.0.0", "express": "^5.2.1", "express-rate-limit": "^8.2.1", "hono": "^4.11.4", "jose": "^6.1.3", "json-schema-typed": "^8.0.2", "pkce-challenge": "^5.0.0", "raw-body": "^3.0.0", "zod": "^3.25 || ^4.0", "zod-to-json-schema": "^3.25.1" }, "peerDependencies": { "@cfworker/json-schema": "^4.1.1" }, "optionalPeers": ["@cfworker/json-schema"] }, "sha512-sr6GbP+4edBwFndLbM60gf07z0FQ79gaExpnsjMGePXqFcSSb7t6iscpjk9DhFhwd+mTEQrzNafGP8/iGGFYaA=="],
 

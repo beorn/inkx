@@ -1,0 +1,13 @@
+{
+  "name": "@km/web",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bun server.ts"
+  },
+  "dependencies": {
+    "@km/core": "workspace:*",
+    "@km/storage": "workspace:*"
+  }
+}

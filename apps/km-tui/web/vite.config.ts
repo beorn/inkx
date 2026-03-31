@@ -38,6 +38,8 @@ export default defineConfig({
       "@silvery/color": resolve(root, "vendor/silvery/packages/color/src"),
       silvery: resolve(root, "vendor/silvery/src"),
       flexily: resolve(root, "vendor/flexily/src"),
+      // km packages (types only — no runtime Node.js deps)
+      "@km/core": resolve(root, "packages/km-core/src"),
       // Stub out Node.js-only modules for browser
       "node:fs": resolve(__dirname, "stubs/node-fs.ts"),
       "node:fs/promises": resolve(__dirname, "stubs/node-fs.ts"),
