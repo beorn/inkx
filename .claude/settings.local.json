@@ -63,24 +63,14 @@
       "Skill(release)",
       "Skill(project-audit)",
       "mcp__tribe__tribe_reload",
-      "mcp__tribe__tribe_join"
+      "mcp__tribe__tribe_join",
+      "Skill(browse)",
+      "Skill(refactor)"
     ],
     "deny": [],
     "ask": []
   },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "sqlite3 .beads/tribe.db \"UPDATE sessions SET claude_session_id = '${CLAUDE_SESSION_ID}' WHERE pid = (SELECT pid FROM sessions ORDER BY started_at DESC LIMIT 1)\" 2>/dev/null || true",
-            "timeout": 5000
-          }
-        ]
-      }
-    ]
-  },
+  "hooks": {},
   "outputStyle": "default",
   "spinnerTipsEnabled": false,
   "prefersReducedMotion": true

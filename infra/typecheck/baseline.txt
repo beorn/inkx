@@ -3,13 +3,15 @@
 5 vendor/bearly/tests/tribe-daemon.test.ts
 7 vendor/bearly/tools/github-channel.ts
 2 vendor/bearly/tools/lib/tribe/socket.ts
-1 vendor/bearly/tools/tribe-proxy.ts
 1 vendor/silvery-internal/mockups/gen-chat-mockup.ts
 14 vendor/silvery-internal/mockups/gen-components-mockup-v2.ts
 3 vendor/silvery-internal/mockups/gen-components-mockup.ts
 1 vendor/silvery-internal/mockups/gen-dashboard-mockup.ts
 1 vendor/silvery/examples/apps/components.tsx
 34 vendor/silvery/examples/layout/dashboard.tsx
+2 vendor/silvery/examples/web/canvas-debug.tsx
+1 vendor/silvery/examples/web/canvas-proportional.tsx
+1 vendor/silvery/examples/web/compare.tsx
 1 vendor/silvery/packages/ag-react/src/reconciler/host-config.ts
 2 vendor/silvery/packages/ag-term/src/devtools.ts
 1 vendor/silvery/packages/ag-term/src/pipeline/index.ts
