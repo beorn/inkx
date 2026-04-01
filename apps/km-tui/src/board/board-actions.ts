@@ -59,6 +59,17 @@ import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
+import {
+  applyFoldLevel as reducerApplyFoldLevel,
+  applyUnfoldLevel as reducerApplyUnfoldLevel,
+  applyFoldNode as reducerApplyFoldNode,
+  applyUnfoldNode as reducerApplyUnfoldNode,
+  applyUnfoldRecursive as reducerApplyUnfoldRecursive,
+  applyToggleFold as reducerApplyToggleFold,
+  createBoardNavState,
+  type ApplyResult,
+  type BoardNavState,
+} from "./board-reducer.ts"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:board-actions") as any
@@ -323,11 +334,25 @@ function isPaneOp(action: CommandAction): action is PaneOp {
   return PANE_TYPES.has(action.type)
 }
 
-/**
- * Maximum fold depth. Prevents runaway expansion when unfolding.
- * 20 levels is very generous — most real outlines are 3-5 levels deep.
- */
-export const MAX_FOLD_DEPTH = 20
+// MAX_FOLD_DEPTH is now in board-reducer.ts
+
+/** Extract BoardNavState from ActionCtx for fold reducer functions. */
+function extractFoldState(ctx: ActionCtx): BoardNavState {
+  return createBoardNavState({
+    cursorNodeId: ctx.cursorNodeId,
+    foldDepths: ctx.foldDepths,
+    collapsedNodes: ctx.collapsedNodes,
+    hiddenNodeIds: ctx.hiddenNodeIds,
+    rootId: ctx.rootId,
+  })
+}
+
+/** Apply fold effects from reducer result to ActionCtx. */
+function applyFoldEffects(ctx: ActionCtx, result: ApplyResult): void {
+  for (const effect of result.effects) {
+    if (effect.type === "FOLD_SET") ctx.setFoldDepths(effect.depths)
+  }
+}
 
 /** Determine fold target node IDs from selection → card → column fallback. */
 function getFoldTargetRoots(ctx: ActionCtx, card: KNode | null | undefined): string[] {
@@ -543,15 +568,15 @@ function handleNavAction(ctx: ActionCtx, action: NavOp): ActionResult {
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "FOLD_LEVEL": {
-      const newDepths = new Map(ctx.foldDepths)
-      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.set(c.id, 0)
-      ctx.setFoldDepths(newDepths)
+      const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
+      applyFoldEffects(ctx, result)
       return ok()
     }
     case "UNFOLD_LEVEL": {
-      const newDepths = new Map(ctx.foldDepths)
-      for (const column of ctx.columns) for (const c of column.cardNodes) newDepths.delete(c.id)
-      ctx.setFoldDepths(newDepths)
+      const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const result = reducerApplyUnfoldLevel(extractFoldState(ctx), cardIds)
+      applyFoldEffects(ctx, result)
       return ok()
     }
     default:
@@ -938,85 +963,57 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
     case "ZOOM_IN":
       return handleZoomIn(ctx)
     case "FOLD_NODE": {
-      const newDepths = new Map(ctx.foldDepths)
-      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
-      if (action.scope === "root") {
-        if (boardDepth <= 0) return boundary("fold", "already fully folded")
-        newDepths.set(ctx.rootId ?? "", boardDepth - 1)
-        for (const column of ctx.columns) {
-          for (const c of column.cardNodes) newDepths.delete(c.id)
-        }
-        ctx.setFoldDepths(newDepths)
-        return ok()
-      }
       const roots = getFoldTargetRoots(ctx, card)
-      if (roots.length === 0) return boundary("fold", "no card or column selected")
-      let changed = false
-      for (const nodeId of roots) {
-        const current = newDepths.get(nodeId)
-        if (current === 0) continue
-        if (current === undefined) {
-          newDepths.set(nodeId, Math.max(0, boardDepth - 1))
-          changed = true
-        } else {
-          newDepths.set(nodeId, Math.max(0, current - 1))
-          changed = true
-        }
-      }
-      if (!changed) return boundary("fold", "already fully folded")
-      ctx.setFoldDepths(newDepths)
+      const scope = action.scope ?? "card"
+      if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
+      const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const result = reducerApplyFoldNode(
+        extractFoldState(ctx),
+        scope,
+        ctx.rootId ?? "",
+        roots,
+        columnCardIds,
+      )
+      if (result.effects.length === 0) return boundary("fold", "already fully folded")
+      applyFoldEffects(ctx, result)
       return ok()
     }
     case "UNFOLD_NODE": {
-      const newDepths = new Map(ctx.foldDepths)
-      const boardDepth = newDepths.get(ctx.rootId ?? "") ?? 1
-      if (action.scope === "root") {
-        if (boardDepth >= MAX_FOLD_DEPTH) return boundary("fold", "maximum depth reached")
-        newDepths.set(ctx.rootId ?? "", boardDepth + 1)
-        for (const column of ctx.columns) {
-          for (const c of column.cardNodes) newDepths.delete(c.id)
-        }
-        ctx.setFoldDepths(newDepths)
-        return ok()
-      }
       const roots = getFoldTargetRoots(ctx, card)
-      if (roots.length === 0) return boundary("fold", "no card or column selected")
-      let changed = false
-      for (const nodeId of roots) {
-        const current = newDepths.get(nodeId)
-        const effectiveDepth = current ?? boardDepth
-        if (effectiveDepth >= MAX_FOLD_DEPTH) continue
-        if (current === undefined) {
-          newDepths.set(nodeId, boardDepth + 1)
-          changed = true
-        } else {
-          newDepths.set(nodeId, current + 1)
-          changed = true
-        }
-      }
-      if (!changed) return boundary("fold", "maximum depth reached")
-      ctx.setFoldDepths(newDepths)
+      const scope = action.scope ?? "card"
+      if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
+      const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const result = reducerApplyUnfoldNode(
+        extractFoldState(ctx),
+        scope,
+        ctx.rootId ?? "",
+        roots,
+        columnCardIds,
+      )
+      if (result.effects.length === 0) return boundary("fold", "maximum depth reached")
+      applyFoldEffects(ctx, result)
       return ok()
     }
     case "UNFOLD_RECURSIVE": {
       if (!card) return boundary("fold", "no card selected")
-      const newDepths = new Map(ctx.foldDepths)
-      newDepths.set(card.id, 999)
+      // Pre-compute which fold entries are descendants of this card
       const cardId = card.id
-      for (const [id] of newDepths) {
+      const descendantFoldIds: string[] = []
+      for (const [id] of ctx.foldDepths) {
         if (id === cardId) continue
         let nodeId: string | null = id
         while (nodeId) {
           const n = ctx.repo.getNode(nodeId)
           if (!n?.parent_id) break
           if (n.parent_id === cardId) {
-            newDepths.delete(id)
+            descendantFoldIds.push(id)
             break
           }
           nodeId = n.parent_id
         }
       }
-      ctx.setFoldDepths(newDepths)
+      const result = reducerApplyUnfoldRecursive(extractFoldState(ctx), cardId, descendantFoldIds)
+      applyFoldEffects(ctx, result)
       return ok()
     }
     case "SELECT_ALL":
@@ -1907,21 +1904,14 @@ function handleToggleFold(ctx: ActionCtx): ActionResult {
     return boundary("fold", "no children to fold")
   }
 
-  // Snapshot fold state before toggle
+  // Use pure reducer to compute before/after fold state for undo
   const foldStateBefore = {
     foldDepths: new Map(ctx.foldDepths),
     collapsedNodes: new Set(ctx.collapsedNodes),
   }
-
-  // Calculate what the new fold state will be
-  const newDepths = new Map(ctx.foldDepths)
-  if (newDepths.has(card.id)) {
-    newDepths.delete(card.id)
-  } else {
-    newDepths.set(card.id, 0)
-  }
+  const toggleResult = reducerApplyToggleFold(extractFoldState(ctx), card.id, true)
   const foldStateAfter = {
-    foldDepths: newDepths,
+    foldDepths: toggleResult.state.foldDepths,
     collapsedNodes: new Set(ctx.collapsedNodes),
   }
 

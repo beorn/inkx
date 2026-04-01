@@ -14,6 +14,7 @@ import { indexOfChild } from "../sibling-index.ts"
 import { detailPaneIdFor } from "../board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { type NavState } from "../view-navigation.ts"
+import { applyBlockNav, applyOutlineNav, applyPageJump, createBoardNavState, type BoardNavState } from "./board-reducer.ts"
 
 /**
  * Handle cursor movement in any direction.
@@ -70,18 +71,17 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
 
 /** Outline mode prev/next sub-item navigation using node IDs. */
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
-  const { ui: _ui } = ctx
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
   const descendantIds = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)
-  const currentIdx = descendantIds.indexOf(ctx.cursorNodeId)
-  if (currentIdx < 0) return boundary(dir)
+  const navState = extractNavState(ctx)
+  const result = applyOutlineNav(navState, dir, descendantIds)
 
-  const targetIdx = dir === "prev" ? currentIdx - 1 : currentIdx + 1
-  const targetId = descendantIds[targetIdx]
-  if (!targetId) return boundary(dir)
+  if (result.effects.length === 0) return boundary(dir)
 
-  ctx.dispatchBoard({ type: "SELECT", nodeId: targetId })
+  for (const effect of result.effects) {
+    if (effect.type === "SELECT") ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
+  }
   return ok()
 }
 
@@ -218,8 +218,6 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
  * Key invariant: J and K are strict inverses.
  */
 function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
-  const { dispatchBoard } = ctx
-
   if (!ctx.cursorNodeId) {
     return boundary(dir, "no cursor")
   }
@@ -228,19 +226,19 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
   const blocks = getVisibleColumnBlocks(ctx)
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
-  const currentIdx = blocks.indexOf(ctx.cursorNodeId)
-  if (currentIdx < 0) {
-    // Cursor not found in column blocks — boundary
-    return boundary(dir, "cursor not in column blocks")
-  }
+  const navState = extractNavState(ctx)
+  const blockDir = dir === "in" ? "down" : "up"
+  const result = applyBlockNav(navState, blockDir, blocks)
 
-  const targetIdx = dir === "in" ? currentIdx + 1 : currentIdx - 1
-  if (targetIdx < 0 || targetIdx >= blocks.length) {
+  if (result.effects.length === 0) {
+    // Check if cursor wasn't found vs at boundary
+    if (blocks.indexOf(ctx.cursorNodeId) < 0) return boundary(dir, "cursor not in column blocks")
     return boundary(dir)
   }
 
-  const targetId = blocks[targetIdx]!
-  dispatchBoard({ type: "SELECT", nodeId: targetId })
+  for (const effect of result.effects) {
+    if (effect.type === "SELECT") ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
+  }
   return ok()
 }
 
@@ -374,28 +372,19 @@ export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"
  * Page jump up or down.
  */
 export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
-  const { ui, dispatchBoard } = ctx
+  const { ui } = ctx
   const col = ctx.column
 
   if (!col) return
 
-  // Reset scroll anchor so viewport snaps back to follow cursor
-  if (ui.columnScrollAnchor !== null) {
-    ctx.setUI({ columnScrollAnchor: null })
-  }
-
-  // Page size is roughly half the visible cards
   const pageSize = Math.max(5, Math.floor((ui.dimensions.rows - 4) / 2))
+  const cardIds = col.cardNodes.map((c) => c.id)
+  const navState = extractNavState(ctx)
+  const result = applyPageJump(navState, direction, cardIds, ctx.cardIndex, pageSize)
 
-  const currentIdx = ctx.cardIndex
-  const targetIdx =
-    direction === "up" ? Math.max(0, currentIdx - pageSize) : Math.min(col.cardNodes.length - 1, currentIdx + pageSize)
-
-  if (targetIdx !== currentIdx) {
-    const targetCard = col.cardNodes[targetIdx]
-    if (targetCard) {
-      dispatchBoard({ type: "SELECT", nodeId: targetCard.id })
-    }
+  for (const effect of result.effects) {
+    if (effect.type === "SELECT") ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
+    if (effect.type === "SCROLL_ANCHOR_CLEAR") ctx.setUI({ columnScrollAnchor: null })
   }
 }
 
@@ -412,4 +401,17 @@ export function navStateFrom(ctx: ActionCtx): NavState {
     cursorCardNodeId: ctx.cursorCardNodeId,
     hiddenNodeIds: ctx.hiddenNodeIds.size > 0 ? ctx.hiddenNodeIds : undefined,
   }
+}
+
+/** Extract BoardNavState from ActionCtx for pure reducer functions. */
+function extractNavState(ctx: ActionCtx): BoardNavState {
+  return createBoardNavState({
+    cursorNodeId: ctx.cursorNodeId,
+    cursorCardNodeId: ctx.cursorCardNodeId,
+    foldDepths: ctx.foldDepths,
+    collapsedNodes: ctx.collapsedNodes,
+    hiddenNodeIds: ctx.hiddenNodeIds,
+    rootId: ctx.rootId,
+    columnScrollAnchor: ctx.ui.columnScrollAnchor,
+  })
 }
