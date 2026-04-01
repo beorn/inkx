@@ -21,25 +21,31 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 │ title: string     ← display title (materialized)│
 │                                                 │
 │ Traits (orthogonal to type):                    │
-│   task_marker: "[ ]"|"[x]"|"[/]"|"[!]"|"[-]"   │
-│   task_status: derived from task_marker          │
-│   embed_source: string|null                      │
-│   list_marker: string                            │
+│   task_marker: "[ ]"|"[x]"|"[/]"|"[!]"|"[-]"    │
+│   task_status: derived from task_marker         │
+│   embed_source: string|null                     │
+│   list_marker: string                           │
 │   fstype: "repo"|"folder"|"file"|"mdsection"    │
 │   rules: { collapse, limit, color, ... }        │
 └─────────────────────────────────────────────────┘
 ```
 
-## The Two Kinds of Node
+## Items and Blocks
 
 The single most important distinction:
 
-| | **Item** (`item: true`) | **Block** (`item: false`) |
+- **Item** (`item: true`) — structural node that can have children. The cursor can land on it. Participates in outliner operations (indent, outdent, split, merge).
+- **Block** (no `item` field) — leaf content. Not directly selectable. Part of a parent item's body.
+
+`item` is a **presence trait**, not a boolean. Items have `item: true`. Blocks simply don't have the field. (Same pattern as `task_marker` — present means task, absent means not.)
+
+**Future consideration**: `item` could be an object containing item-specific properties (`{ list: "-", task: "[ ]" }`), grouping `list_marker`, `task_marker`, `task_status` under the item trait instead of scattering them at the top level. This would make the item/block boundary even cleaner — all structural metadata lives inside `item`, blocks have no `item` field at all.
+
+| | **Item** (`item: true`) | **Block** (no `item`) |
 |---|---|---|
 | Children | Yes — forms tree hierarchy | No — leaf content |
-| Navigation | Selectable, cursor can land on it | Not directly selectable |
-| Board display | Card, sub-item, or column header | Body text, code block, HR |
-| Outliner ops | Indent, outdent, split, merge | Part of parent item's body |
+| Navigation | Cursor target | Not selectable |
+| Outliner ops | Indent, outdent, split, merge | Part of parent's body |
 | Markdown | `## Heading` or `- list item` | Paragraph, code fence, quote |
 
 **Type guards** (SlateJS namespace pattern):
@@ -51,6 +57,24 @@ KNode.isListItem(node)  // type !== "h" && item === true
 KNode.isTask(node)      // has task_marker or task_status
 KNode.isEmbed(node)     // has embed_source
 ```
+
+## Visual Roles (View-Level Only)
+
+An item's **visual role** is determined by its position in the tree relative to the board root — NOT by its type. The same KNode renders differently at each depth:
+
+| Depth | Role | Selected appearance |
+|---|---|---|
+| 0 | Board root | Fullscreen — no chrome |
+| 1 | **Column** | Header bar highlight |
+| 2 | **Card** | Bordered box (title + sub-items + body) |
+| 3+ | **Sub-item** | Indented line; expands to card-like frame when selected |
+
+**This is a rendering rule, not data.** The "card-like container" that appears around a selected node is view-level decoration determined by:
+1. **View type** — cards view, columns view, list view each have different chrome
+2. **Tree depth** — depth 2 = card borders, depth 3+ = inline until selected
+3. **Selection state** — sub-items expand to show their children when the cursor is on them
+
+A sub-item "looks like a card" when selected because the view expands it — but it's still just an item at depth 3+. The data model doesn't know about cards or columns.
 
 ## km-ast vs KNode
 
