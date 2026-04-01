@@ -221,20 +221,39 @@ tree.apply = (op) => { origApply(op); if (strict) tree.validate() }
 tree.withBatch(fn)
 ```
 
-Each `with*` plugin overrides `validate`:
+Each `with*` plugin overrides `validate`. The scope (which nodes to check) is passed in centrally by `withValidation`:
 
 ```typescript
 function withOutliner(tree) {
   const { validate } = tree
-  tree.validate = () => {
-    validate()  // call previous
-    // your checks — throw on violation
+  tree.validate = (scope: ValidationScope) => {
+    validate(scope)  // call previous
+    for (const nodeId of scope.nodeIds) {
+      // your checks — throw on violation
+    }
   }
   return tree
 }
 ```
 
-**That's it.** No `ValidationContext`, no `DirtyNode`, no `eachDirty()`. Validators call `tree.getNode()`, `tree.getChildren()`, etc. directly. At km's scale (~100 nodes per board), walking the tree is <1ms — no dirty-tracking optimization needed.
+**That's it.** Validators call `tree.getNode()`, `tree.getChildren()`, etc. directly.
+
+**Scope**: `validate()` receives the set of node IDs touched by the batch (`dirtyIds`). Validators should check these nodes + their immediate relations — not walk the entire tree. Trees can have thousands of nodes with lazy-loaded subtrees.
+
+### ValidationScope
+
+`withValidation` builds the scope centrally — validators don't decide what to check:
+
+```typescript
+interface ValidationScope {
+  /** Node IDs to validate — touched by ops + their parents. */
+  nodeIds: Set<string>
+  /** Ops that produced this scope (for diagnostics). */
+  ops: TreeOp[]
+}
+```
+
+The scope is computed from ops: each op's target node + its old parent + its new parent are added to `nodeIds`. This covers the mutation site and its immediate neighborhood — enough for structural checks without walking the whole tree.
 
 ### withValidation
 
@@ -245,11 +264,13 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
 
   let batchDepth = 0
   let pendingOps: TreeOp[] = []
+  const dirtyIds = new Set<string>()
 
   const origApply = tree.apply
   tree.apply = (op) => {
     origApply(op)
     pendingOps.push(op)
+    collectDirty(op, dirtyIds)  // op target + old/new parent
     if (batchDepth === 0) runValidation()
   }
 
@@ -263,16 +284,21 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
   }
 
   function runValidation() {
-    const ops = pendingOps
+    const scope: ValidationScope = {
+      nodeIds: new Set(dirtyIds),
+      ops: [...pendingOps],
+    }
     pendingOps = []
+    dirtyIds.clear()
     try {
-      tree.validate()
+      tree.validate(scope)
     } catch (err) {
-      // Build diagnostic ONLY on error (lazy — expensive fields computed here)
+      // Lazy diagnostics — only on error
       log.error?.("INVARIANT VIOLATION", {
         error: err.message,
         command: tree._currentCommand,
-        ops: ops.map(formatOp),
+        ops: scope.ops.map(formatOp),
+        scope: [...scope.nodeIds],
       })
       throw err
     }
@@ -287,24 +313,27 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
 ```typescript
 function withTree(tree) {
   const { validate } = tree
-  tree.validate = () => {
-    validate()
-    for (const node of tree.allNodes()) {
-      if (!node.item && tree.getChildren(node.id).length > 0)
-        throw new Error(`block-has-children: ${node.id}`)
+  tree.validate = (scope: ValidationScope) => {
+    validate(scope)
+    for (const id of scope.nodeIds) {
+      const node = tree.getNode(id)
+      if (!node) continue  // deleted node in scope — skip
+      if (!node.item && tree.getChildren(id).length > 0)
+        throw new Error(`block-has-children: ${id}`)
       if (node.parent_id && node.parent_id !== "." && !tree.getNode(node.parent_id))
-        throw new Error(`orphan-node: ${node.id} → parent ${node.parent_id}`)
+        throw new Error(`orphan-node: ${id} → parent ${node.parent_id}`)
       if (!Number.isFinite(node.parent_idx))
-        throw new Error(`invalid-sort-order: ${node.id} has ${node.parent_idx}`)
+        throw new Error(`invalid-sort-order: ${id} has ${node.parent_idx}`)
     }
   }
   return tree
 }
 
+// Global checks (cursor) don't iterate scope — check tree-wide state
 function withCursor(tree) {
   const { validate } = tree
-  tree.validate = () => {
-    validate()
+  tree.validate = (scope: ValidationScope) => {
+    validate(scope)
     if (tree._cursorNodeId && !tree.getNode(tree._cursorNodeId))
       throw new Error(`cursor-exists: cursor points to ${tree._cursorNodeId}`)
   }
@@ -315,11 +344,10 @@ function withCursor(tree) {
 ### What NOT to design upfront
 
 Let these emerge from actual usage:
-- **Dirty node tracking** — premature at km's scale. Add when profiling shows validate() is slow.
-- **Pre/post snapshots** — add when debugging a specific class of bug that needs them.
-- **`eachDirty()` / `DirtyNode` helpers** — validators are simple functions, a `for` loop is fine.
-- **`ValidationContext` type** — validate() takes no args. If a validator needs ops, it can read `tree._pendingOps`.
-- **`assert()` helper** — `throw new Error(...)` is clear enough.
+- **Pre/post snapshots** — add when debugging a specific class of bug needs them.
+- **`eachDirty()` / `DirtyNode` helpers** — a `for` loop over `scope.nodeIds` is clear enough.
+- **`assert()` helper** — `throw new Error(...)` is fine.
+- **Scope expansion** — if validators need to also check children of dirty nodes, they call `tree.getChildren()` themselves. The scope is a starting point, not a boundary.
 
 ### Plugin Stack
 
