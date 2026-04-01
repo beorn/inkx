@@ -227,21 +227,32 @@ Each `with*` plugin wraps the previous `validate` — no registry, no `addValida
 `validate()` receives a rich context object — the ops that happened, the nodes affected, and any other state plugins have attached. When a validator throws, `withValidation` catches it and rethrows with full diagnostic context.
 
 ```typescript
-/** Everything a validator needs to diagnose issues. */
+/** Core context — cheap, always available to validators. */
 interface ValidationContext {
-  /** Operations applied since last validation (the batch). */
+  /** Ops applied since last validation (the batch). */
   ops: TreeOp[]
-  /** Node IDs touched by the ops (added, moved, deleted, updated). */
-  affectedNodeIds: Set<string>
+  /** Dirty node IDs — nodes touched by ops that need validation. */
+  dirtyNodeIds: Set<string>
   /** Phase: "pre" (before apply) or "post" (after apply/batch). */
   phase: "pre" | "post"
-  /** The command/action that triggered these ops (if known). */
-  command?: string
-  /** CursorContext at time of validation (if cursor plugin is active). */
-  cursor?: CursorContext
-  /** Selection at time of validation. */
-  selection?: Set<string>
-  /** Timestamp when the batch started. */
+}
+```
+
+**Terminology alignment with Slate**: Slate tracks "dirty paths" — nodes that need re-normalization after an operation. We use `dirtyNodeIds` for the same purpose: the set of nodes whose invariants should be rechecked. Each op marks its target + parent as dirty. Validators iterate `dirtyNodeIds` instead of the full tree.
+
+```typescript
+/**
+ * Diagnostic context — expensive fields computed LAZILY, only on error.
+ * Not passed to validate(). Built in the catch block from cheap references.
+ */
+interface ValidationDiagnostic {
+  error: string
+  phase: "pre" | "post"
+  command?: string            // action that triggered ops (from tree._currentCommand)
+  cursor?: CursorContext      // snapshot of cursor state (computed on demand)
+  selection?: string[]        // materialized from Set
+  ops: string[]               // human-readable op descriptions (formatted on demand)
+  dirtyNodes: string[]        // materialized from Set
   timestamp: number
 }
 
@@ -260,13 +271,13 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
   const strict = opts?.strict ?? !!process.env.KM_STRICT
   let batchDepth = 0
   const pendingOps: TreeOp[] = []
-  const affectedNodes = new Set<string>()
+  const dirtyNodes = new Set<string>()
 
   const origApply = tree.apply
   tree.apply = (op) => {
     origApply(op)
     pendingOps.push(op)
-    collectAffected(op, affectedNodes)
+    markDirty(op, dirtyNodes)  // op target + parent marked dirty
     if (strict && batchDepth === 0) runValidation("post")
   }
 
@@ -282,35 +293,31 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
   }
 
   function runValidation(phase: "pre" | "post") {
+    // Core context — cheap, no lazy computation
     const ctx: ValidationContext = {
       ops: [...pendingOps],
-      affectedNodeIds: new Set(affectedNodes),
+      dirtyNodeIds: new Set(dirtyNodes),
       phase,
-      command: tree._currentCommand,  // set by action dispatcher
-      cursor: tree._cursorContext,     // set by cursor plugin
-      selection: tree._selection,      // set by cursor plugin
-      timestamp: Date.now(),
     }
     pendingOps.length = 0
-    affectedNodes.clear()
+    dirtyNodes.clear()
 
     try {
       tree.validate(ctx)
     } catch (err) {
-      // Rethrow with full diagnostic context
-      const diagnostic = {
+      // ONLY NOW build expensive diagnostic context
+      const diagnostic: ValidationDiagnostic = {
         error: err.message,
-        phase: ctx.phase,
-        command: ctx.command,
-        ops: ctx.ops.map(formatOp),
-        affectedNodes: [...ctx.affectedNodeIds],
-        cursor: ctx.cursor,
-        selection: ctx.selection ? [...ctx.selection] : undefined,
+        phase,
+        command: tree._currentCommand,              // cheap ref
+        cursor: createCursorContext(tree, ...),      // expensive — only on error
+        selection: tree._selection ? [...tree._selection] : undefined,
+        ops: ctx.ops.map(formatOp),                 // format only on error
+        dirtyNodes: [...ctx.dirtyNodeIds],
+        timestamp: Date.now(),
       }
       log.error?.("INVARIANT VIOLATION", diagnostic)
-      if (strict) {
-        throw new InvariantError(err.message, diagnostic)
-      }
+      if (strict) throw new InvariantError(err.message, diagnostic)
     }
   }
 
@@ -327,8 +334,8 @@ function withOutliner(tree) {
   const { validate } = tree
   tree.validate = (ctx: ValidationContext) => {
     validate(ctx)  // previous checks first
-    // Only check affected nodes (not entire tree) for performance
-    for (const nodeId of ctx.affectedNodeIds) {
+    // Only check dirty nodes (not entire tree) for performance
+    for (const nodeId of ctx.dirtyNodeIds) {
       const node = tree.getNode(nodeId)
       if (!node) continue
       if (!node.item && tree.getChildren(nodeId).length > 0)
@@ -359,14 +366,14 @@ INVARIANT VIOLATION {
   error: "block-has-children: 01KXYZ",
   phase: "post",
   command: "INDENT_NODE",
-  ops: [
-    { type: "move", nodeId: "01KXYZ", newParent: "01KABC", newIdx: 2 }
-  ],
-  affectedNodes: ["01KXYZ", "01KABC"],
-  cursor: { nodeId: "01KXYZ", visualRole: "subitem", ... },
+  ops: ["move 01KXYZ → parent:01KABC idx:2"],
+  dirtyNodes: ["01KXYZ", "01KABC"],
+  cursor: { nodeId: "01KXYZ", visualRole: "subitem" },
   selection: ["01KXYZ"]
 }
 ```
+
+Note: `cursor`, `selection`, `ops` formatting are computed **only when a validator throws** — zero cost on the happy path.
 
 ### Plugin Validation Stack
 
