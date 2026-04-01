@@ -593,17 +593,17 @@ function handleEditAction(ctx: ActionCtx, action: EditOp): ActionResult {
     case "INDENT_NODE": {
       if (!card && col) return handleIndentColumn(ctx, col)
       if (!card) return boundary("indent", "No card to indent")
-      // When inline-editing a sub-item within a card, indent the sub-item
-      // (not the card). Without this, Tab on the first child of a card would
-      // indent the entire card instead of being a no-op.
-      const indentTargetId = ctx.ui.inlineEditBlock?.nodeId
+      // Resolve actual target: inline edit node OR cursor node (spatial nav),
+      // falling back to card. Ensures Tab operates on the selected sub-item
+      // in both normal mode (J/K navigated to sub-item) and edit mode.
+      const indentTargetId = ctx.ui.inlineEditBlock?.nodeId ?? ctx.cursorNodeId
       const indentTarget = indentTargetId && indentTargetId !== card.id ? ctx.repo.getNode(indentTargetId) : null
       if (!indentNode(ctx, indentTarget ?? card)) return boundary("indent", "Can't indent further")
       return ok()
     }
     case "OUTDENT_NODE": {
       if (!card) return boundary("outdent", "No card to outdent")
-      const outdentTargetId = ctx.ui.inlineEditBlock?.nodeId
+      const outdentTargetId = ctx.ui.inlineEditBlock?.nodeId ?? ctx.cursorNodeId
       const outdentTarget = outdentTargetId && outdentTargetId !== card.id ? ctx.repo.getNode(outdentTargetId) : null
       if (!outdentNode(ctx, outdentTarget ?? card)) return boundary("outdent", "Can't outdent further")
       return ok()
