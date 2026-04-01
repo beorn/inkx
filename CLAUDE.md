@@ -108,6 +108,10 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
 
+## Data Model
+
+**Read [docs/design/data-model.md](docs/design/data-model.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed).
+
 ## Code Style
 
 Factory functions, `using` cleanup, async generators, explicit DI. No classes, no globals, no `require`.

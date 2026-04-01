@@ -4,6 +4,8 @@ Shared spec for outliner editing operations across km (TUI) and Decker (web). De
 
 **Prior art**: WorkFlowy, Dynalist, Logseq, Roam, Notion, Tana. No formal spec exists — this creates one.
 
+**Prerequisites**: Read [data-model.md](data-model.md) for the node tree (items vs blocks, positional roles).
+
 **Architecture**: Operations are **semantic intents** (splitBlock, joinBackward, indent), not keybindings. Each product maps keys to intents. The spec defines intent behavior.
 
 ## Semantic Intents
