@@ -148,24 +148,61 @@ All events update the `meta.last_event` cursor in SQLite.
 
 ### Reconciliation (reconcile.ts, applier.ts)
 
-- `reconcileIfChanged()` is called before every file regeneration. If stat() fails,
-  the error is re-thrown to prevent overwriting a file whose external edits could not
-  be merged.
+- `reconcileIfChanged()` exists but is NOT called from event handlers (DB is authority
+  for user events). It remains available for explicit use (e.g., CLI import).
 - `reconcileDirectory()` catches stat errors per-entry (inaccessible files are skipped).
 - `applyReconcileOps()` processing errors propagate up to SyncManager, which logs them
   and emits an "error" event but keeps running.
+- `node-differ.ts`: guards prevent overwriting non-empty name/content with empty values
+  during reconciliation (defensive, pending WriteToken migration).
+
+## Ownership Model
+
+**Core principle**: Each sync direction has ONE authority. No ping-pong.
+
+| Direction | Trigger | Authority | File Write? | Reconcile? |
+|-----------|---------|-----------|-------------|------------|
+| DB → FS | User edit, CLI command | **DB** | YES (regenerate) | **NO** |
+| FS → DB | External editor, git pull | **File** | NO | YES |
+
+### DB → FS (user edits)
+
+DB is always correct. Event handlers regenerate files from DB state.
+`reconcileIfChanged` is NOT called — reading the file back can only
+introduce stale data. The watcher suppresses our own writes via
+`recentWrites` Map (current) or WriteTokens (planned).
+
+### FS → DB (external edits)
+
+File is always correct. Watcher detects changes, reconciliation diffs
+file content with DB, updates DB. Actor gating (`actor: "fs-watch"`)
+prevents step 4 from writing the file back.
+
+### Distinguishing our writes from external (planned: WriteToken)
+
+Current: `recentWrites` Map with 10s timestamp window (probabilistic).
+
+Planned: **mtime fast-path + content-hash fallback**:
+1. Store mtime after each write in a per-file token
+2. Watcher checks: does mtime match our stored value?
+   - YES → our write, skip reconciliation (fast, no I/O)
+   - NO → read file, compute content hash, compare with stored hash
+     - Hash matches → our write (atomic save changed mtime), skip
+     - Hash differs → external edit, reconcile normally
+
+This handles: vim atomic saves (temp+rename changes inode/mtime),
+git pull (many files change), Finder folder moves (cascading renames).
 
 ## Key Invariants
 
 1. **Actor gating**: Events from `actor: "fs-watch"` skip step 4 (`shouldApplyToFs`
-   returns false), preventing FS->DB->FS infinite loops.
+   returns false), preventing FS→DB→FS infinite loops.
 
-2. **Reconcile before overwrite**: Both SyncManager and FsWriter call
-   `reconcileIfChanged()` before regenerating any file, merging external edits first.
+2. **DB authority for user events**: Event handlers do NOT call `reconcileIfChanged`.
+   DB is the source of truth for all user-initiated mutations.
 
-3. **In-flight suppression**: SyncManager marks paths via `markInFlight()` during
-   writes so the watcher does not re-trigger reconciliation for our own changes.
-   Uses generation counters to prevent stale clear timers from clearing newer marks.
+3. **Write suppression**: SyncManager's `recentWrites` Map (current) or WriteTokens
+   (planned) prevent the watcher from reconciling files we just wrote.
 
 4. **Apply before persist**: The DB is updated before events.jsonl is appended.
    A crash between steps 1 and 2 loses the event from the journal but the DB is
