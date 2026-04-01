@@ -55,20 +55,28 @@ For each hypothesis, spend 2-5 minutes:
 
 Mark each: `NARROW` (fixes this bug only), `BROAD` (fixes a class), `REFRAME` (makes the problem impossible).
 
-### Bring in Outside Perspectives
+### Ask an External LLM (REQUIRED)
 
-Don't just think alone. Use the tools at your disposal:
+Your own hypotheses have blind spots. **Always consult at least one external perspective** during exploration. Pick the right tool:
 
-| Tool | When | How |
+| Tool | Best for | Cost |
 |---|---|---|
-| **`/fresh`** | Stuck 20+ min, need architectural second opinion | Gathers context, asks external LLM for design advice |
-| **`/llm "question"`** | Quick question for GPT/Gemini/Grok | `bun llm "how does VS Code handle X?"` |
-| **`/llm --deep`** | Need research with web search + citations | Prior art, academic papers, ecosystem patterns |
-| **`/pro review`** or **`/pro "question"`** | Want GPT 5.4 Pro to review code or answer a design question | Finds structural issues you might miss |
-| **`/csw`** | Need to compare 4+ approaches with decision matrix | Structured analysis, concrete code examples |
-| **`bun recall "keywords"`** | Check if prior sessions already explored this | Avoids rediscovering known dead ends |
+| **`/pro "question"`** | "Is this design sound? What am I missing?" — with code context | ~$1-3 |
+| **`/llm "question"`** | Quick prior art — "how does VS Code handle X?" | Free-$0.50 |
+| **`/llm --deep`** | Research with web search + citations | ~$2-5 |
+| **`/csw`** | Compare 4+ approaches with decision matrix | Free (internal) |
+| **`bun recall "keywords"`** | Check if prior sessions already explored this | Free |
 
-**Use at least one external perspective.** Your own hypotheses have blind spots. An LLM with different training data, or prior session knowledge, will surface framings you wouldn't generate alone.
+**How to ask well** (from `/fresh`):
+- Lead with **symptoms**, not diagnosis — let the LLM form its own model
+- Include **full source files**, not snippets — the LLM needs to see how functions interact
+- Ask **open discovery questions** ("What mechanism could cause X?"), not confirmation questions ("Is my fix correct?")
+- State **failed approaches last** — constrain the solution space without anchoring
+
+Build a context file with the relevant code, then:
+```bash
+bun llm --deep -y --no-recover --context-file /tmp/big-context.md "What design would make [problem] impossible?"
+```
 
 ## Phase 4: Synthesize (Round 1)
 
@@ -143,16 +151,19 @@ Present each ASK item with: what, why, effort, and what you'd recommend.
 
 **Execute the DO items. Ask about the ASK items. Don't stall on asking — ship what's obvious.**
 
-## /big vs /fresh vs /pro vs /csw
+## /big vs /fresh
 
-| Skill | When | Focus |
+Both involve stepping back from implementation. The difference:
+
+| | `/big` | `/fresh` |
 |---|---|---|
-| **`/big`** | Before coding — proactive reframing | "What if this problem didn't exist?" — 10-20 hypotheses, 2 rounds |
-| **`/fresh`** | After 20+ min stuck — reactive escape | "I'm going in circles" — gather context, ask external LLM for advice |
-| **`/pro "question"`** | Need GPT 5.4 Pro's opinion | "Is this approach sound?" — direct question with code context |
-| **`/csw`** | Comparing 4+ concrete approaches | "Which option?" — decision matrix with code examples |
+| **Trigger** | Proactive — before coding, when the fix feels wrong | Reactive — after 20+ min stuck, going in circles |
+| **Core activity** | Generate 10-20 hypotheses, 2 rounds, score NARROW/BROAD/REFRAME | Gather context (full files), structure question, ask external LLM |
+| **External LLM** | Required (Phase 3) | Required (Phase 4) |
+| **Output** | Action plan with DO/ASK items | LLM response + concrete plan |
+| **Best at** | Finding the design where the problem can't happen | Getting unstuck on a specific implementation problem |
 
-**`/big` calls `/fresh`, `/pro`, `/csw` as tools** — use them during Phase 3 exploration. `/big` is the orchestrator; the others are specialists.
+**Use `/big` when the problem is the design. Use `/fresh` when the problem is you're stuck.** `/big` subsumes `/fresh` — if you're running `/big`, you don't also need `/fresh`.
 
 ## When to Use This
 

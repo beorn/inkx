@@ -7,12 +7,12 @@ argument-hint: [<topic>]
 
 **Keywords**: stuck, fresh perspective, step back, rethink, going in circles, each fix breaks something, tried everything
 
-**When to use /fresh vs /llm vs /deep vs pro:**
-- `/fresh` — You're stuck. Each fix breaks something else. You need to stop, reflect, and get architectural advice. (Structured protocol: gather context → reflect → ask)
-- `/llm` — You have a question for another model. Quick query, second opinion, or debate. (Direct: ask → get answer)
-- `/llm pro` — Pro model (gpt-5.4-pro, ~$5-15). Use for thorough code reviews, deep analysis, or when standard isn't good enough. **Always do your own `/code clean` review first** — fix obvious issues before paying Pro. Pro's value is finding what you missed. (Direct: ask → get answer, but with best model)
-- `/deep` — You want thorough research with web search and citations on a topic. (Expensive: ~$2-5, 2-15 min)
-- `/deep pro` — Deep research with Pro model (gpt-5.4-pro). Use `--model gpt-5.4-pro` flag — the `pro` keyword does NOT work with `--deep`.
+**When to use /fresh vs /big vs /llm vs /pro:**
+- `/fresh` — You're stuck on a **specific problem**. Each fix breaks something else. Structured protocol: gather context → reflect → ask external LLM.
+- `/big` — The problem feels **deeper than a bug** — the fix feels like a patch, or the same area keeps breaking. 10-20 hypotheses, 2 rounds of exploration, reframe the problem. **`/big` subsumes `/fresh`** — if you need both, use `/big`.
+- `/llm` — Quick question for another model. Direct: ask → get answer.
+- `/pro "question"` — GPT 5.4 Pro opinion on code or design. ~$1-3.
+- `/deep` — Thorough research with web search and citations. ~$2-5, 2-15 min.
 
 Use when you've been iterating on a problem and each fix breaks something else. Forces you to **stop coding**, reflect, gather context, and get an outside architectural opinion via `/llm --deep`.
 
