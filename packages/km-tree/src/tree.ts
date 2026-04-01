@@ -9,6 +9,7 @@
  */
 
 import type { Position } from "@km/core"
+import { midpoint } from "./sort-utils.ts"
 
 /** Minimal tree-reading interface. */
 export interface TreeReader {
@@ -102,9 +103,9 @@ export const Tree = {
     const children = tree.getChildren(parentId)
     const order = (i: number) => children[i]?.parent_idx ?? i
     if (direction === "before") {
-      return index === 0 ? order(0) - 1 : (order(index - 1) + order(index)) / 2
+      return index === 0 ? order(0) - 1 : midpoint(order(index - 1), order(index))
     }
-    return index >= children.length - 1 ? order(children.length - 1) + 1 : (order(index) + order(index + 1)) / 2
+    return index >= children.length - 1 ? order(children.length - 1) + 1 : midpoint(order(index), order(index + 1))
   },
 
   // =========================================================================

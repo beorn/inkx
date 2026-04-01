@@ -2,7 +2,7 @@
  * Detail Pane Items — metadata key computation for detail pane rendering.
  */
 
-import { KNode, decomposeDatetime } from "@km/core"
+import { KNode, extractTaskDates } from "@km/core"
 import { capitalize } from "./detail-pane-helpers.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
 
@@ -63,11 +63,9 @@ export function computeMetadataKeys(node: KNode): string[] {
   if (node.item?.task?.status || nodeIsTask) keys.push("Status")
   if (node.priority || nodeIsTask) keys.push("Priority")
 
-  const dueParts = decomposeDatetime(node.due_at)
-  if (dueParts?.date || nodeIsTask) keys.push("Due")
-
-  const startParts = decomposeDatetime(node.start_at)
-  if (startParts?.date || nodeIsTask) keys.push("Start")
+  const { due, start } = extractTaskDates(node)
+  if (due?.date || nodeIsTask) keys.push("Due")
+  if (start?.date || nodeIsTask) keys.push("Start")
 
   if (node.rrule || nodeIsTask) keys.push("Recurrence")
 

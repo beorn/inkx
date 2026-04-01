@@ -10,6 +10,7 @@
  */
 
 import { KNode, type ItemData, type TaskMarker, type TaskStatus } from "@km/core"
+import { midpoint } from "./sort-utils.ts"
 
 // =============================================================================
 // Minimal Interface (subset of Repo that these operations need)
@@ -86,7 +87,7 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   const currentIdx = node.parent_idx ?? 0
   const nextSibling = siblings[currentIndex + 1]
   const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
-  const newSortOrder = (currentIdx + nextIdx) / 2
+  const newSortOrder = midpoint(currentIdx, nextIdx)
 
   // Create new sibling with text after cursor — inherit all non-system props
   const props = KNode.extractProps(node)
@@ -185,7 +186,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
   const parentIdx = parent.parent_idx ?? 0
   const nextParentSibling = parentSiblings[parentIndex + 1]
   const nextParentIdx = nextParentSibling?.parent_idx ?? parentIdx + 1
-  const newSortOrder = (parentIdx + nextParentIdx) / 2
+  const newSortOrder = midpoint(parentIdx, nextParentIdx)
 
   tree.moveNode(nodeId, parent.parent_id, newSortOrder)
   return { survivorId: nodeId, cursorOffset: 0 }

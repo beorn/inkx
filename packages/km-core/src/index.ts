@@ -53,7 +53,7 @@ export type { ValidationError } from "./types.ts"
 export { getMarkerForStatus, getStatusForMarker, markToMarker, extractTitleTaskMarker } from "./types.ts"
 
 // Date utilities (due_at / start_at ↔ date/time/tz)
-export { composeDatetime, decomposeDatetime, dateOnly, timeOnly } from "./date-utils.ts"
+export { composeDatetime, decomposeDatetime, extractTaskDates, dateOnly, timeOnly } from "./date-utils.ts"
 export type { DateParts } from "./date-utils.ts"
 
 // Task metadata (shared between parser, serializer, and TUI editor)

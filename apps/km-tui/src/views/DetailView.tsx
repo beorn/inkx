@@ -13,7 +13,7 @@
 import React, { useEffect, useMemo, useSyncExternalStore } from "react"
 import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
-import { decomposeDatetime } from "@km/core"
+import { extractTaskDates } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
 import { InlineText, InlineRenderProvider, type InlineRenderContext } from "../text/InlineComponents.tsx"
 import { useTreeInlineContext } from "./tree-node-shared.ts"
@@ -462,9 +462,9 @@ function getMetadataValue(key: string, node: KNode, repo: import("../repo-contex
       return { text: p ? `P${p}` : "none" }
     }
     case "Due": {
-      const dueParts = decomposeDatetime(node.due_at)
-      if (!dueParts?.date) return { text: "none" }
-      const { text, urgency } = formatDate(dueParts.date)
+      const dueDate = extractTaskDates(node).due?.date
+      if (!dueDate) return { text: "none" }
+      const { text, urgency } = formatDate(dueDate)
       const color = urgency === "overdue" ? "$error" : urgency === "urgent" ? "$warning" : undefined
       return {
         text,
@@ -472,8 +472,7 @@ function getMetadataValue(key: string, node: KNode, repo: import("../repo-contex
       }
     }
     case "Start": {
-      const startParts = decomposeDatetime(node.start_at)
-      return { text: startParts?.date ?? "none" }
+      return { text: extractTaskDates(node).start?.date ?? "none" }
     }
     case "Recurrence":
       return { text: node.rrule ?? "none" }

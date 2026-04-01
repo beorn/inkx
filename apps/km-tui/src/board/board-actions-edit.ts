@@ -21,10 +21,10 @@
  * - Cards modified in place → keep selection (status toggle)
  */
 
-import { getMarkerForStatus, decomposeDatetime, Position, type KNode, type TaskStatus } from "@km/core"
+import { getMarkerForStatus, extractTaskDates, Position, type KNode, type TaskStatus } from "@km/core"
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
-import { Tree } from "@km/tree"
+import { Tree, midpoint } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
@@ -312,7 +312,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   const currentIdx = currentNode.parent_idx ?? 0
   const adjacentSibling = siblings[currentSibIdx + (position === "after" ? 1 : -1)]
   const adjacentIdx = adjacentSibling?.parent_idx ?? currentIdx + (position === "after" ? 1 : -1)
-  const newSortOrder = (currentIdx + adjacentIdx) / 2
+  const newSortOrder = midpoint(currentIdx, adjacentIdx)
 
   // Inherit type + depth from current node
   // Tasks (items with task_marker) create new tasks; outline items create new outline items
@@ -391,7 +391,7 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
   const parentIdx = parentNode.parent_idx ?? 0
   const nextSibling = siblings[parentSibIdx + 1]
   const nextIdx = nextSibling?.parent_idx ?? parentIdx + 1
-  const newSortOrder = (parentIdx + nextIdx) / 2
+  const newSortOrder = midpoint(parentIdx, nextIdx)
 
   // No need to store depth in data — it's derived from tree position during serialization
   const newNode: Partial<KNode> = {
@@ -430,7 +430,7 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
   const currentIdx = sourceNode.parent_idx ?? 0
   const nextSibling = siblings[currentSibIdx + 1]
   const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
-  const newSortOrder = (currentIdx + nextIdx) / 2
+  const newSortOrder = midpoint(currentIdx, nextIdx)
 
   const newNode: Partial<KNode> = {
     type: sourceNode.type,
@@ -501,7 +501,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     const nextStatus = statusCycle[nextIndex] ?? "todo"
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
-    const dueParts = decomposeDatetime(targetNode?.due_at)
+    const dueParts = targetNode ? extractTaskDates(targetNode).due : undefined
     if (nextStatus === "done" && targetNode?.rrule && dueParts?.date) {
       const nextDue = getNextOccurrence(targetNode.rrule, dueParts.date)
       // Mark current task done with completion timestamp

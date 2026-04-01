@@ -6,7 +6,7 @@
 
 import React from "react"
 import { Text } from "@silvery/ag-react"
-import { extractTitleTaskMarker, KNode, decomposeDatetime } from "@km/core"
+import { extractTitleTaskMarker, KNode, extractTaskDates } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
 import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
 
@@ -273,8 +273,9 @@ export function formatDateBadge(node: KNode): string {
     parts.push(`${color}${node.priority}${reset}`)
   }
 
-  const dueDate = decomposeDatetime(node.due_at)?.date
-  const startDate = decomposeDatetime(node.start_at)?.date
+  const { due, start } = extractTaskDates(node)
+  const dueDate = due?.date
+  const startDate = start?.date
 
   // Start date → due date (or just one)
   // Hide past start dates for WIP tasks (already started, not useful info)
@@ -437,8 +438,9 @@ export function DateBadge({ node, stripColor }: { node: KNode; stripColor?: bool
     )
   }
 
-  const dueDate = decomposeDatetime(node.due_at)?.date
-  const startDate = decomposeDatetime(node.start_at)?.date
+  const { due, start } = extractTaskDates(node)
+  const dueDate = due?.date
+  const startDate = start?.date
 
   // Hide past start dates for WIP tasks (already started, not useful info)
   const startInPast = startDate ? daysFromToday(startDate) < 0 : false

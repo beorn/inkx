@@ -64,6 +64,20 @@ export function decomposeDatetime(isoStr?: string | null): DateParts | undefined
 }
 
 /**
+ * Decompose a node's due_at and start_at into DateParts.
+ * Centralises the common pattern of calling decomposeDatetime twice.
+ */
+export function extractTaskDates(node: { due_at?: string; start_at?: string }): {
+  due: DateParts | undefined
+  start: DateParts | undefined
+} {
+  return {
+    due: decomposeDatetime(node.due_at),
+    start: decomposeDatetime(node.start_at),
+  }
+}
+
+/**
  * Extract just the date portion (YYYY-MM-DD) from a due_at/start_at value.
  * Convenience wrapper over decomposeDatetime.
  */

@@ -15,7 +15,7 @@
  */
 
 import type { KNode } from "./types.ts"
-import { decomposeDatetime } from "./date-utils.ts"
+import { extractTaskDates } from "./date-utils.ts"
 import { extractMetadata, stringifyMetadata, type MetadataEntries } from "./metadata.ts"
 
 // =============================================================================
@@ -148,8 +148,7 @@ export function extractTaskMetadata(text: string): ExtractedTaskMetadata {
  */
 export function stringifyTaskMetadata(content: string, node: KNode, options?: { includeAssignedTo?: boolean }): string {
   // Extract current node field values
-  const dueParts = decomposeDatetime(node.due_at)
-  const startParts = decomposeDatetime(node.start_at)
+  const { due: dueParts, start: startParts } = extractTaskDates(node)
   const recurrence = node.rrule ?? (node.data?.rrule as string | undefined)
 
   // Extract what's already in the content

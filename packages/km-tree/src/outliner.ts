@@ -24,6 +24,7 @@ import {
   getEditableText,
   backspaceDegradation,
 } from "./block-ops.ts"
+import { midpoint } from "./sort-utils.ts"
 
 // =============================================================================
 // Types
@@ -211,7 +212,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
         newSortOrder = parentIdx + 1
       } else {
         const nextSibling = grandparentChildren[parentIndex + 1]
-        newSortOrder = (parentIdx + (nextSibling?.parent_idx ?? parentIdx + 2)) / 2
+        newSortOrder = midpoint(parentIdx, nextSibling?.parent_idx ?? parentIdx + 2)
       }
 
       tree.moveNode(nodeId, parent.parent_id, newSortOrder)
@@ -368,11 +369,6 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
 /** Find a node's index among its siblings. Returns -1 if not found. */
 function siblingIndex(tree: TreeMutator, nodeId: string, parentId: string): number {
   return tree.getChildren(parentId).findIndex((s) => s.id === nodeId)
-}
-
-/** Compute a sort order between two values (midpoint). */
-function midpoint(a: number, b: number): number {
-  return (a + b) / 2
 }
 
 // =============================================================================
