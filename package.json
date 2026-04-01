@@ -39,7 +39,9 @@
     "@termless/xtermjs": "$@termless/xtermjs",
     "vimonkey": "$vimonkey",
     "vt100.js": "file:vendor/vt100/packages/vt100",
+    "vt220.js": "file:vendor/vt100/packages/vt220",
     "vterm.js": "file:vendor/vt100/packages/vterm",
+    "@bearly/vitepress-enrich": "$@bearly/vitepress-enrich",
     "zod": "^4.3.6"
   },
   "bin": {

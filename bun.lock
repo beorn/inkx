@@ -317,6 +317,18 @@
         "alien-signals": ">=3.0.0",
       },
     },
+    "vendor/bearly/packages/vitepress-enrich": {
+      "name": "@bearly/vitepress-enrich",
+      "version": "0.1.0",
+      "peerDependencies": {
+        "markdown-it": ">=14",
+        "vitepress": ">=1",
+      },
+      "optionalPeers": [
+        "markdown-it",
+        "vitepress",
+      ],
+    },
     "vendor/bearly/packages/vitest-silvery-dots": {
       "name": "vitest-silvery-dots",
       "version": "0.1.0",
@@ -396,6 +408,7 @@
         "zustand": "^5.0.11",
       },
       "devDependencies": {
+        "@bearly/vitepress-enrich": "*",
         "@types/bun": "^1.1.0",
         "@types/react": "^19.0.0",
         "@xterm/addon-fit": "^0.11.0",
@@ -568,6 +581,7 @@
         "silvery": "^0.4.1",
       },
       "devDependencies": {
+        "@bearly/vitepress-enrich": "*",
         "vitepress": "^1.6.4",
         "vitest": "^4.1.1",
       },
@@ -576,6 +590,7 @@
       "name": "@termless/core",
       "version": "0.5.1",
       "devDependencies": {
+        "@bearly/vitepress-enrich": "*",
         "@termless/alacritty": "workspace:*",
         "@termless/kitty": "workspace:*",
         "@termless/libvterm": "workspace:*",
@@ -696,6 +711,16 @@
         "@termless/core": "*",
       },
     },
+    "vendor/termless/packages/vt220": {
+      "name": "@termless/vt220",
+      "version": "0.1.0",
+      "dependencies": {
+        "vt220.js": "^0.1.0",
+      },
+      "peerDependencies": {
+        "@termless/core": "*",
+      },
+    },
     "vendor/termless/packages/vterm": {
       "name": "@termless/vterm",
       "version": "0.3.0",
@@ -754,6 +779,7 @@
     },
   },
   "overrides": {
+    "@bearly/vitepress-enrich": "vendor/bearly/packages/vitepress-enrich",
     "@silvery/ag": "vendor/silvery/packages/ag",
     "@silvery/ag-react": "vendor/silvery/packages/ag-react",
     "@silvery/ag-term": "vendor/silvery/packages/ag-term",
@@ -775,6 +801,7 @@
     "silvery": "vendor/silvery",
     "vimonkey": "vendor/vimonkey",
     "vt100.js": "file:vendor/vt100/packages/vt100",
+    "vt220.js": "file:vendor/vt100/packages/vt220",
     "vterm.js": "file:vendor/vt100/packages/vterm",
     "zod": "^4.3.6",
   },
@@ -846,6 +873,8 @@
     "@babel/parser": ["@babel/parser@7.29.2", "", { "dependencies": { "@babel/types": "^7.29.0" }, "bin": "./bin/babel-parser.js" }, "sha512-4GgRzy/+fsBa72/RZVJmGKPmZu9Byn8o4MoLpmNe1m8ZfYnz5emHLQz3U4gLud6Zwl0RZIcgiLD7Uq7ySFuDLA=="],
 
     "@babel/types": ["@babel/types@7.29.0", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A=="],
+
+    "@bearly/vitepress-enrich": ["@bearly/vitepress-enrich@workspace:vendor/bearly/packages/vitepress-enrich"],
 
     "@beorn/accountly": ["@beorn/accountly@workspace:vendor/accountly"],
 
@@ -1420,6 +1449,8 @@
     "@termless/vt100": ["@termless/vt100@workspace:vendor/termless/packages/vt100"],
 
     "@termless/vt100-rust": ["@termless/vt100-rust@workspace:vendor/termless/packages/vt100-rust"],
+
+    "@termless/vt220": ["@termless/vt220@workspace:vendor/termless/packages/vt220"],
 
     "@termless/vterm": ["@termless/vterm@workspace:vendor/termless/packages/vterm"],
 
@@ -2460,6 +2491,8 @@
     "@termless/core/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
 
     "@termless/vt100/vt100.js": ["vt100.js@file:vendor/vt100/packages/vt100", {}],
+
+    "@termless/vt220/vt220.js": ["vt220.js@file:vendor/vt100/packages/vt220", {}],
 
     "@termless/vterm/vterm.js": ["vterm.js@file:vendor/vt100/packages/vterm", {}],
 
