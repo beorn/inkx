@@ -75,6 +75,9 @@ export { walkTree, getVisibleBlocks, type WalkEntry, type WalkOptions } from "./
 // Validation — invariant checking after mutations
 export { withValidation, withTreeValidation } from "./validation.ts"
 
+// Sort order utilities
+export { midpoint } from "./sort-utils.ts"
+
 // Outliner — centralized outliner behavior composition
 export {
   withOutliner,
@@ -86,3 +89,14 @@ export {
   type JoinBackwardResult,
   type JoinForwardResult,
 } from "./outliner.ts"
+
+// Outliner Reducer — TEA state machine for outliner operations
+export {
+  applyTreeAction,
+  captureTreeState,
+  type TreeAction,
+  type TreeEffect,
+  type TreeState,
+  type TreeNodeSnapshot,
+  type TreeActionResult,
+} from "./outliner-reducer.ts"

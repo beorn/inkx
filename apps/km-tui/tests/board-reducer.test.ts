@@ -7,7 +7,7 @@
  * See docs/design/tea-state-machines.md for the TEA vision.
  */
 
-import { describe, it, expect } from "vitest"
+import { describe, it, expect, beforeEach } from "vitest"
 import {
   applySelect,
   applyBlockNav,
@@ -20,10 +20,30 @@ import {
   applyUnfoldNode,
   applyUnfoldRecursive,
   applyNavigation,
+  applyBoard,
   createBoardNavState,
   MAX_FOLD_DEPTH,
   type BoardNavState,
+  type BoardEditOp,
+  type IndentContext,
+  type OutdentContext,
+  type InsertNodeContext,
+  type DeleteNodeContext,
+  type MoveNodeContext,
+  type ToggleStatusContext,
 } from "../src/board/board-reducer.ts"
+import {
+  withHistory,
+  createBoardStateWithHistory,
+  createHistoryState,
+  undoOp,
+  redoOp,
+  canUndo,
+  canRedo,
+  HISTORY_GROUP_WINDOW_MS,
+  HISTORY_MAX_UNDOS,
+  type BoardStateWithHistory,
+} from "../src/board/history-plugin.ts"
 
 // =============================================================================
 // Helpers
@@ -548,5 +568,587 @@ describe("Board.apply — immutability", () => {
     const s = state({ foldDepths: depths })
     applyUnfoldLevel(s, ["card-a"])
     expect(depths.get("card-a")).toBe(0) // original unchanged
+  })
+})
+
+// =============================================================================
+// Edit Operations — Phase 2
+// =============================================================================
+
+describe("Board.apply — INDENT_NODE", () => {
+  it("emits REPO_MOVE_NODE effect for single node", () => {
+    const s = state({ cursorNodeId: "card-b" })
+    const nodes: IndentContext[] = [{ nodeId: "card-b", newParentId: "card-a", sortOrder: 0 }]
+    const result = applyBoard(s, { type: "INDENT_NODE", nodes })
+
+    const moveEffects = result.effects.filter((e) => e.type === "REPO_MOVE_NODE")
+    expect(moveEffects).toHaveLength(1)
+    expect(moveEffects[0]).toEqual({
+      type: "REPO_MOVE_NODE",
+      nodeId: "card-b",
+      newParentId: "card-a",
+      sortOrder: 0,
+    })
+  })
+
+  it("moves cursor to first indented node", () => {
+    const s = state({ cursorNodeId: "card-c" })
+    const nodes: IndentContext[] = [
+      { nodeId: "card-b", newParentId: "card-a", sortOrder: 0 },
+      { nodeId: "card-c", newParentId: "card-a", sortOrder: 1 },
+    ]
+    const result = applyBoard(s, { type: "INDENT_NODE", nodes })
+    expect(result.state.cursorNodeId).toBe("card-b")
+  })
+
+  it("emits CLEAR_SELECTION for batch indent", () => {
+    const s = state({ cursorNodeId: "card-b" })
+    const nodes: IndentContext[] = [
+      { nodeId: "card-b", newParentId: "card-a", sortOrder: 0 },
+      { nodeId: "card-c", newParentId: "card-a", sortOrder: 1 },
+    ]
+    const result = applyBoard(s, { type: "INDENT_NODE", nodes })
+    expect(result.effects.some((e) => e.type === "CLEAR_SELECTION")).toBe(true)
+  })
+
+  it("emits UNDO_START_BATCH/UNDO_END_BATCH for multiple nodes", () => {
+    const s = state({ cursorNodeId: "card-b" })
+    const nodes: IndentContext[] = [
+      { nodeId: "card-b", newParentId: "card-a", sortOrder: 0 },
+      { nodeId: "card-c", newParentId: "card-a", sortOrder: 1 },
+    ]
+    const result = applyBoard(s, { type: "INDENT_NODE", nodes })
+    expect(result.effects.some((e) => e.type === "UNDO_START_BATCH")).toBe(true)
+    expect(result.effects.some((e) => e.type === "UNDO_END_BATCH")).toBe(true)
+  })
+
+  it("no-op for empty nodes list", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const result = applyBoard(s, { type: "INDENT_NODE", nodes: [] })
+    expect(result.effects).toEqual([])
+  })
+
+  it("does not emit batch markers for single node", () => {
+    const s = state({ cursorNodeId: "card-b" })
+    const nodes: IndentContext[] = [{ nodeId: "card-b", newParentId: "card-a", sortOrder: 0 }]
+    const result = applyBoard(s, { type: "INDENT_NODE", nodes })
+    expect(result.effects.some((e) => e.type === "UNDO_START_BATCH")).toBe(false)
+  })
+})
+
+describe("Board.apply — OUTDENT_NODE", () => {
+  it("emits REPO_MOVE_NODE effect for single node", () => {
+    const s = state({ cursorNodeId: "sub-item" })
+    const nodes: OutdentContext[] = [{ nodeId: "sub-item", newParentId: "col-1", sortOrder: 5 }]
+    const result = applyBoard(s, { type: "OUTDENT_NODE", nodes })
+
+    const moveEffects = result.effects.filter((e) => e.type === "REPO_MOVE_NODE")
+    expect(moveEffects).toHaveLength(1)
+    expect(moveEffects[0]).toEqual({
+      type: "REPO_MOVE_NODE",
+      nodeId: "sub-item",
+      newParentId: "col-1",
+      sortOrder: 5,
+    })
+  })
+
+  it("moves cursor to first outdented node", () => {
+    const s = state({ cursorNodeId: "sub-b" })
+    const nodes: OutdentContext[] = [
+      { nodeId: "sub-a", newParentId: "col-1", sortOrder: 1 },
+      { nodeId: "sub-b", newParentId: "col-1", sortOrder: 2 },
+    ]
+    const result = applyBoard(s, { type: "OUTDENT_NODE", nodes })
+    expect(result.state.cursorNodeId).toBe("sub-a")
+  })
+
+  it("no-op for empty nodes list", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const result = applyBoard(s, { type: "OUTDENT_NODE", nodes: [] })
+    expect(result.effects).toEqual([])
+  })
+})
+
+describe("Board.apply — INSERT_NODE", () => {
+  it("emits REPO_ADD_NODE effect", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: InsertNodeContext = {
+      parentId: "col-1",
+      node: { type: "p", content: "", parent_idx: 1.5 },
+      enterEdit: true,
+    }
+    const result = applyBoard(s, { type: "INSERT_NODE", context })
+
+    const addEffects = result.effects.filter((e) => e.type === "REPO_ADD_NODE")
+    expect(addEffects).toHaveLength(1)
+    expect(addEffects[0]).toEqual({
+      type: "REPO_ADD_NODE",
+      parentId: "col-1",
+      node: { type: "p", content: "", parent_idx: 1.5 },
+      selectAfter: true,
+    })
+  })
+
+  it("emits RENDER_FLUSH when enterEdit is true", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: InsertNodeContext = {
+      parentId: "col-1",
+      node: { type: "p", content: "" },
+      enterEdit: true,
+    }
+    const result = applyBoard(s, { type: "INSERT_NODE", context })
+    expect(result.effects.some((e) => e.type === "RENDER_FLUSH")).toBe(true)
+  })
+
+  it("does not emit RENDER_FLUSH when enterEdit is false", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: InsertNodeContext = {
+      parentId: "col-1",
+      node: { type: "h", content: "New section" },
+      enterEdit: false,
+    }
+    const result = applyBoard(s, { type: "INSERT_NODE", context })
+    expect(result.effects.some((e) => e.type === "RENDER_FLUSH")).toBe(false)
+  })
+
+  it("emits UNDO_SET_CURSOR for undo tracking", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: InsertNodeContext = {
+      parentId: "col-1",
+      node: { type: "p", content: "" },
+      enterEdit: false,
+    }
+    const result = applyBoard(s, { type: "INSERT_NODE", context })
+    expect(result.effects.some((e) => e.type === "UNDO_SET_CURSOR")).toBe(true)
+  })
+})
+
+describe("Board.apply — DELETE_NODE", () => {
+  it("emits REPO_DELETE_NODE effects in reverse order", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: DeleteNodeContext = {
+      nodeIds: ["card-a", "card-b"],
+      cursorTarget: "card-c",
+    }
+    const result = applyBoard(s, { type: "DELETE_NODE", context })
+
+    const deleteEffects = result.effects.filter((e) => e.type === "REPO_DELETE_NODE")
+    expect(deleteEffects).toHaveLength(2)
+    // Reversed order for bottom-up deletion
+    expect(deleteEffects[0]).toEqual({ type: "REPO_DELETE_NODE", nodeId: "card-b" })
+    expect(deleteEffects[1]).toEqual({ type: "REPO_DELETE_NODE", nodeId: "card-a" })
+  })
+
+  it("moves cursor to pre-computed target", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: DeleteNodeContext = {
+      nodeIds: ["card-a"],
+      cursorTarget: "card-b",
+    }
+    const result = applyBoard(s, { type: "DELETE_NODE", context })
+    expect(result.state.cursorNodeId).toBe("card-b")
+  })
+
+  it("falls back to current cursor when no target", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: DeleteNodeContext = {
+      nodeIds: ["card-b"],
+      cursorTarget: null,
+    }
+    const result = applyBoard(s, { type: "DELETE_NODE", context })
+    expect(result.state.cursorNodeId).toBe("card-a")
+  })
+
+  it("emits undo batch markers", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: DeleteNodeContext = {
+      nodeIds: ["card-a"],
+      cursorTarget: "card-b",
+    }
+    const result = applyBoard(s, { type: "DELETE_NODE", context })
+    expect(result.effects.some((e) => e.type === "UNDO_START_BATCH")).toBe(true)
+    expect(result.effects.some((e) => e.type === "UNDO_END_BATCH")).toBe(true)
+  })
+
+  it("emits CLEAR_SELECTION", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: DeleteNodeContext = {
+      nodeIds: ["card-a"],
+      cursorTarget: "card-b",
+    }
+    const result = applyBoard(s, { type: "DELETE_NODE", context })
+    expect(result.effects.some((e) => e.type === "CLEAR_SELECTION")).toBe(true)
+  })
+
+  it("no-op for empty nodeIds", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const context: DeleteNodeContext = {
+      nodeIds: [],
+      cursorTarget: null,
+    }
+    const result = applyBoard(s, { type: "DELETE_NODE", context })
+    expect(result.effects).toEqual([])
+  })
+})
+
+describe("Board.apply — TOGGLE_TASK_STATUS", () => {
+  it("emits REPO_UPDATE_NODE effects for each node", () => {
+    const s = state({ cursorNodeId: "task-1" })
+    const nodes: ToggleStatusContext[] = [
+      {
+        nodeId: "task-1",
+        nextStatus: "wip",
+        marker: "[/]",
+        itemUpdate: { item: { task: { status: "wip", marker: "[/]" } } },
+      },
+      {
+        nodeId: "task-2",
+        nextStatus: "done",
+        marker: "[x]",
+        itemUpdate: { item: { task: { status: "done", marker: "[x]" } } },
+      },
+    ]
+    const result = applyBoard(s, { type: "TOGGLE_TASK_STATUS", nodes })
+
+    const updateEffects = result.effects.filter((e) => e.type === "REPO_UPDATE_NODE")
+    expect(updateEffects).toHaveLength(2)
+  })
+
+  it("preserves cursor position (in-place modification)", () => {
+    const s = state({ cursorNodeId: "task-1" })
+    const nodes: ToggleStatusContext[] = [
+      {
+        nodeId: "task-1",
+        nextStatus: "wip",
+        marker: "[/]",
+        itemUpdate: { item: { task: { status: "wip", marker: "[/]" } } },
+      },
+    ]
+    const result = applyBoard(s, { type: "TOGGLE_TASK_STATUS", nodes })
+    expect(result.state.cursorNodeId).toBe("task-1")
+  })
+
+  it("emits SELECT to trigger UI update", () => {
+    const s = state({ cursorNodeId: "task-1" })
+    const nodes: ToggleStatusContext[] = [
+      {
+        nodeId: "task-1",
+        nextStatus: "done",
+        marker: "[x]",
+        itemUpdate: { item: { task: { status: "done", marker: "[x]" } } },
+      },
+    ]
+    const result = applyBoard(s, { type: "TOGGLE_TASK_STATUS", nodes })
+    expect(result.effects.some((e) => e.type === "SELECT")).toBe(true)
+  })
+
+  it("no-op for empty nodes", () => {
+    const s = state({ cursorNodeId: "task-1" })
+    const result = applyBoard(s, { type: "TOGGLE_TASK_STATUS", nodes: [] })
+    expect(result.effects).toEqual([])
+  })
+})
+
+describe("Board.apply — MOVE_NODE_UP / MOVE_NODE_DOWN", () => {
+  it("emits REPO_MOVE_NODE effects for move up", () => {
+    const s = state({ cursorNodeId: "card-b" })
+    const nodes: MoveNodeContext[] = [{ nodeId: "card-b", parentId: "col-1", sortOrder: -0.5 }]
+    const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes })
+
+    const moveEffects = result.effects.filter((e) => e.type === "REPO_MOVE_NODE")
+    expect(moveEffects).toHaveLength(1)
+    expect(moveEffects[0]).toEqual({
+      type: "REPO_MOVE_NODE",
+      nodeId: "card-b",
+      newParentId: "col-1",
+      sortOrder: -0.5,
+    })
+  })
+
+  it("emits REPO_MOVE_NODE effects for move down", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const nodes: MoveNodeContext[] = [{ nodeId: "card-a", parentId: "col-1", sortOrder: 1.5 }]
+    const result = applyBoard(s, { type: "MOVE_NODE_DOWN", nodes })
+
+    const moveEffects = result.effects.filter((e) => e.type === "REPO_MOVE_NODE")
+    expect(moveEffects).toHaveLength(1)
+  })
+
+  it("emits undo batch markers", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const nodes: MoveNodeContext[] = [{ nodeId: "card-a", parentId: "col-1", sortOrder: 1.5 }]
+    const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes })
+    expect(result.effects.some((e) => e.type === "UNDO_START_BATCH")).toBe(true)
+    expect(result.effects.some((e) => e.type === "UNDO_END_BATCH")).toBe(true)
+  })
+
+  it("preserves cursor after move", () => {
+    const s = state({ cursorNodeId: "card-b" })
+    const nodes: MoveNodeContext[] = [{ nodeId: "card-b", parentId: "col-1", sortOrder: -0.5 }]
+    const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes })
+    expect(result.state.cursorNodeId).toBe("card-b")
+  })
+
+  it("no-op for empty nodes", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes: [] })
+    expect(result.effects).toEqual([])
+  })
+})
+
+// =============================================================================
+// applyBoard combined dispatcher
+// =============================================================================
+
+describe("Board.apply — combined dispatcher", () => {
+  it("routes navigation ops to applyNavigation", () => {
+    const s = state({ cursorNodeId: "a" })
+    const result = applyBoard(s, { type: "SELECT", nodeId: "b" })
+    expect(result.state.cursorNodeId).toBe("b")
+  })
+
+  it("routes edit ops to applyEdit", () => {
+    const s = state({ cursorNodeId: "card-a" })
+    const result = applyBoard(s, {
+      type: "INDENT_NODE",
+      nodes: [{ nodeId: "card-a", newParentId: "prev-sibling", sortOrder: 0 }],
+    })
+    expect(result.effects.some((e) => e.type === "REPO_MOVE_NODE")).toBe(true)
+  })
+})
+
+// =============================================================================
+// withHistory plugin
+// =============================================================================
+
+describe("withHistory plugin", () => {
+  // Fixed time for deterministic tests
+  let time: number
+  const clock = () => time
+  const apply = withHistory(applyBoard, clock)
+
+  function historyState(overrides: Partial<BoardNavState> = {}): BoardStateWithHistory {
+    return createBoardStateWithHistory(state(overrides))
+  }
+
+  beforeEach(() => {
+    time = 1000
+  })
+
+  it("records edit ops in history", () => {
+    const s = historyState({ cursorNodeId: "card-a" })
+    const result = apply(s, {
+      type: "INDENT_NODE",
+      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
+    })
+    expect(result.state.history.undos).toHaveLength(1)
+    expect(result.state.history.undos[0]!.op.type).toBe("INDENT_NODE")
+  })
+
+  it("does not record navigation ops in history", () => {
+    const s = historyState({ cursorNodeId: "a" })
+    const result = apply(s, { type: "SELECT", nodeId: "b" })
+    expect(result.state.history.undos).toHaveLength(0)
+  })
+
+  it("preserves history state through navigation ops", () => {
+    let s = historyState({ cursorNodeId: "card-a" })
+    // Edit op
+    const r1 = apply(s, {
+      type: "INDENT_NODE",
+      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
+    })
+    s = r1.state
+    // Navigation op
+    const r2 = apply(s, { type: "SELECT", nodeId: "card-b" })
+    expect(r2.state.history.undos).toHaveLength(1)
+  })
+
+  it("records cursorBefore and cursorAfter", () => {
+    const s = historyState({ cursorNodeId: "before-cursor" })
+    const result = apply(s, {
+      type: "DELETE_NODE",
+      context: { nodeIds: ["card-x"], cursorTarget: "after-cursor" },
+    })
+    const entry = result.state.history.undos[0]!
+    expect(entry.cursorBefore).toBe("before-cursor")
+    expect(entry.cursorAfter).toBe("after-cursor")
+  })
+
+  it("clears redo stack on new edit", () => {
+    const initial = historyState({ cursorNodeId: "card-a" })
+    // Create some history with a redo entry
+    const h: BoardStateWithHistory = {
+      ...initial,
+      history: {
+        undos: [],
+        redos: [
+          {
+            op: { type: "INDENT_NODE", nodes: [] },
+            cursorBefore: null,
+            cursorAfter: null,
+            timestamp: 0,
+          },
+        ],
+      },
+    }
+    const result = apply(h, {
+      type: "INDENT_NODE",
+      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
+    })
+    expect(result.state.history.redos).toHaveLength(0)
+    expect(result.state.history.undos).toHaveLength(1)
+  })
+
+  it("groups rapid edits within time window", () => {
+    let s = historyState({ cursorNodeId: "task-1" })
+
+    // First toggle
+    time = 1000
+    const r1 = apply(s, {
+      type: "TOGGLE_TASK_STATUS",
+      nodes: [{ nodeId: "task-1", nextStatus: "wip", marker: "[/]", itemUpdate: {} }],
+    })
+    s = r1.state
+
+    // Second toggle within window
+    time = 1000 + HISTORY_GROUP_WINDOW_MS - 1
+    const r2 = apply(s, {
+      type: "TOGGLE_TASK_STATUS",
+      nodes: [{ nodeId: "task-1", nextStatus: "done", marker: "[x]", itemUpdate: {} }],
+    })
+
+    // Should be grouped into one entry
+    expect(r2.state.history.undos).toHaveLength(1)
+  })
+
+  it("does not group edits beyond time window", () => {
+    let s = historyState({ cursorNodeId: "task-1" })
+
+    time = 1000
+    const r1 = apply(s, {
+      type: "TOGGLE_TASK_STATUS",
+      nodes: [{ nodeId: "task-1", nextStatus: "wip", marker: "[/]", itemUpdate: {} }],
+    })
+    s = r1.state
+
+    // Beyond the window
+    time = 1000 + HISTORY_GROUP_WINDOW_MS + 1
+    const r2 = apply(s, {
+      type: "TOGGLE_TASK_STATUS",
+      nodes: [{ nodeId: "task-1", nextStatus: "done", marker: "[x]", itemUpdate: {} }],
+    })
+
+    expect(r2.state.history.undos).toHaveLength(2)
+  })
+
+  it("does not group different operation types", () => {
+    let s = historyState({ cursorNodeId: "card-a" })
+
+    time = 1000
+    const r1 = apply(s, {
+      type: "INDENT_NODE",
+      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
+    })
+    s = r1.state
+
+    // Different op type, within window
+    time = 1000 + 10
+    const r2 = apply(s, {
+      type: "DELETE_NODE",
+      context: { nodeIds: ["card-b"], cursorTarget: "card-a" },
+    })
+
+    expect(r2.state.history.undos).toHaveLength(2)
+  })
+
+  it("enforces max undo capacity", () => {
+    let s = historyState({ cursorNodeId: "card-a" })
+
+    for (let i = 0; i < HISTORY_MAX_UNDOS + 20; i++) {
+      time = i * 1000 // Each well beyond grouping window
+      const r = apply(s, {
+        type: "INDENT_NODE",
+        nodes: [{ nodeId: `card-${i}`, newParentId: "prev", sortOrder: i }],
+      })
+      s = r.state
+    }
+
+    expect(s.history.undos.length).toBeLessThanOrEqual(HISTORY_MAX_UNDOS)
+  })
+
+  it("preserves inner reducer effects", () => {
+    const s = historyState({ cursorNodeId: "card-a" })
+    const result = apply(s, {
+      type: "INDENT_NODE",
+      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
+    })
+    // Should still have REPO_MOVE_NODE from inner reducer
+    expect(result.effects.some((e) => e.type === "REPO_MOVE_NODE")).toBe(true)
+  })
+})
+
+// =============================================================================
+// undoOp / redoOp
+// =============================================================================
+
+describe("undoOp / redoOp", () => {
+  const entry1 = {
+    op: { type: "INDENT_NODE" as const, nodes: [] },
+    cursorBefore: "a",
+    cursorAfter: "b",
+    timestamp: 1000,
+  }
+  const entry2 = {
+    op: { type: "DELETE_NODE" as const, context: { nodeIds: ["x"], cursorTarget: "y" } },
+    cursorBefore: "b",
+    cursorAfter: "y",
+    timestamp: 2000,
+  }
+
+  it("undoOp pops last entry from undos and pushes to redos", () => {
+    const h = { undos: [entry1, entry2], redos: [] }
+    const result = undoOp(h)
+    expect(result.entry).toBe(entry2)
+    expect(result.history.undos).toHaveLength(1)
+    expect(result.history.redos).toHaveLength(1)
+    expect(result.history.redos[0]).toBe(entry2)
+  })
+
+  it("undoOp returns null entry when stack empty", () => {
+    const h = { undos: [], redos: [] }
+    const result = undoOp(h)
+    expect(result.entry).toBeNull()
+    expect(result.history).toBe(h)
+  })
+
+  it("redoOp pops last entry from redos and pushes to undos", () => {
+    const h = { undos: [], redos: [entry1] }
+    const result = redoOp(h)
+    expect(result.entry).toBe(entry1)
+    expect(result.history.undos).toHaveLength(1)
+    expect(result.history.redos).toHaveLength(0)
+  })
+
+  it("redoOp returns null entry when stack empty", () => {
+    const h = { undos: [], redos: [] }
+    const result = redoOp(h)
+    expect(result.entry).toBeNull()
+    expect(result.history).toBe(h)
+  })
+
+  it("canUndo/canRedo report correctly", () => {
+    expect(canUndo({ undos: [entry1], redos: [] })).toBe(true)
+    expect(canUndo({ undos: [], redos: [entry1] })).toBe(false)
+    expect(canRedo({ undos: [], redos: [entry1] })).toBe(true)
+    expect(canRedo({ undos: [entry1], redos: [] })).toBe(false)
+  })
+
+  it("undo then redo roundtrip preserves entries", () => {
+    const h = { undos: [entry1, entry2], redos: [] }
+    const afterUndo = undoOp(h)
+    const afterRedo = redoOp(afterUndo.history)
+    expect(afterRedo.history.undos).toHaveLength(2)
+    expect(afterRedo.history.redos).toHaveLength(0)
   })
 })

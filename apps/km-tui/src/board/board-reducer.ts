@@ -1,18 +1,20 @@
 /**
- * Board Reducer — Pure Navigation State Machine
+ * Board Reducer — Pure State Machine
  *
  * Pure functions following TEA shape: Board.apply(state, op) → [state, effects]
  *
  * Operations are data (discriminated unions). Effects are data (discriminated unions).
  * State transitions are pure functions. The runtime applies effects.
  *
- * This is Phase 1a of the Board.apply() extraction (bead: km-tui.board-apply).
- * Covers navigation operations only — no repo mutations.
+ * Phase 1a: Navigation operations (cursor, fold, page jump).
+ * Phase 2: Edit operations (indent, outdent, insert, delete, move, toggle status).
+ *   Edit ops produce effects that instruct the runtime to perform repo mutations.
+ *   The reducer itself remains pure — no side effects, no async.
  *
  * See docs/design/tea-state-machines.md for the full TEA vision.
  */
 
-import type { KNode } from "@km/core"
+import type { KNode, TaskStatus } from "@km/core"
 
 // =============================================================================
 // State
@@ -50,11 +52,27 @@ export interface BoardNavState {
  * Effects produced by Board.apply(). The runtime interprets these.
  *
  * Effects are data — discriminated union, serializable, no functions.
+ * Navigation effects are handled directly by the board store.
+ * Edit effects instruct the runtime to perform repo mutations.
  */
 export type BoardEffect =
+  // Navigation effects
   | { type: "SELECT"; nodeId: string }
   | { type: "FOLD_SET"; depths: Map<string, number> }
   | { type: "SCROLL_ANCHOR_CLEAR" }
+  // Edit effects — instruct the runtime to perform repo mutations
+  | { type: "REPO_MOVE_NODE"; nodeId: string; newParentId: string; sortOrder: number }
+  | { type: "REPO_ADD_NODE"; parentId: string; node: Partial<KNode>; selectAfter: boolean }
+  | { type: "REPO_DELETE_NODE"; nodeId: string }
+  | { type: "REPO_UPDATE_NODE"; nodeId: string; updates: Partial<KNode> }
+  // UI effects
+  | { type: "INLINE_EDIT"; nodeId: string; blockIndex: number }
+  | { type: "RENDER_FLUSH" }
+  | { type: "CLEAR_SELECTION" }
+  // Undo effects — signal the runtime to manage undo batching
+  | { type: "UNDO_SET_CURSOR"; nodeId: string | null }
+  | { type: "UNDO_START_BATCH"; label: string }
+  | { type: "UNDO_END_BATCH" }
 
 // =============================================================================
 // Result
@@ -96,6 +114,102 @@ export type BoardNavOp =
       columnCardIds: string[]
     }
   | { type: "UNFOLD_RECURSIVE"; cardId: string; descendantFoldIds: string[] }
+
+// =============================================================================
+// Edit Operations — Phase 2
+//
+// Edit operations produce effects that instruct the runtime to perform repo
+// mutations. The reducer itself remains pure. The caller pre-computes all
+// needed information (sibling lists, sort orders, etc.) so the reducer
+// does only state transitions and effect generation.
+// =============================================================================
+
+/**
+ * Context for an indent operation — pre-computed by the caller.
+ * The reducer uses this to generate the correct REPO_MOVE_NODE effect.
+ */
+export interface IndentContext {
+  /** Node being indented */
+  nodeId: string
+  /** Previous sibling to nest under */
+  newParentId: string
+  /** Sort order within new parent (after last child) */
+  sortOrder: number
+}
+
+/**
+ * Context for an outdent operation — pre-computed by the caller.
+ */
+export interface OutdentContext {
+  /** Node being outdented */
+  nodeId: string
+  /** Grandparent to move to */
+  newParentId: string
+  /** Sort order within grandparent (after parent) */
+  sortOrder: number
+}
+
+/**
+ * Context for inserting a new node — pre-computed by the caller.
+ */
+export interface InsertNodeContext {
+  /** Parent to add the node under */
+  parentId: string
+  /** Node properties for the new node */
+  node: Partial<KNode>
+  /** Whether to enter inline edit after insert */
+  enterEdit: boolean
+}
+
+/**
+ * Context for deleting a node — pre-computed by the caller.
+ */
+export interface DeleteNodeContext {
+  /** IDs of nodes to delete (with descendants to be deleted by runtime) */
+  nodeIds: string[]
+  /** Pre-computed cursor target after deletion (next/prev sibling or column header) */
+  cursorTarget: string | null
+}
+
+/**
+ * Context for moving a node up or down within its parent.
+ */
+export interface MoveNodeContext {
+  /** Node being moved */
+  nodeId: string
+  /** Parent ID (column) */
+  parentId: string
+  /** New sort order at the target position */
+  sortOrder: number
+}
+
+/**
+ * Context for toggling task status — pre-computed by the caller.
+ */
+export interface ToggleStatusContext {
+  /** Node ID to update (resolved through embeds if needed) */
+  nodeId: string
+  /** The next status to apply */
+  nextStatus: TaskStatus
+  /** The corresponding marker string */
+  marker: string
+  /** Full item data for the update (preserves list marker, etc.) */
+  itemUpdate: Partial<KNode>
+}
+
+export type BoardEditOp =
+  | { type: "INDENT_NODE"; nodes: IndentContext[] }
+  | { type: "OUTDENT_NODE"; nodes: OutdentContext[] }
+  | { type: "INSERT_NODE"; context: InsertNodeContext }
+  | { type: "DELETE_NODE"; context: DeleteNodeContext }
+  | { type: "TOGGLE_TASK_STATUS"; nodes: ToggleStatusContext[] }
+  | { type: "MOVE_NODE_UP"; nodes: MoveNodeContext[] }
+  | { type: "MOVE_NODE_DOWN"; nodes: MoveNodeContext[] }
+
+/**
+ * Combined operation type — navigation or edit.
+ */
+export type BoardOp = BoardNavOp | BoardEditOp
 
 /**
  * Maximum fold depth. Prevents runaway expansion when unfolding.
@@ -140,6 +254,272 @@ export function applyNavigation(state: BoardNavState, op: BoardNavOp): ApplyResu
       throw new Error(`Unhandled BoardNavOp: ${(_exhaustive as { type: string }).type}`)
     }
   }
+}
+
+// =============================================================================
+// Board.apply — combined dispatcher (navigation + edit)
+// =============================================================================
+
+/** Type guard: is the operation a navigation op? */
+function isNavOp(op: BoardOp): op is BoardNavOp {
+  return NAV_OP_TYPES.has(op.type)
+}
+
+const NAV_OP_TYPES = new Set([
+  "BLOCK_NAV",
+  "OUTLINE_NAV",
+  "SELECT",
+  "PAGE_JUMP",
+  "FOLD_LEVEL",
+  "UNFOLD_LEVEL",
+  "TOGGLE_FOLD",
+  "FOLD_NODE",
+  "UNFOLD_NODE",
+  "UNFOLD_RECURSIVE",
+])
+
+/**
+ * Apply any board operation (navigation or edit) to board state.
+ * Pure function: no side effects, no async.
+ *
+ * @returns New state + effects for the runtime to execute
+ */
+export function applyBoard(state: BoardNavState, op: BoardOp): ApplyResult {
+  if (isNavOp(op)) {
+    return applyNavigation(state, op)
+  }
+  return applyEdit(state, op)
+}
+
+// =============================================================================
+// Edit operations — produce effects for the runtime
+// =============================================================================
+
+/**
+ * Apply an edit operation to board state.
+ * Edit ops are pure: they update cursor/selection state and emit effects
+ * that the runtime interprets to perform repo mutations.
+ */
+function applyEdit(state: BoardNavState, op: BoardEditOp): ApplyResult {
+  switch (op.type) {
+    case "INDENT_NODE":
+      return applyIndentNode(state, op.nodes)
+    case "OUTDENT_NODE":
+      return applyOutdentNode(state, op.nodes)
+    case "INSERT_NODE":
+      return applyInsertNode(state, op.context)
+    case "DELETE_NODE":
+      return applyDeleteNode(state, op.context)
+    case "TOGGLE_TASK_STATUS":
+      return applyToggleTaskStatus(state, op.nodes)
+    case "MOVE_NODE_UP":
+      return applyMoveNode(state, op.nodes, "Move up")
+    case "MOVE_NODE_DOWN":
+      return applyMoveNode(state, op.nodes, "Move down")
+    default: {
+      const _exhaustive: never = op
+      throw new Error(`Unhandled BoardEditOp: ${(_exhaustive as { type: string }).type}`)
+    }
+  }
+}
+
+/**
+ * Indent node(s) — reparent under previous sibling.
+ *
+ * Emits REPO_MOVE_NODE effects for each node (the runtime applies them).
+ * Clears multi-selection after indent (tree structure changed).
+ */
+function applyIndentNode(state: BoardNavState, nodes: IndentContext[]): ApplyResult {
+  if (nodes.length === 0) return noChange(state)
+
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+
+  if (nodes.length > 1) {
+    effects.push({ type: "UNDO_START_BATCH", label: "Indent nodes" })
+  }
+
+  for (const ctx of nodes) {
+    effects.push({
+      type: "REPO_MOVE_NODE",
+      nodeId: ctx.nodeId,
+      newParentId: ctx.newParentId,
+      sortOrder: ctx.sortOrder,
+    })
+  }
+
+  if (nodes.length > 1) {
+    effects.push({ type: "UNDO_END_BATCH" })
+  }
+
+  // Cursor follows the first indented node
+  const firstNodeId = nodes[0]!.nodeId
+  effects.push({ type: "SELECT", nodeId: firstNodeId })
+  effects.push({ type: "CLEAR_SELECTION" })
+
+  return {
+    state: { ...state, cursorNodeId: firstNodeId },
+    effects,
+  }
+}
+
+/**
+ * Outdent node(s) — reparent as sibling of parent.
+ *
+ * Same pattern as indent: emits REPO_MOVE_NODE effects.
+ */
+function applyOutdentNode(state: BoardNavState, nodes: OutdentContext[]): ApplyResult {
+  if (nodes.length === 0) return noChange(state)
+
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+
+  if (nodes.length > 1) {
+    effects.push({ type: "UNDO_START_BATCH", label: "Outdent nodes" })
+  }
+
+  for (const ctx of nodes) {
+    effects.push({
+      type: "REPO_MOVE_NODE",
+      nodeId: ctx.nodeId,
+      newParentId: ctx.newParentId,
+      sortOrder: ctx.sortOrder,
+    })
+  }
+
+  if (nodes.length > 1) {
+    effects.push({ type: "UNDO_END_BATCH" })
+  }
+
+  const firstNodeId = nodes[0]!.nodeId
+  effects.push({ type: "SELECT", nodeId: firstNodeId })
+  effects.push({ type: "CLEAR_SELECTION" })
+
+  return {
+    state: { ...state, cursorNodeId: firstNodeId },
+    effects,
+  }
+}
+
+/**
+ * Insert a new node — add child or sibling.
+ *
+ * Emits REPO_ADD_NODE effect. Optionally enters inline edit mode.
+ */
+function applyInsertNode(state: BoardNavState, context: InsertNodeContext): ApplyResult {
+  const effects: BoardEffect[] = [
+    { type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId },
+    { type: "REPO_ADD_NODE", parentId: context.parentId, node: context.node, selectAfter: true },
+  ]
+
+  if (context.enterEdit) {
+    effects.push({ type: "RENDER_FLUSH" })
+  }
+
+  // Note: cursor will be updated by the runtime after the node is created
+  // (since we don't know the new node ID in the pure reducer).
+  return {
+    state,
+    effects,
+  }
+}
+
+/**
+ * Delete node(s) — remove from tree.
+ *
+ * Emits REPO_DELETE_NODE effects (bottom-up order).
+ * Moves cursor to pre-computed target.
+ */
+function applyDeleteNode(state: BoardNavState, context: DeleteNodeContext): ApplyResult {
+  if (context.nodeIds.length === 0) return noChange(state)
+
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+
+  effects.push({ type: "UNDO_START_BATCH", label: "Delete" })
+
+  // Delete bottom-up (reversed) to avoid index invalidation
+  for (const nodeId of [...context.nodeIds].reverse()) {
+    effects.push({ type: "REPO_DELETE_NODE", nodeId })
+  }
+
+  effects.push({ type: "UNDO_END_BATCH" })
+  effects.push({ type: "CLEAR_SELECTION" })
+
+  // Move cursor to pre-computed target
+  const cursorTarget = context.cursorTarget ?? state.cursorNodeId
+  if (cursorTarget) {
+    effects.push({ type: "SELECT", nodeId: cursorTarget })
+  }
+
+  return {
+    state: { ...state, cursorNodeId: cursorTarget },
+    effects,
+  }
+}
+
+/**
+ * Toggle task status on one or more nodes.
+ *
+ * Emits REPO_UPDATE_NODE effects for each node.
+ * Selection is preserved (status is an in-place modification).
+ */
+function applyToggleTaskStatus(state: BoardNavState, nodes: ToggleStatusContext[]): ApplyResult {
+  if (nodes.length === 0) return noChange(state)
+
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+
+  if (nodes.length > 1) {
+    effects.push({ type: "UNDO_START_BATCH", label: "Toggle status" })
+  }
+
+  for (const ctx of nodes) {
+    effects.push({
+      type: "REPO_UPDATE_NODE",
+      nodeId: ctx.nodeId,
+      updates: ctx.itemUpdate,
+    })
+  }
+
+  if (nodes.length > 1) {
+    effects.push({ type: "UNDO_END_BATCH" })
+  }
+
+  // Re-select to trigger UI update (selection preserved)
+  if (state.cursorNodeId) {
+    effects.push({ type: "SELECT", nodeId: state.cursorNodeId })
+  }
+
+  return { state, effects }
+}
+
+/**
+ * Move node(s) up or down within their parent column.
+ *
+ * Emits REPO_MOVE_NODE effects with pre-computed sort orders.
+ * Cursor follows the moved node(s).
+ */
+function applyMoveNode(state: BoardNavState, nodes: MoveNodeContext[], batchLabel: string): ApplyResult {
+  if (nodes.length === 0) return noChange(state)
+
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+
+  effects.push({ type: "UNDO_START_BATCH", label: batchLabel })
+
+  for (const ctx of nodes) {
+    effects.push({
+      type: "REPO_MOVE_NODE",
+      nodeId: ctx.nodeId,
+      newParentId: ctx.parentId,
+      sortOrder: ctx.sortOrder,
+    })
+  }
+
+  effects.push({ type: "UNDO_END_BATCH" })
+
+  // Cursor follows the moved node
+  if (state.cursorNodeId) {
+    effects.push({ type: "SELECT", nodeId: state.cursorNodeId })
+  }
+
+  return { state, effects }
 }
 
 // =============================================================================
