@@ -881,65 +881,80 @@ describe("Sub-block navigation", () => {
 })
 
 // =============================================================================
-// Tree-traversal navigation (J/K — enter children / exit to parent)
+// Spatial block navigation (J/K — next/prev visible block in column)
 // =============================================================================
 
-describe("Tree-traversal navigation (J/K)", () => {
-  test("J on card with children moves into first child", () => {
+describe("Spatial block navigation (J/K)", () => {
+  test("J walks through all visible blocks in document order", () => {
     const { board } = testEnv(
       () => item("board", item("Column", item("card1", item("child1a"), item("child1b")), item("card2"))),
       { columns: 80, rows: 24 },
     )
+    // Start at card1
     board.expect("#card1[data-cursor]").toExist()
 
-    // J should move INTO card1's children
+    // J → next visible block: child1a
     board.command("block_nav_down")
     board.expect("#child1a[data-cursor]").toExist()
+
+    // J → child1b
+    board.command("block_nav_down")
+    board.expect("#child1b[data-cursor]").toExist()
+
+    // J → card2 (next card after card1's children)
+    board.command("block_nav_down")
+    board.expect("#card2[data-cursor]").toExist()
   })
 
-  test("K on first child moves to parent card", () => {
-    const { board } = testEnv(() => item("board", item("Column", item("card1", item("child1a"), item("child1b")))), {
-      columns: 80,
-      rows: 24,
-    })
-    board.expect("#card1[data-cursor]").toExist()
+  test("K walks backward through visible blocks", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card1", item("child1a"), item("child1b")), item("card2"))),
+      { columns: 80, rows: 24 },
+    )
+    // Navigate to card2 via J
+    board.command("block_nav_down") // card1 → child1a
+    board.command("block_nav_down") // child1a → child1b
+    board.command("block_nav_down") // child1b → card2
+    board.expect("#card2[data-cursor]").toExist()
 
-    // Enter child via J
-    board.command("block_nav_down")
+    // K → child1b (previous visible block)
+    board.command("block_nav_up")
+    board.expect("#child1b[data-cursor]").toExist()
+
+    // K → child1a
+    board.command("block_nav_up")
     board.expect("#child1a[data-cursor]").toExist()
 
-    // K should move back to parent card
+    // K → card1
     board.command("block_nav_up")
     board.expect("#card1[data-cursor]").toExist()
   })
 
-  test("J on leaf card (no children) moves to next sibling", () => {
+  test("J on leaf card moves to next card (no children to visit)", () => {
     const { board } = testEnv(() => item("board", item("Column", item("card1"), item("card2"))), {
       columns: 80,
       rows: 24,
     })
     board.expect("#card1[data-cursor]").toExist()
 
-    // J on leaf → next sibling (same as j)
+    // J on leaf → next card
     board.command("block_nav_down")
     board.expect("#card2[data-cursor]").toExist()
   })
 
-  test("K on top-level card (no parent above column) moves to prev sibling", () => {
+  test("K from first card moves to column header", () => {
     const { board } = testEnv(() => item("board", item("Column", item("card1"), item("card2"))), {
       columns: 80,
       rows: 24,
     })
-    // Navigate to card2
-    board.command("cursor_down")
-    board.expect("#card2[data-cursor]").toExist()
-
-    // K on card2 → prev sibling card1 (at top level, K acts like k)
-    board.command("block_nav_up")
     board.expect("#card1[data-cursor]").toExist()
+
+    // K from first card → column header
+    board.command("block_nav_up")
+    board.expect("#Column[data-cursor]").toExist()
   })
 
-  test("J/K full tree traversal journey", () => {
+  test("J/K are strict inverses — full spatial journey", () => {
     const { board } = testEnv(
       () => item("board", item("Column", item("parent", item("child-a"), item("child-b")), item("sibling"))),
       { columns: 80, rows: 24 },
@@ -947,48 +962,58 @@ describe("Tree-traversal navigation (J/K)", () => {
     // Start at parent card
     board.expect("#parent[data-cursor]").toExist()
 
-    // J → enter first child
-    board.command("block_nav_down")
+    // Walk forward through all blocks with J
+    board.command("block_nav_down") // parent → child-a
     board.expect("#child-a[data-cursor]").toExist()
-
-    // j (lowercase) → next sibling within card
-    board.command("cursor_down")
+    board.command("block_nav_down") // child-a → child-b
     board.expect("#child-b[data-cursor]").toExist()
+    board.command("block_nav_down") // child-b → sibling
+    board.expect("#sibling[data-cursor]").toExist()
 
-    // K from non-first child → previous sibling
-    board.command("block_nav_up")
+    // J at last block → boundary (stays on sibling)
+    board.command("block_nav_down")
+    board.expect("#sibling[data-cursor]").toExist()
+
+    // Walk backward through all blocks with K (strict inverse)
+    board.command("block_nav_up") // sibling → child-b
+    board.expect("#child-b[data-cursor]").toExist()
+    board.command("block_nav_up") // child-b → child-a
     board.expect("#child-a[data-cursor]").toExist()
-
-    // K from first child → back to parent card title
-    board.command("block_nav_up")
+    board.command("block_nav_up") // child-a → parent
     board.expect("#parent[data-cursor]").toExist()
+    board.command("block_nav_up") // parent → Column header
+    board.expect("#Column[data-cursor]").toExist()
 
-    // K again → column header (parent is first card in column)
+    // K at column header → boundary (stays on Column)
     board.command("block_nav_up")
     board.expect("#Column[data-cursor]").toExist()
   })
 
-  test("K from non-first child moves to previous sibling, not parent", () => {
+  test("J/K with nested children traverses in DFS order", () => {
     const { board } = testEnv(
       () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
       { columns: 80, rows: 24 },
     )
     board.expect("#card[data-cursor]").toExist()
 
-    // J → enter first child
-    board.command("block_nav_down")
+    // J walks forward in DFS order
+    board.command("block_nav_down") // card → child-1
     board.expect("#child-1[data-cursor]").toExist()
-
-    // j → next sibling
-    board.command("cursor_down")
+    board.command("block_nav_down") // child-1 → child-2
     board.expect("#child-2[data-cursor]").toExist()
+    board.command("block_nav_down") // child-2 → child-3
+    board.expect("#child-3[data-cursor]").toExist()
 
-    // K from child-2 (not first child) → previous sibling child-1
-    board.command("block_nav_up")
+    // J at last block → boundary
+    board.command("block_nav_down")
+    board.expect("#child-3[data-cursor]").toExist()
+
+    // K walks backward (strict inverse)
+    board.command("block_nav_up") // child-3 → child-2
+    board.expect("#child-2[data-cursor]").toExist()
+    board.command("block_nav_up") // child-2 → child-1
     board.expect("#child-1[data-cursor]").toExist()
-
-    // K from child-1 (first child) → parent card title
-    board.command("block_nav_up")
+    board.command("block_nav_up") // child-1 → card
     board.expect("#card[data-cursor]").toExist()
   })
 })

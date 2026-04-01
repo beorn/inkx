@@ -256,19 +256,19 @@ const commandPalette = {
   execute: () => ({ type: "COMMAND_PALETTE" }),
 } satisfies CommandDef
 
-// Tree-traversal navigation (J/K — enter children / exit to parent)
+// Spatial block navigation (J/K — next/prev visible block in column)
 const blockNavDown = {
   id: "block_nav_down",
-  name: "Enter Children",
-  description: "Move into first child (tree traversal)",
+  name: "Next Block",
+  description: "Move to next visible block in column",
   category: "Navigation",
   execute: () => ({ type: "CURSOR_MOVE", dir: "in" }),
 } satisfies CommandDef
 
 const blockNavUp = {
   id: "block_nav_up",
-  name: "Exit to Parent",
-  description: "Move to parent (tree traversal)",
+  name: "Previous Block",
+  description: "Move to previous visible block in column",
   category: "Navigation",
   execute: () => ({ type: "CURSOR_MOVE", dir: "out" }),
 } satisfies CommandDef

@@ -13,7 +13,7 @@ import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../ha
 import { indexOfChild } from "../sibling-index.ts"
 import { detailPaneIdFor } from "../board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { getNavigableChildren, type NavState } from "../view-navigation.ts"
+import { type NavState } from "../view-navigation.ts"
 
 /**
  * Handle cursor movement in any direction.
@@ -55,9 +55,9 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return result
   }
 
-  // Tree-traversal (in/out) — J enters children, K exits to parent
+  // Spatial block navigation (in/out) — J/K move to next/prev visible block in column
   if (dir === "in" || dir === "out") {
-    const result = handleTreeTraversal(ctx, dir)
+    const result = handleBlockNav(ctx, dir)
     ctx.navigator.clearStickyY()
     return result
   }
@@ -207,46 +207,71 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
 }
 
 /**
- * Tree-traversal navigation (J/K — "in" enters children, "out" exits to parent).
+ * Spatial block navigation (J/K — next/previous visible block in column).
  *
- * Unlike j/k which navigate between siblings at the same level, J/K navigate
- * the tree depth: J enters the first child of the current node, K exits to
- * the parent. When J has no children to enter, it falls back to next sibling
- * (same as j). When K is at a top-level card, it falls back to previous sibling
- * (same as k at card level) or column header.
+ * Unlike j/k which navigate the tree hierarchy (siblings, parent, children),
+ * J/K are purely spatial: they move to the next/previous visible block in
+ * document order within the current column — like arrow keys in a text editor.
+ *
+ * The visible block list is: [column header, card1, card1-child1, card1-child2, ..., card2, ...]
+ * J moves forward (+1), K moves backward (-1). Bell at boundaries.
+ * Key invariant: J and K are strict inverses.
  */
-function handleTreeTraversal(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
-  const { dispatchBoard, viewNavigation, navigator } = ctx
+function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
+  const { dispatchBoard } = ctx
 
   if (!ctx.cursorNodeId) {
     return boundary(dir, "no cursor")
   }
 
-  if (dir === "in") {
-    // J: Enter first child of current node.
-    // If node has no children, fall back to regular "down" navigation (next sibling).
-    const children = getNavigableChildren(ctx.cursorNodeId, ctx.repo)
-    if (children.length > 0) {
-      const firstChild = children[0]!
-      dispatchBoard({ type: "SELECT", nodeId: firstChild.id })
-      return ok()
-    }
-    // No children — fall back to regular down navigation
-    const targetId = viewNavigation.navigate("down", navStateFrom(ctx), ctx.repo, navigator)
-    if (targetId === null) return boundary(dir)
-    dispatchBoard({ type: "SELECT", nodeId: targetId })
-    return ok()
+  // Build flat list of all visible blocks in the current column
+  const blocks = getVisibleColumnBlocks(ctx)
+  if (blocks.length === 0) return boundary(dir, "no visible blocks")
+
+  const currentIdx = blocks.indexOf(ctx.cursorNodeId)
+  if (currentIdx < 0) {
+    // Cursor not found in column blocks — boundary
+    return boundary(dir, "cursor not in column blocks")
   }
 
-  // dir === "out": Exit to parent.
-  // Uses regular "up" navigation which already handles:
-  // - Sub-block → parent card title
-  // - First card → column header
-  // - Column header → board
-  const targetId = viewNavigation.navigate("up", navStateFrom(ctx), ctx.repo, navigator)
-  if (targetId === null) return boundary(dir)
+  const targetIdx = dir === "in" ? currentIdx + 1 : currentIdx - 1
+  if (targetIdx < 0 || targetIdx >= blocks.length) {
+    return boundary(dir)
+  }
+
+  const targetId = blocks[targetIdx]!
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   return ok()
+}
+
+/**
+ * Get flat list of all visible block IDs in the current column, in document order.
+ *
+ * Order: column header, then for each card: card title, then its visible descendants.
+ * Respects fold depths and hidden nodes. This is the spatial order matching
+ * what the user sees rendered on screen.
+ */
+function getVisibleColumnBlocks(ctx: ActionCtx): string[] {
+  const col = ctx.column
+  if (!col) return []
+
+  const blocks: string[] = []
+
+  // Column header
+  blocks.push(col.node.id)
+
+  // For each card in the column, add the card and its visible descendants
+  for (const card of col.cardNodes) {
+    if (ctx.hiddenNodeIds.has(card.id)) continue
+    const descendants = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)
+    for (const id of descendants) {
+      if (!ctx.hiddenNodeIds.has(id)) {
+        blocks.push(id)
+      }
+    }
+  }
+
+  return blocks
 }
 
 /** Default tree navigation (first, last, prev, next). */
