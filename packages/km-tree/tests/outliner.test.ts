@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { getEditableText as getNodeText } from "../src/block-ops.ts"
+import { getEditableText } from "../src/block-ops.ts"
 import { withOutliner, createOutlinerContext, type OutlinerPolicy } from "../src/outliner.ts"
 
 // =============================================================================
@@ -375,8 +375,8 @@ describe("splitBlock", () => {
 
     const before = repo.getNode(result!.beforeId)!
     const after = repo.getNode(result!.afterId)!
-    expect(getNodeText(before)).toBe("Bra")
-    expect(getNodeText(after)).toBe("vo")
+    expect(getEditableText(before)).toBe("Bra")
+    expect(getEditableText(after)).toBe("vo")
   })
 
   test("cursor at start: creates empty sibling before", () => {
@@ -391,12 +391,12 @@ describe("splitBlock", () => {
     expect(result!.beforeId).not.toBe(bId)
 
     const newNode = repo.getNode(result!.beforeId)!
-    expect(getNodeText(newNode)).toBe("")
+    expect(getEditableText(newNode)).toBe("")
     expect(newNode.parent_id).toBe(parentId)
 
     // Original unchanged
     const bNode = repo.getNode(bId)!
-    expect(getNodeText(bNode)).toBe("Bravo")
+    expect(getEditableText(bNode)).toBe("Bravo")
   })
 
   test("cursor at end + no children: creates empty sibling after", () => {
@@ -408,7 +408,7 @@ describe("splitBlock", () => {
     expect(result!.beforeId).toBe(bId)
 
     const afterNode = repo.getNode(result!.afterId)!
-    expect(getNodeText(afterNode)).toBe("")
+    expect(getEditableText(afterNode)).toBe("")
     expect(afterNode.parent_id).toBe(parentId)
   })
 
@@ -422,7 +422,7 @@ describe("splitBlock", () => {
     expect(result!.beforeId).toBe(sectionAId)
 
     const newNode = repo.getNode(result!.afterId)!
-    expect(getNodeText(newNode)).toBe("")
+    expect(getEditableText(newNode)).toBe("")
     expect(newNode.parent_id).toBe(sectionAId) // first child, not sibling
   })
 
@@ -436,7 +436,7 @@ describe("splitBlock", () => {
     expect(result!.beforeId).toBe(sectionAId)
 
     const newNode = repo.getNode(result!.afterId)!
-    expect(getNodeText(newNode)).toBe("")
+    expect(getEditableText(newNode)).toBe("")
     // Should be sibling of sectionA, not child
     expect(newNode.parent_id).toBe(rootId)
   })
@@ -476,7 +476,7 @@ describe("splitBlock", () => {
     const outliner = withOutliner(repo)
 
     // t2 is "[x] Walk dog" (done), split at end to create new sibling
-    const result = outliner.splitBlock(t2Id, 8) // "Walk dog" len = 8 (getNodeText strips prefix)
+    const result = outliner.splitBlock(t2Id, 8) // "Walk dog" len = 8 (getEditableText strips prefix)
     expect(result).not.toBeNull()
 
     const newNode = repo.getNode(result!.afterId)!
@@ -493,7 +493,7 @@ describe("splitBlock", () => {
     expect(result).not.toBeNull()
     expect(result!.afterId).toBe(rootId)
     const newNode = repo.getNode(result!.beforeId)!
-    expect(getNodeText(newNode)).toBe("")
+    expect(getEditableText(newNode)).toBe("")
   })
 })
 
@@ -684,7 +684,7 @@ describe("joinForward", () => {
     // C is deleted
     expect(repo.getNode(cId)).toBeNull()
     // B unchanged
-    expect(getNodeText(repo.getNode(bId)!)).toBe("Bravo")
+    expect(getEditableText(repo.getNode(bId)!)).toBe("Bravo")
   })
 
   test("next has content + no children → merge text", () => {
@@ -697,7 +697,7 @@ describe("joinForward", () => {
     expect(result!.cursorOffset).toBe(5) // "Bravo" length
 
     const bNode = repo.getNode(bId)!
-    expect(getNodeText(bNode)).toBe("BravoCharlie")
+    expect(getEditableText(bNode)).toBe("BravoCharlie")
     expect(repo.getNode(cId)).toBeNull()
   })
 

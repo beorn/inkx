@@ -36,8 +36,8 @@ import {
   detectPrefixConversion,
   backspaceDegradation,
   getNextSibling,
-  getNodeText,
-  setNodeText,
+  getEditableText,
+  setEditableText,
 } from "@km/tree"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
@@ -715,7 +715,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
               changes.content = remainingText
             } else if (changes.item?.task?.marker) {
               const fakeNode = { ...node, ...changes } as typeof node
-              changes.content = setNodeText(fakeNode, remainingText)
+              changes.content = setEditableText(fakeNode, remainingText)
               if (!changes.type) changes.type = "p"
               if (changes.item === undefined) changes.item = {}
             } else {
@@ -793,7 +793,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
             const degradation = backspaceDegradation(nextNode, ctx.repo, nextNode.id)
             if (degradation) {
               ctx.undoHandle.setCursor(ctx.cursorNodeId)
-              applyDegradation(nextNode, degradation, getNodeText(nextNode))
+              applyDegradation(nextNode, degradation, getEditableText(nextNode))
               ctx.repo.updateNode(nextNode.id, degradation)
               ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
               return ok()

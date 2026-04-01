@@ -12,9 +12,7 @@ import {
   mergeWithPrevious,
   mergeWithNext,
   getEditableText,
-  getEditableText as getNodeText,
   setEditableText,
-  setEditableText as setNodeText,
   getPreviousSibling,
   getNextSibling,
   detectPrefixConversion,
@@ -97,17 +95,17 @@ function setupSectionTree() {
 }
 
 // =============================================================================
-// getNodeText / setNodeText
+// getEditableText / setEditableText
 // =============================================================================
 
-describe("getNodeText", () => {
+describe("getEditableText", () => {
   test("returns task content without checkbox prefix", () => {
     const node = {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
       content: "- [ ] Buy groceries",
     } as any
-    expect(getNodeText(node)).toBe("Buy groceries")
+    expect(getEditableText(node)).toBe("Buy groceries")
   })
 
   test("returns outline item name", () => {
@@ -117,12 +115,12 @@ describe("getNodeText", () => {
       name: "My Section",
       content: "My Section",
     } as any
-    expect(getNodeText(node)).toBe("My Section")
+    expect(getEditableText(node)).toBe("My Section")
   })
 
   test("returns content for other types", () => {
     const node = { type: "p", content: "Hello world" } as any
-    expect(getNodeText(node)).toBe("Hello world")
+    expect(getEditableText(node)).toBe("Hello world")
   })
 
   test("handles done task marker", () => {
@@ -131,22 +129,22 @@ describe("getNodeText", () => {
       item: { list: "-", task: { marker: "[x]", status: "done" } },
       content: "- [x] Completed item",
     } as any
-    expect(getNodeText(node)).toBe("Completed item")
+    expect(getEditableText(node)).toBe("Completed item")
   })
 
   test("handles null content", () => {
     const node = { type: "p", content: null } as any
-    expect(getNodeText(node)).toBe("")
+    expect(getEditableText(node)).toBe("")
   })
 })
 
-describe("setNodeText", () => {
+describe("setEditableText", () => {
   test("wraps task text with checkbox prefix", () => {
     const node = {
       type: "p",
       item: { task: { marker: "[ ]", status: "todo" } },
     } as any
-    expect(setNodeText(node, "New text")).toBe("- [ ] New text")
+    expect(setEditableText(node, "New text")).toBe("- [ ] New text")
   })
 
   test("preserves done task marker", () => {
@@ -154,17 +152,17 @@ describe("setNodeText", () => {
       type: "p",
       item: { task: { marker: "[x]", status: "done" } },
     } as any
-    expect(setNodeText(node, "Done item")).toBe("- [x] Done item")
+    expect(setEditableText(node, "Done item")).toBe("- [x] Done item")
   })
 
   test("returns plain text for outline items", () => {
     const node = { type: "h", item: {} } as any
-    expect(setNodeText(node, "Section Name")).toBe("Section Name")
+    expect(setEditableText(node, "Section Name")).toBe("Section Name")
   })
 
   test("returns plain text for other types", () => {
     const node = { type: "p" } as any
-    expect(setNodeText(node, "Paragraph")).toBe("Paragraph")
+    expect(setEditableText(node, "Paragraph")).toBe("Paragraph")
   })
 })
 
@@ -183,13 +181,13 @@ describe("splitNode", () => {
 
     // Original node should have "Charlie"
     const before = repo.getNode(result.beforeId)!
-    expect(getNodeText(before)).toBe("Charlie")
+    expect(getEditableText(before)).toBe("Charlie")
     expect(before.type).toBe("p")
     expect(before.item).toBeDefined()
 
     // New node should have " delta"
     const after = repo.getNode(result.afterId)!
-    expect(getNodeText(after)).toBe(" delta")
+    expect(getEditableText(after)).toBe(" delta")
     expect(after.type).toBe("p")
     expect(after.item).toBeDefined()
     expect(after.item?.task?.status).toBe("todo")
@@ -208,11 +206,11 @@ describe("splitNode", () => {
 
     // Original node should be empty
     const before = repo.getNode(result.beforeId)!
-    expect(getNodeText(before)).toBe("")
+    expect(getEditableText(before)).toBe("")
 
     // New node should have full text
     const after = repo.getNode(result.afterId)!
-    expect(getNodeText(after)).toBe("Charlie delta")
+    expect(getEditableText(after)).toBe("Charlie delta")
 
     // 4 children total
     const children = repo.getChildren(parentId)
@@ -226,11 +224,11 @@ describe("splitNode", () => {
 
     // Original node keeps full text
     const before = repo.getNode(result.beforeId)!
-    expect(getNodeText(before)).toBe("Charlie delta")
+    expect(getEditableText(before)).toBe("Charlie delta")
 
     // New node is empty
     const after = repo.getNode(result.afterId)!
-    expect(getNodeText(after)).toBe("")
+    expect(getEditableText(after)).toBe("")
 
     const children = repo.getChildren(parentId)
     expect(children).toHaveLength(4)
@@ -377,10 +375,10 @@ describe("splitNode", () => {
     const result = splitNode(repo, task2Id, 999)
 
     const before = repo.getNode(result.beforeId)!
-    expect(getNodeText(before)).toBe("Charlie delta")
+    expect(getEditableText(before)).toBe("Charlie delta")
 
     const after = repo.getNode(result.afterId)!
-    expect(getNodeText(after)).toBe("")
+    expect(getEditableText(after)).toBe("")
   })
 
   test("negative offset clamps to 0", () => {
@@ -389,10 +387,10 @@ describe("splitNode", () => {
     const result = splitNode(repo, task2Id, -5)
 
     const before = repo.getNode(result.beforeId)!
-    expect(getNodeText(before)).toBe("")
+    expect(getEditableText(before)).toBe("")
 
     const after = repo.getNode(result.afterId)!
-    expect(getNodeText(after)).toBe("Charlie delta")
+    expect(getEditableText(after)).toBe("Charlie delta")
   })
 })
 
@@ -434,7 +432,7 @@ describe("mergeWithPrevious", () => {
 
     // task2 now has merged content
     const merged = repo.getNode(task2Id)!
-    expect(getNodeText(merged)).toBe("Alpha bravoCharlie delta")
+    expect(getEditableText(merged)).toBe("Alpha bravoCharlie delta")
 
     // task1 is deleted
     expect(repo.getNode(task1Id)).toBeNull()
@@ -570,7 +568,7 @@ describe("mergeWithNext", () => {
 
     // task2 now has merged content
     const merged = repo.getNode(task2Id)!
-    expect(getNodeText(merged)).toBe("Charlie deltaEcho foxtrot")
+    expect(getEditableText(merged)).toBe("Charlie deltaEcho foxtrot")
 
     // task3 is deleted
     expect(repo.getNode(task3Id)).toBeNull()
@@ -595,7 +593,7 @@ describe("mergeWithNext", () => {
 
     // task2 has merged content
     const merged = repo.getNode(task2Id)!
-    expect(getNodeText(merged)).toBe("Charlie deltaEcho foxtrot")
+    expect(getEditableText(merged)).toBe("Charlie deltaEcho foxtrot")
 
     // task3's child is now under task2
     const task2Children = repo.getChildren(task2Id)
@@ -657,7 +655,7 @@ describe("mergeWithNext", () => {
     expect(result!.cursorOffset).toBe(11) // "Section One" length
 
     const merged = repo.getNode(sec1Id)!
-    // h+item nodes use name field via getNodeText, but content is set via setNodeText
+    // h+item nodes use name field via getEditableText, but content is set via setEditableText
     expect(merged.content).toBe("Section OneSection Two")
 
     expect(repo.getNode(sec2Id)).toBeNull()
@@ -1088,13 +1086,13 @@ describe("backspaceDegradation", () => {
 // =============================================================================
 
 describe("getEditableText", () => {
-  test("is the same function as getNodeText", () => {
-    expect(getEditableText).toBe(getNodeText)
+  test("is the same function as getEditableText", () => {
+    expect(getEditableText).toBe(getEditableText)
   })
 })
 
 describe("setEditableText", () => {
-  test("is the same function as setNodeText", () => {
-    expect(setEditableText).toBe(setNodeText)
+  test("is the same function as setEditableText", () => {
+    expect(setEditableText).toBe(setEditableText)
   })
 })

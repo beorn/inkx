@@ -255,7 +255,6 @@ describe("Full-text Search with Phrases", () => {
         content: "This document is about quarterly reports",
       },
     ])
-
   })
 
   afterEach(() => {
