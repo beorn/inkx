@@ -69,15 +69,6 @@ export type ApplyResult = {
 // Read-only context for navigation
 // =============================================================================
 
-/**
- * NavCtx provides read-only tree access for navigation resolution.
- * NOT services — just data accessors. Implemented by Repo in the runtime.
- */
-export interface NavCtx {
-  getNode(id: string): KNode | null
-  getChildren(parentId: string | null): KNode[]
-}
-
 // =============================================================================
 // Operations (using TEA terminology: "operation", not "action")
 // =============================================================================

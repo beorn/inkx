@@ -532,7 +532,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
       }
     } else {
       ctx.repo.updateNode(targetId, {
-        item: { task: { status: nextStatus, marker: getMarkerForStatus(nextStatus) } },
+        item: { ...targetNode?.item, task: { status: nextStatus, marker: getMarkerForStatus(nextStatus) } },
       })
     }
   })
@@ -552,8 +552,9 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
 export function handleClearTask(ctx: ActionCtx): void {
   const count = Selection.forEach(ctx, "Clear task", (c) => {
     const targetId = c.embed_source || c.id
+    const targetNode = ctx.repo.getNode(targetId)
     ctx.repo.updateNode(targetId, {
-      item: { task: undefined },
+      item: { ...targetNode?.item, task: undefined },
       due_at: undefined,
       start_at: undefined,
       priority: undefined,
