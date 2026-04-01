@@ -198,7 +198,7 @@ The TUI wraps KNode in view models for rendering:
 ## Invariants
 
 1. **Items can have children, blocks cannot** — `item: true` is the only prerequisite for `getChildren()`
-2. **Role is positional** — a KNode's board role (column/card/sub-item) depends on its depth, not its type
+2. **View/board role is positional** — a KNode's board role (column/card/sub-item) depends on its depth, not its type
 3. **parent_id "." means root** — the board root uses "." as parent_id (not null)
 4. **parent_idx determines order** — siblings sorted by parent_idx (fractional indexing)
 5. **Cursor must point to existing node** — invariant check: `cursor-exists`

@@ -68,9 +68,9 @@ Functionality is exposed through **domain objects created by factory functions**
 │  Factory Functions                                                  │
 │                                                                     │
 │    createRepo(path, options)    → Repo                              │
-│    createBoardState(rootId)    → BoardState                        │
-│    repo.watch()                → Watcher (Service)                 │
-│    loadConfigObject(repoPath)  → Config                            │
+│    createBoardState(rootId)    → BoardState                         │
+│    repo.watch()                → Watcher (Service)                  │
+│    loadConfigObject(repoPath)  → Config                             │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 

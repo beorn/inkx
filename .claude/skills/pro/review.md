@@ -19,7 +19,7 @@ PKG_DIR="<package-path>/src"
 CONTEXT="/tmp/pro-review-<package>.md"
 
 # Start with shared header
-cp .claude/skills/pro-review/templates/context-header.md "$CONTEXT"
+cp .claude/skills/pro/templates/context-header.md "$CONTEXT"
 
 # Append package source
 echo -e "\n\n# Package Source: <package>\n" >> "$CONTEXT"

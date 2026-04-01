@@ -6,7 +6,7 @@ Set up and maintain the content marketing platform.
 
 ### Per-Site SEO Foundations
 
-For each site (terminfo.dev, silvery.dev, termless.dev, beorn.codes/flexily):
+For each site (terminfo.dev, silvery.dev, termless.dev, beorn.codes):
 
 1. **robots.txt** — Add to `docs/public/robots.txt`:
    ```
@@ -15,18 +15,36 @@ For each site (terminfo.dev, silvery.dev, termless.dev, beorn.codes/flexily):
    Sitemap: https://{site}/sitemap.xml
    ```
 
-2. **Search Console** — Submit sitemap at `https://{site}/sitemap.xml` to:
-   - Google Search Console
-   - Bing Webmaster Tools
+2. **Sitemap** — VitePress auto-generates from `sitemap: { hostname: "https://{site}" }` in config.
+   For beorn.codes (multi-subpath), create a root sitemap index that references each subpath's sitemap.
 
-3. **Canonical URLs** — Ensure VitePress config has `head` meta with canonical
+3. **Search Console** — Submit to Google Search Console:
+   - Own-domain sites: submit as domain property (terminfo.dev, silvery.dev, termless.dev)
+   - beorn.codes: covers /flexily, /loggily, /mdspec in one property
+   - Verify via DNS TXT record (recommended) or HTML file upload
+   - Submit sitemap URL after verification
 
-4. **Breadcrumb schema** — Add BreadcrumbList JSON-LD to page layouts
+4. **Canonical URLs** — `@bearly/vitepress-enrich` seoTransformPageData handles this via sitemap.hostname
 
-5. **Analytics** — Add Plausible script to VitePress config `head`:
+5. **JSON-LD schemas** — `@bearly/vitepress-enrich` provides: BreadcrumbList, TechArticle, SoftwareSourceCode (auto for /api/), FAQPage (frontmatter.faq), HowTo (frontmatter.howto)
+
+6. **Glossary auto-linking** — `@bearly/vitepress-enrich` glossaryPlugin + loadTerminalGlossary() for shared terminal vocabulary
+
+7. **Analytics** — All sites use Cloudflare Web Analytics (beacon.min.js). Optional: Plausible:
    ```html
    <script defer data-domain="{site}" src="https://plausible.io/js/script.js"></script>
    ```
+
+### Current Status (2026-04-01)
+
+| Site | robots.txt | Sitemap | Search Console | JSON-LD | Glossary |
+|------|-----------|---------|----------------|---------|----------|
+| terminfo.dev | Done | Done | Submitted | Done (custom) | Done (600+ terms) |
+| silvery.dev | Done | Done | Submitted | Done (vitepress-enrich) | Done (211 terms) |
+| termless.dev | Done | Done | Submitted | Done (vitepress-enrich) | Done (180 terms) |
+| beorn.codes | Done | Needs root index | Submitted | Partial | — |
+| beorn.codes/flexily | Done | Done | Via beorn.codes | Partial | — |
+| beorn.codes/loggily | Done | Done | Via beorn.codes | Partial | — |
 
 ### Auto-Linking Infrastructure (all sites)
 

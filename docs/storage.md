@@ -876,13 +876,13 @@ In disk mode, km maintains sync between filesystem, SQLite, and event log.
 │  Filesystem                                                │
 │      │                                                     │
 │      ▼                                                     │
-│  FSWatcher ──► Debounce 5s ──► Reconcile ──► emit()       │
+│  FSWatcher ──► Debounce 5s ──► Reconcile ──► emit()        │
 │                                                   │        │
 │                                                   ▼        │
 │                                              state.db      │
 │                                                   │        │
 │                                                   ▼        │
-│  Write ◄── Debounce 3s ◄── Pending ◄─────────────┘        │
+│  Write ◄── Debounce 3s ◄── Pending ◄─────────────┘         │
 │      │                                                     │
 │      ▼                                                     │
 │  Filesystem                                                │

@@ -120,6 +120,36 @@ If the root cause is architectural (Why 4-5), consult an external LLM:
 bun llm --deep -y --no-recover --context-file /tmp/why-context.md "Given this causal chain, what's the right level to fix at?"
 ```
 
+## Phase 3b: Ishikawa / Fishbone Diagram (Optional)
+
+When the causal chain has **multiple contributing causes** at the same level (not a single chain but a convergence), draw an Ishikawa diagram. This is common for systemic issues where several factors combine.
+
+Categories (adapt to the problem):
+- **Code** — bugs, missing abstractions, wrong patterns
+- **Process** — missing tests, no review, no spec
+- **Tools** — inadequate tooling, wrong tool for the job
+- **Knowledge** — undocumented conventions, tribal knowledge
+- **Environment** — CI, runtime, platform differences
+- **Design** — architectural decisions, missing boundaries
+
+Format (indented tree — no box drawing):
+
+```
+SYMPTOM: Diagrams have misaligned borders
+├── Code
+│   └── No validation step after generation
+├── Tools
+│   ├── LLMs lack character position counter
+│   └── No linter for box-drawing alignment
+├── Process
+│   ├── No diagram creation protocol existed
+│   └── No post-generation verification habit
+└── Knowledge
+    └── Dense punctuation confuses visual estimation
+```
+
+Use this when Phase 3's linear chain feels incomplete — when you suspect **multiple independent causes** contribute. The fishbone reveals which categories need attention; the 5 Whys reveals depth within each.
+
 ## Example
 
 ```

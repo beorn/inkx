@@ -46,16 +46,16 @@ All tree rendering uses TreeNode with variants:
 └─────────────────────────────────────────────────────────────────────┘
                                   │
             ┌─────────────────────┼─────────────────────┐
-            ▼                     ▼                     ▼
-   ┌────────────────┐  ┌─────────────────────┐  ┌──────────────┐
-   │ Local State    │  │ Storage (@km/storage)│  │ SyncManager  │
-   │ - cursor pos   │  │ - CRUD operations   │  │ - FS writes  │
-   │ - view mode    │  │ - SQLite queries    │  │ - FS watch   │
-   │ - selection    │  └─────────────────────┘  └──────────────┘
-   │ - folded nodes │            │                     │
-   └────────────────┘            │                     │
-            │                    ▼                     ▼
-            └──────────► Re-render ◄───────── repo.touch() (cache bust + version bump)
+            │                     ▼                     │
+   ┌────────│───────┐  ┌─────────────────────┐  ┌───────│──────┐
+   │ Local S│ate    │  │ Storage (@km/storage││  │ SyncM│nager  │
+   │ - curso│ pos   │  │ - CRUD operations   │  │ - FS w│ites  │
+   │ - view │ode    │  │ - SQLite queries    │  │ - FS w│tch   │
+   │ - selec│ion    │  └─────────────────────┘  └───────│──────┘
+   │ - folde│ nodes │            │                      │
+   └────────│───────┘            │                      │
+            │                    ▼                     ▼│
+            └───────────────────────────────────────────┘) (cache bust + version bump)
 ```
 
 ## State Management

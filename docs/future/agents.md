@@ -369,7 +369,7 @@ km hub status               # Show status
 │  ○ claude-3 (idle)   P2: Refactor DB    12:05 system       │
 │                      ...                  spawned claude-3 │
 │                                                            │
-│  [S]pawn  [K]ill  [A]ssign  [Q]ueue  [L]ogs  [?]Help      │
+│  [S]pawn  [K]ill  [A]ssign  [Q]ueue  [L]ogs  [?]Help       │
 └────────────────────────────────────────────────────────────┘
 ```
 

@@ -37,7 +37,7 @@ The architecture has three layers: **thin platform shells** at the top, a **shar
       │    └────────→│    km-app (shared)     │←──────┘    │
       │              │ state, hooks, logic,   │            │
       │              │ views, components      │            │
-      │              └───────────┬────────────┘            │
+      │              └────────────────────────┘            │
       │                         │                          │
       ▼                         ▼                          ▼
 ┌──────────────┐  ┌───────────────────────┐  ┌────────────────┐

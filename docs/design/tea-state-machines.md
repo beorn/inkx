@@ -582,7 +582,7 @@ km has two editing levels with clear scope boundaries:
 
 ```
 ┌─────────────────────────────────────────────┐
-│  Tree.apply()  — document tree            │
+│  Tree.apply()  — document tree              │
 │  Manages: nodes, tree structure, navigation │
 │  Scope: entire km node hierarchy            │
 │  Addressing: ID-based (CRDT-native)         │

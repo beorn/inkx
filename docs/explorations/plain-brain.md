@@ -38,9 +38,9 @@ Multiple repos simultaneously. Testable with `createBoardDriver()`.
 
 ```
            ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐
-           │ Obsidian │  │Boardliner│  │Claude Code│  │  pam    │
+           │ Obsidian │  │Boardliner│  │Claude Cod│  │  pam    │
            │ (human)  │  │ TUI/Web  │  │ (AI)     │  │(harness)│
-           └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬────┘
+           └────┬─────┘  └────┬─────┘  └──────────┘  └────┬────┘
                 │             │              │              │
                 └──────┬──────┘──────────────┘──────────────┘
                        ↕ brain protocol
@@ -54,8 +54,8 @@ Multiple repos simultaneously. Testable with `createBoardDriver()`.
                 └──────────────────┬───────────────────────┘
                                    ↕ bidirectional sync
                 ┌──────────────────────────────────────────┐
-                │  FILESYSTEM                               │
-                │  Plain markdown files (Obsidian-compatible)│
+                │  FILESYSTEM                              │
+                │  Plain markdown files (Obsidian-compatibl│)│
                 └──────────────────────────────────────────┘
 ```
 

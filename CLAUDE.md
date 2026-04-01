@@ -202,4 +202,5 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [repo-health/](.claude/skills/repo-health/)                         | Package health audit (license, metadata, gitignore, docs, CI)        |
 | [npm/](.claude/skills/npm/)                                         | Check npm package/scope availability                                  |
 | [upstream](.claude/skills/pm/workflows/upstream.md)                 | Filing bugs on external repos — **MUST load before `gh issue create`**|
+| [diagram/](.claude/skills/diagram/)                                 | ASCII diagrams — aligned boxes, trees, flow. Prevents misalignment   |
 | [batch-refactor](vendor/bearly/skills/batch-refactor/SKILL.md) | Rename/refactor/migrate across files (`bun tools/refactor.ts --help`) |

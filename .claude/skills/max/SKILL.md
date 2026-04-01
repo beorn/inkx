@@ -1,5 +1,6 @@
 ---
 description: Maximize parallelization through sub-agents. Use when you have several todos, suspect tasks can be decomposed, or user requests parallel execution.
+argument-hint: "[task description or bead IDs]"
 ---
 
 **Keywords**: parallel, concurrent, sub-agents, decompose, maximize

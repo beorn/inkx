@@ -1,5 +1,6 @@
 ---
 description: "Open a file or directory in Finder. Use when user says 'open' a path."
+argument-hint: <path>
 allowed-tools: Bash(open:*)
 model: haiku
 ---

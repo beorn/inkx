@@ -111,7 +111,7 @@ Refactor to **composable domain objects** with clear separation of concerns:
 
 ```
 ┌────────────┐                  ┌─────────────┐
-│ FileTree  │ ←──── sync ────→ │  DataStore  │
+│ FileTree  ││←──── sync ────→ ││ DataStore   │
 │  (files)   │    (translate)   │  (indexed)  │
 └────────────┘                  └─────────────┘
    optional                        always present

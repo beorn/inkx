@@ -40,30 +40,30 @@ Uses vimonkey's `test.fuzz` with composable async iterable stream transformers.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     test.fuzz (vimonkey)                          │
+│                     test.fuzz (vimonkey)                        │ │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌─────────────────┐     ┌─────────────────┐                   │
-│  │ gen(picker)      │     │ transformers    │                   │
-│  │ → FsEvent stream │────►│ drop/reorder/.. │                   │
-│  └─────────────────┘     └────────┬────────┘                   │
+│  ┌─────────────────┐     ┌─────────────────┐                    │
+│  │ gen(picker)      │    ││ transformers   ││                   │
+│  │ → FsEvent stream │────││ drop/reorder/..││                   │
+│  └─────────────────┘     └─────────────────┘                    │
 │                                   │                             │
 │                            take(n) ─ auto-tracked               │
 │                                   │                             │
-│           ┌───────────────────────┼───────────────────────┐    │
-│           │                       │                       │    │
-│           ▼                       ▼                       ▼    │
-│  ┌─────────────────┐     ┌─────────────────┐     ┌──────────┐ │
-│  │ reconcile()     │     │ applyEventToFs  │     │ Database │ │
-│  │ (scanner: DI)   │     │ (mock FS ops)   │     │ (SQLite) │ │
-│  └────────┬────────┘     └────────┬────────┘     └──────────┘ │
+│           ┌───────────────────────┼───────────────────────┐     │
+│           │                       │                       │     │
+│           ▼                       ▼                       ▼     │
+│  ┌─────────────────┐     ┌─────────────────┐     ┌──────────┐   │
+│  │ reconcile()     │     │ applyEventToFs  │     │ Database │   │
+│  │ (scanner: DI)   │     │ (mock FS ops)   │     │ (SQLite) │   │
+│  └────────┬────────┘     └────────┬────────┘     └──────────┘   │
 │           │                       │                             │
 │           ▼                       ▼                             │
-│      FakeFileSystem          FakeFileSystem                    │
-│      (in-memory)             (in-memory)                       │
+│      FakeFileSystem          FakeFileSystem                     │
+│      (in-memory)             (in-memory)                        │
 │                                                                 │
 │  On failure: auto-shrink → save to __fuzz_cases__/ → regression │
-└─────────────────────────────────────────────────────────────────┘
+└───────────┴───────────────────────┴─────────────────────────────┘
 ```
 
 **Key properties:**
@@ -210,30 +210,30 @@ The chaos testing system is designed for iterative bug discovery and fixing:
 │                    CHAOS FUZZING LOOP                           │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐ │
-│  │ gen()    │───►│ chaos()  │───►│ take(n)  │───►│ verify   │ │
-│  │ events   │    │ transform│    │ reconcile│    │invariants│ │
-│  └──────────┘    └──────────┘    └──────────┘    └──────────┘ │
-│       │                                               │        │
-│       │         PASS: continue fuzzing                │        │
-│       │                                               ▼        │
-│       │         ┌────────────────────────────────────────┐    │
-│       │         │ FAIL: auto-shrink → __fuzz_cases__/    │    │
-│       │         │ - Minimal event sequence               │    │
-│       │         │ - Saved for automatic regression       │    │
-│       │         │ - Invariant violated                   │    │
-│       │         └────────────────────────────────────────┘    │
-│       │                          │                             │
-│       │                          ▼                             │
-│       │         ┌────────────────────────────────────────┐    │
-│       │         │ Analyze & Fix                          │    │
-│       │         │ - Reproduce: FUZZ_SEED=<seed> bun test │    │
-│       │         │ - Root cause analysis                  │    │
-│       │         │ - Fix + regression auto-replayed       │    │
-│       │         └────────────────────────────────────────┘    │
-│       │                          │                             │
-│       └──────────────────────────┘                             │
-│              (continue fuzzing)                                │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐   │
+│  │ gen()    │───►│ chaos()  │───►│ take(n)  │───►│ verify   │   │
+│  │ events   │    │ transform│    │ reconcile│    │invariants│   │
+│  └──────────┘    └──────────┘    └──────────┘    └──────────┘   │
+│       │                                               │         │
+│       │         PASS: continue fuzzing                │         │
+│       │                                               ▼         │
+│       │         ┌────────────────────────────────────────┐      │
+│       │         │ FAIL: auto-shrink → __fuzz_cases__/    │      │
+│       │         │ - Minimal event sequence               │      │
+│       │         │ - Saved for automatic regression       │      │
+│       │         │ - Invariant violated                   │      │
+│       │         └────────────────────────────────────────┘      │
+│       │                          │                              │
+│       │                          ▼                              │
+│       │         ┌────────────────────────────────────────┐      │
+│       │         │ Analyze & Fix                          │      │
+│       │         │ - Reproduce: FUZZ_SEED=<seed> bun test │      │
+│       │         │ - Root cause analysis                  │      │
+│       │         │ - Fix + regression auto-replayed       │      │
+│       │         └────────────────────────────────────────┘      │
+│       │                          │                              │
+│       └──────────────────────────┘                              │
+│              (continue fuzzing)                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

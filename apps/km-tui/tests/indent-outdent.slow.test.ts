@@ -789,9 +789,7 @@ describe("Indent/Outdent during inline edit mode", () => {
   test("Tab on second child in inline edit indents under first child", () => {
     // When editing sub2 (which has sub1 as prev sibling),
     // Tab should indent sub2 under sub1 — not move the parent card.
-    const { board, repo, store } = testEnv(() =>
-      item("board", item("col", item("card1", item("sub1"), item("sub2")))),
-    )
+    const { board, repo, store } = testEnv(() => item("board", item("col", item("card1", item("sub1"), item("sub2")))))
 
     board.command("block_nav_down") // J: enter card1's children → sub1
     board.command("cursor_down") // → sub2

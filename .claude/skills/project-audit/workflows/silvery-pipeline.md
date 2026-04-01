@@ -20,7 +20,7 @@ Build a single context file at `/tmp/pro-review-silvery-pipeline.md` containing 
 ```bash
 cd ~/Code/pim/km
 CONTEXT="/tmp/pro-review-silvery-pipeline.md"
-cp .claude/skills/pro-review/templates/context-header.md "$CONTEXT"
+cp .claude/skills/pro/templates/context-header.md "$CONTEXT"
 ```
 
 ### 1B: Append pipeline source files
@@ -155,10 +155,10 @@ wc -c "$CONTEXT"
 ### 1G: Check prior review history
 
 ```bash
-grep -i "silvery\|pipeline\|rendering" .claude/skills/pro-review/history.jsonl 2>/dev/null || echo "No prior pipeline reviews found"
+grep -i "silvery\|pipeline\|rendering" .claude/skills/pro/history.jsonl 2>/dev/null || echo "No prior pipeline reviews found"
 ```
 
-If prior reviews exist, append a "Prior Findings" section (see [review.md](../../pro-review/review.md) Section C for format).
+If prior reviews exist, append a "Prior Findings" section (see [review.md](../../pro/review.md) Section C for format).
 
 ## Step 2: Create Tracking Bead
 
@@ -334,7 +334,7 @@ For each finding, note the source(s):
 
 ## Step 6: Triage
 
-Follow [triage.md](../../pro-review/triage.md) for bead creation:
+Follow [triage.md](../../pro/triage.md) for bead creation:
 
 1. Create per-finding bug beads for P0/P1 items under the tracking bead
 2. Update tracking bead description with the synthesis table
@@ -384,7 +384,7 @@ Parent agent runs `bun fix && bun run test:all` after all agents complete.
 
 ## Step 8: Record History
 
-Append to `pro-review/history.jsonl` — see [history.md](../../pro-review/history.md).
+Append to `pro-review/history.jsonl` — see [history.md](../../pro/history.md).
 
 ## Adapting This Workflow
 

@@ -85,14 +85,14 @@ bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  User Commands (package.json scripts)                   │
-│  bun run test:fast, test:all (basic)                   │
-│  bun run test:fast:html, test:all:html (with reports)  │
+│  bun run test:fast, test:all (basic)                    │
+│  bun run test:fast:html, test:all:html (with reports)   │
 └─────────────────────────────────────────────────────────┘
                           ↓
 ┌─────────────────────────────────────────────────────────┐
 │  Vitest (Test Framework)                                │
 │  - Runs on Bun runtime (not Node.js)                    │
-│  - Executes .test.ts, .spec.ts, .spec.md files         │
+│  - Executes .test.ts, .spec.ts, .spec.md files          │
 │  - Full access to bun:sqlite and other Bun APIs         │
 │  - Optional HTML report + JUnit XML (:html commands)    │
 └─────────────────────────────────────────────────────────┘
@@ -110,7 +110,7 @@ bunx --bun vitest run --reporter=dot --reporter=html --reporter=junit
 │  - Terminal: Dot reporter (always)                      │
 │  - HTML: test-results/vitest-report.html (:html only)   │
 │  - JUnit: test-results/junit.xml (:html only)           │
-│  - Performance history: .test-results/test-perf-history.jsonl (:html only) │
+│  - Performance history: .test-results/test-perf-history.│sonl (:html only) │
 └─────────────────────────────────────────────────────────┘
 ```
 

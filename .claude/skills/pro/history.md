@@ -30,7 +30,7 @@ The history system enables pro-review to improve over time — adjusting cost es
 After each package review is triaged, append a line:
 
 ```bash
-echo '{"date":"<date>","package":"<pkg>","path":"<path>","loc":<loc>,"cost":<cost>,"findings":{"P0":<n>,"P1":<n>,"P2":<n>,"P3":<n>},"bead":"<bead-id>","fixed":{"P0":<n>,"P1":<n>},"duration_min":<min>,"patterns":[<patterns>]}' >> .claude/skills/pro-review/history.jsonl
+echo '{"date":"<date>","package":"<pkg>","path":"<path>","loc":<loc>,"cost":<cost>,"findings":{"P0":<n>,"P1":<n>,"P2":<n>,"P3":<n>},"bead":"<bead-id>","fixed":{"P0":<n>,"P1":<n>},"duration_min":<min>,"patterns":[<patterns>]}' >> .claude/skills/pro/history.jsonl
 ```
 
 **After fixing**: Update the `fixed` counts by reading and rewriting the last line for that package (or just append a correction entry).
@@ -41,7 +41,7 @@ echo '{"date":"<date>","package":"<pkg>","path":"<path>","loc":<loc>,"cost":<cos
 
 ```bash
 # Get latest review for each package
-cat .claude/skills/pro-review/history.jsonl | while read line; do
+cat .claude/skills/pro/history.jsonl | while read line; do
   pkg=$(echo "$line" | jq -r '.package')
   date=$(echo "$line" | jq -r '.date')
   echo "$pkg $date"
@@ -52,7 +52,7 @@ done | sort -k1,1 -k2,2r | sort -u -k1,1
 
 ```bash
 # Commits since last review
-LAST_DATE=$(grep '"km-storage"' .claude/skills/pro-review/history.jsonl | tail -1 | jq -r '.date')
+LAST_DATE=$(grep '"km-storage"' .claude/skills/pro/history.jsonl | tail -1 | jq -r '.date')
 git log --oneline --since="$LAST_DATE" -- packages/km-storage/ | wc -l
 ```
 
@@ -65,7 +65,7 @@ Mark as stale if:
 
 ```bash
 # Extract all patterns across reviews
-cat .claude/skills/pro-review/history.jsonl | jq -r '.patterns[]' | sort | uniq -c | sort -rn
+cat .claude/skills/pro/history.jsonl | jq -r '.patterns[]' | sort | uniq -c | sort -rn
 ```
 
 Patterns appearing in 3+ package reviews become **focus areas** added to the review prompt:
@@ -81,7 +81,7 @@ Additional focus areas based on prior reviews:
 
 ```bash
 # Findings density (findings per 1000 LOC)
-cat .claude/skills/pro-review/history.jsonl | jq '{package, density: ((.findings.P0 + .findings.P1) / .loc * 1000)}'
+cat .claude/skills/pro/history.jsonl | jq '{package, density: ((.findings.P0 + .findings.P1) / .loc * 1000)}'
 ```
 
 Packages with historically higher finding density get recommended first in the discovery table.

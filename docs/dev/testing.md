@@ -101,7 +101,7 @@ const syncManager = new SyncManager({ db, useWorker: false })
 │         (end-user visible, documentation-like)              │
 ├──────────────────────────┬──────────────────────────────────┤
 │  VISUAL (TUI)            │  CLI                             │
-│  Silvery createRenderer│  mdspec (.spec.md)               │
+│  Silvery createRenderer│  mdspec (.spec.md)                 │
 │  + InkxLocator           │                                  │
 │  - Screen coordinates    │  - Command output                │
 │  - Representative fixtures│ - Error messages                │

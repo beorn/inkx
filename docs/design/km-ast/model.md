@@ -219,10 +219,10 @@ The view splits an item's children for display:
 
 ```
 ┌─── body ────────┬─── Phase 1 ────┬─── Phase 2 ────┐
-│ Description      │ Task A         │ Task D         │
-│ More details     │ Task B         │ Task E         │
+│ Description      │ Task A         │ Task D        │
+│ More details     │ Task B         │ Task E        │
 │ ☐ Quick todo    │ Task C         │                │
-└──────────────────┴────────────────┴────────────────┘
+└─────────────────┴────────────────┴────────────────┘┘
 ```
 
 List item children in the body render as checklist rows within the body pane.

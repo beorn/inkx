@@ -944,9 +944,7 @@ describe("Delete sub-sub-item renders cleanly, no [error]", () => {
     // Structure: board > col > card > sub1 + sub2
     // Zoom into col so card becomes a column, sub1/sub2 become cards
     // Then zoom again into card so sub1/sub2 are navigable
-    const { board, repo } = testEnv(() =>
-      item("board", item("col", item("card", item("sub1"), item("sub2")))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col", item("card", item("sub1"), item("sub2")))))
     board.expect("#card[data-cursor]").toExist()
 
     // Zoom twice: first into col (card becomes column), then into card
@@ -972,9 +970,7 @@ describe("Delete sub-sub-item renders cleanly, no [error]", () => {
 
   test("deleting sub-item via repo directly does not show [error] on re-render", () => {
     // Simulates the case where a child node is deleted and the parent re-renders
-    const { board, repo } = testEnv(() =>
-      item("board", item("col", item("card", item("sub1"), item("sub2")))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col", item("card", item("sub1"), item("sub2")))))
 
     // Directly delete sub1 from the repo (simulating external deletion)
     repo.deleteNode("sub1")

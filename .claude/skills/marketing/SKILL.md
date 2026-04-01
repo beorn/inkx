@@ -1,3 +1,8 @@
+---
+description: "Marketing — Content Marketing Coordination"
+argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|plan|enrich|census|legal]
+---
+
 # Marketing — Content Marketing Coordination
 
 **Keywords**: marketing, blog, SEO, content, article, newsletter, distribution, programmatic
@@ -21,6 +26,7 @@ Coordinates the entire content marketing effort across silvery.dev, termless.dev
 | `/marketing infra` | Load [workflows/infrastructure.md](workflows/infrastructure.md), set up/maintain platform | Setup |
 | `/marketing newsletter` | Load [workflows/newsletter.md](workflows/newsletter.md), draft monthly digest | Monthly |
 | `/marketing audit` | Load [workflows/audit.md](workflows/audit.md), check content freshness + SEO health | Monthly |
+| `/marketing legal` | Load [workflows/legal.md](workflows/legal.md), license + privacy + dependency audit | Before launch, quarterly |
 | `/marketing plan` | Review and update the strategy doc | Quarterly |
 
 ## Dashboard
@@ -41,16 +47,19 @@ This section tracks when each workflow was last run. Update after each execution
 ### Phase 0: Infrastructure
 | Task | Status | Last Run | Notes |
 |------|--------|----------|-------|
-| robots.txt (terminfo.dev) | not started | — | |
-| JSON-LD structured data (terminfo.dev) | not started | — | |
-| Improve meta descriptions (terminfo.dev) | not started | — | |
-| Breadcrumb schema (terminfo.dev) | not started | — | |
-| Search Console submission (all sites) | not started | — | |
-| Plausible analytics (all sites) | not started | — | |
+| robots.txt (all sites) | done | 2026-04-01 | terminfo.dev, silvery.dev, termless.dev, flexily, loggily |
+| JSON-LD structured data | done | 2026-04-01 | WebSite, BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo via @bearly/vitepress-enrich |
+| Meta descriptions (all sites) | done | 2026-04-01 | transformPageData on all sites |
+| Breadcrumb schema | done | 2026-04-01 | BreadcrumbList JSON-LD on all sites |
+| Search Console submission | done | 2026-04-01 | All 4 properties: terminfo.dev, silvery.dev, termless.dev, beorn.codes (sitemap index → /flexily, /loggily, /mdspec) |
+| Canonical URLs (all sites) | done | 2026-04-01 | Via sitemap.hostname + seoTransformPageData |
+| Sitemap generation (all sites) | done | 2026-04-01 | VitePress auto-generates from sitemap.hostname config |
+| Glossary auto-linking | done | 2026-04-01 | @bearly/vitepress-enrich on silvery.dev, termless.dev, terminfo.dev |
+| Doc-derived glossary | done | 2026-04-01 | extractGlossary() with 3 patterns, JSONL buckets |
+| Plausible analytics (all sites) | not started | — | All 3 sites have Cloudflare beacon.min.js instead |
 | Blog infrastructure (silvery.dev) | not started | — | |
 | Newsletter setup (ecosystem) | not started | — | |
-| Canonical URLs (all sites) | not started | — | |
-| OG image generation (terminfo.dev) | not started | — | |
+| OG image generation | not started | — | |
 
 ### Phase 1: Programmatic SEO
 | Task | Status | Pages | Last Run | Notes |
@@ -107,12 +116,30 @@ Last measured: 2026-03-25
 
 ## Sites
 
-| Site | Platform | Blog Status | Programmatic Pages |
-|------|----------|-------------|-------------------|
-| **terminfo.dev** | VitePress + Cloudflare Pages | No blog yet | ~140 existing + 66 compare = ~206 |
-| **silvery.dev** | VitePress + GitHub Pages | /blog/ exists (placeholder) | ~50 docs pages |
-| **termless.dev** | VitePress | No blog yet | ~15 docs pages |
-| **beorn.codes/flexily** | VitePress | No blog yet | ~20 docs pages |
+| Site | Platform | Search Console | Programmatic Pages |
+|------|----------|----------------|-------------------|
+| **terminfo.dev** | VitePress + Cloudflare Pages | Submitted 2026-04-01 | ~140 existing + 66 compare = ~206 |
+| **silvery.dev** | VitePress + GitHub Pages | Submitted 2026-04-01 | ~50 docs pages |
+| **termless.dev** | VitePress + GitHub Pages | Submitted 2026-04-01 | ~15 docs pages |
+| **beorn.codes** | GitHub Pages (portfolio) | Submitted 2026-04-01 | Covers /flexily, /loggily, /mdspec via sitemap index |
+| **beorn.codes/flexily** | VitePress | Via beorn.codes | ~20 docs pages |
+| **beorn.codes/loggily** | VitePress | Via beorn.codes | ~10 docs pages |
+
+## Google Search Console
+
+All properties submitted (2026-04-01):
+- **terminfo.dev** — own domain, verified
+- **silvery.dev** — own domain, verified
+- **termless.dev** — own domain, verified
+- **beorn.codes** — covers /flexily, /loggily, /mdspec via sitemap index
+
+All sites have: robots.txt with sitemap reference, `sitemap.hostname` in VitePress config, canonical URLs, JSON-LD structured data (BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo).
+
+### SEO Infrastructure Stack
+- **@bearly/vitepress-enrich** — glossary auto-linking, content linkification, SEO helpers, JSON-LD schemas
+- **loadTerminalGlossary()** — shared terminal vocabulary from terminfo.dev composed into silvery.dev + termless.dev
+- **extractGlossary()** — doc-derived glossary extraction with 3 patterns and JSONL bucket export
+- **validateGlossary()** — build-time validation catches broken glossary links
 
 ## Key Principles
 
@@ -173,3 +200,4 @@ docs/data/probes.data.ts ← DERIVED: computed at build time from content/
 | [workflows/census.md](workflows/census.md) | Census probe pipeline |
 | [workflows/content-review.md](workflows/content-review.md) | GPT Pro quality review (~$5-15, 10 dimensions) |
 | [workflows/audit.md](workflows/audit.md) | Content freshness and SEO health check |
+| [workflows/legal.md](workflows/legal.md) | License, privacy, dependency, content legal audit |

@@ -64,7 +64,7 @@ So: 1000 LOC ≈ $1.40, 5000 LOC ≈ $5.40, 10000 LOC ≈ $10.40
 Before presenting the table, read `history.jsonl` (if it exists) to enrich each package:
 
 ```bash
-cat .claude/skills/pro-review/history.jsonl 2>/dev/null
+cat .claude/skills/pro/history.jsonl 2>/dev/null
 ```
 
 For each package, extract:

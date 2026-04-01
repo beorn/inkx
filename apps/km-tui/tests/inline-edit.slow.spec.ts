@@ -1685,10 +1685,7 @@ describe("Inline Edit — Card Expansion", () => {
   test("entering edit on a sub-item expands the full card to show all children", () => {
     // Card with 5 children — maxContentLines defaults to 3, so only 3 are visible normally
     const { board, store } = testEnv(() =>
-      item(
-        "board",
-        item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5"))),
-      ),
+      item("board", item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5")))),
     )
 
     // Cursor is on "card" by default
