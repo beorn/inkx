@@ -90,8 +90,8 @@ Two representations of the same thing:
 | `li` (list item) | `type: "p", item: { list?, task? }` | Bullet/task — content with children |
 | `p` (paragraph) | `type: "p"` (no item) | Body text — leaf content |
 | `h` (heading) | `type: "h"` (no item) | Heading block — leaf (rare, usually item) |
-| `code` | `type: "code", item: false` | Code block |
-| `quote` | `type: "quote", item: false` | Blockquote |
+| `code` | `type: "code"` (no item) | Code block |
+| `quote` | `type: "quote"` (no item) | Blockquote |
 
 **`oi` and `li` don't exist in KNode** — they're km-ast parse types. Storage uses `type` + `item` object (`ItemData`).
 

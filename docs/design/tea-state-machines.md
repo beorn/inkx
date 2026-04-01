@@ -3,7 +3,7 @@
 > Every interactive subsystem is a pure state machine: `(state, op) → [state, effects]`.
 
 **Bead:** km-all.tea-machines
-**Status:** Design
+**Status:** Partially implemented (Phase 2a navigation reducer shipped; see [phases.md](phases.md) for roadmap)
 
 ## The Principle
 
@@ -59,20 +59,20 @@ Every interactive subsystem mapped to its current state management approach:
 
 | Domain | Files | Current Approach | Target |
 |---|---|---|---|
-| **Board navigation** | `board-actions.ts`, `useBoard.ts` | `dispatchBoard()` — already reducer-shaped | `Board.apply()` (Phase 2) |
-| **UI / Dialogs** | `useBoard.ts` `setUI()` | Imperative Zustand mutations | `Dialog.apply()` (Phase 2) |
+| **Board navigation** | `board-reducer.ts`, `board-actions-nav.ts` | `applyNavigation()` — **pure reducer, shipped** (Phase 2a) | Full `Board.apply()` (Phase 2) |
+| **UI / Dialogs** | `board-app-store.ts`, `ui-reducer.ts` | Imperative Zustand `setUI()` mutations | `Dialog.apply()` (Phase 2) |
 | **Text editing** | `board-actions-edit.ts`, `useEditContext` | Ref-based, imperative | `PlainText.apply()` dispatch (Phase 1) |
 | **Search** | `SearchDialog.tsx`, `Omnibox.tsx` | Imperative handlers, local state | `Search.apply()` (Phase 2) |
-| **Selection** | `board-actions.ts` | Implicit in board state | Part of `Board.apply()` (Phase 2) |
-| **Undo** | `useBoard.ts` | Partial history stack | `withHistory` plugin (Phase 2) |
-| **Navigation history** | `useBoard.ts` | Data-only back/forward stack | Part of `Board.apply()` (Phase 2) |
-| **Command system** | `command-bridge.ts`, `keybindings.ts` | Key → command → operation (already data-driven) | Unchanged (routes to TEA machines) |
+| **Selection** | `board-actions-selection.ts` | Implicit in board state | Part of `Board.apply()` (Phase 2) |
+| **Undo** | `history-plugin.ts`, `board-app-store.ts` | `withHistory` implemented + tested, not yet wired in | `withHistory` integrated into app (Phase 2) |
+| **Navigation history** | `board-app-store.ts` | Data-only back/forward stack | Part of `Board.apply()` (Phase 2) |
+| **Command system** | `command-bridge.ts`, `board-app.ts` | Key → command → operation (already data-driven) | Unchanged (routes to TEA machines) |
 
 ### silvery (framework)
 
 | Domain | Files | Current Approach | Target |
 |---|---|---|---|
-| **createStore** | `src/store/` | Already TEA: `(msg, model) → [Model, Effect[]]` | Unchanged |
+| **tea middleware** | `packages/create/src/tea/` | **Shipped**: `tea()` Zustand middleware, `collect()` test helper | Unchanged |
 | **Focus** | `focus-manager.ts` | Tree-based, pure-ish (focusNext/Prev return new state) | Already TEA-compatible |
 | **readline editing** | `readline-ops.ts`, `useReadline.ts` | `handleReadlineKey` — pure function, returns result | `PlainText.apply()` (Phase 1) |
 | **TextArea** | `TextArea.tsx` | Stateful hooks + `handleReadlineKey` | Driven mode via `PlainText.apply()` (Phase 1) |
@@ -82,10 +82,10 @@ Every interactive subsystem mapped to its current state management approach:
 
 ### Key observations
 
-- **Board navigation is closest to TEA**: `dispatchBoard()` already takes operation objects and returns state changes. Extracting the pure function is straightforward.
+- **Board navigation reducer is shipped**: `board-reducer.ts` contains `applyNavigation(state, op)` — a pure function following the TEA shape. This is the first extracted state machine (Phase 2a).
 - **Text editing has the most duplication**: readline-ops (silvery) and board-actions-edit (km-tui) both handle text operations. `PlainText.apply()` unifies them.
 - **Command system is already correct**: It translates keys → semantic operations. It just needs to dispatch to TEA machines instead of imperative handlers.
-- **createStore already works**: silvery's runtime is fully TEA. The app machines (Phase 2) can use it directly.
+- **silvery/tea middleware is shipped**: `@silvery/create` exports `tea()` and `collect()` for wiring TEA reducers into Zustand stores.
 
 ## The Architecture
 
@@ -505,6 +505,8 @@ Tree.apply(bareState, op)
 
 This is the pure equivalent of SlateJS's `withHistory(withReact(createEditor()))` — but instead of monkey-patching a mutable object, each plugin contributes state fields and wraps the apply function. The compiler enforces that you can only access `state.history` if `withHistory` is in the composition chain.
 
+> **Implementation status**: `withHistory` is implemented and tested (`apps/km-tui/src/board/history-plugin.ts`) but not yet wired into the live app. `withVim` and `withCollaboration` are designed but not yet implemented. The plugin composition pattern is proven by `silvery/tea` (shipped Zustand middleware). See [phases.md](phases.md) for what has shipped and what is planned.
+
 ### Transforms (High-Level API)
 
 Same as SlateJS but pure — each returns `[TreeState, TreeEffect[]]`:
@@ -704,6 +706,8 @@ Both modes share the same rendering code. The only difference is who drives the 
 
 ## Phased Plan
 
+> See [phases.md](phases.md) for the consolidated roadmap with current status and key files.
+
 ### Phase 1: PlainText (Silvery/core) — character-level TEA
 
 Extract from `handleReadlineKey`. Pure noun-singleton, zero dependencies, no React.
@@ -777,13 +781,13 @@ Plugin composition: `compose(withHistory, withVim)(Tree.apply)` — collaboratio
 ### Phase progression
 
 ```
-Phase 1 (now)      PlainText.apply()      single plain text, cursor, readline
-Phase 2 (next)     Board/Dialog/Search    app machines as pure noun-singletons
-Phase 3 (future)   SlateJS integration    per-node body editing (rich text)
-Phase 4 (future)   Tree.apply()           document tree, undo, CRDT
+Phase 1 (planned)    PlainText.apply()      single plain text, cursor, readline
+Phase 2 (started)    Board/Dialog/Search    app machines as pure noun-singletons
+Phase 3 (planned)    SlateJS integration    per-node body editing (rich text)
+Phase 4 (planned)    Tree.apply()           document tree, undo, CRDT
 ```
 
-Each phase is independently useful. Phase 1 improves silvery today. Phase 2 improves km-tui testability. Phase 3 enables rich text editing. Phase 4 enables the full document model with collaboration.
+Each phase is independently useful. Phase 1 improves silvery components. Phase 2 improves km-tui testability. Phase 3 enables rich text editing. Phase 4 enables the full document model with collaboration. See [phases.md](phases.md) for detailed status.
 
 ## Reactivity Integration
 
@@ -857,12 +861,12 @@ The common pattern: **the state transition function produces enough information 
 
 ## Silvery/tea — Zustand Middleware
 
-The TEA effects-as-data pattern now has a concrete runtime in silvery: a ~30-line Zustand `StateCreator` middleware exported from `Silvery/tea`.
+The TEA effects-as-data pattern now has a concrete runtime in silvery: a ~30-line Zustand `StateCreator` middleware exported from `@silvery/create`.
 
 ### Shape
 
 ```ts
-import { tea, collect } from "Silvery/tea"
+import { tea, collect } from "@silvery/create"
 
 const store = createStore(
   tea(initialState, reducer, { runners })
@@ -878,7 +882,7 @@ Detection is automatic via `Array.isArray`: a reducer can return bare state for 
 
 ### Connection to km
 
-km's noun-singletons already produce the right shape. `Board.apply(state, op)`, `PlainText.apply(state, op)`, and `Tree.apply(state, op)` all return `[state, effects]`. The `tea()` middleware wraps these so Zustand dispatches through them — the store gains a `dispatch(op)` method that calls `.apply()`, replaces state, and runs effects.
+km's noun-singletons produce the right shape. `applyNavigation(state, op)` (the board navigation reducer) already returns `{ state, effects }`. As more domains are extracted to `.apply()`, the `tea()` middleware wraps them so Zustand dispatches through them — the store gains a `dispatch(op)` method that calls `.apply()`, replaces state, and runs effects.
 
 On the app side, `EventHandlerContext` now has a `dispatch` property. When the backing store uses `tea()`, command handlers call `ctx.dispatch(op)` instead of imperative `ctx.set()` mutations. This is the bridge between the command system (user intent) and the state machine (pure transitions).
 
@@ -896,10 +900,11 @@ Effect runners are injected via `options.runners`, making them swappable: produc
 
 ### Status
 
-Shipped in silvery, export path `Silvery/tea`. PlainText already uses it internally. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
+Shipped in silvery, export path `@silvery/create`. Next step: wire km's command system to dispatch Board and Dialog operations through a `tea()` store, replacing imperative `setUI()` calls in `board-app-store.ts`.
 
 ## See Also
 
+- [phases.md](phases.md) — Phase roadmap with current status and key files
 - [universal-editor.md](../future/universal-editor.md) — The full vision (PlainText/SlateJS/Tree)
 - [architecture.md](../architecture.md) — Five-layer architecture
 - [principles.md](../principles.md) — Composable domain objects

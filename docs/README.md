@@ -84,6 +84,19 @@ km init                    # Enable persistence (stable IDs, history)
 | [lessons/km-me0n.md](lessons/km-me0n.md)                             | Test isolation after data corruption          |
 | [lessons/incremental-rendering.md](lessons/incremental-rendering.md) | Debugging silvery fast-path bugs (build tooling) |
 
+### Design
+
+| Doc                                                                          | Description                                              |
+| ---------------------------------------------------------------------------- | -------------------------------------------------------- |
+| [design/tea-state-machines.md](design/tea-state-machines.md)                 | TEA state machine architecture (`(state, op) -> [state, effects]`) |
+| [design/phases.md](design/phases.md)                                         | TEA migration roadmap (phase status and key files)       |
+| [design/data-model.md](design/data-model.md)                                 | Node tree (KNode, items vs blocks) and board hierarchy   |
+| [design/outliner-spec.md](design/outliner-spec.md)                           | Outliner editing operations (splitBlock, indent, merge)  |
+| [design/architecture-layers.md](design/architecture-layers.md)               | Three-layer architecture (Domain, Operations, Application) |
+| [design/render-neutral-tui.md](design/render-neutral-tui.md)                 | Render-neutral TUI design                                |
+| [design/terminal-integration-testing.md](design/terminal-integration-testing.md) | Terminal integration testing strategy                |
+| [design/visual-navigation.md](design/visual-navigation.md)                   | Visual navigation design                                 |
+
 ### Developer Guides
 
 | Doc                                        | Description                         |
@@ -95,11 +108,12 @@ km init                    # Enable persistence (stable IDs, history)
 
 ### Future
 
-| Doc                                      | Description                          |
-| ---------------------------------------- | ------------------------------------ |
-| [future/agents.md](future/agents.md)     | AI agent orchestration (planned)     |
-| [future/beads.md](future/beads.md)       | Beads issue tracking integration     |
-| [future/services.md](future/services.md) | CalDAV, CardDAV connectors (planned) |
+| Doc                                                              | Description                                         |
+| ---------------------------------------------------------------- | --------------------------------------------------- |
+| [future/universal-editor.md](future/universal-editor.md)         | Universal editing platform (terminal + web, future) |
+| [future/agents.md](future/agents.md)                             | AI agent orchestration (planned)                    |
+| [future/beads.md](future/beads.md)                               | Beads issue tracking integration                    |
+| [future/services.md](future/services.md)                         | CalDAV, CardDAV connectors (planned)                |
 
 ---
 
