@@ -136,6 +136,29 @@ Three levels of cursor tracking for efficient re-rendering:
 
 **After spatial J/K navigation**, `cursorNodeId` can be any visible block — card title, sub-item, or column header.
 
+## Selection
+
+The cursor is a single node. **Selection** is a set of nodes — the cursor plus any shift-selected additional nodes.
+
+| Concept | What | How stored |
+|---|---|---|
+| **Cursor** | Single node — the "active" node | `cursorNodeId` |
+| **Selection** | Set of nodes including the cursor | `selectedNodeIds: Set<string>` |
+| **Anchor** | The node where shift-selection started | `selectionAnchorId` |
+
+**Editing operations work with selection, not just cursor.** When multiple nodes are selected:
+- **Indent/outdent**: All-or-nothing — if any node fails the guard, none move
+- **Delete**: Batch delete all selected nodes (single undo entry)
+- **Move**: All selected nodes move together
+- **Split/merge**: Only operates on cursor node (selection is cleared)
+
+**Selection constraints**:
+- All selected nodes must be siblings (same parent) — no cross-branch selection
+- Selection is always contiguous (shift+J/K extends range)
+- Selection lives within one column — no cross-column selection
+
+**CursorContext (future)** should include the full selection, not just the cursor node. This way operations don't need to separately query the selection.
+
 ## Body Content
 
 "Body" = block content that appears **before the first sub-item** in a parent:
