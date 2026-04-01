@@ -707,9 +707,7 @@ export function Board({ patchedConsole }: BoardProps) {
           }
         }
       }
-      const stateWithCard = inlineEditBlock
-        ? { ...inlineEditBlock, cardNodeId: derivedCardNodeId }
-        : null
+      const stateWithCard = inlineEditBlock ? { ...inlineEditBlock, cardNodeId: derivedCardNodeId } : null
       nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, stateWithCard)
       prevInlineEditRef.current = inlineEditBlock
     }

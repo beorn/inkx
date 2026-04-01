@@ -20,52 +20,40 @@ describe("text-cursor-bugs", () => {
   // ===========================================================================
   describe("block crossing preserves edit mode", () => {
     test("arrow down at end of first card enters edit on next card", () => {
-      const { board, store } = testEnv(() =>
-        item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))),
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))))
 
       // Start on card-a, enter edit mode
       board.expect("#card-a[data-cursor]").toExist()
       board.press("Enter")
 
       // Verify we're in edit mode on card-a
-      const editState1 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState1).not.toBeNull()
-      expect(editState1?.nodeId).toBe("card-a")
+      board.expectEditing("card-a")
 
       // Press down arrow — should cross to card-b while staying in edit mode
       board.press("ArrowDown")
 
       // Should now be editing card-b, NOT exited edit mode
-      const editState2 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState2).not.toBeNull()
-      expect(editState2?.nodeId).toBe("card-b")
+      board.expectEditing("card-b")
     })
 
     test("arrow up at start of second card enters edit on first card", () => {
-      const { board, store } = testEnv(() =>
-        item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))),
-      )
+      const { board } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"), item("card-c"))))
 
       // Navigate to card-b and enter edit
       board.command("cursor_down") // move to card-b
       board.expect("#card-b[data-cursor]").toExist()
       board.press("Enter")
 
-      const editState1 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState1).not.toBeNull()
-      expect(editState1?.nodeId).toBe("card-b")
+      board.expectEditing("card-b")
 
       // Press up arrow — should cross to card-a in edit mode
       board.press("ArrowUp")
 
-      const editState2 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState2).not.toBeNull()
-      expect(editState2?.nodeId).toBe("card-a")
+      board.expectEditing("card-a")
     })
 
     test("block crossing saves content of previous block", () => {
-      const { board, repo, store } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
+      const { board, repo } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
 
       board.expect("#card-a[data-cursor]").toExist()
       board.press("Enter")
@@ -82,9 +70,7 @@ describe("text-cursor-bugs", () => {
       expect(repo.getNode("card-a")?.content).toBe("card-axyz")
 
       // Should now be editing card-b
-      const editState = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState).not.toBeNull()
-      expect(editState?.nodeId).toBe("card-b")
+      board.expectEditing("card-b")
     })
 
     test("stickyX preserved when crossing blocks vertically", () => {
@@ -101,8 +87,8 @@ describe("text-cursor-bugs", () => {
       // Cross to next block — should preserve the column position
       board.press("ArrowDown")
 
+      board.expectEditing()
       const editState = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState).not.toBeNull()
       expect(editState?.stickyX).toBeDefined()
     })
   })
@@ -279,7 +265,7 @@ describe("text-cursor-bugs", () => {
     test("arrow up/down on wrapped text navigates visual lines correctly", () => {
       // Force text to wrap by using a narrow terminal
       // checkIncremental: false — bottom bar format change (removed cardIndex, added [EDIT]) causes stale incremental cells
-      const { board, store } = testEnv(
+      const { board } = testEnv(
         () => item("board", item("col1", item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm"))),
         { columns: 30, checkIncremental: false },
       )
@@ -287,28 +273,23 @@ describe("text-cursor-bugs", () => {
       board.press("Enter") // enter edit mode
 
       // Cursor should be at the end of wrapped text
-      const editState1 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState1).not.toBeNull()
+      board.expectEditing()
 
       // Press up arrow — should move to previous visual line (NOT exit edit mode)
       board.press("ArrowUp")
 
       // Should still be in edit mode on the same node
-      const editState2 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState2).not.toBeNull()
-      expect(editState2?.nodeId).toBe("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
+      board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
 
       // Press down arrow — should move back to last visual line
       board.press("ArrowDown")
 
-      const editState3 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState3).not.toBeNull()
-      expect(editState3?.nodeId).toBe("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
+      board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll mmm")
     })
 
     test("arrow up at first visual line of wrapped text crosses to previous card", () => {
       // checkIncremental: false — bottom bar format change causes stale incremental cells
-      const { board, store } = testEnv(
+      const { board } = testEnv(
         () => item("board", item("col1", item("prev-card"), item("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll"))),
         { columns: 30, checkIncremental: false },
       )
@@ -321,16 +302,12 @@ describe("text-cursor-bugs", () => {
       board.press("Control+a")
 
       // Verify cursor is at start (offset 0)
-      const editState1 = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState1).not.toBeNull()
-      expect(editState1?.nodeId).toBe("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll")
+      board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll")
 
       // Now press up — we're on the first visual line (row 0), so should cross to prev card
       board.press("ArrowUp")
 
-      const editState = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState).not.toBeNull()
-      expect(editState?.nodeId).toBe("prev-card")
+      board.expectEditing("prev-card")
     })
   })
 })

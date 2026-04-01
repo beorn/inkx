@@ -166,7 +166,7 @@ describe("P2: Filter feature", () => {
   })
 
   test("text filter still works via filterText state", () => {
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () =>
         item(
           "board",
@@ -188,7 +188,7 @@ describe("P2: Filter feature", () => {
     expect(screen).toContain("Write documentation")
 
     // Set filter text programmatically (text search via SET_FILTER action)
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
     board.command("filter")
     board.press("Escape")
@@ -204,7 +204,7 @@ describe("P2: Filter feature", () => {
   })
 
   test("filter persists across view mode changes", () => {
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () =>
         item(
           "board",
@@ -215,7 +215,7 @@ describe("P2: Filter feature", () => {
     )
 
     // Apply text filter "Fix" programmatically
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
     board.command("filter")
     board.press("Escape")
@@ -391,7 +391,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
   }
 
   test("filtering by 'todo' status includes embed whose source is todo", () => {
-    const { board, store } = testEnv(() => buildEmbedBoard(), {
+    const { board } = testEnv(() => buildEmbedBoard(), {
       columns: 120,
       rows: 24,
       checkIncremental: false,
@@ -625,7 +625,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board, store } = testEnvWithRepo(repo, "file-1", {
+    const { board } = testEnvWithRepo(repo, "file-1", {
       columns: 80,
       rows: 24,
     })
@@ -652,7 +652,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
 
     // Bump hiddenVersion to invalidate the readBoardHidden memo cache,
     // then press a key to flush the React render tree
-    store.getState().setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
+    board.setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
     board.command("cursor_right") // navigate right to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden after ignoring.
@@ -668,7 +668,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board, store } = testEnvWithRepo(repo, "file-1", {
+    const { board } = testEnvWithRepo(repo, "file-1", {
       columns: 80,
       rows: 24,
     })
@@ -689,7 +689,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
 
     // Bump hiddenVersion to invalidate the readBoardHidden memo cache,
     // then press a key to flush the React render tree
-    store.getState().setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
+    board.setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
     board.command("cursor_right") // navigate to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden
@@ -721,7 +721,7 @@ function flushFilter(board: { press: (key: string) => void; command: (cmd: strin
 
 describe("filter hidden count indicator", () => {
   test("shows +N hidden when text filter hides cards", () => {
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () =>
         item(
           "board",
@@ -741,7 +741,7 @@ describe("filter hidden count indicator", () => {
     expect(screen).not.toContain("hidden")
 
     // Apply text filter that hides 2 of 4 cards
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     screen = board.screenshot()
@@ -750,20 +750,20 @@ describe("filter hidden count indicator", () => {
   })
 
   test("hidden indicator disappears when filter is cleared", () => {
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { columns: 80, rows: 24 },
     )
 
     // Apply filter
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     let screen = board.screenshot()
     expect(screen).toContain("+2 hidden")
 
     // Clear filter
-    store.getState().setUI({ filterText: "" })
+    board.setUI({ filterText: "" })
     flushFilter(board)
 
     screen = board.screenshot()
@@ -771,13 +771,13 @@ describe("filter hidden count indicator", () => {
   })
 
   test("no hidden indicator when all cards match filter", () => {
-    const { board, store } = testEnv(() => item("board", item("Tasks", item("Fix bug"), item("Fix login"))), {
+    const { board } = testEnv(() => item("board", item("Tasks", item("Fix bug"), item("Fix login"))), {
       columns: 80,
       rows: 24,
     })
 
     // Apply filter that matches all cards
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     const screen = board.screenshot()
@@ -787,13 +787,13 @@ describe("filter hidden count indicator", () => {
   test("hidden indicator appears right after last card, not at screen bottom", () => {
     // With a tall terminal (40 rows) and only 2 visible cards, the "+N hidden"
     // indicator should appear right after the cards, not at row 39.
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () => item("board", item("Tasks", item("Fix bug"), item("Buy milk"), item("Write docs"), item("Fix login"))),
       { columns: 80, rows: 40 },
     )
 
     // Apply filter that shows 2 of 4 cards
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     const screen = board.screenshot()
@@ -862,7 +862,7 @@ describe("filter hidden count indicator", () => {
   })
 
   test("shows hidden indicator per column independently", () => {
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () =>
         item(
           "board",
@@ -873,7 +873,7 @@ describe("filter hidden count indicator", () => {
     )
 
     // Apply filter "Fix" — Tasks: 1 hidden (Buy milk), Notes: 1 hidden (Meeting notes)
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     const screen = board.screenshot()
@@ -886,7 +886,7 @@ describe("filter hidden count indicator", () => {
   test("hidden indicator positioned near cards, not at screen bottom (tall terminal, few visible)", () => {
     // 6 cards total, filter leaves only 2 visible. With rows=40, the +4 hidden
     // indicator should appear right after the 2 visible cards, not at the bottom.
-    const { board, store } = testEnv(
+    const { board } = testEnv(
       () =>
         item(
           "board",
@@ -908,7 +908,7 @@ describe("filter hidden count indicator", () => {
     expect(screen).not.toContain("hidden")
 
     // Apply text filter that shows only the 2 "Fix" cards, hiding 4
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     screen = board.screenshot()
@@ -943,13 +943,13 @@ describe("filter hidden count indicator", () => {
       item("Read novel"),
       item("Clean house"),
     ]
-    const { board, store } = testEnv(() => item("board", item("Tasks", ...cards)), {
+    const { board } = testEnv(() => item("board", item("Tasks", ...cards)), {
       columns: 80,
       rows: 24,
     })
 
     // Apply text filter — 3 "Fix" cards visible, 5 others hidden
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     const screen = board.screenshot()
@@ -988,13 +988,13 @@ describe("filter hidden count indicator", () => {
       item("Read novel"),
       item("Clean house"),
     ]
-    const { board, store } = testEnv(() => item("board", item("Tasks", ...cards)), {
+    const { board } = testEnv(() => item("board", item("Tasks", ...cards)), {
       columns: 80,
       rows: 24,
     })
 
     // Apply text filter — 10 "Fix" cards visible, 5 others hidden
-    store.getState().setUI({ filterText: "Fix" })
+    board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     const screen = board.screenshot()

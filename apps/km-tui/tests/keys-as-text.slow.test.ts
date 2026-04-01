@@ -252,7 +252,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     )
 
     // Verify starting state
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
     expect(store.getState().ui.showSearchDialog).toBe(false)
 
     // Open search dialog via command dispatch (cmd+f opens local find, not search dialog)
@@ -284,7 +284,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(selectedNode?.content).toBe("Delta task")
 
     // CRITICAL: Must NOT be in inline edit mode
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // CRITICAL: activeEditTargetRef must be null (no text editing target)
     // If this is non-null, keystrokes would go to a text editor
@@ -303,7 +303,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(repo.getNode("Delta task")?.content).toBe("Delta task")
 
     // Also verify we're still not in edit mode after navigation
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
   })
 
   test("rapid Enter after search confirm does not trigger inline edit (grace period)", () => {
@@ -331,7 +331,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     board.press("Enter")
 
     // CRITICAL: Should NOT be in inline edit mode despite the second Enter
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // Navigate to confirm we're in normal mode
     board.press("j")
@@ -353,19 +353,19 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     )
 
     // Verify we start in normal mode (no inline edit)
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // Enter inline edit on the first card title
     board.press("Enter") // start editing "Editable task"
 
     // Verify inline edit is now active
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    board.expectEditing()
 
     // Cancel edit
     board.press("Escape") // should exit inline edit
 
     // Verify inline edit state is fully cleared
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // Now navigate — if inlineEditBlock leaked, these keys would insert as text
     board.press("j").press("l").press("k").press("h")

@@ -24,7 +24,6 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 // Helper: get child IDs of a parent from repo
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
@@ -734,14 +733,11 @@ describe("Indent visibility (regression: tab-disappear)", () => {
 
 describe("Indent/Outdent during inline edit mode", () => {
   test("Tab indents node while in inline edit mode", () => {
-    const { board, repo, store } = testEnv(() =>
-      item("board", item("col", item("task1"), item("task2"), item("task3"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
 
     board.command("cursor_down") // → task2
     board.press("Enter") // enter inline edit mode
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task2")
+    board.expectEditing("task2")
 
     board.press("Tab") // indent task2 under task1
 
@@ -750,7 +746,7 @@ describe("Indent/Outdent during inline edit mode", () => {
     expect(childIds(repo, "col")).toEqual(["task1", "task3"])
 
     // Should still be in inline edit mode
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    board.expectEditing()
   })
 
   test("Tab on first child in inline edit is no-op (no previous sibling)", () => {
@@ -762,7 +758,7 @@ describe("Indent/Outdent during inline edit mode", () => {
     // lands on sub1. Enter inline edit on sub1, then press Tab. Sub1 is the
     // first child so indent should be a no-op — but it was indenting card1
     // (which had card0 as previous sibling).
-    const { board, repo, store } = testEnv(() =>
+    const { board, repo } = testEnv(() =>
       item("board", item("col", item("card0"), item("card1", item("sub1"), item("sub2")))),
     )
 
@@ -770,9 +766,7 @@ describe("Indent/Outdent during inline edit mode", () => {
     board.command("block_nav_down") // J: enter card1's children → sub1 (outline mode)
     board.press("Enter") // enter inline edit on sub1
 
-    const editBlock = getActiveBoardPane(store.getState())!.inlineEditBlock
-    expect(editBlock).not.toBeNull()
-    expect(editBlock?.nodeId).toBe("sub1")
+    board.expectEditing("sub1")
 
     const parentBefore = repo.getNode("sub1")?.parent_id
     expect(parentBefore).toBe("card1")
@@ -789,12 +783,12 @@ describe("Indent/Outdent during inline edit mode", () => {
   test("Tab on second child in inline edit indents under first child", () => {
     // When editing sub2 (which has sub1 as prev sibling),
     // Tab should indent sub2 under sub1 — not move the parent card.
-    const { board, repo, store } = testEnv(() => item("board", item("col", item("card1", item("sub1"), item("sub2")))))
+    const { board, repo } = testEnv(() => item("board", item("col", item("card1", item("sub1"), item("sub2")))))
 
     board.command("block_nav_down") // J: enter card1's children → sub1
     board.command("cursor_down") // → sub2
     board.press("Enter") // enter inline edit on sub2
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("sub2")
+    board.expectEditing("sub2")
 
     board.press("Tab") // indent sub2 under sub1
 
@@ -804,14 +798,12 @@ describe("Indent/Outdent during inline edit mode", () => {
   test("Shift+Tab outdents sub-item in inline edit mode", () => {
     // In inline edit mode on a nested child, Shift+Tab should outdent the
     // sub-item, not the card.
-    const { board, repo, store } = testEnv(() =>
-      item("board", item("col", item("card1", item("sub1", item("nested"))))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col", item("card1", item("sub1", item("nested"))))))
 
     board.command("block_nav_down") // J: enter card1 → sub1
     board.command("block_nav_down") // J: enter sub1 → nested
     board.press("Enter") // enter inline edit on nested
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("nested")
+    board.expectEditing("nested")
 
     board.press("shift+Tab") // outdent nested to sibling of sub1
 

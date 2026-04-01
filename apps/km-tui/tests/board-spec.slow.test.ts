@@ -537,68 +537,66 @@ describe("Inline edit lifecycle", () => {
 
     // Enter inline edit
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
+    board.expectEditing("task1")
   })
 
   test("Enter enters inline edit mode on current card", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     board.expect("#task1[data-cursor]").toExist()
 
     // Enter inline edit via Enter key
     board.press("Enter")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
+    board.expectEditing("task1")
   })
 
   test("Escape exits inline edit mode, cursor stays on same node", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     board.expect("#task1[data-cursor]").toExist()
 
     // Enter and exit inline edit
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    board.expectEditing()
 
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // Cursor stays on task1
     board.expect("#task1[data-cursor]").toExist()
   })
 
   test("inline edit on different cards maintains correct nodeId", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"), item("task3"))))
 
     // Edit task1
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
+    board.expectEditing("task1")
     board.press("Escape")
 
     // Move to task2 and edit
     board.command("cursor_down")
     board.expect("#task2[data-cursor]").toExist()
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task2")
+    board.expectEditing("task2")
     board.press("Escape")
 
     // Move to task3 and edit
     board.command("cursor_down")
     board.expect("#task3[data-cursor]").toExist()
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task3")
+    board.expectEditing("task3")
     board.press("Escape")
   })
 
   test("inline edit mode blocks normal navigation keys", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     board.expect("#task1[data-cursor]").toExist()
 
     // Enter inline edit
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    board.expectEditing()
 
     // Keys like j/k/l/h should be captured by the text input, not navigate the board
     // After Escape, cursor should still be on task1
@@ -607,7 +605,7 @@ describe("Inline edit lifecycle", () => {
   })
 
   test("i on column header has no effect (no inline edit for headers)", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
     // Move to column header
     board.command("cursor_up")
@@ -715,15 +713,15 @@ describe("Escape priority layering", () => {
   })
 
   test("Escape exits inline edit before clearing selection", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Enter inline edit
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    board.expectEditing()
 
     // Escape exits inline edit
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // Cursor should still be on the node
     board.expect("#task1[data-cursor]").toExist()
@@ -872,14 +870,14 @@ describe("Inline edit + undo interaction", () => {
   })
 
   test("rapid i then Escape cycle does not corrupt state", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
+    const { board } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))))
 
     // Rapidly enter and exit inline edit multiple times
     for (let i = 0; i < 5; i++) {
       board.press("i")
-      expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+      board.expectEditing()
       board.press("Escape")
-      expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+      board.expectNotEditing()
     }
 
     // Board should still be in a valid state

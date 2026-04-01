@@ -264,9 +264,7 @@ describe("mouse click targeting", () => {
     board.command("enter_inline_edit")
 
     // Should be editing child-2, not the parent card
-    const editBlock = getActiveBoardPane(store.getState())!.inlineEditBlock
-    expect(editBlock).not.toBeNull()
-    expect(editBlock!.nodeId).toBe("child-2")
+    board.expectEditing("child-2")
   })
 
   test("arrow up/down in edit mode navigates to adjacent node and stays in edit mode", () => {
@@ -277,23 +275,19 @@ describe("mouse click targeting", () => {
 
     // Enter edit mode on task-1
     board.command("enter_inline_edit")
-    const pane = () => getActiveBoardPane(store.getState())!
-    expect(pane().inlineEditBlock?.nodeId).toBe("task-1")
+    board.expectEditing("task-1")
 
     // Arrow down → task-2, still in edit mode
     board.press("ArrowDown")
-    expect(pane().cursorNodeId).toBe("task-2")
-    expect(pane().inlineEditBlock?.nodeId).toBe("task-2")
+    board.expectState({ cursor: "task-2", editing: "task-2" })
 
     // Arrow down → task-3, still in edit mode
     board.press("ArrowDown")
-    expect(pane().cursorNodeId).toBe("task-3")
-    expect(pane().inlineEditBlock?.nodeId).toBe("task-3")
+    board.expectState({ cursor: "task-3", editing: "task-3" })
 
     // Arrow up → task-2, still in edit mode
     board.press("ArrowUp")
-    expect(pane().cursorNodeId).toBe("task-2")
-    expect(pane().inlineEditBlock?.nodeId).toBe("task-2")
+    board.expectState({ cursor: "task-2", editing: "task-2" })
   })
 
   test("clicking column header selects the column (not board root)", () => {

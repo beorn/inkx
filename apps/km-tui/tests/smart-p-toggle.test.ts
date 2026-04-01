@@ -6,7 +6,6 @@
  */
 import { test, expect, describe } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Detail pane toggle", () => {
   test("D opens pane and auto-focuses detail, D again closes it", () => {
@@ -41,7 +40,7 @@ describe("Detail pane toggle", () => {
 
     // j moves cursor down on the board
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card2")
+    board.expectState({ cursor: "card2" })
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Buffer must show cursor on card2 (not card1)
     board.expect("#card2[data-cursor]").toExist()
@@ -49,7 +48,7 @@ describe("Detail pane toggle", () => {
 
     // k moves cursor back up
     board.command("cursor_up")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card1")
+    board.expectState({ cursor: "card1" })
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Buffer must show cursor on card1 (not card2)
     board.expect("#card1[data-cursor]").toExist()
@@ -69,19 +68,19 @@ describe("Detail pane toggle", () => {
 
     // j moves cursor down — incremental render must reflect change
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card2")
+    board.expectState({ cursor: "card2" })
     board.expect("#card2[data-cursor]").toExist()
     board.expect("#card1[data-cursor]").not.toExist()
 
     // k moves cursor back up
     board.command("cursor_up")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card1")
+    board.expectState({ cursor: "card1" })
     board.expect("#card1[data-cursor]").toExist()
 
     // l moves to a different column (if visible)
     board.command("cursor_down") // back to card2
     board.command("cursor_down") // to card3
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card3")
+    board.expectState({ cursor: "card3" })
     board.expect("#card3[data-cursor]").toExist()
   })
 

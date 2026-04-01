@@ -63,7 +63,7 @@ import { parseHeadingRules } from "@km/markdown"
 
 import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
-import { createInitialUIState, createInitialPaneUI } from "../../src/ui-reducer.ts"
+import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../../src/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
@@ -72,6 +72,7 @@ import { resetModeStack } from "../../src/dialog-guard.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/ui-context.tsx"
 import {
   createBoardAppStoreState,
+  getActiveBoardPane,
   type BoardAppStore,
   type BoardAppState,
   type CreateBoardAppStoreParams,
@@ -1670,6 +1671,119 @@ function createFluentBoardApi(ctx: {
     getAppState(): BoardAppState {
       if (!store) throw new Error("getAppState() requires testEnv() — not available in renderBoard()")
       return store.getState()
+    },
+
+    // =========================================================================
+    // State Helpers — edit mode, UI state, pane assertions
+    // =========================================================================
+
+    /**
+     * Enter inline edit mode on a specific node. Chainable.
+     * Sets inlineEditBlock and flushes a render cycle.
+     *
+     * @example
+     * ```typescript
+     * board.editNode("sub-a", { block: 1, card: "card-1" })
+     * board.expectEditing("sub-a")
+     * ```
+     */
+    editNode(nodeId: string, opts?: { block?: number; card?: string }) {
+      if (!store) throw new Error("editNode() requires testEnv() — not available in renderBoard()")
+      store.getState().setUI({
+        inlineEditBlock: {
+          nodeId,
+          blockIndex: opts?.block ?? 0,
+          ...(opts?.card ? { cardNodeId: opts.card } : {}),
+        },
+      })
+      pressKey("") // flush render
+      return board
+    },
+
+    /**
+     * Set arbitrary UI state on the active pane. Chainable.
+     * Flushes a render cycle after updating.
+     *
+     * @example
+     * ```typescript
+     * board.setUI({ filterText: "Fix" })
+     * board.setUI(prev => ({ hiddenVersion: prev.hiddenVersion + 1 }))
+     * ```
+     */
+    setUI(partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) {
+      if (!store) throw new Error("setUI() requires testEnv() — not available in renderBoard()")
+      store.getState().setUI(partial)
+      pressKey("") // flush render
+      return board
+    },
+
+    /**
+     * Assert that the board is in inline edit mode.
+     * Optionally check that a specific node is being edited. Chainable.
+     *
+     * @example
+     * ```typescript
+     * board.expectEditing()          // any node being edited
+     * board.expectEditing("task1")   // specific node
+     * ```
+     */
+    expectEditing(nodeId?: string) {
+      if (!store) throw new Error("expectEditing() requires testEnv() — not available in renderBoard()")
+      const pane = getActiveBoardPane(store.getState())
+      if (nodeId) {
+        expect(pane?.inlineEditBlock?.nodeId).toBe(nodeId)
+      } else {
+        expect(pane?.inlineEditBlock).not.toBeNull()
+      }
+      return board
+    },
+
+    /**
+     * Assert that the board is NOT in inline edit mode. Chainable.
+     *
+     * @example
+     * ```typescript
+     * board.press("Escape").expectNotEditing()
+     * ```
+     */
+    expectNotEditing() {
+      if (!store) throw new Error("expectNotEditing() requires testEnv() — not available in renderBoard()")
+      expect(getActiveBoardPane(store.getState())?.inlineEditBlock).toBeNull()
+      return board
+    },
+
+    /**
+     * Assert multiple pane state properties at once. Chainable.
+     * Only checks fields that are provided.
+     *
+     * @example
+     * ```typescript
+     * board.expectState({ editing: "task1", cursor: "task1", viewMode: "cards" })
+     * board.expectState({ editing: null })  // not editing
+     * board.expectState({ editing: true })  // editing something
+     * ```
+     */
+    expectState(expected: {
+      editing?: string | null | boolean
+      viewMode?: string
+      filterText?: string
+      cursor?: string
+    }) {
+      if (!store) throw new Error("expectState() requires testEnv() — not available in renderBoard()")
+      const pane = getActiveBoardPane(store.getState())!
+      if (expected.editing !== undefined) {
+        if (expected.editing === null || expected.editing === false) {
+          expect(pane.inlineEditBlock).toBeNull()
+        } else if (expected.editing === true) {
+          expect(pane.inlineEditBlock).not.toBeNull()
+        } else {
+          expect(pane.inlineEditBlock?.nodeId).toBe(expected.editing)
+        }
+      }
+      if (expected.viewMode !== undefined) expect(pane.viewMode).toBe(expected.viewMode)
+      if (expected.filterText !== undefined) expect(pane.filterText).toBe(expected.filterText)
+      if (expected.cursor !== undefined) expect(pane.cursorNodeId).toBe(expected.cursor)
+      return board
     },
   }
 
