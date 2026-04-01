@@ -66,6 +66,12 @@ export {
   type PrefixConversion,
 } from "./block-ops.ts"
 
+// Tree walk — configurable DFS traversal and spatial queries
+export { walkTree, getVisibleBlocks, type WalkEntry, type WalkOptions } from "./walk.ts"
+
+// Validation — invariant checking after mutations
+export { withValidation, withTreeValidation } from "./validation.ts"
+
 // Outliner — centralized outliner behavior composition
 export {
   withOutliner,
