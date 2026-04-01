@@ -13,8 +13,6 @@ import { run, useInput, type RunHandle } from "silvery/runtime"
 import { useRuntime } from "silvery"
 import { Box, Text } from "silvery"
 
-const settle = (ms = 100) => new Promise<void>((r) => setTimeout(r, ms))
-
 let appState = { consoleOpen: false }
 
 /** Minimal app simulating console toggle via runtime.pause/resume */
@@ -56,7 +54,6 @@ describe("console toggle — termless", () => {
   test("initial: board on alt screen", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
     handle = await run(<ConsoleToggleApp />, term, { alternateScreen: true })
-    await settle()
 
     // Content: board visible
     expect(term.screen).toContainText("BOARD VIEW")
@@ -69,10 +66,8 @@ describe("console toggle — termless", () => {
   test("backtick: leaves alt screen", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
     handle = await run(<ConsoleToggleApp />, term, { alternateScreen: true })
-    await settle()
 
     await handle.press("`")
-    await settle()
 
     // Terminal: should have left alt screen
     expect(term).not.toBeInMode("altScreen")
@@ -83,12 +78,9 @@ describe("console toggle — termless", () => {
   test("second backtick: re-enters alt screen, board restored", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
     handle = await run(<ConsoleToggleApp />, term, { alternateScreen: true })
-    await settle()
 
     await handle.press("`") // open console
-    await settle()
     await handle.press("`") // close console
-    await settle()
 
     // Terminal: back in alt screen
     expect(term).toBeInMode("altScreen")
