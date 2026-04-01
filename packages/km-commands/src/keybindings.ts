@@ -630,11 +630,12 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "block-edit",
       bindings: [
-        // Up/Down/Ctrl-P/N: navigate to adjacent node while staying in edit mode
+        // Up/Down: navigate within text, then to adjacent block at boundary
         { key: "ArrowUp", commandId: "text.cursor_up", when: isInlineEditing },
         { key: "ArrowDown", commandId: "text.cursor_down", when: isInlineEditing },
-        { key: "ctrl-p", commandId: "text.cursor_up", when: isInlineEditing },
-        { key: "ctrl-n", commandId: "text.cursor_down", when: isInlineEditing },
+        // Ctrl-P/N: navigate to adjacent block while staying in edit mode
+        { key: "ctrl-p", commandId: "edit_block.navigate_up", when: isInlineEditing },
+        { key: "ctrl-n", commandId: "edit_block.navigate_down", when: isInlineEditing },
       ],
     },
 
