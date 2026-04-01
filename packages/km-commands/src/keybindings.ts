@@ -716,6 +716,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "cmd-n", commandId: "capture_dialog", when: isInlineEditing },
         { key: "cmd-Enter", commandId: "insert_below", when: isInlineEditing },
         { key: "cmd-shift-Enter", commandId: "new_item", when: isInlineEditing },
+        // Tab/Shift+Tab indent/outdent — structural operations that should work during inline edit
+        { key: "Tab", commandId: "indent_node", when: isInlineEditing },
+        { key: "shift-Tab", commandId: "outdent", when: isInlineEditing },
         { key: "*", wildcard: true, commandId: "noop", when: isInlineEditing },
       ],
     },

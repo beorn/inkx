@@ -1149,8 +1149,6 @@ describe("text mode keybinding separation", () => {
   describe("node-mode commands are blocked during inline editing", () => {
     // Navigation keys that should NOT fire in text mode
     it.each([
-      ["Tab", {}, "indent_node"],
-      ["Tab", { shift: true }, "outdent"],
       ["m", {}, "enter_move_mode"],
       ["q", {}, "quit"],
       // v is now chord-only (v v = visual mode), tested in chord section
@@ -1177,6 +1175,14 @@ describe("text mode keybinding separation", () => {
   })
 
   describe("text-editing keys still work during inline editing", () => {
+    it("Tab → indent_node (structural indent punches through inline edit barrier)", () => {
+      expect(resolveKeybinding("Tab", {}, inlineCtx)).toEqual({ commandId: "indent_node" })
+    })
+
+    it("Shift+Tab → outdent (structural outdent punches through inline edit barrier)", () => {
+      expect(resolveKeybinding("Tab", { shift: true }, inlineCtx)).toEqual({ commandId: "outdent" })
+    })
+
     it("Escape → text.exit_edit", () => {
       expect(resolveKeybinding("Escape", {}, inlineCtx)).toEqual({ commandId: "text.exit_edit" })
     })

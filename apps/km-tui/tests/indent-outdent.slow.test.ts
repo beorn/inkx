@@ -24,6 +24,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 // Helper: get child IDs of a parent from repo
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
@@ -724,5 +725,50 @@ describe("Indent visibility (regression: tab-disappear)", () => {
     board.command("indent_node")
     board.expectScreen("A")
     board.expectScreen("B")
+  })
+})
+
+// =============================================================================
+// Indent/Outdent during inline edit mode
+// =============================================================================
+
+describe("Indent/Outdent during inline edit mode", () => {
+  test("Tab indents node while in inline edit mode", () => {
+    const { board, repo, store } = testEnv(() =>
+      item("board", item("col", item("task1"), item("task2"), item("task3"))),
+    )
+
+    board.command("cursor_down") // → task2
+    board.press("Enter") // enter inline edit mode
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task2")
+
+    board.press("Tab") // indent task2 under task1
+
+    // task2 should now be a child of task1
+    expect(childIds(repo, "task1")).toContain("task2")
+    expect(childIds(repo, "col")).toEqual(["task1", "task3"])
+
+    // Should still be in inline edit mode
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+  })
+
+  test("Shift+Tab outdents node while in inline edit mode", () => {
+    const { board, repo, store } = testEnv(() =>
+      item("board", item("col", item("parent", item("child1"), item("child2")))),
+    )
+
+    // Navigate to child1 — it's a card within parent (which is a column-level node)
+    // First, let's navigate into the nested structure
+    board.press("Enter") // enter inline edit on parent
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("parent")
+
+    board.press("shift+Tab") // outdent parent from col to board level
+
+    // parent should now be a child of board (sibling of col)
+    expect(childIds(repo, "board")).toContain("parent")
+
+    // Should still be in inline edit mode
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
   })
 })
