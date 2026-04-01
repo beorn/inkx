@@ -56,7 +56,7 @@ test("feature works end-to-end", async () => {
 })
 ```
 
-**Canonical example**: `apps/km-tui/tests/console-toggle-repro.test.tsx` — 3-layer verification (screen content + terminal mode + app state).
+**Canonical example**: `vendor/silvery/tests/features/run-writable.test.tsx` — verifies alt screen, mouse tracking, bracketed paste, pause/resume toggle via termless.
 
 ---
 

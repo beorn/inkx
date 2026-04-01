@@ -85,7 +85,7 @@ test("feature works end-to-end", async () => {
 })
 ```
 
-**Canonical example**: `console-toggle-repro.test.tsx` — full 3-layer verification across a toggle cycle.
+**Canonical example**: `vendor/silvery/tests/features/run-writable.test.tsx` — full 3-layer verification of terminal modes via termless.
 
 See [termless.md](../../../.claude/skills/tests/termless.md) for the full API and decision guide.
 
