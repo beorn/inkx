@@ -108,7 +108,7 @@ describe("Local Find", () => {
       { columns: 120 },
     )
     // Cursor starts on "apple" (first card, first column)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("apple")
+    board.expectState({ cursor: "apple" })
 
     board.command("local_find")
     // Type "ban" — should match only "banana"
@@ -121,7 +121,7 @@ describe("Local Find", () => {
     expect(ls!.matchCount).toBe(1)
     expect(ls!.matchNodeIds).toContain("banana")
     // Cursor should move to banana
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("banana")
+    board.expectState({ cursor: "banana" })
   })
 
   // ---------------------------------------------------------------------------
@@ -158,7 +158,7 @@ describe("Local Find", () => {
     // Press n for next
     board.press("n")
     expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("box")
+    board.expectState({ cursor: "box" })
   })
 
   test("N navigates to previous match after Enter", () => {
@@ -172,7 +172,7 @@ describe("Local Find", () => {
     // Press N for previous — wraps around to last match
     board.press("N")
     expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("box")
+    board.expectState({ cursor: "box" })
   })
 
   test("n wraps around from last to first match", () => {
@@ -190,7 +190,7 @@ describe("Local Find", () => {
     // n should wrap to first
     board.press("n") // index 0 (fox)
     expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(0)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("fox")
+    board.expectState({ cursor: "fox" })
   })
 
   test("Escape after Enter closes find bar entirely", () => {

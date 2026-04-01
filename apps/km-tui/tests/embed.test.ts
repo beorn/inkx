@@ -11,7 +11,6 @@ import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { stripAnsi } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
-import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
 
 // =============================================================================
 // Embed create depth

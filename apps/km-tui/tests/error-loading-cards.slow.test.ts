@@ -41,7 +41,7 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     board.command("cursor_down") // mockups
     board.command("cursor_down") // wireframes
 
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("wireframes")
+    board.expectState({ cursor: "wireframes" })
 
     // Open detail pane
     board.command("toggle_detail_pane")
@@ -78,7 +78,7 @@ describe("km-tui.error-loading-cards: no error after zoom + detail pane close", 
     board.command("cursor_right") // Actions column
     board.command("cursor_down") // action-2
 
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("action-2")
+    board.expectState({ cursor: "action-2" })
 
     // Open detail pane
     board.command("toggle_detail_pane")
