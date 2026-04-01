@@ -936,6 +936,58 @@ describe("Delete consistency — node removed from BOTH DB and screen", () => {
 })
 
 // =============================================================================
+// Delete Sub-Sub-Item — No [error] (km-tui.delete-shows-error)
+// =============================================================================
+
+describe("Delete sub-sub-item renders cleanly, no [error]", () => {
+  test("deleting first of two sub-sub-items removes it without [error]", () => {
+    // Structure: board > col > card > sub1 + sub2
+    // Zoom into col so card becomes a column, sub1/sub2 become cards
+    // Then zoom again into card so sub1/sub2 are navigable
+    const { board, repo } = testEnv(() =>
+      item("board", item("col", item("card", item("sub1"), item("sub2")))),
+    )
+    board.expect("#card[data-cursor]").toExist()
+
+    // Zoom twice: first into col (card becomes column), then into card
+    board.command("zoom_inwards")
+    board.navigateTo("sub1")
+    board.expect("#sub1[data-cursor]").toExist()
+
+    // Delete sub1
+    board.command("delete_node")
+
+    // Screen must NOT contain [error]
+    const screen = board.screen.toString()
+    expect(screen).not.toContain("[error]")
+
+    // sub1 should be gone from both screen and repo
+    board.expect("#sub1").not.toExist()
+    expect(repo.getNode("sub1")).toBeNull()
+
+    // sub2 should still exist
+    board.expect("#sub2").toExist()
+    expect(repo.getNode("sub2")).not.toBeNull()
+  })
+
+  test("deleting sub-item via repo directly does not show [error] on re-render", () => {
+    // Simulates the case where a child node is deleted and the parent re-renders
+    const { board, repo } = testEnv(() =>
+      item("board", item("col", item("card", item("sub1"), item("sub2")))),
+    )
+
+    // Directly delete sub1 from the repo (simulating external deletion)
+    repo.deleteNode("sub1")
+    // Force re-render by pressing a no-op key
+    board.press("Escape")
+
+    // Screen must NOT contain [error]
+    const screen = board.screen.toString()
+    expect(screen).not.toContain("[error]")
+  })
+})
+
+// =============================================================================
 // Enter After Edit — Sibling Creation (km-tui.enter-jumps-board)
 // =============================================================================
 

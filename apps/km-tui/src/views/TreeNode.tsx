@@ -41,8 +41,18 @@ import { stripKnownMentions } from "./detail-pane-helpers.ts"
 import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
+import { log } from "../log.ts"
+import type { ErrorInfo } from "react"
 
 // ============================================================================
+
+/** Log NodeChildren rendering errors via loggily instead of silently swallowing them.
+ * The ErrorBoundary shows [error] fallback text; this ensures the actual error is logged
+ * so developers can diagnose the root cause (bug: km-tui.delete-shows-error). */
+function handleNodeChildrenError(error: Error, errorInfo: ErrorInfo): void {
+  log.error("NodeChildren render error: %s", error.message)
+  log.error("Component stack: %s", errorInfo.componentStack?.split("\n").slice(0, 5).join("\n") ?? "(none)")
+}
 
 interface TreeNodeProps {
   node: KNode
@@ -710,7 +720,8 @@ function TreeNodeImpl({
               [error]
             </Text>
           }
-          resetKey={`${node.id}-${depth}`}
+          resetKeys={[node.id, depth, children.length]}
+          onError={handleNodeChildrenError}
         >
           <NodeChildren
             children={isInlineEditing ? structuralChildren : visibleChildren}
