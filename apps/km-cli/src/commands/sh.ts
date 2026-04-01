@@ -349,8 +349,6 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     embed_source: node.embed_source,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
-    task_status: node.item?.task?.status,
-    task_marker: node.item?.task?.marker,
     priority: node.priority,
     due_at: node.due_at,
     start_at: node.start_at,

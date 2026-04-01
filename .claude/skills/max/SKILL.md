@@ -144,6 +144,21 @@ For type restructurings, field renames, or interface changes touching 50+ files:
 - Let agents batch all commits to the end — require incremental commits per step
 - Give agents 3,000-word prompts that bury the critical step among mechanical ones — lead with the interface/definition change, then consumer updates
 
+## Lead Agent Responsiveness (CRITICAL)
+
+When using teams, the lead (you) must **delegate ALL implementation to teammates** and remain free for conversation with the user. The lead's job is:
+
+1. **Decompose** — break work into tasks
+2. **Delegate** — assign tasks to teammates
+3. **Coordinate** — relay context, resolve conflicts, unblock teammates
+4. **Report** — summarize progress when asked
+5. **Verify** — run final `bun fix && bun run test:all` after teammates finish
+
+The lead must **never** do implementation work directly when teammates are available. If you're editing code, you're blocking conversation. If the user sends a message, you should be able to respond immediately — not after finishing a 200-line refactor.
+
+**Anti-pattern**: Lead creates a team, then does all the work itself while teammates sit idle.
+**Correct**: Lead creates tasks, spawns teammates, assigns work, and stays in a tight respond-to-user loop.
+
 ## Sticky Mode
 
 Once `/max` is invoked or user requests parallelization:

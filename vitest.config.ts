@@ -1,5 +1,10 @@
-import { mdspec } from "mdspec/vitest-plugin"
+import { mdspec as mdspecPlugin } from "mdspec/vitest-plugin"
 import { defineConfig } from "vitest/config"
+
+// mdspec's vite Plugin type may resolve to a different vite copy than vitest/config,
+// causing TS2769. Cast to bridge the duplicate type resolution.
+// biome-ignore lint: duplicate vite resolution requires cast
+const mdspec = (): any => mdspecPlugin()
 import { availableParallelism } from "node:os"
 
 // Always-excluded files (incompatible with vitest runner regardless of project)

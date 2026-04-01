@@ -23,6 +23,10 @@
             bun
             nodejs_22
             ripgrep
+
+            # Diagram tools (ASCII art creation + validation)
+            boxes # Draw boxes around text
+            graph-easy # Render graphs as ASCII/Unicode from DOT or simple syntax
           ];
 
           # Note: Run 'bun run setup' manually after first clone
