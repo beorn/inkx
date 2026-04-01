@@ -33,6 +33,24 @@ type TaskLike = {
   task_marker?: string | null
 }
 
+/** System/structural fields — never inherited on split/copy */
+const SYSTEM_KEYS: ReadonlySet<string> = new Set([
+  "id",
+  "parent_id",
+  "parent_idx", // structural
+  "created_at",
+  "updated_at",
+  "version", // lifecycle
+  "block_id", // identity
+  "fs_path",
+  "fs_ino",
+  "fs_mtime", // filesystem (derived)
+  "fstype", // derived from context via deriveFsType
+  "content",
+  "name",
+  "title", // split by caller
+])
+
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- SlateJS namespace pattern
 export const KNode = {
   /** Outline item — heading item that creates outline hierarchy. */
@@ -71,5 +89,25 @@ export const KNode = {
       if ((node as Record<string, unknown>)[key] !== props[key]) return false
     }
     return true
+  },
+
+  /**
+   * Extract inheritable properties from a node (SlateJS-compatible pattern).
+   * Strips system fields, returns everything else. New fields auto-inherit.
+   * Task nodes get reset to unchecked (todo / [ ]).
+   */
+  extractProps(node: KNode): Partial<KNode> {
+    const props: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(node)) {
+      if (!SYSTEM_KEYS.has(key) && value != null) {
+        props[key] = value
+      }
+    }
+    // New tasks start unchecked
+    if (props.task_marker) {
+      props.task_status = "todo"
+      props.task_marker = "[ ]"
+    }
+    return props as Partial<KNode>
   },
 } as const

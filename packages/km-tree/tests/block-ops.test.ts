@@ -273,6 +273,77 @@ describe("splitNode", () => {
     expect(beforeChildren).toHaveLength(0)
   })
 
+  test("split task inherits task_marker as [ ] and task_status as todo", () => {
+    const { repo, parentId } = setupTaskTree()
+
+    // Create a done task
+    const doneId = repo.addNode(parentId, {
+      type: "p",
+      item: true,
+      list_marker: "-",
+      content: "- [x] Completed task here",
+      task_status: "done",
+      task_marker: "[x]",
+      parent_idx: 4,
+    })
+
+    const result = splitNode(repo, doneId, 14) // after "Completed task"
+
+    const after = repo.getNode(result.afterId)!
+    expect(after.task_marker).toBe("[ ]")
+    expect(after.task_status).toBe("todo")
+    expect(after.item).toBe(true)
+    expect(after.list_marker).toBe("-")
+  })
+
+  test("split node with data inherits data", () => {
+    const repo = createTestRepo()
+
+    const parentId = repo.addNode(null, {
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      name: "Parent",
+      content: "Parent",
+    })
+
+    const nodeId = repo.addNode(parentId, {
+      type: "p",
+      item: true,
+      list_marker: "-",
+      content: "Hello World",
+      data: { custom: "value", priority: "high" },
+      parent_idx: 1,
+    })
+
+    const result = splitNode(repo, nodeId, 5)
+
+    const after = repo.getNode(result.afterId)!
+    expect(after.data).toEqual({ custom: "value", priority: "high" })
+  })
+
+  test("split node with priority/assigned_to inherits them", () => {
+    const { repo, parentId } = setupTaskTree()
+
+    const nodeId = repo.addNode(parentId, {
+      type: "p",
+      item: true,
+      list_marker: "-",
+      content: "- [ ] Task with metadata",
+      task_status: "todo",
+      task_marker: "[ ]",
+      priority: "P1",
+      assigned_to: "alice",
+      parent_idx: 4,
+    })
+
+    const result = splitNode(repo, nodeId, 10)
+
+    const after = repo.getNode(result.afterId)!
+    expect(after.priority).toBe("P1")
+    expect(after.assigned_to).toBe("alice")
+  })
+
   test("split section in middle", () => {
     const { repo, sec1Id } = setupSectionTree()
 

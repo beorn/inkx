@@ -1648,6 +1648,13 @@ function handleViewAction(ctx: ActionCtx, action: ViewOp): ActionResult {
 // Helper Functions (local to this file)
 // =============================================================================
 
+/** Derive fstype from parent context (not inherited from source). */
+function deriveFsType(parent: KNode): string | undefined {
+  if (parent.fstype === "mdfile" || parent.fstype === "mdsection") return "mdsection"
+  if (parent.fstype === "folder") return "mdfile"
+  return undefined
+}
+
 /** Enter at start/end of title → insert sibling before/after using the node's actual parent. */
 function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): void {
   const { repo } = ctx
@@ -1670,19 +1677,12 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
   const adjacentIdx = adjacent?.parent_idx ?? currentIdx + (position === "after" ? 1 : -1)
   const newSortOrder = (currentIdx + adjacentIdx) / 2
 
-  const isCurrentTask = currentNode.task_marker !== undefined
+  const parentNode = repo.getNode(parentId)
   const newNode: Partial<KNode> = {
-    type: isCurrentTask ? "p" : "h",
-    item: true,
+    ...KNode.extractProps(currentNode),
     content: "",
     parent_idx: newSortOrder,
-  }
-  if (isCurrentTask) {
-    newNode.task_status = "todo"
-    newNode.task_marker = "[ ]"
-    newNode.list_marker = currentNode.list_marker ?? "-"
-  } else {
-    newNode.fstype = "mdsection"
+    fstype: parentNode ? deriveFsType(parentNode) : undefined,
   }
 
   ctx.undoHandle.setCursor(nodeId)
@@ -1779,17 +1779,11 @@ function splitAsChild(repo: ActionCtx["repo"], nodeId: string, offset: number): 
   // Find sort order before existing first child
   const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.first(nodeId))
 
-  const isTask = node.task_marker !== undefined
   const newChild: Partial<KNode> = {
-    type: isTask ? "p" : "h",
-    item: true,
+    ...KNode.extractProps(node),
     content: afterText,
     parent_idx: newSortOrder,
-  }
-  if (isTask) {
-    newChild.task_status = node.task_status ?? "todo"
-    newChild.task_marker = node.task_marker ?? "[ ]"
-    newChild.list_marker = node.list_marker ?? "-"
+    fstype: deriveFsType(node),
   }
 
   const afterId = repo.addNode(nodeId, newChild)
@@ -1799,8 +1793,8 @@ function splitAsChild(repo: ActionCtx["repo"], nodeId: string, offset: number): 
 }
 
 /** Enter at end of title with visible children → insert empty node as FIRST child.
- *  Inherits task_marker, list_marker, and task_status from the parent node so that
- *  pressing Enter on a task creates another task (not a plain list item). */
+ *  Inherits all non-system properties from the parent node via extractProps()
+ *  so that pressing Enter on a task creates another task (not a plain list item). */
 function handleAddNodeChildFirst(ctx: ActionCtx): void {
   const cursorId = ctx.cursorNodeId
   if (!cursorId) return
@@ -1812,18 +1806,11 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
   // Sort order before existing first child (or 0 if none)
   const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.first(cursorId))
 
-  const isParentTask = parentNode.task_marker != null
   const newNode: Partial<KNode> = {
-    type: isParentTask ? "p" : "h",
-    item: true,
+    ...KNode.extractProps(parentNode),
     content: "",
     parent_idx: newSortOrder,
-    data: {},
-  }
-  if (isParentTask) {
-    newNode.task_status = "todo"
-    newNode.task_marker = "[ ]"
-    newNode.list_marker = parentNode.list_marker ?? "-"
+    fstype: deriveFsType(parentNode),
   }
 
   ctx.undoHandle.setCursor(cursorId)
@@ -2576,22 +2563,15 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
       repo.moveNode(sourceId, col.node.id, sortOrder)
       lastPastedId = sourceId
     } else {
-      // Copy: create a new node with same properties
-      const newNode: Record<string, unknown> = {
-        type: sourceNode.type,
+      // Copy: duplicate node — extractProps strips system fields, restore source-specific fields
+      const newNode: Partial<KNode> = {
+        ...KNode.extractProps(sourceNode),
         content: sourceNode.content,
+        name: sourceNode.name,
+        fstype: sourceNode.fstype,
+        task_status: sourceNode.task_status,
+        task_marker: sourceNode.task_marker,
         parent_idx: baseSortOrder + i * 0.001,
-        data: sourceNode.data ? { ...sourceNode.data } : undefined,
-      }
-      if (sourceNode.task_status) {
-        newNode.task_status = sourceNode.task_status
-        newNode.task_marker = sourceNode.task_marker
-      }
-      if (sourceNode.list_marker) {
-        newNode.list_marker = sourceNode.list_marker
-      }
-      if (sourceNode.fstype) {
-        newNode.fstype = sourceNode.fstype
       }
       lastPastedId = repo.addNode(col.node.id, newNode)
     }

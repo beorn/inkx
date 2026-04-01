@@ -88,27 +88,12 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   const nextIdx = nextSibling?.parent_idx ?? currentIdx + 1
   const newSortOrder = (currentIdx + nextIdx) / 2
 
-  // Create new sibling with text after cursor
+  // Create new sibling with text after cursor — inherit all non-system props
+  const props = KNode.extractProps(node)
   const newNode: Partial<KNode> = {
-    type: node.type,
+    ...props,
     content: setNodeText(node, afterText),
     parent_idx: newSortOrder,
-  }
-
-  // Inherit item trait
-  if (KNode.isItem(node)) {
-    newNode.item = true
-  }
-
-  // Inherit list marker
-  if (node.list_marker) {
-    newNode.list_marker = node.list_marker
-  }
-
-  // Inherit task properties if the original is a task
-  if (node.task_marker) {
-    newNode.task_status = node.task_status ?? "todo"
-    newNode.task_marker = node.task_marker ?? "[ ]"
   }
 
   const newId = tree.addNode(parentId, newNode)

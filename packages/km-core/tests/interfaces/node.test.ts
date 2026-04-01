@@ -91,6 +91,152 @@ describe("KNode namespace", () => {
     })
   })
 
+  describe("KNode.extractProps", () => {
+    it("extracts type, item, task_marker (reset), task_status (reset), list_marker from task node", () => {
+      const node = {
+        id: "abc123",
+        type: "p",
+        item: true,
+        parent_id: "parent1",
+        parent_idx: 3,
+        list_marker: "-",
+        task_marker: "[x]",
+        task_status: "done",
+        content: "- [x] Buy milk",
+        data: { assignee: "alice" },
+        created_at: 1000,
+        updated_at: 2000,
+        version: "v1",
+      } as any
+      const props = KNode.extractProps(node)
+      expect(props.type).toBe("p")
+      expect(props.item).toBe(true)
+      expect(props.list_marker).toBe("-")
+      // Task props reset to unchecked
+      expect(props.task_marker).toBe("[ ]")
+      expect(props.task_status).toBe("todo")
+      // Data inherits
+      expect(props.data).toEqual({ assignee: "alice" })
+    })
+
+    it("extracts type, item from section node but NOT fstype", () => {
+      const node = {
+        id: "sec1",
+        type: "h",
+        item: true,
+        parent_id: "root",
+        parent_idx: 1,
+        fstype: "mdsection",
+        name: "My Section",
+        content: "My Section",
+        data: {},
+        created_at: 1000,
+        updated_at: 2000,
+        version: "v1",
+      } as any
+      const props = KNode.extractProps(node)
+      expect(props.type).toBe("h")
+      expect(props.item).toBe(true)
+      // fstype is a system key — not inherited
+      expect(props.fstype).toBeUndefined()
+      // name, content are system keys
+      expect(props.name).toBeUndefined()
+      expect(props.content).toBeUndefined()
+    })
+
+    it("inherits data blob", () => {
+      const node = {
+        id: "n1",
+        type: "p",
+        parent_id: "p1",
+        parent_idx: 0,
+        data: { custom: "value", nested: { x: 1 } },
+        created_at: 1000,
+        updated_at: 2000,
+        version: "v1",
+      } as any
+      const props = KNode.extractProps(node)
+      expect(props.data).toEqual({ custom: "value", nested: { x: 1 } })
+    })
+
+    it("excludes all system fields", () => {
+      const node = {
+        id: "n1",
+        type: "p",
+        item: true,
+        parent_id: "p1",
+        parent_idx: 5,
+        created_at: 1000,
+        updated_at: 2000,
+        version: "v1",
+        block_id: "blk1",
+        fs_path: "/some/path",
+        fs_ino: 12345,
+        fs_mtime: 99999,
+        fstype: "mdfile",
+        content: "hello",
+        name: "hello",
+        title: "Hello",
+        data: {},
+      } as any
+      const props = KNode.extractProps(node)
+      expect(props.id).toBeUndefined()
+      expect(props.parent_id).toBeUndefined()
+      expect(props.parent_idx).toBeUndefined()
+      expect(props.created_at).toBeUndefined()
+      expect(props.updated_at).toBeUndefined()
+      expect(props.version).toBeUndefined()
+      expect(props.block_id).toBeUndefined()
+      expect(props.fs_path).toBeUndefined()
+      expect(props.fs_ino).toBeUndefined()
+      expect(props.fs_mtime).toBeUndefined()
+      expect(props.fstype).toBeUndefined()
+      expect(props.content).toBeUndefined()
+      expect(props.name).toBeUndefined()
+      expect(props.title).toBeUndefined()
+    })
+
+    it("skips null/undefined values", () => {
+      const node = {
+        id: "n1",
+        type: "p",
+        parent_id: null,
+        parent_idx: 0,
+        task_marker: null,
+        list_marker: undefined,
+        data: {},
+        created_at: 1000,
+        updated_at: 2000,
+        version: "v1",
+      } as any
+      const props = KNode.extractProps(node)
+      expect(props.task_marker).toBeUndefined()
+      expect(props.list_marker).toBeUndefined()
+    })
+
+    it("inherits custom/future fields automatically (denylist model)", () => {
+      const node = {
+        id: "n1",
+        type: "p",
+        item: true,
+        parent_id: "p1",
+        parent_idx: 0,
+        data: {},
+        created_at: 1000,
+        updated_at: 2000,
+        version: "v1",
+        // Future/custom field
+        priority: "P2",
+        assigned_to: "bob",
+        due_at: "2026-03-31",
+      } as any
+      const props = KNode.extractProps(node)
+      expect(props.priority).toBe("P2")
+      expect(props.assigned_to).toBe("bob")
+      expect(props.due_at).toBe("2026-03-31")
+    })
+  })
+
   describe("KNode.matches", () => {
     it("matches when all props equal", () => {
       const node = { type: "h", item: true, name: "test" }
