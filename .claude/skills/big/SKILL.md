@@ -88,17 +88,16 @@ Write a 3-5 sentence synthesis:
 - What new questions emerged?
 - What didn't you consider in Phase 2 that's now obvious?
 
-## Phase 5: Generate Hypotheses (Round 2)
+## Phases 5-6: Iterate (Rounds 2-5)
 
-Based on the synthesis, generate **10 more hypotheses**. These should be:
-- Combinations of Round 1 ideas that worked
-- Deeper explorations of the `REFRAME` ideas
-- New ideas sparked by what you learned
-- Hypotheses from categories you missed in Round 1
+**Repeat the generate→explore→synthesize cycle.** Each round builds on the previous:
 
-## Phase 6: Explore (Round 2)
+- **Round 2**: Combinations of Round 1 ideas + deeper exploration of REFRAME scores
+- **Round 3+**: Only if the synthesis raises new questions or the REFRAME ideas aren't converging yet
 
-Same process. 2-5 minutes each. Score as NARROW/BROAD/REFRAME.
+**Stop iterating when**: the synthesis stops producing new insights, or you have a clear REFRAME with high confidence. Most problems need 2-3 rounds. Complex architectural questions may need 4-5.
+
+**Each round**: Generate **5-20 hypotheses** (scale with problem complexity — a simple guard bug needs 5, an architectural reframe needs 15-20). Explore each. Synthesize.
 
 ## Phase 7: Final Synthesis
 
