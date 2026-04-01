@@ -879,3 +879,116 @@ describe("Sub-block navigation", () => {
     }
   })
 })
+
+// =============================================================================
+// Tree-traversal navigation (J/K — enter children / exit to parent)
+// =============================================================================
+
+describe("Tree-traversal navigation (J/K)", () => {
+  test("J on card with children moves into first child", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card1", item("child1a"), item("child1b")), item("card2"))),
+      { columns: 80, rows: 24 },
+    )
+    board.expect("#card1[data-cursor]").toExist()
+
+    // J should move INTO card1's children
+    board.command("block_nav_down")
+    board.expect("#child1a[data-cursor]").toExist()
+  })
+
+  test("K on first child moves to parent card", () => {
+    const { board } = testEnv(() => item("board", item("Column", item("card1", item("child1a"), item("child1b")))), {
+      columns: 80,
+      rows: 24,
+    })
+    board.expect("#card1[data-cursor]").toExist()
+
+    // Enter child via J
+    board.command("block_nav_down")
+    board.expect("#child1a[data-cursor]").toExist()
+
+    // K should move back to parent card
+    board.command("block_nav_up")
+    board.expect("#card1[data-cursor]").toExist()
+  })
+
+  test("J on leaf card (no children) moves to next sibling", () => {
+    const { board } = testEnv(() => item("board", item("Column", item("card1"), item("card2"))), {
+      columns: 80,
+      rows: 24,
+    })
+    board.expect("#card1[data-cursor]").toExist()
+
+    // J on leaf → next sibling (same as j)
+    board.command("block_nav_down")
+    board.expect("#card2[data-cursor]").toExist()
+  })
+
+  test("K on top-level card (no parent above column) moves to prev sibling", () => {
+    const { board } = testEnv(() => item("board", item("Column", item("card1"), item("card2"))), {
+      columns: 80,
+      rows: 24,
+    })
+    // Navigate to card2
+    board.command("cursor_down")
+    board.expect("#card2[data-cursor]").toExist()
+
+    // K on card2 → prev sibling card1 (at top level, K acts like k)
+    board.command("block_nav_up")
+    board.expect("#card1[data-cursor]").toExist()
+  })
+
+  test("J/K full tree traversal journey", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("parent", item("child-a"), item("child-b")), item("sibling"))),
+      { columns: 80, rows: 24 },
+    )
+    // Start at parent card
+    board.expect("#parent[data-cursor]").toExist()
+
+    // J → enter first child
+    board.command("block_nav_down")
+    board.expect("#child-a[data-cursor]").toExist()
+
+    // j (lowercase) → next sibling within card
+    board.command("cursor_down")
+    board.expect("#child-b[data-cursor]").toExist()
+
+    // K from non-first child → previous sibling
+    board.command("block_nav_up")
+    board.expect("#child-a[data-cursor]").toExist()
+
+    // K from first child → back to parent card title
+    board.command("block_nav_up")
+    board.expect("#parent[data-cursor]").toExist()
+
+    // K again → column header (parent is first card in column)
+    board.command("block_nav_up")
+    board.expect("#Column[data-cursor]").toExist()
+  })
+
+  test("K from non-first child moves to previous sibling, not parent", () => {
+    const { board } = testEnv(
+      () => item("board", item("Column", item("card", item("child-1"), item("child-2"), item("child-3")))),
+      { columns: 80, rows: 24 },
+    )
+    board.expect("#card[data-cursor]").toExist()
+
+    // J → enter first child
+    board.command("block_nav_down")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // j → next sibling
+    board.command("cursor_down")
+    board.expect("#child-2[data-cursor]").toExist()
+
+    // K from child-2 (not first child) → previous sibling child-1
+    board.command("block_nav_up")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // K from child-1 (first child) → parent card title
+    board.command("block_nav_up")
+    board.expect("#card[data-cursor]").toExist()
+  })
+})

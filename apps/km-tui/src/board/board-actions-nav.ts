@@ -13,7 +13,7 @@ import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../ha
 import { indexOfChild } from "../sibling-index.ts"
 import { detailPaneIdFor } from "../board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import type { NavState } from "../view-navigation.ts"
+import { getNavigableChildren, type NavState } from "../view-navigation.ts"
 
 /**
  * Handle cursor movement in any direction.
@@ -55,7 +55,14 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
     return result
   }
 
-  // Tree navigation (first, last, prev, next, in, out)
+  // Tree-traversal (in/out) — J enters children, K exits to parent
+  if (dir === "in" || dir === "out") {
+    const result = handleTreeTraversal(ctx, dir)
+    ctx.navigator.clearStickyY()
+    return result
+  }
+
+  // Tree navigation (first, last, prev, next)
   const result = handleTreeNav(ctx, dir)
   ctx.navigator.clearStickyY()
   return result
@@ -199,7 +206,50 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
   return ok()
 }
 
-/** Default tree navigation (first, last, prev, next, in, out). */
+/**
+ * Tree-traversal navigation (J/K — "in" enters children, "out" exits to parent).
+ *
+ * Unlike j/k which navigate between siblings at the same level, J/K navigate
+ * the tree depth: J enters the first child of the current node, K exits to
+ * the parent. When J has no children to enter, it falls back to next sibling
+ * (same as j). When K is at a top-level card, it falls back to previous sibling
+ * (same as k at card level) or column header.
+ */
+function handleTreeTraversal(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
+  const { dispatchBoard, viewNavigation, navigator } = ctx
+
+  if (!ctx.cursorNodeId) {
+    return boundary(dir, "no cursor")
+  }
+
+  if (dir === "in") {
+    // J: Enter first child of current node.
+    // If node has no children, fall back to regular "down" navigation (next sibling).
+    const children = getNavigableChildren(ctx.cursorNodeId, ctx.repo)
+    if (children.length > 0) {
+      const firstChild = children[0]!
+      dispatchBoard({ type: "SELECT", nodeId: firstChild.id })
+      return ok()
+    }
+    // No children — fall back to regular down navigation
+    const targetId = viewNavigation.navigate("down", navStateFrom(ctx), ctx.repo, navigator)
+    if (targetId === null) return boundary(dir)
+    dispatchBoard({ type: "SELECT", nodeId: targetId })
+    return ok()
+  }
+
+  // dir === "out": Exit to parent.
+  // Uses regular "up" navigation which already handles:
+  // - Sub-block → parent card title
+  // - First card → column header
+  // - Column header → board
+  const targetId = viewNavigation.navigate("up", navStateFrom(ctx), ctx.repo, navigator)
+  if (targetId === null) return boundary(dir)
+  dispatchBoard({ type: "SELECT", nodeId: targetId })
+  return ok()
+}
+
+/** Default tree navigation (first, last, prev, next). */
 function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
   const { dispatchBoard } = ctx
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
