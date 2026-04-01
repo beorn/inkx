@@ -1693,7 +1693,6 @@ function createFluentBoardApi(ctx: {
         inlineEditBlock: {
           nodeId,
           blockIndex: opts?.block ?? 0,
-          ...(opts?.card ? { cardNodeId: opts.card } : {}),
         },
       })
       pressKey("") // flush render

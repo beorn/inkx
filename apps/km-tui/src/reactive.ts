@@ -302,8 +302,8 @@ export class ReactiveNodeStore {
       blockIndex: number
       initialCursorPos?: "start" | "end" | number
       stickyX?: number
-      cardNodeId?: string
     } | null,
+    cardNodeId?: string,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
       this.getOrCreate(oldNodeId).edit.value = null
@@ -316,7 +316,7 @@ export class ReactiveNodeStore {
       }
     }
     // Update editingCardNodeId for parent card expansion
-    this.editingCardNodeId.value = newState?.cardNodeId ?? null
+    this.editingCardNodeId.value = cardNodeId ?? null
   }
 
   /** Remove node entries. Call on zoom/root change. */

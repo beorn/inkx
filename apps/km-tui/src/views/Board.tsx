@@ -698,17 +698,13 @@ export function Board({ patchedConsole }: BoardProps) {
     if (prev !== inlineEditBlock) {
       let derivedCardNodeId: string | undefined
       if (inlineEditBlock?.nodeId) {
-        derivedCardNodeId = inlineEditBlock.cardNodeId
-        if (!derivedCardNodeId) {
-          const editNode = repo.getNode(inlineEditBlock.nodeId)
-          if (editNode?.parent_id) {
-            const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === editNode.parent_id))
-            if (isCard) derivedCardNodeId = editNode.parent_id
-          }
+        const editNode = repo.getNode(inlineEditBlock.nodeId)
+        if (editNode?.parent_id) {
+          const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === editNode.parent_id))
+          if (isCard) derivedCardNodeId = editNode.parent_id
         }
       }
-      const stateWithCard = inlineEditBlock ? { ...inlineEditBlock, cardNodeId: derivedCardNodeId } : null
-      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, stateWithCard)
+      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock, derivedCardNodeId)
       prevInlineEditRef.current = inlineEditBlock
     }
   }, [nodeStore, inlineEditBlock, repo, columns])

@@ -209,9 +209,6 @@ export interface PerPaneUIFields {
     blockIndex: number
     initialCursorPos?: "start" | "end" | number
     stickyX?: number
-    /** Parent card ID when editing a sub-item (descendant of a card).
-     *  When set, the card expands to show all children during editing. */
-    cardNodeId?: string
   } | null
   localSearch: LocalSearchState | null
   searchReplace: SearchReplaceState | null
@@ -330,9 +327,6 @@ export interface BoardPaneState extends PaneStateBase {
     blockIndex: number
     initialCursorPos?: "start" | "end" | number
     stickyX?: number
-    /** Parent card ID when editing a sub-item (descendant of a card).
-     *  When set, the card expands to show all children during editing. */
-    cardNodeId?: string
   } | null
 
   // Per-pane search

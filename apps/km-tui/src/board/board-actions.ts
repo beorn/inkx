@@ -55,7 +55,7 @@ import {
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
-import type { ViewMode } from "../types.ts"
+import type { ColumnView, ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
@@ -601,15 +601,10 @@ function handleEditAction(ctx: ActionCtx, action: EditOp): ActionResult {
         log.debug?.("ENTER_INLINE_EDIT suppressed: virtual metadata row")
         return ok()
       }
-      // When editing a sub-item (child of a card), track the parent card
-      // so it can expand to show all children during editing.
-      const cardNodeId = ctx.cursorCardNodeId
-      const isSubItemEdit = cardNodeId != null && action.nodeId !== cardNodeId
       ctx.setUI({
         inlineEditBlock: {
           nodeId: action.nodeId,
           blockIndex: action.blockIndex ?? 0,
-          ...(isSubItemEdit ? { cardNodeId } : {}),
         },
       })
       return ok()
@@ -1823,6 +1818,40 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
   requestRenderFlush()
 }
 
+/** Find next/prev editable node using tree traversal.
+ *  Cards at column level use col.cardNodes for sibling lookup.
+ *  Sub-section nodes walk siblings via extractBody().items, then recurse up
+ *  to the parent level — so sub→sibling, sub→next-card, and card→card all work. */
+function findAdjacentEditNode(
+  repo: ActionCtx["repo"],
+  nodeId: string,
+  direction: "up" | "down",
+  col: ColumnView | undefined,
+): KNode | null {
+  const node = repo.getNode(nodeId)
+  if (!node?.parent_id) return null
+
+  // If this node is a card (in col.cardNodes), navigate between cards
+  const cardIdx = col?.cardNodes.findIndex((c) => c.id === nodeId) ?? -1
+  if (cardIdx !== -1) {
+    const adjIdx = cardIdx + (direction === "down" ? 1 : -1)
+    return col?.cardNodes[adjIdx] ?? null
+  }
+
+  // Sub-section: walk structural siblings under the same parent
+  const allChildren = repo.getChildren(node.parent_id)
+  const { items } = extractBody(allChildren)
+  const idx = items.findIndex((s) => s.id === nodeId)
+
+  if (idx !== -1) {
+    const nextIdx = idx + (direction === "down" ? 1 : -1)
+    if (nextIdx >= 0 && nextIdx < items.length) return items[nextIdx]!
+  }
+
+  // No sibling in that direction — recurse up to parent level
+  return findAdjacentEditNode(repo, node.parent_id, direction, col)
+}
+
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
   const { ui } = ctx
   const edit = ui.inlineEditBlock
@@ -1855,54 +1884,17 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
   // Past edges → save current content and try to enter edit on adjacent node
   activeEditTargetRef.current?.save()
 
-  // Sub-section nodes aren't in col.cardNodes — check for sibling sub-sections first
-  const col = ctx.column
-  const editNode = ctx.repo.getNode(edit.nodeId)
-  const isInCardNodes = col?.cardNodes.some((c) => c.id === edit.nodeId) ?? false
-  const isSubSection = editNode && !isInCardNodes && editNode.parent_id
+  // Find next/prev editable node using tree traversal instead of col.cardNodes lookup.
+  // Walks siblings via extractBody().items, then recurses up parent levels.
+  const adjacentNode = findAdjacentEditNode(ctx.repo, edit.nodeId, direction, ctx.column)
 
-  if (isSubSection) {
-    // Navigate between sibling sub-sections within the same card
-    const siblings = extractBody(ctx.repo.getChildren(editNode.parent_id!)).items
-    const siblingIndex = siblings.findIndex((s) => s.id === edit.nodeId)
-    const nextSiblingIndex = siblingIndex + (direction === "down" ? 1 : -1)
-    const nextSibling = siblings[nextSiblingIndex]
-    if (nextSibling) {
-      const adjBodyCount = extractBody(ctx.repo.getChildren(nextSibling.id)).body.length
-      const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
-      ctx.dispatchBoard({ type: "SELECT", nodeId: nextSibling.id })
-      ctx.setUI({
-        inlineEditBlock: {
-          nodeId: nextSibling.id,
-          blockIndex: adjBlockIndex,
-          initialCursorPos: direction === "down" ? "start" : "end",
-          stickyX,
-        },
-      })
-      return ok()
-    }
-    // No sibling — fall through to card-level navigation using parent card index
-  }
-
-  // Find adjacent card in the current column
-  let currentCardIndex = col?.cardNodes.findIndex((c) => c.id === edit.nodeId) ?? -1
-  // Sub-section: walk up parent_id to find the containing card
-  if (currentCardIndex === -1 && editNode?.parent_id) {
-    currentCardIndex = col?.cardNodes.findIndex((c) => c.id === editNode.parent_id) ?? -1
-  }
-  const adjacentIndex = direction === "down" ? currentCardIndex + 1 : currentCardIndex - 1
-  const adjacentCard = col?.cardNodes[adjacentIndex]
-
-  if (adjacentCard) {
-    // Navigate to adjacent card and enter edit mode on it
-    ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentCard.id })
-
-    // Determine which block to edit (first or last)
-    const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentCard.id)).body.length
-    const adjBlockIndex = direction === "down" ? 0 : adjBodyCount // title (0) when going down, last body block when going up
+  if (adjacentNode) {
+    const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentNode.id)).body.length
+    const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
+    ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentNode.id })
     ctx.setUI({
       inlineEditBlock: {
-        nodeId: adjacentCard.id,
+        nodeId: adjacentNode.id,
         blockIndex: adjBlockIndex,
         initialCursorPos: direction === "down" ? "start" : "end",
         stickyX,
@@ -1911,7 +1903,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
     return ok()
   }
 
-  // No adjacent card — exit edit mode entirely
+  // No adjacent node — exit edit mode entirely
   ctx.setUI({ inlineEditBlock: null })
   return handleCursorMove(ctx, direction === "down" ? "down" : "up")
 }
