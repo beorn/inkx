@@ -774,9 +774,9 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "ArrowLeft", commandId: "cursor_left" },
         { key: "ArrowRight", commandId: "cursor_right" },
 
-        // Emacs-style Ctrl+N/P (normal mode only — dialogs take priority above)
-        { key: "ctrl-n", commandId: "cursor_down", when: not(anyDialogOpen) },
-        { key: "ctrl-p", commandId: "cursor_up", when: not(anyDialogOpen) },
+        // Emacs-style Ctrl+N/P → spatial block nav (same as Shift+J/K)
+        { key: "ctrl-n", commandId: "block_nav_down", when: not(anyDialogOpen) },
+        { key: "ctrl-p", commandId: "block_nav_up", when: not(anyDialogOpen) },
 
         // History navigation: {/} = history back/forward (v2 spec)
         { key: "shift-[", commandId: "nav_back" }, // {
