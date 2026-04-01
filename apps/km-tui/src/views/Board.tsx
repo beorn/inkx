@@ -16,6 +16,7 @@ import {
   Text,
   Small,
   useApp,
+  useRuntime,
   ErrorBoundary,
   HorizontalVirtualList,
   useContentRect,
@@ -547,10 +548,13 @@ export interface BoardProps {
  */
 // oxlint-disable-next-line complexity/complexity -- React connector — hooks + effects inflate score
 export function Board({ patchedConsole }: BoardProps) {
-  // Read pause/resume directly from AppContext (via mutable ref).
-  // BoardApp doesn't re-render after initial mount, so passing these as props
-  // would capture the initial undefined values permanently.
-  const { pause: onPauseRender, resume: onResumeRender } = useApp()
+  // Access RuntimeContext directly (not useApp()) to get the mutable object.
+  // In the createApp() path, pause/resume are assigned to the context object
+  // AFTER the initial render. useApp() would snapshot undefined at render time,
+  // and since Board never re-renders, those stale values would persist.
+  // By holding the context object ref and reading .pause/.resume lazily inside
+  // the useEffect, we always get the up-to-date values.
+  const runtimeCtx = useRuntime()
   const repo = useRepo()
   const paneId = usePaneId()
 
@@ -646,9 +650,14 @@ export function Board({ patchedConsole }: BoardProps) {
   // Layout is derived on demand — no store sync needed
 
   // Screen switching for console
+  // Read pause/resume lazily from runtimeCtx (not captured at render time).
+  // In the createApp() path, these are assigned after the initial render.
   useEffect(() => {
-    if (!ui.showConsole || !onPauseRender || !onResumeRender) return
-    onPauseRender()
+    if (!ui.showConsole) return
+    const onPause = runtimeCtx?.pause
+    const onResume = runtimeCtx?.resume
+    if (!onPause || !onResume) return
+    onPause()
     process.stdout.write("\x1b[?25h\x1b[?1049l")
     if (patchedConsole) {
       const entries = patchedConsole.getSnapshot()
@@ -660,9 +669,9 @@ export function Board({ patchedConsole }: BoardProps) {
     }
     return () => {
       process.stdout.write("\x1b[?1049h\x1b[2J\x1b[H\x1b[?25l")
-      onResumeRender()
+      onResume()
     }
-  }, [ui.showConsole, onPauseRender, onResumeRender, patchedConsole])
+  }, [ui.showConsole, runtimeCtx, patchedConsole])
 
   // Derive columns from repo (reactive to repo mutations via useSyncExternalStore).
   // Column derivation is <1ms with per-column memoization. Progressive reveal

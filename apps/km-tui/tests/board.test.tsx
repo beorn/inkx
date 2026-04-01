@@ -224,3 +224,26 @@ describe("Render", () => {
     expect(output).not.toContain("Child 1")
   })
 })
+
+// =============================================================================
+// Console toggle (Bug: backtick doesn't work due to stale pause/resume refs)
+// =============================================================================
+
+describe("Console toggle", () => {
+  test("backtick sets showConsole to true", () => {
+    const { board, store } = testEnv(() => item("board", item("col1", item("task1"))))
+
+    // Initially console is hidden
+    expect(store.getState().ui.showConsole).toBe(false)
+
+    // Press backtick to toggle console
+    board.press("`")
+
+    // showConsole should be true
+    expect(store.getState().ui.showConsole).toBe(true)
+
+    // Press backtick again to toggle back
+    board.press("`")
+    expect(store.getState().ui.showConsole).toBe(false)
+  })
+})

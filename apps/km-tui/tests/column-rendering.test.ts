@@ -1107,3 +1107,106 @@ describe("md file columns (termless)", { timeout: 30000 }, () => {
     ).toBe(true)
   })
 })
+
+// =============================================================================
+// Column title as card (km-tui.title-as-card)
+// Bead: km-tui.title-as-card (P2, reopened)
+//
+// Column titles should behave like cards: keyboard navigation to column level,
+// Enter to inline edit, click to select, double-click to edit.
+// =============================================================================
+
+describe("km-tui.title-as-card: column title interaction", () => {
+  test("k from first card navigates to column level", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
+      { columns: 80, rows: 20 },
+    )
+
+    // Initially cursor is on first card
+    board.expect('[id="task1"][data-cursor]').toExist()
+
+    // Press k to go up from first card → should land on column header
+    board.command("cursor_up")
+
+    // Cursor should be at column level (data-card-index=-1)
+    board.expect('[data-cursor][data-card-index="-1"]').toExist()
+    // Column should be selected
+    board.expect('[id="col1"][data-selected]').toExist()
+  })
+
+  test("Enter on column opens inline edit for column title", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
+      { columns: 80, rows: 20 },
+    )
+
+    // Navigate to column level
+    board.command("cursor_up")
+    board.expect('[data-cursor][data-card-index="-1"]').toExist()
+
+    // Press Enter to start inline edit
+    board.press("Enter")
+
+    // Inline edit should be active on the column node
+    const state = store.getState()
+    const pane = state.workspace.panes.values().next().value as { inlineEditBlock?: { nodeId: string } | null }
+    expect(pane?.inlineEditBlock).not.toBeNull()
+    expect(pane?.inlineEditBlock?.nodeId).toBe("col1")
+  })
+
+  test("click on column header selects the column", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
+      { columns: 80, rows: 20 },
+    )
+
+    // Find col1's column header position
+    const colLoc = board.q('[id="col1"][data-view="column"]')
+    expect(colLoc.count()).toBeGreaterThan(0)
+    const colBox = colLoc.boundingBox()
+    expect(colBox).not.toBeNull()
+    if (!colBox) return
+
+    // The header is at the top of the column bounding box
+    const headerY = colBox.y
+    const row = board.screen.row(headerY)
+    const colTextX = row.indexOf("col1")
+    expect(colTextX).toBeGreaterThan(-1)
+
+    // Click on the column header text
+    board.click(colTextX, headerY)
+
+    // Cursor should be at column level
+    board.expect('[data-cursor][data-card-index="-1"]').toExist()
+    board.expect('[id="col1"][data-selected]').toExist()
+  })
+
+  test("double-click on column header enters inline edit", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
+      { columns: 80, rows: 20 },
+    )
+
+    // Find col1's column header position
+    const colLoc = board.q('[id="col1"][data-view="column"]')
+    expect(colLoc.count()).toBeGreaterThan(0)
+    const colBox = colLoc.boundingBox()
+    expect(colBox).not.toBeNull()
+    if (!colBox) return
+
+    const headerY = colBox.y
+    const row = board.screen.row(headerY)
+    const colTextX = row.indexOf("col1")
+    expect(colTextX).toBeGreaterThan(-1)
+
+    // Double-click on column header
+    board.doubleClick(colTextX, headerY)
+
+    // Inline edit should be active on the column node
+    const state = store.getState()
+    const pane = state.workspace.panes.values().next().value as { inlineEditBlock?: { nodeId: string } | null }
+    expect(pane?.inlineEditBlock).not.toBeNull()
+    expect(pane?.inlineEditBlock?.nodeId).toBe("col1")
+  })
+})

@@ -870,8 +870,18 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         return
       }
 
+      // Double-click check must come BEFORE isColumnNode early return so that
+      // double-clicking a column header enters inline edit (title-as-card behavior).
+      if (isDoubleClick) {
+        // Double-click → select and enter inline edit on the clicked node
+        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
+        locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
+        return
+      }
+
       if (isColumnNode) {
-        // Column header click → select the column (not board root)
+        // Column header single click → select the column (not board root)
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
@@ -885,12 +895,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         return
       }
 
-      if (isDoubleClick) {
-        // Double-click → select the sub-block and enter inline edit on it
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
-        locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
-      } else if (mouse.ctrl) {
+      if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
         const selected = new Set(actionCtx.ui.multiSelected)
