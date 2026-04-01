@@ -1649,7 +1649,7 @@ function handleViewAction(ctx: ActionCtx, action: ViewOp): ActionResult {
 // =============================================================================
 
 /** Derive fstype from parent context (not inherited from source). */
-function deriveFsType(parent: KNode): string | undefined {
+function deriveFsType(parent: KNode): KNode["fstype"] | undefined {
   if (parent.fstype === "mdfile" || parent.fstype === "mdsection") return "mdsection"
   if (parent.fstype === "folder") return "mdfile"
   return undefined
@@ -2571,6 +2571,7 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
         fstype: sourceNode.fstype,
         task_status: sourceNode.task_status,
         task_marker: sourceNode.task_marker,
+        data: sourceNode.data ? { ...sourceNode.data } : undefined,
         parent_idx: baseSortOrder + i * 0.001,
       }
       lastPastedId = repo.addNode(col.node.id, newNode)

@@ -814,7 +814,7 @@ describe("undo: fold/collapse state", () => {
     // Fold parent by navigating and pressing H (fold_node key)
     board.command("cursor_right")
     board.command("cursor_down")
-    board.press("h")  // fold_node
+    board.press("h") // fold_node
 
     // Verify undo stack grew (operation was recorded)
     expect(store.getState().undoStack.size).toBeGreaterThan(initialSize)
@@ -864,15 +864,13 @@ describe("undo: fold/collapse state", () => {
   })
 
   test("collapse operation records undo entry", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("A"), item("B")), item("col2")),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("A"), item("B")), item("col2")))
 
     const initialSize = store.getState().undoStack.size
 
     // Collapse column (navigate and press x)
     board.command("cursor_right")
-    board.press("x")  // toggle_collapse
+    board.press("x") // toggle_collapse
 
     // Verify undo stack grew
     expect(store.getState().undoStack.size).toBeGreaterThan(initialSize)
@@ -880,9 +878,7 @@ describe("undo: fold/collapse state", () => {
   })
 
   test("multiple fold operations each create undo entries", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("p1", item("c1")), item("p2", item("c2")))),
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("p1", item("c1")), item("p2", item("c2")))))
 
     const initialSize = store.getState().undoStack.size
 

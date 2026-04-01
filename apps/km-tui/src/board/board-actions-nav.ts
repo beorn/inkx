@@ -81,6 +81,19 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 /** Horizontal (h/l) cross-column navigation with stickyY. */
 function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResult {
   const { ui, dispatchBoard, navigator, viewNavigation } = ctx
+  const isDetailPane = ctx.focusedPaneViewType() === "detail"
+
+  // Detail pane boundary: h always exits to parent board, l at right edge enters detail.
+  // Must run before within-pane navigation — the detail pane is a single virtual column,
+  // so within-pane h would just select the column header instead of exiting.
+  if (dir === "left" && isDetailPane) {
+    const parentPaneId = ctx.getParentPaneId?.()
+    if (parentPaneId) {
+      ctx.focusPaneById(parentPaneId)
+      ctx.syncFocusScope()
+      return ok()
+    }
+  }
 
   // When at leftmost card pressing h, position at column header instead of moving columns
   if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.column) {
@@ -157,21 +170,11 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
   }
 
   // At the right boundary, navigate into the detail pane if it exists as a workspace pane.
-  if (dir === "right" && ctx.hasDetailPane && ctx.focusedPaneViewType() !== "detail") {
+  if (dir === "right" && ctx.hasDetailPane && !isDetailPane) {
     const detailPane = detailPaneIdFor(ctx.focusedPaneId())
     ctx.focusPaneById(detailPane)
     ctx.syncFocusScope()
     return ok()
-  }
-
-  // At the left boundary of a detail pane, return focus to the parent board pane.
-  if (dir === "left" && ctx.focusedPaneViewType() === "detail") {
-    const parentPaneId = ctx.getParentPaneId?.()
-    if (parentPaneId) {
-      ctx.focusPaneById(parentPaneId)
-      ctx.syncFocusScope()
-      return ok()
-    }
   }
 
   // Boundary: clear stickyY so it doesn't pollute the next h/l navigation.

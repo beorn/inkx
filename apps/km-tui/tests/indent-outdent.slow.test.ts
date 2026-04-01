@@ -663,3 +663,66 @@ describe("Column Indent", () => {
     expect(childIds(repo, "board")).toContain("col2")
   })
 })
+
+// =============================================================================
+// Indent visibility — indented node must remain visible on screen
+// =============================================================================
+
+describe("Indent visibility (regression: tab-disappear)", () => {
+  test("indented node remains visible on screen after Tab", () => {
+    const { board, repo } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
+
+    board.command("cursor_down") // Move to task2
+    board.command("indent_node") // Indent task2 under task1
+
+    // Data: node was reparented correctly
+    expect(repo.getNode("task2")?.parent_id).toBe("task1")
+
+    // Visual: task2 must still be visible as a child of task1
+    board.expectScreen("task2")
+  })
+
+  test("indented node visible when previous sibling has no children", () => {
+    const { board, repo } = testEnv(() => item("board", item("col", item("A"), item("B"))))
+
+    board.command("cursor_down") // Move to B
+    board.command("indent_node") // Indent B under A
+
+    expect(repo.getNode("B")?.parent_id).toBe("A")
+    board.expectScreen("B")
+  })
+
+  test("all sibling items remain visible after indent", () => {
+    const { board } = testEnv(() => item("board", item("col", item("first"), item("second"), item("third"))))
+
+    board.command("cursor_down") // Move to second
+    board.command("indent_node") // Indent second under first
+
+    board.expectScreen("first")
+    board.expectScreen("second")
+    board.expectScreen("third")
+  })
+
+  test("cursor is visible after indent", () => {
+    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
+
+    board.command("cursor_down") // Move to task2
+    board.command("indent_node") // Indent task2 under task1
+
+    board.expectCursorVisible()
+  })
+
+  test("sequential indent keeps all nodes visible", () => {
+    const { board } = testEnv(() => item("board", item("col", item("A"), item("B"), item("C"))))
+
+    // Indent C under B
+    board.command("cursor_down").command("cursor_down") // → C
+    board.command("indent_node")
+    board.expectScreen("C")
+
+    // Indent B (with C as child) under A
+    board.command("indent_node")
+    board.expectScreen("A")
+    board.expectScreen("B")
+  })
+})

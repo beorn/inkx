@@ -6,7 +6,7 @@
  * NODE MODEL V2: Receives ColumnView with CardView cards.
  * "column" is a parent KNode wrapped in ColumnView, "card" is a CardView (KNode + resolved embed data).
  */
-import React, { useCallback, useEffect, useMemo } from "react"
+import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from "react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
@@ -199,9 +199,14 @@ export const Card = React.memo(
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
     // Also accounts for title wrap lines (long titles that wrap to 2 lines).
     const repo = useRepo()
+    // Subscribe to repo mutations so children derivation stays fresh.
+    // Without this, useMemo below returns stale children after structural edits
+    // (e.g., indent reparents a node under this card, but useMemo deps [repo, card.id]
+    // don't change because repo is the same object reference).
+    const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id])
+    const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id, repoVersion])
     // Filter out collapsed children (km.collapse:: true, detailOnly) — these are
     // only shown in the detail pane and must not inflate the overflow count.
     const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])

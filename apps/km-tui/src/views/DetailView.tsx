@@ -10,7 +10,7 @@
  * convention (e.g., "__meta__Status", "__meta__Due").
  */
 
-import React, { useEffect, useMemo } from "react"
+import React, { useEffect, useMemo, useSyncExternalStore } from "react"
 import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { decomposeDatetime } from "@km/core"
@@ -63,7 +63,10 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   // All hooks must be called unconditionally (before any early return)
   const effectiveId = rootNode?.id ?? null
   const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
-  const children = useMemo(() => (effectiveId ? repo.getChildren(effectiveId) : []), [repo, effectiveId])
+  // Subscribe to repo mutations so children stay fresh after structural edits.
+  // Without repoVersion, useMemo deps [repo, effectiveId] never change for the same node.
+  const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
+  const children = useMemo(() => (effectiveId ? repo.getChildren(effectiveId) : []), [repo, effectiveId, repoVersion])
   const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined, undefined)
 
   if (!rootNode || !effectiveId) {

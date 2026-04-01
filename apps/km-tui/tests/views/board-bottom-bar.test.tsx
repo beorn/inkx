@@ -526,7 +526,9 @@ describe("bell message on unmapped key", () => {
   test("boundary movement shows directional message, not unmapped key", () => {
     const { board } = testEnv(() => item("board", item("col1", item("task1"))))
 
-    // 'h' moves left — at leftmost column, should show boundary message
+    // First 'h' from leftmost card selects the column header (valid navigation).
+    // Second 'h' from column header hits the left boundary.
+    board.press("h")
     board.press("h")
 
     const screenshot = board.screenshot()
