@@ -64,7 +64,7 @@ Don't just think alone. Use the tools at your disposal:
 | **`/fresh`** | Stuck 20+ min, need architectural second opinion | Gathers context, asks external LLM for design advice |
 | **`/llm "question"`** | Quick question for GPT/Gemini/Grok | `bun llm "how does VS Code handle X?"` |
 | **`/llm --deep`** | Need research with web search + citations | Prior art, academic papers, ecosystem patterns |
-| **`/pro-review`** | Want GPT 5.4 Pro to review the area systematically | Finds structural issues you might miss |
+| **`/pro review`** or **`/pro "question"`** | Want GPT 5.4 Pro to review code or answer a design question | Finds structural issues you might miss |
 | **`/csw`** | Need to compare 4+ approaches with decision matrix | Structured analysis, concrete code examples |
 | **`bun recall "keywords"`** | Check if prior sessions already explored this | Avoids rediscovering known dead ends |
 
@@ -142,6 +142,17 @@ Present each ASK item with: what, why, effort, and what you'd recommend.
 ```
 
 **Execute the DO items. Ask about the ASK items. Don't stall on asking — ship what's obvious.**
+
+## /big vs /fresh vs /pro vs /csw
+
+| Skill | When | Focus |
+|---|---|---|
+| **`/big`** | Before coding — proactive reframing | "What if this problem didn't exist?" — 10-20 hypotheses, 2 rounds |
+| **`/fresh`** | After 20+ min stuck — reactive escape | "I'm going in circles" — gather context, ask external LLM for advice |
+| **`/pro "question"`** | Need GPT 5.4 Pro's opinion | "Is this approach sound?" — direct question with code context |
+| **`/csw`** | Comparing 4+ concrete approaches | "Which option?" — decision matrix with code examples |
+
+**`/big` calls `/fresh`, `/pro`, `/csw` as tools** — use them during Phase 3 exploration. `/big` is the orchestrator; the others are specialists.
 
 ## When to Use This
 

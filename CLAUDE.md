@@ -157,7 +157,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | Need                                         | Skill                                                          |
 | -------------------------------------------- | -------------------------------------------------------------- |
 | Question for GPT/Gemini/Grok (quick or deep) | [llm/](.claude/skills/llm/) — `/llm "question"` or `/llm --deep` |
-| Automated GPT 5.4 Pro code review (~$5-15/pkg) | [pro-review/](.claude/skills/pro-review/) — discover, estimate, review, triage, fix |
+| GPT 5.4 Pro (review or direct question) | [pro/](.claude/skills/pro/) — `/pro review`, `/pro "question"`, or just "pro, ..." |
 | Stuck 20+ min, need architectural advice     | [fresh/](.claude/skills/fresh/) — structured protocol: gather → reflect → ask |
 | Want to discuss alternatives before coding   | [discuss/](.claude/skills/discuss/) — checkpoints context to bead |
 
