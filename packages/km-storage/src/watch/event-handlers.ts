@@ -15,7 +15,7 @@ import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
 import { shouldApplyToFs } from "./writequeue.ts"
-import { reconcileIfChanged } from "./reconcile.ts"
+// reconcileIfChanged removed — DB is authority for user-origin events
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { getFolderIndexConfig } from "../config.ts"
 import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
@@ -209,7 +209,6 @@ export class EventHandlers {
       if (!parent) return
       const fileNode = findFileNode(this.db, parent)
       if (!fileNode?.fs_path) return
-      reconcileIfChanged(this.db, fileNode, this.repoPath, this.ignorePatterns, this.emitter)
       const blockIds = this.createBlockIdAssigner()
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
@@ -261,7 +260,6 @@ export class EventHandlers {
       if (!parent) return
       const fileNode = findFileNode(this.db, parent)
       if (!fileNode?.fs_path) return
-      reconcileIfChanged(this.db, fileNode, this.repoPath, this.ignorePatterns, this.emitter)
       const blockIds = this.createBlockIdAssigner()
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
@@ -287,8 +285,6 @@ export class EventHandlers {
     // Regenerate the DESTINATION file (where the node now lives)
     const destFileNode = findFileNode(this.db, node)
     if (destFileNode?.fs_path) {
-      reconcileIfChanged(this.db, destFileNode, this.repoPath, this.ignorePatterns, this.emitter)
-
       const blockIds = this.createBlockIdAssigner()
       const absPath = toAbsoluteFsPath(this.repoPath, destFileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, destFileNode.id)
@@ -306,8 +302,6 @@ export class EventHandlers {
         const sourceFileNode = findFileNode(this.db, oldParent)
         // Only regenerate if source differs from destination (cross-file move)
         if (sourceFileNode?.fs_path && sourceFileNode.id !== destFileNode?.id) {
-          reconcileIfChanged(this.db, sourceFileNode, this.repoPath, this.ignorePatterns, this.emitter)
-
           const blockIds = this.createBlockIdAssigner()
           const absPath = toAbsoluteFsPath(this.repoPath, sourceFileNode.fs_path)
           const subtreeNodes = getSubtree(this.db, sourceFileNode.id)
@@ -338,8 +332,6 @@ export class EventHandlers {
 
     const fileNode = findFileNode(this.db, node)
     if (!fileNode?.fs_path) return
-
-    reconcileIfChanged(this.db, fileNode, this.repoPath, this.ignorePatterns, this.emitter)
 
     const blockIds = this.createBlockIdAssigner()
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
