@@ -62,6 +62,28 @@ app.cards() // all visible cards with positions
 | `helpers/fuzz-invariants.ts` | Invariant checkers for fuzz/chaos          |
 | `helpers/matchers.ts`        | Custom vitest matchers                     |
 
+## Termless Tests for Visual & Terminal Bugs
+
+**When the user reports a visual bug** (something they saw or did), use `createTermless()` — not `testEnv()`. testEnv tests the virtual buffer; termless tests what the terminal actually renders.
+
+```typescript
+import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+import { run } from "silvery/runtime"
+
+test("feature works", async () => {
+  using term = createTermless({ cols: 40, rows: 10 })
+  const handle = await run(<App />, term, { alternateScreen: true })
+  
+  expect(term.screen).toContainText("BOARD VIEW")
+  expect(term).toBeInMode("altScreen")
+})
+```
+
+**Canonical example**: `console-toggle-repro.test.tsx` — 3-layer verification (screen content + terminal mode + app state).
+
+See [termless.md](../../../.claude/skills/tests/termless.md) for the full API and decision guide.
+
 ## Fixture Best Practices
 
 ### Shared Fixtures

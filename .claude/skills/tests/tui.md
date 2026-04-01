@@ -61,6 +61,19 @@ SILVERY_STRICT=1 TEST_VAULT=/tmp/tst-vault bun vitest run apps/km-tui/tests/real
 | **ANSI verification** | `createTermless()` | `.test.ts` | Real terminal emulator | verify colors, cursor, modes |
 | **Unit** | none | `.test.ts` | Pure functions, no render | `truncateText()` |
 
+### Choosing Between testEnv and createTermless
+
+| Bug reported as... | Use | Why |
+|---|---|---|
+| "I pressed X and saw Y" (visual) | **`createTermless()`** | Tests what reaches the terminal |
+| "Cursor jumped to wrong place" | **`createTermless()`** | Real cursor position from emulator |
+| "Alt screen didn't switch" | **`createTermless()`** | Terminal mode detection |
+| "Card disappeared after indent" | **`testEnv()`** first, **`createTermless()`** if testEnv passes | May be DOM or ANSI bug |
+| "Undo doesn't restore fold state" | **`testEnv()`** | Internal state, no terminal feature |
+| "Command doesn't dispatch" | **`testEnv()`** | State machine, no rendering |
+
+**Rule**: If the user describes what they **saw on screen** or the bug involves **terminal features** (alt screen, scrollback, cursor style, colors, escape sequences), use termless. If they describe **behavior** (undo, navigation logic, command dispatch), use testEnv.
+
 ---
 
 ## Rendering Tools

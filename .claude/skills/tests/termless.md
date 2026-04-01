@@ -25,6 +25,41 @@ Headless terminal testing library (like Playwright for terminal apps). Tests TUI
 
 ---
 
+## Default to Termless for User-Reported Visual Bugs
+
+**When the user reports something they SAW or DID** (e.g., "backtick doesn't switch screens", "text disappears after indent", "colors are wrong"), the bug is about what reaches the terminal — NOT internal state. Always start with termless.
+
+**Anti-pattern**: Writing `expect(state.ui.showConsole).toBe(true)` for a visual bug. This tests internal state, not what the user sees. The state could be correct while the ANSI output is wrong.
+
+### 3-Layer Verification Pattern
+
+For terminal feature bugs, verify ALL three layers:
+
+```typescript
+import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+import { run } from "silvery/runtime"
+
+test("feature works end-to-end", async () => {
+  using term = createTermless({ cols: 40, rows: 10 })
+  const handle = await run(<App />, term, { alternateScreen: true })
+  await settle()
+
+  // Layer 1: Screen content (what the user sees)
+  expect(term.screen).toContainText("BOARD VIEW")
+  
+  // Layer 2: Terminal state (what the terminal is doing)
+  expect(term).toBeInMode("altScreen")
+  
+  // Layer 3: App state (internal consistency)
+  expect(appState.mode).toBe("board")
+})
+```
+
+**Canonical example**: `apps/km-tui/tests/console-toggle-repro.test.tsx` — 3-layer verification (screen content + terminal mode + app state).
+
+---
+
 ## MUST Use Termless (createRenderer Cannot Test These)
 
 `createRenderer()` and `testEnv()` operate on a virtual buffer — no ANSI processing, no terminal emulator. The following capabilities **only exist in termless**:
