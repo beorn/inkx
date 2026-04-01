@@ -204,167 +204,51 @@ The TUI wraps KNode in view models for rendering:
 5. **Cursor must point to existing node** — invariant check: `cursor-exists`
 6. **Cursor must be under board root** — invariant check: `cursor-under-root`
 
-## Validation Plugin Design
+## Validation
 
-Post-mutation validation, inspired by Slate's `normalizeNode` but **check-only** (no auto-fix). Decker's `newproto/with-validation.ts` uses the same approach.
-
-### Core (the whole thing)
+Post-mutation invariant checking. Check-only (no auto-fix). Gated by `KM_STRICT=1`. Inspired by Slate + Decker.
 
 ```typescript
-// tree.validate() — override chain, same as any plugin method
-tree.validate = () => {}  // base: no-op
-
-// withValidation — calls validate after mutations, gated by KM_STRICT
-tree.apply = (op) => { origApply(op); if (strict) tree.validate() }
-
-// withBatch — defer validate until outermost batch completes
-tree.withBatch(fn)
+// The entire API:
+tree.validate()        // plugin override chain — throws on bad state
+tree.withBatch(fn)     // defer validate until batch ends
+// KM_STRICT=1 enables it, zero overhead otherwise
 ```
 
-Each `with*` plugin overrides `validate`. The scope (which nodes to check) is passed in centrally by `withValidation`:
+Each `with*` plugin overrides `validate()`. Standard plugin pattern:
 
 ```typescript
 function withOutliner(tree) {
   const { validate } = tree
-  tree.validate = (scope: ValidationScope) => {
-    validate(scope)  // call previous
-    for (const nodeId of scope.nodeIds) {
-      // your checks — throw on violation
-    }
+  tree.validate = () => {
+    validate()  // previous checks first
+    // your checks — throw on violation
   }
   return tree
 }
 ```
 
-**That's it.** Validators call `tree.getNode()`, `tree.getChildren()`, etc. directly.
-
-**Scope**: `validate()` receives the set of node IDs touched by the batch (`dirtyIds`). Validators should check these nodes + their immediate relations — not walk the entire tree. Trees can have thousands of nodes with lazy-loaded subtrees.
-
-### ValidationScope
-
-`withValidation` builds the scope centrally — validators don't decide what to check:
-
-```typescript
-interface ValidationScope {
-  /** Node IDs to validate — touched by ops + their parents. */
-  nodeIds: Set<string>
-  /** Ops that produced this scope (for diagnostics). */
-  ops: TreeOp[]
-}
-```
-
-The scope is computed from ops: each op's target node + its old parent + its new parent are added to `nodeIds`. This covers the mutation site and its immediate neighborhood — enough for structural checks without walking the whole tree.
-
-### withValidation
-
-```typescript
-function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolean }): T {
-  const strict = opts?.strict ?? !!process.env.KM_STRICT
-  if (!strict) return tree  // zero overhead when disabled
-
-  let batchDepth = 0
-  let pendingOps: TreeOp[] = []
-  const dirtyIds = new Set<string>()
-
-  const origApply = tree.apply
-  tree.apply = (op) => {
-    origApply(op)
-    pendingOps.push(op)
-    collectDirty(op, dirtyIds)  // op target + old/new parent
-    if (batchDepth === 0) runValidation()
-  }
-
-  tree.withBatch = (fn) => {
-    batchDepth++
-    try { return fn() }
-    finally {
-      batchDepth--
-      if (batchDepth === 0 && pendingOps.length > 0) runValidation()
-    }
-  }
-
-  function runValidation() {
-    const scope: ValidationScope = {
-      nodeIds: new Set(dirtyIds),
-      ops: [...pendingOps],
-    }
-    pendingOps = []
-    dirtyIds.clear()
-    try {
-      tree.validate(scope)
-    } catch (err) {
-      // Lazy diagnostics — only on error
-      log.error?.("INVARIANT VIOLATION", {
-        error: err.message,
-        command: tree._currentCommand,
-        ops: scope.ops.map(formatOp),
-        scope: [...scope.nodeIds],
-      })
-      throw err
-    }
-  }
-
-  return tree
-}
-```
-
-### Example Validators
+### Example
 
 ```typescript
 function withTree(tree) {
   const { validate } = tree
-  tree.validate = (scope: ValidationScope) => {
-    validate(scope)
-    for (const id of scope.nodeIds) {
-      const node = tree.getNode(id)
-      if (!node) continue  // deleted node in scope — skip
-      if (!node.item && tree.getChildren(id).length > 0)
-        throw new Error(`block-has-children: ${id}`)
-      if (node.parent_id && node.parent_id !== "." && !tree.getNode(node.parent_id))
-        throw new Error(`orphan-node: ${id} → parent ${node.parent_id}`)
-      if (!Number.isFinite(node.parent_idx))
-        throw new Error(`invalid-sort-order: ${id} has ${node.parent_idx}`)
+  tree.validate = () => {
+    validate()
+    for (const node of tree.allNodes()) {
+      if (!node.item && tree.getChildren(node.id).length > 0)
+        throw new Error(`block-has-children: ${node.id}`)
     }
-  }
-  return tree
-}
-
-// Global checks (cursor) don't iterate scope — check tree-wide state
-function withCursor(tree) {
-  const { validate } = tree
-  tree.validate = (scope: ValidationScope) => {
-    validate(scope)
-    if (tree._cursorNodeId && !tree.getNode(tree._cursorNodeId))
-      throw new Error(`cursor-exists: cursor points to ${tree._cursorNodeId}`)
   }
   return tree
 }
 ```
 
-### What NOT to design upfront
+### What to add when needed (not now)
 
-Let these emerge from actual usage:
-- **Pre/post snapshots** — add when debugging a specific class of bug needs them.
-- **`eachDirty()` / `DirtyNode` helpers** — a `for` loop over `scope.nodeIds` is clear enough.
-- **`assert()` helper** — `throw new Error(...)` is fine.
-- **Scope expansion** — if validators need to also check children of dirty nodes, they call `tree.getChildren()` themselves. The scope is a starting point, not a boundary.
+- **Dirty tracking** — when `allNodes()` iteration is too slow for large trees, track which nodes ops touched and only validate those
+- **Scope object** — pass dirty set to `validate(scope)` so plugins can focus their checks
+- **Pre/post snapshots** — capture node state before/after ops for diagnostics
+- **Lazy diagnostics** — build expensive error context only when a validator throws
 
-### Plugin Stack
-
-| Plugin | Layer | Checks |
-|---|---|---|
-| `withTree` | Data model | parent exists, no cycles, sibling order finite, blocks childless |
-| `withOutliner` | Tree ops | task_marker ↔ task_status consistent |
-| `withCursor` | UI state | cursor exists, under root, selection contiguous |
-| `withBoard` | Board | columns are items, fold depths valid |
-| `withRender` | Visual | incremental matches fresh (existing `checkIncremental`) |
-
-### When Validators Run
-
-| Context | Validators run? | Why |
-|---|---|---|
-| `KM_STRICT=1` | After every apply (or batch end) | Catch bugs immediately |
-| Production | Never | Zero overhead |
-| Tests | Per test config | `testEnv({ strict: true })` |
-| CLI `km doctor` | On demand, full tree | Health check |
-| Vault load | Once after materialization | Catch corrupted data |
+Start simple. Add complexity when profiling or debugging demands it.
