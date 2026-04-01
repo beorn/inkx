@@ -65,3 +65,15 @@ export {
   type MergeResult,
   type PrefixConversion,
 } from "./block-ops.ts"
+
+// Outliner — centralized outliner behavior composition
+export {
+  withOutliner,
+  createOutlinerContext,
+  type Outliner,
+  type OutlinerContext,
+  type OutlinerPolicy,
+  type SplitBlockResult,
+  type JoinBackwardResult,
+  type JoinForwardResult,
+} from "./outliner.ts"
