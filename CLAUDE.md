@@ -170,6 +170,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [tests/termless.md](.claude/skills/tests/termless.md)               | ANSI verification, scrollback, cursor, terminal modes, resolved colors |
 | [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
 | [tdd/](.claude/skills/tdd/)                                         | **Reproduce first, fix second** — tool picker, test patterns, cleanup  |
+| [big/](.claude/skills/big/)                                         | **Think big** — reframe problems, 10-20 hypotheses, find the design where the bug can't happen |
 | [troubleshoot/](.claude/skills/troubleshoot/)                       | Something broken — systematic debugging (reproduce, instrument, bisect) |
 | [git/](.claude/skills/git/)                                         | Commits                                                               |
 | [release/](.claude/skills/release/)                                 | Release packages (version, changelog, npm publish, GitHub release)    |
