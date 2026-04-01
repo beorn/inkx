@@ -112,6 +112,10 @@ export class ReactiveNodeStore {
   /** Track which card had cursorInDescendant=true so we can clear it on change */
   private prevDescendantCardId: string | null = null
 
+  // ── Edit expansion state ──
+  /** Card node ID that should expand because a descendant is being edited */
+  editingCardNodeId = new Reactive<string | null>(null)
+
   // ── Hover state (centralized, coalesced across I/O events) ──
   private hoveredNodeId: string | null = null
   private pendingHover: string | null | undefined = undefined // undefined = no pending
@@ -288,11 +292,18 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync inline edit state. Replaces syncEditToAtoms. */
+  /** Sync inline edit state. Replaces syncEditToAtoms.
+   *  When cardNodeId is present (sub-item editing), sets editingCardNodeId
+   *  so the parent card can expand to show all children. */
   syncEdit(
     oldNodeId: string | null,
     newNodeId: string | null,
-    newState: { blockIndex: number; initialCursorPos?: "start" | "end" | number; stickyX?: number } | null,
+    newState: {
+      blockIndex: number
+      initialCursorPos?: "start" | "end" | number
+      stickyX?: number
+      cardNodeId?: string
+    } | null,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
       this.getOrCreate(oldNodeId).edit.value = null
@@ -304,6 +315,8 @@ export class ReactiveNodeStore {
         stickyX: newState.stickyX,
       }
     }
+    // Update editingCardNodeId for parent card expansion
+    this.editingCardNodeId.value = newState?.cardNodeId ?? null
   }
 
   /** Remove node entries. Call on zoom/root change. */

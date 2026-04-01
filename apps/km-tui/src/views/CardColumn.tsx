@@ -185,10 +185,12 @@ export const Card = React.memo(
     // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
     const isPrevAtCursor = prevCardNodeId != null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
 
-    // Check if this card is in inline edit mode (for border color)
-    const isEditing = useAppStore<BoardAppStore, boolean>(
-      (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === nodeId,
-    )
+    // Check if this card is in inline edit mode (for border color).
+    // Also matches when a sub-item of this card is being edited (cardNodeId).
+    const isEditing = useAppStore<BoardAppStore, boolean>((s) => {
+      const edit = getActiveBoardPane(s)?.inlineEditBlock
+      return edit?.nodeId === nodeId || edit?.cardNodeId === nodeId
+    })
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useAppStore<BoardAppStore, boolean>(

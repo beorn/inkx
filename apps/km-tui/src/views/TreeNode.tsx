@@ -499,12 +499,21 @@ function TreeNodeImpl({
     [registry, depth, colIndex, cardIndex],
   )
 
+  // Check if a descendant of this card is being edited — expand to show all children
+  const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
+  const isDescendantEditing = depth === 0 && editingCardNodeId === node.id
+
   // Child rendering
   // Apply task status filter (e.g., hide done/dropped) at all tree depths
   // taskStatusFilter is now from TreeRenderContext (board-wide, no per-node subscription)
   // In multiline (cards) mode, maxContentLines controls how many children are visible.
   // In oneliner mode, a fixed cap prevents performance issues with large nodes.
-  const maxChildren = variant === "multiline" ? maxContentLines : VARIANT_CONFIG.oneliner.maxChildren
+  // When a descendant is being edited, bypass the limit to show all children.
+  const maxChildren = isDescendantEditing
+    ? Infinity
+    : variant === "multiline"
+      ? maxContentLines
+      : VARIANT_CONFIG.oneliner.maxChildren
 
   // Combined filter + slice with early exit: stop after collecting maxChildren matches.
   // For a card with 2,628 children and maxChildren=3, this scans ~3-10 items (not 2,628).

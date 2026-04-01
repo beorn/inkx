@@ -1680,3 +1680,38 @@ describe("Empty Board — first child creation", () => {
     expect(board.screenshot()).toContain("col1-confirmed")
   })
 })
+
+describe("Inline Edit — Card Expansion", () => {
+  test("entering edit on a sub-item expands the full card to show all children", () => {
+    // Card with 5 children — maxContentLines defaults to 3, so only 3 are visible normally
+    const { board, store } = testEnv(() =>
+      item(
+        "board",
+        item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5"))),
+      ),
+    )
+
+    // Cursor is on "card" by default
+    board.expect("#card[data-cursor]").toExist()
+
+    // Verify sub4 and sub5 are NOT visible initially (beyond maxContentLines=3)
+    const beforeShot = board.screenshot()
+    expect(beforeShot).toContain("sub1")
+    expect(beforeShot).toContain("sub2")
+    expect(beforeShot).toContain("sub3")
+
+    // Simulate entering inline edit on a sub-item (e.g., via double-click).
+    // cardNodeId tells the card to expand and show all children.
+    store.getState().setUI({ inlineEditBlock: { nodeId: "sub2", blockIndex: 0, cardNodeId: "card" } })
+    // Flush render
+    board.press("")
+
+    // The full card should be expanded — all sub-items visible
+    const afterShot = board.screenshot()
+    expect(afterShot).toContain("sub1")
+    expect(afterShot).toContain("sub2")
+    expect(afterShot).toContain("sub3")
+    expect(afterShot).toContain("sub4")
+    expect(afterShot).toContain("sub5")
+  })
+})

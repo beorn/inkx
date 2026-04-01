@@ -575,10 +575,15 @@ function handleEditAction(ctx: ActionCtx, action: EditOp): ActionResult {
         log.debug?.("ENTER_INLINE_EDIT suppressed: virtual metadata row")
         return ok()
       }
+      // When editing a sub-item (child of a card), track the parent card
+      // so it can expand to show all children during editing.
+      const cardNodeId = ctx.cursorCardNodeId
+      const isSubItemEdit = cardNodeId != null && action.nodeId !== cardNodeId
       ctx.setUI({
         inlineEditBlock: {
           nodeId: action.nodeId,
           blockIndex: action.blockIndex ?? 0,
+          ...(isSubItemEdit ? { cardNodeId } : {}),
         },
       })
       return ok()
