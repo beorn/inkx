@@ -753,22 +753,70 @@ describe("Indent/Outdent during inline edit mode", () => {
     expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
   })
 
-  test("Shift+Tab outdents node while in inline edit mode", () => {
+  test("Tab on first child in inline edit is no-op (no previous sibling)", () => {
+    // Bug: km-tui.tab-first-child — Tab on first child indents the CARD
+    // instead of being a no-op. The INDENT_NODE handler used ctx.card
+    // (column-level card) instead of the inline edit target node.
+    //
+    // Scenario: navigate into card1's children via J (outline mode), cursor
+    // lands on sub1. Enter inline edit on sub1, then press Tab. Sub1 is the
+    // first child so indent should be a no-op — but it was indenting card1
+    // (which had card0 as previous sibling).
     const { board, repo, store } = testEnv(() =>
-      item("board", item("col", item("parent", item("child1"), item("child2")))),
+      item("board", item("col", item("card0"), item("card1", item("sub1"), item("sub2")))),
     )
 
-    // Navigate to child1 — it's a card within parent (which is a column-level node)
-    // First, let's navigate into the nested structure
-    board.press("Enter") // enter inline edit on parent
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("parent")
+    board.command("cursor_down") // → card1
+    board.command("block_nav_down") // J: enter card1's children → sub1 (outline mode)
+    board.press("Enter") // enter inline edit on sub1
 
-    board.press("shift+Tab") // outdent parent from col to board level
+    const editBlock = getActiveBoardPane(store.getState())!.inlineEditBlock
+    expect(editBlock).not.toBeNull()
+    expect(editBlock?.nodeId).toBe("sub1")
 
-    // parent should now be a child of board (sibling of col)
-    expect(childIds(repo, "board")).toContain("parent")
+    const parentBefore = repo.getNode("sub1")?.parent_id
+    expect(parentBefore).toBe("card1")
 
-    // Should still be in inline edit mode
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
+    board.press("Tab") // should be no-op — sub1 is first child
+
+    // sub1 should NOT have moved — still a child of card1
+    expect(repo.getNode("sub1")?.parent_id).toBe(parentBefore)
+    // card1 should NOT have been indented under card0
+    expect(childIds(repo, "col")).toContain("card1")
+    expect(childIds(repo, "card1")).toEqual(["sub1", "sub2"])
+  })
+
+  test("Tab on second child in inline edit indents under first child", () => {
+    // When editing sub2 (which has sub1 as prev sibling),
+    // Tab should indent sub2 under sub1 — not move the parent card.
+    const { board, repo, store } = testEnv(() =>
+      item("board", item("col", item("card1", item("sub1"), item("sub2")))),
+    )
+
+    board.command("block_nav_down") // J: enter card1's children → sub1
+    board.command("cursor_down") // → sub2
+    board.press("Enter") // enter inline edit on sub2
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("sub2")
+
+    board.press("Tab") // indent sub2 under sub1
+
+    expect(repo.getNode("sub2")?.parent_id).toBe("sub1")
+  })
+
+  test("Shift+Tab outdents sub-item in inline edit mode", () => {
+    // In inline edit mode on a nested child, Shift+Tab should outdent the
+    // sub-item, not the card.
+    const { board, repo, store } = testEnv(() =>
+      item("board", item("col", item("card1", item("sub1", item("nested"))))),
+    )
+
+    board.command("block_nav_down") // J: enter card1 → sub1
+    board.command("block_nav_down") // J: enter sub1 → nested
+    board.press("Enter") // enter inline edit on nested
+    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("nested")
+
+    board.press("shift+Tab") // outdent nested to sibling of sub1
+
+    expect(repo.getNode("nested")?.parent_id).toBe("card1")
   })
 })
