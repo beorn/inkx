@@ -296,7 +296,7 @@ describe("splitNode", () => {
     expect(after.list_marker).toBe("-")
   })
 
-  test("split node with data inherits data", () => {
+  test("split node does NOT inherit data (source-specific blob)", () => {
     const repo = createTestRepo()
 
     const parentId = repo.addNode(null, {
@@ -319,7 +319,9 @@ describe("splitNode", () => {
     const result = splitNode(repo, nodeId, 5)
 
     const after = repo.getNode(result.afterId)!
-    expect(after.data).toEqual({ custom: "value", priority: "high" })
+    // data is a system key — not inherited by extractProps
+    // (contains source-specific info like name, title, blockId)
+    expect(after.data).not.toEqual({ custom: "value", priority: "high" })
   })
 
   test("split node with priority/assigned_to inherits them", () => {
@@ -895,6 +897,85 @@ describe("detectPrefixConversion", () => {
     expect(result).not.toBeNull()
     expect(result!.nodeChanges.type).toBe("quote")
   })
+
+  // --- Prefix with existing content (markdown shortcuts on non-empty lines) ---
+
+  test("'- ' at start of existing content converts to list item", () => {
+    const result = detectPrefixConversion("- buy milk")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(2)
+    expect(result!.nodeChanges.type).toBe("p")
+    expect(result!.nodeChanges.item).toBe(true)
+    expect(result!.nodeChanges.list_marker).toBe("-")
+  })
+
+  test("'* ' at start of existing content converts to list item", () => {
+    const result = detectPrefixConversion("* existing text")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(2)
+    expect(result!.nodeChanges.list_marker).toBe("*")
+  })
+
+  test("'1. ' at start of existing content converts to numbered list", () => {
+    const result = detectPrefixConversion("1. first item")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(3)
+    expect(result!.nodeChanges.list_marker).toBe("1.")
+  })
+
+  test("'# ' at start of existing content converts to heading", () => {
+    const result = detectPrefixConversion("# My Heading")
+    expect(result).not.toBeNull()
+    expect(result!.nodeChanges.type).toBe("h")
+    expect(result!.nodeChanges.item).toBe(true)
+    expect(result!.nodeChanges.fstype).toBe("mdsection")
+  })
+
+  test("'## ' at start of existing content converts to heading", () => {
+    const result = detectPrefixConversion("## Sub Heading")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(3)
+    expect(result!.nodeChanges.type).toBe("h")
+  })
+
+  test("'[] ' at start of existing content converts to task", () => {
+    const result = detectPrefixConversion("[] buy milk")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(3)
+    expect(result!.nodeChanges.task_marker).toBe("[ ]")
+    expect(result!.nodeChanges.task_status).toBe("todo")
+  })
+
+  test("'[ ] ' at start of existing content converts to task", () => {
+    const result = detectPrefixConversion("[ ] buy milk")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(4)
+    expect(result!.nodeChanges.task_marker).toBe("[ ]")
+    expect(result!.nodeChanges.task_status).toBe("todo")
+  })
+
+  test("'[x] ' at start of existing content converts to done task", () => {
+    const result = detectPrefixConversion("[x] completed item")
+    expect(result).not.toBeNull()
+    expect(result!.nodeChanges.task_marker).toBe("[x]")
+    expect(result!.nodeChanges.task_status).toBe("done")
+  })
+
+  test("'> ' at start of existing content converts to quote", () => {
+    const result = detectPrefixConversion("> some quoted text")
+    expect(result).not.toBeNull()
+    expect(result!.prefixLength).toBe(2)
+    expect(result!.nodeChanges.type).toBe("quote")
+  })
+
+  test("prefix in middle of content does NOT convert", () => {
+    expect(detectPrefixConversion("buy - milk")).toBeNull()
+    expect(detectPrefixConversion("item 1. thing")).toBeNull()
+    expect(detectPrefixConversion("not # heading")).toBeNull()
+    expect(detectPrefixConversion("not [] task")).toBeNull()
+  })
+
+  // --- Negative cases ---
 
   test("no match for partial prefix: '-'", () => {
     expect(detectPrefixConversion("-")).toBeNull()

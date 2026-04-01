@@ -342,7 +342,8 @@ export interface PrefixConversion {
 /**
  * Detect markdown prefix at the start of edited content.
  *
- * The ENTIRE content must be the prefix (typed from scratch on an empty node).
+ * Matches a prefix at the START of content — works both on empty nodes (prefix only)
+ * and nodes with existing content (prefix + remaining text).
  * Triggered after the user types a space following a markdown prefix.
  *
  * Supported prefixes:
@@ -357,27 +358,28 @@ export interface PrefixConversion {
  * - `> ` → quote
  */
 export function detectPrefixConversion(content: string): PrefixConversion | null {
-  // Bullet list: "- ", "* ", "+ "
-  if (content === "- " || content === "* " || content === "+ ") {
+  // Bullet list: "- ", "* ", "+ " at start of content
+  if (content.startsWith("- ") || content.startsWith("* ") || content.startsWith("+ ")) {
     return {
       prefixLength: 2,
       nodeChanges: { type: "p", item: true, list_marker: content[0] },
     }
   }
 
-  // Numbered list: "1. " (any digit sequence)
-  if (/^\d+\. $/.test(content)) {
+  // Numbered list: "1. " (any digit sequence) at start of content
+  const numMatch = content.match(/^(\d+\.) /)
+  if (numMatch?.[1]) {
     return {
-      prefixLength: content.length,
-      nodeChanges: { type: "p", item: true, list_marker: content.slice(0, -1) },
+      prefixLength: numMatch[1].length + 1, // "1. " = marker + space
+      nodeChanges: { type: "p", item: true, list_marker: numMatch[1] },
     }
   }
 
-  // Heading: "# ", "## ", "### " etc. (up to 6)
-  const headingMatch = content.match(/^(#{1,6}) $/)
+  // Heading: "# ", "## ", "### " etc. (up to 6) at start of content
+  const headingMatch = content.match(/^(#{1,6}) /)
   if (headingMatch?.[1]) {
     return {
-      prefixLength: content.length,
+      prefixLength: headingMatch[1].length + 1, // hashes + space
       nodeChanges: {
         type: "h",
         item: true,
@@ -386,8 +388,8 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
     }
   }
 
-  // Task markers: "[] ", "[ ] ", "[x] ", "[X] ", "[/] ", "[!] ", "[-] "
-  const taskMatch = content.match(/^\[([xX /!-]?)\] $/)
+  // Task markers: "[] ", "[ ] ", "[x] ", "[X] ", "[/] ", "[!] ", "[-] " at start of content
+  const taskMatch = content.match(/^\[([xX /!-]?)\] /)
   if (taskMatch) {
     const inner = taskMatch[1] === "" || taskMatch[1] === undefined ? " " : taskMatch[1]
     const markerMap: Record<string, { marker: TaskMarker; status: TaskStatus }> = {
@@ -401,7 +403,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
     const mapped = markerMap[inner]
     if (mapped) {
       return {
-        prefixLength: content.length,
+        prefixLength: taskMatch[0].length,
         nodeChanges: {
           task_marker: mapped.marker,
           task_status: mapped.status,
@@ -411,8 +413,8 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
     }
   }
 
-  // Block quote: "> "
-  if (content === "> ") {
+  // Block quote: "> " at start of content
+  if (content.startsWith("> ")) {
     return {
       prefixLength: 2,
       nodeChanges: { type: "quote" },
