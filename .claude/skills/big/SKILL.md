@@ -108,20 +108,40 @@ Write the recommendation:
 **First step**: [the smallest move toward this design]
 ```
 
-### Ship Narrow, Bead the Reframe
+## Phase 8: Action Plan
 
-Most reframes are too large for the current session. That's fine. The discipline is:
+Convert findings into concrete actions. Classify each by confidence:
 
-1. **Ship the narrow fix** — the immediate bug still needs fixing today
-2. **Create a bead** for the reframe with `--design` capturing the full analysis
-3. **Reference the reframe bead** in the narrow fix's commit message (`Refs: km-tui.reframe-xyz`)
+### DO (obvious, low-risk — execute immediately)
+- Ship the narrow fix for the immediate bug
+- Create beads for reframes with `--design` capturing the analysis
+- Delete dead code identified during exploration
+- Add missing invariants that are clearly correct
 
-The reframe lives as a tracked design decision, not a lost conversation. Next session picks it up.
+### ASK (significant, needs user approval — present and wait)
+- Architectural changes touching 3+ packages
+- Reframes that change public API or user-visible behavior
+- Changes that conflict with existing beads or in-progress work
+- Anything where the "right" answer depends on product direction
 
-```bash
-bd create --id km-tui.<reframe-slug> --type task --title "Reframe: <what changes>" --priority 3 \
-  --description "<the real problem>" --design "<the solution that makes it unnecessary>"
+Present each ASK item with: what, why, effort, and what you'd recommend.
+
+### Format
+
+```markdown
+## Actions
+
+### Doing now:
+1. Fix [immediate bug] — [1 sentence]
+2. Create bead km-<scope>.<reframe> — [title] (P3, design captured)
+3. [any other obvious actions]
+
+### Need your call:
+1. **[Change X]** — [why it's better]. Effort: [scope]. Recommend: [yes/no/defer].
+2. **[Change Y]** — [why]. Effort: [scope]. Recommend: [yes/no/defer].
 ```
+
+**Execute the DO items. Ask about the ASK items. Don't stall on asking — ship what's obvious.**
 
 ## When to Use This
 
