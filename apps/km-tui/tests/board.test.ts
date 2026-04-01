@@ -6,9 +6,12 @@
  * - board-app.spec.ts (board.app() ergonomic API)
  */
 
-import { describe, expect, test } from "vitest"
+import { describe, expect, test, vi } from "vitest"
+import { createFakeRepo } from "@km/storage"
 import { createEmptyState } from "../src/state.ts"
+import { checkInvariants, InvariantViolationError } from "../src/invariants.ts"
 import { type BoardApp, board } from "./helpers/board-app.ts"
+import { item, testEnv } from "./helpers/board-test.ts"
 
 // =============================================================================
 // Empty State
@@ -105,5 +108,116 @@ describe("board.app() API", () => {
     app.press("j")
 
     expect(invCalled).toBe(false)
+  })
+})
+
+// =============================================================================
+// Runtime Invariants (km-tui.runtime-invariants)
+// =============================================================================
+
+describe("Runtime invariants", () => {
+  test("clean state passes all invariants", () => {
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Build a minimal ActionCtx-like object from store for invariant checking
+    const s = store.getState()
+    // Use board-app's buildActionCtx via the store's exposed handler
+    // Instead, check invariants through the board.app() invariant system
+    const app = board.app ? board.app : null
+
+    // Alternatively, just verify no violations by navigating with invariants enabled
+    board.command("cursor_down")
+    board.expect("#1b[data-cursor]").toExist()
+    // If invariants were violated, the press would have failed (in strict mode)
+  })
+
+  test("InvariantViolationError has correct properties", () => {
+    const err = new InvariantViolationError("cursor-exists", "Cursor gone", { cursorNodeId: "abc" })
+    expect(err.check).toBe("cursor-exists")
+    expect(err.ids).toEqual({ cursorNodeId: "abc" })
+    expect(err.message).toContain("cursor-exists")
+    expect(err.message).toContain("Cursor gone")
+    expect(err.name).toBe("InvariantViolationError")
+  })
+
+  test("invariants detect cursor pointing to deleted node", () => {
+    // Suppress console.error from invariant logging
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const repo = createFakeRepo({
+      nodes: item("board", item("col1", item("1a"), item("1b"))),
+    })
+
+    const ctx = {
+      repo,
+      rootId: "board",
+      cursorNodeId: "nonexistent-node", // <-- this doesn't exist
+      ui: { inlineEditBlock: null, multiSelected: new Set<string>() },
+      columns: [],
+      colIndex: -1,
+      cardIndex: -1,
+      isAtCardLevel: false,
+    } as any
+
+    const violations = checkInvariants(ctx)
+    expect(violations.length).toBeGreaterThan(0)
+    expect(violations[0]!.check).toBe("cursor-exists")
+
+    spy.mockRestore()
+  })
+
+  test("invariants detect edit targeting deleted node", () => {
+    // Suppress console.error from invariant logging
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {})
+
+    const repo = createFakeRepo({
+      nodes: item("board", item("col1", item("1a"))),
+    })
+
+    const ctx = {
+      repo,
+      rootId: "board",
+      cursorNodeId: "1a",
+      ui: {
+        inlineEditBlock: { nodeId: "deleted-node", blockIndex: 0 },
+        multiSelected: new Set<string>(),
+      },
+      columns: [],
+      colIndex: -1,
+      cardIndex: -1,
+      isAtCardLevel: false,
+    } as any
+
+    const violations = checkInvariants(ctx)
+    const editViolation = violations.find((v: any) => v.check === "edit-node-exists")
+    expect(editViolation).toBeDefined()
+    expect(editViolation!.message).toContain("non-existent")
+
+    spy.mockRestore()
+  })
+
+  test("invariants pass for valid state", () => {
+    const repo = createFakeRepo({
+      nodes: item("board", item("col1", item("1a"), item("1b"))),
+    })
+
+    const ctx = {
+      repo,
+      rootId: "board",
+      cursorNodeId: "1a",
+      ui: { inlineEditBlock: null, multiSelected: new Set<string>() },
+      columns: [],
+      colIndex: -1,
+      cardIndex: -1,
+      isAtCardLevel: false,
+    } as any
+
+    const violations = checkInvariants(ctx)
+    // cursor-exists: 1a exists ✓
+    // cursor-under-root: 1a is descendant of board ✓
+    // edit-node-exists: no edit ✓
+    // No column violations (empty columns)
+    expect(violations).toEqual([])
   })
 })

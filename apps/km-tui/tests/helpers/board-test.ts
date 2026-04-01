@@ -122,6 +122,7 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
   enter_body_edit: ["I"],
   insert_below: ["o"],
   insert_above: ["O"],
+  delete_node: ["Backspace"],
   undo: ["u"],
   redo: ["U"],
   indent_node: ["Tab"],

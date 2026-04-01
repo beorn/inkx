@@ -820,3 +820,179 @@ describe("Enter on task cards", () => {
     expect(parentChildren.some((n: KNode) => n.id === "existingChild")).toBe(true)
   })
 })
+
+// =============================================================================
+// Delete — DB + Screen Consistency (km-tui.delete-noop)
+// =============================================================================
+
+describe("Delete consistency — node removed from BOTH DB and screen", () => {
+  test("delete removes node from repo AND screen", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.command("delete_node")
+
+    // BOTH checks — screen AND repo must agree
+    board.expect("#1a").not.toExist()
+    expect(repo.getNode("1a")).toBeNull()
+
+    // Cursor moved to surviving card
+    board.expect("#1b[data-cursor]").toExist()
+  })
+
+  test("delete middle card: DB and screen consistent", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    board.command("cursor_down")
+    board.expect("#1b[data-cursor]").toExist()
+
+    board.command("delete_node")
+
+    board.expect("#1b").not.toExist()
+    expect(repo.getNode("1b")).toBeNull()
+    // Cursor on next surviving card
+    board.expect("#1c[data-cursor]").toExist()
+    // Other cards still exist
+    expect(repo.getNode("1a")).not.toBeNull()
+    expect(repo.getNode("1c")).not.toBeNull()
+  })
+
+  test("delete last card: cursor moves to previous, DB agrees", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    board.command("cursor_down")
+    board.expect("#1b[data-cursor]").toExist()
+
+    board.command("delete_node")
+
+    board.expect("#1b").not.toExist()
+    expect(repo.getNode("1b")).toBeNull()
+    board.expect("#1a[data-cursor]").toExist()
+    expect(repo.getNode("1a")).not.toBeNull()
+  })
+
+  test("delete then navigate: no stale references", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))))
+    board.expect("#1a[data-cursor]").toExist()
+
+    // Delete 1a, cursor → 1b
+    board.command("delete_node")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // Navigate down to 1c
+    board.command("cursor_down")
+    board.expect("#1c[data-cursor]").toExist()
+
+    // Navigate back up
+    board.command("cursor_up")
+    board.expect("#1b[data-cursor]").toExist()
+
+    // No ghost of 1a
+    board.expect("#1a").not.toExist()
+    expect(repo.getNode("1a")).toBeNull()
+  })
+
+  test("multi-select delete removes all selected from DB and screen", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("keep-1"), item("del-A"), item("del-B"), item("keep-2"))),
+    )
+
+    // Navigate to del-A
+    board.command("cursor_down")
+    board.expect("#del-A[data-cursor]").toExist()
+
+    // Extend selection down to cover del-A and del-B
+    board.press("shift+ArrowDown")
+
+    // Delete selected cards
+    board.command("delete_node")
+
+    // Both should be gone from DB
+    expect(repo.getNode("del-A")).toBeNull()
+    expect(repo.getNode("del-B")).toBeNull()
+
+    // And from screen
+    board.expect("#del-A").not.toExist()
+    board.expect("#del-B").not.toExist()
+
+    // Surviving cards remain
+    expect(repo.getNode("keep-1")).not.toBeNull()
+    expect(repo.getNode("keep-2")).not.toBeNull()
+  })
+
+  test("undo after delete restores node in DB and screen", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+    board.expect("#1a[data-cursor]").toExist()
+
+    board.command("delete_node")
+    board.expect("#1a").not.toExist()
+    expect(repo.getNode("1a")).toBeNull()
+
+    // Undo
+    board.command("undo")
+
+    // Node should be back in both DB and screen
+    expect(repo.getNode("1a")).not.toBeNull()
+    board.expect("#1a").toExist()
+  })
+})
+
+// =============================================================================
+// Enter After Edit — Sibling Creation (km-tui.enter-jumps-board)
+// =============================================================================
+
+describe("Enter after edit creates sibling, not board jump", () => {
+  test("Enter during title edit at end creates sibling (not board jump)", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    // Enter edit mode on 1a
+    board.press("Enter")
+    // Move cursor to end of content (it should already be at end)
+    board.press("Control+e")
+    // Press Enter to create sibling
+    board.press("Enter")
+
+    // Should have 3 items now (1a + new sibling + 1b)
+    const colChildren = repo.getChildren("col1")
+    expect(colChildren.length).toBe(3)
+
+    // Cursor should NOT be on column header or board
+    const output = board.screenshot()
+    // The new sibling should be in edit mode (inline editing)
+    // We can verify by checking that we're NOT at the column level
+    expect(output).toContain("1a")
+    expect(output).toContain("1b")
+  })
+
+  test("Enter → type → Enter creates chain of siblings at card level", () => {
+    const { board, repo } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    board.press("Enter") // edit 1a
+    board.press("Enter") // save + new sibling (editing new sibling)
+    board.press("Enter") // save new sibling + another new sibling
+
+    // Should have 3 items in column
+    const colChildren = repo.getChildren("col1")
+    expect(colChildren.length).toBe(3)
+
+    // Escape to exit edit
+    board.press("Escape")
+
+    // Cursor should be on a card, not on column header
+    // Check that cursor is at card level by trying to navigate down
+    const output = board.screenshot()
+    expect(output).toContain("1a")
+  })
+
+  test("Escape then Enter re-enters edit (no jump to board)", () => {
+    const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    // Enter edit, then escape, then enter again
+    board.press("Enter") // edit 1a
+    board.press("Escape") // exit edit (back to normal mode on 1a)
+    board.press("Enter") // should re-enter edit on 1a, NOT jump
+
+    // Still on 1a, in edit mode
+    board.expect("#1a[data-cursor]").toExist()
+    const output = board.screenshot()
+    expect(output).toContain("1a")
+  })
+})

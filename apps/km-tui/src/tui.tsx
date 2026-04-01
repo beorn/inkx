@@ -16,6 +16,7 @@ import {
 } from "@silvery/ag-react"
 import React from "react"
 import { createLogger, createToastQueue, kmEvents } from "@km/core"
+import { InvariantViolationError } from "./invariants.ts"
 import { restoreTerminal } from "./raw-signals.ts"
 import { createBoardState } from "./board-types.ts"
 import type { InitialBoardData, TuiOptions } from "./types.ts"
@@ -224,6 +225,14 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       process.stderr.write(error.message + "\n")
       process.stderr.write("\nThis indicates a bug in incremental rendering. File an issue or run\n")
       process.stderr.write("without SILVERY_STRICT to continue using the TUI (with visual glitches).\n")
+      process.exit(1)
+    }
+    if (error instanceof InvariantViolationError) {
+      // KM_STRICT detected state corruption
+      process.stderr.write("\n\n[km] State invariant violation detected!\n")
+      process.stderr.write(`Check: ${error.check}\n`)
+      process.stderr.write(error.message + "\n")
+      process.stderr.write("\nThis indicates a state corruption bug. Run without KM_STRICT=1 to continue.\n")
       process.exit(1)
     }
     process.stderr.write(`\n\nTUI crashed with error: ${error.message}\n`)

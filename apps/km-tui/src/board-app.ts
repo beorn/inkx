@@ -29,6 +29,7 @@ import type { ActionCtx } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
 import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
+import { checkInvariants } from "./invariants.ts"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -663,6 +664,16 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
       parentSpan.spanData.outcome = "handled"
       parentSpan.spanData.actions = actionList.length
+
+      // Phase 3: Invariant checks — verify state consistency after mutations
+      {
+        using _invariants = parentSpan.span("invariants")
+        const freshCtx = buildActionCtx(get, exitApp)
+        const violations = checkInvariants(freshCtx)
+        if (violations.length > 0) {
+          parentSpan.spanData.invariantViolations = violations.length
+        }
+      }
     }
   }
 
