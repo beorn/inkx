@@ -156,7 +156,8 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
 
   // H1 heading (merged into file node) — use same logic as serializeSection for fidelity
   if (node.content) {
-    const title = node.title ?? node.content ?? ""
+    // Use || (not ??) — empty string title should fall through to content
+  const title = node.title || node.content || ""
     const ruleStr = node.rules ? serializeRules(node.rules) : ""
     const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
     let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
@@ -248,7 +249,8 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   const depth = Math.min(treeDepth, 6)
   const prefix = "#".repeat(depth)
   // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
-  const title = node.title ?? node.content ?? ""
+  // Use || (not ??) — empty string title should fall through to content
+  const title = node.title || node.content || ""
   const ruleStr = node.rules ? serializeRules(node.rules) : ""
   // Prepend task marker if present (e.g., "## [x] Task title")
   const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
