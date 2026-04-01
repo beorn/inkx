@@ -115,8 +115,8 @@ describe("KNode namespace", () => {
       // Task props reset to unchecked
       expect(props.task_marker).toBe("[ ]")
       expect(props.task_status).toBe("todo")
-      // Data inherits
-      expect(props.data).toEqual({ assignee: "alice" })
+      // Data is a system key — not inherited (source-specific)
+      expect(props.data).toBeUndefined()
     })
 
     it("extracts type, item from section node but NOT fstype", () => {
@@ -144,7 +144,7 @@ describe("KNode namespace", () => {
       expect(props.content).toBeUndefined()
     })
 
-    it("inherits data blob", () => {
+    it("strips data blob (source-specific, not inheritable)", () => {
       const node = {
         id: "n1",
         type: "p",
@@ -156,7 +156,8 @@ describe("KNode namespace", () => {
         version: "v1",
       } as any
       const props = KNode.extractProps(node)
-      expect(props.data).toEqual({ custom: "value", nested: { x: 1 } })
+      // data is a system key — contains source-specific info (name, title, etc.)
+      expect(props.data).toBeUndefined()
     })
 
     it("excludes all system fields", () => {
@@ -194,6 +195,7 @@ describe("KNode namespace", () => {
       expect(props.content).toBeUndefined()
       expect(props.name).toBeUndefined()
       expect(props.title).toBeUndefined()
+      expect(props.data).toBeUndefined()
     })
 
     it("skips null/undefined values", () => {

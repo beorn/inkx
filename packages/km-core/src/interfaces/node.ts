@@ -49,6 +49,7 @@ const SYSTEM_KEYS: ReadonlySet<string> = new Set([
   "content",
   "name",
   "title", // split by caller
+  "data", // source-specific JSON blob (name, title, is_repo_root, etc.) — never inherit
 ])
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- SlateJS namespace pattern
