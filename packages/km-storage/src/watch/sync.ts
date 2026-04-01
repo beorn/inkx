@@ -22,6 +22,7 @@ import {
   reconcileIfChanged,
   applyReconcileOps,
   applyReconcileOpsAsync,
+  type ReconcileOp,
 } from "./reconcile.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
@@ -112,6 +113,13 @@ export class SyncManager extends EventEmitter {
   private inFlightSyncs: Set<Promise<void>> = new Set()
   private stopped = false
 
+  // Recent writes — tracks files written by us to prevent reconciliation from reading stale content.
+  // The watcher's in-flight tracking suppresses FSEvents notifications, but the heartbeat and
+  // watcher-triggered reconciliation can still read stale files. This map records the timestamp
+  // of each write so reconciliation can skip recently-written files.
+  private recentWrites: Map<string, number> = new Map()
+  private static readonly RECENT_WRITE_WINDOW_MS = 10_000 // 10 seconds
+
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
   // Timer ID type - setInterval returns Timer in Node/Bun
@@ -158,6 +166,7 @@ export class SyncManager extends EventEmitter {
     // Create async FsWriteTarget that queues writes to WriteQueue
     const fsTarget: FsWriteTarget = {
       writeFile: (absPath: string, content: string, eventId?: string) => {
+        this.recentWrites.set(absPath, Date.now())
         this.writeQueue.queue({
           path: absPath,
           content,
@@ -314,12 +323,13 @@ export class SyncManager extends EventEmitter {
       this.setState("reconciling")
 
       // Scan entire repo for changes (async to avoid blocking main thread)
-      const ops = await reconcileDirectoryAsync(
+      const rawOps = await reconcileDirectoryAsync(
         this.db,
         this.config.repoPath,
         this.config.repoPath,
         this.ignorePatterns,
       )
+      const ops = this.filterRecentWriteOps(rawOps)
 
       if (ops.length > 0) {
         log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)
@@ -352,6 +362,32 @@ export class SyncManager extends EventEmitter {
     } finally {
       this.setState("idle")
     }
+  }
+
+  /**
+   * Check if a path was recently written by us (within the suppression window).
+   * Used to skip reconciliation for files we just wrote — prevents stale file
+   * content from overwriting DB values set by inline edit.
+   */
+  private isRecentWrite(absPath: string): boolean {
+    const writeTime = this.recentWrites.get(absPath)
+    if (!writeTime) return false
+    if (Date.now() - writeTime < SyncManager.RECENT_WRITE_WINDOW_MS) return true
+    // Expired — clean up
+    this.recentWrites.delete(absPath)
+    return false
+  }
+
+  /**
+   * Filter reconcile ops to exclude files we recently wrote.
+   */
+  private filterRecentWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
+    const filtered = ops.filter((op) => !this.isRecentWrite(op.path))
+    const skipped = ops.length - filtered.length
+    if (skipped > 0) {
+      log.debug?.(`reconcile: skipped ${skipped} ops for recently-written files`)
+    }
+    return filtered
   }
 
   /**
@@ -451,7 +487,8 @@ export class SyncManager extends EventEmitter {
       for (const dir of data.directories) {
         if (this.stopped) break
         using dirSpan = span.span("reconcile-dir", { dir })
-        const ops = await reconcileDirectoryAsync(this.db, dir, this.config.repoPath, this.ignorePatterns)
+        const rawOps = await reconcileDirectoryAsync(this.db, dir, this.config.repoPath, this.ignorePatterns)
+        const ops = this.filterRecentWriteOps(rawOps)
         dirSpan.spanData.ops = ops.length
 
         if (ops.length > 0 && !this.stopped) {

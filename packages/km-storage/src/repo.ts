@@ -440,8 +440,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
       // Derive new name from content (strip task mark prefix like "- [ ] ")
       const newName = newContent.replace(/^- \[.\]\s*/, "")
 
-      if (!oldName || oldName === newName) {
-        // Still update content even if name didn't change
+      if (oldName && oldName === newName) {
+        // Name didn't change — only update content
         if (node.content !== newContent) {
           // Use this.updateNode so undo proxy can intercept when wrapped
           this.updateNode(id, { content: newContent })

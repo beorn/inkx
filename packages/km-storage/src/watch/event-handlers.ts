@@ -178,7 +178,11 @@ export class EventHandlers {
     }
 
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-    reconcileIfChanged(this.db, fileNode, this.repoPath, this.ignorePatterns, this.emitter)
+    // NOTE: reconcileIfChanged removed here. For user-origin events, the DB
+    // is the authority. Reconciling from a stale file (written by a previous
+    // event in the same batch) causes data loss — e.g., name set by inline
+    // edit gets overwritten by the empty heading from the prior write.
+    // External edits are handled by the watcher's periodic reconciliation.
 
     const blockIds = this.createBlockIdAssigner()
     const subtreeNodes = getSubtree(this.db, fileNode.id)

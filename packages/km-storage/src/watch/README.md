@@ -91,11 +91,11 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
 
 ### DB -> FS
 
-| Module               | Single Responsibility                                             |
-| -------------------- | ----------------------------------------------------------------- |
-| `event-handlers.ts`  | Unified node mutation handlers for DB->FS sync (shared by SyncManager + FsWriter) |
-| `writequeue.ts`      | Debounced writes with retry, conflict detection, in-flight        |
-| `watch-utils.ts`     | Shared helpers: findFileNode (walk parent chain), titleToFilename |
+| Module              | Single Responsibility                                                             |
+| ------------------- | --------------------------------------------------------------------------------- |
+| `event-handlers.ts` | Unified node mutation handlers for DB->FS sync (shared by SyncManager + FsWriter) |
+| `writequeue.ts`     | Debounced writes with retry, conflict detection, in-flight                        |
+| `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename                 |
 
 ### Shared
 
@@ -176,13 +176,13 @@ All events update the `meta.last_event` cursor in SQLite.
 Both implement `FsSync.applyEventToFs()`, delegating to shared `EventHandlers` class
 which handles all node mutation logic. Differ only in the `FsWriteTarget` they inject:
 
-| Aspect             | SyncManager (TUI)                         | FsWriter (CLI)            |
-| ------------------ | ----------------------------------------- | ------------------------- |
-| FsWriteTarget      | WriteQueue (async, debounced, retried)    | writeFileSync (sync)      |
-| Watcher            | Yes (chokidar + heartbeat)                | No                        |
-| In-flight tracking | Yes (markInFlight/clearInFlight)          | No                        |
-| Lifecycle          | Long-running, `await using`               | One-shot, GC'd            |
-| Shared handlers    | EventHandlers class (unified logic)       | EventHandlers class       |
+| Aspect             | SyncManager (TUI)                      | FsWriter (CLI)       |
+| ------------------ | -------------------------------------- | -------------------- |
+| FsWriteTarget      | WriteQueue (async, debounced, retried) | writeFileSync (sync) |
+| Watcher            | Yes (chokidar + heartbeat)             | No                   |
+| In-flight tracking | Yes (markInFlight/clearInFlight)       | No                   |
+| Lifecycle          | Long-running, `await using`            | One-shot, GC'd       |
+| Shared handlers    | EventHandlers class (unified logic)    | EventHandlers class  |
 
 ## Known Limitations
 
