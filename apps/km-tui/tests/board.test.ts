@@ -120,13 +120,7 @@ describe("Runtime invariants", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    // Build a minimal ActionCtx-like object from store for invariant checking
-    const s = store.getState()
-    // Use board-app's buildActionCtx via the store's exposed handler
-    // Instead, check invariants through the board.app() invariant system
-    const app = board.app ? board.app : null
-
-    // Alternatively, just verify no violations by navigating with invariants enabled
+    // Verify no violations by navigating with invariants enabled
     board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
     // If invariants were violated, the press would have failed (in strict mode)

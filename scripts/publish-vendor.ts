@@ -36,8 +36,8 @@ const VENDOR_DIR = join(KM_ROOT, "vendor")
 
 // ── Helpers ──
 
-function readPkg(path: string) {
-  return JSON.parse(readFileSync(path, "utf-8"))
+function readPkg(path: string): Record<string, any> {
+  return JSON.parse(readFileSync(path, "utf-8")) as Record<string, any>
 }
 
 function writePkg(path: string, data: unknown) {
@@ -45,7 +45,7 @@ function writePkg(path: string, data: unknown) {
 }
 
 function bumpVersion(version: string, type: "patch" | "minor" | "major"): string {
-  const [major, minor, patch] = version.split(".").map(Number)
+  const [major = 0, minor = 0, patch = 0] = version.split(".").map(Number)
   switch (type) {
     case "major":
       return `${major + 1}.0.0`
