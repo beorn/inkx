@@ -657,8 +657,7 @@ export function Board({ patchedConsole }: BoardProps) {
     const onPause = runtimeCtx?.pause
     const onResume = runtimeCtx?.resume
     if (!onPause || !onResume) return
-    onPause()
-    process.stdout.write("\x1b[?25h\x1b[?1049l")
+    onPause() // Leaves alt screen + shows cursor
     if (patchedConsole) {
       const entries = patchedConsole.getSnapshot()
       for (const entry of entries) {
@@ -668,8 +667,7 @@ export function Board({ patchedConsole }: BoardProps) {
       }
     }
     return () => {
-      process.stdout.write("\x1b[?1049h\x1b[2J\x1b[H\x1b[?25l")
-      onResume()
+      onResume() // Re-enters alt screen + hides cursor + re-renders
     }
   }, [ui.showConsole, runtimeCtx, patchedConsole])
 
