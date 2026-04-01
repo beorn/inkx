@@ -27,8 +27,8 @@ Derived from node position + state. Compound guards simplify cases.
 
 | Variable | Description |
 |---|---|
-| `isItem` | `node.item === true` — structural node, can have children |
-| `isTask` | Has task_marker/task_status |
+| `isItem` | `node.item != null` — structural node, can have children |
+| `isTask` | Has `item.task` (`node.item?.task != null`) |
 | `isFirstChild` | No previous sibling |
 | `isLastChild` | No next sibling |
 | `hasVisibleChildren` | Has children AND they're expanded (not collapsed) |
@@ -53,7 +53,7 @@ Derived from node position + state. Compound guards simplify cases.
 
 ### Split Inheritance
 
-New node inherits from source via `extractProps()` (denylist model — SYSTEM_KEYS excluded, everything else inherits). **Exception**: `task_status` resets to "todo", `task_marker` resets to "[ ]" on new nodes.
+New node inherits from source via `extractProps()` (denylist model — SYSTEM_KEYS excluded, everything else inherits). **Exception**: `item.task` resets to `{ marker: "[ ]", status: "todo" }` on new nodes.
 
 ## indent (Tab)
 
@@ -85,7 +85,7 @@ Degradation ladder — strip traits before merging. Try each in order, stop at f
 
 | Step | Guard | Action |
 |---|---|---|
-| 1 | `isTask` | Remove task trait (clear task_marker + task_status) |
+| 1 | `isTask` | Remove task trait (clear `item.task`) |
 | 2 | `isItem` | Remove item trait (set item: undefined → becomes block) |
 | 3 | `type !== "p"` | Convert to paragraph (h/quote/code → p) |
 | 4 | `isEmpty && !hasVisibleChildren` | Delete node, cursor to end of previous |

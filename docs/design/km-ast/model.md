@@ -16,11 +16,7 @@ interface KNode {
   name?: string                  // Display identifier (slug, alias, filename)
 
   // Trait: item (navigable, can have children)
-  item?: boolean                 // true = structural item, false/undefined = leaf block
-
-  // Trait: task (only valid when item = true)
-  task_status?: TaskStatus       // "todo" | "done" | "wip" | "blocked" | "dropped"
-  task_marker?: TaskMarker       // "[ ]" | "[x]" | "[/]" | "[!]" | "[-]"
+  item?: ItemData               // present = item, undefined = leaf block
 
   // Embed trait (orthogonal to type — any node type can be an embed)
   embed_source?: string | null   // Target node ID (null = unresolved)
@@ -46,10 +42,10 @@ The old categorical types (oi, li, link) are derived from block type + traits:
 
 | Combination | Derived Category | Markdown Serialization |
 |---|---|---|
-| `type:"h", item:true` | Outline item (was `oi`) | `## Title` |
-| `type:"p", item:true` | List item (was `li`) | `- content` |
-| `type:"quote", item:true` | Quote list item | `- > content` |
-| `type:"code", item:true` | Code list item | `- \`\`\`code\`\`\`` |
+| `type:"h", item:{}` | Outline item (was `oi`) | `## Title` |
+| `type:"p", item:{list:"-"}` | List item (was `li`) | `- content` |
+| `type:"quote", item:{list:"-"}` | Quote list item | `- > content` |
+| `type:"code", item:{list:"-"}` | Code list item | `- \`\`\`code\`\`\`` |
 | any type + `embed_source` | Embed (was `link`) | `![[target]]` |
 | `type:"p"` (no item) | Paragraph block | `content` |
 | `type:"code"` (no item) | Code block | ` ```code``` ` |
@@ -60,11 +56,11 @@ The old categorical types (oi, li, link) are derived from block type + traits:
 ```typescript
 import { KNode } from "@km/core"
 
-KNode.isOutline(node) // node.type === "h" && node.item === true
-KNode.isListItem(node) // node.type !== "h" && node.item === true
-KNode.isItem(node)     // node.item === true
+KNode.isOutline(node) // node.type === "h" && node.item != null
+KNode.isListItem(node) // node.type !== "h" && node.item != null
+KNode.isItem(node)     // node.item != null
 KNode.isEmbed(node)    // node.embed_source != null (orthogonal to type)
-KNode.isBlock(node)    // !node.item (leaf node)
+KNode.isBlock(node)    // node.item == null (leaf node)
 ```
 
 `KNode.isItem` is the primary structural predicate — items are containers, blocks are leaves.
@@ -73,8 +69,8 @@ KNode.isBlock(node)    // !node.item (leaf node)
 
 | Constraint | Rule |
 |---|---|
-| h requires item | `type === "h"` implies `item === true` |
-| task requires item | `task_status` or `task_marker` implies `item === true` |
+| h requires item | `type === "h"` implies `item != null` |
+| task requires item | `item.task` can only exist when `item` is present (always true by structure) |
 | embed is orthogonal | `embed_source != null` marks a node as an embed — any type can be an embed |
 | embed children from source | Embed nodes' children come from the target node (resolved at render time) |
 | item-allowed types | h, p, quote, code can be items; table, hr, html, math cannot |
@@ -87,7 +83,7 @@ Validated by `validateNode()` in `@km/core`.
 
 Structurally almost identical. Both recursive, navigable, use `.content` as title. Differences are serialization and default rendering:
 
-| | **Outline** (`type:"h", item:true`) | **List** (`type:"p", item:true`) |
+| | **Outline** (`type:"h", item:{}`) | **List** (`type:"p", item:{list?, task?}`) |
 |---|---|---|
 | Markdown | Headings (`# Title`, `## Sub`) | List items (`- text`, `- [ ] task`) |
 | Default rendering | Card / column | Checklist row |
@@ -95,34 +91,34 @@ Structurally almost identical. Both recursive, navigable, use `.content` as titl
 | Heading level | Derived from tree depth (never stored) | N/A |
 | fstype | repo, folder, mdfile, mdsection | N/A |
 
-### Outline Item (type:"h", item:true)
+### Outline Item (type:"h", item:{})
 
 Creates the document hierarchy: repo → folders → files → sections.
 
 | Field | Type | Notes |
 |---|---|---|
 | `type` | `"h"` | Heading block type |
-| `item` | `true` | Always true for outline items |
+| `item` | `ItemData` | Always present for outline items (at minimum `{}`) |
 | `content` | `string?` | Title text. Empty is valid (item has body but no title) |
 | `fstype` | `FsType` | repo, folder, file, mdfile, txtfile, mdsection |
 | `name` | `string?` | Filesystem identity / heading slug |
-| `task_marker` | `string?` | Checkbox: `"[ ]"`, `"[x]"`, `"[/]"`, `"[!]"`, `"[-]"` |
+| `item.task` | `{marker, status}?` | Task: `{ marker: "[x]", status: "done" }` |
 
 Title is `.content`. Heading level is derived from tree depth.
 
-### List Item (type:"p", item:true)
+### List Item (type:"p", item:{list?, task?})
 
 | Field | Type | Notes |
 |---|---|---|
 | `type` | `"p"` | Paragraph block type (or `"quote"`, `"code"` for first-block items) |
-| `item` | `true` | Always true for list items |
+| `item` | `ItemData` | Always present; holds list marker and optional task |
 | `content` | `string?` | Title text (rendered as checkbox text) |
-| `list_marker` | `string` | `"-"`, `"*"`, `"+"`, `"1."`, `"1)"`, `"[^1]"` |
-| `task_marker` | `string?` | Checkbox: `"[ ]"`, `"[x]"`, etc. (optional) |
+| `item.list` | `string` | `"-"`, `"*"`, `"+"`, `"1."`, `"1)"`, `"[^1]"` |
+| `item.task` | `{marker, status}?` | Task: `{ marker: "[ ]", status: "todo" }` (optional) |
 
 Same structure as outline items. One structural difference: list item children can interleave blocks and sub-items in any order (markdown indentation disambiguates). For outline items, blocks must come before sub-items (markdown heading parsing cannot disambiguate trailing blocks).
 
-Headings inside list items are parsed as child list items (`type:"p", item:true`), not as outline items. Outline items only exist at the document structure level.
+Headings inside list items are parsed as child list items (`type:"p", item:{...}`), not as outline items. Outline items only exist at the document structure level.
 
 ### Block
 
@@ -131,7 +127,7 @@ Content leaf. Has a `content` string. No children (except `quote`).
 | Type | Content |
 |---|---|
 | `p` | Paragraph text (inline markdown) |
-| `h` | Heading (always item:true — bare h is invalid) |
+| `h` | Heading (always has item — bare h is invalid) |
 | `code` | Code block (lang in data) |
 | `quote` | Blockquote text (can contain child blocks) |
 | `table` | Raw markdown table |
@@ -143,8 +139,8 @@ Content leaf. Has a `content` string. No children (except `quote`).
 Any node with `embed_source != null` is an embed — a block-level transclusion. The node's `type` stays as-is (`p`, `h`, etc.). Embeds created by different paths:
 
 - **Markdown parser**: `![[target]]` → sets `embed_source` on the parsed node (type preserved from context)
-- **Board rules** (`km.add::`): creates `type:"h", item:true, embed_source:<id>` (outline item)
-- **CLI add**: creates `type:"p", item:true, embed_source:<id>` (list item)
+- **Board rules** (`km.add::`): creates `type:"h", item:{}, embed_source:<id>` (outline item)
+- **CLI add**: creates `type:"p", item:{list:"-"}, embed_source:<id>` (list item)
 
 | Field | Type | Notes |
 |---|---|---|
@@ -260,30 +256,30 @@ Navigation is **purely spatial** (hjkl = left/down/up/right on screen). Navigati
 ```sql
 -- Items only (board columns — title is .content on each node)
 SELECT * FROM nodes WHERE parent_id = ?
-  AND ((type = 'h' AND item = 1) OR type = 'oi')
+  AND ((type = 'h' AND item IS NOT NULL) OR type = 'oi')
 
 -- Body blocks only (detail pane, on demand)
 SELECT * FROM nodes WHERE parent_id = ?
-  AND NOT ((type = 'h' AND item = 1) OR type = 'oi')
+  AND NOT ((type = 'h' AND item IS NOT NULL) OR type = 'oi')
 
 -- Dual-match pattern: supports both v2 and legacy data during migration
--- (type = 'oi' OR (type = 'h' AND item = 1))
+-- (type = 'oi' OR (type = 'h' AND item IS NOT NULL))
 ```
 
 ## Task Trait
 
-Any item can be a task via `task_marker`. Task status is **derived** from the marker:
+Any item can be a task via `item.task`. Both marker and status are stored together:
 
-| task_marker | Status |
+| item.task.marker | item.task.status |
 |---|---|
-| `"[ ]"` | todo |
-| `"[x]"` `"[X]"` | done |
-| `"[/]"` | wip |
-| `"[!]"` | blocked |
-| `"[-]"` | dropped |
-| absent | not a task |
+| `"[ ]"` | `"todo"` |
+| `"[x]"` `"[X]"` | `"done"` |
+| `"[/]"` | `"wip"` |
+| `"[!]"` | `"blocked"` |
+| `"[-]"` | `"dropped"` |
+| absent (no `item.task`) | not a task |
 
-`task_marker` is the stored value. `task_status` is a computed/derived field.
+Both `marker` and `status` live inside `item.task`. A node is a task when `item?.task != null`.
 
 ## List Markers
 
@@ -293,7 +289,7 @@ Ordered:    "1.", "1)", "3."   (start number + delimiter)
 Footnote:   "[^1]", "[^note]"
 ```
 
-Ordered vs unordered derived from `list_marker`. Actual numbers computed from sibling position. Consecutive list items with compatible markers serialize to one markdown list.
+Ordered vs unordered derived from `item.list`. Actual numbers computed from sibling position. Consecutive list items with compatible markers serialize to one markdown list.
 
 Footnote definitions (`[^1]: text`) are list items with footnote markers. References (`[^1]`) stay inline in content strings.
 
@@ -323,10 +319,10 @@ h item  name:"vault"           fstype:"repo"
       h item  name:"section"  fstype:"mdsection"
         p "paragraph"
         code "let x = 1"
-        p item  marker:"-"  "Buy milk"
-          p item  marker:"-"  status:"todo"  "Eggs"
+        p item(list:"-")  "Buy milk"
+          p item(list:"-", task:{marker:"[ ]",status:"todo"})  "Eggs"
           quote "note"
-        quote item  marker:"-"  "quote list item"
+        quote item(list:"-")  "quote list item"
         p  embed_source:"<id>"          # embed (any type + embed_source)
         h item  name:"sub"   fstype:"mdsection"
 ```
@@ -354,12 +350,12 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 | HTML block | `html` |
 | Block math (`$$...$$`) | `math` (LaTeX in content) |
 | **Lists** | |
-| Unordered list item (`- text`) | `p item (list_marker:"-")` |
-| Ordered list item (`1. text`) | `p item (list_marker:"1.")` |
-| Task list item (`- [ ] text`) | `p item (list_marker:"-", task_marker:"[ ]")` |
+| Unordered list item (`- text`) | `p item (list:"-")` |
+| Ordered list item (`1. text`) | `p item (list:"1.")` |
+| Task list item (`- [ ] text`) | `p item (list:"-", task:{marker:"[ ]", status:"todo"})` |
 | Nested list | `p item` containing child `p item` |
 | Multi-paragraph list item | `p item` containing multiple `p` children |
-| Footnote def (`[^1]: text`) | `p item (list_marker:"[^1]")` |
+| Footnote def (`[^1]: text`) | `p item (list:"[^1]")` |
 | **Outline structure** | |
 | Directory | `h item (fstype:"folder")` |
 | Markdown file | `h item (fstype:"mdfile")` |
@@ -407,10 +403,10 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 | Title in `.content` (no separate h child) | Eliminates redundancy. Heading level from tree depth. | Parser must store title on item node, not as child |
 | Rendering is context-dependent | Embedded nodes take host's style. Decouples model from view. | View layer more complex |
 | Navigation is spatial (hjkl) | Decoupled from content type. Works in any layout. | Rendering must produce navigable spatial layout |
-| Lazy loading via SQL type filter | No body container node needed. `WHERE type = 'h' AND item = 1` for items. | Slightly more complex queries than skipping a body subtree |
+| Lazy loading via SQL type filter | No body container node needed. `WHERE type = 'h' AND item IS NOT NULL` for items. | Slightly more complex queries than skipping a body subtree |
 | Heading level from tree depth | Enforces well-formed outline hierarchy | Normalizes skipped levels on round-trip |
-| `task_marker` as full bracket string | Round-trip fidelity for bidirectional MD sync | Slightly more parsing than a boolean `checked` |
-| `list_marker` as literal string | Preserves user's bullet style | Requires parsing for ordered list logic |
+| `item.task.marker` as full bracket string | Round-trip fidelity for bidirectional MD sync | Slightly more parsing than a boolean `checked` |
+| `item.list` as literal string | Preserves user's bullet style | Requires parsing for ordered list logic |
 | Footnotes as list items with `[^id]` marker | Reuses list structure for multi-paragraph footnotes | Unconventional |
 | No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive item siblings |
 | Embeds as orthogonal trait (not a type) | Any node type can be an embed via `embed_source`. Consistent with block+trait model. | Must check `embed_source != null` instead of type |
@@ -422,8 +418,8 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 
 | v1 | v2 |
 |---|---|
-| `type: "oi"` | `type: "h", item: true` |
-| `type: "li"` | `type: "p", item: true` (or actual block type) |
+| `type: "oi"` | `type: "h", item: {}` |
+| `type: "li"` | `type: "p", item: { list?, task? }` (or actual block type) |
 | `type: "link"` | any type + `embed_source` |
 | `link_to` field | `embed_source` field |
 | `link_alias` field | `name` field |

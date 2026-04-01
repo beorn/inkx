@@ -191,9 +191,9 @@ Commands execute directly rather than returning action descriptors:
 
 ```typescript
 const cycleTaskStatus: Cmd = (ctx) => {
-  if (!ctx.knode?.task_status) return
-  const next = nextStatus(ctx.knode.task_status)
-  ctx.storage.update(ctx.knode.id, { task_status: next })
+  if (!ctx.knode?.item?.task) return
+  const next = nextStatus(ctx.knode.item.task.status)
+  ctx.storage.update(ctx.knode.id, { item: { ...ctx.knode.item, task: { ...ctx.knode.item.task, status: next } } })
   ctx.refresh()
 }
 

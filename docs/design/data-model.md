@@ -12,7 +12,7 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 │                                                 │
 │ id: string (ULID)                               │
 │ type: "p"|"h"|"code"|"quote"|"table"|"hr"|...   │
-│ item: boolean     ← true = structural, has kids │
+│ item?: ItemData   ← present = structural item   │
 │ parent_id: string ← parent reference            │
 │ parent_idx: number ← sibling order              │
 │                                                 │
@@ -20,11 +20,10 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 │ name: string      ← slug/identifier             │
 │ title: string     ← display title (materialized)│
 │                                                 │
+│ ItemData: { list?: string, task?: {marker,status} }
+│                                                 │
 │ Traits (orthogonal to type):                    │
-│   task_marker: "[ ]"|"[x]"|"[/]"|"[!]"|"[-]"    │
-│   task_status: derived from task_marker         │
 │   embed_source: string|null                     │
-│   list_marker: string                           │
 │   fstype: "repo"|"folder"|"file"|"mdsection"    │
 │   rules: { collapse, limit, color, ... }        │
 └─────────────────────────────────────────────────┘
@@ -34,14 +33,19 @@ Every piece of content is a **KNode** — a flat record with parent-child relati
 
 The single most important distinction:
 
-- **Item** (`item: true`) — structural node that can have children. The cursor can land on it. Participates in outliner operations (indent, outdent, split, merge).
+- **Item** (`item: { ... }`) — structural node that can have children. The cursor can land on it. Participates in outliner operations (indent, outdent, split, merge).
 - **Block** (no `item` field) — leaf content. Not directly selectable. Part of a parent item's body.
 
-`item` is a **presence trait**, not a boolean. Items have `item: true`. Blocks simply don't have the field. (Same pattern as `task_marker` — present means task, absent means not.)
+`item` is a **presence trait** using an `ItemData` object. Items have `item: { ... }` — the object holds list marker and task data. Blocks simply don't have the field. All structural metadata lives inside `item`, keeping the item/block boundary clean.
 
-**Future consideration**: `item` could be an object containing item-specific properties (`{ list: "-", task: "[ ]" }`), grouping `list_marker`, `task_marker`, `task_status` under the item trait instead of scattering them at the top level. This would make the item/block boundary even cleaner — all structural metadata lives inside `item`, blocks have no `item` field at all.
+```typescript
+interface ItemData {
+  list?: string                  // "-", "*", "+", "1.", etc.
+  task?: { marker: TaskMarker; status: TaskStatus }
+}
+```
 
-| | **Item** (`item: true`) | **Block** (no `item`) |
+| | **Item** (`item: { ... }`) | **Block** (no `item`) |
 |---|---|---|
 | Children | Yes — forms tree hierarchy | No — leaf content |
 | Navigation | Cursor target | Not selectable |
@@ -50,11 +54,11 @@ The single most important distinction:
 
 **Type guards** (SlateJS namespace pattern):
 ```typescript
-KNode.isItem(node)      // node.item === true
-KNode.isBlock(node)     // !node.item
-KNode.isOutline(node)   // type === "h" && item === true
-KNode.isListItem(node)  // type !== "h" && item === true
-KNode.isTask(node)      // has task_marker or task_status
+KNode.isItem(node)      // node.item != null
+KNode.isBlock(node)     // node.item == null
+KNode.isOutline(node)   // type === "h" && item != null
+KNode.isListItem(node)  // type !== "h" && item != null
+KNode.isTask(node)      // node.item?.task != null
 KNode.isEmbed(node)     // has embed_source
 ```
 
@@ -82,31 +86,31 @@ Two representations of the same thing:
 
 | km-ast (parser) | KNode (storage) | What it is |
 |---|---|---|
-| `oi` (outline item) | `type: "h", item: true` | Section heading — creates hierarchy |
-| `li` (list item) | `type: "p", item: true` | Bullet/task — content with children |
-| `p` (paragraph) | `type: "p", item: false` | Body text — leaf content |
-| `h` (heading) | `type: "h", item: false` | Heading block — leaf (rare, usually item) |
+| `oi` (outline item) | `type: "h", item: {}` | Section heading — creates hierarchy |
+| `li` (list item) | `type: "p", item: { list?, task? }` | Bullet/task — content with children |
+| `p` (paragraph) | `type: "p"` (no item) | Body text — leaf content |
+| `h` (heading) | `type: "h"` (no item) | Heading block — leaf (rare, usually item) |
 | `code` | `type: "code", item: false` | Code block |
 | `quote` | `type: "quote", item: false` | Blockquote |
 
-**`oi` and `li` don't exist in KNode** — they're km-ast parse types. Storage uses `type` + `item` boolean.
+**`oi` and `li` don't exist in KNode** — they're km-ast parse types. Storage uses `type` + `item` object (`ItemData`).
 
 ## Board Hierarchy
 
 ```
 Board Root ─────────── fstype: "repo" or "folder"
 │
-├── Column ──────────── type: "h", item: true (direct child of root)
+├── Column ──────────── type: "h", item: {} (direct child of root)
 │   │
-│   ├── Card ────────── item: true (child of column, renders as bordered box)
-│   │   ├── Sub-item ── item: true (child of card, renders as indented line)
-│   │   ├── Sub-item ── item: true
-│   │   └── Body ────── item: false (block content BEFORE first sub-item)
+│   ├── Card ────────── item: { ... } (child of column, renders as bordered box)
+│   │   ├── Sub-item ── item: { ... } (child of card, renders as indented line)
+│   │   ├── Sub-item ── item: { ... }
+│   │   └── Body ────── no item (block content BEFORE first sub-item)
 │   │
-│   ├── Card ────────── item: true
-│   └── Body Card ───── item: false (block between cards, dimmed border)
+│   ├── Card ────────── item: { ... }
+│   └── Body Card ───── no item (block between cards, dimmed border)
 │
-└── Column ──────────── type: "h", item: true
+└── Column ──────────── type: "h", item: {}
     └── ...
 ```
 
@@ -114,10 +118,10 @@ Board Root ─────────── fstype: "repo" or "folder"
 
 | Role | How determined | Not a separate type |
 |---|---|---|
-| **Column** | Direct child of board root + `item: true` | Same KNode, different position |
-| **Card** | Direct child of column + `item: true` | Same KNode, different position |
-| **Sub-item** | Child of card + `item: true` | Same KNode, different depth |
-| **Body block** | Child with `item: false` | Different: no hierarchy |
+| **Column** | Direct child of board root + `item != null` | Same KNode, different position |
+| **Card** | Direct child of column + `item != null` | Same KNode, different position |
+| **Sub-item** | Child of card + `item != null` | Same KNode, different depth |
+| **Body block** | Child with no `item` | Different: no hierarchy |
 | **Body card** | Block child of column (between cards) | Rendered as dimmed card |
 
 **Role is positional, not typed.** The same KNode type can be a column, card, or sub-item depending on where it sits in the tree.
@@ -197,7 +201,7 @@ The TUI wraps KNode in view models for rendering:
 
 ## Invariants
 
-1. **Items can have children, blocks cannot** — `item: true` is the only prerequisite for `getChildren()`
+1. **Items can have children, blocks cannot** — `item != null` is the only prerequisite for `getChildren()`
 2. **View/board role is positional** — a KNode's board role (column/card/sub-item) depends on its depth, not its type
 3. **parent_id "." means root** — the board root uses "." as parent_id (not null)
 4. **parent_idx determines order** — siblings sorted by parent_idx (fractional indexing)

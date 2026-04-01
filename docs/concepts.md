@@ -38,7 +38,7 @@ repo/
 └── ...                 # p, code, quote, etc.
 ```
 
-**A node is a task if it has a `task_marker` property** (e.g. `[ ]`, `[x]`, `[/]`, `[!]`, `[-]`).
+**A node is a task if it has `item.task`** (e.g. `item: { task: { marker: "[ ]", status: "todo" } }`).
 
 ### Node Types (km-ast)
 
@@ -57,7 +57,7 @@ Link (1)   — references
 ````
 
 - **`oi`** (outline item) creates hierarchy. `fstype` distinguishes: `folder`, `file`, `mdfile`, `mdsection`.
-- **`li`** (list item) holds content. `list_marker` for bullet style, `task_marker` for task status.
+- **`li`** (list item) holds content. `item.list` for bullet style, `item.task` for task status.
 - **Blocks** are leaf content that doesn't create hierarchy.
 
 ---

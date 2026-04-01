@@ -86,12 +86,12 @@ KM - TNode (Tree Node):
 ```typescript
 interface TNode {
   id: string;
-  type: string;           // "task", "section", "paragraph"
+  type: string;           // "h", "p", "code", "quote", etc.
   parent_id: string | null;
   children: TNode[];
   name: string;
   title: string;
-  task_status?: TaskStatus;
+  item?: ItemData;        // { list?, task?: { marker, status } }
   data: Record<string, unknown>;  // frontmatter
 }
 ```

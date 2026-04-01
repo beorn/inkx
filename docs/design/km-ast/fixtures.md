@@ -98,23 +98,23 @@ h item(fstype:mdfile, name:"todo-board", content:"Todo Board")
 
 ```
 h item(fstype:mdsection, name:"shopping", content:"Shopping")
-  p item(list_marker:"-", content:"Apples")               ← children[0]
-  p item(list_marker:"-", content:"Bananas")               ← children[1]
-    p item(list_marker:"-", content:"Green ones")            ← nested (child item of parent item)
-    p item(list_marker:"-", content:"Ripe ones")
-  p item(list_marker:"-", content:"Milk")                  ← children[2]
-  p item(list_marker:"1.", content:"Wake up")              ← children[3] — new list (different marker)
-  p item(list_marker:"2.", content:"Brush teeth")
-  p item(list_marker:"3.", content:"Make coffee")
+  p item(list:"-", content:"Apples")               ← children[0]
+  p item(list:"-", content:"Bananas")               ← children[1]
+    p item(list:"-", content:"Green ones")            ← nested (child item of parent item)
+    p item(list:"-", content:"Ripe ones")
+  p item(list:"-", content:"Milk")                  ← children[2]
+  p item(list:"1.", content:"Wake up")              ← children[3] — new list (different marker)
+  p item(list:"2.", content:"Brush teeth")
+  p item(list:"3.", content:"Make coffee")
 ```
 
 **Key points:**
 
 - p item has .content directly — the text is in the content field
 - Nested list items are child items of the parent p item
-- list_marker preserves original style ("-" vs "1.")
-- Ordered numbering stored as-is in list_marker
-- Consecutive p items with compatible list_markers serialize back to one markdown list
+- item.list preserves original style ("-" vs "1.")
+- Ordered numbering stored as-is in item.list
+- Consecutive p items with compatible item.list values serialize back to one markdown list
 
 ## Fixture 4: Tasks (checkbox items)
 
@@ -137,21 +137,21 @@ Completed last week.
 
 ```
 h item(fstype:mdsection, name:"sprint-3", content:"Sprint 3")
-  p item(list_marker:"-", task_marker:"[x]", content:"Deploy staging")
-  p item(list_marker:"-", task_marker:"[ ]", content:"Write migration")
-  p item(list_marker:"-", task_marker:"[/]", content:"Code review")
-  p item(list_marker:"-", task_marker:"[!]", content:"Waiting on design")
-  h item(fstype:mdsection, name:"auth-overhaul", task_marker:"[x]", content:"Auth overhaul")
+  p item(list:"-", task:{marker:"[x]",status:"done"}, content:"Deploy staging")
+  p item(list:"-", task:{marker:"[ ]",status:"todo"}, content:"Write migration")
+  p item(list:"-", task:{marker:"[/]",status:"wip"}, content:"Code review")
+  p item(list:"-", task:{marker:"[!]",status:"blocked"}, content:"Waiting on design")
+  h item(fstype:mdsection, name:"auth-overhaul", task:{marker:"[x]",status:"done"}, content:"Auth overhaul")
     p(content:"Completed last week.")
 ```
 
 **Key points:**
 
-- task_marker is the checkbox including brackets: "[x]", "[ ]", "[/]", "[!]", "[-]"
-- task_status is derived: "[x]"→done, "[ ]"→todo, "[/]"→wip, "[!]"→blocked, "[-]"→dropped
-- list_marker ("-") and task_marker ("[x]") are independent — both are "markers"
-- The checkbox is NOT part of the content string — it's extracted to task_marker
-- Section headings with `[x]` prefix → h item with task_marker
+- item.task.marker is the checkbox including brackets: "[x]", "[ ]", "[/]", "[!]", "[-]"
+- item.task.status is stored alongside marker: "[x]"→done, "[ ]"→todo, "[/]"→wip, "[!]"→blocked, "[-]"→dropped
+- item.list ("-") and item.task are independent — both live inside the item object
+- The checkbox is NOT part of the content string — it's extracted to item.task
+- Section headings with `[x]` prefix → h item with task:{marker:"[x]",status:"done"}
 
 ## Fixture 5: Code blocks and quotes
 
@@ -306,10 +306,10 @@ h item(fstype:folder, name:"projects")
 
 ```
 h item(fstype:mdsection, name:"api-endpoints", content:"API Endpoints")
-  p item(list_marker:"-", content:"**GET /users**")
+  p item(list:"-", content:"**GET /users**")
     p(content:"Returns all users. Supports pagination.")
     code(content:"{\"users\": [...], \"total\": 42}", data:{lang:"json"})
-  p item(list_marker:"-", content:"**POST /users**")
+  p item(list:"-", content:"**POST /users**")
     p(content:"Creates a new user.")
 ```
 
@@ -343,8 +343,8 @@ Deep dive results here.
 ```
 h item(fstype:mdsection, name:"notes", content:"Notes")
   p(content:"Remember to check the logs.")              ← children[0]
-  p item(list_marker:"-", content:"First finding")       ← children[1] (p item is a child in h item context)
-  p item(list_marker:"-", content:"Second finding")      ← children[2]
+  p item(list:"-", content:"First finding")       ← children[1] (p item is a child in h item context)
+  p item(list:"-", content:"Second finding")      ← children[2]
   p(content:"Also review the dashboard.")                ← children[3]
   h item(fstype:mdsection, name:"analysis", content:"Analysis")  ← sub-items[0]
     p(content:"Deep dive results here.")
@@ -524,11 +524,11 @@ h item(fstype:repo, name:"my-vault")
 
 ```
 h item(fstype:mdsection, name:"references", content:"References")
-  p item(list_marker:"-")
+  p item(list:"-")
     embed(embed_source:"design-doc")                     ← children[0]
-  p item(list_marker:"-")
+  p item(list:"-")
     embed(embed_source:"api-spec", name:"API Specification")
-  p item(list_marker:"-", content:"Regular item")
+  p item(list:"-", content:"Regular item")
 ```
 
 **Key points:**
@@ -564,14 +564,14 @@ h item(fstype:mdsection, name:"references", content:"References")
 
 ```
 h item(fstype:mdsection, name:"architecture", content:"Architecture")
-  p item(list_marker:"-", content:"Frontend")
-    p item(list_marker:"-", content:"React components")
+  p item(list:"-", content:"Frontend")
+    p item(list:"-", content:"React components")
       p(content:"Each component has its own directory.")
       code(content:"export function App() { ... }", data:{lang:"tsx"})
-    p item(list_marker:"-", content:"State management")
-      p item(list_marker:"-", content:"Redux store")
-      p item(list_marker:"-", content:"Local state")
-  p item(list_marker:"-", content:"Backend")
+    p item(list:"-", content:"State management")
+      p item(list:"-", content:"Redux store")
+      p item(list:"-", content:"Local state")
+  p item(list:"-", content:"Backend")
 ```
 
 **Key points:**
@@ -597,17 +597,17 @@ h item(fstype:mdsection, name:"architecture", content:"Architecture")
 
 ```
 h item(fstype:mdsection, name:"release-checklist", content:"Release Checklist")
-  p item(list_marker:"1.", task_marker:"[x]", content:"Tag release")
-  p item(list_marker:"2.", task_marker:"[/]", content:"Run CI pipeline")
-  p item(list_marker:"3.", task_marker:"[ ]", content:"Deploy to staging")
-  p item(list_marker:"4.", task_marker:"[ ]", content:"Smoke test")
+  p item(list:"1.", task:{marker:"[x]",status:"done"}, content:"Tag release")
+  p item(list:"2.", task:{marker:"[/]",status:"wip"}, content:"Run CI pipeline")
+  p item(list:"3.", task:{marker:"[ ]",status:"todo"}, content:"Deploy to staging")
+  p item(list:"4.", task:{marker:"[ ]",status:"todo"}, content:"Smoke test")
 ```
 
 **Key points:**
 
 - Ordered lists can also be tasks
-- list_marker preserves original numbering
-- task_marker is independent of list_marker
+- item.list preserves original numbering
+- item.task is independent of item.list
 
 ## Fixture 20: HTML block
 
@@ -649,16 +649,16 @@ This claim needs a source[^1]. See also the extended discussion[^note].
 ```
 h item(fstype:mdsection, name:"research", content:"Research")
   p(content:"This claim needs a source[^1]. See also the extended discussion[^note].")
-  p item(list_marker:"[^1]", content:"Smith et al., 2024")
-  p item(list_marker:"[^note]", content:"The full analysis is available in the appendix.")
+  p item(list:"[^1]", content:"Smith et al., 2024")
+  p item(list:"[^note]", content:"The full analysis is available in the appendix.")
 ```
 
 **Key points:**
 
 - Footnote references (`[^1]`) stay inline in content strings
-- Footnote definitions become p item nodes with footnote-style list_marker
+- Footnote definitions become p item nodes with footnote-style item.list
 - Visible, editable, deletable — same as any other p item
-- list_marker format: `"[^1]"`, `"[^note]"` etc.
+- item.list format: `"[^1]"`, `"[^note]"` etc.
 
 ## Fixture 22: Non-embed link reference
 
@@ -675,9 +675,9 @@ h item(fstype:mdsection, name:"research", content:"Research")
 
 ```
 h item(fstype:mdsection, name:"see-also", content:"See Also")
-  p item(list_marker:"-")
+  p item(list:"-")
     embed(embed_source:"related-project")                ← reference, not transclusion
-  p item(list_marker:"-")
+  p item(list:"-")
     embed(embed_source:"other-doc", name:"See this doc")
 ```
 
@@ -834,11 +834,11 @@ h item(fstype:mdsection, name:"discussion", content:"Discussion")
 h item(fstype:mdsection, name:"requirements", content:"Requirements")
   quote
     p(content:"The system must:")
-    p item(list_marker:"-", content:"Handle 1000 requests/sec")
-    p item(list_marker:"-", content:"Support graceful degradation")
-      p item(list_marker:"-", content:"Fallback to cache")
-      p item(list_marker:"-", content:"Show stale data indicator")
-    p item(list_marker:"-", task_marker:"[ ]", content:"Implement rate limiting")
+    p item(list:"-", content:"Handle 1000 requests/sec")
+    p item(list:"-", content:"Support graceful degradation")
+      p item(list:"-", content:"Fallback to cache")
+      p item(list:"-", content:"Show stale data indicator")
+    p item(list:"-", task:{marker:"[ ]",status:"todo"}, content:"Implement rate limiting")
 ```
 
 **Key points:**
@@ -870,10 +870,10 @@ h item(fstype:mdsection, name:"requirements", content:"Requirements")
 
 ```
 h item(fstype:mdsection, name:"notes", content:"Notes")
-  p item(list_marker:"-", content:"First point with a long explanation.")
+  p item(list:"-", content:"First point with a long explanation.")
     p(content:"This continues the first point with a second paragraph.")
     code(content:"print(\"still part of first item\")", data:{lang:"python"})
-  p item(list_marker:"-", content:"Second point.")
+  p item(list:"-", content:"Second point.")
 ```
 
 **Key points:**
