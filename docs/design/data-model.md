@@ -210,35 +210,40 @@ Post-mutation validation, inspired by Slate's `normalizeNode` but **check-only**
 
 ### Architecture
 
+Standard plugin override pattern (like Slate's `editor.normalizeNode`):
+
 ```
-withValidation(tree, { strict })
-  ├── wraps tree.apply() with before/after validation hooks
-  ├── plugins add validators via tree.addValidator(fn)
-  ├── strict = KM_STRICT=1: validators run, violations throw
-  ├── !strict: validators not called (zero overhead in prod)
-  └── withBatch(): defer validation until batch completes
+Base tree:     tree.validate = () => {}  (no-op)
+withTree:      overrides validate → checks parent exists, no cycles, sibling order
+withOutliner:  overrides validate → calls prev validate + checks item traits
+withCursor:    overrides validate → calls prev validate + checks cursor exists
+withBoard:     overrides validate → calls prev validate + checks columns are items
 ```
+
+Each `with*` plugin wraps the previous `validate` — no registry, no `addValidator`. Same pattern used for `apply`, `deleteNode`, etc.
 
 ### API
 
 ```typescript
-// Plugin composition — each plugin adds its own validators
+// Base: tree has validate() as no-op
+interface TreeMutator {
+  validate(): void
+  withBatch<T>(fn: () => T): T
+  // ... existing mutators
+}
+
+// withValidation: wraps apply to call validate after each mutation
 function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolean }): T {
-  const validators: ValidatorFn[] = []
   const strict = opts?.strict ?? !!process.env.KM_STRICT
   let batchDepth = 0
   let dirty = false
 
-  // Plugins register validators
-  tree.addValidator = (fn: ValidatorFn) => { validators.push(fn) }
-
-  // Wrap every mutation (addNode, moveNode, deleteNode, updateNode)
-  // to call validate() after — unless batched
+  // Wrap every mutation to call validate after — unless batched
   const origApply = tree.apply
   tree.apply = (op) => {
     origApply(op)
     dirty = true
-    if (strict && batchDepth === 0) validate()
+    if (strict && batchDepth === 0) tree.validate()
   }
 
   // Batch: defer validation until outermost batch completes
@@ -249,56 +254,32 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
       batchDepth--
       if (batchDepth === 0 && dirty && strict) {
         dirty = false
-        validate()
+        tree.validate()
       }
     }
   }
 
-  function validate() {
-    for (const v of validators) {
-      const violations = v(tree)
-      if (violations.length > 0) {
-        // KM_STRICT: throw. Otherwise: log via loggily.
-        for (const v of violations) log.error?.("INVARIANT", v)
-        if (strict) throw new Error(`Tree invariant violation: ${violations[0].message}`)
-      }
-    }
-  }
+  return tree
 }
-```
 
-### Validator Interface
-
-```typescript
-type Violation = { rule: string; message: string; nodeId?: string }
-type ValidatorFn = (tree: TreeMutator) => Violation[]
-```
-
-### Built-in Validators
-
-Each concern registers its own validators:
-
-```typescript
-// Tree structure (km-tree)
-tree.addValidator(validateNoBlockChildren)     // blocks must not have children
-tree.addValidator(validateParentExists)         // parent_id points to real node
-tree.addValidator(validateNoCycles)             // no circular parent refs
-tree.addValidator(validateSiblingOrder)         // parent_idx is finite, no dupes
-
-// Outliner (withOutliner)
-tree.addValidator(validateItemTraits)           // task_marker implies task_status
-
-// Cursor (CursorContext)
-tree.addValidator(validateCursorExists)         // cursor points to existing node
-tree.addValidator(validateCursorUnderRoot)      // cursor is descendant of board root
-
-// Board (board-app)
-tree.addValidator(validateColumnsAreItems)      // column children must be items
+// Each plugin overrides validate:
+function withOutliner(tree) {
+  const { validate } = tree
+  tree.validate = () => {
+    validate()  // previous checks first
+    // outliner-specific checks
+    for (const node of tree.allNodes()) {
+      if (!node.item && tree.getChildren(node.id).length > 0)
+        throw new InvariantError("block-has-children", node.id)
+    }
+  }
+  return tree
+}
 ```
 
 ### Batching
 
-Multi-step operations wrap in `withBatch()` to avoid validating intermediate (invalid) states:
+Multi-step operations defer validation until the batch completes:
 
 ```typescript
 // splitBlock: creates new node + moves children — intermediate state has orphans
@@ -306,9 +287,21 @@ tree.withBatch(() => {
   const newId = tree.addNode(parentId, { ... })  // step 1
   tree.moveNode(childId, newId, 0)               // step 2
   tree.updateNode(nodeId, { content: before })    // step 3
-  // validated HERE — all 3 steps complete
+  // validate() called HERE — all 3 steps complete
 })
 ```
+
+### Plugin Validation Stack
+
+Each layer validates its own concerns:
+
+| Plugin | Layer | Checks |
+|---|---|---|
+| `withTree` | Data model | parent exists, no cycles, sibling order finite, blocks childless |
+| `withOutliner` | Tree ops | task_marker ↔ task_status consistent |
+| `withCursor` | UI state | cursor exists, under root, selection contiguous |
+| `withBoard` | Board | columns are items, fold depths valid |
+| `withRender` | Visual | incremental matches fresh (existing `checkIncremental`) |
 
 ### When Validators Run
 
