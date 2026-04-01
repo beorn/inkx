@@ -33,7 +33,8 @@
 9 vendor/silvery/tests/compat/chalk/chalk.test.ts
 3 vendor/silvery/tests/compat/chalk/instance.test.ts
 21 vendor/silvery/tests/compat/chalk/visible.test.ts
-1 vendor/terminfo.dev/docs/data/linkify-content.ts
+8 vendor/silvery/tests/features/scrollback-promotion.test.tsx
+3 vendor/terminfo.dev/docs/data/linkify-content.ts
 1 vendor/termless/packages/cli/src/ui.tsx
 2 vendor/termless/sites/terminfo.dev/src/cli.ts
 2 vitest.config.ts
