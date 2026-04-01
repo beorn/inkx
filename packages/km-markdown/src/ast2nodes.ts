@@ -185,7 +185,7 @@ export function parsePlainTextToNodes(content: string, fsPath: string, fsIno?: n
   const fileNode: KNode = {
     id: ulid(),
     type: "h",
-    item: true,
+    item: {},
     fstype: "txtfile",
     parent_id: null,
     parent_idx: 0,
@@ -278,7 +278,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
       const sectionNode: KNode = {
         id: nodeId,
         type: "h",
-        item: true,
+        item: taskMarker ? { task: { marker: taskMarker, status: taskStatus ?? "todo" } } : {},
         fstype: "mdsection",
         parent_id: parentSection ? parentSection.node.id : fileNode.id,
         parent_idx: sortOrder++,
@@ -289,8 +289,6 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
-        task_status: taskStatus,
-        task_marker: taskMarker,
         data: hasRules ? { rules, title } : {},
         created_at: now,
         updated_at: now,
@@ -425,9 +423,10 @@ function convertListItem(
   const node: KNode = {
     id: ulid(),
     type: "p",
-    item: true,
-    list_marker: ordered ? "1." : "-",
-    task_marker: taskMarker,
+    item: {
+      list: ordered ? "1." : "-",
+      ...(taskMarker ? { task: { marker: taskMarker, status: taskStatus ?? "todo" } } : {}),
+    },
     parent_id: parent.id,
     parent_idx: sortOrder,
     md_pos: item.position?.start.offset,
@@ -435,7 +434,6 @@ function convertListItem(
     block_id: blockId,
     content: displayContent,
     content_hash: undefined,
-    task_status: taskStatus,
     due_at: metadata.dueAt,
     start_at: metadata.startAt,
     priority,
@@ -474,7 +472,7 @@ function convertListItem(
       const liNode: KNode = {
         id: ulid(),
         type: "p",
-        item: true,
+        item: {},
         parent_id: node.id,
         parent_idx: childSort++,
         content: nodeToText(heading),
@@ -650,7 +648,7 @@ function createFileNode(
   return {
     id: ulid(),
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdfile",
     parent_id: null, // Will be set based on folder structure
     parent_idx: 0,
@@ -710,11 +708,8 @@ function mergeH1IntoFileNode(
     fileNode.rules = h1Section.rules
   }
   // Copy task properties from H1 (if present)
-  if (h1Section.task_status) {
-    fileNode.task_status = h1Section.task_status
-  }
-  if (h1Section.task_marker) {
-    fileNode.task_marker = h1Section.task_marker
+  if (h1Section.item?.task) {
+    fileNode.item = { ...fileNode.item, task: h1Section.item.task }
   }
   // Merge H1's data into file data, but frontmatter takes precedence
   // (frontmatter fields overwrite H1 data fields)

@@ -97,7 +97,7 @@ export function getNodeStyle(
 
   // Task status icon: prepended to content for tasks
   // For implicit tasks (no explicit status), show the "todo" icon
-  const taskStatusIcon = nodeIsTask ? getStatusIcon(node.task_status ?? "todo") : null
+  const taskStatusIcon = nodeIsTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
 
   // Background/text colors
   // Node colors only affect the fold marker icon, NOT the background
@@ -120,7 +120,7 @@ export function getNodeStyle(
 
   // Dim state for done/dropped tasks (no strikethrough per design)
   // Only explicit task statuses trigger dimming — implicit tasks are never dimmed
-  const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
+  const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
   const shouldDim = isDoneOrDropped
   const shouldStrikethrough = false // Disabled per design decision
 
@@ -279,7 +279,7 @@ export function formatDateBadge(node: KNode): string {
   // Start date → due date (or just one)
   // Hide past start dates for WIP tasks (already started, not useful info)
   const startInPast = startDate ? daysFromToday(startDate) < 0 : false
-  const visibleStart = startDate && !(startInPast && node.task_status === "wip") ? startDate : undefined
+  const visibleStart = startDate && !(startInPast && node.item?.task?.status === "wip") ? startDate : undefined
 
   if (visibleStart && dueDate) {
     parts.push(`${formatScheduledDisplay(visibleStart)} → ${formatDueDisplay(dueDate)}`)
@@ -361,7 +361,7 @@ export function formatSubtaskBadge(children: KNode[]): string | null {
   for (const child of children) {
     if (!KNode.isTask(child)) continue
     total++
-    if (child.task_status === "done" || child.task_status === "dropped") done++
+    if (child.item?.task?.status === "done" || child.item?.task?.status === "dropped") done++
   }
   if (total === 0) return null
   return `${done}/${total}`
@@ -390,7 +390,7 @@ export function hasUnresolvedDeps(node: KNode, getNode: (id: string) => KNode | 
   if (refs.length === 0) return false
   for (const ref of refs) {
     const target = getNode(ref)
-    if (!target || (target.task_status !== "done" && target.task_status !== "dropped")) return true
+    if (!target || (target.item?.task?.status !== "done" && target.item?.task?.status !== "dropped")) return true
   }
   return false
 }
@@ -442,7 +442,7 @@ export function DateBadge({ node, stripColor }: { node: KNode; stripColor?: bool
 
   // Hide past start dates for WIP tasks (already started, not useful info)
   const startInPast = startDate ? daysFromToday(startDate) < 0 : false
-  const visibleStart = startDate && !(startInPast && node.task_status === "wip") ? startDate : undefined
+  const visibleStart = startDate && !(startInPast && node.item?.task?.status === "wip") ? startDate : undefined
 
   if (visibleStart && dueDate) {
     parts.push(

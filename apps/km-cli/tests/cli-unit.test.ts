@@ -14,21 +14,22 @@ import type { Database } from "bun:sqlite"
 /**
  * Helper to create a task directly in the database
  */
-function createTask(db: Database, content: string, options: Partial<KNode> = {}): KNode {
+function createTask(db: Database, content: string, options: Partial<KNode> & { task_status?: TaskStatus } = {}): KNode {
   const id = `task-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
   const now = Date.now()
+
+  const { task_status, ...rest } = options
+  const status = task_status ?? "todo"
+  const marker = status === "done" ? "[x]" : status === "wip" ? "[/]" : status === "dropped" ? "[-]" : "[ ]"
 
   const node: KNode = {
     id,
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[ ]",
+    item: { list: "-", task: { marker, status } },
     content,
-    task_status: "todo",
     created_at: now,
     updated_at: now,
-    ...options,
+    ...rest,
   } as KNode
 
   db.prepare(
@@ -37,10 +38,10 @@ function createTask(db: Database, content: string, options: Partial<KNode> = {})
   ).run(
     node.id,
     node.type,
-    (node as KNode).list_marker ?? "-",
-    (node as KNode).task_marker ?? "[ ]",
+    (node as KNode).item?.list ?? "-",
+    (node as KNode).item?.task?.marker ?? "[ ]",
     node.content ?? null,
-    node.task_status ?? "todo",
+    node.item?.task?.status ?? "todo",
     node.priority ?? null,
     node.due_at ?? null,
     node.assigned_to ?? null,

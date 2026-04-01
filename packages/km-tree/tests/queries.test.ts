@@ -23,7 +23,7 @@ function createNode(id: string, children: TNode[] = []): TNode {
   return {
     id,
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     parent_id: null,
     parent_idx: 0,

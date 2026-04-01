@@ -79,17 +79,17 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     board.command("cycle_task_status")
 
     // Step 3: Verify persistence — first 3 tasks should be wip, task-4 unchanged
-    expect(repo.getNode("task-1")?.task_status).toBe("wip")
-    expect(repo.getNode("task-2")?.task_status).toBe("wip")
-    expect(repo.getNode("task-3")?.task_status).toBe("wip")
-    expect(repo.getNode("task-4")?.task_status).toBe("todo")
+    expect(repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+    expect(repo.getNode("task-2")?.item?.task?.status).toBe("wip")
+    expect(repo.getNode("task-3")?.item?.task?.status).toBe("wip")
+    expect(repo.getNode("task-4")?.item?.task?.status).toBe("todo")
 
     // Step 4: Toggle again (wip -> blocked)
     board.command("cycle_task_status")
-    expect(repo.getNode("task-1")?.task_status).toBe("blocked")
-    expect(repo.getNode("task-2")?.task_status).toBe("blocked")
-    expect(repo.getNode("task-3")?.task_status).toBe("blocked")
-    expect(repo.getNode("task-4")?.task_status).toBe("todo")
+    expect(repo.getNode("task-1")?.item?.task?.status).toBe("blocked")
+    expect(repo.getNode("task-2")?.item?.task?.status).toBe("blocked")
+    expect(repo.getNode("task-3")?.item?.task?.status).toBe("blocked")
+    expect(repo.getNode("task-4")?.item?.task?.status).toBe("todo")
   })
 
   test("select cards with children, delete requires confirmation", () => {

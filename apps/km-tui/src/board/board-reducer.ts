@@ -169,11 +169,7 @@ export function applySelect(state: BoardNavState, nodeId: string): ApplyResult {
  * visibleBlocks is pre-computed by the caller: [column header, card1, card1-child1, ...]
  * This function is pure index arithmetic.
  */
-export function applyBlockNav(
-  state: BoardNavState,
-  direction: "up" | "down",
-  visibleBlocks: string[],
-): ApplyResult {
+export function applyBlockNav(state: BoardNavState, direction: "up" | "down", visibleBlocks: string[]): ApplyResult {
   if (!state.cursorNodeId) return noChange(state)
   if (visibleBlocks.length === 0) return noChange(state)
 
@@ -245,10 +241,7 @@ export function applyPageJump(
   }
   return {
     state: newState,
-    effects: [
-      { type: "SCROLL_ANCHOR_CLEAR" },
-      { type: "SELECT", nodeId: targetId },
-    ],
+    effects: [{ type: "SCROLL_ANCHOR_CLEAR" }, { type: "SELECT", nodeId: targetId }],
   }
 }
 
@@ -281,11 +274,7 @@ export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): Apply
 }
 
 /** Toggle fold on a specific node. If folded, unfold. If unfolded, fold to depth 0. */
-export function applyToggleFold(
-  state: BoardNavState,
-  nodeId: string,
-  hasChildren: boolean,
-): ApplyResult {
+export function applyToggleFold(state: BoardNavState, nodeId: string, hasChildren: boolean): ApplyResult {
   if (!hasChildren) return noChange(state)
 
   const newDepths = new Map(state.foldDepths)
@@ -409,11 +398,7 @@ export function applyUnfoldNode(
  * descendantFoldIds is pre-computed by the caller: all foldDepths keys that are
  * descendants of cardId.
  */
-export function applyUnfoldRecursive(
-  state: BoardNavState,
-  cardId: string,
-  descendantFoldIds: string[],
-): ApplyResult {
+export function applyUnfoldRecursive(state: BoardNavState, cardId: string, descendantFoldIds: string[]): ApplyResult {
   const newDepths = new Map(state.foldDepths)
   newDepths.set(cardId, 999)
   for (const id of descendantFoldIds) {

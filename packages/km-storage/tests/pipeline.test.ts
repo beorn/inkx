@@ -36,7 +36,7 @@ function createNode(id: string, overrides: Partial<ParsedFile["nodes"][0]> = {})
   return {
     id,
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,

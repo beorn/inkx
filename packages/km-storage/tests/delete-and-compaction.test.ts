@@ -357,14 +357,14 @@ describe("event compaction replay", () => {
         ts: 1000,
         type: "node_created",
         actor: "user",
-        data: { id: nodeA, type: "p", parent_id: ".", parent_idx: 0, item: true, content: "A" },
+        data: { id: nodeA, type: "p", parent_id: ".", parent_idx: 0, item: {}, content: "A" },
       },
       {
         id: "evt2",
         ts: 2000,
         type: "node_created",
         actor: "user",
-        data: { id: nodeB, type: "p", parent_id: ".", parent_idx: 1, item: true, content: "B" },
+        data: { id: nodeB, type: "p", parent_id: ".", parent_idx: 1, item: {}, content: "B" },
       },
       { id: "evt3", ts: 3000, type: "node_updated", actor: "user", target: nodeA, data: { content: "A updated" } },
     ]

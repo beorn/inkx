@@ -131,7 +131,7 @@ describe("inline created:: metadata → KNode timestamps", () => {
 - [ ] Buy groceries created:: 2024-04-18
 `
     const result = parseMarkdownWithLinks(md, "/test/file.md")
-    const task = result.nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)!
+    const task = result.nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)!
 
     expect(task.created_at).toBe(new Date("2024-04-18").getTime())
   })
@@ -144,7 +144,7 @@ describe("inline created:: metadata → KNode timestamps", () => {
 `
     const result = parseMarkdownWithLinks(md, "/test/file.md")
     const after = Date.now()
-    const task = result.nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)!
+    const task = result.nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)!
 
     expect(task.created_at).toBeGreaterThanOrEqual(before)
     expect(task.created_at).toBeLessThanOrEqual(after)
@@ -156,7 +156,7 @@ describe("inline created:: metadata → KNode timestamps", () => {
 - [ ] Task due:: 2024-12-31 created:: 2024-01-15 completed:: 2024-12-30
 `
     const result = parseMarkdownWithLinks(md, "/test/file.md")
-    const task = result.nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)!
+    const task = result.nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)!
 
     expect(task.created_at).toBe(new Date("2024-01-15").getTime())
     // updated_at should still be Date.now() since there's no modified:: inline
@@ -171,7 +171,7 @@ describe("inline created:: metadata → KNode timestamps", () => {
 - Regular item created:: 2020-01-01
 `
     const result = parseMarkdownWithLinks(md, "/test/file.md")
-    const li = result.nodes.find((n) => n.type === "p" && n.item === true && !n.task_marker)!
+    const li = result.nodes.find((n) => n.type === "p" && n.item != null && !n.item?.task?.marker)!
 
     expect(li.created_at).toBe(new Date("2020-01-01").getTime())
   })

@@ -10,7 +10,7 @@
 
 import { test, describe, expect, gen, take, type SeededRandom } from "vimonkey"
 import { diffNodes } from "../../src/watch/handlers/node-differ.ts"
-import type { KNode } from "@km/core"
+import type { KNode, TaskMarker } from "@km/core"
 
 // ---------------------------------------------------------------------------
 // Node generators
@@ -30,8 +30,7 @@ function makeNode(overrides: Partial<KNode> & { id: string; type: string }): KNo
     fs_path: undefined,
     fs_ino: undefined,
     md_pos: undefined,
-    task_status: undefined,
-    task_marker: undefined,
+    item: undefined,
     assigned_to: undefined,
     due_at: undefined,
     start_at: undefined,
@@ -54,7 +53,7 @@ function randomFileNode(rng: SeededRandom, id: string): KNode {
   return makeNode({
     id,
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdfile",
     parent_idx: 0,
     content: rng.bool(0.5) ? `File ${rng.int(1, 100)}` : undefined,
@@ -70,12 +69,19 @@ function randomChildNode(rng: SeededRandom, id: string, parentId: string, parent
   return makeNode({
     id,
     type,
-    item: isItem || undefined,
+    item: isItem
+      ? hasTask
+        ? {
+            task: {
+              status: rng.pick(TASK_STATUSES) ?? "todo",
+              marker: (rng.pick(TASK_MARKERS) ?? "[ ]") as TaskMarker,
+            },
+          }
+        : {}
+      : undefined,
     parent_id: parentId,
     parent_idx: parentIdx,
     content: rng.bool(0.7) ? `Content ${rng.int(1, 1000)}` : undefined,
-    task_status: hasTask ? (rng.pick(TASK_STATUSES) ?? undefined) : undefined,
-    task_marker: hasTask ? rng.pick(TASK_MARKERS) : undefined,
     title: type === "h" && rng.bool(0.5) ? `Section ${rng.int(1, 100)}` : undefined,
     md_pos: rng.bool(0.3) ? rng.int(0, 10000) : undefined,
     priority: rng.bool(0.2) ? `P${rng.int(1, 5)}` : undefined,
@@ -129,7 +135,19 @@ function generateNewVersion(rng: SeededRandom, existing: KNode[]): KNode[] {
         id: newId,
         parent_id: remappedParentId,
         content: mutate && rng.bool(0.5) ? `Modified ${rng.int(1, 1000)}` : node.content,
-        task_status: mutate && rng.bool(0.3) ? (rng.pick(TASK_STATUSES) ?? undefined) : node.task_status,
+        item: node.item
+          ? {
+              ...node.item,
+              ...(node.item.task
+                ? {
+                    task: {
+                      ...node.item.task,
+                      status: mutate && rng.bool(0.3) ? (rng.pick(TASK_STATUSES) ?? "todo") : node.item.task.status,
+                    },
+                  }
+                : {}),
+            }
+          : node.item,
         parent_idx: node.parent_id ? existing.filter((n) => n.parent_id === node.parent_id).indexOf(node) : 0,
       }),
     )

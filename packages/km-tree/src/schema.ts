@@ -8,12 +8,12 @@
 import type { TreeMutator } from "./block-ops.ts"
 
 /** Can this node have children? Only items can. */
-export function canHaveChildren(node: { item?: boolean }): boolean {
-  return node.item === true
+export function canHaveChildren(node: { item?: unknown }): boolean {
+  return node.item != null
 }
 
 /** Can parent accept child? Items can have any children. Blocks cannot. */
-export function canParent(parent: { item?: boolean }, _child: { item?: boolean }): boolean {
+export function canParent(parent: { item?: unknown }, _child: { item?: unknown }): boolean {
   return canHaveChildren(parent)
 }
 

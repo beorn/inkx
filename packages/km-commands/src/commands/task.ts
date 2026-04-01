@@ -33,7 +33,7 @@ const cycleTaskStatus = {
     const node = ctx.currentNode
     // Check if node is a task
     if (!node.isTask) return null
-    const newStatus = getNextStatus(node.task_status)
+    const newStatus = getNextStatus(node.item?.task?.status)
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
@@ -51,7 +51,7 @@ const toggleTaskDone = {
   execute: (ctx) => {
     if (!ctx.currentNode || !ctx.currentNodeId) return null
     if (!ctx.currentNode.isTask) return null
-    const newStatus = ctx.currentNode.task_status === "done" ? "todo" : "done"
+    const newStatus = ctx.currentNode.item?.task?.status === "done" ? "todo" : "done"
     return {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,

@@ -66,13 +66,10 @@ export function createIssueNode(
   const node: KNode = {
     id,
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     parent_id: null, // Will be set based on path
     parent_idx: 0,
     content,
-    task_status: "todo",
-    task_marker: "[ ]",
     priority,
     data: {
       short_id: shortId,
@@ -135,8 +132,7 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
   }
 
   if (changes.status !== undefined) {
-    updates.task_status = changes.status
-    updates.task_marker = getMarkerForStatus(changes.status)
+    updates.item = { task: { status: changes.status, marker: getMarkerForStatus(changes.status) } }
   }
 
   if (changes.priority !== undefined) {
@@ -155,8 +151,7 @@ export function updateIssueFields(issue: Issue, changes: UpdateIssueChanges): Pa
  */
 export function closeIssueFields(reason?: string): Partial<KNode> {
   const updates: Partial<KNode> = {
-    task_status: "done",
-    task_marker: getMarkerForStatus("done"),
+    item: { task: { status: "done", marker: getMarkerForStatus("done") } },
     updated_at: Date.now(),
   }
 
@@ -173,8 +168,7 @@ export function closeIssueFields(reason?: string): Partial<KNode> {
  */
 export function dropIssueFields(reason?: string): Partial<KNode> {
   const updates: Partial<KNode> = {
-    task_status: "dropped",
-    task_marker: getMarkerForStatus("dropped"),
+    item: { task: { status: "dropped", marker: getMarkerForStatus("dropped") } },
     updated_at: Date.now(),
   }
 

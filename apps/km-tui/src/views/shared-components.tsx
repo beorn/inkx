@@ -110,7 +110,7 @@ export const MemoizedTreeCard = React.memo(
     return (
       prev.card.id === next.card.id &&
       prev.card.content === next.card.content &&
-      prev.card.task_status === next.card.task_status &&
+      prev.card.item?.task?.status === next.card.item?.task?.status &&
       prev.colIndex === next.colIndex &&
       prev.cardIndex === next.cardIndex &&
       prev.isSelected === next.isSelected &&
@@ -471,7 +471,7 @@ export function NodeLine({
   decorations,
 }: NodeLineProps): React.ReactElement {
   const prefix = isSelected ? "▸ " : "  "
-  const icon = getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
+  const icon = getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
 
   return (
     <Box width="100%" height={1} backgroundColor={isSelected ? "$selection-bg" : "$popover-bg"} flexDirection="row">

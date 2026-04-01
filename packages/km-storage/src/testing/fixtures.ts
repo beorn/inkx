@@ -19,7 +19,7 @@
  * const repo = createFakeRepo({ nodes: fixture.nodes });
  */
 
-import type { KNode, NodeType } from "@km/core"
+import type { KNode, NodeType, ItemData } from "@km/core"
 import { ulid } from "ulid"
 
 // =============================================================================
@@ -28,7 +28,7 @@ import { ulid } from "ulid"
 
 interface NodeBuilder {
   _type: NodeType
-  _item?: boolean
+  _item?: ItemData
   _title?: string
   _content?: string
   _done?: boolean
@@ -57,7 +57,7 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
     makeNode({
       id: rootId,
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       title,
       parent_id: null,
@@ -82,7 +82,7 @@ export function board(title: string, columns: NodeBuilder[]): BoardFixture {
 export function column(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
     _type: "h",
-    _item: true,
+    _item: {},
     _title: title,
     _children: children,
   }
@@ -94,7 +94,7 @@ export function column(title: string, children: NodeBuilder[] = []): NodeBuilder
 export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
   return {
     _type: "p",
-    _item: true,
+    _item: {},
     _content: content,
     _done: opts?.done,
   }
@@ -106,7 +106,7 @@ export function task(content: string, opts?: { done?: boolean }): NodeBuilder {
 export function section(title: string, children: NodeBuilder[] = []): NodeBuilder {
   return {
     _type: "h",
-    _item: true,
+    _item: {},
     _title: title,
     _children: children,
   }
@@ -136,9 +136,11 @@ function buildNode(builder: NodeBuilder, parentId: string, idx: number, nodes: K
     parent_idx: idx,
     title: builder._title,
     content: builder._content,
-    item: builder._item === true ? true : undefined,
-    task_status: builder._type === "p" && builder._item ? (builder._done ? "done" : "todo") : undefined,
-    task_marker: builder._type === "p" && builder._item ? (builder._done ? "[x]" : "[ ]") : undefined,
+    item: builder._item
+      ? builder._type === "p"
+        ? { list: "-", task: { marker: builder._done ? "[x]" : "[ ]", status: builder._done ? "done" : "todo" } }
+        : {}
+      : undefined,
     created_at: now,
     updated_at: now,
   })
@@ -167,8 +169,6 @@ function makeNode(partial: Partial<KNode> & { id: string; type: NodeType }): KNo
     embed_source: null,
     title: partial.title,
     content: partial.content,
-    task_status: partial.task_status,
-    task_marker: partial.task_marker,
     data: {},
     created_at: partial.created_at ?? Date.now(),
     updated_at: partial.updated_at ?? Date.now(),

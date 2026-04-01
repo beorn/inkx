@@ -60,7 +60,7 @@ export function computeMetadataKeys(node: KNode): string[] {
   const nodeIsTask = KNode.isTask(node)
 
   // Status — always shown for tasks (with "none" fallback)
-  if (node.task_status || nodeIsTask) keys.push("Status")
+  if (node.item?.task?.status || nodeIsTask) keys.push("Status")
   if (node.priority || nodeIsTask) keys.push("Priority")
 
   const dueParts = decomposeDatetime(node.due_at)

@@ -39,7 +39,7 @@ import {
   getNodeText,
   setNodeText,
 } from "@km/tree"
-import { KNode, Position, extractTitleTaskMarker } from "@km/core"
+import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
 import {
@@ -371,7 +371,8 @@ function getFoldTargetRoots(ctx: ActionCtx, card: KNode | null | undefined): str
  * When stripping task marker or converting outline/list to plain p, content is reformatted.
  */
 function applyDegradation(node: KNode, degradation: Record<string, unknown>, content: string): void {
-  if (node.task_marker && degradation.task_marker === undefined) {
+  const degradedItem = degradation.item as ItemData | undefined
+  if (node.item?.task?.marker && degradedItem?.task?.marker === undefined) {
     degradation.content = content
   }
   if (degradation.type === "p" && KNode.isOutline(node)) {
@@ -712,11 +713,11 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
             if (KNode.isOutline({ type: changes.type ?? node.type, item: changes.item ?? node.item })) {
               changes.name = remainingText
               changes.content = remainingText
-            } else if (changes.task_marker) {
+            } else if (changes.item?.task?.marker) {
               const fakeNode = { ...node, ...changes } as typeof node
               changes.content = setNodeText(fakeNode, remainingText)
               if (!changes.type) changes.type = "p"
-              if (changes.item === undefined) changes.item = true
+              if (changes.item === undefined) changes.item = {}
             } else {
               changes.content = remainingText
             }
@@ -729,7 +730,10 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
               !KNode.isListItem({ type: changes.type, item: changes.item }) &&
               KNode.isListItem(node)
             ) {
-              changes.list_marker = undefined
+              if (changes.item) {
+                const { list: _, ...rest } = changes.item
+                changes.item = rest
+              }
             }
             ctx.repo.updateNode(nodeId, changes)
             insertTarget.replaceContent?.(remainingText, remainingText.length)
@@ -967,13 +971,7 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
       const scope = action.scope ?? "card"
       if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
       const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
-      const result = reducerApplyFoldNode(
-        extractFoldState(ctx),
-        scope,
-        ctx.rootId ?? "",
-        roots,
-        columnCardIds,
-      )
+      const result = reducerApplyFoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "already fully folded")
       applyFoldEffects(ctx, result)
       return ok()
@@ -983,13 +981,7 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
       const scope = action.scope ?? "card"
       if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
       const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
-      const result = reducerApplyUnfoldNode(
-        extractFoldState(ctx),
-        scope,
-        ctx.rootId ?? "",
-        roots,
-        columnCardIds,
-      )
+      const result = reducerApplyUnfoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "maximum depth reached")
       applyFoldEffects(ctx, result)
       return ok()
@@ -1769,7 +1761,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
 }
 
 /** Check if a node has visible item children (not folded, has items).
- *  Checks for any `item: true` children — not just `type: "h"` outline nodes —
+ *  Checks for any `item: {}` children — not just `type: "h"` outline nodes —
  *  because the board renders all `item` children as cards when no structural items exist. */
 function hasVisibleItemChildren(repo: ActionCtx["repo"], nodeId: string, foldDepths: Map<string, number>): boolean {
   if (foldDepths.get(nodeId) === 0) return false
@@ -2573,8 +2565,7 @@ function handleClipboardPaste(ctx: ActionCtx): ActionResult {
         content: sourceNode.content,
         name: sourceNode.name,
         fstype: sourceNode.fstype,
-        task_status: sourceNode.task_status,
-        task_marker: sourceNode.task_marker,
+        item: sourceNode.item ? { ...sourceNode.item } : undefined,
         data: sourceNode.data ? { ...sourceNode.data } : undefined,
         parent_idx: baseSortOrder + i * 0.001,
       }

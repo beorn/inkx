@@ -8,12 +8,12 @@
  * is grouped at display time for rendering as virtual columns/cards.
  */
 
-import { KNode } from "@km/core"
+import { KNode, type ItemData } from "@km/core"
 
 /**
  * Result of extracting body content from children.
  */
-export interface BodyExtraction<T extends { type: string; item?: boolean }> {
+export interface BodyExtraction<T extends { type: string; item?: ItemData }> {
   /** Leading non-outline content (before first outline item) */
   body: T[]
   /** Outline item children */
@@ -25,7 +25,7 @@ export interface BodyExtraction<T extends { type: string; item?: boolean }> {
  * When provided, body children come from the pre-fetched array
  * (e.g. from getBodyChildren query) instead of in-memory filtering.
  */
-export interface ExtractBodyDbOpts<T extends { type: string; item?: boolean }> {
+export interface ExtractBodyDbOpts<T extends { type: string; item?: ItemData }> {
   /** Pre-fetched body children (block-type nodes from DB query) */
   bodyChildren: T[]
 }
@@ -56,7 +56,7 @@ export interface ExtractBodyDbOpts<T extends { type: string; item?: boolean }> {
  * // body = bodyNodes, items = [section1, section2]
  * ```
  */
-export function extractBody<T extends { type: string; item?: boolean }>(
+export function extractBody<T extends { type: string; item?: ItemData }>(
   children: T[],
   dbOpts?: ExtractBodyDbOpts<T>,
 ): BodyExtraction<T> {

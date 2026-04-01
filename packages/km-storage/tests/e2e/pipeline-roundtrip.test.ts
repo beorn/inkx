@@ -35,17 +35,17 @@ function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
 
 /** Get all file-level nodes (mdfile type) */
 function getFileNodes(db: import("bun:sqlite").Database): KNode[] {
-  return getAllNodes(db).filter((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+  return getAllNodes(db).filter((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 }
 
 /** Get all task nodes */
 function getTaskNodes(db: import("bun:sqlite").Database): KNode[] {
-  return getAllNodes(db).filter((n) => n.task_status != null)
+  return getAllNodes(db).filter((n) => n.item?.task?.status != null)
 }
 
 /** Get all section nodes */
 function getSectionNodes(db: import("bun:sqlite").Database): KNode[] {
-  return getAllNodes(db).filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+  return getAllNodes(db).filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 }
 
 // =============================================================================
@@ -73,13 +73,13 @@ describe("file -> sync -> DB", () => {
       expect(tasks).toHaveLength(3)
 
       const todo = tasks.find((t) => t.content?.includes("Buy groceries"))
-      expect(todo?.task_status).toBe("todo")
+      expect(todo?.item?.task?.status).toBe("todo")
 
       const done = tasks.find((t) => t.content?.includes("Clean kitchen"))
-      expect(done?.task_status).toBe("done")
+      expect(done?.item?.task?.status).toBe("done")
 
       const wip = tasks.find((t) => t.content?.includes("Write report"))
-      expect(wip?.task_status).toBe("wip")
+      expect(wip?.item?.task?.status).toBe("wip")
     }))
 
   test("multiple files each get their own file node", () =>
@@ -99,7 +99,9 @@ describe("file -> sync -> DB", () => {
 
       // Each file should have exactly one task
       for (const fileNode of fileNodes) {
-        const children = getAllNodes(data.database).filter((n) => n.parent_id === fileNode.id && n.task_status != null)
+        const children = getAllNodes(data.database).filter(
+          (n) => n.parent_id === fileNode.id && n.item?.task?.status != null,
+        )
         expect(children).toHaveLength(1)
       }
     }))
@@ -132,11 +134,11 @@ describe("file -> sync -> DB", () => {
 
       const todoTasks = getTaskNodes(data.database).filter((t) => t.parent_id === todoSection.id)
       expect(todoTasks).toHaveLength(1)
-      expect(todoTasks[0]!.task_status).toBe("todo")
+      expect(todoTasks[0]!.item?.task?.status).toBe("todo")
 
       const doneTasks = getTaskNodes(data.database).filter((t) => t.parent_id === doneSection.id)
       expect(doneTasks).toHaveLength(1)
-      expect(doneTasks[0]!.task_status).toBe("done")
+      expect(doneTasks[0]!.item?.task?.status).toBe("done")
     }))
 
   test("re-syncing after external file edit updates DB", () =>
@@ -180,8 +182,7 @@ describe("DB edit -> sync -> file", () => {
       expect(grocery).toBeDefined()
 
       data.updateNode(grocery.id, {
-        task_status: "done",
-        task_marker: "[x]",
+        item: { task: { status: "done", marker: "[x]" } },
       })
 
       // Sync DB -> file
@@ -243,8 +244,7 @@ describe("DB edit -> sync -> file", () => {
       const tasks = getTaskNodes(data.database)
       const alpha = tasks.find((t) => t.content?.includes("Alpha"))!
       data.updateNode(alpha.id, {
-        task_status: "done",
-        task_marker: "[x]",
+        item: { task: { status: "done", marker: "[x]" } },
       })
 
       // DB -> file
@@ -259,12 +259,12 @@ describe("DB edit -> sync -> file", () => {
 
       // The done status should persist through the re-parse
       const allNodes = getAllNodes(data.database)
-      const alphaAfter = allNodes.find((n) => n.content?.includes("Alpha") && n.task_status != null)
-      expect(alphaAfter?.task_status).toBe("done")
+      const alphaAfter = allNodes.find((n) => n.content?.includes("Alpha") && n.item?.task?.status != null)
+      expect(alphaAfter?.item?.task?.status).toBe("done")
 
       // Beta should still be todo
-      const betaAfter = allNodes.find((n) => n.content?.includes("Beta") && n.task_status != null)
-      expect(betaAfter?.task_status).toBe("todo")
+      const betaAfter = allNodes.find((n) => n.content?.includes("Beta") && n.item?.task?.status != null)
+      expect(betaAfter?.item?.task?.status).toBe("todo")
     }))
 })
 
@@ -285,8 +285,7 @@ describe("concurrent fs + DB edits", () => {
       const tasks = getTaskNodes(data.database)
       const beta = tasks.find((t) => t.content?.includes("Beta"))!
       data.updateNode(beta.id, {
-        task_status: "done",
-        task_marker: "[x]",
+        item: { task: { status: "done", marker: "[x]" } },
       })
 
       // Persist DB change to file first
@@ -307,14 +306,14 @@ describe("concurrent fs + DB edits", () => {
 
       // Beta should still be done (persisted before external edit)
       const betaAfter = allTasks.find((t) => t.content?.includes("Beta"))
-      expect(betaAfter?.task_status).toBe("done")
+      expect(betaAfter?.item?.task?.status).toBe("done")
 
       // Gamma should exist (from external edit)
       expect(allTasks.some((t) => t.content?.includes("Gamma"))).toBe(true)
 
       // Alpha should still be todo
       const alphaAfter = allTasks.find((t) => t.content?.includes("Alpha"))
-      expect(alphaAfter?.task_status).toBe("todo")
+      expect(alphaAfter?.item?.task?.status).toBe("todo")
     }))
 
   test("multiple sync cycles preserve accumulated changes", () =>
@@ -331,14 +330,14 @@ describe("concurrent fs + DB edits", () => {
 
       // Cycle 2: complete Step 1 in DB, sync out
       const step1 = tasks.find((t) => t.content?.includes("Step 1"))!
-      data.updateNode(step1.id, { task_status: "done", task_marker: "[x]" })
+      data.updateNode(step1.id, { item: { task: { status: "done", marker: "[x]" } } })
       await manager.syncToFs()
 
       // Cycle 3: complete Step 2 in DB, sync out
       await manager.syncFromFs() // re-import to get fresh state
       tasks = getTaskNodes(data.database)
       const step2 = tasks.find((t) => t.content?.includes("Step 2"))!
-      data.updateNode(step2.id, { task_status: "done", task_marker: "[x]" })
+      data.updateNode(step2.id, { item: { task: { status: "done", marker: "[x]" } } })
       await manager.syncToFs()
 
       // Verify: Steps 1 and 2 done, Step 3 still todo
@@ -353,9 +352,9 @@ describe("concurrent fs + DB edits", () => {
       const finalStep1 = tasks.find((t) => t.content?.includes("Step 1"))!
       const finalStep2 = tasks.find((t) => t.content?.includes("Step 2"))!
       const finalStep3 = tasks.find((t) => t.content?.includes("Step 3"))!
-      expect(finalStep1.task_status).toBe("done")
-      expect(finalStep2.task_status).toBe("done")
-      expect(finalStep3.task_status).toBe("todo")
+      expect(finalStep1.item?.task?.status).toBe("done")
+      expect(finalStep2.item?.task?.status).toBe("done")
+      expect(finalStep3.item?.task?.status).toBe("todo")
     }))
 
   test("file restructure (adding section) preserves DB task metadata", () =>
@@ -379,10 +378,10 @@ describe("concurrent fs + DB edits", () => {
       expect(tasks).toHaveLength(2)
 
       const taskA = tasks.find((t) => t.content?.includes("Task A"))
-      expect(taskA?.task_status).toBe("todo")
+      expect(taskA?.item?.task?.status).toBe("todo")
 
       const taskB = tasks.find((t) => t.content?.includes("Task B"))
-      expect(taskB?.task_status).toBe("done")
+      expect(taskB?.item?.task?.status).toBe("done")
 
       // Sections should now exist
       const sections = getSectionNodes(data.database)

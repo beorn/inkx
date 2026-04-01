@@ -646,12 +646,12 @@ describe("Enter on task cards", () => {
 
     // Verify initial state: both items are tasks (item() creates tasks by default for leaf nodes)
     const taskA = repo.getNode("taskA")!
-    expect(taskA.task_marker).toBe("[ ]")
-    expect(taskA.task_status).toBe("todo")
-    expect(taskA.list_marker).toBe("-")
+    expect(taskA.item?.task?.marker).toBe("[ ]")
+    expect(taskA.item?.task?.status).toBe("todo")
+    expect(taskA.item?.list).toBe("-")
 
     const taskB = repo.getNode("taskB")!
-    expect(taskB.task_marker).toBe("[ ]")
+    expect(taskB.item?.task?.marker).toBe("[ ]")
 
     // Step 1: Navigate to taskA and enter edit mode
     board.expect("#taskA[data-cursor]").toExist()
@@ -667,14 +667,14 @@ describe("Enter on task cards", () => {
     expect(newNode1).toBeDefined()
 
     // The new node should be a task (inherited from current node)
-    expect(newNode1.task_marker).toBe("[ ]")
-    expect(newNode1.task_status).toBe("todo")
-    expect(newNode1.list_marker).toBe("-")
+    expect(newNode1.item?.task?.marker).toBe("[ ]")
+    expect(newNode1.item?.task?.status).toBe("todo")
+    expect(newNode1.item?.list).toBe("-")
 
     // taskA should still be a task (not corrupted by the save)
     const taskAAfterFirstEnter = repo.getNode("taskA")!
-    expect(taskAAfterFirstEnter.task_marker).toBe("[ ]")
-    expect(taskAAfterFirstEnter.task_status).toBe("todo")
+    expect(taskAAfterFirstEnter.item?.task?.marker).toBe("[ ]")
+    expect(taskAAfterFirstEnter.item?.task?.status).toBe("todo")
     // Content should NOT contain literal "[ ]" — that means the marker leaked into content
     expect(taskAAfterFirstEnter.content).not.toContain("[ ] [ ]")
 
@@ -689,16 +689,16 @@ describe("Enter on task cards", () => {
 
     // Verify taskA is STILL a task (not converted to regular li)
     const taskAAfterSecondEnter = repo.getNode("taskA")!
-    expect(taskAAfterSecondEnter.task_marker).toBe("[ ]")
-    expect(taskAAfterSecondEnter.task_status).toBe("todo")
-    expect(taskAAfterSecondEnter.list_marker).toBe("-")
+    expect(taskAAfterSecondEnter.item?.task?.marker).toBe("[ ]")
+    expect(taskAAfterSecondEnter.item?.task?.status).toBe("todo")
+    expect(taskAAfterSecondEnter.item?.list).toBe("-")
     // Content must not have literal "[ ]" leaked in
     expect(taskAAfterSecondEnter.content).not.toMatch(/\[ \] \[ \]/)
 
     // Verify the "asdf" node is saved as a task with correct content
     const asdfNode = repo.getNode(newNode1.id)!
-    expect(asdfNode.task_marker).toBe("[ ]")
-    expect(asdfNode.task_status).toBe("todo")
+    expect(asdfNode.item?.task?.marker).toBe("[ ]")
+    expect(asdfNode.item?.task?.status).toBe("todo")
     // Content should include "asdf" — either as raw or with task prefix
     const asdfText = asdfNode.content ?? ""
     expect(asdfText).toContain("asdf")
@@ -712,9 +712,9 @@ describe("Enter on task cards", () => {
       (n: KNode) => n.id !== "taskA" && n.id !== "taskB" && n.id !== newNode1.id,
     )!
     expect(newestNode).toBeDefined()
-    expect(newestNode.task_marker).toBe("[ ]")
-    expect(newestNode.task_status).toBe("todo")
-    expect(newestNode.list_marker).toBe("-")
+    expect(newestNode.item?.task?.marker).toBe("[ ]")
+    expect(newestNode.item?.task?.status).toBe("todo")
+    expect(newestNode.item?.list).toBe("-")
   })
 
   // BUG VARIANT 2: Tasks with prefixed content (as produced by splitNode or
@@ -738,7 +738,7 @@ describe("Enter on task cards", () => {
 
     // Verify initial state
     const taskA = repo.getNode("taskA")!
-    expect(taskA.task_marker).toBe("[ ]")
+    expect(taskA.item?.task?.marker).toBe("[ ]")
     expect(taskA.content).toBe("- [ ] taskA")
 
     // Step 1: Enter edit mode on taskA
@@ -750,7 +750,7 @@ describe("Enter on task cards", () => {
 
     // taskA content should not be double-prefixed (e.g. "- [ ] [ ] taskA")
     const taskAAfter = repo.getNode("taskA")!
-    expect(taskAAfter.task_marker).toBe("[ ]")
+    expect(taskAAfter.item?.task?.marker).toBe("[ ]")
     expect(taskAAfter.content).not.toMatch(/\[ \].*\[ \]/)
 
     // Step 3: Type "asdf" and press Enter
@@ -762,16 +762,16 @@ describe("Enter on task cards", () => {
 
     // taskA must still have task_marker (not converted to regular li)
     const taskAFinal = repo.getNode("taskA")!
-    expect(taskAFinal.task_marker).toBe("[ ]")
-    expect(taskAFinal.task_status).toBe("todo")
+    expect(taskAFinal.item?.task?.marker).toBe("[ ]")
+    expect(taskAFinal.item?.task?.status).toBe("todo")
     // Content must not have accumulated multiple "[ ]" prefixes
     expect(taskAFinal.content).not.toMatch(/\[ \].*\[ \]/)
 
     // All created siblings should be tasks
     const children = repo.getChildren("col1")
     for (const child of children) {
-      expect(child.task_marker).toBe("[ ]")
-      expect(child.list_marker).toBe("-")
+      expect(child.item?.task?.marker).toBe("[ ]")
+      expect(child.item?.list).toBe("-")
     }
   })
 
@@ -782,18 +782,17 @@ describe("Enter on task cards", () => {
     // Patch parentTask to be a task (item() makes nodes with children folders by default)
     for (const n of nodes) {
       if (n.id === "parentTask") {
-        n.task_marker = "[ ]"
-        n.task_status = "todo"
-        n.list_marker = "-"
+        n.item = { ...n.item, task: { marker: "[ ]", status: "todo" } }
+        n.item = { ...n.item, list: "-" }
       }
     }
     const { board, repo } = testEnv(() => nodes)
 
     // Verify parentTask is a task
     const parentTask = repo.getNode("parentTask")!
-    expect(parentTask.task_marker).toBe("[ ]")
-    expect(parentTask.task_status).toBe("todo")
-    expect(parentTask.list_marker).toBe("-")
+    expect(parentTask.item?.task?.marker).toBe("[ ]")
+    expect(parentTask.item?.task?.status).toBe("todo")
+    expect(parentTask.item?.list).toBe("-")
 
     // Navigate to parentTask and enter edit mode
     board.expect("#parentTask[data-cursor]").toExist()
@@ -812,9 +811,9 @@ describe("Enter on task cards", () => {
     expect(newNode).toBeDefined()
 
     // The new child must inherit task properties from the parent
-    expect(newNode.task_marker).toBe("[ ]")
-    expect(newNode.task_status).toBe("todo")
-    expect(newNode.list_marker).toBe("-")
+    expect(newNode.item?.task?.marker).toBe("[ ]")
+    expect(newNode.item?.task?.status).toBe("todo")
+    expect(newNode.item?.list).toBe("-")
 
     // existingChild should still be present and unchanged
     expect(parentChildren.some((n: KNode) => n.id === "existingChild")).toBe(true)

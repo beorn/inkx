@@ -22,9 +22,7 @@ describe("Query Executor", () => {
       {
         id: "task1",
         type: "p",
-        item: true,
-        task_status: "todo",
-        task_marker: "[ ]",
+        item: { task: { marker: "[ ]", status: "todo" } },
         priority: "P1",
         content: "Task for @bjorn #urgent",
         data: '{"mentions":["bjorn"],"tags":["urgent"]}',
@@ -32,9 +30,7 @@ describe("Query Executor", () => {
       {
         id: "task2",
         type: "p",
-        item: true,
-        task_status: "done",
-        task_marker: "[x]",
+        item: { task: { marker: "[x]", status: "done" } },
         priority: "P2",
         content: "Done task @jane",
         data: '{"mentions":["jane"]}',
@@ -42,9 +38,7 @@ describe("Query Executor", () => {
       {
         id: "task3",
         type: "p",
-        item: true,
-        task_status: "todo",
-        task_marker: "[ ]",
+        item: { task: { marker: "[ ]", status: "todo" } },
         priority: null,
         content: "Another task +project-alpha",
         data: '{"projects":["project-alpha"]}',
@@ -58,13 +52,13 @@ describe("Query Executor", () => {
 
   // Basic filter tests using test.each
   test.each([
-    ["status:todo", 2, (r: { task_status: string }) => r.task_status === "todo"],
-    ["status:done", 1, (r: { task_status: string }) => r.task_status === "done"],
+    ["status:todo", 2, (r: { item?: { task?: { status?: string } } }) => r.item?.task?.status === "todo"],
+    ["status:done", 1, (r: { item?: { task?: { status?: string } } }) => r.item?.task?.status === "done"],
     ["priority:P1", 1, (r: { id: string }) => r.id === "task1"],
     ["@bjorn", 1, (r: { id: string }) => r.id === "task1"],
     ["#urgent", 1, (r: { id: string }) => r.id === "task1"],
     ["+project-alpha", 1, (r: { id: string }) => r.id === "task3"],
-    ["-status:done", 2, (r: { task_status: string }) => r.task_status !== "done"],
+    ["-status:done", 2, (r: { item?: { task?: { status?: string } } }) => r.item?.task?.status !== "done"],
   ] as const)("filters with %s", (query, expectedCount, predicate) => {
     const ast = parseQuery(query)
     const results = executeQuery(db, ast, "task")
@@ -105,40 +99,35 @@ describe("Path Pattern Query Execution", () => {
       {
         id: "inbox-task1",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task in inbox",
         fs_path: "/repo/inbox/tasks.md",
       },
       {
         id: "inbox-task2",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Another inbox task",
         fs_path: "/repo/inbox/notes.md",
       },
       {
         id: "project-task1",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task in project",
         fs_path: "/repo/projects/alpha/tasks.md",
       },
       {
         id: "archive-task1",
         type: "p",
-        item: true,
-        task_status: "done",
+        item: { task: { marker: "[x]", status: "done" } },
         content: "Archived task",
         fs_path: "/repo/archive/2024/tasks.md",
       },
       {
         id: "root-task1",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task at root",
         fs_path: "/repo/root-tasks.md",
       },
@@ -165,7 +154,7 @@ describe("Path Pattern Query Execution", () => {
     const ast = parseQuery("./inbox/** status:todo")
     const results = executeQuery(db, ast, "task")
     expect(results.length).toBe(2)
-    expect(results.every((r) => r.task_status === "todo")).toBe(true)
+    expect(results.every((r) => r.item?.task?.status === "todo")).toBe(true)
     expect(results.every((r) => r.fs_path?.includes("/inbox"))).toBe(true)
   })
 })
@@ -179,32 +168,28 @@ describe("Date Query Execution", () => {
       {
         id: "task-today",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task due today",
         due_at: formatDate(today()),
       },
       {
         id: "task-overdue",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Overdue task",
         due_at: formatDate(offsetDate(-1)),
       },
       {
         id: "task-tomorrow",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task due tomorrow",
         due_at: formatDate(offsetDate(1)),
       },
       {
         id: "task-nodue",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task without due date",
         due_at: null,
       },
@@ -251,25 +236,26 @@ describe("Full-text Search with Phrases", () => {
       {
         id: "doc1",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         content: "The budget review meeting is scheduled for Monday",
       },
       {
         id: "doc2",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         content: "Please review the budget before the deadline",
       },
       {
         id: "doc3",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         content: "This document is about quarterly reports",
       },
     ])
+
   })
 
   afterEach(() => {
@@ -323,37 +309,33 @@ describe("Status on Any Node Type", () => {
       {
         id: "task1",
         type: "p",
-        item: true,
-        task_status: "todo",
-        task_marker: "[ ]",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Regular checkbox task",
       },
       {
         id: "section1",
         type: "h",
-        item: true,
-        task_status: "wip",
+        item: { task: { marker: "[/]", status: "wip" } },
         content: "Project Phase 1",
       },
       {
         id: "file1",
         type: "h",
-        item: true,
+        item: { task: { marker: "[x]", status: "done" } },
         fstype: "mdfile",
-        task_status: "done",
         content: "Completed Document",
         fs_path: "/repo/completed.md",
       },
       {
         id: "para1",
         type: "p",
-        task_status: "blocked",
+        item: { task: { marker: "[!]", status: "blocked" } },
         content: "Waiting on external review",
       },
       {
         id: "section2",
         type: "h",
-        item: true,
+        item: {},
         content: "Normal section",
       },
     ])
@@ -376,12 +358,11 @@ describe("Status on Any Node Type", () => {
     expect(results[0]!.type).toBe(expectedType)
   })
 
-  test("type:task only matches checkbox-originated nodes", () => {
+  test("type:task matches all nodes with task_marker", () => {
     const ast = parseQuery("type:task")
     const results = executeQuery(db, ast)
-    expect(results.length).toBe(1)
-    expect(results[0]!.id).toBe("task1")
-    expect(results[0]!.type).toBe("p")
+    expect(results.length).toBe(4)
+    expect(results.map((r) => r.id).sort()).toEqual(["file1", "para1", "section1", "task1"])
   })
 
   test("type:section matches sections regardless of status", () => {
@@ -409,7 +390,7 @@ describe("Status on Any Node Type", () => {
     const ast = parseQuery("-status:done")
     const results = executeQuery(db, ast)
     expect(results.length).toBe(4)
-    expect(results.every((r) => r.task_status !== "done")).toBe(true)
+    expect(results.every((r) => r.item?.task?.status !== "done")).toBe(true)
   })
 
   test("status:todo,wip matches multiple statuses across types", () => {
@@ -436,8 +417,7 @@ describe("Property Query Execution", () => {
       {
         id: "task-rated",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Book review rating:: 5",
         data: JSON.stringify({
           props: { rating: { type: "number", value: 5 } },
@@ -447,9 +427,8 @@ describe("Property Query Execution", () => {
       {
         id: "task-blocked",
         type: "p",
-        item: true,
+        item: { task: { marker: "[ ]", status: "todo" } },
         name: "blocked-task",
-        task_status: "todo",
         content: "Deploy blocked-by:: [[blocker-task]]",
         data: JSON.stringify({
           props: { "blocked-by": { type: "link", target: "blocker-task" } },
@@ -459,17 +438,15 @@ describe("Property Query Execution", () => {
       {
         id: "blocker-task",
         type: "p",
-        item: true,
+        item: { task: { marker: "[ ]", status: "todo" } },
         name: "blocker-task",
-        task_status: "todo",
         content: "This blocks other tasks",
       },
       {
         id: "task-unblocked",
         type: "p",
-        item: true,
+        item: { task: { marker: "[ ]", status: "todo" } },
         name: "unblocked-task",
-        task_status: "todo",
         content: "Was blocked blocked-by:: [[done-blocker]]",
         data: JSON.stringify({
           props: { "blocked-by": { type: "link", target: "done-blocker" } },
@@ -479,16 +456,14 @@ describe("Property Query Execution", () => {
       {
         id: "done-blocker",
         type: "p",
-        item: true,
+        item: { task: { marker: "[x]", status: "done" } },
         name: "done-blocker",
-        task_status: "done",
         content: "Completed blocker",
       },
       {
         id: "task-authored",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Document author:: alice",
         data: JSON.stringify({
           props: { author: { type: "text", value: "alice" } },
@@ -498,8 +473,7 @@ describe("Property Query Execution", () => {
       {
         id: "task-low-rated",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Mediocre book rating:: 2",
         data: JSON.stringify({
           props: { rating: { type: "number", value: 2 } },
@@ -509,16 +483,14 @@ describe("Property Query Execution", () => {
       {
         id: "task-plain",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Plain task without properties",
       },
       {
         id: "task-multi-blocked",
         type: "p",
-        item: true,
+        item: { task: { marker: "[ ]", status: "todo" } },
         name: "multi-blocked-task",
-        task_status: "todo",
         content: "Multi blocked blocked-by:: [[blocker-task]], [[done-blocker]]",
         data: JSON.stringify({
           props: {
@@ -615,7 +587,7 @@ describe("Property Query Execution", () => {
   test("combines blocked:false with status:todo", () => {
     const ast = parseQuery("status:todo blocked:false")
     const results = executeQuery(db, ast, "task")
-    expect(results.every((r) => r.task_status === "todo")).toBe(true)
+    expect(results.every((r) => r.item?.task?.status === "todo")).toBe(true)
     expect(results.every((r) => r.id !== "task-blocked" && r.id !== "task-multi-blocked")).toBe(true)
   })
 })
@@ -635,22 +607,19 @@ describe("Phrase Search in executeQuery", () => {
       {
         id: "doc1",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "The budget review meeting is scheduled",
       },
       {
         id: "doc2",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Please review the budget before deadline",
       },
       {
         id: "doc3",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Quarterly reports are ready",
       },
     ])
@@ -705,24 +674,21 @@ describe("Negated Ref Conditions", () => {
       {
         id: "t1",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task for @alice #frontend +alpha",
         data: '{"mentions":["alice"],"tags":["frontend"],"projects":["alpha"]}',
       },
       {
         id: "t2",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task for @bob #backend +beta",
         data: '{"mentions":["bob"],"tags":["backend"],"projects":["beta"]}',
       },
       {
         id: "t3",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task with no refs",
         data: "{}",
       },
@@ -733,8 +699,7 @@ describe("Negated Ref Conditions", () => {
         // in the tags array.
         id: "t4",
         type: "p",
-        item: true,
-        task_status: "todo",
+        item: { task: { marker: "[ ]", status: "todo" } },
         content: "Task #alice +gamma",
         data: '{"tags":["alice"],"projects":["gamma"]}',
       },

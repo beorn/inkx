@@ -4,27 +4,26 @@ import { KNode } from "../../src/interfaces/node.ts"
 describe("KNode namespace", () => {
   describe("KNode.isOutline", () => {
     it("true for heading items", () => {
-      expect(KNode.isOutline({ type: "h", item: true })).toBe(true)
+      expect(KNode.isOutline({ type: "h", item: {} })).toBe(true)
     })
 
     it("false for non-heading items", () => {
-      expect(KNode.isOutline({ type: "p", item: true })).toBe(false)
+      expect(KNode.isOutline({ type: "p", item: {} })).toBe(false)
     })
 
     it("false for heading non-items", () => {
-      expect(KNode.isOutline({ type: "h", item: false })).toBe(false)
       expect(KNode.isOutline({ type: "h" })).toBe(false)
     })
   })
 
   describe("KNode.isListItem", () => {
     it("true for non-heading items", () => {
-      expect(KNode.isListItem({ type: "p", item: true })).toBe(true)
-      expect(KNode.isListItem({ type: "code", item: true })).toBe(true)
+      expect(KNode.isListItem({ type: "p", item: {} })).toBe(true)
+      expect(KNode.isListItem({ type: "code", item: {} })).toBe(true)
     })
 
     it("false for heading items (those are outlines)", () => {
-      expect(KNode.isListItem({ type: "h", item: true })).toBe(false)
+      expect(KNode.isListItem({ type: "h", item: {} })).toBe(false)
     })
 
     it("false for non-items", () => {
@@ -33,13 +32,12 @@ describe("KNode namespace", () => {
   })
 
   describe("KNode.isItem", () => {
-    it("true when item is true", () => {
-      expect(KNode.isItem({ type: "h", item: true })).toBe(true)
-      expect(KNode.isItem({ type: "p", item: true })).toBe(true)
+    it("true when item is present", () => {
+      expect(KNode.isItem({ type: "h", item: {} })).toBe(true)
+      expect(KNode.isItem({ type: "p", item: { list: "-" } })).toBe(true)
     })
 
-    it("false when item is false or undefined", () => {
-      expect(KNode.isItem({ type: "p", item: false })).toBe(false)
+    it("false when item is undefined", () => {
       expect(KNode.isItem({ type: "p" })).toBe(false)
     })
   })
@@ -47,11 +45,10 @@ describe("KNode namespace", () => {
   describe("KNode.isBlock", () => {
     it("true when not an item", () => {
       expect(KNode.isBlock({ type: "p" })).toBe(true)
-      expect(KNode.isBlock({ type: "p", item: false })).toBe(true)
     })
 
-    it("false when item is true", () => {
-      expect(KNode.isBlock({ type: "p", item: true })).toBe(false)
+    it("false when item is present", () => {
+      expect(KNode.isBlock({ type: "p", item: {} })).toBe(false)
     })
   })
 
@@ -67,41 +64,26 @@ describe("KNode namespace", () => {
   })
 
   describe("KNode.isTask", () => {
-    it("true with task_marker", () => {
-      expect(KNode.isTask({ task_marker: "[ ]" })).toBe(true)
-      expect(KNode.isTask({ task_marker: "[x]" })).toBe(true)
+    it("true with item.task", () => {
+      expect(KNode.isTask({ item: { task: { marker: "[ ]", status: "todo" } } })).toBe(true)
+      expect(KNode.isTask({ item: { task: { marker: "[x]", status: "done" } } })).toBe(true)
     })
 
-    it("true with task_status", () => {
-      expect(KNode.isTask({ task_status: "todo" })).toBe(true)
-    })
-
-    it("false without marker or status", () => {
+    it("false without task", () => {
       expect(KNode.isTask({})).toBe(false)
-    })
-
-    it("false with null marker and status", () => {
-      expect(KNode.isTask({ task_marker: null, task_status: null })).toBe(false)
-    })
-
-    it("implicit task properties alone do NOT make a task", () => {
-      // due_at, priority, etc. without marker/status → not a task
-      // due_at/priority alone don't make a task — strict definition
-      expect(KNode.isTask({})).toBe(false)
+      expect(KNode.isTask({ item: {} })).toBe(false)
+      expect(KNode.isTask({ item: { list: "-" } })).toBe(false)
     })
   })
 
   describe("KNode.extractProps", () => {
-    it("extracts type, item, task_marker (reset), task_status (reset), list_marker from task node", () => {
+    it("extracts type, item with task reset from task node", () => {
       const node = {
         id: "abc123",
         type: "p",
-        item: true,
+        item: { list: "-", task: { marker: "[x]", status: "done" } },
         parent_id: "parent1",
         parent_idx: 3,
-        list_marker: "-",
-        task_marker: "[x]",
-        task_status: "done",
         content: "- [x] Buy milk",
         data: { assignee: "alice" },
         created_at: 1000,
@@ -110,11 +92,7 @@ describe("KNode namespace", () => {
       } as any
       const props = KNode.extractProps(node)
       expect(props.type).toBe("p")
-      expect(props.item).toBe(true)
-      expect(props.list_marker).toBe("-")
-      // Task props reset to unchecked
-      expect(props.task_marker).toBe("[ ]")
-      expect(props.task_status).toBe("todo")
+      expect(props.item).toEqual({ list: "-", task: { marker: "[ ]", status: "todo" } })
       // Data is a system key — not inherited (source-specific)
       expect(props.data).toBeUndefined()
     })
@@ -123,7 +101,7 @@ describe("KNode namespace", () => {
       const node = {
         id: "sec1",
         type: "h",
-        item: true,
+        item: {},
         parent_id: "root",
         parent_idx: 1,
         fstype: "mdsection",
@@ -136,7 +114,7 @@ describe("KNode namespace", () => {
       } as any
       const props = KNode.extractProps(node)
       expect(props.type).toBe("h")
-      expect(props.item).toBe(true)
+      expect(props.item).toEqual({})
       // fstype is a system key — not inherited
       expect(props.fstype).toBeUndefined()
       // name, content are system keys
@@ -164,7 +142,7 @@ describe("KNode namespace", () => {
       const node = {
         id: "n1",
         type: "p",
-        item: true,
+        item: {},
         parent_id: "p1",
         parent_idx: 5,
         created_at: 1000,
@@ -204,23 +182,21 @@ describe("KNode namespace", () => {
         type: "p",
         parent_id: null,
         parent_idx: 0,
-        task_marker: null,
-        list_marker: undefined,
+        item: undefined,
         data: {},
         created_at: 1000,
         updated_at: 2000,
         version: "v1",
       } as any
       const props = KNode.extractProps(node)
-      expect(props.task_marker).toBeUndefined()
-      expect(props.list_marker).toBeUndefined()
+      expect(props.item).toBeUndefined()
     })
 
     it("inherits custom/future fields automatically (denylist model)", () => {
       const node = {
         id: "n1",
         type: "p",
-        item: true,
+        item: {},
         parent_id: "p1",
         parent_idx: 0,
         data: {},
@@ -241,12 +217,12 @@ describe("KNode namespace", () => {
 
   describe("KNode.matches", () => {
     it("matches when all props equal", () => {
-      const node = { type: "h", item: true, name: "test" }
-      expect(KNode.matches(node, { type: "h", item: true })).toBe(true)
+      const node = { type: "h", item: {}, name: "test" }
+      expect(KNode.matches(node, { type: "h" })).toBe(true)
     })
 
     it("fails when any prop differs", () => {
-      const node = { type: "h", item: true, name: "test" }
+      const node = { type: "h", item: {}, name: "test" }
       expect(KNode.matches(node, { type: "p" })).toBe(false)
     })
 

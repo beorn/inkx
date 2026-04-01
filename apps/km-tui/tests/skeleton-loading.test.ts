@@ -49,7 +49,7 @@ function emptyColumn(id: string): KNode {
   return {
     id,
     type: "h",
-    item: true,
+    item: {},
     fstype: "folder",
     content: undefined,
     data: { name: id },
@@ -103,7 +103,7 @@ describe("Skeleton loading", () => {
       const boardNode: KNode = {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -153,7 +153,7 @@ describe("Skeleton loading", () => {
       const boardNode: KNode = {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -185,7 +185,7 @@ describe("Skeleton loading", () => {
       const boardNode: KNode = {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -230,7 +230,7 @@ describe("Skeleton loading", () => {
       const boardNode: KNode = {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -301,7 +301,7 @@ describe("Skeleton loading", () => {
       const boardNode: KNode = {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -337,7 +337,7 @@ describe("Skeleton loading", () => {
 
     // Background parse completes: add card to col1, clear isLoading
     act(() => {
-      repo.addNode("col1", { content: "Parsed Task A1", type: "p", item: true })
+      repo.addNode("col1", { content: "Parsed Task A1", type: "p", item: {} })
       store.setState((s) => ({ ...s, ui: { ...s.ui, isLoading: false, loadingStartTime: null } }))
     })
     board.press("F20")
@@ -354,7 +354,7 @@ describe("Skeleton loading", () => {
       const boardNode: KNode = {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         content: undefined,
         data: { name: "board", is_repo_root: true },
@@ -415,8 +415,8 @@ describe("Skeleton loading", () => {
 
     // Simulate background parse completing: add parsed content to col3
     act(() => {
-      repo.addNode("col3", { content: "Parsed Task C1", type: "p", item: true })
-      repo.addNode("col3", { content: "Parsed Task C2", type: "p", item: true })
+      repo.addNode("col3", { content: "Parsed Task C1", type: "p", item: {} })
+      repo.addNode("col3", { content: "Parsed Task C2", type: "p", item: {} })
     })
     board.press("F20")
 

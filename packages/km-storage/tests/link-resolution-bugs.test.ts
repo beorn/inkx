@@ -525,7 +525,7 @@ describe("Bug 2: resolver cache stale after mutations", () => {
     // Add initial node
     repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       name: "Alpha",
       content: "Alpha",
     })
@@ -538,7 +538,7 @@ describe("Bug 2: resolver cache stale after mutations", () => {
     // Add another node — the name index should be invalidated
     repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       name: "Beta",
       content: "Beta",
     })
@@ -554,7 +554,7 @@ describe("Bug 2: resolver cache stale after mutations", () => {
 
     const nodeId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       name: "Gamma",
       content: "Gamma",
     })
@@ -574,7 +574,7 @@ describe("Bug 2: resolver cache stale after mutations", () => {
 
     const nodeId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       name: "OldName",
       content: "OldName",
     })
@@ -595,14 +595,14 @@ describe("Bug 2: resolver cache stale after mutations", () => {
 
     const parentId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       name: "Parent",
       content: "Parent",
     })
 
     const childId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       name: "Child",
       content: "Child",
     })

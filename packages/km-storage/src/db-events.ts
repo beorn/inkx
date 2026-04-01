@@ -67,6 +67,13 @@ export function applyEventWithDb(db: Database, event: Event): void {
 function applyNodeCreated(db: Database, event: Event): void {
   const data = event.data as Record<string, unknown>
 
+  // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
+  const item = data.item as Record<string, unknown> | undefined
+  const task = item?.task as { marker?: string; status?: string } | undefined
+  const listMarker = (data.list_marker as string) ?? (item?.list as string) ?? null
+  const taskMarker = (data.task_marker as string) ?? task?.marker ?? null
+  const taskStatus = (data.task_status as string) ?? task?.status ?? null
+
   // Use INSERT OR IGNORE as safety net for duplicate path-based IDs
   // This can happen if both discovery and watch handler create the same node
   db.run(
@@ -102,9 +109,9 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.title as string) ?? null,
       (data.md_pos as number) ?? null,
       (data.md_line as number) ?? null,
-      (data.list_marker as string) ?? null,
-      (data.task_marker as string) ?? null,
-      (data.task_status as string) ?? null,
+      listMarker,
+      taskMarker,
+      taskStatus,
       (data.assigned_to as string) ?? null,
       (data.due_at as string) ?? null,
       (data.start_at as string) ?? null,
@@ -134,6 +141,24 @@ function applyNodeUpdated(db: Database, event: Event): void {
       // Full replacement — json_patch merges and preserves stale properties
       sets.push("data = ?")
       values.push(JSON.stringify(value))
+    } else if (key === "item") {
+      // Nested item object → extract flat DB columns
+      const itemObj = value as Record<string, unknown> | undefined
+      const task = itemObj?.task as { marker?: string; status?: string } | undefined
+      if (task?.status !== undefined) {
+        sets.push("task_status = ?")
+        values.push(task.status)
+      }
+      if (task?.marker !== undefined) {
+        sets.push("task_marker = ?")
+        values.push(task.marker)
+      }
+      if (itemObj?.list !== undefined) {
+        sets.push("list_marker = ?")
+        values.push(itemObj.list)
+      }
+      sets.push("item = ?")
+      values.push(value ? 1 : 0)
     } else if (NODE_COLUMNS.has(key)) {
       sets.push(`${key} = ?`)
       values.push(value)

@@ -108,8 +108,8 @@ export function formatNode(repo: Repo, node: KNode, showId: boolean): string {
   }
 
   // Handle tasks (items with task_marker)
-  if (node.task_marker != null) {
-    const marker = node.task_marker
+  if (node.item?.task?.marker != null) {
+    const marker = node.item?.task?.marker
     // Extract inner character from bracket marker: "[x]" → "x"
     const inner = marker.length === 3 ? (marker[1] ?? marker) : marker
     const status = getStatusForMarker(marker) ?? "todo"

@@ -519,8 +519,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("doneOverdue")))
     const doneTask = nodes.find((n) => n.content === "doneOverdue")!
     doneTask.due_at = "2025-01-01" // Past date — would show "Jan 1" on a todo task
-    doneTask.task_status = "done"
-    doneTask.task_marker = "[x]"
+    doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -540,8 +539,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const doneTask = nodes.find((n) => n.content === "donePrio")!
     doneTask.priority = "P1"
     doneTask.due_at = "2025-01-01"
-    doneTask.task_status = "done"
-    doneTask.task_marker = "[x]"
+    doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -572,8 +570,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
   it("done task title is dimmed", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("doneTitle")))
     const doneTask = nodes.find((n) => n.content === "doneTitle")!
-    doneTask.task_status = "done"
-    doneTask.task_marker = "[x]"
+    doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -594,8 +591,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     const droppedTask = nodes.find((n) => n.content === "droppedTask")!
     droppedTask.due_at = "2025-01-01"
     droppedTask.priority = "P2"
-    droppedTask.task_status = "dropped"
-    droppedTask.task_marker = "[-]"
+    droppedTask.item = { ...droppedTask.item, task: { status: "dropped", marker: "[-]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -621,8 +617,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
     // including inline code (backtick) which normally renders as colored.
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("Fix the `config` bug")))
     const doneTask = nodes.find((n) => n.content === "Fix the `config` bug")!
-    doneTask.task_status = "done"
-    doneTask.task_marker = "[x]"
+    doneTask.item = { ...doneTask.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 

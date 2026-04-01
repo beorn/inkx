@@ -5,7 +5,7 @@
  * Moved from @km/tui-core to @km/tree during architecture restructuring.
  */
 
-import { KNode, extractMetadata, normalizeName, findIndexFile } from "@km/core"
+import { KNode, extractMetadata, normalizeName, findIndexFile, type ItemData } from "@km/core"
 import { PROP_REGEX } from "@km/markdown"
 
 /** Strip inline metadata (key:: value) and block IDs (^id) from display text */
@@ -158,7 +158,7 @@ export function isNodeUntitled(node: KNode, getChildren?: GetChildrenFn): boolea
  * - file/mdfile: .md
  * - mdsection: #
  */
-export function getTypeIndicator(type: string, fstype?: string, item?: boolean): string {
+export function getTypeIndicator(type: string, fstype?: string, item?: ItemData): string {
   if (!KNode.isOutline({ type, item })) return ""
   switch (fstype) {
     case "folder":

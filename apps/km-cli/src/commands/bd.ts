@@ -352,7 +352,7 @@ const updateCmd = bdCommand
     // Handle --description: replace or create first child paragraph
     if (opts.description) {
       const children = repo.getChildren(issue.id)
-      const firstParagraph = children.find((c) => c.type === "p" && !c.task_status)
+      const firstParagraph = children.find((c) => c.type === "p" && !c.item?.task?.status)
       if (firstParagraph) {
         repo.updateNode(firstParagraph.id, { content: opts.description, updated_at: Date.now() })
       } else {
@@ -377,7 +377,7 @@ const updateCmd = bdCommand
 
     console.log(term.green(`Updated ${issue.shortId}:`))
     if (opts.claim) console.log(`  Claimed by ${opts.assignee}`)
-    if (updates.task_status && !opts.claim) console.log(`  Status: ${updates.task_status}`)
+    if (updates.item?.task?.status && !opts.claim) console.log(`  Status: ${updates.item?.task?.status}`)
     if (updates.priority !== undefined) console.log(`  Priority: ${updates.priority}`)
     if (updates.content) console.log(`  Title: ${updates.content}`)
     if (opts.description) console.log(`  Description updated`)
@@ -606,7 +606,7 @@ bdCommand
     }
 
     const children = repo.getChildren(issue.id)
-    const childIssues = children.filter((c) => c.task_status != null).map((c) => nodeToIssue(c, { repo }))
+    const childIssues = children.filter((c) => c.item?.task?.status != null).map((c) => nodeToIssue(c, { repo }))
 
     if (opts.json) {
       console.log(JSON.stringify(childIssues.map(issueToBdJson), null, 2))

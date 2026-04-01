@@ -20,7 +20,7 @@ function createTestKNode(overrides: Partial<KNode> & { id?: string } = {}): KNod
   return {
     id,
     type,
-    ...(isItemNode ? { item: true } : {}),
+    ...(isItemNode ? { item: {} } : {}),
     ...(type === "p" && isItemNode ? { list_marker: "-" } : {}),
     parent_id: overrides.parent_id ?? null,
     parent_idx: overrides.parent_idx ?? 0,
@@ -47,7 +47,7 @@ export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KN
 export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: KNode[] = []): ColumnView {
   const node = createTestKNode({
     type: "h",
-    item: true,
+    item: {},
     fstype: "folder",
     ...nodeOverrides,
   })
@@ -106,7 +106,7 @@ function createSimpleTestBoard(): {
     parent_id: col1Id,
     content: "Task 1",
     type: "p",
-    item: true,
+    item: {},
   })
 
   const card2 = createCardNode({
@@ -115,7 +115,7 @@ function createSimpleTestBoard(): {
     parent_idx: 1,
     content: "Task 2",
     type: "p",
-    item: true,
+    item: {},
   })
 
   const card3 = createCardNode({
@@ -123,7 +123,7 @@ function createSimpleTestBoard(): {
     parent_id: col2Id,
     content: "Task 3",
     type: "p",
-    item: true,
+    item: {},
   })
 
   const col1 = createColumnView({ id: col1Id, parent_id: rootId, content: "Todo" }, [card1, card2])
@@ -172,7 +172,7 @@ function createNestedTestBoard(): {
     parent_id: subColId,
     content: "Sub-task 1",
     type: "p",
-    item: true,
+    item: {},
   })
 
   const _subCard2 = createCardNode({
@@ -181,7 +181,7 @@ function createNestedTestBoard(): {
     parent_idx: 1,
     content: "Sub-task 2",
     type: "p",
-    item: true,
+    item: {},
   })
 
   const card = createCardNode({
@@ -189,7 +189,7 @@ function createNestedTestBoard(): {
     parent_id: colId,
     content: "Card with children",
     type: "p",
-    item: true,
+    item: {},
   })
 
   const col = createColumnView({ id: colId, parent_id: rootId, content: "Column" }, [card])
@@ -215,37 +215,27 @@ function createStatusTestBoard(): InitialBoardData {
     createCardNode({
       content: "Todo task",
       type: "p",
-      item: true,
-      task_status: "todo",
-      task_marker: "[ ]",
+      item: { task: { status: "todo", marker: "[ ]" } },
     }),
     createCardNode({
       content: "In progress task",
       type: "p",
-      item: true,
-      task_status: "wip",
-      task_marker: "[/]",
+      item: { task: { status: "wip", marker: "[/]" } },
     }),
     createCardNode({
       content: "Blocked task",
       type: "p",
-      item: true,
-      task_status: "blocked",
-      task_marker: "[!]",
+      item: { task: { status: "blocked", marker: "[!]" } },
     }),
     createCardNode({
       content: "Done task",
       type: "p",
-      item: true,
-      task_status: "done",
-      task_marker: "[x]",
+      item: { task: { status: "done", marker: "[x]" } },
     }),
     createCardNode({
       content: "Dropped task",
       type: "p",
-      item: true,
-      task_status: "dropped",
-      task_marker: "[-]",
+      item: { task: { status: "dropped", marker: "[-]" } },
     }),
   ])
 

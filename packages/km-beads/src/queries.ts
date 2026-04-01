@@ -95,7 +95,7 @@ export function nodeToIssue(node: KNode, options?: BeadsQueryOptions): Issue {
 
   // Determine status from task_status
   let status: Issue["status"] = "todo"
-  switch (node.task_status) {
+  switch (node.item?.task?.status) {
     case "done":
       status = "done"
       break

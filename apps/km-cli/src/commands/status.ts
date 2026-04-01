@@ -36,14 +36,14 @@ function getStatusIcon(status: string): string {
 
 /** Display current task status (view mode, no mutation) */
 function displayStatus(node: KNode, options: { json?: boolean }): void {
-  const status = node.task_status ?? "todo"
+  const status = node.item?.task?.status ?? "todo"
 
   if (options.json) {
     console.log(
       JSON.stringify({
         id: node.id,
         status,
-        mark: node.task_marker ?? "[ ]",
+        mark: node.item?.task?.marker ?? "[ ]",
         content: node.content,
       }),
     )
@@ -73,8 +73,7 @@ function handleRecurringTask(repo: Repo, node: KNode, options: { json?: boolean 
   // Clone the task with new due date
   const newId = repo.cloneTask(node.id, {
     due_at: nextDue,
-    task_status: "todo",
-    task_marker: "[ ]",
+    item: { task: { status: "todo", marker: "[ ]" } },
   })
 
   if (options.json) {
@@ -130,8 +129,7 @@ export const statusCommand = new Command("status")
     const newMarker = getMarkerForStatus(newStatus as TaskStatus)
 
     repo.updateNode(node.id, {
-      task_status: newStatus as TaskStatus,
-      task_marker: newMarker,
+      item: { task: { status: newStatus as TaskStatus, marker: newMarker } },
     })
 
     if (options.json) {

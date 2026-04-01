@@ -19,29 +19,26 @@ function setupFlatList() {
   const repo = createTestRepo()
   const parentId = repo.addNode(null, {
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "Parent",
     content: "Parent",
   })
   const aId = repo.addNode(parentId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-" },
     content: "Alpha",
     parent_idx: 1,
   })
   const bId = repo.addNode(parentId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-" },
     content: "Bravo",
     parent_idx: 2,
   })
   const cId = repo.addNode(parentId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-" },
     content: "Charlie",
     parent_idx: 3,
   })
@@ -53,14 +50,14 @@ function setupNestedTree() {
   const repo = createTestRepo()
   const rootId = repo.addNode(null, {
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "Root",
     content: "Root",
   })
   const sectionAId = repo.addNode(rootId, {
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "Section A",
     content: "Section A",
@@ -68,21 +65,19 @@ function setupNestedTree() {
   })
   const child1Id = repo.addNode(sectionAId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-" },
     content: "Child 1",
     parent_idx: 1,
   })
   const child2Id = repo.addNode(sectionAId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-" },
     content: "Child 2",
     parent_idx: 2,
   })
   const sectionBId = repo.addNode(rootId, {
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "Section B",
     content: "Section B",
@@ -96,27 +91,21 @@ function setupTaskList() {
   const repo = createTestRepo()
   const parentId = repo.addNode(null, {
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "Tasks",
     content: "Tasks",
   })
   const t1Id = repo.addNode(parentId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     content: "- [ ] Buy milk",
-    task_status: "todo",
-    task_marker: "[ ]",
     parent_idx: 1,
   })
   const t2Id = repo.addNode(parentId, {
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-", task: { marker: "[x]", status: "done" } },
     content: "- [x] Walk dog",
-    task_status: "done",
-    task_marker: "[x]",
     parent_idx: 2,
   })
   return { repo, parentId, t1Id, t2Id }
@@ -159,8 +148,8 @@ describe("createOutlinerContext", () => {
 
   test("only child context", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
-    const childId = repo.addNode(parentId, { type: "p", item: true, content: "Only" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
+    const childId = repo.addNode(parentId, { type: "p", item: {}, content: "Only" })
     const ctx = createOutlinerContext(repo, childId)!
     expect(ctx.isOnlyChild).toBe(true)
     expect(ctx.isFirstChild).toBe(true)
@@ -175,8 +164,8 @@ describe("createOutlinerContext", () => {
 
   test("isEmpty is true for empty content", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
-    const childId = repo.addNode(parentId, { type: "p", item: true, content: "" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
+    const childId = repo.addNode(parentId, { type: "p", item: {}, content: "" })
     const ctx = createOutlinerContext(repo, childId)!
     expect(ctx.isEmpty).toBe(true)
   })
@@ -200,7 +189,7 @@ describe("createOutlinerContext", () => {
 
   test("non-item nodes are not indentable by default", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     const blockId = repo.addNode(parentId, { type: "p", content: "A block" })
     const ctx = createOutlinerContext(repo, blockId)!
     expect(ctx.isIndentable).toBe(false)
@@ -248,7 +237,7 @@ describe("indent", () => {
 
   test("non-indentable node (block) is no-op", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     repo.addNode(parentId, { type: "p", content: "Prev", parent_idx: 1 })
     const blockId = repo.addNode(parentId, { type: "p", content: "Block", parent_idx: 2 })
 
@@ -258,7 +247,7 @@ describe("indent", () => {
 
   test("custom policy can make all nodes indentable", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     const prevId = repo.addNode(parentId, { type: "p", content: "Prev", parent_idx: 1 })
     const blockId = repo.addNode(parentId, { type: "p", content: "Block", parent_idx: 2 })
 
@@ -275,7 +264,7 @@ describe("indent", () => {
     // Give A an existing child
     const existingChildId = repo.addNode(aId, {
       type: "p",
-      item: true,
+      item: {},
       content: "Existing",
       parent_idx: 1,
     })
@@ -336,8 +325,8 @@ describe("outdent", () => {
 
   test("non-indentable node cannot outdent", () => {
     const repo = createTestRepo()
-    const rootId = repo.addNode(null, { type: "h", item: true, name: "Root" })
-    const sectionId = repo.addNode(rootId, { type: "h", item: true, name: "Section", parent_idx: 1 })
+    const rootId = repo.addNode(null, { type: "h", item: {}, name: "Root" })
+    const sectionId = repo.addNode(rootId, { type: "h", item: {}, name: "Section", parent_idx: 1 })
     const blockId = repo.addNode(sectionId, { type: "p", content: "Block", parent_idx: 1 })
 
     const outliner = withOutliner(repo)
@@ -352,14 +341,14 @@ describe("outdent", () => {
 
   test("outdent when parent is last child of grandparent", () => {
     const repo = createTestRepo()
-    const rootId = repo.addNode(null, { type: "h", item: true, name: "Root" })
+    const rootId = repo.addNode(null, { type: "h", item: {}, name: "Root" })
     const sectionId = repo.addNode(rootId, {
       type: "h",
-      item: true,
+      item: {},
       name: "Last Section",
       parent_idx: 10,
     })
-    const childId = repo.addNode(sectionId, { type: "p", item: true, content: "Child", parent_idx: 1 })
+    const childId = repo.addNode(sectionId, { type: "p", item: {}, content: "Child", parent_idx: 1 })
 
     const outliner = withOutliner(repo)
     expect(outliner.outdent(childId)).toBe(true)
@@ -454,8 +443,8 @@ describe("splitBlock", () => {
 
   test("empty node: creates sibling after", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
-    const emptyId = repo.addNode(parentId, { type: "p", item: true, content: "", parent_idx: 1 })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
+    const emptyId = repo.addNode(parentId, { type: "p", item: {}, content: "", parent_idx: 1 })
 
     const outliner = withOutliner(repo)
     const result = outliner.splitBlock(emptyId, 0)
@@ -468,11 +457,10 @@ describe("splitBlock", () => {
 
   test("split preserves inherited properties", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     const nodeId = repo.addNode(parentId, {
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "Hello World",
       parent_idx: 1,
     })
@@ -480,8 +468,7 @@ describe("splitBlock", () => {
     const outliner = withOutliner(repo)
     const result = outliner.splitBlock(nodeId, 5)!
     const newNode = repo.getNode(result.afterId)!
-    expect(newNode.item).toBe(true)
-    expect(newNode.list_marker).toBe("-")
+    expect(newNode.item).toEqual({ list: "-" })
   })
 
   test("split task node resets task status to todo", () => {
@@ -494,13 +481,12 @@ describe("splitBlock", () => {
 
     const newNode = repo.getNode(result!.afterId)!
     // New node inherits task trait but resets to todo
-    expect(newNode.task_status).toBe("todo")
-    expect(newNode.task_marker).toBe("[ ]")
+    expect(newNode.item?.task).toEqual({ marker: "[ ]", status: "todo" })
   })
 
   test("root node (top-level) can still split — creates top-level sibling", () => {
     const repo = createTestRepo()
-    const rootId = repo.addNode(null, { type: "h", item: true, name: "Root", content: "Root" })
+    const rootId = repo.addNode(null, { type: "h", item: {}, name: "Root", content: "Root" })
     const outliner = withOutliner(repo)
     // Root nodes in km have parent_id "." — split creates a sibling at top level
     const result = outliner.splitBlock(rootId, 0)
@@ -526,19 +512,18 @@ describe("joinBackward", () => {
     expect(result!.survivorId).toBe(t1Id)
 
     const node = repo.getNode(t1Id)!
-    expect(node.task_marker).toBeUndefined()
-    expect(node.task_status).toBeUndefined()
-    // Still an item
-    expect(node.item).toBe(true)
+    expect(node.item?.task).toBeUndefined()
+    // Still an item with list marker
+    expect(node.item).toBeDefined()
+    expect(node.item?.list).toBe("-")
   })
 
-  test("step 2: strips item trait after task marker is gone", () => {
+  test("step 2: strips item trait after task is gone", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     const itemId = repo.addNode(parentId, {
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "An item",
       parent_idx: 1,
     })
@@ -549,13 +534,12 @@ describe("joinBackward", () => {
 
     const node = repo.getNode(itemId)!
     expect(node.item).toBeUndefined()
-    expect(node.list_marker).toBeUndefined()
     expect(node.type).toBe("p")
   })
 
   test("step 3: converts non-paragraph type to p", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     const quoteId = repo.addNode(parentId, {
       type: "quote",
       content: "A quote",
@@ -573,7 +557,7 @@ describe("joinBackward", () => {
   test("step 4: empty plain p with no children → delete, cursor to prev", () => {
     const { repo, parentId, aId, bId } = setupFlatList()
     // Make B a plain p (not item) and empty
-    repo.updateNode(bId, { item: undefined, list_marker: undefined, content: "" })
+    repo.updateNode(bId, { item: undefined, content: "" })
 
     const outliner = withOutliner(repo)
     // First call: strip item trait (already done in setup)
@@ -590,8 +574,8 @@ describe("joinBackward", () => {
   test("step 5: plain p with content + childless prev → merge text", () => {
     const { repo, aId, bId } = setupFlatList()
     // Make both plain p
-    repo.updateNode(aId, { item: undefined, list_marker: undefined, content: "Alpha" })
-    repo.updateNode(bId, { item: undefined, list_marker: undefined, content: "Bravo" })
+    repo.updateNode(aId, { item: undefined, content: "Alpha" })
+    repo.updateNode(bId, { item: undefined, content: "Bravo" })
 
     const outliner = withOutliner(repo)
     const result = outliner.joinBackward(bId)
@@ -606,7 +590,7 @@ describe("joinBackward", () => {
 
   test("step 6: plain p with content + prev has children → reparent as last child", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     const prevId = repo.addNode(parentId, { type: "p", content: "Prev", parent_idx: 1 })
     const prevChildId = repo.addNode(prevId, { type: "p", content: "Prev child", parent_idx: 1 })
     const nodeId = repo.addNode(parentId, { type: "p", content: "Current", parent_idx: 2 })
@@ -623,8 +607,8 @@ describe("joinBackward", () => {
 
   test("step 7: first child plain p → outdent to parent level", () => {
     const repo = createTestRepo()
-    const rootId = repo.addNode(null, { type: "h", item: true, name: "Root" })
-    const sectionId = repo.addNode(rootId, { type: "h", item: true, name: "Section", parent_idx: 1 })
+    const rootId = repo.addNode(null, { type: "h", item: {}, name: "Root" })
+    const sectionId = repo.addNode(rootId, { type: "h", item: {}, name: "Section", parent_idx: 1 })
     const childId = repo.addNode(sectionId, { type: "p", content: "First child", parent_idx: 1 })
 
     const outliner = withOutliner(repo)
@@ -639,26 +623,23 @@ describe("joinBackward", () => {
 
   test("degradation ladder runs in order: task → item → type → merge", () => {
     const repo = createTestRepo()
-    const parentId = repo.addNode(null, { type: "h", item: true, name: "P" })
+    const parentId = repo.addNode(null, { type: "h", item: {}, name: "P" })
     repo.addNode(parentId, { type: "p", content: "Prev", parent_idx: 1 })
     const nodeId = repo.addNode(parentId, {
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-", task: { marker: "[ ]", status: "todo" } },
       content: "- [ ] Task item",
-      task_status: "todo",
-      task_marker: "[ ]",
       parent_idx: 2,
     })
 
     const outliner = withOutliner(repo)
 
-    // Step 1: strip task marker
+    // Step 1: strip task
     const r1 = outliner.joinBackward(nodeId)!
     expect(r1.type).toBe("degraded")
     let node = repo.getNode(nodeId)!
-    expect(node.task_marker).toBeUndefined()
-    expect(node.item).toBe(true) // still item
+    expect(node.item?.task).toBeUndefined()
+    expect(node.item).toBeDefined() // still item
 
     // Step 2: strip item
     const r2 = outliner.joinBackward(nodeId)!
@@ -723,7 +704,7 @@ describe("joinForward", () => {
   test("next has children → no-op (conservative)", () => {
     const { repo, sectionAId, sectionBId } = setupNestedTree()
     // Give sectionB a child
-    repo.addNode(sectionBId, { type: "p", item: true, content: "B child", parent_idx: 1 })
+    repo.addNode(sectionBId, { type: "p", item: {}, content: "B child", parent_idx: 1 })
 
     const outliner = withOutliner(repo)
     const result = outliner.joinForward(sectionAId)

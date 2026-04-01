@@ -52,13 +52,13 @@ function filterTasksByStatus(
   defaultMode: "excludeDone" | "active" = "excludeDone",
 ): KNodeType[] {
   if (options.status) {
-    return tasks.filter((t) => t.task_status === options.status)
+    return tasks.filter((t) => t.item?.task?.status === options.status)
   }
   if (!options.all) {
     if (defaultMode === "active") {
-      return tasks.filter((t) => t.task_status === "todo" || t.task_status === "wip")
+      return tasks.filter((t) => t.item?.task?.status === "todo" || t.item?.task?.status === "wip")
     }
-    return tasks.filter((t) => t.task_status !== "done")
+    return tasks.filter((t) => t.item?.task?.status !== "done")
   }
   return tasks
 }
@@ -96,7 +96,7 @@ function resolveFromPathOrId(
 
   if (rootNode) {
     // If the root IS a task, signal the caller to show details
-    if (KNode.isListItem(rootNode) && rootNode.task_marker !== undefined) {
+    if (KNode.isListItem(rootNode) && rootNode.item?.task?.marker !== undefined) {
       return null
     }
 
@@ -283,7 +283,7 @@ function showTaskDetails(repo: Repo, task: KNodeType, options: { json?: boolean 
   }
 
   console.log(term.bold("Task:"), task.id)
-  console.log(term.dim("Status:"), task.task_status ?? "todo")
+  console.log(term.dim("Status:"), task.item?.task?.status ?? "todo")
   console.log(term.dim("Content:"), task.content ?? "(none)")
   if (task.due_at) console.log(term.dim("Due:"), task.due_at)
   if (task.start_at) {

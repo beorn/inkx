@@ -47,10 +47,7 @@ function makeLiNode(id: string, parentId: string | null, parentIdx: number, chil
   const node: KNode = {
     id,
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[ ]",
-    task_status: "todo",
+    item: { list: "-", task: { status: "todo", marker: "[ ]" } },
     content: id,
     data: {},
     parent_id: parentId,
@@ -73,7 +70,7 @@ function makeOiNode(id: string, parentId: string | null, parentIdx: number): KNo
   return {
     id,
     type: "h",
-    item: true,
+    item: {},
     fstype: "folder",
     content: undefined,
     data: { name: id },
@@ -1386,7 +1383,7 @@ describe("search flow via key presses", () => {
     const fileNode: KNode = {
       id: "readme-file",
       type: "h",
-      item: true,
+      item: {},
       fstype: "file",
       content: "README",
       data: { name: "README" },

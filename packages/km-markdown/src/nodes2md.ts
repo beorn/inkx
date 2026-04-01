@@ -157,9 +157,9 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   // H1 heading (merged into file node) — use same logic as serializeSection for fidelity
   if (node.content) {
     // Use || (not ??) — empty string title should fall through to content
-  const title = node.title || node.content || ""
+    const title = node.title || node.content || ""
     const ruleStr = node.rules ? serializeRules(node.rules) : ""
-    const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
+    const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
     let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
     if (node.embed_source || node.block_id) headingLine = headingLine.trimEnd()
     if (node.embed_source) headingLine += ` ![[${node.embed_source}]]`
@@ -189,13 +189,13 @@ function serializeNode(
   const children = ctx.tree.get(node.id) ?? []
 
   // Nodes with embed_source serialize as transclusions ![[target]].
-  // Exception: outline heading nodes with task_marker + embed_source serialize as
+  // Exception: outline heading nodes with task + embed_source serialize as
   // headings with inline embed ref (import cross-project dedup)
-  if (node.embed_source && !(KNode.isOutline(node) && node.task_marker)) {
+  if (node.embed_source && !(KNode.isOutline(node) && node.item?.task)) {
     return serializeEmbedding(node, ctx)
   }
 
-  // Outline items (type === "h" && item === true)
+  // Outline items (type === "h" && item != null)
   if (KNode.isOutline(node)) {
     // Dispatch by fstype
     if (node.fstype === "txtfile") {
@@ -208,7 +208,7 @@ function serializeNode(
     return serializeSection(node, children, ctx, depth)
   }
 
-  // List items (item === true && not outline)
+  // List items (item != null && not outline)
   if (KNode.isListItem(node)) {
     return serializeLi(node, children, ctx, indent, addTrailingNewline, orderedIndex)
   }
@@ -253,7 +253,7 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   const title = node.title || node.content || ""
   const ruleStr = node.rules ? serializeRules(node.rules) : ""
   // Prepend task marker if present (e.g., "## [x] Task title")
-  const markerPrefix = node.task_marker ? `${statusToMarker(node.task_status, node.task_marker)} ` : ""
+  const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
   let headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
   // Trim trailing whitespace before appending embed/block_id to avoid double spaces
   // (e.g., when title is empty and markerPrefix ends with space)
@@ -421,8 +421,8 @@ function serializeCode(node: KNode): string {
 }
 
 /**
- * Derive the task marker from task_status.
- * This ensures edits to task_status are reflected in the serialized output.
+ * Derive the task marker from status.
+ * This ensures edits to task status are reflected in the serialized output.
  */
 function statusToMarker(status: string | undefined, existingMarker?: string): string {
   if (!status) return existingMarker ?? "[ ]"
@@ -444,13 +444,13 @@ function serializeLi(
 
   // Build the line prefix and content
   let line: string
-  if (node.task_marker) {
-    const marker = statusToMarker(node.task_status, node.task_marker)
+  if (node.item?.task) {
+    const marker = statusToMarker(node.item.task.status, node.item.task.marker)
     const content = appendTaskMetadata(node)
     line = `${indentStr}- ${marker} ${content}`
   } else {
     let listMarker: string
-    if (node.list_marker === "1.") {
+    if (node.item?.list === "1.") {
       const start = (node.data?.list_start as number | undefined) ?? 1
       listMarker = `${start + orderedIndex}.`
     } else {

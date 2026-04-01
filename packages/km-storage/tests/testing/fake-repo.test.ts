@@ -20,11 +20,11 @@ describe("FakeRepo", () => {
 
     it("accepts initial nodes", () => {
       const nodes: KNode[] = [
-        createNode({ id: "1", type: "h", item: true, content: "Section 1" }),
+        createNode({ id: "1", type: "h", item: {}, content: "Section 1" }),
         createNode({
           id: "2",
           type: "p",
-          item: true,
+          item: {},
           content: "Task 1",
           parent_id: "1",
         }),
@@ -102,30 +102,30 @@ describe("FakeRepo", () => {
     it("getAllTasks returns only task nodes", () => {
       const repo = createFakeRepo({
         nodes: [
-          createNode({ id: "1", type: "h", item: true }),
-          createNode({ id: "2", type: "p", item: true, task_status: "todo", task_marker: "[ ]" }),
+          createNode({ id: "1", type: "h", item: {} }),
+          createNode({ id: "2", type: "p", item: { task: { status: "todo", marker: "[ ]" } } }),
           createNode({ id: "3", type: "p" }),
-          createNode({ id: "4", type: "p", item: true, task_status: "done", task_marker: "[x]" }),
+          createNode({ id: "4", type: "p", item: { task: { status: "done", marker: "[x]" } } }),
         ],
       })
 
       const tasks = repo.getAllTasks()
       expect(tasks).toHaveLength(2)
-      expect(tasks.every((t) => t.task_status != null)).toBe(true)
+      expect(tasks.every((t) => t.item?.task?.status != null)).toBe(true)
     })
 
     it("getTasksByStatus filters by task_status", () => {
       const repo = createFakeRepo({
         nodes: [
-          createNode({ id: "1", type: "p", item: true, task_status: "todo" }),
-          createNode({ id: "2", type: "p", item: true, task_status: "done" }),
-          createNode({ id: "3", type: "p", item: true, task_status: "todo" }),
+          createNode({ id: "1", type: "p", item: { task: { status: "todo", marker: "[ ]" } } }),
+          createNode({ id: "2", type: "p", item: { task: { status: "done", marker: "[ ]" } } }),
+          createNode({ id: "3", type: "p", item: { task: { status: "todo", marker: "[ ]" } } }),
         ],
       })
 
       const todos = repo.getTasksByStatus("todo")
       expect(todos).toHaveLength(2)
-      expect(todos.every((t) => t.task_status === "todo")).toBe(true)
+      expect(todos.every((t) => t.item?.task?.status === "todo")).toBe(true)
     })
 
     it("search finds nodes by content", () => {
@@ -189,7 +189,7 @@ describe("FakeRepo", () => {
 
       const id = repo.addNode(null, {
         type: "h",
-        item: true,
+        item: {},
         content: "New section",
       })
 
@@ -203,10 +203,14 @@ describe("FakeRepo", () => {
     it("addNode sets task_status for tasks", () => {
       const repo = createFakeRepo()
 
-      const id = repo.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "New task" })
+      const id = repo.addNode(null, {
+        type: "p",
+        item: { task: { marker: "[ ]", status: "todo" } },
+        content: "New task",
+      })
 
       const node = repo.getNode(id)
-      expect(node!.task_status).toBe("todo")
+      expect(node!.item?.task?.status).toBe("todo")
     })
   })
 
@@ -242,7 +246,7 @@ describe("FakeRepo", () => {
       })
 
       repo.updateNode("1", { content: "Modified" })
-      repo.addNode(null, { type: "h", item: true, content: "New" })
+      repo.addNode(null, { type: "h", item: {}, content: "New" })
 
       repo.reset()
 
@@ -285,10 +289,10 @@ describe("FakeRepo", () => {
 // Helper to create minimal valid KNode
 function createNode(overrides: Partial<KNode> & { id: string }): KNode {
   const now = Date.now()
-  const isTask = overrides.type === "p" && overrides.item === true
+  const isTask = overrides.type === "p" && overrides.item != null
   return {
     type: "h",
-    item: true,
+    item: {},
     parent_id: null,
     parent_idx: 0,
     embed_source: null,
@@ -297,7 +301,7 @@ function createNode(overrides: Partial<KNode> & { id: string }): KNode {
     created_at: now,
     updated_at: now,
     version: "test-0",
-    ...(isTask ? { task_status: "todo" as const, task_marker: "[ ]" } : {}),
+    ...(isTask ? { item: { task: { status: "todo", marker: "[ ]" } } } : {}),
     ...overrides,
   }
 }

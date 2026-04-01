@@ -465,7 +465,7 @@ function createFolderEvent(
     data: {
       id,
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: parentId,
       parent_idx: order,
@@ -494,7 +494,7 @@ function createStubFileEvent(
     data: {
       id,
       type: "h",
-      item: true,
+      item: {},
       fstype,
       parent_id: parentId,
       parent_idx: order,
@@ -523,7 +523,7 @@ function createNonMdFileEvent(
     data: {
       id,
       type: "h",
-      item: true,
+      item: {},
       fstype: "file",
       parent_id: parentId,
       parent_idx: order,

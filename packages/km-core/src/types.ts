@@ -2,15 +2,14 @@
  * km Node Types — km-ast v2 trait-based model
  *
  * Every node IS a block (has a content type). Orthogonal traits add capabilities:
- * - Block type (9): p, h, code, quote, table, hr, html, math
- * - Item trait: item=true makes a node navigable with children
- * - Task trait: status field on items
+ * - Block type (8): p, h, code, quote, table, hr, html, math
+ * - Item trait: item={} makes a node navigable with children; item.list for list marker, item.task for task
  * - Embed trait: embed_source field enables transclusion (orthogonal to type)
  *
  * Derivation rules:
- * - item && type === "h" → outline item (oi) — serializes as ## Title
- * - item && type !== "h" → list item (li) — serializes as - content
- * - !item → leaf block
+ * - item != null && type === "h" → outline item (oi) — serializes as ## Title
+ * - item != null && type !== "h" → list item (li) — serializes as - content
+ * - item == null → leaf block
  * - embed_source != null → transcludes content from target node
  *
  * See docs/design/km-ast/model.md for the full specification.
@@ -36,7 +35,7 @@ export type BlockType = "p" | "h" | "code" | "quote" | "table" | "hr" | "html" |
 /** Node type = block type */
 export type NodeType = BlockType
 
-/** Filesystem subtype for outline item nodes (type:"h", item:true) */
+/** Filesystem subtype for outline item nodes (type:"h", item != null) */
 export type FsType = "repo" | "folder" | "file" | "mdfile" | "txtfile" | "mdsection"
 
 // Type predicates moved to KNode namespace (km-core/src/interfaces/node.ts)
@@ -126,6 +125,16 @@ export function markToMarker(mark: string): TaskMarker {
   return `[${mark}]` as TaskMarker
 }
 
+// =============================================================================
+// Item Data — nested item structure (item-as-object)
+// =============================================================================
+
+/** Item data — present on items (nodes that can have children), absent on blocks */
+export interface ItemData {
+  list?: string // "-", "*", "+", "1.", etc.
+  task?: { marker: TaskMarker; status: TaskStatus }
+}
+
 /** Task marker regex for matching [x] in title text */
 const TITLE_TASK_MARKER_REGEX = new RegExp(`^\\[(${TASK_MARK_REGEX_CLASS})\\]\\s*`)
 
@@ -157,7 +166,7 @@ export function extractTitleTaskMarker(text: string): {
 }
 
 // isTask is in KNode namespace (km-core/src/interfaces/node.ts)
-// KNode.isTask(node) checks task_marker or task_status — strict definition
+// KNode.isTask(node) checks item?.task != null
 
 // =============================================================================
 // Node Validation (kmast v2 constraints)
@@ -176,27 +185,20 @@ export interface ValidationError {
  * Returns an array of validation errors (empty = valid).
  *
  * Constraints checked:
- * - h requires item: type === "h" implies item === true
- * - task requires item: task_status/task_marker implies item === true
+ * - h requires item: type === "h" implies item != null
  * - item-allowed block types: table/hr/html/math cannot be items
+ * - task is inside item, so "task requires item" is structurally enforced
  */
-export function validateNode(
-  node: Pick<KNode, "type" | "item" | "task_status" | "task_marker" | "embed_source">,
-): ValidationError[] {
+export function validateNode(node: Pick<KNode, "type" | "item" | "embed_source">): ValidationError[] {
   const errors: ValidationError[] = []
 
   // h requires item
-  if (node.type === "h" && node.item !== true) {
-    errors.push({ field: "item", message: "type 'h' requires item = true" })
-  }
-
-  // task requires item
-  if ((node.task_status != null || node.task_marker != null) && node.item !== true) {
-    errors.push({ field: "item", message: "task (task_status/task_marker) requires item = true" })
+  if (node.type === "h" && node.item == null) {
+    errors.push({ field: "item", message: "type 'h' requires item" })
   }
 
   // item-allowed block types
-  if (node.item === true && ITEM_FORBIDDEN_BLOCK_TYPES.has(node.type)) {
+  if (node.item != null && ITEM_FORBIDDEN_BLOCK_TYPES.has(node.type)) {
     errors.push({ field: "type", message: `type '${node.type}' cannot be an item` })
   }
 
@@ -253,20 +255,20 @@ export interface NodeRules {
  * ## Trait-Based Model
  *
  * Every node IS a block (has a content type). Orthogonal traits add capabilities:
- * - **Block type**: p, h, code, quote, table, hr, html, math, embed
- * - **Item trait**: item=true → navigable, can have children
- * - **Task trait**: status field on items
+ * - **Block type**: p, h, code, quote, table, hr, html, math
+ * - **Item trait**: item={} → navigable, can have children
+ * - **Task trait**: item.task → task marker and status on items
  *
  * ## Derivation Rules
  *
- * - `item && type === "h"` → outline item — serializes as `## Title`
- * - `item && type !== "h"` → list item — serializes as `- content`
- * - `!item` → leaf block
+ * - `item != null && type === "h"` → outline item — serializes as `## Title`
+ * - `item != null && type !== "h"` → list item — serializes as `- content`
+ * - `item == null` → leaf block
  * - `embed_source != null` → transclusion (orthogonal to type/item)
  *
  * ## Task Definition
  *
- * Any item with `task_marker` set is a task. `task_status` is derived from `task_marker`.
+ * Any item with `item.task` set is a task. `item.task.status` and `item.task.marker` are paired.
  */
 export interface KNode {
   id: string // ULID
@@ -275,12 +277,10 @@ export interface KNode {
   parent_idx: number
 
   // Trait: item (navigable, can have children in outline/list hierarchy)
-  item?: boolean // true = item, false/undefined = leaf block
+  item?: ItemData // present = item, undefined = leaf block
 
-  // km-ast: subtype and marker fields
-  fstype?: FsType // For outline items (type:"h", item:true): repo, folder, file, mdfile, mdsection
-  list_marker?: string // For list items: "-", "*", "+", "1.", "1)", "[^1]", etc.
-  task_marker?: TaskMarker // For items: "[ ]", "[x]", "[/]", "[!]", "[-]"
+  // km-ast: subtype fields
+  fstype?: FsType // For outline items (type:"h", item != null): repo, folder, file, mdfile, mdsection
 
   // Transclusion trait (orthogonal to type — any node can transclude)
   embed_source?: string | null // Target node ID whose content is transcluded (null = unresolved)
@@ -298,8 +298,7 @@ export interface KNode {
   md_pos?: number // Byte offset in file
   md_line?: number // Line number in file (0-indexed)
 
-  // Task properties (set on items with task_marker)
-  task_status?: TaskStatus // Derived from task_marker
+  // Task properties (set on items with item.task)
   assigned_to?: string
   due_at?: string // ISO 8601: "2026-02-20" or "2026-02-20T14:00:00-08:00"
   start_at?: string // ISO 8601: same format as due_at
@@ -340,7 +339,7 @@ export interface TNode extends KNode {
 
   // Computed display properties
   childCount: number // Total children (may exceed loaded children.length)
-  isTask: boolean // Computed: task_marker !== undefined
+  isTask: boolean // Computed: item?.task != null
 
   // Lazy loading state
   childrenLoaded: boolean // true = children array is populated, false = only childCount known
@@ -386,12 +385,10 @@ export interface Event {
 export interface NodeCreatedData {
   id: string
   type: NodeType
-  item?: boolean
+  item?: ItemData
   parent_id?: string | null
   parent_idx?: number
   fstype?: FsType
-  list_marker?: string
-  task_marker?: TaskMarker
   embed_source?: string | null
   fs_path?: string
   fs_ino?: number
@@ -400,7 +397,6 @@ export interface NodeCreatedData {
   block_id?: string
   md_pos?: number
   md_line?: number
-  task_status?: TaskStatus
   assigned_to?: string
   due_at?: string
   start_at?: string

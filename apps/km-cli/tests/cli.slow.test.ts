@@ -20,7 +20,7 @@ interface TaskJson {
   id: string
   type: string
   content: string
-  task_status?: string
+  item?: { list?: string; task?: { marker?: string; status?: string } }
   due_at?: string
   priority?: string
   parent_id?: string | null
@@ -257,8 +257,8 @@ describe("CLI Integration", () => {
       const tasks = await getTasks()
       expect(tasks.length).toBeGreaterThan(0)
       expect(tasks[0]).toHaveProperty("id")
-      // Tasks can be any structural type that has task_status set
-      expect(tasks[0]).toHaveProperty("task_status")
+      // Tasks can be any structural type that has item.task set
+      expect(tasks[0]?.item?.task).toBeDefined()
     })
   })
 
@@ -303,7 +303,7 @@ describe("CLI Integration", () => {
 
       const allTasks = await getAllTasks()
       const doneTask = allTasks.find((t) => t.id === task.id)
-      expect(doneTask?.task_status).toBe("done")
+      expect(doneTask?.item?.task?.status).toBe("done")
     })
 
     test("should mark task as done by ID suffix (displayed short ID)", async () => {
@@ -313,7 +313,7 @@ describe("CLI Integration", () => {
 
       const allTasks = await getAllTasks()
       const doneTask = allTasks.find((t) => t.id === task.id)
-      expect(doneTask?.task_status).toBe("done")
+      expect(doneTask?.item?.task?.status).toBe("done")
     })
   })
 
@@ -422,8 +422,8 @@ Some paragraph content.
     const result = await km(["ls", "--type", "task", "--json"])
     const nodes = parseJson<TaskJson[]>(result)
     expect(nodes.length).toBeGreaterThan(0)
-    // Tasks can be any structural type that has task_status set
-    expect(nodes[0]).toHaveProperty("task_status")
+    // Tasks can be any structural type that has item.task set
+    expect(nodes[0]?.item?.task).toBeDefined()
   })
 })
 
@@ -450,7 +450,7 @@ describe("km task status", () => {
 
     const afterTasks = await getAllTasks()
     const updated = afterTasks.find((t) => t.id === task.id)
-    expect(updated?.task_status).toBe("blocked")
+    expect(updated?.item?.task?.status).toBe("blocked")
   })
 
   test("should set task status to done", async () => {
@@ -734,7 +734,7 @@ describe("km done", () => {
 
     const allTasks = await getAllTasks()
     const doneTask = allTasks.find((t) => t.id === task.id)
-    expect(doneTask?.task_status).toBe("done")
+    expect(doneTask?.item?.task?.status).toBe("done")
   })
 
   test("should error on task not found", async () => {
@@ -878,9 +878,9 @@ describe("Task mark types - parsing and status mapping", () => {
   test("should parse GFM-standard mark types correctly", async () => {
     const tasks = await getAllTasks()
 
-    expect(findTask(tasks, "Open task (space mark)")?.task_status).toBe("todo")
-    expect(findTask(tasks, "Done task (x mark)")?.task_status).toBe("done")
-    expect(findTask(tasks, "Done task uppercase")?.task_status).toBe("done")
+    expect(findTask(tasks, "Open task (space mark)")?.item?.task?.status).toBe("todo")
+    expect(findTask(tasks, "Done task (x mark)")?.item?.task?.status).toBe("done")
+    expect(findTask(tasks, "Done task uppercase")?.item?.task?.status).toBe("done")
   })
 
   test("km task (default) should only show todo tasks", async () => {
@@ -940,18 +940,18 @@ describe("Query language integration - km task with queries", () => {
   test("should filter by status:todo", async () => {
     const tasks = await getTasks(["status:todo"])
     expect(tasks.length).toBeGreaterThan(0)
-    expect(tasks.every((t) => t.task_status === "todo")).toBe(true)
+    expect(tasks.every((t) => t.item?.task?.status === "todo")).toBe(true)
   })
 
   test("should filter by status:done with --all", async () => {
     const tasks = await getTasks(["--all", "status:done"])
     expect(tasks.length).toBeGreaterThan(0)
-    expect(tasks.every((t) => t.task_status === "done")).toBe(true)
+    expect(tasks.every((t) => t.item?.task?.status === "done")).toBe(true)
   })
 
   test("should exclude with negation -status:done", async () => {
     const tasks = await getTasks(["--all", "--query=-status:done"])
-    expect(tasks.every((t) => t.task_status !== "done")).toBe(true)
+    expect(tasks.every((t) => t.item?.task?.status !== "done")).toBe(true)
   })
 
   test("should filter by path pattern ./projects/**", async () => {
@@ -963,7 +963,7 @@ describe("Query language integration - km task with queries", () => {
 
   test("should combine multiple conditions (AND)", async () => {
     const tasks = await getTasks(["@bjorn", "status:todo"])
-    expect(tasks.every((t) => t.content.includes("@bjorn") && t.task_status === "todo")).toBe(true)
+    expect(tasks.every((t) => t.content.includes("@bjorn") && t.item?.task?.status === "todo")).toBe(true)
   })
 
   test("should filter by priority", async () => {

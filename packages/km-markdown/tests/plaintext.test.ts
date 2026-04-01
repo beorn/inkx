@@ -20,7 +20,7 @@ describe("parsePlainTextToNodes", () => {
 
     const fileNode = result.nodes[0]!
     expect(fileNode.type).toBe("h")
-    expect(fileNode.item).toBe(true)
+    expect(fileNode.item).toEqual({})
     expect(fileNode.fstype).toBe("txtfile")
     expect(fileNode.content).toBe("Hello, this is plain text.")
     expect(fileNode.name).toBe("notes")

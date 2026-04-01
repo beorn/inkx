@@ -27,22 +27,21 @@ describe("diffNodes", () => {
   describe("structural key matching", () => {
     test("matches nodes by parent_id + parent_idx + type", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile", parent_idx: 0 }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile", parent_idx: 0 }),
         makeNode({
           id: "task-old",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
           content: "Task 1",
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile", parent_idx: 0 }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile", parent_idx: 0 }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           content: "Task 1",
@@ -63,21 +62,20 @@ describe("diffNodes", () => {
       // A single child at parent_idx=1 and a single child at parent_idx=0
       // both have ordinal 0, so they match (same node, different raw index)
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "file-new",
           parent_idx: 1, // Different raw index, but same ordinal (0)
         }),
@@ -95,11 +93,11 @@ describe("diffNodes", () => {
       // DB has fractional values from midpoint calculations (0.5, 1)
       // Parser produces sequential integers (0, 1) — should match by ordinal
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0.5,
           content: "A",
@@ -107,18 +105,17 @@ describe("diffNodes", () => {
         makeNode({
           id: "task-2",
           type: "p",
-          item: true,
           parent_id: "file-1",
           parent_idx: 1,
           content: "B",
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-new",
           parent_idx: 0,
           content: "A",
@@ -126,7 +123,6 @@ describe("diffNodes", () => {
         makeNode({
           id: "task-new-2",
           type: "p",
-          item: true,
           parent_id: "file-new",
           parent_idx: 1,
           content: "B",
@@ -143,21 +139,21 @@ describe("diffNodes", () => {
 
     test("different type creates new node", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "node-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "node-new",
           type: "h",
-          item: true, // Different type
+          item: {}, // Different type
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -177,8 +173,8 @@ describe("diffNodes", () => {
 
   describe("ID remapping", () => {
     test("maps new file ID to existing file ID", () => {
-      const existing = [makeNode({ id: "existing-file", type: "h", item: true, fstype: "mdfile" })]
-      const newNodes = [makeNode({ id: "new-file", type: "h", item: true, fstype: "mdfile" })]
+      const existing = [makeNode({ id: "existing-file", type: "h", item: {}, fstype: "mdfile" })]
+      const newNodes = [makeNode({ id: "new-file", type: "h", item: {}, fstype: "mdfile" })]
 
       const result = diffNodes(existing, newNodes)
 
@@ -187,35 +183,32 @@ describe("diffNodes", () => {
 
     test("maps child node IDs through parent chain", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "section-1",
           type: "h",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
           parent_id: "section-1",
           parent_idx: 0,
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "section-new",
           type: "h",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "section-new",
           parent_idx: 0,
         }),
@@ -230,28 +223,26 @@ describe("diffNodes", () => {
 
     test("remaps parent_id in created nodes", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "section-1",
           type: "h",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "section-new",
           type: "h",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "section-new",
           parent_idx: 0, // New node under existing section
         }),
@@ -267,22 +258,21 @@ describe("diffNodes", () => {
   describe("change detection", () => {
     test("detects content changes", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
           content: "Old content",
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           content: "New content",
@@ -298,25 +288,23 @@ describe("diffNodes", () => {
 
     test("detects task_status changes", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: { task: { status: "done", marker: "[x]" } },
           parent_id: "file-1",
           parent_idx: 0,
-          task_status: "todo",
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
+          item: { task: { status: "todo", marker: "[ ]" } },
           parent_id: "file-new",
           parent_idx: 0,
-          task_status: "done",
         }),
       ]
 
@@ -324,27 +312,26 @@ describe("diffNodes", () => {
 
       const updated = result.changes.find((c) => c.type === "updated")
       expect(updated?.nodeId).toBe("task-1")
-      expect(updated?.changes?.task_status).toBe("done")
+      expect((updated?.changes?.item as { task?: { status?: string } })?.task?.status).toBe("todo")
     })
 
     test("detects data object changes", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
           data: { tags: ["old"] },
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           data: { tags: ["new", "added"] },
@@ -362,11 +349,11 @@ describe("diffNodes", () => {
       // Regression: When a section heading changes from "Waiting km.color:: yellow"
       // to empty, the new data should NOT retain the old title/rules properties.
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "section-1",
           type: "h",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
           title: "Waiting",
@@ -375,11 +362,10 @@ describe("diffNodes", () => {
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "section-new",
           type: "h",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
           title: "",
@@ -401,27 +387,25 @@ describe("diffNodes", () => {
 
     test("no changes when nodes are identical", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile", content: "File" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile", content: "File" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: { task: { status: "todo", marker: "[ ]" } },
           parent_id: "file-1",
           parent_idx: 0,
           content: "Task",
-          task_status: "todo",
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile", content: "File" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile", content: "File" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
+          item: { task: { status: "todo", marker: "[ ]" } },
           parent_id: "file-new",
           parent_idx: 0,
           content: "Task",
-          task_status: "todo",
         }),
       ]
 
@@ -433,13 +417,13 @@ describe("diffNodes", () => {
 
   describe("created/deleted detection", () => {
     test("detects new nodes", () => {
-      const existing = [makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" })]
+      const existing = [makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" })]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -454,16 +438,16 @@ describe("diffNodes", () => {
 
     test("detects deleted nodes", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
       ]
-      const newNodes = [makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" })]
+      const newNodes = [makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" })]
 
       const result = diffNodes(existing, newNodes)
 
@@ -474,15 +458,15 @@ describe("diffNodes", () => {
 
     test("does not delete file nodes", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "file-2",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile", // Extra file (shouldn't happen but handle gracefully)
         }),
       ]
-      const newNodes = [makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" })]
+      const newNodes = [makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" })]
 
       const result = diffNodes(existing, newNodes)
 
@@ -495,11 +479,11 @@ describe("diffNodes", () => {
     test("handles empty existing nodes", () => {
       const existing: KNode[] = []
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -515,18 +499,17 @@ describe("diffNodes", () => {
 
     test("handles empty new nodes (all deleted)", () => {
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-2",
           type: "p",
-          item: true,
           parent_id: "file-1",
           parent_idx: 1,
         }),
@@ -543,28 +526,26 @@ describe("diffNodes", () => {
     test("handles multiple nodes at same position (duplicate keys)", () => {
       // In practice this shouldn't happen, but test graceful handling
       const existing = [
-        makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-1",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "file-1",
           parent_idx: 0,
         }),
         makeNode({
           id: "task-2",
           type: "p",
-          item: true,
           parent_id: "file-1",
           parent_idx: 0, // Same position!
         }),
       ]
       const newNodes = [
-        makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" }),
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
         makeNode({
           id: "task-new",
           type: "p",
-          item: true,
           parent_id: "file-new",
           parent_idx: 0,
         }),
@@ -576,8 +557,8 @@ describe("diffNodes", () => {
     })
 
     test("handles file with no children", () => {
-      const existing = [makeNode({ id: "file-1", type: "h", item: true, fstype: "mdfile" })]
-      const newNodes = [makeNode({ id: "file-new", type: "h", item: true, fstype: "mdfile" })]
+      const existing = [makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" })]
+      const newNodes = [makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" })]
 
       const result = diffNodes(existing, newNodes)
 

@@ -90,8 +90,8 @@ export function formatTaskWithPath(
  * Format the task line itself (checkbox, id, content)
  */
 export function formatTaskLine(task: KNodeType, options: { detail?: boolean; showId?: boolean } = {}): string {
-  const marker = task.task_marker ?? "[ ]"
-  const status = task.task_status ?? "todo"
+  const marker = task.item?.task?.marker ?? "[ ]"
+  const status = task.item?.task?.status ?? "todo"
 
   // Color the checkbox based on status, using actual task marker
   const checkboxStr = marker

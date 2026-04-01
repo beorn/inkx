@@ -15,6 +15,7 @@ import { item } from "./helpers/board-test.ts"
 import { createCardsViewNavigation, createDetailViewNavigation, type NavState } from "../src/view-navigation.ts"
 import { deriveCursorAncestors } from "../src/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
+import type { ItemData } from "@km/core"
 
 function makeState(
   cursorNodeId: string,
@@ -256,7 +257,7 @@ describe("ghost cursor — index file nodes (km-nx8af)", () => {
     {
       id: "board",
       type: "h",
-      item: true,
+      item: {},
       fstype: "repo",
       name: "board",
       data: { name: "board", is_repo_root: true },
@@ -269,7 +270,7 @@ describe("ghost cursor — index file nodes (km-nx8af)", () => {
     {
       id: "project",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       name: "project",
       data: { name: "project" },
@@ -283,7 +284,7 @@ describe("ghost cursor — index file nodes (km-nx8af)", () => {
       // Index file: same name as parent folder → findIndexFile matches this
       id: "project-md",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       name: "project",
       data: { name: "project" },
@@ -296,10 +297,7 @@ describe("ghost cursor — index file nodes (km-nx8af)", () => {
     {
       id: "task-a",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "task-a",
       data: {},
       parent_id: "project",
@@ -311,10 +309,7 @@ describe("ghost cursor — index file nodes (km-nx8af)", () => {
     {
       id: "task-b",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "task-b",
       data: {},
       parent_id: "project",
@@ -409,12 +404,12 @@ describe("DetailViewNavigation", () => {
 })
 
 describe("deriveCursorAncestors", () => {
-  const nodes: Record<string, { parent_id: string | null; type: string; item?: boolean }> = {
-    board: { parent_id: null, type: "h", item: true },
-    col1: { parent_id: "board", type: "h", item: true },
-    A: { parent_id: "board", type: "h", item: true }, // After outdent
-    B: { parent_id: "col1", type: "h", item: true },
-    deep: { parent_id: "B", type: "h", item: true },
+  const nodes: Record<string, { parent_id: string | null; type: string; item?: ItemData }> = {
+    board: { parent_id: null, type: "h", item: {} },
+    col1: { parent_id: "board", type: "h", item: {} },
+    A: { parent_id: "board", type: "h", item: {} }, // After outdent
+    B: { parent_id: "col1", type: "h", item: {} },
+    deep: { parent_id: "B", type: "h", item: {} },
     para: { parent_id: "board", type: "p" }, // Body card
   }
   const getNode = (id: string) => nodes[id] ?? null

@@ -27,41 +27,41 @@ function setupTree() {
 
   const rootId = repo.addNode(null, {
     type: "h",
-    item: true,
+    item: {},
     name: "root",
   })
 
   const aId = repo.addNode(rootId, {
     type: "h",
-    item: true,
+    item: {},
     name: "A",
     parent_idx: 1,
   })
 
   const a1Id = repo.addNode(aId, {
     type: "p",
-    item: true,
+    item: {},
     content: "A1",
     parent_idx: 1,
   })
 
   const a2Id = repo.addNode(aId, {
     type: "p",
-    item: true,
+    item: {},
     content: "A2",
     parent_idx: 2,
   })
 
   const bId = repo.addNode(rootId, {
     type: "h",
-    item: true,
+    item: {},
     name: "B",
     parent_idx: 2,
   })
 
   const b1Id = repo.addNode(bId, {
     type: "p",
-    item: true,
+    item: {},
     content: "B1",
     parent_idx: 1,
   })

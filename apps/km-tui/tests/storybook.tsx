@@ -66,7 +66,7 @@ import { TreeNode } from "../src/views/TreeNode.tsx"
 import { BoardCore, type BoardCoreProps } from "../src/views/Board.tsx"
 import { CommandBox } from "../src/views/CommandBox.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
-import type { KNode } from "@km/core"
+import type { KNode, TaskStatus, TaskMarker } from "@km/core"
 import type { ColumnView } from "../src/types.ts"
 
 /** Local type for storybook mock board state (TUIBoardState was removed from types.ts) */
@@ -522,11 +522,11 @@ function DateBadgeDemo(): React.ReactElement {
     { label: "Start → due", node: { start_at: d(2), due_at: d(7) } as KNode },
     {
       label: "Start past, WIP (hidden)",
-      node: { start_at: d(-5), due_at: d(3), task_status: "wip" } as KNode,
+      node: { start_at: d(-5), due_at: d(3), item: { task: { status: "wip", marker: "[/]" } } } as KNode,
     },
     {
       label: "Start past, todo (shown)",
-      node: { start_at: d(-5), due_at: d(3), task_status: "todo" } as KNode,
+      node: { start_at: d(-5), due_at: d(3), item: { task: { status: "todo", marker: "[ ]" } } } as KNode,
     },
 
     // Full combo
@@ -775,24 +775,28 @@ function mockNode(
     type: type as KNode["type"],
     ...(type === "h" && options?.fstype ? { fstype: options.fstype } : {}),
     ...(type === "p" ? { list_marker: "-" as const } : {}),
-    ...(type === "h" || type === "p" ? { item: true } : {}),
+    ...(type === "h" || type === "p" ? { item: {} } : {}),
     parent_id: options?.parentId ?? null,
     parent_idx: 0,
     embed_source: options?.linkTo ?? null,
     name: options?.linkAlias,
     content,
-    task_status: status as KNode["task_status"],
     ...(status
       ? {
-          task_marker: (status === "done"
-            ? "[x]"
-            : status === "wip"
-              ? "[/]"
-              : status === "blocked"
-                ? "[!]"
-                : status === "dropped"
-                  ? "[-]"
-                  : "[ ]") as KNode["task_marker"],
+          item: {
+            task: {
+              status: status as TaskStatus,
+              marker: (status === "done"
+                ? "[x]"
+                : status === "wip"
+                  ? "[/]"
+                  : status === "blocked"
+                    ? "[!]"
+                    : status === "dropped"
+                      ? "[-]"
+                      : "[ ]") as TaskMarker,
+            },
+          },
         }
       : {}),
     due_at: options?.due_at,

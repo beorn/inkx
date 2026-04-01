@@ -539,7 +539,7 @@ function createMinimalNode(partial: Partial<KNode> & { id: string; parent_id: st
   const now = Date.now()
   return {
     type: "h",
-    item: true,
+    item: {},
     parent_idx: 0,
     embed_source: null,
     content: "",

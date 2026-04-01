@@ -27,7 +27,7 @@ import { splitNode, mergeWithPrevious } from "../src/block-ops.ts"
 
 test("split creates sibling after cursor position", () => {
   const repo = createTestRepo()
-  const parentId = repo.addNode(null, { type: "h", item: true, name: "Parent" })
+  const parentId = repo.addNode(null, { type: "h", item: {}, name: "Parent" })
   const childId = repo.addNode(parentId, { type: "p", content: "Hello World" })
   const result = splitNode(repo, childId, 5)
   expect(result.newNodeId).toBeDefined()

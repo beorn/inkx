@@ -1202,7 +1202,7 @@ function countHiddenDescendants(
 function matchesPropertyFilters(node: KNode, filters: FilterProperties): boolean {
   // Task status filter — only applies to task nodes; non-task nodes (headings, paragraphs) pass through
   if (filters.taskStatus.size > 0) {
-    const status = node.task_status ?? getStatusForMarker(node.task_marker)
+    const status = node.item?.task?.status ?? getStatusForMarker(node.item?.task?.marker)
     if (status && !filters.taskStatus.has(status)) return false
   }
 

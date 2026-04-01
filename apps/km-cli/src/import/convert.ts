@@ -341,10 +341,8 @@ function itemToNodes(
       mkNode(counter, {
         id: refNodeId,
         type: "h",
-        item: true,
+        item: { task: { marker: marker as TaskMarker, status } },
         parent_id: parentId,
-        task_marker: marker as TaskMarker,
-        task_status: status,
         content: embedTitle,
         embed_source: `^${item.sourceId}`,
         created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
@@ -416,10 +414,8 @@ function itemToNodes(
   const taskNode = mkNode(counter, {
     id: item.sourceId,
     type: "h",
-    item: true,
+    item: { task: { marker: getMarkerForStatus(status), status } },
     parent_id: parentId,
-    task_marker: getMarkerForStatus(status),
-    task_status: status,
     content: buildTaskContent(item, currentProject, userSlugMap),
     block_id: item.sourceId,
     assigned_to: item.assignee
@@ -462,7 +458,7 @@ function itemToNodes(
           mkNode(counter, {
             id: sectionId,
             type: "h",
-            item: true,
+            item: {},
             parent_id: item.sourceId,
             content: section.content,
             created_at: itemCreatedAt,
@@ -495,7 +491,7 @@ function itemToNodes(
         mkNode(counter, {
           id: `comments-${item.sourceId}`,
           type: "h",
-          item: true,
+          item: {},
           parent_id: item.sourceId,
           content: "Comments km.collapse:: true",
           created_at: itemCreatedAt,
@@ -516,7 +512,7 @@ function itemToNodes(
             mkNode(counter, {
               id: commentId,
               type: "p",
-              item: true,
+              item: {},
               parent_id: `comments-${item.sourceId}`,
               content: `${entry.date} ${entry.author}: ${fullText}`.trim(),
               created_at: entry.createdAt,
@@ -529,7 +525,7 @@ function itemToNodes(
             mkNode(counter, {
               id: commentId,
               type: "h",
-              item: true,
+              item: {},
               parent_id: `comments-${item.sourceId}`,
               content: `${entry.date} ${entry.author}`.trim(),
               created_at: entry.createdAt,
@@ -556,7 +552,7 @@ function itemToNodes(
                 mkNode(counter, {
                   id: sectionId,
                   type: "h",
-                  item: true,
+                  item: {},
                   parent_id: commentId,
                   content: section.content,
                   created_at: entry.createdAt,
@@ -578,7 +574,7 @@ function itemToNodes(
       mkNode(counter, {
         id: `attachments-${item.sourceId}`,
         type: "h",
-        item: true,
+        item: {},
         parent_id: item.sourceId,
         content: "Attachments km.collapse:: true",
         created_at: itemCreatedAt,
@@ -600,7 +596,7 @@ function itemToNodes(
         mkNode(counter, {
           id: `att-${item.sourceId}-${counter.value}`,
           type: "p",
-          item: true,
+          item: {},
           parent_id: `attachments-${item.sourceId}`,
           content: linkMd,
           created_at: att.createdAt ? new Date(att.createdAt).getTime() : itemCreatedAt,
@@ -616,7 +612,7 @@ function itemToNodes(
       mkNode(counter, {
         id: `activity-${item.sourceId}`,
         type: "h",
-        item: true,
+        item: {},
         parent_id: item.sourceId,
         content: "Activity km.collapse:: true",
         created_at: itemCreatedAt,
@@ -632,7 +628,7 @@ function itemToNodes(
         mkNode(counter, {
           id: `act-${item.sourceId}-${counter.value}`,
           type: "p",
-          item: true,
+          item: {},
           parent_id: `activity-${item.sourceId}`,
           content: `${date} ${authorSlug}: ${text}`.trim(),
           created_at: new Date(a.createdAt).getTime(),
@@ -685,7 +681,7 @@ function sectionToNodes(
       mkNode(counter, {
         id: itemParentId,
         type: "h",
-        item: true,
+        item: {},
         parent_id: parentId,
         fstype: "mdsection",
         content: section.title,
@@ -736,7 +732,7 @@ function projectToNodes(
     mkNode(counter, {
       id: fileId,
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: projectTitle,
       data: frontmatter,
@@ -788,7 +784,7 @@ function projectToNodes(
       mkNode(counter, {
         id: statusSectionId,
         type: "h",
-        item: true,
+        item: {},
         parent_id: fileId,
         fstype: "mdsection",
         content: "Status Updates",
@@ -815,7 +811,7 @@ function projectToNodes(
         mkNode(counter, {
           id: statusId,
           type: "p",
-          item: true,
+          item: {},
           parent_id: statusSectionId,
           content: su.title || "Status update",
         }),
@@ -843,7 +839,7 @@ function projectToNodes(
       mkNode(counter, {
         id: cfSectionId,
         type: "h",
-        item: true,
+        item: {},
         parent_id: fileId,
         fstype: "mdsection",
         content: "Custom Fields",
@@ -863,7 +859,7 @@ function projectToNodes(
         mkNode(counter, {
           id: cfId,
           type: "p",
-          item: true,
+          item: {},
           parent_id: cfSectionId,
           content: cf.name,
         }),
@@ -1155,7 +1151,7 @@ function* generateTagFiles(
       mkNode(counter, {
         id: fileId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         content: `#${tagSlug}`,
       }),
@@ -1170,10 +1166,8 @@ function* generateTagFiles(
           mkNode(counter, {
             id: `tagref-${tag}-${item.sourceId}`,
             type: "h",
-            item: true,
+            item: { task: { marker: getMarkerForStatus(status), status } },
             parent_id: fileId,
-            task_marker: getMarkerForStatus(status),
-            task_status: status,
             embed_source: `^${item.sourceId}`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
@@ -1255,7 +1249,7 @@ function* generateUserFiles(
       mkNode(counter, {
         id: fileId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         content: `@${userSlug}`,
       }),
@@ -1289,10 +1283,8 @@ function* generateUserFiles(
           mkNode(counter, {
             id: `userref-${userSlug}-${item.sourceId}`,
             type: "h",
-            item: true,
+            item: { task: { marker: getMarkerForStatus(status), status } },
             parent_id: parentId,
-            task_marker: getMarkerForStatus(status),
-            task_status: status,
             embed_source: `^${item.sourceId}`,
             created_at: item.createdAt ? new Date(item.createdAt).getTime() : undefined,
             updated_at: item.modifiedAt ? new Date(item.modifiedAt).getTime() : undefined,
@@ -1310,7 +1302,7 @@ function* generateUserFiles(
         mkNode(counter, {
           id: sectionId,
           type: "h",
-          item: true,
+          item: {},
           parent_id: fileId,
           fstype: "mdsection",
           content: sectionName,

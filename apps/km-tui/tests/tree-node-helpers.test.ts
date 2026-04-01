@@ -25,14 +25,14 @@ import type { KNode } from "@km/core"
 
 describe("getNodeStyle task detection", () => {
   it("node with task_marker shows task icon", () => {
-    const node = { task_marker: "[ ]" } as KNode
+    const node = { item: { task: { marker: "[ ]", status: "todo" } } } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
     expect(style.taskStatusIcon!.char).toBe("\u25A1") // □ todo icon
   })
 
   it("node with task_status shows task icon", () => {
-    const node = { task_status: "done" } as KNode
+    const node = { item: { task: { status: "done", marker: "[ ]" } } } as KNode
     const style = getNodeStyle(node, false, false, false, 0)
     expect(style.taskStatusIcon).not.toBeNull()
     expect(style.taskStatusIcon!.char).toBe("\u2713") // ✓ done icon
@@ -103,7 +103,7 @@ describe("shortName", () => {
 
 describe("formatInfoSuffix task detection", () => {
   it("shows board pills for node with task_marker", () => {
-    const node = { task_marker: "[ ]" } as KNode
+    const node = { item: { task: { marker: "[ ]", status: "todo" } } } as KNode
     const mockGetBoardPills: GetBoardPillsFn = () => [{ name: "board", color: "cyan" }]
     const suffix = formatInfoSuffix(node, false, new Set(), mockGetBoardPills)
     expect(suffix).not.toBe("")
@@ -129,21 +129,21 @@ describe("formatInfoSuffix with short names", () => {
   const noopGetBoardPills = () => []
 
   it("shows short code for hyphenated assignee", () => {
-    const node = { assigned_to: "bjorn-stabell", task_status: "todo" } as KNode
+    const node = { assigned_to: "bjorn-stabell", item: { task: { status: "todo", marker: "[ ]" } } } as KNode
     const suffix = formatInfoSuffix(node, false, new Set(), noopGetBoardPills)
     expect(suffix).toContain("@BS")
     expect(suffix).not.toContain("bjorn-stabell")
   })
 
   it("shows short code for single-word assignee", () => {
-    const node = { assigned_to: "beorn", task_status: "todo" } as KNode
+    const node = { assigned_to: "beorn", item: { task: { status: "todo", marker: "[ ]" } } } as KNode
     const suffix = formatInfoSuffix(node, false, new Set(), noopGetBoardPills)
     expect(suffix).toContain("@B")
     expect(suffix).not.toContain("@beorn")
   })
 
   it("compact mode does not show assignee", () => {
-    const node = { assigned_to: "bjorn-stabell", task_status: "todo" } as KNode
+    const node = { assigned_to: "bjorn-stabell", item: { task: { status: "todo", marker: "[ ]" } } } as KNode
     const suffix = formatInfoSuffix(node, true, new Set(), noopGetBoardPills)
     expect(suffix).not.toContain("@")
   })
@@ -160,8 +160,7 @@ describe("implicit task rendering", () => {
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.due_at = "2099-08-15"
     // Remove explicit task status/marker that item() sets by default
-    taskNode.task_status = undefined
-    taskNode.task_marker = undefined
+    taskNode.item = { ...taskNode.item, task: undefined }
 
     const { board } = testEnv(() => nodes)
     // Date badge should show "Aug 15" (far future date avoids relative display)
@@ -172,8 +171,7 @@ describe("implicit task rendering", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.priority = "P2"
-    taskNode.task_status = undefined
-    taskNode.task_marker = undefined
+    taskNode.item = { ...taskNode.item, task: undefined }
 
     const { board } = testEnv(() => nodes)
     board.expectScreen("P2")
@@ -183,8 +181,7 @@ describe("implicit task rendering", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.due_at = "2026-03-20"
-    taskNode.task_status = undefined
-    taskNode.task_marker = undefined
+    taskNode.item = { ...taskNode.item, task: undefined }
 
     const { board } = testEnv(() => nodes)
     // No task icon — due_at alone doesn't make it a task
@@ -202,8 +199,7 @@ describe("implicit task rendering", () => {
     const nodes = item("board", item("col", item("task1")))
     const taskNode = nodes.find((n) => n.id === "task1")!
     taskNode.assigned_to = "beorn"
-    taskNode.task_status = undefined
-    taskNode.task_marker = undefined
+    taskNode.item = { ...taskNode.item, task: undefined }
 
     // Use columns view where assignee is shown inline (cards view only shows board pill dots)
     // shortName("beorn") → "B", so displays as "@B"
@@ -254,7 +250,7 @@ describe("computeBulletIcon nerdfont fold indicator", () => {
       created_at: 0,
       updated_at: 0,
       version: "",
-      item: true,
+      item: {},
       fstype: "mdsection",
       ...overrides,
     }
@@ -289,7 +285,7 @@ describe("computeBulletIcon nerdfont fold indicator", () => {
   })
 
   it("shows fold marker for folded list item with children in nerdfont mode", () => {
-    const node = makeNode({ type: "p", item: true, list_marker: "-", fstype: undefined })
+    const node = makeNode({ type: "p", item: { list: "-" }, fstype: undefined })
     const icon = computeBulletIcon(node, false, null, true, true, undefined, "nerdfont")
     expect(icon.char).toBe(FOLDED_MARKER.char)
   })

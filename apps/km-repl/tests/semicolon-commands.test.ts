@@ -15,7 +15,7 @@ function createTestTree(): TNode[] {
     {
       id: "section-1",
       type: "h",
-      item: true,
+      item: {},
       parent_id: null,
       parent_idx: 0,
       embed_source: null,
@@ -36,7 +36,7 @@ function createTestTree(): TNode[] {
         {
           id: "task-a",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "section-1",
           parent_idx: 0,
           embed_source: null,
@@ -62,7 +62,7 @@ function createTestTree(): TNode[] {
         {
           id: "task-b",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "section-1",
           parent_idx: 1,
           embed_source: null,
@@ -88,7 +88,7 @@ function createTestTree(): TNode[] {
         {
           id: "task-c",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "section-1",
           parent_idx: 2,
           embed_source: null,
@@ -120,7 +120,7 @@ function createTestTree(): TNode[] {
     {
       id: "section-2",
       type: "h",
-      item: true,
+      item: {},
       parent_id: null,
       parent_idx: 1,
       embed_source: null,
@@ -141,7 +141,7 @@ function createTestTree(): TNode[] {
         {
           id: "task-d",
           type: "p",
-          item: true,
+          item: {},
           parent_id: "section-2",
           parent_idx: 0,
           embed_source: null,

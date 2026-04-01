@@ -167,7 +167,11 @@ export function createNodeCache(): NodeCache {
 
     getRepoRootNode() {
       for (const node of nodes.values()) {
-        if (node.parent_id === null && node.type === "h" && (node as Record<string, unknown>).fstype === "folder") {
+        if (
+          node.parent_id === null &&
+          node.type === "h" &&
+          (node as unknown as Record<string, unknown>).fstype === "folder"
+        ) {
           return node
         }
       }

@@ -253,7 +253,7 @@ function createVirtualBodyNode(parentId: string): KNode {
   return {
     id: `__body__${parentId}`,
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     parent_id: parentId,
     parent_idx: 0,

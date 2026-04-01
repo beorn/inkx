@@ -156,12 +156,12 @@ function getFilteredNodesWithQuery(
     nodes = repo.query(parts.join(" ") || "*")
   } else if (options.type === "task") {
     if (options.status) {
-      nodes = repo.getTasksByStatus(options.status as NonNullable<KNodeType["task_status"]>)
+      nodes = repo.getTasksByStatus(options.status as "todo" | "wip" | "done" | "dropped")
     } else if (options.all) {
       nodes = repo.getAllTasks()
     } else {
       // Exclude done tasks by default
-      nodes = repo.getAllTasks().filter((n: KNodeType) => n.task_status !== "done")
+      nodes = repo.getAllTasks().filter((n: KNodeType) => n.item?.task?.status !== "done")
     }
   } else if (options.type) {
     // Use query for other types

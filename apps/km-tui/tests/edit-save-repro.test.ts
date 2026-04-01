@@ -69,7 +69,7 @@ describe("km-tui.edit-save-broken — Enter + type + Enter/Escape saves text on 
   // === Scenario 2: 'o' insert creates mdsection for non-task parents ===
 
   test("'o' on non-task heading card → type → Escape: saves text (no untitled section)", () => {
-    // Create a board where a card is a non-task heading (type: "h", item: true, no task_marker).
+    // Create a board where a card is a non-task heading (type: "h", item: {}, no task_marker).
     // This is common for markdown sections that aren't tasks.
     // When 'o' creates a new sibling, it inherits non-task → creates mdsection.
     const { board, repo } = testEnv(() => item("board", item("col", item.section("heading-card"), item("task2"))))

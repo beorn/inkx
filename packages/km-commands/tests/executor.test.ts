@@ -14,7 +14,7 @@ function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): 
   return {
     id,
     type: "h",
-    item: true,
+    item: {},
     parent_id: null,
     parent_idx: 0,
     embed_source: null,

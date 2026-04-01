@@ -18,8 +18,7 @@ function makeNode(id: string, overrides: Partial<KNode> = {}): KNode {
   return {
     id,
     type: "p",
-    item: true,
-    list_marker: "-",
+    item: { list: "-" },
     content: id,
     data: {},
     parent_id: null,

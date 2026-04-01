@@ -21,7 +21,7 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
   return {
     id: "test-node",
     type: "p",
-    item: true,
+    item: {},
     name: "",
     content: "",
     parent_id: "parent",

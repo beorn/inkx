@@ -74,12 +74,31 @@ Best for complex projects (3+ tasks) where agents need to coordinate, share prog
 After agents complete:
 
 1. Review results for conflicts or integration issues
-2. **Run verification ONCE from the parent agent only:**
-   ```bash
-   bun fix && bun run test:all
-   ```
-   Sub-agents must NOT run `bun fix`, `test:fast`, or `test:all` — the parent handles all verification.
+2. **Full suite** (`bun fix && bun run test:all`) runs ONCE from the parent — sub-agents skip this
 3. Update todos as completed
+
+### Agent Self-Verification (MANDATORY)
+
+Sub-agents skip the full suite but **MUST self-verify** before claiming done:
+
+1. **Per-step tsc**: After each major change, run `npx tsc --noEmit 2>&1 | grep "error TS" | grep -v vendor/ | wc -l` and report the actual count
+2. **Per-package tests**: Run `bun vitest run <package>/tests/` after modifying each package
+3. **Evidence in completion message**: "Done" must include actual command output (error count, test count), not assertions like "all tests pass"
+4. **Commit incrementally**: After each package/step, commit. Don't batch everything to the end — uncommitted work in worktrees gets lost
+
+**Never tell agents "don't run tests."** Say: "Skip `bun fix` and `bun run test:all` (parent handles full suite). DO run `tsc --noEmit` and per-package `vitest run` to verify your own work."
+
+**Why**: In session 0401b, an agent claimed "0 migration errors" when 443 TS errors remained. It had no feedback loop because the prompt said "parent handles all verification." The agent inferred completion from its own edits instead of checking. Trust-based completion claims don't work — require evidence.
+
+## Prompt Structure for Migration Agents
+
+For agents doing large migrations (interface changes, renames, field restructuring):
+
+1. **Lead with the definition change** — the interface/type/schema modification comes FIRST, not buried among consumer updates
+2. **Top-down execution order** — change the definition, THEN fix consumers. Never bottom-up (consumers first creates the illusion of progress without the core change)
+3. **Mandatory verification after the definition change** — "After changing the interface, run `npx tsc --noEmit 2>&1 | grep error | wc -l`. You should see ~N errors. Report the actual count before continuing."
+4. **Commit after the definition change** — don't wait until all consumers are fixed. Commit the interface change first, then commit consumer updates incrementally
+5. **Use batch-refactor for mechanical consumer updates** — `bun vendor/bearly/tools/refactor.ts` for find-replace patterns across 100+ files
 
 ## Isolation: When to Use Worktrees
 
@@ -107,6 +126,10 @@ After agents complete:
 - Let sub-agents run `bun fix` or `test:all` (parent does this once)
 - Assume you're the only agent — other sessions/agents may be working on the same repo
 - Run two foundational agents on the same package without isolation
+- Tell agents "don't run tests" without giving them tsc + per-package vitest as self-checks
+- Trust agent "done" claims without evidence (actual command output)
+- Let agents batch all commits to the end — require incremental commits per step
+- Give agents 3,000-word prompts that bury the critical step among mechanical ones — lead with the interface/definition change, then consumer updates
 
 ## Sticky Mode
 

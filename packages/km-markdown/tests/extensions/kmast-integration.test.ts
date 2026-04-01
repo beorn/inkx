@@ -641,12 +641,12 @@ describe("kmast roundtrip", () => {
     const { nodes } = parseMarkdownWithLinks(md, "test.md")
 
     // File node
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
     expect(fileNode).toBeDefined()
     expect(fileNode!.title).toBe("Project Board")
 
     // Sections
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
     const inbox = sections.find((s) => s.title === "Inbox")
     expect(inbox).toBeDefined()
     expect(inbox!.rules?.default).toBe(true)
@@ -657,16 +657,16 @@ describe("kmast roundtrip", () => {
     expect(done!.rules?.collapse).toBe(true)
 
     // Tasks
-    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
     expect(tasks).toHaveLength(2)
 
     const grocery = tasks.find((t) => t.content?.includes("Buy groceries"))
     expect(grocery).toBeDefined()
-    expect(grocery!.task_status).toBe("todo")
+    expect(grocery!.item?.task?.status).toBe("todo")
     expect(grocery!.due_at).toBe("2025-06-01")
 
     const ship = tasks.find((t) => t.content?.includes("Ship feature"))
     expect(ship).toBeDefined()
-    expect(ship!.task_status).toBe("done")
+    expect(ship!.item?.task?.status).toBe("done")
   })
 })

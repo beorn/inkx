@@ -27,12 +27,12 @@ describe("ambiguous ID suffix resolution", () => {
     emitter.emit({
       type: "node_created",
       actor: "test",
-      data: { id: id1, type: "p", item: true, content: "Node 1" },
+      data: { id: id1, type: "p", item: {}, content: "Node 1" },
     })
     emitter.emit({
       type: "node_created",
       actor: "test",
-      data: { id: id2, type: "p", item: true, content: "Node 2" },
+      data: { id: id2, type: "p", item: {}, content: "Node 2" },
     })
 
     return [id1, id2]
@@ -54,7 +54,7 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id, type: "p", item: true, content: "Unique node" },
+          data: { id, type: "p", item: {}, content: "Unique node" },
         })
 
         // Use enough chars to be unique
@@ -84,12 +84,12 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id1, type: "p", item: true, content: "Node A" },
+          data: { id: id1, type: "p", item: {}, content: "Node A" },
         })
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id2, type: "p", item: true, content: "Node B" },
+          data: { id: id2, type: "p", item: {}, content: "Node B" },
         })
 
         // The prefix matches both — should return null
@@ -109,12 +109,12 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id1, type: "p", item: true, content: "Task 1", task_status: "todo", task_marker: "[ ]" },
+          data: { id: id1, type: "p", item: {}, content: "Task 1", task_status: "todo", task_marker: "[ ]" },
         })
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id2, type: "p", item: true, content: "Task 2", task_status: "todo", task_marker: "[ ]" },
+          data: { id: id2, type: "p", item: {}, content: "Task 2", task_status: "todo", task_marker: "[ ]" },
         })
 
         const node = getTaskByIdPrefix(db, suffix)
@@ -130,12 +130,12 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: taskId, type: "p", item: true, content: "Task", task_status: "todo", task_marker: "[ ]" },
+          data: { id: taskId, type: "p", item: {}, content: "Task", task_status: "todo", task_marker: "[ ]" },
         })
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: nonTaskId, type: "p", item: true, content: "Not a task" },
+          data: { id: nonTaskId, type: "p", item: {}, content: "Not a task" },
         })
 
         // Only one task matches — should return it
@@ -156,12 +156,12 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id1, type: "p", item: true, content: "Smart node 1" },
+          data: { id: id1, type: "p", item: {}, content: "Smart node 1" },
         })
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id2, type: "p", item: true, content: "Smart node 2" },
+          data: { id: id2, type: "p", item: {}, content: "Smart node 2" },
         })
 
         // resolveNode should detect ambiguity and return null
@@ -179,12 +179,12 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id1, type: "p", item: true, content: "Prefix node 1" },
+          data: { id: id1, type: "p", item: {}, content: "Prefix node 1" },
         })
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id: id2, type: "p", item: true, content: "Prefix node 2" },
+          data: { id: id2, type: "p", item: {}, content: "Prefix node 2" },
         })
 
         const node = resolveNode(db, prefix)
@@ -197,7 +197,7 @@ describe("ambiguous ID suffix resolution", () => {
         emitter.emit({
           type: "node_created",
           actor: "test",
-          data: { id, type: "p", item: true, content: "Only one" },
+          data: { id, type: "p", item: {}, content: "Only one" },
         })
 
         const suffix = id.slice(-8)

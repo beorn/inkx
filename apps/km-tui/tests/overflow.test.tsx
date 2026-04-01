@@ -94,10 +94,7 @@ describe("child count on subitems", () => {
         const bodyTask: KNode = {
           id: "bodyTask",
           type: "p",
-          item: true,
-          list_marker: "-",
-          task_marker: "[ ]",
-          task_status: "todo",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           content: "bodyTask",
           data: {},
           parent_id: "col1",
@@ -111,8 +108,7 @@ describe("child count on subitems", () => {
         const btChild1: KNode = {
           id: "bt-child-1",
           type: "p",
-          item: true,
-          list_marker: "-",
+          item: { list: "-" },
           content: "bt-child-1",
           data: {},
           parent_id: "bodyTask",
@@ -125,8 +121,7 @@ describe("child count on subitems", () => {
         const btChild2: KNode = {
           id: "bt-child-2",
           type: "p",
-          item: true,
-          list_marker: "-",
+          item: { list: "-" },
           content: "bt-child-2",
           data: {},
           parent_id: "bodyTask",
@@ -139,8 +134,7 @@ describe("child count on subitems", () => {
         const btChild3: KNode = {
           id: "bt-child-3",
           type: "p",
-          item: true,
-          list_marker: "-",
+          item: { list: "-" },
           content: "bt-child-3",
           data: {},
           parent_id: "bodyTask",
@@ -154,7 +148,7 @@ describe("child count on subitems", () => {
         const sectionA: KNode = {
           id: "sectionA",
           type: "h",
-          item: true,
+          item: {},
           fstype: "folder",
           content: undefined,
           data: { name: "sectionA" },
@@ -168,8 +162,7 @@ describe("child count on subitems", () => {
         const card1: KNode = {
           id: "card1",
           type: "p",
-          item: true,
-          list_marker: "-",
+          item: { list: "-" },
           content: "card1",
           data: {},
           parent_id: "sectionA",

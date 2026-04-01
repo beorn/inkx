@@ -50,63 +50,44 @@ describe("extractTitleTaskMarker", () => {
 
 describe("validateNode", () => {
   describe("h requires item", () => {
-    test("valid: h + item=true", () => {
-      expect(validateNode({ type: "h", item: true })).toEqual([])
+    test("valid: h + item={}", () => {
+      expect(validateNode({ type: "h", item: {} })).toEqual([])
     })
     test("invalid: h without item", () => {
-      const errors = validateNode({ type: "h", item: false })
-      expect(errors).toHaveLength(1)
-      expect(errors[0]!.field).toBe("item")
-    })
-    test("invalid: h with item=undefined", () => {
       const errors = validateNode({ type: "h" })
       expect(errors).toHaveLength(1)
-    })
-  })
-
-  describe("task requires item", () => {
-    test("valid: task + item=true", () => {
-      expect(validateNode({ type: "p", item: true, task_status: "todo", task_marker: "[ ]" })).toEqual([])
-    })
-    test("invalid: task_status without item", () => {
-      const errors = validateNode({ type: "p", task_status: "done" })
-      expect(errors).toHaveLength(1)
-      expect(errors[0]!.message).toContain("task")
-    })
-    test("invalid: task_marker without item", () => {
-      const errors = validateNode({ type: "p", task_marker: "[x]" })
-      expect(errors).toHaveLength(1)
+      expect(errors[0]!.field).toBe("item")
     })
   })
 
   describe("embed_source (transclusion)", () => {
     test("embed_source is orthogonal to type — any type can have it", () => {
       expect(validateNode({ type: "p", embed_source: "some-id" })).toEqual([])
-      expect(validateNode({ type: "h", item: true, embed_source: "some-id" })).toEqual([])
-      expect(validateNode({ type: "p", item: true, embed_source: null })).toEqual([])
+      expect(validateNode({ type: "h", item: {}, embed_source: "some-id" })).toEqual([])
+      expect(validateNode({ type: "p", item: {}, embed_source: null })).toEqual([])
     })
   })
 
   describe("item-forbidden block types", () => {
     test("valid: p, quote, code, h can be items", () => {
-      expect(validateNode({ type: "p", item: true })).toEqual([])
-      expect(validateNode({ type: "quote", item: true })).toEqual([])
-      expect(validateNode({ type: "code", item: true })).toEqual([])
-      expect(validateNode({ type: "h", item: true })).toEqual([])
+      expect(validateNode({ type: "p", item: {} })).toEqual([])
+      expect(validateNode({ type: "quote", item: {} })).toEqual([])
+      expect(validateNode({ type: "code", item: {} })).toEqual([])
+      expect(validateNode({ type: "h", item: {} })).toEqual([])
     })
     test("invalid: table cannot be an item", () => {
-      const errors = validateNode({ type: "table", item: true })
+      const errors = validateNode({ type: "table", item: {} })
       expect(errors).toHaveLength(1)
       expect(errors[0]!.field).toBe("type")
     })
     test("invalid: hr cannot be an item", () => {
-      expect(validateNode({ type: "hr", item: true })).toHaveLength(1)
+      expect(validateNode({ type: "hr", item: {} })).toHaveLength(1)
     })
     test("invalid: html cannot be an item", () => {
-      expect(validateNode({ type: "html", item: true })).toHaveLength(1)
+      expect(validateNode({ type: "html", item: {} })).toHaveLength(1)
     })
     test("invalid: math cannot be an item", () => {
-      expect(validateNode({ type: "math", item: true })).toHaveLength(1)
+      expect(validateNode({ type: "math", item: {} })).toHaveLength(1)
     })
     test("valid: these types as leaf blocks are fine", () => {
       expect(validateNode({ type: "table" })).toEqual([])
@@ -129,9 +110,9 @@ describe("validateNode", () => {
   })
 
   describe("multiple errors", () => {
-    test("table + item + task = 2 errors (item-forbidden + task needs item that is forbidden)", () => {
-      const errors = validateNode({ type: "table", item: true, task_status: "todo" })
-      expect(errors.length).toBeGreaterThanOrEqual(1)
+    test("table + item + task = 1 error (item-forbidden)", () => {
+      const errors = validateNode({ type: "table", item: { task: { marker: "[ ]", status: "todo" } } })
+      expect(errors).toHaveLength(1)
     })
   })
 })

@@ -687,7 +687,7 @@ function* reconcileFilesystem(
         data: {
           id: nodeId,
           type: "h",
-          item: true,
+          item: {},
           fstype: "folder",
           parent_id: parentId,
           parent_idx: 0,
@@ -708,7 +708,7 @@ function* reconcileFilesystem(
         data: {
           id: nodeId,
           type: "h",
-          item: true,
+          item: {},
           fstype: isTxt ? "txtfile" : "mdfile",
           parent_id: parentId,
           parent_idx: 0,
@@ -729,7 +729,7 @@ function* reconcileFilesystem(
         data: {
           id: nodeId,
           type: "h",
-          item: true,
+          item: {},
           fstype: "file",
           parent_id: parentId,
           parent_idx: 0,
@@ -806,6 +806,12 @@ function* applyEvents(
           const fsPath = rawFsPath && isAbsolute(rawFsPath) ? toRelativeFsPath(repoRoot, rawFsPath) : rawFsPath
           // Normalize parent_id: null → "." (repo root)
           const parentId = (data.parent_id as string) ?? "."
+          // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
+          const item = data.item as Record<string, unknown> | undefined
+          const task = item?.task as { marker?: string; status?: string } | undefined
+          const listMarker = (data.list_marker as string) ?? (item?.list as string) ?? null
+          const taskMarker = (data.task_marker as string) ?? task?.marker ?? null
+          const taskStatus = (data.task_status as string) ?? task?.status ?? null
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
           // from km sync that events.jsonl also references (last_event cursor
           // may not cover all events). Matches applyEventWithDb behavior.
@@ -826,9 +832,9 @@ function* applyEvents(
             (data.title as string) ?? null,
             (data.md_pos as number) ?? null,
             (data.md_line as number) ?? null,
-            (data.list_marker as string) ?? null,
-            (data.task_marker as string) ?? null,
-            (data.task_status as string) ?? null,
+            listMarker,
+            taskMarker,
+            taskStatus,
             (data.assigned_to as string) ?? null,
             (data.due_at as string) ?? null,
             (data.start_at as string) ?? null,

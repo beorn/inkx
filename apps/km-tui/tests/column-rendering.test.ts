@@ -271,7 +271,7 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
     {
       id: "root",
       type: "h",
-      item: true,
+      item: {},
       fstype: "repo",
       data: { name: "board", is_repo_root: true },
       parent_id: null,
@@ -284,7 +284,7 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
     {
       id: "col1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       name: opts.sigilName,
       data: { name: opts.displayName },
@@ -298,10 +298,7 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
     {
       id: "task-a",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "task-a",
       data: {},
       parent_id: "col1",
@@ -318,7 +315,7 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
       {
         id: "col2",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "col2" },
         parent_id: "root",
@@ -331,10 +328,7 @@ function createSigilBoard(opts: { displayName: string; sigilName: string; second
       {
         id: "task-b",
         type: "p",
-        item: true,
-        list_marker: "-",
-        task_marker: "[ ]",
-        task_status: "todo",
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
         content: "task-b",
         data: {},
         parent_id: "col2",
@@ -916,7 +910,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
       {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "repo",
         name: "board",
         data: { name: "board", is_repo_root: true },
@@ -929,7 +923,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
       {
         id: "project",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         name: "project",
         data: { name: "project" },
@@ -943,7 +937,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
         // Index file: same name as folder → findIndexFile matches
         id: "project-md",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         name: "project",
         data: { name: "project" },
@@ -956,10 +950,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
       {
         id: "task-a",
         type: "p",
-        item: true,
-        list_marker: "-",
-        task_marker: "[ ]",
-        task_status: "todo",
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
         content: "task-a",
         data: {},
         parent_id: "project",
@@ -971,10 +962,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
       {
         id: "task-b",
         type: "p",
-        item: true,
-        list_marker: "-",
-        task_marker: "[ ]",
-        task_status: "todo",
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
         content: "task-b",
         data: {},
         parent_id: "project",
@@ -986,7 +974,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
       {
         id: "other-col",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         name: "other",
         data: { name: "other" },
@@ -999,10 +987,7 @@ describe("ghost cursor — folder index file (km-nx8af)", () => {
       {
         id: "other-task",
         type: "p",
-        item: true,
-        list_marker: "-",
-        task_marker: "[ ]",
-        task_status: "todo",
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
         content: "other-task",
         data: {},
         parent_id: "other-col",

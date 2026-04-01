@@ -41,11 +41,8 @@ export async function createTask(
 
   const nodeId = repo.addNode(parentId, {
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[ ]",
+    item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     content: content,
-    task_status: "todo" as TaskStatus,
     due_at: metadata.dueAt,
     start_at: metadata.startAt,
     priority: metadata.priority,
@@ -79,8 +76,7 @@ export async function markDone(pathOrId: string | undefined, options: { json?: b
   }
 
   repo.updateNode(task.id, {
-    task_status: "done",
-    task_marker: "[x]",
+    item: { task: { status: "done", marker: "[x]" } },
   })
 
   if (options.json) {
@@ -112,8 +108,7 @@ export async function claimTask(pathOrId: string | undefined, options: { json?: 
   const actor = process.env.USER ?? "user"
   repo.updateNode(task.id, {
     assigned_to: actor,
-    task_status: "wip",
-    task_marker: "[/]",
+    item: { task: { status: "wip", marker: "[/]" } },
   })
 
   if (options.json) {
@@ -150,8 +145,7 @@ export async function releaseTask(pathOrId: string | undefined, options: { json?
 
   repo.updateNode(task.id, {
     assigned_to: undefined,
-    task_status: "todo" as TaskStatus,
-    task_marker: "[ ]",
+    item: { task: { status: "todo", marker: "[ ]" } },
   })
 
   if (options.json) {

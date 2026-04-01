@@ -53,7 +53,7 @@ describe("createTestRepo", () => {
   test("supports basic node operations", () => {
     using repo = createTestRepo()
 
-    const id = repo.data.addNode(null, { type: "p", item: true, content: "Test task" })
+    const id = repo.data.addNode(null, { type: "p", item: {}, content: "Test task" })
     const node = repo.data.getNode(id)
 
     expect(node).toBeDefined()
@@ -64,8 +64,8 @@ describe("createTestRepo", () => {
   test("supports query operations", () => {
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { type: "p", item: true, content: "First task" })
-    repo.data.addNode(null, { type: "p", item: true, content: "Second task" })
+    repo.data.addNode(null, { type: "p", item: {}, content: "First task" })
+    repo.data.addNode(null, { type: "p", item: {}, content: "Second task" })
 
     const allNodes = repo.data.getAllNodes()
     expect(allNodes.length).toBe(2)
@@ -106,7 +106,7 @@ describe("createBareRepo", () => {
 
   test("preserves DataStore state", () => {
     const data = createMemDataStore()
-    const id = data.addNode(null, { type: "p", item: true, content: "Pre-existing" })
+    const id = data.addNode(null, { type: "p", item: {}, content: "Pre-existing" })
 
     using repo = createBareRepo(data)
     const node = repo.data.getNode(id)
@@ -118,7 +118,7 @@ describe("createBareRepo", () => {
     const data = createMemDataStore()
     using repo = createBareRepo(data)
 
-    const id = repo.data.addNode(null, { type: "p", item: true, content: "New task" })
+    const id = repo.data.addNode(null, { type: "p", item: {}, content: "New task" })
 
     // Verify via original data store
     const node = data.getNode(id)
@@ -131,7 +131,7 @@ describe("createBareRepo", () => {
     repo.close()
 
     // Wrapped store should still work (caller manages lifecycle)
-    const id = data.addNode(null, { type: "p", item: true, content: "After close" })
+    const id = data.addNode(null, { type: "p", item: {}, content: "After close" })
     expect(data.getNode(id)?.content).toBe("After close")
 
     data.close()
@@ -165,7 +165,7 @@ describe("createRepo", () => {
     using repo = runGenerator(createRepo(tempDir))
 
     // No .km dir = memory mode
-    const id = repo.data.addNode(null, { type: "p", item: true, content: "Memory task" })
+    const id = repo.data.addNode(null, { type: "p", item: {}, content: "Memory task" })
     expect(repo.data.getNode(id)).toBeDefined()
   })
 
@@ -175,7 +175,7 @@ describe("createRepo", () => {
 
     using repo = runGenerator(createRepo(tempDir))
 
-    const id = repo.data.addNode(null, { type: "p", item: true, content: "Disk task" })
+    const id = repo.data.addNode(null, { type: "p", item: {}, content: "Disk task" })
     expect(repo.data.getNode(id)).toBeDefined()
 
     // Verify database file was created
@@ -191,7 +191,7 @@ describe("createRepo", () => {
     // Should work even with .km dir present
     const id = repo.data.addNode(null, {
       type: "p",
-      item: true,
+      item: {},
       content: "Forced memory",
     })
     expect(repo.data.getNode(id)).toBeDefined()
@@ -284,7 +284,7 @@ describe("createRepo", () => {
     {
       using repo = runGenerator(createRepo(tempDir))
       repoRef = repo
-      repo.data.addNode(null, { type: "p", item: true, content: "Test" })
+      repo.data.addNode(null, { type: "p", item: {}, content: "Test" })
     }
 
     // After block, repo should be closed
@@ -398,7 +398,7 @@ describe("Repo.needsRebuild", () => {
     {
       using repo = runGenerator(createRepo(tempDir))
       // Add a node to generate an event
-      repo.data.addNode(null, { type: "p", item: true, content: "Test task" })
+      repo.data.addNode(null, { type: "p", item: {}, content: "Test task" })
     }
 
     // Manually add an event that wasn't applied (simulate external write)
@@ -509,7 +509,7 @@ describe("Repo mutations notify FsSync", () => {
   test("updateNode notifies FsSync with node_updated event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
-    const id = repo.addNode(null, { type: "p", item: true, content: "original" })
+    const id = repo.addNode(null, { type: "p", item: {}, content: "original" })
     events.length = 0 // clear the node_created event
 
     repo.updateNode(id, { content: "changed" })
@@ -525,9 +525,9 @@ describe("Repo mutations notify FsSync", () => {
   test("moveNode notifies FsSync with node_moved event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
-    const parentA = repo.addNode(null, { type: "h", item: true, content: "A" })
-    const parentB = repo.addNode(null, { type: "h", item: true, content: "B" })
-    const child = repo.addNode(parentA, { type: "p", item: true, content: "child" })
+    const parentA = repo.addNode(null, { type: "h", item: {}, content: "A" })
+    const parentB = repo.addNode(null, { type: "h", item: {}, content: "B" })
+    const child = repo.addNode(parentA, { type: "p", item: {}, content: "child" })
     events.length = 0
 
     repo.moveNode(child, parentB, 0)
@@ -543,7 +543,7 @@ describe("Repo mutations notify FsSync", () => {
   test("deleteNode notifies FsSync with node_deleted event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
-    const id = repo.addNode(null, { type: "p", item: true, content: "to-delete" })
+    const id = repo.addNode(null, { type: "p", item: {}, content: "to-delete" })
     events.length = 0
 
     repo.deleteNode(id)
@@ -560,7 +560,7 @@ describe("Repo mutations notify FsSync", () => {
     const { repo, events } = createRepoWithFsSpy()
 
     events.length = 0
-    const id = repo.addNode(null, { type: "p", item: true, content: "new-task" })
+    const id = repo.addNode(null, { type: "p", item: {}, content: "new-task" })
 
     expect(events).toHaveLength(1)
     expect(events[0]!.type).toBe("node_created")
@@ -573,7 +573,7 @@ describe("Repo mutations notify FsSync", () => {
   test("no FsSync notification when no FsSync is set", () => {
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
     // Don't set FsSync — should not throw
-    const id = repo.addNode(null, { type: "p", item: true, content: "no-spy" })
+    const id = repo.addNode(null, { type: "p", item: {}, content: "no-spy" })
     repo.updateNode(id, { content: "changed" })
     repo.deleteNode(id)
     // If we got here, no errors from notifyFs with null fsSync
@@ -645,10 +645,8 @@ describe("FsWriter auto-registration", () => {
     // Add a task — FsWriter should regenerate the file
     repo.addNode(inbox.id, {
       type: "p",
-      item: true,
+      item: { task: { status: "todo", marker: "[ ]" } },
       content: "New CLI task",
-      task_status: "todo",
-      task_marker: "[ ]",
     })
 
     const content = readFileSync(join(tempDir, "board.md"), "utf-8")
@@ -681,7 +679,7 @@ describe("WAL checkpoint on close", () => {
 
     // Add many nodes to grow the WAL
     for (let i = 0; i < 50; i++) {
-      repo.addNode(null, { type: "p", item: true, content: `Bulk task ${i}` })
+      repo.addNode(null, { type: "p", item: {}, content: `Bulk task ${i}` })
     }
 
     // WAL file should exist and have data
@@ -761,12 +759,12 @@ describe("preloadSubtree cache", () => {
     // return only the preloaded child and hide its siblings.
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { id: "root", type: "h", item: true })
-    repo.data.addNode("root", { id: "A", type: "h", item: true })
-    repo.data.addNode("root", { id: "B", type: "h", item: true })
-    repo.data.addNode("root", { id: "C", type: "h", item: true })
-    repo.data.addNode("A", { id: "A1", type: "p", item: true })
-    repo.data.addNode("A", { id: "A2", type: "p", item: true })
+    repo.data.addNode(null, { id: "root", type: "h", item: {} })
+    repo.data.addNode("root", { id: "A", type: "h", item: {} })
+    repo.data.addNode("root", { id: "B", type: "h", item: {} })
+    repo.data.addNode("root", { id: "C", type: "h", item: {} })
+    repo.data.addNode("A", { id: "A1", type: "p", item: {} })
+    repo.data.addNode("A", { id: "A2", type: "p", item: {} })
 
     // Verify: root has 3 children
     expect(repo.getChildren("root").map((c) => c.id)).toEqual(["A", "B", "C"])
@@ -781,11 +779,11 @@ describe("preloadSubtree cache", () => {
   test("sequential preloads preserve all children", () => {
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { id: "root", type: "h", item: true })
-    repo.data.addNode("root", { id: "eo", type: "h", item: true })
-    repo.data.addNode("root", { id: "beowa", type: "h", item: true })
-    repo.data.addNode("root", { id: "family", type: "h", item: true })
-    repo.data.addNode("eo", { id: "la", type: "h", item: true })
+    repo.data.addNode(null, { id: "root", type: "h", item: {} })
+    repo.data.addNode("root", { id: "eo", type: "h", item: {} })
+    repo.data.addNode("root", { id: "beowa", type: "h", item: {} })
+    repo.data.addNode("root", { id: "family", type: "h", item: {} })
+    repo.data.addNode("eo", { id: "la", type: "h", item: {} })
 
     // Simulate zoom-in to la, then zoom-out to eo, then zoom-out to root
     repo.preloadSubtree("la", 3)
@@ -799,10 +797,10 @@ describe("preloadSubtree cache", () => {
   test("validateCache passes after correct preload", () => {
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { id: "root", type: "h", item: true })
-    repo.data.addNode("root", { id: "A", type: "h", item: true })
-    repo.data.addNode("root", { id: "B", type: "h", item: true })
-    repo.data.addNode("A", { id: "A1", type: "p", item: true })
+    repo.data.addNode(null, { id: "root", type: "h", item: {} })
+    repo.data.addNode("root", { id: "A", type: "h", item: {} })
+    repo.data.addNode("root", { id: "B", type: "h", item: {} })
+    repo.data.addNode("A", { id: "A1", type: "p", item: {} })
 
     repo.preloadSubtree("A", 3)
     repo.preloadSubtree("root", 3)
@@ -814,16 +812,16 @@ describe("preloadSubtree cache", () => {
   test("mutation after preload busts cache correctly", () => {
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { id: "root", type: "h", item: true })
-    repo.data.addNode("root", { id: "A", type: "h", item: true })
-    repo.data.addNode("root", { id: "B", type: "h", item: true })
+    repo.data.addNode(null, { id: "root", type: "h", item: {} })
+    repo.data.addNode("root", { id: "A", type: "h", item: {} })
+    repo.data.addNode("root", { id: "B", type: "h", item: {} })
 
     // Warm cache
     repo.preloadSubtree("root", 3)
     expect(repo.getChildren("root")).toHaveLength(2)
 
     // Mutate via repo API (which busts cache)
-    repo.addNode("root", { type: "h", item: true, content: "C" })
+    repo.addNode("root", { type: "h", item: {}, content: "C" })
 
     // Cache should be busted — new child visible
     expect(repo.getChildren("root")).toHaveLength(3)
@@ -832,9 +830,9 @@ describe("preloadSubtree cache", () => {
   test("second preloadSubtree is no-op when cache is warm", () => {
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { id: "root", type: "h", item: true })
-    repo.data.addNode("root", { id: "A", type: "h", item: true })
-    repo.data.addNode("root", { id: "B", type: "h", item: true })
+    repo.data.addNode(null, { id: "root", type: "h", item: {} })
+    repo.data.addNode("root", { id: "A", type: "h", item: {} })
+    repo.data.addNode("root", { id: "B", type: "h", item: {} })
 
     repo.preloadSubtree("root", 3)
     const first = repo.getChildren("root")
@@ -850,11 +848,11 @@ describe("preloadSubtree cache", () => {
     // Tree: top > [mid, sib] > [deep > [leaf]]
     using repo = createTestRepo()
 
-    repo.data.addNode(null, { id: "top", type: "h", item: true })
-    repo.data.addNode("top", { id: "mid", type: "h", item: true })
-    repo.data.addNode("top", { id: "sib", type: "h", item: true })
-    repo.data.addNode("mid", { id: "deep", type: "h", item: true })
-    repo.data.addNode("deep", { id: "leaf", type: "p", item: true })
+    repo.data.addNode(null, { id: "top", type: "h", item: {} })
+    repo.data.addNode("top", { id: "mid", type: "h", item: {} })
+    repo.data.addNode("top", { id: "sib", type: "h", item: {} })
+    repo.data.addNode("mid", { id: "deep", type: "h", item: {} })
+    repo.data.addNode("deep", { id: "leaf", type: "p", item: {} })
 
     // Preload mid (depth 2) — should warm mid and deep, NOT top
     repo.preloadSubtree("mid", 2)

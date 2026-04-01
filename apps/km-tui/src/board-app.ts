@@ -463,7 +463,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       currentNode: ctx.selectedNode
         ? ({
             ...ctx.selectedNode,
-            isTask: ctx.selectedNode.task_status != null,
+            isTask: ctx.selectedNode.item?.task?.status != null,
             children: [],
             depth: 0,
             childCount: 0,

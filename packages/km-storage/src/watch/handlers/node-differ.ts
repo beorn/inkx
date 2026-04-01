@@ -175,8 +175,6 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
 /** Fields to compare for child nodes */
 const CHILD_DIFF_FIELDS = [
   "content",
-  "task_status",
-  "task_marker",
   "md_pos",
   "due_at",
   "start_at",
@@ -205,6 +203,12 @@ function diffNodeFields(existing: KNode, newNode: KNode, fields: readonly string
       if ((field === "name" || field === "content") && !newVal && existingVal) continue
       changes[field] = newVal
     }
+  }
+  // Compare item via JSON (nested object)
+  const newItem = JSON.stringify(newNode.item ?? null)
+  const existingItem = JSON.stringify(existing.item ?? null)
+  if (newItem !== existingItem) {
+    changes.item = newNode.item
   }
   // Always compare data via JSON (handles nested objects)
   const newData = JSON.stringify(newNode.data ?? {})

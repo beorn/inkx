@@ -60,7 +60,7 @@ describe("generateChaosReport", () => {
           parent_id: null,
           parent_idx: 0,
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           content: "Test",
           data: {},
@@ -96,7 +96,7 @@ describe("generateChaosReport", () => {
           parent_id: null,
           parent_idx: 0,
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           content: "Root",
           data: {},
@@ -110,7 +110,7 @@ describe("generateChaosReport", () => {
           parent_id: "nonexistent", // Orphan!
           parent_idx: 0,
           type: "h",
-          item: true,
+          item: {},
           content: "Orphan",
           data: {},
           embed_source: null,
@@ -362,7 +362,7 @@ describe.sequential("integration with real repo", () => {
     const tasks = repo.getAllTasks()
     for (const task of tasks) {
       try {
-        repo.updateNode(task.id, { task_status: "done" })
+        repo.updateNode(task.id, { item: { task: { status: "done", marker: "[ ]" } } })
       } catch {
         // Expected for dropped mutations
       }

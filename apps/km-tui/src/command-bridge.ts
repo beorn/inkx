@@ -45,8 +45,8 @@ function buildCommandContexts(ctx: ActionCtx) {
     ? ({
         ...selectedNode,
         isTask:
-          selectedNode.task_status != null ||
-          (embedSource != null && ctx.repo.getNode(embedSource)?.task_status != null),
+          selectedNode.item?.task?.status != null ||
+          (embedSource != null && ctx.repo.getNode(embedSource)?.item?.task?.status != null),
         children: [],
         depth: 0,
         childCount: 0,

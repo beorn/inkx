@@ -23,7 +23,7 @@ function setupRepoWithLinks(): {
   // Create a target file node (what we'll rename)
   const targetId = repo.addNode(null, {
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdfile",
     content: "Old Name",
     name: "Old Name",
@@ -32,14 +32,12 @@ function setupRepoWithLinks(): {
   // Create source nodes that reference the target via wikilinks
   const source1Id = repo.addNode(null, {
     type: "p",
-    item: true,
     content: "See [[Old Name]] for details",
     name: "task-1",
   })
 
   const source2Id = repo.addNode(null, {
     type: "p",
-    item: true,
     content: "Also references [[Old Name]]",
     name: "task-2",
   })
@@ -97,7 +95,7 @@ describe("renameNode", () => {
 
     const targetId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "Target File",
       name: "Target File",
@@ -105,7 +103,6 @@ describe("renameNode", () => {
 
     const sourceId = repo.addNode(null, {
       type: "p",
-      item: true,
       content: "Embed ![[Target File]] here",
     })
 
@@ -131,7 +128,7 @@ describe("renameNode", () => {
 
     const targetId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "Original",
       name: "Original",
@@ -139,7 +136,6 @@ describe("renameNode", () => {
 
     const sourceId = repo.addNode(null, {
       type: "p",
-      item: true,
       content: "See [[Original|my alias]] for info",
     })
 
@@ -179,7 +175,7 @@ describe("renameNode", () => {
 
     const targetId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "Lonely Node",
       name: "Lonely Node",
@@ -197,7 +193,7 @@ describe("renameNode", () => {
 
     const targetId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "Same",
       name: "Same",
@@ -205,7 +201,6 @@ describe("renameNode", () => {
 
     const sourceId = repo.addNode(null, {
       type: "p",
-      item: true,
       content: "Ref [[Same]]",
     })
 
@@ -232,7 +227,7 @@ describe("renameNode", () => {
 
     const targetId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "My Note",
       name: "My Note",
@@ -240,7 +235,6 @@ describe("renameNode", () => {
 
     const sourceId = repo.addNode(null, {
       type: "p",
-      item: true,
       content: "See [[my note]] and [[MY NOTE]]",
     })
 
@@ -269,7 +263,7 @@ describe("getRenameImpact", () => {
     // Add a child node
     repo.addNode(targetId, {
       type: "p",
-      item: true,
+      item: {},
       content: "Child task",
     })
 
@@ -285,7 +279,6 @@ describe("getRenameImpact", () => {
 
     const nodeId = repo.addNode(null, {
       type: "h",
-      item: true,
       fstype: "mdfile",
       content: "Isolated",
       name: "Isolated",
@@ -304,7 +297,7 @@ describe("getRenameImpact", () => {
     // Create a folder node
     const folderId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "inbox",
       name: "inbox",
@@ -314,7 +307,6 @@ describe("getRenameImpact", () => {
     // Create a section with a rule referencing the folder
     repo.addNode(null, {
       type: "h",
-      item: true,
       content: "Open km.add:: ./inbox/**",
       name: "Open",
       rules: { add: "./inbox/**" },
@@ -324,7 +316,7 @@ describe("getRenameImpact", () => {
     // Create a task blocked by "inbox"
     repo.addNode(null, {
       type: "p",
-      item: true,
+      item: {},
       content: "Blocked task",
       data: {
         props: {
@@ -346,7 +338,7 @@ describe("renameNode - rule path references", () => {
     // Create a folder node that we'll rename
     const folderId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "inbox",
       name: "inbox",
@@ -356,7 +348,6 @@ describe("renameNode - rule path references", () => {
     // Create a section with a km.add:: rule referencing the folder
     const sectionId = repo.addNode(null, {
       type: "h",
-      item: true,
       content: "Open km.add:: ./inbox/**",
       name: "Open",
       rules: { add: "./inbox/**" },
@@ -377,7 +368,7 @@ describe("renameNode - rule path references", () => {
 
     const folderId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "projects",
       name: "projects",
@@ -386,7 +377,6 @@ describe("renameNode - rule path references", () => {
 
     const sectionId = repo.addNode(null, {
       type: "h",
-      item: true,
       content: "Work km.add:: ./projects/** status:todo",
       name: "Work",
       rules: { add: "./projects/** status:todo" },
@@ -404,7 +394,7 @@ describe("renameNode - rule path references", () => {
 
     const folderId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "inbox",
       name: "inbox",
@@ -413,7 +403,6 @@ describe("renameNode - rule path references", () => {
 
     const sectionId = repo.addNode(null, {
       type: "h",
-      item: true,
       content: "Mixed km.add:: ./inbox/** km.add:: status:open",
       name: "Mixed",
       rules: { add: ["./inbox/**", "status:open"] },
@@ -431,7 +420,7 @@ describe("renameNode - rule path references", () => {
 
     const folderId = repo.addNode(null, {
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       content: "inbox",
       name: "inbox",
@@ -440,7 +429,6 @@ describe("renameNode - rule path references", () => {
 
     const sectionId = repo.addNode(null, {
       type: "h",
-      item: true,
       content: "Tags km.add:: #important",
       name: "Tags",
       rules: { add: "#important" },
@@ -461,19 +449,16 @@ describe("renameNode - blocked-by property references", () => {
     // Create the blocker node
     const blockerId = repo.addNode(null, {
       type: "p",
-      item: true,
+      item: { task: { status: "todo", marker: "[ ]" } },
       content: "Blocker Task",
       name: "Blocker Task",
-      task_status: "todo",
     })
 
     // Create a task blocked by the blocker
     const blockedId = repo.addNode(null, {
       type: "p",
-      item: true,
       content: "Blocked Task",
       name: "Blocked Task",
-      task_status: "todo",
       data: {
         props: {
           "blocked-by": { type: "link", target: "Blocker Task" },
@@ -495,14 +480,13 @@ describe("renameNode - blocked-by property references", () => {
 
     const nodeId = repo.addNode(null, {
       type: "p",
-      item: true,
+      item: {},
       content: "Some Node",
       name: "Some Node",
     })
 
     const blockedId = repo.addNode(null, {
       type: "p",
-      item: true,
       content: "Blocked Task",
       name: "Blocked Task",
       data: {

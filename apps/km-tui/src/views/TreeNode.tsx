@@ -50,8 +50,8 @@ import type { ErrorInfo } from "react"
  * The ErrorBoundary shows [error] fallback text; this ensures the actual error is logged
  * so developers can diagnose the root cause (bug: km-tui.delete-shows-error). */
 function handleNodeChildrenError(error: Error, errorInfo: ErrorInfo): void {
-  log.error("NodeChildren render error: %s", error.message)
-  log.error("Component stack: %s", errorInfo.componentStack?.split("\n").slice(0, 5).join("\n") ?? "(none)")
+  log.error?.(`NodeChildren render error: ${error.message}`)
+  log.error?.(`Component stack: ${errorInfo.componentStack?.split("\n").slice(0, 5).join("\n") ?? "(none)"}`)
 }
 
 interface TreeNodeProps {
@@ -94,7 +94,7 @@ interface TreeNodeProps {
  * Memoized TreeNode - skips re-render when props are unchanged.
  *
  * Custom comparison focuses on the fields that actually affect rendering:
- * - node.id, node.content, node.task_status (identity and display)
+ * - node.id, node.content, node.item?.task?.status (identity and display)
  * - isSelected (selection state)
  * - depth, colIndex, cardIndex (position)
  * - dimInactiveChildren (visual state)
@@ -123,7 +123,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   if (
     prev.node.content !== next.node.content ||
     prev.node.embed_source !== next.node.embed_source ||
-    prev.node.task_status !== next.node.task_status ||
+    prev.node.item?.task?.status !== next.node.item?.task?.status ||
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
     prev.node.priority !== next.node.priority ||
@@ -279,7 +279,7 @@ function TreeNodeImpl({
     return s
   }, [
     displayNode.id,
-    displayNode.task_status,
+    displayNode.item?.task?.status,
     displayNode.due_at,
     displayNode.priority,
     displayNode.start_at,
@@ -407,7 +407,7 @@ function TreeNodeImpl({
       excludeBoardIds,
       getBoardPills,
     }),
-    [displayNode.id, displayNode.assigned_to, displayNode.task_status, isOneliner, rootBoardId, getBoardPills],
+    [displayNode.id, displayNode.assigned_to, displayNode.item?.task?.status, isOneliner, rootBoardId, getBoardPills],
   )
 
   // Inline child count on card titles — removed in favor of +N overflow indicator.
@@ -529,7 +529,7 @@ function TreeNodeImpl({
     for (const child of children) {
       // For embed children, resolve to source node to get task_status
       const filterNode = child.embed_source ? (repo.getNode(child.embed_source) ?? child) : child
-      const status = filterNode.task_status ?? getStatusForMarker(filterNode.task_marker)
+      const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
       if (!status || taskStatusFilter.has(status)) {
         totalPassing++
         if (visible.length < maxChildren) visible.push(child)

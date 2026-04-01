@@ -61,11 +61,11 @@ This is a paragraph.
         expect(fileNode!.type).toBe("h")
         expect(fileNode!.fs_path).toBe(toRel(repoDir, testFile))
 
-        const tasks = allNodes.filter((n) => n.task_status != null)
+        const tasks = allNodes.filter((n) => n.item?.task?.status != null)
         expect(tasks.length).toBe(2)
 
-        const todoTask = tasks.find((t) => t.task_status === "todo")
-        const doneTask = tasks.find((t) => t.task_status === "done")
+        const todoTask = tasks.find((t) => t.item?.task?.status === "todo")
+        const doneTask = tasks.find((t) => t.item?.task?.status === "done")
         expect(todoTask).toBeDefined()
         expect(doneTask).toBeDefined()
       }))
@@ -157,7 +157,7 @@ Some content here.
         await manager.syncFromFs()
 
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.task_status != null)
+        const tasks = allNodes.filter((n) => n.item?.task?.status != null)
 
         expect(tasks.length).toBe(4)
 
@@ -259,7 +259,7 @@ code
         await manager.syncFromFs()
 
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.task_status != null)
+        const tasks = allNodes.filter((n) => n.item?.task?.status != null)
 
         expect(tasks.length).toBe(3)
       }))
@@ -429,7 +429,7 @@ code
         await manager.syncFromFs()
 
         const allNodes = getAllNodes(db)
-        const taskNode = allNodes.find((n) => n.task_status != null)
+        const taskNode = allNodes.find((n) => n.item?.task?.status != null)
         expect(taskNode).toBeDefined()
 
         const ancestors = getAncestors(db, taskNode!.id)
@@ -586,7 +586,7 @@ code
           data: {
             id: "new-section-1",
             type: "h",
-            item: true,
+            item: {},
             parent_id: fileNode!.id,
             parent_idx: (colA!.parent_idx ?? 0) + 0.5,
             content: "",

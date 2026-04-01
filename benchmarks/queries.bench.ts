@@ -49,16 +49,14 @@ interface TestRepo {
  */
 function createFlatRepo(nodeCount: number): TestRepo {
   return withTestEnvSync(({ db, data }) => {
-    const rootId = data.addNode(null, { type: "h", item: true, fstype: "mdfile", content: "root.md" })
+    const rootId = data.addNode(null, { type: "h", item: {}, fstype: "mdfile", content: "root.md" })
     const nodeIds: string[] = [rootId]
     const leafIds: string[] = []
 
     for (let i = 0; i < nodeCount; i++) {
       const id = data.addNode(rootId, {
         type: "p",
-        item: true,
-        list_marker: "-",
-        task_marker: "[ ]",
+        item: { list: "-", task: { marker: "[ ]", status: "todo" } },
         content: `Task ${i + 1} with some content #tag${i % 10}`,
       })
       nodeIds.push(id)
@@ -80,7 +78,7 @@ function createFlatRepo(nodeCount: number): TestRepo {
  */
 function createTreeRepo(depth: number, branchFactor: number): TestRepo {
   return withTestEnvSync(({ db, data }) => {
-    const rootId = data.addNode(null, { type: "h", item: true, fstype: "mdfile", content: "root.md" })
+    const rootId = data.addNode(null, { type: "h", item: {}, fstype: "mdfile", content: "root.md" })
     const nodeIds: string[] = [rootId]
     const leafIds: string[] = []
 
@@ -94,7 +92,7 @@ function createTreeRepo(depth: number, branchFactor: number): TestRepo {
         const isLeafLevel = currentDepth === depth - 1
         const id = data.addNode(parentId, {
           type: isLeafLevel ? "p" : "h",
-          item: true,
+          item: {},
           ...(isLeafLevel ? { list_marker: "-", task_marker: "[ ]" } : { fstype: "mdsection" }),
           content: `Node at depth ${currentDepth}, branch ${i}`,
         } as Record<string, unknown>)

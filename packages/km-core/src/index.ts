@@ -18,6 +18,7 @@ export type {
   NodeRules,
   TaskStatus,
   TaskMarker,
+  ItemData,
   Event,
   EventType,
   NodeCreatedData,

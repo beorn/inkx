@@ -110,7 +110,7 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
 
 /**
  * Evaluate km.add:: rule(s) and materialize results as outline items with embed_source.
- * Creates outline items (type: "h", item: true) as children of the section.
+ * Creates outline items (type: "h", item: {}) as children of the section.
  * embed_source on each item enables transclusion (resolveEmbed renders the target's content).
  * Removes items that no longer match any query (e.g., after status change).
  * Multiple queries are unioned — a node matching any query is included.
@@ -125,7 +125,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     return
   }
 
-  // Guard: rules must be on outline items (type: "h", item: true).
+  // Guard: rules must be on outline items (type: "h", item: {}).
   // Rule-created children are outline items, which can only nest inside outline parents.
   if (!KNode.isOutline(section)) {
     throw new Error(
@@ -219,7 +219,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     }
 
     // Create outline item with embed_source pointing to the matched node.
-    // type: "h", item: true makes it a structural sub-item (card) on the board,
+    // type: "h", item: {} makes it a structural sub-item (card) on the board,
     // not body content. embed_source enables transclusion (resolveEmbed).
     const embedNode = buildEmbedChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath: candidatePath })
     ops.addNode(sectionId, embedNode)

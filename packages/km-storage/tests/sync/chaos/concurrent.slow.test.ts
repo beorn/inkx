@@ -117,7 +117,7 @@ async function initTestFile(
   await ctx.syncManager.syncFromFs()
   if (options.start !== false) ctx.syncManager.start()
 
-  const tasks = ctx.data.getAllNodes().filter((n) => n.task_status != null)
+  const tasks = ctx.data.getAllNodes().filter((n) => n.item?.task?.status != null)
   return { filePath, tasks }
 }
 
@@ -128,7 +128,7 @@ function findTask(ctx: ConcurrentTestCtx, content: string) {
 
 /** Get all tasks from the data store */
 function getAllTasks(ctx: ConcurrentTestCtx) {
-  return ctx.data.getAllNodes().filter((n) => n.task_status != null)
+  return ctx.data.getAllNodes().filter((n) => n.item?.task?.status != null)
 }
 
 /** Run a concurrent edit test with fake timers and test environment */
@@ -206,7 +206,7 @@ describe("Concurrent Edit Tests", () => {
         expect(task1).toBeDefined()
 
         if (firstSource === "db") {
-          ctx.data.updateNode(task1!.id, { task_status: "done" })
+          ctx.data.updateNode(task1!.id, { item: { task: { status: "done", marker: "[ ]" } } })
           await ctx.advanceTime(100)
           const content = readFileSync(filePath, "utf-8")
           ctx.writeAndTrigger(filePath, content + "- [ ] Task 3\n")
@@ -216,7 +216,7 @@ describe("Concurrent Edit Tests", () => {
           await ctx.advanceTime(300)
           // handleFsSync is async — wait for real I/O (parse pool, reconcile) to complete
           await ctx.syncManager.waitForInflight()
-          ctx.data.updateNode(task1!.id, { task_status: "done" })
+          ctx.data.updateNode(task1!.id, { item: { task: { status: "done", marker: "[ ]" } } })
         }
 
         // Advance past writeQueue debounce (50ms) and flush
@@ -226,7 +226,7 @@ describe("Concurrent Edit Tests", () => {
 
         const finalTasks = getAllTasks(ctx)
         expect(finalTasks.length).toBeGreaterThanOrEqual(2)
-        expect(findTask(ctx, "Task 1")?.task_status).toBe("done")
+        expect(findTask(ctx, "Task 1")?.item?.task?.status).toBe("done")
       }),
     )
   })
@@ -328,7 +328,7 @@ describe("Concurrent Edit Tests", () => {
         expect(task1).toBeDefined()
 
         // DB edit: mark task1 done. Let write queue flush to disk before FS sync fires.
-        ctx.data.updateNode(task1!.id, { task_status: "done" })
+        ctx.data.updateNode(task1!.id, { item: { task: { status: "done", marker: "[ ]" } } })
         // Advance past write queue debounce (50ms) so file1 is updated on disk
         await ctx.advanceTime(60)
 
@@ -340,8 +340,8 @@ describe("Concurrent Edit Tests", () => {
         await ctx.syncManager.waitForInflight()
         await ctx.flushTimers()
 
-        expect(findTask(ctx, "Task 1")?.task_status).toBe("done")
-        expect(findTask(ctx, "Task 2")?.task_status).toBe("done")
+        expect(findTask(ctx, "Task 1")?.item?.task?.status).toBe("done")
+        expect(findTask(ctx, "Task 2")?.item?.task?.status).toBe("done")
       }))
   })
 
@@ -357,7 +357,7 @@ describe("Concurrent Edit Tests", () => {
         const taskB = findTask(ctx, "Task B")
         expect(taskB).toBeDefined()
 
-        ctx.data.updateNode(taskB!.id, { task_status: "done" })
+        ctx.data.updateNode(taskB!.id, { item: { task: { status: "done", marker: "[ ]" } } })
         await ctx.advanceTime(100)
 
         const content = readFileSync(filePath, "utf-8")
@@ -371,7 +371,7 @@ describe("Concurrent Edit Tests", () => {
         expect(taskContents).toContain("Task A")
         expect(taskContents).toContain("Task B")
         expect(taskContents).toContain("Task C")
-        expect(findTask(ctx, "Task B")?.task_status).toBe("done")
+        expect(findTask(ctx, "Task B")?.item?.task?.status).toBe("done")
       }))
 
     test("file structure preserved during concurrent edits", () =>
@@ -398,7 +398,7 @@ Important notes here.
         const activeTask = findTask(ctx, "Active task")
         expect(activeTask).toBeDefined()
 
-        ctx.data.updateNode(activeTask!.id, { task_status: "done" })
+        ctx.data.updateNode(activeTask!.id, { item: { task: { status: "done", marker: "[ ]" } } })
 
         await ctx.advanceTime(300)
         await ctx.flushTimers()

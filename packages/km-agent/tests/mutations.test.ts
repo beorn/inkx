@@ -13,7 +13,7 @@ describe("createAgentNode", () => {
     const { node, shortId } = createAgentNode("Test Agent")
 
     expect(node.type).toBe("h")
-    expect(node.item).toBe(true)
+    expect(node.item).toEqual({})
     expect(node.data?.kind).toBe("agent")
     expect(node.name).toBe("Test Agent")
     expect(node.content).toBe("Test Agent")

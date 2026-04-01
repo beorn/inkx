@@ -46,10 +46,10 @@ describe.sequential("createChaosHooks", () => {
     expect(tasks.length).toBe(3)
 
     // Update should succeed
-    repo.updateNode(tasks[0]!.id, { task_status: "done" })
+    repo.updateNode(tasks[0]!.id, { item: { task: { status: "done", marker: "[ ]" } } })
 
     const updated = repo.getNode(tasks[0]!.id)
-    expect(updated!.task_status).toBe("done")
+    expect(updated!.item?.task?.status).toBe("done")
 
     // No chaos events
     expect(hooks.getChaosEvents()).toHaveLength(0)
@@ -82,11 +82,13 @@ describe.sequential("createChaosHooks", () => {
     expect(tasks.length).toBe(3)
 
     // Update should be dropped
-    expect(() => repo.updateNode(tasks[0]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[0]!.id, { item: { task: { status: "done", marker: "[ ]" } } })).toThrow(
+      /Mutation cancelled by hook/,
+    )
 
     // Verify mutation was dropped
     const unchanged = repo.getNode(tasks[0]!.id)
-    expect(unchanged!.task_status).toBe("todo")
+    expect(unchanged!.item?.task?.status).toBe("todo")
 
     // Check chaos events
     expect(events).toHaveLength(1)
@@ -121,7 +123,7 @@ describe.sequential("createChaosHooks", () => {
     const task = tasks[0]!
 
     // Update will be corrupted
-    repo.updateNode(task.id, { task_status: "done" })
+    repo.updateNode(task.id, { item: { task: { status: "done", marker: "[ ]" } } })
 
     // Check that corruption event was logged
     expect(events).toHaveLength(1)
@@ -152,14 +154,16 @@ describe.sequential("createChaosHooks", () => {
     const tasks = repo.getAllTasks()
 
     // Update should be dropped
-    expect(() => repo.updateNode(tasks[0]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[0]!.id, { item: { task: { status: "done", marker: "[ ]" } } })).toThrow(
+      /Mutation cancelled by hook/,
+    )
 
     // Add should succeed
     const rootChildren = repo.getChildren(null)
     const fileNode = rootChildren[0]!
     const newId = repo.addNode(fileNode.id, {
       type: "p",
-      item: true,
+      item: {},
       content: "New task",
     })
     expect(newId).toBeDefined()
@@ -186,23 +190,27 @@ describe.sequential("createChaosHooks", () => {
 
     // With chaos enabled, update should fail
     expect(hooks.isEnabled()).toBe(true)
-    expect(() => repo.updateNode(tasks[0]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[0]!.id, { item: { task: { status: "done", marker: "[ ]" } } })).toThrow(
+      /Mutation cancelled by hook/,
+    )
 
     // Disable chaos
     hooks.disable()
     expect(hooks.isEnabled()).toBe(false)
 
     // Now update should succeed
-    repo.updateNode(tasks[1]!.id, { task_status: "done" })
+    repo.updateNode(tasks[1]!.id, { item: { task: { status: "done", marker: "[ ]" } } })
     const updated = repo.getNode(tasks[1]!.id)
-    expect(updated!.task_status).toBe("done")
+    expect(updated!.item?.task?.status).toBe("done")
 
     // Re-enable chaos
     hooks.enable()
     expect(hooks.isEnabled()).toBe(true)
 
     // Now update should fail again
-    expect(() => repo.updateNode(tasks[2]!.id, { task_status: "done" })).toThrow(/Mutation cancelled by hook/)
+    expect(() => repo.updateNode(tasks[2]!.id, { item: { task: { status: "done", marker: "[ ]" } } })).toThrow(
+      /Mutation cancelled by hook/,
+    )
   })
 
   test("tracks statistics", () => {
@@ -230,7 +238,7 @@ describe.sequential("createChaosHooks", () => {
     // Try multiple mutations
     for (const task of tasks) {
       try {
-        repo.updateNode(task.id, { task_status: "done" })
+        repo.updateNode(task.id, { item: { task: { status: "done", marker: "[ ]" } } })
       } catch {
         // Expected for dropped mutations
       }
@@ -261,7 +269,7 @@ describe.sequential("createChaosHooks", () => {
     const tasks = repo.getAllTasks()
 
     try {
-      repo.updateNode(tasks[0]!.id, { task_status: "done" })
+      repo.updateNode(tasks[0]!.id, { item: { task: { status: "done", marker: "[ ]" } } })
     } catch {
       // Expected
     }
@@ -299,7 +307,7 @@ describe.sequential("createChaosHooks", () => {
       const tasks = repo.getAllTasks()
       for (const task of tasks) {
         try {
-          repo.updateNode(task.id, { task_status: "done" })
+          repo.updateNode(task.id, { item: { task: { status: "done", marker: "[ ]" } } })
           results.push("success")
         } catch {
           results.push("dropped")

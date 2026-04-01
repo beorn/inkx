@@ -19,8 +19,7 @@ describe("vd (toggle_hide_done)", () => {
   test("vd hides done tasks in a regular column", () => {
     const nodes = item("board", item("col1", item("todoTask"), item("doneTask")))
     const doneNode = nodes.find((n) => n.id === "doneTask")!
-    doneNode.task_status = "done"
-    doneNode.task_marker = "[x]"
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -45,7 +44,7 @@ describe("vd (toggle_hide_done)", () => {
     const srcParent: KNode = {
       id: "src-parent",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "Sources" },
@@ -59,10 +58,7 @@ describe("vd (toggle_hide_done)", () => {
     const todoSrc: KNode = {
       id: "todo-src",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "Todo source task",
       data: {},
       parent_id: "src-parent",
@@ -75,10 +71,7 @@ describe("vd (toggle_hide_done)", () => {
     const doneSrc: KNode = {
       id: "done-src",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[x]",
-      task_status: "done",
+      item: { list: "-", task: { status: "done", marker: "[x]" } },
       content: "Done source task",
       data: {},
       parent_id: "src-parent",
@@ -92,7 +85,7 @@ describe("vd (toggle_hide_done)", () => {
     const tagCol: KNode = {
       id: "tag-col",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "#us" },
@@ -108,8 +101,7 @@ describe("vd (toggle_hide_done)", () => {
     const todoEmbed: KNode = {
       id: "todo-embed",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "![[todo-src]]",
       data: {},
       parent_id: "tag-col",
@@ -122,8 +114,7 @@ describe("vd (toggle_hide_done)", () => {
     const doneEmbed: KNode = {
       id: "done-embed",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "![[done-src]]",
       data: {},
       parent_id: "tag-col",
@@ -137,7 +128,7 @@ describe("vd (toggle_hide_done)", () => {
     const board_node: KNode = {
       id: "board",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "board" },
@@ -178,10 +169,7 @@ describe("vd (toggle_hide_done)", () => {
     const todoSrc: KNode = {
       id: "todo-child-src",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "Todo child task",
       data: {},
       parent_id: "src-holder",
@@ -194,10 +182,7 @@ describe("vd (toggle_hide_done)", () => {
     const doneSrc: KNode = {
       id: "done-child-src",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[x]",
-      task_status: "done",
+      item: { list: "-", task: { status: "done", marker: "[x]" } },
       content: "Done child task",
       data: {},
       parent_id: "src-holder",
@@ -210,7 +195,7 @@ describe("vd (toggle_hide_done)", () => {
     const srcHolder: KNode = {
       id: "src-holder",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "Source Holder" },
@@ -226,10 +211,7 @@ describe("vd (toggle_hide_done)", () => {
     const cardNode: KNode = {
       id: "my-card",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "Parent card",
       data: {},
       parent_id: "col",
@@ -243,8 +225,7 @@ describe("vd (toggle_hide_done)", () => {
     const todoEmbedChild: KNode = {
       id: "todo-embed-child",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "![[todo-child-src]]",
       data: {},
       parent_id: "my-card",
@@ -257,8 +238,7 @@ describe("vd (toggle_hide_done)", () => {
     const doneEmbedChild: KNode = {
       id: "done-embed-child",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "![[done-child-src]]",
       data: {},
       parent_id: "my-card",
@@ -272,7 +252,7 @@ describe("vd (toggle_hide_done)", () => {
     const col: KNode = {
       id: "col",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "Tasks" },
@@ -286,7 +266,7 @@ describe("vd (toggle_hide_done)", () => {
     const board_node: KNode = {
       id: "board",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "board" },
@@ -323,8 +303,7 @@ describe("vd (toggle_hide_done)", () => {
   test("vd toggles back to show all tasks", () => {
     const nodes = item("board", item("col1", item("todoTask"), item("doneTask")))
     const doneNode = nodes.find((n) => n.id === "doneTask")!
-    doneNode.task_status = "done"
-    doneNode.task_marker = "[x]"
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 

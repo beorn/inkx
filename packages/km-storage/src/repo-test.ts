@@ -27,7 +27,7 @@ const log = createLogger("km:storage:repo:test")
  * @example
  * ```typescript
  * using repo = createTestRepo()
- * repo.data.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })
+ * repo.data.addNode(null, { type: "p", item: { list: "-", task: { marker: "[ ]", status: "todo" } }, content: "Test" })
  * ```
  *
  * @returns Test Repo with in-memory storage
@@ -82,7 +82,7 @@ export interface TestEnvRepoResult {
  * emitter.setFsSync(syncManager)
  *
  * // Use data for mutations (events flow to emitter)
- * data.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })
+ * data.addNode(null, { type: "p", item: { list: "-", task: { marker: "[ ]", status: "todo" } }, content: "Test" })
  *
  * // Cleanup
  * repo.close()

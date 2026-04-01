@@ -188,7 +188,7 @@ describe("Date Badge Display Journeys", () => {
     // Step 2: Verify status was cycled
     const col = repo.getChildren("board")[0]!
     const task = repo.getChildren(col.id)[0]!
-    expect(task.task_status).not.toBe("todo")
+    expect(task.item?.task?.status).not.toBe("todo")
 
     // Step 3: Open recurrence dialog
     board.command("set_recurring")

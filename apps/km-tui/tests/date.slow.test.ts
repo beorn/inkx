@@ -685,7 +685,7 @@ describe("date prompt (td)", () => {
     // Task starts as "todo" (item.task creates with task_status)
     const col = repo.getChildren("board")[0]!
     const task = repo.getChildren(col.id)[0]!
-    expect(task.task_status).toBe("todo")
+    expect(task.item?.task?.status).toBe("todo")
 
     board.press("t")
     board.press("s")
@@ -696,7 +696,7 @@ describe("date prompt (td)", () => {
 
     // Should have cycled task status
     const updatedTask = repo.getChildren(col.id)[0]!
-    expect(updatedTask.task_status).not.toBe("todo")
+    expect(updatedTask.item?.task?.status).not.toBe("todo")
   })
 
   test("tr chord opens recurrence dialog", () => {

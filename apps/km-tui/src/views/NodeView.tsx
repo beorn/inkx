@@ -252,13 +252,13 @@ export function NodeLineView({
   indent = 0,
 }: NodeLineViewProps): React.ReactElement {
   const nodeIsTask = KNode.isTask(node)
-  const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
+  const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
   const shouldDim = isDoneOrDropped || ancestorDone
 
   // Icon: task status icon for tasks, type icon for non-tasks
   const icon = nodeIsTask
-    ? getStatusIcon(node.task_status ?? "todo")
-    : getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
+    ? getStatusIcon(node.item?.task?.status ?? "todo")
+    : getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
 
   // Title: use displayName override or derive from content
   const titleText =
@@ -326,13 +326,13 @@ export function NodeCardView({
   parentNodeId,
 }: NodeCardViewProps): React.ReactElement {
   const nodeIsTask = KNode.isTask(node)
-  const isDoneOrDropped = node.task_status === "done" || node.task_status === "dropped"
+  const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
   const shouldDim = isDoneOrDropped || ancestorDone
 
   // Icon: task status icon for tasks, type icon for non-tasks
   const icon = nodeIsTask
-    ? getStatusIcon(node.task_status ?? "todo")
-    : getNodeIcon(node.task_status, undefined, node.task_marker !== undefined)
+    ? getStatusIcon(node.item?.task?.status ?? "todo")
+    : getNodeIcon(node.item?.task?.status, undefined, node.item?.task?.marker !== undefined)
 
   // Title
   const rawContent = node.content ?? ""
@@ -571,7 +571,7 @@ export function NodeDetailView({
   const rawContent = node.content ?? ""
   const displayContent = nodeIsTask ? stripTaskMark(rawContent) : rawContent
 
-  const statusIcon = nodeIsTask ? getStatusIcon(node.task_status ?? "todo") : null
+  const statusIcon = nodeIsTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
   const contentWidth = Math.max(8, width - 4)
 
   // Separate body from structural children
@@ -582,7 +582,7 @@ export function NodeDetailView({
 
   // Metadata fields
   const metadataRows: { label: string; value: string }[] = []
-  if (node.task_status) metadataRows.push({ label: "Status", value: node.task_status })
+  if (node.item?.task?.status) metadataRows.push({ label: "Status", value: node.item?.task?.status })
   if (node.due_at) metadataRows.push({ label: "Due", value: node.due_at })
   if (node.start_at) metadataRows.push({ label: "Start", value: node.start_at })
   if (node.assigned_to) metadataRows.push({ label: "Assigned", value: node.assigned_to })

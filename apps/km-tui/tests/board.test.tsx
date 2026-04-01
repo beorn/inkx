@@ -118,7 +118,7 @@ describe("Render", () => {
     const card: KNode = {
       id: "test-card",
       type: "p",
-      item: true,
+      item: {},
       list_marker: "-",
       parent_id: null,
       parent_idx: 0,
@@ -139,7 +139,7 @@ describe("Render", () => {
         {
           id: "test-card",
           type: "p",
-          item: true,
+          item: {},
           list_marker: "-",
           parent_id: null,
           parent_idx: 0,
@@ -153,7 +153,7 @@ describe("Render", () => {
         {
           id: "child-1",
           type: "p",
-          item: true,
+          item: {},
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
@@ -177,7 +177,7 @@ describe("Render", () => {
         {
           id: "test-card",
           type: "p",
-          item: true,
+          item: {},
           list_marker: "-",
           parent_id: null,
           parent_idx: 0,
@@ -191,7 +191,7 @@ describe("Render", () => {
         {
           id: "child-1",
           type: "p",
-          item: true,
+          item: {},
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 0,
@@ -205,7 +205,7 @@ describe("Render", () => {
         {
           id: "child-2",
           type: "p",
-          item: true,
+          item: {},
           list_marker: "-",
           parent_id: "test-card",
           parent_idx: 1,

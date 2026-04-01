@@ -95,7 +95,7 @@ export function handleCreate(options: CreateHandlerOptions): void {
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       fs_path: folderRelPath,
       fs_ino: op.ino,
@@ -125,7 +125,7 @@ export function handleCreate(options: CreateHandlerOptions): void {
     emitNodeCreated(emitter, "fs-watch", {
       id: ulid(),
       type: "h",
-      item: true,
+      item: {},
       fstype: "file",
       fs_path: toRelativeFsPath(repoRoot, op.path),
       fs_ino: op.ino,
@@ -340,7 +340,7 @@ function ensureFolderHierarchy(
     emitNodeCreated(emitter, "fs-watch", {
       id: folderId,
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       fs_path: relPath,
       fs_ino: stat.ino,

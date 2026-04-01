@@ -8,7 +8,7 @@
  */
 
 import type { KNode, TaskStatus } from "@km/core"
-import { createNodeCache } from "./node-cache.ts"
+import { createNodeCache, type NodeCache } from "./node-cache.ts"
 
 /** Subset of Repo that the canvas client needs */
 export interface RepoLike {
@@ -125,11 +125,11 @@ export function createRemoteRepo(opts: RemoteRepoOptions): Promise<RemoteRepo> {
     getRepoRootNode: () => cache.getRepoRootNode(),
 
     getAllTasks() {
-      return cache.getAllNodes().filter((n) => n.task_status != null)
+      return cache.getAllNodes().filter((n) => n.item?.task?.status != null)
     },
 
     getTasksByStatus(status: TaskStatus) {
-      return cache.getAllNodes().filter((n) => n.task_status === status)
+      return cache.getAllNodes().filter((n) => n.item?.task?.status === status)
     },
 
     search(query: string) {
@@ -155,7 +155,7 @@ export function createRemoteRepo(opts: RemoteRepoOptions): Promise<RemoteRepo> {
     resolveByName(name: string) {
       const lower = name.toLowerCase().replace(/\.md$/i, "")
       for (const node of cache.getAllNodes()) {
-        const nodeName = (node as Record<string, unknown>).name as string | undefined
+        const nodeName = (node as unknown as Record<string, unknown>).name as string | undefined
         if (nodeName?.toLowerCase().replace(/\.md$/i, "") === lower) return node
       }
       return null
@@ -218,9 +218,9 @@ export function createRemoteRepo(opts: RemoteRepoOptions): Promise<RemoteRepo> {
 
     ws.onmessage = (event) => {
       const data = typeof event.data === "string" ? event.data : ""
-      let msg: Record<string, unknown>
+      let msg: Record<string, unknown> = {}
       try {
-        msg = JSON.parse(data)
+        msg = JSON.parse(data) as Record<string, unknown>
       } catch {
         return
       }

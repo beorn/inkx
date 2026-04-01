@@ -295,9 +295,8 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
     // Create a folder with children, then mark it as done task
     const nodes = item("board", item("col1", item("doneParent", item("child1"), item("child2"))))
     const parent = nodes.find((n) => n.id === "doneParent")!
-    parent.task_status = "done"
-    parent.task_marker = "[x]"
-    parent.list_marker = "-"
+    parent.item = { ...parent.item, task: { status: "done", marker: "[x]" } }
+    parent.item = { ...parent.item, list: "-" }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -322,9 +321,8 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
   test("dropped task's sub-items are dimmed", () => {
     const nodes = item("board", item("col1", item("droppedParent", item("child1"))))
     const parent = nodes.find((n) => n.id === "droppedParent")!
-    parent.task_status = "dropped"
-    parent.task_marker = "[-]"
-    parent.list_marker = "-"
+    parent.item = { ...parent.item, task: { status: "dropped", marker: "[-]" } }
+    parent.item = { ...parent.item, list: "-" }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -364,9 +362,8 @@ describe("dim-subtree: children of done/dropped tasks are dimmed", () => {
   test("done task's title itself is dimmed (non-selected)", () => {
     const nodes = item("board", item("col1", item("doneParent", item("child1")), item.task("otherTask")))
     const parent = nodes.find((n) => n.id === "doneParent")!
-    parent.task_status = "done"
-    parent.task_marker = "[x]"
-    parent.list_marker = "-"
+    parent.item = { ...parent.item, task: { status: "done", marker: "[x]" } }
+    parent.item = { ...parent.item, list: "-" }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 

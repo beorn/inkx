@@ -18,10 +18,7 @@ function targetNode(id: string, content: string): KNode {
   return {
     id,
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[ ]",
-    task_status: "todo" as const,
+    item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
     content,
     data: {},
     parent_id: null,

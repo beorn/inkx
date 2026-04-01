@@ -18,15 +18,15 @@ function makeNode(overrides: Partial<KNode> & { id: string; parent_id: string })
 }
 
 const nodes = [
-  makeNode({ id: "1", parent_id: ".", content: "Buy groceries", task_status: "todo" as KNode["task_status"] }),
+  makeNode({ id: "1", parent_id: ".", content: "Buy groceries", item: { task: { status: "todo", marker: "[ ]" } } }),
   makeNode({
     id: "2",
     parent_id: ".",
     content: "Fix login bug",
     title: "Login Bug",
-    task_status: "in_progress" as KNode["task_status"],
+    item: { task: { status: "wip", marker: "[/]" } },
   }),
-  makeNode({ id: "3", parent_id: ".", content: "Write docs", task_status: "done" as KNode["task_status"] }),
+  makeNode({ id: "3", parent_id: ".", content: "Write docs", item: { task: { status: "done", marker: "[x]" } } }),
   makeNode({ id: "4", parent_id: ".", content: "Meeting notes" }),
 ]
 // Add name to node 4
@@ -88,17 +88,17 @@ describe("resolveByName", () => {
 describe("task filtering", () => {
   it("getAllTasks returns nodes with task_status", () => {
     const cache = setup()
-    const tasks = cache.getAllNodes().filter((n) => n.task_status != null)
+    const tasks = cache.getAllNodes().filter((n) => n.item?.task?.status != null)
     expect(tasks).toHaveLength(3)
   })
 
   it("getTasksByStatus filters by status", () => {
     const cache = setup()
-    const todo = cache.getAllNodes().filter((n) => n.task_status === "todo")
+    const todo = cache.getAllNodes().filter((n) => n.item?.task?.status === "todo")
     expect(todo).toHaveLength(1)
     expect(todo[0]!.id).toBe("1")
 
-    const done = cache.getAllNodes().filter((n) => n.task_status === "done")
+    const done = cache.getAllNodes().filter((n) => n.item?.task?.status === "done")
     expect(done).toHaveLength(1)
     expect(done[0]!.id).toBe("3")
   })

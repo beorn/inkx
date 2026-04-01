@@ -55,14 +55,14 @@ export interface FakeRepo extends Repo {
  * // With canned data
  * const repo = createFakeRepo({
  *   nodes: [
- *     { id: "1", type: "h", item: true, fstype: "mdsection", content: "Tasks", parentId: null, ... },
- *     { id: "2", type: "p", item: true, task_marker: "[ ]", content: "Do something", parentId: "1", ... },
+ *     { id: "1", type: "h", item: {}, fstype: "mdsection", content: "Tasks", parentId: null, ... },
+ *     { id: "2", type: "p", item: { list: "-", task: { marker: "[ ]", status: "todo" } }, content: "Do something", parentId: "1", ... },
  *   ],
  * });
  *
  * // Empty repo
  * const repo = createFakeRepo();
- * repo.addNode(null, { type: "h", item: true, fstype: "mdsection", content: "New section" });
+ * repo.addNode(null, { type: "h", item: {}, fstype: "mdsection", content: "New section" });
  *
  * @param options - Configuration with initial data
  * @returns FakeRepo instance
@@ -263,12 +263,12 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
     getAllTasks() {
       ensureNotClosed()
-      return [...nodes.values()].filter((n) => n.task_status != null)
+      return [...nodes.values()].filter((n) => n.item?.task != null)
     },
 
     getTasksByStatus(status) {
       ensureNotClosed()
-      return [...nodes.values()].filter((n) => n.task_status != null && n.task_status === status)
+      return [...nodes.values()].filter((n) => n.item?.task != null && n.item.task.status === status)
     },
 
     search(query) {
@@ -298,7 +298,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     queryTasks(expression) {
       ensureNotClosed()
       // Simple implementation: filter query results to only tasks
-      return this.query(expression).filter((n) => n.task_status != null)
+      return this.query(expression).filter((n) => n.item?.task != null)
     },
 
     getLinksTo(targetId) {
@@ -419,10 +419,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         created_at: now,
         updated_at: now,
         version: "fake-0",
-        task_status:
-          nodeData.task_status ??
-          (nodeData.item === true && nodeData.type !== "h" ? ("todo" as TaskStatus) : undefined),
-        task_marker: nodeData.task_marker ?? (nodeData.item === true && nodeData.type !== "h" ? "[ ]" : undefined),
+        item: nodeData.item,
       } as KNode
 
       nodes.set(id, node)
@@ -434,16 +431,22 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     cloneTask(sourceId, changes) {
       ensureNotClosed()
       const source = nodes.get(sourceId)
-      if (!source?.task_status) return null
+      if (!source?.item?.task) return null
 
       const id = `fake-${nextId++}`
       const now = Date.now()
 
+      const newItem = changes.item ?? source.item
       const cloned: KNode = {
         ...source,
         id,
-        task_status: changes.task_status ?? "todo",
-        task_marker: changes.task_marker ?? "[ ]",
+        item: {
+          ...newItem,
+          task: {
+            marker: newItem?.task?.marker ?? "[ ]",
+            status: newItem?.task?.status ?? "todo",
+          },
+        },
         content: changes.content ?? source.content,
         due_at: changes.due_at ?? source.due_at,
         start_at: changes.start_at ?? source.start_at,

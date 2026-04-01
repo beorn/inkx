@@ -6,7 +6,7 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode, TaskStatus, TaskMarker, FsType, NodeType, NodeRules, Reminder } from "@km/core"
+import type { KNode, TaskStatus, TaskMarker, FsType, NodeType, NodeRules, Reminder, ItemData } from "@km/core"
 
 // =============================================================================
 // Utility Queries
@@ -60,13 +60,24 @@ export function rowToNode(row: Record<string, unknown>): KNode {
   // Extract rules from data.rules (stored by parser during sync)
   const rules = data.rules as NodeRules | undefined
 
+  // Assemble nested item object from flat DB columns
+  const taskMarker = (row.task_marker ?? undefined) as TaskMarker | undefined
+  const taskStatus = (row.task_status ?? undefined) as TaskStatus | undefined
+  const listMarker = (row.list_marker ?? undefined) as string | undefined
+  let item: ItemData | undefined
+  if (row.item) {
+    item = {}
+    if (listMarker) item.list = listMarker
+    if (taskMarker) item.task = { marker: taskMarker, status: taskStatus ?? "todo" }
+  }
+
   return {
     id: row.id as string,
     type,
     fstype: (row.fstype ?? undefined) as FsType | undefined,
     parent_id: row.parent_id as string | null,
     parent_idx: row.parent_idx as number,
-    item: row.item ? true : undefined,
+    item,
     embed_source: (row.embed_source ?? undefined) as string | null | undefined,
     fs_path: (row.fs_path ?? undefined) as string | undefined,
     fs_ino: (row.fs_ino ?? undefined) as number | undefined,
@@ -75,9 +86,6 @@ export function rowToNode(row: Record<string, unknown>): KNode {
     block_id: (row.block_id ?? undefined) as string | undefined,
     md_pos: (row.md_pos ?? undefined) as number | undefined,
     md_line: (row.md_line ?? undefined) as number | undefined,
-    list_marker: (row.list_marker ?? undefined) as string | undefined,
-    task_marker: (row.task_marker ?? undefined) as TaskMarker | undefined,
-    task_status: (row.task_status ?? undefined) as TaskStatus | undefined,
     assigned_to: (row.assigned_to ?? undefined) as string | undefined,
     due_at: (row.due_at ?? undefined) as string | undefined,
     start_at: (row.start_at ?? undefined) as string | undefined,

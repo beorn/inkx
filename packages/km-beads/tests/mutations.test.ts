@@ -7,9 +7,9 @@ describe("createIssueNode", () => {
     const { node, shortId } = createIssueNode("Fix the login bug")
 
     expect(node.type).toBe("p")
-    expect(node.item).toBe(true)
-    expect(node.task_status).toBe("todo")
-    expect(node.task_marker).toBe("[ ]")
+    expect(node.item).toBeDefined()
+    expect(node.item?.task?.status).toBe("todo")
+    expect(node.item?.task?.marker).toBe("[ ]")
     expect(node.content).toContain("Fix the login bug")
     expect(node.content).toContain("@issue")
     expect(shortId).toMatch(/^km-[a-z0-9]{4}$/)
@@ -78,29 +78,29 @@ describe("updateIssueFields", () => {
   test("updates status to done", () => {
     const updates = updateIssueFields(baseIssue, { status: "done" })
 
-    expect(updates.task_status).toBe("done")
-    expect(updates.task_marker).toBe("[x]")
+    expect(updates.item?.task?.status).toBe("done")
+    expect(updates.item?.task?.marker).toBe("[x]")
   })
 
   test("updates status to wip", () => {
     const updates = updateIssueFields(baseIssue, { status: "wip" })
 
-    expect(updates.task_status).toBe("wip")
-    expect(updates.task_marker).toBe("[/]")
+    expect(updates.item?.task?.status).toBe("wip")
+    expect(updates.item?.task?.marker).toBe("[/]")
   })
 
   test("updates status to blocked", () => {
     const updates = updateIssueFields(baseIssue, { status: "blocked" })
 
-    expect(updates.task_status).toBe("blocked")
-    expect(updates.task_marker).toBe("[!]")
+    expect(updates.item?.task?.status).toBe("blocked")
+    expect(updates.item?.task?.marker).toBe("[!]")
   })
 
   test("updates status to dropped", () => {
     const updates = updateIssueFields(baseIssue, { status: "dropped" })
 
-    expect(updates.task_status).toBe("dropped")
-    expect(updates.task_marker).toBe("[-]")
+    expect(updates.item?.task?.status).toBe("dropped")
+    expect(updates.item?.task?.marker).toBe("[-]")
   })
 
   test("updates priority", () => {
@@ -129,8 +129,8 @@ describe("closeIssueFields", () => {
   test("closes issue with done status", () => {
     const updates = closeIssueFields()
 
-    expect(updates.task_status).toBe("done")
-    expect(updates.task_marker).toBe("[x]")
+    expect(updates.item?.task?.status).toBe("done")
+    expect(updates.item?.task?.marker).toBe("[x]")
   })
 
   test("closes issue with reason", () => {
@@ -144,8 +144,8 @@ describe("dropIssueFields", () => {
   test("drops issue with dropped status", () => {
     const updates = dropIssueFields()
 
-    expect(updates.task_status).toBe("dropped")
-    expect(updates.task_marker).toBe("[-]")
+    expect(updates.item?.task?.status).toBe("dropped")
+    expect(updates.item?.task?.marker).toBe("[-]")
   })
 
   test("drops issue with reason", () => {

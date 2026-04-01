@@ -5,7 +5,7 @@
  * Used by both CLI commands and TUI components.
  */
 
-import { KNode } from "@km/core"
+import { KNode, type ItemData } from "@km/core"
 
 /** Regex for sigil names: strings starting with @, +, or # (e.g., @next, +project, #tag) */
 export const SIGIL_RE = /^[@#+]/
@@ -111,7 +111,7 @@ export function getStatusIcon(status: string | null | undefined): StatusIcon {
  * Note: code and quote blocks don't need icons - rich text rendering
  * handles their visual distinction (backticks for code, italics for quotes).
  */
-export function getTypeIcon(type: string, fstype?: string, item?: boolean): string {
+export function getTypeIcon(type: string, fstype?: string, item?: ItemData): string {
   if (KNode.isOutline({ type, item })) {
     switch (fstype) {
       case "folder":
@@ -150,11 +150,11 @@ export function getTypeIcon(type: string, fstype?: string, item?: boolean): stri
  * @returns StatusIcon with char and color, or null for tasks
  */
 export function getTypeBullet(
-  node: { type: string; item?: boolean; fstype?: string; task_status?: string | null; task_marker?: string },
+  node: { type: string; item?: ItemData; fstype?: string; task_status?: string | null; task_marker?: string },
   hasChildren: boolean,
 ): StatusIcon | null {
   // Tasks don't use a type bullet — their checkbox serves as the bullet
-  if (node.task_status != null || node.task_marker !== undefined) return null
+  if (node.item?.task?.status != null || node.item?.task?.marker !== undefined) return null
 
   if (KNode.isOutline(node)) {
     switch (node.fstype) {

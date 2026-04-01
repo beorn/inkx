@@ -9,7 +9,7 @@ import { createLogger } from "loggily"
 import { existsSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
-import { type Event, KNode, findIndexFile, namesAreSimilar } from "@km/core"
+import { type Event, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
 import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getIgnorePatterns } from "../ignore.ts"
@@ -232,7 +232,7 @@ export class EventHandlers {
           fs_path?: string
           type?: string
           parent_id?: string | null
-          item?: boolean
+          item?: ItemData
         }
       | undefined
     const fsPath = data?.fs_path

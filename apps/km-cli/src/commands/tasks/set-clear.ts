@@ -66,8 +66,7 @@ export function createSetCommand() {
             break
           case "status":
           case "task_status":
-            updates.task_status = value as TaskStatus
-            updates.task_marker = getMarkerForStatus(value as TaskStatus)
+            updates.item = { task: { status: value as TaskStatus, marker: getMarkerForStatus(value as TaskStatus) } }
             break
           case "assigned":
           case "assigned_to":

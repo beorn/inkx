@@ -160,10 +160,10 @@ All events update the `meta.last_event` cursor in SQLite.
 
 **Core principle**: Each sync direction has ONE authority. No ping-pong.
 
-| Direction | Trigger | Authority | File Write? | Reconcile? |
-|-----------|---------|-----------|-------------|------------|
-| DB → FS | User edit, CLI command | **DB** | YES (regenerate) | **NO** |
-| FS → DB | External editor, git pull | **File** | NO | YES |
+| Direction | Trigger                   | Authority | File Write?      | Reconcile? |
+| --------- | ------------------------- | --------- | ---------------- | ---------- |
+| DB → FS   | User edit, CLI command    | **DB**    | YES (regenerate) | **NO**     |
+| FS → DB   | External editor, git pull | **File**  | NO               | YES        |
 
 ### DB → FS (user edits)
 
@@ -183,6 +183,7 @@ prevents step 4 from writing the file back.
 Current: `recentWrites` Map with 10s timestamp window (probabilistic).
 
 Planned: **mtime fast-path + content-hash fallback**:
+
 1. Store mtime after each write in a per-file token
 2. Watcher checks: does mtime match our stored value?
    - YES → our write, skip reconciliation (fast, no I/O)

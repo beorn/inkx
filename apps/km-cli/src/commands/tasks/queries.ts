@@ -37,7 +37,7 @@ export function findNodeByPathOrId(repo: Repo, pathOrId: string): KNode | null {
  */
 export function getTasksUnderNode(repo: Repo, nodeId: string): KNode[] {
   const subtree = repo.getSubtree(nodeId)
-  return subtree.filter((n) => n.task_marker !== undefined || n.task_status !== undefined)
+  return subtree.filter((n) => n.item?.task?.marker !== undefined || n.item?.task?.status !== undefined)
 }
 
 /**

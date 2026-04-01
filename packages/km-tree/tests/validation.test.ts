@@ -42,7 +42,7 @@ describe("withValidation", () => {
     }
 
     // addNode triggers validate
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Root", content: "Root" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Root", content: "Root" })
     expect(validateCount).toBe(1)
 
     // updateNode triggers validate
@@ -50,7 +50,7 @@ describe("withValidation", () => {
     expect(validateCount).toBe(2)
 
     // addNode + moveNode
-    const childId = tree.addNode(parentId, { type: "p", item: true, content: "Child", parent_idx: 1 })
+    const childId = tree.addNode(parentId, { type: "p", item: {}, content: "Child", parent_idx: 1 })
     expect(validateCount).toBe(3)
 
     tree.moveNode(childId, parentId, 5)
@@ -100,9 +100,9 @@ describe("withBatch", () => {
     }
 
     tree.withBatch!(() => {
-      tree.addNode(null, { type: "h", item: true, name: "A", content: "A" })
-      tree.addNode(null, { type: "h", item: true, name: "B", content: "B" })
-      tree.addNode(null, { type: "h", item: true, name: "C", content: "C" })
+      tree.addNode(null, { type: "h", item: {}, name: "A", content: "A" })
+      tree.addNode(null, { type: "h", item: {}, name: "B", content: "B" })
+      tree.addNode(null, { type: "h", item: {}, name: "C", content: "C" })
       // During batch, validate should NOT have been called
       expect(validateCount).toBe(0)
     })
@@ -123,10 +123,10 @@ describe("withBatch", () => {
     }
 
     tree.withBatch!(() => {
-      tree.addNode(null, { type: "h", item: true, name: "A", content: "A" })
+      tree.addNode(null, { type: "h", item: {}, name: "A", content: "A" })
 
       tree.withBatch!(() => {
-        tree.addNode(null, { type: "h", item: true, name: "B", content: "B" })
+        tree.addNode(null, { type: "h", item: {}, name: "B", content: "B" })
         expect(validateCount).toBe(0)
       })
 
@@ -170,7 +170,7 @@ describe("withTreeValidation", () => {
     withTreeValidation(tree)
 
     // Add an item node so having children is valid
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Parent", content: "Parent" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Parent", content: "Parent" })
     const childId = tree.addNode(parentId, { type: "p", content: "Child", parent_idx: 1 })
 
     // Now delete parent without deleting child — bypass validation
@@ -195,7 +195,7 @@ describe("withTreeValidation", () => {
     withTreeValidation(tree)
 
     // Add a node then corrupt its sort order
-    const nodeId = tree.addNode(null, { type: "h", item: true, name: "Test", content: "Test" })
+    const nodeId = tree.addNode(null, { type: "h", item: {}, name: "Test", content: "Test" })
 
     const validate = tree.validate!
     tree.validate = () => {}
@@ -211,7 +211,7 @@ describe("withTreeValidation", () => {
 
     withTreeValidation(tree)
 
-    const nodeId = tree.addNode(null, { type: "h", item: true, name: "Test", content: "Test" })
+    const nodeId = tree.addNode(null, { type: "h", item: {}, name: "Test", content: "Test" })
 
     const validate = tree.validate!
     tree.validate = () => {}
@@ -227,7 +227,7 @@ describe("withTreeValidation", () => {
 
     withTreeValidation(tree)
 
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Section", content: "Section" })
     tree.addNode(parentId, { type: "p", content: "Paragraph 1", parent_idx: 1 })
     tree.addNode(parentId, { type: "p", content: "Paragraph 2", parent_idx: 2 })
 
@@ -240,13 +240,13 @@ describe("withTreeValidation", () => {
 
     withTreeValidation(tree)
 
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Section", content: "Section" })
 
     // Blocks first (body), then items — valid
     const validate = tree.validate!
     tree.validate = () => {} // disable during setup
     tree.addNode(parentId, { type: "p", content: "Body paragraph", parent_idx: 1 })
-    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "List item", parent_idx: 2 })
+    tree.addNode(parentId, { type: "p", item: { list: "-" }, content: "List item", parent_idx: 2 })
     tree.validate = validate
 
     expect(() => tree.validate!()).not.toThrow()
@@ -258,12 +258,12 @@ describe("withTreeValidation", () => {
 
     withTreeValidation(tree)
 
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Section", content: "Section" })
 
     // Item first, then block — violates body-prefix rule
     const validate = tree.validate!
     tree.validate = () => {} // disable during setup
-    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "List item", parent_idx: 1 })
+    tree.addNode(parentId, { type: "p", item: { list: "-" }, content: "List item", parent_idx: 1 })
     tree.addNode(parentId, { type: "p", content: "Block after item", parent_idx: 2 })
     tree.validate = validate
 
@@ -276,12 +276,12 @@ describe("withTreeValidation", () => {
 
     withTreeValidation(tree)
 
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Section", content: "Section" })
 
     const validate = tree.validate!
     tree.validate = () => {}
-    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "Item 1", parent_idx: 1 })
-    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "Item 2", parent_idx: 2 })
+    tree.addNode(parentId, { type: "p", item: { list: "-" }, content: "Item 1", parent_idx: 1 })
+    tree.addNode(parentId, { type: "p", item: { list: "-" }, content: "Item 2", parent_idx: 2 })
     tree.validate = validate
 
     expect(() => tree.validate!()).not.toThrow()
@@ -293,7 +293,7 @@ describe("withTreeValidation", () => {
 
     withTreeValidation(tree)
 
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Section", content: "Section" })
 
     const validate = tree.validate!
     tree.validate = () => {}
@@ -363,7 +363,7 @@ describe("integration", () => {
     withTreeValidation(tree)
 
     // Adding a valid item node works fine
-    const parentId = tree.addNode(null, { type: "h", item: true, name: "Root", content: "Root" })
+    const parentId = tree.addNode(null, { type: "h", item: {}, name: "Root", content: "Root" })
 
     // Corrupting sort order via updateNode should throw because validate fires after
     expect(() => tree.updateNode(parentId, { parent_idx: NaN })).toThrow("INVARIANT invalid-sort-order")
@@ -378,12 +378,12 @@ describe("integration", () => {
 
     // Batch with valid operations completes fine
     tree.withBatch!(() => {
-      const id = tree.addNode(null, { type: "h", item: true, name: "A", content: "A" })
+      const id = tree.addNode(null, { type: "h", item: {}, name: "A", content: "A" })
       tree.addNode(id, { type: "p", content: "Child", parent_idx: 1 })
     })
 
     // Batch that leaves tree in invalid state throws at batch end
-    const nodeId = tree.addNode(null, { type: "h", item: true, name: "B", content: "B" })
+    const nodeId = tree.addNode(null, { type: "h", item: {}, name: "B", content: "B" })
     expect(() => {
       tree.withBatch!(() => {
         tree.updateNode(nodeId, { parent_idx: NaN })

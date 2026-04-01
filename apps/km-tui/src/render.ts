@@ -148,12 +148,12 @@ export function renderCard(
   // For embedded nodes, resolve the target node and show its content
   const embedSource = card.embed_source
   const displayNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
-  const statusIcon = renderStatusIcon(displayNode.task_status)
+  const statusIcon = renderStatusIcon(displayNode.item?.task?.status)
   const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""
   const rawContent = (parseToPlainText(contentFirstLine) || getNodeDisplayName(repo, displayNode)).slice(0, width - 3)
 
   // Apply plain text conversion, then dim+strikethrough for done/dropped
-  const isDoneOrDropped = displayNode.task_status === "done" || displayNode.task_status === "dropped"
+  const isDoneOrDropped = displayNode.item?.task?.status === "done" || displayNode.item?.task?.status === "dropped"
   const styledContent = rawContent
   const content = isDoneOrDropped ? style.dim.strikethrough(styledContent) : styledContent
   let firstLine = `${statusIcon} ${content}`
@@ -173,7 +173,7 @@ export function renderCard(
     const maxChildren = 3
     const visibleChildren = children.slice(0, maxChildren)
     for (const child of visibleChildren) {
-      const childIcon = renderStatusIcon(child.task_status)
+      const childIcon = renderStatusIcon(child.item?.task?.status)
       const childRaw = (child.content || "").slice(0, width - 3)
       const childContent = parseToPlainText(childRaw)
       lines.push(style.dim(`${childIcon} ${childContent}`).padEnd(width).slice(0, width))

@@ -22,7 +22,7 @@ function detailOnlyItem(id: string, content: string, ...childArrays: KNode[][]):
   const node: KNode = {
     id,
     type: "p",
-    item: true,
+    item: {},
     content,
     data: { detailOnly: true },
     parent_id: null,
@@ -283,7 +283,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "board" },
         parent_id: null,
@@ -297,7 +297,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "col",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "col" },
         parent_id: "board",
@@ -311,7 +311,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "task-1",
         type: "p",
-        item: true,
+        item: {},
         content: "A real task",
         parent_id: "col",
         parent_idx: 0,
@@ -326,7 +326,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "attachments-123",
         type: "h",
-        item: true,
+        item: {},
         content: "Attachments km.collapse:: true",
         data: {},
         parent_id: "col",
@@ -340,7 +340,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "att-123-1",
         type: "p",
-        item: true,
+        item: {},
         content: "[IMG_1704.jpg](attachments/IMG_1704.jpg)",
         parent_id: "attachments-123",
         parent_idx: 0,
@@ -354,7 +354,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "comments-123",
         type: "h",
-        item: true,
+        item: {},
         content: "Comments km.collapse:: true",
         data: {},
         parent_id: "col",
@@ -368,7 +368,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "comment-123-1",
         type: "p",
-        item: true,
+        item: {},
         content: "2024-01-15 @alice: Great work!",
         parent_id: "comments-123",
         parent_idx: 0,
@@ -410,7 +410,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "task-root",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "task-root" },
         parent_id: null,
@@ -424,7 +424,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "subtask-col",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "subtask-col" },
         parent_id: "task-root",
@@ -437,7 +437,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "sub-1",
         type: "p",
-        item: true,
+        item: {},
         content: "A real subtask",
         parent_id: "subtask-col",
         parent_idx: 0,
@@ -451,7 +451,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "attachments-456",
         type: "h",
-        item: true,
+        item: {},
         content: "Attachments km.collapse:: true",
         data: {},
         parent_id: "task-root",
@@ -464,7 +464,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "att-456-1",
         type: "p",
-        item: true,
+        item: {},
         content: "![photo.jpg](attachments/photo.jpg)",
         parent_id: "attachments-456",
         parent_idx: 0,
@@ -478,7 +478,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "comments-456",
         type: "h",
-        item: true,
+        item: {},
         content: "Comments km.collapse:: true",
         data: {},
         parent_id: "task-root",
@@ -491,7 +491,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "comment-456-1",
         type: "p",
-        item: true,
+        item: {},
         content: "2024-03-01 @bob: Looks good",
         parent_id: "comments-456",
         parent_idx: 0,
@@ -505,7 +505,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "activity-456",
         type: "h",
-        item: true,
+        item: {},
         content: "Activity km.collapse:: true",
         data: {},
         parent_id: "task-root",
@@ -518,7 +518,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "act-456-1",
         type: "p",
-        item: true,
+        item: {},
         content: "2024-03-01 Task created",
         parent_id: "activity-456",
         parent_idx: 0,
@@ -552,7 +552,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "task-root",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "task-root" },
         parent_id: null,
@@ -565,7 +565,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "subtask-col",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         name: "subtasks",
         title: "Subtasks",
@@ -581,7 +581,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "sub-1",
         type: "p",
-        item: true,
+        item: {},
         content: "A subtask",
         parent_id: "subtask-col",
         parent_idx: 0,
@@ -595,7 +595,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "attachments-sec",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         name: "attachments",
         title: "Attachments",
@@ -612,7 +612,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "att-1",
         type: "p",
-        item: true,
+        item: {},
         content: "[doc.pdf](attachments/doc.pdf)",
         parent_id: "attachments-sec",
         parent_idx: 0,
@@ -643,7 +643,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "board" },
         parent_id: null,
@@ -656,7 +656,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "col",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         data: { name: "col" },
         parent_id: "board",
@@ -669,7 +669,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "task-1",
         type: "p",
-        item: true,
+        item: {},
         content: "Real task",
         parent_id: "col",
         parent_idx: 0,
@@ -684,7 +684,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "attachments-edge",
         type: "h",
-        item: true,
+        item: {},
         title: "Attachments",
         content: "Attachments km.collapse:: true",
         data: {},
@@ -698,7 +698,7 @@ describe("structural children with km.collapse:: true hidden from card view", ()
       {
         id: "att-edge-1",
         type: "p",
-        item: true,
+        item: {},
         content: "[file.zip](attachments/file.zip)",
         parent_id: "attachments-edge",
         parent_idx: 0,
@@ -845,7 +845,7 @@ describe("case-insensitive well-known section matching", () => {
     return {
       id: "test",
       type: "h",
-      item: true,
+      item: {},
       parent_id: null,
       parent_idx: 0,
       data: {},

@@ -140,7 +140,7 @@ describe("Round-trip: Lists", () => {
     const input = `- [x] Task title ^1203443757802387\n  > Body content here`
     const nodes = parse(input)
     // The title node should NOT contain the blockquote text
-    const titleNode = nodes.find((n) => n.type === "p" && n.item === true)
+    const titleNode = nodes.find((n) => n.type === "p" && n.item != null)
     expect(titleNode?.content).not.toContain("Body content")
     expect(titleNode?.content).toContain("Task title")
     // There should be a separate quote node as a child
@@ -481,11 +481,11 @@ describe("Round-trip: Fixture Files", () => {
     expect(md2).toContain("Code Blocks")
 
     // Node counts should be consistent between round-trips
-    expect(nodes1.filter((n) => n.type === "p" && n.item === true && n.task_marker).length).toBe(
-      nodes2.filter((n) => n.type === "p" && n.item === true && n.task_marker).length,
+    expect(nodes1.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker).length).toBe(
+      nodes2.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker).length,
     )
-    expect(nodes1.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection").length).toBe(
-      nodes2.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection").length,
+    expect(nodes1.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection").length).toBe(
+      nodes2.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection").length,
     )
   })
 })
@@ -494,23 +494,23 @@ describe("Round-trip: Content Preservation Verification", () => {
   test("should preserve task status in node", () => {
     const nodes = parse(`- [ ] Open
 - [x] Done`)
-    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(tasks.length).toBe(2)
-    expect(tasks[0]!.task_status).toBe("todo")
-    expect(tasks[1]!.task_status).toBe("done")
+    expect(tasks[0]!.item?.task?.status).toBe("todo")
+    expect(tasks[1]!.item?.task?.status).toBe("done")
 
     // After round-trip, statuses should be preserved
     const nodes2 = parse(nodesToMarkdown(nodes))
-    const tasks2 = nodes2.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks2 = nodes2.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
-    expect(tasks2[0]!.task_status).toBe("todo")
-    expect(tasks2[1]!.task_status).toBe("done")
+    expect(tasks2[0]!.item?.task?.status).toBe("todo")
+    expect(tasks2[1]!.item?.task?.status).toBe("done")
   })
 
   test("should preserve task metadata in node", () => {
     const nodes = parse(`- [ ] Task 📅 2025-12-25 ⏫`)
-    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
@@ -518,7 +518,7 @@ describe("Round-trip: Content Preservation Verification", () => {
     expect(task!.priority).toBeUndefined()
 
     // After round-trip, due date preserved; emoji priority stripped but not re-emitted
-    const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const task2 = parse(nodesToMarkdown(nodes)).find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
     expect(task2!.due_at).toBe("2025-12-25")
     expect(task2!.priority).toBeUndefined()
   })
@@ -529,8 +529,8 @@ describe("Round-trip: Content Preservation Verification", () => {
 ## H2
 
 ### H3`)
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 
     // H1 is merged into file node, so only 2 section nodes
     expect(sections.length).toBe(2)
@@ -548,8 +548,8 @@ describe("Round-trip: Content Preservation Verification", () => {
 
     // Double round-trip preserves structure
     const nodes2 = parse(output)
-    const sections2 = nodes2.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
-    const fileNode2 = nodes2.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const sections2 = nodes2.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+    const fileNode2 = nodes2.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 
     expect(fileNode2?.title).toBe("H1")
     expect(sections2[0]?.parent_id).toBe(fileNode2?.id)
@@ -591,8 +591,8 @@ Some content here.
 
 More content.`)
 
-    expect(nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker).length).toBe(0)
-    expect(nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection").length).toBeGreaterThan(0)
+    expect(nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker).length).toBe(0)
+    expect(nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection").length).toBeGreaterThan(0)
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("# Main Title")
@@ -631,10 +631,10 @@ More content.`)
 Content at deepest level.`)
 
     // H1 is merged into file node, so only 5 section nodes (levels 2-6)
-    expect(nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection").length).toBe(5)
+    expect(nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection").length).toBe(5)
 
     // File node should have H1 title
-    expect(nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")?.title).toBe("Level 1")
+    expect(nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")?.title).toBe("Level 1")
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("# Level 1")
@@ -648,7 +648,7 @@ Content at deepest level.`)
 
   test("should handle document with only a single task", () => {
     const nodes = parse(`- [ ] Single task`)
-    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(tasks.length).toBe(1)
     expect(tasks[0]!.content).toBe("Single task")
@@ -800,13 +800,13 @@ describe("Round-trip: All Task Status Marks", () => {
 - [/] In progress task (wip)
 - [-] Dropped/cancelled task (dropped)
 - [!] Blocked task (blocked)`)
-    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     // Should have 6 tasks
     expect(tasks.length).toBe(6)
 
     // Verify all statuses are present
-    const statuses = tasks.map((t) => t.task_status)
+    const statuses = tasks.map((t) => t.item?.task?.status)
     expect(statuses).toContain("todo")
     expect(statuses).toContain("done")
     expect(statuses).toContain("wip")
@@ -814,7 +814,7 @@ describe("Round-trip: All Task Status Marks", () => {
     expect(statuses).toContain("blocked")
 
     // Verify task markers are preserved
-    const markers = tasks.map((t) => t.task_marker)
+    const markers = tasks.map((t) => t.item?.task?.marker)
     expect(markers).toContain("[ ]")
     expect(markers.filter((m) => m === "[x]" || m === "[X]").length).toBe(2)
     expect(markers).toContain("[/]")
@@ -836,15 +836,15 @@ describe("Round-trip: All Task Status Marks", () => {
 
     const nodes2 = parse(roundtrip(original))
 
-    expect(nodes2.find((n) => n.content?.includes("WIP"))?.task_status).toBe("wip")
-    expect(nodes2.find((n) => n.content?.includes("Blocked"))?.task_status).toBe("blocked")
+    expect(nodes2.find((n) => n.content?.includes("WIP"))?.item?.task?.status).toBe("wip")
+    expect(nodes2.find((n) => n.content?.includes("Blocked"))?.item?.task?.status).toBe("blocked")
   })
 })
 
 describe("Round-trip: Task Metadata Formats", () => {
   test("should migrate Obsidian Tasks emoji format to key:: value on roundtrip", () => {
     const nodes = parse(`- [ ] Task with all metadata 📅 2025-12-25 ⏳ 2025-12-20 ⏫`)
-    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
     expect(task!.due_at).toBe("2025-12-25")
@@ -864,7 +864,7 @@ describe("Round-trip: Task Metadata Formats", () => {
 
   test("should preserve recurrence metadata", () => {
     const task = parse(`- [ ] Recurring task 🔁 every week`).find(
-      (n) => n.type === "p" && n.item === true && n.task_marker,
+      (n) => n.type === "p" && n.item != null && n.item?.task?.marker,
     )
     expect(task).toBeDefined()
     expect(task!.data?.rrule).toBe("every week")
@@ -872,7 +872,7 @@ describe("Round-trip: Task Metadata Formats", () => {
 
   test("should extract due: (todo.txt compat) but not start: or p: legacy formats", () => {
     const task = parse(`- [ ] Task with inline fields due:2025-11-15 start:2025-11-10 p:2`).find(
-      (n) => n.type === "p" && n.item === true && n.task_marker,
+      (n) => n.type === "p" && n.item != null && n.item?.task?.marker,
     )
 
     expect(task).toBeDefined()
@@ -890,7 +890,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     const nodes = parse(`- [ ] High priority ⏫
 - [ ] Medium priority 🔼
 - [ ] Low priority 🔽`)
-    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     // Emoji priorities are not extracted
     expect(tasks[0]?.priority).toBeUndefined()
@@ -909,7 +909,7 @@ describe("Round-trip: Task Metadata Formats", () => {
     const nodes = parse(`- [ ] High priority priority:: P1
 - [ ] Medium priority priority:: P2
 - [ ] Low priority priority:: P3`)
-    const tasks = nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker)
+    const tasks = nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(tasks[0]?.priority).toBe("P1")
     expect(tasks[1]?.priority).toBe("P2")
@@ -991,7 +991,7 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
 ## Done km.collapse:: true
 
 - [x] Task 3`)
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     // Verify rules are parsed
     expect(sections.find((s) => s.title === "Ready")?.rules?.add).toBe("status:todo")
@@ -1012,13 +1012,13 @@ describe("Round-trip: Section Rules (Board Syntax)", () => {
 
   test("should preserve color rule", () => {
     const nodes = parse(`## Section km.color:: cyan`)
-    expect(nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")?.rules?.color).toBe("cyan")
+    expect(nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")?.rules?.color).toBe("cyan")
     expect(nodesToMarkdown(nodes)).toContain("km.color:: cyan")
   })
 
   test("should preserve default=true rule", () => {
     const nodes = parse(`## Inbox km.default:: true`)
-    expect(nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")?.rules?.default).toBe(true)
+    expect(nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")?.rules?.default).toBe(true)
     expect(nodesToMarkdown(nodes)).toContain("km.default:: true")
   })
 })
@@ -1030,7 +1030,9 @@ describe("Round-trip: Nested Tasks (Indentation)", () => {
   - [x] Child task 2
     - [ ] Grandchild task`)
 
-    expect(nodes.filter((n) => n.type === "p" && n.item === true && n.task_marker).length).toBeGreaterThanOrEqual(4)
+    expect(nodes.filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker).length).toBeGreaterThanOrEqual(
+      4,
+    )
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("Parent task")
@@ -1070,7 +1072,7 @@ created: 2025-01-15
     expect(frontmatter).toContain("- tag1")
     expect(frontmatter).toContain("priority: 1")
 
-    expect(parse(body).find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")?.title).toBe("Content")
+    expect(parse(body).find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")?.title).toBe("Content")
   })
 
   test("should handle frontmatter with type field", () => {
@@ -1093,7 +1095,7 @@ describe("Round-trip: H1 Merging Edge Cases", () => {
     const nodes = parse(`# Board km.default:: true km.color:: blue
 
 ## Column 1`)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 
     expect(fileNode?.title).toBe("Board")
     expect(fileNode?.rules?.default).toBe(true)
@@ -1106,8 +1108,8 @@ describe("Round-trip: H1 Merging Edge Cases", () => {
 Content here.
 
 ## Another Section`)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(fileNode?.title).toBeUndefined()
     expect(sections.length).toBe(2)
@@ -1129,7 +1131,7 @@ Content.
 
 # Second Title
 
-More content.`).find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")?.title,
+More content.`).find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")?.title,
     ).toBe("First Title")
   })
 })
@@ -1149,8 +1151,8 @@ describe("Round-trip: Deep Section Hierarchy", () => {
 ###### H6 Level
 
 Deepest content.`)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(fileNode?.title).toBe("H1 Level")
     expect(sections.length).toBe(5)
@@ -1175,8 +1177,8 @@ Deepest content.`)
 #### Skipped to H4
 
 ###### Skipped to H6`)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(sections.length).toBe(3)
     // Tree structure reflects nesting despite skipped levels
@@ -1206,8 +1208,8 @@ Content B
 ## Section C
 
 Content C`)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(sections.length).toBe(3)
     expect(fileNode).toBeDefined()
@@ -1234,7 +1236,7 @@ describe("Round-trip: Empty Content Edge Cases", () => {
 
 Content here.`)
 
-    expect(nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection").length).toBe(2)
+    expect(nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection").length).toBe(2)
 
     const output = nodesToMarkdown(nodes)
     expect(output).toContain("## Empty Section")
@@ -1243,10 +1245,10 @@ Content here.`)
 
   test("should handle task with minimal content", () => {
     const nodes = parse(`- [ ] x`)
-    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(task).toBeDefined()
-    expect(task!.task_status).toBe("todo")
+    expect(task!.item?.task?.status).toBe("todo")
     expect(task!.content).toBe("x")
     expect(nodesToMarkdown(nodes)).toContain("- [ ] x")
   })
@@ -1267,9 +1269,9 @@ describe("Round-trip: Data Model Integrity", () => {
 ## Section
 
 - [ ] Task in section`)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const section = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
-    const task = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const section = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+    const task = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(section?.parent_id).toBe(fileNode?.id)
     expect(task?.parent_id).toBe(section?.id)
@@ -1278,7 +1280,7 @@ describe("Round-trip: Data Model Integrity", () => {
   test("should assign parent_idx for ordering", () => {
     const tasks = parse(`- [ ] First
 - [ ] Second
-- [ ] Third`).filter((n) => n.type === "p" && n.item === true && n.task_marker)
+- [ ] Third`).filter((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
 
     expect(tasks[0]?.parent_idx).toBeLessThan(tasks[1]?.parent_idx ?? -1)
     expect(tasks[1]?.parent_idx).toBeLessThan(tasks[2]?.parent_idx ?? -1)
@@ -1293,7 +1295,7 @@ describe("Round-trip: Data Model Integrity", () => {
 
   test("should set created_at and updated_at timestamps", () => {
     const beforeParse = Date.now()
-    const task = parse(`- [ ] Task`).find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const task = parse(`- [ ] Task`).find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
     const afterParse = Date.now()
 
     expect(task?.created_at).toBeGreaterThanOrEqual(beforeParse)
@@ -1340,14 +1342,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-id-123",
       type: "h",
-      item: true,
       fstype: "mdfile",
       fs_path: "/repo/projects/api.md",
       content: "API Documentation",
@@ -1368,14 +1369,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-id-123",
       type: "h",
-      item: true,
       fstype: "mdfile",
       fs_path: "/repo/docs/authentication.md",
       content: "Authentication Guide",
@@ -1397,14 +1397,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetSection = makeTestNode({
       id: "section-id-123",
       type: "h",
-      item: true,
       fstype: "mdsection",
       parent_id: "parent-file",
       parent_idx: 1,
@@ -1427,7 +1426,7 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
@@ -1447,14 +1446,14 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-id-789",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/board.md",
     })
     const sectionNode = makeTestNode({
       id: "section-id-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-id-789",
       parent_idx: 1,
@@ -1463,24 +1462,17 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const targetTask = makeTestNode({
       id: "original-task-1",
       type: "p",
-      item: true,
-      list_marker: "-",
       parent_id: "other-file",
       content: "Buy groceries",
-      task_status: "todo",
-      task_marker: "[ ]",
+      item: { task: { status: "todo", marker: "[ ]" } },
     })
     const linkTask = makeTestNode({
       id: "link-task-1",
       type: "p",
-      item: true,
-      list_marker: "-",
       parent_id: "section-id-1",
       parent_idx: 1,
       embed_source: "original-task-1",
       content: "Buy groceries",
-      task_status: "todo",
-      task_marker: "[ ]",
     })
 
     const md = nodesToMarkdown([fileNode, sectionNode, linkTask, targetTask])
@@ -1494,23 +1486,19 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: { list: "-" },
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-ul-1",
       type: "p",
-      item: true,
-      list_marker: "-",
       parent_id: "other-file",
       content: "Some list item",
     })
     const linkUl = makeTestNode({
       id: "link-ul-1",
       type: "p",
-      item: true,
-      list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
       embed_source: "target-ul-1",
@@ -1526,23 +1514,19 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: { list: "1." },
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-ol-1",
       type: "p",
-      item: true,
-      list_marker: "1.",
       parent_id: "other-file",
       content: "Numbered item",
     })
     const linkOl = makeTestNode({
       id: "link-ol-1",
       type: "p",
-      item: true,
-      list_marker: "1.",
       parent_id: "file-1",
       parent_idx: 1,
       embed_source: "target-ol-1",
@@ -1558,14 +1542,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/test.md",
     })
     const targetNode = makeTestNode({
       id: "target-section-1",
       type: "h",
-      item: true,
       fstype: "mdsection",
       parent_id: "other-file",
       content: "Linked Section",
@@ -1573,7 +1556,6 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const linkSection = makeTestNode({
       id: "link-section-1",
       type: "h",
-      item: true,
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -1590,14 +1572,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: { list: "-" },
       fstype: "mdfile",
       fs_path: "/repo/board.md",
     })
     const targetFile = makeTestNode({
       id: "target-file-1",
       type: "h",
-      item: true,
       fstype: "mdfile",
       fs_path: "inbox/tasks.md",
       content: "Tasks",
@@ -1605,8 +1586,6 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const linkTask = makeTestNode({
       id: "link-1",
       type: "p",
-      item: true,
-      list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
       embed_source: "target-file-1",
@@ -1622,15 +1601,13 @@ describe("Round-trip: Resolved Embeddings (km-xexz Phase 4)", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: { list: "-" },
       fstype: "mdfile",
       fs_path: "/repo/board.md",
     })
     const linkTask = makeTestNode({
       id: "link-1",
       type: "p",
-      item: true,
-      list_marker: "-",
       parent_id: "file-1",
       parent_idx: 1,
       embed_source: "nonexistent-id",
@@ -1649,7 +1626,7 @@ describe("Section depth from tree position", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
@@ -1657,7 +1634,7 @@ describe("Section depth from tree position", () => {
     const section = makeTestNode({
       id: "sec-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -1674,7 +1651,7 @@ describe("Section depth from tree position", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
@@ -1682,7 +1659,7 @@ describe("Section depth from tree position", () => {
     const existing = makeTestNode({
       id: "sec-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -1691,7 +1668,7 @@ describe("Section depth from tree position", () => {
     const empty = makeTestNode({
       id: "sec-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 2,
@@ -1724,8 +1701,8 @@ describe("Heading depth clamping", () => {
 
 Some content`
     const nodes = parse(md)
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 
     expect(sections).toHaveLength(2)
     const sectionA = sections.find((n) => n.content === "Section A")
@@ -1750,8 +1727,8 @@ Some content`
 
 ## Section`
     const nodes = parse(md)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(fileNode?.title).toBe("Title")
     expect(sections).toHaveLength(1)
@@ -1767,8 +1744,8 @@ Some content`
 
 ## Second`
     const nodes = parse(md)
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     expect(sections).toHaveLength(3)
     const first = sections.find((n) => n.content === "First")!
@@ -1796,8 +1773,8 @@ Some content`
     // Two H2s at root → they're siblings, no clamping needed
     // (clamping only applies when heading depth ≤ enclosing section)
     const nodes = parse(md)
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 
     // Both H2s are siblings at file level — no clamping, they're at root
     expect(sections).toHaveLength(2)
@@ -1823,8 +1800,8 @@ Some content`
 
 Content`
     const nodes = parse(md)
-    const sections = nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
-    const fileNode = nodes.find((n) => n.type === "h" && n.item === true && n.fstype === "mdfile")
+    const sections = nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
+    const fileNode = nodes.find((n) => n.type === "h" && n.item != null && n.fstype === "mdfile")
 
     const outer = sections.find((n) => n.content === "Outer")!
     const inner1 = sections.find((n) => n.content === "Inner One")!
@@ -1855,7 +1832,7 @@ describe("Bug fix A1: Duplicate embeds not dropped during serialization", () => 
       makeTestNode({
         id: "file1",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
@@ -1946,7 +1923,7 @@ describe("Bug fix A4: Code blocks with triple backticks in content", () => {
       makeTestNode({
         id: "file1",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
@@ -1977,7 +1954,7 @@ describe("Bug fix A4: Code blocks with triple backticks in content", () => {
       makeTestNode({
         id: "file1",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
@@ -2038,7 +2015,7 @@ describe("Bug fix B: Refs not extracted from key:: value pairs", () => {
   test("refs inside key:: value pairs are not extracted (false positive)", () => {
     const md = `# Doc\n\n- [ ] Task blocked-by:: #feature-tag\n`
     const nodes = parse(md)
-    const taskNode = nodes.find((n) => n.type === "p" && n.item === true && n.task_marker)
+    const taskNode = nodes.find((n) => n.type === "p" && n.item != null && n.item?.task?.marker)
     // The #feature-tag is inside the value of blocked-by::, not in the content text.
     // It should NOT be extracted as a tag on the node.
     const tags = (taskNode?.data as Record<string, unknown>)?.tags as string[] | undefined
@@ -2062,7 +2039,7 @@ describe("Bug fix C1: Ordered list start number preserved", () => {
     // mdast preserves the start number for ordered lists
     const md = `# Doc\n\n3. Third item\n4. Fourth item\n`
     const nodes = parse(md)
-    const orderedItem = nodes.find((n) => n.list_marker === "1.")
+    const orderedItem = nodes.find((n) => n.item?.list === "1.")
     // Should store list_start in data when start !== 1
     expect((orderedItem?.data as Record<string, unknown>)?.list_start).toBe(3)
   })

@@ -29,7 +29,7 @@ function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): 
   return {
     id,
     type: "h",
-    item: true,
+    item: opts?.item?.task ? { task: { status: opts.item.task.status ?? "todo", marker: "[ ]" } } : {},
     parent_id: null,
     parent_idx: 0,
     embed_source: null,
@@ -44,7 +44,6 @@ function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): 
     created_at: 0,
     updated_at: 0,
     version: "",
-    task_status: opts?.task_status,
     ...opts,
   }
 }
@@ -71,7 +70,7 @@ function createContext(overrides?: Partial<CommandContext>): CommandContext {
 function createTaskContext(status?: "todo" | "wip" | "done" | "dropped" | "blocked"): CommandContext {
   const taskNode = createNode("task-node", [], {
     isTask: true,
-    task_status: status ?? "todo",
+    item: { task: { status: status ?? "todo", marker: "[ ]" } },
   })
   return createContext({
     currentNode: taskNode,
@@ -318,7 +317,7 @@ describe("taskCommands", () => {
       const ctx = createContext({
         currentNode: createNode("task-node", [], {
           isTask: true,
-          task_status: undefined,
+          item: { task: undefined },
         }),
         currentNodeId: "task-node",
       })

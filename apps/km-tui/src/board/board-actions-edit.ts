@@ -275,8 +275,8 @@ function handleAddFirstChild(ctx: ActionCtx): void {
   const rootIsHeading = rootNode?.type === "h"
 
   const newNode: Partial<KNode> = rootIsHeading
-    ? { type: "p", item: true, content: "", parent_idx: 0 }
-    : { type: "h", item: true, content: "", parent_idx: 0, fstype: "mdsection" }
+    ? { type: "p", item: {}, content: "", parent_idx: 0 }
+    : { type: "h", item: {}, content: "", parent_idx: 0, fstype: "mdsection" }
 
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(ctx.rootId, newNode)
@@ -316,18 +316,14 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
 
   // Inherit type + depth from current node
   // Tasks (items with task_marker) create new tasks; outline items create new outline items
-  const isCurrentTask = currentNode.task_marker !== undefined
+  const isCurrentTask = currentNode.item?.task?.marker !== undefined
   const newNode: Partial<KNode> = {
     type: isCurrentTask ? "p" : "h",
-    item: true,
+    item: isCurrentTask ? { list: currentNode.item?.list ?? "-", task: { marker: "[ ]", status: "todo" } } : {},
     content: "",
     parent_idx: newSortOrder,
   }
-  if (isCurrentTask) {
-    newNode.task_status = "todo"
-    newNode.task_marker = "[ ]"
-    newNode.list_marker = currentNode.list_marker ?? "-"
-  } else {
+  if (!isCurrentTask) {
     newNode.fstype = "mdsection"
   }
   // No need to store depth in data — it's derived from tree position during serialization
@@ -359,7 +355,7 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
 
   const newNode: Partial<KNode> = {
     type: "h",
-    item: true,
+    item: {},
     content: "",
     parent_idx: newSortOrder,
     data: {},
@@ -400,7 +396,7 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
   // No need to store depth in data — it's derived from tree position during serialization
   const newNode: Partial<KNode> = {
     type: "h",
-    item: true,
+    item: {},
     content: "",
     parent_idx: newSortOrder,
     data: {},
@@ -438,16 +434,10 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
 
   const newNode: Partial<KNode> = {
     type: sourceNode.type,
+    item: sourceNode.item ? { ...sourceNode.item } : undefined,
     content: sourceNode.content,
     parent_idx: newSortOrder,
     data: sourceNode.data ? { ...sourceNode.data } : undefined,
-  }
-  if (sourceNode.task_status) {
-    newNode.task_status = sourceNode.task_status
-    newNode.task_marker = sourceNode.task_marker
-  }
-  if (sourceNode.list_marker) {
-    newNode.list_marker = sourceNode.list_marker
   }
   if (sourceNode.fstype) {
     newNode.fstype = sourceNode.fstype
@@ -505,7 +495,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     const embedSource = c.embed_source
     const targetId = embedSource || c.id
     const targetNode = embedSource ? ctx.repo.getNode(embedSource) : c
-    const currentStatus = targetNode?.task_status || "todo"
+    const currentStatus = targetNode?.item?.task?.status || "todo"
     const currentIndex = statusCycle.indexOf(currentStatus)
     const nextIndex = (currentIndex + 1) % statusCycle.length
     const nextStatus = statusCycle[nextIndex] ?? "todo"
@@ -516,8 +506,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
       const nextDue = getNextOccurrence(targetNode.rrule, dueParts.date)
       // Mark current task done with completion timestamp
       ctx.repo.updateNode(targetId, {
-        task_status: "done",
-        task_marker: "[x]",
+        item: { task: { status: "done", marker: "[x]" } },
         completed_at: Date.now(),
       })
       if (nextDue) {
@@ -529,9 +518,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
           ctx.repo.addNode(parentId, {
             type: targetNode.type,
             content: targetNode.content,
-            task_status: "todo",
-            task_marker: "[ ]",
-            list_marker: targetNode.list_marker,
+            item: { list: targetNode.item?.list, task: { marker: "[ ]", status: "todo" } },
             due_at: nextDueAt,
             start_at: targetNode.start_at,
             rrule: targetNode.rrule,
@@ -545,8 +532,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
       }
     } else {
       ctx.repo.updateNode(targetId, {
-        task_status: nextStatus,
-        task_marker: getMarkerForStatus(nextStatus),
+        item: { task: { status: nextStatus, marker: getMarkerForStatus(nextStatus) } },
       })
     }
   })
@@ -567,8 +553,7 @@ export function handleClearTask(ctx: ActionCtx): void {
   const count = Selection.forEach(ctx, "Clear task", (c) => {
     const targetId = c.embed_source || c.id
     ctx.repo.updateNode(targetId, {
-      task_status: undefined,
-      task_marker: undefined,
+      item: { task: undefined },
       due_at: undefined,
       start_at: undefined,
       priority: undefined,

@@ -294,9 +294,9 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     const { board, repo } = makeBoard()
 
     // Make A and B proper tasks
-    repo.updateNode("A", { task_status: "todo", task_marker: "[ ]" })
-    repo.updateNode("B", { task_status: "todo", task_marker: "[ ]" })
-    repo.updateNode("C", { task_status: "todo", task_marker: "[ ]" })
+    repo.updateNode("A", { item: { task: { status: "todo", marker: "[ ]" } } })
+    repo.updateNode("B", { item: { task: { status: "todo", marker: "[ ]" } } })
+    repo.updateNode("C", { item: { task: { status: "todo", marker: "[ ]" } } })
 
     // Re-render to pick up node type changes
     board.press("shift+ArrowDown") // anchor=A, cursor→B — should select range [A, B]
@@ -305,9 +305,9 @@ describe("Shift-J single press range (km-cnn5z)", () => {
     board.command("toggle_task_done")
 
     // Both A and B should have their status toggled (not just B)
-    const statusA = repo.getNode("A")?.task_status
-    const statusB = repo.getNode("B")?.task_status
-    const statusC = repo.getNode("C")?.task_status
+    const statusA = repo.getNode("A")?.item?.task?.status
+    const statusB = repo.getNode("B")?.item?.task?.status
+    const statusC = repo.getNode("C")?.item?.task?.status
 
     // A and B should both be toggled away from "todo"
     expect(statusA).not.toBe("todo")

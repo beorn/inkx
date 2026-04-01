@@ -208,7 +208,7 @@ export class MemoryStore extends BaseStore {
         this.insertNode({
           id: folderId,
           type: "h",
-          item: true,
+          item: {},
           fstype: "folder",
           parent_id: parentId,
           fs_path: toRelativeFsPath(this.rootPath, fullPath),
@@ -236,7 +236,7 @@ export class MemoryStore extends BaseStore {
           this.insertNode({
             id: fileId,
             type: "h",
-            item: true,
+            item: {},
             fstype: "file",
             parent_id: parentId,
             fs_path: toRelativeFsPath(this.rootPath, fullPath),
@@ -397,7 +397,7 @@ export class MemoryStore extends BaseStore {
         node.fstype ?? null,
         node.parent_id ?? null,
         node.parent_idx ?? 0,
-        node.item ? 1 : 0,
+        node.item != null ? 1 : 0,
         node.embed_source ?? null,
         node.fs_path ?? null,
         node.md_pos ?? null,
@@ -407,9 +407,9 @@ export class MemoryStore extends BaseStore {
         node.content ?? null,
         node.content_hash ?? null,
         node.title ?? null,
-        node.list_marker ?? null,
-        node.task_marker ?? null,
-        node.task_status ?? null,
+        node.item?.list ?? null,
+        node.item?.task?.marker ?? null,
+        node.item?.task?.status ?? null,
         node.assigned_to ?? null,
         node.due_at ?? null,
         node.start_at ?? null,
@@ -428,9 +428,28 @@ export class MemoryStore extends BaseStore {
     const node = this.getNode(id)
     if (!node) return
 
-    const augmented: Partial<KNode> = { ...changes }
+    // Decompose nested item object into flat DB columns (matches db-ops.ts logic)
+    const augmented: Record<string, unknown> = {}
+    for (const [key, value] of Object.entries(changes)) {
+      if (key === "item") {
+        if (value == null) {
+          augmented.item = 0
+          augmented.list_marker = null
+          augmented.task_marker = null
+          augmented.task_status = null
+        } else {
+          const itemData = value as { list?: string; task?: { marker: string; status: string } }
+          augmented.item = 1
+          augmented.list_marker = itemData.list ?? null
+          augmented.task_marker = itemData.task?.marker ?? null
+          augmented.task_status = itemData.task?.status ?? null
+        }
+      } else {
+        augmented[key] = value
+      }
+    }
 
-    // Route fields to SQL columns vs data blob (matches db-ops.ts logic)
+    // Route fields to SQL columns vs data blob
     const sets: string[] = []
     const values: (string | number | null)[] = []
     const dataOverrides: Record<string, unknown> = {}
@@ -464,11 +483,12 @@ export class MemoryStore extends BaseStore {
     this.db.run(`UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`, values as SQLQueryBindings[])
 
     // Write through to markdown file for task status changes
-    if (changes.task_status !== undefined && node.md_line !== undefined) {
+    const newTaskStatus = changes.item?.task?.status
+    if (newTaskStatus !== undefined && node.md_line !== undefined) {
       const relPath = node.fs_path || this.getFilePathForNode(node)
       if (relPath) {
         const absPath = join(this.rootPath, relPath)
-        this.writeTaskStatusToFile(absPath, node.md_line, changes.task_status)
+        this.writeTaskStatusToFile(absPath, node.md_line, newTaskStatus)
       }
     }
 
@@ -530,7 +550,7 @@ export class MemoryStore extends BaseStore {
 
   cloneTask(sourceId: string, changes: Partial<KNode>): string | null {
     const source = this.getNode(sourceId)
-    if (!source?.task_marker) return null
+    if (!source?.item?.task) return null
 
     // Generate new ID (ephemeral for memory mode)
     const newId = `clone-${Date.now()}`
@@ -541,8 +561,10 @@ export class MemoryStore extends BaseStore {
     const type = source.type
     const parent_id = changes.parent_id ?? source.parent_id
     const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001
-    const task_status = changes.task_status ?? "todo"
-    const task_marker = changes.task_marker ?? "[ ]"
+    const newItem = changes.item ?? source.item
+    const task_status = newItem?.task?.status ?? "todo"
+    const task_marker = newItem?.task?.marker ?? "[ ]"
+    const list_marker = newItem?.list ?? source.item?.list ?? null
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null
     const due_at = changes.due_at ?? source.due_at ?? null
     const start_at = changes.start_at ?? source.start_at ?? null
@@ -556,15 +578,17 @@ export class MemoryStore extends BaseStore {
 
     // Insert into database
     this.db.run(
-      `INSERT INTO nodes (id, type, parent_id, parent_idx,
+      `INSERT INTO nodes (id, type, parent_id, parent_idx, item, list_marker,
         task_status, task_marker, assigned_to, due_at, start_at,
         priority, content, data, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         type,
         parent_id,
         parent_idx,
+        1,
+        list_marker,
         task_status,
         task_marker,
         assigned_to,

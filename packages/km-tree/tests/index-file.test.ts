@@ -11,7 +11,7 @@ import { findIndexFile, isIndexFile, getChildSlotTarget, extractSlotTargets } fr
 function makeNode(overrides: Partial<KNode> & { id: string }): KNode {
   return {
     type: "h",
-    item: true,
+    item: {},
     parent_id: null,
     parent_idx: 0,
     content: "",

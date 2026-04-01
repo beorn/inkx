@@ -12,7 +12,7 @@ import { createLogger } from "loggily"
 import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")
-import { getMarkerForStatus, type KNode, type TaskStatus } from "@km/core"
+import { getMarkerForStatus, type KNode, type TaskStatus, type ItemData } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 import type { Emitter } from "./emitter.ts"
 
@@ -43,11 +43,11 @@ export interface DbOps {
  * @example
  * // Memory mode - direct SQL
  * const ops = createDbOps(db)
- * ops.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })
+ * ops.addNode(null, { type: "p", item: { list: "-", task: { marker: "[ ]", status: "todo" } }, content: "Test" })
  *
  * // Disk mode - emit events
  * const ops = createDbOps(db, emitter)
- * ops.addNode(null, { type: "p", item: true, task_marker: "[ ]", content: "Test" })  // emits node_created
+ * ops.addNode(null, { type: "p", item: { list: "-", task: { marker: "[ ]", status: "todo" } }, content: "Test" })  // emits node_created
  */
 export function createDbOps(db: Database, emitter?: Emitter): DbOps {
   return {
@@ -90,19 +90,9 @@ export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
 
   const node: Partial<KNode> = {
     type,
-    item: true,
+    item: type === "p" ? { list: "-", ...(source.item?.task ? { task: source.item.task } : {}) } : {},
     embed_source: source.id,
     parent_idx: parentIdx,
-  }
-
-  if (type === "p") {
-    node.list_marker = "-"
-    // List items carry task traits for correct rendering.
-    // Outline items (type "h") don't — the display layer resolves them via resolveEmbed.
-    if (source.task_status != null || source.task_marker != null) {
-      node.task_marker = source.task_marker ?? getMarkerForStatus((source.task_status ?? "todo") as TaskStatus)
-      node.task_status = source.task_status
-    }
   }
 
   if (targetPath) {
@@ -191,7 +181,27 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
     throw new Error(`updateNode called with undefined updates for node ${nodeId}`)
   }
 
-  const augmented = { ...updates }
+  // Decompose nested item object into flat DB columns
+  const augmented: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === "item") {
+      // item?: ItemData → flat: item (int), list_marker, task_marker, task_status
+      if (value == null) {
+        augmented.item = 0
+        augmented.list_marker = null
+        augmented.task_marker = null
+        augmented.task_status = null
+      } else {
+        const itemData = value as { list?: string; task?: { marker: string; status: string } }
+        augmented.item = 1
+        augmented.list_marker = itemData.list ?? null
+        augmented.task_marker = itemData.task?.marker ?? null
+        augmented.task_status = itemData.task?.status ?? null
+      }
+    } else {
+      augmented[key] = value
+    }
+  }
 
   if (emitter) {
     emitter.emit(
@@ -253,7 +263,14 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
         type: "node_deleted",
         actor: "user",
         target: nodeId,
-        data: node ? { fs_path: node.fs_path, type: node.type, parent_id: node.parent_id, item: node.item === 1 } : {},
+        data: node
+          ? {
+              fs_path: node.fs_path,
+              type: node.type,
+              parent_id: node.parent_id,
+              item: node.item === 1 ? {} : undefined,
+            }
+          : {},
       },
       { db },
     )
@@ -275,10 +292,12 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     }
   }
 
-  // Default type: "p" with item:true and task_marker "[ ]" (v2 trait model)
+  // Default type: "p" with item + task (v2 trait model)
   const defaultType = node.type ?? "p"
-  const defaultItem = node.item ?? (node.type === undefined ? true : undefined)
-  const isTask = node.task_marker !== undefined || (defaultType === "p" && defaultItem && node.type === undefined)
+  const defaultItem =
+    node.item ??
+    (node.type === undefined ? { list: "-", task: { marker: "[ ]" as const, status: "todo" as const } } : undefined)
+  const itemObj = defaultItem
 
   const nodeData = {
     id: nodeId,
@@ -286,7 +305,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     fstype: node.fstype ?? null,
     parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
-    item: defaultItem ? 1 : 0,
+    item: itemObj != null ? 1 : 0,
     embed_source: node.embed_source ?? null,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
@@ -294,9 +313,9 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     title: node.title ?? null,
     md_pos: node.md_pos ?? null,
     md_line: node.md_line ?? null,
-    list_marker: node.list_marker ?? null,
-    task_marker: node.task_marker ?? (isTask ? "[ ]" : null),
-    task_status: node.task_status ?? (isTask ? "todo" : null),
+    list_marker: itemObj?.list ?? null,
+    task_marker: itemObj?.task?.marker ?? null,
+    task_status: itemObj?.task?.status ?? null,
     assigned_to: node.assigned_to ?? null,
     due_at: node.due_at ?? null,
     start_at: node.start_at ?? null,

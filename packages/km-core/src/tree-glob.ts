@@ -113,7 +113,7 @@ const NODETYPE_MAP: Record<string, string> = {
 
 /** Task qualifiers → task dimension */
 const TASK_MAP: Record<string, string> = {
-  t: "task", // isTask (has task_marker)
+  t: "task", // isTask (has item.task)
   p: "past_due", // overdue (due < today, not done)
   w: "this_week", // due this week incl today (not done)
   d: "has_due", // has any due date

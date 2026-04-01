@@ -175,11 +175,11 @@ export function serveRepo(repo: Repo, opts: ServeRepoOptions) {
       },
 
       message(ws, data) {
-        const text = typeof data === "string" ? data : new TextDecoder().decode(data as ArrayBuffer)
+        const text = typeof data === "string" ? data : new TextDecoder().decode(data as unknown as ArrayBuffer)
 
-        let msg: { id: number; method: string; args: unknown[] }
+        let msg: { id: number; method: string; args: unknown[] } = { id: 0, method: "", args: [] }
         try {
-          msg = JSON.parse(text)
+          msg = JSON.parse(text) as typeof msg
         } catch {
           ws.send(JSON.stringify({ error: "Invalid JSON" }))
           return
@@ -194,7 +194,7 @@ export function serveRepo(repo: Repo, opts: ServeRepoOptions) {
         }
 
         try {
-          const fn = (repo as Record<string, unknown>)[method]
+          const fn = (repo as unknown as Record<string, unknown>)[method]
           if (typeof fn !== "function") {
             ws.send(JSON.stringify({ id, error: `Method not found: ${method}` }))
             return

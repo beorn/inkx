@@ -119,8 +119,10 @@ export class Verifier implements IVerifier {
         errors.push(`Content mismatch for ${spec.path}: expected "${spec.content}", got "${node.content}"`)
       }
 
-      if (spec.task_status !== undefined && node.task_status !== spec.task_status) {
-        errors.push(`Task status mismatch for ${spec.path}: expected ${spec.task_status}, got ${node.task_status}`)
+      if (spec.item?.task?.status !== undefined && node.item?.task?.status !== spec.item?.task?.status) {
+        errors.push(
+          `Task status mismatch for ${spec.path}: expected ${spec.item?.task?.status}, got ${node.item?.task?.status}`,
+        )
       }
 
       if (spec.children !== undefined) {

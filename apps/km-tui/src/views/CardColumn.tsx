@@ -374,7 +374,7 @@ export const Card = React.memo(
 
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
-    const isDoneOrDropped = card.task_status === "done" || card.task_status === "dropped"
+    const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
     const borderColor = isEditing
       ? "$focusborder"

@@ -26,7 +26,7 @@ function makeNode(overrides: Partial<KNode> = {}): KNode {
     id: "test-node-1",
     content: "Test Node",
     type: "p",
-    item: true,
+    item: {},
     parent_id: null,
     parent_idx: 0,
     created_at: Date.now(),
@@ -156,14 +156,14 @@ describe("NodeLineView (line style)", () => {
   })
 
   test("renders task status icon for tasks", async () => {
-    const node = makeNode({ content: "Todo item", task_status: "todo", task_marker: "[ ]" })
+    const node = makeNode({ content: "Todo item", item: { task: { status: "todo", marker: "[ ]" } } })
     const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
     // Should show the title without the task marker
     expect(output).toContain("Todo item")
   })
 
   test("strips task marker from content", async () => {
-    const node = makeNode({ content: "[x] Done task", task_status: "done", task_marker: "[x]" })
+    const node = makeNode({ content: "[x] Done task", item: { task: { status: "done", marker: "[x]" } } })
     const output = await renderString(<NodeLineView node={node} />, { plain: true, width: 40 })
     expect(output).toContain("Done task")
     expect(output).not.toContain("[x]")
@@ -250,7 +250,7 @@ describe("NodeCardView (card style)", () => {
     const parent = makeNode({ content: "Card with body" })
     const children = [
       makeNode({ id: "b1", type: "p", content: "A paragraph of body content" }),
-      makeNode({ id: "c1", type: "h", item: true, content: "Structural child" }),
+      makeNode({ id: "c1", type: "h", item: {}, content: "Structural child" }),
     ]
     const output = await renderString(<NodeCardView node={parent} children={children} />, { plain: true, width: 50 })
     // Body children are rendered as subitems, so ··· should NOT show
@@ -260,8 +260,8 @@ describe("NodeCardView (card style)", () => {
   test("no body indicator when node has only structural children", async () => {
     const parent = makeNode({ content: "Card without body" })
     const children = [
-      makeNode({ id: "c1", type: "h", item: true, content: "Column 1" }),
-      makeNode({ id: "c2", type: "h", item: true, content: "Column 2" }),
+      makeNode({ id: "c1", type: "h", item: {}, content: "Column 1" }),
+      makeNode({ id: "c2", type: "h", item: {}, content: "Column 2" }),
     ]
     const output = await renderString(<NodeCardView node={parent} children={children} />, { plain: true, width: 50 })
     expect(output).not.toContain("···")
@@ -278,8 +278,7 @@ describe("NodeCardView (card style)", () => {
     const futureDate = "2027-06-15"
     const node = makeNode({
       content: "Task with due",
-      task_status: "todo",
-      task_marker: "[ ]",
+      item: { task: { status: "todo", marker: "[ ]" } },
       due_at: futureDate,
     })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} />, { plain: true, width: 60 })
@@ -290,8 +289,6 @@ describe("NodeCardView (card style)", () => {
   test("shows priority badge", async () => {
     const node = makeNode({
       content: "High priority task",
-      task_status: "todo",
-      task_marker: "[ ]",
       priority: "P1",
     })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} />, { plain: true, width: 60 })
@@ -302,8 +299,7 @@ describe("NodeCardView (card style)", () => {
   test("hides date badge for done tasks", async () => {
     const node = makeNode({
       content: "Done task",
-      task_status: "done",
-      task_marker: "[x]",
+      item: { task: { status: "done", marker: "[x]" } },
       due_at: "2027-06-15",
       priority: "P2",
     })
@@ -317,8 +313,6 @@ describe("NodeCardView (card style)", () => {
   test("shows recurrence indicator", async () => {
     const node = makeNode({
       content: "Recurring task",
-      task_status: "todo",
-      task_marker: "[ ]",
       rrule: "weekly",
     })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} />, { plain: true, width: 60 })
@@ -337,7 +331,7 @@ describe("NodeCardView (card style)", () => {
   })
 
   test("shows blocked indicator when isBlocked is true", async () => {
-    const node = makeNode({ content: "Blocked task", task_status: "todo", task_marker: "[ ]" })
+    const node = makeNode({ content: "Blocked task", item: { task: { status: "todo", marker: "[ ]" } } })
     const output = await renderString(<NodeCardView node={node} children={[]} width={60} isBlocked />, {
       plain: true,
       width: 60,
@@ -349,10 +343,10 @@ describe("NodeCardView (card style)", () => {
   test("shows subtask progress badge", async () => {
     const node = makeNode({ content: "Parent task" })
     const children = [
-      makeNode({ id: "t1", content: "Done task", type: "p", item: true, task_status: "done", task_marker: "[x]" }),
-      makeNode({ id: "t2", content: "Todo task", type: "p", item: true, task_status: "todo", task_marker: "[ ]" }),
-      makeNode({ id: "t3", content: "WIP task", type: "p", item: true, task_status: "wip", task_marker: "[/]" }),
-      makeNode({ id: "n1", content: "Not a task", type: "p", item: true }),
+      makeNode({ id: "t1", content: "Done task", type: "p", item: { task: { status: "done", marker: "[x]" } } }),
+      makeNode({ id: "t2", content: "Todo task", type: "p", item: { task: { status: "todo", marker: "[ ]" } } }),
+      makeNode({ id: "t3", content: "WIP task", type: "p", item: { task: { status: "wip", marker: "[/]" } } }),
+      makeNode({ id: "n1", content: "Not a task", type: "p", item: {} }),
     ]
     const output = await renderString(<NodeCardView node={node} children={children} width={60} />, {
       plain: true,
@@ -497,8 +491,8 @@ describe("NodeDetailView (detail style)", () => {
   test("renders structural children", async () => {
     const node = makeNode({ content: "Parent Task" })
     const children = [
-      makeNode({ id: "s1", content: "Subtask 1", type: "p", item: true }),
-      makeNode({ id: "s2", content: "Subtask 2", type: "p", item: true }),
+      makeNode({ id: "s1", content: "Subtask 1", type: "p", item: {} }),
+      makeNode({ id: "s2", content: "Subtask 2", type: "p", item: {} }),
     ]
     const output = await renderString(<NodeDetailView node={node} children={children} width={50} height={20} />, {
       plain: true,
@@ -536,7 +530,7 @@ describe("NodeDetailView (detail style)", () => {
   })
 
   test("shows task status icon for task nodes", async () => {
-    const node = makeNode({ content: "Done task", task_status: "done", task_marker: "[x]" })
+    const node = makeNode({ content: "Done task", item: { task: { status: "done", marker: "[x]" } } })
     const output = await renderString(<NodeDetailView node={node} children={[]} width={40} height={15} />, {
       plain: true,
       width: 40,
@@ -560,8 +554,7 @@ describe("NodeDetailView (detail style)", () => {
   test("shows metadata fields for task with properties", async () => {
     const node = makeNode({
       content: "Detailed task",
-      task_status: "wip",
-      task_marker: "[/]",
+      item: { task: { status: "wip", marker: "[/]" } },
       due_at: "2027-03-15",
       assigned_to: "bjorn-stabell",
       priority: "P2",
@@ -597,8 +590,8 @@ describe("NodeDetailView (detail style)", () => {
     const node = makeNode({ content: "Mixed Node" })
     const children = [
       makeNode({ id: "p1", content: "Body paragraph text", type: "p" }),
-      makeNode({ id: "s1", content: "Subtask A", type: "p", item: true }),
-      makeNode({ id: "s2", content: "Subtask B", type: "p", item: true }),
+      makeNode({ id: "s1", content: "Subtask A", type: "p", item: {} }),
+      makeNode({ id: "s2", content: "Subtask B", type: "p", item: {} }),
     ]
     const output = await renderString(<NodeDetailView node={node} children={children} width={50} height={25} />, {
       plain: true,
@@ -613,8 +606,7 @@ describe("NodeDetailView (detail style)", () => {
   test("shows start_at and recurrence in metadata", async () => {
     const node = makeNode({
       content: "Recurring task",
-      task_status: "todo",
-      task_marker: "[ ]",
+      item: { task: { status: "todo", marker: "[ ]" } },
       start_at: "2027-04-01",
       rrule: "weekly",
     })

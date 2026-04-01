@@ -167,7 +167,7 @@ describe("disk mode root node", () => {
         data: {
           id: "Projects",
           type: "h",
-          item: true,
+          item: {},
           fstype: "folder",
           fs_path: "Projects",
           parent_id: null,
@@ -184,7 +184,7 @@ describe("disk mode root node", () => {
         data: {
           id: "ref",
           type: "h",
-          item: true,
+          item: {},
           fstype: "folder",
           fs_path: "ref",
           parent_id: null,
@@ -201,7 +201,7 @@ describe("disk mode root node", () => {
         data: {
           id: "next-file",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           fs_path: "@next.md",
           parent_id: null,

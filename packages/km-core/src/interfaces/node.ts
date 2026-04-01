@@ -10,7 +10,7 @@
  * passed (type, item) must now pass the node directly.
  */
 
-import type { KNode as _KNodeInterface } from "../types.ts"
+import type { ItemData, KNode as _KNodeInterface } from "../types.ts"
 
 /**
  * KNode interface — re-declared for declaration merging with the const below.
@@ -22,16 +22,10 @@ import type { KNode as _KNodeInterface } from "../types.ts"
 export interface KNode extends _KNodeInterface {}
 
 /** Minimal node shape for type guards. */
-type NodeLike = { type: string; item?: boolean }
+type NodeLike = { type: string; item?: ItemData }
 
 /** Extended node shape for embed detection. */
 type EmbedLike = { embed_source?: string | null }
-
-/** Extended node shape for task detection. */
-type TaskLike = {
-  task_status?: string | null
-  task_marker?: string | null
-}
 
 /** System/structural fields — never inherited on split/copy */
 const SYSTEM_KEYS: ReadonlySet<string> = new Set([
@@ -56,22 +50,22 @@ const SYSTEM_KEYS: ReadonlySet<string> = new Set([
 export const KNode = {
   /** Outline item — heading item that creates outline hierarchy. */
   isOutline(node: NodeLike): boolean {
-    return node.type === "h" && node.item === true
+    return node.type === "h" && node.item != null
   },
 
   /** List item — non-heading item in body content. */
   isListItem(node: NodeLike): boolean {
-    return node.type !== "h" && node.item === true
+    return node.type !== "h" && node.item != null
   },
 
   /** Any item — structural node with children (outline or list item). */
   isItem(node: NodeLike): boolean {
-    return node.item === true
+    return node.item != null
   },
 
   /** Block — leaf node (not an item). */
   isBlock(node: NodeLike): boolean {
-    return !node.item
+    return node.item == null
   },
 
   /** Embed — node that displays content from another node via embed_source. */
@@ -79,9 +73,9 @@ export const KNode = {
     return node.embed_source != null
   },
 
-  /** Task — has explicit task_marker or task_status. */
-  isTask(node: TaskLike): boolean {
-    return node.task_marker != null || node.task_status != null
+  /** Task — item with task data. */
+  isTask(node: { item?: ItemData }): boolean {
+    return node.item?.task != null
   },
 
   /** Check if node properties match a partial shape. */
@@ -104,10 +98,10 @@ export const KNode = {
         props[key] = value
       }
     }
-    // New tasks start unchecked
-    if (props.task_marker) {
-      props.task_status = "todo"
-      props.task_marker = "[ ]"
+    // New tasks start unchecked — reset task inside item
+    const item = props.item as ItemData | undefined
+    if (item?.task) {
+      props.item = { ...item, task: { marker: "[ ]", status: "todo" } }
     }
     return props as Partial<KNode>
   },

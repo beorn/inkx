@@ -605,7 +605,7 @@ describe("Cursor follows node (invariant)", () => {
   test("non-item nodes cannot be indented (type restriction)", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
     // Change B to a non-item block (item=false) — non-indentable
-    repo.updateNode("B", { type: "p", item: false })
+    repo.updateNode("B", { type: "p", item: undefined })
 
     board.command("cursor_down") // → B
     board.command("indent_node") // attempt indent — should be blocked

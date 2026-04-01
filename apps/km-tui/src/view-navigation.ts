@@ -9,7 +9,7 @@
  */
 
 import type { Repo } from "@km/storage"
-import { KNode } from "@km/core"
+import { KNode, type ItemData } from "@km/core"
 import { createLogger } from "loggily"
 import { findIndexFile } from "@km/core"
 import { extractBody } from "@km/tree"
@@ -325,9 +325,9 @@ function filterMeaningfulBody<T extends { content?: string }>(nodes: T[]): T[] {
  * Body nodes are filtered to match the view layer's meaningfulBody filter,
  * so navigation indices align with rendered card indices.
  */
-function splitBodyAndColumns(allChildren: { id: string; type: string; item?: boolean; content?: string }[]): {
-  bodyNodes: { id: string; type: string; item?: boolean; content?: string }[]
-  structuralCols: { id: string; type: string; item?: boolean; content?: string }[]
+function splitBodyAndColumns(allChildren: { id: string; type: string; item?: ItemData; content?: string }[]): {
+  bodyNodes: { id: string; type: string; item?: ItemData; content?: string }[]
+  structuralCols: { id: string; type: string; item?: ItemData; content?: string }[]
 } {
   const firstStructuralIdx = allChildren.findIndex((c) => KNode.isOutline(c))
   if (firstStructuralIdx === -1) return { bodyNodes: filterMeaningfulBody(allChildren), structuralCols: [] }
@@ -700,8 +700,8 @@ export function getViewNavigation(viewMode: ViewMode): ViewNavigation {
  * since they aren't independently selectable.
  */
 function flattenDocTree(
-  nodes: { id: string; type: string; item?: boolean }[],
-  repo: { getChildren(parentId: string): { id: string; type: string; item?: boolean }[] },
+  nodes: { id: string; type: string; item?: ItemData }[],
+  repo: { getChildren(parentId: string): { id: string; type: string; item?: ItemData }[] },
   depth: number,
   maxDepth: number,
   maxPerLevel: number,
@@ -709,7 +709,7 @@ function flattenDocTree(
   const result: string[] = []
   const visible = nodes.slice(0, maxPerLevel)
   for (const node of visible) {
-    const isItem = node.item === true
+    const isItem = node.item != null
     // Only items (headings, list items, tasks) are navigable
     if (isItem) {
       result.push(node.id)

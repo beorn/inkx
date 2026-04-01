@@ -14,7 +14,13 @@ import { indexOfChild } from "../sibling-index.ts"
 import { detailPaneIdFor } from "../board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { type NavState } from "../view-navigation.ts"
-import { applyBlockNav, applyOutlineNav, applyPageJump, createBoardNavState, type BoardNavState } from "./board-reducer.ts"
+import {
+  applyBlockNav,
+  applyOutlineNav,
+  applyPageJump,
+  createBoardNavState,
+  type BoardNavState,
+} from "./board-reducer.ts"
 
 /**
  * Handle cursor movement in any direction.

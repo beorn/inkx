@@ -19,7 +19,7 @@ describe("Embed depth: section created among embeds", () => {
     makeTestNode({
       id: "target-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/File1.md",
       content: "File1",
@@ -28,7 +28,7 @@ describe("Embed depth: section created among embeds", () => {
     makeTestNode({
       id: "target-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/File2.md",
       content: "File2",
@@ -37,7 +37,7 @@ describe("Embed depth: section created among embeds", () => {
     makeTestNode({
       id: "target-3",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       fs_path: "/repo/File3.md",
       content: "File3",
@@ -50,7 +50,7 @@ describe("Embed depth: section created among embeds", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: ".",
       content: "Next Actions",
@@ -60,7 +60,7 @@ describe("Embed depth: section created among embeds", () => {
     const processingSection = makeTestNode({
       id: "sec-processing",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -87,7 +87,7 @@ describe("Embed depth: section created among embeds", () => {
     const innerSection = makeTestNode({
       id: "sec-inner",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "sec-processing",
       parent_idx: 3,
@@ -114,7 +114,7 @@ describe("Embed depth: section created among embeds", () => {
 
     // Re-parse
     const result = parseMarkdownWithLinks(md, "next-actions.md")
-    const sections = result.nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const sections = result.nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     // "Processing" should be a section
     const processing = sections.find((s) => s.content === "Processing")
@@ -134,7 +134,7 @@ describe("Embed depth: section created among embeds", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: ".",
       content: "Next Actions",
@@ -144,7 +144,7 @@ describe("Embed depth: section created among embeds", () => {
     const processingSection = makeTestNode({
       id: "sec-processing",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -171,7 +171,7 @@ describe("Embed depth: section created among embeds", () => {
     const innerSection = makeTestNode({
       id: "sec-inner",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "sec-processing",
       parent_idx: 3,
@@ -201,7 +201,7 @@ describe("Embed depth: section created among embeds", () => {
 
     // Re-parse: inner section is correctly a child of Processing
     const result = parseMarkdownWithLinks(md, "next-actions.md")
-    const sections = result.nodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const sections = result.nodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
 
     const processing = sections.find((s) => s.content === "Processing")
     expect(processing).toBeDefined()
@@ -218,7 +218,7 @@ describe("Embed depth: section created among embeds", () => {
     const fileNode = makeTestNode({
       id: "file-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: ".",
       content: "Document",
@@ -226,7 +226,7 @@ describe("Embed depth: section created among embeds", () => {
     const parentSection = makeTestNode({
       id: "sec-parent",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "file-1",
       parent_idx: 1,
@@ -236,7 +236,7 @@ describe("Embed depth: section created among embeds", () => {
     const childSection = makeTestNode({
       id: "sec-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "sec-parent",
       parent_idx: 1,

@@ -550,7 +550,7 @@ function makeNode(partial: Partial<KNode> & { id: string; type: KNode["type"] })
     type: partial.type,
     ...(partial.item !== undefined ? { item: partial.item } : {}),
     ...(partial.fstype ? { fstype: partial.fstype } : {}),
-    ...(partial.list_marker ? { list_marker: partial.list_marker } : {}),
+    ...(partial.item?.list ? { list_marker: partial.item?.list } : {}),
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
     embed_source: partial.embed_source ?? null,
@@ -573,11 +573,11 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const targetId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Next Actions", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: {}, fstype: "mdfile", title: "Next Actions", parent_id: null }),
       makeNode({
         id: sectionId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         title: "Processing",
         parent_id: rootId,
@@ -600,7 +600,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         embed_source: targetId,
       }),
       // Target node for embeds
-      makeNode({ id: targetId, type: "p", item: true, list_marker: "-", title: "Some task", parent_id: null }),
+      makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Some task", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -630,11 +630,11 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const para2Id = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Notes", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: {}, fstype: "mdfile", title: "Notes", parent_id: null }),
       makeNode({
         id: sectionId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         title: "Intro",
         parent_id: rootId,
@@ -666,11 +666,11 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const targetId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Mixed", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: {}, fstype: "mdfile", title: "Mixed", parent_id: null }),
       makeNode({
         id: sectionId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
@@ -685,7 +685,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         parent_idx: 1,
         embed_source: targetId,
       }),
-      makeNode({ id: targetId, type: "p", item: true, list_marker: "-", title: "Target", parent_id: null }),
+      makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Target", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -716,12 +716,11 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const cardId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: {}, fstype: "mdfile", title: "Board", parent_id: null }),
       makeNode({
         id: taskId,
         type: "p",
-        item: true,
-        list_marker: "-",
+        item: { list: "-" },
         content: "Leading task",
         parent_id: rootId,
         parent_idx: 0,
@@ -729,7 +728,6 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: sectionId,
         type: "h",
-        item: true,
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
@@ -738,8 +736,6 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: cardId,
         type: "p",
-        item: true,
-        list_marker: "-",
         content: "Card in section",
         parent_id: sectionId,
         parent_idx: 0,
@@ -773,7 +769,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const sectionId = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: {}, fstype: "mdfile", title: "Board", parent_id: null }),
       makeNode({
         id: embedId,
         type: "p",
@@ -785,13 +781,13 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: sectionId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         title: "Section",
         parent_id: rootId,
         parent_idx: 1,
       }),
-      makeNode({ id: targetId, type: "p", item: true, list_marker: "-", title: "Target task", parent_id: null }),
+      makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Target task", parent_id: null }),
     ]
 
     const repo = createFakeRepo({ nodes })
@@ -813,11 +809,11 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
     const task2Id = ulid()
 
     const nodes: KNode[] = [
-      makeNode({ id: rootId, type: "h", item: true, fstype: "mdfile", title: "Board", parent_id: null }),
+      makeNode({ id: rootId, type: "h", item: {}, fstype: "mdfile", title: "Board", parent_id: null }),
       makeNode({
         id: sec1Id,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         title: "Todo",
         parent_id: rootId,
@@ -826,7 +822,6 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: sec2Id,
         type: "h",
-        item: true,
         fstype: "mdsection",
         title: "Done",
         parent_id: rootId,
@@ -835,8 +830,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: task1Id,
         type: "p",
-        item: true,
-        list_marker: "-",
+        item: { list: "-" },
         content: "Task 1",
         parent_id: sec1Id,
         parent_idx: 0,
@@ -844,8 +838,6 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
       makeNode({
         id: task2Id,
         type: "p",
-        item: true,
-        list_marker: "-",
         content: "Task 2",
         parent_id: sec2Id,
         parent_idx: 0,

@@ -9,7 +9,7 @@
  * No UI, no rendering - just tree structure manipulation.
  */
 
-import { KNode, type TaskMarker, type TaskStatus } from "@km/core"
+import { KNode, type ItemData, type TaskMarker, type TaskStatus } from "@km/core"
 
 // =============================================================================
 // Minimal Interface (subset of Repo that these operations need)
@@ -269,16 +269,16 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
 
 /**
  * Get the display/edit text of a node.
- * For outline items (type:"h", item:true), this is the name (heading text).
+ * For outline items (type:"h", item != null), this is the name (heading text).
  * For list items with task markers, strips the checkbox prefix.
  * For other types, this is the content.
  */
 export function getEditableText(node: KNode): string {
   // Outline items use name as their heading text
   if (KNode.isOutline(node)) return node.name ?? node.content ?? ""
-  // Tasks (list items with task_marker): content includes the checkbox prefix "- [x] ..."
+  // Tasks (list items with item.task): content includes the checkbox prefix "- [x] ..."
   // Strip exactly the prefix "- [.] " (dash, space, bracket, mark, bracket, space)
-  if (node.task_marker && node.content) {
+  if (node.item?.task && node.content) {
     return node.content.replace(/^- \[.\] /, "")
   }
   return node.content ?? ""
@@ -290,9 +290,10 @@ export function getEditableText(node: KNode): string {
  */
 export function setEditableText(node: KNode, text: string): string {
   if (KNode.isOutline(node)) return text
-  if (node.task_marker) {
+  const taskMarker = node.item?.task?.marker
+  if (taskMarker) {
     // Extract inner character from marker: "[x]" → "x"
-    const inner = node.task_marker.length === 3 ? node.task_marker[1] : " "
+    const inner = taskMarker.length === 3 ? taskMarker[1] : " "
     return `- [${inner}] ${text}`
   }
   return text
@@ -347,9 +348,9 @@ export interface PrefixConversion {
  * Triggered after the user types a space following a markdown prefix.
  *
  * Supported prefixes:
- * - `- `, `* `, `+ ` → list item (type:"p", item:true)
- * - `1. ` → list item (type:"p", item:true)
- * - `# `, `## `, `### ` etc. → outline item (type:"h", item:true)
+ * - `- `, `* `, `+ ` → list item (type:"p", item:{list:"-"})
+ * - `1. ` → list item (type:"p", item:{list:"1."})
+ * - `# `, `## `, `### ` etc. → outline item (type:"h", item:{})
  * - `[] `, `[ ] ` → task trait (todo)
  * - `[x] `, `[X] ` → task trait (done)
  * - `[/] ` → task trait (wip)
@@ -362,7 +363,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
   if (content.startsWith("- ") || content.startsWith("* ") || content.startsWith("+ ")) {
     return {
       prefixLength: 2,
-      nodeChanges: { type: "p", item: true, list_marker: content[0] },
+      nodeChanges: { type: "p", item: { list: content[0] } },
     }
   }
 
@@ -371,7 +372,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
   if (numMatch?.[1]) {
     return {
       prefixLength: numMatch[1].length + 1, // "1. " = marker + space
-      nodeChanges: { type: "p", item: true, list_marker: numMatch[1] },
+      nodeChanges: { type: "p", item: { list: numMatch[1] } },
     }
   }
 
@@ -382,7 +383,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
       prefixLength: headingMatch[1].length + 1, // hashes + space
       nodeChanges: {
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
       },
     }
@@ -405,9 +406,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
       return {
         prefixLength: taskMatch[0].length,
         nodeChanges: {
-          task_marker: mapped.marker,
-          task_status: mapped.status,
-          list_marker: "-",
+          item: { list: "-", task: mapped },
         },
       }
     }
@@ -432,7 +431,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
  * Determine what backspace at position 0 should do before merging with previous.
  *
  * Strips features in priority order:
- * 1. Task trait (remove task_marker/task_status) → keep type
+ * 1. Task trait (remove item.task) → keep item + list
  * 2. Item trait (only if childless — removing item from a node with children
  *    would create a block-has-children violation)
  * 3. Non-paragraph type → convert to p
@@ -440,16 +439,12 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
  *
  * Returns node changes to apply, or null if no degradation possible (should merge).
  */
-export function backspaceDegradation(
-  node: KNode,
-  tree?: TreeMutator,
-  nodeId?: string,
-): Partial<KNode> | null {
-  // Step 1: Strip task trait
-  if (node.task_marker) {
+export function backspaceDegradation(node: KNode, tree?: TreeMutator, nodeId?: string): Partial<KNode> | null {
+  // Step 1: Strip task trait — keep item but remove task
+  if (node.item?.task) {
+    const { task: _, ...restItem } = node.item
     return {
-      task_marker: undefined,
-      task_status: undefined,
+      item: Object.keys(restItem).length > 0 ? (restItem as ItemData) : {},
     }
   }
 
@@ -461,7 +456,6 @@ export function backspaceDegradation(
       return {
         type: "p",
         item: undefined,
-        list_marker: undefined,
         fstype: undefined,
       }
     }
@@ -472,8 +466,6 @@ export function backspaceDegradation(
   if (node.type !== "p") {
     return {
       type: "p",
-      // Clear type-specific fields
-      list_marker: undefined,
       fstype: undefined,
     }
   }

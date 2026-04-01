@@ -110,7 +110,7 @@ function buildTreeLines(
     const isFolded = foldDepths.get(node.id) === 0
 
     // Status icon
-    const statusIcon = node.task_status ? (STATUS_ICONS[node.task_status] ?? " ") : " "
+    const statusIcon = node.item?.task?.status ? (STATUS_ICONS[node.item?.task?.status] ?? " ") : " "
 
     // Fold indicator
     const foldChar = node.childCount > 0 ? (isFolded ? "▸" : "▾") : " "

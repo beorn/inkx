@@ -69,7 +69,7 @@ describe("disk mode filesystem reconciliation", () => {
         data: {
           id: "existing.md",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
@@ -186,7 +186,7 @@ describe("disk mode filesystem reconciliation", () => {
         data: {
           id: "deleted.md",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
@@ -274,7 +274,7 @@ describe("disk mode filesystem reconciliation", () => {
         data: {
           id: "existing.md",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,
@@ -335,7 +335,7 @@ describe("disk mode filesystem reconciliation", () => {
         data: {
           id: "kept.md",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: ".",
           fs_path: "kept.md",
@@ -347,7 +347,7 @@ describe("disk mode filesystem reconciliation", () => {
         data: {
           id: "removed.md",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: ".",
           fs_path: "removed.md",

@@ -21,7 +21,7 @@ export function createAgentNode(name: string, options: CreateAgentOptions = {}):
   const node: KNode = {
     id,
     type: "h",
-    item: true,
+    item: {},
     name,
     content: name,
     parent_id: null,

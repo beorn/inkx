@@ -16,7 +16,7 @@ function createAgent(name: string, data: Record<string, unknown>, parentIdx = 0)
   return {
     id: ulid(),
     type: "h",
-    item: true,
+    item: {},
     name,
     content: name,
     parent_id: null,
@@ -33,7 +33,7 @@ describe("nodeToAgent", () => {
   const baseNode: KNode = {
     id: "01ABCDEFGHIJKL",
     type: "h",
-    item: true,
+    item: {},
     name: "Test Agent",
     content: "Test Agent",
     parent_id: null,

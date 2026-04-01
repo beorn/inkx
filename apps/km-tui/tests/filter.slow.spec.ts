@@ -25,8 +25,7 @@ describe("Filter/View Journeys", () => {
     // Mark some tasks as done
     for (const n of nodes) {
       if (n.id === "doneA" || n.id === "doneB") {
-        n.task_status = "done"
-        n.task_marker = "[x]"
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
       }
     }
 
@@ -104,8 +103,7 @@ describe("Filter/View Journeys", () => {
     const nodes = item("board", item("col1", item("done-top"), item("my-task"), item("done-bottom")))
     for (const n of nodes) {
       if (n.id === "done-top" || n.id === "done-bottom") {
-        n.task_status = "done"
-        n.task_marker = "[x]"
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
       }
     }
 
@@ -132,8 +130,7 @@ describe("Filter/View Journeys", () => {
     )
     for (const n of nodes) {
       if (n.id === "done-a" || n.id === "done-note") {
-        n.task_status = "done"
-        n.task_marker = "[x]"
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
       }
     }
 
@@ -165,8 +162,7 @@ describe("Filter/View Journeys", () => {
     )
     for (const n of nodes) {
       if (n.id?.startsWith("done-")) {
-        n.task_status = "done"
-        n.task_marker = "[x]"
+        n.item = { ...n.item, task: { status: "done", marker: "[x]" } }
       }
     }
 

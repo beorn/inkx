@@ -139,13 +139,13 @@ More content.
     expect(success).toBe(true)
 
     // Simulate a metadata change (e.g., user assigns a task status)
-    db.prepare("UPDATE nodes SET task_status = 'todo', updated_at = ? WHERE id = ?").run(
+    db.prepare("UPDATE nodes SET task_status = 'todo', task_marker = '[ ]', updated_at = ? WHERE id = ?").run(
       Date.now() + 1000,
       fileNode!.id,
     )
 
     const nodeWithMetadata = getNode(db, fileNode!.id)
-    expect(nodeWithMetadata?.task_status).toBe("todo")
+    expect(nodeWithMetadata?.item?.task?.status).toBe("todo")
 
     // Second parse should NOT delete and re-insert the file node,
     // because that would lose the task_status we just set
@@ -156,7 +156,7 @@ More content.
     const nodeAfterSecondParse = getNode(db, fileNode!.id)
     expect(nodeAfterSecondParse).toBeDefined()
     expect(nodeAfterSecondParse!.id).toBe(fileNode!.id)
-    expect(nodeAfterSecondParse!.task_status).toBe("todo")
+    expect(nodeAfterSecondParse!.item?.task?.status).toBe("todo")
   })
 
   test("parseDeferredAsync twice does not create duplicates", async () => {
@@ -271,7 +271,7 @@ Content B.
         data: {
           id: fileId,
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: ".",
           parent_idx: 0,

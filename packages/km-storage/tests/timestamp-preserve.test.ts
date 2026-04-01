@@ -26,7 +26,7 @@ function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
   return {
     id,
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,
@@ -162,7 +162,7 @@ describe("applyNodes() timestamp preservation", () => {
             parent_id: "file2",
             parent_idx: 1,
             type: "p",
-            item: true,
+            item: {},
             created_at: childCreated,
             updated_at: childUpdated,
           }),

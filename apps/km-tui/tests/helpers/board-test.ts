@@ -58,7 +58,7 @@ import {
 import { expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
-import { createToastQueue, type KNode, type NodeRules, type NodeType } from "@km/core"
+import { createToastQueue, type KNode, type NodeRules, type NodeType, type ItemData, type TaskStatus } from "@km/core"
 import { parseHeadingRules } from "@km/markdown"
 
 import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
@@ -292,10 +292,10 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
   const node: KNode = {
     id: content,
     type: hasChildren ? "h" : "p",
-    item: true,
+    item: {},
     ...(hasChildren
       ? { fstype: "folder" as const }
-      : { list_marker: "-", task_marker: "[ ]", task_status: "todo" as const }),
+      : { item: { list: "-", task: { marker: "[ ]", status: "todo" as const } } }),
     content: hasChildren ? undefined : cleanContent,
     data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
@@ -327,7 +327,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
 function makeNodeWithType(
   content: string,
   type: NodeType,
-  props: { is_repo_root?: boolean; fstype?: KNode["fstype"]; list_marker?: string; item?: boolean },
+  props: { is_repo_root?: boolean; fstype?: KNode["fstype"]; item?: ItemData },
   ...childArrays: KNode[][]
 ): KNode[] {
   const hasChildren = childArrays.length > 0
@@ -337,7 +337,6 @@ function makeNodeWithType(
     type,
     ...(props.item !== undefined ? { item: props.item } : {}),
     ...(props.fstype ? { fstype: props.fstype } : {}),
-    ...(props.list_marker ? { list_marker: props.list_marker } : {}),
     // Set name for mdsection nodes to match production (ast2nodes sets name: slugified heading)
     ...(props.fstype === "mdsection" && hasChildren ? { name: content.toLowerCase().replace(/\s+/g, "-") } : {}),
     content: hasChildren ? undefined : content,
@@ -368,18 +367,18 @@ function makeNodeWithType(
 
 // Type-specific factories attached to item()
 item.root = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "h", { item: true, is_repo_root: true, fstype: "repo" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: {}, is_repo_root: true, fstype: "repo" }, ...childArrays)
 
 item.folder = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "h", { item: true, fstype: "folder" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: {}, fstype: "folder" }, ...childArrays)
 
 item.section = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "h", { item: true, fstype: "mdsection" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: {}, fstype: "mdsection" }, ...childArrays)
 
 item.paragraph = (content: string): KNode[] => makeNodeWithType(content, "p", {})
 
 item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
-  makeNodeWithType(content, "h", { item: true, fstype: "mdfile" }, ...childArrays)
+  makeNodeWithType(content, "h", { item: {}, fstype: "mdfile" }, ...childArrays)
 
 item.code = (content: string): KNode[] => makeNodeWithType(content, "code", {})
 
@@ -403,12 +402,9 @@ item.hr = (id?: string): KNode[] => {
 item.quote = (content: string): KNode[] => makeNodeWithType(content, "quote", {})
 
 item.task = (content: string, status?: string): KNode[] => {
-  const nodes = makeNodeWithType(content, "p", { item: true, list_marker: "-" })
-  if (nodes[0]) {
-    nodes[0].task_status = (status ?? "todo") as KNode["task_status"]
-    nodes[0].task_marker = "[ ]"
-  }
-  return nodes
+  const s = (status ?? "todo") as TaskStatus
+  const marker = s === "done" ? "[x]" : s === "wip" ? "[/]" : s === "dropped" ? "[-]" : "[ ]"
+  return makeNodeWithType(content, "p", { item: { list: "-", task: { status: s, marker } } })
 }
 
 item.link = (content: string, linkTo: string): KNode[] => {
@@ -1936,7 +1932,7 @@ export function column(title: string, cards: (string | { title: string; children
     const children = (card.children ?? []).map((childContent, childIdx) => ({
       id: `child-${idx}-${childIdx}`,
       type: "p" as const,
-      item: true,
+      item: {},
       list_marker: "-" as const,
       parent_id: `card-${idx}`,
       parent_idx: childIdx,

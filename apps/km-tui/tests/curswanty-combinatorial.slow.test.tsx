@@ -478,7 +478,7 @@ describe("curswantY with mutations", () => {
     expect(cursorCardNum(board)).toEqual({ prefix: "A", num: 3 })
 
     // Insert a card in ColB via repo API
-    repo.addNode("ColB", { type: "p", item: true, content: "B-new" })
+    repo.addNode("ColB", { type: "p", item: {}, content: "B-new" })
 
     // l should still work — no crash
     board.command("cursor_right")

@@ -53,15 +53,15 @@ export function createStatusCommand() {
           console.log(
             JSON.stringify({
               id: task.id,
-              status: task.task_status ?? "todo",
-              mark: task.task_marker ?? "[ ]",
+              status: task.item?.task?.status ?? "todo",
+              mark: task.item?.task?.marker ?? "[ ]",
               content: task.content,
             }),
           )
           return
         }
 
-        const status = task.task_status ?? "todo"
+        const status = task.item?.task?.status ?? "todo"
         console.log(`${getStatusIcon(status)} ${status}: ${task.content?.slice(0, 60) ?? "(no content)"}`)
         return
       }
@@ -77,8 +77,7 @@ export function createStatusCommand() {
       const newMarker = getMarkerForStatus(newStatus as TaskStatus)
 
       repo.updateNode(task.id, {
-        task_status: newStatus as TaskStatus,
-        task_marker: newMarker,
+        item: { task: { status: newStatus as TaskStatus, marker: newMarker } },
       })
 
       if (options.json) {

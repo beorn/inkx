@@ -7,15 +7,14 @@
 
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../src/schema.ts"
+import type { ItemData } from "@km/core"
 
 /** Node data for seeding test databases */
 export interface TestNode {
   id: string
   type: string
-  item?: boolean
+  item?: ItemData
   fstype?: string | null
-  task_status?: string | null
-  task_marker?: string | null
   priority?: string | null
   content: string
   fs_path?: string | null
@@ -57,8 +56,8 @@ export function seedTestData(db: Database, nodes: TestNode[]): void {
       n.item ? 1 : 0,
       n.fstype ?? null,
       n.name ?? null,
-      n.task_status ?? null,
-      n.task_marker ?? null,
+      n.item?.task?.status ?? null,
+      n.item?.task?.marker ?? null,
       n.priority ?? null,
       n.content,
       n.fs_path ?? null,

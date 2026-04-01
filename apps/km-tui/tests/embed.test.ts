@@ -30,7 +30,7 @@ describe("embed create depth", () => {
         if (n.id === "embed-a" || n.id === "embed-b") {
           n.embed_source = "some-target"
           n.type = "h"
-          n.item = true
+          n.item = {}
           n.data = {}
         }
       }
@@ -63,7 +63,7 @@ describe("embed create depth", () => {
       for (const n of nodes) {
         if (n.id === "sec-a" || n.id === "sec-b") {
           n.type = "h"
-          n.item = true
+          n.item = {}
         }
       }
       return nodes
@@ -90,7 +90,7 @@ describe("embed create depth", () => {
       for (const n of nodes) {
         if (n.id === "child-a" || n.id === "child-b") {
           n.type = "h"
-          n.item = true
+          n.item = {}
           n.data = {}
         }
       }
@@ -119,7 +119,7 @@ describe("embed create depth", () => {
         if (n.id === "embed-a" || n.id === "embed-b") {
           n.embed_source = "some-target"
           n.type = "h"
-          n.item = true
+          n.item = {}
           n.data = {}
         }
       }
@@ -255,13 +255,10 @@ describe("embed display", () => {
         nodes.push({
           id: "target-node",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Buy groceries",
           data: {},
           created_at: Date.now(),
@@ -351,10 +348,7 @@ describe("embed display", () => {
         nodes.push({
           id: "mixed-content",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
-          task_marker: "[ ]",
-          task_status: "todo" as const,
+          item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
           content: "Organize into boxes ![[file.jpg]]",
           embed_source: null,
           parent_id: "col1",
@@ -384,10 +378,7 @@ describe("embed display", () => {
         nodes.push({
           id: "mixed-content",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
-          task_marker: "[ ]",
-          task_status: "todo" as const,
+          item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
           content: "Organize into boxes ![[file.jpg]]",
           embed_source: null,
           parent_id: "col1",
@@ -418,10 +409,7 @@ describe("embed display", () => {
         nodes.push({
           id: "multi-embed",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
-          task_marker: "[ ]",
-          task_status: "todo" as const,
+          item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
           content: "See ![[photo.png]] and ![[doc.pdf]]",
           embed_source: null,
           parent_id: "col1",
@@ -465,13 +453,10 @@ describe("folded embed display (FoldedChildRow)", () => {
         nodes.push({
           id: "target-task-abc",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Buy milk from store",
           block_id: "abc",
           data: {},
@@ -483,13 +468,9 @@ describe("folded embed display (FoldedChildRow)", () => {
         nodes.push({
           id: "target-task-xyz",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
           parent_id: "some-file",
           parent_idx: 1,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Walk the dog outside",
           block_id: "xyz",
           data: {},
@@ -547,13 +528,10 @@ describe("link title resolution", () => {
         nodes.push({
           id: "target-task-1",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Tax projects",
           block_id: "1203128650780856",
           data: {},
@@ -599,13 +577,10 @@ describe("link title resolution", () => {
         nodes.push({
           id: "target-task-2",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Buy groceries",
           block_id: "abc123",
           data: {},
@@ -689,13 +664,10 @@ describe("unresolved Asana embed display", () => {
         nodes.push({
           id: "1209600947800994",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Review quarterly report",
           block_id: "1209600947800994",
           data: {},
@@ -741,13 +713,10 @@ describe("unresolved Asana embed display", () => {
         nodes.push({
           id: "1k4a",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Weekly standup notes",
           block_id: "1k4a",
           data: {},
@@ -831,13 +800,10 @@ describe("context-dependent rendering", () => {
         nodes.push({
           id: "target-li",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Embedded todo task",
           data: {},
           created_at: Date.now(),
@@ -883,7 +849,7 @@ describe("context-dependent rendering", () => {
         nodes.push({
           id: "target-section",
           type: "h" as const,
-          item: true,
+          item: {},
           fstype: "mdsection",
           parent_id: "some-file",
           parent_idx: 0,
@@ -931,13 +897,10 @@ describe("context-dependent rendering", () => {
         nodes.push({
           id: "done-target",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "done", marker: "[x]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "done",
-          task_marker: "[x]",
           content: "Completed task",
           data: {},
           created_at: Date.now(),
@@ -980,7 +943,7 @@ describe("context-dependent rendering", () => {
         nodes.push({
           id: "target-parent",
           type: "h" as const,
-          item: true,
+          item: {},
           fstype: "mdsection",
           parent_id: "some-file",
           parent_idx: 0,
@@ -997,13 +960,10 @@ describe("context-dependent rendering", () => {
         nodes.push({
           id: "target-child",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "target-parent",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Child subtask",
           data: {},
           created_at: Date.now(),
@@ -1055,25 +1015,22 @@ describe("embed task status cycling (km-79kld)", () => {
         if (n.id === "embed-a") {
           n.type = "p"
           n.embed_source = "target-a"
-          n.task_status = undefined
+          n.item = { ...n.item, task: undefined }
           n.data = {}
         }
         if (n.id === "embed-b") {
           n.type = "p"
           n.embed_source = "target-b"
-          n.task_status = undefined
+          n.item = { ...n.item, task: undefined }
           n.data = {}
         }
         if (n.id === "regular-task") {
           n.type = "p"
-          n.item = true
-          n.list_marker = "-"
-          n.task_status = "todo"
-          n.task_marker = "[ ]"
+          n.item = { list: "-", task: { status: "todo", marker: "[ ]" } }
         }
         if (n.id === "col1" || n.id === "col2") {
           n.type = "h"
-          n.item = true
+          n.item = {}
           n.fstype = "mdsection"
         }
       }
@@ -1082,13 +1039,10 @@ describe("embed task status cycling (km-79kld)", () => {
       nodes.push({
         id: "target-a",
         type: "p",
-        item: true,
-        list_marker: "-",
+        item: { list: "-", task: { status: "todo", marker: "[ ]" } },
         parent_id: "some-other-parent",
         parent_idx: 0,
         embed_source: null,
-        task_status: "todo",
-        task_marker: "[ ]",
         content: "Target task A",
         data: {},
         created_at: Date.now(),
@@ -1098,13 +1052,10 @@ describe("embed task status cycling (km-79kld)", () => {
       nodes.push({
         id: "target-b",
         type: "p",
-        item: true,
-        list_marker: "-",
+        item: { list: "-", task: { status: "done", marker: "[x]" } },
         parent_id: "some-other-parent",
         parent_idx: 1,
         embed_source: null,
-        task_status: "done",
-        task_marker: "[x]",
         content: "Target task B",
         data: {},
         created_at: Date.now(),
@@ -1121,16 +1072,16 @@ describe("embed task status cycling (km-79kld)", () => {
     const { board, repo } = embedTaskBoard()
 
     // Cursor starts on embed-a (first card in col1)
-    // embed-a links to target-a which has task_status: "todo"
+    // embed-a links to target-a which has item.task.status: "todo"
     const targetBefore = repo.getNode("target-a")
-    expect(targetBefore?.task_status).toBe("todo")
+    expect(targetBefore?.item?.task?.status).toBe("todo")
 
     // Press x to toggle task done
     board.press("x")
 
     // target-a should now cycle to next status
     const targetAfter = repo.getNode("target-a")
-    expect(targetAfter?.task_status).not.toBe("todo")
+    expect(targetAfter?.item?.task?.status).not.toBe("todo")
   })
 
   test("x on regular task node still works", () => {
@@ -1141,12 +1092,12 @@ describe("embed task status cycling (km-79kld)", () => {
     board.press("j") // regular-task
 
     const before = repo.getNode("regular-task")
-    expect(before?.task_status).toBe("todo")
+    expect(before?.item?.task?.status).toBe("todo")
 
     board.press("x")
 
     const after = repo.getNode("regular-task")
-    expect(after?.task_status).not.toBe("todo")
+    expect(after?.item?.task?.status).not.toBe("todo")
   })
 
   test("x on embed link targeting done task toggles to todo", () => {
@@ -1156,13 +1107,13 @@ describe("embed task status cycling (km-79kld)", () => {
     board.press("j")
 
     const targetBefore = repo.getNode("target-b")
-    expect(targetBefore?.task_status).toBe("done")
+    expect(targetBefore?.item?.task?.status).toBe("done")
 
     board.press("x")
 
     // toggle_task_done: done -> todo
     const targetAfter = repo.getNode("target-b")
-    expect(targetAfter?.task_status).not.toBe("done")
+    expect(targetAfter?.item?.task?.status).not.toBe("done")
   })
 })
 
@@ -1199,19 +1150,17 @@ describe("tag file section display", () => {
         // Patch the section nodes to match what the parser produces for tag files:
         // - title includes the ![[^GID]] suffix
         // - content includes [x] marker prefix
-        // - task_marker and task_status are set
+        // - item.task.marker and item.task.status are set
         for (const node of nodes) {
           if (node.id === "Clean-up after trip") {
             node.title = "Clean-up after trip ![[^1138180707609595]]"
             node.content = "[x] Clean-up after trip ![[^1138180707609595]]"
-            node.task_marker = "[x]"
-            node.task_status = "done"
+            node.item = { ...node.item, task: { marker: "[x]", status: "done" } }
           }
           if (node.id === "Norway stuff - papers") {
             node.title = "Norway stuff - papers ![[^1137303518371267]]"
             node.content = "[ ] Norway stuff - papers ![[^1137303518371267]]"
-            node.task_marker = "[ ]"
-            node.task_status = "todo"
+            node.item = { ...node.item, task: { marker: "[ ]", status: "todo" } }
           }
         }
 
@@ -1242,14 +1191,12 @@ describe("tag file section display", () => {
           if (node.id === "Task A embed") {
             node.title = undefined
             node.content = "Task A ![[^9999999999999901]]"
-            node.task_marker = "[x]"
-            node.task_status = "done"
+            node.item = { ...node.item, task: { marker: "[x]", status: "done" } }
           }
           if (node.id === "Task B embed") {
             node.title = undefined
             node.content = "Task B ![[^9999999999999902]]"
-            node.task_marker = "[ ]"
-            node.task_status = "todo"
+            node.item = { ...node.item, task: { marker: "[ ]", status: "todo" } }
           }
         }
 
@@ -1280,13 +1227,10 @@ describe("embed alias override (km-wk17l)", () => {
         nodes.push({
           id: "target-aliased",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Original target title",
           data: {},
           created_at: Date.now(),
@@ -1330,13 +1274,10 @@ describe("embed alias override (km-wk17l)", () => {
         nodes.push({
           id: "target-no-alias",
           type: "p" as const,
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Target content here",
           data: {},
           created_at: Date.now(),
@@ -1499,7 +1440,7 @@ describe("strip embed sigil", () => {
           // Make @next column a proper section
           if (n.id === "@next") {
             n.type = "h"
-            n.item = true
+            n.item = {}
             n.fstype = "mdsection"
             n.data = { name: "@next" }
             n.name = "@next"
@@ -1510,8 +1451,7 @@ describe("strip embed sigil", () => {
             n.type = "p"
             n.embed_source = "target-a"
             n.content = "![[target-a]]"
-            n.task_status = undefined
-            n.task_marker = undefined
+            n.item = { ...n.item, task: undefined }
             n.data = {}
           }
 
@@ -1520,15 +1460,14 @@ describe("strip embed sigil", () => {
             n.type = "p"
             n.embed_source = "target-b"
             n.content = "![[target-b]]"
-            n.task_status = undefined
-            n.task_marker = undefined
+            n.item = { ...n.item, task: undefined }
             n.data = {}
           }
 
           // Make other column a section
           if (n.id === "other") {
             n.type = "h"
-            n.item = true
+            n.item = {}
             n.fstype = "mdsection"
             n.data = { name: "Other" }
           }
@@ -1538,13 +1477,10 @@ describe("strip embed sigil", () => {
         nodes.push({
           id: "target-a",
           type: "p",
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Buy groceries",
           name: "@next",
           data: {},
@@ -1557,13 +1493,9 @@ describe("strip embed sigil", () => {
         nodes.push({
           id: "target-b",
           type: "p",
-          item: true,
-          list_marker: "-",
           parent_id: "some-file",
           parent_idx: 1,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Wait for reply",
           name: "@waiting",
           data: {},
@@ -1606,7 +1538,7 @@ describe("strip embed sigil", () => {
         for (const n of nodes) {
           if (n.id === "@next") {
             n.type = "h"
-            n.item = true
+            n.item = {}
             n.fstype = "mdsection"
             n.data = { name: "@next" }
             n.name = "@next"
@@ -1654,7 +1586,7 @@ describe("strip embed sigil", () => {
         for (const n of nodes) {
           if (n.id === "@next") {
             n.type = "h"
-            n.item = true
+            n.item = {}
             n.fstype = "mdsection"
             n.data = { name: "@next" }
             n.name = "@next"
@@ -1664,8 +1596,7 @@ describe("strip embed sigil", () => {
             n.type = "p"
             n.embed_source = "target-c"
             n.content = "![[target-c]]"
-            n.task_status = undefined
-            n.task_marker = undefined
+            n.item = { ...n.item, task: undefined }
             n.data = {}
           }
         }
@@ -1674,7 +1605,7 @@ describe("strip embed sigil", () => {
         nodes.push({
           id: "next-file",
           type: "h",
-          item: true,
+          item: {},
           fstype: "mdfile",
           parent_id: null,
           parent_idx: 0,
@@ -1692,13 +1623,10 @@ describe("strip embed sigil", () => {
         nodes.push({
           id: "target-c",
           type: "p",
-          item: true,
-          list_marker: "-",
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "next-file",
           parent_idx: 0,
           embed_source: null,
-          task_status: "todo",
-          task_marker: "[ ]",
           content: "Call dentist",
           data: {},
           created_at: Date.now(),
@@ -1754,16 +1682,14 @@ describe("hide redundant parent sigil on embedded links", () => {
         if (n.id === "embed-a") {
           n.type = "p"
           n.embed_source = "target-a"
-          n.task_status = undefined
-          n.task_marker = undefined
+          n.item = { ...n.item, task: undefined }
           n.content = "![[target-a]]"
           n.data = {}
         }
         if (n.id === "embed-b") {
           n.type = "p"
           n.embed_source = "target-b"
-          n.task_status = undefined
-          n.task_marker = undefined
+          n.item = { ...n.item, task: undefined }
           n.content = "![[target-b]]"
           n.data = {}
         }
@@ -1773,7 +1699,7 @@ describe("hide redundant parent sigil on embedded links", () => {
       nodes.push({
         id: "next-file",
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
@@ -1791,13 +1717,10 @@ describe("hide redundant parent sigil on embedded links", () => {
       nodes.push({
         id: "target-a",
         type: "p",
-        item: true,
-        list_marker: "-",
+        item: { list: "-", task: { status: "wip", marker: "[-]" } },
         parent_id: "next-file",
         parent_idx: 0,
         embed_source: null,
-        task_status: "todo",
-        task_marker: "[ ]",
         content: "Buy groceries",
         data: {},
         created_at: Date.now(),
@@ -1808,13 +1731,9 @@ describe("hide redundant parent sigil on embedded links", () => {
       nodes.push({
         id: "target-b",
         type: "p",
-        item: true,
-        list_marker: "-",
         parent_id: "next-file",
         parent_idx: 1,
         embed_source: null,
-        task_status: "wip",
-        task_marker: "[-]",
         content: "Write report @next",
         data: {},
         created_at: Date.now(),
@@ -1888,7 +1807,7 @@ describe("embed transparency in detail pane", () => {
     const targetNode: KNode = {
       id: "target-node",
       type: "h",
-      item: true,
+      item: { task: { status: "wip", marker: "[/]" } },
       fstype: "mdsection",
       content: "Target Section",
       parent_id: null,
@@ -1898,15 +1817,12 @@ describe("embed transparency in detail pane", () => {
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",
-      task_status: "wip",
-      task_marker: "[/]",
       due_at: "2026-04-01",
     }
     // Target's children
     const targetChild1: KNode = {
       id: "target-child-1",
       type: "p",
-      item: true,
       content: "Target Child Alpha",
       parent_id: "target-node",
       parent_idx: 0,
@@ -1919,7 +1835,6 @@ describe("embed transparency in detail pane", () => {
     const targetChild2: KNode = {
       id: "target-child-2",
       type: "p",
-      item: true,
       content: "Target Child Beta",
       parent_id: "target-node",
       parent_idx: 1,
@@ -1981,6 +1896,6 @@ describe("embed transparency in detail pane", () => {
     // The rendered detail should show the target's metadata (task status, due date)
     const screenshot = board.screenshot()
     expect(screenshot).toContain("wip")
-    // The embed card itself has no task_status — this proves the target's metadata is shown
+    // The embed card itself has no item.task — this proves the target's metadata is shown
   })
 })

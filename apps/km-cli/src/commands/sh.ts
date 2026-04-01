@@ -39,7 +39,7 @@ import {
   type ShellCommand,
   type BoardState,
 } from "@km/repl"
-import type { KNode } from "@km/core"
+import { type KNode, getMarkerForStatus } from "@km/core"
 
 // ============================================
 // Main Export - Shell Command
@@ -349,8 +349,8 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     embed_source: node.embed_source,
     name: getNodeName(node),
     title: getNodeDisplayName(node),
-    task_status: node.task_status,
-    task_marker: node.task_marker,
+    task_status: node.item?.task?.status,
+    task_marker: node.item?.task?.marker,
     priority: node.priority,
     due_at: node.due_at,
     start_at: node.start_at,
@@ -373,7 +373,7 @@ function kNodeToTNode(repo: Repo, node: KNode, depth: number): TNode {
     }),
     childCount: children.length,
     childrenLoaded: true,
-    isTask: node.task_marker !== undefined,
+    isTask: node.item?.task?.marker !== undefined,
     depth,
   }
 }
@@ -466,7 +466,9 @@ function createMutationHandler(repo: Repo, rootId: string | null, rootPath: stri
       switch (command.type) {
         case "SET_STATUS": {
           // Use repo's updateNode which writes to filesystem synchronously
-          repo.updateNode(currentNode.id, { task_status: command.status })
+          repo.updateNode(currentNode.id, {
+            item: { task: { status: command.status, marker: getMarkerForStatus(command.status) } },
+          })
           break
         }
         case "DELETE": {

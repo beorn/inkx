@@ -29,11 +29,11 @@ describe("duplicate column deduplication", () => {
   test("deduplicates columns with same fs_path, keeping the one with children", () => {
     // Simulate the Asana import bug: two oi nodes for @next.md,
     // one with children (populated) and one empty
-    const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
+    const root = makeNode({ id: "root", type: "h", item: {}, fstype: "repo", parent_id: null })
     const nextPopulated = makeNode({
       id: "next-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -44,7 +44,7 @@ describe("duplicate column deduplication", () => {
     const nextEmpty = makeNode({
       id: "next-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 1,
@@ -55,7 +55,7 @@ describe("duplicate column deduplication", () => {
     const task1 = makeNode({
       id: "task-1",
       type: "p",
-      item: true,
+      item: {},
       parent_id: "next-1",
       parent_idx: 0,
       content: "Do something",
@@ -63,7 +63,7 @@ describe("duplicate column deduplication", () => {
     const task2 = makeNode({
       id: "task-2",
       type: "p",
-      item: true,
+      item: {},
       parent_id: "next-1",
       parent_idx: 1,
       content: "Do something else",
@@ -71,7 +71,7 @@ describe("duplicate column deduplication", () => {
     const otherCol = makeNode({
       id: "other-col",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 2,
@@ -95,11 +95,11 @@ describe("duplicate column deduplication", () => {
   })
 
   test("deduplicates when empty column comes first", () => {
-    const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
+    const root = makeNode({ id: "root", type: "h", item: {}, fstype: "repo", parent_id: null })
     const nextEmpty = makeNode({
       id: "next-empty",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -110,7 +110,7 @@ describe("duplicate column deduplication", () => {
     const nextPopulated = makeNode({
       id: "next-pop",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 1,
@@ -121,7 +121,7 @@ describe("duplicate column deduplication", () => {
     const task = makeNode({
       id: "task-1",
       type: "p",
-      item: true,
+      item: {},
       parent_id: "next-pop",
       parent_idx: 0,
       content: "Task",
@@ -140,11 +140,11 @@ describe("duplicate column deduplication", () => {
   })
 
   test("does not deduplicate nodes without fs_path", () => {
-    const root = makeNode({ id: "root", type: "h", item: true, fstype: "repo", parent_id: null })
+    const root = makeNode({ id: "root", type: "h", item: {}, fstype: "repo", parent_id: null })
     const col1 = makeNode({
       id: "col-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "root",
       parent_idx: 0,
@@ -153,7 +153,7 @@ describe("duplicate column deduplication", () => {
     const col2 = makeNode({
       id: "col-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "root",
       parent_idx: 1,
@@ -177,7 +177,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "early-orbit",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -186,7 +186,7 @@ describe("folder index file expansion", () => {
     const indexFile = makeNode({
       id: "index-file",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "early-orbit",
       parent_idx: 0,
@@ -196,7 +196,7 @@ describe("folder index file expansion", () => {
     const mipFile = makeNode({
       id: "mip",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "early-orbit",
       parent_idx: 1,
@@ -207,7 +207,7 @@ describe("folder index file expansion", () => {
     const launchFile = makeNode({
       id: "launch",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "early-orbit",
       parent_idx: 2,
@@ -218,7 +218,7 @@ describe("folder index file expansion", () => {
     const extraFile = makeNode({
       id: "extra",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "early-orbit",
       parent_idx: 3,
@@ -234,7 +234,7 @@ describe("folder index file expansion", () => {
     return makeNode({
       id,
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: parentId,
       parent_idx: idx,
@@ -361,7 +361,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -370,7 +370,7 @@ describe("folder index file expansion", () => {
     const file1 = makeNode({
       id: "f1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -380,7 +380,7 @@ describe("folder index file expansion", () => {
     const file2 = makeNode({
       id: "f2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -403,7 +403,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -412,7 +412,7 @@ describe("folder index file expansion", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -422,7 +422,7 @@ describe("folder index file expansion", () => {
     const file1 = makeNode({
       id: "f1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -449,7 +449,7 @@ describe("folder index file expansion", () => {
     const subfolder = makeNode({
       id: "subfolder",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "early-orbit",
       parent_idx: 4,
@@ -491,7 +491,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -500,7 +500,7 @@ describe("folder index file expansion", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -510,7 +510,7 @@ describe("folder index file expansion", () => {
     const file1 = makeNode({
       id: "f1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -520,7 +520,7 @@ describe("folder index file expansion", () => {
     const file2 = makeNode({
       id: "f2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 2,
@@ -543,7 +543,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -552,7 +552,7 @@ describe("folder index file expansion", () => {
     const dotMdFile = makeNode({
       id: "dot-md",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -562,7 +562,7 @@ describe("folder index file expansion", () => {
     const file1 = makeNode({
       id: "f1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -587,7 +587,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "my-proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -596,7 +596,7 @@ describe("folder index file expansion", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "my-proj",
       parent_idx: 0,
@@ -606,7 +606,7 @@ describe("folder index file expansion", () => {
     const file1 = makeNode({
       id: "f1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "my-proj",
       parent_idx: 1,
@@ -629,7 +629,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -638,7 +638,7 @@ describe("folder index file expansion", () => {
     const sameNameFile = makeNode({
       id: "same-name",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -648,7 +648,7 @@ describe("folder index file expansion", () => {
     const indexMdFile = makeNode({
       id: "index-md",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -658,7 +658,7 @@ describe("folder index file expansion", () => {
     const file1 = makeNode({
       id: "f1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 2,
@@ -684,7 +684,7 @@ describe("folder index file expansion", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -693,7 +693,7 @@ describe("folder index file expansion", () => {
     const sameNameFile = makeNode({
       id: "same-name",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -703,7 +703,7 @@ describe("folder index file expansion", () => {
     const indexMdFile = makeNode({
       id: "index-md",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -713,7 +713,7 @@ describe("folder index file expansion", () => {
     const fileA = makeNode({
       id: "fa",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 2,
@@ -723,7 +723,7 @@ describe("folder index file expansion", () => {
     const fileB = makeNode({
       id: "fb",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 3,
@@ -756,7 +756,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -765,7 +765,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -775,7 +775,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -786,7 +786,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const fileBeta = makeNode({
       id: "beta",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 2,
@@ -827,7 +827,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -836,7 +836,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -846,7 +846,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -866,7 +866,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const inlineSec = makeNode({
       id: "s1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "idx",
       parent_idx: 1,
@@ -892,7 +892,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -901,7 +901,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -911,7 +911,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -957,7 +957,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -966,7 +966,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -976,7 +976,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -1011,7 +1011,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -1020,7 +1020,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -1030,7 +1030,7 @@ describe("paragraph-type slot resolution (Bug km-jy8nl)", () => {
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -1071,7 +1071,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -1080,7 +1080,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -1090,7 +1090,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -1102,7 +1102,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const inlineSec = makeNode({
       id: "s1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "idx",
       parent_idx: 0,
@@ -1139,7 +1139,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const folder = makeNode({
       id: "proj",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       parent_id: "root",
       parent_idx: 0,
@@ -1148,7 +1148,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const indexFile = makeNode({
       id: "idx",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 0,
@@ -1158,7 +1158,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const fileAlpha = makeNode({
       id: "alpha",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "proj",
       parent_idx: 1,
@@ -1170,7 +1170,7 @@ describe("unresolved paragraph slots after outline sections (Bug km-wyjoy)", () 
     const inlineSec = makeNode({
       id: "s1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "idx",
       parent_idx: 0,
@@ -1208,7 +1208,7 @@ describe("Asana vault section deduplication (km-shk24)", () => {
     const mdFile = makeNode({
       id: "stabell/early-orbit/launch-academy.md",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "stabell/early-orbit",
       parent_idx: 0,
@@ -1221,7 +1221,7 @@ describe("Asana vault section deduplication (km-shk24)", () => {
       makeNode({
         id: `la-section-${idx}`,
         type: "h",
-        item: true,
+        item: {},
         fstype: "mdsection",
         parent_id: "stabell/early-orbit/launch-academy.md",
         parent_idx: idx,
@@ -1250,7 +1250,7 @@ describe("Asana vault section deduplication (km-shk24)", () => {
     const mdFile = makeNode({
       id: "launch-academy.md",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -1262,7 +1262,7 @@ describe("Asana vault section deduplication (km-shk24)", () => {
     const inbox1 = makeNode({
       id: "inbox-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "launch-academy.md",
       parent_idx: 0,
@@ -1272,7 +1272,7 @@ describe("Asana vault section deduplication (km-shk24)", () => {
     const inbox2 = makeNode({
       id: "inbox-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "launch-academy.md",
       parent_idx: 1,
@@ -1300,7 +1300,7 @@ describe("markdown file columns", () => {
     const mdFile = makeNode({
       id: "early-orbit",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -1311,7 +1311,7 @@ describe("markdown file columns", () => {
     const section1 = makeNode({
       id: "overview",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "early-orbit",
       parent_idx: 0,
@@ -1321,7 +1321,7 @@ describe("markdown file columns", () => {
     const section2 = makeNode({
       id: "milestones",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "early-orbit",
       parent_idx: 1,
@@ -1331,7 +1331,7 @@ describe("markdown file columns", () => {
     const section3 = makeNode({
       id: "program",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "early-orbit",
       parent_idx: 2,
@@ -1342,7 +1342,7 @@ describe("markdown file columns", () => {
     const task1 = makeNode({
       id: "task-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "overview",
       parent_idx: 0,
@@ -1351,7 +1351,7 @@ describe("markdown file columns", () => {
     const task2 = makeNode({
       id: "task-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "milestones",
       parent_idx: 0,
@@ -1380,7 +1380,7 @@ describe("markdown file columns", () => {
     const mdFile = makeNode({
       id: "notes",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdfile",
       parent_id: "root",
       parent_idx: 0,
@@ -1397,7 +1397,7 @@ describe("markdown file columns", () => {
     const section1 = makeNode({
       id: "sec-1",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "notes",
       parent_idx: 1,
@@ -1407,7 +1407,7 @@ describe("markdown file columns", () => {
     const section2 = makeNode({
       id: "sec-2",
       type: "h",
-      item: true,
+      item: {},
       fstype: "mdsection",
       parent_id: "notes",
       parent_idx: 2,

@@ -170,7 +170,7 @@ describe("invertOperation", () => {
       nodeId: "n1",
       parentId: "p1",
       parentIdx: 0,
-      snapshot: { id: "n1", type: "p", item: true } as Partial<KNode>,
+      snapshot: { id: "n1", type: "p", item: {} } as Partial<KNode>,
     })
     expect(inv.type).toBe("remove_node")
     expect(inv.nodeId).toBe("n1")
@@ -182,7 +182,7 @@ describe("invertOperation", () => {
       nodeId: "n1",
       parentId: "p1",
       parentIdx: 5,
-      snapshot: { id: "n1", type: "p", item: true } as KNode,
+      snapshot: { id: "n1", type: "p", item: {} } as KNode,
       descendants: [],
     })
     expect(inv.type).toBe("add_node")
@@ -236,10 +236,8 @@ describe("undo: add node", () => {
     // Add a new node
     const newId = repo.addNode("col1", {
       type: "p",
-      item: true,
+      item: { task: { marker: "[ ]", status: "todo" } },
       content: "new-task",
-      task_marker: "[ ]",
-      task_status: "todo",
     })
 
     // Verify it exists
@@ -260,10 +258,8 @@ describe("undo: add node", () => {
 
     const newId = repo.addNode("col1", {
       type: "p",
-      item: true,
+      item: { task: { marker: "[ ]", status: "todo" } },
       content: "new-task",
-      task_marker: "[ ]",
-      task_status: "todo",
     })
 
     handle.undo()
@@ -291,8 +287,7 @@ describe("undo: delete node", () => {
     repo.updateNode("task-a", {
       priority: "P2",
       due_at: "2026-03-15",
-      task_status: "wip",
-      task_marker: "[/]",
+      item: { task: { status: "wip", marker: "[/]" } },
     })
 
     // Clear the undo stack (we don't want to undo the updateNode)
@@ -317,7 +312,7 @@ describe("undo: delete node", () => {
     expect(restored).not.toBeNull()
     expect(restored!.priority).toBe("P2")
     expect(restored!.due_at).toBe("2026-03-15")
-    expect(restored!.task_status).toBe("wip")
+    expect(restored!.item?.task?.status).toBe("wip")
     expect(repo.getChildren("col1").length).toBe(3)
   })
 

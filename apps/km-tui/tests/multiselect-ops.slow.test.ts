@@ -17,23 +17,21 @@
  */
 
 import { describe, test, expect } from "vitest"
+import type { KNode } from "@km/core"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
   return repo.getChildren(parentId).map((n) => n.id)
 }
 
-function nodeStatus(
-  repo: { getNode(id: string): { task_status?: string | null } | null | undefined },
-  id: string,
-): string {
-  return repo.getNode(id)?.task_status ?? "todo"
+function nodeStatus(repo: { getNode(id: string): KNode | null | undefined }, id: string): string {
+  return repo.getNode(id)?.item?.task?.status ?? "todo"
 }
 
-/** Make leaf nodes into proper tasks with task_status */
+/** Make leaf nodes into proper tasks with item.task */
 function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, unknown>): void }, ids: string[]) {
   for (const id of ids) {
-    repo.updateNode(id, { task_status: "todo", task_marker: "[ ]" })
+    repo.updateNode(id, { item: { task: { status: "todo", marker: "[ ]" } } })
   }
 }
 

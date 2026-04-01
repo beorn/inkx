@@ -92,12 +92,12 @@ describe("MemoryStore", () => {
 
     // Should have files (3 .md + 3 non-md)
     const files = allNodes.filter(
-      (n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"),
+      (n) => n.type === "h" && n.item != null && (n.fstype === "file" || n.fstype === "mdfile"),
     )
     expect(files.length).toBe(6) // tasks.md, notes.md, project-a.md, document.pdf, image.png, readme.txt
 
     // Should have folders (includes repo root node ".")
-    const folders = allNodes.filter((n) => n.type === "h" && n.item === true && n.fstype === "folder")
+    const folders = allNodes.filter((n) => n.type === "h" && n.item != null && n.fstype === "folder")
     expect(folders.length).toBe(3) // "." (root), projects/, inbox/
   })
 
@@ -107,7 +107,7 @@ describe("MemoryStore", () => {
 
     const allNodes = store.getAllNodes()
     const fileNames = allNodes
-      .filter((n) => n.type === "h" && n.item === true && (n.fstype === "file" || n.fstype === "mdfile"))
+      .filter((n) => n.type === "h" && n.item != null && (n.fstype === "file" || n.fstype === "mdfile"))
       .map((n) => n.content)
 
     // Non-markdown files should be included with full filename
@@ -136,15 +136,15 @@ describe("MemoryStore", () => {
 
     const openTask = tasks.find((t) => t.content === "Open task")
     expect(openTask).toBeDefined()
-    expect(openTask!.task_status).toBe("todo")
+    expect(openTask!.item?.task?.status).toBe("todo")
 
     const doneTask = tasks.find((t) => t.content === "Done task")
     expect(doneTask).toBeDefined()
-    expect(doneTask!.task_status).toBe("done")
+    expect(doneTask!.item?.task?.status).toBe("done")
 
     const wipTask = tasks.find((t) => t.content === "In progress task")
     expect(wipTask).toBeDefined()
-    expect(wipTask!.task_status).toBe("wip")
+    expect(wipTask!.item?.task?.status).toBe("wip")
   })
 
   test("should create ULID IDs for parsed nodes", () => {
@@ -163,7 +163,7 @@ describe("MemoryStore", () => {
     const rootDir = createMemoryStoreTestRepo()
     using store = new MemoryStore(rootDir)
 
-    const sections = store.getAllNodes().filter((n) => n.type === "h" && n.item === true && n.fstype === "mdsection")
+    const sections = store.getAllNodes().filter((n) => n.type === "h" && n.item != null && n.fstype === "mdsection")
     expect(sections.length).toBeGreaterThan(0)
 
     // notes.md has "Notes" (H1 merged into file), "Section One", "Section Two" (H2s)
@@ -182,7 +182,7 @@ describe("MemoryStore", () => {
     const tasksFile = store.getNodeByPath(join(rootDir, "tasks.md"))
     expect(tasksFile).not.toBeNull()
     expect(tasksFile!.type).toBe("h")
-    expect(tasksFile!.item).toBe(true)
+    expect(tasksFile!.item).toBeTruthy()
     expect(tasksFile!.fstype === "file" || tasksFile!.fstype === "mdfile").toBe(true)
     // File content is the H1 title (merged into file node)
     expect(tasksFile!.content).toBe("Tasks")
@@ -218,7 +218,7 @@ describe("MemoryStore", () => {
 
     // Should have section and file as ancestors
     // Should have outline item ancestors (sections and file)
-    const ancestorFsTypes = ancestors.filter((a) => a.type === "h" && a.item === true).map((a) => a.fstype)
+    const ancestorFsTypes = ancestors.filter((a) => a.type === "h" && a.item != null).map((a) => a.fstype)
     expect(ancestorFsTypes).toContain("mdsection")
     expect(ancestorFsTypes.some((t) => t === "file" || t === "mdfile")).toBe(true)
   })
@@ -248,13 +248,12 @@ describe("MemoryStore", () => {
 
     // Update to done
     store.updateNode(openTask!.id, {
-      task_status: "done",
-      task_marker: "[x]",
+      item: { task: { status: "done", marker: "[x]" } },
     })
 
     // Verify in-memory update
     const updatedTask = store.getNode(openTask!.id)
-    expect(updatedTask!.task_status).toBe("done")
+    expect(updatedTask!.item?.task?.status).toBe("done")
 
     // Verify write-through to file
     const fileContent = readFileSync(join(rootDir, "tasks.md"), "utf-8")

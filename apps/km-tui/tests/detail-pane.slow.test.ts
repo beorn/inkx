@@ -167,7 +167,7 @@ describe("getStatusDisplay", () => {
 describe("getProjectPath", () => {
   test("returns empty array for node with no parent", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "task1", type: "p", item: true, content: "Standalone task" }]),
+      nodes: createTestNodes([{ id: "task1", type: "p", item: {}, content: "Standalone task" }]),
     })
     const node = repo.getNode("task1")!
     expect(getProjectPath(repo, node)).toEqual([])
@@ -176,11 +176,11 @@ describe("getProjectPath", () => {
   test("returns folder names in path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Work" },
+        { id: "folder1", type: "h", item: {}, fstype: "folder" as const, content: "Work" },
         {
           id: "folder2",
           type: "h",
-          item: true,
+          item: {},
           fstype: "folder" as const,
           content: "Finance",
           parent_id: "folder1",
@@ -188,7 +188,7 @@ describe("getProjectPath", () => {
         {
           id: "task1",
           type: "p",
-          item: true,
+          item: {},
           content: "Review budget",
           parent_id: "folder2",
         },
@@ -201,12 +201,12 @@ describe("getProjectPath", () => {
   test("includes files in path", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "folder1", type: "h", item: true, fstype: "folder" as const, content: "Projects" },
-        { id: "file1", type: "h", item: true, fstype: "mdfile" as const, content: "todo.md", parent_id: "folder1" },
+        { id: "folder1", type: "h", item: {}, fstype: "folder" as const, content: "Projects" },
+        { id: "file1", type: "h", item: {}, fstype: "mdfile" as const, content: "todo.md", parent_id: "folder1" },
         {
           id: "task1",
           type: "p",
-          item: true,
+          item: {},
           content: "Do something",
           parent_id: "file1",
         },
@@ -221,8 +221,8 @@ describe("resolveProjectDisplayNames", () => {
   test("resolves slugs to node display names", () => {
     const repo = createFakeRepo({
       nodes: createTestNodes([
-        { id: "p1", type: "h", item: true, fstype: "mdfile" as const, content: "FAMILY SPRINT" },
-        { id: "p2", type: "h", item: true, fstype: "mdfile" as const, content: "[Fam] Estate" },
+        { id: "p1", type: "h", item: {}, fstype: "mdfile" as const, content: "FAMILY SPRINT" },
+        { id: "p2", type: "h", item: {}, fstype: "mdfile" as const, content: "[Fam] Estate" },
       ]),
     })
     const resolved = resolveProjectDisplayNames(repo, ["family-sprint", "fam-estate"])
@@ -243,7 +243,7 @@ describe("resolveProjectDisplayNames", () => {
 
   test("handles mixed resolved and unresolved slugs", () => {
     const repo = createFakeRepo({
-      nodes: createTestNodes([{ id: "p1", type: "h", item: true, fstype: "mdfile" as const, content: "My Project" }]),
+      nodes: createTestNodes([{ id: "p1", type: "h", item: {}, fstype: "mdfile" as const, content: "My Project" }]),
     })
     const resolved = resolveProjectDisplayNames(repo, ["my-project", "missing-one"])
     expect(resolved).toEqual(["My Project", "missing-one"])
@@ -1145,7 +1145,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder" as const,
         data: { name: "board" },
         parent_id: null,
@@ -1158,7 +1158,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "col1",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder" as const,
         data: { name: "col1" },
         parent_id: "board",
@@ -1171,7 +1171,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "task1",
         type: "p",
-        item: true,
+        item: {},
         content: "Review Q1 budget",
         list_marker: "-",
         task_marker: "[ ]",
@@ -1199,7 +1199,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "heading1",
         type: "h",
-        item: true,
+        item: {},
         content: "Action items",
         data: { name: "Action items" },
         parent_id: "task1",
@@ -1233,7 +1233,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "board",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder" as const,
         data: { name: "board" },
         parent_id: null,
@@ -1246,7 +1246,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "col1",
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder" as const,
         data: { name: "col1" },
         parent_id: "board",
@@ -1259,7 +1259,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "task1",
         type: "p",
-        item: true,
+        item: {},
         content: "Task",
         list_marker: "-",
         task_marker: "[ ]",
@@ -1287,7 +1287,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "heading1",
         type: "h",
-        item: true,
+        item: {},
         content: "Section A",
         data: { name: "Section A" },
         parent_id: "task1",
@@ -1300,7 +1300,7 @@ describe("detail pane j/k navigation", () => {
       {
         id: "heading2",
         type: "h",
-        item: true,
+        item: {},
         content: "Section B",
         data: { name: "Section B" },
         parent_id: "task1",

@@ -129,7 +129,7 @@ export interface ExpectedState {
     path: string
     type: "h" | "p"
     content?: string
-    task_status?: string
+    item?: { task?: { status?: string } }
     children?: number
   }>
 }

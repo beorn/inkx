@@ -1,4 +1,4 @@
-import { KNode } from "@km/core"
+import { KNode, type ItemData } from "@km/core"
 
 /**
  * CursorStore — Lightweight pub/sub for cursor state.
@@ -57,10 +57,10 @@ const BODY_COL_PREFIX = "__body__"
  *   When omitted, all non-outline direct children of root are treated as body cards.
  */
 export function deriveCursorAncestors(
-  getNode: (id: string) => { parent_id: string | null; type: string; item?: boolean } | null | undefined,
+  getNode: (id: string) => { parent_id: string | null; type: string; item?: ItemData } | null | undefined,
   rootId: string | null,
   cursorNodeId: string | null,
-  getChildren?: (parentId: string | null) => { id: string; type: string; item?: boolean }[],
+  getChildren?: (parentId: string | null) => { id: string; type: string; item?: ItemData }[],
 ): { cursorCardNodeId: string | null; cursorColumnNodeId: string | null; selectionLevel: "board" | "column" | "card" } {
   if (!cursorNodeId) {
     return { cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }
@@ -136,7 +136,7 @@ export function deriveCursorAncestors(
 function isInBodyRegion(
   nodeId: string,
   rootId: string | null,
-  getChildren?: (parentId: string | null) => { id: string; type: string; item?: boolean }[],
+  getChildren?: (parentId: string | null) => { id: string; type: string; item?: ItemData }[],
 ): boolean {
   if (!getChildren) return true // Conservative default: no children → assume body
   const siblings = getChildren(rootId)
@@ -153,8 +153,8 @@ function isInBodyRegion(
  */
 export function createCursorStoreFromRepo(
   repo: {
-    getNode(id: string): { parent_id: string | null; type: string; item?: boolean } | null | undefined
-    getChildren(parentId: string | null): { id: string; type: string; item?: boolean }[]
+    getNode(id: string): { parent_id: string | null; type: string; item?: ItemData } | null | undefined
+    getChildren(parentId: string | null): { id: string; type: string; item?: ItemData }[]
   },
   rootId: string | null,
   cursorNodeId: string | null,

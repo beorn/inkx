@@ -69,7 +69,7 @@ describe("due date persistence", () => {
 
       // Serialize back to markdown
       const fileNode = allNodes.find(
-        (n) => n.type === "h" && n.item === true && (n.fstype === "mdfile" || n.fstype === "file"),
+        (n) => n.type === "h" && n.item != null && (n.fstype === "mdfile" || n.fstype === "file"),
       )
       expect(fileNode).toBeDefined()
 

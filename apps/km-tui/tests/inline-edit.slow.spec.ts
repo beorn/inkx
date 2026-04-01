@@ -235,8 +235,7 @@ describe("Inline Edit — Task Markers", () => {
       // Make task1 a proper task with a marker
       const taskNode = nodes.find((n) => n.id === "task1")!
       taskNode.content = "- [x] task1"
-      taskNode.task_status = "done"
-      taskNode.task_marker = "[x]"
+      taskNode.item = { ...taskNode.item, task: { status: "done", marker: "[x]" } }
       return nodes
     })
 
@@ -258,8 +257,7 @@ describe("Inline Edit — Task Markers", () => {
       const nodes = item("board", item("col1", item("mytodo")))
       const taskNode = nodes.find((n) => n.id === "mytodo")!
       taskNode.content = "- [ ] mytodo"
-      taskNode.task_status = "todo"
-      taskNode.task_marker = "[ ]"
+      taskNode.item = { ...taskNode.item, task: { status: "todo", marker: "[ ]" } }
       return nodes
     })
 
@@ -833,14 +831,11 @@ describe("Outliner Enter — embed_source nodes (transclusion)", () => {
     const targetA: KNode = {
       id: "target-a",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
       embed_source: null,
-      task_status: "todo",
-      task_marker: "[ ]",
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -851,7 +846,6 @@ describe("Outliner Enter — embed_source nodes (transclusion)", () => {
     const otherFile: KNode = {
       id: "other-file",
       type: "h",
-      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Other File" },
@@ -868,20 +862,17 @@ describe("Outliner Enter — embed_source nodes (transclusion)", () => {
       if (n.id === "link-a") {
         n.embed_source = "target-a"
         n.content = "Target task A"
-        n.task_status = "todo"
-        n.task_marker = "[ ]"
+        n.item = { ...n.item, task: { status: "todo", marker: "[ ]" } }
       }
       if (n.id === "link-b") {
         n.embed_source = "target-b"
         n.content = "Target task B"
-        n.task_status = "todo"
-        n.task_marker = "[ ]"
+        n.item = { ...n.item, task: { status: "todo", marker: "[ ]" } }
       }
       if (n.id === "link-c") {
         n.embed_source = "target-c"
         n.content = "Target task C"
-        n.task_status = "todo"
-        n.task_marker = "[ ]"
+        n.item = { ...n.item, task: { status: "todo", marker: "[ ]" } }
       }
     }
 
@@ -962,14 +953,11 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     const targetA: KNode = {
       id: "target-a",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "Target task A",
       parent_id: "other-file",
       parent_idx: 0,
       embed_source: null,
-      task_status: "todo",
-      task_marker: "[ ]",
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -980,7 +968,6 @@ describe("Outliner Enter — paragraph-type embeds (real vault)", () => {
     const otherFile: KNode = {
       id: "other-file",
       type: "h",
-      item: true,
       fstype: "folder",
       content: undefined,
       data: { name: "Other File" },

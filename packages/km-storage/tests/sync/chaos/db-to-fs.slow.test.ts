@@ -34,12 +34,12 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
-        expect(task!.task_status).toBe("todo")
+        expect(task!.item?.task?.status).toBe("todo")
 
         // Update task status
-        data.updateNode(task!.id, { task_status: "done" })
+        data.updateNode(task!.id, { item: { task: { status: "done", marker: "[ ]" } } })
 
         // Wait for write queue to flush
         await Bun.sleep(200)
@@ -66,12 +66,12 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
-        expect(task!.task_status).toBe("done")
+        expect(task!.item?.task?.status).toBe("done")
 
         // Update task status back to todo
-        data.updateNode(task!.id, { task_status: "todo" })
+        data.updateNode(task!.id, { item: { task: { status: "todo", marker: "[ ]" } } })
 
         // Wait for write queue to flush
         await Bun.sleep(200)
@@ -100,7 +100,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
 
         // Update task content
@@ -133,7 +133,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
 
         // Make 5 rapid updates
@@ -166,15 +166,15 @@ describe("DB → File Sync Tests", () => {
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
 
         // Toggle status rapidly
-        data.updateNode(task!.id, { task_status: "done" })
-        data.updateNode(task!.id, { task_status: "todo" })
-        data.updateNode(task!.id, { task_status: "done" })
-        data.updateNode(task!.id, { task_status: "todo" })
-        data.updateNode(task!.id, { task_status: "done" }) // Final: done
+        data.updateNode(task!.id, { item: { task: { status: "done", marker: "[ ]" } } })
+        data.updateNode(task!.id, { item: { task: { status: "todo", marker: "[ ]" } } })
+        data.updateNode(task!.id, { item: { task: { status: "done", marker: "[ ]" } } })
+        data.updateNode(task!.id, { item: { task: { status: "todo", marker: "[ ]" } } })
+        data.updateNode(task!.id, { item: { task: { status: "done", marker: "[ ]" } } }) // Final: done
 
         // Wait for write queue to flush
         await Bun.sleep(300)
@@ -204,7 +204,7 @@ describe("DB → File Sync Tests", () => {
 
         // Find tasks
         const allNodes = getAllNodes(db)
-        const tasks = allNodes.filter((n) => n.task_status != null)
+        const tasks = allNodes.filter((n) => n.item?.task?.status != null)
         expect(tasks.length).toBe(2)
 
         const task1 = tasks.find((t) => t.content === "Task 1")
@@ -213,7 +213,7 @@ describe("DB → File Sync Tests", () => {
         expect(task2).toBeDefined()
 
         // Update both tasks
-        data.updateNode(task1!.id, { task_status: "done" })
+        data.updateNode(task1!.id, { item: { task: { status: "done", marker: "[ ]" } } })
         data.updateNode(task2!.id, { content: "Modified Task 2" })
 
         // Wait for write queue to flush
@@ -247,7 +247,7 @@ describe("DB → File Sync Tests", () => {
 
         // Try to update a non-existent node
         expect(() => {
-          data.updateNode("non-existent-id", { task_status: "done" })
+          data.updateNode("non-existent-id", { item: { task: { status: "done", marker: "[ ]" } } })
         }).not.toThrow()
 
         // File should be unchanged
@@ -288,11 +288,11 @@ More content that should be preserved.
 
         // Find the task
         const allNodes = getAllNodes(db)
-        const task = allNodes.find((n) => n.task_status != null)
+        const task = allNodes.find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
 
         // Update task
-        data.updateNode(task!.id, { task_status: "done" })
+        data.updateNode(task!.id, { item: { task: { status: "done", marker: "[ ]" } } })
 
         // Wait for write queue to flush
         await Bun.sleep(200)

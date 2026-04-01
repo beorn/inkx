@@ -6,7 +6,7 @@
 
 import type { ActionResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
-import { KNode } from "@km/core"
+import { KNode, type ItemData } from "@km/core"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
@@ -20,7 +20,7 @@ import type { ActionCtx } from "../tui-context.ts"
  * Falls back to column header if the column is empty.
  */
 function firstCardId(
-  children: { id: string; type: string; item?: boolean; content?: string }[],
+  children: { id: string; type: string; item?: ItemData; content?: string }[],
   repo: ActionCtx["repo"],
 ): string | null {
   if (children.length === 0) return null

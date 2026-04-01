@@ -271,8 +271,8 @@ function DocNode({
 
   // ── Task item ── status icon + content (matching board card style)
   if (isTask) {
-    const icon = getStatusIcon(node.task_status ?? "todo")
-    const isDone = node.task_status === "done" || node.task_status === "dropped"
+    const icon = getStatusIcon(node.item?.task?.status ?? "todo")
+    const isDone = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
     const textColor = isCursor ? "$selection" : isDone ? "$muted" : undefined
     return (
       <Box flexDirection="column">
@@ -304,7 +304,7 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-          <Text color={isCursor ? "$selection" : "$muted"}>{node.list_marker ?? "•"} </Text>
+          <Text color={isCursor ? "$selection" : "$muted"}>{node.item?.list ?? "•"} </Text>
           <Text color={isCursor ? "$selection" : undefined} wrap="wrap">
             <InlineText text={content} context={cursorCtx} />
           </Text>
@@ -451,7 +451,7 @@ function getMetadataValue(key: string, node: KNode, repo: import("../repo-contex
 
   switch (key) {
     case "Status": {
-      const status = getStatusDisplay(node.task_status)
+      const status = getStatusDisplay(node.item?.task?.status)
       return {
         text: status.text,
         element: <Text color={status.color}>{status.text}</Text>,

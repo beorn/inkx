@@ -297,17 +297,24 @@ function createQueryMethods(deps: RepoMethodDeps) {
         .get() as Record<string, unknown> | undefined
       if (!row) return null
       // Import rowToNode inline to avoid circular dependency
+      const taskMarker = row.task_marker as string | null
+      const taskStatus = row.task_status as TaskStatus | null
+      const listMarker = row.list_marker as string | null
       return {
         id: row.id as string,
         type: row.type as string,
-        item: !!(row.item as number),
+        item: row.item
+          ? {
+              ...(listMarker ? { list: listMarker } : {}),
+              ...(taskMarker ? { task: { marker: taskMarker, status: taskStatus ?? "todo" } } : {}),
+            }
+          : undefined,
         fstype: row.fstype as string | null,
         parent_id: row.parent_id as string | null,
         parent_idx: row.parent_idx as number,
         fs_path: row.fs_path as string | null,
         name: row.name as string | null,
         content: row.content as string | null,
-        task_status: row.task_status as TaskStatus | null,
         data: row.data ? (JSON.parse(row.data as string) as KNode["data"]) : {},
       } as KNode
     },
@@ -405,15 +412,21 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
     },
     cloneTask(sourceId: string, changes: Partial<KNode>) {
       const source = dataStore.getNode(sourceId)
-      if (!source?.task_marker) return null
+      if (!source?.item?.task) return null
 
+      const newItem = changes.item ?? source.item
       const clonedNode: Partial<KNode> & { content: string } = {
         type: source.type,
         content: changes.content ?? source.content ?? "",
         parent_id: changes.parent_id ?? source.parent_id,
         parent_idx: changes.parent_idx ?? (source.parent_idx ?? 0) + 0.001,
-        task_status: changes.task_status ?? "todo",
-        task_marker: changes.task_marker ?? "[ ]",
+        item: {
+          ...newItem,
+          task: {
+            marker: newItem?.task?.marker ?? "[ ]",
+            status: newItem?.task?.status ?? "todo",
+          },
+        },
         assigned_to: changes.assigned_to ?? source.assigned_to,
         due_at: changes.due_at ?? source.due_at,
         start_at: changes.start_at ?? source.start_at,
@@ -704,7 +717,7 @@ export interface SyncConflict {
  * ```typescript
  * // Full repo with files (most common)
  * using repo = createRepo("/path/to/repo")
- * const tasks = repo.data.getAllNodes().filter(n => n.task_marker !== undefined)
+ * const tasks = repo.data.getAllNodes().filter(n => n.item?.task != null)
  *
  * // Bare repo - no files (daemon, API server)
  * const data = createMemDataStore()
@@ -1222,7 +1235,7 @@ function expandUnexploredDirectory(
       data: {
         id: folderId,
         type: "h",
-        item: true,
+        item: {},
         fstype: "folder",
         parent_id: parentId,
         parent_idx: order,
@@ -1263,7 +1276,7 @@ function expandUnexploredDirectory(
         data: {
           id: fileId,
           type: "h",
-          item: true,
+          item: {},
           fstype: "file",
           parent_id: parentId,
           parent_idx: order,
@@ -1285,7 +1298,7 @@ function expandUnexploredDirectory(
         data: {
           id: fileId,
           type: "h",
-          item: true,
+          item: {},
           fstype: isTxt ? "txtfile" : "mdfile",
           parent_id: parentId,
           parent_idx: order,

@@ -58,8 +58,7 @@ describe("Board Pure Rendering", () => {
     const card: KNode = {
       id: "test-card",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       parent_id: null,
       parent_idx: 0,
       embed_source: null,
@@ -78,8 +77,7 @@ describe("Board Pure Rendering", () => {
     const childNode: KNode = {
       id: "child-1",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       parent_id: "test-card",
       parent_idx: 0,
       embed_source: null,
@@ -94,8 +92,7 @@ describe("Board Pure Rendering", () => {
     const card: KNode = {
       id: "test-card",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       parent_id: null,
       parent_idx: 0,
       embed_source: null,
@@ -114,8 +111,7 @@ describe("Board Pure Rendering", () => {
     const child1: KNode = {
       id: "child-1",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       parent_id: "test-card",
       parent_idx: 0,
       embed_source: null,
@@ -128,8 +124,7 @@ describe("Board Pure Rendering", () => {
     const child2: KNode = {
       id: "child-2",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       parent_id: "test-card",
       parent_idx: 1,
       embed_source: null,
@@ -144,8 +139,7 @@ describe("Board Pure Rendering", () => {
     const card: KNode = {
       id: "test-card",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       parent_id: null,
       parent_idx: 0,
       embed_source: null,
@@ -167,7 +161,7 @@ describe("Board Pure Rendering", () => {
     const card = createCardNode({
       content: "Fixture Card",
       type: "p",
-      item: true,
+      item: {},
     })
 
     const output = renderCard(repo, card, 40, false, false, false)
@@ -230,7 +224,7 @@ describe("useChildren", () => {
     expect(app.text).toBe("task1")
 
     // Mutate and trigger re-render via rerender
-    repo.addNode("col1", { type: "p", item: true, content: "task2" })
+    repo.addNode("col1", { type: "p", item: {}, content: "task2" })
     act(() => {
       app.rerender(el)
     })

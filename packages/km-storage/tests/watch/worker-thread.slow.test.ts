@@ -111,8 +111,8 @@ describe.sequential("Worker Thread Integration", () => {
 
     // Verify the change was synced
     const nodes = getAllNodes(db)
-    const task = nodes.find((n) => n.task_status != null)
+    const task = nodes.find((n) => n.item?.task?.status != null)
     expect(task).toBeDefined()
-    expect(task!.task_status).toBe("done")
+    expect(task!.item?.task?.status).toBe("done")
   })
 })

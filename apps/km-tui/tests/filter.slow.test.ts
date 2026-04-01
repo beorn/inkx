@@ -272,7 +272,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const srcParent: KNode = {
       id: "src-parent",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "Sources" },
@@ -286,10 +286,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const src1: KNode = {
       id: "src1",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       priority: "P1",
       content: "Source task 1 (todo P1)",
       data: {},
@@ -303,10 +300,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const src2: KNode = {
       id: "src2",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[x]",
-      task_status: "done",
+      item: { list: "-", task: { status: "done", marker: "[x]" } },
       priority: "P2",
       content: "Source task 2 (done P2)",
       data: {},
@@ -322,7 +316,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const tasksCol: KNode = {
       id: "Tasks",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "Tasks" },
@@ -339,8 +333,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const embed1: KNode = {
       id: "embed1",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "![[src1]]",
       data: {},
       parent_id: "Tasks",
@@ -353,8 +346,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const embed2: KNode = {
       id: "embed2",
       type: "p",
-      item: true,
-      list_marker: "-",
+      item: { list: "-" },
       content: "![[src2]]",
       data: {},
       parent_id: "Tasks",
@@ -368,10 +360,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const normalTask: KNode = {
       id: "normalTask",
       type: "p",
-      item: true,
-      list_marker: "-",
-      task_marker: "[ ]",
-      task_status: "todo",
+      item: { list: "-", task: { status: "todo", marker: "[ ]" } },
       content: "Normal task (todo)",
       data: {},
       parent_id: "Tasks",
@@ -386,7 +375,7 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     const board: KNode = {
       id: "board",
       type: "h",
-      item: true,
+      item: {},
       fstype: "folder",
       content: undefined,
       data: { name: "board" },
@@ -491,7 +480,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     ...base,
     id: "file-1",
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdfile",
     fs_path: "tasks.md",
     name: "tasks",
@@ -504,7 +493,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     ...base,
     id: "col1",
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "todo",
     content: "Todo",
@@ -517,7 +506,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     ...base,
     id: "col2",
     type: "h",
-    item: true,
+    item: {},
     fstype: "mdsection",
     name: "done",
     content: "Done",
@@ -530,10 +519,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     ...base,
     id: "task-a",
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[ ]",
-    task_status: "todo",
+    item: { list: "-", task: { status: "todo", marker: "[ ]" } },
     content: "Task A",
     data: {},
     parent_id: "col1",
@@ -544,10 +530,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     ...base,
     id: "task-b",
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[ ]",
-    task_status: "todo",
+    item: { list: "-", task: { status: "todo", marker: "[ ]" } },
     content: "Task B",
     data: {},
     parent_id: "col1",
@@ -558,10 +541,7 @@ function createRealisticNodes(repoPath: string): KNode[] {
     ...base,
     id: "task-c",
     type: "p",
-    item: true,
-    list_marker: "-",
-    task_marker: "[x]",
-    task_status: "done",
+    item: { list: "-", task: { status: "done", marker: "[x]" } },
     content: "Task C",
     data: {},
     parent_id: "col2",
@@ -832,8 +812,7 @@ describe("filter hidden count indicator", () => {
     // Create a board with 2 todo tasks and 1 done task
     const nodes = item("board", item("Tasks", item("todo1"), item("todo2"), item("doneTask")))
     const doneNode = nodes.find((n) => n.id === "doneTask")!
-    doneNode.task_status = "done"
-    doneNode.task_marker = "[x]"
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -865,8 +844,7 @@ describe("filter hidden count indicator", () => {
     // The hidden count should reflect these descendant-level hidden items.
     const nodes = item("board", item("Col", item("Section A", item("todoChild"), item("doneChild"))))
     const doneNode = nodes.find((n) => n.id === "doneChild")!
-    doneNode.task_status = "done"
-    doneNode.task_marker = "[x]"
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 

@@ -39,7 +39,7 @@ describe("getTypeIcon", () => {
     ["mdfile", "📄"],
     ["mdsection", "#"],
   ] as const)("returns %s icon for outline (h, item=true) %s", (fstype, icon) => {
-    expect(getTypeIcon("h", fstype, true)).toBe(icon)
+    expect(getTypeIcon("h", fstype, {})).toBe(icon)
   })
 
   it.each(["p", "code", "quote"])("returns empty string for %s", (type) => {

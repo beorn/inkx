@@ -151,7 +151,7 @@ export function renderAsciiView(state: BoardState): string {
         done: "✓",
         dropped: "∅",
       }
-      const statusIcon = node.task_status ? STATUS_ICONS[node.task_status] : " "
+      const statusIcon = node.item?.task?.status ? STATUS_ICONS[node.item?.task?.status] : " "
 
       lines.push(
         `${indent}${marker}${foldMarker} ${statusIcon} ${node.title}${node.childCount > 0 ? ` (+${node.childCount})` : ""}`,
@@ -400,7 +400,7 @@ function listNodes(state: BoardState, pathStr?: string): string {
   // Format output like ls
   const items = nodes.map((node) => {
     const suffix = node.children.length > 0 ? "/" : ""
-    const taskMark = node.task_status ? statusIcons[node.task_status] + " " : ""
+    const taskMark = node.item?.task?.status ? statusIcons[node.item?.task?.status] + " " : ""
     return `${taskMark}${node.title}${suffix}`
   })
 
@@ -466,7 +466,7 @@ function renderTreeCommand(state: BoardState, pathStr?: string, maxDepth?: numbe
       const connector = isLast ? "└── " : "├── "
       const childPrefix = isLast ? "    " : "│   "
 
-      const taskMark = node.task_status ? statusIcons[node.task_status] + " " : ""
+      const taskMark = node.item?.task?.status ? statusIcons[node.item?.task?.status] + " " : ""
 
       const suffix = node.children.length > 0 && currentDepth >= depth ? ` (+${node.childCount})` : ""
 
@@ -513,8 +513,8 @@ function catNode(state: BoardState, pathStr?: string): string {
   lines.push(`# ${node.title}`)
   lines.push(`id: ${node.id}`)
 
-  if (node.task_status) {
-    lines.push(`status: ${node.task_status}`)
+  if (node.item?.task?.status) {
+    lines.push(`status: ${node.item?.task?.status}`)
   }
 
   if (node.childCount > 0) {

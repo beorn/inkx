@@ -105,7 +105,7 @@ export function NewItemDialog({
   )
 
   // Determine if cursor is a task (new item will also be a task)
-  const isTask = cursorNode?.task_marker != null || cursorNode === null
+  const isTask = cursorNode?.item?.task?.marker != null || cursorNode === null
 
   // Use refs to avoid stale closure issues with the handler
   const onCancelRef = React.useRef(onCancel)
@@ -122,12 +122,9 @@ export function NewItemDialog({
       }
       undoHandle.setCursor(cursorNode?.id ?? null)
       const nodeId = repo.addNode(parentId, {
-        type: isTask ? "p" : "p",
-        item: isTask ? true : undefined,
+        type: "p",
+        item: isTask ? { list: "-", task: { marker: "[ ]", status: "todo" } } : undefined,
         content: content.trim(),
-        task_status: isTask ? "todo" : undefined,
-        task_marker: isTask ? "[ ]" : undefined,
-        list_marker: isTask ? "-" : undefined,
       })
       onCreateRef.current(nodeId)
     },

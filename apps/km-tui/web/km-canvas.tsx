@@ -201,7 +201,7 @@ type AgNode = import("../../../vendor/silvery/packages/ag/src/types.js").AgNode
 /** Walk through single-child wrapper nodes to find the BoardView layout node */
 function findBoardBox(root: AgNode): AgNode {
   let node = root
-  while (node.children.length === 1) node = node.children[0]
+  while (node.children.length === 1) node = node.children[0]!
   return node
 }
 
@@ -335,7 +335,7 @@ function BoardView({
             if (isAdding) {
               const col = columns[colIndex]
               if (repo && col && editText.trim()) {
-                repo.addNode(col.id, { type: "p", content: editText.trim(), item: true } as Partial<
+                repo.addNode(col.id, { type: "p", content: editText.trim(), item: {} } as Partial<
                   import("@km/core").KNode
                 >)
               }
@@ -578,7 +578,7 @@ function toColumns(columns: RealColumnView[], repo: RepoLike): Column[] {
       return {
         id: card.id,
         title: nodeName(card),
-        status: card.task_status as string | undefined,
+        status: card.item?.task?.status as string | undefined,
         childCount: children.length || undefined,
         hasBody: card.hasBodyChildren || undefined,
       }

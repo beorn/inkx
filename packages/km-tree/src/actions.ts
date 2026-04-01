@@ -18,7 +18,7 @@ import type { KNode } from "@km/core"
  * These describe intent; the effect layer executes via @km/storage.
  *
  * Actions are idempotent - they set to specific values, not toggle.
- * Example: { type: "UPDATE_NODE", updates: { task_status: "done" } }
+ * Example: { type: "UPDATE_NODE", updates: { item: { task: { marker: "[x]", status: "done" } } } }
  *          NOT { type: "TOGGLE_TASK_STATUS" }
  */
 export type TAction =
