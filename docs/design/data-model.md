@@ -222,55 +222,117 @@ withBoard:     overrides validate → calls prev validate + checks columns are i
 
 Each `with*` plugin wraps the previous `validate` — no registry, no `addValidator`. Same pattern used for `apply`, `deleteNode`, etc.
 
-### API
+### ValidationContext
+
+`validate()` receives a rich context object — the ops that happened, the nodes affected, and any other state plugins have attached. When a validator throws, `withValidation` catches it and rethrows with full diagnostic context.
 
 ```typescript
-// Base: tree has validate() as no-op
+/** Everything a validator needs to diagnose issues. */
+interface ValidationContext {
+  /** Operations applied since last validation (the batch). */
+  ops: TreeOp[]
+  /** Node IDs touched by the ops (added, moved, deleted, updated). */
+  affectedNodeIds: Set<string>
+  /** Phase: "pre" (before apply) or "post" (after apply/batch). */
+  phase: "pre" | "post"
+  /** The command/action that triggered these ops (if known). */
+  command?: string
+  /** CursorContext at time of validation (if cursor plugin is active). */
+  cursor?: CursorContext
+  /** Selection at time of validation. */
+  selection?: Set<string>
+  /** Timestamp when the batch started. */
+  timestamp: number
+}
+
+/** Base tree has validate as no-op. */
 interface TreeMutator {
-  validate(): void
+  validate(ctx: ValidationContext): void
   withBatch<T>(fn: () => T): T
   // ... existing mutators
 }
+```
 
-// withValidation: wraps apply to call validate after each mutation
+### withValidation
+
+```typescript
 function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolean }): T {
   const strict = opts?.strict ?? !!process.env.KM_STRICT
   let batchDepth = 0
-  let dirty = false
+  const pendingOps: TreeOp[] = []
+  const affectedNodes = new Set<string>()
 
-  // Wrap every mutation to call validate after — unless batched
   const origApply = tree.apply
   tree.apply = (op) => {
     origApply(op)
-    dirty = true
-    if (strict && batchDepth === 0) tree.validate()
+    pendingOps.push(op)
+    collectAffected(op, affectedNodes)
+    if (strict && batchDepth === 0) runValidation("post")
   }
 
-  // Batch: defer validation until outermost batch completes
   tree.withBatch = (fn) => {
     batchDepth++
     try { return fn() }
     finally {
       batchDepth--
-      if (batchDepth === 0 && dirty && strict) {
-        dirty = false
-        tree.validate()
+      if (batchDepth === 0 && strict && pendingOps.length > 0) {
+        runValidation("post")
+      }
+    }
+  }
+
+  function runValidation(phase: "pre" | "post") {
+    const ctx: ValidationContext = {
+      ops: [...pendingOps],
+      affectedNodeIds: new Set(affectedNodes),
+      phase,
+      command: tree._currentCommand,  // set by action dispatcher
+      cursor: tree._cursorContext,     // set by cursor plugin
+      selection: tree._selection,      // set by cursor plugin
+      timestamp: Date.now(),
+    }
+    pendingOps.length = 0
+    affectedNodes.clear()
+
+    try {
+      tree.validate(ctx)
+    } catch (err) {
+      // Rethrow with full diagnostic context
+      const diagnostic = {
+        error: err.message,
+        phase: ctx.phase,
+        command: ctx.command,
+        ops: ctx.ops.map(formatOp),
+        affectedNodes: [...ctx.affectedNodeIds],
+        cursor: ctx.cursor,
+        selection: ctx.selection ? [...ctx.selection] : undefined,
+      }
+      log.error?.("INVARIANT VIOLATION", diagnostic)
+      if (strict) {
+        throw new InvariantError(err.message, diagnostic)
       }
     }
   }
 
   return tree
 }
+```
 
-// Each plugin overrides validate:
+### Plugin Override Pattern
+
+Each plugin wraps `validate` — the context flows through the chain:
+
+```typescript
 function withOutliner(tree) {
   const { validate } = tree
-  tree.validate = () => {
-    validate()  // previous checks first
-    // outliner-specific checks
-    for (const node of tree.allNodes()) {
-      if (!node.item && tree.getChildren(node.id).length > 0)
-        throw new InvariantError("block-has-children", node.id)
+  tree.validate = (ctx: ValidationContext) => {
+    validate(ctx)  // previous checks first
+    // Only check affected nodes (not entire tree) for performance
+    for (const nodeId of ctx.affectedNodeIds) {
+      const node = tree.getNode(nodeId)
+      if (!node) continue
+      if (!node.item && tree.getChildren(nodeId).length > 0)
+        throw new Error(`block-has-children: ${nodeId}`)
     }
   }
   return tree
@@ -279,16 +341,31 @@ function withOutliner(tree) {
 
 ### Batching
 
-Multi-step operations defer validation until the batch completes:
-
 ```typescript
-// splitBlock: creates new node + moves children — intermediate state has orphans
 tree.withBatch(() => {
-  const newId = tree.addNode(parentId, { ... })  // step 1
-  tree.moveNode(childId, newId, 0)               // step 2
-  tree.updateNode(nodeId, { content: before })    // step 3
-  // validate() called HERE — all 3 steps complete
+  tree.addNode(parentId, { ... })       // op 1 — collected
+  tree.moveNode(childId, newId, 0)      // op 2 — collected
+  tree.updateNode(nodeId, { ... })      // op 3 — collected
+  // validate(ctx) called here with all 3 ops + all affected nodes
 })
+```
+
+### Error Output
+
+When a validator fails, the error includes everything needed to diagnose:
+
+```
+INVARIANT VIOLATION {
+  error: "block-has-children: 01KXYZ",
+  phase: "post",
+  command: "INDENT_NODE",
+  ops: [
+    { type: "move", nodeId: "01KXYZ", newParent: "01KABC", newIdx: 2 }
+  ],
+  affectedNodes: ["01KXYZ", "01KABC"],
+  cursor: { nodeId: "01KXYZ", visualRole: "subitem", ... },
+  selection: ["01KXYZ"]
+}
 ```
 
 ### Plugin Validation Stack
