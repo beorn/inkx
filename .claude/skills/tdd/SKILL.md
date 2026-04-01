@@ -13,6 +13,8 @@ This applies to **bugs AND features**. For bugs: reproduce the broken behavior. 
 
 $ARGUMENTS
 
+**If no arguments**: Look at the recent conversation for bug reports, feature requests, or user-described issues. Check active beads (`bd list --status in_progress`). Infer what needs TDD from context — don't ask "what should I test?"
+
 ## Step 0: Context Before Code
 
 Before writing anything:

@@ -13,6 +13,8 @@ You're here because either: (a) the user asked you to think bigger, (b) you're a
 
 $ARGUMENTS
 
+**If no arguments**: Infer from recent conversation — what bugs keep appearing? What area feels fragile? What did the user just report? Don't ask "what should I think about?"
+
 ## Phase 1: See the Problem Five Ways
 
 Before generating solutions, understand the problem from 5 different angles. Write 1-2 sentences for each:
