@@ -13,7 +13,6 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
 import { DETAIL_DEFAULT_DEPTH } from "../src/view-navigation.ts"
 
 describe("Detail Pane Journeys", () => {
@@ -171,9 +170,7 @@ describe("Detail Pane Journeys", () => {
     const ws = store.getState().workspace
     expect(ws.panes.has("main-detail")).toBe(true)
     // Inline edit should be active on child-a (not the board cursor card)
-    const editBlock = getActiveBoardPane(store.getState())?.inlineEditBlock
-    expect(editBlock).not.toBeNull()
-    expect(editBlock?.nodeId).toBe("child-a")
+    board.expectEditing("child-a")
 
     // Step 4: Type to edit the title — the text should appear on screen
     for (const c of "-ok") board.press(c)
@@ -181,7 +178,7 @@ describe("Detail Pane Journeys", () => {
 
     // Step 5: Escape to confirm edit
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())?.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
 
     // Step 6: Verify the node was updated in repo
     const updated = repo.getNode("child-a")
@@ -197,7 +194,7 @@ describe("Detail Pane Journeys", () => {
     // Open detail (cursor starts on child-a), start editing
     board.command("toggle_detail_pane")
     board.press("Enter")
-    expect(getActiveBoardPane(store.getState())?.inlineEditBlock?.nodeId).toBe("child-a")
+    board.expectEditing("child-a")
 
     // Type something
     for (const c of "-ok") board.press(c)
@@ -206,7 +203,7 @@ describe("Detail Pane Journeys", () => {
     // (Enter would split the paragraph since child-a is a body block with editBlockIndex > 0)
     const childrenBefore = repo.getChildren("parent").length
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())?.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
     expect(repo.getChildren("parent").length).toBe(childrenBefore) // no stray node
     expect(repo.getNode("child-a")?.content).toContain("-ok") // saved
   })
@@ -224,7 +221,7 @@ describe("Detail Pane Journeys", () => {
 
     // i = inline edit on detail cursor node
     board.press("i")
-    expect(getActiveBoardPane(store.getState())?.inlineEditBlock?.nodeId).toBe("child-a")
+    board.expectEditing("child-a")
   })
 
   // =========================================================================

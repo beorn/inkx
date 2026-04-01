@@ -56,12 +56,11 @@ describe("Escape Layering", () => {
 
     // Enter inline edit mode with 'i'
     board.press("i")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).not.toBeNull()
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock?.nodeId).toBe("task1")
+    board.expectEditing("task1")
 
     // Escape exits edit mode — cursor stays on same node
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.inlineEditBlock).toBeNull()
+    board.expectNotEditing()
     board.expect("#task1[data-cursor]").toExist()
   })
 
