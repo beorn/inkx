@@ -26,13 +26,24 @@ Plans and executes large refactors with phased discipline. Not for small renames
 `/refactor plan` and `/refactor phase` load [pm/workflows/refactor.md](../pm/workflows/refactor.md).
 `/refactor migrate` loads [migrate.md](migrate.md) — for type restructurings, field renames, interface changes.
 
-## When to Use
+## When to Use Which
 
+**`/refactor plan`** — the code's **shape** changes (new types, new packages, new layers):
 - Extracting a package from a monolith
 - Decomposing a monolithic type/function into composable parts
-- Migrating from OldAPI to NewAPI across many consumers
 - Splitting a large file/module into multiple
-- Any change touching 10+ files that can't be done atomically
+- Adding a new abstraction layer (e.g., Board.apply pure reducer)
+- Any architectural change that needs phased planning
+
+**`/refactor migrate`** — the code's shape stays the same, just **names/types change** across many files:
+- Rename a field/type across 50+ files (`task_marker` → `item.task.marker`)
+- Change an interface and update all consumers (`item: boolean` → `item: ItemData`)
+- API migration where 80%+ of changes are mechanical find-replace
+- Any migration where batch-refactor can handle the bulk
+
+**Decision rule**: If you could write a codemod/regex to do 80% of the work, use `/refactor migrate`. If each file needs different judgment about what to change, use `/refactor plan`.
+
+**They compose**: A large refactor might use `/refactor plan` for the architecture (Phase 1: new type, Phase 2: new package) and `/refactor migrate` within a phase for the mechanical consumer updates.
 
 ## Package Extraction Rules (from era2)
 
