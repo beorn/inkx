@@ -362,6 +362,20 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
 }
 
 // =============================================================================
+// Tree Query Helpers
+// =============================================================================
+
+/** Find a node's index among its siblings. Returns -1 if not found. */
+function siblingIndex(tree: TreeMutator, nodeId: string, parentId: string): number {
+  return tree.getChildren(parentId).findIndex((s) => s.id === nodeId)
+}
+
+/** Compute a sort order between two values (midpoint). */
+function midpoint(a: number, b: number): number {
+  return (a + b) / 2
+}
+
+// =============================================================================
 // Split Helpers
 // =============================================================================
 
@@ -369,19 +383,15 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
 function createSiblingBefore(tree: TreeMutator, node: KNode): SplitBlockResult {
   const parentId = node.parent_id!
   const siblings = tree.getChildren(parentId)
-  const myIndex = siblings.findIndex((s) => s.id === node.id)
+  const idx = siblingIndex(tree, node.id, parentId)
   const myIdx = node.parent_idx ?? 0
-  const prevSibling = myIndex > 0 ? siblings[myIndex - 1] : undefined
-  const prevIdx = prevSibling?.parent_idx ?? myIdx - 1
-  const newSortOrder = (prevIdx + myIdx) / 2
+  const prevIdx = (idx > 0 ? siblings[idx - 1]?.parent_idx : undefined) ?? myIdx - 1
 
-  const props = KNode.extractProps(node)
   const newId = tree.addNode(parentId, {
-    ...props,
+    ...KNode.extractProps(node),
     content: "",
-    parent_idx: newSortOrder,
+    parent_idx: midpoint(prevIdx, myIdx),
   })
-
   return { beforeId: newId, afterId: node.id }
 }
 
@@ -389,35 +399,28 @@ function createSiblingBefore(tree: TreeMutator, node: KNode): SplitBlockResult {
 function createSiblingAfter(tree: TreeMutator, node: KNode): SplitBlockResult {
   const parentId = node.parent_id!
   const siblings = tree.getChildren(parentId)
-  const myIndex = siblings.findIndex((s) => s.id === node.id)
+  const idx = siblingIndex(tree, node.id, parentId)
   const myIdx = node.parent_idx ?? 0
-  const nextSibling = myIndex < siblings.length - 1 ? siblings[myIndex + 1] : undefined
-  const nextIdx = nextSibling?.parent_idx ?? myIdx + 1
-  const newSortOrder = (myIdx + nextIdx) / 2
+  const nextIdx = (idx < siblings.length - 1 ? siblings[idx + 1]?.parent_idx : undefined) ?? myIdx + 1
 
-  const props = KNode.extractProps(node)
   const newId = tree.addNode(parentId, {
-    ...props,
+    ...KNode.extractProps(node),
     content: "",
-    parent_idx: newSortOrder,
+    parent_idx: midpoint(myIdx, nextIdx),
   })
-
   return { beforeId: node.id, afterId: newId }
 }
 
 /** Create an empty first child of the current node. */
 function createFirstChild(tree: TreeMutator, node: KNode): SplitBlockResult {
-  const children = tree.getChildren(node.id)
-  const firstChild = children[0]
+  const firstChild = tree.getChildren(node.id)[0]
   const firstIdx = firstChild?.parent_idx ?? 1
-  const newSortOrder = firstIdx > 0 ? firstIdx / 2 : firstIdx - 1
+  const sortOrder = firstIdx > 0 ? firstIdx / 2 : firstIdx - 1
 
-  const props = KNode.extractProps(node)
   const newId = tree.addNode(node.id, {
-    ...props,
+    ...KNode.extractProps(node),
     content: "",
-    parent_idx: newSortOrder,
+    parent_idx: sortOrder,
   })
-
   return { beforeId: node.id, afterId: newId }
 }
