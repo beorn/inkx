@@ -6,7 +6,7 @@
  * while the TUI uses SimplifiedBoardState with just cursorNodeId.
  */
 
-import type { TaskStatus, TaskMarker, NodeRules, ItemData } from "@km/core"
+import type { NodeRules, ItemData } from "@km/core"
 
 /**
  * Tree path - array of indices into nodes/children arrays
@@ -27,8 +27,6 @@ export interface TNode {
   embed_source?: string | null
   name?: string
   title: string | null
-  task_status?: TaskStatus
-  task_marker?: TaskMarker
   priority?: string
   due_at?: string
   start_at?: string

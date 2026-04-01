@@ -44,7 +44,7 @@ const style = getNodeStyle(node, isSelected, depth)
 // AFTER: Only when deps change
 const style = useMemo(
   () => getNodeStyle(node, isSelected, depth),
-  [node.id, node.task_status, isSelected, depth],
+  [node.id, node.item?.task?.status, isSelected, depth],
 )
 ```
 

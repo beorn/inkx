@@ -205,7 +205,7 @@ test("concurrent fs and db edits merge without data loss", async () => {
 
     // Concurrent: fs adds a task, db marks one done
     appendFileSync(join(repoDir, "tasks.md"), "- [ ] Gamma\n")
-    updateNode(db, "Beta", { task_status: "done" })
+    updateNode(db, "Beta", { item: { task: { marker: "[x]", status: "done" } } })
 
     await sync(db, repoDir)
     const content = readFileSync(join(repoDir, "tasks.md"), "utf-8")

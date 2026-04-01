@@ -90,7 +90,7 @@ grep "CardColumn card:" /tmp/tui-debug.log
 | Extra content | Node rendered that shouldn't be at current zoom level |
 | Wrong position | Check column/card indices in logs, compare to expected layout |
 | Wrong size | Check if content is truncated unexpectedly, or columns misaligned |
-| Wrong styling | Check task_status, selection state, dim flags in render context |
+| Wrong styling | Check item.task.status, selection state, dim flags in render context |
 
 **Beyond content - also verify (depending on the bug):**
 - **Relative position**: Items in correct column, correct order within column
