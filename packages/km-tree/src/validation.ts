@@ -35,7 +35,7 @@ export function withValidation<T extends TreeMutator & { validate?: () => void }
   tree.deleteNode = wrap(tree.deleteNode)
 
   // withBatch defers validate until outermost batch completes
-  ;(tree as TreeMutator & { withBatch: <R>(fn: () => R) => R }).withBatch = <R>(fn: () => R): R => {
+  ;(tree as unknown as TreeMutator & { withBatch: <R>(fn: () => R) => R }).withBatch = <R>(fn: () => R): R => {
     batching++
     try {
       return fn()
