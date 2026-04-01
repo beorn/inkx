@@ -18,11 +18,13 @@ Plans and executes large refactors with phased discipline. Not for small renames
 
 | Command | Purpose |
 |---|---|
-| `/refactor plan <scope>` | Create a phased plan |
+| `/refactor plan <scope>` | Create a phased plan for architectural changes |
 | `/refactor review` | Review existing plan for gaps and risks |
 | `/refactor phase <N>` | Execute a specific phase with /complete |
+| `/refactor migrate <desc>` | Mechanical migration (50+ files) — batch-refactor + tsc gates |
 
-All commands load the refactoring workflow at [pm/workflows/refactor.md](../pm/workflows/refactor.md).
+`/refactor plan` and `/refactor phase` load [pm/workflows/refactor.md](../pm/workflows/refactor.md).
+`/refactor migrate` loads [migrate.md](migrate.md) — for type restructurings, field renames, interface changes.
 
 ## When to Use
 

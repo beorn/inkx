@@ -100,6 +100,18 @@ For agents doing large migrations (interface changes, renames, field restructuri
 4. **Commit after the definition change** — don't wait until all consumers are fixed. Commit the interface change first, then commit consumer updates incrementally
 5. **Use batch-refactor for mechanical consumer updates** — `bun vendor/bearly/tools/refactor.ts` for find-replace patterns across 100+ files
 
+## Large Migrations (50+ files): Use /refactor migrate, NOT Agents
+
+For type restructurings, field renames, or interface changes touching 50+ files: **don't assign an agent to manually edit each file.** Agents hallucinate completion on mechanical transforms. Instead, use `/refactor migrate`:
+
+1. Agent analyzes the migration (blast radius, edge cases)
+2. Agent writes batch-refactor commands (the transform spec)
+3. Commands execute mechanically — 100% reproducible
+4. tsc + tests verify — 100% reliable
+5. Agent handles the ~10% edge cases that need judgment
+
+**The agent's value is understanding the pattern, not applying it 189 times.** See `.claude/skills/refactor/migrate.md`.
+
 ## Isolation: When to Use Worktrees
 
 **Don't assume you're the only agent.** Other agents may be working on the same repo concurrently. Classify each work unit by blast radius:
@@ -107,7 +119,8 @@ For agents doing large migrations (interface changes, renames, field restructuri
 | Blast Radius | Examples | Isolation |
 |---|---|---|
 | **Foundational** — changes to core libraries, rendering engines, test infrastructure, storage layer | silvery output phase, flexily layout, km-storage schema, vitest config | **Worktree** (`isolation: "worktree"`) — breakage here breaks every other agent |
-| **Cross-cutting** — touches multiple packages or shared types | Type changes, shared utility updates, package.json scripts | **Worktree** preferred, shared OK if changes are additive-only |
+| **Cross-cutting migrations** — type changes touching 50+ files across packages | item-as-object, field renames, API restructuring | **NO worktree** — agent needs main state. Use batch-refactor on main. |
+| **Cross-cutting additive** — touches multiple packages but additive-only | New shared utility, package.json scripts | **Worktree** preferred, shared OK |
 | **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
 
 **Worktree rules:**
