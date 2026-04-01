@@ -1353,6 +1353,93 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.expect("#task-2[data-cursor]").toExist()
     })
 
+    test("ArrowDown from sub-section navigates to next sibling, not first card", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1", item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
+            item("card-2"),
+          ),
+        ),
+      )
+
+      // Enter edit on sub-a, last block (blockIndex=1) so ArrowDown crosses boundary
+      board.editNode("sub-a", { block: 1, card: "card-1" })
+      expect(board.screenshot()).toContain("INSERT")
+
+      board.press("ArrowDown")
+      board.expectEditing("sub-b")
+    })
+
+    test("ArrowDown from last sub-section navigates to next card", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1", item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
+            item("card-2"),
+          ),
+        ),
+      )
+
+      board.editNode("sub-b", { block: 1, card: "card-1" })
+      expect(board.screenshot()).toContain("INSERT")
+
+      board.press("ArrowDown")
+      board.expectEditing("card-2")
+    })
+
+    test("ArrowUp from first sub-section navigates to previous card", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1"),
+            item("card-2", item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
+          ),
+        ),
+      )
+
+      board.navigateTo("card-2")
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      board.editNode("sub-a", { block: 0, card: "card-2" })
+
+      board.press("ArrowUp")
+      board.expectEditing("card-1")
+    })
+
+    test("navigating between sub-sections preserves cardNodeId (card stays expanded)", () => {
+      const { board, store } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1", item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
+            item("card-2"),
+          ),
+        ),
+      )
+
+      board.editNode("sub-a", { block: 1, card: "card-1" })
+
+      // Navigate to sub-b
+      board.press("ArrowDown")
+      board.expectEditing("sub-b")
+
+      // Both sub-sections should still be visible (card not collapsed)
+      const shot = board.screenshot()
+      expect(shot).toContain("sub-a")
+      expect(shot).toContain("sub-b")
+      expect(shot).toContain("child-a1")
+      expect(shot).toContain("child-b1")
+    })
+
     test("mouse click in edit mode repositions within same card", () => {
       const { board } = testEnv(() => item("board", item("Column", item("card", item("child-1"), item("child-2")))), {
         columns: 80,
@@ -1671,7 +1758,7 @@ describe("Empty Board — first child creation", () => {
 describe("Inline Edit — Card Expansion", () => {
   test("entering edit on a sub-item expands the full card to show all children", () => {
     // Card with 5 children — maxContentLines defaults to 3, so only 3 are visible normally
-    const { board, store } = testEnv(() =>
+    const { board } = testEnv(() =>
       item("board", item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5")))),
     )
 
@@ -1686,9 +1773,7 @@ describe("Inline Edit — Card Expansion", () => {
 
     // Simulate entering inline edit on a sub-item (e.g., via double-click).
     // cardNodeId tells the card to expand and show all children.
-    store.getState().setUI({ inlineEditBlock: { nodeId: "sub2", blockIndex: 0, cardNodeId: "card" } })
-    // Flush render
-    board.press("")
+    board.editNode("sub2", { card: "card" })
 
     // The full card should be expanded — all sub-items visible
     const afterShot = board.screenshot()

@@ -53,7 +53,7 @@ import {
   isDateTemplate,
 } from "@km/commands"
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
-import { Tree } from "@km/tree"
+import { Tree, midpoint } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
@@ -1678,7 +1678,7 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
   const currentIdx = currentNode.parent_idx ?? 0
   const adjacent = siblings[sibIdx + (position === "after" ? 1 : -1)]
   const adjacentIdx = adjacent?.parent_idx ?? currentIdx + (position === "after" ? 1 : -1)
-  const newSortOrder = (currentIdx + adjacentIdx) / 2
+  const newSortOrder = midpoint(currentIdx, adjacentIdx)
 
   const parentNode = repo.getNode(parentId)
   const newNode: Partial<KNode> = {
@@ -1852,12 +1852,44 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
     return ok()
   }
 
-  // Past edges → save current content and try to enter edit on adjacent card
+  // Past edges → save current content and try to enter edit on adjacent node
   activeEditTargetRef.current?.save()
 
-  // Find adjacent card in the current column
+  // Sub-section nodes aren't in col.cardNodes — check for sibling sub-sections first
   const col = ctx.column
-  const currentCardIndex = col?.cardNodes.findIndex((c) => c.id === edit.nodeId) ?? -1
+  const editNode = ctx.repo.getNode(edit.nodeId)
+  const isInCardNodes = col?.cardNodes.some((c) => c.id === edit.nodeId) ?? false
+  const isSubSection = editNode && !isInCardNodes && editNode.parent_id
+
+  if (isSubSection) {
+    // Navigate between sibling sub-sections within the same card
+    const siblings = extractBody(ctx.repo.getChildren(editNode.parent_id!)).items
+    const siblingIndex = siblings.findIndex((s) => s.id === edit.nodeId)
+    const nextSiblingIndex = siblingIndex + (direction === "down" ? 1 : -1)
+    const nextSibling = siblings[nextSiblingIndex]
+    if (nextSibling) {
+      const adjBodyCount = extractBody(ctx.repo.getChildren(nextSibling.id)).body.length
+      const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
+      ctx.dispatchBoard({ type: "SELECT", nodeId: nextSibling.id })
+      ctx.setUI({
+        inlineEditBlock: {
+          nodeId: nextSibling.id,
+          blockIndex: adjBlockIndex,
+          initialCursorPos: direction === "down" ? "start" : "end",
+          stickyX,
+        },
+      })
+      return ok()
+    }
+    // No sibling — fall through to card-level navigation using parent card index
+  }
+
+  // Find adjacent card in the current column
+  let currentCardIndex = col?.cardNodes.findIndex((c) => c.id === edit.nodeId) ?? -1
+  // Sub-section: walk up parent_id to find the containing card
+  if (currentCardIndex === -1 && editNode?.parent_id) {
+    currentCardIndex = col?.cardNodes.findIndex((c) => c.id === editNode.parent_id) ?? -1
+  }
   const adjacentIndex = direction === "down" ? currentCardIndex + 1 : currentCardIndex - 1
   const adjacentCard = col?.cardNodes[adjacentIndex]
 

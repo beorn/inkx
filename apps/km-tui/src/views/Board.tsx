@@ -632,13 +632,6 @@ export function Board({ patchedConsole }: BoardProps) {
   // Incrementally sync inline edit state to reactive node state
   const inlineEditBlock = ui.inlineEditBlock
   const prevInlineEditRef = useRef(inlineEditBlock)
-  useEffect(() => {
-    const prev = prevInlineEditRef.current
-    if (prev !== inlineEditBlock) {
-      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock)
-      prevInlineEditRef.current = inlineEditBlock
-    }
-  }, [nodeStore, inlineEditBlock])
 
   // Sync cursor state from CursorStore to Reactive fields (for Board-internal components)
   useEffect(() => {
@@ -697,6 +690,30 @@ export function Board({ patchedConsole }: BoardProps) {
   // deriveCursorIndices walks up parent chain on miss via getNode.
   const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
+
+  // Sync inline edit state. Derives cardNodeId from parent_id so callers
+  // never need to pass it — if the edit node is inside a card, the card expands.
+  useEffect(() => {
+    const prev = prevInlineEditRef.current
+    if (prev !== inlineEditBlock) {
+      let derivedCardNodeId: string | undefined
+      if (inlineEditBlock?.nodeId) {
+        derivedCardNodeId = inlineEditBlock.cardNodeId
+        if (!derivedCardNodeId) {
+          const editNode = repo.getNode(inlineEditBlock.nodeId)
+          if (editNode?.parent_id) {
+            const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === editNode.parent_id))
+            if (isCard) derivedCardNodeId = editNode.parent_id
+          }
+        }
+      }
+      const stateWithCard = inlineEditBlock
+        ? { ...inlineEditBlock, cardNodeId: derivedCardNodeId }
+        : null
+      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, stateWithCard)
+      prevInlineEditRef.current = inlineEditBlock
+    }
+  }, [nodeStore, inlineEditBlock, repo, columns])
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks

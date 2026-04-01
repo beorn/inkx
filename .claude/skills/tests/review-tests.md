@@ -522,6 +522,14 @@ Apply checklist from `docs/dev/test-review.md`:
 - >15 testEnv() calls per file (expensive board setup)
 - Loop-based navigation with >20 items (reduce dataset size)
 
+**Ergonomics candidates** (test readability):
+
+- Raw `store.getState().setUI(...)` → should use `board.setUI()` or `board.editNode()`
+- Raw `getActiveBoardPane(store.getState())?.field` assertions → should use `board.expectEditing()`, `board.expectNotEditing()`, or `board.expectState()`
+- Verbose multi-line sequences that could be fluent chains (e.g., setUI + flush + assert → `board.editNode(...).press(...).expectEditing(...)`)
+- Store destructuring (`{ board, store }`) when only `{ board }` is needed (store access hidden behind helpers)
+- Importing `getActiveBoardPane` in test files that only use it for assertions (should use board helpers instead)
+
 **Refactor candidates** (test setup complexity):
 
 - Test helper that mirrors production factory (e.g., `createTestRepo` vs `createRepo`)
