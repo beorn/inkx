@@ -25,6 +25,14 @@ import {
 import { verbLocationGrid, ctrlVerbLocationGrid } from "./verb-locations.ts"
 import { getAllFavorites } from "./favorites.ts"
 
+/**
+ * Architecture note: This flat keybinding system uses `when` guards to simulate
+ * focus-based key routing. Silvery's useInputLayer provides the proper cascade
+ * model (child-first bubbling, return true to consume / false to pass). The
+ * migration to useInputLayer is tracked by km-silvery.tea.migration (era2).
+ * Until then, `when` guards like `not(textInputFocused)` are the workaround.
+ */
+
 export interface Keybinding {
   /**
    * Key string encoding modifiers and chords:
