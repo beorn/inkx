@@ -325,45 +325,133 @@ function withValidation<T extends TreeMutator>(tree: T, opts?: { strict?: boolea
 }
 ```
 
-### Plugin Override Pattern
+### ValidationContext Helpers
 
-Each plugin wraps `validate` — the context flows through the chain:
+Validators iterate dirty nodes. The boilerplate (resolve node, skip deleted, get relations) is handled by `ctx.eachDirty()`:
 
 ```typescript
+/** Resolved node with pre-fetched relations. */
+interface DirtyNode {
+  id: string
+  node: KNode
+  children: KNode[]
+  parent: KNode | null
+  siblings: KNode[]
+  index: number           // position among siblings (-1 if not found)
+  isFirstChild: boolean
+  isLastChild: boolean
+}
+
+interface ValidationContext {
+  ops: TreeOp[]
+  dirtyNodeIds: Set<string>
+  phase: "pre" | "post"
+
+  /** Iterate dirty nodes with resolved relations. Skips deleted nodes. */
+  eachDirty(fn: (dirty: DirtyNode) => void): void
+
+  /** Assert an invariant. Throws with rule name + node ID on failure. */
+  assert(condition: boolean, rule: string, nodeId: string, detail?: string): void
+}
+```
+
+`eachDirty` resolves the node + relations once, passes them to the callback. Deleted nodes (in dirty set but removed from tree) are silently skipped. Relations are computed lazily per-node (not all upfront).
+
+`assert` is a thin helper — throws `InvariantError(rule, nodeId, detail)` on false. Keeps validators one-liners.
+
+### Example Validators
+
+```typescript
+// withTree: data model invariants
+function withTree(tree) {
+  const { validate } = tree
+  tree.validate = (ctx) => {
+    validate(ctx)
+    ctx.eachDirty(({ id, node, children, parent }) => {
+      ctx.assert(!node.item || true, "block-check", id)  // items always pass
+      ctx.assert(node.item || children.length === 0,
+        "block-has-children", id, `block has ${children.length} children`)
+      ctx.assert(parent != null || node.parent_id === ".",
+        "orphan-node", id, `parent ${node.parent_id} not found`)
+      ctx.assert(Number.isFinite(node.parent_idx),
+        "invalid-sort-order", id, `parent_idx is ${node.parent_idx}`)
+    })
+  }
+  return tree
+}
+
+// withOutliner: item trait consistency
 function withOutliner(tree) {
   const { validate } = tree
-  tree.validate = (ctx: ValidationContext) => {
-    validate(ctx)  // previous checks first
-    // Only check dirty nodes (not entire tree) for performance
-    for (const nodeId of ctx.dirtyNodeIds) {
-      const node = tree.getNode(nodeId)
-      if (!node) continue
-      if (!node.item && tree.getChildren(nodeId).length > 0)
-        throw new Error(`block-has-children: ${nodeId}`)
+  tree.validate = (ctx) => {
+    validate(ctx)
+    ctx.eachDirty(({ id, node }) => {
+      if (node.task_marker && !node.task_status)
+        ctx.assert(false, "task-marker-without-status", id)
+      if (node.task_status && !node.task_marker)
+        ctx.assert(false, "task-status-without-marker", id)
+    })
+  }
+  return tree
+}
+
+// withCursor: UI state (doesn't use eachDirty — checks global state)
+function withCursor(tree) {
+  const { validate } = tree
+  tree.validate = (ctx) => {
+    validate(ctx)
+    const cursorId = tree._cursorNodeId
+    if (cursorId) {
+      ctx.assert(tree.getNode(cursorId) != null,
+        "cursor-exists", cursorId, "cursor points to deleted node")
     }
+  }
+  return tree
+}
+
+// withBoard: structural rules
+function withBoard(tree, rootId) {
+  const { validate } = tree
+  tree.validate = (ctx) => {
+    validate(ctx)
+    ctx.eachDirty(({ id, node, parent }) => {
+      // Column children must be items (no loose blocks at column level)
+      if (parent && parent.parent_id === rootId && !node.item)
+        ctx.assert(false, "block-at-column-level", id,
+          `non-item block "${node.content?.slice(0, 20)}" directly under column`)
+    })
   }
   return tree
 }
 ```
 
+### DX Summary
+
+Writing a validator is:
+1. Capture `{ validate }` from tree
+2. Override `tree.validate = (ctx) => { validate(ctx); /* your checks */ }`
+3. Use `ctx.eachDirty()` for per-node checks (relations pre-resolved, deleted skipped)
+4. Use `ctx.assert()` for invariant checks (auto-formats error with rule + nodeId)
+5. For global checks (cursor, selection), access tree state directly
+
 ### Batching
 
 ```typescript
 tree.withBatch(() => {
-  tree.addNode(parentId, { ... })       // op 1 — collected
-  tree.moveNode(childId, newId, 0)      // op 2 — collected
-  tree.updateNode(nodeId, { ... })      // op 3 — collected
-  // validate(ctx) called here with all 3 ops + all affected nodes
+  tree.addNode(parentId, { ... })       // op 1 — node + parent marked dirty
+  tree.moveNode(childId, newId, 0)      // op 2 — node + old parent + new parent dirty
+  tree.updateNode(nodeId, { ... })      // op 3 — node dirty
+  // validate(ctx) called here with all dirty nodes + all ops
 })
 ```
 
 ### Error Output
 
-When a validator fails, the error includes everything needed to diagnose:
+When `ctx.assert` fails, `withValidation` catches it and attaches lazy diagnostics:
 
 ```
 INVARIANT VIOLATION {
-  error: "block-has-children: 01KXYZ",
+  error: "block-has-children: 01KXYZ — block has 2 children",
   phase: "post",
   command: "INDENT_NODE",
   ops: ["move 01KXYZ → parent:01KABC idx:2"],
@@ -373,7 +461,35 @@ INVARIANT VIOLATION {
 }
 ```
 
-Note: `cursor`, `selection`, `ops` formatting are computed **only when a validator throws** — zero cost on the happy path.
+Diagnostic fields (`cursor`, `ops` formatting, `selection`) computed **only on error** — zero cost on happy path.
+
+### Pre/Post Snapshots
+
+`withValidation` snapshots dirty nodes **before** apply, then compares with **after**. Both included in error diagnostics:
+
+```typescript
+tree.apply = (op) => {
+  // Snapshot BEFORE (only dirty node + its relations — cheap)
+  const before = snapshotDirtyNodes(tree, op)
+  origApply(op)
+  markDirty(op, dirtyNodes)
+  pendingSnapshots.push(before)  // stored for error diagnostics
+  if (strict && batchDepth === 0) runValidation("post")
+}
+
+// On error, diagnostic includes:
+{
+  snapshots: [
+    {
+      op: "move 01KXYZ → parent:01KABC",
+      before: { "01KXYZ": { parent_id: "01COL", parent_idx: 0, item: true } },
+      after:  { "01KXYZ": { parent_id: "01KABC", parent_idx: 2, item: true } }
+    }
+  ]
+}
+```
+
+This shows exactly how each node changed — invaluable for diagnosing "how did this node end up here?" The snapshot is a shallow copy of the node's key fields (id, parent_id, parent_idx, type, item, content preview) — not a deep clone of the entire tree. Computed lazily like other diagnostics.
 
 ### Plugin Validation Stack
 
@@ -385,6 +501,7 @@ Each layer validates its own concerns:
 | `withOutliner` | Tree ops | task_marker ↔ task_status consistent |
 | `withCursor` | UI state | cursor exists, under root, selection contiguous |
 | `withBoard` | Board | columns are items, fold depths valid |
+| `withRender` | Visual | incremental matches fresh (existing `checkIncremental`) |
 | `withRender` | Visual | incremental matches fresh (existing `checkIncremental`) |
 
 ### When Validators Run
