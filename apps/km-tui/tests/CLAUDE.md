@@ -71,16 +71,21 @@ import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { run } from "silvery/runtime"
 
-test("feature works", async () => {
+test("feature works end-to-end", async () => {
   using term = createTermless({ cols: 40, rows: 10 })
   const handle = await run(<App />, term, { alternateScreen: true })
-  
+  await settle()
+
+  // Layer 1: Screen content (what the user sees)
   expect(term.screen).toContainText("BOARD VIEW")
+  // Layer 2: Terminal state (what the terminal is doing)
   expect(term).toBeInMode("altScreen")
+  // Layer 3: App state (internal consistency)
+  expect(appState.consoleOpen).toBe(false)
 })
 ```
 
-**Canonical example**: `console-toggle-repro.test.tsx` — 3-layer verification (screen content + terminal mode + app state).
+**Canonical example**: `console-toggle-repro.test.tsx` — full 3-layer verification across a toggle cycle.
 
 See [termless.md](../../../.claude/skills/tests/termless.md) for the full API and decision guide.
 
