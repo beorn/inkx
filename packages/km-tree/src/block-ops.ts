@@ -74,7 +74,7 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   const parentId = node.parent_id
   if (!parentId) throw new Error(`splitNode: node has no parent: ${nodeId}`)
 
-  const text = getNodeText(node)
+  const text = getEditableText(node)
   const clampedOffset = Math.max(0, Math.min(offset, text.length))
 
   const beforeText = text.slice(0, clampedOffset)
@@ -92,14 +92,14 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   const props = KNode.extractProps(node)
   const newNode: Partial<KNode> = {
     ...props,
-    content: setNodeText(node, afterText),
+    content: setEditableText(node, afterText),
     parent_idx: newSortOrder,
   }
 
   const newId = tree.addNode(parentId, newNode)
 
   // Update original node with text before cursor
-  tree.updateNode(nodeId, { content: setNodeText(node, beforeText) })
+  tree.updateNode(nodeId, { content: setEditableText(node, beforeText) })
 
   // Move children of the original node to the new node
   const children = tree.getChildren(nodeId)
@@ -137,7 +137,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
   const siblings = tree.getChildren(parentId)
   const currentIndex = siblings.findIndex((s) => s.id === nodeId)
 
-  const text = getNodeText(node)
+  const text = getEditableText(node)
   const isEmpty = text.length === 0
   const children = tree.getChildren(nodeId)
 
@@ -145,7 +145,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
     // Has previous sibling
     // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- currentIndex > 0 guarantees prev exists
     const prev = siblings[currentIndex - 1]!
-    const prevText = getNodeText(prev)
+    const prevText = getEditableText(prev)
     const prevChildren = tree.getChildren(prev.id)
 
     if (isEmpty && children.length === 0) {
@@ -157,7 +157,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
     if (prevChildren.length === 0) {
       // Prev has no children: merge prev content into this node
       const mergedText = prevText + text
-      tree.updateNode(nodeId, { content: setNodeText(node, mergedText) })
+      tree.updateNode(nodeId, { content: setEditableText(node, mergedText) })
 
       // Move any children of prev to before our children
       // (prev is childless in this branch, so nothing to move)
@@ -226,11 +226,11 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
     return null
   }
 
-  const text = getNodeText(node)
+  const text = getEditableText(node)
 
   // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- bounds check above guarantees next exists
   const next = siblings[currentIndex + 1]!
-  const nextText = getNodeText(next)
+  const nextText = getEditableText(next)
   const nextChildren = tree.getChildren(next.id)
 
   if (nextText.length === 0 && nextChildren.length === 0) {
@@ -241,7 +241,7 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
 
   // Append next's text to current node
   const mergedText = text + nextText
-  tree.updateNode(nodeId, { content: setNodeText(node, mergedText) })
+  tree.updateNode(nodeId, { content: setEditableText(node, mergedText) })
 
   // Reparent next's children under current node
   if (nextChildren.length > 0) {
@@ -273,7 +273,7 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
  * For list items with task markers, strips the checkbox prefix.
  * For other types, this is the content.
  */
-export function getNodeText(node: KNode): string {
+export function getEditableText(node: KNode): string {
   // Outline items use name as their heading text
   if (KNode.isOutline(node)) return node.name ?? node.content ?? ""
   // Tasks (list items with task_marker): content includes the checkbox prefix "- [x] ..."
@@ -288,7 +288,7 @@ export function getNodeText(node: KNode): string {
  * Set the display/edit text of a node, preserving the content format.
  * Returns the new content string (does NOT mutate).
  */
-export function setNodeText(node: KNode, text: string): string {
+export function setEditableText(node: KNode, text: string): string {
   if (KNode.isOutline(node)) return text
   if (node.task_marker) {
     // Extract inner character from marker: "[x]" → "x"
@@ -433,12 +433,18 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
  *
  * Strips features in priority order:
  * 1. Task trait (remove task_marker/task_status) → keep type
- * 2. Non-paragraph type → convert to p
- * 3. null → caller should merge with previous
+ * 2. Item trait (only if childless — removing item from a node with children
+ *    would create a block-has-children violation)
+ * 3. Non-paragraph type → convert to p
+ * 4. null → caller should merge with previous
  *
  * Returns node changes to apply, or null if no degradation possible (should merge).
  */
-export function backspaceDegradation(node: KNode): Partial<KNode> | null {
+export function backspaceDegradation(
+  node: KNode,
+  tree?: TreeMutator,
+  nodeId?: string,
+): Partial<KNode> | null {
   // Step 1: Strip task trait
   if (node.task_marker) {
     return {
@@ -448,13 +454,18 @@ export function backspaceDegradation(node: KNode): Partial<KNode> | null {
   }
 
   // Step 2: Strip item trait (p+item → p, h+item → p)
+  // Only if node has no children — blocks can't have children
   if (KNode.isItem(node)) {
-    return {
-      type: "p",
-      item: undefined,
-      list_marker: undefined,
-      fstype: undefined,
+    const hasChildren = tree && nodeId ? tree.getChildren(nodeId).length > 0 : false
+    if (!hasChildren) {
+      return {
+        type: "p",
+        item: undefined,
+        list_marker: undefined,
+        fstype: undefined,
+      }
     }
+    // Has children — skip item removal, fall through
   }
 
   // Step 3: Convert non-paragraph type to p

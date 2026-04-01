@@ -61,6 +61,7 @@ export function withTreeValidation<T extends TreeMutator & { validate?: () => vo
     // Walk all nodes reachable from root
     const visit = (parentId: string | null) => {
       const children = tree.getChildren(parentId)
+      let sawItem = false
       for (const child of children) {
         // Re-fetch via getNode for authoritative data (children cache may be stale)
         const node = tree.getNode(child.id)
@@ -69,6 +70,14 @@ export function withTreeValidation<T extends TreeMutator & { validate?: () => vo
         // Block (non-item) nodes must not have children
         if (!node.item && tree.getChildren(node.id).length > 0) {
           throw new Error(`INVARIANT block-has-children: ${node.id}`)
+        }
+
+        // Body-prefix rule: blocks must appear before all items.
+        // Once an item child is seen, all subsequent children must also be items.
+        if (node.item) {
+          sawItem = true
+        } else if (sawItem) {
+          throw new Error(`INVARIANT body-after-items: ${node.id}`)
         }
 
         // Parent must exist (unless root)

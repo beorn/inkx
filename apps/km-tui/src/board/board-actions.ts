@@ -725,7 +725,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
         }
         const node = ctx.repo.getNode(nodeId)
         if (node) {
-          const degradation = backspaceDegradation(node)
+          const degradation = backspaceDegradation(node, ctx.repo, nodeId)
           if (degradation) {
             ctx.undoHandle.setCursor(ctx.cursorNodeId)
             applyDegradation(node, degradation, content)
@@ -761,7 +761,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
           const nodeId = ctx.ui.inlineEditBlock.nodeId
           const nextNode = getNextSibling(ctx.repo, nodeId)
           if (nextNode) {
-            const degradation = backspaceDegradation(nextNode)
+            const degradation = backspaceDegradation(nextNode, ctx.repo, nextNode.id)
             if (degradation) {
               ctx.undoHandle.setCursor(ctx.cursorNodeId)
               applyDegradation(nextNode, degradation, getNodeText(nextNode))

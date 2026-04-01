@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { getNodeText } from "../src/block-ops.ts"
+import { getEditableText as getNodeText } from "../src/block-ops.ts"
 import { withOutliner, createOutlinerContext, type OutlinerPolicy } from "../src/outliner.ts"
 
 // =============================================================================

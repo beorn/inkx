@@ -233,6 +233,76 @@ describe("withTreeValidation", () => {
 
     expect(() => tree.validate!()).not.toThrow()
   })
+
+  test("body-prefix: blocks before items is valid", () => {
+    const repo = createTestRepo()
+    const tree = repo as TreeMutator & { validate?: () => void }
+
+    withTreeValidation(tree)
+
+    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+
+    // Blocks first (body), then items — valid
+    const validate = tree.validate!
+    tree.validate = () => {} // disable during setup
+    tree.addNode(parentId, { type: "p", content: "Body paragraph", parent_idx: 1 })
+    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "List item", parent_idx: 2 })
+    tree.validate = validate
+
+    expect(() => tree.validate!()).not.toThrow()
+  })
+
+  test("body-prefix: block after item violates invariant", () => {
+    const repo = createTestRepo()
+    const tree = repo as TreeMutator & { validate?: () => void }
+
+    withTreeValidation(tree)
+
+    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+
+    // Item first, then block — violates body-prefix rule
+    const validate = tree.validate!
+    tree.validate = () => {} // disable during setup
+    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "List item", parent_idx: 1 })
+    tree.addNode(parentId, { type: "p", content: "Block after item", parent_idx: 2 })
+    tree.validate = validate
+
+    expect(() => tree.validate!()).toThrow("INVARIANT body-after-items")
+  })
+
+  test("body-prefix: all items is valid", () => {
+    const repo = createTestRepo()
+    const tree = repo as TreeMutator & { validate?: () => void }
+
+    withTreeValidation(tree)
+
+    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+
+    const validate = tree.validate!
+    tree.validate = () => {}
+    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "Item 1", parent_idx: 1 })
+    tree.addNode(parentId, { type: "p", item: true, list_marker: "-", content: "Item 2", parent_idx: 2 })
+    tree.validate = validate
+
+    expect(() => tree.validate!()).not.toThrow()
+  })
+
+  test("body-prefix: all blocks is valid", () => {
+    const repo = createTestRepo()
+    const tree = repo as TreeMutator & { validate?: () => void }
+
+    withTreeValidation(tree)
+
+    const parentId = tree.addNode(null, { type: "h", item: true, name: "Section", content: "Section" })
+
+    const validate = tree.validate!
+    tree.validate = () => {}
+    tree.addNode(parentId, { type: "p", content: "Block 1", parent_idx: 1 })
+    tree.addNode(parentId, { type: "p", content: "Block 2", parent_idx: 2 })
+    tree.validate = validate
+
+    expect(() => tree.validate!()).not.toThrow()
+  })
 })
 
 // =============================================================================

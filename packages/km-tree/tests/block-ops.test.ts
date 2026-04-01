@@ -11,8 +11,10 @@ import {
   splitNode,
   mergeWithPrevious,
   mergeWithNext,
-  getNodeText,
-  setNodeText,
+  getEditableText,
+  getEditableText as getNodeText,
+  setEditableText,
+  setEditableText as setNodeText,
   getPreviousSibling,
   getNextSibling,
   detectPrefixConversion,
@@ -1075,5 +1077,80 @@ describe("backspaceDegradation", () => {
     expect(result!.task_status).toBeUndefined()
     // Type should stay p — next backspace strips item trait
     expect(result!.type).toBeUndefined()
+  })
+
+  test("skips item removal when node has children", () => {
+    const repo = createTestRepo()
+    const parentId = repo.addNode(null, { type: "h", item: true, name: "Root", content: "Root" })
+    const itemId = repo.addNode(parentId, {
+      type: "p",
+      item: true,
+      list_marker: "-",
+      content: "Parent item",
+      parent_idx: 1,
+    })
+    repo.addNode(itemId, { type: "p", content: "Child block", parent_idx: 1 })
+
+    const node = repo.getNode(itemId)!
+    // With tree context: should skip item removal and fall through to type check
+    const result = backspaceDegradation(node, repo, itemId)
+    // Node is already type "p", so after skipping item removal it returns null (merge)
+    expect(result).toBeNull()
+  })
+
+  test("removes item trait when node is childless (with tree context)", () => {
+    const repo = createTestRepo()
+    const parentId = repo.addNode(null, { type: "h", item: true, name: "Root", content: "Root" })
+    const itemId = repo.addNode(parentId, {
+      type: "p",
+      item: true,
+      list_marker: "-",
+      content: "Leaf item",
+      parent_idx: 1,
+    })
+
+    const node = repo.getNode(itemId)!
+    const result = backspaceDegradation(node, repo, itemId)
+    expect(result).not.toBeNull()
+    expect(result!.item).toBeUndefined()
+    expect(result!.type).toBe("p")
+  })
+
+  test("skips item removal for h+item with children, falls through to type conversion", () => {
+    const repo = createTestRepo()
+    const parentId = repo.addNode(null, { type: "h", item: true, name: "Root", content: "Root" })
+    const sectionId = repo.addNode(parentId, {
+      type: "h",
+      item: true,
+      fstype: "mdsection",
+      name: "Section",
+      content: "Section",
+      parent_idx: 1,
+    })
+    repo.addNode(sectionId, { type: "p", item: true, content: "Child", parent_idx: 1 })
+
+    const node = repo.getNode(sectionId)!
+    const result = backspaceDegradation(node, repo, sectionId)
+    // Skips item removal (has children), falls through to type conversion (h → p)
+    expect(result).not.toBeNull()
+    expect(result!.type).toBe("p")
+    // Item trait is NOT removed (still has children)
+    expect(result!.item).toBeUndefined()
+  })
+})
+
+// =============================================================================
+// getEditableText / setEditableText (canonical names)
+// =============================================================================
+
+describe("getEditableText", () => {
+  test("is the same function as getNodeText", () => {
+    expect(getEditableText).toBe(getNodeText)
+  })
+})
+
+describe("setEditableText", () => {
+  test("is the same function as setNodeText", () => {
+    expect(setEditableText).toBe(setNodeText)
   })
 })

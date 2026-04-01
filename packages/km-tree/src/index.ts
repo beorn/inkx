@@ -54,8 +54,10 @@ export {
   splitNode,
   mergeWithPrevious,
   mergeWithNext,
-  getNodeText,
-  setNodeText,
+  getEditableText,
+  getEditableText as getNodeText,
+  setEditableText,
+  setEditableText as setNodeText,
   getPreviousSibling,
   getNextSibling,
   detectPrefixConversion,
@@ -65,6 +67,9 @@ export {
   type MergeResult,
   type PrefixConversion,
 } from "./block-ops.ts"
+
+// Schema — structural rules for the node model
+export { canHaveChildren, canParent, canBecomeBlock } from "./schema.ts"
 
 // Tree walk — configurable DFS traversal and spatial queries
 export { walkTree, getVisibleBlocks, type WalkEntry, type WalkOptions } from "./walk.ts"
