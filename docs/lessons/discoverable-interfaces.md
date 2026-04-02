@@ -12,7 +12,7 @@ In km, the domain objects are:
 
 | Layer | Node | Tree | Traversal |
 |-------|------|------|-----------|
-| Data | `KNode` | `KTree` (future) | `KTree.nodes(root, { match, into })` |
+| Data | `KNode` | `KTree` | `KTree.nodes(root, { match, into })` |
 | View | `ViewNode` | `ViewTree` | `ViewTree.nodes(root, { match, into })` |
 
 These aren't just data structures — they're the **vocabulary of the system**. Every operation on a tree (traverse, find siblings, get descendants, find deepest node) belongs on these namespaces. Every type check on a node (`isOutline`, `isTask`, `isBody`) belongs on the node namespace.
@@ -83,10 +83,10 @@ This applies at every level:
 |------|-----------|
 | `KNode` | `KNode.isOutline()`, `KNode.isTask()`, `KNode.matches()` |
 | `KTree` | `KTree.nodes(tree, root, { match, into })` |
-| `ViewTree` | `ViewTree.nodes()`, `ViewTree.sibling()` |
+| `ViewTree` | `ViewTree.nodes()`, `ViewTree.next()`, `ViewTree.prev()`, `ViewTree.ancestors()` |
 | `Repo` | `repo.getNode()`, `repo.getChildren()` |
 
-`KNode` and `KTree` already follow this pattern. `ViewTree` doesn't yet — that's why navigation reimplemented DFS three times.
+`KNode`, `KTree`, and `ViewTree` all follow this pattern now — the nav-clarity refactor established it.
 
 ## Unify API Shapes Across Layers
 
