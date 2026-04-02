@@ -693,6 +693,8 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Sync inline edit state. Derives cardNodeId from parent_id so callers
   // never need to pass it — if the edit node is inside a card, the card expands.
+  // Walks UP (ancestors), not DOWN (descendants) — TreeWalk.nodes() doesn't apply.
+  // TODO: Consider Tree.ancestors() generator if this pattern recurs.
   useEffect(() => {
     const prev = prevInlineEditRef.current
     if (prev !== inlineEditBlock) {

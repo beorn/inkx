@@ -504,8 +504,8 @@ function TreeNodeImpl({
   // Check if a descendant is being edited or has cursor — expand to show all children.
   // Uses per-node reactive signals where possible to avoid O(N) global re-renders.
   const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
-  const editNodeId = useAppStore<BoardAppStore, string | null | undefined>(
-    (s) => s.workspace ? getActiveBoardPane(s)?.inlineEditBlock?.nodeId : undefined,
+  const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) =>
+    s.workspace ? getActiveBoardPane(s)?.inlineEditBlock?.nodeId : undefined,
   )
   // Cursor expansion: reuse cursorInDescendant from above (per-card signal, O(1) re-renders)
   const shouldExpand =
@@ -1142,7 +1142,9 @@ function NodeChildren({
   )
 }
 
-/** Walk up parent_id chain to check if `ancestorId` is an ancestor of `nodeId`. */
+/** Walk up parent_id chain to check if `ancestorId` is an ancestor of `nodeId`.
+ *  O(depth) via parent_id — more efficient than TreeWalk.nodes() which is O(subtree).
+ *  TODO: Consider Tree.ancestors() generator if this pattern recurs. */
 function isAncestorOf(
   repo: { getNode(id: string): KNode | null | undefined },
   ancestorId: string,
