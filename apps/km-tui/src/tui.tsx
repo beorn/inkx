@@ -107,6 +107,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   // Note: Disabling watch still allows TUI edits to write to filesystem,
   // it just disables watching for external file changes
   let syncManager: SyncManager | null = null
+  let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
   if (isInteractive && state.rootPath && options?.watch !== false) {
     using _ = run.span("sync-manager-init")
@@ -156,12 +157,18 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     syncManager.start()
     log.debug?.("syncManager started")
 
+    // Memory diagnostics: log RSS growth every 30s when km:memory debug is enabled.
+    // Useful for identifying memory leaks in long-running sessions.
+    const memLog = createLogger("km:memory") as any
+    let memoryTickCount = 0
+    const MEMORY_LOG_INTERVAL = 150 // Every 150 ticks * 200ms = 30s
+
     // Event-loop heartbeat: detect main-thread blocks >500ms
     // Reports last key, render pipeline phase breakdown, render count, and cause
     // Pauses when terminal loses focus (saves CPU/battery — no diagnostics needed while blurred)
     let lastHeartbeat = performance.now()
     let lastRenderCount = 0
-    const heartbeatInterval = setInterval(() => {
+    heartbeatInterval = setInterval(() => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
       const termFocused = (globalThis as any).__km_terminal_focused as boolean | undefined
       if (termFocused === false) {
@@ -211,8 +218,18 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         log.warn?.(parts.join(" — "))
       }
       lastHeartbeat = now
+
+      // Periodic memory diagnostics (every ~30s)
+      if (memLog.debug) {
+        memoryTickCount++
+        if (memoryTickCount % MEMORY_LOG_INTERVAL === 0) {
+          const mem = process.memoryUsage()
+          memLog.debug?.(
+            `rss=${(mem.rss / 1024 / 1024).toFixed(0)}MB heap=${(mem.heapUsed / 1024 / 1024).toFixed(0)}/${(mem.heapTotal / 1024 / 1024).toFixed(0)}MB external=${(mem.external / 1024 / 1024).toFixed(0)}MB`,
+          )
+        }
+      }
     }, 200)
-    void heartbeatInterval // runs until process exit
   }
 
   // Register error handlers to clean up terminal on crash
@@ -393,6 +410,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     // Dispose patched console (restores original console methods)
     patched?.[Symbol.dispose]()
+
+    // Clean up heartbeat interval (runs every 200ms to detect event loop blocks)
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval)
+    }
 
     // Clean up sync manager
     if (syncManager) {
