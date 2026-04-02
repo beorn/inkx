@@ -1485,6 +1485,31 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       expect(shot).toContain("child-b1")
     })
 
+    test("ctrl-p into card above lands on deepest last descendant, not last body block", () => {
+      // Card with nested sub-sections: card-1 > sub-a > deep-a (with leaf), sub-b > deep-b (with leaf)
+      // When navigating UP from card-2, should land on deep-b (deepest last sub-section
+      // of card-1), not sub-b's title — the fix walks to the bottom-most editable heading.
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1", item("sub-a", item("deep-a", item("leaf-a"))), item("sub-b", item("deep-b", item("leaf-b")))),
+            item("card-2"),
+          ),
+        ),
+      )
+
+      // Navigate to card-2 and enter edit mode
+      board.navigateTo("card-2")
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      // ArrowUp should land on deep-b (deepest last sub-section of card-1)
+      board.press("ArrowUp")
+      board.expectEditing("deep-b")
+    })
+
     test("mouse click in edit mode repositions within same card", () => {
       const { board } = testEnv(() => item("board", item("Column", item("card", item("child-1"), item("child-2")))), {
         columns: 80,
