@@ -137,10 +137,7 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
      * Synchronous reconciliation for a single directory.
      * Returns filtered ops (owned writes and pending writes excluded).
      */
-    reconcile(
-      dirPath: string,
-      ignorePatterns: string[] | PatternMatcher,
-    ): ReconcileOp[] {
+    reconcile(dirPath: string, ignorePatterns: string[] | PatternMatcher): ReconcileOp[] {
       const rawOps = reconcileDirectory(db, dirPath, repoPath, ignorePatterns)
       return filterOwnedWriteOps(rawOps)
     },
@@ -149,10 +146,7 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
      * Async reconciliation for a single directory.
      * Returns filtered ops (owned writes and pending writes excluded).
      */
-    async reconcileAsync(
-      dirPath: string,
-      ignorePatterns: string[] | PatternMatcher,
-    ): Promise<ReconcileOp[]> {
+    async reconcileAsync(dirPath: string, ignorePatterns: string[] | PatternMatcher): Promise<ReconcileOp[]> {
       const rawOps = await reconcileDirectoryAsync(db, dirPath, repoPath, ignorePatterns)
       return filterOwnedWriteOps(rawOps)
     },

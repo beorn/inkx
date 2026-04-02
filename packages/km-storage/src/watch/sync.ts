@@ -384,7 +384,7 @@ export class SyncManager extends EventEmitter {
   }
 
   async *syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult> {
-    yield* BulkSync.fromFsWithProgress(this.getBulkSyncDeps())
+    return yield* BulkSync.fromFsWithProgress(this.getBulkSyncDeps())
   }
 
   async syncToFs(): Promise<{ written: number }> {

@@ -75,6 +75,7 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
 ### Emitter: commit/project Split
 
 The emitter has three methods:
+
 - `commit(event)` — DB apply + persist + broadcast. No filesystem writes.
 - `project(event)` — FS sync only. Writes files via EventHandlers.
 - `emit(event)` — Convenience: `commit()` then `project()`. Used by TUI-origin events.
@@ -84,10 +85,10 @@ the filesystem projector never runs for watcher-detected changes.
 
 ### Ownership: Two-Tier Detection
 
-| Tier | Storage | Speed | Survives Restart | Purpose |
-|------|---------|-------|------------------|---------|
-| WriteTokenMap | In-memory Map | O(1) | No | Hot cache for recent writes |
-| sync_state | SQLite table | O(1) prepared stmt | Yes | Durable baseline hash |
+| Tier          | Storage       | Speed              | Survives Restart | Purpose                     |
+| ------------- | ------------- | ------------------ | ---------------- | --------------------------- |
+| WriteTokenMap | In-memory Map | O(1)               | No               | Hot cache for recent writes |
+| sync_state    | SQLite table  | O(1) prepared stmt | Yes              | Durable baseline hash       |
 
 After writing a file: record in BOTH tiers.
 On watcher event: check WriteTokenMap first (fast), fall back to sync_state.
@@ -115,41 +116,41 @@ CREATE TABLE sync_state (
 
 ### Orchestration
 
-| Module                      | Single Responsibility                                                     |
-| --------------------------- | ------------------------------------------------------------------------- |
-| `sync.ts`                   | TUI mode: watcher lifecycle, WriteQueue, heartbeat, delegates to engine   |
-| `reconciliation-engine.ts`  | FS→DB: owned-write filtering, reconciliation, observation recording       |
-| `fs-writer.ts`              | CLI mode: synchronous DB→FS write-back, no watcher, no debouncing        |
-| `emitter.ts`                | commit/project split: DB+persist+broadcast vs FS projection              |
+| Module                     | Single Responsibility                                                   |
+| -------------------------- | ----------------------------------------------------------------------- |
+| `sync.ts`                  | TUI mode: watcher lifecycle, WriteQueue, heartbeat, delegates to engine |
+| `reconciliation-engine.ts` | FS→DB: owned-write filtering, reconciliation, observation recording     |
+| `fs-writer.ts`             | CLI mode: synchronous DB→FS write-back, no watcher, no debouncing       |
+| `emitter.ts`               | commit/project split: DB+persist+broadcast vs FS projection             |
 
 ### FS → DB
 
-| Module                       | Single Responsibility                                           |
-| ---------------------------- | --------------------------------------------------------------- |
-| `watcher.ts`                 | Chokidar wrapper: FSEvents, debounced batching, in-flight set   |
-| `worker-bridge.ts`           | Main-thread proxy: postMessage to worker, forward events back   |
-| `worker-thread.ts`           | Worker thread: runs chokidar off main thread (avoids 20s block) |
-| `reconcile.ts`               | Pure diff: compare FS entries to DB nodes, produce ReconcileOps |
-| `applier.ts`                 | Dispatch ops to handlers, batch link resolution, index sync     |
-| `handlers/create-handler.ts` | Parse new .md file, emit node_created for all nodes             |
-| `handlers/update-handler.ts` | Diff old vs new nodes, emit minimal node_updated                |
-| `handlers/delete-handler.ts` | Emit node_deleted (subtree), handle rename via path update      |
-| `handlers/node-differ.ts`    | Three-phase matching: block_id → content hash → ordinal fallback|
+| Module                       | Single Responsibility                                            |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `watcher.ts`                 | Chokidar wrapper: FSEvents, debounced batching, in-flight set    |
+| `worker-bridge.ts`           | Main-thread proxy: postMessage to worker, forward events back    |
+| `worker-thread.ts`           | Worker thread: runs chokidar off main thread (avoids 20s block)  |
+| `reconcile.ts`               | Pure diff: compare FS entries to DB nodes, produce ReconcileOps  |
+| `applier.ts`                 | Dispatch ops to handlers, batch link resolution, index sync      |
+| `handlers/create-handler.ts` | Parse new .md file, emit node_created for all nodes              |
+| `handlers/update-handler.ts` | Diff old vs new nodes, emit minimal node_updated                 |
+| `handlers/delete-handler.ts` | Emit node_deleted (subtree), handle rename via path update       |
+| `handlers/node-differ.ts`    | Three-phase matching: block_id → content hash → ordinal fallback |
 
 ### DB → FS
 
-| Module              | Single Responsibility                                                             |
-| ------------------- | --------------------------------------------------------------------------------- |
-| `event-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by SyncManager + FsWriter)  |
-| `writequeue.ts`     | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite      |
-| `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename                 |
+| Module              | Single Responsibility                                                            |
+| ------------------- | -------------------------------------------------------------------------------- |
+| `event-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by SyncManager + FsWriter) |
+| `writequeue.ts`     | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite     |
+| `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename                |
 
 ### Ownership Tracking
 
-| Module              | Single Responsibility                                                      |
-| ------------------- | -------------------------------------------------------------------------- |
-| `write-tokens.ts`   | In-memory content-hash cache (hot path, not restart-safe)                  |
-| `sync-state.ts`     | Persisted baseline hash in SQLite (durable, restart-safe)                  |
+| Module            | Single Responsibility                                     |
+| ----------------- | --------------------------------------------------------- |
+| `write-tokens.ts` | In-memory content-hash cache (hot path, not restart-safe) |
+| `sync-state.ts`   | Persisted baseline hash in SQLite (durable, restart-safe) |
 
 ### Shared
 
@@ -160,15 +161,15 @@ CREATE TABLE sync_state (
 
 ## Event Types
 
-| Event Type          | DB Handler (db-events.ts)                 | FS Handler (sync/fs-writer)                           |
-| ------------------- | ----------------------------------------- | ----------------------------------------------------- |
-| `node_created`      | INSERT into nodes                         | Create dir/file or regenerate parent file             |
-| `node_updated`      | UPDATE matching columns + json_patch data | Regenerate containing .md file (+ folder/file rename) |
-| `node_moved`        | UPDATE parent_id, parent_idx              | Regenerate both source and destination files          |
-| `node_deleted`      | DELETE subtree (recursive)                | Unlink file/dir or regenerate parent file             |
-| `task_claimed`      | SET assigned_to, status='wip'             | Regenerate containing .md file                        |
-| `task_released`     | SET assigned_to=NULL, status='todo'       | Regenerate containing .md file                        |
-| `task_completed`    | SET status='done', marker='[x]'           | Regenerate containing .md file                        |
+| Event Type       | DB Handler (db-events.ts)                 | FS Handler (sync/fs-writer)                           |
+| ---------------- | ----------------------------------------- | ----------------------------------------------------- |
+| `node_created`   | INSERT into nodes                         | Create dir/file or regenerate parent file             |
+| `node_updated`   | UPDATE matching columns + json_patch data | Regenerate containing .md file (+ folder/file rename) |
+| `node_moved`     | UPDATE parent_id, parent_idx              | Regenerate both source and destination files          |
+| `node_deleted`   | DELETE subtree (recursive)                | Unlink file/dir or regenerate parent file             |
+| `task_claimed`   | SET assigned_to, status='wip'             | Regenerate containing .md file                        |
+| `task_released`  | SET assigned_to=NULL, status='todo'       | Regenerate containing .md file                        |
+| `task_completed` | SET status='done', marker='[x]'           | Regenerate containing .md file                        |
 
 All events carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance tracking.
 
@@ -238,6 +239,7 @@ Match = our write, skip. No match = external edit, reconcile.
 ### Heartbeat Reconciliation
 
 Periodic anti-entropy check (configurable interval, default 60s, only when idle 30s+):
+
 1. Reconcile all directories to catch silently dropped watcher events
 2. Re-project dirty paths (files where WriteQueue failed permanently)
 3. Clear dirty flags after successful re-projection
@@ -277,13 +279,13 @@ which handles all node mutation logic. Differ only in the `FsWriteTarget` they i
 
 All timing constants are configurable via `SyncConfig`:
 
-| Constant | Default | Config Key |
-|----------|---------|------------|
-| FS debounce | 5000ms | `debounceFs` |
-| Apply debounce | 3000ms | `debounceApply` |
-| Heartbeat interval | 60000ms | `heartbeat.intervalMs` |
+| Constant                 | Default | Config Key                  |
+| ------------------------ | ------- | --------------------------- |
+| FS debounce              | 5000ms  | `debounceFs`                |
+| Apply debounce           | 3000ms  | `debounceApply`             |
+| Heartbeat interval       | 60000ms | `heartbeat.intervalMs`      |
 | Heartbeat idle threshold | 30000ms | `heartbeat.idleThresholdMs` |
-| Max retries | 3 | `retry.maxRetries` |
-| Retry base delay | 100ms | `retry.baseDelayMs` |
-| Retry max delay | 5000ms | `retry.maxDelayMs` |
-| Clear in-flight delay | 1000ms | `clearInFlightDelayMs` |
+| Max retries              | 3       | `retry.maxRetries`          |
+| Retry base delay         | 100ms   | `retry.baseDelayMs`         |
+| Retry max delay          | 5000ms  | `retry.maxDelayMs`          |
+| Clear in-flight delay    | 1000ms  | `clearInFlightDelayMs`      |
