@@ -28,7 +28,6 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
                      SyncManager         FsWriter
                      (TUI: queue)        (CLI: sync write)
                            |
-                     reconcileIfChanged() -> merge external edits first
                      nodesToMarkdown()    -> serialize subtree
                      WriteQueue.queue()   -> debounce + retry + in-flight tracking
                      WriteQueue.flush()   -> writeFileSync with backoff
@@ -148,8 +147,6 @@ All events update the `meta.last_event` cursor in SQLite.
 
 ### Reconciliation (reconcile.ts, applier.ts)
 
-- `reconcileIfChanged()` exists but is NOT called from event handlers (DB is authority
-  for user events). It remains available for explicit use (e.g., CLI import).
 - `reconcileDirectory()` catches stat errors per-entry (inaccessible files are skipped).
 - `applyReconcileOps()` processing errors propagate up to SyncManager, which logs them
   and emits an "error" event but keeps running.
@@ -168,9 +165,7 @@ All events update the `meta.last_event` cursor in SQLite.
 ### DB → FS (user edits)
 
 DB is always correct. Event handlers regenerate files from DB state.
-`reconcileIfChanged` is NOT called — reading the file back can only
-introduce stale data. The watcher suppresses our own writes via
-`recentWrites` Map (current) or WriteTokens (planned).
+The watcher suppresses our own writes via WriteTokens (content-hash based).
 
 ### FS → DB (external edits)
 
@@ -199,11 +194,11 @@ git pull (many files change), Finder folder moves (cascading renames).
 1. **Actor gating**: Events from `actor: "fs-watch"` skip step 4 (`shouldApplyToFs`
    returns false), preventing FS→DB→FS infinite loops.
 
-2. **DB authority for user events**: Event handlers do NOT call `reconcileIfChanged`.
-   DB is the source of truth for all user-initiated mutations.
+2. **DB authority for user events**: DB is the source of truth for all user-initiated
+   mutations. Event handlers regenerate files from DB state directly.
 
-3. **Write suppression**: SyncManager's `recentWrites` Map (current) or WriteTokens
-   (planned) prevent the watcher from reconciling files we just wrote.
+3. **Write suppression**: SyncManager's WriteTokens (content-hash based) prevent
+   the watcher from reconciling files we just wrote.
 
 4. **Apply before persist**: The DB is updated before events.jsonl is appended.
    A crash between steps 1 and 2 loses the event from the journal but the DB is
