@@ -343,6 +343,7 @@ class KmDaemon extends EventEmitter {
       debounceFs: 5000,
       debounceApply: 3000,
       conflictStrategy: "last_write_wins",
+      emitter: this.emitter,
     })
 
     // Wire up sync events
