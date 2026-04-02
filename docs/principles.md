@@ -78,18 +78,30 @@ Domain objects are plain objects created by factory functions. They compose via 
 
 ### Principle: Plain Domain Language
 
-**The insight**: Names should come from the problem domain, not the implementation.
+**The insight**: The system's quality scales with the richness of a few core domain objects — not the number of ad-hoc helpers. Names come from the problem domain. Operations live on domain namespaces. Core algorithms read like pseudocode.
 
-**The pattern**: A narrative written using actual type names should read naturally.
+**The pattern**: A narrative written using actual type names should read naturally. Operations on domain objects compose into algorithms that read like English.
 
 **Example narrative**: "A Repo loads Nodes from files. The Board displays Nodes and handles Commands. The Watcher detects file changes and triggers sync."
 
-If your narrative needs technical jargon to make sense, the names are wrong.
+**Example algorithm** (reads like pseudocode):
+```typescript
+const visible = ViewTree.descendantIds(viewIndex, column.id)
+const target = navigate(visible, cursor, "down")
+```
+Not: a 15-line manual stack-based DFS that you have to mentally simulate.
 
-**Why**: Domain language makes code self-documenting and reduces onboarding time. New contributors (human or AI) can understand the system by reading type names.
+If your narrative needs technical jargon to make sense, the names are wrong. If your algorithm reads like implementation details instead of intent, the vocabulary is missing domain operations.
+
+**The vocabulary principle**: Every operation on a core data structure belongs on that structure's namespace. `ViewTree.nodes()`, `ViewTree.descendantIds()`, `KNode.isOutline()` — these ARE the domain language. When a developer types `ViewTree.` they see the full vocabulary. When they read the navigation handler, they see the flow, not the plumbing. See [docs/lessons/discoverable-interfaces.md](lessons/discoverable-interfaces.md).
+
+**Why**: Domain language makes code self-documenting and reduces onboarding time. Rich domain namespaces prevent duplication — new contributors (human or AI) discover existing operations instead of reimplementing them. Core algorithms expressed in domain language are reviewable in one place.
 
 **Guidelines:**
 - [ ] Domain names — `Repo`, `Board`, `Watcher` / not `DataManager`, `StateController`
+- [ ] Operations on namespaces — `ViewTree.nodes()`, `KNode.isOutline()` / not bare `dfsTraversal()`
+- [ ] Algorithms read like pseudocode — intent expressed in domain operations / not implementation details at every call site
+- [ ] Unified API shapes across layers — `TreeWalk.nodes()` and `ViewTree.nodes()` have the same predicate model (`match`, `into`, `reverse`)
 
 ---
 

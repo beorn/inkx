@@ -106,6 +106,35 @@ Same concept. Same predicate model (`match` = what to yield, `into` = what to de
 
 If the Repo layer has `TreeWalk.nodes` with pluggable predicates but the View layer has a bare `dfsTraversal` with zero options, agents will reinvent predicate-filtered traversal in consumer code because they can't see it exists at the right layer.
 
+## Code Reads Like Pseudocode
+
+The ultimate payoff: when the vocabulary is rich enough, **core algorithms read like their own documentation**. The implementation disappears into the domain language.
+
+```typescript
+// BAD: implementation details visible at every call site
+const stack = [colView]
+while (stack.length > 0) {
+  const vn = stack.pop()!
+  blocks.push(vn.id)
+  for (let i = vn.children.length - 1; i >= 0; i--) {
+    stack.push(vn.children[i]!)
+  }
+}
+const idx = blocks.indexOf(cursorId)
+const nextIdx = idx + 1
+if (nextIdx < blocks.length) dispatchBoard({ type: "SELECT", nodeId: blocks[nextIdx] })
+
+// GOOD: reads like English — what, not how
+const visible = ViewTree.descendantIds(viewIndex, column.id)
+const target = navigate(visible, cursor, "down")
+```
+
+The first version requires you to mentally simulate a stack-based DFS to understand what it does. The second tells you: "get visible descendants, navigate down." The algorithm IS the domain language.
+
+This is the north star for km's codebase: **a reader should understand what a function does by reading it, without tracing into its dependencies.** The vocabulary (KNode, ViewTree, KTree) carries the "how." The algorithms carry the "what." Core flows — navigation, rendering, sync — should read almost like pseudocode because every operation is a named concept on a domain object.
+
+When this works, the flow is expressed in **one place** using **composable domain operations**, not scattered across files as reimplemented primitives. A new developer reads the navigation handler and sees the full flow — not implementation details they have to piece together from 5 files.
+
 ## Rules
 
 1. **If a function operates on a core data structure, it belongs on that structure's namespace.** Not in a consumer file.

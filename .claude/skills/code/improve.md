@@ -45,6 +45,13 @@ For each subsystem touched, answer ALL of these:
 - Could cross-cutting logic be middleware instead of inline? (e.g., undo in 43 places → plugin)
 - What would a new developer need to understand? Count the concepts. Can you halve them?
 
+**Domain vocabulary** (see [docs/lessons/discoverable-interfaces.md](../../../docs/lessons/discoverable-interfaces.md)):
+- Are there bare helper functions that operate on core domain objects? They belong on the object's namespace (`ViewTree.nodes()`, not standalone `dfsTraversal()`)
+- Does the code read like pseudocode — intent in domain language? Or like implementation details you have to trace?
+- Is the core algorithm/flow expressed in one place using composed domain operations? Or scattered across files as reimplemented primitives?
+- Do parallel layers use the same API shape? (`TreeWalk.nodes()` and `ViewTree.nodes()` should have matching predicates)
+- Would a new developer typing `ViewTree.` discover the operation they need, or would they grep and write their own?
+
 **Simplicity:**
 - What would this look like if it were easy? (Not "how can I simplify" — "what if the problem were trivially simple?")
 - Which lines exist because of accidental complexity vs essential complexity?
