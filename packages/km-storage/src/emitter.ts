@@ -69,13 +69,35 @@ export interface Emitter {
   readonly eventsPath: string
 
   /**
-   * Emit an event.
+   * Emit an event (commit + project).
+   * Convenience method that calls commit() then project().
+   * Use for TUI-origin events where both DB and FS need updating.
+   *
    * 1. Applies to database (if db provided) — primary operation, DB consistency is non-negotiable
    * 2. Appends to events.jsonl (unless skipPersist) — if crash between 1 and 2, event is lost from journal but DB is correct
    * 3. Broadcasts via eventHub (unless skipBroadcast)
-   * 4. Syncs to filesystem (if fsSync set)
+   * 4. Syncs to filesystem (if fsSync set and !skipFsSync)
    */
   emit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+
+  /**
+   * Commit an event to the database and journal (no filesystem projection).
+   * 1. Applies to database
+   * 2. Persists to events.jsonl
+   * 3. Broadcasts via eventHub
+   *
+   * Does NOT sync to filesystem. Use for FS-origin events (reconciliation)
+   * where projecting back to FS would cause echo loops.
+   */
+  commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
+
+  /**
+   * Project an already-committed event to the filesystem.
+   * Only triggers filesystem sync — no DB apply, no persist, no broadcast.
+   *
+   * Called after commit() for TUI-origin events that need FS projection.
+   */
+  project(event: Event): void
 
   /** Set event hub for real-time broadcasting */
   setEventHub(hub: EventHub | null): void
@@ -117,6 +139,70 @@ export function createEmitter(options: EmitterOptions): Emitter {
     }
   }
 
+  /**
+   * Internal: apply to DB + persist + broadcast (steps 1-3).
+   * Shared by both commit() and emit().
+   */
+  function commitInternal(
+    partialEvent: Omit<Event, "id" | "ts">,
+    commitOptions: Omit<EmitOptions, "skipFsSync"> = {},
+  ): Event {
+    const event: Event = {
+      id: ulid(),
+      ts: Date.now(),
+      ...partialEvent,
+    }
+
+    // 1. Apply to database — primary operation, must succeed or throw
+    const db = commitOptions.db ?? defaultDb
+    if (db) {
+      applyEventWithDb(db, event)
+    }
+
+    // 2. Persist to events.jsonl (unless skipPersist is set per-call or as default)
+    // Isolated: failure here must not prevent broadcast (step 3)
+    const shouldPersist = !(commitOptions.skipPersist ?? defaultSkipPersist)
+    if (shouldPersist) {
+      try {
+        ensureKmDir()
+        appendFileSync(eventsPath, JSON.stringify(event) + "\n")
+      } catch (err) {
+        log.error?.(`events.jsonl append failed for ${event.type}: ${err}`)
+      }
+    }
+
+    // 3. Broadcast via event hub — isolated
+    if (eventHub && !commitOptions.skipBroadcast) {
+      try {
+        eventHub.broadcast(event)
+      } catch (err) {
+        log.error?.(`broadcast failed for ${event.type}: ${err}`)
+      }
+    }
+
+    return event
+  }
+
+  /**
+   * Internal: project an event to filesystem (step 4).
+   * Isolated from DB and broadcast — only triggers fsSync.
+   */
+  function projectInternal(event: Event): void {
+    if (!fsSync) return
+
+    try {
+      fsSync.applyEventToFs(event)
+    } catch (err) {
+      // Re-throw programming errors; swallow only filesystem I/O errors
+      if (err instanceof Error && (err as NodeJS.ErrnoException).code) {
+        // Has an errno code (ENOENT, EACCES, etc.) — filesystem error, log and continue
+        log.error?.(`fs sync failed for ${event.type}: ${err}`)
+      } else {
+        throw err
+      }
+    }
+  }
+
   return {
     get kmDir() {
       return kmDir
@@ -126,57 +212,25 @@ export function createEmitter(options: EmitterOptions): Emitter {
     },
 
     emit(partialEvent, emitOptions = {}) {
-      const event: Event = {
-        id: ulid(),
-        ts: Date.now(),
-        ...partialEvent,
-      }
+      // emit = commit + project (backwards compat convenience)
+      const event = commitInternal(partialEvent, emitOptions)
 
-      // Debug logging removed - db:events logs the apply
-
-      // 1. Apply to database — primary operation, must succeed or throw
-      const db = emitOptions.db ?? defaultDb
-      if (db) {
-        applyEventWithDb(db, event)
-      }
-
-      // 2. Persist to events.jsonl (unless skipPersist is set per-call or as default)
-      // Isolated: failure here must not prevent broadcast (step 3) or fs sync (step 4)
-      const shouldPersist = !(emitOptions.skipPersist ?? defaultSkipPersist)
-      if (shouldPersist) {
-        try {
-          ensureKmDir()
-          appendFileSync(eventsPath, JSON.stringify(event) + "\n")
-        } catch (err) {
-          log.error?.(`events.jsonl append failed for ${event.type}: ${err}`)
-        }
-      }
-
-      // 3. Broadcast via event hub — isolated so failure doesn't block fs sync
-      if (eventHub && !emitOptions.skipBroadcast) {
-        try {
-          eventHub.broadcast(event)
-        } catch (err) {
-          log.error?.(`broadcast failed for ${event.type}: ${err}`)
-        }
-      }
-
-      // 4. Sync to filesystem — isolated from broadcast
-      if (fsSync && !emitOptions.skipFsSync) {
-        try {
-          fsSync.applyEventToFs(event)
-        } catch (err) {
-          // Re-throw programming errors; swallow only filesystem I/O errors
-          if (err instanceof Error && (err as NodeJS.ErrnoException).code) {
-            // Has an errno code (ENOENT, EACCES, etc.) — filesystem error, log and continue
-            log.error?.(`fs sync failed for ${event.type}: ${err}`)
-          } else {
-            throw err
-          }
-        }
+      // 4. Sync to filesystem (unless skipFsSync)
+      if (!emitOptions.skipFsSync) {
+        projectInternal(event)
       }
 
       return event
+    },
+
+    commit(partialEvent, commitOptions = {}) {
+      // DB + persist + broadcast only — no filesystem projection
+      return commitInternal(partialEvent, commitOptions)
+    },
+
+    project(event) {
+      // Filesystem projection only — event must already be committed
+      projectInternal(event)
     },
 
     setEventHub(hub) {

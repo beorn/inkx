@@ -103,6 +103,13 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       // No-op emit for fake repo - just return a full event
       return { id: ulid(), ts: Date.now(), ...event } as Event
     },
+    commit(event) {
+      // No-op commit for fake repo - just return a full event (no FS projection)
+      return { id: ulid(), ts: Date.now(), ...event } as Event
+    },
+    project(_event) {
+      // No-op project for fake repo
+    },
     setEventHub(hub) {
       fakeEventHub = hub
     },

@@ -33,15 +33,19 @@ import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 
 /**
- * Wrap an emitter so all emit() calls include skipFsSync: true.
- * Used for FS-origin reconciliation to prevent echo loops:
- * FS change → DB update → emit → would write back to FS (echo!).
+ * Wrap an emitter so all emit() calls use commit() (no filesystem projection).
+ * Used for FS-origin reconciliation to prevent echo loops by construction:
+ * FS change → DB update → commit (no project) → no write back to FS.
+ *
+ * This is the structural loop break: reconciliation never projects.
  */
 function wrapEmitterForReconcile(emitter: Emitter): Emitter {
   return {
     ...emitter,
     emit(event: Parameters<Emitter["emit"]>[0], options: EmitOptions = {}) {
-      return emitter.emit(event, { ...options, skipFsSync: true })
+      // Use commit() directly — structurally prevents echo loops
+      // (skipFsSync is still supported for backwards compat but redundant here)
+      return emitter.commit(event, options)
     },
   }
 }
