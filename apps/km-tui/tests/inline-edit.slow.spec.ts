@@ -1494,7 +1494,11 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
           "board",
           item(
             "col1",
-            item("card-1", item("sub-a", item("deep-a", item("leaf-a"))), item("sub-b", item("deep-b", item("leaf-b")))),
+            item(
+              "card-1",
+              item("sub-a", item("deep-a", item("leaf-a"))),
+              item("sub-b", item("deep-b", item("leaf-b"))),
+            ),
             item("card-2"),
           ),
         ),
@@ -1918,10 +1922,7 @@ describe("Inline Edit — Card Expansion", () => {
         "board",
         item(
           "col",
-          item(
-            "card",
-            item("section", item("deep-a"), item("deep-b"), item("deep-c"), item("deep-d"), item("deep-e")),
-          ),
+          item("card", item("section", item("deep-a"), item("deep-b"), item("deep-c"), item("deep-d"), item("deep-e"))),
         ),
       ),
     )

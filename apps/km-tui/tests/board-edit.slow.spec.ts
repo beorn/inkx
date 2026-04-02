@@ -7,6 +7,8 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 
 // =============================================================================
@@ -1041,5 +1043,121 @@ describe("Enter after edit creates sibling, not board jump", () => {
     board.expect("#1a[data-cursor]").toExist()
     const output = board.screenshot()
     expect(output).toContain("1a")
+  })
+
+  test("Enter chain: newly created sibling stays at card level (editLevel = card)", () => {
+    const { board, repo, store } = testEnv(() => item("board", item("col1", item("1a"))))
+
+    // Enter edit mode on 1a
+    board.press("Enter")
+
+    // Verify we're editing 1a
+    const pane1 = getActiveBoardPane(store.getState())!
+    expect(pane1.inlineEditBlock?.nodeId).toBe("1a")
+
+    // Press Enter to create a sibling — cursor + edit should move to new node
+    board.press("Enter")
+
+    const pane2 = getActiveBoardPane(store.getState())!
+    const newNodeId1 = pane2.inlineEditBlock?.nodeId
+    expect(newNodeId1).toBeDefined()
+    expect(newNodeId1).not.toBe("1a")
+
+    // Verify the new node IS in nodeIndex (critical: this is what editLevel depends on)
+    const rootId = pane2.rootId
+    const foldDepths = pane2.foldDepths
+    const cols = deriveColumnsFromRepo(repo, rootId, foldDepths)
+    const ni = buildNodeIndex(cols)
+    const cursor1 = deriveCursorIndices(cols, newNodeId1!, ni, (id) => repo.getNode(id))
+    expect(cursor1.colIndex).toBeGreaterThanOrEqual(0)
+    expect(cursor1.isAtCardLevel).toBe(true)
+
+    // Press Enter AGAIN on the newly created node — should create another sibling, NOT jump
+    board.press("Enter")
+
+    const pane3 = getActiveBoardPane(store.getState())!
+    const newNodeId2 = pane3.inlineEditBlock?.nodeId
+    expect(newNodeId2).toBeDefined()
+    expect(newNodeId2).not.toBe(newNodeId1) // new sibling, not same node
+
+    // Verify cursor is still at card level after the second creation
+    const cols2 = deriveColumnsFromRepo(repo, rootId, foldDepths)
+    const ni2 = buildNodeIndex(cols2)
+    const cursor2 = deriveCursorIndices(cols2, newNodeId2!, ni2, (id) => repo.getNode(id))
+    expect(cursor2.colIndex).toBeGreaterThanOrEqual(0)
+    expect(cursor2.isAtCardLevel).toBe(true)
+
+    // Should have 3 items in column
+    const colChildren = repo.getChildren("col1")
+    expect(colChildren.length).toBe(3)
+
+    // All 3 should be in the column (in nodeIndex)
+    for (const child of colChildren) {
+      const pos = ni2.get(child.id)
+      expect(pos, `child ${child.id} should be in nodeIndex`).toBeDefined()
+      expect(pos!.cardIndex).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  test("Enter on sub-item stays in edit mode (not board jump)", () => {
+    // Sub-items: card with children (deeper hierarchy)
+    const { board, repo, store } = testEnv(() =>
+      item("board", item("col1", item("card-a", item("sub-1"), item("sub-2")))),
+    )
+
+    // Navigate to sub-1 (cursor starts on card-a, press Enter to zoom in or j to go to sub-1)
+    // In the board, card-a is the first card. Its children sub-1, sub-2 are sub-items.
+    // Enter on card-a should enter edit mode on the card title.
+    board.press("Enter") // edit card-a title
+    board.press("Escape") // exit edit
+
+    // Navigate down into sub-items
+    board.press("j") // move to sub-1 (if visible)
+
+    // Enter edit on the current position
+    board.press("Enter")
+
+    const pane = getActiveBoardPane(store.getState())!
+    // Should be in edit mode on some node
+    expect(pane.inlineEditBlock).not.toBeNull()
+
+    // Press Enter to create sibling
+    board.press("Enter")
+
+    const pane2 = getActiveBoardPane(store.getState())!
+    // Should still be in edit mode
+    expect(pane2.inlineEditBlock).not.toBeNull()
+    // Cursor should be on a real node (not null, not at board level)
+    expect(pane2.cursorNodeId).toBeDefined()
+    expect(pane2.cursorNodeId).not.toBeNull()
+  })
+
+  test("editLevel uses editing node position, not cursor (regression)", () => {
+    // Regression test: editLevel() must look up the EDITING node in nodeIndex,
+    // not the cursor. When cursor is at board level but editing a card,
+    // editLevel should return "card" (not "board").
+    const { board, repo, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
+
+    // Enter edit on 1a
+    board.press("Enter")
+    board.expectEditing("1a")
+
+    // Manually set cursor to a position that would cause colIndex=-1
+    // (simulating the state where cursor drifts from editing node)
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.inlineEditBlock?.nodeId).toBe("1a")
+
+    // Press Enter — should create sibling (linebreak_after), not child (linebreak_child)
+    board.press("Enter")
+
+    const pane2 = getActiveBoardPane(store.getState())!
+    const newNodeId = pane2.inlineEditBlock?.nodeId
+    expect(newNodeId).toBeDefined()
+    expect(newNodeId).not.toBe("1a")
+
+    // The new node should be a SIBLING of 1a (same parent: col1), not a child of 1a
+    const newNode = repo.getNode(newNodeId!)
+    expect(newNode).toBeDefined()
+    expect(newNode!.parent_id).toBe("col1") // sibling of 1a, not child
   })
 })

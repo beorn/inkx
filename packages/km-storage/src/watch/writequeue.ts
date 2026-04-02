@@ -705,6 +705,14 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
+   * Get the set of paths with pending writes.
+   * Used by reconciliation to skip files with queued but not-yet-flushed writes.
+   */
+  getPendingPaths(): Set<string> {
+    return new Set(this.pending.keys())
+  }
+
+  /**
    * Clear all pending writes
    */
   clear(): void {

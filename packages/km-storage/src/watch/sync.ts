@@ -378,26 +378,39 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Filter reconcile ops to exclude files we recently wrote.
+   * Filter reconcile ops to exclude files we recently wrote or have pending writes for.
+   *
+   * Two suppression layers:
+   * 1. recentWrites — time-based window (10s) covering files we queued writes for
+   * 2. pendingWrites — files currently in the WriteQueue awaiting flush
+   *
+   * Layer 2 is critical for the delete-noop bug (km-tui.delete-noop): after deleting
+   * a node, the parent file is queued for regeneration. Before the WriteQueue flushes,
+   * the old file content is still on disk. Without this check, reconciliation would
+   * re-parse the stale file and re-create the deleted node.
    */
   private filterRecentWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
-    const filtered = ops.filter((op) => !this.isRecentWrite(op.path))
+    const pendingPaths = this.writeQueue.getPendingPaths()
+    const filtered = ops.filter((op) => !this.isRecentWrite(op.path) && !pendingPaths.has(op.path))
     const skipped = ops.length - filtered.length
     if (skipped > 0) {
-      log.debug?.(`reconcile: skipped ${skipped} ops for recently-written files`)
+      log.debug?.(`reconcile: skipped ${skipped} ops for recently-written or pending-write files`)
     }
     return filtered
   }
 
   /**
-   * Force a heartbeat reconciliation now (for testing/debugging)
+   * Force a heartbeat reconciliation now (for testing/debugging).
+   * Applies the same safety filters as the regular heartbeat to prevent
+   * stale file content from overwriting DB state.
    */
   forceHeartbeat(): { opsCount: number; duration: number } {
     const start = Date.now()
     this.setState("reconciling")
 
     try {
-      const ops = reconcileDirectory(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
+      const rawOps = reconcileDirectory(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
+      const ops = this.filterRecentWriteOps(rawOps)
 
       if (ops.length > 0) {
         this.setState("emitting")
