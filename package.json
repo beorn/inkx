@@ -41,7 +41,7 @@
     "vt100.js": "file:vendor/vt100/packages/vt100",
     "vt220.js": "file:vendor/vt100/packages/vt220",
     "vterm.js": "file:vendor/vt100/packages/vterm",
-    "@bearly/vitepress-enrich": "$@bearly/vitepress-enrich",
+    "vitepress-enrich": "$vitepress-enrich",
     "zod": "^4.3.6"
   },
   "bin": {
@@ -53,6 +53,9 @@
     "km": "bun run ./apps/km-cli/src/index.ts",
     "km:strict": "SILVERY_STRICT=true bun run ./apps/km-cli/src/index.ts",
     "km:safe": "./scripts/km-safe.sh",
+    "termless": "bun vendor/termless/packages/cli/src/cli.ts",
+    "silvery": "bun vendor/silvery/bin/silvery.ts",
+    "terminfo": "bun vendor/terminfo.dev/packages/admin/src/index.ts",
     "worktree": "bun vendor/bearly/tools/worktree.ts",
     "accountly": "bun vendor/accountly/src/cli.ts",
     "recall": "bun vendor/bearly/tools/recall.ts",
@@ -156,7 +159,6 @@
     "flexily": "workspace:*",
     "knip": "^5.88.1",
     "loggily": "workspace:*",
-    "mdspec": "workspace:*",
     "oxfmt": "^0.38.0",
     "oxlint": "^1.57.0",
     "oxlint-plugin-complexity": "^2.0.3",
