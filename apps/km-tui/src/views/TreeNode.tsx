@@ -507,9 +507,7 @@ function TreeNodeImpl({
   const editNodeId = useAppStore<BoardAppStore, string | null | undefined>(
     (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId,
   )
-  // Cursor expansion: use the existing per-card signal (O(1) re-renders) instead of
-  // subscribing to global cursorNodeId (would cause O(N) re-renders on every cursor move).
-  const cursorInDescendant = useReactive(nodeStore.getOrCreate(node.id).cursorInDescendant)
+  // Cursor expansion: reuse cursorInDescendant from above (per-card signal, O(1) re-renders)
   const shouldExpand =
     // Edit: card-level expansion
     (depth === 0 && editingCardNodeId === node.id) ||
@@ -1145,7 +1143,11 @@ function NodeChildren({
 }
 
 /** Walk up parent_id chain to check if `ancestorId` is an ancestor of `nodeId`. */
-function isAncestorOf(repo: { getNode(id: string): KNode | undefined }, ancestorId: string, nodeId: string): boolean {
+function isAncestorOf(
+  repo: { getNode(id: string): KNode | null | undefined },
+  ancestorId: string,
+  nodeId: string,
+): boolean {
   let walkId: string | null = nodeId
   for (let i = 0; i < 20 && walkId; i++) {
     const n = repo.getNode(walkId)
