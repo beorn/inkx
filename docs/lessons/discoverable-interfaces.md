@@ -73,6 +73,22 @@ This applies at every level:
 
 `KNode` and `TreeWalk` already follow this pattern. `ViewTree` doesn't yet — that's why navigation reimplemented DFS three times.
 
+## Unify API Shapes Across Layers
+
+When two layers have the same concept (tree traversal), give them the same API shape. An agent who learns one immediately understands the other.
+
+```
+// Repo layer (data model)
+TreeWalk.nodes(tree, rootId, { match, into, reverse })
+
+// View layer (rendered model) — same shape, different types
+ViewTree.nodes(root, { match, into, reverse })
+```
+
+Same concept. Same predicate model (`match` = what to yield, `into` = what to descend into). Different tree structure. This is how you build a system vocabulary — consistent patterns across layers so knowledge transfers.
+
+If the Repo layer has `TreeWalk.nodes` with pluggable predicates but the View layer has a bare `dfsTraversal` with zero options, agents will reinvent predicate-filtered traversal in consumer code because they can't see it exists at the right layer.
+
 ## Rules
 
 1. **If a function operates on a core data structure, it belongs on that structure's namespace.** Not in a consumer file.
@@ -82,6 +98,8 @@ This applies at every level:
 3. **Namespaces over instance methods.** Keep data structures plain (no methods on `ViewNode`). Put operations on a companion namespace (`ViewTree.*`). This is the SlateJS/KNode pattern — proven and consistent.
 
 4. **Export the namespace from the barrel.** If `ViewTree.descendantIds` exists but isn't in `@km/board`'s index.ts, it's still invisible.
+
+5. **Unify API shapes across layers.** When Repo and View both have "traverse children with predicates," use the same parameter names (`match`, `into`, `reverse`). Knowledge of one layer should transfer to the other.
 
 ## Related
 
