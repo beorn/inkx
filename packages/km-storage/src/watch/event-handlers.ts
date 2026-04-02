@@ -117,8 +117,13 @@ export class EventHandlers {
    * Create an assignBlockId callback that collects newly assigned IDs.
    * After serialization, call rewriteSourceFiles to write ^block-id
    * suffixes into the files that contain the referenced nodes.
+   *
+   * @param eventId — optional override for the event ID used in writes.
+   *   When omitted, uses `this.currentEventId` (set during applyEventToFs).
+   *   Pass explicitly when calling from outside the event handler lifecycle
+   *   (e.g. syncFromFs, syncToFs).
    */
-  private createBlockIdAssigner(): {
+  createBlockIdAssigner(eventId?: string): {
     assign: (nodeId: string, blockId: string) => void
     rewriteSourceFiles: (excludeFileId?: string) => void
   } {
@@ -144,6 +149,7 @@ export class EventHandlers {
           if (file && file.id !== excludeFileId) fileIds.add(file.id)
         }
         // Rewrite each affected source file (without assignBlockId to prevent cascading)
+        const writeEventId = eventId ?? this.currentEventId
         for (const fileId of fileIds) {
           const file = getNode(this.db, fileId)
           if (!file?.fs_path) {
@@ -153,7 +159,7 @@ export class EventHandlers {
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          this.fsTarget.writeFile(absPath, content, this.currentEventId)
+          this.fsTarget.writeFile(absPath, content, writeEventId)
         }
       },
     }

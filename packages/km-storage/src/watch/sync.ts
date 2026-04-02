@@ -18,11 +18,7 @@ import { FileSystemWatcher, scanDirectoryRecursiveGen, type ScanEntry } from "./
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
-import {
-  reconcileDirectory,
-  applyReconcileOps,
-  type ReconcileOp,
-} from "./reconcile.ts"
+import { reconcileDirectory, applyReconcileOps, type ReconcileOp } from "./reconcile.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
 import { WriteTokenMap } from "./write-tokens.ts"
@@ -70,6 +66,7 @@ import {
   type StepYield,
 } from "../index.ts"
 import { findFileNode } from "./watch-utils.ts"
+import { createHeartbeat, DEFAULT_HEARTBEAT, type Heartbeat, type HeartbeatConfig } from "./heartbeat.ts"
 
 /** Result from syncFromFs */
 export interface SyncFromFsResult {
@@ -658,7 +655,7 @@ export class SyncManager extends EventEmitter {
 
         const fileNode = getAllNodes(this.db).find((n) => n.fs_path === filePath)
         if (fileNode) {
-          const blockIds = this.createBlockIdAssigner("rule-evaluation")
+          const blockIds = this.handlers.createBlockIdAssigner("rule-evaluation")
           const absPath = toAbsoluteFsPath(this.config.repoPath, filePath)
           const subtree = getSubtree(this.db, fileNode.id)
           const content = nodesToMarkdown(subtree, getAllNodes(this.db), blockIds.assign)
@@ -692,7 +689,7 @@ export class SyncManager extends EventEmitter {
 
     for (const fileNode of fileNodes) {
       if (!fileNode.fs_path) continue
-      const blockIds = this.createBlockIdAssigner("sync-to-fs")
+      const blockIds = this.handlers.createBlockIdAssigner("sync-to-fs")
       const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
       const subtree = getSubtree(this.db, fileNode.id)
       const content = nodesToMarkdown(subtree, nodes, blockIds.assign)
@@ -742,49 +739,5 @@ export class SyncManager extends EventEmitter {
       return this.watcher.getStatus()
     }
     return null
-  }
-
-  // ─── Block ID Assigner ──────────────────────────────────────────────────
-
-  private createBlockIdAssigner(_eventId: string): {
-    assign: (nodeId: string, blockId: string) => void
-    rewriteSourceFiles: (excludeFileId?: string) => void
-  } {
-    const assigned = new Map<string, string>()
-    return {
-      assign: (nodeId: string, blockId: string) => {
-        this.db.run("UPDATE nodes SET block_id = ? WHERE id = ?", [blockId, nodeId])
-        assigned.set(nodeId, blockId)
-      },
-      rewriteSourceFiles: (excludeFileId?: string) => {
-        if (assigned.size === 0) return
-        const fileIds = new Set<string>()
-        for (const [nodeId, blockId] of assigned) {
-          const node = getNode(this.db, nodeId)
-          if (!node) {
-            log.error?.(`rewriteSourceFiles: node ${nodeId} vanished after block_id assignment`)
-            continue
-          }
-          node.block_id = blockId
-          const file = findFileNode(this.db, node)
-          if (file && file.id !== excludeFileId) fileIds.add(file.id)
-        }
-        for (const fileId of fileIds) {
-          const file = getNode(this.db, fileId)
-          if (!file?.fs_path) {
-            log.error?.(`rewriteSourceFiles: file node ${fileId} missing or has no fs_path`)
-            continue
-          }
-          const absPath = toAbsoluteFsPath(this.config.repoPath, file.fs_path)
-          const subtreeNodes = getSubtree(this.db, fileId)
-          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          this.writeQueue.queue({
-            path: absPath,
-            content,
-            sourceEventId: _eventId,
-          })
-        }
-      },
-    }
   }
 }
