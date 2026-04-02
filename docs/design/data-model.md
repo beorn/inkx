@@ -199,6 +199,57 @@ The TUI wraps KNode in view models for rendering:
 
 **Shared structure**: Both use Board → Column → Card → Sub-item hierarchy. Both have body content and transclusion. The outliner spec (`docs/design/outliner-spec.md`) defines shared editing behavior.
 
+## Tree Traversal (`TreeWalk.nodes`)
+
+`TreeWalk.nodes(tree, rootId, opts?)` is the single composable primitive for tree iteration. DFS pre-order, yields `[node, depth]` entries. Exported from `@km/tree`.
+
+### Options
+
+| Option | Type | Default | What it controls |
+|---|---|---|---|
+| `match` | `(node) => boolean` | all | Which nodes are **yielded** — never affects descent |
+| `into` | `(node) => boolean` | always true | Whether to **descend** into children — never affects yielding |
+| `reverse` | `boolean` | false | DFS in reverse order (last child first) |
+| `at` | `string` | — | Skip all nodes before this ID in DFS order |
+| `mode` | `"all" \| "highest" \| "lowest"` | `"all"` | Match mode: every match, shallowest per branch, or deepest per branch |
+
+`match` and `into` are **orthogonal** — match never affects descent, into never affects yielding. This replaces the old `walkTree` which conflated filtering (what to yield) with pruning (what subtrees to skip).
+
+### Three-Layer Predicate Taxonomy
+
+Predicates used with `TreeWalk.nodes` fall into three layers:
+
+**Tree layer (match predicates)** — data model type, independent of view state:
+- `KNode.isOutline`, `KNode.isItem`, `KNode.isBlock`, `KNode.isListItem`
+- `KNode.isTask`, `KNode.isEmbed`
+
+**View layer (into predicates)** — whether to descend into subtrees, depends on UI state:
+- `isCollapsedChild` — node is hidden by parent's collapsed state
+- `isHidden` — node is filtered out (e.g., done tasks hidden)
+- `foldDepths` — fold level controlling which depths are expanded
+
+**Render layer (neither)** — display-only concerns, not part of tree walking:
+- `maxContentLines` — truncation for long content
+- Task status filter — which statuses to show (done/todo/all)
+
+### Examples
+
+```typescript
+// All outline items (headings with item data)
+TreeWalk.nodes(tree, rootId, { match: KNode.isOutline })
+
+// Visible navigable nodes (skip collapsed subtrees)
+TreeWalk.nodes(tree, rootId, { match: isNavigable, into: n => !isCollapsed(n) })
+
+// Last node in subtree
+const [last] = [...TreeWalk.nodes(tree, rootId, { reverse: true })].slice(0, 1)
+
+// Shallowest tasks only (skip nested tasks)
+TreeWalk.nodes(tree, rootId, { match: KNode.isTask, mode: "highest" })
+```
+
+Source: `packages/km-tree/src/walk.ts`
+
 ## Invariants
 
 1. **Items can have children, blocks cannot** — `item != null` is the only prerequisite for `getChildren()`
