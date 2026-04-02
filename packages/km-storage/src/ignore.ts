@@ -60,6 +60,7 @@ export const DEFAULT_IGNORE_PATTERNS = [
   // Logs and temp files
   "**/*.log",
   "**/*.tmp",
+  "**/*.km-tmp",
   "**/*.temp",
   "**/*.bak",
   "**/npm-debug.log*",

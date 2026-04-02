@@ -970,3 +970,320 @@ describe("renamePendingSubtree", () => {
     expect(queue.getPendingPaths()).toEqual(new Set(["/vault/old-directory/x.md"]))
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chaos Tests — Error Classes, Retry Behavior, Conflict Detection, Concurrency
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Chaos: error class coverage", () => {
+  test("EBUSY classified as transient and retried", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 1, failError: codeError("EBUSY", "Resource busy") }),
+    })
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+    expect(flushed.results[0]?.success).toBe(true)
+    expect(flushed.results[0]?.attempts).toBe(2) // 1 fail + 1 success
+  })
+
+  test("EACCES classified as permanent and not retried", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 10, failError: codeError("EACCES", "Permission denied") }),
+    })
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+    expect(flushed.results[0]?.success).toBe(false)
+    expect(flushed.results[0]?.attempts).toBe(1) // No retries
+    expect(flushed.results[0]?.errorClass).toBe("permanent")
+  })
+
+  test("ENOENT classified as permanent and not retried", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 10, failError: codeError("ENOENT", "No such file") }),
+    })
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+    expect(flushed.results[0]?.success).toBe(false)
+    expect(flushed.results[0]?.attempts).toBe(1)
+    expect(flushed.results[0]?.errorClass).toBe("permanent")
+  })
+
+  test("ENOSPC classified as transient and retried", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 2, failError: codeError("ENOSPC", "No space left") }),
+    })
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+    expect(flushed.results[0]?.success).toBe(true)
+    expect(flushed.results[0]?.attempts).toBe(3)
+  })
+
+  test("ENOSPC exhausts retries and reports disk_full error type", async () => {
+    const queue = createWriteQueue({
+      fs: createMockFs({ failCount: 100, failError: codeError("ENOSPC", "No space left") }),
+      retry: { maxRetries: 2 },
+    })
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+    expect(flushed.results[0]?.success).toBe(false)
+    expect(flushed.results[0]?.error?.code).toBe("ENOSPC")
+    expect(getErrorType(flushed.results[0]!.error!)).toBe("disk_full")
+  })
+})
+
+describe("Chaos: conflict detection with strategies", () => {
+  test("mtime mismatch detected with last_write_wins — writes anyway", async () => {
+    const history: string[] = []
+    const mtimes = new Map([["/doc.md", 1000]])
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
+      conflictStrategy: "last_write_wins",
+    })
+
+    let conflicts: ConflictInfo[] = []
+    queue.on("conflicts", (e) => (conflicts = e as ConflictInfo[]))
+
+    queue.queue({ path: "/doc.md", content: "edit", sourceEventId: "1" })
+    mtimes.set("/doc.md", 5000) // External edit
+    await queue.forceFlush()
+
+    expect(conflicts).toHaveLength(1)
+    expect(conflicts[0]?.baseMtime).toBe(1000)
+    expect(conflicts[0]?.currentMtime).toBe(5000)
+    expect(conflicts[0]?.resolution).toBe("written")
+    // File was written despite conflict
+    expect(history).toContain("write:/doc.md.km-tmp")
+  })
+
+  test("mtime mismatch detected with fs_wins — discards write", async () => {
+    const history: string[] = []
+    const mtimes = new Map([["/doc.md", 1000]])
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
+      conflictStrategy: "fs_wins",
+    })
+
+    let conflicts: ConflictInfo[] = []
+    queue.on("conflicts", (e) => (conflicts = e as ConflictInfo[]))
+
+    queue.queue({ path: "/doc.md", content: "edit", sourceEventId: "1" })
+    mtimes.set("/doc.md", 5000) // External edit
+    await queue.forceFlush()
+
+    expect(conflicts).toHaveLength(1)
+    expect(conflicts[0]?.resolution).toBe("discarded")
+    // File was NOT written
+    expect(history.filter((h) => h.includes("doc.md"))).toEqual([])
+  })
+})
+
+describe("Chaos: concurrent flush behavior", () => {
+  test("writes queued during active flush are processed in next flush", async () => {
+    const history: string[] = []
+    let writeCallCount = 0
+
+    const mockFs = createMockFs({ history })
+    mockFs.writeFileSync = (path: string, content: string) => {
+      writeCallCount++
+      if (writeCallCount === 1) {
+        // First write is slow (transient error triggers retry delay)
+        throw codeError("EBUSY", "Busy")
+      }
+      history.push(`write:${path}:${content}`)
+    }
+
+    const queue = createWriteQueue({
+      fs: mockFs,
+      retry: { maxRetries: 3, baseDelayMs: 20, maxDelayMs: 40, jitterFactor: 0 },
+    })
+
+    // Start flush 1 with file A
+    queue.queue({ path: "/a.md", content: "alpha", sourceEventId: "1" })
+    const flush1 = queue.flush()
+
+    // While flush 1 is retrying, queue file B
+    queue.queue({ path: "/b.md", content: "beta", sourceEventId: "2" })
+    const flush2 = queue.flush()
+
+    await Promise.all([flush1, flush2])
+
+    // Both files should have been written
+    const writes = history.filter((h) => h.startsWith("write:"))
+    expect(writes).toContain("write:/a.md.km-tmp:alpha")
+    expect(writes).toContain("write:/b.md.km-tmp:beta")
+  })
+
+  test("rapid sequential edits to same file are coalesced", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({
+      fs: createMockFs({ history }),
+    })
+
+    // Queue 5 rapid edits to the same file — only the last should survive
+    queue.queue({ path: "/file.md", content: "v1", sourceEventId: "1" })
+    queue.queue({ path: "/file.md", content: "v2", sourceEventId: "2" })
+    queue.queue({ path: "/file.md", content: "v3", sourceEventId: "3" })
+    queue.queue({ path: "/file.md", content: "v4", sourceEventId: "4" })
+    queue.queue({ path: "/file.md", content: "v5", sourceEventId: "5" })
+
+    const { flushed } = await flushAndCapture(queue)
+
+    // Only 1 write operation — the last one wins (coalesced by path key)
+    expect(flushed.count).toBe(1)
+    expect(flushed.results).toHaveLength(1)
+    expect(flushed.results[0]?.success).toBe(true)
+  })
+})
+
+describe("Chaos: transient failure during flush, then success", () => {
+  test("transient write failure retries and eventually succeeds", async () => {
+    const history: string[] = []
+    // Fail 2 times (transient), then succeed on 3rd
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, failCount: 2, failError: codeError("EBUSY", "Resource busy") }),
+    })
+
+    queue.queue({ path: "/important.md", content: "data", sourceEventId: "1" })
+    const { flushed, errors } = await flushAndCapture(queue)
+
+    expect(flushed.results[0]?.success).toBe(true)
+    expect(flushed.results[0]?.attempts).toBe(3) // 2 fails + 1 success
+    expect(errors).toBeNull() // No errors emitted (success)
+    expect(flushed.errors).toBe(0)
+  })
+
+  test("permanent failure emits error but other writes continue", async () => {
+    const history: string[] = []
+    let writeCount = 0
+
+    const mockFs = createMockFs({ history })
+    mockFs.writeFileSync = (path: string, content: string) => {
+      writeCount++
+      // First file always fails with permanent error
+      if (path.includes("bad")) {
+        throw codeError("EACCES", "Permission denied")
+      }
+      history.push(`write:${path}:${content}`)
+    }
+
+    const queue = createWriteQueue({ fs: mockFs, retry: { maxRetries: 0 } })
+
+    let errorsEvent: unknown[] | null = null
+    queue.on("errors", (e) => (errorsEvent = e as unknown[]))
+
+    queue.queue({ path: "/bad.md", content: "fail", sourceEventId: "1" })
+    queue.queue({ path: "/good.md", content: "ok", sourceEventId: "2" })
+    await queue.forceFlush()
+
+    // bad.md failed, good.md succeeded
+    expect(errorsEvent).toHaveLength(1)
+    const writes = history.filter((h) => h.startsWith("write:"))
+    expect(writes).toContain("write:/good.md.km-tmp:ok")
+    expect(writes.every((w) => !w.includes("bad"))).toBe(true)
+  })
+})
+
+describe("Chaos: atomic write cleanup", () => {
+  test("temp file is cleaned up when rename fails", async () => {
+    const history: string[] = []
+    const mockFs = createMockFs({ history })
+
+    // writeFileSync succeeds (creates temp), but renameSync fails
+    let renameCallCount = 0
+    const origRename = mockFs.renameSync
+    mockFs.renameSync = (oldPath: string, newPath: string) => {
+      // Only fail on atomic write renames (tmp->final), not explicit renames
+      if (oldPath.endsWith(".km-tmp")) {
+        renameCallCount++
+        throw codeError("EACCES", "Permission denied on rename")
+      }
+      origRename(oldPath, newPath)
+    }
+    // existsSync needs to return true for the temp file so cleanup works
+    mockFs.existsSync = (path: string) => {
+      if (path.endsWith(".km-tmp")) return true
+      return false
+    }
+
+    const queue = createWriteQueue({ fs: mockFs, retry: { maxRetries: 0 } })
+
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    expect(flushed.results[0]?.success).toBe(false)
+    // Temp file should have been cleaned up (unlink called)
+    expect(history).toContain("delete:/test.md.km-tmp")
+  })
+
+  test("in-flight tracking covers both temp and final paths", async () => {
+    const mockFs = createMockFs()
+    const queue = createWriteQueue({ fs: mockFs })
+
+    const markedPaths = new Set<string>()
+    const tracker = {
+      markInFlight: (path: string) => markedPaths.add(path),
+      clearInFlight: (path: string) => markedPaths.delete(path),
+    }
+    queue.setWatcher(tracker)
+
+    queue.queue({ path: "/file.md", content: "data", sourceEventId: "1" })
+    await queue.forceFlush()
+
+    // Both the final path and temp path should have been marked
+    // (temp may already be cleared by clearInFlight timer, but markInFlight should have been called)
+    // We can't check the set directly after flush since mark happens before flush completes
+    // Instead, verify the final path is still in-flight (1000ms timer hasn't expired yet)
+    expect(markedPaths.has("/file.md")).toBe(true)
+    expect(markedPaths.has("/file.md.km-tmp")).toBe(true)
+  })
+})
+
+describe("Chaos: configurable timing", () => {
+  test("custom clearInFlightDelayMs is respected", async () => {
+    const mockFs = createMockFs()
+    const queue = new WriteQueue({
+      debounceMs: 0,
+      fs: mockFs,
+      retry: FAST_RETRY,
+      clearInFlightDelayMs: 100, // Much shorter than default 1000ms
+    })
+
+    const inFlightPaths = new Set<string>()
+    queue.setWatcher({
+      markInFlight: (path: string) => inFlightPaths.add(path),
+      clearInFlight: (path: string) => inFlightPaths.delete(path),
+    })
+
+    queue.queue({ path: "/fast.md", content: "data", sourceEventId: "1" })
+    await queue.forceFlush()
+
+    // Path is in-flight immediately after flush
+    expect(inFlightPaths.has("/fast.md")).toBe(true)
+
+    // Wait for the short delay + margin
+    await new Promise((r) => setTimeout(r, 150))
+
+    // Should be cleared after 100ms delay
+    expect(inFlightPaths.has("/fast.md")).toBe(false)
+  })
+
+  test("custom retry config overrides defaults", async () => {
+    const history: string[] = []
+    // Fail 7 times — default maxRetries=3 would fail, but custom maxRetries=8 should succeed
+    const queue = new WriteQueue({
+      debounceMs: 0,
+      fs: createMockFs({ history, failCount: 7 }),
+      retry: { maxRetries: 8, baseDelayMs: 1, maxDelayMs: 5, jitterFactor: 0 },
+    })
+
+    queue.queue({ path: "/resilient.md", content: "data", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    expect(flushed.results[0]?.success).toBe(true)
+    expect(flushed.results[0]?.attempts).toBe(8) // 7 fails + 1 success
+  })
+})
