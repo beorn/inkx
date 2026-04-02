@@ -1510,6 +1510,39 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.expectEditing("deep-b")
     })
 
+    test("ctrl-p DFS-last includes body blocks, not just outline items", () => {
+      // Structure: card-1 has sub-items where each sub-item has children (body blocks).
+      // The old findDeepestLast only walked extractBody().items (outline headings),
+      // missing body blocks entirely. The fix uses walkTree DFS to find the true last node.
+      //
+      // card-1
+      //   sub-a (heading — has children)
+      //     child-a1 (leaf — body block of sub-a)
+      //   sub-b (heading — has children)
+      //     child-b1 (leaf — body block of sub-b)  ← DFS-last
+      // card-2  ← start here, press ctrl-p
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1", item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
+            item("card-2"),
+          ),
+        ),
+      )
+
+      // Navigate to card-2 and enter edit mode
+      board.navigateTo("card-2")
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      // ctrl-p should land on child-b1 (DFS-last descendant of card-1),
+      // NOT sub-b (which is what the old items-only traversal would pick)
+      board.press("ArrowUp")
+      board.expectEditing("child-b1")
+    })
+
     test("mouse click in edit mode repositions within same card", () => {
       const { board } = testEnv(() => item("board", item("Column", item("card", item("child-1"), item("child-2")))), {
         columns: 80,
