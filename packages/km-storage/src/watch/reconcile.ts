@@ -92,9 +92,7 @@ function reconcileFromEntries(db: Database, dirPath: string, repoRoot: string, f
           skipRename = true
         } else {
           // The displaced node's inode differs from the FS — it's truly stale.
-          log.info?.(
-            `displacing stale node at path=${relPath} (dbIno=${displacedDbIno} fsIno=${entry.ino})`,
-          )
+          log.info?.(`displacing stale node at path=${relPath} (dbIno=${displacedDbIno} fsIno=${entry.ino})`)
           ops.push({
             type: "delete",
             nodeId: existingByPath.id,

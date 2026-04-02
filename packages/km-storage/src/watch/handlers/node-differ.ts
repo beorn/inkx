@@ -112,9 +112,7 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const existingChildren = existing.filter(
     (n) => !(KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile")),
   )
-  const newChildren = newNodes.filter(
-    (n) => !(KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile")),
-  )
+  const newChildren = newNodes.filter((n) => !(KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile")))
 
   // --- Phase 1: Match by block_id (strongest anchor) ---
   const existingByBlockId = new Map<string, KNode>()

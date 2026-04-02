@@ -713,7 +713,7 @@ export const Column = React.memo(function Column({
     [colIndex, width, isVirtual, cardNodes, extraExcludedSigils, isColumnSelected],
   )
 
-  const keyExtractor = useCallback((card: KNode) => card.id, [])
+  const getKey = useCallback((card: KNode) => card.id, [])
 
   // Collapsed: bordered card-like strip spanning full column height with vertical title
   if (isCollapsed) {
@@ -817,7 +817,7 @@ export const Column = React.memo(function Column({
           height={height - 2}
           itemHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
-          keyExtractor={keyExtractor}
+          getKey={getKey}
           renderItem={renderItem}
           overflowIndicator
           scrollAnchor={columnScrollAnchor}

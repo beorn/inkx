@@ -483,7 +483,7 @@ export function BoardCore({
                       />
                     )}
                     overflowIndicatorWidth={1}
-                    keyExtractor={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}
+                    getKey={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}
                   />
                 )}
               </ErrorBoundary>

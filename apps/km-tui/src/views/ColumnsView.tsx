@@ -156,7 +156,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
           itemHeight={(card: KNode) => (card.id === editingNodeId ? 3 : 1)}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_ITEMS}
-          keyExtractor={(card) => card.id}
+          getKey={(card) => card.id}
           renderItem={renderCard}
           overflowIndicator
         />
@@ -225,7 +225,7 @@ export function ColumnsView({ columns, width, height }: ColumnsViewProps): React
             <VerticalScrollIndicator direction={dir === "before" ? "left" : "right"} hiddenCount={hiddenCount} />
           )}
           overflowIndicatorWidth={1}
-          keyExtractor={(col) => col.node.id}
+          getKey={(col) => col.node.id}
         />
       )}
     </Box>

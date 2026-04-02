@@ -201,7 +201,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}
-        keyExtractor={(item) => (item.type === "header" ? `header-${item.column.node.id}` : item.card.id)}
+        getKey={(item) => (item.type === "header" ? `header-${item.column.node.id}` : item.card.id)}
         renderItem={renderItem}
         width={width}
       />

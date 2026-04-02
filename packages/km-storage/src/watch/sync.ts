@@ -5,7 +5,7 @@
  */
 
 import { createLogger } from "loggily"
-import { existsSync, mkdirSync, renameSync } from "fs"
+import { existsSync, mkdirSync, readFileSync, renameSync } from "fs"
 import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
@@ -26,6 +26,7 @@ import {
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
 import { WriteTokenMap } from "./write-tokens.ts"
+import { createSyncState, type SyncState } from "./sync-state.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import { type Event } from "@km/core"
 import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
@@ -134,7 +135,13 @@ export class SyncManager extends EventEmitter {
   // When reconciliation sees a file change, it checks the token to determine
   // if the change was ours (skip) or external (process). Replaces the old
   // timestamp-based recentWrites with deterministic SHA-256 hashing.
+  // WriteTokenMap is the fast in-memory cache; syncState is the durable ground truth.
   private writeTokens = new WriteTokenMap()
+
+  // Persisted sync state — durable content-hash baseline for each file.
+  // Survives process restarts. WriteTokenMap is checked first (fast, no DB query),
+  // syncState is the fallback for cache misses (e.g., after restart).
+  private syncState: SyncState
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
@@ -149,6 +156,7 @@ export class SyncManager extends EventEmitter {
     this.kmDir = join(this.config.repoPath, ".km")
     this.emitter = config.emitter ?? createEmitter({ kmDir: this.kmDir, db: this.db })
     this.reconcileEmitter = wrapEmitterForReconcile(this.emitter)
+    this.syncState = createSyncState(this.db)
 
     // Initialize heartbeat config
     this.heartbeatConfig = {
@@ -176,7 +184,10 @@ export class SyncManager extends EventEmitter {
 
     this.writeQueue = new WriteQueue({
       debounceMs: this.config.debounceApply,
-      onWrite: (path, content) => this.writeTokens.record(path, content),
+      onWrite: (path, content) => {
+        this.writeTokens.record(path, content)
+        this.syncState.recordProjection(path, content)
+      },
     })
 
     this.writeQueue.setWatcher(this.watcher)
@@ -364,6 +375,9 @@ export class SyncManager extends EventEmitter {
           parsePool: await this.getParsePool(),
         })
 
+        // Record observations for successfully reconciled files
+        this.recordObservationsForOps(ops)
+
         // Emit event so consumers know about drift
         this.emit("heartbeat:drift", {
           opsCount: ops.length,
@@ -385,32 +399,49 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Check if we have a write token for this path (content-hash based).
-   * Used to skip reconciliation for files we just wrote — prevents stale file
-   * content from overwriting DB values set by inline edit.
+   * Check if we own a file change. Two-tier lookup:
+   * 1. WriteTokenMap (in-memory hot cache) — fast, no DB query
+   * 2. syncState (persisted baseline) — survives restarts, requires file content read
+   *
+   * Returns true if the file content matches what we last wrote.
    */
-  private hasWriteToken(absPath: string): boolean {
-    return this.writeTokens.has(absPath)
+  private isOwnedWrite(absPath: string): boolean {
+    // Tier 1: in-memory cache (fast path)
+    if (this.writeTokens.has(absPath)) return true
+
+    // Tier 2: persisted sync_state (cold path — survives restart)
+    try {
+      const content = readFileSync(absPath, "utf-8")
+      if (this.syncState.isOurs(absPath, content)) {
+        log.debug?.(`syncState hit for ${absPath} (writeToken cache miss, post-restart?)`)
+        return true
+      }
+    } catch {
+      // File unreadable (ENOENT, EACCES) — treat as external
+    }
+
+    return false
   }
 
   /**
    * Filter reconcile ops to exclude files we wrote or have pending writes for.
    *
-   * Two suppression layers:
-   * 1. writeTokens — content-hash based tracking of files we wrote (post-flush)
-   * 2. pendingPaths — files currently in the WriteQueue awaiting flush (pre-flush)
+   * Three suppression layers:
+   * 1. writeTokens — in-memory content-hash tracking of files we wrote (post-flush)
+   * 2. syncState — persisted content-hash baseline (survives restarts, falls back on cache miss)
+   * 3. pendingPaths — files currently in the WriteQueue awaiting flush (pre-flush)
    *
-   * Layer 2 is critical for the delete-noop bug (km-tui.delete-noop): after deleting
+   * Layer 3 is critical for the delete-noop bug (km-tui.delete-noop): after deleting
    * a node, the parent file is queued for regeneration. Before the WriteQueue flushes,
    * the old file content is still on disk. Without this check, reconciliation would
    * re-parse the stale file and re-create the deleted node.
    */
   private filterOwnedWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
     const pendingPaths = this.writeQueue.getPendingPaths()
-    const filtered = ops.filter((op) => !this.hasWriteToken(op.path) && !pendingPaths.has(op.path))
+    const filtered = ops.filter((op) => !this.isOwnedWrite(op.path) && !pendingPaths.has(op.path))
     const skipped = ops.length - filtered.length
     if (skipped > 0) {
-      log.debug?.(`reconcile: skipped ${skipped} ops for token-matched or pending-write files`)
+      log.debug?.(`reconcile: skipped ${skipped} ops for owned-write or pending-write files`)
     }
     return filtered
   }
@@ -530,6 +561,9 @@ export class SyncManager extends EventEmitter {
             parsePool: await this.getParsePool(),
           })
           applySpan.spanData.ops = ops.length
+
+          // Record observations for successfully reconciled files
+          this.recordObservationsForOps(ops)
         }
       } catch (error) {
         // Suppress errors after stop (DB closed, temp dir removed — expected during teardown)

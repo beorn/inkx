@@ -9,7 +9,12 @@ import { describe, test, expect } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
 import { join, relative } from "path"
 import type { Database } from "bun:sqlite"
-import { reconcileDirectory, applyReconcileOps, getParentNodeId, type DirectoryScanner } from "../../src/watch/reconcile.ts"
+import {
+  reconcileDirectory,
+  applyReconcileOps,
+  getParentNodeId,
+  type DirectoryScanner,
+} from "../../src/watch/reconcile.ts"
 import { getNodeByPath } from "../../src/db-queries/core-lookup.ts"
 import { getChildren } from "../../src/db-queries/tree-traversal.ts"
 import { withTestEnv, clearConfigCache } from "@km/storage"
@@ -682,9 +687,7 @@ describe("reconcile.ts", () => {
         expect(deleteFolderOp).toBeDefined()
 
         // Child of B should also be deleted (displaced descendant)
-        const deleteChildOp = ops.find(
-          (op) => op.type === "delete" && op.path === "target-folder/child.md",
-        )
+        const deleteChildOp = ops.find((op) => op.type === "delete" && op.path === "target-folder/child.md")
         expect(deleteChildOp).toBeDefined()
 
         // Folder A should be renamed to target-folder

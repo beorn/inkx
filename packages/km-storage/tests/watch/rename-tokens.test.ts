@@ -45,12 +45,7 @@ function createMockFsTarget() {
 }
 
 /** Insert a file node into the DB for testing */
-function insertFileNode(
-  db: import("bun:sqlite").Database,
-  id: string,
-  name: string,
-  fsPath: string,
-): void {
+function insertFileNode(db: import("bun:sqlite").Database, id: string, name: string, fsPath: string): void {
   db.run(
     `INSERT INTO nodes (id, type, parent_id, parent_idx, item, content, name, fs_path, fstype, created_at, updated_at)
      VALUES (?, 'h', '.', 0, 1, ?, ?, ?, 'mdfile', 0, 0)`,
@@ -59,12 +54,7 @@ function insertFileNode(
 }
 
 /** Insert a folder node into the DB for testing */
-function insertFolderNode(
-  db: import("bun:sqlite").Database,
-  id: string,
-  name: string,
-  fsPath: string,
-): void {
+function insertFolderNode(db: import("bun:sqlite").Database, id: string, name: string, fsPath: string): void {
   db.run(
     `INSERT INTO nodes (id, type, parent_id, parent_idx, item, content, name, fs_path, fstype, created_at, updated_at)
      VALUES (?, 'h', '.', 0, 1, ?, ?, ?, 'folder', 0, 0)`,

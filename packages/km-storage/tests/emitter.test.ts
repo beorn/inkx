@@ -315,10 +315,7 @@ describe("skipFsSync option", () => {
     const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
 
     // Emit with skipFsSync: true — simulates FS-origin reconciliation
-    emitter.emit(
-      { type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } },
-      { skipFsSync: true },
-    )
+    emitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } }, { skipFsSync: true })
 
     // Broadcast should still run
     expect(broadcastCalls).toEqual(["node_created"])
