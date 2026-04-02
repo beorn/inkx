@@ -114,18 +114,10 @@ export async function* parseFiles(
     if (!source) continue
 
     if (result.error) {
-      log.debug?.(`parseFiles: error for ${result.fsPath}: ${result.error}`)
-      yield {
-        path: result.fsPath,
-        nodeId: result.nodeId,
-        nodes: [],
-        wikilinks: [],
-        hash: "",
-        ino: result.ino,
-        mtime: result.mtime,
-        isCreate: source.isCreate,
-        error: result.error,
-      }
+      // F9: Log parse errors at WARN so users can see which files failed.
+      // The file's stub node persists but won't be populated — better than
+      // creating a corrupt stub that looks valid.
+      log.warn?.(`parseFiles: parse error for ${result.fsPath}: ${result.error}`)
       continue
     }
 
