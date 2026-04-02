@@ -37,8 +37,6 @@ export interface ActionCtx {
   /** Current card containing the cursor (from CursorStore). Used as embed-aware
    * hint — data model parent chain may lead to the wrong card for embeds. */
   cursorCardNodeId: string | null
-  /** Node IDs that are hidden — navigation skips them */
-  hiddenNodeIds: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
   moveState: import("./board-types.ts").MoveState

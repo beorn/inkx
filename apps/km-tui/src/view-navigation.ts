@@ -9,14 +9,11 @@
  */
 
 import type { Repo } from "@km/storage"
-import { createLogger } from "loggily"
 import { findIndexFile } from "@km/core"
 import type { GridNavigator, ViewNode } from "@km/board"
 import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
 import type { ViewMode } from "./types.ts"
 import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
-
-const log = createLogger("km:nav")
 
 // =============================================================================
 // ViewNavigation interface
@@ -33,8 +30,6 @@ export interface NavState {
   /** Current card containing the cursor (from CursorStore). Used as embed-aware
    * card boundary hint — overrides findAncestorAtDepth when available. */
   cursorCardNodeId?: string | null
-  /** Hidden node IDs — navigation skips these nodes */
-  hiddenNodeIds?: Set<string>
   /** ViewNode tree — explicit visual hierarchy for ViewNode-based navigation */
   viewTree: ViewNode
   /** ViewNode index — O(1) lookup by node ID */
@@ -76,17 +71,9 @@ export interface ViewNavigation {
 export function createCardsViewNavigation(): ViewNavigation {
   return {
     navigate(dir, state, _repo, navigator) {
-      const result =
-        dir === "up" || dir === "down"
-          ? vnNavigateVertical(dir, state, navigator)
-          : vnNavigateHorizontal(dir, state, navigator)
-
-      // Runtime invariant: navigation must never land on a hidden node
-      if (result && state.hiddenNodeIds?.has(result)) {
-        log.error?.(`navigate(${dir}) landed on hidden node ${result} — this is a navigation bug`)
-        return null // Refuse to navigate to hidden node
-      }
-      return result
+      return dir === "up" || dir === "down"
+        ? vnNavigateVertical(dir, state, navigator)
+        : vnNavigateHorizontal(dir, state, navigator)
     },
     classifyCursor(nodeId, rootId, repo) {
       const vTree = buildViewTree(repo, rootId, new Map())
@@ -233,21 +220,17 @@ export function getViewNavigation(viewMode: ViewMode): ViewNavigation {
 // =============================================================================
 
 /**
- * Find next/prev sibling in ViewNode tree, skipping hidden nodes.
+ * Find next/prev sibling in ViewNode tree.
  * Returns null if at boundary.
  */
-function vnSibling(vn: ViewNode, delta: 1 | -1, hiddenNodeIds?: Set<string>): ViewNode | null {
+function vnSibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
   if (!vn.parent) return null
   const siblings = vn.parent.children
-  let idx = siblings.indexOf(vn)
+  const idx = siblings.indexOf(vn)
   if (idx < 0) return null
-  idx += delta
-  while (idx >= 0 && idx < siblings.length) {
-    const candidate = siblings[idx]!
-    if (!hiddenNodeIds?.has(candidate.id)) return candidate
-    idx += delta
-  }
-  return null
+  const targetIdx = idx + delta
+  if (targetIdx < 0 || targetIdx >= siblings.length) return null
+  return siblings[targetIdx]!
 }
 
 /**
@@ -286,13 +269,12 @@ function vnFindCard(vn: ViewNode): ViewNode | null {
  * Get the structural column index (excluding body column) for stickyX purposes.
  * stickyX is an index into structural (non-body) columns only.
  */
-function vnStructuralColumnIndex(col: ViewNode, hiddenNodeIds?: Set<string>): number {
+function vnStructuralColumnIndex(col: ViewNode): number {
   if (col.parent?.role !== "board") return -1
   const cols = col.parent.children
   let structIdx = 0
   for (const c of cols) {
     if (c.role === "body-column") continue
-    if (hiddenNodeIds?.has(c.id)) continue
     if (c === col) return structIdx
     structIdx++
   }
@@ -300,34 +282,35 @@ function vnStructuralColumnIndex(col: ViewNode, hiddenNodeIds?: Set<string>): nu
 }
 
 /**
- * Get visible columns from the board, optionally filtering by type.
+ * Get all columns from the board.
+ * Hidden nodes are already excluded at tree construction time.
  */
-function vnVisibleColumns(board: ViewNode, hiddenNodeIds?: Set<string>): ViewNode[] {
-  return board.children.filter((c) => !hiddenNodeIds?.has(c.id))
+function vnVisibleColumns(board: ViewNode): ViewNode[] {
+  return board.children
 }
 
 /**
- * Get visible structural (non-body) columns.
+ * Get structural (non-body) columns.
+ * Hidden nodes are already excluded at tree construction time.
  */
-function vnStructuralColumns(board: ViewNode, hiddenNodeIds?: Set<string>): ViewNode[] {
-  return board.children.filter((c) => c.role !== "body-column" && !hiddenNodeIds?.has(c.id))
+function vnStructuralColumns(board: ViewNode): ViewNode[] {
+  return board.children.filter((c) => c.role !== "body-column")
 }
 
 /**
- * Get body column from the board, if it exists and is visible.
+ * Get body column from the board, if it exists.
+ * Hidden nodes are already excluded at tree construction time.
  */
-function vnBodyColumn(board: ViewNode, hiddenNodeIds?: Set<string>): ViewNode | null {
-  const bc = board.children.find((c) => c.role === "body-column")
-  if (!bc) return null
-  if (hiddenNodeIds?.has(bc.id)) return null
-  return bc
+function vnBodyColumn(board: ViewNode): ViewNode | null {
+  return board.children.find((c) => c.role === "body-column") ?? null
 }
 
 /**
- * Get visible card children of a column, filtering hidden.
+ * Get card children of a column.
+ * Hidden nodes are already excluded at tree construction time.
  */
-function vnVisibleCards(col: ViewNode, hiddenNodeIds?: Set<string>): ViewNode[] {
-  return col.children.filter((c) => !hiddenNodeIds?.has(c.id))
+function vnVisibleCards(col: ViewNode): ViewNode[] {
+  return col.children
 }
 
 /**
@@ -337,7 +320,7 @@ function vnVisibleCards(col: ViewNode, hiddenNodeIds?: Set<string>): ViewNode[] 
  * ad-hoc repo walks. The tree already encodes visual roles.
  */
 function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: GridNavigator): string | null {
-  const { cursorNodeId, hiddenNodeIds, viewTree, viewIndex } = state
+  const { cursorNodeId, viewTree, viewIndex } = state
 
   const vn = viewIndex.get(cursorNodeId)
   if (!vn) {
@@ -349,17 +332,17 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
   if (vn.role === "board") {
     if (dir === "down") {
       const stickyX = navigator.stickyX
-      const structCols = vnStructuralColumns(viewTree, hiddenNodeIds)
+      const structCols = vnStructuralColumns(viewTree)
       if (stickyX !== null && stickyX < structCols.length) {
         return structCols[stickyX]?.id ?? null
       }
       // No stickyX: prefer first visible body card, then first structural column
-      const bodyCol = vnBodyColumn(viewTree, hiddenNodeIds)
+      const bodyCol = vnBodyColumn(viewTree)
       if (bodyCol) {
-        const visCards = vnVisibleCards(bodyCol, hiddenNodeIds)
+        const visCards = vnVisibleCards(bodyCol)
         if (visCards.length > 0) return visCards[0]!.id
       }
-      const visCols = vnVisibleColumns(viewTree, hiddenNodeIds)
+      const visCols = vnVisibleColumns(viewTree)
       return visCols[0]?.id ?? null
     }
     // k from board → null
@@ -369,7 +352,7 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
   // ----- Body column header -----
   if (vn.role === "body-column") {
     if (dir === "down") {
-      const visCards = vnVisibleCards(vn, hiddenNodeIds)
+      const visCards = vnVisibleCards(vn)
       return visCards[0]?.id ?? null
     }
     // k from body column header → board
@@ -381,11 +364,11 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
     if (dir === "down") {
       // Collapsed column → can't enter
       if (state.collapsedNodes.has(cursorNodeId)) return null
-      const visCards = vnVisibleCards(vn, hiddenNodeIds)
+      const visCards = vnVisibleCards(vn)
       return visCards[0]?.id ?? null
     }
     // k from column → board (save stickyX)
-    const structIdx = vnStructuralColumnIndex(vn, hiddenNodeIds)
+    const structIdx = vnStructuralColumnIndex(vn)
     if (structIdx >= 0) navigator.setStickyX(structIdx)
     return state.rootId
   }
@@ -397,7 +380,7 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
 
     if (col.role === "body-column") {
       // Body card navigation
-      const visCards = vnVisibleCards(col, hiddenNodeIds)
+      const visCards = vnVisibleCards(col)
       const idx = visCards.indexOf(vn)
       if (dir === "down") {
         return idx >= 0 && idx < visCards.length - 1 ? visCards[idx + 1]!.id : null
@@ -410,11 +393,11 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
 
     // Structural column card
     if (dir === "down") {
-      const next = vnSibling(vn, 1, hiddenNodeIds)
+      const next = vnSibling(vn, 1)
       return next?.id ?? null
     }
     // k from card
-    const prev = vnSibling(vn, -1, hiddenNodeIds)
+    const prev = vnSibling(vn, -1)
     if (prev) return prev.id
     // At first card → column header
     return col.id
@@ -428,24 +411,24 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
 
     if (dir === "down") {
       // Try next sibling at current level
-      const next = vnSibling(vn, 1, hiddenNodeIds)
+      const next = vnSibling(vn, 1)
       if (next) return next.id
       // Walk up ancestors to find one with a next sibling (DFS next)
       let walk: ViewNode | null = vn.parent
       while (walk && walk !== cardVn) {
-        const parentNext = vnSibling(walk, 1, hiddenNodeIds)
+        const parentNext = vnSibling(walk, 1)
         if (parentNext) return parentNext.id
         walk = walk.parent
       }
       // Reached card level: jump to next card
       if (cardVn.parent) {
-        const nextCard = vnSibling(cardVn, 1, hiddenNodeIds)
+        const nextCard = vnSibling(cardVn, 1)
         return nextCard?.id ?? null
       }
       return null
     }
     // k from subitem
-    const prev = vnSibling(vn, -1, hiddenNodeIds)
+    const prev = vnSibling(vn, -1)
     if (prev) return prev.id
     // At first sibling → parent
     return vn.parent?.id ?? null
@@ -460,7 +443,7 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
  * Cross-column movement using the ViewNode tree.
  */
 function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator: GridNavigator): string | null {
-  const { cursorNodeId, hiddenNodeIds, viewTree, viewIndex } = state
+  const { cursorNodeId, viewTree, viewIndex } = state
 
   const vn = viewIndex.get(cursorNodeId)
   if (!vn) {
@@ -473,22 +456,22 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
   // ----- Body column header -----
   if (vn.role === "body-column") {
     if (dir === "left") return null // body is leftmost
-    const structCols = vnStructuralColumns(viewTree, hiddenNodeIds)
+    const structCols = vnStructuralColumns(viewTree)
     return structCols[0]?.id ?? null
   }
 
   // ----- Column header -----
   if (vn.role === "column") {
     const col = vn
-    const structCols = vnStructuralColumns(viewTree, hiddenNodeIds)
-    const bodyCol = vnBodyColumn(viewTree, hiddenNodeIds)
+    const structCols = vnStructuralColumns(viewTree)
+    const bodyCol = vnBodyColumn(viewTree)
     const structIdx = structCols.indexOf(col)
 
     if (dir === "left") {
       if (structIdx === 0) {
         // First structural col → body column (if it has cards)
         if (!bodyCol) return null
-        return vnNavigateToBody(bodyCol, navigator, hiddenNodeIds)
+        return vnNavigateToBody(bodyCol, navigator)
       }
       if (structIdx > 0) {
         return vnNavigateToStructuralCol(structCols[structIdx - 1]!, state, navigator, bodyCol !== null, true, col.id)
@@ -507,8 +490,8 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
   const colVn = vnFindColumn(vn)
   if (!colVn) return null
 
-  const structCols = vnStructuralColumns(viewTree, hiddenNodeIds)
-  const bodyCol = vnBodyColumn(viewTree, hiddenNodeIds)
+  const structCols = vnStructuralColumns(viewTree)
+  const bodyCol = vnBodyColumn(viewTree)
   const hasBody = bodyCol !== null
 
   if (colVn.role === "body-column") {
@@ -521,10 +504,10 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
   // In a structural column
   const structIdx = structCols.indexOf(colVn)
   if (structIdx < 0) {
-    // Cursor is on a hidden column — redirect
+    // Cursor is on a column not in the tree — redirect
     if (structCols.length > 0) return structCols[0]!.id
     if (hasBody && bodyCol) {
-      const visCards = vnVisibleCards(bodyCol, hiddenNodeIds)
+      const visCards = vnVisibleCards(bodyCol)
       return visCards[0]?.id ?? null
     }
     return null
@@ -540,7 +523,7 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
         sourceCardIdx = vnIndex(cardVn)
         if (sourceCardIdx < 0) sourceCardIdx = undefined
       }
-      return vnNavigateToBody(bodyCol, navigator, hiddenNodeIds, sourceCardIdx)
+      return vnNavigateToBody(bodyCol, navigator, sourceCardIdx)
     }
     return vnNavigateToStructuralCol(structCols[structIdx - 1]!, state, navigator, hasBody, false, colVn.id)
   }
@@ -561,10 +544,10 @@ function vnNavigateToStructuralCol(
   isAtColumnLevel?: boolean,
   sourceColId?: string,
 ): string | null {
-  const { hiddenNodeIds, viewTree } = state
+  const { viewTree } = state
 
   // View column index: offset by 1 if body column exists (body is view column 0)
-  const structCols = vnStructuralColumns(viewTree, hiddenNodeIds)
+  const structCols = vnStructuralColumns(viewTree)
   const structIdx = structCols.indexOf(targetCol)
   const viewColIdx = hasBody ? structIdx + 1 : structIdx
 
@@ -573,7 +556,7 @@ function vnNavigateToStructuralCol(
     return targetCol.id
   }
 
-  const visCards = vnVisibleCards(targetCol, hiddenNodeIds)
+  const visCards = vnVisibleCards(targetCol)
 
   if (visCards.length === 0) {
     return targetCol.id
@@ -584,7 +567,7 @@ function vnNavigateToStructuralCol(
     if (sourceColId) {
       const sourceColVn = state.viewIndex.get(sourceColId)
       if (sourceColVn) {
-        const sourceCards = vnVisibleCards(sourceColVn, hiddenNodeIds)
+        const sourceCards = vnVisibleCards(sourceColVn)
         if (sourceCards.length > 0) {
           return targetCol.id
         }
@@ -621,13 +604,8 @@ function vnNavigateToStructuralCol(
 /**
  * Navigate to the virtual body column, selecting the appropriate body card.
  */
-function vnNavigateToBody(
-  bodyCol: ViewNode,
-  navigator: GridNavigator,
-  hiddenNodeIds?: Set<string>,
-  sourceCardIdx?: number,
-): string | null {
-  const visCards = vnVisibleCards(bodyCol, hiddenNodeIds)
+function vnNavigateToBody(bodyCol: ViewNode, navigator: GridNavigator, sourceCardIdx?: number): string | null {
+  const visCards = vnVisibleCards(bodyCol)
   if (visCards.length === 0) return null
 
   const stickyY = navigator.stickyY

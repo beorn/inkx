@@ -22,14 +22,13 @@ function makeState(
   rootId: string | null = "board",
   opts?: { hiddenNodeIds?: Set<string> },
 ): NavState {
-  const viewTree = buildViewTree(repo, rootId, new Map())
+  const viewTree = buildViewTree(repo, rootId, new Map(), undefined, opts?.hiddenNodeIds)
   const viewIndex = buildViewIndex(viewTree)
   return {
     cursorNodeId,
     rootId,
     foldDepths: new Map(),
     collapsedNodes: new Set(),
-    hiddenNodeIds: opts?.hiddenNodeIds,
     viewTree,
     viewIndex,
   }
@@ -220,7 +219,7 @@ describe("CardsViewNavigation", () => {
       expect(hidden.has(left!)).toBe(false)
     })
 
-    it("h/l from cursor on hidden column when all columns hidden → null", () => {
+    it("h/l from cursor on hidden column when all columns hidden → board (fallback)", () => {
       const allIgnored = new Set(["col0", "col1", "col2"])
       const target = nav.navigate(
         "right",
@@ -228,7 +227,9 @@ describe("CardsViewNavigation", () => {
         repo,
         registry,
       )
-      expect(target).toBeNull()
+      // When cursor node doesn't exist in view tree (all columns hidden),
+      // navigation falls back to rootId
+      expect(target).toBe("board")
     })
   })
 })

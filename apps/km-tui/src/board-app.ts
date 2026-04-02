@@ -30,14 +30,14 @@ import type { ColumnView } from "./types.ts"
 import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { checkInvariants } from "./invariants.ts"
+import { deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import {
-  deriveColumnsFromRepo,
-  deriveDetailColumns,
-  viewTreeToColumnViews,
-  buildNodeIndex,
-  deriveCursorIndices,
-} from "./hooks/use-columns.ts"
-import { buildViewTree, buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
+  buildViewTree,
+  buildViewIndex,
+  viewNodeToColumnViews,
+  type ViewNode,
+  type ViewNodeColumnCache,
+} from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
@@ -255,7 +255,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       } else {
         // Derive viewTree first, then columns from it — single derivation path
         viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
-        columns = viewTreeToColumnViews(s.repo, viewTree)
+        columns = viewNodeToColumnViews(viewTree) as ColumnView[]
       }
       nodeIndex = buildNodeIndex(columns)
       viewIndex = buildViewIndex(viewTree)
