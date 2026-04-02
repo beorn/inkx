@@ -86,6 +86,16 @@ export interface BoardAppLocals {
     viewIndex: Map<string, ViewNode>
     hiddenNodeIds: Set<string>
   } | null
+  /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
+  cursorCache: {
+    cursorNodeId: string | null
+    cursorCardNodeId: string | null
+    /** Reference identity of the nodeIndex used for this derivation */
+    nodeIndexRef: Map<string, { colIndex: number; cardIndex: number }>
+    colIndex: number
+    cardIndex: number
+    isAtCardLevel: boolean
+  } | null
   chordTimer: ReturnType<typeof setTimeout> | null
   pendingChordShownAt: number
   chordDismissTimer: ReturnType<typeof setTimeout> | null
@@ -105,6 +115,7 @@ export function createBoardAppLocals(): BoardAppLocals {
     cachedFocus: null,
     cachedActivateScope: null,
     layoutCache: null,
+    cursorCache: null,
     chordTimer: null,
     pendingChordShownAt: 0,
     chordDismissTimer: null,
@@ -231,8 +242,44 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       hiddenNodeIds = computeHiddenNodeIds(s.repo, columns)
       locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex, hiddenNodeIds }
     }
-    const cursorCardNodeId = s.cursorStore.getState().cursorCardNodeId
-    const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id), cursorCardNodeId)
+    const cursorState = s.cursorStore.getState()
+    const cursorCardNodeId = cursorState.cursorCardNodeId
+
+    // Use cached cursor indices when cursor+layout haven't changed
+    let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
+    const cc = locals.cursorCache
+    if (
+      cc &&
+      cc.cursorNodeId === cursorNodeId &&
+      cc.cursorCardNodeId === cursorCardNodeId &&
+      cc.nodeIndexRef === nodeIndex
+    ) {
+      cursor = cc
+    } else {
+      cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id), cursorCardNodeId)
+      locals.cursorCache = {
+        cursorNodeId,
+        cursorCardNodeId,
+        nodeIndexRef: nodeIndex,
+        colIndex: cursor.colIndex,
+        cardIndex: cursor.cardIndex,
+        isAtCardLevel: cursor.isAtCardLevel,
+      }
+      // Write indices back to CursorStore so subscribers can access them
+      if (
+        cursorState.colIndex !== cursor.colIndex ||
+        cursorState.cardIndex !== cursor.cardIndex ||
+        cursorState.isAtCardLevel !== cursor.isAtCardLevel
+      ) {
+        s.cursorStore.setState({
+          ...cursorState,
+          colIndex: cursor.colIndex,
+          cardIndex: cursor.cardIndex,
+          isAtCardLevel: cursor.isAtCardLevel,
+        })
+      }
+    }
+
     const column = columns[cursor.colIndex]
     const card = column?.cardNodes[cursor.cardIndex]
     const selectedNode = card ?? column?.node ?? null
@@ -245,7 +292,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       rootId,
       rootPath: board?.rootPath ?? null,
       cursorNodeId,
-      cursorCardNodeId: s.cursorStore.getState().cursorCardNodeId,
+      cursorCardNodeId,
       hiddenNodeIds,
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),

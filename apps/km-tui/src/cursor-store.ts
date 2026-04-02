@@ -23,6 +23,12 @@ export interface CursorState {
   cursorColumnNodeId: string | null
   /** Selection level: where in the tree hierarchy the cursor sits */
   selectionLevel: "board" | "column" | "card"
+  /** Column index in the layout (cached from last deriveCursorIndices call, -1 if unknown) */
+  colIndex?: number
+  /** Card index within the column (cached from last deriveCursorIndices call, -1 if unknown) */
+  cardIndex?: number
+  /** Whether the cursor is at card level (cached from last deriveCursorIndices call) */
+  isAtCardLevel?: boolean
 }
 
 export interface CursorStore {
