@@ -38,6 +38,7 @@ import {
   getNextSibling,
   getEditableText,
   setEditableText,
+  walkTree,
 } from "@km/tree"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
@@ -1826,14 +1827,13 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
  *  Cards at column level use col.cardNodes for sibling lookup.
  *  Sub-section nodes walk siblings via extractBody().items, then recurse up
  *  to the parent level — so sub→sibling, sub→next-card, and card→card all work. */
-/** Walk to the deepest last descendant — the bottom-most editable node in a subtree. */
-function findDeepestLast(repo: ActionCtx["repo"], nodeId: string, depth = 0): KNode | null {
-  if (depth > 20) return repo.getNode(nodeId) ?? null
-  const children = repo.getChildren(nodeId)
-  const { items } = extractBody(children)
-  if (items.length === 0) return repo.getNode(nodeId) ?? null
-  const lastItem = items[items.length - 1]!
-  return findDeepestLast(repo, lastItem.id, depth + 1)
+/** Find the DFS-last node in a subtree — the true bottom-most descendant. */
+function findDeepestLast(repo: ActionCtx["repo"], nodeId: string): KNode | null {
+  let last: KNode | null = null
+  for (const entry of walkTree(repo, nodeId)) {
+    last = entry.node
+  }
+  return last
 }
 
 function findAdjacentEditNode(
