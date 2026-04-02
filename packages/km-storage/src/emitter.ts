@@ -40,6 +40,8 @@ export interface EmitOptions {
   skipPersist?: boolean
   /** Skip broadcasting via eventHub */
   skipBroadcast?: boolean
+  /** Skip filesystem projection (for FS-origin events to prevent echo loops) */
+  skipFsSync?: boolean
   /** Database to apply event to (if not provided, event is not applied to db) */
   db?: Database
 }
@@ -155,7 +157,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
       }
 
       // 4. Sync to filesystem — isolated from broadcast
-      if (fsSync) {
+      if (fsSync && !emitOptions.skipFsSync) {
         try {
           fsSync.applyEventToFs(event)
         } catch (err) {
