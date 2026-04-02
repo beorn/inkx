@@ -148,7 +148,8 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
       throw error
     }
   } catch (err) {
-    log.debug?.(`parseStubFile: error ${String(err)}`)
+    // F10: Log at WARN so per-file parse errors are visible during normal operation
+    log.warn?.(`parseStubFile: error parsing ${fsPath}: ${String(err)}`)
     return false
   }
 }
@@ -312,7 +313,8 @@ async function parseDeferredSequential(
         }
         parsed++
       } catch (err) {
-        log.debug?.(`parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${String(err)}`)
+        // F10: Log at WARN so per-file parse errors are visible during normal operation
+        log.warn?.(`parseDeferredSequential: error parsing ${deferredFile.fsPath}: ${String(err)}`)
       }
 
       if (i % BATCH_SIZE === 0) {

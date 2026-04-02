@@ -105,9 +105,15 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     mtime = op.mtime ?? stat.mtimeMs
   }
 
-  // Skip if content hasn't actually changed
+  // Skip if content hasn't actually changed — but still update fs_mtime/fs_ino
+  // so the next heartbeat doesn't re-reconcile this file (F5: infinite re-reconciliation fix)
   const existingHash = getNodeContentHash(db, op.nodeId)
   if (existingHash === hash) {
+    const mtimeUpdates: Record<string, unknown> = { fs_mtime: mtime }
+    if (ino !== undefined) {
+      mtimeUpdates.fs_ino = ino
+    }
+    emitNodeUpdated(emitter, "fs-watch", op.nodeId, mtimeUpdates)
     return
   }
 

@@ -4,7 +4,7 @@
  * Tests for the composable async generator pipeline stages.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../src/schema.ts"
 import { applyEventWithDb } from "../src/db-events.ts"
@@ -192,16 +192,18 @@ describe("parseFiles()", () => {
     expect(results).toEqual([])
   })
 
-  test("includes error in result when parse fails", async () => {
+  test("skips files with parse errors (logs at warn level)", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     const mockPool = createMockPool(new Map([["/test/bad.md", { error: "Parse failed" }]]))
 
     const sources: ParseSource[] = [{ path: "/test/bad.md", nodeId: "bad1", isCreate: true }]
 
     const results = await collect(parseFiles(sources, mockPool as never))
 
-    expect(results).toHaveLength(1)
-    expect(results[0]!.error).toBe("Parse failed")
-    expect(results[0]!.nodes).toEqual([])
+    // Parse errors are now skipped entirely — no results yielded
+    expect(results).toHaveLength(0)
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 
   test("respects abort signal", async () => {

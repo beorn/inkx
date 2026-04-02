@@ -28,7 +28,6 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
                      SyncManager         FsWriter
                      (TUI: queue)        (CLI: sync write)
                            |
-                     reconcileIfChanged() -> merge external edits first
                      nodesToMarkdown()    -> serialize subtree
                      WriteQueue.queue()   -> debounce + retry + in-flight tracking
                      WriteQueue.flush()   -> writeFileSync with backoff
@@ -148,8 +147,6 @@ All events update the `meta.last_event` cursor in SQLite.
 
 ### Reconciliation (reconcile.ts, applier.ts)
 
-- `reconcileIfChanged()` exists but is NOT called from event handlers (DB is authority
-  for user events). It remains available for explicit use (e.g., CLI import).
 - `reconcileDirectory()` catches stat errors per-entry (inaccessible files are skipped).
 - `applyReconcileOps()` processing errors propagate up to SyncManager, which logs them
   and emits an "error" event but keeps running.
@@ -168,9 +165,7 @@ All events update the `meta.last_event` cursor in SQLite.
 ### DB → FS (user edits)
 
 DB is always correct. Event handlers regenerate files from DB state.
-`reconcileIfChanged` is NOT called — reading the file back can only
-introduce stale data. The watcher suppresses our own writes via
-WriteTokenMap (content-hash based ownership).
+The watcher suppresses our own writes via WriteTokenMap (content-hash based ownership).
 
 ### FS → DB (external edits)
 
@@ -194,8 +189,8 @@ This replaces the old `recentWrites` timestamp window approach.
 1. **Actor gating**: Events from `actor: "fs-watch"` skip step 4 (`shouldApplyToFs`
    returns false), preventing FS→DB→FS infinite loops.
 
-2. **DB authority for user events**: Event handlers do NOT call `reconcileIfChanged`.
-   DB is the source of truth for all user-initiated mutations.
+2. **DB authority for user events**: DB is the source of truth for all user-initiated
+   mutations. Event handlers regenerate files from DB state directly.
 
 3. **Write suppression**: SyncManager's WriteTokenMap prevents the watcher from
    reconciling files we just wrote (content-hash based ownership).
