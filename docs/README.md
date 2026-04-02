@@ -52,6 +52,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [principles.md](principles.md)     | **Start here.** How km works: composability, fast feedback, code for humans, governance, and AI agents |
 | [concepts.md](concepts.md)         | Core concepts: nodes, modes, status, glossary                                                          |
 | [architecture.md](architecture.md) | System layers, data flow, command system, event system                                                 |
+| [architecture-v2.md](architecture-v2.md) | Building blocks, 5-layer stack, 4 data flows, ViewNode, composition model (supersedes above)    |
 | [architecture/brain.md](architecture/brain.md) | Brain layer: chats, memory graph, knowledge tree, solidification                              |
 | [storage.md](storage.md)           | SQLite schema, two modes, sync                                                                         |
 
@@ -96,6 +97,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [design/render-neutral-tui.md](design/render-neutral-tui.md)                 | Render-neutral TUI design                                |
 | [design/terminal-integration-testing.md](design/terminal-integration-testing.md) | Terminal integration testing strategy                |
 | [design/visual-navigation.md](design/visual-navigation.md)                   | Visual navigation design                                 |
+| [architecture-review-findings.md](architecture-review-findings.md)           | Three-pass review: types, flows, composition, top 5 simplifications |
 
 ### Developer Guides
 
