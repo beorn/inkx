@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from "loggily"
-import { existsSync } from "fs"
+import { existsSync, readFileSync, readdirSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
 import { type Event, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
@@ -439,6 +439,12 @@ export class EventHandlers {
       }
     }
 
+    // Record write tokens for all .md files in the renamed directory
+    // so the watcher recognizes them as our own writes (not external changes)
+    if (existsSync(newAbsPath)) {
+      this.recordTokensRecursive(newAbsPath)
+    }
+
     // Update DB paths
     const oldPrefix = oldFsPath + "/"
     const newPrefix = newFsPath + "/"
@@ -502,6 +508,17 @@ export class EventHandlers {
       void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
       this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
+
+      // Record write token at new path so watcher recognizes it as our write
+      if (existsSync(newAbsPath)) {
+        try {
+          const content = readFileSync(newAbsPath, "utf-8")
+          this.fsTarget.recordWriteToken?.(newAbsPath, content)
+        } catch {
+          // File may not exist yet if renameFile is async — token will be missed
+          // but markInFlight provides fallback suppression
+        }
+      }
     }
 
     // Update DB: fs_path, name, and title (title is used by nodesToMarkdown for H1 heading)
@@ -525,6 +542,31 @@ export class EventHandlers {
       if (parent?.fstype === "folder" && parent.fs_path) {
         this.handleFolderIndexUpdate(parent)
       }
+    }
+  }
+
+  /**
+   * Recursively record write tokens for all .md files in a directory.
+   * Used after folder renames so the watcher recognizes the files at their
+   * new paths as our own writes rather than external changes.
+   */
+  private recordTokensRecursive(dir: string): void {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          this.recordTokensRecursive(fullPath)
+        } else if (entry.name.endsWith(".md")) {
+          try {
+            const content = readFileSync(fullPath, "utf-8")
+            this.fsTarget.recordWriteToken?.(fullPath, content)
+          } catch {
+            // Individual file read failure — skip, markInFlight provides fallback
+          }
+        }
+      }
+    } catch {
+      // Directory read failure — skip, markInFlight provides fallback
     }
   }
 }
