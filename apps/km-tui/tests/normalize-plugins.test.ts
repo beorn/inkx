@@ -61,9 +61,11 @@ describe("withName", () => {
     expect((result[0] as any).updates.name).toBe("New Section")
   })
 
-  test("strips task marker from name", () => {
+  test("content is always clean — no task marker stripping needed", () => {
+    // Content never contains task markers (they're in item.task).
+    // This test verifies name = content as-is for outline nodes.
     const nodes = new Map([["n1", makeOutlineNode("n1")]])
-    const effects: BoardEffect[] = [makeUpdateEffect("n1", { content: "- [x] Done Task" })]
+    const effects: BoardEffect[] = [makeUpdateEffect("n1", { content: "Done Task" })]
     const result = withName(effects, (id) => nodes.get(id) ?? null)
     expect((result[0] as any).updates.name).toBe("Done Task")
   })

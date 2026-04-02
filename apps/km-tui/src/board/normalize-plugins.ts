@@ -38,6 +38,8 @@ export function withTitle(effects: BoardEffect[]): BoardEffect[] {
     if (effect.updates.content === undefined) return effect
     // Don't override if caller explicitly set title to something different
     if (effect.updates.title !== undefined) return effect
+    // Content is always clean text (no task marker — that's in item.task).
+    // Title = content. The parser does the same (ast2nodes.ts: title = cleanText).
     return {
       ...effect,
       updates: { ...effect.updates, title: effect.updates.content },

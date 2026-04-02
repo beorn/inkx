@@ -8,7 +8,7 @@
 
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
-import { KNode, extractTitleTaskMarker, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
+import { KNode, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
 import type { NodeEditState } from "../reactive.ts"
@@ -89,9 +89,11 @@ export function TitleEditor({
         const filename = displayNode.fs_path.split("/").pop() || ""
         originalContent = filename.replace(/\.md$/, "")
       }
-      const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
-      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
+      // Content is always clean text — task markers belong in item.task, not content.
+      // The serializer (nodes2md.ts) reconstructs "- [x] content" from item.task.marker + content.
+      // Re-inserting the marker here would cause double markers on re-parse.
+      const newContent = cleanContent
       // No-op: value didn't change and no metadata to update
       if (newContent === originalContent && Object.keys(metaFields).length === 0) return
       undoHandle.setCursor(displayNode.id)
@@ -100,7 +102,7 @@ export function TitleEditor({
       // causing the filesystem sync to create new folders instead of renaming.
       const changes: Partial<KNode> = { content: newContent, title: newContent, ...metaFields }
       if (KNode.isOutline(displayNode)) {
-        changes.name = newContent.replace(/^- \[.\]\s*/, "")
+        changes.name = newContent
       }
       repo.updateNode(displayNode.id, changes)
     },
@@ -112,10 +114,10 @@ export function TitleEditor({
   // restores them as structured fields on the node.
   const handleInlineEditConfirm = useCallback(
     (newValue: string) => {
+      // Content is always clean text — task markers belong in item.task, not content.
       const originalContent = displayNode.content ?? (displayNode.data?.name as string) ?? ""
-      const { marker } = extractTitleTaskMarker(originalContent)
       const { cleanContent, ...metaFields } = parseTaskMetadataFromText(newValue)
-      const newContent = marker != null ? `${marker} ${cleanContent}` : cleanContent
+      const newContent = cleanContent
       const hasMetaUpdates = Object.keys(metaFields).length > 0
 
       // No-op: value didn't change and no metadata to update
@@ -130,13 +132,9 @@ export function TitleEditor({
       }
 
       // Only do a full rename if name was already in sync with content (or unset).
-      // e.g., "@next" (name) vs "Next Actions" (title) → different → just update content.
-      // e.g., "My Task" (name) vs "My Task" (content) → same → rename keeps them in sync.
-      // e.g., no name set → always rename (name gets derived from content).
       const node = repo.getNode(displayNode.id)
       const oldName = node?.name ?? ""
-      const oldContentName = originalContent.replace(/^- \[.\]\s*/, "")
-      const nameMatchedContent = !oldName || oldName === oldContentName
+      const nameMatchedContent = !oldName || oldName === originalContent
 
       if (newContent !== originalContent && nameMatchedContent) {
         const impact = repo.getRenameImpact(displayNode.id)
