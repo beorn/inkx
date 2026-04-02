@@ -260,13 +260,16 @@ function getVisibleColumnBlocks(ctx: ActionCtx): string[] {
   if (!colView) return [col.node.id]
 
   const blocks: string[] = []
-  const walkViewTree = (vn: { id: string; children: { id: string; children: unknown[] }[] }): void => {
+  // DFS walk — ViewNode.children is already pruned for hidden/collapsed nodes
+  const stack = [colView]
+  while (stack.length > 0) {
+    const vn = stack.pop()!
     blocks.push(vn.id)
-    for (const child of vn.children) {
-      walkViewTree(child)
+    // Push children in reverse so first child is processed first
+    for (let i = vn.children.length - 1; i >= 0; i--) {
+      stack.push(vn.children[i]!)
     }
   }
-  walkViewTree(colView)
 
   return blocks
 }
