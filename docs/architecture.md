@@ -1,537 +1,271 @@
-# Architecture
+# km Architecture
 
-km is an **externalized brain** for humans and AI agents — a headless knowledge engine that turns plain markdown files into a structured, queryable, history-aware knowledge system. This document covers the system architecture: layers, data flow, domain objects, and packages.
+km turns markdown files into a structured, queryable knowledge system. This doc covers the full system: building blocks, layers, data flows, and composition model. For silvery (the TUI framework), see [vendor/silvery/docs/architecture.md](../vendor/silvery/docs/architecture.md).
 
-> **For the "why" behind these choices**, see [principles.md](principles.md).
+## Building Blocks
 
----
+Every piece of the system is built from a small set of domain objects. Like [SlateJS](https://docs.slatejs.org/concepts), each is a clean interface with a namespace of static helpers.
+
+### KNode — The Universal Node
+
+Every piece of content is a `KNode` — a flat record with parent-child links. Defined in `@km/core` ([packages/km-core/src/interfaces/node.ts](../packages/km-core/src/interfaces/node.ts)).
+
+```typescript
+interface KNode {
+  id: string              // ULID
+  type: string            // "h" | "p" | "code" | "quote" | "table" | "hr" | ...
+  item?: ItemData         // present = structural (cursor target, has children)
+  parent_id: string       // parent reference
+  parent_idx: number      // sibling order
+  content: string         // text content
+  title: string           // display title (materialized)
+  embed_source?: string   // points to another node (embeds)
+  fstype?: string         // "repo" | "folder" | "file" | "mdsection"
+  rules?: SectionRules    // parsed km.* directives (collapse, color, limit)
+}
+
+const KNode = {
+  isItem(node): boolean     // node.item != null — structural, cursor target
+  isBlock(node): boolean    // node.item == null — leaf content
+  isOutline(node): boolean  // type === "h" && item != null — creates hierarchy
+  isListItem(node): boolean // type !== "h" && item != null — bullet/task
+  isTask(node): boolean     // node.item?.task != null
+  isEmbed(node): boolean    // has embed_source
+}
+```
+
+The single most important distinction: **Item** (`item: {}`) = structural, has children, cursor target. **Block** (no `item`) = leaf content, not selectable. `ItemData` holds list marker and task status.
+
+### Position — Where in the Tree
+
+```typescript
+interface Position { parentId: string; childIdx: number }
+const Position = { of, first, last, equals }
+```
+
+### Repo — The Data Store
+
+Factory: `createRepo(path)`. Disposable (sync cleanup). Defined in `@km/storage` ([packages/km-storage/src/repo.ts](../packages/km-storage/src/repo.ts)).
+
+```typescript
+interface Repo {
+  // Queries (cached, fast)
+  getNode(id): KNode | null
+  getChildren(parentId): KNode[]
+  getNodesBatch(ids): Map<string, KNode>
+
+  // Mutations (emit events for sync + undo)
+  addNode(parentId, node): string
+  updateNode(id, changes): void
+  moveNode(id, newParentId, sortOrder): void
+  deleteNode(id): void
+
+  // Subscription (drives React re-renders)
+  subscribe(listener): () => void
+  getSnapshot(): number  // version counter, increments on mutation
+
+  watch(): Watcher       // file sync
+}
+```
+
+### BoardState — Navigation State
+
+Pure data, no methods. Updated via reducer. Defined in `apps/km-tui/src/board-types.ts`.
+
+```typescript
+interface BoardState {
+  rootId: string | null           // current zoom root
+  cursorNodeId: string | null     // single source of truth for cursor
+  foldDepths: Map<string, number> // per-node fold depth overrides
+  collapsedNodes: Set<string>     // collapsed column headers
+  navHistory: NavHistoryEntry[]   // back/forward navigation
+  moveMode: boolean               // m + destination workflow
+}
+```
+
+Key design: **no tree data in state**. Navigation and rendering query Repo on demand. Visual layout (columns, cards, cursor indices) is derived at render time — never stored.
+
+### BoardAction / CommandAction
+
+`BoardAction` — discriminated union dispatched to the reducer (`SELECT`, `TOGGLE_FOLD`, `ZOOM_IN`, etc.). `CommandAction` — higher-level user intent (verbs, nav, edits, text ops, dialog ops) dispatched through the command system. Defined in `@km/commands`.
+
+### ColumnView / CardView — Legacy View Models
+
+Derived (not stored) representations for rendering. `ColumnView` = a section heading with its cards. `CardView` = a KNode enriched with resolved embed data and body classification.
+
+```typescript
+interface ColumnView { node: KNode; cardNodes: CardView[]; rules?: SectionRules; isVirtual?: boolean }
+interface CardView extends KNode { resolvedNode?: KNode; isBody: boolean; hasBodyChildren: boolean }
+```
+
+### ViewNode — Explicit Visual Tree (migration in progress)
+
+A recursive tree structure replacing the flat ColumnView/CardView derivation. Defined in `@km/board` ([packages/km-board/src/view-tree.ts](../packages/km-board/src/view-tree.ts)). Each node carries its visual role, parent pointer, and resolved embed data.
+
+```typescript
+type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
+
+interface ViewNode {
+  id: string; role: ViewRole; node: KNode | null
+  parent: ViewNode | null; children: ViewNode[]
+  isBody: boolean; resolvedEmbed?: KNode; rules?: SectionRules
+}
+```
+
+`buildViewTree(repo, rootId, foldDepths)` builds the tree from Repo data. `buildViewIndex(tree)` provides O(1) lookup. `deriveCursorPath(index, nodeId)` walks parent pointers to produce a visual path from root to cursor.
+
+**Migration status**: ViewNode is computed in parallel with legacy ColumnView derivation. An equivalence check logs warnings when the two disagree. Once equivalence is proven, ViewNode replaces the legacy path. ActionCtx already exposes `viewTree` and `viewIndex`.
 
 ## Five Layers
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│  APP        apps/ (@km/cli-app, @km/tui-app, @km/repl)              │
-│             Rendering, modals, user input                           │
-│             State: AppState = BoardState + AppUIState               │
-├─────────────────────────────────────────────────────────────────────┤
-│  BOARD      @km/board                                               │
-│             Cursor, selection, fold, zoom, navigation history       │
-│             State: BoardState    Actions: BoardAction               │
-├─────────────────────────────────────────────────────────────────────┤
-│  TREE       @km/tree                                                │
-│             TNode (recursive), queries, display names               │
-│             Data: TNode, TPath   Actions: TAction                   │
-├─────────────────────────────────────────────────────────────────────┤
-│  STORAGE    @km/storage                                             │
-│             KNode (flat), SQLite, events, file sync                 │
-│             Data: KNode          Functions: CRUD + emit()           │
-├─────────────────────────────────────────────────────────────────────┤
-│  FS         filesystem + @km/markdown                               │
-│             Folders, .md files — source of truth                    │
-│             Parser: markdown ↔ KNode (stateless)                    │
-└─────────────────────────────────────────────────────────────────────┘
+APP        apps/km-tui, km-cli, km-repl         UI, state machines, commands
+BOARD      @km/board, @km/commands               cursor, selection, fold, navigation
+TREE       @km/tree                              tree mutations via TreeMutator interface
+STORAGE    @km/storage                           SQLite, events, file sync, watch
+FS         @km/markdown + filesystem             parse/serialize, source of truth
 ```
 
-**Rules:**
+Each layer calls only the layer below. UI never touches filesystem. All mutations emit events (enables sync, undo, multi-window).
 
-- Each layer only calls the layer directly below
-- UI never touches filesystem directly
-- All mutations flow through `emit()` (enables sync, undo, multi-window)
+### Package Map
 
----
+**Core** (domain -> operations -> application):
+- `@km/core` — KNode, Position, ItemData, task status, metadata extraction. Pure functions.
+- `@km/markdown` — Parser: markdown <-> KNode (stateless, no DB)
+- `@km/storage` — Repo: SQLite CRUD, file sync, watch, events. Depends on core + markdown.
+- `@km/tree` — Tree mutations via TreeMutator interface (splitNode, merge, indent, outdent)
+- `@km/board` — BoardState + reducer, ViewNode tree. ID-based, no tree traversal.
+- `@km/commands` — Command registry, keybindings, context-aware dispatch
 
-## Domain Objects
+**Apps**: `@km/tui` (TUI), `@km/cli-app` (CLI commands), `@km/repl` (interactive REPL), `@km/web` (web API server)
 
-Functionality is exposed through **domain objects created by factory functions**. See [principles.md](principles.md) for the philosophy behind this approach.
+**Vendor** (git submodules, standalone repos):
+- `silvery` — React TUI framework ([architecture](../vendor/silvery/docs/architecture.md))
+- `flexily` — Pure JS flexbox layout engine (Yoga-compatible)
+- `termless` — Headless terminal testing
+- `loggily` — Structured logging with optional chaining
+- `vimonkey` — Fuzz testing for Vitest
+- `bearly` — Claude Code tools (tribe, llm, recall, tty)
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  Application Code                                                   │
-│                                                                     │
-│    using repo = runGenerator(createRepo(path))                      │
-│    const board = createBoardState(rootId)                           │
-│    await using watcher = repo.watch()                               │
-│                                                                     │
-├─────────────────────────────────────────────────────────────────────┤
-│  Domain Objects                                                     │
-│                                                                     │
-│    Repo          BoardState     Watcher         Config              │
-│    ├─ data       (plain state)  ├─ start()      ├─ beads            │
-│    ├─ files      Updated via    ├─ stop()       └─ tui              │
-│    ├─ config     boardReducer() └─ on("change")                     │
-│    ├─ watch()    + BoardAction                                      │
-│    └─ close()                                                       │
-│                                                                     │
-│    Disposable    plain object   Service         plain object        │
-│    (sync)        (reducer)      (async)                             │
-├─────────────────────────────────────────────────────────────────────┤
-│  Factory Functions                                                  │
-│                                                                     │
-│    createRepo(path, options)    → Repo                              │
-│    createBoardState(rootId)    → BoardState                         │
-│    repo.watch()                → Watcher (Service)                  │
-│    loadConfigObject(repoPath)  → Config                             │
-└─────────────────────────────────────────────────────────────────────┘
-```
+## Data Flows
 
-### Key Domain Objects
-
-| Object    | Factory              | Lifecycle    | Purpose                                    |
-| --------- | -------------------- | ------------ | ------------------------------------------ |
-| `Repo`    | `createRepo()`       | `Disposable` | DataStore + FileTree + Config              |
-| `Board`   | `createBoardState()` | plain object | Navigation state (cursor, selection, fold). Updated via `boardReducer()` + `BoardAction` |
-| `Watcher` | `repo.watch()`       | `Service`    | File sync (start/stop lifecycle)           |
-| `Config`  | `loadConfigObject`   | plain object | Repository configuration                   |
-
-> **Current API:** Use `Repo` / `createRepo()` for all new code.
-
-### Service Interface
-
-Objects with start/stop lifecycle (like Watcher) implement the Service interface:
-
-```typescript
-interface Service extends AsyncDisposable {
-  readonly status: "stopped" | "starting" | "running" | "stopping"
-  start(): Promise<void>
-  stop(): Promise<void>
-}
-```
-
-### Composition Example
-
-```typescript
-async function runTui(path: string, rootId: string) {
-  // Create domain objects with explicit dependencies
-  using repo = runGenerator(createRepo(path))
-  let board = createBoardState(rootId)
-  await using watcher = repo.watch()
-
-  // Start file watching
-  await watcher.start()
-
-  // State updates via reducer + actions
-  board = boardReducer(board, { type: "SELECT", nodeId: firstChildId })
-
-  // Cleanup order (reverse): watcher.stop(), repo.close()
-}
-```
-
-See [principles.md](principles.md) for the philosophy and patterns
-
----
-
-## Data Types
+### Read: File -> Screen
 
 ```
-FS → Storage:    File content  → ProcessedMarkdown → KNode (parse + transform)
-Storage → App:   repo.data.getChildren() → KNode[] (on-demand tree queries)
-App Render:      repo + state → columns       (derived at render time)
+file.md on disk
+  | chokidar/watcher detects
+@km/markdown parser: markdown -> km-ast -> KNode[]
+  | packages/km-markdown/src/ast2nodes.ts
+@km/storage pipeline: parse -> apply -> resolve -> insert into SQLite
+  | repo-loader.ts, pipeline.ts
+Repo.getChildren(rootId) -> KNode[]
+  | cached, O(1) per call
+useColumns hook: extractBody -> split body/columns -> toCardViews -> ColumnView[]
+  | apps/km-tui/src/hooks/use-columns.ts
+React render: Board -> CardColumn -> TreeNode -> silvery Box/Text
+  | silvery pipeline
+ANSI output: incremental buffer diff -> terminal
 ```
 
-| Type                   | Package     | Description                                                    |
-| ---------------------- | ----------- | -------------------------------------------------------------- |
-| `KNode`                | @km/core    | Flat record with `parent_id` (SQLite, null for repo root only) |
-| `TNode`                | @km/core    | Recursive with `children[]` (legacy paths)                     |
-| `ProcessedMarkdown`    | @km/storage | Parsed file + hash (intermediate data type)                    |
-| `BoardState`           | @km/board   | cursorNodeId, fold, zoom (no tree data)                        |
-| `UIState`              | apps/       | Dialogs, view mode, dimensions                                 |
-
-**Key design:** No tree data in board state. Navigation uses `repo.getChildren()` directly. Columns are derived at render time via `useColumns()`, cursor position via `useCursorPosition()`.
-
-| Action Type   | Package   | Examples                          |
-| ------------- | --------- | --------------------------------- |
-| `TAction`     | @km/tree  | T_ADD_NODE, T_MOVE_NODE, T_DELETE |
-| `BoardAction` | @km/board | CURSOR*\*, SELECT*\*, FOLD, ZOOM  |
-| `AppAction`   | apps/     | TOGGLE_SEARCH, TOGGLE_HELP        |
-
----
-
-## Command/Data Flow
-
-All user actions flow through the command system:
+### Edit: Keypress -> File
 
 ```
-User Input (key, click, or command palette)
-    ↓
-Key Normalization (unifies key formats)
-    ↓
-Binding Resolution (first-match with when predicates)
-    ↓
-Command Execution (cmd(ctx) - direct execution)
-    ↓
-State Updates (dispatchers, storage)
-    ↓
-Re-render
+User presses key (e.g., 'x' to toggle task status)
+  | silvery useInput -> key normalization -> binding resolution
+CommandAction dispatched to handler
+  | board-actions.ts router -> focused handler
+Handler calls Repo mutation (e.g., repo.updateNode(id, changes))
+  | SQLite update + file write (bidirectional sync)
+  | repo emits version bump
+useSyncExternalStore triggers -> useColumns re-derives -> re-render
 ```
 
-### Command System
-
-Commands are functions that execute with a unified context:
-
-```typescript
-type Cmd = (ctx: Ctx) => void
-type When = (ctx: Ctx) => boolean
-
-interface Binding {
-  keys: string[]
-  cmd: Cmd
-  when?: When
-}
-```
-
-The same key can map to different commands based on context:
-
-| Key | Context              | Command      |
-| --- | -------------------- | ------------ |
-| `j` | board                | `cursorNext` |
-| `j` | projectPicker dialog | `pickerNext` |
-| `j` | move mode            | `moveDest`   |
-
-Commands execute directly rather than returning action descriptors:
-
-```typescript
-const cycleTaskStatus: Cmd = (ctx) => {
-  if (!ctx.knode?.item?.task) return
-  const next = nextStatus(ctx.knode.item.task.status)
-  ctx.storage.update(ctx.knode.id, { item: { ...ctx.knode.item, task: { ...ctx.knode.item.task, status: next } } })
-  ctx.refresh()
-}
-
-const cursorNext: Cmd = (ctx) => {
-  ctx.dispatchBoard({ type: "CURSOR_MOVE", dir: "next" })
-}
-```
-
-This enables:
-
-- **Context-aware bindings**: Same key, different behavior based on modal state
-- **Direct storage access**: Commands can read/write storage directly
-- **Testable**: Commands are pure functions with injectable context
-
-See [ref/commands.md](ref/commands.md) for full documentation.
-
-### Action Types and Boundaries
-
-| Action Type    | State Owner | Side Effects       |
-| -------------- | ----------- | ------------------ |
-| `BoardAction`  | BoardState  | None (pure)        |
-| `CommandAction` | Handlers   | Repo mutations     |
-| Storage calls  | Storage     | SQLite + file sync |
-
-`CommandAction` = `VerbOp | NavOp | EditOp | TextOp | BoardOp | DialogOp | PaneOp | ViewOp`. The 8-line router in `board-actions.ts` dispatches to focused sub-handlers.
-
-**Key principle:** Reducers are pure. Storage mutations happen directly in handlers via `ctx.repo`.
-
-### Why This Matters
-
-- **Undo/redo**: Storage tracks event history
-- **Testability**: Commands are pure functions with mock context
-- **Context-aware**: Same key binds to different commands based on layer
-- **Multi-window**: Storage events can be broadcast
-
----
-
-## Concrete Data Flow
-
-### User Marks Task Done (TUI → File)
+### Navigate: Cursor Movement
 
 ```
-1. Input      User presses `x`
-2. Resolve    Binding lookup: x + board + nodeIsTask → cycleTaskStatus
-3. Execute    cycleTaskStatus(ctx) calls ctx.storage.update()
-4. Storage    Updates SQLite + syncs to filesystem
-5. File       "- [x] Task" written to markdown
-6. Refresh    ctx.refresh() → dispatch(REFRESH) → re-render
+User presses j/k/h/l
+  | binding resolves to cursorMove command
+View navigation computes target nodeId
+  | view-navigation.ts: classifies cursor (board/column/card/subitem)
+  | queries Repo for siblings, parent chain, body detection
+Dispatch SELECT action with target nodeId
+  | board reducer updates cursorNodeId
+CursorStore derives cursorCardNodeId + cursorColumnNodeId
+  | legacy: parent_id walk from cursorNodeId to rootId
+  | new: deriveCursorPath via ViewNode tree (parallel, with equivalence check)
+Components re-render via useSyncExternalStore (only 2 cards: old + new cursor)
 ```
 
-Commands directly access storage via `ctx.storage` for mutations, and use `ctx.dispatchBoard` for cursor/selection state.
-
-### User Edits File (File → TUI)
+### Sync: External Edit -> TUI
 
 ```
-1. File       User saves tasks.md in vim
-2. Watcher    Chokidar detects change (5s debounce)
-3. Reconcile  Parse file, diff against DB, emit events
-4. Storage    Updates SQLite state
-5. Signal     SyncManager emits "state-change" → repo.touch() (cache bust + version bump)
-6. App        useColumns re-derives via useSyncExternalStore → re-render
+User edits file in vim/nvim
+  | file watcher (chokidar, 5s debounce)
+Reconcile: parse file, diff KNodes against DB
+  | emit node-added/node-changed/node-removed events
+SQLite state updated -> repo.touch() -> version bump
+useColumns re-derives -> re-render
+  | cursor validation: if cursorNodeId was deleted, fall back to parent/sibling
 ```
 
-See [storage.md](storage.md) for details on how @km/storage implements bidirectional sync.
+## Visual Roles
 
----
+A node's visual role is determined by its **depth from the zoom root** — not by its type:
 
-## Package Structure
+| Depth | Role | Appearance |
+|-------|------|------------|
+| 0 | Board root | Fullscreen, no chrome |
+| 1 | Column | Header bar |
+| 2 | Card | Bordered box (title + sub-items + body) |
+| 3+ | Sub-item | Indented line; expands when selected |
 
-```
-packages/
-  @km/core              - KNode, TNode, shared types
-  @km/storage           - SQLite, events, sync
-  @km/markdown          - Parser (markdown ↔ KNode)
-  @km/tree              - Tree queries, display names
-  @km/board             - BoardState, cursor, selection, fold
-  @km/commands          - Command system, keybindings, context
-  @km/beads             - Issue tracking queries (bd integration)
-  @km/agent             - Agent runtime, harnesses, sessions
-  @km/connector-caldav  - CalDAV/CardDAV client
+This is a **rendering rule, not data**. The same KNode renders as a column when zoomed out and as the board root when zoomed in. ViewNode makes this explicit — each node carries its `ViewRole`, derived from tree position.
 
-apps/
-  km-cli/        → @km/cli-app     CLI commands
-  km-repl/       → @km/repl        REPL application
-  km-tui/        → @km/tui-app     TUI application
-```
+**Body content**: Non-outline direct children of root (paragraphs, tasks, embeds before the first heading) render in a virtual "Description" column. Determined by `extractBody()` at derivation time.
 
----
+**Embeds**: A node with `embed_source` displays the referenced node's content in its visual position. The visual parent (embed slot) differs from the data parent (source file). ViewNode resolves this by storing `resolvedEmbed` and using the visual parent for its `parent` pointer.
 
-## Names, Paths, and IDs
+## Composition Model
 
-km uses a three-tier naming system inspired by filesystem semantics:
-
-| Concept  | Example                | Unique? | Purpose                           |
-| -------- | ---------------------- | ------- | --------------------------------- |
-| **Name** | `inbox`, `readme`      | No      | Human-friendly, can repeat        |
-| **Path** | `projects/inbox.md`    | Yes     | Composed of names, like fs paths  |
-| **ID**   | `01H5X...` or `p/i:42` | Yes     | Internal reference, stable        |
-
-### Resolution Algorithm
-
-The `resolveNode()` function uses path-first semantics:
+### Current: Imperative Handlers
 
 ```
-Query contains "/" (path-like)?
-├─ Starts with /, ./, ../ → Absolute path resolution
-└─ Contains / → Relative path suffix match
-
-Query is bare name (no "/")?
-├─ Exact ID match (unambiguous)
-├─ Name field match (may warn if ambiguous)
-├─ fs_path suffix match
-└─ ID prefix/suffix match (short IDs)
+Keypress -> CommandAction -> board-actions.ts (2600 lines) -> handler -> Repo mutation + state update
 ```
 
-**Ambiguity handling:** When multiple nodes match a bare name (e.g., `readme` matches both `/readme.md` and `/archive/readme.md`), km warns and returns the first match. Use paths for precision.
+Action handlers receive an `ActionCtx` — a large context object re-derived on each keypress with columns, cursor indices, node references, ViewNode tree, and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
 
-### Block References
+### Active migration: ViewNode tree
 
-Following [Obsidian's pattern](https://help.obsidian.md/links), blocks can have explicit IDs:
+The ViewNode tree (in ActionCtx as `viewTree` and `viewIndex`) provides a single authoritative derivation of visual roles, replacing scattered ad-hoc computations. Currently computed in parallel with legacy ColumnView for equivalence validation. Once proven, it replaces the legacy path and enables cursor-path-based navigation.
 
-```markdown
-This paragraph has an ID. ^my-block
+### Target: TEA State Machines + Plugin Slices
 
-- Task with reference ^task-123
+Following the [TEA state machine design](design/tea-state-machines.md):
+
+```
+Board.apply(state, op) -> [state, effects]
 ```
 
-Block IDs are:
-- Added on-demand (only when first linked)
-- Short strings (not UUIDs like [Logseq](https://discuss.logseq.com/t/what-are-id-links-vs-block-ids-vs-page-ids/1318))
-- Used in links: `[[file#^my-block]]`
+Operations and effects are serializable data. The reducer is pure. Cross-cutting concerns become middleware — each a `(state, op, next) -> [state, effects]` function that can be understood, tested, and composed independently.
 
-See [storage.md](storage.md) for detailed resolution behavior.
+### SlateJS Alignment
 
----
+| SlateJS | km (current) | km (target) |
+|---------|-------------|-------------|
+| `Editor` | board-app-store + ActionCtx | `Board` — single state machine |
+| `Element` / `Text` | KNode (item/block) | KNode (unchanged) |
+| `Path` | cursorNodeId (bare ID) | `cursorPath: string[]` via ViewNode |
+| `Operation` | BoardAction + CommandAction | `BoardOp` — unified discriminated union |
+| `Transform` | board-actions.ts (2600 lines) | Per-concern handlers, composed via pipeline |
+| `Plugin` | (hardcoded throughout) | Middleware: `(state, op, next) -> [state, effects]` |
 
-## Glossary
+## Related Docs
 
-| Term            | Definition                                                              |
-| --------------- | ----------------------------------------------------------------------- |
-| **KNode**       | Flat record with `parent_id`. Stored in SQLite.                         |
-| **TNode**       | Recursive tree with `children[]`. For navigation.                       |
-| **BoardState**  | Visual state: cursor, selection, fold, zoom.                            |
-| **repo root**   | Single folder node with `parent_id = null` representing the repository. |
-| **memory mode** | No `.km/`. SQLite in RAM. Ephemeral IDs.                                |
-| **disk mode**   | `.km/` exists. SQLite on disk. Stable IDs, events, sync.                |
-| **name**        | Basename of file/folder/heading. Not unique (can repeat).               |
-| **path**        | Composed of names with `/`. Unique within repo.                         |
-| **collapsing**  | Merging same-named folder/file/H1 into one display line.                |
-| **cursoring**   | Moving to adjacent block (hjkl).                                        |
-| **navigating**  | Changing board root via zoom (u/Enter).                                 |
-| **shifting**    | Moving selected nodes in direction (opt+hjkl).                          |
-| **brain**       | The engine — a folder enhanced with chat processing. See [brain.md](architecture/brain.md). |
-| **chat**        | A bounded sequence of events from one source (agent, edit session, sync). |
-| **knowledge tree** | Human-visible content — markdown files in the node tree.             |
-| **memory graph** | Agent-visible structured knowledge — SPO triples derived from chats.  |
-| **item**        | A meaningful unit in the knowledge tree (note, task, contact, section). |
-| **block**       | Content within an item (paragraph, code block, quote).                  |
-| **solidification** | Memory graph → markdown file (knowledge becomes permanent/visible).  |
-| **extraction**  | Markdown edit → memory graph update (parsing properties + NL processing). |
-| **shaping**     | Triples → typed entity (deterministic projection, no LLM).               |
-
----
-
-## Event System
-
-km uses a lightweight event system for cross-layer communication and observability. Built on [nanoevents](https://github.com/ai/nanoevents) (107 bytes), it provides type-safe pub/sub with Disposable support.
-
-### Quick Start
-
-```typescript
-import { kmEvents } from "@km/core"
-
-// Subscribe
-const unsub = kmEvents.on("parse-error", (e) => {
-  console.log(`Parse error in ${e.file}:${e.line} - ${e.message}`)
-})
-
-// Emit
-kmEvents.emit("parse-error", {
-  file: "tasks.md",
-  line: 42,
-  message: "Invalid syntax",
-})
-
-// Cleanup
-unsub()
-```
-
-### Event Categories
-
-Events are organized by purpose:
-
-| Category   | Purpose          | Consumers                |
-| ---------- | ---------------- | ------------------------ |
-| **User**   | UI feedback      | TUI status bar, CLI logs |
-| **Debug**  | Internal tracing | debug() logger           |
-| **Metric** | Performance      | Monitoring, optimization |
-
-**User Events** - Cross-layer errors that need user feedback:
-
-- `parse-error` - Markdown parsing failed
-- `sync-error` - File sync issue
-- `validation-warning` - Node validation warning
-
-**Debug Events** - Internal diagnostics (used with `DEBUG=km:*`):
-
-- `command-executed` - Command timing
-- `action-handled` - Action result tracking
-
-**Metric Events** - Performance monitoring:
-
-- `repo-loaded` - Repo initialization timing
-- `file-parsed` - File parsing stats
-
-### Subscription Patterns
-
-```typescript
-// Basic subscription
-const unsub = kmEvents.on("sync-error", (e) => {
-  showStatus(`Sync error: ${e.path}`)
-})
-unsub()
-
-// React useEffect
-useEffect(() => {
-  const unsub = kmEvents.on("parse-error", (e) => {
-    toast.error(`Parse error in ${e.file}`)
-  })
-  return unsub // cleanup on unmount
-}, [])
-
-// Using keyword (TypeScript 5.2+)
-function handleScope() {
-  using sub = kmEvents.on("parse-error", handler)
-  // auto-disposed when scope exits
-}
-
-// DisposableStore (multiple subscriptions)
-const store = new DisposableStore()
-store.add(kmEvents.on("parse-error", handler1))
-store.add(kmEvents.on("sync-error", handler2))
-store.dispose() // cleans up all
-```
-
-### DisposableStore Pattern
-
-`DisposableStore` manages multiple `Disposable` subscriptions with a single cleanup call:
-
-```typescript
-// packages/km-core/src/events.ts
-export class DisposableStore implements Disposable {
-  private disposables: Disposable[] = []
-
-  add<T extends Disposable>(d: T): T {
-    this.disposables.push(d)
-    return d
-  }
-
-  dispose(): void {
-    this.disposables.forEach((d) => d[Symbol.dispose]())
-    this.disposables = []
-  }
-
-  [Symbol.dispose](): void {
-    this.dispose()
-  }
-}
-```
-
-**Usage pattern:**
-
-```typescript
-// Manual cleanup
-const store = new DisposableStore()
-store.add(kmEvents.on("parse-error", handler1))
-store.add(kmEvents.on("sync-error", handler2))
-// ... use store ...
-store.dispose()
-
-// Automatic cleanup with `using` keyword (TypeScript 5.2+)
-async function withAutoCleanup() {
-  using store = new DisposableStore()
-  store.add(kmEvents.on("parse-error", handler1))
-  store.add(kmEvents.on("sync-error", handler2))
-  // All cleaned up automatically when scope exits
-}
-```
-
-**Benefits:**
-
-- Single disposal point for related subscriptions
-- Prevents memory leaks from forgotten unsubscriptions
-- Works seamlessly with TypeScript 5.2+ `using` declarations
-- Commonly used in component lifecycles and service shutdown
-
-### Adding New Events
-
-1. **Define in KmEvents interface**:
-
-```typescript
-// packages/km-core/src/events.ts
-export interface KmEvents {
-  "new-event": (e: { foo: string; bar: number }) => void
-}
-```
-
-2. **Emit from source layer**:
-
-```typescript
-kmEvents.emit("parse-error", { file, line, message })
-```
-
-3. **Subscribe in consumer**:
-
-```typescript
-kmEvents.on("parse-error", (e) => {
-  dispatch(actions.setStatus({ level: "error", message: e.message }))
-})
-```
-
-### Design Decisions
-
-Events are **synchronous** (emit → handlers run immediately → emit returns).
-
-**Benefits**:
-
-- Predictable execution order
-- Simple testing (no `await`)
-- No race conditions
-
-**Why nanoevents?** Smallest size (107b) with best TypeScript support. Returns unbind function directly (cleaner than `.off()`).
-
----
-
-## See Also
-
-- [architecture/brain.md](architecture/brain.md) — Brain layer: chats, memory graph, knowledge tree, solidification
-- [principles.md](principles.md) — Architectural principles and philosophy
-- [concepts.md](concepts.md) — Core concepts
-- [storage.md](storage.md) — Storage layer, modes, sync details
+- [principles.md](principles.md) — Philosophy: composability, code for humans, governance
+- [design/data-model.md](design/data-model.md) — KNode tree, items vs blocks, board hierarchy
+- [design/tea-state-machines.md](design/tea-state-machines.md) — TEA vision and phase plan
+- [design/architecture-layers.md](design/architecture-layers.md) — Domain/Operations/Application layers
+- [Silvery architecture](../vendor/silvery/docs/architecture.md) — TUI framework internals
+- [The Silvery Way](../vendor/silvery/docs/guide/the-silvery-way.md) — Component principles
