@@ -286,3 +286,201 @@ describe("F1: Multiple callback isolation", () => {
     rmSync(dir, { recursive: true })
   })
 })
+
+// =============================================================================
+// skipFsSync — prevents echo loops for FS-origin events
+// =============================================================================
+
+describe("skipFsSync option", () => {
+  test("skipFsSync: true prevents fsSync from running", () => {
+    const db = createTestDb()
+    const dir = createTmpDir()
+    const kmDir = join(dir, ".km")
+
+    const fsSyncCalls: string[] = []
+    const broadcastCalls: string[] = []
+
+    const hub: EventHub = {
+      broadcast(event) {
+        broadcastCalls.push(event.type)
+      },
+    }
+
+    const fsSync: FsSync = {
+      applyEventToFs(event) {
+        fsSyncCalls.push(event.type)
+      },
+    }
+
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+
+    // Emit with skipFsSync: true — simulates FS-origin reconciliation
+    emitter.emit(
+      { type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } },
+      { skipFsSync: true },
+    )
+
+    // Broadcast should still run
+    expect(broadcastCalls).toEqual(["node_created"])
+    // FsSync should NOT run — prevents echo loop
+    expect(fsSyncCalls).toEqual([])
+
+    db.close()
+    rmSync(dir, { recursive: true })
+  })
+
+  test("skipFsSync: false (default) allows fsSync to run", () => {
+    const db = createTestDb()
+    const dir = createTmpDir()
+    const kmDir = join(dir, ".km")
+
+    const fsSyncCalls: string[] = []
+
+    const fsSync: FsSync = {
+      applyEventToFs(event) {
+        fsSyncCalls.push(event.type)
+      },
+    }
+
+    const emitter = createEmitter({ kmDir, db, fsSync, skipPersist: true })
+
+    // Emit without skipFsSync — normal TUI-origin event
+    emitter.emit({ type: "node_updated", actor: "user", target: "t1", data: { content: "x" } })
+
+    // FsSync should run
+    expect(fsSyncCalls).toEqual(["node_updated"])
+
+    db.close()
+    rmSync(dir, { recursive: true })
+  })
+
+  test("skipFsSync can be combined with other options", () => {
+    const db = createTestDb()
+    const dir = createTmpDir()
+    const kmDir = join(dir, ".km")
+
+    const fsSyncCalls: string[] = []
+    const broadcastCalls: string[] = []
+
+    const hub: EventHub = {
+      broadcast(event) {
+        broadcastCalls.push(event.type)
+      },
+    }
+
+    const fsSync: FsSync = {
+      applyEventToFs(event) {
+        fsSyncCalls.push(event.type)
+      },
+    }
+
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+
+    // skipFsSync + skipBroadcast — neither should run
+    emitter.emit(
+      { type: "node_created", actor: "fs-watch", data: { id: "n2", type: "h" } },
+      { skipFsSync: true, skipBroadcast: true },
+    )
+
+    expect(broadcastCalls).toEqual([])
+    expect(fsSyncCalls).toEqual([])
+
+    db.close()
+    rmSync(dir, { recursive: true })
+  })
+})
+
+// =============================================================================
+// Emitter wrapping — pattern used by SyncManager for FS-origin reconciliation
+// =============================================================================
+
+describe("Emitter wrapping for reconciliation", () => {
+  test("wrapped emitter adds skipFsSync to all emit calls", () => {
+    const db = createTestDb()
+    const dir = createTmpDir()
+    const kmDir = join(dir, ".km")
+
+    const fsSyncCalls: string[] = []
+    const broadcastCalls: string[] = []
+
+    const hub: EventHub = {
+      broadcast(event) {
+        broadcastCalls.push(event.type)
+      },
+    }
+
+    const fsSync: FsSync = {
+      applyEventToFs(event) {
+        fsSyncCalls.push(event.type)
+      },
+    }
+
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+
+    // Create a wrapped emitter (same pattern as wrapEmitterForReconcile in sync.ts)
+    const wrappedEmitter: typeof emitter = {
+      ...emitter,
+      emit(event, options = {}) {
+        return emitter.emit(event, { ...options, skipFsSync: true })
+      },
+    }
+
+    // Emit via wrapped emitter — should broadcast but NOT write to fs
+    wrappedEmitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
+    wrappedEmitter.emit({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
+
+    // Broadcast still works (TUI gets notified)
+    expect(broadcastCalls).toEqual(["node_created", "node_updated"])
+    // FsSync is skipped (no echo back to filesystem)
+    expect(fsSyncCalls).toEqual([])
+
+    // Direct emitter still has fsSync working (for TUI-origin events)
+    emitter.emit({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
+    expect(fsSyncCalls).toEqual(["node_updated"])
+
+    db.close()
+    rmSync(dir, { recursive: true })
+  })
+
+  test("wrapped emitter preserves other emit options", () => {
+    const db = createTestDb()
+    const dir = createTmpDir()
+    const kmDir = join(dir, ".km")
+
+    const fsSyncCalls: string[] = []
+    const broadcastCalls: string[] = []
+
+    const hub: EventHub = {
+      broadcast(event) {
+        broadcastCalls.push(event.type)
+      },
+    }
+
+    const fsSync: FsSync = {
+      applyEventToFs(event) {
+        fsSyncCalls.push(event.type)
+      },
+    }
+
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+
+    const wrappedEmitter: typeof emitter = {
+      ...emitter,
+      emit(event, options = {}) {
+        return emitter.emit(event, { ...options, skipFsSync: true })
+      },
+    }
+
+    // Wrapped emit with additional skipBroadcast — both should be respected
+    wrappedEmitter.emit(
+      { type: "node_created", actor: "fs-watch", data: { id: "w2", type: "h" } },
+      { skipBroadcast: true },
+    )
+
+    expect(broadcastCalls).toEqual([])
+    expect(fsSyncCalls).toEqual([])
+
+    db.close()
+    rmSync(dir, { recursive: true })
+  })
+})

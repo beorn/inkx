@@ -120,6 +120,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       debounceApply: 100, // Small debounce for batching TUI changes
       conflictStrategy: "last_write_wins",
       useWorker, // Use worker thread by default (non-blocking)
+      emitter: options.repo.emitter, // Share emitter so FS-origin events flow through eventHub
     })
 
     // Wire up TUI changes → filesystem (always enabled for writes)
