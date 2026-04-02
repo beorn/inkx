@@ -26,7 +26,7 @@ import {
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
 import { WriteTokenMap } from "./write-tokens.ts"
-import { createSyncState, type SyncState } from "./sync-state.ts"
+import { createSyncState, type SyncState as SyncStateStore } from "./sync-state.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import { type Event } from "@km/core"
 import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
@@ -141,7 +141,7 @@ export class SyncManager extends EventEmitter {
   // Persisted sync state — durable content-hash baseline for each file.
   // Survives process restarts. WriteTokenMap is checked first (fast, no DB query),
   // syncState is the fallback for cache misses (e.g., after restart).
-  private syncState: SyncState
+  private syncState: SyncStateStore
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
