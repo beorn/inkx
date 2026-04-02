@@ -38,9 +38,8 @@ import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
-import { deriveCursorAncestors, createCursorStore, type CursorStore } from "./cursor-store.ts"
+import { createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { buildViewTree, buildViewIndex, deriveCursorPath } from "@km/board"
-import { createLogger } from "loggily"
 import { getViewNavigation } from "./view-navigation.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -58,8 +57,6 @@ import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./w
 import { deserializeFilterProperties } from "./workspace-persist.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
 import { resolveEmbed } from "./views/embed-display.ts"
-
-const viewTreeLog = createLogger("km:tui:view-tree")
 
 // =============================================================================
 // Store Types
@@ -434,38 +431,20 @@ export function createBoardAppStoreState(
           if (isBoardPane(pane)) {
             const board = pane as BoardPaneState
             if (board.cursorNodeId && board.cursorStore) {
-              const ancestors = deriveCursorAncestors(
-                (id) => params.repo.getNode(id),
-                board.rootId,
-                board.cursorNodeId,
-                (pid) => params.repo.getChildren(pid),
-              )
-
-              // ViewNode equivalence check (workspace restoration path)
+              // Derive cursor classification from ViewNode tree
               const vTree = buildViewTree(params.repo, board.rootId, board.foldDepths)
               const vIndex = buildViewIndex(vTree)
               const cursorPath = deriveCursorPath(vIndex, board.cursorNodeId)
-              const vnSelectionLevel: "board" | "column" | "card" =
+              const cursorColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
+              const cursorCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
+              const selectionLevel: "board" | "column" | "card" =
                 cursorPath.length === 0 ? "board" : cursorPath.length === 1 ? "column" : "card"
-              const vnColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
-              const vnCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
-
-              if (
-                ancestors.selectionLevel !== vnSelectionLevel ||
-                ancestors.cursorColumnNodeId !== vnColumnNodeId ||
-                ancestors.cursorCardNodeId !== vnCardNodeId
-              ) {
-                viewTreeLog.warn?.(
-                  "ViewNode cursorPath disagrees with deriveCursorAncestors (restore) — using legacy. " +
-                    `cursor=${board.cursorNodeId}, root=${board.rootId}, ` +
-                    `legacy={level=${ancestors.selectionLevel}, col=${ancestors.cursorColumnNodeId}, card=${ancestors.cursorCardNodeId}}, ` +
-                    `viewNode={level=${vnSelectionLevel}, col=${vnColumnNodeId}, card=${vnCardNodeId}}`,
-                )
-              }
 
               board.cursorStore.setState({
                 cursorNodeId: board.cursorNodeId,
-                ...ancestors,
+                cursorCardNodeId,
+                cursorColumnNodeId,
+                selectionLevel,
               })
             }
           }
@@ -718,38 +697,20 @@ export function createBoardAppStoreState(
         const s = _get()
         const board = getActiveBoardPane(s)
         if (board) {
-          const getNode = (id: string) => s.repo.getNode(id)
-          const ancestors = deriveCursorAncestors(getNode, board.rootId, board.cursorNodeId, (pid) =>
-            s.repo.getChildren(pid),
-          )
-
-          // ViewNode-based cursor path (parallel computation for equivalence validation)
+          // Derive cursor classification from ViewNode tree
           const vTree = buildViewTree(s.repo, board.rootId, board.foldDepths)
           const vIndex = buildViewIndex(vTree)
           const cursorPath = board.cursorNodeId ? deriveCursorPath(vIndex, board.cursorNodeId) : []
-          const vnSelectionLevel: "board" | "column" | "card" =
+          const cursorColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
+          const cursorCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
+          const selectionLevel: "board" | "column" | "card" =
             cursorPath.length === 0 ? "board" : cursorPath.length === 1 ? "column" : "card"
-          const vnColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
-          const vnCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
 
-          // Equivalence check: compare ViewNode derivation with legacy deriveCursorAncestors
-          if (
-            ancestors.selectionLevel !== vnSelectionLevel ||
-            ancestors.cursorColumnNodeId !== vnColumnNodeId ||
-            ancestors.cursorCardNodeId !== vnCardNodeId
-          ) {
-            viewTreeLog.warn?.(
-              "ViewNode cursorPath disagrees with deriveCursorAncestors — using legacy result. " +
-                `cursor=${board.cursorNodeId}, root=${board.rootId}, ` +
-                `legacy={level=${ancestors.selectionLevel}, col=${ancestors.cursorColumnNodeId}, card=${ancestors.cursorCardNodeId}}, ` +
-                `viewNode={level=${vnSelectionLevel}, col=${vnColumnNodeId}, card=${vnCardNodeId}}`,
-            )
-          }
-
-          // Use legacy result (safety first) — ViewNode result will replace once equivalence is proven
           s.cursorStore.setState({
             cursorNodeId: board.cursorNodeId,
-            ...ancestors,
+            cursorCardNodeId,
+            cursorColumnNodeId,
+            selectionLevel,
           })
         }
       },
