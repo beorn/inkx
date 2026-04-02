@@ -61,13 +61,13 @@ export interface ViewNodeCacheEntry {
 export type ViewNodeColumnCache = Map<string, ViewNodeCacheEntry>
 
 // =============================================================================
-// Constants — detail-only detection (mirrors use-columns.ts)
+// Constants — collapsed/detail-only detection (canonical source)
 // =============================================================================
 
 const COLLAPSED_SECTION_NAMES = new Set(["activity", "comments", "attachments"])
 
 // =============================================================================
-// Helpers — collapse/detail-only detection (mirrors use-columns.ts)
+// Helpers — collapse/detail-only detection (canonical source)
 // =============================================================================
 
 function isWellKnownMetadataSection(node: KNode): boolean {
@@ -88,13 +88,19 @@ function getCollapseRules(node: KNode): { collapse?: boolean } {
   return parseHeadingRules(node.content || node.title || "").rules
 }
 
-function isCollapsedChild(node: KNode): boolean {
+/** Nodes with km.collapse:: true, detailOnly flag, or well-known metadata section names
+ *  are shown only in the detail pane, never as cards in columns. */
+export function isCollapsedChild(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
   if (isWellKnownMetadataSection(node)) return true
   return getCollapseRules(node).collapse === true
 }
 
-function isDetailOnly(node: KNode): boolean {
+/** Like isCollapsedChild but only returns true for detail-only nodes
+ *  (detailOnly flag, well-known Asana metadata sections like Activity/Comments/Attachments).
+ *  Does NOT match nodes that only have km.collapse:: true — those should render
+ *  as narrow collapsed columns, not be hidden entirely. */
+export function isDetailOnly(node: KNode): boolean {
   if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
   if (isWellKnownMetadataSection(node)) return true
   const rules = getCollapseRules(node)
@@ -109,10 +115,15 @@ function isDetailOnly(node: KNode): boolean {
 }
 
 // =============================================================================
-// Deduplication (mirrors use-columns.ts)
+// Deduplication (canonical source)
 // =============================================================================
 
-function deduplicateByFsPath(nodes: KNode[], getChildCount: (id: string) => number): KNode[] {
+/**
+ * Deduplicate column nodes that share the same fs_path.
+ * Import bugs can create duplicate file entries in the DB.
+ * Keeps the node with more children; if tied, keeps the first occurrence.
+ */
+export function deduplicateByFsPath(nodes: KNode[], getChildCount: (id: string) => number): KNode[] {
   const seen = new Map<string, { node: KNode; childCount: number }>()
   const result: KNode[] = []
 
@@ -174,6 +185,7 @@ export function buildViewTree(
   rootId: string | null,
   _foldDepths: Map<string, number>,
   cache?: ViewNodeColumnCache,
+  hiddenNodeIds?: Set<string>,
 ): ViewNode {
   const boardNode = rootId ? repo.getNode(rootId) : null
 
@@ -191,7 +203,11 @@ export function buildViewTree(
 
   // --- Body column ---
   const filteredBody = bodyNodes.filter(
-    (n) => !isCollapsedChild(n) && n.content != null && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
+    (n) =>
+      !isCollapsedChild(n) &&
+      !hiddenNodeIds?.has(n.id) &&
+      n.content != null &&
+      n.content.replace(/<[^>]+>/g, "").trim().length > 0,
   )
 
   if (filteredBody.length > 0) {
@@ -205,7 +221,7 @@ export function buildViewTree(
     }
     const bodyIdSet = new Set(filteredBody.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
     for (const bNode of filteredBody) {
-      bodyCol.children.push(buildCardNode(repo, bNode, bodyCol, bodyIdSet))
+      bodyCol.children.push(buildCardNode(repo, bNode, bodyCol, bodyIdSet, hiddenNodeIds))
     }
     root.children.push(bodyCol)
   }
@@ -218,11 +234,12 @@ export function buildViewTree(
   const indexFile = rootNode?.fstype === "folder" ? findIndexFile(rootNode, deduped) : null
 
   if (indexFile) {
-    expandIndexFileViewNodes(repo, indexFile, deduped, root, cache)
+    expandIndexFileViewNodes(repo, indexFile, deduped, root, cache, hiddenNodeIds)
   } else {
     for (const node of deduped) {
       if (isDetailOnly(node)) continue
-      root.children.push(buildColumnNodeCached(repo, node, root, cache))
+      if (hiddenNodeIds?.has(node.id)) continue
+      root.children.push(buildColumnNodeCached(repo, node, root, cache, hiddenNodeIds))
     }
   }
 
@@ -243,6 +260,7 @@ function buildColumnNodeCached(
   node: KNode,
   parent: ViewNode,
   cache?: ViewNodeColumnCache,
+  hiddenNodeIds?: Set<string>,
 ): ViewNode {
   if (cache) {
     const childrenRef = repo.getChildren(node.id)
@@ -256,19 +274,19 @@ function buildColumnNodeCached(
     }
 
     // Cache miss — build fresh, store in cache
-    const col = buildColumnNode(repo, node, parent)
+    const col = buildColumnNode(repo, node, parent, hiddenNodeIds)
     cache.set(node.id, { childrenRef, node: col })
     return col
   }
 
-  return buildColumnNode(repo, node, parent)
+  return buildColumnNode(repo, node, parent, hiddenNodeIds)
 }
 
 // =============================================================================
 // Column builder
 // =============================================================================
 
-function buildColumnNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): ViewNode {
+function buildColumnNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode, hiddenNodeIds?: Set<string>): ViewNode {
   const rules: SectionRules = node.rules ?? parseHeadingRules(node.content || node.title || "").rules
 
   const col: ViewNode = {
@@ -297,16 +315,18 @@ function buildColumnNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vie
 
   for (const child of bodyCards) {
     if (isCollapsedChild(child)) continue
+    if (hiddenNodeIds?.has(child.id)) continue
     rawCards.push(child)
     if (!KNode.isEmbed(child)) bodyIdSet.add(child.id)
   }
   for (const child of structuralCards) {
     if (isCollapsedChild(child)) continue
+    if (hiddenNodeIds?.has(child.id)) continue
     rawCards.push(child)
   }
 
   for (const card of rawCards) {
-    col.children.push(buildCardNode(repo, card, col, bodyIdSet))
+    col.children.push(buildCardNode(repo, card, col, bodyIdSet, hiddenNodeIds))
   }
 
   return col
@@ -316,7 +336,13 @@ function buildColumnNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vie
 // Card + subitem builder
 // =============================================================================
 
-function buildCardNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode, bodyIds: Set<string>): ViewNode {
+function buildCardNode(
+  repo: ViewTreeRepo,
+  node: KNode,
+  parent: ViewNode,
+  bodyIds: Set<string>,
+  hiddenNodeIds?: Set<string>,
+): ViewNode {
   const isBody = bodyIds.has(node.id)
   const resolvedEmbed = node.embed_source ? (repo.getNode(node.embed_source) ?? undefined) : undefined
 
@@ -335,13 +361,14 @@ function buildCardNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode, bodyId
   const cardChildren = repo.getChildren(sourceId)
 
   for (const child of cardChildren) {
-    card.children.push(buildSubitemNode(repo, child, card))
+    if (hiddenNodeIds?.has(child.id)) continue
+    card.children.push(buildSubitemNode(repo, child, card, hiddenNodeIds))
   }
 
   return card
 }
 
-function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): ViewNode {
+function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode, hiddenNodeIds?: Set<string>): ViewNode {
   const resolvedEmbed = node.embed_source ? (repo.getNode(node.embed_source) ?? undefined) : undefined
 
   const sub: ViewNode = {
@@ -358,7 +385,8 @@ function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vi
   const subChildren = repo.getChildren(sourceId)
 
   for (const child of subChildren) {
-    sub.children.push(buildSubitemNode(repo, child, sub))
+    if (hiddenNodeIds?.has(child.id)) continue
+    sub.children.push(buildSubitemNode(repo, child, sub, hiddenNodeIds))
   }
 
   return sub
@@ -374,6 +402,7 @@ function expandIndexFileViewNodes(
   deduped: KNode[],
   root: ViewNode,
   cache?: ViewNodeColumnCache,
+  hiddenNodeIds?: Set<string>,
 ): void {
   const indexChildren = repo.getChildren(indexFile.id)
   const { body: indexBody } = extractBody(indexChildren)
@@ -393,6 +422,7 @@ function expandIndexFileViewNodes(
   const isBodyContent = (n: KNode) =>
     !slotChildIds.has(n.id) &&
     !isCollapsedChild(n) &&
+    !hiddenNodeIds?.has(n.id) &&
     n.content != null &&
     n.content.replace(/<[^>]+>/g, "").trim().length > 0
 
@@ -404,8 +434,8 @@ function expandIndexFileViewNodes(
 
   const resolveSlot = (target: string): boolean => {
     const child = deduped.find((n) => n !== indexFile && namesAreSimilar(n.name ?? "", target))
-    if (child) {
-      root.children.push(buildColumnNodeCached(repo, child, root, cache))
+    if (child && !hiddenNodeIds?.has(child.id)) {
+      root.children.push(buildColumnNodeCached(repo, child, root, cache, hiddenNodeIds))
       referencedIds.add(child.id)
       return true
     }
@@ -413,6 +443,7 @@ function expandIndexFileViewNodes(
   }
 
   for (const child of indexChildren) {
+    if (hiddenNodeIds?.has(child.id)) continue
     const targets = extractSlotTargets([child])
     if (targets.length > 0) {
       const allResolved = targets.every((target) =>
@@ -428,8 +459,8 @@ function expandIndexFileViewNodes(
       }
     }
     if (KNode.isOutline(child)) {
-      if (!isDetailOnly(child)) {
-        root.children.push(buildColumnNodeCached(repo, child, root, cache))
+      if (!isDetailOnly(child) && !hiddenNodeIds?.has(child.id)) {
+        root.children.push(buildColumnNodeCached(repo, child, root, cache, hiddenNodeIds))
       }
     } else if (!indexBody.includes(child) && isBodyContent(child)) {
       fallbackBody.push(child)
@@ -449,7 +480,7 @@ function expandIndexFileViewNodes(
     }
     const bodyIdSet = new Set(allBodyNodes.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
     for (const bNode of allBodyNodes) {
-      bodyCol.children.push(buildCardNode(repo, bNode, bodyCol, bodyIdSet))
+      bodyCol.children.push(buildCardNode(repo, bNode, bodyCol, bodyIdSet, hiddenNodeIds))
     }
     root.children.splice(bodyInsertIdx, 0, bodyCol)
   }
@@ -458,7 +489,8 @@ function expandIndexFileViewNodes(
   for (const node of deduped) {
     if (node === indexFile || referencedIds.has(node.id)) continue
     if (isDetailOnly(node)) continue
-    root.children.push(buildColumnNodeCached(repo, node, root, cache))
+    if (hiddenNodeIds?.has(node.id)) continue
+    root.children.push(buildColumnNodeCached(repo, node, root, cache, hiddenNodeIds))
   }
 }
 
@@ -543,5 +575,116 @@ export function toColumnViews(tree: ViewNode): CompatColumnView[] {
       cardIds: col.children.map((card) => card.id),
       cardCount: col.children.length,
     }
+  })
+}
+
+// =============================================================================
+// WIP Limits
+// =============================================================================
+
+/**
+ * Extract WIP limits from column nodes' frontmatter.
+ * Looks at each node's data.columns config for { column_name: { limit: number } }.
+ */
+export function extractWipLimits(nodes: KNode[]): Map<string, number> {
+  const limits = new Map<string, number>()
+
+  for (const node of nodes) {
+    const columnsConfig = (node.data as { columns?: Record<string, { limit?: number }> })?.columns
+    if (!columnsConfig) continue
+
+    for (const [colName, config] of Object.entries(columnsConfig)) {
+      if (typeof config?.limit === "number" && config.limit > 0) {
+        const normalizedName = colName.toLowerCase().replace(/\s+/g, "_")
+        limits.set(normalizedName, config.limit)
+      }
+    }
+  }
+
+  return limits
+}
+
+// =============================================================================
+// Full ColumnView conversion — ViewNode tree → ColumnView[] with CardView[]
+// =============================================================================
+
+/**
+ * CardView interface — a KNode enriched with pre-resolved display data.
+ * Duplicated from km-tui types.ts to avoid circular dependency.
+ * The km-tui CardView interface extends KNode; this produces structurally
+ * compatible objects that satisfy it via duck typing.
+ */
+interface CardViewData {
+  readonly __cardView: true
+  resolvedNode?: KNode
+  isBody: boolean
+  isBrokenEmbed: boolean
+  hasBodyChildren: boolean
+}
+
+/**
+ * ColumnView interface — a column KNode with pre-fetched CardView cards.
+ * Duplicated from km-tui types.ts to avoid circular dependency.
+ */
+interface FullColumnView {
+  node: KNode
+  cardNodes: (KNode & CardViewData)[]
+  wipLimit?: number
+  rules?: SectionRules
+  isVirtual?: boolean
+}
+
+/**
+ * Convert a ViewNode tree to full ColumnView[] with CardView[] cards.
+ *
+ * This is the canonical conversion from ViewNode (km-board) to the ColumnView
+ * shape consumed by km-tui components. It replaces the duplicated derivation
+ * logic that was in use-columns.ts.
+ *
+ * Each card ViewNode is enriched with:
+ * - resolvedNode: pre-resolved embed target (from ViewNode.resolvedEmbed)
+ * - isBody: body content flag (from ViewNode.isBody)
+ * - isBrokenEmbed: true if embed_source set but target not found
+ * - hasBodyChildren: true if first child is non-outline (for ··· indicator)
+ *
+ * @param tree - ViewNode tree from buildViewTree()
+ * @param columnNodes - The original column KNode[] from extractBody() (for WIP limit extraction)
+ */
+export function viewNodeToColumnViews(tree: ViewNode, columnNodes?: KNode[]): FullColumnView[] {
+  const wipLimits = columnNodes ? extractWipLimits(columnNodes) : new Map<string, number>()
+
+  return tree.children.map((col) => {
+    const isVirtual = col.role === "body-column"
+    const colNode = col.node!
+    const rules = col.rules
+
+    // WIP limit from rules or parent frontmatter
+    const normalizedName = (colNode.name || colNode.title || "").toLowerCase().replace(/\s+/g, "_")
+    const wipLimit = rules?.limit ?? wipLimits.get(normalizedName)
+
+    const cardNodes = col.children.map((cardVN) => {
+      const cardNode = cardVN.node!
+      const resolvedNode = cardVN.resolvedEmbed
+      // hasBodyChildren: check if the card's first child (in the ViewNode tree) is non-outline
+      const firstChild = cardVN.isBody ? undefined : cardVN.children[0]?.node
+      const hasBodyChildren = firstChild != null && !KNode.isOutline(firstChild)
+
+      return {
+        ...cardNode,
+        __cardView: true as const,
+        resolvedNode,
+        isBody: cardVN.isBody,
+        isBrokenEmbed: cardNode.embed_source != null && resolvedNode === undefined,
+        hasBodyChildren,
+      }
+    })
+
+    return {
+      node: colNode,
+      cardNodes,
+      wipLimit,
+      rules,
+      isVirtual: isVirtual || undefined,
+    } as FullColumnView
   })
 }

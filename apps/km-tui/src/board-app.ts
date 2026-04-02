@@ -30,7 +30,7 @@ import type { ColumnView } from "./types.ts"
 import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { checkInvariants } from "./invariants.ts"
-import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import { deriveColumnsFromRepo, deriveDetailColumns, viewTreeToColumnViews, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { buildViewTree, buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -236,13 +236,18 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
       const topChildren = s.repo.getChildren(rootId)
       s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
-      const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
-      columns = derive(s.repo, rootId, foldDepths)
-      nodeIndex = buildNodeIndex(columns)
       // Reuse viewNode cache if rootId hasn't changed (zoom); clear on zoom change
       const viewNodeCache: ViewNodeColumnCache =
         locals.layoutCache && locals.layoutCache.rootId === rootId ? locals.layoutCache.viewNodeCache : new Map()
-      viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
+      if (board?.viewMode === "detail") {
+        columns = deriveDetailColumns(s.repo, rootId, foldDepths)
+        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
+      } else {
+        // Derive viewTree first, then columns from it — single derivation path
+        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
+        columns = viewTreeToColumnViews(s.repo, viewTree)
+      }
+      nodeIndex = buildNodeIndex(columns)
       viewIndex = buildViewIndex(viewTree)
       hiddenNodeIds = computeHiddenNodeIds(s.repo, columns)
       locals.layoutCache = {
