@@ -6,9 +6,10 @@
  */
 
 import { createLogger } from "loggily"
-import { existsSync } from "fs"
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
+import { ulid } from "ulid"
 import { type Event, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
 import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
@@ -44,6 +45,9 @@ export interface FsWriteTarget {
 
   /** Clear in-flight status (for watcher debouncing). Optional. */
   clearInFlight?(absPath: string, delayMs?: number): void
+
+  /** Record a write token for a path (for watcher suppression). Optional. */
+  recordWriteToken?(absPath: string, content: string): void
 }
 
 /**
@@ -436,6 +440,12 @@ export class EventHandlers {
       }
     }
 
+    // Record write tokens for all .md files in the renamed directory
+    // so the watcher recognizes them as our own writes (not external changes)
+    if (existsSync(newAbsPath)) {
+      this.recordTokensRecursive(newAbsPath)
+    }
+
     // Update DB paths
     const oldPrefix = oldFsPath + "/"
     const newPrefix = newFsPath + "/"
@@ -452,6 +462,9 @@ export class EventHandlers {
       oldPrefix + "%",
     ])
 
+    // Journal the folder rename for event-sourcing completeness
+    this.journalRename(node.id, { fs_path: newFsPath, name: newName, old_fs_path: oldFsPath })
+
     // Only update the index file's name and fs_path in DB if the FS rename succeeded
     if (indexNeedsRename && indexFile && indexRenameSucceeded) {
       const newIndexFsPath = join(newFsPath, newName + ".md")
@@ -461,6 +474,8 @@ export class EventHandlers {
         Date.now(),
         indexFile.id,
       ])
+      // Journal the index file rename
+      this.journalRename(indexFile.id, { fs_path: newIndexFsPath, name: newName })
     }
 
     // Refresh index file content with new title (node already updated in DB)
@@ -499,6 +514,14 @@ export class EventHandlers {
       void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
       this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
+
+      // Record write token at new path so watcher recognizes it as our write
+      try {
+        const content = readFileSync(newAbsPath, "utf-8")
+        this.fsTarget.recordWriteToken?.(newAbsPath, content)
+      } catch {
+        // Read failure after rename — markInFlight provides fallback suppression
+      }
     }
 
     // Update DB: fs_path, name, and title (title is used by nodesToMarkdown for H1 heading)
@@ -511,6 +534,9 @@ export class EventHandlers {
       fileNode.id,
     ])
 
+    // Journal the file rename for event-sourcing completeness
+    this.journalRename(fileNode.id, { fs_path: newFsPath, name: newName, title: newTitle, old_fs_path: oldFsPath })
+
     // Mutate node so caller writes content at new path
     fileNode.fs_path = newFsPath
     fileNode.name = newName
@@ -522,6 +548,54 @@ export class EventHandlers {
       if (parent?.fstype === "folder" && parent.fs_path) {
         this.handleFolderIndexUpdate(parent)
       }
+    }
+  }
+
+  /**
+   * Journal a rename operation to events.jsonl.
+   * The DB is already updated by direct mutation (for atomicity with the FS rename),
+   * so this only persists to the journal for event-sourcing completeness.
+   */
+  private journalRename(nodeId: string, changes: Record<string, unknown>): void {
+    const event: Event = {
+      id: ulid(),
+      ts: Date.now(),
+      type: "node_updated",
+      target: nodeId,
+      actor: "user",
+      data: changes,
+    }
+    try {
+      const dir = dirname(this.emitter.eventsPath)
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+      appendFileSync(this.emitter.eventsPath, JSON.stringify(event) + "\n")
+    } catch (err) {
+      log.error?.(`journalRename failed for ${nodeId}: ${String(err)}`)
+    }
+  }
+
+  /**
+   * Recursively record write tokens for all .md files in a directory.
+   * Used after folder renames so the watcher recognizes the files at their
+   * new paths as our own writes rather than external changes.
+   */
+  private recordTokensRecursive(dir: string): void {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          this.recordTokensRecursive(fullPath)
+        } else if (entry.name.endsWith(".md")) {
+          try {
+            const content = readFileSync(fullPath, "utf-8")
+            this.fsTarget.recordWriteToken?.(fullPath, content)
+          } catch {
+            // Individual file read failure — skip, markInFlight provides fallback
+          }
+        }
+      }
+    } catch {
+      // Directory read failure — skip, markInFlight provides fallback
     }
   }
 }
