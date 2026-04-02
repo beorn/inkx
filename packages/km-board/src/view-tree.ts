@@ -648,10 +648,12 @@ interface FullColumnView {
  * - hasBodyChildren: true if first child is non-outline (for ··· indicator)
  *
  * @param tree - ViewNode tree from buildViewTree()
- * @param columnNodes - The original column KNode[] from extractBody() (for WIP limit extraction)
  */
-export function viewNodeToColumnViews(tree: ViewNode, columnNodes?: KNode[]): FullColumnView[] {
-  const wipLimits = columnNodes ? extractWipLimits(columnNodes) : new Map<string, number>()
+export function viewNodeToColumnViews(tree: ViewNode): FullColumnView[] {
+  // Extract column KNodes from the tree itself — no need for external columnNodes parameter.
+  // The tree's non-virtual column children wrap the original KNodes from extractBody().
+  const columnKNodes = tree.children.filter((c) => c.role !== "body-column").map((c) => c.node!)
+  const wipLimits = extractWipLimits(columnKNodes)
 
   return tree.children.map((col) => {
     const isVirtual = col.role === "body-column"

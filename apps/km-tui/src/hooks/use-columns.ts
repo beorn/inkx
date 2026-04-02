@@ -16,10 +16,15 @@ import { useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
 import { createLogger } from "loggily"
-import { extractBody } from "@km/tree"
 import type { CardView, ColumnView } from "../types.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
-import { buildViewTree, viewNodeToColumnViews, type ViewNodeColumnCache, type ViewTreeRepo } from "@km/board"
+import {
+  buildViewTree,
+  viewNodeToColumnViews,
+  type ViewNode,
+  type ViewNodeColumnCache,
+  type ViewTreeRepo,
+} from "@km/board"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:columns") as any
@@ -30,15 +35,41 @@ const perfLog = createLogger("km:perf") as any
 // Column derivation — delegates to ViewNode tree
 // =============================================================================
 
-/** Per-column memoization cache for ViewNode tree builds */
-const viewNodeCache: ViewNodeColumnCache = new Map()
+/** Default per-column memoization cache — used when no external cache is provided (tests, driver) */
+const defaultViewNodeCache: ViewNodeColumnCache = new Map()
+
+/**
+ * Internal derivation — builds ViewNode tree and converts to ColumnView[].
+ * Returns both for callers that need the tree (buildActionCtx).
+ *
+ * @param cache - External ViewNodeColumnCache (per-pane in board-app, default singleton elsewhere)
+ * @param hiddenNodeIds - Node IDs to exclude from the tree (board-level hidden filtering)
+ */
+function deriveColumnsAndTree(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+  cache: ViewNodeColumnCache,
+  hiddenNodeIds?: Set<string>,
+): { columns: ColumnView[]; viewTree: ViewNode } {
+  using span = log.span("derive-columns")
+
+  // Build the ViewNode tree — WIP limits are extracted from column nodes inside the tree
+  const viewTree = buildViewTree(repo as ViewTreeRepo, rootId, foldDepths, cache, hiddenNodeIds)
+
+  // Convert ViewNode tree to ColumnView[] with full CardView[]
+  const columns = viewNodeToColumnViews(viewTree) as ColumnView[]
+
+  span.spanData.columns = columns.length
+  return { columns, viewTree }
+}
 
 /**
  * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
  *
  * All runtime column derivation paths must delegate here:
  * - useColumns() hook (React render path)
- * - buildActionCtx() in board-app.ts (key handler path, with layout cache)
+ * - buildActionCtx() in board-app.ts (key handler path, via deriveColumnsWithTree)
  * - driver.ts getContext/getDriverState (test/AI automation path)
  *
  * Delegates to buildViewTree() for tree construction and viewNodeToColumnViews()
@@ -50,20 +81,24 @@ export function deriveColumnsFromRepo(
   rootId: string | null,
   foldDepths: Map<string, number>,
 ): ColumnView[] {
-  using span = log.span("derive-columns")
+  return deriveColumnsAndTree(repo, rootId, foldDepths, defaultViewNodeCache).columns
+}
 
-  // Build the ViewNode tree (uses its own per-column cache)
-  const tree = buildViewTree(repo as ViewTreeRepo, rootId, foldDepths, viewNodeCache)
-
-  // Extract column nodes for WIP limit computation
-  const allChildren = repo.getChildren(rootId)
-  const { items: columnNodes } = extractBody(allChildren)
-
-  // Convert ViewNode tree to ColumnView[] with full CardView[]
-  const columns = viewNodeToColumnViews(tree, columnNodes) as ColumnView[]
-
-  span.spanData.columns = columns.length
-  return columns
+/**
+ * Extended column derivation that also returns the ViewNode tree.
+ * Used by buildActionCtx which needs both columns and the tree for navigation/indexing.
+ *
+ * @param cache - External ViewNodeColumnCache (per-pane cache for cross-call memoization)
+ * @param hiddenNodeIds - Node IDs to exclude from the tree (board-level hidden filtering)
+ */
+export function deriveColumnsWithTree(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+  cache: ViewNodeColumnCache,
+  hiddenNodeIds?: Set<string>,
+): { columns: ColumnView[]; viewTree: ViewNode } {
+  return deriveColumnsAndTree(repo, rootId, foldDepths, cache, hiddenNodeIds)
 }
 
 // =============================================================================
