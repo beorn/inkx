@@ -1353,6 +1353,51 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.expect("#task-2[data-cursor]").toExist()
     })
 
+    test("ctrl-n from card saves edit before navigating to next card", () => {
+      const { board, repo } = testEnv(() => item("board", item("col1", item("task-1"), item("task-2"))))
+
+      // Edit task-1 title
+      board.press("Enter")
+      expect(board.screenshot()).toContain("INSERT")
+
+      // Type at end of title
+      board.press("X")
+
+      // ctrl-n to next card
+      board.press("Control+n")
+      board.expectEditing("task-2")
+
+      // task-1 should be saved with the "X" appended
+      expect(repo.getNode("task-1")?.content).toContain("X")
+    })
+
+    test("ctrl-n from sub-section saves edit before navigating to sibling", () => {
+      const { board, repo } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("card-1", item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
+            item("card-2"),
+          ),
+        ),
+      )
+
+      // Edit sub-a's body block (blockIndex=1 = child-a1), so ctrl-n crosses to sub-b
+      board.editNode("sub-a", { block: 1, card: "card-1" })
+      expect(board.screenshot()).toContain("INSERT")
+
+      // Type at end
+      board.press("Y")
+
+      // ctrl-n to sibling sub-b
+      board.press("Control+n")
+      board.expectEditing("sub-b")
+
+      // child-a1 (the body block we edited) should be saved
+      expect(repo.getNode("child-a1")?.content).toContain("Y")
+    })
+
     test("ArrowDown from sub-section navigates to next sibling, not first card", () => {
       const { board } = testEnv(() =>
         item(
