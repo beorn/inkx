@@ -1,5 +1,11 @@
 import { describe, test, expect } from "vitest"
-import { withTitle, withName, composePlugins, defaultNormalize, validateEffects } from "../src/board/normalize-plugins.ts"
+import {
+  withTitle,
+  withName,
+  composePlugins,
+  defaultNormalize,
+  validateEffects,
+} from "../src/board/normalize-plugins.ts"
 import type { BoardEffect } from "../src/board/board-reducer.ts"
 import type { KNode } from "@km/core"
 
@@ -12,11 +18,35 @@ function makeUpdateEffect(nodeId: string, updates: Partial<KNode>): BoardEffect 
 }
 
 function makeOutlineNode(id: string): KNode {
-  return { id, type: "h", item: {}, parent_id: "root", parent_idx: 0, content: "Old", title: "Old", data: {}, created_at: 0, updated_at: 0, version: "" }
+  return {
+    id,
+    type: "h",
+    item: {},
+    parent_id: "root",
+    parent_idx: 0,
+    content: "Old",
+    title: "Old",
+    data: {},
+    created_at: 0,
+    updated_at: 0,
+    version: "",
+  }
 }
 
 function makeListNode(id: string): KNode {
-  return { id, type: "p", item: { list: "-" }, parent_id: "root", parent_idx: 0, content: "Old", title: "Old", data: {}, created_at: 0, updated_at: 0, version: "" }
+  return {
+    id,
+    type: "p",
+    item: { list: "-" },
+    parent_id: "root",
+    parent_idx: 0,
+    content: "Old",
+    title: "Old",
+    data: {},
+    created_at: 0,
+    updated_at: 0,
+    version: "",
+  }
 }
 
 // =============================================================================

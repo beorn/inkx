@@ -58,10 +58,7 @@ export function withTitle(effects: BoardEffect[]): BoardEffect[] {
  * Without this, renaming a heading in the TUI leaves the old name,
  * causing filesystem sync to create new files instead of renaming.
  */
-export function withName(
-  effects: BoardEffect[],
-  getNode?: (id: string) => KNode | null,
-): BoardEffect[] {
+export function withName(effects: BoardEffect[], getNode?: (id: string) => KNode | null): BoardEffect[] {
   if (!getNode) return effects
   return effects.map((effect) => {
     if (effect.type !== "REPO_UPDATE_NODE") return effect
@@ -116,10 +113,7 @@ export const defaultNormalize = composePlugins(withTitle, withName)
  *
  * Run in development/test only (controlled by caller).
  */
-export function validateEffects(
-  effects: BoardEffect[],
-  getNode?: (id: string) => KNode | null,
-): void {
+export function validateEffects(effects: BoardEffect[], getNode?: (id: string) => KNode | null): void {
   for (const effect of effects) {
     if (effect.type === "REPO_UPDATE_NODE") {
       validateUpdateNode(effect, getNode)
