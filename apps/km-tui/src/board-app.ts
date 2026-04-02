@@ -383,8 +383,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
       },
       hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
-      getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
-        getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, rootId),
     }
   }
 
@@ -1093,53 +1091,6 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
 // =============================================================================
 // Helpers
 // =============================================================================
-
-/**
- * Walk visible descendants in DFS order, calling `visitor` for each visible child.
- * Shared tree-walk logic used by getVisibleDescendantIds.
- *
- * @param maxChildren - Optional cap on children per node (e.g., 10 for counting).
- */
-function walkVisibleDescendants(
-  repo: { getChildren(id: string): { id: string }[] },
-  node: { id: string },
-  depth: number,
-  maxDepth: number,
-  foldDepths: Map<string, number>,
-  remainingDepth: number,
-  visitor: (child: { id: string }) => void,
-  maxChildren?: number,
-): void {
-  if (depth >= maxDepth || remainingDepth <= 0) return
-  const allChildren = repo.getChildren(node.id)
-  const children = maxChildren != null ? allChildren.slice(0, maxChildren) : allChildren
-  for (const child of children) {
-    visitor(child)
-    const childDepth = foldDepths.get(child.id) ?? remainingDepth - 1
-    walkVisibleDescendants(repo, child, depth + 1, maxDepth, foldDepths, childDepth, visitor, maxChildren)
-  }
-}
-
-/**
- * Get flat list of visible descendant IDs in DFS order for outline navigation.
- * First entry is the card itself (index 0), then its visible descendants.
- * Uses foldDepths for depth-based visibility: each node's effective depth is
- * its explicit override or inherited (parent depth - 1).
- */
-function getVisibleDescendantIds(
-  repo: { getChildren(id: string): { id: string }[] },
-  cardNode: { id: string },
-  maxDepth: number,
-  foldDepths: Map<string, number>,
-  rootId?: string | null,
-): string[] {
-  const result: string[] = [cardNode.id]
-  const cardDepth = foldDepths.get(cardNode.id) ?? foldDepths.get(rootId ?? "") ?? 1
-  walkVisibleDescendants(repo, cardNode, 0, maxDepth, foldDepths, cardDepth, (child) => {
-    result.push(child.id)
-  })
-  return result
-}
 
 /**
  * Reset the default module-level handlers' state for isolate: false test compat.

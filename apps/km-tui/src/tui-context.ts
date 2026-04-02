@@ -151,8 +151,6 @@ export interface ActionCtx {
   getParentPaneId: () => string | null
 
   // === Utilities ===
-  /** Get flat list of visible descendant IDs in DFS order (card itself first, then descendants) */
-  getVisibleDescendantIds: (cardNode: KNode, maxDepth: number, foldDepths: Map<string, number>) => string[]
 }
 
 // ===== Delegated keys (pure pass-throughs from store) =====
