@@ -28,6 +28,9 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
 
 - [Part 1: Composable Domain Objects & Flows](#part-1-composable-domain-objects--flows)
   - [Principle: Plain Domain Language](#principle-plain-language)
+  - [Principle: Domain Object Inventory](#principle-domain-object-inventory)
+  - [Principle: Centralized Core Flows](#principle-centralized-core-flows)
+  - [Principle: The Discoverability Test](#principle-discoverability-test)
   - [Principle: Plain Objects from Factories](#principle-plain-objects)
   - [Principle: Compose Objects as Lego Blocks](#principle-lego-blocks)
   - [Principle: Organize Objects Into Layers](#principle-organize-objects-into-layers)
@@ -102,6 +105,77 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 - [ ] Operations on namespaces — `ViewTree.nodes()`, `KNode.isOutline()` / not bare `dfsTraversal()`
 - [ ] Algorithms read like pseudocode — intent expressed in domain operations / not implementation details at every call site
 - [ ] Unified API shapes across layers — `KTree.nodes()` and `ViewTree.nodes()` have the same predicate model (`match`, `into`, `reverse`)
+
+---
+
+<a id="principle-domain-object-inventory"></a>
+
+### Principle: Domain Object Inventory
+
+**The insight**: The system's vocabulary is finite and concrete. Knowing the domain objects IS knowing the system.
+
+**The inventory** — these are km's core domain objects and their namespaces:
+
+| Layer | Object | Namespace | Key operations |
+|-------|--------|-----------|----------------|
+| Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
+| View | `ViewNode` | `ViewTree` | `.nodes()`, `.descendantIds()`, `.adjacentSibling()` |
+| State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
+| UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
+
+**The principle**: These are the vocabulary. If an operation doesn't exist here, it's probably missing from the system, not a one-off helper. When you need a new operation, add it to the right namespace — don't create a standalone function.
+
+**Why**: An explicit inventory makes the system learnable. A new developer (or AI agent) reads this table and knows where to look for any operation. It also makes gaps visible — if the inventory doesn't cover a concept, the system has a missing abstraction.
+
+**Guidelines:**
+- [ ] New operations go on existing namespaces — not as standalone helpers
+- [ ] Keep the inventory up to date — when a new domain object is introduced, add it here and in the Quick Reference
+
+---
+
+<a id="principle-centralized-core-flows"></a>
+
+### Principle: Centralized Core Flows
+
+**The insight**: Each major flow should be readable in one place using domain vocabulary. If understanding a flow requires tracing through 5 files, the flow is scattered.
+
+**The pattern**: A core flow reads as a sequence of domain operations in a single function or file:
+
+```
+keypress → command → direction → ViewTree.descendantIds → applyListNav → cursor update
+```
+
+Not: implementation details scattered across board-actions-nav.ts, board-app.ts, view-tree.ts, board-state.ts, and column-nav.ts.
+
+**The test**: "Can a new developer read this one function and understand the full flow?" If the answer is no — if they need to open 4 tabs and hold 3 intermediate states in their head — the flow needs to be centralized.
+
+**Why**: Scattered flows are the #1 cause of accidental reimplementation. When the flow is visible in one place, a developer sees the existing vocabulary and uses it. When it's scattered, they see implementation fragments and rewrite from scratch.
+
+**Guidelines:**
+- [ ] Core flows readable in one place — navigation, sync, rendering each have a single entry point that reads like pseudocode
+- [ ] Domain vocabulary carries the "how" — the flow function carries the "what"
+
+---
+
+<a id="principle-discoverability-test"></a>
+
+### Principle: The Discoverability Test
+
+**The insight**: Interface quality is measurable. Two concrete tests reveal missing abstractions before they cause duplication.
+
+**Test 1**: "If a developer types `X.` and doesn't see the operation they need, the namespace is incomplete."
+
+This is autocomplete-driven design. When a developer (or AI agent) needs to traverse a ViewTree, they type `ViewTree.` and expect to see traversal methods. If the method isn't there, they'll write their own — and now the system has two implementations.
+
+**Test 2**: "If two sessions independently implement the same operation, the interface is missing a method."
+
+This is the duplication signal. It already happened with DFS traversal (see [discoverable-interfaces.md](lessons/discoverable-interfaces.md)) — three independent implementations because the canonical one wasn't on the namespace.
+
+**The principle**: These aren't abstract ideals — they're testable heuristics. Run them during code review. When you find a bare helper function that operates on a domain object, apply Test 1: would someone find it by typing `DomainObject.`? If not, move it.
+
+**Guidelines:**
+- [ ] Autocomplete test — operations discoverable via `Namespace.` / not buried as bare functions
+- [ ] Duplication signal — when two implementations exist, the namespace is missing a method
 
 ---
 
@@ -1229,6 +1303,17 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 ## Quick Reference
 
 > Extract all guidelines: `grep '- \[ \]' docs/principles.md`
+
+### Domain Object Inventory
+
+| Layer | Object | Namespace | Key operations |
+|-------|--------|-----------|----------------|
+| Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
+| View | `ViewNode` | `ViewTree` | `.nodes()`, `.descendantIds()`, `.adjacentSibling()` |
+| State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
+| UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
+
+If an operation doesn't exist here, it's probably missing from the system. See [Domain Object Inventory](#principle-domain-object-inventory).
 
 ### Structure
 

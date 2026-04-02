@@ -159,5 +159,8 @@ When this works, the flow is expressed in **one place** using **composable domai
 ## Related
 
 - [docs/principles.md — Plain Domain Language](../principles.md#principle-plain-language): "Name things so that someone unfamiliar with the codebase can read a function and understand what it does."
+- [docs/principles.md — Domain Object Inventory](../principles.md#principle-domain-object-inventory): The concrete table of km's domain objects — the finite vocabulary of the system.
+- [docs/principles.md — Centralized Core Flows](../principles.md#principle-centralized-core-flows): Each major flow readable in one place using domain vocabulary.
+- [docs/principles.md — The Discoverability Test](../principles.md#principle-discoverability-test): Two testable heuristics — autocomplete test and duplication signal.
 - [docs/principles.md — Composable Domain Objects](../principles.md#principle-plain-objects): The vocabulary principle extends objects to operations — the API surface IS the domain language.
 - [docs/lessons/refactoring.md — Case Study 3](refactoring.md): Documentation drift — same root cause (the canonical way exists but isn't discoverable).
