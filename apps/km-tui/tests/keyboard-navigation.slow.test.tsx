@@ -615,7 +615,7 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
     // Test with HR nodes (empty content) interleaved with meaningful paragraphs.
     // The view filters out empty body nodes (meaningfulBody filter), but
     // navigateToBody in view-navigation.ts indexes the unfiltered bodyNodes
-    // from splitBodyAndColumns. findCardAtYVisual returns indices into the
+    // from extractBody. findCardAtYVisual returns indices into the
     // view's filtered card array, causing a mismatch.
     //
     // View body column: [p1(idx=0), p2(idx=1), p3(idx=2)]

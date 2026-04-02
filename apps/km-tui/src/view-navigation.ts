@@ -114,7 +114,8 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
   if (cursorNodeId.startsWith("__body__")) {
     if (dir === "down") {
       const allChildren = repo.getChildren(rootId)
-      const { bodyNodes } = splitBodyAndColumns(allChildren)
+      const { body } = extractBody(allChildren)
+      const bodyNodes = filterMeaningfulBody(body)
       return bodyNodes[0]?.id ?? null
     }
     // k from body column header → board level
@@ -208,7 +209,8 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       // stickyX remembers which column was last visited.
       const stickyX = navigator.stickyX
       const allChildren = repo.getChildren(rootId)
-      const { bodyNodes: rawBodyNodes, structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+      const { body: rawBody, items: rawCols } = extractBody(allChildren)
+      const rawBodyNodes = filterMeaningfulBody(rawBody)
       const bodyNodes = hiddenNodeIds ? rawBodyNodes.filter((n) => !hiddenNodeIds.has(n.id)) : rawBodyNodes
       const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
 
@@ -288,7 +290,7 @@ function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navig
       // Column header → board (save structural column index for return via stickyX)
       // Filter hidden columns so stickyX indexes match the j-from-board path
       const allChildren = repo.getChildren(rootId)
-      const { structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+      const { items: rawCols } = extractBody(allChildren)
       const visibleCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
       const colIdx = indexOfChild(visibleCols, cursorNodeId)
       if (colIdx >= 0) navigator.setStickyX(colIdx)
@@ -321,26 +323,6 @@ function filterMeaningfulBody<T extends { content?: string }>(nodes: T[]): T[] {
   return nodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
 }
 
-/**
- * Split root children into body content nodes and structural (oi) columns.
- * Mirrors the view layer's extractBody split: body nodes are grouped into
- * a single virtual "Description" column, only oi nodes are real columns.
- *
- * Body nodes are filtered to match the view layer's meaningfulBody filter,
- * so navigation indices align with rendered card indices.
- */
-function splitBodyAndColumns(allChildren: { id: string; type: string; item?: ItemData; content?: string }[]): {
-  bodyNodes: { id: string; type: string; item?: ItemData; content?: string }[]
-  structuralCols: { id: string; type: string; item?: ItemData; content?: string }[]
-} {
-  const firstStructuralIdx = allChildren.findIndex((c) => KNode.isOutline(c))
-  if (firstStructuralIdx === -1) return { bodyNodes: filterMeaningfulBody(allChildren), structuralCols: [] }
-  if (firstStructuralIdx === 0) return { bodyNodes: [], structuralCols: allChildren }
-  return {
-    bodyNodes: filterMeaningfulBody(allChildren.slice(0, firstStructuralIdx)),
-    structuralCols: allChildren.slice(firstStructuralIdx),
-  }
-}
 
 function navigateHorizontal(
   dir: "left" | "right",
@@ -355,7 +337,7 @@ function navigateHorizontal(
   if (cursorNodeId.startsWith("__body__")) {
     if (dir === "left") return null // Body column is leftmost
     const allChildren = repo.getChildren(rootId)
-    const { structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+    const { items: rawCols } = extractBody(allChildren)
     const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
     if (structuralCols.length === 0) return null
     // Navigate to structural column header (column-to-column navigation)
@@ -375,7 +357,8 @@ function navigateHorizontal(
   // This mirrors the view layer's extractBody split — body nodes are grouped
   // into a single virtual "Description" column, only oi nodes are real columns.
   const allChildren = repo.getChildren(rootId)
-  const { bodyNodes: rawBodyNodes, structuralCols: rawCols } = splitBodyAndColumns(allChildren)
+  const { body: rawBody, items: rawCols } = extractBody(allChildren)
+  const rawBodyNodes = filterMeaningfulBody(rawBody)
   const bodyNodes = hiddenNodeIds ? rawBodyNodes.filter((n) => !hiddenNodeIds.has(n.id)) : rawBodyNodes
   const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
   const hasBody = bodyNodes.length > 0
