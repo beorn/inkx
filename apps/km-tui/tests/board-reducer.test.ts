@@ -920,6 +920,7 @@ function mockCtx() {
     setUI: (...args: unknown[]) => calls.push({ method: "setUI", args }),
     setFoldDepths: (...args: unknown[]) => calls.push({ method: "setFoldDepths", args }),
     repo: {
+      getNode: () => null,
       moveNode: (...args: unknown[]) => calls.push({ method: "repo.moveNode", args }),
       addNode: (...args: unknown[]) => {
         calls.push({ method: "repo.addNode", args })
@@ -1002,16 +1003,16 @@ describe("runBoardEffects — centralized effect interpreter", () => {
     expect(ctx.calls).toEqual([{ method: "repo.deleteNode", args: ["n1"] }])
   })
 
-  it("REPO_UPDATE_NODE calls repo.updateNode", () => {
+  it("REPO_UPDATE_NODE calls repo.updateNode with normalized updates", () => {
     const ctx = mockCtx()
-    const updates = { content: "new" }
     const result: ApplyResult = {
       state: state(),
-      effects: [{ type: "REPO_UPDATE_NODE", nodeId: "n1", updates }],
+      effects: [{ type: "REPO_UPDATE_NODE", nodeId: "n1", updates: { content: "new" } }],
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runBoardEffects(ctx as any, result)
-    expect(ctx.calls).toEqual([{ method: "repo.updateNode", args: ["n1", updates] }])
+    // withTitle normalization auto-derives title from content
+    expect(ctx.calls).toEqual([{ method: "repo.updateNode", args: ["n1", { content: "new", title: "new" }] }])
   })
 
   it("undo effects call undoHandle methods in order", () => {

@@ -11,6 +11,7 @@ import { getEditableText, setEditableText } from "@km/tree"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
+import { runRepoEffect } from "./board-effect-runner.ts"
 
 /** Open the search & replace dialog */
 export function handleSearchReplaceOpen(ctx: ActionCtx): ActionResult {
@@ -255,9 +256,9 @@ function replaceInNode(
   // Apply the change via the repo
   const newContent = setEditableText(node, newText)
   if (KNode.isOutline(node)) {
-    ctx.repo.updateNode(nodeId, { name: newContent })
+    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { name: newContent } })
   } else {
-    ctx.repo.updateNode(nodeId, { content: newContent })
+    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { content: newContent } })
   }
   return true
 }

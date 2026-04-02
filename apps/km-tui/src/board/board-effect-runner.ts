@@ -16,6 +16,14 @@ import { requestRenderFlush } from "./board-actions-edit.ts"
 import type { ApplyResult, BoardEffect } from "./board-reducer.ts"
 import { defaultNormalize, validateEffects } from "./normalize-plugins.ts"
 
+/** Execute a single repo mutation through the effect pipeline (normalization + validation). */
+export function runRepoEffect(ctx: ActionCtx, effect: BoardEffect): void {
+  const getNode = (id: string) => ctx.repo.getNode(id)
+  const effects = defaultNormalize([effect], getNode)
+  validateEffects(effects, getNode)
+  for (const e of effects) runEffect(ctx, e)
+}
+
 /**
  * Execute all effects from a Board.apply() result against the runtime.
  *

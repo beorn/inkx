@@ -424,7 +424,7 @@ import {
   handleSearchReplaceToggleRegex,
   handleSearchReplaceTabField,
 } from "./board-actions-search-replace.ts"
-import { runBoardEffects } from "./board-effect-runner.ts"
+import { runBoardEffects, runRepoEffect } from "./board-effect-runner.ts"
 
 // Re-export for external consumers (Board.tsx callbacks)
 export { updateLocalSearchMatches } from "./board-actions-find.ts"
@@ -729,7 +729,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
                 changes.item = rest
               }
             }
-            ctx.repo.updateNode(nodeId, changes)
+            runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: changes })
             insertTarget.replaceContent?.(remainingText, remainingText.length)
           }
         }
@@ -752,7 +752,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
           if (degradation) {
             ctx.undoHandle.setCursor(ctx.cursorNodeId)
             applyDegradation(node, degradation, content)
-            ctx.repo.updateNode(nodeId, degradation)
+            runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: degradation })
             ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
             return ok()
           }
@@ -788,7 +788,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
             if (degradation) {
               ctx.undoHandle.setCursor(ctx.cursorNodeId)
               applyDegradation(nextNode, degradation, getEditableText(nextNode))
-              ctx.repo.updateNode(nextNode.id, degradation)
+              runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: nextNode.id, updates: degradation })
               ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
               return ok()
             }
@@ -932,10 +932,14 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
       if (colNode) {
         const existingData = colNode.data
         if (!wasCollapsed) {
-          ctx.repo.updateNode(collapseNodeId, { data: { ...existingData, collapsed: true } })
+          runRepoEffect(ctx, {
+            type: "REPO_UPDATE_NODE",
+            nodeId: collapseNodeId,
+            updates: { data: { ...existingData, collapsed: true } },
+          })
         } else {
           const { collapsed: _, ...rest } = existingData
-          ctx.repo.updateNode(collapseNodeId, { data: rest })
+          runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: collapseNodeId, updates: { data: rest } })
         }
       }
 
@@ -1720,7 +1724,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   // Without this, splitNode/splitAsChild would operate on empty string.
   if (node.content == null) {
     const editText = editTarget.getContent()
-    ctx.repo.updateNode(nodeId, { content: editText })
+    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { content: editText } })
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- just updated the node, it exists
     node = ctx.repo.getNode(nodeId)!
   }
@@ -2410,7 +2414,7 @@ function handleSetPriority(ctx: ActionCtx, value?: string): ActionResult {
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
   for (const nodeId of nodeIds) {
-    ctx.repo.updateNode(nodeId, { priority: next })
+    runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { priority: next } })
   }
   if (nodeIds.length > 1) ctx.undoHandle.endBatch()
 
@@ -2494,7 +2498,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
       return ok()
     }
     for (const nodeId of nodeIds) {
-      ctx.repo.updateNode(nodeId, { rrule: rrule ?? undefined })
+      runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { rrule: rrule ?? undefined } })
     }
     ctx.toastQueue.info(rrule ? `Recurrence: ${trimmed}` : "Recurrence cleared")
   } else {
@@ -2509,7 +2513,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
       // Compose ISO 8601 value: "2026-02-20" or "2026-02-20T14:00"
       const isoValue = resolved.time ? `${resolved.date}T${resolved.time}` : resolved.date
       for (const nodeId of nodeIds) {
-        ctx.repo.updateNode(nodeId, { [field]: isoValue })
+        runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { [field]: isoValue } })
       }
       const display = resolved.time ? `${resolved.date} ${resolved.time}` : resolved.date
       const label = field === "due_at" ? "Due" : "Start"
@@ -2517,7 +2521,7 @@ function handleDatePromptConfirm(ctx: ActionCtx): ActionResult {
     } else {
       // Clear the field
       for (const nodeId of nodeIds) {
-        ctx.repo.updateNode(nodeId, { [field]: null })
+        runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { [field]: null } })
       }
       const label = field === "due_at" ? "Due date" : "Start date"
       ctx.toastQueue.info(`${label} cleared`)

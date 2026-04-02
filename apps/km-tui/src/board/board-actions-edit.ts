@@ -30,6 +30,7 @@ import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
+import { runRepoEffect } from "./board-effect-runner.ts"
 
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField
 // needs to mount before the next event handler runs.
@@ -505,9 +506,13 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
     if (nextStatus === "done" && targetNode?.rrule && dueParts?.date) {
       const nextDue = getNextOccurrence(targetNode.rrule, dueParts.date)
       // Mark current task done with completion timestamp
-      ctx.repo.updateNode(targetId, {
-        item: { task: { status: "done", marker: "[x]" } },
-        completed_at: Date.now(),
+      runRepoEffect(ctx, {
+        type: "REPO_UPDATE_NODE",
+        nodeId: targetId,
+        updates: {
+          item: { task: { status: "done", marker: "[x]" } },
+          completed_at: Date.now(),
+        },
       })
       if (nextDue) {
         // Clone task with next due date, reset to todo
@@ -515,24 +520,33 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
         const nextDueAt = dueParts.time ? `${nextDue}T${dueParts.time}` : nextDue
         const parentId = targetNode.parent_id
         if (parentId) {
-          ctx.repo.addNode(parentId, {
-            type: targetNode.type,
-            content: targetNode.content,
-            item: { list: targetNode.item?.list, task: { marker: "[ ]", status: "todo" } },
-            due_at: nextDueAt,
-            start_at: targetNode.start_at,
-            rrule: targetNode.rrule,
-            priority: targetNode.priority,
-            assigned_to: targetNode.assigned_to,
-            recur_prev: targetId,
-            parent_idx: (targetNode.parent_idx ?? 0) + 0.001,
-            data: targetNode.data ? { ...targetNode.data } : undefined,
+          runRepoEffect(ctx, {
+            type: "REPO_ADD_NODE",
+            parentId,
+            selectAfter: false,
+            node: {
+              type: targetNode.type,
+              content: targetNode.content,
+              item: { list: targetNode.item?.list, task: { marker: "[ ]", status: "todo" } },
+              due_at: nextDueAt,
+              start_at: targetNode.start_at,
+              rrule: targetNode.rrule,
+              priority: targetNode.priority,
+              assigned_to: targetNode.assigned_to,
+              recur_prev: targetId,
+              parent_idx: (targetNode.parent_idx ?? 0) + 0.001,
+              data: targetNode.data ? { ...targetNode.data } : undefined,
+            },
           })
         }
       }
     } else {
-      ctx.repo.updateNode(targetId, {
-        item: { ...targetNode?.item, task: { status: nextStatus, marker: getMarkerForStatus(nextStatus) } },
+      runRepoEffect(ctx, {
+        type: "REPO_UPDATE_NODE",
+        nodeId: targetId,
+        updates: {
+          item: { ...targetNode?.item, task: { status: nextStatus, marker: getMarkerForStatus(nextStatus) } },
+        },
       })
     }
   })
@@ -553,14 +567,18 @@ export function handleClearTask(ctx: ActionCtx): void {
   const count = Selection.forEach(ctx, "Clear task", (c) => {
     const targetId = c.embed_source || c.id
     const targetNode = ctx.repo.getNode(targetId)
-    ctx.repo.updateNode(targetId, {
-      item: { ...targetNode?.item, task: undefined },
-      due_at: undefined,
-      start_at: undefined,
-      priority: undefined,
-      assigned_to: undefined,
-      rrule: undefined,
-      completed_at: undefined,
+    runRepoEffect(ctx, {
+      type: "REPO_UPDATE_NODE",
+      nodeId: targetId,
+      updates: {
+        item: { ...targetNode?.item, task: undefined },
+        due_at: undefined,
+        start_at: undefined,
+        priority: undefined,
+        assigned_to: undefined,
+        rrule: undefined,
+        completed_at: undefined,
+      },
     })
   })
 
