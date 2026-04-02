@@ -393,26 +393,36 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
     if (!cardVn) return null
 
     if (dir === "down") {
-      // Try next sibling at current level
+      // DFS order: first child → next sibling → parent's next sibling → next card
+      // 1. Descend into first child if visible
+      if (vn.children.length > 0) return vn.children[0]!.id
+      // 2. Try next sibling at current level
       const next = vnSibling(vn, 1)
       if (next) return next.id
-      // Walk up ancestors to find one with a next sibling (DFS next)
+      // 3. Walk up ancestors to find one with a next sibling
       let walk: ViewNode | null = vn.parent
       while (walk && walk !== cardVn) {
         const parentNext = vnSibling(walk, 1)
         if (parentNext) return parentNext.id
         walk = walk.parent
       }
-      // Reached card level: jump to next card
+      // 4. Reached card level: jump to next card
       if (cardVn.parent) {
         const nextCard = vnSibling(cardVn, 1)
         return nextCard?.id ?? null
       }
       return null
     }
-    // k from subitem
+    // k from subitem — reverse DFS order
     const prev = vnSibling(vn, -1)
-    if (prev) return prev.id
+    if (prev) {
+      // Go to the deepest last descendant of the previous sibling
+      let deepest: ViewNode = prev
+      while (deepest.children.length > 0) {
+        deepest = deepest.children[deepest.children.length - 1]!
+      }
+      return deepest.id
+    }
     // At first sibling → parent
     return vn.parent?.id ?? null
   }
