@@ -510,7 +510,7 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
     // In body column
     if (dir === "left") return null
     if (structCols.length === 0) return null
-    return vnNavigateToStructuralCol(structCols[0]!, state, navigator, hasBody)
+    return vnNavigateToColumn(structCols[0]!, state, navigator, { viewColIdx: hasBody ? 1 : 0, canLandOnHeader: true })
   }
 
   // In a structural column
@@ -535,14 +535,22 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
         sourceCardIdx = cardVn.parent ? cardVn.parent.children.indexOf(cardVn) : -1
         if (sourceCardIdx < 0) sourceCardIdx = undefined
       }
-      return vnNavigateToBody(bodyCol, navigator, sourceCardIdx)
+      return vnNavigateToColumn(bodyCol, state, navigator, { viewColIdx: 0, sourceCardIdx, canLandOnHeader: false })
     }
-    return vnNavigateToStructuralCol(structCols[structIdx - 1]!, state, navigator, hasBody, false, colVn.id)
+    const targetIdx = structIdx - 1
+    return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+      viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
+      canLandOnHeader: true,
+    })
   }
 
   // right
   if (structIdx + 1 >= structCols.length) return null
-  return vnNavigateToStructuralCol(structCols[structIdx + 1]!, state, navigator, hasBody, false, colVn.id)
+  const targetIdx = structIdx + 1
+  return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+    viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
+    canLandOnHeader: true,
+  })
 }
 
 /** Options for vnNavigateToColumn controlling column-type-specific behavior. */

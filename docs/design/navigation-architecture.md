@@ -82,7 +82,7 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Data flow**:
   1. `vnNavigateHorizontal` resolves containing column via `vnFindColumn`
   2. Finds target column in structural columns list (body column is special — always leftmost)
-  3. `vnNavigateToStructuralCol` uses `stickyY` + `GridNavigator.findItemAtY` to land on the vertically-closest card in the target column
+  3. `vnNavigateToColumn` uses `stickyY` + `GridNavigator.findItemAtY` to land on the vertically-closest card in the target column
   4. When target column is off-screen, uses deferred navigation (resolved during silvery Phase 2.7)
 - **Output**: Clears `stickyX`; preserves `stickyY` across columns
 
