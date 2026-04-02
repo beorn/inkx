@@ -16,6 +16,7 @@
  * ```
  */
 
+import { createLogger } from "loggily"
 import type { RepoHooks, MutationContext, BeforeMutationResult } from "../repo.ts"
 
 /**
@@ -46,12 +47,6 @@ export interface ChaosHooksConfig {
     delete?: number
     move?: number
   }
-
-  /**
-   * If true, log all chaos events to console for debugging.
-   * @default false
-   */
-  verbose?: boolean
 
   /**
    * Custom random function for deterministic testing.
@@ -140,14 +135,7 @@ export interface ChaosStats {
  * ```
  */
 export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
-  const {
-    mutationDropRate = 0,
-    mutationCorruptRate = 0,
-    dropRates = {},
-    verbose = false,
-    random = Math.random,
-    onChaosEvent,
-  } = config
+  const { mutationDropRate = 0, mutationCorruptRate = 0, dropRates = {}, random = Math.random, onChaosEvent } = config
 
   // Internal state
   let enabled = true
@@ -159,16 +147,12 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
     successfulMutations: 0,
   }
 
-  function log(message: string, ...args: unknown[]) {
-    if (verbose) {
-      console.log(`[ChaosHooks] ${message}`, ...args)
-    }
-  }
+  const log = createLogger("km:storage:chaos")
 
   function emitEvent(event: ChaosEvent) {
     chaosEvents.push(event)
     onChaosEvent?.(event)
-    log(`${event.type}:`, event.mutation.type, event.mutation.nodeId)
+    log.debug?.(`${event.type}: ${event.mutation.type} ${event.mutation.nodeId}`)
   }
 
   function getDropRateForType(type: MutationContext["type"]): number {
@@ -283,11 +267,13 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
     },
 
     afterMutation(ctx: MutationContext): void {
-      log("mutation completed:", ctx.type, ctx.nodeId)
+      log.debug?.(`mutation completed: ${ctx.type} ${ctx.nodeId}`)
     },
 
     afterQuery(operation: string, result: unknown): void {
-      log("query completed:", operation, Array.isArray(result) ? `${result.length} results` : "single result")
+      log.debug?.(
+        `query completed: ${operation} ${Array.isArray(result) ? `${result.length} results` : "single result"}`,
+      )
     },
 
     // ChaosHooks-specific methods
@@ -305,12 +291,12 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
 
     disable() {
       enabled = false
-      log("disabled")
+      log.debug?.("disabled")
     },
 
     enable() {
       enabled = true
-      log("enabled")
+      log.debug?.("enabled")
     },
 
     isEnabled() {

@@ -78,7 +78,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   log.debug?.("runBoard start")
 
   if (!state || !options?.repo) {
-    console.error("No board found or repo missing.")
+    log.error?.("No board found or repo missing.")
     process.exit(1)
   }
 

@@ -134,6 +134,8 @@ See [docs/principles.md](docs/principles.md) for patterns, layout, and quick ref
 
 Before theorizing about a bug or issue, **search history first**: `bun recall "topic"`. Prior sessions may have already diagnosed the problem, attempted fixes, or documented root causes. This avoids duplicating work and prevents re-discovering known issues from scratch.
 
+**Reproduce with the user's actual data** (real vault, not synthetic fixtures) before coding a fix. Bead descriptions are hypotheses, not diagnoses — verify with real data before trusting them. See [docs/lessons/reproduce-first.md](docs/lessons/reproduce-first.md).
+
 ## Issue Tracking
 
 Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.

@@ -24,6 +24,8 @@ Before writing anything:
 
 ## Step 1: Pick the Right Reproduction Tool
 
+**Real data first.** For bugs reported by users on their actual vault/data, the FIRST step is reproducing with their real file path — run the app, follow their steps, see the bug yourself. Synthetic test fixtures come later to codify the fix; they don't find the bug. Bead descriptions are hypotheses, not confirmed diagnoses. See [docs/lessons/reproduce-first.md](../../docs/lessons/reproduce-first.md).
+
 Match the bug to the cheapest tool that can reproduce it:
 
 | What the user described | Tool | Speed | When |

@@ -40,6 +40,8 @@ Check if steps are clear:
 - What should happen? (expected)
 - How to reproduce? (concrete steps)
 
+**Root cause analysis in the bead is a hypothesis, not a diagnosis**, unless it was confirmed by reproducing with real data. Mark unverified analyses as "Hypothesis:" in the description. See [docs/lessons/reproduce-first.md](../../../../docs/lessons/reproduce-first.md).
+
 **If unclear:**
 
 ```bash

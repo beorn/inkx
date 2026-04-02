@@ -202,7 +202,6 @@ export function useBoardDialogs({
       if (!target) {
         const errMsg = `search: node not found in repo: ${targetNode.id}`
         log.error?.(errMsg)
-        console.error(errMsg)
         setUI({ showSearchDialog: false, searchDialogInitialInput: "", searchScope: "all", searchScopeNodeIds: [] })
         return
       }

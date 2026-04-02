@@ -12,10 +12,13 @@
  * which returns a Config domain object with an explicit reload() method.
  */
 
+import { createLogger } from "loggily"
 import { cosmiconfigSync } from "cosmiconfig"
 import { existsSync, readFileSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { parse as parseYaml } from "yaml"
+
+const log = createLogger("km:storage:config")
 
 export interface BeadsConfig {
   /** Default board for queries (e.g., "@issues") */
@@ -164,8 +167,8 @@ export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexC
     if (VALID_NAMING.has(raw.naming as FolderIndexConfig["naming"])) {
       naming = raw.naming
     } else {
-      console.warn(
-        `km config: invalid folderIndex.naming "${raw.naming}" — expected one of ${[...VALID_NAMING].join(", ")}. Using default "index".`,
+      log.warn?.(
+        `invalid folderIndex.naming "${raw.naming}" — expected one of ${[...VALID_NAMING].join(", ")}. Using default "index".`,
       )
     }
   }
@@ -175,8 +178,8 @@ export function getFolderIndexConfig(searchFrom?: string): Required<FolderIndexC
     if (VALID_MATERIALIZATION.has(raw.materialization as FolderIndexConfig["materialization"])) {
       materialization = raw.materialization
     } else {
-      console.warn(
-        `km config: invalid folderIndex.materialization "${raw.materialization}" — expected one of ${[...VALID_MATERIALIZATION].join(", ")}. Using default "none".`,
+      log.warn?.(
+        `invalid folderIndex.materialization "${raw.materialization}" — expected one of ${[...VALID_MATERIALIZATION].join(", ")}. Using default "none".`,
       )
     }
   }
