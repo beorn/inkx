@@ -4,6 +4,10 @@
  * Comprehensive test suite for board state management.
  * Tests state initialization, cursor selection, fold/collapse mechanics,
  * zoom behavior, navigation history, move mode, and edge cases.
+ *
+ * NOTE: Multi-select (SELECT_NODE_ADD/REMOVE/TOGGLE, CLEAR_SELECTION) and
+ * view config (INCREASE/DECREASE_CONTENT_LINES) are NOT board reducer actions.
+ * They live in per-pane UI state, handled by the TUI action layer.
  */
 
 import { describe, it, expect } from "vitest"
@@ -38,9 +42,15 @@ describe("createBoardState", () => {
 
   it("initializes empty collections", () => {
     const state = createBoardState()
-    expect(state.selectedNodes.size).toBe(0)
     expect(state.foldDepths.size).toBe(0)
     expect(state.collapsedNodes.size).toBe(0)
+  })
+
+  it("initializes with provided collapsed nodes", () => {
+    const collapsed = new Set(["col-1", "col-2"])
+    const state = createBoardState(null, null, null, collapsed)
+    expect(state.collapsedNodes.size).toBe(2)
+    expect(state.collapsedNodes.has("col-1")).toBe(true)
   })
 
   it("initializes empty navigation history", () => {
@@ -52,11 +62,6 @@ describe("createBoardState", () => {
   it("initializes move mode as disabled", () => {
     const state = createBoardState()
     expect(state.moveState).toEqual({ active: false })
-  })
-
-  it("initializes default view configuration", () => {
-    const state = createBoardState()
-    expect(state.maxContentLines).toBe(2)
   })
 
   it("initializes sticky cursor as null", () => {
@@ -96,6 +101,17 @@ describe("SELECT action", () => {
     const newState = dispatch(state, { type: "SELECT", nodeId: "node-2" })
     expect(newState.rootId).toBe("root-1")
     expect(newState.rootPath).toBe("/file.md")
+  })
+
+  it("ignores optional cardNodeId/cardHintSource fields", () => {
+    const state = createBoardState()
+    const newState = dispatch(state, {
+      type: "SELECT",
+      nodeId: "node-1",
+      cardNodeId: "card-1",
+      cardHintSource: "click",
+    })
+    expect(newState.cursorNodeId).toBe("node-1")
   })
 })
 
@@ -158,6 +174,27 @@ describe("TOGGLE_COLLAPSE action - additional", () => {
     ])
     expect(result.foldDepths.has("node-1")).toBe(true)
     expect(result.collapsedNodes.has("node-1")).toBe(true)
+  })
+})
+
+// ===== SET_COLLAPSED_NODES =====
+
+describe("SET_COLLAPSED_NODES action", () => {
+  it("replaces collapsed nodes entirely", () => {
+    const state = createBoardState()
+    const withCollapsed = dispatch(state, { type: "TOGGLE_COLLAPSE", nodeId: "old-col" })
+    const replaced = dispatch(withCollapsed, { type: "SET_COLLAPSED_NODES", nodeIds: ["new-1", "new-2"] })
+    expect(replaced.collapsedNodes.has("old-col")).toBe(false)
+    expect(replaced.collapsedNodes.has("new-1")).toBe(true)
+    expect(replaced.collapsedNodes.has("new-2")).toBe(true)
+    expect(replaced.collapsedNodes.size).toBe(2)
+  })
+
+  it("clears collapsed nodes with empty array", () => {
+    const state = createBoardState()
+    const withCollapsed = dispatch(state, { type: "TOGGLE_COLLAPSE", nodeId: "col-1" })
+    const cleared = dispatch(withCollapsed, { type: "SET_COLLAPSED_NODES", nodeIds: [] })
+    expect(cleared.collapsedNodes.size).toBe(0)
   })
 })
 
@@ -266,119 +303,6 @@ describe("SET_ROOT action", () => {
   })
 })
 
-// ===== Selection Actions =====
-
-describe("SELECT_NODE_ADD action", () => {
-  it("adds node to selection", () => {
-    const state = createBoardState()
-    const newState = dispatch(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    expect(newState.selectedNodes.has("node-1")).toBe(true)
-  })
-
-  it("preserves existing selections", () => {
-    const state = createBoardState()
-    const result = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
-    ])
-    expect(result.selectedNodes.has("node-1")).toBe(true)
-    expect(result.selectedNodes.has("node-2")).toBe(true)
-  })
-
-  it("does not mutate original state", () => {
-    const state = createBoardState()
-    const newState = dispatch(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    expect(state.selectedNodes.size).toBe(0)
-    expect(newState.selectedNodes.size).toBe(1)
-  })
-})
-
-describe("SELECT_NODE_REMOVE action", () => {
-  it("removes node from selection", () => {
-    const state = createBoardState()
-    const removed = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_REMOVE", nodeId: "node-1" },
-    ])
-    expect(removed.selectedNodes.has("node-1")).toBe(false)
-  })
-
-  it("preserves other selections", () => {
-    const state = createBoardState()
-    const removed = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
-      { type: "SELECT_NODE_REMOVE", nodeId: "node-1" },
-    ])
-    expect(removed.selectedNodes.has("node-1")).toBe(false)
-    expect(removed.selectedNodes.has("node-2")).toBe(true)
-  })
-
-  it("does nothing if node not in selection", () => {
-    const state = createBoardState()
-    const removed = dispatch(state, {
-      type: "SELECT_NODE_REMOVE",
-      nodeId: "node-1",
-    })
-    expect(removed.selectedNodes.size).toBe(0)
-  })
-})
-
-describe("SELECT_NODE_TOGGLE action", () => {
-  it("adds node when not selected", () => {
-    const state = createBoardState()
-    const toggled = dispatch(state, {
-      type: "SELECT_NODE_TOGGLE",
-      nodeId: "node-1",
-    })
-    expect(toggled.selectedNodes.has("node-1")).toBe(true)
-  })
-
-  it("removes node when already selected", () => {
-    const state = createBoardState()
-    const toggled = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_TOGGLE", nodeId: "node-1" },
-    ])
-    expect(toggled.selectedNodes.has("node-1")).toBe(false)
-  })
-
-  it("preserves other selections", () => {
-    const state = createBoardState()
-    const toggled = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
-      { type: "SELECT_NODE_TOGGLE", nodeId: "node-1" },
-    ])
-    expect(toggled.selectedNodes.has("node-1")).toBe(false)
-    expect(toggled.selectedNodes.has("node-2")).toBe(true)
-  })
-})
-
-describe("CLEAR_SELECTION action", () => {
-  it("clears all selections", () => {
-    const state = createBoardState()
-    const cleared = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
-      { type: "CLEAR_SELECTION" },
-    ])
-    expect(cleared.selectedNodes.size).toBe(0)
-  })
-
-  it("does nothing when no selections", () => {
-    const state = createBoardState()
-    const cleared = dispatch(state, { type: "CLEAR_SELECTION" })
-    expect(cleared.selectedNodes.size).toBe(0)
-  })
-})
-
 // ===== Move Mode =====
 
 describe("ENTER_MOVE_MODE action", () => {
@@ -441,17 +365,6 @@ describe("CONFIRM_MOVE action", () => {
     const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
     expect(confirmed.moveState).toEqual({ active: false })
   })
-
-  it("clears selection after move", () => {
-    const state = createBoardState()
-    const selected = dispatch(state, {
-      type: "SELECT_NODE_ADD",
-      nodeId: "node-1",
-    })
-    const moveMode = enterMoveMode(selected, ["node-1"], "cursor-1")
-    const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
-    expect(confirmed.selectedNodes.size).toBe(0)
-  })
 })
 
 describe("CANCEL_MOVE action", () => {
@@ -500,50 +413,6 @@ describe("CANCEL_MOVE action", () => {
     ])
     expect(cancelled.curswantX).toBeNull()
     expect(cancelled.curswantY).toBeNull()
-  })
-})
-
-// ===== View Configuration =====
-
-describe.each([
-  {
-    increaseType: "INCREASE_CONTENT_LINES" as const,
-    decreaseType: "DECREASE_CONTENT_LINES" as const,
-    field: "maxContentLines" as const,
-    defaultValue: 2,
-    max: 10,
-    min: 0,
-  },
-])("$field view configuration", ({ increaseType, decreaseType, field, defaultValue, max, min }) => {
-  it(`increases ${field} by 1`, () => {
-    const state = createBoardState()
-    // Start from a value below max to test increase
-    const initialState = {
-      ...state,
-      [field]: Math.min(defaultValue, max - 1),
-    }
-    const newState = dispatch(initialState, { type: increaseType })
-    expect(newState[field]).toBe(initialState[field] + 1)
-  })
-
-  it(`does not exceed maximum of ${max}`, () => {
-    const state = createBoardState()
-    const maxState = { ...state, [field]: max }
-    const newState = dispatch(maxState, { type: increaseType })
-    expect(newState[field]).toBe(max)
-  })
-
-  it(`decreases ${field} by 1`, () => {
-    const state = createBoardState()
-    const newState = dispatch(state, { type: decreaseType })
-    expect(newState[field]).toBe(defaultValue - 1)
-  })
-
-  it(`does not go below ${min}`, () => {
-    const state = createBoardState()
-    const minState = { ...state, [field]: min }
-    const newState = dispatch(minState, { type: decreaseType })
-    expect(newState[field]).toBe(min)
   })
 })
 
@@ -632,14 +501,11 @@ describe("Edge cases", () => {
     const state = createBoardState("root", "/file.md", "cursor")
 
     const complex = dispatchAll(state, [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
       { type: "TOGGLE_FOLD", nodeId: "node-1" },
       { type: "TOGGLE_COLLAPSE", nodeId: "col-1" },
       { type: "SET_CURSWANT", x: 5, y: 10 },
     ])
 
-    expect(complex.selectedNodes.size).toBe(2)
     expect(complex.foldDepths.size).toBe(1)
     expect(complex.collapsedNodes.size).toBe(1)
     expect(complex.curswantX).toBe(5)
@@ -655,12 +521,10 @@ describe("Edge cases", () => {
     // Perform various operations (results discarded)
     dispatch(state, { type: "SELECT", nodeId: "node-1" })
     dispatch(state, { type: "TOGGLE_FOLD", nodeId: "node-1" })
-    dispatch(state, { type: "SELECT_NODE_ADD", nodeId: "node-1" })
 
     // Original state should be unchanged
     expect(original.cursorNodeId).toBeNull()
     expect(original.foldDepths.size).toBe(0)
-    expect(original.selectedNodes.size).toBe(0)
   })
 
   it("handles empty board state transitions", () => {
@@ -669,9 +533,6 @@ describe("Edge cases", () => {
     // Operations on empty state should work
     const selected = dispatch(state, { type: "SELECT", nodeId: null })
     expect(selected.cursorNodeId).toBeNull()
-
-    const cleared = dispatch(state, { type: "CLEAR_SELECTION" })
-    expect(cleared.selectedNodes.size).toBe(0)
 
     const cancelled = dispatch(state, { type: "CANCEL_MOVE" })
     expect(cancelled.moveState).toEqual({ active: false })
@@ -693,11 +554,8 @@ describe("Integration scenarios", () => {
     expect(state.cursorNodeId).toBe("node-2-child")
   })
 
-  it("multi-select and move workflow", () => {
+  it("move workflow", () => {
     const state = dispatchAll(createBoardState("root", "/file.md", "cursor-1"), [
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-2" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-3" },
       {
         type: "ENTER_MOVE_MODE",
         nodeIds: ["node-1", "node-2", "node-3"],
@@ -708,7 +566,6 @@ describe("Integration scenarios", () => {
     ])
 
     expect(state.moveState).toEqual({ active: false })
-    expect(state.selectedNodes.size).toBe(0)
   })
 
   it("navigation history flow", () => {
@@ -731,16 +588,6 @@ describe("Integration scenarios", () => {
     expect(state.navHistoryIndex).toBe(2)
     expect(state.navHistory[0]?.rootId).toBe("root-1")
     expect(state.navHistory[1]?.rootId).toBe("root-2")
-  })
-
-  it("view configuration adjustment", () => {
-    const state = dispatchAll(createBoardState(), [
-      { type: "INCREASE_CONTENT_LINES" },
-      { type: "INCREASE_CONTENT_LINES" },
-      { type: "DECREASE_CONTENT_LINES" },
-    ])
-
-    expect(state.maxContentLines).toBe(3)
   })
 
   it("sticky cursor across navigation", () => {

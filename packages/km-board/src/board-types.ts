@@ -44,6 +44,10 @@ export interface NavHistoryEntry {
  * - cursorNodeId is the single source of truth for cursor position
  * - Visual indices (colIndex, cardIndex) are derived at render time
  * - Navigation uses Repo for tree queries, not state
+ *
+ * NOTE: Selection (multiSelected) and view config (maxContentLines) live in
+ * per-pane UI state (PerPaneUIFields in km-tui), NOT here. The board reducer
+ * only manages navigation/fold/zoom/move state.
  */
 export interface BoardState {
   // Root context
@@ -55,8 +59,6 @@ export interface BoardState {
   // "cursor" = single focused node; "selection" is reserved for multi-select
   cursorNodeId: string | null
 
-  // Selection state
-  selectedNodes: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string> // Top-level nodes that are collapsed
 
@@ -67,9 +69,6 @@ export interface BoardState {
   // Move mode (m + destination)
   moveState: MoveState
 
-  // View configuration
-  maxContentLines: number
-
   // Sticky cursor coordinates (curswant)
   // See bead km-jm2r for details on the curswant pattern
   curswantX: number | null // Sticky column index for board↔column navigation
@@ -79,14 +78,21 @@ export interface BoardState {
 /**
  * Board actions - all ID-based, no tree traversal.
  * Navigation handlers compute target nodeIds using Repo, then dispatch these.
+ *
+ * NOTE: Multi-select actions (SELECT_NODE_ADD/REMOVE/TOGGLE, CLEAR_SELECTION) and
+ * view config actions (INCREASE/DECREASE_CONTENT_LINES) are NOT board reducer actions.
+ * They are handled at the app layer via per-pane UI state. See km-commands BoardOp.
  */
 export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
-  | { type: "SELECT"; nodeId: string | null }
+  // cardNodeId + cardHintSource: click handler passes the visual card as a definitive hint.
+  // Used for embeds where the data model parent chain leads to the wrong card.
+  | { type: "SELECT"; nodeId: string | null; cardNodeId?: string; cardHintSource?: "click" }
 
-  // Fold/unfold (manipulates depth map)
+  // Fold/unfold (manipulates foldDepths Map)
   | { type: "TOGGLE_FOLD"; nodeId: string }
   | { type: "TOGGLE_COLLAPSE"; nodeId: string }
+  | { type: "SET_COLLAPSED_NODES"; nodeIds: string[] }
 
   // Zoom
   | { type: "ZOOM_IN"; nodeId: string | null; cursorNodeId?: string | null }
@@ -99,20 +105,10 @@ export type BoardAction =
       cursorNodeId: string | null
     }
 
-  // Multi-select
-  | { type: "SELECT_NODE_ADD"; nodeId: string }
-  | { type: "SELECT_NODE_REMOVE"; nodeId: string }
-  | { type: "SELECT_NODE_TOGGLE"; nodeId: string }
-  | { type: "CLEAR_SELECTION" }
-
   // Move mode (caller provides node IDs)
   | { type: "ENTER_MOVE_MODE"; nodeIds: string[]; cursorNodeId: string | null }
   | { type: "CONFIRM_MOVE" }
   | { type: "CANCEL_MOVE" }
-
-  // View configuration
-  | { type: "INCREASE_CONTENT_LINES" }
-  | { type: "DECREASE_CONTENT_LINES" }
 
   // Sticky cursor (set by navigation handlers)
   | { type: "SET_CURSWANT"; x?: number | null; y?: number | null }
@@ -160,7 +156,6 @@ export interface BoardViewModel {
   rootPath: string | null
   nodes: TNode[]
   cursor: TPath
-  selectedNodes: Set<string>
   foldDepths: Map<string, number>
   viewMode: ViewMode
 }

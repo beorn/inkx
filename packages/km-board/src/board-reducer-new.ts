@@ -59,6 +59,10 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
       return { ...state, collapsedNodes: newCollapsed }
     }
 
+    case "SET_COLLAPSED_NODES": {
+      return { ...state, collapsedNodes: new Set(action.nodeIds) }
+    }
+
     // ===== Zoom =====
 
     case "ZOOM_IN": {
@@ -99,34 +103,6 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
       }
     }
 
-    // ===== Selection =====
-
-    case "SELECT_NODE_ADD": {
-      const newSelected = new Set(state.selectedNodes)
-      newSelected.add(action.nodeId)
-      return { ...state, selectedNodes: newSelected }
-    }
-
-    case "SELECT_NODE_REMOVE": {
-      const newSelected = new Set(state.selectedNodes)
-      newSelected.delete(action.nodeId)
-      return { ...state, selectedNodes: newSelected }
-    }
-
-    case "SELECT_NODE_TOGGLE": {
-      const newSelected = new Set(state.selectedNodes)
-      if (newSelected.has(action.nodeId)) {
-        newSelected.delete(action.nodeId)
-      } else {
-        newSelected.add(action.nodeId)
-      }
-      return { ...state, selectedNodes: newSelected }
-    }
-
-    case "CLEAR_SELECTION": {
-      return { ...state, selectedNodes: new Set() }
-    }
-
     // ===== Move Mode =====
 
     case "ENTER_MOVE_MODE": {
@@ -146,7 +122,6 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
       return {
         ...state,
         moveState: { active: false },
-        selectedNodes: new Set(), // Clear selection after move
       }
     }
 
@@ -159,18 +134,6 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
         curswantX: null,
         curswantY: null,
       }
-    }
-
-    // ===== View Configuration =====
-
-    case "INCREASE_CONTENT_LINES": {
-      if (state.maxContentLines >= 10) return state
-      return { ...state, maxContentLines: state.maxContentLines + 1 }
-    }
-
-    case "DECREASE_CONTENT_LINES": {
-      if (state.maxContentLines <= 0) return state
-      return { ...state, maxContentLines: state.maxContentLines - 1 }
     }
 
     // ===== Sticky Cursor =====
@@ -191,24 +154,23 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
 }
 
 /**
- * Create initial simplified board state
+ * Create initial board state
  */
 export function createBoardState(
   rootId: string | null = null,
   rootPath: string | null = null,
   cursorNodeId: string | null = null,
+  collapsedNodeIds?: Set<string>,
 ): BoardState {
   return {
     rootId,
     rootPath,
     cursorNodeId,
-    selectedNodes: new Set(),
     foldDepths: new Map(),
-    collapsedNodes: new Set(),
+    collapsedNodes: collapsedNodeIds ?? new Set(),
     navHistory: [],
     navHistoryIndex: 0,
     moveState: { active: false },
-    maxContentLines: 2,
     curswantX: null,
     curswantY: null,
   }

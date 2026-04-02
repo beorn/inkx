@@ -169,7 +169,12 @@ function createVirtualBodyNode(parentId: string | null): KNode {
  * The tree root has role "board", its children are columns (or body-column),
  * column children are cards, and card children are subitems.
  */
-export function buildViewTree(repo: ViewTreeRepo, rootId: string | null, _foldDepths: Map<string, number>, cache?: ViewNodeColumnCache): ViewNode {
+export function buildViewTree(
+  repo: ViewTreeRepo,
+  rootId: string | null,
+  _foldDepths: Map<string, number>,
+  cache?: ViewNodeColumnCache,
+): ViewNode {
   const boardNode = rootId ? repo.getNode(rootId) : null
 
   const root: ViewNode = {
@@ -363,7 +368,13 @@ function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vi
 // Folder-index expansion (mirrors expandIndexFileColumns in use-columns.ts)
 // =============================================================================
 
-function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped: KNode[], root: ViewNode, cache?: ViewNodeColumnCache): void {
+function expandIndexFileViewNodes(
+  repo: ViewTreeRepo,
+  indexFile: KNode,
+  deduped: KNode[],
+  root: ViewNode,
+  cache?: ViewNodeColumnCache,
+): void {
   const indexChildren = repo.getChildren(indexFile.id)
   const { body: indexBody } = extractBody(indexChildren)
 

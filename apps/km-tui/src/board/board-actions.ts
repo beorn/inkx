@@ -203,6 +203,7 @@ const BOARD_TYPE_LIST = [
   "SET_CURSWANT",
   "TOGGLE_FOLD",
   "TOGGLE_COLLAPSE",
+  "SET_COLLAPSED_NODES",
   "ZOOM_IN",
   "FOLD_NODE",
   "UNFOLD_NODE",
@@ -899,6 +900,7 @@ function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
       return ok()
     case "SET_ROOT":
     case "SET_CURSWANT":
+    case "SET_COLLAPSED_NODES":
       ctx.dispatchBoard(action)
       return ok()
     case "TOGGLE_FOLD":

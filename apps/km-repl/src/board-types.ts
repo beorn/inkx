@@ -1,9 +1,20 @@
 /**
  * Board Types for km-repl
  *
- * Local type definitions for BoardState - decoupled from @km/board.
- * km-repl needs the full tree in state for navigation/rendering,
- * while the TUI uses SimplifiedBoardState with just cursorNodeId.
+ * INTENTIONALLY separate from @km/board's BoardState.
+ *
+ * km-repl uses a fundamentally different state model:
+ * - Tree-in-state: `nodes: TNode[]` and `cursor: TPath` (path-based)
+ * - Own TNode definition with full tree structure (children, depth, etc.)
+ * - Path-based navigation actions (CURSOR_MOVE, NAV_TO_PATH, etc.)
+ *
+ * The canonical BoardState in @km/board uses:
+ * - ID-based cursor: `cursorNodeId: string | null`
+ * - No tree data in state (queries Repo at render time)
+ * - ID-based actions (SELECT with nodeId, etc.)
+ *
+ * These are incompatible paradigms. km-repl's state model is legacy
+ * and would require a full rewrite to align with @km/board.
  */
 
 import type { NodeRules, ItemData } from "@km/core"

@@ -620,7 +620,7 @@ describe("buildViewTree caching", () => {
     // Second build
     const tree2 = buildViewTree(mock.repo, "root", emptyFoldDepths, cache)
     expect(tree2.children[0]).not.toBe(col1v1) // col1 rebuilt (new children ref)
-    expect(tree2.children[1]).toBe(col2v1)     // col2 unchanged (cache hit)
+    expect(tree2.children[1]).toBe(col2v1) // col2 unchanged (cache hit)
 
     // The rebuilt col1 has the new card
     expect(tree2.children[0]!.children).toHaveLength(2)

@@ -85,6 +85,7 @@ const BOARD_TYPES = [
   "SET_CURSWANT",
   "TOGGLE_FOLD",
   "TOGGLE_COLLAPSE",
+  "SET_COLLAPSED_NODES",
   "ZOOM_IN",
   "FOLD_NODE",
   "UNFOLD_NODE",
@@ -245,7 +246,7 @@ describe("sub-union categorization", () => {
     // actions that are tightly coupled to dialog state management
     for (const { name, types } of ALL_CATEGORIES) {
       if (name !== "DialogOp") {
-        expect(types.length, `${name} has ${types.length} types`).toBeLessThanOrEqual(28)
+        expect(types.length, `${name} has ${types.length} types`).toBeLessThanOrEqual(29)
       }
     }
   })
@@ -266,8 +267,8 @@ describe("sub-union categorization", () => {
     expect(TEXT_TYPES).toHaveLength(22)
   })
 
-  test("BoardOp has 28 types", () => {
-    expect(BOARD_TYPES).toHaveLength(28)
+  test("BoardOp has 29 types", () => {
+    expect(BOARD_TYPES).toHaveLength(29)
   })
 
   test("PaneOp has 15 types", () => {

@@ -241,13 +241,21 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       nodeIndex = buildNodeIndex(columns)
       // Reuse viewNode cache if rootId hasn't changed (zoom); clear on zoom change
       const viewNodeCache: ViewNodeColumnCache =
-        locals.layoutCache && locals.layoutCache.rootId === rootId
-          ? locals.layoutCache.viewNodeCache
-          : new Map()
+        locals.layoutCache && locals.layoutCache.rootId === rootId ? locals.layoutCache.viewNodeCache : new Map()
       viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
       viewIndex = buildViewIndex(viewTree)
       hiddenNodeIds = computeHiddenNodeIds(s.repo, columns)
-      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex, hiddenNodeIds, viewNodeCache }
+      locals.layoutCache = {
+        rootId,
+        foldDepths,
+        repoVersion,
+        columns,
+        nodeIndex,
+        viewTree,
+        viewIndex,
+        hiddenNodeIds,
+        viewNodeCache,
+      }
     }
     const cursorState = s.cursorStore.getState()
     const cursorCardNodeId = cursorState.cursorCardNodeId

@@ -19,11 +19,13 @@
  * ## Invariants Checked
  *
  * 1. **No exceptions**: reducer never throws for valid actions
- * 2. **maxContentLines bounded**: always in [0, 10]
- * 3. **Move mode consistency**: sourceNodes non-empty iff moveState.active is true
- * 4. **navHistoryIndex bounded**: always in [0, navHistory.length]
- * 5. **Immutability**: original state is never mutated
- * 6. **Collection types**: Sets remain Sets, Maps remain Maps
+ * 2. **Move mode consistency**: sourceNodes non-empty iff moveState.active is true
+ * 3. **navHistoryIndex bounded**: always in [0, navHistory.length]
+ * 4. **Immutability**: original state is never mutated
+ * 5. **Collection types**: Sets remain Sets, Maps remain Maps
+ *
+ * NOTE: Multi-select (selectedNodes) and view config (maxContentLines) are NOT
+ * part of BoardState — they live in per-pane UI state, handled by the TUI layer.
  */
 
 import { describe, expect } from "vitest"
@@ -71,80 +73,57 @@ function randomAction(pick: (arr: readonly string[]) => string, pickFloat: () =>
     return { type: "SELECT", nodeId }
   }
 
-  // TOGGLE_FOLD (8%)
-  if (r < 0.38) {
+  // TOGGLE_FOLD (10%)
+  if (r < 0.4) {
     return { type: "TOGGLE_FOLD", nodeId: pick(NODE_IDS) }
   }
 
-  // TOGGLE_COLLAPSE (8%)
-  if (r < 0.46) {
+  // TOGGLE_COLLAPSE (10%)
+  if (r < 0.5) {
     return { type: "TOGGLE_COLLAPSE", nodeId: pick(NODE_IDS) }
   }
 
-  // ZOOM_IN (6%)
-  if (r < 0.52) {
+  // SET_COLLAPSED_NODES (5%)
+  if (r < 0.55) {
+    const count = Math.floor(pickFloat() * 4) // 0-3 nodes
+    const nodeIds = Array.from({ length: count }, () => pick(NODE_IDS))
+    return { type: "SET_COLLAPSED_NODES", nodeIds }
+  }
+
+  // ZOOM_IN (8%)
+  if (r < 0.63) {
     const nodeId = pickFloat() < 0.1 ? null : pick(NODE_IDS)
     const cursorNodeId = pickFloat() < 0.3 ? pick(NODE_IDS) : undefined
     return { type: "ZOOM_IN", nodeId, cursorNodeId }
   }
 
-  // SET_ROOT (5%)
-  if (r < 0.57) {
+  // SET_ROOT (7%)
+  if (r < 0.7) {
     const rootId = pickFloat() < 0.1 ? null : pick(NODE_IDS)
     const rootPath = PATHS[Math.floor(pickFloat() * PATHS.length)] ?? null
     const cursorNodeId = pickFloat() < 0.1 ? null : pick(NODE_IDS)
     return { type: "SET_ROOT", rootId, rootPath, cursorNodeId }
   }
 
-  // SELECT_NODE_ADD (6%)
-  if (r < 0.63) {
-    return { type: "SELECT_NODE_ADD", nodeId: pick(NODE_IDS) }
-  }
-
-  // SELECT_NODE_REMOVE (4%)
-  if (r < 0.67) {
-    return { type: "SELECT_NODE_REMOVE", nodeId: pick(NODE_IDS) }
-  }
-
-  // SELECT_NODE_TOGGLE (5%)
-  if (r < 0.72) {
-    return { type: "SELECT_NODE_TOGGLE", nodeId: pick(NODE_IDS) }
-  }
-
-  // CLEAR_SELECTION (4%)
-  if (r < 0.76) {
-    return { type: "CLEAR_SELECTION" }
-  }
-
-  // ENTER_MOVE_MODE (5%)
-  if (r < 0.81) {
+  // ENTER_MOVE_MODE (8%)
+  if (r < 0.78) {
     const count = Math.floor(pickFloat() * 4) // 0-3 nodes
     const nodeIds = Array.from({ length: count }, () => pick(NODE_IDS))
     const cursorNodeId = pickFloat() < 0.2 ? null : pick(NODE_IDS)
     return { type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId }
   }
 
-  // CONFIRM_MOVE (4%)
-  if (r < 0.85) {
+  // CONFIRM_MOVE (5%)
+  if (r < 0.83) {
     return { type: "CONFIRM_MOVE" }
   }
 
-  // CANCEL_MOVE (4%)
-  if (r < 0.89) {
+  // CANCEL_MOVE (5%)
+  if (r < 0.88) {
     return { type: "CANCEL_MOVE" }
   }
 
-  // INCREASE_CONTENT_LINES (3%)
-  if (r < 0.92) {
-    return { type: "INCREASE_CONTENT_LINES" }
-  }
-
-  // DECREASE_CONTENT_LINES (3%)
-  if (r < 0.95) {
-    return { type: "DECREASE_CONTENT_LINES" }
-  }
-
-  // SET_CURSWANT (5%)
+  // SET_CURSWANT (12%)
   const x = pickFloat() < 0.3 ? null : Math.floor(pickFloat() * 20)
   const y = pickFloat() < 0.3 ? null : Math.floor(pickFloat() * 50)
   return { type: "SET_CURSWANT", x: x ?? undefined, y: y ?? undefined }
@@ -163,11 +142,7 @@ function randomAction(pick: (arr: readonly string[]) => string, pickFloat: () =>
 function checkInvariants(state: BoardState, action: BoardAction, before: BoardState): void {
   const label = `after ${action.type}`
 
-  // 1. maxContentLines is bounded [0, 10]
-  expect(state.maxContentLines, `maxContentLines in range ${label}`).toBeGreaterThanOrEqual(0)
-  expect(state.maxContentLines, `maxContentLines in range ${label}`).toBeLessThanOrEqual(10)
-
-  // 2. Move mode consistency: sourceNodes non-empty iff moveState.active is true
+  // 1. Move mode consistency: sourceNodes non-empty iff moveState.active is true
   if (state.moveState.active) {
     expect(
       state.moveState.sourceNodes.length,
@@ -175,43 +150,33 @@ function checkInvariants(state: BoardState, action: BoardAction, before: BoardSt
     ).toBeGreaterThan(0)
   }
 
-  // 3. navHistoryIndex is bounded [0, navHistory.length]
+  // 2. navHistoryIndex is bounded [0, navHistory.length]
   expect(state.navHistoryIndex, `navHistoryIndex >= 0 ${label}`).toBeGreaterThanOrEqual(0)
   expect(state.navHistoryIndex, `navHistoryIndex <= navHistory.length ${label}`).toBeLessThanOrEqual(
     state.navHistory.length,
   )
 
-  // 4. Collection types are correct
-  expect(state.selectedNodes, `selectedNodes is a Set ${label}`).toBeInstanceOf(Set)
+  // 3. Collection types are correct
   expect(state.foldDepths, `foldDepths is a Map ${label}`).toBeInstanceOf(Map)
   expect(state.collapsedNodes, `collapsedNodes is a Set ${label}`).toBeInstanceOf(Set)
 
-  // 5. navHistory entries have correct shape
+  // 4. navHistory entries have correct shape
   for (const entry of state.navHistory) {
     expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("rootId")
     expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("rootPath")
     expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("cursorNodeId")
   }
 
-  // 6. moveState has valid shape
+  // 5. moveState has valid shape
   expect(typeof state.moveState.active, `moveState.active is boolean ${label}`).toBe("boolean")
   if (state.moveState.active) {
     expect(Array.isArray(state.moveState.sourceNodes), `moveState.sourceNodes is array ${label}`).toBe(true)
   }
 
-  // 7. Immutability: original state's collections were not mutated
-  //    (We check sizes of the before state's collections haven't changed)
-  //    This only works if we snapshot the sizes before dispatching.
-  //    We pass before state for this check.
+  // 6. Immutability: original state's collections were not mutated
   if (before !== state) {
-    // The before state's Sets and Maps should still have the same size they had
-    // before the action. We can't check this retroactively — but we can verify
-    // the new state uses DIFFERENT references when it changed collections.
-    if (state.selectedNodes !== before.selectedNodes) {
-      // Different reference — that's correct immutability
-    }
     if (state.foldDepths !== before.foldDepths) {
-      // Different reference — correct
+      // Different reference — correct immutability
     }
     if (state.collapsedNodes !== before.collapsedNodes) {
       // Different reference — correct
@@ -224,8 +189,6 @@ function checkInvariants(state: BoardState, action: BoardAction, before: BoardSt
  */
 function snapshotMutableState(state: BoardState) {
   return {
-    selectedNodesSize: state.selectedNodes.size,
-    selectedNodesEntries: [...state.selectedNodes],
     foldDepthsSize: state.foldDepths.size,
     foldDepthsEntries: [...state.foldDepths],
     collapsedNodesSize: state.collapsedNodes.size,
@@ -241,9 +204,6 @@ function snapshotMutableState(state: BoardState) {
  */
 function checkImmutability(state: BoardState, snapshot: ReturnType<typeof snapshotMutableState>, action: BoardAction) {
   const label = `immutability after ${action.type}`
-
-  expect(state.selectedNodes.size, `selectedNodes size unchanged ${label}`).toBe(snapshot.selectedNodesSize)
-  expect([...state.selectedNodes], `selectedNodes entries unchanged ${label}`).toEqual(snapshot.selectedNodesEntries)
 
   expect(state.foldDepths.size, `foldDepths size unchanged ${label}`).toBe(snapshot.foldDepthsSize)
   expect([...state.foldDepths], `foldDepths entries unchanged ${label}`).toEqual(snapshot.foldDepthsEntries)
@@ -318,7 +278,7 @@ describe("Board Reducer Fuzz Tests", () => {
   /**
    * Fuzz focused on move mode transitions.
    * Move mode has multiple states (enter/confirm/cancel) that interact
-   * with selection and cursor — a common source of invariant violations.
+   * with cursor — a common source of invariant violations.
    */
   test.fuzz("move mode transitions maintain invariants", async () => {
     let state = createBoardState("root", "/board.md", "node-1")
@@ -331,9 +291,6 @@ describe("Board Reducer Fuzz Tests", () => {
       { type: "CANCEL_MOVE" },
       { type: "SELECT", nodeId: "node-2" },
       { type: "SELECT", nodeId: "node-5" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-1" },
-      { type: "SELECT_NODE_ADD", nodeId: "node-3" },
-      { type: "CLEAR_SELECTION" },
     ]
 
     for await (const action of take(gen(moveActions), 200)) {
@@ -371,31 +328,6 @@ describe("Board Reducer Fuzz Tests", () => {
       if (action.type === "SET_ROOT") {
         expect(state.navHistory.length, "SET_ROOT grows history").toBe(before.navHistory.length + 1)
       }
-    }
-  })
-
-  /**
-   * Fuzz focused on view configuration bounds.
-   * INCREASE/DECREASE_CONTENT_LINES should always stay in [0, 10].
-   */
-  test.fuzz("content lines stay bounded", async () => {
-    let state = createBoardState()
-
-    const viewActions: BoardAction[] = [
-      { type: "INCREASE_CONTENT_LINES" },
-      { type: "INCREASE_CONTENT_LINES" },
-      { type: "INCREASE_CONTENT_LINES" },
-      { type: "DECREASE_CONTENT_LINES" },
-      { type: "DECREASE_CONTENT_LINES" },
-      { type: "DECREASE_CONTENT_LINES" },
-    ]
-
-    for await (const action of take(gen(viewActions), 200)) {
-      const before = state
-      state = boardReducer(state, action)
-
-      expect(state.maxContentLines, "maxContentLines >= 0").toBeGreaterThanOrEqual(0)
-      expect(state.maxContentLines, "maxContentLines <= 10").toBeLessThanOrEqual(10)
     }
   })
 

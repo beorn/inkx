@@ -828,9 +828,47 @@ export type EditOp =
 /** Text editing — character-level operations dispatched to EditTarget. */
 export type TextOp = TextEditAction | TextBoldAction | TextItalicAction
 
+/**
+ * Multi-select and view config actions.
+ * These are command-layer actions handled by the TUI's action handler (via per-pane UI state),
+ * NOT by the board reducer. They exist here because commands emit them as part of BoardOp.
+ */
+interface SelectNodeAddAction {
+  type: "SELECT_NODE_ADD"
+  nodeId: string
+}
+
+interface SelectNodeRemoveAction {
+  type: "SELECT_NODE_REMOVE"
+  nodeId: string
+}
+
+interface SelectNodeToggleAction {
+  type: "SELECT_NODE_TOGGLE"
+  nodeId: string
+}
+
+interface ClearSelectionAction {
+  type: "CLEAR_SELECTION"
+}
+
+interface IncreaseContentLinesAction {
+  type: "INCREASE_CONTENT_LINES"
+}
+
+interface DecreaseContentLinesAction {
+  type: "DECREASE_CONTENT_LINES"
+}
+
 /** Board state — selection, fold, visual mode, move mode, content lines. */
 export type BoardOp =
   | BoardAction
+  | SelectNodeAddAction
+  | SelectNodeRemoveAction
+  | SelectNodeToggleAction
+  | ClearSelectionAction
+  | IncreaseContentLinesAction
+  | DecreaseContentLinesAction
   | FoldNodeAction
   | UnfoldNodeAction
   | UnfoldRecursiveAction
