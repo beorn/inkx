@@ -1884,6 +1884,30 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
   // Past edges → save current content and try to enter edit on adjacent node
   activeEditTargetRef.current?.save()
 
+  // When going down from a title and the node has item children (sub-sections),
+  // descend into the first child instead of jumping to the next sibling/card.
+  if (direction === "down" && edit.blockIndex === 0) {
+    const children = ctx.repo.getChildren(edit.nodeId)
+    const { items } = extractBody(children)
+    if (items.length > 0) {
+      const firstChild = items[0]!
+      ctx.dispatchBoard({ type: "SELECT", nodeId: firstChild.id })
+      ctx.setUI({
+        inlineEditBlock: {
+          nodeId: firstChild.id,
+          blockIndex: 0,
+          initialCursorPos: "start",
+          stickyX,
+        },
+      })
+      return ok()
+    }
+  }
+
+  // When going up from a title and this node has a previous sibling,
+  // enter that sibling's LAST child (or last body block) instead of its title.
+  // This gives proper "bottom-up" traversal matching the "top-down" descent above.
+
   // Find next/prev editable node using tree traversal instead of col.cardNodes lookup.
   // Walks siblings via extractBody().items, then recurses up parent levels.
   const adjacentNode = findAdjacentEditNode(ctx.repo, edit.nodeId, direction, ctx.column)
