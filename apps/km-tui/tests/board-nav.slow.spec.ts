@@ -1016,4 +1016,28 @@ describe("Spatial block navigation (J/K)", () => {
     board.command("block_nav_up") // child-1 → card
     board.expect("#card[data-cursor]").toExist()
   })
+
+  test("J traverses into grandchildren (depth 2+) when visible", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("Column", item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b"))),
+        ),
+      { columns: 80, rows: 24 },
+    )
+    board.expect("#card[data-cursor]").toExist()
+
+    board.command("block_nav_down") // card → section-a
+    board.expect("#section-a[data-cursor]").toExist()
+
+    board.command("block_nav_down") // section-a → grandchild-1 (NOT section-b)
+    board.expect("#grandchild-1[data-cursor]").toExist()
+
+    board.command("block_nav_down") // grandchild-1 → grandchild-2
+    board.expect("#grandchild-2[data-cursor]").toExist()
+
+    board.command("block_nav_down") // grandchild-2 → section-b
+    board.expect("#section-b[data-cursor]").toExist()
+  })
 })

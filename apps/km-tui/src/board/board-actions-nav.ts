@@ -248,27 +248,25 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
 /**
  * Get flat list of all visible block IDs in the current column, in document order.
  *
- * Order: column header, then for each card: card title, then its visible descendants.
- * Respects fold depths and hidden nodes. This is the spatial order matching
- * what the user sees rendered on screen.
+ * Uses the ViewTree (which drives rendering) so navigation exactly matches what
+ * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
+ * at construction time.
  */
 function getVisibleColumnBlocks(ctx: ActionCtx): string[] {
   const col = ctx.column
   if (!col) return []
 
+  const colView = ctx.viewIndex.get(col.node.id)
+  if (!colView) return [col.node.id]
+
   const blocks: string[] = []
-
-  // Column header
-  blocks.push(col.node.id)
-
-  // For each card in the column, add the card and its visible descendants
-  // Hidden nodes are already filtered from the ViewNode tree at construction time
-  for (const card of col.cardNodes) {
-    const descendants = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)
-    for (const id of descendants) {
-      blocks.push(id)
+  const walkViewTree = (vn: { id: string; children: { id: string; children: unknown[] }[] }): void => {
+    blocks.push(vn.id)
+    for (const child of vn.children) {
+      walkViewTree(child)
     }
   }
+  walkViewTree(colView)
 
   return blocks
 }
