@@ -1883,8 +1883,25 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   const editCtx = activeEditContextRef.current
   const stickyX = editCtx ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col) : edit.stickyX
 
-  const blockCount = 1 + extractBody(ctx.repo.getChildren(edit.nodeId)).body.length
-  const nextIndex = edit.blockIndex + (direction === "down" ? 1 : -1)
+  // Resolve body block nodes to their parent heading.
+  // When a user clicks directly on a body block (paragraph, code, etc.), edit.nodeId
+  // points to the body block itself. But body blocks are traversed via blockIndex on
+  // the parent node. Detect this and remap so the existing blockIndex logic works.
+  let effectiveNodeId = edit.nodeId
+  let effectiveBlockIndex = edit.blockIndex
+  const editNode = ctx.repo.getNode(edit.nodeId)
+  if (editNode?.parent_id && !KNode.isOutline(editNode) && !editNode.item && !exitAtBoundary) {
+    const parentChildren = ctx.repo.getChildren(editNode.parent_id)
+    const { body } = extractBody(parentChildren)
+    const bodyIdx = body.findIndex((b) => b.id === edit.nodeId)
+    if (bodyIdx !== -1) {
+      effectiveNodeId = editNode.parent_id
+      effectiveBlockIndex = bodyIdx + 1 // blockIndex 0 = title, 1+ = body blocks
+    }
+  }
+
+  const blockCount = 1 + extractBody(ctx.repo.getChildren(effectiveNodeId)).body.length
+  const nextIndex = effectiveBlockIndex + (direction === "down" ? 1 : -1)
 
   if (nextIndex >= 0 && nextIndex < blockCount) {
     // Moving between blocks within same node → save current block, change index
@@ -1892,6 +1909,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
     ctx.setUI({
       inlineEditBlock: {
         ...edit,
+        nodeId: effectiveNodeId,
         blockIndex: nextIndex,
         initialCursorPos: direction === "down" ? "start" : "end",
         stickyX,
@@ -1907,7 +1925,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   // Body blocks are traversed within the same node (blockIndex 0, 1, 2...).
   // Outline items are separate nodes that require a node transition.
   if (direction === "down") {
-    const children = ctx.repo.getChildren(edit.nodeId)
+    const children = ctx.repo.getChildren(effectiveNodeId)
     const { items } = extractBody(children)
     if (items.length > 0) {
       const firstChild = items[0]!
@@ -1931,7 +1949,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
 
   // Find next/prev editable node using tree traversal instead of col.cardNodes lookup.
   // Walks siblings via extractBody().items, then recurses up parent levels.
-  const adjacentNode = findAdjacentEditNode(ctx.repo, edit.nodeId, direction, ctx.column)
+  const adjacentNode = findAdjacentEditNode(ctx.repo, effectiveNodeId, direction, ctx.column)
 
   if (adjacentNode) {
     // For "up" direction: navigate to the deepest last descendant (bottom of card).

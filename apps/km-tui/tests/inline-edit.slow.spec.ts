@@ -15,6 +15,7 @@
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/board-app-store.ts"
 
 describe("Inline Editing", () => {
   test("Enter on card enters inline edit, shows editable text", () => {
@@ -1423,20 +1424,43 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.expectEditing("sub-a")
     })
 
-    test("ctrl-n from body block with only leaf siblings navigates to parent sibling", () => {
-      // When body block's siblings are all leaf tasks (type "p"), there are no outline items.
-      // ctrl-n should recurse up to parent and navigate to the next card.
+    test("ctrl-n from body block traverses siblings sequentially", () => {
+      // Real vault structure: heading has body paragraphs + leaf tasks, ALL type "p".
+      // None are outline items. ctrl-n should traverse them in order via parent blockIndex.
+      // Body blocks resolve to parent node with blockIndex: 0=title, 1+=body blocks.
       const { board } = testEnv(() =>
         item(
           "board",
-          item("col1", item("card-1", item.p("body-para"), item("task-a"), item("task-b")), item("card-2")),
+          item(
+            "col1",
+            item("card-1", item.p("para-1"), item.p("para-2"), item("task-a"), item("task-b")),
+            item("card-2"),
+          ),
         ),
       )
 
-      board.editNode("body-para", { card: "card-1" })
+      const editBlock = () => getActiveBoardPane(board.getAppState())?.inlineEditBlock
+
+      // Edit para-1 directly (as if user clicked on it)
+      board.editNode("para-1", { card: "card-1" })
       expect(board.screenshot()).toContain("INSERT")
 
-      // No outline siblings → should recurse up to card-1, then find card-2
+      // ctrl-n should resolve to parent (card-1) and advance blockIndex to para-2
+      board.press("ctrl+n")
+      expect(editBlock()?.nodeId).toBe("card-1")
+      expect(editBlock()?.blockIndex).toBe(2) // 0=title, 1=para-1, 2=para-2
+
+      // ctrl-n again → blockIndex 3 (task-a)
+      board.press("ctrl+n")
+      expect(editBlock()?.nodeId).toBe("card-1")
+      expect(editBlock()?.blockIndex).toBe(3)
+
+      // ctrl-n again → blockIndex 4 (task-b)
+      board.press("ctrl+n")
+      expect(editBlock()?.nodeId).toBe("card-1")
+      expect(editBlock()?.blockIndex).toBe(4)
+
+      // ctrl-n past last body block → next card
       board.press("ctrl+n")
       board.expectEditing("card-2")
     })
