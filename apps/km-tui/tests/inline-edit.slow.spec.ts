@@ -1459,6 +1459,46 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.expectEditing("card-1")
     })
 
+    test("ArrowDown from section title enters first outline child, not next sibling", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "card",
+              item("section-a", item("subsec-1", item("task-x")), item("subsec-2", item("task-y"))),
+              item("section-b", item("task-z")),
+            ),
+          ),
+        ),
+      )
+
+      board.editNode("section-a", { block: 0, card: "card" })
+      board.press("ArrowDown")
+      board.expectEditing("subsec-1")
+    })
+
+    test("ArrowUp from sibling enters previous sibling's DFS-last descendant", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "card",
+              item("section-a", item("subsec-1", item("task-x")), item("subsec-2", item("task-y"))),
+              item("section-b", item("task-z")),
+            ),
+          ),
+        ),
+      )
+
+      board.editNode("section-b", { block: 0, card: "card" })
+      board.press("ArrowUp")
+      board.expectEditing("task-y")
+    })
+
     test("navigating between sub-sections preserves cardNodeId (card stays expanded)", () => {
       const { board, store } = testEnv(() =>
         item(

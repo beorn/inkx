@@ -1829,8 +1829,11 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
  *  to the parent level — so sub→sibling, sub→next-card, and card→card all work. */
 /** Find the DFS-last node in a subtree — the true bottom-most descendant. */
 function findDeepestLast(repo: ActionCtx["repo"], nodeId: string): KNode | null {
-  const entry = TreeWalk.nodes(repo, nodeId, { reverse: true }).next().value
-  return entry ? entry[0] : null
+  let last: KNode | null = null
+  for (const [node] of TreeWalk.nodes(repo, nodeId)) {
+    last = node
+  }
+  return last
 }
 
 function findAdjacentEditNode(
@@ -1897,9 +1900,9 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   // Past edges → save current content and try to enter edit on adjacent node
   activeEditTargetRef.current?.save()
 
-  // When going down past the last block and the node has item children,
-  // descend into the first child instead of jumping to the next sibling.
-  // This applies at any depth — cards, sub-items, sub-sub-items.
+  // Descend into outline item children (not body blocks — those are handled via blockIndex).
+  // Body blocks are traversed within the same node (blockIndex 0, 1, 2...).
+  // Outline items are separate nodes that require a node transition.
   if (direction === "down") {
     const children = ctx.repo.getChildren(edit.nodeId)
     const { items } = extractBody(children)
