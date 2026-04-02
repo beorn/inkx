@@ -6,7 +6,7 @@
  */
 
 import { createLogger } from "loggily"
-import { appendFileSync, existsSync, readFileSync, readdirSync } from "fs"
+import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
@@ -569,6 +569,8 @@ export class EventHandlers {
       data: changes,
     }
     try {
+      const dir = dirname(this.emitter.eventsPath)
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
       appendFileSync(this.emitter.eventsPath, JSON.stringify(event) + "\n")
     } catch (err) {
       log.error?.(`journalRename failed for ${nodeId}: ${String(err)}`)
