@@ -170,7 +170,7 @@ All events update the `meta.last_event` cursor in SQLite.
 DB is always correct. Event handlers regenerate files from DB state.
 `reconcileIfChanged` is NOT called — reading the file back can only
 introduce stale data. The watcher suppresses our own writes via
-`recentWrites` Map (current) or WriteTokens (planned).
+WriteTokenMap (content-hash based ownership).
 
 ### FS → DB (external edits)
 
@@ -178,21 +178,16 @@ File is always correct. Watcher detects changes, reconciliation diffs
 file content with DB, updates DB. Actor gating (`actor: "fs-watch"`)
 prevents step 4 from writing the file back.
 
-### Distinguishing our writes from external (planned: WriteToken)
+### Distinguishing our writes from external (WriteToken)
 
-Current: `recentWrites` Map with 10s timestamp window (probabilistic).
+**WriteTokenMap** records SHA-256 content hashes after each successful write.
+When the watcher sees a change, it computes the hash of the file content and
+checks against the stored token:
+- Hash matches → our write, consume token, skip reconciliation
+- Hash differs → external edit, reconcile normally
 
-Planned: **mtime fast-path + content-hash fallback**:
-
-1. Store mtime after each write in a per-file token
-2. Watcher checks: does mtime match our stored value?
-   - YES → our write, skip reconciliation (fast, no I/O)
-   - NO → read file, compute content hash, compare with stored hash
-     - Hash matches → our write (atomic save changed mtime), skip
-     - Hash differs → external edit, reconcile normally
-
-This handles: vim atomic saves (temp+rename changes inode/mtime),
-git pull (many files change), Finder folder moves (cascading renames).
+Tokens are one-shot (consumed on check) and have no time-based expiry.
+This replaces the old `recentWrites` timestamp window approach.
 
 ## Key Invariants
 
@@ -202,8 +197,8 @@ git pull (many files change), Finder folder moves (cascading renames).
 2. **DB authority for user events**: Event handlers do NOT call `reconcileIfChanged`.
    DB is the source of truth for all user-initiated mutations.
 
-3. **Write suppression**: SyncManager's `recentWrites` Map (current) or WriteTokens
-   (planned) prevent the watcher from reconciling files we just wrote.
+3. **Write suppression**: SyncManager's WriteTokenMap prevents the watcher from
+   reconciling files we just wrote (content-hash based ownership).
 
 4. **Apply before persist**: The DB is updated before events.jsonl is appended.
    A crash between steps 1 and 2 loses the event from the journal but the DB is
