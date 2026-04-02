@@ -101,7 +101,7 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 - [ ] Domain names — `Repo`, `Board`, `Watcher` / not `DataManager`, `StateController`
 - [ ] Operations on namespaces — `ViewTree.nodes()`, `KNode.isOutline()` / not bare `dfsTraversal()`
 - [ ] Algorithms read like pseudocode — intent expressed in domain operations / not implementation details at every call site
-- [ ] Unified API shapes across layers — `TreeWalk.nodes()` and `ViewTree.nodes()` have the same predicate model (`match`, `into`, `reverse`)
+- [ ] Unified API shapes across layers — `KTree.nodes()` and `ViewTree.nodes()` have the same predicate model (`match`, `into`, `reverse`)
 
 ---
 

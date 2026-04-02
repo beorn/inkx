@@ -495,12 +495,12 @@ function expandIndexFileViewNodes(
 }
 
 // =============================================================================
-// ViewTree namespace — pluggable traversal (mirrors TreeWalk.nodes API shape)
+// ViewTree namespace — pluggable traversal (mirrors KTree.nodes API shape)
 // =============================================================================
 
 export interface ViewTreeNodesOptions {
   /** Which nodes to YIELD. Default: all.
-   *  Always walks children regardless of match result (same as TreeWalk.nodes). */
+   *  Always walks children regardless of match result (same as KTree.nodes). */
   match?: (vn: ViewNode) => boolean
   /** Whether to descend INTO this node's children. Default: always true.
    *  Orthogonal to match — controls descent, never yielding. */
@@ -509,7 +509,7 @@ export interface ViewTreeNodesOptions {
   reverse?: boolean
 }
 
-/** ViewTree namespace — pluggable ViewNode traversal (same API shape as TreeWalk.nodes). */
+/** ViewTree namespace — pluggable ViewNode traversal (same API shape as KTree.nodes). */
 export const ViewTree = {
   /**
    * Iterate ViewNodes in DFS order with orthogonal match + into predicates.
@@ -519,7 +519,7 @@ export const ViewTree = {
    * - These are orthogonal: match never affects descent, into never affects yielding
    * - `reverse` flips DFS to process last children first
    *
-   * Same concept as TreeWalk.nodes, different tree structure (ViewNode has
+   * Same concept as KTree.nodes, different tree structure (ViewNode has
    * direct children array instead of getChildren()).
    *
    * @example All nodes in visual order
@@ -540,7 +540,7 @@ export const ViewTree = {
   *nodes(root: ViewNode, opts?: ViewTreeNodesOptions): Generator<ViewNode> {
     const { match, into, reverse } = opts ?? {}
 
-    // Iterative DFS with explicit stack (mirrors TreeWalk.nodes pattern)
+    // Iterative DFS with explicit stack (mirrors KTree.nodes pattern)
     const stack: ViewNode[] = [root]
 
     while (stack.length > 0) {

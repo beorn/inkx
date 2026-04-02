@@ -199,9 +199,9 @@ The TUI wraps KNode in view models for rendering:
 
 **Shared structure**: Both use Board → Column → Card → Sub-item hierarchy. Both have body content and transclusion. The outliner spec (`docs/design/outliner-spec.md`) defines shared editing behavior.
 
-## Tree Traversal (`TreeWalk.nodes`)
+## Tree Traversal (`KTree.nodes`)
 
-`TreeWalk.nodes(tree, rootId, opts?)` is the single composable primitive for tree iteration. DFS pre-order, yields `[node, depth]` entries. Exported from `@km/tree`.
+`KTree.nodes(tree, rootId, opts?)` is the single composable primitive for tree iteration. DFS pre-order, yields `[node, depth]` entries. Exported from `@km/tree`.
 
 ### Options
 
@@ -217,7 +217,7 @@ The TUI wraps KNode in view models for rendering:
 
 ### Three-Layer Predicate Taxonomy
 
-Predicates used with `TreeWalk.nodes` fall into three layers:
+Predicates used with `KTree.nodes` fall into three layers:
 
 **Tree layer (match predicates)** — data model type, independent of view state:
 - `KNode.isOutline`, `KNode.isItem`, `KNode.isBlock`, `KNode.isListItem`
@@ -236,16 +236,16 @@ Predicates used with `TreeWalk.nodes` fall into three layers:
 
 ```typescript
 // All outline items (headings with item data)
-TreeWalk.nodes(tree, rootId, { match: KNode.isOutline })
+KTree.nodes(tree, rootId, { match: KNode.isOutline })
 
 // Visible navigable nodes (skip collapsed subtrees)
-TreeWalk.nodes(tree, rootId, { match: isNavigable, into: n => !isCollapsed(n) })
+KTree.nodes(tree, rootId, { match: isNavigable, into: n => !isCollapsed(n) })
 
 // Last node in subtree
-const [last] = [...TreeWalk.nodes(tree, rootId, { reverse: true })].slice(0, 1)
+const [last] = [...KTree.nodes(tree, rootId, { reverse: true })].slice(0, 1)
 
 // Shallowest tasks only (skip nested tasks)
-TreeWalk.nodes(tree, rootId, { match: KNode.isTask, mode: "highest" })
+KTree.nodes(tree, rootId, { match: KNode.isTask, mode: "highest" })
 ```
 
 Source: `packages/km-tree/src/walk.ts`

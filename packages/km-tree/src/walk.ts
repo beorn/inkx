@@ -1,7 +1,7 @@
 /**
  * Tree Traversal — configurable DFS walk and spatial queries.
  *
- * TreeWalk.nodes: SlateJS-style pluggable traversal with orthogonal match + into predicates.
+ * KTree.nodes: SlateJS-style pluggable traversal with orthogonal match + into predicates.
  */
 
 import { KNode } from "@km/core"
@@ -33,7 +33,7 @@ export interface NodesOptions {
 }
 
 /** Tree namespace — pluggable tree traversal (SlateJS pattern). */
-export const TreeWalk = {
+export const KTree = {
   /**
    * Iterate nodes in DFS order with orthogonal match + into predicates.
    *
@@ -54,22 +54,22 @@ export const TreeWalk = {
    *
    * @example All outline items
    * ```ts
-   * TreeWalk.nodes(tree, rootId, { match: KNode.isOutline })
+   * KTree.nodes(tree, rootId, { match: KNode.isOutline })
    * ```
    *
    * @example Visible navigable nodes (skip collapsed subtrees)
    * ```ts
-   * TreeWalk.nodes(tree, rootId, { match: isNavigable, into: n => !isCollapsed(n) })
+   * KTree.nodes(tree, rootId, { match: isNavigable, into: n => !isCollapsed(n) })
    * ```
    *
    * @example Last node in subtree (for ctrl-p)
    * ```ts
-   * const [last] = [...TreeWalk.nodes(tree, rootId, { reverse: true })].slice(0, 1)
+   * const [last] = [...KTree.nodes(tree, rootId, { reverse: true })].slice(0, 1)
    * ```
    *
    * @example Shallowest tasks only (skip nested tasks)
    * ```ts
-   * TreeWalk.nodes(tree, rootId, { match: KNode.isTask, mode: "highest" })
+   * KTree.nodes(tree, rootId, { match: KNode.isTask, mode: "highest" })
    * ```
    */
   *nodes(tree: TreeMutator, rootId: string, opts?: NodesOptions): Generator<NodeEntry> {
