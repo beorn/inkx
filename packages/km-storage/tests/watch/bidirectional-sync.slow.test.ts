@@ -877,6 +877,150 @@ describe("File & Folder Renames", () => {
       }))
   })
 
+  describe("Move Disk (file/folder items)", () => {
+    test("moving a file item between folders renames on disk and updates fs_path", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        // Create folder structure: folderA/child.md, folderB/
+        const folderA = join(repoDir, "folderA")
+        const folderB = join(repoDir, "folderB")
+        mkdirSync(folderA, { recursive: true })
+        mkdirSync(folderB, { recursive: true })
+        writeFileSync(join(folderA, "child.md"), "# Child Doc\n\nSome content.\n")
+
+        await syncManager.syncFromFs()
+
+        // Find the child file node and folderB node
+        const allNodes = getAllNodes(db)
+        const childFile = allNodes.find((n) => n.fs_path === "folderA/child.md")
+        const folderBNode = allNodes.find((n) => n.fs_path === "folderB")
+        expect(childFile).toBeDefined()
+        expect(folderBNode).toBeDefined()
+        expect(childFile!.item).toBeTruthy()
+        expect(childFile!.fstype).toBe("file")
+
+        // Move child file from folderA to folderB
+        repo.moveNode(childFile!.id, folderBNode!.id, 0)
+
+        // Wait for write queue to flush
+        await Bun.sleep(300)
+
+        // File should have moved on disk
+        expect(existsSync(join(folderA, "child.md"))).toBe(false)
+        expect(existsSync(join(folderB, "child.md"))).toBe(true)
+
+        // fs_path should be updated in DB
+        const updatedNode = getAllNodes(db).find((n) => n.id === childFile!.id)
+        expect(updatedNode?.fs_path).toBe("folderB/child.md")
+      }))
+
+    test("moving a folder item between parents renames on disk and cascades fs_path", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        // Create: parentA/subdir/note.md, parentB/
+        const parentA = join(repoDir, "parentA")
+        const subdir = join(parentA, "subdir")
+        const parentB = join(repoDir, "parentB")
+        mkdirSync(subdir, { recursive: true })
+        mkdirSync(parentB, { recursive: true })
+        writeFileSync(join(subdir, "note.md"), "# Note\n\nInside subdir.\n")
+
+        await syncManager.syncFromFs()
+
+        const allNodes = getAllNodes(db)
+        const subdirNode = allNodes.find((n) => n.fs_path === "parentA/subdir")
+        const parentBNode = allNodes.find((n) => n.fs_path === "parentB")
+        const noteNode = allNodes.find((n) => n.fs_path === "parentA/subdir/note.md")
+        expect(subdirNode).toBeDefined()
+        expect(parentBNode).toBeDefined()
+        expect(noteNode).toBeDefined()
+        expect(subdirNode!.fstype).toBe("folder")
+
+        // Move subdir from parentA to parentB
+        repo.moveNode(subdirNode!.id, parentBNode!.id, 0)
+
+        // Wait for write queue to flush
+        await Bun.sleep(300)
+
+        // Folder should have moved on disk
+        expect(existsSync(join(parentA, "subdir"))).toBe(false)
+        expect(existsSync(join(parentB, "subdir", "note.md"))).toBe(true)
+
+        // fs_path should cascade to descendants
+        const updatedSubdir = getAllNodes(db).find((n) => n.id === subdirNode!.id)
+        const updatedNote = getAllNodes(db).find((n) => n.id === noteNode!.id)
+        expect(updatedSubdir?.fs_path).toBe("parentB/subdir")
+        expect(updatedNote?.fs_path).toBe("parentB/subdir/note.md")
+      }))
+
+    test("move-disk does not overwrite existing target", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const { repo, emitter: repoEmitter } = createTestEnvRepo({
+          db,
+          repoPath: repoDir,
+          skipPersist: true,
+        })
+        const syncManager = createTestSyncManager(db, repoDir)
+
+        await using stack = new AsyncDisposableStack()
+        repoEmitter.setFsSync(syncManager)
+        stack.defer(() => repoEmitter.setFsSync(null))
+        stack.defer(async () => await syncManager.stop())
+
+        // Create: folderA/doc.md, folderB/doc.md (same name conflict)
+        const folderA = join(repoDir, "folderA")
+        const folderB = join(repoDir, "folderB")
+        mkdirSync(folderA, { recursive: true })
+        mkdirSync(folderB, { recursive: true })
+        writeFileSync(join(folderA, "doc.md"), "# Doc A\n")
+        writeFileSync(join(folderB, "doc.md"), "# Doc B\n")
+
+        await syncManager.syncFromFs()
+
+        const allNodes = getAllNodes(db)
+        const docA = allNodes.find((n) => n.fs_path === "folderA/doc.md")
+        const folderBNode = allNodes.find((n) => n.fs_path === "folderB")
+        expect(docA).toBeDefined()
+        expect(folderBNode).toBeDefined()
+
+        // Move doc.md from folderA to folderB (conflict: folderB/doc.md exists)
+        repo.moveNode(docA!.id, folderBNode!.id, 0)
+
+        // Wait for write queue to flush
+        await Bun.sleep(300)
+
+        // Original files should both still exist — move was aborted
+        expect(existsSync(join(folderA, "doc.md"))).toBe(true)
+        expect(existsSync(join(folderB, "doc.md"))).toBe(true)
+
+        // folderB/doc.md should retain its original content
+        const content = readFileSync(join(folderB, "doc.md"), "utf-8")
+        expect(content).toContain("Doc B")
+      }))
+  })
+
   describe("Delete Ordering", () => {
     test("delete node regenerates file from event data, not DB lookup", () =>
       withTestEnv(async ({ repoDir, db }) => {

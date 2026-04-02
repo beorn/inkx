@@ -7,7 +7,7 @@
 
 import { createLogger } from "loggily"
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from "fs"
-import { dirname, join } from "path"
+import { basename, dirname, join, relative } from "path"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
 import { type Event, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
@@ -320,6 +320,42 @@ export class EventHandlers {
     const parent = node.parent_id ? getNode(this.db, node.parent_id) : null
     if (parent?.fstype === "folder" && parent.fs_path) {
       this.handleFolderIndexUpdate(parent)
+    }
+
+    // Handle file/folder item moves on disk — when a file or folder node is moved
+    // between parents, the actual filesystem entry must be relocated too.
+    if (node.item && (node.fstype === "file" || node.fstype === "folder") && node.fs_path) {
+      const oldAbsPath = toAbsoluteFsPath(this.repoPath, node.fs_path)
+      const newParent = node.parent_id ? getNode(this.db, node.parent_id) : null
+      if (newParent?.fs_path) {
+        const newAbsPath = join(toAbsoluteFsPath(this.repoPath, newParent.fs_path), basename(oldAbsPath))
+        if (oldAbsPath !== newAbsPath && existsSync(oldAbsPath)) {
+          if (existsSync(newAbsPath)) {
+            log.warn?.(`move-disk aborted: target already exists: ${newAbsPath}`)
+          } else {
+            log.info?.(`move-disk: ${node.fs_path} → ${relative(this.repoPath, newAbsPath)}`)
+            this.fsTarget.markInFlight?.(oldAbsPath)
+            this.fsTarget.markInFlight?.(newAbsPath)
+            void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+
+            // Update fs_path in DB
+            const newRelPath = relative(this.repoPath, newAbsPath)
+            this.db.run("UPDATE nodes SET fs_path = ? WHERE id = ?", [newRelPath, node.id])
+
+            // Cascade fs_path updates for folder descendants
+            if (node.fstype === "folder") {
+              const oldRelPath = node.fs_path
+              this.db.run(
+                `UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?) WHERE fs_path LIKE ? || '/%'`,
+                [newRelPath, oldRelPath.length + 1, oldRelPath],
+              )
+            }
+
+            this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
+            this.fsTarget.clearInFlight?.(newAbsPath, 1000)
+          }
+        }
+      }
     }
   }
 
