@@ -498,10 +498,10 @@ describe("ViewTree.nodes", () => {
   })
 })
 
-describe("ViewTree.sibling", () => {
+describe("ViewTree.next / ViewTree.prev", () => {
   const emptyFoldDepths = new Map<string, number>()
 
-  test("returns next sibling with delta +1", () => {
+  test("next returns the following sibling", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "First"),
@@ -513,11 +513,11 @@ describe("ViewTree.sibling", () => {
 
     const col1 = tree.children[0]!
     const col2 = tree.children[1]!
-    expect(ViewTree.sibling(col1, 1)?.id).toBe("col2")
-    expect(ViewTree.sibling(col2, 1)?.id).toBe("col3")
+    expect(ViewTree.next(col1)?.id).toBe("col2")
+    expect(ViewTree.next(col2)?.id).toBe("col3")
   })
 
-  test("returns previous sibling with delta -1", () => {
+  test("prev returns the preceding sibling", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "First"),
@@ -527,7 +527,7 @@ describe("ViewTree.sibling", () => {
     const tree = buildViewTree(repo, "root", emptyFoldDepths)
 
     const col2 = tree.children[1]!
-    expect(ViewTree.sibling(col2, -1)?.id).toBe("col1")
+    expect(ViewTree.prev(col2)?.id).toBe("col1")
   })
 
   test("returns null at boundary", () => {
@@ -541,8 +541,8 @@ describe("ViewTree.sibling", () => {
 
     const col1 = tree.children[0]!
     const col2 = tree.children[1]!
-    expect(ViewTree.sibling(col1, -1)).toBeNull()
-    expect(ViewTree.sibling(col2, 1)).toBeNull()
+    expect(ViewTree.prev(col1)).toBeNull()
+    expect(ViewTree.next(col2)).toBeNull()
   })
 
   test("returns null for root node (no parent)", () => {
@@ -550,8 +550,8 @@ describe("ViewTree.sibling", () => {
     const repo = createMockRepo(nodes)
     const tree = buildViewTree(repo, "root", emptyFoldDepths)
 
-    expect(ViewTree.sibling(tree, 1)).toBeNull()
-    expect(ViewTree.sibling(tree, -1)).toBeNull()
+    expect(ViewTree.next(tree)).toBeNull()
+    expect(ViewTree.prev(tree)).toBeNull()
   })
 })
 

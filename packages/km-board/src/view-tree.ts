@@ -572,16 +572,23 @@ export const ViewTree = {
     }
   },
 
-  /** Adjacent sibling (delta: +1 next, -1 prev). */
-  sibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
+  /** Next sibling (same parent). */
+  next(vn: ViewNode): ViewNode | null {
     if (!vn.parent) return null
     const siblings = vn.parent.children
     const idx = siblings.indexOf(vn)
-    if (idx < 0) return null
-    return siblings[idx + delta] ?? null
+    return idx >= 0 ? (siblings[idx + 1] ?? null) : null
   },
 
-  /** Walk up from node to root, yielding each ancestor (SlateJS: Node.ancestors). */
+  /** Previous sibling (same parent). */
+  prev(vn: ViewNode): ViewNode | null {
+    if (!vn.parent) return null
+    const siblings = vn.parent.children
+    const idx = siblings.indexOf(vn)
+    return idx > 0 ? (siblings[idx - 1] ?? null) : null
+  },
+
+  /** Walk up from node to root, yielding each ancestor. */
   *ancestors(vn: ViewNode): Generator<ViewNode> {
     let current = vn.parent
     while (current) {
@@ -590,15 +597,16 @@ export const ViewTree = {
     }
   },
 
-  /** Lookup node by ID in the index (SlateJS: Node.get). */
+  /** Lookup node by ID in the index. */
   get(index: Map<string, ViewNode>, id: string): ViewNode | null {
     return index.get(id) ?? null
   },
 
-  // === Add when needed (SlateJS parity) ===
+  // === Add when needed ===
   // *descendants(root, opts?) — DFS excluding root (nodes() minus first yield)
-  // prev(index, id, opts?) — previous in document order (= nodes({ reverse, at }))
-  // next(index, id, opts?) — next in document order (= nodes({ at }) skip first)
+  // first(root) — first node in DFS
+  // last(root) — last node in DFS (= nodes({ reverse }) first)
+  // common(index, idA, idB) — lowest common ancestor
   // first(root) — first node in DFS
   // last(root) — last node in DFS (= nodes({ reverse }) first)
   // common(index, idA, idB) — lowest common ancestor
