@@ -4,9 +4,6 @@
 [submodule "vendor/loggily"]
 	path = vendor/loggily
 	url = git@github.com:beorn/loggily.git
-[submodule "vendor/mdtest"]
-	path = vendor/mdtest
-	url = git@github.com:beorn/mdspec.git
 [submodule "vendor/termless"]
 	path = vendor/termless
 	url = git@github.com:beorn/termless.git

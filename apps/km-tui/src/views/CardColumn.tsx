@@ -28,6 +28,7 @@ import { useNavigator } from "../layout-context.tsx"
 import { usePaneId } from "../pane-context.tsx"
 import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
+import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
@@ -561,6 +562,7 @@ export const Column = React.memo(function Column({
   height,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
+  const repoUpdate = useRepoEffect(repo)
   const setUI = useSetUI()
   const {
     treeConfig: { iconStyle, borderMode: _borderMode, maxContentLines },
@@ -645,7 +647,7 @@ export const Column = React.memo(function Column({
       } else {
         // Name and content diverged — just update content, don't rename
         undoHandle.setCursor(nodeId)
-        repo.updateNode(nodeId, { content: newValue })
+        repoUpdate(nodeId, { content: newValue })
       }
 
       setUI({ inlineEditBlock: null })

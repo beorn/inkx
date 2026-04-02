@@ -19,6 +19,7 @@ import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
 import { isHRContent, stripTaskMark } from "./tree-node-helpers.tsx"
 import { InlineText } from "../text/index.ts"
+import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 
 // =============================================================================
 // composeRawEditContent — append field-only metadata for editing visibility
@@ -71,6 +72,8 @@ export function TitleEditor({
   jobRunner,
   undoHandle,
 }: TitleEditorProps): React.ReactElement {
+  const repoUpdate = useRepoEffect(repo)
+
   // Compose raw edit content with field-only metadata appended
   const rawEditContent = displayNode.type === "hr" && !displayNode.content ? "---" : composeRawEditContent(displayNode)
   const editContent = nodeIsTask ? stripTaskMark(rawEditContent) : rawEditContent
@@ -97,14 +100,9 @@ export function TitleEditor({
       // No-op: value didn't change and no metadata to update
       if (newContent === originalContent && Object.keys(metaFields).length === 0) return
       undoHandle.setCursor(displayNode.id)
-      // For outline nodes (headings, folders, sections), update name alongside content.
-      // Without this, save-on-exit (Escape) would set content but leave name stale,
-      // causing the filesystem sync to create new folders instead of renaming.
-      const changes: Partial<KNode> = { content: newContent, title: newContent, ...metaFields }
-      if (KNode.isOutline(displayNode)) {
-        changes.name = newContent
-      }
-      repo.updateNode(displayNode.id, changes)
+      // Normalization pipeline auto-derives title from content and name for outline nodes.
+      // Metadata fields (due_at, start_at, etc.) are merged in as-is.
+      repoUpdate(displayNode.id, { content: newContent, ...metaFields })
     },
     [displayNode.id, displayNode.content, displayNode.type, displayNode.item, repo, undoHandle],
   )
@@ -154,7 +152,7 @@ export function TitleEditor({
       } else if (newContent !== originalContent) {
         // Name and content diverged — just update content, don't rename
         undoHandle.setCursor(displayNode.id)
-        repo.updateNode(displayNode.id, { content: newContent, title: newContent })
+        repoUpdate(displayNode.id, { content: newContent })
       }
 
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
@@ -255,6 +253,7 @@ export function BodyBlockEditor({
   setUI,
   undoHandle,
 }: BodyBlockEditorProps): React.ReactElement | null {
+  const repoUpdate = useRepoEffect(repo)
   const editBlockIndex = editState.blockIndex
 
   // Compute body/structural split for per-block navigation
@@ -267,9 +266,9 @@ export function BodyBlockEditor({
   const handleBlockSave = useCallback(
     (childId: string, newValue: string) => {
       undoHandle.setCursor(displayNode.id)
-      repo.updateNode(childId, { content: newValue })
+      repoUpdate(childId, { content: newValue })
     },
-    [repo, undoHandle, displayNode.id],
+    [repoUpdate, undoHandle, displayNode.id],
   )
 
   const handleInlineEditCancel = useCallback(() => {

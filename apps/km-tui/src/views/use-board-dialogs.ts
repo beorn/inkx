@@ -14,6 +14,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { PaneUI } from "../ui-reducer.ts"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { createLogger } from "loggily"
+import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { navigateToNode, resolveZoomTarget, type NavigateRepo } from "../navigate-to-node.ts"
 import type { PickerOption } from "./ItemPicker.tsx"
 
@@ -83,6 +84,8 @@ export function useBoardDialogs({
   rootId,
   undoHandle,
 }: UseBoardDialogsParams): BoardDialogHandlers {
+  const repoUpdate = useRepoEffect(repo)
+
   // Handle item picker selection (move to project)
   // For linked nodes (transclusions), re-parent the TARGET node, not the link
   const handlePickerSelect = useCallback(
@@ -147,7 +150,7 @@ export function useBoardDialogs({
       if (!currentContent.includes(tag)) {
         undoHandle.setCursor(cursorNodeId)
         const newContent = currentContent ? `${currentContent} ${tag}` : tag
-        repo.updateNode(cursorNodeId, { content: newContent })
+        repoUpdate(cursorNodeId, { content: newContent })
       }
 
       setUI({ activePicker: null })
