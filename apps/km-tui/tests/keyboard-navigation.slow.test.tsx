@@ -486,9 +486,9 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
       () =>
         item(
           "board",
-          item.paragraph("p1"),
-          item.paragraph("p2"),
-          item.paragraph("p3"),
+          item.p("p1"),
+          item.p("p2"),
+          item.p("p3"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         ),
       { rows: 30 },
@@ -533,11 +533,11 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
       () =>
         item(
           "board",
-          item.paragraph("p1"),
+          item.p("p1"),
           item.hr("hr1"),
-          item.paragraph("p2"),
+          item.p("p2"),
           item.hr("hr2"),
-          item.paragraph("p3"),
+          item.p("p3"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         ),
       { rows: 30 },
@@ -561,9 +561,9 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
       () =>
         item(
           "board",
-          item.paragraph("p1"),
-          item.paragraph("p2"),
-          item.paragraph("p3"),
+          item.p("p1"),
+          item.p("p2"),
+          item.p("p3"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         ),
       { rows: 30 },
@@ -585,9 +585,9 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
       () =>
         item(
           "board",
-          item.paragraph("p1"),
-          item.paragraph("p2"),
-          item.paragraph("p3"),
+          item.p("p1"),
+          item.p("p2"),
+          item.p("p3"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         ),
       { rows: 30 },
@@ -626,11 +626,11 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
       () =>
         item(
           "board",
-          item.paragraph("p1"),
+          item.p("p1"),
           item.hr("hr1"),
-          item.paragraph("p2"),
+          item.p("p2"),
           item.hr("hr2"),
-          item.paragraph("p3"),
+          item.p("p3"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         ),
       { rows: 30 },
@@ -660,10 +660,10 @@ describe("Keyboard Navigation: body card stickyY (round-trip)", () => {
       () =>
         item(
           "board",
-          item.paragraph("p1"),
-          item.paragraph("p2"),
-          item.paragraph("p3"),
-          item.paragraph("p4"),
+          item.p("p1"),
+          item.p("p2"),
+          item.p("p3"),
+          item.p("p4"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
         ),
       { rows: 30 },
@@ -689,9 +689,9 @@ describe("Keyboard Navigation: body card stickyY (round-trip)", () => {
       () =>
         item(
           "board",
-          item.paragraph("p1"),
-          item.paragraph("p2"),
-          item.paragraph("p3"),
+          item.p("p1"),
+          item.p("p2"),
+          item.p("p3"),
           item("col1", item("1a"), item("1b"), item("1c"), item("1d"), item("1e")),
           item("col2", item("2a"), item("2b"), item("2c"), item("2d"), item("2e")),
         ),
@@ -725,9 +725,9 @@ describe("Keyboard Navigation: body card stickyY (within-column body)", () => {
           "board",
           item(
             "col1",
-            item.paragraph("body-p1"),
-            item.paragraph("body-p2"),
-            item.paragraph("body-p3"),
+            item.p("body-p1"),
+            item.p("body-p2"),
+            item.p("body-p3"),
             item("sub1"),
             item("sub2"),
             item("sub3"),

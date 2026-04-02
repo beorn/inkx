@@ -828,7 +828,7 @@ describe("card body list markers (not italics)", () => {
       () =>
         item(
           "board",
-          item("col1", item("task-with-notes", item.paragraph("* first item\n* second item"))),
+          item("col1", item("task-with-notes", item.p("* first item\n* second item"))),
           item("col2", item("card2")),
         ),
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },

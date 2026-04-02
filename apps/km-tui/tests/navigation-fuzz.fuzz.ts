@@ -185,8 +185,8 @@ function createDeepTree() {
           "level3",
           item.file(
             "doc",
-            item.section("section1", item.paragraph("para1"), item.paragraph("para2")),
-            item.section("section2", item.paragraph("para3")),
+            item.section("section1", item.p("para1"), item.p("para2")),
+            item.section("section2", item.p("para3")),
           ),
         ),
       ),

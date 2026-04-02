@@ -189,7 +189,7 @@ describe("implicit task rendering", () => {
   })
 
   it("plain node without task properties has no task icon", () => {
-    const nodes = item("board", item("col", item.paragraph("plain text")))
+    const nodes = item("board", item("col", item.p("plain text")))
     const { board } = testEnv(() => nodes)
     // Should NOT have the \u25A1 task icon
     board.expectScreenNot("\u25A1")
@@ -305,7 +305,7 @@ describe("computeBulletIcon nerdfont fold indicator", () => {
 describe("body paragraph rendering", () => {
   it("body paragraphs render without bullet prefix", () => {
     // A card with body paragraphs (type=p, item=false) and a structural sub-item
-    const nodes = item("board", item("Column", item("card-1", item.paragraph("body text here"), item("sub-item"))))
+    const nodes = item("board", item("Column", item("card-1", item.p("body text here"), item("sub-item"))))
     const { board } = testEnv(() => nodes)
     const screenshot = board.screenshot()
 
@@ -334,7 +334,7 @@ describe("body paragraph rendering", () => {
   })
 
   it("body paragraphs render dimmed", () => {
-    const nodes = item("board", item("Column", item("card-1", item.paragraph("dimmed body"), item("normal-item"))))
+    const nodes = item("board", item("Column", item("card-1", item.p("dimmed body"), item("normal-item"))))
     const { board } = testEnv(() => nodes)
     // Both should be visible
     board.expectScreen("dimmed body")

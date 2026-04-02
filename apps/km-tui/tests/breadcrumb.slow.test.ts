@@ -579,7 +579,7 @@ describe("zoom-mismatch: multi-line paragraph text bleed", () => {
               // Line 1: bare URL
               // Line 2: "See also [[#^1135923304464396]]" (unresolved wikilink)
               // Line 3: more URLs
-              item.paragraph(
+              item.p(
                 "https://bitbucket.org/blog/sunsetting-mercurial-support-in-bitbucket\nSee also [[#^1135923304464396]]\nhttps://bitbucket.org/blog/sunsetting-mercurial-support https://github.com/frej/fast-export",
               ),
               item.task("Clone all of xpilot"),

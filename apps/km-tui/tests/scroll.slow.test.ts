@@ -428,7 +428,7 @@ describe("column shift with body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("some description text"),
+          item.p("some description text"),
           item("col1", item("1a")),
           item("col2", item("2a")),
           item("col3", item("3a")),
@@ -457,7 +457,7 @@ describe("column shift with body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("some description text"),
+          item.p("some description text"),
           item("col1", item("1a")),
           item("col2", item("2a")),
           item("col3", item("3a")),
@@ -482,7 +482,7 @@ describe("column shift with body column", () => {
 
   test("shifting towards body column — should swap with body column or boundary", () => {
     const { board } = testEnv(
-      () => item("board", item.paragraph("some description text"), item("col1", item("1a")), item("col2", item("2a"))),
+      () => item("board", item.p("some description text"), item("col1", item("1a")), item("col2", item("2a"))),
       { columns: 120, rows: 24 },
     )
 
@@ -503,7 +503,7 @@ describe("column shift with body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("desc text"),
+          item.p("desc text"),
           item("col1", item("1a")),
           item("col2", item("2a")),
           item("col3", item("3a")),
@@ -534,7 +534,7 @@ describe("column shift with body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("desc text"),
+          item.p("desc text"),
           item("col1", item("1a"), item("1b")),
           item("col2", item("2a")),
           item("col3", item("3a")),

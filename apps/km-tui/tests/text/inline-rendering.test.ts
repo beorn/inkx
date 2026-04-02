@@ -121,7 +121,7 @@ describe("detail pane body rendering", () => {
     // A card (depth 0) with a paragraph child should have body content.
     // In the cards view, the card shows a body indicator (···).
     const { board } = testEnv(
-      () => item("board", item("col1", item.file("Parent card", item.paragraph("This is body text for the parent")))),
+      () => item("board", item("col1", item.file("Parent card", item.p("This is body text for the parent")))),
       { rows: 20, columns: 80 },
     )
 
@@ -135,7 +135,7 @@ describe("detail pane body rendering", () => {
     // When a card has a paragraph child, the paragraph text should
     // be rendered as a card child line (not "(empty)").
     const { board } = testEnv(
-      () => item("board", item("col1", item.file("Task", item.paragraph("Body paragraph content here")))),
+      () => item("board", item("col1", item.file("Task", item.p("Body paragraph content here")))),
       { rows: 20, columns: 80 },
     )
 
@@ -159,14 +159,7 @@ describe("card body multi-line content", () => {
       () =>
         item(
           "board",
-          item(
-            "col1",
-            item.file(
-              "Multi-line card",
-              item.paragraph("First line of content"),
-              item.paragraph("Second line of content"),
-            ),
-          ),
+          item("col1", item.file("Multi-line card", item.p("First line of content"), item.p("Second line of content"))),
         ),
       { rows: 20, columns: 80 },
     )
@@ -180,8 +173,7 @@ describe("card body multi-line content", () => {
 
   it("card child renders without escape sequence artifacts", () => {
     const { board } = testEnv(
-      () =>
-        item("board", item("col1", item.file("Card", item.paragraph("Content with https://example.com/link inside")))),
+      () => item("board", item("col1", item.file("Card", item.p("Content with https://example.com/link inside")))),
       { rows: 20, columns: 50 },
     )
 

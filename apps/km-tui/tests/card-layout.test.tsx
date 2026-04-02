@@ -294,7 +294,7 @@ describe("body indicator (···)", () => {
       () =>
         item(
           "board",
-          item("col1", item("card-with-body", item.paragraph("Some body text"), item.paragraph("More text"))),
+          item("col1", item("card-with-body", item.p("Some body text"), item.p("More text"))),
           item("col2", item("card2")),
         ),
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },
@@ -308,7 +308,7 @@ describe("body indicator (···)", () => {
   test("does NOT show ··· on column headers (body content visible as cards)", () => {
     // Column with body children (paragraphs) — these are shown as cards in the column
     const { board } = testEnv(
-      () => item("board", item("col-with-body", item.paragraph("Body paragraph"), item("regular-card")), item("col2")),
+      () => item("board", item("col-with-body", item.p("Body paragraph"), item("regular-card")), item("col2")),
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },
     )
 
@@ -322,7 +322,7 @@ describe("body indicator (···)", () => {
       () =>
         item(
           "board",
-          item("col1", item("card-with-body", item.paragraph("Hidden body text"), item.paragraph("More hidden text"))),
+          item("col1", item("card-with-body", item.p("Hidden body text"), item.p("More hidden text"))),
           item("col2", item("card2")),
         ),
       { columns: 80, rows: 24, checkIncremental: false, incremental: false },

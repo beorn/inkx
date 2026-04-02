@@ -1096,7 +1096,7 @@ describe("edit focus ring", () => {
 
   test("non-active body blocks show cardBorderEditing color during inline edit mode", () => {
     const { board } = testEnv(() =>
-      item("board", item("col", item("task1", item.paragraph("body line 1"), item.paragraph("body line 2")))),
+      item("board", item("col", item("task1", item.p("body line 1"), item.p("body line 2")))),
     )
 
     // Enter inline edit mode
@@ -1113,9 +1113,7 @@ describe("edit focus ring", () => {
   })
 
   test("navigating to body block does not add blue background", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col", item("task1", item.paragraph("body text"), item.paragraph("more text")))),
-    )
+    const { board } = testEnv(() => item("board", item("col", item("task1", item.p("body text"), item.p("more text")))))
 
     // Enter inline edit mode on title
     board.press("Enter")
@@ -1147,7 +1145,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
    */
   test("typing in a body block card shows typed text on screen", () => {
     const { board, repo } = testEnv(
-      () => item("board", item("col1", item.paragraph("See instructions."), item("section1", item("task1")))),
+      () => item("board", item("col1", item.p("See instructions."), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
 
@@ -1176,7 +1174,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
 
   test("typing in body block with incremental rendering matches fresh render", () => {
     const { board } = testEnv(
-      () => item("board", item("col1", item.paragraph("Hello world"), item("section1", item("task1")))),
+      () => item("board", item("col1", item.p("Hello world"), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
 
@@ -1198,7 +1196,7 @@ describe("body block edit display (km-tui.edit-display)", () => {
     // This tests body blocks that appear inside a column's card list,
     // not just at the root level virtual body column
     const { board, repo } = testEnv(
-      () => item("board", item("col1", item.paragraph("Body content here"), item("section1", item("task1")))),
+      () => item("board", item("col1", item.p("Body content here"), item("section1", item("task1")))),
       { columns: 60, rows: 20 },
     )
 
@@ -1229,10 +1227,10 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     // Use long content that wraps across multiple visual lines
     const longContent =
       "This is a longer body block that should wrap across multiple visual lines for testing cursor navigation"
-    const { board } = testEnv(
-      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 40, rows: 20 },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
+      columns: 40,
+      rows: 20,
+    })
 
     // Enter edit mode on the body block
     board.press("Enter")
@@ -1249,10 +1247,11 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowDown traverses all visual lines then exits to next block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH IIII JJJJ"
     // checkIncremental: false — bottom bar format change (removed cardIndex, added [EDIT]) causes stale incremental cells
-    const { board } = testEnv(
-      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 30, rows: 20, checkIncremental: false },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
+      columns: 30,
+      rows: 20,
+      checkIncremental: false,
+    })
 
     // Enter edit mode, move cursor to start
     board.press("Enter")
@@ -1275,10 +1274,11 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ctrl+a clears cursor inverse attr at old position (incremental)", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     // checkIncremental: false — bottom bar format change causes stale incremental cells
-    const { board } = testEnv(
-      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 30, rows: 20, checkIncremental: false },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
+      columns: 30,
+      rows: 20,
+      checkIncremental: false,
+    })
 
     // Enter edit mode (cursor at end of text)
     board.press("Enter")
@@ -1290,10 +1290,11 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
   test("ArrowUp at first visual line exits to previous block", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     // checkIncremental: false — bottom bar format change causes stale incremental cells
-    const { board } = testEnv(
-      () => item("board", item("col1", item.paragraph(longContent), item("section1", item("task1")))),
-      { columns: 30, rows: 20, checkIncremental: false },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item.p(longContent), item("section1", item("task1")))), {
+      columns: 30,
+      rows: 20,
+      checkIncremental: false,
+    })
 
     // Enter edit mode, move cursor to start
     board.press("Enter")
@@ -1408,12 +1409,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
           "board",
           item(
             "col1",
-            item(
-              "card-1",
-              item.paragraph("body-para"),
-              item("sub-a", item("child-a1")),
-              item("sub-b", item("child-b1")),
-            ),
+            item("card-1", item.p("body-para"), item("sub-a", item("child-a1")), item("sub-b", item("child-b1"))),
           ),
         ),
       )
@@ -1433,7 +1429,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       const { board } = testEnv(() =>
         item(
           "board",
-          item("col1", item("card-1", item.paragraph("body-para"), item("task-a"), item("task-b")), item("card-2")),
+          item("col1", item("card-1", item.p("body-para"), item("task-a"), item("task-b")), item("card-2")),
         ),
       )
 

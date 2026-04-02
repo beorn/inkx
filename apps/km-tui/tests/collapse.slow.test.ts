@@ -121,7 +121,7 @@ describe("collapse/uncollapse columns", () => {
 
   test("c collapses column with body content (paragraphs before items)", () => {
     const { board } = testEnv(() =>
-      item.root("board", item("col-body", item.paragraph("intro text"), item("task1")), item("col-other", item("x"))),
+      item.root("board", item("col-body", item.p("intro text"), item("task1")), item("col-other", item("x"))),
     )
 
     // Navigate to col-body body card (intro text)
@@ -327,7 +327,7 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("c on virtual body column (Description) does not crash", () => {
-    const { board } = testEnv(() => item.root("board", item.paragraph("intro text"), item("col1", item("task-a"))))
+    const { board } = testEnv(() => item.root("board", item.p("intro text"), item("col1", item("task-a"))))
 
     // Cursor starts on body card ("intro text")
     expect(board.q("[data-cursor]").textContent()).toContain("intro text")

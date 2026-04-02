@@ -89,7 +89,7 @@ describe("spatial navigation: Y-position matching", () => {
       () =>
         item(
           "board",
-          item.paragraph("Some body text"),
+          item.p("Some body text"),
           item("ColA", item("A1"), item("A2"), item("A3"), item("A4"), item("A5")),
           item("ColB", item("B1"), item("B2"), item("B3"), item("B4"), item("B5")),
         ),
@@ -235,11 +235,11 @@ describe("vbody-nav: left into virtual body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("body-1"),
-          item.paragraph("body-2"),
-          item.paragraph("body-3"),
-          item.paragraph("body-4"),
-          item.paragraph("body-5"),
+          item.p("body-1"),
+          item.p("body-2"),
+          item.p("body-3"),
+          item.p("body-4"),
+          item.p("body-5"),
           item("col1", item("task-a"), item("task-b"), item("task-c"), item("task-d"), item("task-e")),
         ),
       { rows: 40 },
@@ -262,9 +262,9 @@ describe("vbody-nav: left into virtual body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("intro"),
-          item.paragraph("detail"),
-          item.paragraph("notes"),
+          item.p("intro"),
+          item.p("detail"),
+          item.p("notes"),
           item("Tasks", item("t1"), item("t2"), item("t3")),
           item("Done", item("d1")),
         ),
@@ -284,14 +284,7 @@ describe("vbody-nav: left into virtual body column", () => {
 
   test("round-trip: body->structural->body preserves approximate Y position", () => {
     const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item.paragraph("b1"),
-          item.paragraph("b2"),
-          item.paragraph("b3"),
-          item("s1", item("t1"), item("t2"), item("t3")),
-        ),
+      () => item("board", item.p("b1"), item.p("b2"), item.p("b3"), item("s1", item("t1"), item("t2"), item("t3"))),
       { rows: 40 },
     )
 
@@ -309,7 +302,7 @@ describe("vbody-nav: left into virtual body column", () => {
   })
 
   test("large board with scrolling: h into body navigates to correct card", () => {
-    const bodyCards = Array.from({ length: 20 }, (_, i) => item.paragraph(`body-${i + 1}`))
+    const bodyCards = Array.from({ length: 20 }, (_, i) => item.p(`body-${i + 1}`))
     const structCards = Array.from({ length: 20 }, (_, i) => item(`task-${i + 1}`))
 
     const { board } = testEnv(() => item("board", ...bodyCards, item("col1", ...structCards)), {
@@ -336,9 +329,9 @@ describe("vbody-nav: left into virtual body column", () => {
       () =>
         item(
           "board",
-          item.paragraph("bp1"),
-          item.paragraph("bp2"),
-          item.paragraph("bp3"),
+          item.p("bp1"),
+          item.p("bp2"),
+          item.p("bp3"),
           item("Col1", item("a1"), item("a2"), item("a3")),
           item("Col2", item("b1"), item("b2"), item("b3")),
         ),
@@ -370,7 +363,7 @@ describe("vbody-nav: left into virtual body column", () => {
     // stickyY captures from the structural card's screen position (scrolled up),
     // so findItemAtY in body column finds the WRONG card (one at the top
     // that happens to be at that low Y value).
-    const bodyCards = Array.from({ length: 10 }, (_, i) => item.paragraph(`bp-${i + 1}`))
+    const bodyCards = Array.from({ length: 10 }, (_, i) => item.p(`bp-${i + 1}`))
     const structCards = Array.from({ length: 10 }, (_, i) => item(`t-${i + 1}`))
 
     const { board } = testEnv(() => item("board", ...bodyCards, item("col1", ...structCards)), {
@@ -409,7 +402,7 @@ describe("vbody-nav: left into virtual body column", () => {
     // When pressing h, stickyY is based on the structural card's screen position
     // (which has been scrolled). The body cards are at the top, so stickyY
     // may be below all body cards, and findItemAtY would clamp to last.
-    const bodyCards = Array.from({ length: 3 }, (_, i) => item.paragraph(`bp-${i + 1}`))
+    const bodyCards = Array.from({ length: 3 }, (_, i) => item.p(`bp-${i + 1}`))
     const structCards = Array.from({ length: 30 }, (_, i) => item(`t-${i + 1}`))
 
     const { board } = testEnv(() => item("board", ...bodyCards, item("col1", ...structCards)), {

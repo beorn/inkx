@@ -838,11 +838,7 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
 describe("paragraph-only board: cursor + navigation", () => {
   test("cursor + j/k work on paragraph body board", () => {
     const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("docs", item("readme", item.paragraph("intro"), item.paragraph("setup"), item.paragraph("usage"))),
-        ),
+      () => item("root", item("docs", item("readme", item.p("intro"), item.p("setup"), item.p("usage")))),
       { checkIncremental: false },
     )
 

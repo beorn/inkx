@@ -67,7 +67,7 @@ describe("State", () => {
   test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
     const nodes = item.file(
       "@issue.md",
-      item.paragraph("All issues tracked with the @issue tag."),
+      item.p("All issues tracked with the @issue tag."),
       item.section("Open Issues", item("Fix bug #1")),
       item.section("Closed Issues", item("Fix bug #2")),
     )

@@ -436,11 +436,7 @@ describe("zoom: j at column header should not exit zoom", () => {
   it("j at column header with body-only content preserves zoom", () => {
     const nodes = item(
       "vault",
-      item(
-        "project",
-        item("active", item("task1")),
-        item("notes", item.paragraph("some notes"), item.paragraph("more notes")),
-      ),
+      item("project", item("active", item("task1")), item("notes", item.p("some notes"), item.p("more notes"))),
     )
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "project")
@@ -484,7 +480,7 @@ describe("zoom: j at column header should not exit zoom", () => {
 describe("zoom on body-only nodes", () => {
   it("should zoom via zoom_inwards on a body-only node", () => {
     // bodyOnlyNode has only paragraph/code children — these are now navigable cards
-    const nodes = item("board", item("col1", item("bodyOnlyNode", item.paragraph("text1"), item.code("code1"))))
+    const nodes = item("board", item("col1", item("bodyOnlyNode", item.p("text1"), item.code("code1"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -501,7 +497,7 @@ describe("zoom on body-only nodes", () => {
     const nodes = item(
       "board",
       item("col1", item("task1")),
-      item("bodyCol", item("bodyNode", item.paragraph("some text"), item.paragraph("more text"))),
+      item("bodyCol", item("bodyNode", item.p("some text"), item.p("more text"))),
     )
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
@@ -530,7 +526,7 @@ describe("zoom on body-only nodes", () => {
   })
 
   it("should zoom into a node with mixed body and structural children", () => {
-    const nodes = item("board", item("col1", item("mixed", item.paragraph("intro text"), item("real-child"))))
+    const nodes = item("board", item("col1", item("mixed", item.p("intro text"), item("real-child"))))
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
@@ -1262,10 +1258,10 @@ describe("u key — go to parent, not previous sibling", () => {
   })
 
   test("u from body card goes to board level (body cards are children of root)", () => {
-    const { board } = testEnv(
-      () => item("board", item.paragraph("para1"), item.paragraph("para2"), item("col1", item("A1"))),
-      { columns: 120, rows: 24 },
-    )
+    const { board } = testEnv(() => item("board", item.p("para1"), item.p("para2"), item("col1", item("A1"))), {
+      columns: 120,
+      rows: 24,
+    })
 
     board.press("j") // → para2
     board.expect("#para2[data-cursor]").toExist()

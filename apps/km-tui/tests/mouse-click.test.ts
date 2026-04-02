@@ -158,7 +158,7 @@ describe("mouse click targeting", () => {
 
   test("clicking a body block inside a card selects it", () => {
     const { board, store } = testEnv(
-      () => item.root("board", item("Column", item("card-1", item.paragraph("body text"), item("sub-item")))),
+      () => item.root("board", item("Column", item("card-1", item.p("body text"), item("sub-item")))),
       { columns: 80, rows: 24 },
     )
 

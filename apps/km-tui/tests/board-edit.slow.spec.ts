@@ -310,9 +310,7 @@ describe("Edit Operations", () => {
     // When the board has body content (paragraphs before headings), a virtual __body__
     // column is inserted at index 0, shifting real column array indices by 1.
     // normalizeColumnSortOrders must use shared parent_idx values, not array positions.
-    const nodes = [
-      ...item("board", item.paragraph("Board description"), item("col1", item("1a")), item("col2", item("2a"))),
-    ]
+    const nodes = [...item("board", item.p("Board description"), item("col1", item("1a")), item("col2", item("2a")))]
     // Force duplicate parent_idx to trigger normalization
     for (const n of nodes) {
       if (n.type === "h" && n.parent_id === "board") n.parent_idx = 0

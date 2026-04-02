@@ -842,10 +842,7 @@ describe("Search and Filter", () => {
         "Vault",
         item.folder(
           "Notes",
-          item.file(
-            "MyDoc",
-            item.section("Intro", item.paragraph("China domicile information"), item.paragraph("Another paragraph")),
-          ),
+          item.file("MyDoc", item.section("Intro", item.p("China domicile information"), item.p("Another paragraph"))),
         ),
       ),
     )
@@ -882,9 +879,7 @@ describe("Search and Filter", () => {
 describe("Virtual body card", () => {
   test("body-only columns render items borderless (virtual)", () => {
     // Column with only paragraphs (no tasks) — items render borderless
-    const { board } = testEnv(() =>
-      item("board", item.section("col1", item.paragraph("intro text"), item.paragraph("more text"))),
-    )
+    const { board } = testEnv(() => item("board", item.section("col1", item.p("intro text"), item.p("more text"))))
     // Cursor starts on first card (paragraph) in Cards view
     const output = board.screenshot()
     expect(output).toContain("intro text")

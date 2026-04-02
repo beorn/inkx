@@ -117,7 +117,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     const { board } = testEnv(() =>
       item.file(
         "myboard",
-        item.paragraph("description"),
+        item.p("description"),
         item.section("Todo", item.task("tA"), item.task("tB")),
         item.section("Done", item.task("tC")),
       ),
@@ -155,7 +155,7 @@ describe("cursor stability after property set (km-tui.td-cursor-jump)", () => {
     const { board } = testEnv(() =>
       item.file(
         "myboard",
-        item.paragraph("intro"),
+        item.p("intro"),
         item.section("Active", item.task("tA"), item.task("tB")),
         item.section("Done", item.task("tC")),
       ),
@@ -487,9 +487,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
   test("j from column header with paragraph body content", () => {
     // Edge case: column has only paragraph children (body content, no structural items)
     // This tests the extractBody filtering scenario
-    const { board } = testEnv(() =>
-      item.root("board", item("col-body", item.paragraph("para-1"), item.paragraph("para-2"))),
-    )
+    const { board } = testEnv(() => item.root("board", item("col-body", item.p("para-1"), item.p("para-2"))))
 
     // Navigate up to board level
     board.command("cursor_up").command("cursor_up")
@@ -510,7 +508,7 @@ describe("cursor-lost-col-header-j (km-3wk32)", () => {
     const { board } = testEnv(() =>
       item.root(
         "board",
-        item.paragraph("intro text"),
+        item.p("intro text"),
         item("col1", item.file("file1"), item.file("file2")),
         item("col2", item("task1")),
       ),

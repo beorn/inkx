@@ -376,7 +376,7 @@ item.folder = (content: string, ...childArrays: KNode[][]): KNode[] =>
 item.section = (content: string, ...childArrays: KNode[][]): KNode[] =>
   makeNodeWithType(content, "h", { item: {}, fstype: "mdsection" }, ...childArrays)
 
-item.paragraph = (content: string): KNode[] => makeNodeWithType(content, "p", {})
+item.p = (content: string): KNode[] => makeNodeWithType(content, "p", {})
 
 item.file = (content: string, ...childArrays: KNode[][]): KNode[] =>
   makeNodeWithType(content, "h", { item: {}, fstype: "mdfile" }, ...childArrays)

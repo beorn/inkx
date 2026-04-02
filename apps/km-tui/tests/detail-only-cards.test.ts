@@ -82,7 +82,7 @@ describe("detailOnly nodes hidden from card view", () => {
         item(
           "board",
           // Regular body content
-          item.paragraph("Some description"),
+          item.p("Some description"),
           // detailOnly sections
           detailOnlyItem("comments", "Comments", item("c1"), item("c2")),
           detailOnlyItem("attachments", "Attachments", item("att1")),

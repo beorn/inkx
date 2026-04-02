@@ -813,8 +813,8 @@ describe("body block spacing in columns view", () => {
       "board",
       item(
         "col1",
-        item.paragraph("body-para-one"),
-        item.paragraph("body-para-two"),
+        item.p("body-para-one"),
+        item.p("body-para-two"),
         item.section("section-alpha", item("task-a1")),
         item.section("section-beta", item("task-b1")),
       ),
@@ -842,10 +842,7 @@ describe("body block spacing in columns view", () => {
 
   test("all-body column (no structural items) also renders compactly", () => {
     // When ALL children are body (no oi), all are compact
-    const nodes = item(
-      "board",
-      item("col1", item.paragraph("para-one"), item.paragraph("para-two"), item.paragraph("para-three")),
-    )
+    const nodes = item("board", item("col1", item.p("para-one"), item.p("para-two"), item.p("para-three")))
 
     const { board } = testEnv(() => nodes, { viewMode: "columns" })
 
