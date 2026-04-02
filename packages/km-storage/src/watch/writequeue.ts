@@ -564,6 +564,12 @@ export class WriteQueue extends EventEmitter {
     } finally {
       this.flushPromise = null
     }
+    // If new items were queued during the flush (e.g., queue() called while
+    // doFlush was running), flush them now rather than relying on the debounce
+    // timer. This ensures forceFlush() drains all work before returning.
+    if (this.pending.size > 0) {
+      return this.flush()
+    }
   }
 
   /**
