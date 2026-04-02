@@ -903,3 +903,155 @@ describe("Board.apply — combined dispatcher", () => {
     expect(result.effects.some((e) => e.type === "REPO_MOVE_NODE")).toBe(true)
   })
 })
+
+// =============================================================================
+// runBoardEffects — centralized effect interpreter
+// =============================================================================
+
+import { runBoardEffects } from "../src/board/board-effect-runner.ts"
+import type { ApplyResult, BoardEffect } from "../src/board/board-reducer.ts"
+
+/** Minimal mock ActionCtx for testing effect runner. Tracks all calls. */
+function mockCtx() {
+  const calls: { method: string; args: unknown[] }[] = []
+  return {
+    calls,
+    dispatchBoard: (...args: unknown[]) => calls.push({ method: "dispatchBoard", args }),
+    setUI: (...args: unknown[]) => calls.push({ method: "setUI", args }),
+    setFoldDepths: (...args: unknown[]) => calls.push({ method: "setFoldDepths", args }),
+    repo: {
+      moveNode: (...args: unknown[]) => calls.push({ method: "repo.moveNode", args }),
+      addNode: (...args: unknown[]) => {
+        calls.push({ method: "repo.addNode", args })
+        return "new-node-id"
+      },
+      deleteNode: (...args: unknown[]) => calls.push({ method: "repo.deleteNode", args }),
+      updateNode: (...args: unknown[]) => calls.push({ method: "repo.updateNode", args }),
+    },
+    undoHandle: {
+      setCursor: (...args: unknown[]) => calls.push({ method: "undoHandle.setCursor", args }),
+      startBatch: (...args: unknown[]) => calls.push({ method: "undoHandle.startBatch", args }),
+      endBatch: (...args: unknown[]) => calls.push({ method: "undoHandle.endBatch", args }),
+    },
+    ui: { multiSelected: new Set<string>() },
+  }
+}
+
+describe("runBoardEffects — centralized effect interpreter", () => {
+  it("SELECT effect dispatches to board", () => {
+    const ctx = mockCtx()
+    const result: ApplyResult = { state: state(), effects: [{ type: "SELECT", nodeId: "n1" }] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([{ method: "dispatchBoard", args: [{ type: "SELECT", nodeId: "n1" }] }])
+  })
+
+  it("FOLD_SET effect calls setFoldDepths", () => {
+    const ctx = mockCtx()
+    const depths = new Map([["a", 2]])
+    const result: ApplyResult = { state: state(), effects: [{ type: "FOLD_SET", depths }] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([{ method: "setFoldDepths", args: [depths] }])
+  })
+
+  it("SCROLL_ANCHOR_CLEAR calls setUI", () => {
+    const ctx = mockCtx()
+    const result: ApplyResult = { state: state(), effects: [{ type: "SCROLL_ANCHOR_CLEAR" }] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([{ method: "setUI", args: [{ columnScrollAnchor: null }] }])
+  })
+
+  it("REPO_MOVE_NODE calls repo.moveNode", () => {
+    const ctx = mockCtx()
+    const result: ApplyResult = {
+      state: state(),
+      effects: [{ type: "REPO_MOVE_NODE", nodeId: "n1", newParentId: "p1", sortOrder: 0.5 }],
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([{ method: "repo.moveNode", args: ["n1", "p1", 0.5] }])
+  })
+
+  it("REPO_ADD_NODE with selectAfter dispatches SELECT and enters edit", () => {
+    const ctx = mockCtx()
+    const nodeData = { content: "hello" }
+    const result: ApplyResult = {
+      state: state(),
+      effects: [{ type: "REPO_ADD_NODE", parentId: "p1", node: nodeData, selectAfter: true }],
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toContainEqual({ method: "repo.addNode", args: ["p1", nodeData] })
+    expect(ctx.calls).toContainEqual({
+      method: "dispatchBoard",
+      args: [{ type: "SELECT", nodeId: "new-node-id" }],
+    })
+    expect(ctx.calls).toContainEqual({
+      method: "setUI",
+      args: [{ inlineEditBlock: { nodeId: "new-node-id", blockIndex: 0 } }],
+    })
+  })
+
+  it("REPO_DELETE_NODE calls repo.deleteNode", () => {
+    const ctx = mockCtx()
+    const result: ApplyResult = { state: state(), effects: [{ type: "REPO_DELETE_NODE", nodeId: "n1" }] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([{ method: "repo.deleteNode", args: ["n1"] }])
+  })
+
+  it("REPO_UPDATE_NODE calls repo.updateNode", () => {
+    const ctx = mockCtx()
+    const updates = { content: "new" }
+    const result: ApplyResult = {
+      state: state(),
+      effects: [{ type: "REPO_UPDATE_NODE", nodeId: "n1", updates }],
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([{ method: "repo.updateNode", args: ["n1", updates] }])
+  })
+
+  it("undo effects call undoHandle methods in order", () => {
+    const ctx = mockCtx()
+    const result: ApplyResult = {
+      state: state(),
+      effects: [
+        { type: "UNDO_SET_CURSOR", nodeId: "cursor-1" },
+        { type: "UNDO_START_BATCH", label: "Move" },
+        { type: "REPO_MOVE_NODE", nodeId: "n1", newParentId: "p1", sortOrder: 0.5 },
+        { type: "UNDO_END_BATCH" },
+      ],
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls.map((c) => c.method)).toEqual([
+      "undoHandle.setCursor",
+      "undoHandle.startBatch",
+      "repo.moveNode",
+      "undoHandle.endBatch",
+    ])
+  })
+
+  it("handles multiple effects in order", () => {
+    const ctx = mockCtx()
+    const depths = new Map<string, number>()
+    const result: ApplyResult = {
+      state: state(),
+      effects: [{ type: "FOLD_SET", depths }, { type: "SELECT", nodeId: "a" }, { type: "CLEAR_SELECTION" }],
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls.map((c) => c.method)).toEqual(["setFoldDepths", "dispatchBoard", "setUI"])
+  })
+
+  it("no effects is a no-op", () => {
+    const ctx = mockCtx()
+    const result: ApplyResult = { state: state(), effects: [] }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    runBoardEffects(ctx as any, result)
+    expect(ctx.calls).toEqual([])
+  })
+})

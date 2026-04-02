@@ -343,16 +343,13 @@ function extractFoldState(ctx: ActionCtx): BoardNavState {
     cursorNodeId: ctx.cursorNodeId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
-    hiddenNodeIds: ctx.hiddenNodeIds,
     rootId: ctx.rootId,
   })
 }
 
-/** Apply fold effects from reducer result to ActionCtx. */
+/** Apply effects from a Board.apply() result to the runtime. */
 function applyFoldEffects(ctx: ActionCtx, result: ApplyResult): void {
-  for (const effect of result.effects) {
-    if (effect.type === "FOLD_SET") ctx.setFoldDepths(effect.depths)
-  }
+  runBoardEffects(ctx, result)
 }
 
 /** Determine fold target node IDs from selection → card → column fallback. */
@@ -427,6 +424,7 @@ import {
   handleSearchReplaceToggleRegex,
   handleSearchReplaceTabField,
 } from "./board-actions-search-replace.ts"
+import { runBoardEffects } from "./board-effect-runner.ts"
 
 // Re-export for external consumers (Board.tsx callbacks)
 export { updateLocalSearchMatches } from "./board-actions-find.ts"

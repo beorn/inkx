@@ -59,7 +59,7 @@ Every interactive subsystem mapped to its current state management approach:
 
 | Domain | Files | Current Approach | Target |
 |---|---|---|---|
-| **Board navigation** | `board-reducer.ts`, `board-actions-nav.ts` | `applyNavigation()` — **pure reducer, shipped** (Phase 2a) | Full `Board.apply()` (Phase 2) |
+| **Board navigation** | `board-reducer.ts`, `board-actions-nav.ts` | `applyBoard()` — **pure reducer + edit ops, shipped** (Phase 2a). `board-effect-runner.ts` centralizes effect interpretation | Full `Board.apply()` (Phase 2) |
 | **UI / Dialogs** | `board-app-store.ts`, `ui-reducer.ts` | Imperative Zustand `setUI()` mutations | `Dialog.apply()` (Phase 2) |
 | **Text editing** | `board-actions-edit.ts`, `useEditContext` | Ref-based, imperative | `PlainText.apply()` dispatch (Phase 1) |
 | **Search** | `SearchDialog.tsx`, `Omnibox.tsx` | Imperative handlers, local state | `Search.apply()` (Phase 2) |
@@ -82,7 +82,7 @@ Every interactive subsystem mapped to its current state management approach:
 
 ### Key observations
 
-- **Board navigation reducer is shipped**: `board-reducer.ts` contains `applyNavigation(state, op)` — a pure function following the TEA shape. This is the first extracted state machine (Phase 2a).
+- **Board reducer is shipped**: `board-reducer.ts` contains `applyBoard(state, op)` — a pure function following the TEA shape covering navigation + edit operations. `board-effect-runner.ts` provides centralized effect interpretation via `runBoardEffects(ctx, result)`. ~15% of board-actions.ts handlers now route through the reducer.
 - **Text editing has the most duplication**: readline-ops (silvery) and board-actions-edit (km-tui) both handle text operations. `PlainText.apply()` unifies them.
 - **Command system is already correct**: It translates keys → semantic operations. It just needs to dispatch to TEA machines instead of imperative handlers.
 - **silvery/tea middleware is shipped**: `@silvery/create` exports `tea()` and `collect()` for wiring TEA reducers into Zustand stores.

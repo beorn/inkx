@@ -21,6 +21,7 @@ import {
   createBoardNavState,
   type BoardNavState,
 } from "./board-reducer.ts"
+import { runBoardEffects } from "./board-effect-runner.ts"
 
 /**
  * Handle cursor movement in any direction.
@@ -85,9 +86,7 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 
   if (result.effects.length === 0) return boundary(dir)
 
-  for (const effect of result.effects) {
-    if (effect.type === "SELECT") ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
-  }
+  runBoardEffects(ctx, result)
   return ok()
 }
 
@@ -242,9 +241,7 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
     return boundary(dir)
   }
 
-  for (const effect of result.effects) {
-    if (effect.type === "SELECT") ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
-  }
+  runBoardEffects(ctx, result)
   return ok()
 }
 
@@ -265,13 +262,11 @@ function getVisibleColumnBlocks(ctx: ActionCtx): string[] {
   blocks.push(col.node.id)
 
   // For each card in the column, add the card and its visible descendants
+  // Hidden nodes are already filtered from the ViewNode tree at construction time
   for (const card of col.cardNodes) {
-    if (ctx.hiddenNodeIds.has(card.id)) continue
     const descendants = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)
     for (const id of descendants) {
-      if (!ctx.hiddenNodeIds.has(id)) {
-        blocks.push(id)
-      }
+      blocks.push(id)
     }
   }
 
@@ -388,10 +383,7 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
   const navState = extractNavState(ctx)
   const result = applyPageJump(navState, direction, cardIds, ctx.cardIndex, pageSize)
 
-  for (const effect of result.effects) {
-    if (effect.type === "SELECT") ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
-    if (effect.type === "SCROLL_ANCHOR_CLEAR") ctx.setUI({ columnScrollAnchor: null })
-  }
+  runBoardEffects(ctx, result)
 }
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
@@ -405,7 +397,6 @@ export function navStateFrom(ctx: ActionCtx): NavState {
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
     cursorCardNodeId: ctx.cursorCardNodeId,
-    hiddenNodeIds: ctx.hiddenNodeIds.size > 0 ? ctx.hiddenNodeIds : undefined,
     viewTree: ctx.viewTree,
     viewIndex: ctx.viewIndex,
   }
@@ -418,7 +409,6 @@ function extractNavState(ctx: ActionCtx): BoardNavState {
     cursorCardNodeId: ctx.cursorCardNodeId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
-    hiddenNodeIds: ctx.hiddenNodeIds,
     rootId: ctx.rootId,
     columnScrollAnchor: ctx.ui.columnScrollAnchor,
   })
