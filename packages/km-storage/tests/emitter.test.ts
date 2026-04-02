@@ -2,7 +2,7 @@
  * Emitter Tests — Error Isolation & Callback Integrity
  *
  * Covers:
- * - F1: Error isolation in emit() — one bad listener must not kill the pipeline
+ * - F1: Error isolation in apply() — one bad listener must not kill the pipeline
  * - EventHub broadcast errors don't block FsSync
  * - FsSync errors don't suppress event return
  * - All steps (persist, db apply, broadcast, fs sync) execute in order
@@ -47,7 +47,7 @@ function createTmpDir(): string {
 // F1: Error isolation — broadcast error must not kill pipeline
 // =============================================================================
 
-describe("F1: Error isolation in emit()", () => {
+describe("F1: Error isolation in apply()", () => {
   test("broadcast error does not prevent fsSync from running", () => {
     const db = createTestDb()
     const dir = createTmpDir()
@@ -74,7 +74,7 @@ describe("F1: Error isolation in emit()", () => {
     })
 
     // Should NOT throw — broadcast error is isolated
-    const event = emitter.emit({ type: "node_created", actor: "test", data: { id: "n1", type: "h" } })
+    const event = emitter.apply({ type: "node_created", actor: "test", data: { id: "n1", type: "h" } })
 
     expect(event).toBeDefined()
     expect(event.type).toBe("node_created")
@@ -118,7 +118,7 @@ describe("F1: Error isolation in emit()", () => {
     })
 
     // I/O error in fsSync (has errno code) should be swallowed
-    const event = emitter.emit({ type: "node_updated", actor: "test", target: "t1", data: { content: "x" } })
+    const event = emitter.apply({ type: "node_updated", actor: "test", target: "t1", data: { content: "x" } })
 
     expect(event).toBeDefined()
     expect(event.type).toBe("node_updated")
@@ -148,21 +148,21 @@ describe("F1: Error isolation in emit()", () => {
 
     // Programming errors (no errno code) should propagate
     expect(() => {
-      emitter.emit({ type: "node_created", actor: "test", data: { id: "n2", type: "h" } })
+      emitter.apply({ type: "node_created", actor: "test", data: { id: "n2", type: "h" } })
     }).toThrow("Cannot read properties of undefined")
 
     db.close()
     rmSync(dir, { recursive: true })
   })
 
-  test("emit returns event even when no hub or fsSync is set", () => {
+  test("apply returns event even when no hub or fsSync is set", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
 
     const emitter = createEmitter({ kmDir, db })
 
-    const event = emitter.emit({ type: "node_created", actor: "test", data: { id: "n3", type: "p" } })
+    const event = emitter.apply({ type: "node_created", actor: "test", data: { id: "n3", type: "p" } })
 
     expect(event.id).toBeTruthy()
     expect(event.ts).toBeGreaterThan(0)
@@ -198,7 +198,7 @@ describe("F1: Error isolation in emit()", () => {
       fsSync,
     })
 
-    emitter.emit({ type: "node_created", actor: "test", data: { id: "n4", type: "h" } })
+    emitter.apply({ type: "node_created", actor: "test", data: { id: "n4", type: "h" } })
 
     // Verify events.jsonl was written (persist step)
     const eventsPath = join(kmDir, "events.jsonl")
@@ -243,11 +243,11 @@ describe("F1: Multiple callback isolation", () => {
     }
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub1, skipPersist: true })
-    emitter.emit({ type: "node_created", actor: "test", data: { id: "a", type: "h" } })
+    emitter.apply({ type: "node_created", actor: "test", data: { id: "a", type: "h" } })
     expect(calls).toEqual(["hub1"])
 
     emitter.setEventHub(hub2)
-    emitter.emit({ type: "node_created", actor: "test", data: { id: "b", type: "h" } })
+    emitter.apply({ type: "node_created", actor: "test", data: { id: "b", type: "h" } })
     expect(calls).toEqual(["hub1", "hub2"])
 
     db.close()
@@ -272,13 +272,13 @@ describe("F1: Multiple callback isolation", () => {
     }
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
-    emitter.emit({ type: "node_created", actor: "test", data: { id: "c", type: "h" } })
+    emitter.apply({ type: "node_created", actor: "test", data: { id: "c", type: "h" } })
     expect(calls).toEqual(["hub", "fsSync"])
 
     emitter.close()
     calls.length = 0
 
-    emitter.emit({ type: "node_created", actor: "test", data: { id: "d", type: "h" } })
+    emitter.apply({ type: "node_created", actor: "test", data: { id: "d", type: "h" } })
     // After close, neither hub nor fsSync should be called
     expect(calls).toEqual([])
 
@@ -314,8 +314,8 @@ describe("skipFsSync option", () => {
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
 
-    // Emit with skipFsSync: true — simulates FS-origin reconciliation
-    emitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } }, { skipFsSync: true })
+    // Apply with skipFsSync: true — simulates FS-origin reconciliation
+    emitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } }, { skipFsSync: true })
 
     // Broadcast should still run
     expect(broadcastCalls).toEqual(["node_created"])
@@ -341,8 +341,8 @@ describe("skipFsSync option", () => {
 
     const emitter = createEmitter({ kmDir, db, fsSync, skipPersist: true })
 
-    // Emit without skipFsSync — normal TUI-origin event
-    emitter.emit({ type: "node_updated", actor: "user", target: "t1", data: { content: "x" } })
+    // Apply without skipFsSync — normal TUI-origin event
+    emitter.apply({ type: "node_updated", actor: "user", target: "t1", data: { content: "x" } })
 
     // FsSync should run
     expect(fsSyncCalls).toEqual(["node_updated"])
@@ -374,7 +374,7 @@ describe("skipFsSync option", () => {
     const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
 
     // skipFsSync + skipBroadcast — neither should run
-    emitter.emit(
+    emitter.apply(
       { type: "node_created", actor: "fs-watch", data: { id: "n2", type: "h" } },
       { skipFsSync: true, skipBroadcast: true },
     )
@@ -392,7 +392,7 @@ describe("skipFsSync option", () => {
 // =============================================================================
 
 describe("Emitter wrapping for reconciliation", () => {
-  test("wrapped emitter adds skipFsSync to all emit calls", () => {
+  test("wrapped emitter adds skipFsSync to all apply calls", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -417,14 +417,14 @@ describe("Emitter wrapping for reconciliation", () => {
     // Create a wrapped emitter (same pattern as wrapEmitterForReconcile in sync.ts)
     const wrappedEmitter: typeof emitter = {
       ...emitter,
-      emit(event, options = {}) {
-        return emitter.emit(event, { ...options, skipFsSync: true })
+      apply(event, options = {}) {
+        return emitter.apply(event, { ...options, skipFsSync: true })
       },
     }
 
-    // Emit via wrapped emitter — should broadcast but NOT write to fs
-    wrappedEmitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
-    wrappedEmitter.emit({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
+    // Apply via wrapped emitter — should broadcast but NOT write to fs
+    wrappedEmitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
+    wrappedEmitter.apply({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
 
     // Broadcast still works (TUI gets notified)
     expect(broadcastCalls).toEqual(["node_created", "node_updated"])
@@ -432,14 +432,14 @@ describe("Emitter wrapping for reconciliation", () => {
     expect(fsSyncCalls).toEqual([])
 
     // Direct emitter still has fsSync working (for TUI-origin events)
-    emitter.emit({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
+    emitter.apply({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
     expect(fsSyncCalls).toEqual(["node_updated"])
 
     db.close()
     rmSync(dir, { recursive: true })
   })
 
-  test("wrapped emitter preserves other emit options", () => {
+  test("wrapped emitter preserves other apply options", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -463,13 +463,13 @@ describe("Emitter wrapping for reconciliation", () => {
 
     const wrappedEmitter: typeof emitter = {
       ...emitter,
-      emit(event, options = {}) {
-        return emitter.emit(event, { ...options, skipFsSync: true })
+      apply(event, options = {}) {
+        return emitter.apply(event, { ...options, skipFsSync: true })
       },
     }
 
-    // Wrapped emit with additional skipBroadcast — both should be respected
-    wrappedEmitter.emit(
+    // Wrapped apply with additional skipBroadcast — both should be respected
+    wrappedEmitter.apply(
       { type: "node_created", actor: "fs-watch", data: { id: "w2", type: "h" } },
       { skipBroadcast: true },
     )

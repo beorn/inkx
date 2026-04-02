@@ -7,7 +7,7 @@
 
 import { describe, test, expect, beforeEach } from "vitest"
 import { createModeStack, type InputMode } from "../src/input-mode.ts"
-import { getEditMode, createInitialPaneUI } from "../src/ui-reducer.ts"
+import { PaneUI, createInitialPaneUI } from "../src/ui-reducer.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("createModeStack", () => {
@@ -148,49 +148,51 @@ describe("createModeStack", () => {
 })
 
 // =============================================================================
-// getEditMode — mode derivation (absorbed from edit-mode.test.ts)
+// PaneUI.editMode — mode derivation (absorbed from edit-mode.test.ts)
 // =============================================================================
 
-describe("getEditMode", () => {
+describe("PaneUI.editMode", () => {
   const base = createInitialPaneUI("cards", [], { columns: 80, rows: 24 })
 
   test("returns 'node' for default state", () => {
-    expect(getEditMode(base)).toBe("node")
+    expect(PaneUI.editMode(base)).toBe("node")
   })
 
   test("returns 'text' when inlineEditBlock is set", () => {
-    expect(getEditMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 } })).toBe("text")
+    expect(PaneUI.editMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 } })).toBe("text")
   })
 
   test("returns 'dialog' when search dialog is open", () => {
-    expect(getEditMode({ ...base, showSearchDialog: true })).toBe("dialog")
+    expect(PaneUI.editMode({ ...base, showSearchDialog: true })).toBe("dialog")
   })
 
   test("returns 'dialog' when new item dialog is open", () => {
-    expect(getEditMode({ ...base, showNewItemDialog: true })).toBe("dialog")
+    expect(PaneUI.editMode({ ...base, showNewItemDialog: true })).toBe("dialog")
   })
 
   test("returns 'dialog' when item picker is open", () => {
-    expect(getEditMode({ ...base, activePicker: { type: "project" } })).toBe("dialog")
+    expect(PaneUI.editMode({ ...base, activePicker: { type: "project" } })).toBe("dialog")
   })
 
   test("returns 'dialog' when date prompt is active", () => {
-    expect(getEditMode({ ...base, datePrompt: { field: "due_at", nodeIds: ["n1"], currentValue: "" } })).toBe("dialog")
+    expect(PaneUI.editMode({ ...base, datePrompt: { field: "due_at", nodeIds: ["n1"], currentValue: "" } })).toBe(
+      "dialog",
+    )
   })
 
   test("returns 'dialog' when filter dialog is open", () => {
-    expect(getEditMode({ ...base, showFilterDialog: true })).toBe("dialog")
+    expect(PaneUI.editMode({ ...base, showFilterDialog: true })).toBe("dialog")
   })
 
   test("returns 'dialog' when delete confirm is active", () => {
     expect(
-      getEditMode({ ...base, deleteConfirm: { nodeIds: ["n1"], title: "t", childCount: 0, backlinkCount: 0 } }),
+      PaneUI.editMode({ ...base, deleteConfirm: { nodeIds: ["n1"], title: "t", childCount: 0, backlinkCount: 0 } }),
     ).toBe("dialog")
   })
 
   test("text mode takes precedence over dialog", () => {
     // If both inline edit and dialog are somehow active, text mode wins
-    expect(getEditMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 }, showSearchDialog: true })).toBe(
+    expect(PaneUI.editMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 }, showSearchDialog: true })).toBe(
       "text",
     )
   })

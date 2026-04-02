@@ -20,6 +20,8 @@ import { Tree } from "@km/tree"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
+import { SelectionLevel } from "./cursor-store.ts"
+import { PaneUI } from "./ui-reducer.ts"
 import { createLogger } from "loggily"
 import { getModeStack } from "./dialog-guard.ts"
 
@@ -58,32 +60,23 @@ function buildCommandContexts(ctx: ActionCtx) {
       } as TNode)
     : null
 
-  const isDialogInput =
-    ui.showNewItemDialog ||
-    !!ui.activePicker ||
-    ui.showSearchDialog ||
-    !!ui.datePrompt ||
-    ui.showOmnibox ||
-    !!ui.localSearch?.isInputActive ||
-    !!ui.searchReplace
+  const dialogInput = PaneUI.isDialogInput(ui)
 
   const kbCtx = buildKeybindingContext({
     inMoveMode: ctx.moveState.active,
     inSearchMode: ui.showSearchDialog,
-    inInputMode:
-      ui.showNewItemDialog ||
-      !!ui.activePicker ||
-      ui.showSearchDialog ||
-      ui.showFilterDialog ||
-      !!ui.datePrompt ||
-      ui.showOmnibox ||
-      !!ui.localSearch?.isInputActive ||
-      !!ui.searchReplace,
+    inInputMode: dialogInput || ui.showFilterDialog,
     hasMultiSelection: ui.multiSelected.size > 0,
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
-    isInOutlineMode: ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id,
+    isInOutlineMode: SelectionLevel.isOutline(
+      SelectionLevel.derive({
+        cursorNodeId: ctx.cursorNodeId,
+        cursorCardNodeId: ctx.cursorCardNodeId,
+        cursorColumnNodeId: ctx.column?.node.id ?? null,
+      }),
+    ),
     currentNode: nodeForCtx,
-    textInputFocused: !!ui.inlineEditBlock || isDialogInput,
+    textInputFocused: PaneUI.isTextInputFocused(ui),
     isInlineEditing: !!ui.inlineEditBlock,
     searchDialogOpen: ui.showSearchDialog,
     itemPickerOpen: !!ui.activePicker,
@@ -102,7 +95,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     favoritesDialogOpen: ui.showFavoritesDialog,
     favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
-    inputType: ui.inlineEditBlock ? "textarea" : isDialogInput ? "field" : undefined,
+    inputType: ui.inlineEditBlock ? "textarea" : dialogInput ? "field" : undefined,
     editBlockIndex: ui.inlineEditBlock?.blockIndex,
     cursorAtStart() {
       const t = activeEditTargetRef.current

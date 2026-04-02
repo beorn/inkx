@@ -26,31 +26,6 @@ import type { PerPaneUIFields } from "./board-types.ts"
 /** Editing mode — derived from UIState, not stored separately */
 export type EditMode = "node" | "text" | "dialog"
 
-/**
- * Get the current editing mode from UI state.
- * - "text": inline editing a node (inlineEditBlock is set)
- * - "dialog": a dialog is open (search, new item, date prompt, etc.)
- * - "node": default navigation mode
- */
-export function getEditMode(ui: PaneUI): EditMode {
-  if (ui.inlineEditBlock) return "text"
-  if (
-    ui.showSearchDialog ||
-    ui.showNewItemDialog ||
-    ui.activePicker ||
-    ui.showFilterDialog ||
-    ui.datePrompt ||
-    ui.deleteConfirm ||
-    ui.localSearch ||
-    ui.showOmnibox ||
-    ui.searchReplace ||
-    ui.showFavoritesDialog
-  ) {
-    return "dialog"
-  }
-  return "node"
-}
-
 export interface UIState {
   // View configuration (global — shared across panes)
   iconStyle: IconStyle
@@ -154,6 +129,74 @@ export interface UIState {
  * React selectors should read per-pane fields from the pane directly, not from UIState.
  */
 export type PaneUI = UIState & PerPaneUIFields
+
+// =============================================================================
+// PaneUI Namespace — discoverable mode helpers
+// =============================================================================
+
+/**
+ * Namespace for PaneUI mode queries.
+ * Type `PaneUI.` to discover all helpers: editMode, isInDialog, isTextInputFocused, isBusy.
+ */
+// eslint-disable-next-line @typescript-eslint/no-namespace
+export namespace PaneUI {
+  /**
+   * Get the current editing mode from UI state.
+   * - "text": inline editing a node (inlineEditBlock is set)
+   * - "dialog": a dialog is open (search, new item, date prompt, etc.)
+   * - "node": default navigation mode
+   */
+  export function editMode(ui: PaneUI): EditMode {
+    if (ui.inlineEditBlock) return "text"
+    if (isInDialog(ui)) return "dialog"
+    return "node"
+  }
+
+  /** True when any dialog/modal overlay is active (search, picker, date prompt, etc.) */
+  export function isInDialog(ui: PaneUI): boolean {
+    return !!(
+      ui.showSearchDialog ||
+      ui.showNewItemDialog ||
+      ui.activePicker ||
+      ui.showFilterDialog ||
+      ui.datePrompt ||
+      ui.deleteConfirm ||
+      ui.localSearch ||
+      ui.showOmnibox ||
+      ui.searchReplace ||
+      ui.showFavoritesDialog
+    )
+  }
+
+  /**
+   * True when a text input has focus — either inline editing or a dialog input field.
+   * Used by the keybinding system to suppress navigation keys during text entry.
+   */
+  export function isTextInputFocused(ui: PaneUI): boolean {
+    return !!ui.inlineEditBlock || isDialogInput(ui)
+  }
+
+  /**
+   * True when any dialog input field (not inline edit) has focus.
+   * Subset of isInDialog — excludes deleteConfirm and localSearch in browse mode.
+   */
+  export function isDialogInput(ui: PaneUI): boolean {
+    return !!(
+      ui.showNewItemDialog ||
+      ui.activePicker ||
+      ui.showSearchDialog ||
+      ui.datePrompt ||
+      ui.showOmnibox ||
+      ui.localSearch?.isInputActive ||
+      ui.searchReplace
+    )
+  }
+
+  /** True when the app is loading or syncing (watcher starting, background parsing, etc.) */
+  export function isBusy(ui: PaneUI): boolean {
+    return ui.isLoading || ui.backgroundParsing || !ui.watcherStatus || ui.watcherStatus.state === "starting"
+  }
+}
 
 /** State for the search & replace dialog */
 export interface SearchReplaceState {

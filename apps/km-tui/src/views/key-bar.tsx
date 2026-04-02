@@ -7,7 +7,7 @@
 
 import React from "react"
 import { Box, Strong, Text, useFocusManager } from "@silvery/ag-react"
-import { type PaneUI, getEditMode } from "../ui-reducer.ts"
+import { PaneUI } from "../ui-reducer.ts"
 import { isDetailPaneId } from "../board-types.ts"
 
 /** A single key hint: key label + action description */
@@ -66,7 +66,7 @@ const MULTI_HINTS: KeyHint[] = [
 ]
 
 function getKeyBarMode(ui: PaneUI, isDetailPaneFocused: boolean): KeyBarMode {
-  const editMode = getEditMode(ui)
+  const editMode = PaneUI.editMode(ui)
   if (editMode === "text") return "TEXT"
   if (ui.visualMode) return "VISUAL"
   if (isDetailPaneFocused) return "PANE"

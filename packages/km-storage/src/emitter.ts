@@ -6,7 +6,7 @@
  *
  * Usage:
  *   const emitter = createEmitter({ kmDir: "/path/to/.km" })
- *   emitter.emit({ type: "node_created", actor: "user", data: {...} })
+ *   emitter.apply({ type: "node_created", actor: "user", data: {...} })
  *   emitter.setEventHub({ broadcast: (e) => socket.send(e) })
  *   emitter.setFsSync(syncManager)
  *   emitter.close()
@@ -34,7 +34,7 @@ export interface FsSync {
   applyEventToFs(event: Event): void
 }
 
-/** Options for emit() calls */
+/** Options for apply() calls */
 export interface EmitOptions {
   /** Skip writing to events.jsonl */
   skipPersist?: boolean
@@ -69,8 +69,8 @@ export interface Emitter {
   readonly eventsPath: string
 
   /**
-   * Emit an event (commit + project).
-   * Convenience method that calls commit() then project().
+   * Apply an event to the system (commit + save).
+   * Convenience method that calls commit() then save().
    * Use for TUI-origin events where both DB and FS need updating.
    *
    * 1. Applies to database (if db provided) — primary operation, DB consistency is non-negotiable
@@ -78,7 +78,7 @@ export interface Emitter {
    * 3. Broadcasts via eventHub (unless skipBroadcast)
    * 4. Syncs to filesystem (if fsSync set and !skipFsSync)
    */
-  emit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+  apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
 
   /**
    * Commit an event to the database and journal (no filesystem projection).
@@ -92,12 +92,12 @@ export interface Emitter {
   commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
 
   /**
-   * Project an already-committed event to the filesystem.
+   * Save an already-committed event to the filesystem.
    * Only triggers filesystem sync — no DB apply, no persist, no broadcast.
    *
-   * Called after commit() for TUI-origin events that need FS projection.
+   * Called after commit() for TUI-origin events that need FS saving.
    */
-  project(event: Event): void
+  save(event: Event): void
 
   /** Set event hub for real-time broadcasting */
   setEventHub(hub: EventHub | null): void
@@ -122,7 +122,7 @@ export interface Emitter {
  *
  * @example
  * const emitter = createEmitter({ kmDir: "/path/to/.km" })
- * emitter.emit({ type: "node_created", actor: "user", data: { id: "abc" } })
+ * emitter.apply({ type: "node_created", actor: "user", data: { id: "abc" } })
  */
 export function createEmitter(options: EmitterOptions): Emitter {
   const { kmDir } = options
@@ -184,10 +184,10 @@ export function createEmitter(options: EmitterOptions): Emitter {
   }
 
   /**
-   * Internal: project an event to filesystem (step 4).
+   * Internal: save an event to filesystem (step 4).
    * Isolated from DB and broadcast — only triggers fsSync.
    */
-  function projectInternal(event: Event): void {
+  function saveInternal(event: Event): void {
     if (!fsSync) return
 
     try {
@@ -211,13 +211,13 @@ export function createEmitter(options: EmitterOptions): Emitter {
       return eventsPath
     },
 
-    emit(partialEvent, emitOptions = {}) {
-      // emit = commit + project (backwards compat convenience)
+    apply(partialEvent, emitOptions = {}) {
+      // apply = commit + save
       const event = commitInternal(partialEvent, emitOptions)
 
       // 4. Sync to filesystem (unless skipFsSync)
       if (!emitOptions.skipFsSync) {
-        projectInternal(event)
+        saveInternal(event)
       }
 
       return event
@@ -228,9 +228,9 @@ export function createEmitter(options: EmitterOptions): Emitter {
       return commitInternal(partialEvent, commitOptions)
     },
 
-    project(event) {
-      // Filesystem projection only — event must already be committed
-      projectInternal(event)
+    save(event) {
+      // Filesystem save only — event must already be committed
+      saveInternal(event)
     },
 
     setEventHub(hub) {
@@ -266,7 +266,7 @@ export function emitNodeCreated(
   data: Record<string, unknown>,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit({ type: "node_created", actor, data }, options)
+  return emitter.apply({ type: "node_created", actor, data }, options)
 }
 
 /** Emit node_updated event */
@@ -277,7 +277,7 @@ export function emitNodeUpdated(
   data: Record<string, unknown>,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit({ type: "node_updated", actor, target, data }, options)
+  return emitter.apply({ type: "node_updated", actor, target, data }, options)
 }
 
 /** Emit node_moved event */
@@ -288,7 +288,7 @@ export function emitNodeMoved(
   data: { parent_id: string | null; parent_idx?: number },
   options?: EmitOptions,
 ): Event {
-  return emitter.emit({ type: "node_moved", actor, target, data }, options)
+  return emitter.apply({ type: "node_moved", actor, target, data }, options)
 }
 
 /** Emit node_deleted event */
@@ -299,12 +299,12 @@ export function emitNodeDeleted(
   reason?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit({ type: "node_deleted", actor, target, data: { reason } }, options)
+  return emitter.apply({ type: "node_deleted", actor, target, data: { reason } }, options)
 }
 
 /** Emit task_claimed event */
 export function emitTaskClaimed(emitter: Emitter, target: string, actor: string, options?: EmitOptions): Event {
-  return emitter.emit({ type: "task_claimed", actor, target, data: {} }, options)
+  return emitter.apply({ type: "task_claimed", actor, target, data: {} }, options)
 }
 
 /** Emit task_released event */
@@ -315,7 +315,7 @@ export function emitTaskReleased(
   reason?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit({ type: "task_released", actor, target, data: { reason } }, options)
+  return emitter.apply({ type: "task_released", actor, target, data: { reason } }, options)
 }
 
 /** Emit task_completed event */
@@ -326,7 +326,7 @@ export function emitTaskCompleted(
   summary?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit({ type: "task_completed", actor, target, data: { summary } }, options)
+  return emitter.apply({ type: "task_completed", actor, target, data: { summary } }, options)
 }
 
 /** Emit session_started event */
@@ -339,7 +339,7 @@ export function emitSessionStarted(
   systemPromptHash?: string,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit(
+  return emitter.apply(
     {
       type: "session_started",
       actor,
@@ -364,7 +364,7 @@ export function emitSessionMessage(
   tokens?: number,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit(
+  return emitter.apply(
     {
       type: "session_message",
       actor,
@@ -385,7 +385,7 @@ export function emitSessionToolCall(
   tokens?: number,
   options?: EmitOptions,
 ): Event {
-  return emitter.emit(
+  return emitter.apply(
     {
       type: "session_tool_call",
       actor,
@@ -410,7 +410,7 @@ export function emitSessionEnded(
   },
   emitOpts?: EmitOptions,
 ): Event {
-  return emitter.emit(
+  return emitter.apply(
     {
       type: "session_ended",
       actor,

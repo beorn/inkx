@@ -13,8 +13,8 @@ import type { FocusManager } from "@silvery/ag-react"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardAction } from "./board-types.ts"
 import type { ColumnView } from "./types.ts"
-import type { PaneUI, EditMode } from "./ui-reducer.ts"
-import { getEditMode } from "./ui-reducer.ts"
+import { PaneUI } from "./ui-reducer.ts"
+import type { EditMode } from "./ui-reducer.ts"
 import type { GridNavigator, ViewNode } from "@km/board"
 import type { ViewNavigation } from "./view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
@@ -187,7 +187,7 @@ export type DelegatedActionCtxKeys = (typeof DELEGATED_ACTION_CTX_KEYS)[number]
 
 /** Get the current editing mode */
 export function currentMode(ctx: ActionCtx): EditMode {
-  return getEditMode(ctx.ui)
+  return PaneUI.editMode(ctx.ui)
 }
 
 /** Enter text editing mode on a node */
