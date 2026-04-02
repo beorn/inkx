@@ -108,6 +108,19 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 **Worktrees:** Use `bun worktree` (not bare `git worktree`) - it handles submodules, dependencies, and hooks.
 See [.claude/skills/git/worktree.md] for details.
 
+## Internal Documents (`vendor/internal/`)
+
+`vendor/internal/` holds private documents that should NOT appear on public-facing sites. Each project gets its own subdirectory:
+
+- `vendor/internal/silvery/` — silvery design docs, mockups, prototypes, roadmap (git submodule → beorn/silvery-internal)
+- `vendor/internal/bearly/` — bearly/tribe design docs (tracked in km repo)
+
+**What goes here:** design documents, architecture plans, marketing strategies, competitive analysis, launch plans, internal roadmaps, mockups, prototypes — anything that informs development but shouldn't be published.
+
+**What does NOT go here:** public documentation (that goes in each package's `docs/`), code (that goes in `src/`), tests (that goes in `tests/`).
+
+**Rule:** If it's in `vendor/internal/`, it's private. If it's in `vendor/*/docs/`, it's public. Never reference `vendor/internal/` content from public docs.
+
 ## Data Model
 
 **Read [docs/design/data-model.md](docs/design/data-model.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed).
