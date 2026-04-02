@@ -70,7 +70,7 @@ export {
 export { canHaveChildren, canParent, canBecomeBlock } from "./schema.ts"
 
 // Tree walk — configurable DFS traversal and spatial queries
-export { walkTree, getVisibleBlocks, type WalkEntry, type WalkOptions } from "./walk.ts"
+export { TreeWalk, type NodeEntry, type NodeMatch, type NodesOptions } from "./walk.ts"
 
 // Validation — invariant checking after mutations
 export { withValidation, withTreeValidation } from "./validation.ts"

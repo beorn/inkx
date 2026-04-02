@@ -1,12 +1,12 @@
 /**
- * Tree Walk Tests — walkTree generator and getVisibleBlocks.
+ * Tree Walk Tests — TreeWalk.nodes().
  *
  * Uses createTestRepo for an in-memory Repo that satisfies TreeMutator.
  */
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { walkTree, getVisibleBlocks } from "../src/walk.ts"
+import { TreeWalk } from "../src/walk.ts"
 
 // =============================================================================
 // Helpers
@@ -76,195 +76,286 @@ function setupTree() {
 }
 
 // =============================================================================
-// walkTree
+// TreeWalk.nodes — SlateJS-style pluggable traversal
 // =============================================================================
 
-describe("walkTree", () => {
-  test("yields nodes in DFS pre-order", () => {
-    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
+/** Helper: extract names from NodeEntry tuples. */
+function names(entries: Iterable<[{ name?: string | null; content?: string | null }, number]>): string[] {
+  return [...entries].map(([node]) => (node.name ?? node.content)!)
+}
 
-    const ids = [...walkTree(repo, rootId)].map((e) => e.node.id)
-    expect(ids).toEqual([rootId, aId, a1Id, a2Id, bId, b1Id, b1aId])
+/** Helper: extract [name, depth] from NodeEntry tuples. */
+function nameDepths(
+  entries: Iterable<[{ name?: string | null; content?: string | null }, number]>,
+): [string, number][] {
+  return [...entries].map(([node, depth]) => [(node.name ?? node.content)!, depth])
+}
+
+describe("TreeWalk.nodes", () => {
+  // -------------------------------------------------------------------------
+  // Basic DFS order (no options)
+  // -------------------------------------------------------------------------
+
+  test("yields all nodes in DFS pre-order with no options", () => {
+    const { repo, rootId } = setupTree()
+    expect(names(TreeWalk.nodes(repo, rootId))).toEqual(["root", "A", "A1", "A2", "B", "B1", "B1a"])
   })
 
-  test("yields correct depth for each node", () => {
+  test("yields correct depths", () => {
     const { repo, rootId } = setupTree()
-
-    const depths = [...walkTree(repo, rootId)].map((e) => ({ name: e.node.name ?? e.node.content, depth: e.depth }))
-    expect(depths).toEqual([
-      { name: "root", depth: 0 },
-      { name: "A", depth: 1 },
-      { name: "A1", depth: 2 },
-      { name: "A2", depth: 2 },
-      { name: "B", depth: 1 },
-      { name: "B1", depth: 2 },
-      { name: "B1a", depth: 3 },
+    expect(nameDepths(TreeWalk.nodes(repo, rootId))).toEqual([
+      ["root", 0],
+      ["A", 1],
+      ["A1", 2],
+      ["A2", 2],
+      ["B", 1],
+      ["B1", 2],
+      ["B1a", 3],
     ])
-  })
-
-  test("yields correct parentId for each node", () => {
-    const { repo, rootId, aId, bId, b1Id } = setupTree()
-
-    const entries = [...walkTree(repo, rootId)]
-    const parentIds = entries.map((e) => ({ name: e.node.name ?? e.node.content, parentId: e.parentId }))
-
-    // Root's parentId is its actual parent_id (repo uses "." for root parent)
-    expect(parentIds[0]).toEqual({ name: "root", parentId: entries[0]!.node.parent_id })
-    // A's parentId is root
-    expect(parentIds[1]).toEqual({ name: "A", parentId: rootId })
-    // A1's parentId is A
-    expect(parentIds[2]).toEqual({ name: "A1", parentId: aId })
-    // B1a's parentId is B1
-    expect(parentIds[6]).toEqual({ name: "B1a", parentId: b1Id })
-  })
-
-  test("filter skips node and its entire subtree", () => {
-    const { repo, rootId, aId, bId } = setupTree()
-
-    // Skip node A — should skip A, A1, A2
-    const ids = [...walkTree(repo, rootId, { filter: (n) => n.id !== aId })].map((e) => e.node.id)
-    expect(ids).toEqual([rootId, bId, expect.any(String), expect.any(String)])
-    expect(ids).not.toContain(aId)
-  })
-
-  test("filter skips root if root fails filter", () => {
-    const { repo, rootId } = setupTree()
-
-    const ids = [...walkTree(repo, rootId, { filter: () => false })]
-    expect(ids).toEqual([])
-  })
-
-  test("maxDepth limits traversal depth", () => {
-    const { repo, rootId, aId, bId } = setupTree()
-
-    // maxDepth 1 = root + direct children only
-    const entries = [...walkTree(repo, rootId, { maxDepth: 1 })]
-    const ids = entries.map((e) => e.node.id)
-    expect(ids).toEqual([rootId, aId, bId])
-  })
-
-  test("maxDepth 0 yields only root", () => {
-    const { repo, rootId } = setupTree()
-
-    const entries = [...walkTree(repo, rootId, { maxDepth: 0 })]
-    expect(entries).toHaveLength(1)
-    expect(entries[0]!.node.id).toBe(rootId)
-  })
-
-  test("maxDepth and filter compose correctly", () => {
-    const { repo, rootId, bId } = setupTree()
-
-    // maxDepth 2, skip A subtree
-    const entries = [...walkTree(repo, rootId, { maxDepth: 2, filter: (n) => n.name !== "A" })]
-    const names = entries.map((e) => e.node.name ?? e.node.content)
-    expect(names).toEqual(["root", "B", "B1"])
   })
 
   test("nonexistent rootId yields nothing", () => {
     const { repo } = setupTree()
-
-    const entries = [...walkTree(repo, "nonexistent")]
-    expect(entries).toEqual([])
+    expect([...TreeWalk.nodes(repo, "nonexistent")]).toEqual([])
   })
 
   test("leaf node yields just itself", () => {
     const { repo, a1Id } = setupTree()
-
-    const entries = [...walkTree(repo, a1Id)]
-    expect(entries).toHaveLength(1)
-    expect(entries[0]!.node.id).toBe(a1Id)
-    expect(entries[0]!.depth).toBe(0)
+    const result = nameDepths(TreeWalk.nodes(repo, a1Id))
+    expect(result).toEqual([["A1", 0]])
   })
 
-  test("startAfter skips nodes up to and including the target", () => {
-    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
+  // -------------------------------------------------------------------------
+  // match: yield only matching nodes (but always walk children)
+  // -------------------------------------------------------------------------
 
-    // DFS order: root, A, A1, A2, B, B1, B1a
-    // startAfter A → skip root and A, yield A1, A2, B, B1, B1a
-    const ids = [...walkTree(repo, rootId, { startAfter: aId })].map((e) => e.node.id)
-    expect(ids).toEqual([a1Id, a2Id, bId, b1Id, b1aId])
-  })
-
-  test("startAfter yields nodes after the target in DFS order", () => {
-    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
-
-    // DFS order: root, A, A1, A2, B, B1, B1a
-    // startAfter A2 → should yield B, B1, B1a
-    const ids = [...walkTree(repo, rootId, { startAfter: a2Id })].map((e) => e.node.id)
-    expect(ids).toEqual([bId, b1Id, b1aId])
-  })
-
-  test("startAfter with leaf node yields remaining nodes", () => {
-    const { repo, rootId, bId, b1Id, b1aId } = setupTree()
-
-    // startAfter A1 → should yield A2, B, B1, B1a
-    const names = [
-      ...walkTree(repo, rootId, { startAfter: repo.getChildren(repo.getChildren(rootId)[0]!.id)[0]!.id }),
-    ].map((e) => e.node.name ?? e.node.content)
-    expect(names).toEqual(["A2", "B", "B1", "B1a"])
-  })
-
-  test("startAfter last node yields nothing", () => {
-    const { repo, rootId, b1aId } = setupTree()
-
-    const entries = [...walkTree(repo, rootId, { startAfter: b1aId })]
-    expect(entries).toEqual([])
-  })
-
-  test("startAfter composes with filter", () => {
-    const { repo, rootId, a2Id, bId, b1Id } = setupTree()
-
-    // startAfter A2, filter out B1a
-    const ids = [...walkTree(repo, rootId, { startAfter: a2Id, filter: (n) => n.content !== "B1a" })].map(
-      (e) => e.node.id,
-    )
-    expect(ids).toEqual([bId, b1Id])
-  })
-})
-
-// =============================================================================
-// getVisibleBlocks
-// =============================================================================
-
-describe("getVisibleBlocks", () => {
-  test("returns flat list in document order", () => {
-    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
-
-    const blocks = getVisibleBlocks(repo, rootId)
-    const ids = blocks.map((n) => n.id)
-    expect(ids).toEqual([rootId, aId, a1Id, a2Id, bId, b1Id, b1aId])
-  })
-
-  test("isVisible filter skips hidden nodes and their descendants", () => {
-    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
-
-    // Hide B — should skip B, B1, B1a
-    const blocks = getVisibleBlocks(repo, rootId, { isVisible: (id) => id !== bId })
-    const ids = blocks.map((n) => n.id)
-    expect(ids).toEqual([rootId, aId, a1Id, a2Id])
-  })
-
-  test("isVisible can hide individual leaf nodes", () => {
-    const { repo, rootId, aId, a2Id, bId, b1Id, b1aId, a1Id } = setupTree()
-
-    // Hide A1 only (leaf) — siblings and other branches remain
-    const blocks = getVisibleBlocks(repo, rootId, { isVisible: (id) => id !== a1Id })
-    const ids = blocks.map((n) => n.id)
-    expect(ids).toEqual([rootId, aId, a2Id, bId, b1Id, b1aId])
-  })
-
-  test("empty tree (nonexistent column) returns empty array", () => {
-    const { repo } = setupTree()
-
-    const blocks = getVisibleBlocks(repo, "nonexistent")
-    expect(blocks).toEqual([])
-  })
-
-  test("without isVisible returns all nodes", () => {
+  test("match: yield only items of type 'p'", () => {
     const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { match: (n) => n.type === "p" }))
+    // A1, A2, B1, B1a are type "p"; root, A, B are type "h"
+    expect(result).toEqual(["A1", "A2", "B1", "B1a"])
+  })
 
-    const withFilter = getVisibleBlocks(repo, rootId, {})
-    const withoutOpts = getVisibleBlocks(repo, rootId)
-    expect(withFilter.map((n) => n.id)).toEqual(withoutOpts.map((n) => n.id))
+  test("match: yield only headings", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { match: (n) => n.type === "h" }))
+    expect(result).toEqual(["root", "A", "B"])
+  })
+
+  test("match on root only yields root when match passes", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { match: (n) => n.name === "root" }))
+    expect(result).toEqual(["root"])
+  })
+
+  test("match that matches nothing yields empty", () => {
+    const { repo, rootId } = setupTree()
+    const result = [...TreeWalk.nodes(repo, rootId, { match: () => false })]
+    expect(result).toEqual([])
+  })
+
+  // -------------------------------------------------------------------------
+  // into: control descent (but never affect yielding)
+  // -------------------------------------------------------------------------
+
+  test("into: skip collapsed subtrees", () => {
+    const { repo, rootId, aId } = setupTree()
+    // Don't descend into A — but A itself is still yielded (no match filter)
+    const result = names(TreeWalk.nodes(repo, rootId, { into: (n) => n.id !== aId }))
+    expect(result).toEqual(["root", "A", "B", "B1", "B1a"])
+  })
+
+  test("into: skip all children of root yields only root", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { into: (n) => n.id !== rootId }))
+    expect(result).toEqual(["root"])
+  })
+
+  test("into false on root skips all children but still yields root", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { into: () => false }))
+    expect(result).toEqual(["root"])
+  })
+
+  // -------------------------------------------------------------------------
+  // match + into compose (orthogonal)
+  // -------------------------------------------------------------------------
+
+  test("match + into: match type p but don't descend into A", () => {
+    const { repo, rootId, aId } = setupTree()
+    const result = names(
+      TreeWalk.nodes(repo, rootId, {
+        match: (n) => n.type === "p",
+        into: (n) => n.id !== aId,
+      }),
+    )
+    // A's children (A1, A2) not visited. B1 and B1a are type p.
+    expect(result).toEqual(["B1", "B1a"])
+  })
+
+  test("match + into: match headings but don't descend into B", () => {
+    const { repo, rootId, bId } = setupTree()
+    const result = names(
+      TreeWalk.nodes(repo, rootId, {
+        match: (n) => n.type === "h",
+        into: (n) => n.id !== bId,
+      }),
+    )
+    // root (h), A (h), B (h) — B is yielded but children not visited (B has no h children anyway)
+    expect(result).toEqual(["root", "A", "B"])
+  })
+
+  // -------------------------------------------------------------------------
+  // reverse: bottom-up DFS
+  // -------------------------------------------------------------------------
+
+  test("reverse: yields nodes in reverse DFS order", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { reverse: true }))
+    // Reverse DFS: root is first (pre-order), but children processed right-to-left
+    // Stack pushes children forward so pops give last child first
+    expect(result).toEqual(["root", "B", "B1", "B1a", "A", "A2", "A1"])
+  })
+
+  test("reverse on leaf yields just the leaf", () => {
+    const { repo, b1aId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, b1aId, { reverse: true }))
+    expect(result).toEqual(["B1a"])
+  })
+
+  // -------------------------------------------------------------------------
+  // reverse + match: find last matching node
+  // -------------------------------------------------------------------------
+
+  test("reverse + match: first result is the last heading in forward DFS", () => {
+    const { repo, rootId } = setupTree()
+    const gen = TreeWalk.nodes(repo, rootId, { reverse: true, match: (n) => n.type === "h" })
+    const first = gen.next().value
+    expect(first).toBeDefined()
+    // In reverse DFS, B comes before A. Both are headings. First match is root, then B.
+    // For getting "last heading in forward order" we'd iterate all. Let's just verify order.
+    const result = names(TreeWalk.nodes(repo, rootId, { reverse: true, match: (n) => n.type === "h" }))
+    expect(result).toEqual(["root", "B", "A"])
+  })
+
+  // -------------------------------------------------------------------------
+  // at: start from specific node
+  // -------------------------------------------------------------------------
+
+  test("at: skips nodes before the target in DFS order", () => {
+    const { repo, rootId, aId } = setupTree()
+    // DFS order: root, A, A1, A2, B, B1, B1a
+    // at=A → skip root, yield A onward
+    const result = names(TreeWalk.nodes(repo, rootId, { at: aId }))
+    expect(result).toEqual(["A1", "A2", "B", "B1", "B1a"])
+  })
+
+  test("at: with a2Id skips everything before it", () => {
+    const { repo, rootId, a2Id } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { at: a2Id }))
+    expect(result).toEqual(["B", "B1", "B1a"])
+  })
+
+  test("at: last node yields nothing after", () => {
+    const { repo, rootId, b1aId } = setupTree()
+    const result = [...TreeWalk.nodes(repo, rootId, { at: b1aId })]
+    expect(result).toEqual([])
+  })
+
+  test("at + match: compose correctly", () => {
+    const { repo, rootId, a2Id } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { at: a2Id, match: (n) => n.type === "h" }))
+    expect(result).toEqual(["B"])
+  })
+
+  // -------------------------------------------------------------------------
+  // mode: highest — first match per branch
+  // -------------------------------------------------------------------------
+
+  test("mode highest: yields only shallowest match per branch", () => {
+    const { repo, rootId } = setupTree()
+    // All nodes have items, so match all. Highest should yield only root.
+    const result = names(TreeWalk.nodes(repo, rootId, { match: (n) => n.item != null, mode: "highest" }))
+    expect(result).toEqual(["root"])
+  })
+
+  test("mode highest: non-matching root lets children match independently", () => {
+    const { repo, rootId } = setupTree()
+    // Match type "p" — root is "h", so A1/A2/B1/B1a are candidates
+    // Highest per branch: A1 (first p under A branch), A2 (sibling of A1, own branch), B1 (first p under B)
+    // B1a is deeper than B1 in same branch — suppressed
+    const result = names(TreeWalk.nodes(repo, rootId, { match: (n) => n.type === "p", mode: "highest" }))
+    expect(result).toEqual(["A1", "A2", "B1"])
+  })
+
+  // -------------------------------------------------------------------------
+  // mode: lowest — deepest match per branch
+  // -------------------------------------------------------------------------
+
+  test("mode lowest: yields only deepest match per branch", () => {
+    const { repo, rootId } = setupTree()
+    // Match everything with items. Lowest = leaves that have items.
+    // A1 (leaf, has item), A2 (leaf, has item), B1 (has item, child B1a has no item) → B1 is lowest item
+    const result = names(TreeWalk.nodes(repo, rootId, { match: (n) => n.item != null, mode: "lowest" }))
+    expect(result).toEqual(["A1", "A2", "B1"])
+  })
+
+  test("mode lowest: single branch yields the leaf match", () => {
+    const { repo, rootId, bId } = setupTree()
+    // Match headings from B subtree — only B is a heading, and it has no heading children
+    const result = names(TreeWalk.nodes(repo, bId, { match: (n) => n.type === "h", mode: "lowest" }))
+    expect(result).toEqual(["B"])
+  })
+
+  test("mode lowest: all nodes match yields only leaves", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { match: () => true, mode: "lowest" }))
+    // Leaves: A1, A2, B1a
+    expect(result).toEqual(["A1", "A2", "B1a"])
+  })
+
+  test("mode lowest + into: respects into boundary", () => {
+    const { repo, rootId, bId } = setupTree()
+    // Match all, don't descend into B — so B is treated as a leaf for matching purposes
+    const result = names(TreeWalk.nodes(repo, rootId, { match: () => true, into: (n) => n.id !== bId, mode: "lowest" }))
+    // A branch: descend fully → A1, A2 are leaves. B branch: don't descend → B is the leaf.
+    expect(result).toEqual(["A1", "A2", "B"])
+  })
+
+  // -------------------------------------------------------------------------
+  // Edge cases
+  // -------------------------------------------------------------------------
+
+  test("empty tree with single root", () => {
+    const repo = createTestRepo()
+    const rootId = repo.addNode(null, { type: "h", item: {}, name: "solo" })
+    expect(names(TreeWalk.nodes(repo, rootId))).toEqual(["solo"])
+  })
+
+  test("into false on every node still yields root", () => {
+    const { repo, rootId } = setupTree()
+    const result = names(TreeWalk.nodes(repo, rootId, { into: () => false }))
+    expect(result).toEqual(["root"])
+  })
+
+  test("match false + into false yields nothing", () => {
+    const { repo, rootId } = setupTree()
+    const result = [...TreeWalk.nodes(repo, rootId, { match: () => false, into: () => false })]
+    expect(result).toEqual([])
+  })
+
+  test("reverse + at: composes correctly", () => {
+    const { repo, rootId, aId } = setupTree()
+    // Reverse DFS order: root, B, B1, B1a, A, A2, A1
+    // at=A → skip root, B, B1, B1a, A; yield A2, A1
+    const result = names(TreeWalk.nodes(repo, rootId, { reverse: true, at: aId }))
+    expect(result).toEqual(["A2", "A1"])
+  })
+
+  test("mode lowest + at: composes correctly", () => {
+    const { repo, rootId, aId } = setupTree()
+    // at=A skips root and A; then from A1 onward: lowest leaves matching all = A1, A2, B1a
+    const result = names(TreeWalk.nodes(repo, rootId, { at: aId, match: () => true, mode: "lowest" }))
+    expect(result).toEqual(["A1", "A2", "B1a"])
   })
 })

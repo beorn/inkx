@@ -1,12 +1,10 @@
 /**
  * Tree Traversal — configurable DFS walk and spatial queries.
  *
- * Tree.nodes: SlateJS-style pluggable traversal with orthogonal match + into predicates.
- * walkTree: legacy generator yielding nodes in DFS pre-order with depth tracking (deprecated).
- * getVisibleBlocks: flat list of visible nodes in document order for a column.
+ * TreeWalk.nodes: SlateJS-style pluggable traversal with orthogonal match + into predicates.
  */
 
-import type { KNode } from "@km/core"
+import { KNode } from "@km/core"
 import type { TreeMutator } from "./block-ops.ts"
 
 // =============================================================================
@@ -16,9 +14,13 @@ import type { TreeMutator } from "./block-ops.ts"
 /** Yielded by Tree.nodes for each visited node. */
 export type NodeEntry = [node: KNode, depth: number]
 
+/** Match predicate: a function, or an object shorthand for `KNode.matches(node, props)`. */
+export type NodeMatch = ((node: KNode) => boolean) | Partial<Record<string, unknown>>
+
 export interface NodesOptions {
-  /** Which nodes to YIELD. Always walks children regardless of match result. */
-  match?: (node: KNode) => boolean
+  /** Which nodes to YIELD. Function or object shorthand (shallow property equality via KNode.matches).
+   *  Always walks children regardless of match result. */
+  match?: NodeMatch
   /** Whether to descend INTO this node's children. Default: always true. */
   into?: (node: KNode) => boolean
   /** DFS in reverse order (bottom-up, last child first). */
@@ -74,7 +76,11 @@ export const TreeWalk = {
     const root = tree.getNode(rootId)
     if (!root) return
 
-    const { match, into, reverse, at, mode = "all" } = opts ?? {}
+    const { match: rawMatch, into, reverse, at, mode = "all" } = opts ?? {}
+
+    // Normalize match: object shorthand → KNode.matches predicate
+    const match =
+      typeof rawMatch === "function" ? rawMatch : rawMatch ? (n: KNode) => KNode.matches(n, rawMatch) : undefined
 
     // For "lowest" mode we need to buffer: a match is only yielded if no
     // descendant also matches. We track pending matches on the stack.
@@ -237,93 +243,3 @@ function* lowestNodes(
   }
 }
 
-// =============================================================================
-// Legacy walkTree — deprecated, use TreeWalk.nodes() instead
-// =============================================================================
-
-/** Yielded by walkTree for each visited node. */
-export interface WalkEntry {
-  node: KNode
-  depth: number
-  parentId: string | null
-}
-
-export interface WalkOptions {
-  /** Return false to skip this node AND its entire subtree. */
-  filter?: (node: KNode) => boolean
-  /** Maximum depth to traverse (0 = root only, undefined = unlimited). */
-  maxDepth?: number
-  /** Skip all nodes up to and including this ID, then yield from the next node. */
-  startAfter?: string
-}
-
-/**
- * DFS pre-order traversal of a tree starting from rootId.
- *
- * Root node is depth 0. When `filter` returns false for a node,
- * that node and all its descendants are skipped entirely.
- *
- * @deprecated Use `TreeWalk.nodes()` instead — it has orthogonal match + into predicates.
- */
-export function* walkTree(tree: TreeMutator, rootId: string, opts?: WalkOptions): Generator<WalkEntry> {
-  const root = tree.getNode(rootId)
-  if (!root) return
-
-  const { filter, maxDepth, startAfter } = opts ?? {}
-
-  if (filter && !filter(root)) return
-
-  // Iterative DFS with explicit stack (avoids call-stack overflow on deep trees)
-  const stack: Array<{ node: KNode; depth: number; parentId: string | null }> = [
-    { node: root, depth: 0, parentId: root.parent_id },
-  ]
-
-  let skipping = startAfter != null
-
-  while (stack.length > 0) {
-    // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- length check above
-    const entry = stack.pop()!
-
-    if (skipping) {
-      if (entry.node.id === startAfter) skipping = false
-      // Still expand children so we can find startAfter in subtrees
-    } else {
-      yield entry
-    }
-
-    // Don't expand children if we've reached maxDepth
-    if (maxDepth !== undefined && entry.depth >= maxDepth) continue
-
-    // Push children in reverse order so leftmost child is processed first
-    const children = tree.getChildren(entry.node.id)
-    for (let i = children.length - 1; i >= 0; i--) {
-      // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- loop bounds
-      const child = children[i]!
-      if (filter && !filter(child)) continue
-      stack.push({ node: child, depth: entry.depth + 1, parentId: entry.node.id })
-    }
-  }
-}
-
-/**
- * Get all visible blocks in a column for spatial navigation.
- *
- * Returns nodes in document order (DFS pre-order), filtering out
- * nodes where `isVisible` returns false. When a node is not visible,
- * its descendants are also skipped.
- */
-export function getVisibleBlocks(
-  tree: TreeMutator,
-  columnId: string,
-  opts?: { isVisible?: (nodeId: string) => boolean },
-): KNode[] {
-  const isVisible = opts?.isVisible
-  // Old walkTree `filter` skips the node AND its subtree — need both match + into.
-  // `match` prevents yielding invisible nodes; `into` prevents descending into them.
-  const pred = isVisible ? (node: KNode) => isVisible(node.id) : undefined
-  const result: KNode[] = []
-  for (const [node] of TreeWalk.nodes(tree, columnId, { match: pred, into: pred })) {
-    result.push(node)
-  }
-  return result
-}
