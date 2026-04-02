@@ -89,7 +89,7 @@ Key design: **no tree data in state**. Navigation and rendering query Repo on de
 
 `BoardAction` — discriminated union dispatched to the reducer (`SELECT`, `TOGGLE_FOLD`, `ZOOM_IN`, etc.). `CommandAction` — higher-level user intent (verbs, nav, edits, text ops, dialog ops) dispatched through the command system. Defined in `@km/commands`.
 
-### ColumnView / CardView — Legacy View Models
+### ColumnView / CardView — Derived View Models
 
 Derived (not stored) representations for rendering. `ColumnView` = a section heading with its cards. `CardView` = a KNode enriched with resolved embed data and body classification.
 

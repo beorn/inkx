@@ -613,10 +613,9 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
 
   test("h from deep structural column to body column with HR nodes: index mismatch", () => {
     // Test with HR nodes (empty content) interleaved with meaningful paragraphs.
-    // The view filters out empty body nodes (meaningfulBody filter), but
-    // navigateToBody in view-navigation.ts indexes the unfiltered bodyNodes
-    // from extractBody. findCardAtYVisual returns indices into the
-    // view's filtered card array, causing a mismatch.
+    // The view filters out empty body nodes (meaningfulBody filter).
+    // ViewNode navigation uses the filtered tree directly, so
+    // findCardAtYVisual indices match the visible card array.
     //
     // View body column: [p1(idx=0), p2(idx=1), p3(idx=2)]
     // Nav bodyNodes:    [p1(0), hr1(1), p2(2), hr2(3), p3(4)]
@@ -646,8 +645,7 @@ describe("Keyboard Navigation: body card stickyY (h/l from body column)", () => 
     // Now navigate back left. stickyY should bring us back to p3.
     board.command("cursor_left")
 
-    // BUG: navigateToBody indexes unfiltered bodyNodes, returning p2 instead of p3.
-    // The cursor should be on p3 (same card we started on), NOT p2.
+    // The cursor should be on p3 (same card we started on).
     const hasCursorOnP3 = board.q("#p3[data-cursor]").count() > 0
     const hasCursorOnP2 = board.q("#p2[data-cursor]").count() > 0
     expect(hasCursorOnP3).toBe(true)

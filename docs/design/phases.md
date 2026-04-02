@@ -32,7 +32,7 @@ Key deliverables:
 - `Board.apply()` -- cursor, navigation, fold/unfold, multi-select
 - `Dialog.apply()` -- open/close/confirm dialogs
 - `Search.apply()` -- query, results, selection
-- `withHistory` plugin -- undo/redo via operation recording (implemented and tested, not yet wired into live app)
+- `withHistory` plugin -- removed (was dead code; active undo is UndoStack + UndoableRepo)
 
 What it enables:
 - Testable app state transitions without React or repos
@@ -72,7 +72,7 @@ What it enables:
 Key deliverables:
 - `Tree.apply(tree, op)` -- 9 SlateJS-compatible structural operation types (ID-based)
 - `Tree.nodes()`, `Tree.above()`, etc. -- pure query surface
-- `withHistory` plugin -- undo/redo via invertible operations
+- Undo/redo via invertible operations (target: replace UndoStack with TEA undo middleware)
 - Lazy content loading via `load_children` operations
 - Triple selection model (TextSelection, NodeSelection, GapSelection)
 - CRDT-first storage via Automerge
