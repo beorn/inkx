@@ -46,7 +46,6 @@ export {
   ViewTree,
   buildViewTree,
   buildViewIndex,
-  dfsTraversal,
   deriveCursorPath,
   classifyCursorFromViewIndex,
   toColumnViews,

@@ -12,7 +12,7 @@ import {
   ViewTree,
   buildViewTree,
   buildViewIndex,
-  dfsTraversal,
+  ViewTree,
   deriveCursorPath,
   toColumnViews,
   type ViewTreeRepo,
@@ -399,29 +399,10 @@ describe("buildViewIndex", () => {
   })
 })
 
-describe("dfsTraversal", () => {
-  test("yields nodes in top-to-bottom, left-to-right visual order", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      heading("col1", "root", 0, "First"),
-      heading("col2", "root", 1, "Second"),
-      paragraph("c1a", "col1", 0, "Card 1A"),
-      paragraph("c1b", "col1", 1, "Card 1B"),
-      paragraph("c2a", "col2", 0, "Card 2A"),
-      paragraph("sub1", "c1a", 0, "Sub under 1A"),
-    ]
-    const repo = createMockRepo(nodes)
-    const tree = buildViewTree(repo, "root", new Map())
-
-    const ids = [...dfsTraversal(tree)].map((n) => n.id)
-    expect(ids).toEqual(["root", "col1", "c1a", "sub1", "c1b", "col2", "c2a"])
-  })
-})
-
 describe("ViewTree.nodes", () => {
   const emptyFoldDepths = new Map<string, number>()
 
-  test("yields all nodes in DFS order (same as dfsTraversal)", () => {
+  test("yields all nodes in DFS order", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "First"),

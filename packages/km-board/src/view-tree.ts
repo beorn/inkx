@@ -613,11 +613,6 @@ export function buildViewIndex(tree: ViewNode): Map<string, ViewNode> {
   return index
 }
 
-/** @deprecated Use ViewTree.nodes() instead */
-export function* dfsTraversal(tree: ViewNode): Generator<ViewNode> {
-  yield* ViewTree.nodes(tree)
-}
-
 /** Derive cursor path from root to target node */
 export function deriveCursorPath(index: Map<string, ViewNode>, nodeId: string): string[] {
   const target = index.get(nodeId)
