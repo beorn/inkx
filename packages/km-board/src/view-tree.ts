@@ -572,7 +572,7 @@ export const ViewTree = {
     }
   },
 
-  /** Adjacent sibling (delta: +1 next, -1 previous). */
+  /** Adjacent sibling (delta: +1 next, -1 prev). */
   sibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
     if (!vn.parent) return null
     const siblings = vn.parent.children
@@ -580,6 +580,28 @@ export const ViewTree = {
     if (idx < 0) return null
     return siblings[idx + delta] ?? null
   },
+
+  /** Walk up from node to root, yielding each ancestor (SlateJS: Node.ancestors). */
+  *ancestors(vn: ViewNode): Generator<ViewNode> {
+    let current = vn.parent
+    while (current) {
+      yield current
+      current = current.parent
+    }
+  },
+
+  /** Lookup node by ID in the index (SlateJS: Node.get). */
+  get(index: Map<string, ViewNode>, id: string): ViewNode | null {
+    return index.get(id) ?? null
+  },
+
+  // === Add when needed (SlateJS parity) ===
+  // *descendants(root, opts?) — DFS excluding root (nodes() minus first yield)
+  // prev(index, id, opts?) — previous in document order (= nodes({ reverse, at }))
+  // next(index, id, opts?) — next in document order (= nodes({ at }) skip first)
+  // first(root) — first node in DFS
+  // last(root) — last node in DFS (= nodes({ reverse }) first)
+  // common(index, idA, idB) — lowest common ancestor
 }
 
 // =============================================================================
