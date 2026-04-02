@@ -127,7 +127,7 @@ export class SyncManager extends EventEmitter {
   private ignorePatterns: string[] = []
   private kmDir: string
   private emitter: Emitter // Emitter domain object for event emission
-  private reconcileEmitter: Emitter // Wrapped emitter with skipFsSync for FS-origin events
+  private reconcileEmitter: Emitter // Wrapped emitter using commit() for FS-origin events (no projection)
   private parsePool: ParsePoolService | undefined
   private handlers: EventHandlers
 
