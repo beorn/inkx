@@ -6,9 +6,10 @@
  */
 
 import { createLogger } from "loggily"
-import { existsSync, readFileSync, readdirSync } from "fs"
+import { appendFileSync, existsSync, readFileSync, readdirSync } from "fs"
 import { dirname, join } from "path"
 import type { Database } from "bun:sqlite"
+import { ulid } from "ulid"
 import { type Event, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
 import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
@@ -461,6 +462,9 @@ export class EventHandlers {
       oldPrefix + "%",
     ])
 
+    // Journal the folder rename for event-sourcing completeness
+    this.journalRename(node.id, { fs_path: newFsPath, name: newName, old_fs_path: oldFsPath })
+
     // Only update the index file's name and fs_path in DB if the FS rename succeeded
     if (indexNeedsRename && indexFile && indexRenameSucceeded) {
       const newIndexFsPath = join(newFsPath, newName + ".md")
@@ -470,6 +474,8 @@ export class EventHandlers {
         Date.now(),
         indexFile.id,
       ])
+      // Journal the index file rename
+      this.journalRename(indexFile.id, { fs_path: newIndexFsPath, name: newName })
     }
 
     // Refresh index file content with new title (node already updated in DB)
@@ -531,6 +537,9 @@ export class EventHandlers {
       fileNode.id,
     ])
 
+    // Journal the file rename for event-sourcing completeness
+    this.journalRename(fileNode.id, { fs_path: newFsPath, name: newName, title: newTitle, old_fs_path: oldFsPath })
+
     // Mutate node so caller writes content at new path
     fileNode.fs_path = newFsPath
     fileNode.name = newName
@@ -542,6 +551,27 @@ export class EventHandlers {
       if (parent?.fstype === "folder" && parent.fs_path) {
         this.handleFolderIndexUpdate(parent)
       }
+    }
+  }
+
+  /**
+   * Journal a rename operation to events.jsonl.
+   * The DB is already updated by direct mutation (for atomicity with the FS rename),
+   * so this only persists to the journal for event-sourcing completeness.
+   */
+  private journalRename(nodeId: string, changes: Record<string, unknown>): void {
+    const event: Event = {
+      id: ulid(),
+      ts: Date.now(),
+      type: "node_updated",
+      target: nodeId,
+      actor: "user",
+      data: changes,
+    }
+    try {
+      appendFileSync(this.emitter.eventsPath, JSON.stringify(event) + "\n")
+    } catch (err) {
+      log.error?.(`journalRename failed for ${nodeId}: ${String(err)}`)
     }
   }
 
