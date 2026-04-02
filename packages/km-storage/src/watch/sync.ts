@@ -219,6 +219,7 @@ export class SyncManager extends EventEmitter {
       },
       recordWriteToken: (absPath: string, content: string) => {
         this.writeTokens.record(absPath, content)
+        this.syncState.recordProjection(absPath, content)
       },
     }
 
@@ -463,6 +464,9 @@ export class SyncManager extends EventEmitter {
         this.setState("emitting")
         applyReconcileOps(this.db, ops, this.config.repoPath, this.reconcileEmitter)
         this.heartbeatDrift += ops.length
+
+        // Record observations for successfully reconciled files
+        this.recordObservationsForOps(ops)
       }
 
       return { opsCount: ops.length, duration: Date.now() - start }
@@ -577,6 +581,37 @@ export class SyncManager extends EventEmitter {
     if (!this.stopped) {
       this.lastActivityTime = Date.now()
       this.setState("idle")
+    }
+  }
+
+  /**
+   * Record observations in sync_state for successfully reconciled ops.
+   * After reconciliation applies ops to the DB, record the current file
+   * content as our baseline so future reconciliations know it's not external.
+   */
+  private recordObservationsForOps(ops: ReconcileOp[]): void {
+    for (const op of ops) {
+      try {
+        switch (op.type) {
+          case "create":
+          case "update": {
+            const content = readFileSync(op.path, "utf-8")
+            this.syncState.recordObservation(op.path, content, op.nodeId)
+            break
+          }
+          case "rename":
+            if (op.oldPath) {
+              this.syncState.renamePath(op.oldPath, op.path)
+            }
+            break
+          case "delete":
+            this.syncState.removePath(op.path)
+            break
+        }
+      } catch {
+        // File may have been deleted between reconciliation and observation recording.
+        // This is benign — the next reconciliation will handle it.
+      }
     }
   }
 
