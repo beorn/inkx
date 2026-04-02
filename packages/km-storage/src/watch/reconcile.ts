@@ -72,62 +72,84 @@ function reconcileFromEntries(db: Database, dirPath: string, repoRoot: string, f
     const existingByPath = dbByRelPath.get(relPath)
 
     if (existingByIno && existingByIno.fs_path !== relPath) {
-      // If the target path already has a DIFFERENT node, it's been displaced
+      // If the target path already has a DIFFERENT node, it may be displaced
       // (e.g., folder A renamed to B, then later folder C renamed to B).
-      // Delete the displaced node and its descendants before renaming.
+      // Before deleting, verify the displaced node is actually stale — its DB inode
+      // should differ from the current FS inode. If the displaced node has no tracked
+      // inode (concurrent creation without inode tracking), treat it as a conflict
+      // to avoid destroying user content.
+      let skipRename = false
       if (existingByPath && existingByPath.id !== existingByIno.id) {
-        ops.push({
-          type: "delete",
-          nodeId: existingByPath.id,
-          path: relPath,
-        })
-        dbByRelPath.delete(relPath)
+        const displacedDbIno = existingByPath.fs_ino
+        const isStale = displacedDbIno != null && displacedDbIno !== entry.ino
+        if (!isStale) {
+          // The displaced node either has no tracked inode (concurrent creation)
+          // or its inode unexpectedly matches the FS. Don't delete — treat as
+          // a conflict and skip the rename to preserve user content.
+          log.info?.(
+            `displacement conflict: refusing to delete node at path=${relPath} (dbIno=${displacedDbIno ?? "none"} fsIno=${entry.ino}), skipping rename`,
+          )
+          skipRename = true
+        } else {
+          // The displaced node's inode differs from the FS — it's truly stale.
+          log.info?.(
+            `displacing stale node at path=${relPath} (dbIno=${displacedDbIno} fsIno=${entry.ino})`,
+          )
+          ops.push({
+            type: "delete",
+            nodeId: existingByPath.id,
+            path: relPath,
+          })
+          dbByRelPath.delete(relPath)
 
-        // Also delete displaced descendants (they're ghost nodes now)
-        if (entry.isDirectory) {
-          const displacedPrefix = relPath + "/"
-          for (const [descPath, descNode] of dbByRelPath) {
-            if (descPath.startsWith(displacedPrefix)) {
-              ops.push({
-                type: "delete",
-                nodeId: descNode.id,
-                path: descPath,
-              })
-              dbByRelPath.delete(descPath)
+          // Also delete displaced descendants (they're ghost nodes now)
+          if (entry.isDirectory) {
+            const displacedPrefix = relPath + "/"
+            for (const [descPath, descNode] of dbByRelPath) {
+              if (descPath.startsWith(displacedPrefix)) {
+                ops.push({
+                  type: "delete",
+                  nodeId: descNode.id,
+                  path: descPath,
+                })
+                dbByRelPath.delete(descPath)
+              }
             }
           }
         }
       }
 
-      // Renamed (same inode, different path)
-      ops.push({
-        type: "rename",
-        nodeId: existingByIno.id,
-        oldPath: existingByIno.fs_path,
-        path: entry.path, // Keep absolute for FS operations
-        ino: entry.ino,
-      })
-      // Remove OLD path from dbByRelPath to prevent spurious delete op
-      if (existingByIno.fs_path) {
-        dbByRelPath.delete(existingByIno.fs_path)
-      }
+      if (!skipRename) {
+        // Renamed (same inode, different path)
+        ops.push({
+          type: "rename",
+          nodeId: existingByIno.id,
+          oldPath: existingByIno.fs_path,
+          path: entry.path, // Keep absolute for FS operations
+          ino: entry.ino,
+        })
+        // Remove OLD path from dbByRelPath to prevent spurious delete op
+        if (existingByIno.fs_path) {
+          dbByRelPath.delete(existingByIno.fs_path)
+        }
 
-      // Cascade rename to all descendants when a directory is renamed.
-      // Without this, descendants keep their old fs_path and become stale nodes.
-      if (entry.isDirectory && existingByIno.fs_path) {
-        const oldPrefix = existingByIno.fs_path + "/"
-        const newPrefix = relPath + "/"
-        for (const [descRelPath, descNode] of dbByRelPath) {
-          if (descRelPath.startsWith(oldPrefix)) {
-            const newDescRelPath = newPrefix + descRelPath.slice(oldPrefix.length)
-            ops.push({
-              type: "rename",
-              nodeId: descNode.id,
-              oldPath: descRelPath,
-              path: join(repoRoot, newDescRelPath),
-              ino: descNode.fs_ino ?? 0,
-            })
-            dbByRelPath.delete(descRelPath)
+        // Cascade rename to all descendants when a directory is renamed.
+        // Without this, descendants keep their old fs_path and become stale nodes.
+        if (entry.isDirectory && existingByIno.fs_path) {
+          const oldPrefix = existingByIno.fs_path + "/"
+          const newPrefix = relPath + "/"
+          for (const [descRelPath, descNode] of dbByRelPath) {
+            if (descRelPath.startsWith(oldPrefix)) {
+              const newDescRelPath = newPrefix + descRelPath.slice(oldPrefix.length)
+              ops.push({
+                type: "rename",
+                nodeId: descNode.id,
+                oldPath: descRelPath,
+                path: join(repoRoot, newDescRelPath),
+                ino: descNode.fs_ino ?? 0,
+              })
+              dbByRelPath.delete(descRelPath)
+            }
           }
         }
       }
