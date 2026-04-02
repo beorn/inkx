@@ -42,6 +42,11 @@ export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 
 export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts"
 
+// Reconciliation engine (FS→DB)
+export { createReconciliationEngine } from "./reconciliation-engine.ts"
+
+export type { ReconciliationEngine, ReconciliationEngineConfig } from "./reconciliation-engine.ts"
+
 // Sync state (persisted content-hash baseline)
 export { createSyncState } from "./sync-state.ts"
 

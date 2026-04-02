@@ -46,6 +46,9 @@ export interface SyncState {
   /** Get all dirty paths (for consistency heartbeat) */
   getDirtyPaths(): string[]
 
+  /** Clear dirty flag after successful re-projection */
+  clearDirty(fsPath: string): void
+
   /** Get entry for a path */
   get(fsPath: string): SyncStateEntry | null
 }
@@ -70,6 +73,8 @@ export function createSyncState(db: Database): SyncState {
   const markDirtyStmt = db.prepare("UPDATE sync_state SET dirty = 1 WHERE fs_path = ?")
 
   const getDirtyStmt = db.prepare("SELECT fs_path FROM sync_state WHERE dirty = 1")
+
+  const clearDirtyStmt = db.prepare("UPDATE sync_state SET dirty = 0 WHERE fs_path = ?")
 
   const getStmt = db.prepare("SELECT * FROM sync_state WHERE fs_path = ?")
 
@@ -109,6 +114,10 @@ export function createSyncState(db: Database): SyncState {
     getDirtyPaths(): string[] {
       const rows = getDirtyStmt.all() as { fs_path: string }[]
       return rows.map((r) => r.fs_path)
+    },
+
+    clearDirty(fsPath: string): void {
+      clearDirtyStmt.run(fsPath)
     },
 
     get(fsPath: string): SyncStateEntry | null {
