@@ -195,21 +195,23 @@ describe("rename journal entries", () => {
       expect(existsSync(eventsPath)).toBe(true)
 
       const lines = readFileSync(eventsPath, "utf-8").trim().split("\n")
-      const events = lines.map((line) => JSON.parse(line))
+      const events = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
 
       // Find the rename journal entry (has old_fs_path indicating it's from journalRename)
       const renameEvent = events.find(
-        (e: Record<string, unknown>) =>
+        (e) =>
           e.type === "node_updated" &&
           e.target === "jfile1" &&
           (e.data as Record<string, unknown>)?.old_fs_path === "Journal Test.md",
       )
 
       expect(renameEvent).toBeDefined()
-      expect(renameEvent.data.fs_path).toBe("Renamed Journal.md")
-      expect(renameEvent.data.name).toBe("Renamed Journal")
-      expect(renameEvent.data.title).toBe("Renamed Journal")
-      expect(renameEvent.actor).toBe("user")
+      const re = renameEvent as Record<string, unknown>
+      const reData = re.data as Record<string, unknown>
+      expect(reData.fs_path).toBe("Renamed Journal.md")
+      expect(reData.name).toBe("Renamed Journal")
+      expect(reData.title).toBe("Renamed Journal")
+      expect(re.actor).toBe("user")
     }))
 
   test("folder rename creates journal entry", () =>
@@ -238,17 +240,19 @@ describe("rename journal entries", () => {
       expect(existsSync(eventsPath)).toBe(true)
 
       const lines = readFileSync(eventsPath, "utf-8").trim().split("\n")
-      const events = lines.map((line) => JSON.parse(line))
+      const events = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
 
       const renameEvent = events.find(
-        (e: Record<string, unknown>) =>
+        (e) =>
           e.type === "node_updated" &&
           e.target === "jfolder1" &&
           (e.data as Record<string, unknown>)?.old_fs_path === "journal-folder",
       )
 
       expect(renameEvent).toBeDefined()
-      expect(renameEvent.data.fs_path).toBe("renamed-journal-folder")
-      expect(renameEvent.data.name).toBe("renamed-journal-folder")
+      const re = renameEvent as Record<string, unknown>
+      const reData = re.data as Record<string, unknown>
+      expect(reData.fs_path).toBe("renamed-journal-folder")
+      expect(reData.name).toBe("renamed-journal-folder")
     }))
 })
