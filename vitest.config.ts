@@ -13,6 +13,8 @@ const alwaysExclude = [
 	"**/dist/**",
 	"**/.direnv/**",
 	"**/.claude/worktrees/**",
+	// mdspec submodule removed — .spec.md files need the real mdspec vitest plugin
+	"**/*.spec.md",
 	// Uses bun:test integration — incompatible with vitest runner
 	"vendor/mdtest/tests/mdspec-e2e.slow.test.ts",
 	// Spawns real km subprocess with PTY (via termless) — needs full CPU, can't run in parallel

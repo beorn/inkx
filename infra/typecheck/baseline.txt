@@ -1,7 +1,3 @@
-1 apps/km-cli/src/execute.ts
-2 apps/km-cli/tests/km-repl.ts
-6 apps/km-cli/tests/mdspec-plugin.ts
-6 apps/km-cli/tests/mdspec-sh-plugin.ts
 3 vendor/bearly/packages/vitepress-enrich/src/glossary.ts
 2 vendor/bearly/packages/vitepress-enrich/src/seo.ts
 7 vendor/bearly/plugins/github/server.ts
@@ -41,4 +37,3 @@
 2 vendor/termless/sites/terminfo.dev/src/cli.ts
 3 vendor/termless/src/asciicast/reader.ts
 16 vendor/termless/tests/asciicast/writer.test.ts
-1 vitest.config.ts
