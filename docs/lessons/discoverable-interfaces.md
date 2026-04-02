@@ -92,19 +92,28 @@ This applies at every level:
 
 ## Unify API Shapes Across Layers
 
-When two layers have the same concept (tree traversal), give them the same API shape. An agent who learns one immediately understands the other.
+When two layers have the same concept (tree traversal), give them the same API shape **and the same naming pattern**. An agent who learns one immediately understands the other.
 
 ```
-// Repo layer (data model)
-TreeWalk.nodes(tree, rootId, { match, into, reverse })
+// Data layer — operations on the KNode tree
+KTree.nodes(tree, rootId, { match, into, reverse })
 
-// View layer (rendered model) — same shape, different types
+// View layer — operations on the ViewNode tree
 ViewTree.nodes(root, { match, into, reverse })
 ```
 
-Same concept. Same predicate model (`match` = what to yield, `into` = what to descend into). Different tree structure. This is how you build a system vocabulary — consistent patterns across layers so knowledge transfers.
+Same concept. Same predicate model (`match` = what to yield, `into` = what to descend into). Same naming pattern (noun + `.nodes()`). Different tree structure.
 
-If the Repo layer has `TreeWalk.nodes` with pluggable predicates but the View layer has a bare `dfsTraversal` with zero options, agents will reinvent predicate-filtered traversal in consumer code because they can't see it exists at the right layer.
+**Name alignment matters.** If one layer calls its namespace `TreeWalk` (verb — "I walk") and the other calls it `ViewTree` (noun — "I am a tree"), the parallel is invisible. Both are namespaces for tree operations. Both should be nouns: `KTree` and `ViewTree`. The `.nodes()` method is the verb.
+
+| Layer | Node type | Namespace | Traversal |
+|-------|-----------|-----------|-----------|
+| Data | `KNode` | `KTree` | `KTree.nodes(tree, root, { match, into })` |
+| View | `ViewNode` | `ViewTree` | `ViewTree.nodes(root, { match, into })` |
+
+Two layers, two node types, two namespaces, same `.nodes()` API. That's the full vocabulary.
+
+If the Repo layer has `TreeWalk.nodes` with pluggable predicates but the View layer has a bare `dfsTraversal` with zero options, agents will reinvent predicate-filtered traversal in consumer code because they can't see it exists at the right layer. And if the names don't parallel (`TreeWalk` vs `ViewTree`), agents won't recognize they're the same concept at different layers.
 
 ## Code Reads Like Pseudocode
 
