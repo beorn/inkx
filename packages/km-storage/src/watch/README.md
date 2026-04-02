@@ -12,14 +12,14 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
        |
   Repo.mutate()
        |
-  Emitter.emit(event)  [= commit() + project()]
+  Emitter.apply(event)  [= commit() + save()]
        |
        |-- commit():
        |     1. Apply to DB ------> applyEventWithDb() [db-events.ts]
        |     2. Persist ----------> append to .km/events.jsonl
        |     3. Broadcast --------> eventHub.broadcast(event)
        |
-       '-- project():
+       '-- save():
              4. FS sync ----------> FsSync.applyEventToFs(event)
                                       |
                              +--------+--------+

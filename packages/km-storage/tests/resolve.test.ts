@@ -21,7 +21,7 @@ describe("resolveNode", () => {
   test("resolves by exact ID", () =>
     withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id, type: "p", item: {}, content: "Test task" },
@@ -35,7 +35,7 @@ describe("resolveNode", () => {
   test("resolves by ID prefix", () =>
     withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id, type: "p", item: {}, content: "Test task" },
@@ -50,7 +50,7 @@ describe("resolveNode", () => {
   test("resolves by ID suffix", () =>
     withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id, type: "p", item: {}, content: "Test task" },
@@ -65,7 +65,7 @@ describe("resolveNode", () => {
   test("resolves by exact filesystem path", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "test.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: fsPath },
@@ -79,7 +79,7 @@ describe("resolveNode", () => {
   test("resolves by filename with extension", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "@next.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: fsPath },
@@ -93,7 +93,7 @@ describe("resolveNode", () => {
   test("resolves by filename without extension", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "@next.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: fsPath },
@@ -107,7 +107,7 @@ describe("resolveNode", () => {
   test("resolves by relative path ./file.md", () =>
     withTestEnvSync(({ db, emitter }) => {
       const fsPath = join(process.cwd(), "test-file.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: fsPath },
@@ -121,7 +121,7 @@ describe("resolveNode", () => {
   test("resolves by content match", () =>
     withTestEnvSync(({ db, emitter }) => {
       const id = ulid()
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id, type: "h", item: {}, content: "My Section" },
@@ -136,12 +136,12 @@ describe("resolveNode", () => {
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const taskId = ulid()
       const fileId = ulid()
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: taskId, type: "p", item: {}, content: "Test" },
       })
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: fileId, type: "h", item: {}, fstype: "mdfile", fs_path: join(repoDir, "Test.md") },
@@ -167,7 +167,7 @@ describe("resolveNode", () => {
   test("resolves by relative path without ./ prefix (dir/file)", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "subdir/test.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: fsPath },
@@ -181,7 +181,7 @@ describe("resolveNode", () => {
   test("resolves by relative path without extension (dir/file)", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "projects/myproject.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: fsPath },
@@ -196,7 +196,7 @@ describe("resolveNode", () => {
   test("resolves folder by name", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "inbox")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "folder", fs_path: fsPath, name: "inbox" },
@@ -211,7 +211,7 @@ describe("resolveNode", () => {
   test("resolves folder by path with trailing slash", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "projects")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "folder", fs_path: fsPath, name: "projects" },
@@ -228,7 +228,7 @@ describe("resolveNode", () => {
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const folderPath = join(repoDir, "inbox")
       const filePath = join(repoDir, "inbox/inbox.md")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: {
@@ -240,7 +240,7 @@ describe("resolveNode", () => {
           name: "inbox",
         },
       })
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: {
@@ -262,7 +262,7 @@ describe("resolveNode", () => {
   test("resolves nested directory path", () =>
     withTestEnvSync(({ repoDir, db, emitter }) => {
       const fsPath = join(repoDir, "areas/work/projects")
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: {
@@ -287,7 +287,7 @@ describe("resolveNode", () => {
       writeFileSync(filePath, "# Test")
 
       // Store node with relative fs_path (as production code does)
-      emitter.emit({
+      emitter.apply({
         type: "node_created",
         actor: "test",
         data: { id: ulid(), type: "h", item: {}, fstype: "mdfile", fs_path: "test.md" },

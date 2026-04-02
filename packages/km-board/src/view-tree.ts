@@ -572,8 +572,8 @@ export const ViewTree = {
     }
   },
 
-  /** All descendant IDs in DFS order (including root). */
-  descendantIds(index: Map<string, ViewNode>, rootId: string): string[] {
+  /** All node IDs in DFS order (including root). Convenience projection of `.nodes()`. */
+  nodeIds(index: Map<string, ViewNode>, rootId: string): string[] {
     const rootView = index.get(rootId)
     if (!rootView) return [rootId]
     return [...ViewTree.nodes(rootView)].map((vn) => vn.id)

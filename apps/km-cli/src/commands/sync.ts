@@ -15,7 +15,7 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
-import { SyncManager, findKmRootFromPath, readEvents, SCHEMA, ensureRepoRootNode } from "@km/storage"
+import { createSync, findKmRootFromPath, readEvents, SCHEMA, ensureRepoRootNode } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 
 // ============================================
@@ -71,41 +71,35 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   console.log(term.dim(`Debounce: ${debounceMs}ms`))
   console.log(term.dim("Press Ctrl+C to stop\n"))
 
-  const manager = new SyncManager({
+  const manager = createSync({
     db,
     repoPath,
     debounceFs: debounceMs,
     debounceApply: 3000,
     conflictStrategy: "last_write_wins",
-  })
-
-  manager.on("ready", () => {
-    console.log(term.green("✓"), "Watcher ready")
-  })
-
-  manager.on("state-change", (state) => {
-    console.log(term.dim(`State: ${state}`))
-  })
-
-  manager.on("write-complete", (data) => {
-    /* eslint-disable @typescript-eslint/no-unsafe-member-access -- EventEmitter data payload is untyped */
-    console.log(
-      term.green("✓"),
-      `Wrote ${data.count} file(s)`,
-      data.errors > 0 ? term.red(`(${data.errors} error(s))`) : "",
-    )
-    /* eslint-enable @typescript-eslint/no-unsafe-member-access */
-  })
-
-  manager.on("write-errors", (errors) => {
-    for (const { path, error } of errors) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- EventEmitter error payload is untyped
-      console.error(term.red("✗"), path, error.message)
-    }
-  })
-
-  manager.on("error", (error) => {
-    console.error(term.red("Error:"), error)
+    callbacks: {
+      onReady: () => {
+        console.log(term.green("✓"), "Watcher ready")
+      },
+      onStateChange: (state) => {
+        console.log(term.dim(`State: ${state}`))
+      },
+      onWriteComplete: (data) => {
+        console.log(
+          term.green("✓"),
+          `Wrote ${data.count} file(s)`,
+          data.errors > 0 ? term.red(`(${data.errors} error(s))`) : "",
+        )
+      },
+      onWriteErrors: (errors) => {
+        for (const { path, error } of errors) {
+          console.error(term.red("✗"), path, error.message)
+        }
+      },
+      onError: (error) => {
+        console.error(term.red("Error:"), error)
+      },
+    },
   })
 
   // Start watching

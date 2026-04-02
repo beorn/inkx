@@ -191,7 +191,7 @@ export {
   FileSystemWatcher,
   scanDirectory,
   scanDirectoryRecursive,
-  SyncManager,
+  createSync,
   FsWriter,
   reconcileDirectory,
   applyReconcileOps,
@@ -214,7 +214,9 @@ export {
 export type {
   WatcherConfig,
   FileChange,
+  Sync,
   SyncConfig,
+  SyncCallbacks,
   ReconcileOp,
   PendingWrite,
   WriteQueueConfig,

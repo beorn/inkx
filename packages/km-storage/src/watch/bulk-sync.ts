@@ -64,16 +64,16 @@ export interface BulkSyncDeps {
 }
 
 /**
- * Wrap an emitter so all emit() calls use commit() (no filesystem projection).
+ * Wrap an emitter so all apply() calls use commit() (no filesystem save).
  * Used for FS-origin reconciliation to prevent echo loops by construction:
- * FS change -> DB update -> commit (no project) -> no write back to FS.
+ * FS change -> DB update -> commit (no save) -> no write back to FS.
  *
- * This is the structural loop break: reconciliation never projects.
+ * This is the structural loop break: reconciliation never saves.
  */
 export function wrapEmitterForReconcile(emitter: Emitter): Emitter {
   return {
     ...emitter,
-    emit(event: Parameters<Emitter["emit"]>[0], options: EmitOptions = {}) {
+    apply(event: Parameters<Emitter["apply"]>[0], options: EmitOptions = {}) {
       // Use commit() directly — structurally prevents echo loops
       return emitter.commit(event, options)
     },

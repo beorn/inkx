@@ -1,9 +1,9 @@
 /**
- * Sync Manager
+ * Sync — Factory-based bidirectional sync between filesystem and database.
  *
- * Orchestrates bidirectional sync between filesystem and database.
- * Delegates reconciliation (FS→DB) to ReconciliationEngine,
- * projection (DB→FS) to EventHandlers, and bulk sync to BulkSync.
+ * Orchestrates reconciliation (FS→DB) via ReconciliationEngine,
+ * projection (DB→FS) via EventHandlers, and bulk sync via BulkSync.
+ * Replaces the old class-based SyncManager with a plain object from createSync().
  */
 
 import { createLogger } from "loggily"
@@ -12,7 +12,6 @@ import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
 import { join } from "path"
-import { EventEmitter } from "events"
 import { FileSystemWatcher } from "./watcher.ts"
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
@@ -33,6 +32,8 @@ import type { StepYield } from "../index.ts"
 import { createHeartbeat, DEFAULT_HEARTBEAT, type Heartbeat, type HeartbeatConfig } from "./heartbeat.ts"
 
 export type { HeartbeatConfig } from "./heartbeat.ts"
+
+// ─── Config ──────────────────────────────────────────────────────────────────
 
 export interface SyncConfig {
   db: Database
@@ -56,6 +57,8 @@ export interface SyncConfig {
   }
   /** Delay before clearing in-flight status after writes, in ms (default: 1000) */
   clearInFlightDelayMs?: number
+  /** Typed callbacks replacing EventEmitter events */
+  callbacks?: SyncCallbacks
 }
 
 const DEFAULT_CONFIG: Partial<SyncConfig> = {
@@ -65,362 +68,347 @@ const DEFAULT_CONFIG: Partial<SyncConfig> = {
   useWorker: true,
 }
 
+// ─── Callbacks (replaces EventEmitter) ───────────────────────────────────────
+
+export interface SyncCallbacks {
+  onStarted?: () => void
+  onStopped?: () => void
+  onReady?: () => void
+  onError?: (error: unknown) => void
+  onStateChange?: (state: SyncState) => void
+  onWriteComplete?: (data: { count: number; errors: number }) => void
+  onWriteErrors?: (errors: Array<{ path: string; error: Error; errorClass?: string }>) => void
+  onWatcherStatus?: (status: WatcherStatus) => void
+  onHeartbeatDrift?: (info: { opsCount: number; totalDrift: number }) => void
+  onHeartbeatComplete?: (info: { duration: number; opsCount: number }) => void
+}
+
+// ─── Sync interface ──────────────────────────────────────────────────────────
+
 export type { SyncState } from "./heartbeat.ts"
 import type { SyncState } from "./heartbeat.ts"
 
-export class SyncManager extends EventEmitter {
-  private db: Database
-  private config: SyncConfig
-  private watcher: WatcherInterface
-  private writeQueue: WriteQueue
-  private state: SyncState = "idle"
-  private ignorePatterns: string[] = []
-  private kmDir: string
-  private emitter: Emitter
-  private parsePool: ParsePoolService | undefined
-  private handlers: EventHandlers
-  private engine: ReconciliationEngine
+export interface Sync {
+  start(): void
+  stop(): Promise<void>
+  applyEventToFs(event: Event): void
+  syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult>
+  syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult>
+  syncToFs(): Promise<{ written: number }>
+  forceHeartbeat(): { opsCount: number; duration: number }
+  getState(): SyncState
+  getStatus(): { state: SyncState; pendingWrites: number; repoPath: string; watcher?: WatcherStatus }
+  getWatcherStatus(): WatcherStatus | null
+  getHeartbeatDiagnostics(): { enabled: boolean; totalDrift: number; lastActivityTime: number; idleSinceMs: number }
+  waitForInflight(): Promise<void>
+  getInFlightCount(): number
+  [Symbol.asyncDispose](): Promise<void>
+}
 
-  // In-flight sync tracking — prevents teardown from closing DB while syncs are running
-  private inFlightSyncs: Set<Promise<void>> = new Set()
-  private stopped = false
+// ─── Factory ─────────────────────────────────────────────────────────────────
 
-  // Write tokens — content-hash based tracking of files written by us.
-  private writeTokens = new WriteTokenMap()
+export function createSync(config: SyncConfig): Sync {
+  const cfg = { ...DEFAULT_CONFIG, ...config } as SyncConfig
+  const callbacks = cfg.callbacks
+  const kmDir = join(cfg.repoPath, ".km")
 
-  // Persisted sync state — durable content-hash baseline for each file.
-  private syncState: SyncStateStore
+  // ── Core services ──────────────────────────────────────────────────────
 
-  // Heartbeat reconciliation
-  private heartbeat: Heartbeat
+  const emitter: Emitter = config.emitter ?? createEmitter({ kmDir, db: cfg.db })
+  const syncState: SyncStateStore = createSyncState(cfg.db)
+  const writeTokens = new WriteTokenMap()
 
-  constructor(config: SyncConfig) {
-    super()
-    this.db = config.db
-    this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig
-    this.kmDir = join(this.config.repoPath, ".km")
-    this.emitter = config.emitter ?? createEmitter({ kmDir: this.kmDir, db: this.db })
-    this.syncState = createSyncState(this.db)
+  // ── Watcher ────────────────────────────────────────────────────────────
 
-    // Use injected watcher if provided (for testing with ChaosWatcher)
-    // Otherwise use worker-based watcher by default (non-blocking)
-    // Fall back to direct watcher if useWorker is explicitly false
-    if (config.watcher) {
-      log.debug?.("using injected watcher")
-      this.watcher = config.watcher
-    } else if (this.config.useWorker !== false) {
-      log.debug?.("using WorkerWatcher (non-blocking)")
-      this.watcher = new WorkerWatcher({
-        debounceMs: this.config.debounceFs,
-      })
-    } else {
-      log.debug?.("using FileSystemWatcher (direct)")
-      this.watcher = new FileSystemWatcher({
-        debounceMs: this.config.debounceFs,
-      })
-    }
-
-    this.writeQueue = new WriteQueue({
-      debounceMs: this.config.debounceApply,
-      retry: this.config.retry,
-      clearInFlightDelayMs: this.config.clearInFlightDelayMs,
-      onWrite: (path, content) => {
-        this.writeTokens.record(path, content)
-        this.syncState.recordProjection(path, content)
-      },
-    })
-
-    this.writeQueue.setWatcher(this.watcher)
-
-    // Create reconciliation engine
-    const reconcileEmitter = wrapEmitterForReconcile(this.emitter)
-    this.engine = createReconciliationEngine({
-      db: this.db,
-      repoPath: this.config.repoPath,
-      writeTokens: this.writeTokens,
-      syncState: this.syncState,
-      writeQueue: this.writeQueue,
-      reconcileEmitter,
-    })
-
-    // Create heartbeat
-    this.heartbeat = createHeartbeat(
-      { ...DEFAULT_HEARTBEAT, ...config.heartbeat },
-      {
-        engine: this.engine,
-        syncState: this.syncState,
-        writeQueue: this.writeQueue,
-        db: this.db,
-        repoPath: this.config.repoPath,
-        ignorePatterns: () => this.ignorePatterns,
-        getParsePool: () => this.getParsePool(),
-        getState: () => this.state,
-        setState: (s) => this.setState(s),
-        isStopped: () => this.stopped,
-        onError: (error) => this.emit("error", error),
-        onDrift: (info) => this.emit("heartbeat:drift", info),
-        onComplete: (info) => this.emit("heartbeat:complete", info),
-      },
-    )
-
-    // Create async FsWriteTarget that queues writes to WriteQueue
-    const fsTarget: FsWriteTarget = {
-      writeFile: (absPath: string, content: string, eventId?: string) => {
-        this.writeQueue.queue({
-          path: absPath,
-          content,
-          sourceEventId: eventId || "",
-        })
-      },
-      deleteFile: (absPath: string, eventId?: string) => {
-        this.writeQueue.queueDelete(absPath, eventId || "")
-      },
-      renameFile: (oldPath: string, newPath: string) => {
-        // Renames are handled synchronously to maintain fs/db consistency
-        renameSync(oldPath, newPath)
-      },
-      mkdir: (absPath: string) => {
-        mkdirSync(absPath, { recursive: true })
-      },
-      markInFlight: (absPath: string) => {
-        this.watcher.markInFlight(absPath)
-      },
-      clearInFlight: (absPath: string, delayMs?: number) => {
-        this.watcher.clearInFlight(absPath, delayMs)
-      },
-      recordWriteToken: (absPath: string, content: string) => {
-        this.writeTokens.record(absPath, content)
-        this.syncState.recordProjection(absPath, content)
-      },
-      renamePending: (oldPath: string, newPath: string) => {
-        return this.writeQueue.renamePending(oldPath, newPath)
-      },
-      renamePendingSubtree: (oldPrefix: string, newPrefix: string) => {
-        return this.writeQueue.renamePendingSubtree(oldPrefix, newPrefix)
-      },
-      dropPending: (path: string) => {
-        return this.writeQueue.dropPending(path)
-      },
-    }
-
-    this.handlers = new EventHandlers(this.db, this.config.repoPath, this.emitter, fsTarget)
-
-    // Wire up events
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Watcher event data is untyped
-    this.watcher.on("sync", (data) => this.handleFsSync(data))
-    this.watcher.on("error", (error) => this.emit("error", error))
-    this.watcher.on("ready", () => this.emit("ready"))
-
-    // Forward watcher status events (WorkerWatcher only)
-    if (this.watcher instanceof WorkerWatcher) {
-      this.watcher.on("status", (status: WatcherStatus) => {
-        this.emit("watcher-status", status)
-      })
-    }
-
-    this.writeQueue.on("flushed", (data) => this.emit("write-complete", data))
-    this.writeQueue.on("errors", (errors) => {
-      this.emit("write-errors", errors)
-      // Mark paths dirty on permanent write errors for heartbeat re-projection
-      for (const err of errors as Array<{ path: string; errorClass?: string }>) {
-        if (err.errorClass === "permanent") {
-          this.syncState.markDirty(err.path)
-        }
-      }
-    })
+  let watcher: WatcherInterface
+  if (config.watcher) {
+    log.debug?.("using injected watcher")
+    watcher = config.watcher
+  } else if (cfg.useWorker !== false) {
+    log.debug?.("using WorkerWatcher (non-blocking)")
+    watcher = new WorkerWatcher({ debounceMs: cfg.debounceFs })
+  } else {
+    log.debug?.("using FileSystemWatcher (direct)")
+    watcher = new FileSystemWatcher({ debounceMs: cfg.debounceFs })
   }
 
-  /**
-   * Start watching and syncing
-   */
-  start(): void {
-    log.debug?.(`starting sync manager for ${this.config.repoPath}`)
-    this.ignorePatterns = getIgnorePatterns(this.config.repoPath)
-    this.watcher.start(this.config.repoPath)
-    this.heartbeat.start()
-    this.emit("started")
-  }
+  // ── WriteQueue ─────────────────────────────────────────────────────────
 
-  /**
-   * Stop watching and syncing.
-   * Awaits any in-flight handleFsSync operations to prevent
-   * "Cannot use a closed database" errors during teardown.
-   */
-  async stop(): Promise<void> {
-    log.debug?.("stopping sync manager")
-    this.stopped = true
-    this.heartbeat.stop()
-    await this.watcher.stop()
-    if (this.inFlightSyncs.size > 0) {
-      log.debug?.(`waiting for ${this.inFlightSyncs.size} in-flight syncs`)
-      await Promise.allSettled(this.inFlightSyncs)
-    }
-    await this.writeQueue.flush()
-    if (this.parsePool) {
-      await this.parsePool[Symbol.asyncDispose]()
-      this.parsePool = undefined
-    }
-    this.emit("stopped")
-  }
+  const writeQueue = new WriteQueue({
+    debounceMs: cfg.debounceApply,
+    retry: cfg.retry,
+    clearInFlightDelayMs: cfg.clearInFlightDelayMs,
+    onWrite: (path, content) => {
+      writeTokens.record(path, content)
+      syncState.recordProjection(path, content)
+    },
+  })
+  writeQueue.setWatcher(watcher)
 
-  /**
-   * AsyncDisposable implementation for `await using` pattern
-   */
-  async [Symbol.asyncDispose](): Promise<void> {
-    await this.stop()
-  }
+  // ── ReconciliationEngine ───────────────────────────────────────────────
 
-  // ─── Heartbeat ──────────────────────────────────────────────────────────
+  const reconcileEmitter = wrapEmitterForReconcile(emitter)
+  const engine: ReconciliationEngine = createReconciliationEngine({
+    db: cfg.db,
+    repoPath: cfg.repoPath,
+    writeTokens,
+    syncState,
+    writeQueue,
+    reconcileEmitter,
+  })
 
-  /**
-   * Force a heartbeat reconciliation now (for testing/debugging).
-   */
-  forceHeartbeat(): { opsCount: number; duration: number } {
-    return this.heartbeat.force()
-  }
+  // ── Mutable state ──────────────────────────────────────────────────────
 
-  // ─── State & Diagnostics ────────────────────────────────────────────────
+  let state: SyncState = "idle"
+  let stopped = false
+  let ignorePatterns: string[] = []
+  let parsePool: ParsePoolService | undefined
+  const inFlightSyncs = new Set<Promise<void>>()
 
-  getHeartbeatDiagnostics(): {
-    enabled: boolean
-    totalDrift: number
-    lastActivityTime: number
-    idleSinceMs: number
-  } {
-    return this.heartbeat.diagnostics()
-  }
+  // ── Internal helpers ───────────────────────────────────────────────────
 
-  getState(): SyncState {
-    return this.state
-  }
-
-  async waitForInflight(): Promise<void> {
-    if (this.inFlightSyncs.size > 0) {
-      await Promise.allSettled(this.inFlightSyncs)
+  function setState(newState: SyncState): void {
+    if (state !== newState) {
+      log.debug?.(`state: ${state} → ${newState}`)
+      state = newState
+      callbacks?.onStateChange?.(state)
     }
   }
 
-  getInFlightCount(): number {
-    return this.inFlightSyncs.size
-  }
-
-  private async getParsePool(): Promise<ParsePoolService> {
-    if (!this.parsePool) {
-      this.parsePool = createParsePool()
-      await this.parsePool.start()
+  async function getParsePool(): Promise<ParsePoolService> {
+    if (!parsePool) {
+      parsePool = createParsePool()
+      await parsePool.start()
     }
-    return this.parsePool
+    return parsePool
   }
 
-  // ─── FS→DB Sync (watcher events) ───────────────────────────────────────
-
-  private handleFsSync(data: { paths: string[]; directories: string[] }): void {
-    const promise = this.handleFsSyncInner(data)
-    this.inFlightSyncs.add(promise)
-    void promise.finally(() => this.inFlightSyncs.delete(promise))
-  }
-
-  private async handleFsSyncInner(data: { paths: string[]; directories: string[] }): Promise<void> {
-    if (this.stopped) return
+  async function handleFsSyncInner(data: { paths: string[]; directories: string[] }): Promise<void> {
+    if (stopped) return
 
     using span = log.span("fs-sync", { paths: data.paths.length, dirs: data.directories.length })
-    this.heartbeat.touchActivity()
-    this.setState("reconciling")
+    heartbeat.touchActivity()
+    setState("reconciling")
 
     for (const dir of data.directories) {
-      if (this.stopped) break
+      if (stopped) break
       try {
         using dirSpan = span.span("reconcile-dir", { dir })
-        const ops = await this.engine.reconcileAsync(dir, this.ignorePatterns)
+        const ops = await engine.reconcileAsync(dir, ignorePatterns)
         dirSpan.spanData.ops = ops.length
 
-        if (ops.length > 0 && !this.stopped) {
-          this.setState("emitting")
+        if (ops.length > 0 && !stopped) {
+          setState("emitting")
           using applySpan = dirSpan.span("apply")
-          await this.engine.applyOpsAsync(ops, await this.getParsePool())
+          await engine.applyOpsAsync(ops, await getParsePool())
           applySpan.spanData.ops = ops.length
         }
       } catch (error) {
-        if (this.stopped) return
+        if (stopped) return
         span.error?.(`directory ${dir} failed: ${error instanceof Error ? error.message : String(error)}`)
-        this.emit("error", error)
+        callbacks?.onError?.(error)
       }
     }
-    if (!this.stopped) {
-      this.heartbeat.touchActivity()
-      this.setState("idle")
+    if (!stopped) {
+      heartbeat.touchActivity()
+      setState("idle")
     }
   }
 
-  private setState(newState: SyncState): void {
-    if (this.state !== newState) {
-      log.debug?.(`state: ${this.state} → ${newState}`)
-      this.state = newState
-      this.emit("state-change", this.state)
+  function handleFsSync(data: { paths: string[]; directories: string[] }): void {
+    const promise = handleFsSyncInner(data)
+    inFlightSyncs.add(promise)
+    void promise.finally(() => inFlightSyncs.delete(promise))
+  }
+
+  // ── FsWriteTarget (for EventHandlers) ──────────────────────────────────
+
+  const fsTarget: FsWriteTarget = {
+    writeFile: (absPath: string, content: string, eventId?: string) => {
+      writeQueue.queue({ path: absPath, content, sourceEventId: eventId || "" })
+    },
+    deleteFile: (absPath: string, eventId?: string) => {
+      writeQueue.queueDelete(absPath, eventId || "")
+    },
+    renameFile: (oldPath: string, newPath: string) => {
+      renameSync(oldPath, newPath)
+    },
+    mkdir: (absPath: string) => {
+      mkdirSync(absPath, { recursive: true })
+    },
+    markInFlight: (absPath: string) => {
+      watcher.markInFlight(absPath)
+    },
+    clearInFlight: (absPath: string, delayMs?: number) => {
+      watcher.clearInFlight(absPath, delayMs)
+    },
+    recordWriteToken: (absPath: string, content: string) => {
+      writeTokens.record(absPath, content)
+      syncState.recordProjection(absPath, content)
+    },
+    renamePending: (oldPath: string, newPath: string) => {
+      return writeQueue.renamePending(oldPath, newPath)
+    },
+    renamePendingSubtree: (oldPrefix: string, newPrefix: string) => {
+      return writeQueue.renamePendingSubtree(oldPrefix, newPrefix)
+    },
+    dropPending: (path: string) => {
+      return writeQueue.dropPending(path)
+    },
+  }
+
+  const handlers = new EventHandlers(cfg.db, cfg.repoPath, emitter, fsTarget)
+
+  // ── Heartbeat ──────────────────────────────────────────────────────────
+
+  const heartbeat: Heartbeat = createHeartbeat(
+    { ...DEFAULT_HEARTBEAT, ...config.heartbeat },
+    {
+      engine,
+      syncState,
+      writeQueue,
+      db: cfg.db,
+      repoPath: cfg.repoPath,
+      ignorePatterns: () => ignorePatterns,
+      getParsePool: () => getParsePool(),
+      getState: () => state,
+      setState: (s) => setState(s),
+      isStopped: () => stopped,
+      onError: (error) => callbacks?.onError?.(error),
+      onDrift: (info) => callbacks?.onHeartbeatDrift?.(info),
+      onComplete: (info) => callbacks?.onHeartbeatComplete?.(info),
+    },
+  )
+
+  // ── Wire up watcher & writeQueue events ────────────────────────────────
+
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Watcher event data is untyped
+  watcher.on("sync", (data) => handleFsSync(data))
+  watcher.on("error", (error) => callbacks?.onError?.(error))
+  watcher.on("ready", () => callbacks?.onReady?.())
+
+  if (watcher instanceof WorkerWatcher) {
+    watcher.on("status", (status: WatcherStatus) => {
+      callbacks?.onWatcherStatus?.(status)
+    })
+  }
+
+  writeQueue.on("flushed", (data) => callbacks?.onWriteComplete?.(data))
+  writeQueue.on("errors", (errors) => {
+    callbacks?.onWriteErrors?.(errors as Array<{ path: string; error: Error; errorClass?: string }>)
+    for (const err of errors as Array<{ path: string; errorClass?: string }>) {
+      if (err.errorClass === "permanent") {
+        syncState.markDirty(err.path)
+      }
     }
-  }
+  })
 
-  // ─── DB→FS Projection ──────────────────────────────────────────────────
+  // ── BulkSync deps ─────────────────────────────────────────────────────
 
-  applyEventToFs(event: Event): void {
-    void this.handlers.applyEventToFs(event)
-  }
-
-  // ─── Full Sync Operations (delegated to BulkSync) ─────────────────────
-
-  /** Build BulkSyncDeps from SyncManager internals */
-  private getBulkSyncDeps(): BulkSyncDeps {
+  function getBulkSyncDeps(): BulkSyncDeps {
     return {
-      db: this.db,
-      repoPath: this.config.repoPath,
-      writeQueue: this.writeQueue,
-      emitter: this.emitter,
-      createBlockIdAssigner: (eventId: string) => this.handlers.createBlockIdAssigner(eventId),
+      db: cfg.db,
+      repoPath: cfg.repoPath,
+      writeQueue,
+      emitter,
+      createBlockIdAssigner: (eventId: string) => handlers.createBlockIdAssigner(eventId),
     }
   }
 
-  async syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult> {
-    return BulkSync.fromFs(this.getBulkSyncDeps(), onProgress)
+  // ── Build and return the Sync object ───────────────────────────────────
+
+  const sync: Sync = {
+    start(): void {
+      log.debug?.(`starting sync for ${cfg.repoPath}`)
+      ignorePatterns = getIgnorePatterns(cfg.repoPath)
+      watcher.start(cfg.repoPath)
+      heartbeat.start()
+      callbacks?.onStarted?.()
+    },
+
+    async stop(): Promise<void> {
+      log.debug?.("stopping sync")
+      stopped = true
+      heartbeat.stop()
+      await watcher.stop()
+      if (inFlightSyncs.size > 0) {
+        log.debug?.(`waiting for ${inFlightSyncs.size} in-flight syncs`)
+        await Promise.allSettled(inFlightSyncs)
+      }
+      await writeQueue.flush()
+      if (parsePool) {
+        await parsePool[Symbol.asyncDispose]()
+        parsePool = undefined
+      }
+      callbacks?.onStopped?.()
+    },
+
+    applyEventToFs(event: Event): void {
+      void handlers.applyEventToFs(event)
+    },
+
+    async syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult> {
+      return BulkSync.fromFs(getBulkSyncDeps(), onProgress)
+    },
+
+    async *syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult> {
+      return yield* BulkSync.fromFsWithProgress(getBulkSyncDeps())
+    },
+
+    async syncToFs(): Promise<{ written: number }> {
+      return BulkSync.toFs(getBulkSyncDeps())
+    },
+
+    forceHeartbeat(): { opsCount: number; duration: number } {
+      return heartbeat.force()
+    },
+
+    getState(): SyncState {
+      return state
+    },
+
+    getStatus(): { state: SyncState; pendingWrites: number; repoPath: string; watcher?: WatcherStatus } {
+      const status: { state: SyncState; pendingWrites: number; repoPath: string; watcher?: WatcherStatus } = {
+        state,
+        pendingWrites: writeQueue.getPendingCount(),
+        repoPath: cfg.repoPath,
+      }
+      if (watcher instanceof WorkerWatcher) {
+        status.watcher = watcher.getStatus()
+      }
+      return status
+    },
+
+    getWatcherStatus(): WatcherStatus | null {
+      if (watcher instanceof WorkerWatcher) {
+        return watcher.getStatus()
+      }
+      return null
+    },
+
+    getHeartbeatDiagnostics(): {
+      enabled: boolean
+      totalDrift: number
+      lastActivityTime: number
+      idleSinceMs: number
+    } {
+      return heartbeat.diagnostics()
+    },
+
+    async waitForInflight(): Promise<void> {
+      if (inFlightSyncs.size > 0) {
+        await Promise.allSettled(inFlightSyncs)
+      }
+    },
+
+    getInFlightCount(): number {
+      return inFlightSyncs.size
+    },
+
+    async [Symbol.asyncDispose](): Promise<void> {
+      await sync.stop()
+    },
   }
 
-  async *syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult> {
-    return yield* BulkSync.fromFsWithProgress(this.getBulkSyncDeps())
-  }
-
-  async syncToFs(): Promise<{ written: number }> {
-    return BulkSync.toFs(this.getBulkSyncDeps())
-  }
-
-  // ─── Status ─────────────────────────────────────────────────────────────
-
-  getStatus(): {
-    state: SyncState
-    pendingWrites: number
-    repoPath: string
-    watcher?: WatcherStatus
-  } {
-    const status: {
-      state: SyncState
-      pendingWrites: number
-      repoPath: string
-      watcher?: WatcherStatus
-    } = {
-      state: this.state,
-      pendingWrites: this.writeQueue.getPendingCount(),
-      repoPath: this.config.repoPath,
-    }
-
-    if (this.watcher instanceof WorkerWatcher) {
-      status.watcher = this.watcher.getStatus()
-    }
-
-    return status
-  }
-
-  getWatcherStatus(): WatcherStatus | null {
-    if (this.watcher instanceof WorkerWatcher) {
-      return this.watcher.getStatus()
-    }
-    return null
-  }
+  return sync
 }

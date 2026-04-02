@@ -24,12 +24,12 @@ describe("ambiguous ID suffix resolution", () => {
     // Ensure IDs are actually different (different ULID prefixes)
     expect(id1).not.toBe(id2)
 
-    emitter.emit({
+    emitter.apply({
       type: "node_created",
       actor: "test",
       data: { id: id1, type: "p", item: {}, content: "Node 1" },
     })
-    emitter.emit({
+    emitter.apply({
       type: "node_created",
       actor: "test",
       data: { id: id2, type: "p", item: {}, content: "Node 2" },
@@ -51,7 +51,7 @@ describe("ambiguous ID suffix resolution", () => {
     test("unique suffix returns the node", () =>
       withTestEnvSync(({ db, emitter }) => {
         const id = ulid()
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id, type: "p", item: {}, content: "Unique node" },
@@ -81,12 +81,12 @@ describe("ambiguous ID suffix resolution", () => {
         const id2 = prefix + ulid().slice(prefix.length)
         expect(id1).not.toBe(id2)
 
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id1, type: "p", item: {}, content: "Node A" },
         })
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id2, type: "p", item: {}, content: "Node B" },
@@ -106,12 +106,12 @@ describe("ambiguous ID suffix resolution", () => {
         const id2 = ulid().slice(0, -suffix.length) + suffix
         expect(id1).not.toBe(id2)
 
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id1, type: "p", item: {}, content: "Task 1", task_status: "todo", task_marker: "[ ]" },
         })
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id2, type: "p", item: {}, content: "Task 2", task_status: "todo", task_marker: "[ ]" },
@@ -127,12 +127,12 @@ describe("ambiguous ID suffix resolution", () => {
         const taskId = ulid().slice(0, -suffix.length) + suffix
         const nonTaskId = ulid().slice(0, -suffix.length) + suffix
 
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: taskId, type: "p", item: {}, content: "Task", task_status: "todo", task_marker: "[ ]" },
         })
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: nonTaskId, type: "p", item: {}, content: "Not a task" },
@@ -153,12 +153,12 @@ describe("ambiguous ID suffix resolution", () => {
         const id2 = ulid().slice(0, -suffix.length) + suffix
         expect(id1).not.toBe(id2)
 
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id1, type: "p", item: {}, content: "Smart node 1" },
         })
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id2, type: "p", item: {}, content: "Smart node 2" },
@@ -176,12 +176,12 @@ describe("ambiguous ID suffix resolution", () => {
         const id2 = prefix + ulid().slice(prefix.length)
         expect(id1).not.toBe(id2)
 
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id1, type: "p", item: {}, content: "Prefix node 1" },
         })
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id: id2, type: "p", item: {}, content: "Prefix node 2" },
@@ -194,7 +194,7 @@ describe("ambiguous ID suffix resolution", () => {
     test("unique suffix still resolves correctly", () =>
       withTestEnvSync(({ db, emitter }) => {
         const id = ulid()
-        emitter.emit({
+        emitter.apply({
           type: "node_created",
           actor: "test",
           data: { id, type: "p", item: {}, content: "Only one" },

@@ -1,11 +1,11 @@
 /**
- * Emitter commit/project split tests
+ * Emitter commit/save split tests
  *
  * Verifies that:
  * - commit() applies DB + persist + broadcast but NOT filesystem sync
- * - project() triggers filesystem sync only
- * - emit() does both (backwards compat)
- * - FS-origin commit doesn't project (no echo)
+ * - save() triggers filesystem sync only
+ * - apply() does both (commit + save)
+ * - FS-origin commit doesn't save (no echo)
  */
 
 import { describe, test, expect, beforeAll, afterAll } from "vitest"
@@ -39,7 +39,7 @@ function createTmpDir(): string {
   return dir
 }
 
-describe("commit/project split", () => {
+describe("commit/save split", () => {
   test("commit() applies DB but does NOT trigger FS sync", () => {
     const db = createTestDb()
     const dir = createTmpDir()
@@ -76,14 +76,14 @@ describe("commit/project split", () => {
     // Broadcast should run
     expect(broadcastCalls).toEqual(["node_created"])
 
-    // FsSync should NOT run — commit doesn't project
+    // FsSync should NOT run — commit doesn't save
     expect(fsSyncCalls).toEqual([])
 
     db.close()
     rmSync(dir, { recursive: true })
   })
 
-  test("project() triggers FS sync only — no DB, no broadcast", () => {
+  test("save() triggers FS sync only — no DB, no broadcast", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -111,8 +111,8 @@ describe("commit/project split", () => {
     // Clear tracking
     broadcastCalls.length = 0
 
-    // Now project the already-committed event
-    emitter.project(event)
+    // Now save the already-committed event
+    emitter.save(event)
 
     // FsSync should run
     expect(fsSyncCalls).toEqual(["node_updated"])
@@ -124,7 +124,7 @@ describe("commit/project split", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("emit() does both commit and project (backwards compat)", () => {
+  test("apply() does both commit and save", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -146,7 +146,7 @@ describe("commit/project split", () => {
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
 
-    const event = emitter.emit({ type: "node_created", actor: "user", data: { id: "n2", type: "h" } })
+    const event = emitter.apply({ type: "node_created", actor: "user", data: { id: "n2", type: "h" } })
 
     // Everything should run
     expect(event.id).toBeTruthy()
@@ -161,7 +161,7 @@ describe("commit/project split", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("FS-origin commit does not project (structural echo prevention)", () => {
+  test("FS-origin commit does not save (structural echo prevention)", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -200,7 +200,7 @@ describe("commit/project split", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("emit with skipFsSync still prevents projection (backwards compat)", () => {
+  test("apply with skipFsSync still prevents save", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -215,8 +215,8 @@ describe("commit/project split", () => {
 
     const emitter = createEmitter({ kmDir, db, fsSync, skipPersist: true })
 
-    // Old pattern: emit with skipFsSync should still work
-    emitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "n4", type: "h" } }, { skipFsSync: true })
+    // apply with skipFsSync should skip FS save
+    emitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "n4", type: "h" } }, { skipFsSync: true })
 
     expect(fsSyncCalls).toEqual([])
 
@@ -224,7 +224,7 @@ describe("commit/project split", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("project with no fsSync set is a no-op", () => {
+  test("save with no fsSync set is a no-op", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -234,13 +234,13 @@ describe("commit/project split", () => {
     const event = emitter.commit({ type: "node_created", actor: "user", data: { id: "n5", type: "h" } })
 
     // Should not throw when no fsSync is set
-    expect(() => emitter.project(event)).not.toThrow()
+    expect(() => emitter.save(event)).not.toThrow()
 
     db.close()
     rmSync(dir, { recursive: true })
   })
 
-  test("wrapped emitter (reconcile pattern) uses commit for all emit calls", () => {
+  test("wrapped emitter (reconcile pattern) uses commit for all apply calls", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -265,22 +265,22 @@ describe("commit/project split", () => {
     // Wrap using the same pattern as wrapEmitterForReconcile
     const wrappedEmitter: typeof emitter = {
       ...emitter,
-      emit(event, _options = {}) {
+      apply(event, _options = {}) {
         return emitter.commit(event, _options)
       },
     }
 
-    // Emit via wrapped emitter — should broadcast but NOT write to FS
-    wrappedEmitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
-    wrappedEmitter.emit({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
+    // Apply via wrapped emitter — should broadcast but NOT write to FS
+    wrappedEmitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
+    wrappedEmitter.apply({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
 
     // Broadcast works (TUI gets notified)
     expect(broadcastCalls).toEqual(["node_created", "node_updated"])
     // FsSync is skipped (structural, not flag-based)
     expect(fsSyncCalls).toEqual([])
 
-    // Direct emitter still has full emit (commit + project)
-    emitter.emit({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
+    // Direct emitter still has full apply (commit + save)
+    emitter.apply({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
     expect(fsSyncCalls).toEqual(["node_updated"])
 
     db.close()

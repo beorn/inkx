@@ -22,7 +22,7 @@ import { createBoardState } from "./board-types.ts"
 import type { InitialBoardData, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
-import { SyncManager } from "@km/storage"
+import { createSync, type Sync } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -106,14 +106,14 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   // Watch can be disabled via: --no-watch CLI flag or config tui.watch=false
   // Note: Disabling watch still allows TUI edits to write to filesystem,
   // it just disables watching for external file changes
-  let syncManager: SyncManager | null = null
+  let syncManager: Sync | null = null
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
   if (isInteractive && state.rootPath && options?.watch !== false) {
     using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
-    log.debug?.(`Creating SyncManager rootPath=${state.rootPath} watch=true worker=${useWorker}`)
-    syncManager = new SyncManager({
+    log.debug?.(`Creating sync rootPath=${state.rootPath} watch=true worker=${useWorker}`)
+    syncManager = createSync({
       db: options.repo.database,
       repoPath: state.rootPath,
       debounceFs: 2000, // Debounce external changes (2s)
@@ -121,42 +121,41 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       conflictStrategy: "last_write_wins",
       useWorker, // Use worker thread by default (non-blocking)
       emitter: options.repo.emitter, // Share emitter so FS-origin events flow through eventHub
+      callbacks: {
+        // Wire up filesystem changes → TUI refresh.
+        // When sync finishes reconciling external file changes (DB updated),
+        // bust the Repo's children cache and bump version so React re-renders
+        // via useSyncExternalStore in useColumns.
+        onStateChange: (newState) => {
+          if (newState === "idle") {
+            options.repo?.touch()
+          }
+        },
+        // Forward watcher status to TUI for bottom bar display
+        onWatcherStatus: (status) => {
+          tuiEvents.emit("watcher-status", status)
+        },
+        // Surface write errors as toasts via cross-layer event system
+        onWriteErrors: (errors) => {
+          for (const e of errors) {
+            kmEvents.emit("sync-error", {
+              path: e.path,
+              message: e.error.message,
+            })
+          }
+        },
+        onError: (error) => {
+          kmEvents.emit("sync-error", { path: "", message: error instanceof Error ? error.message : String(error) })
+        },
+      },
     })
 
     // Wire up TUI changes → filesystem (always enabled for writes)
     options.repo.emitter.setFsSync(syncManager)
 
-    // Wire up filesystem changes → TUI refresh.
-    // When SyncManager finishes reconciling external file changes (DB updated),
-    // bust the Repo's children cache and bump version so React re-renders
-    // via useSyncExternalStore in useColumns.
-    syncManager.on("state-change", (newState) => {
-      if (newState === "idle") {
-        options.repo?.touch()
-      }
-    })
-
-    // Forward watcher status to TUI for bottom bar display
-    syncManager.on("watcher-status", (status) => {
-      tuiEvents.emit("watcher-status", status)
-    })
-
-    // Surface write errors as toasts via cross-layer event system
-    syncManager.on("write-errors", (errors: { path: string; error: Error }[]) => {
-      for (const e of errors) {
-        kmEvents.emit("sync-error", {
-          path: e.path,
-          message: e.error.message,
-        })
-      }
-    })
-    syncManager.on("error", (error: Error) => {
-      kmEvents.emit("sync-error", { path: "", message: error.message })
-    })
-
-    log.debug?.("Starting syncManager...")
+    log.debug?.("Starting sync...")
     syncManager.start()
-    log.debug?.("syncManager started")
+    log.debug?.("sync started")
 
     // Memory diagnostics: log RSS growth every 30s when km:memory debug is enabled.
     // Useful for identifying memory leaks in long-running sessions.

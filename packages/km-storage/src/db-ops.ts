@@ -153,7 +153,7 @@ function moveNodeImpl(
     const row = db.query("SELECT parent_id FROM nodes WHERE id = ?").get(nodeId) as { parent_id: string | null } | null
     const oldParentId = row?.parent_id ?? null
 
-    emitter.emit(
+    emitter.apply(
       {
         type: "node_moved",
         actor: "user",
@@ -204,7 +204,7 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
   }
 
   if (emitter) {
-    emitter.emit(
+    emitter.apply(
       {
         type: "node_updated",
         actor: "user",
@@ -258,7 +258,7 @@ function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
       item: number
     } | null
 
-    emitter.emit(
+    emitter.apply(
       {
         type: "node_deleted",
         actor: "user",
@@ -328,7 +328,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   }
 
   if (emitter) {
-    emitter.emit(
+    emitter.apply(
       {
         type: "node_created",
         actor: "user",

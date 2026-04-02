@@ -498,7 +498,7 @@ describe("ViewTree.nodes", () => {
   })
 })
 
-describe("ViewTree.descendantIds", () => {
+describe("ViewTree.nodeIds", () => {
   const emptyFoldDepths = new Map<string, number>()
 
   test("returns all descendant IDs including root", () => {
@@ -512,12 +512,12 @@ describe("ViewTree.descendantIds", () => {
     const tree = buildViewTree(repo, "root", emptyFoldDepths)
     const index = buildViewIndex(tree)
 
-    expect(ViewTree.descendantIds(index, "col1")).toEqual(["col1", "c1", "sub1"])
+    expect(ViewTree.nodeIds(index, "col1")).toEqual(["col1", "c1", "sub1"])
   })
 
   test("returns [rootId] when node not found in index", () => {
     const index = new Map<string, ViewNode>()
-    expect(ViewTree.descendantIds(index, "missing")).toEqual(["missing"])
+    expect(ViewTree.nodeIds(index, "missing")).toEqual(["missing"])
   })
 })
 

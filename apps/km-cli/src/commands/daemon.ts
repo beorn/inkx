@@ -16,7 +16,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"
-import { SyncManager, findKmRootFromPath, createEmitter } from "@km/storage"
+import { createSync, type Sync, findKmRootFromPath, createEmitter } from "@km/storage"
 import type { Emitter } from "@km/storage"
 import type { Event } from "@km/core"
 import { EventEmitter } from "events"
@@ -316,7 +316,7 @@ function formatUptime(ms: number): string {
  * KM Daemon - single background process for sync and automation
  */
 class KmDaemon extends EventEmitter {
-  private sync: SyncManager
+  private sync: Sync
   private emitter: Emitter
   private server?: ReturnType<typeof createServer>
   private startTime: number = 0
@@ -337,27 +337,24 @@ class KmDaemon extends EventEmitter {
     // Create emitter for event handling
     this.emitter = createEmitter({ kmDir, db })
 
-    this.sync = new SyncManager({
+    this.sync = createSync({
       db,
       repoPath,
       debounceFs: 5000,
       debounceApply: 3000,
       conflictStrategy: "last_write_wins",
       emitter: this.emitter,
-    })
-
-    // Wire up sync events
-    this.sync.on("state-change", (state) => {
-      this.log(`State: ${state}`)
-    })
-
-    this.sync.on("write-complete", (data) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access -- EventEmitter data payload is untyped
-      this.log(`Wrote ${data.count} file(s)`)
-    })
-
-    this.sync.on("error", (error) => {
-      this.log(`Error: ${String(error)}`, "error")
+      callbacks: {
+        onStateChange: (state) => {
+          this.log(`State: ${state}`)
+        },
+        onWriteComplete: (data) => {
+          this.log(`Wrote ${data.count} file(s)`)
+        },
+        onError: (error) => {
+          this.log(`Error: ${String(error)}`, "error")
+        },
+      },
     })
   }
 

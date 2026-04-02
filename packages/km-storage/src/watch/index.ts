@@ -12,10 +12,10 @@ export type { WatcherStatus, WatcherState } from "./worker-thread.ts"
 export type { WatcherInterface, SyncData } from "./types.ts"
 
 // Sync
-export { SyncManager } from "./sync.ts"
+export { createSync } from "./sync.ts"
 export { FsWriter } from "./fs-writer.ts"
 
-export type { SyncConfig, SyncFromFsResult } from "./sync.ts"
+export type { Sync, SyncConfig, SyncCallbacks, SyncFromFsResult } from "./sync.ts"
 
 // Bulk sync (standalone FS<->DB sync, usable from TUI and CLI)
 export { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"

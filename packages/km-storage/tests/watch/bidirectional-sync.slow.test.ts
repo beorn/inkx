@@ -13,16 +13,9 @@
 import { describe, test, expect } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
-import { EventEmitter } from "events"
 
 import { getNodeByPath, getAllNodes, withTestEnv, createTestEnvRepo } from "@km/storage"
-import {
-  createTestSyncManager,
-  setupSyncManager,
-  waitForReady,
-  waitForStateChange,
-  withTimeout,
-} from "./sync-test-helpers.ts"
+import { createTestSync, setupSync, waitForReady, createStateChangeWaiter, withTimeout } from "./sync-test-helpers.ts"
 
 describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {

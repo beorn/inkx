@@ -1,13 +1,13 @@
 /**
  * Watcher - File Sync Service
  *
- * Wraps SyncManager to implement the Service interface for lifecycle control.
+ * Wraps createSync() to implement the Service interface for lifecycle control.
  * Created via createWatcher() or repo.watch().
  */
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { SyncManager, type SyncConfig } from "./watch/index.ts"
+import { createSync, type SyncConfig } from "./watch/index.ts"
 import type { FileChange } from "./watch/index.ts"
 
 const log = createLogger("km:storage:watcher")
@@ -76,18 +76,6 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
 
   let status: ServiceStatus = "stopped"
 
-  // Create SyncManager with config (db is required - no singleton fallback)
-  const config: SyncConfig = {
-    db: options.db,
-    repoPath,
-    debounceFs: options.debounceFs ?? 5000,
-    debounceApply: options.debounceApply ?? 3000,
-    conflictStrategy: options.conflictStrategy ?? "last_write_wins",
-    useWorker: options.useWorker ?? true,
-  }
-
-  const syncManager = new SyncManager(config)
-
   // Event handler storage
   type ChangeHandler = (changes: FileChange[]) => void
   type ErrorHandler = (error: Error) => void
@@ -96,25 +84,33 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
 
   const handlers = new Map<string, Set<AnyHandler>>()
 
-  // Forward SyncManager events to our handlers
-  syncManager.on("state-change", () => {
-    const changeHandlers = handlers.get("change")
-    if (changeHandlers) {
-      // state-change doesn't include details, emit empty for now
-      // The actual changes are handled internally by SyncManager
-      changeHandlers.forEach((h) => (h as ChangeHandler)([]))
-    }
-  })
+  // Create Sync with typed callbacks that forward to our handler registry
+  const config: SyncConfig = {
+    db: options.db,
+    repoPath,
+    debounceFs: options.debounceFs ?? 5000,
+    debounceApply: options.debounceApply ?? 3000,
+    conflictStrategy: options.conflictStrategy ?? "last_write_wins",
+    useWorker: options.useWorker ?? true,
+    callbacks: {
+      onStateChange: () => {
+        const changeHandlers = handlers.get("change")
+        if (changeHandlers) {
+          changeHandlers.forEach((h) => (h as ChangeHandler)([]))
+        }
+      },
+      onError: (error) => {
+        const errorHandlers = handlers.get("error")
+        errorHandlers?.forEach((h) => (h as ErrorHandler)(error as Error))
+      },
+      onReady: () => {
+        const readyHandlers = handlers.get("ready")
+        readyHandlers?.forEach((h) => (h as ReadyHandler)())
+      },
+    },
+  }
 
-  syncManager.on("error", (error: Error) => {
-    const errorHandlers = handlers.get("error")
-    errorHandlers?.forEach((h) => (h as ErrorHandler)(error))
-  })
-
-  syncManager.on("ready", () => {
-    const readyHandlers = handlers.get("ready")
-    readyHandlers?.forEach((h) => (h as ReadyHandler)())
-  })
+  const sync = createSync(config)
 
   const watcher: Watcher = {
     get status() {
@@ -132,7 +128,7 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
       log.debug?.("starting watcher")
 
       try {
-        syncManager.start()
+        sync.start()
         status = "running"
         log.debug?.("watcher started")
       } catch (error) {
@@ -151,7 +147,7 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
       log.debug?.("stopping watcher")
 
       try {
-        await syncManager.stop()
+        await sync.stop()
         status = "stopped"
         log.debug?.("watcher stopped")
       } catch (error) {
