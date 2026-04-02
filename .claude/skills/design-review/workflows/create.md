@@ -228,7 +228,7 @@ Strip ANSI from the approved mockup and diff against the TTY text:
 
 ```bash
 # Strip ANSI escape codes from mockup
-sed 's/\x1b\[[0-9;]*m//g' vendor/silvery-internal/design/mockups/<demo>-mockup.ansi > /tmp/mockup-plain.txt
+sed 's/\x1b\[[0-9;]*m//g' vendor/internal/silvery/design/mockups/<demo>-mockup.ansi > /tmp/mockup-plain.txt
 
 # Compare (ignore live data lines — CPU %, sparklines change each render)
 diff /tmp/mockup-plain.txt /tmp/<demo>-baseline.txt

@@ -12,6 +12,6 @@
     "**/dist",
     "archive",
     "vendor/silvery/tests/compat/ink/generated",
-    "vendor/silvery-internal/prototype"
+    "vendor/internal/silvery/prototype"
   ]
 }

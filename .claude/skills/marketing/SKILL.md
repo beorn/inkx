@@ -49,8 +49,8 @@ This section tracks when each workflow was last run. Update after each execution
 |------|--------|----------|-------|
 | robots.txt (all sites) | done | 2026-04-01 | terminfo.dev, silvery.dev, termless.dev, flexily, loggily |
 | JSON-LD structured data | done | 2026-04-01 | WebSite, BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo via @bearly/vitepress-enrich |
-| Meta descriptions (all sites) | done | 2026-04-01 | transformPageData on all sites |
-| Breadcrumb schema | done | 2026-04-01 | BreadcrumbList JSON-LD on all sites |
+| Meta descriptions (all sites) | fixed | 2026-04-02 | Auto-generated unique descriptions via generateDescription() in @bearly/vitepress-enrich. silvery: 146/146 unique, termless: 48/48, terminfo: 325/328, beorn.codes: adopted vitepress-enrich |
+| Breadcrumb schema | fixed | 2026-04-02 | BreadcrumbList on all sites. Fixed terminfo.dev template variable bug (fbe5352) |
 | Search Console submission | done | 2026-04-01 | All 4 properties: terminfo.dev, silvery.dev, termless.dev, beorn.codes (sitemap index → /flexily, /loggily, /mdspec) |
 | Canonical URLs (all sites) | done | 2026-04-01 | Via sitemap.hostname + seoTransformPageData |
 | Sitemap generation (all sites) | done | 2026-04-01 | VitePress auto-generates from sitemap.hostname config |
@@ -59,7 +59,15 @@ This section tracks when each workflow was last run. Update after each execution
 | Plausible analytics (all sites) | not started | — | All 3 sites have Cloudflare beacon.min.js instead |
 | Blog infrastructure (silvery.dev) | not started | — | |
 | Newsletter setup (ecosystem) | not started | — | |
-| OG image generation | not started | — | |
+| OG image generation | partial | 2026-04-02 | terminfo.dev + termless.dev: SVG→PNG converted. loggily + mdspec: SVG only (social platforms can't render). silvery: still SVG |
+
+### SEO Audits (2026-04-02)
+| Site | Score | Bead | Key Fixes Applied |
+|------|-------|------|-------------------|
+| silvery.dev | 69/100 | km-market.silvery-seo | Unique descriptions (146/146), 45+ count, SoftwareApplication schema, author URLs |
+| terminfo.dev | 72/100 | km-market.terminfo-seo | BreadcrumbList template fix, OG PNG, Dataset schema, OG tags |
+| termless.dev | 63/100 | km-market.termless-seo | Unique descriptions (22 pages), OG PNG, page titles, FAQPage schema |
+| beorn.codes | 50/100 | km-market.beorn-seo | Sitemap URL fix (missing base path), mdtest→mdspec rename, vitepress-enrich adoption |
 
 ### Phase 1: Programmatic SEO
 | Task | Status | Pages | Last Run | Notes |
