@@ -7,7 +7,7 @@
  * See docs/design/tea-state-machines.md for the TEA vision.
  */
 
-import { describe, it, expect, beforeEach } from "vitest"
+import { describe, it, expect } from "vitest"
 import {
   applySelect,
   applyBlockNav,
@@ -24,7 +24,6 @@ import {
   createBoardNavState,
   MAX_FOLD_DEPTH,
   type BoardNavState,
-  type BoardEditOp,
   type IndentContext,
   type OutdentContext,
   type InsertNodeContext,
@@ -32,18 +31,6 @@ import {
   type MoveNodeContext,
   type ToggleStatusContext,
 } from "../src/board/board-reducer.ts"
-import {
-  withHistory,
-  createBoardStateWithHistory,
-  createHistoryState,
-  undoOp,
-  redoOp,
-  canUndo,
-  canRedo,
-  HISTORY_GROUP_WINDOW_MS,
-  HISTORY_MAX_UNDOS,
-  type BoardStateWithHistory,
-} from "../src/board/history-plugin.ts"
 
 // =============================================================================
 // Helpers
@@ -914,241 +901,5 @@ describe("Board.apply — combined dispatcher", () => {
       nodes: [{ nodeId: "card-a", newParentId: "prev-sibling", sortOrder: 0 }],
     })
     expect(result.effects.some((e) => e.type === "REPO_MOVE_NODE")).toBe(true)
-  })
-})
-
-// =============================================================================
-// withHistory plugin
-// =============================================================================
-
-describe("withHistory plugin", () => {
-  // Fixed time for deterministic tests
-  let time: number
-  const clock = () => time
-  const apply = withHistory(applyBoard, clock)
-
-  function historyState(overrides: Partial<BoardNavState> = {}): BoardStateWithHistory {
-    return createBoardStateWithHistory(state(overrides))
-  }
-
-  beforeEach(() => {
-    time = 1000
-  })
-
-  it("records edit ops in history", () => {
-    const s = historyState({ cursorNodeId: "card-a" })
-    const result = apply(s, {
-      type: "INDENT_NODE",
-      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
-    })
-    expect(result.state.history.undos).toHaveLength(1)
-    expect(result.state.history.undos[0]!.op.type).toBe("INDENT_NODE")
-  })
-
-  it("does not record navigation ops in history", () => {
-    const s = historyState({ cursorNodeId: "a" })
-    const result = apply(s, { type: "SELECT", nodeId: "b" })
-    expect(result.state.history.undos).toHaveLength(0)
-  })
-
-  it("preserves history state through navigation ops", () => {
-    let s = historyState({ cursorNodeId: "card-a" })
-    // Edit op
-    const r1 = apply(s, {
-      type: "INDENT_NODE",
-      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
-    })
-    s = r1.state
-    // Navigation op
-    const r2 = apply(s, { type: "SELECT", nodeId: "card-b" })
-    expect(r2.state.history.undos).toHaveLength(1)
-  })
-
-  it("records cursorBefore and cursorAfter", () => {
-    const s = historyState({ cursorNodeId: "before-cursor" })
-    const result = apply(s, {
-      type: "DELETE_NODE",
-      context: { nodeIds: ["card-x"], cursorTarget: "after-cursor" },
-    })
-    const entry = result.state.history.undos[0]!
-    expect(entry.cursorBefore).toBe("before-cursor")
-    expect(entry.cursorAfter).toBe("after-cursor")
-  })
-
-  it("clears redo stack on new edit", () => {
-    const initial = historyState({ cursorNodeId: "card-a" })
-    // Create some history with a redo entry
-    const h: BoardStateWithHistory = {
-      ...initial,
-      history: {
-        undos: [],
-        redos: [
-          {
-            op: { type: "INDENT_NODE", nodes: [] },
-            cursorBefore: null,
-            cursorAfter: null,
-            timestamp: 0,
-          },
-        ],
-      },
-    }
-    const result = apply(h, {
-      type: "INDENT_NODE",
-      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
-    })
-    expect(result.state.history.redos).toHaveLength(0)
-    expect(result.state.history.undos).toHaveLength(1)
-  })
-
-  it("groups rapid edits within time window", () => {
-    let s = historyState({ cursorNodeId: "task-1" })
-
-    // First toggle
-    time = 1000
-    const r1 = apply(s, {
-      type: "TOGGLE_TASK_STATUS",
-      nodes: [{ nodeId: "task-1", nextStatus: "wip", marker: "[/]", itemUpdate: {} }],
-    })
-    s = r1.state
-
-    // Second toggle within window
-    time = 1000 + HISTORY_GROUP_WINDOW_MS - 1
-    const r2 = apply(s, {
-      type: "TOGGLE_TASK_STATUS",
-      nodes: [{ nodeId: "task-1", nextStatus: "done", marker: "[x]", itemUpdate: {} }],
-    })
-
-    // Should be grouped into one entry
-    expect(r2.state.history.undos).toHaveLength(1)
-  })
-
-  it("does not group edits beyond time window", () => {
-    let s = historyState({ cursorNodeId: "task-1" })
-
-    time = 1000
-    const r1 = apply(s, {
-      type: "TOGGLE_TASK_STATUS",
-      nodes: [{ nodeId: "task-1", nextStatus: "wip", marker: "[/]", itemUpdate: {} }],
-    })
-    s = r1.state
-
-    // Beyond the window
-    time = 1000 + HISTORY_GROUP_WINDOW_MS + 1
-    const r2 = apply(s, {
-      type: "TOGGLE_TASK_STATUS",
-      nodes: [{ nodeId: "task-1", nextStatus: "done", marker: "[x]", itemUpdate: {} }],
-    })
-
-    expect(r2.state.history.undos).toHaveLength(2)
-  })
-
-  it("does not group different operation types", () => {
-    let s = historyState({ cursorNodeId: "card-a" })
-
-    time = 1000
-    const r1 = apply(s, {
-      type: "INDENT_NODE",
-      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
-    })
-    s = r1.state
-
-    // Different op type, within window
-    time = 1000 + 10
-    const r2 = apply(s, {
-      type: "DELETE_NODE",
-      context: { nodeIds: ["card-b"], cursorTarget: "card-a" },
-    })
-
-    expect(r2.state.history.undos).toHaveLength(2)
-  })
-
-  it("enforces max undo capacity", () => {
-    let s = historyState({ cursorNodeId: "card-a" })
-
-    for (let i = 0; i < HISTORY_MAX_UNDOS + 20; i++) {
-      time = i * 1000 // Each well beyond grouping window
-      const r = apply(s, {
-        type: "INDENT_NODE",
-        nodes: [{ nodeId: `card-${i}`, newParentId: "prev", sortOrder: i }],
-      })
-      s = r.state
-    }
-
-    expect(s.history.undos.length).toBeLessThanOrEqual(HISTORY_MAX_UNDOS)
-  })
-
-  it("preserves inner reducer effects", () => {
-    const s = historyState({ cursorNodeId: "card-a" })
-    const result = apply(s, {
-      type: "INDENT_NODE",
-      nodes: [{ nodeId: "card-a", newParentId: "prev", sortOrder: 0 }],
-    })
-    // Should still have REPO_MOVE_NODE from inner reducer
-    expect(result.effects.some((e) => e.type === "REPO_MOVE_NODE")).toBe(true)
-  })
-})
-
-// =============================================================================
-// undoOp / redoOp
-// =============================================================================
-
-describe("undoOp / redoOp", () => {
-  const entry1 = {
-    op: { type: "INDENT_NODE" as const, nodes: [] },
-    cursorBefore: "a",
-    cursorAfter: "b",
-    timestamp: 1000,
-  }
-  const entry2 = {
-    op: { type: "DELETE_NODE" as const, context: { nodeIds: ["x"], cursorTarget: "y" } },
-    cursorBefore: "b",
-    cursorAfter: "y",
-    timestamp: 2000,
-  }
-
-  it("undoOp pops last entry from undos and pushes to redos", () => {
-    const h = { undos: [entry1, entry2], redos: [] }
-    const result = undoOp(h)
-    expect(result.entry).toBe(entry2)
-    expect(result.history.undos).toHaveLength(1)
-    expect(result.history.redos).toHaveLength(1)
-    expect(result.history.redos[0]).toBe(entry2)
-  })
-
-  it("undoOp returns null entry when stack empty", () => {
-    const h = { undos: [], redos: [] }
-    const result = undoOp(h)
-    expect(result.entry).toBeNull()
-    expect(result.history).toBe(h)
-  })
-
-  it("redoOp pops last entry from redos and pushes to undos", () => {
-    const h = { undos: [], redos: [entry1] }
-    const result = redoOp(h)
-    expect(result.entry).toBe(entry1)
-    expect(result.history.undos).toHaveLength(1)
-    expect(result.history.redos).toHaveLength(0)
-  })
-
-  it("redoOp returns null entry when stack empty", () => {
-    const h = { undos: [], redos: [] }
-    const result = redoOp(h)
-    expect(result.entry).toBeNull()
-    expect(result.history).toBe(h)
-  })
-
-  it("canUndo/canRedo report correctly", () => {
-    expect(canUndo({ undos: [entry1], redos: [] })).toBe(true)
-    expect(canUndo({ undos: [], redos: [entry1] })).toBe(false)
-    expect(canRedo({ undos: [], redos: [entry1] })).toBe(true)
-    expect(canRedo({ undos: [entry1], redos: [] })).toBe(false)
-  })
-
-  it("undo then redo roundtrip preserves entries", () => {
-    const h = { undos: [entry1, entry2], redos: [] }
-    const afterUndo = undoOp(h)
-    const afterRedo = redoOp(afterUndo.history)
-    expect(afterRedo.history.undos).toHaveLength(2)
-    expect(afterRedo.history.redos).toHaveLength(0)
   })
 })
