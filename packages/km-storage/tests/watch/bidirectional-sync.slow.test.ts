@@ -276,8 +276,8 @@ describe("Bidirectional Sync E2E", () => {
       }),
     )
 
-    // FIXME: Pre-existing failure — recentWrites suppression blocks external edit pickup.
-    // The TUI edit to Task A marks the file in recentWrites (10s window), which prevents
+    // FIXME: Pre-existing failure — write token suppression blocks external edit pickup.
+    // The TUI edit to Task A records a write token for the file, which prevents
     // reconciliation from picking up the externally-added Task B. Needs field-level merge.
     test.skip("TUI edit during filesystem sync doesn't cause data loss", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {

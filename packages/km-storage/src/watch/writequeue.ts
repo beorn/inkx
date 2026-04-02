@@ -278,6 +278,8 @@ export interface WriteQueueConfig {
   retry?: Partial<RetryConfig>
   /** Conflict resolution strategy (default: last_write_wins) */
   conflictStrategy?: ConflictStrategy
+  /** Called after a successful writeFileSync with the path and content actually written */
+  onWrite?: (path: string, content: string) => void
 }
 
 const DEFAULT_CONFIG: WriteQueueConfig = {
@@ -306,6 +308,7 @@ export class WriteQueue extends EventEmitter {
   private conflictStrategy: ConflictStrategy
   private watcher: InFlightTracker | null = null
   private fs: FileSystemOps
+  private onWrite: ((path: string, content: string) => void) | undefined
   /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
   private flushGeneration = new Map<string, number>()
   private currentGeneration = 0
@@ -318,6 +321,7 @@ export class WriteQueue extends EventEmitter {
     this.retryConfig = { ...DEFAULT_RETRY_CONFIG, ...config.retry }
     this.conflictStrategy = config.conflictStrategy ?? "last_write_wins"
     this.fs = config.fs ?? realFs
+    this.onWrite = config.onWrite
   }
 
   /**
@@ -430,6 +434,7 @@ export class WriteQueue extends EventEmitter {
           this.fs.mkdirSync(dir, { recursive: true })
         }
         this.fs.writeFileSync(op.path, op.content, "utf-8")
+        this.onWrite?.(op.path, op.content)
         break
       }
     }

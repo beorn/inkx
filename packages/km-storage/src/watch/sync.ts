@@ -25,6 +25,7 @@ import {
 } from "./reconcile.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
+import { WriteTokenMap } from "./write-tokens.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import { type Event } from "@km/core"
 import { createEmitter, type Emitter } from "../emitter.ts"
@@ -112,12 +113,11 @@ export class SyncManager extends EventEmitter {
   private inFlightSyncs: Set<Promise<void>> = new Set()
   private stopped = false
 
-  // Recent writes — tracks files written by us to prevent reconciliation from reading stale content.
-  // The watcher's in-flight tracking suppresses FSEvents notifications, but the heartbeat and
-  // watcher-triggered reconciliation can still read stale files. This map records the timestamp
-  // of each write so reconciliation can skip recently-written files.
-  private recentWrites: Map<string, number> = new Map()
-  private static readonly RECENT_WRITE_WINDOW_MS = 10_000 // 10 seconds
+  // Write tokens — content-hash based tracking of files written by us.
+  // When reconciliation sees a file change, it checks the token to determine
+  // if the change was ours (skip) or external (process). Replaces the old
+  // timestamp-based recentWrites with deterministic SHA-256 hashing.
+  private writeTokens = new WriteTokenMap()
 
   // Heartbeat reconciliation
   private heartbeatConfig: HeartbeatConfig
@@ -158,6 +158,7 @@ export class SyncManager extends EventEmitter {
 
     this.writeQueue = new WriteQueue({
       debounceMs: this.config.debounceApply,
+      onWrite: (path, content) => this.writeTokens.record(path, content),
     })
 
     this.writeQueue.setWatcher(this.watcher)
@@ -165,7 +166,6 @@ export class SyncManager extends EventEmitter {
     // Create async FsWriteTarget that queues writes to WriteQueue
     const fsTarget: FsWriteTarget = {
       writeFile: (absPath: string, content: string, eventId?: string) => {
-        this.recentWrites.set(absPath, Date.now())
         this.writeQueue.queue({
           path: absPath,
           content,
@@ -364,25 +364,20 @@ export class SyncManager extends EventEmitter {
   }
 
   /**
-   * Check if a path was recently written by us (within the suppression window).
+   * Check if we have a write token for this path (content-hash based).
    * Used to skip reconciliation for files we just wrote — prevents stale file
    * content from overwriting DB values set by inline edit.
    */
-  private isRecentWrite(absPath: string): boolean {
-    const writeTime = this.recentWrites.get(absPath)
-    if (!writeTime) return false
-    if (Date.now() - writeTime < SyncManager.RECENT_WRITE_WINDOW_MS) return true
-    // Expired — clean up
-    this.recentWrites.delete(absPath)
-    return false
+  private hasWriteToken(absPath: string): boolean {
+    return this.writeTokens.has(absPath)
   }
 
   /**
-   * Filter reconcile ops to exclude files we recently wrote or have pending writes for.
+   * Filter reconcile ops to exclude files we wrote or have pending writes for.
    *
    * Two suppression layers:
-   * 1. recentWrites — time-based window (10s) covering files we queued writes for
-   * 2. pendingWrites — files currently in the WriteQueue awaiting flush
+   * 1. writeTokens — content-hash based tracking of files we wrote (post-flush)
+   * 2. pendingPaths — files currently in the WriteQueue awaiting flush (pre-flush)
    *
    * Layer 2 is critical for the delete-noop bug (km-tui.delete-noop): after deleting
    * a node, the parent file is queued for regeneration. Before the WriteQueue flushes,
@@ -391,10 +386,10 @@ export class SyncManager extends EventEmitter {
    */
   private filterRecentWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
     const pendingPaths = this.writeQueue.getPendingPaths()
-    const filtered = ops.filter((op) => !this.isRecentWrite(op.path) && !pendingPaths.has(op.path))
+    const filtered = ops.filter((op) => !this.hasWriteToken(op.path) && !pendingPaths.has(op.path))
     const skipped = ops.length - filtered.length
     if (skipped > 0) {
-      log.debug?.(`reconcile: skipped ${skipped} ops for recently-written or pending-write files`)
+      log.debug?.(`reconcile: skipped ${skipped} ops for token-matched or pending-write files`)
     }
     return filtered
   }
