@@ -138,7 +138,7 @@ Before theorizing about a bug or issue, **search history first**: `bun recall "t
 
 Use `/pm` for beads (bugs/tasks/features) and claim before starting: `bd update <id> --claim`.
 Any significant work (features, bug fixes, refactors) should have a bead — consider creating one when planning.
-See [.claude/skills/pm/] for commands and common mistakes.
+**When `/pm` reports a bug requiring code changes, auto-run `/tdd`** — create the bead, then immediately reproduce with a failing test before fixing. See [.claude/skills/pm/] and [.claude/skills/tdd/].
 
 ## Commits
 
@@ -182,7 +182,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 
 | Skill                                                               | Use When                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [pm/](.claude/skills/pm/)                                           | Issue tracking (beads)                                                |
+| [pm/](.claude/skills/pm/)                                           | Issue tracking (beads). **Bugs auto-trigger /tdd** (reproduce first)  |
 | [tests/](.claude/skills/tests/)                                     | Writing/running tests, TDD workflow                                   |
 | [tests/termless.md](.claude/skills/tests/termless.md)               | ANSI verification, scrollback, cursor, terminal modes, resolved colors |
 | [code/](.claude/skills/code/)                                       | Code quality/review                                                   |
