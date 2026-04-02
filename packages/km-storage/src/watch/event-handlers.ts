@@ -516,14 +516,11 @@ export class EventHandlers {
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
 
       // Record write token at new path so watcher recognizes it as our write
-      if (existsSync(newAbsPath)) {
-        try {
-          const content = readFileSync(newAbsPath, "utf-8")
-          this.fsTarget.recordWriteToken?.(newAbsPath, content)
-        } catch {
-          // File may not exist yet if renameFile is async — token will be missed
-          // but markInFlight provides fallback suppression
-        }
+      try {
+        const content = readFileSync(newAbsPath, "utf-8")
+        this.fsTarget.recordWriteToken?.(newAbsPath, content)
+      } catch {
+        // Read failure after rename — markInFlight provides fallback suppression
       }
     }
 
