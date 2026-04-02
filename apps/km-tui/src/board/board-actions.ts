@@ -1900,6 +1900,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
           stickyX,
         },
       })
+      requestRenderFlush()
       return ok()
     }
   }
@@ -1924,6 +1925,7 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
         stickyX,
       },
     })
+    requestRenderFlush()
     return ok()
   }
 
