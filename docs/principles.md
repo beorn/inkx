@@ -119,7 +119,9 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |
+| View | `ViewNode` | `ViewTree` | `.nodes()`, `.next()`, `.prev()`, `.get()` |
+| Storage | `Repo` | — | `.apply()`, `.commit()`, `.getNode()`, `.getChildren()` |
+| Storage | `Sync` | `withSync()` | `.start()`, `.stop()`, `.save()`, `.forceHeartbeat()` |
 | State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
 | UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
 

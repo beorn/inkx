@@ -10,9 +10,7 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
 
   User action
        |
-  Repo.mutate()
-       |
-  Emitter.apply(event)  [= commit() + save()]
+  repo.apply(event)  [= commit() + save()]
        |
        |-- commit():
        |     1. Apply to DB ------> applyEventWithDb() [db-events.ts]
@@ -20,18 +18,18 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
        |     3. Broadcast --------> eventHub.broadcast(event)
        |
        '-- save():
-             4. FS sync ----------> FsSync.applyEventToFs(event)
+             4. FS sync ----------> route(event) → handlers.save(node)
                                       |
                              +--------+--------+
                              |                 |
-                       SyncManager         FsWriter
+                       withSync            FsWriter
                        (TUI: queue)        (CLI: sync write)
                              |
                        nodesToMarkdown()    -> serialize subtree
                        WriteQueue.queue()   -> debounce + retry
                        WriteQueue.flush()   -> atomic write (temp+rename)
                              |
-                       sync_state.recordProjection()  -> baseline hash
+                       sync_state.recordSave()        -> baseline hash
                        writeTokens.record()           -> hot cache
 
 
@@ -44,7 +42,7 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
        |
   Debounce (5s default, configurable via SyncConfig.debounceFs)
        |
-  "sync" event -> SyncManager.handleFsSync()
+  "sync" event -> Sync.handleFsSync()
        |
   ReconciliationEngine.reconcileAsync()
        |-- scan FS entries (stat each file: path, ino, mtime)
@@ -63,8 +61,8 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
        |
        '-- finalize: batch link resolution + index file sync
 
-  Handlers call Emitter.commit() (not emit/project)
-  -> step 4 (FS sync) structurally cannot run for FS-origin events
+  Handlers call repo.commit() (not apply)
+  -> step 4 (save) structurally cannot run for FS-origin events
   -> prevents infinite loop: FS change -> DB -> FS -> DB ...
 
   After reconciliation: sync_state.recordObservation() for each file
@@ -72,16 +70,19 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
 
 ## Architecture
 
-### Emitter: commit/project Split
+### Emitter: commit/save Split
 
 The emitter has three methods:
 
+- `apply(event)` — The main verb: `commit()` then `save()`. Used by TUI-origin events.
 - `commit(event)` — DB apply + persist + broadcast. No filesystem writes.
-- `project(event)` — FS sync only. Writes files via EventHandlers.
-- `emit(event)` — Convenience: `commit()` then `project()`. Used by TUI-origin events.
+- `save(event)` — FS sync only. Writes files via EventHandlers.
 
 FS-origin reconciliation uses `commit()` only. This structurally prevents echo loops —
-the filesystem projector never runs for watcher-detected changes.
+the filesystem save never runs for watcher-detected changes.
+
+With the `withSync(config)(repo)` decorator, the apply/save split is handled
+by wrapping `repo.apply()` — no manual `setFsSync()` wiring needed.
 
 ### Ownership: Two-Tier Detection
 
@@ -118,10 +119,12 @@ CREATE TABLE sync_state (
 
 | Module                     | Single Responsibility                                                   |
 | -------------------------- | ----------------------------------------------------------------------- |
-| `sync.ts`                  | TUI mode: watcher lifecycle, WriteQueue, heartbeat, delegates to engine |
+| `sync.ts`                  | `withSync()` decorator: wraps repo.apply() with FS sync, watcher, heartbeat |
+| `heartbeat.ts`             | Periodic anti-entropy reconciliation (configurable interval, idle-gated) |
+| `bulk-sync.ts`             | `BulkSync.fromFs()` / `.toFs()` — one-shot sync operations             |
 | `reconciliation-engine.ts` | FS→DB: owned-write filtering, reconciliation, observation recording     |
 | `fs-writer.ts`             | CLI mode: synchronous DB→FS write-back, no watcher, no debouncing       |
-| `emitter.ts`               | commit/project split: DB+persist+broadcast vs FS projection             |
+| `emitter.ts`               | commit/save split: DB+persist+broadcast vs FS save                      |
 
 ### FS → DB
 
@@ -262,18 +265,18 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 5. **Atomic writes**: WriteQueue writes to `.km-tmp` then renames into place.
    External readers never see partial content.
 
-## SyncManager vs FsWriter
+## withSync vs FsWriter
 
-Both implement `FsSync.applyEventToFs()`, delegating to shared `EventHandlers` class
-which handles all node mutation logic. Differ only in the `FsWriteTarget` they inject:
+Both handle DB→FS via shared `EventHandlers` with `save(node)` as the core verb.
+Differ only in the `FsWriteTarget` they inject:
 
-| Aspect             | SyncManager (TUI)                      | FsWriter (CLI)       |
+| Aspect             | withSync (TUI)                         | FsWriter (CLI)       |
 | ------------------ | -------------------------------------- | -------------------- |
+| Composition        | `withSync(config)(repo)` decorator     | `new FsWriter(db, path, emitter)` |
 | FsWriteTarget      | WriteQueue (async, debounced, retried) | writeFileSync (sync) |
 | Watcher            | Yes (chokidar + heartbeat)             | No                   |
 | In-flight tracking | Yes (markInFlight/clearInFlight)       | No                   |
 | Lifecycle          | Long-running, `await using`            | One-shot, GC'd       |
-| Shared handlers    | EventHandlers class (unified logic)    | EventHandlers class  |
 
 ## Configuration
 
