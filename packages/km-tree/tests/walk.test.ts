@@ -175,6 +175,51 @@ describe("walkTree", () => {
     expect(entries[0]!.node.id).toBe(a1Id)
     expect(entries[0]!.depth).toBe(0)
   })
+
+  test("startAfter skips nodes up to and including the target", () => {
+    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
+
+    // DFS order: root, A, A1, A2, B, B1, B1a
+    // startAfter A → skip root and A, yield A1, A2, B, B1, B1a
+    const ids = [...walkTree(repo, rootId, { startAfter: aId })].map((e) => e.node.id)
+    expect(ids).toEqual([a1Id, a2Id, bId, b1Id, b1aId])
+  })
+
+  test("startAfter yields nodes after the target in DFS order", () => {
+    const { repo, rootId, aId, a1Id, a2Id, bId, b1Id, b1aId } = setupTree()
+
+    // DFS order: root, A, A1, A2, B, B1, B1a
+    // startAfter A2 → should yield B, B1, B1a
+    const ids = [...walkTree(repo, rootId, { startAfter: a2Id })].map((e) => e.node.id)
+    expect(ids).toEqual([bId, b1Id, b1aId])
+  })
+
+  test("startAfter with leaf node yields remaining nodes", () => {
+    const { repo, rootId, bId, b1Id, b1aId } = setupTree()
+
+    // startAfter A1 → should yield A2, B, B1, B1a
+    const names = [...walkTree(repo, rootId, { startAfter: repo.getChildren(repo.getChildren(rootId)[0]!.id)[0]!.id })].map(
+      (e) => e.node.name ?? e.node.content,
+    )
+    expect(names).toEqual(["A2", "B", "B1", "B1a"])
+  })
+
+  test("startAfter last node yields nothing", () => {
+    const { repo, rootId, b1aId } = setupTree()
+
+    const entries = [...walkTree(repo, rootId, { startAfter: b1aId })]
+    expect(entries).toEqual([])
+  })
+
+  test("startAfter composes with filter", () => {
+    const { repo, rootId, a2Id, bId, b1Id } = setupTree()
+
+    // startAfter A2, filter out B1a
+    const ids = [...walkTree(repo, rootId, { startAfter: a2Id, filter: (n) => n.content !== "B1a" })].map(
+      (e) => e.node.id,
+    )
+    expect(ids).toEqual([bId, b1Id])
+  })
 })
 
 // =============================================================================

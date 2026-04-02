@@ -20,6 +20,8 @@ export interface WalkOptions {
   filter?: (node: KNode) => boolean
   /** Maximum depth to traverse (0 = root only, undefined = unlimited). */
   maxDepth?: number
+  /** Skip all nodes up to and including this ID, then yield from the next node. */
+  startAfter?: string
 }
 
 /**
@@ -32,7 +34,7 @@ export function* walkTree(tree: TreeMutator, rootId: string, opts?: WalkOptions)
   const root = tree.getNode(rootId)
   if (!root) return
 
-  const { filter, maxDepth } = opts ?? {}
+  const { filter, maxDepth, startAfter } = opts ?? {}
 
   if (filter && !filter(root)) return
 
@@ -41,10 +43,18 @@ export function* walkTree(tree: TreeMutator, rootId: string, opts?: WalkOptions)
     { node: root, depth: 0, parentId: root.parent_id },
   ]
 
+  let skipping = startAfter != null
+
   while (stack.length > 0) {
     // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- length check above
     const entry = stack.pop()!
-    yield entry
+
+    if (skipping) {
+      if (entry.node.id === startAfter) skipping = false
+      // Still expand children so we can find startAfter in subtrees
+    } else {
+      yield entry
+    }
 
     // Don't expand children if we've reached maxDepth
     if (maxDepth !== undefined && entry.depth >= maxDepth) continue
