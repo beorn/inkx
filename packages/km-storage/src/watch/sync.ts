@@ -27,8 +27,22 @@ import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
 import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
 import { type Event } from "@km/core"
-import { createEmitter, type Emitter } from "../emitter.ts"
+import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
+
+/**
+ * Wrap an emitter so all emit() calls include skipFsSync: true.
+ * Used for FS-origin reconciliation to prevent echo loops:
+ * FS change → DB update → emit → would write back to FS (echo!).
+ */
+function wrapEmitterForReconcile(emitter: Emitter): Emitter {
+  return {
+    ...emitter,
+    emit(event: Parameters<Emitter["emit"]>[0], options: EmitOptions = {}) {
+      return emitter.emit(event, { ...options, skipFsSync: true })
+    },
+  }
+}
 
 /** Progress info for sync operations */
 interface SyncProgress {
@@ -107,6 +121,7 @@ export class SyncManager extends EventEmitter {
   private ignorePatterns: string[] = []
   private kmDir: string
   private emitter: Emitter // Emitter domain object for event emission
+  private reconcileEmitter: Emitter // Wrapped emitter with skipFsSync for FS-origin events
   private parsePool: ParsePoolService | undefined
   private handlers: EventHandlers
 
@@ -133,6 +148,7 @@ export class SyncManager extends EventEmitter {
     this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig
     this.kmDir = join(this.config.repoPath, ".km")
     this.emitter = config.emitter ?? createEmitter({ kmDir: this.kmDir, db: this.db })
+    this.reconcileEmitter = wrapEmitterForReconcile(this.emitter)
 
     // Initialize heartbeat config
     this.heartbeatConfig = {
@@ -341,7 +357,7 @@ export class SyncManager extends EventEmitter {
           db: this.db,
           ops,
           repoRoot: this.config.repoPath,
-          emitter: this.emitter,
+          emitter: this.reconcileEmitter,
           parsePool: await this.getParsePool(),
         })
 
@@ -416,7 +432,7 @@ export class SyncManager extends EventEmitter {
 
       if (ops.length > 0) {
         this.setState("emitting")
-        applyReconcileOps(this.db, ops, this.config.repoPath, this.emitter)
+        applyReconcileOps(this.db, ops, this.config.repoPath, this.reconcileEmitter)
         this.heartbeatDrift += ops.length
       }
 
@@ -512,7 +528,7 @@ export class SyncManager extends EventEmitter {
             db: this.db,
             ops,
             repoRoot: this.config.repoPath,
-            emitter: this.emitter,
+            emitter: this.reconcileEmitter,
             parsePool: await this.getParsePool(),
           })
           applySpan.spanData.ops = ops.length
@@ -650,7 +666,7 @@ export class SyncManager extends EventEmitter {
     try {
       for (let i = 0; i < allOps.length; i += BATCH_SIZE) {
         const batch = allOps.slice(i, i + BATCH_SIZE)
-        applyReconcileOps(this.db, batch, this.config.repoPath, this.emitter)
+        applyReconcileOps(this.db, batch, this.config.repoPath, this.reconcileEmitter)
         opsProcessed += batch.length
         yield { current: opsProcessed, total: totalOps }
       }
