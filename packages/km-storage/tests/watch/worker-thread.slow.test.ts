@@ -15,8 +15,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
-import { EventEmitter } from "events"
-import { SyncManager } from "../../src/watch/sync.ts"
+import { createSync } from "../../src/watch/sync.ts"
 import { getAllNodes, createRepo } from "../../src/index.ts"
 import { runGenerator } from "@km/core"
 import type { Repo } from "../../src/repo.ts"
@@ -42,7 +41,15 @@ describe.sequential("Worker Thread Integration", () => {
   })
 
   test("worker watcher receives file change events", { timeout: 30000 }, async () => {
-    const events = new EventEmitter()
+    let readyResolve: () => void
+    const readyPromise = new Promise<void>((r) => {
+      readyResolve = r
+    })
+    let reconcilingResolve: () => void
+    const reconcilingPromise = new Promise<void>((r) => {
+      reconcilingResolve = r
+    })
+    let sawReconciling = false
 
     // Create initial file
     writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [ ] Task\n")
@@ -52,53 +59,44 @@ describe.sequential("Worker Thread Integration", () => {
     repo = runGenerator(createRepo(REPO_DIR, { loadFiles: false }))
     const db = repo.database
 
-    // Create SyncManager with the repo's database
-    // SyncManager handles its own runWithKmDir internally for async operations
-    await using syncManager = new SyncManager({
+    // Create sync with the repo's database via callbacks
+    await using syncManager = createSync({
       db,
       repoPath: REPO_DIR,
       debounceFs: 100,
       debounceApply: 50,
       conflictStrategy: "last_write_wins",
       // useWorker defaults to true - uses real worker thread
+      callbacks: {
+        onReady: () => readyResolve(),
+        onStateChange: (state) => {
+          if (state === "reconciling" && !sawReconciling) {
+            sawReconciling = true
+            reconcilingResolve()
+          }
+        },
+      },
     })
 
-    syncManager.on("state-change", (state) => {
-      events.emit("state-change", state)
-    })
-
-    // Initial sync (internally wraps with runWithKmDir)
+    // Initial sync
     await syncManager.syncFromFs()
 
     // Start watching and wait for ready
     syncManager.start()
-    await new Promise<void>((resolve) => {
-      syncManager.once("ready", resolve)
-    })
+    await readyPromise
 
     // Brief delay to let chokidar finish its initial scan and settle.
     await new Promise((r) => setTimeout(r, 500))
+
+    // Make an external edit
+    writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [x] Task\n")
 
     // Wait for the watcher to detect the file change (reconciling state).
     // We only wait for 'reconciling' rather than the full cycle to 'idle',
     // because applyReconcileOpsAsync spawns parse pool workers which can
     // hang in nested worker thread environments (vitest + chokidar workers).
-    const sawReconciling = new Promise<void>((resolve) => {
-      const handler = (state: string) => {
-        if (state === "reconciling") {
-          events.off("state-change", handler)
-          resolve()
-        }
-      }
-      events.on("state-change", handler)
-    })
-
-    // Make an external edit
-    writeFileSync(join(REPO_DIR, "test.md"), "# Test\n\n- [x] Task\n")
-
-    // Wait for worker to detect the change
     await Promise.race([
-      sawReconciling,
+      reconcilingPromise,
       new Promise<void>((_, reject) =>
         setTimeout(() => reject(new Error("Timeout waiting for watcher to detect change")), 10000),
       ),

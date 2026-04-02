@@ -21,10 +21,10 @@ describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create test file with a task
         const testFile = join(repoDir, "tasks.md")
@@ -53,10 +53,10 @@ describe("Bidirectional Sync E2E", () => {
 
     test("creating new task in model creates file entry", () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create file first
         const testFile = join(repoDir, "new-tasks.md")
@@ -89,15 +89,13 @@ describe("Bidirectional Sync E2E", () => {
   describe("Filesystem → Model", () => {
     test("external file edit triggers state-change event", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const events = new EventEmitter()
-        const syncManager = createTestSyncManager(db, repoDir)
-
-        syncManager.on("state-change", (state) => {
-          events.emit("state-change", state)
+        const waiter = createStateChangeWaiter()
+        const syncManager = createTestSync(db, repoDir, {
+          callbacks: { onStateChange: waiter.handler },
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "watch-test.md")
@@ -110,15 +108,12 @@ describe("Bidirectional Sync E2E", () => {
         syncManager.start()
         await waitForReady(syncManager)
 
-        // Set up promise to wait for state change - wait for full cycle
-        const stateChanged = waitForStateChange(events)
-
         // Make external edit
         writeFileSync(testFile, "# Initial\n\n- [ ] Task 1\n- [ ] Task 2\n")
 
-        // Wait for sync to complete
+        // Wait for sync to complete (reconciling → idle cycle)
         // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
-        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
+        await withTimeout(waiter.promise, 10000, "Timeout waiting for sync")
 
         // Verify new task was synced
         const allNodes = getAllNodes(db)
@@ -129,15 +124,13 @@ describe("Bidirectional Sync E2E", () => {
 
     test("external file edit updates database", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const events = new EventEmitter()
-        const syncManager = createTestSyncManager(db, repoDir)
-
-        syncManager.on("state-change", (state) => {
-          events.emit("state-change", state)
+        const waiter = createStateChangeWaiter()
+        const syncManager = createTestSync(db, repoDir, {
+          callbacks: { onStateChange: waiter.handler },
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "external-edit.md")
@@ -156,15 +149,12 @@ describe("Bidirectional Sync E2E", () => {
         syncManager.start()
         await waitForReady(syncManager)
 
-        // Set up wait for sync - wait for full cycle
-        const stateChanged = waitForStateChange(events)
-
         // External edit - change task text
         writeFileSync(testFile, "# Test\n\n- [ ] Modified task\n")
 
-        // Wait for sync
+        // Wait for sync (reconciling → idle cycle)
         // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
-        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
+        await withTimeout(waiter.promise, 10000, "Timeout waiting for sync")
 
         // Verify database was updated
         allNodes = getAllNodes(db)
@@ -176,15 +166,13 @@ describe("Bidirectional Sync E2E", () => {
 
     test("external file delete removes from database", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const events = new EventEmitter()
-        const syncManager = createTestSyncManager(db, repoDir)
-
-        syncManager.on("state-change", (state) => {
-          events.emit("state-change", state)
+        const waiter = createStateChangeWaiter()
+        const syncManager = createTestSync(db, repoDir, {
+          callbacks: { onStateChange: waiter.handler },
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "to-delete.md")
@@ -201,15 +189,12 @@ describe("Bidirectional Sync E2E", () => {
         syncManager.start()
         await waitForReady(syncManager)
 
-        // Set up wait for sync - wait for full cycle
-        const stateChanged = waitForStateChange(events)
-
         // Delete file externally
         rmSync(testFile)
 
-        // Wait for sync
+        // Wait for sync (reconciling → idle cycle)
         // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
-        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
+        await withTimeout(waiter.promise, 10000, "Timeout waiting for sync")
 
         // Verify removed from database
         fileNode = getNodeByPath(db, testFile)
@@ -221,15 +206,17 @@ describe("Bidirectional Sync E2E", () => {
   describe("Race Conditions", () => {
     test("rapid external edits are coalesced", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const events = new EventEmitter()
-        const syncManager = createTestSyncManager(db, repoDir)
-
-        syncManager.on("state-change", (state) => {
-          events.emit("state-change", state)
+        let idleCount = 0
+        const syncManager = createTestSync(db, repoDir, {
+          callbacks: {
+            onStateChange: (state) => {
+              if (state === "idle") idleCount++
+            },
+          },
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "rapid.md")
@@ -241,11 +228,8 @@ describe("Bidirectional Sync E2E", () => {
         syncManager.start()
         await waitForReady(syncManager)
 
-        // Count state changes
-        let idleCount = 0
-        events.on("state-change", (state: string) => {
-          if (state === "idle") idleCount++
-        })
+        // Reset idle count after start (start may trigger state changes)
+        idleCount = 0
 
         // Make many rapid edits
         for (let i = 0; i < 5; i++) {
@@ -274,10 +258,10 @@ describe("Bidirectional Sync E2E", () => {
     // reconciliation from picking up the externally-added Task B. Needs field-level merge.
     test.skip("TUI edit during filesystem sync doesn't cause data loss", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create initial file
         const testFile = join(repoDir, "conflict.md")
@@ -347,7 +331,7 @@ describe("Full Round-Trip", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         // Wire repo's emitter → SyncManager (matches tui.tsx:138)
@@ -393,7 +377,7 @@ describe("Full Round-Trip", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -437,7 +421,7 @@ describe("Full Round-Trip", () => {
         const testFile = join(repoDir, "subscribe.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
         await syncManager.syncFromFs()
 
         const task = getAllNodes(db).find((n) => n.item?.task?.status != null)
@@ -461,15 +445,13 @@ describe("Full Round-Trip", () => {
   describe("Reverse: file change → DB update → state-change event", () => {
     test("external edit updates DB and fires state-change", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const events = new EventEmitter()
-        const syncManager = createTestSyncManager(db, repoDir)
-
-        syncManager.on("state-change", (state) => {
-          events.emit("state-change", state)
+        const waiter = createStateChangeWaiter()
+        const syncManager = createTestSync(db, repoDir, {
+          callbacks: { onStateChange: waiter.handler },
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         const testFile = join(repoDir, "reverse.md")
         writeFileSync(testFile, "# Reverse\n\n- [ ] Original\n")
@@ -485,14 +467,12 @@ describe("Full Round-Trip", () => {
         syncManager.start()
         await waitForReady(syncManager)
 
-        // Wait for state change (reconciling → idle cycle)
-        const stateChanged = waitForStateChange(events)
-
         // External file edit (simulates user editing in vim/vscode)
         writeFileSync(testFile, "# Reverse\n\n- [ ] Modified by external editor\n")
 
+        // Wait for sync (reconciling → idle cycle)
         // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
-        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
+        await withTimeout(waiter.promise, 10000, "Timeout waiting for sync")
 
         // 1. DB should have the new content
         const updatedTask = getAllNodes(db).find((n) => n.item?.task?.status != null)
@@ -507,15 +487,13 @@ describe("Full Round-Trip", () => {
 
     test("external task completion updates DB status", { timeout: 15000 }, () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const events = new EventEmitter()
-        const syncManager = createTestSyncManager(db, repoDir)
-
-        syncManager.on("state-change", (state) => {
-          events.emit("state-change", state)
+        const waiter = createStateChangeWaiter()
+        const syncManager = createTestSync(db, repoDir, {
+          callbacks: { onStateChange: waiter.handler },
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         const testFile = join(repoDir, "external-done.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] My task\n")
@@ -529,13 +507,12 @@ describe("Full Round-Trip", () => {
         syncManager.start()
         await waitForReady(syncManager)
 
-        const stateChanged = waitForStateChange(events)
-
         // External edit: mark task as done (user checked checkbox in editor)
         writeFileSync(testFile, "# Tasks\n\n- [x] My task\n")
 
+        // Wait for sync (reconciling → idle cycle)
         // Chokidar awaitWriteFinish (500ms) + debounce (100ms) + async reconciliation
-        await withTimeout(stateChanged, 10000, "Timeout waiting for sync")
+        await withTimeout(waiter.promise, 10000, "Timeout waiting for sync")
 
         // DB should reflect the status change
         const updated = getAllNodes(db).find((n) => n.item?.task?.status != null)
@@ -561,7 +538,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -609,7 +586,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -645,7 +622,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -675,7 +652,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -700,10 +677,10 @@ describe("File & Folder Renames", () => {
   describe("Fault Injection: Reconcile Failures", () => {
     test("corrupt .md file during reconcile does not overwrite with DB state", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create valid file and sync
         const testFile = join(repoDir, "corrupt-test.md")
@@ -734,10 +711,10 @@ describe("File & Folder Renames", () => {
 
     test("missing .md file during reconcile is handled gracefully", () =>
       withTestEnv(async ({ repoDir, db, emitter }) => {
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSyncManager(stack, syncManager, emitter)
+        setupSync(stack, syncManager, emitter)
 
         // Create two files — one will be deleted, the other ensures the
         // directory is still scanned during reconciliation (syncFromFs only
@@ -779,7 +756,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -827,7 +804,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -876,7 +853,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -923,7 +900,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -973,7 +950,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -1020,7 +997,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -1060,7 +1037,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir, {
+        const syncManager = createTestSync(db, repoDir, {
           debounceApply: 5000, // Long debounce so write queue does NOT flush before reconcile
         })
 
@@ -1109,7 +1086,7 @@ describe("File & Folder Renames", () => {
           skipPersist: true,
         })
         // Very long debounce — write will NOT flush during the test
-        const syncManager = createTestSyncManager(db, repoDir, {
+        const syncManager = createTestSync(db, repoDir, {
           debounceApply: 60_000,
         })
 
@@ -1163,7 +1140,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)
@@ -1210,7 +1187,7 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSyncManager(db, repoDir)
+        const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
         repoEmitter.setFsSync(syncManager)

@@ -572,24 +572,6 @@ export const ViewTree = {
     }
   },
 
-  /** All node IDs in DFS order (including root). Convenience projection of `.nodes()`. */
-  nodeIds(index: Map<string, ViewNode>, rootId: string): string[] {
-    const rootView = index.get(rootId)
-    if (!rootView) return [rootId]
-    return [...ViewTree.nodes(rootView)].map((vn) => vn.id)
-  },
-
-  /** Deepest last descendant (for ctrl-p bottom-up traversal). */
-  deepestLast(index: Map<string, ViewNode>, nodeId: string): ViewNode | null {
-    const root = index.get(nodeId)
-    if (!root) return null
-    let last: ViewNode | null = null
-    for (const vn of ViewTree.nodes(root)) {
-      last = vn
-    }
-    return last
-  },
-
   /** Adjacent sibling (delta: +1 next, -1 previous). */
   sibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
     if (!vn.parent) return null

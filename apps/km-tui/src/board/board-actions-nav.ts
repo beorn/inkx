@@ -87,7 +87,8 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  const descendantIds = ViewTree.nodeIds(ctx.viewIndex, card.id)
+  const cardView = ctx.viewIndex.get(card.id)
+  const descendantIds = cardView ? [...ViewTree.nodes(cardView)].map((vn) => vn.id) : [card.id]
   const navState = extractNavState(ctx)
   const result = applyOutlineNav(navState, dir, descendantIds)
 
@@ -236,7 +237,8 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
 
   // Build flat list of all visible blocks in the current column
   const col = ctx.column
-  const blocks = col ? ViewTree.nodeIds(ctx.viewIndex, col.node.id) : []
+  const colView = col ? ctx.viewIndex.get(col.node.id) : undefined
+  const blocks = colView ? [...ViewTree.nodes(colView)].map((vn) => vn.id) : []
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
   const navState = extractNavState(ctx)

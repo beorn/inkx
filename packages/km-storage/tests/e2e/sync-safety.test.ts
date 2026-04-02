@@ -10,7 +10,7 @@
 import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
-import { SyncManager } from "../../src/watch/sync.ts"
+import { createSync } from "../../src/watch/sync.ts"
 import { getAllNodes, applyEventWithDb } from "../../src/index.ts"
 import { withTestEnv } from "@km/storage"
 
@@ -86,7 +86,7 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = new SyncManager({
+        const manager = createSync({
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -115,7 +115,7 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = new SyncManager({
+        const manager = createSync({
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -139,7 +139,7 @@ describe("E2E Sync Safety", () => {
         createTestRepo(repoDir)
 
         // First import from filesystem
-        const manager = new SyncManager({
+        const manager = createSync({
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -172,7 +172,7 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = new SyncManager({
+        const manager = createSync({
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,
@@ -201,7 +201,7 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = new SyncManager({
+        const manager = createSync({
           repoPath: repoDir,
           debounceFs: 0,
           debounceApply: 0,

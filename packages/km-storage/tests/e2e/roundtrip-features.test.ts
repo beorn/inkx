@@ -12,13 +12,13 @@ import { describe, test, expect } from "vitest"
 import { ulid } from "ulid"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
-import { SyncManager } from "../../src/watch/sync.ts"
+import { createSync } from "../../src/watch/sync.ts"
 import { getAllNodes, getSubtree, nodesToMarkdown, applyEventWithDb, withTestEnv } from "@km/storage"
 import type { KNode } from "@km/core"
 
-/** Create a SyncManager with test defaults */
-function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
-  return new SyncManager({
+/** Create sync with test defaults */
+function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
+  return createSync({
     repoPath: repoDir,
     debounceFs: 0,
     debounceApply: 0,
@@ -36,7 +36,7 @@ async function roundTrip(
   content: string,
 ): Promise<{ nodes: KNode[]; fileContent: string }> {
   const filePath = join(repoDir, filename)
-  const manager = createSyncManager(db, repoDir)
+  const manager = createTestSyncHelper(db, repoDir)
 
   // Step 1: Write → parse → DB
   writeFileSync(filePath, content)
@@ -255,7 +255,7 @@ describe("E2E Round-Trip Features", () => {
   describe("embeddings (embed_source)", () => {
     test("embedding nodes survive re-parse after serialize", () =>
       withTestEnv(async ({ repoDir, data }) => {
-        const manager = createSyncManager(data.database, repoDir)
+        const manager = createTestSyncHelper(data.database, repoDir)
 
         // Step 1: Create source file with tasks
         writeFileSync(join(repoDir, "source.md"), "# Source\n\n- [ ] Task Alpha\n- [ ] Task Beta\n")
@@ -327,7 +327,7 @@ describe("E2E Round-Trip Features", () => {
 
     test("embedding with alias survives re-parse", () =>
       withTestEnv(async ({ repoDir, data }) => {
-        const manager = createSyncManager(data.database, repoDir)
+        const manager = createTestSyncHelper(data.database, repoDir)
 
         // Create source
         writeFileSync(join(repoDir, "src.md"), "# Source\n\n- [ ] Original task\n")

@@ -55,7 +55,7 @@ import {
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
-import type { ViewNode } from "@km/board"
+import { ViewTree, type ViewNode } from "@km/board"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
@@ -1828,19 +1828,6 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
   requestRenderFlush()
 }
 
-/** Find the DFS-last visible node in a subtree via ViewTree. */
-function findDeepestLast(viewIndex: Map<string, ViewNode>, nodeId: string): KNode | null {
-  const vn = viewIndex.get(nodeId)
-  if (!vn) return null
-  let deepest: ViewNode = vn
-  let lastChild = deepest.children[deepest.children.length - 1]
-  while (lastChild) {
-    deepest = lastChild
-    lastChild = deepest.children[deepest.children.length - 1]
-  }
-  return deepest.node
-}
-
 /** Find next/prev editable sibling node via ViewTree.
  *  Walks the parent's children array (which is already pruned for visibility).
  *  Skips body-block children (before the first outline child) since those are
@@ -1960,8 +1947,15 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   if (adjacentNode) {
     // For "up" direction: navigate to the deepest last visible descendant (bottom of card).
     if (direction === "up") {
-      const deepest = findDeepestLast(ctx.viewIndex, adjacentNode.id)
-      if (deepest && deepest.id !== adjacentNode.id) {
+      const adjView = ctx.viewIndex.get(adjacentNode.id)
+      let deepest: ViewNode | undefined
+      if (adjView) {
+        for (const vn of ViewTree.nodes(adjView, { reverse: true })) {
+          deepest = vn
+          break
+        }
+      }
+      if (deepest?.node && deepest.id !== adjacentNode.id) {
         const deepBodyCount = extractBody(ctx.repo.getChildren(deepest.id)).body.length
         ctx.dispatchBoard({ type: "SELECT", nodeId: deepest.id })
         ctx.setUI({

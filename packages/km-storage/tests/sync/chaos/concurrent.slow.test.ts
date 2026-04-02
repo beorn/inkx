@@ -20,7 +20,7 @@ import { EventEmitter } from "events"
 import FakeTimers, { type InstalledClock } from "@sinonjs/fake-timers"
 import type { WatcherInterface, SyncData } from "../../../src/watch/types.ts"
 import { withTestEnv, type DataStore, type HasDatabase } from "@km/storage"
-import { SyncManager } from "../../../src/watch/sync.ts"
+import { createSync, type Sync } from "../../../src/watch/sync.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TestWatcher - Controllable watcher for deterministic testing
@@ -98,11 +98,13 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
 interface ConcurrentTestCtx {
   repoDir: string
   data: DataStore & HasDatabase
-  syncManager: SyncManager
+  syncManager: Sync
   testWatcher: TestWatcher
   advanceTime: (ms: number) => Promise<void>
   flushTimers: () => Promise<void>
   writeAndTrigger: (path: string, content: string) => void
+  /** Register a state-change listener (replaces EventEmitter .on pattern) */
+  onStateChange: (handler: (state: string) => void) => void
 }
 
 /** Initialize test file and sync, returning tasks found in DB */
@@ -143,7 +145,7 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
       async ({ repoDir, data, emitter }) => {
         const testWatcher = new TestWatcher(100)
 
-        const syncManager = new SyncManager({
+        const syncManager = createSync({
           db: data.database,
           repoPath: repoDir,
           debounceFs: 100,

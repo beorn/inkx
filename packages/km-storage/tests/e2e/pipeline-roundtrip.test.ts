@@ -13,7 +13,7 @@
 import { describe, test, expect } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
-import { SyncManager } from "../../src/watch/sync.ts"
+import { createSync } from "../../src/watch/sync.ts"
 import { getAllNodes, withTestEnv } from "@km/storage"
 import type { KNode } from "@km/core"
 
@@ -21,9 +21,9 @@ import type { KNode } from "@km/core"
 // Helpers
 // =============================================================================
 
-/** Create a SyncManager with test defaults (no worker, no debounce) */
-function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
-  return new SyncManager({
+/** Create sync with test defaults (no worker, no debounce) */
+function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
+  return createSync({
     repoPath: repoDir,
     debounceFs: 0,
     debounceApply: 0,
@@ -60,7 +60,7 @@ describe("file -> sync -> DB", () => {
         "# Tasks\n\n- [ ] Buy groceries\n- [x] Clean kitchen\n- [/] Write report\n",
       )
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       // File node should exist
@@ -88,7 +88,7 @@ describe("file -> sync -> DB", () => {
       writeFileSync(join(repoDir, "beta.md"), "# Beta\n\n- [ ] Task B\n")
       writeFileSync(join(repoDir, "gamma.md"), "# Gamma\n\n- [ ] Task C\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       const fileNodes = getFileNodes(data.database)
@@ -113,7 +113,7 @@ describe("file -> sync -> DB", () => {
         "# Board\n\n## Todo\n\n- [ ] First task\n\n## Done\n\n- [x] Finished task\n",
       )
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       // Should have file node + 2 sections
@@ -146,7 +146,7 @@ describe("file -> sync -> DB", () => {
       const filePath = join(repoDir, "evolving.md")
       writeFileSync(filePath, "# Evolving\n\n- [ ] Original task\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       let tasks = getTaskNodes(data.database)
@@ -173,7 +173,7 @@ describe("DB edit -> sync -> file", () => {
       const filePath = join(repoDir, "tasks.md")
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy groceries\n- [ ] Walk dog\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       // Find the "Buy groceries" task and mark it done
@@ -199,7 +199,7 @@ describe("DB edit -> sync -> file", () => {
       const filePath = join(repoDir, "rename.md")
       writeFileSync(filePath, "# Rename\n\n- [ ] Old name\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       const tasks = getTaskNodes(data.database)
@@ -218,7 +218,7 @@ describe("DB edit -> sync -> file", () => {
       const filePath = join(repoDir, "dates.md")
       writeFileSync(filePath, "# Dates\n\n- [ ] Schedule meeting\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       const tasks = getTaskNodes(data.database)
@@ -237,7 +237,7 @@ describe("DB edit -> sync -> file", () => {
       const filePath = join(repoDir, "full-cycle.md")
       writeFileSync(filePath, "# Cycle\n\n- [ ] Alpha task\n- [ ] Beta task\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       // Mark Alpha done in DB
@@ -278,7 +278,7 @@ describe("concurrent fs + DB edits", () => {
       const filePath = join(repoDir, "concurrent.md")
       writeFileSync(filePath, "# Concurrent\n\n- [ ] Task Alpha\n- [ ] Task Beta\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       // DB edit: mark Beta done
@@ -321,7 +321,7 @@ describe("concurrent fs + DB edits", () => {
       const filePath = join(repoDir, "multi-cycle.md")
       writeFileSync(filePath, "# Multi\n\n- [ ] Step 1\n- [ ] Step 2\n- [ ] Step 3\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
 
       // Cycle 1: import
       await manager.syncFromFs()
@@ -363,7 +363,7 @@ describe("concurrent fs + DB edits", () => {
       // Start with flat structure
       writeFileSync(filePath, "# Board\n\n- [ ] Task A\n- [x] Task B\n")
 
-      const manager = createSyncManager(data.database, repoDir)
+      const manager = createTestSyncHelper(data.database, repoDir)
       await manager.syncFromFs()
 
       let tasks = getTaskNodes(data.database)

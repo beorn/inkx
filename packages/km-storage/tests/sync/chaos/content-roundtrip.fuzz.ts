@@ -21,7 +21,7 @@ import { join } from "path"
 import { createSeededRandom, type SeededRandom } from "vimonkey"
 
 import { getAllNodes, getChildren, withTestEnv, createTestEnvRepo } from "@km/storage"
-import { createTestSyncManager } from "../../watch/sync-test-helpers.ts"
+import { createTestSync } from "../../watch/sync-test-helpers.ts"
 import type { KNode } from "@km/core"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -246,7 +246,7 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(42)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -297,7 +297,7 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(123)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -331,7 +331,7 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(999)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -382,7 +382,7 @@ describe("Content Round-Trip Fuzz", () => {
   test("add_task between siblings causes known ID instability", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -450,7 +450,7 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(555)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -493,7 +493,7 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(777)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -560,7 +560,7 @@ describe("Content Round-Trip Fuzz", () => {
   test("section depth preserved through round-trip", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -618,7 +618,7 @@ describe("Content Round-Trip Fuzz", () => {
   test("frontmatter preserved through round-trip", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)
@@ -676,7 +676,7 @@ type: daily
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(2024)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSyncManager(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
 
       await using stack = new AsyncDisposableStack()
       emitter.setFsSync(syncManager)

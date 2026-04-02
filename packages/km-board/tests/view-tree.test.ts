@@ -498,67 +498,6 @@ describe("ViewTree.nodes", () => {
   })
 })
 
-describe("ViewTree.nodeIds", () => {
-  const emptyFoldDepths = new Map<string, number>()
-
-  test("returns all descendant IDs including root", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      heading("col1", "root", 0, "Column"),
-      paragraph("c1", "col1", 0, "Card"),
-      paragraph("sub1", "c1", 0, "Sub"),
-    ]
-    const repo = createMockRepo(nodes)
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const index = buildViewIndex(tree)
-
-    expect(ViewTree.nodeIds(index, "col1")).toEqual(["col1", "c1", "sub1"])
-  })
-
-  test("returns [rootId] when node not found in index", () => {
-    const index = new Map<string, ViewNode>()
-    expect(ViewTree.nodeIds(index, "missing")).toEqual(["missing"])
-  })
-})
-
-describe("ViewTree.deepestLast", () => {
-  const emptyFoldDepths = new Map<string, number>()
-
-  test("returns the deepest last descendant", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      heading("col1", "root", 0, "Column"),
-      paragraph("c1", "col1", 0, "Card"),
-      paragraph("sub1", "c1", 0, "Sub"),
-    ]
-    const repo = createMockRepo(nodes)
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const index = buildViewIndex(tree)
-
-    const last = ViewTree.deepestLast(index, "root")
-    expect(last?.id).toBe("sub1")
-  })
-
-  test("returns the node itself when it has no children", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      heading("col1", "root", 0, "Column"),
-      paragraph("c1", "col1", 0, "Card"),
-    ]
-    const repo = createMockRepo(nodes)
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const index = buildViewIndex(tree)
-
-    const last = ViewTree.deepestLast(index, "c1")
-    expect(last?.id).toBe("c1")
-  })
-
-  test("returns null when node not found", () => {
-    const index = new Map<string, ViewNode>()
-    expect(ViewTree.deepestLast(index, "missing")).toBeNull()
-  })
-})
-
 describe("ViewTree.sibling", () => {
   const emptyFoldDepths = new Map<string, number>()
 

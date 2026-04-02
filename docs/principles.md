@@ -89,14 +89,14 @@ Domain objects are plain objects created by factory functions. They compose via 
 
 **Example algorithm** (reads like pseudocode):
 ```typescript
-const visible = ViewTree.nodeIds(viewIndex, column.id)
+const visible = ViewTree.nodes(viewIndex, column.id)
 const target = navigate(visible, cursor, "down")
 ```
 Not: a 15-line manual stack-based DFS that you have to mentally simulate.
 
 If your narrative needs technical jargon to make sense, the names are wrong. If your algorithm reads like implementation details instead of intent, the vocabulary is missing domain operations.
 
-**The vocabulary principle**: Every operation on a core data structure belongs on that structure's namespace. `ViewTree.nodes()`, `ViewTree.nodeIds()`, `KNode.isOutline()` — these ARE the domain language. When a developer types `ViewTree.` they see the full vocabulary. When they read the navigation handler, they see the flow, not the plumbing. See [docs/lessons/discoverable-interfaces.md](lessons/discoverable-interfaces.md).
+**The vocabulary principle**: Every operation on a core data structure belongs on that structure's namespace. `ViewTree.nodes()`, `ViewTree.nodes()`, `KNode.isOutline()` — these ARE the domain language. When a developer types `ViewTree.` they see the full vocabulary. When they read the navigation handler, they see the flow, not the plumbing. See [docs/lessons/discoverable-interfaces.md](lessons/discoverable-interfaces.md).
 
 **Why**: Domain language makes code self-documenting and reduces onboarding time. Rich domain namespaces prevent duplication — new contributors (human or AI) discover existing operations instead of reimplementing them. Core algorithms expressed in domain language are reviewable in one place.
 
@@ -119,7 +119,7 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| View | `ViewNode` | `ViewTree` | `.nodes()`, `.nodeIds()`, `.adjacentSibling()` |
+| View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |
 | State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
 | UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
 
@@ -147,7 +147,7 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 
 3. **Handlers as flows** — a core flow reads as a sequence of domain operations:
 ```
-keypress → command → direction → ViewTree.nodeIds → applyListNav → cursor update
+keypress → command → direction → ViewTree.nodes → applyListNav → cursor update
 ```
 Not: implementation details scattered across 5 files.
 
@@ -1317,7 +1317,7 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| View | `ViewNode` | `ViewTree` | `.nodes()`, `.nodeIds()`, `.adjacentSibling()` |
+| View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |
 | State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
 | UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |
 

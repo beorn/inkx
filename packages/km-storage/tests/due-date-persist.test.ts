@@ -12,11 +12,11 @@ import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { withTestEnv, getAllNodes, getNode } from "@km/storage"
 import { parseMarkdownToNodes, nodesToMarkdown } from "@km/markdown"
-import { SyncManager } from "../src/watch/sync.ts"
+import { createSync } from "../src/watch/sync.ts"
 
-/** Create a SyncManager with test defaults */
-function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
-  return new SyncManager({
+/** Create sync with test defaults */
+function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
+  return createSync({
     repoPath: repoDir,
     debounceFs: 0,
     debounceApply: 0,
@@ -34,7 +34,7 @@ describe("due date persistence", () => {
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy milk\n")
 
       // Sync file → DB
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       // Find the task node
@@ -58,7 +58,7 @@ describe("due date persistence", () => {
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy milk\n")
 
       // Sync file → DB
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       // Find the task and set due_at
@@ -99,7 +99,7 @@ describe("due date persistence", () => {
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy milk\n")
 
       // Sync file → DB
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       // Find the task and set due_at
@@ -129,7 +129,7 @@ describe("due date persistence", () => {
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy milk due:2026-02-14\n")
 
       // Sync file → DB
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       // Verify due_at was parsed
@@ -158,7 +158,7 @@ describe("due date persistence", () => {
       const filePath = join(repoDir, "tasks.md")
       writeFileSync(filePath, "# Tasks\n\n- [ ] Buy milk 📅 2026-02-14\n")
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       const allNodes = getAllNodes(db)

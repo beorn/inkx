@@ -168,7 +168,7 @@ async function runSync(
     }
 
     // Step 2: Sync with filesystem
-    const manager = new SyncManager({
+    const manager = createSync({
       db,
       repoPath,
       debounceFs: 0,

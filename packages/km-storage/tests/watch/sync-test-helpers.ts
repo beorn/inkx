@@ -29,18 +29,12 @@ export function createTestSync(
   } as SyncConfig)
 }
 
-/** @deprecated Use createTestSync instead */
-export const createTestSyncManager = createTestSync
-
 /** Set up sync with automatic cleanup via AsyncDisposableStack */
 export function setupSync(stack: AsyncDisposableStack, sync: Sync, emitter: Emitter): void {
   emitter.setFsSync(sync)
   stack.defer(() => emitter.setFsSync(null))
   stack.defer(async () => await sync.stop())
 }
-
-/** @deprecated Use setupSync instead */
-export const setupSyncManager = setupSync
 
 /** Wait for a sync callback-based "ready" event via a one-shot promise */
 export function waitForReady(sync: Sync): Promise<void> {
@@ -89,11 +83,6 @@ export function createStateChangeWaiter(): StateChangeWaiter {
     }
   }
   return { promise, handler }
-}
-
-/** @deprecated Use createStateChangeWaiter() instead */
-export function waitForStateChange(_events: { on: (event: string, handler: (state: string) => void) => void }): never {
-  throw new Error("waitForStateChange with EventEmitter is no longer supported. Use createStateChangeWaiter() instead.")
 }
 
 /** Race promise against timeout */

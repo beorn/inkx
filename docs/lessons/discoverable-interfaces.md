@@ -64,9 +64,7 @@ export function* dfsTraversal(tree: ViewNode): Generator<ViewNode> { ... }
 // GOOD: namespace method — discoverable via autocomplete + type inspection
 export const ViewTree = {
   dfs(node: ViewNode): Generator<ViewNode>,
-  nodeIds(index: Map<string, ViewNode>, rootId: string): string[],
-  adjacentSibling(node: ViewNode, delta: 1 | -1): ViewNode | null,
-  deepestLast(index: Map<string, ViewNode>, nodeId: string): ViewNode | null,
+  sibling(node: ViewNode, delta: 1 | -1): ViewNode | null,
 }
 ```
 
@@ -85,7 +83,7 @@ This applies at every level:
 |------|-----------|
 | `KNode` | `KNode.isOutline()`, `KNode.isTask()`, `KNode.matches()` |
 | `KTree` | `KTree.nodes(tree, root, { match, into })` |
-| `ViewTree` | `ViewTree.dfs()`, `ViewTree.nodeIds()`, `ViewTree.adjacentSibling()` |
+| `ViewTree` | `ViewTree.nodes()`, `ViewTree.sibling()` |
 | `Repo` | `repo.getNode()`, `repo.getChildren()` |
 
 `KNode` and `KTree` already follow this pattern. `ViewTree` doesn't yet — that's why navigation reimplemented DFS three times.
@@ -134,7 +132,7 @@ const nextIdx = idx + 1
 if (nextIdx < blocks.length) dispatchBoard({ type: "SELECT", nodeId: blocks[nextIdx] })
 
 // GOOD: reads like English — what, not how
-const visible = ViewTree.nodeIds(viewIndex, column.id)
+const visible = ViewTree.nodes(viewIndex, column.id)
 const target = navigate(visible, cursor, "down")
 ```
 
@@ -152,7 +150,7 @@ When this works, the flow is expressed in **one place** using **composable domai
 
 3. **Namespaces over instance methods.** Keep data structures plain (no methods on `ViewNode`). Put operations on a companion namespace (`ViewTree.*`). This is the SlateJS/KNode pattern — proven and consistent.
 
-4. **Export the namespace from the barrel.** If `ViewTree.nodeIds` exists but isn't in `@km/board`'s index.ts, it's still invisible.
+4. **Export the namespace from the barrel.** If `ViewTree.nodes` exists but isn't in `@km/board`'s index.ts, it's still invisible.
 
 5. **Unify API shapes across layers.** When Repo and View both have "traverse children with predicates," use the same parameter names (`match`, `into`, `reverse`). Knowledge of one layer should transfer to the other.
 

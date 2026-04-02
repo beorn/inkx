@@ -29,7 +29,7 @@ export interface EventHub {
   broadcast(event: Event): void
 }
 
-/** Filesystem sync callback (e.g., SyncManager for bidirectional sync) */
+/** Filesystem sync callback (e.g., Sync object for bidirectional sync) */
 export interface FsSync {
   applyEventToFs(event: Event): void
 }

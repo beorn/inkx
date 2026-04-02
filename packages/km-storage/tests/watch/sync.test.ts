@@ -23,7 +23,7 @@ interface ParsedEvent {
   data: Record<string, unknown>
 }
 
-import { SyncManager } from "../../src/watch/sync.ts"
+import { createSync } from "../../src/watch/sync.ts"
 import { withTestEnv } from "@km/storage"
 
 describe("Sync Integration", () => {
@@ -42,7 +42,7 @@ This is a paragraph.
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -78,7 +78,7 @@ This is a paragraph.
         const testFile = join(subFolder, "nested.md")
         writeFileSync(testFile, "# Nested File\n\nContent here.")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -114,7 +114,7 @@ Some content here.
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -146,7 +146,7 @@ Some content here.
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -176,7 +176,7 @@ Some content here.
         const testFile = join(repoDir, "ids.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -215,7 +215,7 @@ code
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -248,7 +248,7 @@ code
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -271,7 +271,7 @@ code
         const testFile = join(repoDir, "event-test.md")
         writeFileSync(testFile, "# Test\n")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -314,7 +314,7 @@ code
         const testFile = join(deepFolder, "task.md")
         writeFileSync(testFile, "# Task\n\n- [ ] Do something\n")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -347,7 +347,7 @@ code
         const testFile = join(subFolder, "readme.md")
         writeFileSync(testFile, "# Documentation\n\nSome content.\n")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -376,7 +376,7 @@ code
         const testFile = join(level3, "deep.md")
         writeFileSync(testFile, "# Deep File\n")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -418,7 +418,7 @@ code
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -457,7 +457,7 @@ code
         writeFileSync(join(subFolder, "file2.md"), "# File 2\n")
         writeFileSync(join(subFolder, "file3.md"), "# File 3\n")
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -502,7 +502,7 @@ code
         )
 
         // Use a long debounce so writes stay pending until stop()
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,
@@ -558,7 +558,7 @@ code
 `,
         )
 
-        const manager = new SyncManager({
+        const manager = createSync({
           db: db,
           repoPath: repoDir,
           debounceFs: 0,

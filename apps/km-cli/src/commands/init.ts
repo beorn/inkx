@@ -21,7 +21,7 @@ const term = createTerm(process)
 import { steps } from "@silvery/ag-react/ui/progress"
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "fs"
 import { dirname, join, resolve } from "path"
-import { SyncManager, findKmRootFromPath } from "@km/storage"
+import { createSync, findKmRootFromPath } from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 import { loadRepo } from "../load-repo.ts"
 
@@ -85,8 +85,8 @@ export const initCommand = new Command("init")
       // Initialize repo to set up database
       using repo = await loadRepo(targetDir)
 
-      // Create SyncManager with the database from repo
-      const manager = new SyncManager({
+      // Create sync with the database from repo
+      const manager = createSync({
         db: repo.database,
         repoPath: targetDir,
         debounceFs: 0,

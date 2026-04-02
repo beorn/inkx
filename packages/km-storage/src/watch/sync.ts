@@ -3,7 +3,7 @@
  *
  * Orchestrates reconciliation (FS→DB) via ReconciliationEngine,
  * projection (DB→FS) via EventHandlers, and bulk sync via BulkSync.
- * Replaces the old class-based SyncManager with a plain object from createSync().
+ * Plain object from createSync() — typed callbacks, no EventEmitter.
  */
 
 import { createLogger } from "loggily"

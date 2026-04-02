@@ -18,7 +18,7 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync, readdir
 import { join, basename } from "path"
 import { createSeededRandom, type SeededRandom } from "vimonkey"
 
-import { SyncManager } from "../../../src/watch/sync.ts"
+import { createSync } from "../../../src/watch/sync.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
 import { findIndexFile, extractSlotTargets } from "@km/core"
 
@@ -36,9 +36,9 @@ function writeConfig(repoDir: string, materialization: "none" | "metadata" | "fu
   clearConfigCache()
 }
 
-function createSyncManager(db: import("bun:sqlite").Database, repoDir: string) {
+function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
   clearConfigCache()
-  return new SyncManager({
+  return createSync({
     repoPath: repoDir,
     debounceFs: 0,
     debounceApply: 0,
@@ -265,7 +265,7 @@ describe("Index File Chaos Fuzz", () => {
         generateIndexContent("My Project", "Project description paragraph.", initialChildren, "full"),
       )
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       const folder = findFolder(db, "project")!
@@ -308,7 +308,7 @@ describe("Index File Chaos Fuzz", () => {
       writeFileSync(join(folderDir, "index.md"), "# From Index\n\nIndex body.\n")
       writeFileSync(join(folderDir, "notes.md"), generateChildContent(rng, "Notes"))
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       // Verify same-name wins initially
@@ -392,7 +392,7 @@ describe("Index File Chaos Fuzz", () => {
         generateIndexContent("Preserved Project", bodyContent, initialChildren, "full"),
       )
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       const children = new Set(initialChildren)
@@ -452,7 +452,7 @@ describe("Index File Chaos Fuzz", () => {
         generateIndexContent("Concurrent Project", "Original body.", initialChildren, "full"),
       )
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       const children = new Set(initialChildren)
@@ -524,7 +524,7 @@ describe("Index File Chaos Fuzz", () => {
         generateIndexContent("My Project", "Project overview.", initialChildren, "full"),
       )
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       const children = new Set(initialChildren)
@@ -566,7 +566,7 @@ describe("Index File Chaos Fuzz", () => {
         writeFileSync(join(dir, "sibling.md"), generateChildContent(rng, `${basename(folder)}-sibling`))
       }
 
-      const manager = createSyncManager(db, repoDir)
+      const manager = createTestSyncHelper(db, repoDir)
       await manager.syncFromFs()
 
       // Randomly mutate children at each level

@@ -482,21 +482,21 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 })
 
 describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerender)", () => {
-  test("repo.updateNode() via notifyFs triggers SyncManager write", async () => {
+  test("repo.updateNode() via notifyFs triggers sync write", async () => {
     // Diagnostic test: verifies the production wiring where
     // Repo.updateNode() → notifyFs() → emitter.getFsSync().applyEventToFs()
-    // → SyncManager.handleNodeUpdated() → writeQueue → file on disk.
+    // → EventHandlers.applyEventToFs() → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, createTestEnvRepo, SyncManager } = await import("@km/storage")
+    const { withTestEnv, getAllNodes, createTestEnvRepo, createSync } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
       const testFile = join(repoDir, "tasks.md")
       writeFileSync(testFile, "# Tasks\n\n- [ ] Original title\n")
 
-      // Create SyncManager (no worker, zero debounce for test)
-      const syncManager = new SyncManager({
+      // Create sync (no worker, zero debounce for test)
+      const syncManager = createSync({
         db,
         repoPath: repoDir,
         debounceFs: 100,
@@ -549,10 +549,10 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 
   test("emitter.getFsSync() returns non-null when wired in tui.tsx pattern", async () => {
     // Diagnostic: verifies the production wiring step
-    const { withTestEnv, SyncManager } = await import("@km/storage")
+    const { withTestEnv, createSync } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
-      const syncManager = new SyncManager({
+      const syncManager = createSync({
         db,
         repoPath: repoDir,
         debounceFs: 100,
