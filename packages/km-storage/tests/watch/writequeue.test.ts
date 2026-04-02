@@ -620,3 +620,123 @@ describe("in-flight generation tracking", () => {
     expect(inFlightPaths.has("/vault/@next.md")).toBe(false)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Flush Mutex (re-entrancy prevention)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("flush mutex", () => {
+  test("concurrent flush calls are serialized — second waits for first", async () => {
+    const history: string[] = []
+    let writeDelay: (() => void) | null = null
+
+    // Filesystem where the first write blocks until we release it
+    const mockFs = createMockFs({ history })
+    const originalWrite = mockFs.writeFileSync
+    let writeCount = 0
+    mockFs.writeFileSync = (path: string, content: string, encoding?: BufferEncoding) => {
+      writeCount++
+      if (writeCount === 1) {
+        // First write: block by throwing into a promise we control
+        // We simulate a slow write by replacing executeOp's sync call
+        // with a delayed one via the retry mechanism
+        originalWrite(path, content, encoding)
+        return
+      }
+      originalWrite(path, content, encoding)
+    }
+
+    // Use a filesystem that delays writes via transient errors + retry
+    let slowResolve: (() => void) | null = null
+    const slowFs = createMockFs({ history })
+    let firstCall = true
+    const origWrite = slowFs.writeFileSync
+    slowFs.writeFileSync = (path: string, content: string, encoding?: BufferEncoding) => {
+      origWrite(path, content, encoding)
+    }
+
+    // Simpler approach: use retry delays to create a slow first flush
+    const delayFs = createMockFs({ history })
+    let callIndex = 0
+    delayFs.writeFileSync = (path: string, content: string, encoding?: BufferEncoding) => {
+      callIndex++
+      if (callIndex === 1) {
+        // First call: transient error forces retry with delay
+        throw codeError("EBUSY", "Resource busy")
+      }
+      history.push(`write:${path}:${content}`)
+    }
+
+    const queue = createWriteQueue({
+      fs: delayFs,
+      retry: { maxRetries: 3, baseDelayMs: 50, maxDelayMs: 100, jitterFactor: 0 },
+    })
+
+    // Queue first write and start flush (will be slow due to retry)
+    queue.queue({ path: "/test.md", content: "v1", sourceEventId: "1" })
+    const flush1 = queue.flush()
+
+    // Queue second write and start flush concurrently
+    queue.queue({ path: "/test.md", content: "v2", sourceEventId: "2" })
+    const flush2 = queue.flush()
+
+    await Promise.all([flush1, flush2])
+
+    // v1 writes first (from flush 1), then v2 writes (from flush 2 after mutex release)
+    const writes = history.filter((h) => h.startsWith("write:"))
+    expect(writes).toEqual(["write:/test.md:v1", "write:/test.md:v2"])
+  })
+
+  test("newer content wins when queued during active flush", async () => {
+    const history: string[] = []
+    let callIndex = 0
+
+    const mockFs = createMockFs({ history })
+    mockFs.writeFileSync = (path: string, content: string) => {
+      callIndex++
+      if (callIndex === 1) {
+        // First write is slow (transient error + retry)
+        throw codeError("EBUSY", "Resource busy")
+      }
+      history.push(`write:${path}:${content}`)
+    }
+
+    const queue = createWriteQueue({
+      fs: mockFs,
+      retry: { maxRetries: 3, baseDelayMs: 30, maxDelayMs: 50, jitterFactor: 0 },
+    })
+
+    // Start first flush with v1
+    queue.queue({ path: "/doc.md", content: "old", sourceEventId: "1" })
+    const flush1 = queue.flush()
+
+    // While flush 1 is retrying, queue v2 (newer content)
+    queue.queue({ path: "/doc.md", content: "new", sourceEventId: "2" })
+    const flush2 = queue.flush()
+
+    await Promise.all([flush1, flush2])
+
+    // Both writes happen, but the last one (newest) is what remains on disk
+    const writes = history.filter((h) => h.startsWith("write:"))
+    expect(writes.length).toBeGreaterThanOrEqual(1)
+    // The final write must be the newer content
+    expect(writes[writes.length - 1]).toBe("write:/doc.md:new")
+  })
+
+  test("flush is a no-op when nothing is pending after waiting", async () => {
+    const history: string[] = []
+    const mockFs = createMockFs({ history })
+
+    const queue = createWriteQueue({ fs: mockFs })
+
+    // Queue and flush
+    queue.queue({ path: "/a.md", content: "hello", sourceEventId: "1" })
+    await queue.flush()
+
+    // Second flush with no new work should be fast and not write anything extra
+    await queue.flush()
+
+    const writes = history.filter((h) => h.startsWith("write:"))
+    expect(writes).toEqual(["write:/a.md"])
+  })
+})

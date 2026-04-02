@@ -192,6 +192,7 @@ export interface StatResult {
 export interface FileSystemOps {
   writeFileSync(path: string, content: string, encoding?: BufferEncoding): void
   unlinkSync(path: string): void
+  rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void
   mkdirSync(path: string, options?: { recursive?: boolean }): void
   existsSync(path: string): boolean
   renameSync(oldPath: string, newPath: string): void
@@ -205,6 +206,7 @@ export interface FileSystemOps {
 export const realFs: FileSystemOps = {
   writeFileSync: (p, c, e) => fs.writeFileSync(p, c, e ?? "utf-8"),
   unlinkSync: fs.unlinkSync,
+  rmSync: fs.rmSync,
   mkdirSync: fs.mkdirSync,
   existsSync: fs.existsSync,
   renameSync: fs.renameSync,
@@ -307,6 +309,8 @@ export class WriteQueue extends EventEmitter {
   /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
   private flushGeneration = new Map<string, number>()
   private currentGeneration = 0
+  /** Flush mutex — only one flush can run at a time; concurrent callers wait then re-check */
+  private flushPromise: Promise<void> | null = null
 
   constructor(config: Partial<WriteQueueConfig> = {}) {
     super()
@@ -399,8 +403,14 @@ export class WriteQueue extends EventEmitter {
     switch (op.type) {
       case "delete":
         if (this.fs.existsSync(op.path)) {
-          log.info?.(`fs: delete ${op.path}`)
-          this.fs.unlinkSync(op.path)
+          const stat = this.fs.statSync(op.path)
+          if (stat.isDirectory()) {
+            log.info?.(`fs: rmdir ${op.path}`)
+            this.fs.rmSync(op.path, { recursive: true, force: true })
+          } else {
+            log.info?.(`fs: delete ${op.path}`)
+            this.fs.unlinkSync(op.path)
+          }
         }
         break
       case "rename":
@@ -533,9 +543,28 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
-   * Flush all pending writes with retry logic for transient failures
+   * Flush all pending writes — mutex ensures only one flush runs at a time.
+   * Concurrent callers wait for the active flush, then re-check for pending work.
    */
   async flush(): Promise<void> {
+    if (this.flushPromise) {
+      await this.flushPromise
+      // After waiting, re-check if new work accumulated during the flush
+      if (this.pending.size > 0) return this.flush()
+      return
+    }
+    this.flushPromise = this.doFlush()
+    try {
+      await this.flushPromise
+    } finally {
+      this.flushPromise = null
+    }
+  }
+
+  /**
+   * Internal flush implementation — must only be called via flush() mutex
+   */
+  private async doFlush(): Promise<void> {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
       this.debounceTimer = undefined
