@@ -1485,10 +1485,10 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       expect(shot).toContain("child-b1")
     })
 
-    test("ctrl-p into card above lands on deepest last descendant, not last body block", () => {
-      // Card with nested sub-sections: card-1 > sub-a > deep-a (with leaf), sub-b > deep-b (with leaf)
-      // When navigating UP from card-2, should land on deep-b (deepest last sub-section
-      // of card-1), not sub-b's title — the fix walks to the bottom-most editable heading.
+    test("ctrl-p into card above lands on DFS-last descendant (true bottom)", () => {
+      // Card with nested sub-sections: card-1 > sub-a > deep-a > leaf-a, sub-b > deep-b > leaf-b
+      // When navigating UP from card-2, should land on leaf-b (DFS-last descendant),
+      // not deep-b or sub-b — walkTree finds the true bottom of the card subtree.
       const { board } = testEnv(() =>
         item(
           "board",
@@ -1500,14 +1500,13 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
         ),
       )
 
-      // Navigate to card-2 and enter edit mode
       board.navigateTo("card-2")
       board.press("Enter")
       expect(board.screenshot()).toContain("INSERT")
 
-      // ArrowUp should land on deep-b (deepest last sub-section of card-1)
+      // ArrowUp should land on leaf-b (DFS-last — true bottom of card-1)
       board.press("ArrowUp")
-      board.expectEditing("deep-b")
+      board.expectEditing("leaf-b")
     })
 
     test("ctrl-p DFS-last includes body blocks, not just outline items", () => {

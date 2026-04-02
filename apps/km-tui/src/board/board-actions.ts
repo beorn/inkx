@@ -1900,9 +1900,10 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   // Past edges → save current content and try to enter edit on adjacent node
   activeEditTargetRef.current?.save()
 
-  // When going down from a title and the node has item children (sub-sections),
-  // descend into the first child instead of jumping to the next sibling/card.
-  if (direction === "down" && edit.blockIndex === 0) {
+  // When going down past the last block and the node has item children,
+  // descend into the first child instead of jumping to the next sibling.
+  // This applies at any depth — cards, sub-items, sub-sub-items.
+  if (direction === "down") {
     const children = ctx.repo.getChildren(edit.nodeId)
     const { items } = extractBody(children)
     if (items.length > 0) {
