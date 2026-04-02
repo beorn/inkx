@@ -37,6 +37,14 @@ For each subsystem touched, answer ALL of these:
 - Are there domain objects trying to emerge? (Repeated parameter groups, shared validation, related operations scattered across files)
 - What would a domain expert call this? Does the code use that name?
 
+**Abstraction reduction** (the biggest wins are fewer concepts, not fewer lines):
+- How many types represent the same concept? Can they be merged? (e.g., 4 "node" types → 2)
+- How many places re-derive the same information? Compute once, pass through. (e.g., extractBody 16x → ViewNode.isBody)
+- Are there dual representations that can diverge? Single source of truth. (e.g., repo + cache → derived view only)
+- How many special-case branches exist for one concern? Make it a first-class variant. (e.g., isBody 60 refs → role="body-column")
+- Could cross-cutting logic be middleware instead of inline? (e.g., undo in 43 places → plugin)
+- What would a new developer need to understand? Count the concepts. Can you halve them?
+
 **Simplicity:**
 - What would this look like if it were easy? (Not "how can I simplify" — "what if the problem were trivially simple?")
 - Which lines exist because of accidental complexity vs essential complexity?
@@ -82,6 +90,11 @@ Catalog opportunities in these categories:
 | High-complexity function (>30) | <15-line orchestrator + helpers | 200-line function with 5 phases → orchestrator + 5 focused helpers |
 | Duplicated loop body   | Shared helper called N times | 3 identical viewport-fill loops → `fillViewport()` called 3x |
 | Sequential if/else type dispatch | Classifier chain or lookup | Token type chain → `classifiers.find(c => c(token))` |
+| Redundant abstractions | Merge or delete | 3 cursor systems → 1 ViewNode.role lookup |
+| Dual representations | Single source of truth | repo + cache → derived view only |
+| Re-derivation | Compute once, pass through | extractBody 16x → ViewNode.isBody |
+| Special-case sprawl | First-class variant | isBody 60 refs → role="body-column" |
+| Cross-cutting inline | Middleware/plugin | undo in 43 places → plugin pipeline |
 
 ### Alignment Patterns (from docs/principles.md)
 
