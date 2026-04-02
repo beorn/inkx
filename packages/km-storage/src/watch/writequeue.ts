@@ -736,6 +736,53 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
+   * Rewrite a pending write's path when the target file is renamed.
+   * Must be called BEFORE the actual renameSync so the queued write
+   * flushes to the new path instead of recreating the old file.
+   */
+  renamePending(oldPath: string, newPath: string): boolean {
+    const op = this.pending.get(oldPath)
+    if (!op) return false
+    this.pending.delete(oldPath)
+    op.path = newPath
+    this.pending.set(newPath, op)
+    log.debug?.(`renamePending: ${oldPath} → ${newPath}`)
+    return true
+  }
+
+  /**
+   * Cancel a pending write for a deleted file.
+   */
+  dropPending(path: string): boolean {
+    const dropped = this.pending.delete(path)
+    if (dropped) {
+      log.debug?.(`dropPending: ${path}`)
+    }
+    return dropped
+  }
+
+  /**
+   * Rewrite all pending writes under a renamed directory.
+   * Must be called BEFORE the actual renameSync.
+   */
+  renamePendingSubtree(oldPrefix: string, newPrefix: string): number {
+    let count = 0
+    for (const [path, op] of this.pending) {
+      if (path.startsWith(oldPrefix + "/") || path === oldPrefix) {
+        this.pending.delete(path)
+        const newPath = newPrefix + path.slice(oldPrefix.length)
+        op.path = newPath
+        this.pending.set(newPath, op)
+        count++
+      }
+    }
+    if (count > 0) {
+      log.debug?.(`renamePendingSubtree: ${oldPrefix} → ${newPrefix} (${count} ops)`)
+    }
+    return count
+  }
+
+  /**
    * Clear all pending writes and flush-tracking state
    */
   clear(): void {
