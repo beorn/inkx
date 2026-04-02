@@ -41,8 +41,7 @@ What it enables:
 
 Key files (current):
 - `apps/km-tui/src/board/board-reducer.ts` -- Board navigation state machine (Phase 2a, shipped)
-- `apps/km-tui/src/board/history-plugin.ts` -- `withHistory` plugin (implemented and tested, not yet wired into app)
-- `apps/km-tui/tests/board-reducer.test.ts` -- pure reducer tests (includes withHistory tests)
+- `apps/km-tui/tests/board-reducer.test.ts` -- pure reducer tests
 - `apps/km-tui/src/board/board-actions.ts` -- remaining imperative dispatch (to be migrated)
 - `apps/km-tui/src/board-app-store.ts` -- Zustand store (to be wired through `tea()`)
 

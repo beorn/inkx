@@ -505,7 +505,7 @@ Tree.apply(bareState, op)
 
 This is the pure equivalent of SlateJS's `withHistory(withReact(createEditor()))` — but instead of monkey-patching a mutable object, each plugin contributes state fields and wraps the apply function. The compiler enforces that you can only access `state.history` if `withHistory` is in the composition chain.
 
-> **Implementation status**: `withHistory` is implemented and tested (`apps/km-tui/src/board/history-plugin.ts`) but not yet wired into the live app. `withVim` and `withCollaboration` are designed but not yet implemented. The plugin composition pattern is proven by `silvery/tea` (shipped Zustand middleware). See [phases.md](phases.md) for what has shipped and what is planned.
+> **Implementation status**: `withHistory` was removed (dead code — never wired into the live app). The active undo system is the imperative `UndoStack` + `UndoableRepo`. `Board.apply` with effect runner has landed (`board-reducer.ts`). `withVim` and `withCollaboration` are designed but not yet implemented. The plugin composition pattern is proven by `silvery/tea` (shipped Zustand middleware). See [phases.md](phases.md) for what has shipped and what is planned.
 
 ### Transforms (High-Level API)
 
