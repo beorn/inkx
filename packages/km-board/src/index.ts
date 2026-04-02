@@ -39,3 +39,7 @@ export { boardReducer, createBoardState } from "./board-reducer.ts"
 // ===== Grid Navigator =====
 export { createGridNavigator } from "./grid-navigator.ts"
 export type { GridNavigator, CrossAxisResult } from "./grid-navigator.ts"
+
+// ===== View Tree =====
+export { buildViewTree, buildViewIndex, dfsTraversal, deriveCursorPath, toColumnViews } from "./view-tree.ts"
+export type { ViewNode, ViewRole, ViewTreeRepo, CompatColumnView } from "./view-tree.ts"

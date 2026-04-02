@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@km/core": "workspace:*",
+    "@km/markdown": "workspace:*",
     "@km/tree": "workspace:*",
     "@silvery/ag-react": "workspace:*"
   }
