@@ -495,24 +495,127 @@ function expandIndexFileViewNodes(
 }
 
 // =============================================================================
+// ViewTree namespace — pluggable traversal (mirrors TreeWalk.nodes API shape)
+// =============================================================================
+
+export interface ViewTreeNodesOptions {
+  /** Which nodes to YIELD. Default: all.
+   *  Always walks children regardless of match result (same as TreeWalk.nodes). */
+  match?: (vn: ViewNode) => boolean
+  /** Whether to descend INTO this node's children. Default: always true.
+   *  Orthogonal to match — controls descent, never yielding. */
+  into?: (vn: ViewNode) => boolean
+  /** DFS in reverse order (last children first). */
+  reverse?: boolean
+}
+
+/** ViewTree namespace — pluggable ViewNode traversal (same API shape as TreeWalk.nodes). */
+export const ViewTree = {
+  /**
+   * Iterate ViewNodes in DFS order with orthogonal match + into predicates.
+   *
+   * - `match` controls which nodes are yielded (default: all)
+   * - `into` controls whether children are visited (default: always true)
+   * - These are orthogonal: match never affects descent, into never affects yielding
+   * - `reverse` flips DFS to process last children first
+   *
+   * Same concept as TreeWalk.nodes, different tree structure (ViewNode has
+   * direct children array instead of getChildren()).
+   *
+   * @example All nodes in visual order
+   * ```ts
+   * ViewTree.nodes(root)
+   * ```
+   *
+   * @example Only cards
+   * ```ts
+   * ViewTree.nodes(root, { match: vn => vn.role === "card" })
+   * ```
+   *
+   * @example Skip collapsed subtrees
+   * ```ts
+   * ViewTree.nodes(root, { into: vn => !isCollapsed(vn) })
+   * ```
+   */
+  *nodes(root: ViewNode, opts?: ViewTreeNodesOptions): Generator<ViewNode> {
+    const { match, into, reverse } = opts ?? {}
+
+    // Iterative DFS with explicit stack (mirrors TreeWalk.nodes pattern)
+    const stack: ViewNode[] = [root]
+
+    while (stack.length > 0) {
+      // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- length check above
+      const vn = stack.pop()!
+
+      // Yield if match passes (or no match filter)
+      if (!match || match(vn)) {
+        yield vn
+      }
+
+      // Descend if into passes (or no into filter)
+      if (into && !into(vn)) continue
+
+      const children = vn.children
+      if (reverse) {
+        // Push in forward order so DFS pops in reverse (last child first)
+        for (let i = 0; i < children.length; i++) {
+          // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- loop bounds
+          stack.push(children[i]!)
+        }
+      } else {
+        // Push in reverse order so first child is processed first
+        for (let i = children.length - 1; i >= 0; i--) {
+          // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- loop bounds
+          stack.push(children[i]!)
+        }
+      }
+    }
+  },
+
+  /** All descendant IDs in DFS order (including root). */
+  descendantIds(index: Map<string, ViewNode>, rootId: string): string[] {
+    const rootView = index.get(rootId)
+    if (!rootView) return [rootId]
+    return [...ViewTree.nodes(rootView)].map((vn) => vn.id)
+  },
+
+  /** Deepest last descendant (for ctrl-p bottom-up traversal). */
+  deepestLast(index: Map<string, ViewNode>, nodeId: string): ViewNode | null {
+    const root = index.get(nodeId)
+    if (!root) return null
+    let last: ViewNode | null = null
+    for (const vn of ViewTree.nodes(root)) {
+      last = vn
+    }
+    return last
+  },
+
+  /** Adjacent sibling (delta: +1 next, -1 previous). */
+  sibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
+    if (!vn.parent) return null
+    const siblings = vn.parent.children
+    const idx = siblings.indexOf(vn)
+    if (idx < 0) return null
+    return siblings[idx + delta] ?? null
+  },
+}
+
+// =============================================================================
 // Utilities
 // =============================================================================
 
 /** O(1) node lookup by id */
 export function buildViewIndex(tree: ViewNode): Map<string, ViewNode> {
   const index = new Map<string, ViewNode>()
-  for (const node of dfsTraversal(tree)) {
+  for (const node of ViewTree.nodes(tree)) {
     index.set(node.id, node)
   }
   return index
 }
 
-/** DFS traversal yielding navigable nodes in visual order */
+/** @deprecated Use ViewTree.nodes() instead */
 export function* dfsTraversal(tree: ViewNode): Generator<ViewNode> {
-  yield tree
-  for (const child of tree.children) {
-    yield* dfsTraversal(child)
-  }
+  yield* ViewTree.nodes(tree)
 }
 
 /** Derive cursor path from root to target node */

@@ -4,7 +4,7 @@
  * Handles cursor movement, history navigation, and sibling board navigation.
  */
 
-import type { ViewNode } from "@km/board"
+import { ViewTree, type ViewNode } from "@km/board"
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
@@ -82,12 +82,12 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
  *
  * Uses the ViewTree (which drives rendering) so navigation exactly matches what
  * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
- * at construction time — same approach as getVisibleDescendants for spatial nav.
+ * at construction time — same approach as ViewTree.descendantIds for spatial nav.
  */
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  const descendantIds = getVisibleDescendants(ctx.viewIndex, card.id)
+  const descendantIds = ViewTree.descendantIds(ctx.viewIndex, card.id)
   const navState = extractNavState(ctx)
   const result = applyOutlineNav(navState, dir, descendantIds)
 
@@ -95,32 +95,6 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 
   runBoardEffects(ctx, result)
   return ok()
-}
-
-/**
- * Get flat list of all visible descendant IDs of a node, in DFS order.
- *
- * Uses the ViewTree (which drives rendering) so navigation exactly matches what
- * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
- * at construction time.
- */
-function getVisibleDescendants(viewIndex: Map<string, ViewNode>, rootId: string): string[] {
-  const rootView = viewIndex.get(rootId)
-  if (!rootView) return [rootId]
-
-  const ids: string[] = []
-  // DFS walk — ViewNode.children is already pruned for hidden/collapsed nodes
-  const stack = [rootView]
-  while (stack.length > 0) {
-    const vn = stack.pop()!
-    ids.push(vn.id)
-    // Push children in reverse so first child is processed first
-    for (let i = vn.children.length - 1; i >= 0; i--) {
-      stack.push(vn.children[i]!)
-    }
-  }
-
-  return ids
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
@@ -262,7 +236,7 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
 
   // Build flat list of all visible blocks in the current column
   const col = ctx.column
-  const blocks = col ? getVisibleDescendants(ctx.viewIndex, col.node.id) : []
+  const blocks = col ? ViewTree.descendantIds(ctx.viewIndex, col.node.id) : []
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
   const navState = extractNavState(ctx)

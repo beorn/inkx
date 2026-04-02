@@ -43,6 +43,7 @@ export type { GridNavigator, CrossAxisResult } from "./grid-navigator.ts"
 
 // ===== View Tree =====
 export {
+  ViewTree,
   buildViewTree,
   buildViewIndex,
   dfsTraversal,
@@ -60,6 +61,7 @@ export type {
   ViewNode,
   ViewRole,
   ViewTreeRepo,
+  ViewTreeNodesOptions,
   CompatColumnView,
   ViewNodeCacheEntry,
   ViewNodeColumnCache,

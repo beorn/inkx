@@ -9,6 +9,7 @@
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
 import {
+  ViewTree,
   buildViewTree,
   buildViewIndex,
   dfsTraversal,
@@ -414,6 +415,223 @@ describe("dfsTraversal", () => {
 
     const ids = [...dfsTraversal(tree)].map((n) => n.id)
     expect(ids).toEqual(["root", "col1", "c1a", "sub1", "c1b", "col2", "c2a"])
+  })
+})
+
+describe("ViewTree.nodes", () => {
+  const emptyFoldDepths = new Map<string, number>()
+
+  test("yields all nodes in DFS order (same as dfsTraversal)", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "First"),
+      heading("col2", "root", 1, "Second"),
+      paragraph("c1a", "col1", 0, "Card 1A"),
+      paragraph("c1b", "col1", 1, "Card 1B"),
+      paragraph("c2a", "col2", 0, "Card 2A"),
+      paragraph("sub1", "c1a", 0, "Sub under 1A"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    const ids = [...ViewTree.nodes(tree)].map((n) => n.id)
+    expect(ids).toEqual(["root", "col1", "c1a", "sub1", "c1b", "col2", "c2a"])
+  })
+
+  test("match predicate controls yielding without affecting descent", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Column"),
+      paragraph("c1", "col1", 0, "Card"),
+      paragraph("sub1", "c1", 0, "Sub"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    // Only yield cards — but still descend into columns to find them
+    const cards = [...ViewTree.nodes(tree, { match: (vn) => vn.role === "card" })]
+    expect(cards.map((c) => c.id)).toEqual(["c1"])
+  })
+
+  test("into predicate controls descent without affecting yielding", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Column"),
+      paragraph("c1", "col1", 0, "Card"),
+      paragraph("sub1", "c1", 0, "Sub"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    // Don't descend into cards — subitems should not appear
+    const ids = [...ViewTree.nodes(tree, { into: (vn) => vn.role !== "card" })].map((n) => n.id)
+    expect(ids).toEqual(["root", "col1", "c1"])
+    // c1 is yielded (into doesn't affect yielding), but sub1 is not (descent stopped)
+  })
+
+  test("match and into are orthogonal", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Column"),
+      paragraph("c1", "col1", 0, "Card"),
+      paragraph("sub1", "c1", 0, "Sub"),
+      paragraph("sub2", "sub1", 0, "Deep Sub"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    // Only yield subitems, but don't descend past depth 1 subitems
+    const ids = [
+      ...ViewTree.nodes(tree, {
+        match: (vn) => vn.role === "subitem",
+        into: (vn) => vn.role !== "subitem",
+      }),
+    ].map((n) => n.id)
+    // sub1 is yielded (match passes) but its children not visited (into stops at subitems)
+    expect(ids).toEqual(["sub1"])
+  })
+
+  test("reverse option processes children in reverse order", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "First"),
+      heading("col2", "root", 1, "Second"),
+      paragraph("c1a", "col1", 0, "Card 1A"),
+      paragraph("c1b", "col1", 1, "Card 1B"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    const ids = [...ViewTree.nodes(tree, { reverse: true })].map((n) => n.id)
+    // Reverse: col2 before col1, c1b before c1a
+    expect(ids).toEqual(["root", "col2", "col1", "c1b", "c1a"])
+  })
+
+  test("empty tree yields only root", () => {
+    const nodes: KNode[] = [heading("root", null, 0)]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    const ids = [...ViewTree.nodes(tree)].map((n) => n.id)
+    expect(ids).toEqual(["root"])
+  })
+})
+
+describe("ViewTree.descendantIds", () => {
+  const emptyFoldDepths = new Map<string, number>()
+
+  test("returns all descendant IDs including root", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Column"),
+      paragraph("c1", "col1", 0, "Card"),
+      paragraph("sub1", "c1", 0, "Sub"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+    const index = buildViewIndex(tree)
+
+    expect(ViewTree.descendantIds(index, "col1")).toEqual(["col1", "c1", "sub1"])
+  })
+
+  test("returns [rootId] when node not found in index", () => {
+    const index = new Map<string, ViewNode>()
+    expect(ViewTree.descendantIds(index, "missing")).toEqual(["missing"])
+  })
+})
+
+describe("ViewTree.deepestLast", () => {
+  const emptyFoldDepths = new Map<string, number>()
+
+  test("returns the deepest last descendant", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Column"),
+      paragraph("c1", "col1", 0, "Card"),
+      paragraph("sub1", "c1", 0, "Sub"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+    const index = buildViewIndex(tree)
+
+    const last = ViewTree.deepestLast(index, "root")
+    expect(last?.id).toBe("sub1")
+  })
+
+  test("returns the node itself when it has no children", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Column"),
+      paragraph("c1", "col1", 0, "Card"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+    const index = buildViewIndex(tree)
+
+    const last = ViewTree.deepestLast(index, "c1")
+    expect(last?.id).toBe("c1")
+  })
+
+  test("returns null when node not found", () => {
+    const index = new Map<string, ViewNode>()
+    expect(ViewTree.deepestLast(index, "missing")).toBeNull()
+  })
+})
+
+describe("ViewTree.sibling", () => {
+  const emptyFoldDepths = new Map<string, number>()
+
+  test("returns next sibling with delta +1", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "First"),
+      heading("col2", "root", 1, "Second"),
+      heading("col3", "root", 2, "Third"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    const col1 = tree.children[0]!
+    const col2 = tree.children[1]!
+    expect(ViewTree.sibling(col1, 1)?.id).toBe("col2")
+    expect(ViewTree.sibling(col2, 1)?.id).toBe("col3")
+  })
+
+  test("returns previous sibling with delta -1", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "First"),
+      heading("col2", "root", 1, "Second"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    const col2 = tree.children[1]!
+    expect(ViewTree.sibling(col2, -1)?.id).toBe("col1")
+  })
+
+  test("returns null at boundary", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "First"),
+      heading("col2", "root", 1, "Second"),
+    ]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    const col1 = tree.children[0]!
+    const col2 = tree.children[1]!
+    expect(ViewTree.sibling(col1, -1)).toBeNull()
+    expect(ViewTree.sibling(col2, 1)).toBeNull()
+  })
+
+  test("returns null for root node (no parent)", () => {
+    const nodes: KNode[] = [heading("root", null, 0)]
+    const repo = createMockRepo(nodes)
+    const tree = buildViewTree(repo, "root", emptyFoldDepths)
+
+    expect(ViewTree.sibling(tree, 1)).toBeNull()
+    expect(ViewTree.sibling(tree, -1)).toBeNull()
   })
 })
 
