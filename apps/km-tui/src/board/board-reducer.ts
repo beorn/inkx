@@ -34,9 +34,6 @@ export interface BoardNavState {
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
 
-  /** Node IDs hidden from view (navigation skips them) */
-  hiddenNodeIds: Set<string>
-
   /** Root node of the current zoom level */
   rootId: string | null
 
@@ -804,7 +801,6 @@ export function createBoardNavState(overrides: Partial<BoardNavState> = {}): Boa
     cursorColumnNodeId: null,
     foldDepths: new Map(),
     collapsedNodes: new Set(),
-    hiddenNodeIds: new Set(),
     rootId: null,
     columnScrollAnchor: null,
     ...overrides,

@@ -30,7 +30,13 @@ import type { ColumnView } from "./types.ts"
 import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { checkInvariants } from "./invariants.ts"
-import { deriveColumnsFromRepo, deriveDetailColumns, viewTreeToColumnViews, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import {
+  deriveColumnsFromRepo,
+  deriveDetailColumns,
+  viewTreeToColumnViews,
+  buildNodeIndex,
+  deriveCursorIndices,
+} from "./hooks/use-columns.ts"
 import { buildViewTree, buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -84,7 +90,6 @@ export interface BoardAppLocals {
     nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
     viewTree: ViewNode
     viewIndex: Map<string, ViewNode>
-    hiddenNodeIds: Set<string>
     viewNodeCache: ViewNodeColumnCache
   } | null
   /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
@@ -181,19 +186,24 @@ export interface BoardAppHandlers {
  * Create all board-app handler functions, closed over a single BoardAppLocals bag.
  * Each createBoardApp() call gets its own locals, eliminating module-level mutable state.
  */
-/** Compute the set of hidden node IDs from columns + hidden paths.
- * Checked per-keypress but cached via the hidden version counter. */
+/**
+ * Compute hidden node IDs from the .km/hidden file.
+ * Walks children of the root (columns) and their children (cards) to find matches.
+ * Called before buildViewTree so hidden nodes are excluded at construction time.
+ */
 function computeHiddenNodeIds(
   repo: { path: string; getNode: (id: string) => any; getChildren: (id: string | null) => any[] },
-  columns: ColumnView[],
+  rootId: string | null,
 ): Set<string> {
   const hiddenPaths = readBoardHidden(repo.path)
   if (hiddenPaths.size === 0) return new Set()
   const ids = new Set<string>()
-  for (const col of columns) {
-    if (isHidden(hiddenPaths, col.node, repo as any)) ids.add(col.node.id)
-    for (const card of col.cardNodes) {
-      if (isHidden(hiddenPaths, card, repo as any)) ids.add(card.id)
+  const topChildren = repo.getChildren(rootId)
+  for (const child of topChildren) {
+    if (isHidden(hiddenPaths, child, repo as any)) ids.add(child.id)
+    const grandChildren = repo.getChildren(child.id)
+    for (const gc of grandChildren) {
+      if (isHidden(hiddenPaths, gc, repo as any)) ids.add(gc.id)
     }
   }
   return ids
@@ -220,7 +230,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
     let viewTree: ViewNode
     let viewIndex: Map<string, ViewNode>
-    let hiddenNodeIds: Set<string>
     if (
       locals.layoutCache &&
       locals.layoutCache.rootId === rootId &&
@@ -231,25 +240,25 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       nodeIndex = locals.layoutCache.nodeIndex
       viewTree = locals.layoutCache.viewTree
       viewIndex = locals.layoutCache.viewIndex
-      hiddenNodeIds = locals.layoutCache.hiddenNodeIds
     } else {
       // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
       const topChildren = s.repo.getChildren(rootId)
       s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
+      // Compute hidden node IDs before building the view tree — they're filtered at construction time
+      const hiddenNodeIds = computeHiddenNodeIds(s.repo, rootId)
       // Reuse viewNode cache if rootId hasn't changed (zoom); clear on zoom change
       const viewNodeCache: ViewNodeColumnCache =
         locals.layoutCache && locals.layoutCache.rootId === rootId ? locals.layoutCache.viewNodeCache : new Map()
       if (board?.viewMode === "detail") {
         columns = deriveDetailColumns(s.repo, rootId, foldDepths)
-        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
+        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
       } else {
         // Derive viewTree first, then columns from it — single derivation path
-        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
+        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
         columns = viewTreeToColumnViews(s.repo, viewTree)
       }
       nodeIndex = buildNodeIndex(columns)
       viewIndex = buildViewIndex(viewTree)
-      hiddenNodeIds = computeHiddenNodeIds(s.repo, columns)
       locals.layoutCache = {
         rootId,
         foldDepths,
@@ -258,7 +267,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         nodeIndex,
         viewTree,
         viewIndex,
-        hiddenNodeIds,
         viewNodeCache,
       }
     }
@@ -313,7 +321,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       rootPath: board?.rootPath ?? null,
       cursorNodeId,
       cursorCardNodeId,
-      hiddenNodeIds,
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),
       moveState: board?.moveState ?? { active: false },

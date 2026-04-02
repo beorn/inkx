@@ -1,12 +1,13 @@
 /**
  * useColumns Hook — VIEW MODEL DERIVATION
  *
- * Derives ColumnView[] from Repo. This is the main view model construction point:
- * it reads data model (KNode tree via Repo) and produces view model (ColumnView with CardView cards).
+ * Thin wrapper over ViewNode tree (km-board). Delegates column derivation to
+ * buildViewTree() + viewNodeToColumnViews(), keeping only React hook plumbing
+ * and cursor index utilities.
  *
  * Structure:
  * 1. useColumns() — React hook with repo subscription
- * 2. deriveColumnsFromRepo() — Pure function: repo → ColumnView[]
+ * 2. deriveColumnsFromRepo() — Delegates to buildViewTree + viewNodeToColumnViews
  * 3. buildNodeIndex() — O(1) cursor position lookup map
  * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
  */
@@ -15,97 +16,144 @@ import { useRef, useState, useSyncExternalStore } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
 import { createLogger } from "loggily"
-import { extractSlotTargets, findIndexFile, namesAreSimilar } from "@km/core"
 import { extractBody } from "@km/tree"
 import type { CardView, ColumnView } from "../types.ts"
-import type { SectionRules } from "@km/markdown"
-import { parseHeadingRules } from "@km/markdown"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
+import { buildViewTree, viewNodeToColumnViews, type ViewNodeColumnCache, type ViewTreeRepo } from "@km/board"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:columns") as any
 
 // =============================================================================
-// Helpers — collapsed node filtering
+// Column derivation — delegates to ViewNode tree
 // =============================================================================
 
-/** Nodes with km.collapse:: true (e.g., imported comments/attachments/activity) are
- *  shown only in the detail pane, never as cards in columns.
- *  Also supports legacy detailOnly data flag and well-known Asana metadata sections. */
-const COLLAPSED_SECTION_NAMES = new Set(["activity", "comments", "attachments"])
+/** Per-column memoization cache for ViewNode tree builds */
+const viewNodeCache: ViewNodeColumnCache = new Map()
 
-/** Check if any of a node's identifying fields (name, title, content) match a well-known
- *  metadata section name (case-insensitive). Content is stripped of km.* rules first. */
-function isWellKnownMetadataSection(node: KNode): boolean {
-  const nameLC = node.name?.toLowerCase()
-  if (nameLC && COLLAPSED_SECTION_NAMES.has(nameLC)) return true
-  const titleLC = node.title?.toLowerCase()
-  if (titleLC && COLLAPSED_SECTION_NAMES.has(titleLC)) return true
-  // Check content with km.* rules stripped (Asana imports have content like "Attachments km.collapse:: true")
-  const contentLC = node.content
-    ?.toLowerCase()
-    .replace(/\s*km\.\w+::\s*\S*/g, "")
-    .trim()
-  if (contentLC && COLLAPSED_SECTION_NAMES.has(contentLC)) return true
-  return false
-}
+/**
+ * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
+ *
+ * All runtime column derivation paths must delegate here:
+ * - useColumns() hook (React render path)
+ * - buildActionCtx() in board-app.ts (key handler path, with layout cache)
+ * - driver.ts getContext/getDriverState (test/AI automation path)
+ *
+ * Delegates to buildViewTree() for tree construction and viewNodeToColumnViews()
+ * for ColumnView[] conversion. The ViewNode tree is the authoritative derivation;
+ * this function is a thin bridge to the km-tui ColumnView shape.
+ */
+export function deriveColumnsFromRepo(
+  repo: Repo,
+  rootId: string | null,
+  foldDepths: Map<string, number>,
+): ColumnView[] {
+  using span = log.span("derive-columns")
 
-/** Parse collapse rules from a node, preferring pre-parsed rules, then content (which
- *  may contain unparsed km.collapse:: true from imports), then title as fallback. */
-function getCollapseRules(node: KNode): { collapse?: boolean } {
-  if (node.rules) return node.rules
-  // Prefer content over title: content may contain unparsed "km.collapse:: true"
-  // while title is the clean display text (e.g., "Attachments" without the rule).
-  return parseHeadingRules(node.content || node.title || "").rules
-}
+  // Build the ViewNode tree (uses its own per-column cache)
+  const tree = buildViewTree(repo as ViewTreeRepo, rootId, foldDepths, viewNodeCache)
 
-export function isCollapsedChild(node: KNode): boolean {
-  if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
-  if (isWellKnownMetadataSection(node)) return true
-  return getCollapseRules(node).collapse === true
-}
+  // Extract column nodes for WIP limit computation
+  const allChildren = repo.getChildren(rootId)
+  const { items: columnNodes } = extractBody(allChildren)
 
-/** Like isCollapsedChild but only returns true for detail-only nodes
- *  (detailOnly flag, well-known Asana metadata sections like Activity/Comments/Attachments).
- *  Does NOT match nodes that only have km.collapse:: true — those should render
- *  as narrow collapsed columns, not be hidden entirely. */
-export function isDetailOnly(node: KNode): boolean {
-  if ((node.data as Record<string, unknown>)?.detailOnly === true) return true
-  if (isWellKnownMetadataSection(node)) return true
-  // Check content for well-known section names (Asana imports have the name in content, not node.name)
-  const rules = getCollapseRules(node)
-  if (rules.collapse === true) {
-    const rawName = (node.name || node.title || node.content || "")
-      .toLowerCase()
-      .replace(/\s*km\.\w+::\s*\S*/g, "")
-      .trim()
-    if (COLLAPSED_SECTION_NAMES.has(rawName)) return true
-  }
-  return false
+  // Convert ViewNode tree to ColumnView[] with full CardView[]
+  const columns = viewNodeToColumnViews(tree, columnNodes) as ColumnView[]
+
+  span.spanData.columns = columns.length
+  return columns
 }
 
 // =============================================================================
-// CardView Builder — converts KNode[] to CardView[] with batch embed resolution
+// Detail view columns
 // =============================================================================
 
 /**
- * Convert KNode[] to CardView[] with batch-resolved embeds.
- * bodyIds: Set of node IDs that are body blocks (before first outline item).
+ * Derive columns for the detail view mode.
  *
- * Called multiple times per derivation (body columns, structural columns,
- * index file expansion, detail view) — each call operates on a different
- * node set so results cannot be shared.
+ * Returns a single virtual column containing:
+ * 1. Virtual metadata property nodes (with __meta__ IDs) — navigable property rows
+ * 2. Actual tree children — shown as card-like rows below the properties
+ *
+ * This gives standard j/k navigation through metadata rows first, then children.
+ */
+export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDepths: Map<string, number>): ColumnView[] {
+  const rootNode = rootId ? repo.getNode(rootId) : null
+
+  // Compute metadata rows for the root node
+  const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
+  const metaNodes = metaKeys.map((key) => createVirtualMetaNode(rootId, key))
+
+  const allChildren = repo.getChildren(rootId)
+
+  // If no metadata rows and no children, still show an empty column
+  if (metaNodes.length === 0 && allChildren.length === 0) return []
+
+  // All items (meta + children) are virtual/body for the detail column
+  const allNodes = [...metaNodes, ...allChildren]
+  const bodyIds = new Set(allNodes.map((n) => n.id))
+
+  return [
+    {
+      node: createVirtualBodyNode(rootId),
+      cardNodes: toCardViews(repo, allNodes, bodyIds),
+      isVirtual: true,
+    },
+  ]
+}
+
+/**
+ * Create a virtual node representing a metadata property row in the detail pane.
+ * Uses the DETAIL_META_PREFIX convention: "__meta__Status", "__meta__Due", etc.
+ */
+function createVirtualMetaNode(parentId: string | null, key: string): KNode {
+  const now = Date.now()
+  return {
+    id: `${DETAIL_META_PREFIX}${key}`,
+    type: "p",
+    parent_id: parentId,
+    parent_idx: 0,
+    content: key,
+    data: {},
+    created_at: now,
+    updated_at: now,
+    version: "",
+  }
+}
+
+/**
+ * Create a virtual node for the body column.
+ * This node represents leading non-section content grouped for display.
+ */
+function createVirtualBodyNode(parentId: string | null): KNode {
+  const now = Date.now()
+  return {
+    id: `__body__${parentId ?? "root"}`,
+    type: "h",
+    item: {},
+    fstype: "mdsection",
+    parent_id: parentId,
+    parent_idx: 0,
+    title: "Description",
+    content: "",
+    data: {},
+    created_at: now,
+    updated_at: now,
+    version: "",
+  }
+}
+
+/**
+ * Convert KNode[] to CardView[] with batch-resolved embeds.
+ * Used only by deriveDetailColumns (which doesn't go through ViewNode).
  */
 function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView[] {
-  // Batch-resolve embed targets in one SQL query
   const embedSourceIds = nodes.filter((n) => n.embed_source).map((n) => n.embed_source!)
   const resolvedMap = embedSourceIds.length > 0 ? repo.getNodesBatch(embedSourceIds) : new Map<string, KNode>()
 
   return nodes.map((node) => {
     const isBody = bodyIds.has(node.id)
     const resolvedNode = node.embed_source ? resolvedMap.get(node.embed_source) : undefined
-    // For hasBodyChildren: check if first child is a non-outline node (= body content).
-    // Cheaper than extractBody — getChildren is cached via preloadSubtree.
     const sourceId = resolvedNode?.id ?? node.id
     const firstChild = isBody ? undefined : repo.getChildren(sourceId)[0]
     const hasBodyChildren = firstChild != null && !KNode.isOutline(firstChild)
@@ -189,13 +237,6 @@ export function deriveCursorIndices(
  * automatically recompute when any mutation (updateNode, moveNode, etc.)
  * occurs, without requiring manual dispatch at each call site.
  *
- * In test env: synchronous derivation (act() needs sync updates).
- * In production: incremental loading via generator — yields one column at a time,
- * time-sliced across frames (8ms budget per tick). Per-column memoization cache
- * makes non-zoom mutations fast (most columns hit cache), so the incremental path
- * is effectively synchronous for mutations. Only zoom (cold cache) actually yields
- * across multiple ticks for progressive rendering.
- *
  * @param repo - Repo instance
  * @param rootId - Current zoom root (null for repo root)
  * @param foldDepths - Map of node ID → depth budget (0 = folded, no entry = inherit)
@@ -210,37 +251,21 @@ export function useColumns(
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
-  // Use repoVersion directly — column derivation is fast (per-column memoization),
-  // so debouncing adds complexity without meaningful benefit. Previous setTimeout(0)
-  // debounce caused newly created nodes to be invisible until the next frame because
-  // the column derivation lagged behind the edit state.
   const effectiveVersion = repoVersion
 
   // Batch-preload children cache before column derivation + Card mount.
-  // Without this, each Card component individually queries SQLite for children
-  // (overflow calc, TreeNode display) — 200+ cold-cache queries per column on 333k-node vaults.
-  // A single CTE query at depth 3 warms: root→columns→cards→card-children, so Card overflow
-  // calc and TreeNode render all hit cache. ~6000 nodes for a typical board.
-  // The action context (board-app.ts) already does this for keypresses; this covers initial render + zoom.
   const derive = viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
   const [columns, setColumns] = useState<ColumnView[]>(() => {
     repo.preloadSubtree(rootId, 3)
     return derive(repo, rootId, foldDepths)
   })
 
-  // Track deps to detect changes. foldDepths is NOT tracked — fold expansion
-  // happens at the rendering layer (TreeNode/Jotai atoms), not in column derivation.
-  // kNodeToColumnView ignores foldDepths (param is _foldDepths).
+  // Track deps to detect changes.
   const depsRef = useRef({ rootId, version: effectiveVersion })
   const foldDepthsRef = useRef(foldDepths)
   foldDepthsRef.current = foldDepths
 
   // Synchronous column derivation on rootId or version change.
-  // Columns must update in the SAME render cycle as the state change —
-  // deferring to useEffect causes a frame where the edit state targets a
-  // node that doesn't have a TreeNode yet (newly created nodes are invisible).
-  // React handles setState-during-render by immediately re-rendering with the
-  // new state without committing the intermediate frame.
   if (depsRef.current.rootId !== rootId || depsRef.current.version !== effectiveVersion) {
     repo.preloadSubtree(rootId, 3)
     const newColumns = derive(repo, rootId, foldDepthsRef.current)
@@ -251,11 +276,14 @@ export function useColumns(
   return columns
 }
 
+// =============================================================================
+// Node Index
+// =============================================================================
+
 /**
  * Build a nodeId → {colIndex, cardIndex} map for O(1) cursor position lookup.
  * Includes column header nodes (cardIndex = -1) and card nodes.
- * When getChildren is provided, also maps card descendants for cursor resolution
- * (e.g., after indent, the indented node resolves to its parent card's position).
+ * When getChildren is provided, also maps card descendants for cursor resolution.
  */
 export function buildNodeIndex(
   columns: ColumnView[],
@@ -264,7 +292,6 @@ export function buildNodeIndex(
   rootId?: string | null,
 ): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
-  // Root fold depth controls how deep within each card to index for navigation
   const rootDepth = foldDepths?.get(rootId ?? "") ?? 1
   for (let colIdx = 0; colIdx < columns.length; colIdx++) {
     const col = columns[colIdx]
@@ -277,7 +304,6 @@ export function buildNodeIndex(
       if (!card) continue
       index.set(card.id, { colIndex: colIdx, cardIndex: cardIdx })
       if (getChildren) {
-        // Per-card override or root depth
         const cardDepth = foldDepths?.get(card.id) ?? rootDepth
         mapDescendants(card.id, colIdx, cardIdx, index, getChildren, foldDepths, cardDepth)
       }
@@ -302,484 +328,5 @@ function mapDescendants(
       const childDepth = foldDepths?.get(child.id) ?? remainingDepth - 1
       mapDescendants(child.id, colIndex, cardIndex, index, getChildren, foldDepths, childDepth)
     }
-  }
-}
-
-/**
- * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
- *
- * All runtime column derivation paths must delegate here:
- * - useColumns() hook (React render path)
- * - buildActionCtx() in board-app.ts (key handler path, with layout cache)
- * - driver.ts getContext/getDriverState (test/AI automation path)
- *
- * Note: buildBoardState/buildBoardStateGenerator in state.ts is a separate
- * initial-load path that produces InitialBoardData (includes ColumnView[]).
- * It uses a simplified CardView construction (no embed resolution, no
- * hasBodyChildren check) for fast startup with progress yielding. The two
- * paths are tested for structural equivalence in board-zoom.slow.spec.ts.
- *
- * Uses extractBody to split root children into leading body content and
- * structural (outline) columns.
- */
-export function deriveColumnsFromRepo(
-  repo: Repo,
-  rootId: string | null,
-  foldDepths: Map<string, number>,
-): ColumnView[] {
-  using span = log.span("derive-columns")
-  // Split root children into leading body content and structural columns.
-  // Only outline nodes become columns; list items/embeds/block nodes before the first outline
-  // are leading body content (displayed as a virtual "Description" column).
-  const allChildren = repo.getChildren(rootId)
-  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
-
-  // Extract WIP limits from column frontmatter
-  const wipLimits = extractWipLimits(columnNodes)
-
-  const columns: ColumnView[] = []
-
-  // Add virtual body column for meaningful leading content
-  // (paragraphs, tasks, embeds that appear before the first section/file/folder)
-  const filteredBody = bodyNodes.filter(
-    (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
-  )
-
-  if (filteredBody.length > 0) {
-    const bodyIds = new Set(filteredBody.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
-    columns.push({
-      node: createVirtualBodyNode(rootId),
-      cardNodes: toCardViews(repo, filteredBody, bodyIds),
-      isVirtual: true,
-    })
-  }
-
-  // Deduplicate column nodes by fs_path (import bugs can create duplicate file entries).
-  // Keep the node with more children; if tied, keep the first one.
-  const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
-
-  // Folder-index merge: when zoomed into a folder, detect its index file
-  // and expand its sections as columns (with embed slots resolving to folder children).
-  const rootNode = rootId ? repo.getNode(rootId) : null
-  const indexFile = rootNode?.fstype === "folder" ? findIndexFile(rootNode, deduped) : null
-
-  if (indexFile) {
-    expandIndexFileColumns(repo, indexFile, deduped, columns, wipLimits, foldDepths)
-  } else {
-    // Convert structural children to columns (with per-column memoization)
-    // Skip detail-only sections (e.g., Attachments, Comments, Activity) — they're detail-pane only.
-    // Columns with km.collapse:: true are included (rendered as narrow collapsed columns).
-    for (const node of deduped) {
-      if (isDetailOnly(node)) continue
-      columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
-    }
-  }
-
-  span.spanData.columns = columns.length
-  return columns
-}
-
-/**
- * Derive columns for the detail view mode.
- *
- * Returns a single virtual column containing:
- * 1. Virtual metadata property nodes (with __meta__ IDs) — navigable property rows
- * 2. Actual tree children — shown as card-like rows below the properties
- *
- * This gives standard j/k navigation through metadata rows first, then children.
- */
-export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDepths: Map<string, number>): ColumnView[] {
-  const rootNode = rootId ? repo.getNode(rootId) : null
-
-  // Compute metadata rows for the root node
-  const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
-  const metaNodes = metaKeys.map((key) => createVirtualMetaNode(rootId, key))
-
-  const allChildren = repo.getChildren(rootId)
-
-  // If no metadata rows and no children, still show an empty column
-  if (metaNodes.length === 0 && allChildren.length === 0) return []
-
-  // All items (meta + children) are virtual/body for the detail column
-  const allNodes = [...metaNodes, ...allChildren]
-  const bodyIds = new Set(allNodes.map((n) => n.id))
-
-  return [
-    {
-      node: createVirtualBodyNode(rootId),
-      cardNodes: toCardViews(repo, allNodes, bodyIds),
-      isVirtual: true,
-    },
-  ]
-}
-
-/**
- * Create a virtual node representing a metadata property row in the detail pane.
- * Uses the DETAIL_META_PREFIX convention: "__meta__Status", "__meta__Due", etc.
- */
-function createVirtualMetaNode(parentId: string | null, key: string): KNode {
-  const now = Date.now()
-  return {
-    id: `${DETAIL_META_PREFIX}${key}`,
-    type: "p",
-    parent_id: parentId,
-    parent_idx: 0,
-    content: key,
-    data: {},
-    created_at: now,
-    updated_at: now,
-    version: "",
-  }
-}
-
-/**
- * Generator version of deriveColumnsFromRepo — yields one column at a time.
- * Used by useColumns for time-sliced incremental loading in production.
- * Per-column memoization cache makes non-zoom mutations fast (most columns hit cache),
- * so the generator typically exhausts in one tick for mutations. Only zoom (cold cache)
- * actually yields across multiple ticks for progressive rendering.
- */
-export function* deriveColumnsIncremental(
-  repo: Repo,
-  rootId: string | null,
-  foldDepths: Map<string, number>,
-): Generator<ColumnView, void, unknown> {
-  using span = log.span("derive-columns-incremental")
-  const allChildren = repo.getChildren(rootId)
-  const { body: bodyNodes, items: columnNodes } = extractBody(allChildren)
-  const wipLimits = extractWipLimits(columnNodes)
-
-  // Body column first (usually fast)
-  const filteredBody = bodyNodes.filter(
-    (n) => !isCollapsedChild(n) && n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0,
-  )
-  if (filteredBody.length > 0) {
-    const bodyIds = new Set(filteredBody.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
-    yield {
-      node: createVirtualBodyNode(rootId),
-      cardNodes: toCardViews(repo, filteredBody, bodyIds),
-      isVirtual: true,
-    }
-  }
-
-  const deduped = deduplicateByFsPath(columnNodes, (id) => repo.getChildren(id).length)
-
-  // Folder-index merge (same logic as deriveColumnsFromRepo)
-  const rootNode = rootId ? repo.getNode(rootId) : null
-  const indexFile = rootNode?.fstype === "folder" ? findIndexFile(rootNode, deduped) : null
-
-  let columnCount = 0
-  if (indexFile) {
-    const expanded: ColumnView[] = []
-    expandIndexFileColumns(repo, indexFile, deduped, expanded, wipLimits, foldDepths)
-    for (const col of expanded) {
-      yield col
-      columnCount++
-    }
-  } else {
-    for (const node of deduped) {
-      if (isDetailOnly(node)) continue
-      yield kNodeToColumnViewCached(repo, node, wipLimits, foldDepths)
-      columnCount++
-    }
-  }
-  span.spanData.columns = (filteredBody.length > 0 ? 1 : 0) + columnCount
-}
-
-// =============================================================================
-// Folder-index file expansion
-// =============================================================================
-
-/**
- * Expand an index file's children as columns for a folder.
- *
- * Index file children control the folder's column layout:
- * - `![[./child]]` embed slots (paragraph OR heading) resolve to the referenced folder child
- * - `## Inline Section` becomes a column directly
- * - Non-slot body content (prose paragraphs) shown in a virtual body column
- * - Unlisted folder children are appended after listed ones
- * - The index file itself is excluded from the column list
- *
- * Note: The writer emits `![[./child]]` as plain lines that parse as paragraph nodes
- * (type: "p"), not heading/mdsection nodes. We use extractSlotTargets on ALL children
- * to handle both paragraph and heading slot references.
- */
-function expandIndexFileColumns(
-  repo: Repo,
-  indexFile: KNode,
-  deduped: KNode[],
-  columns: ColumnView[],
-  wipLimits: Map<string, number>,
-  foldDepths: Map<string, number>,
-): void {
-  const indexChildren = repo.getChildren(indexFile.id)
-  const { body: indexBody, items: _indexSections } = extractBody(indexChildren)
-
-  // Identify which children are pure slot references (paragraph or heading)
-  // by checking ALL children against extractSlotTargets. Build a set of
-  // child IDs that are slots so we can exclude them from body content.
-  // Only mark a child as a slot if ALL its targets resolve to actual folder children —
-  // unresolved paragraph slots must remain visible as body content (not silently disappear).
-  const slotChildIds = new Set<string>()
-  for (const child of indexChildren) {
-    const targets = extractSlotTargets([child])
-    if (targets.length > 0) {
-      const allResolved = targets.every((target) =>
-        deduped.some((fc) => fc !== indexFile && namesAreSimilar(fc.name ?? "", target)),
-      )
-      if (allResolved) {
-        slotChildIds.add(child.id)
-      }
-    }
-  }
-
-  // Filter helper: node has visible content and is not collapsed/resolved-slot
-  const isBodyContent = (n: KNode) =>
-    !slotChildIds.has(n.id) &&
-    !isCollapsedChild(n) &&
-    n.content != null &&
-    n.content.replace(/<[^>]+>/g, "").trim().length > 0
-
-  // Collect body nodes from two sources:
-  // 1. filteredIndexBody: non-slot body from extractBody (before first outline item)
-  // 2. fallbackBody: unresolved non-outline slots that appear AFTER the first outline
-  //    section — extractBody puts these in `items`, but they should be body content.
-  const filteredIndexBody = indexBody.filter(isBodyContent)
-  const fallbackBody: KNode[] = []
-
-  // Track where structural columns start so we can insert body column before them
-  const bodyInsertIdx = columns.length
-
-  // Track which folder children are referenced by embed slots
-  const referencedIds = new Set<string>()
-
-  // Helper: resolve a slot target to a folder child and add as column
-  const resolveSlot = (target: string): boolean => {
-    const child = deduped.find((n) => n !== indexFile && namesAreSimilar(n.name ?? "", target))
-    if (child) {
-      columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
-      referencedIds.add(child.id)
-      return true
-    }
-    return false
-  }
-
-  // Process ALL index children in order, resolving slots from both body and structural children
-  for (const child of indexChildren) {
-    const targets = extractSlotTargets([child])
-    if (targets.length > 0) {
-      // Check if ALL targets resolve before consuming any (resolveSlot has side effects)
-      const allResolved = targets.every((target) =>
-        deduped.some((fc) => fc !== indexFile && namesAreSimilar(fc.name ?? "", target)),
-      )
-      if (allResolved) {
-        // All targets resolve — consume them as columns
-        for (const target of targets) {
-          resolveSlot(target)
-        }
-        continue
-      }
-      // Unresolved slot: classify by node type, not extractBody position.
-      // Outline (heading) slots fall through to become inline sections.
-      // Non-outline (paragraph) slots → body fallback content (unless already in indexBody).
-      if (!KNode.isOutline(child)) {
-        if (!indexBody.includes(child) && isBodyContent(child)) fallbackBody.push(child)
-        continue
-      }
-    }
-    // Outline children (sections or unresolved heading slots) become inline columns
-    if (KNode.isOutline(child)) {
-      if (!isDetailOnly(child)) {
-        columns.push(kNodeToColumnViewCached(repo, child, wipLimits, foldDepths))
-      }
-    }
-    // Non-slot, non-outline children in `items` are non-structural content
-    // (e.g., plain paragraphs between sections) — add to fallback body.
-    // Children in indexBody were already handled by filteredIndexBody above.
-    else if (!indexBody.includes(child) && isBodyContent(child)) {
-      fallbackBody.push(child)
-    }
-  }
-
-  // Create virtual body column from pre-section body + post-section fallback body
-  const allBodyNodes = [...filteredIndexBody, ...fallbackBody]
-  if (allBodyNodes.length > 0) {
-    const bodyIds = new Set(allBodyNodes.filter((n) => !KNode.isEmbed(n)).map((n) => n.id))
-    columns.splice(bodyInsertIdx, 0, {
-      node: createVirtualBodyNode(indexFile.parent_id),
-      cardNodes: toCardViews(repo, allBodyNodes, bodyIds),
-      isVirtual: true,
-    })
-  }
-
-  // Append unreferenced folder children (not the index file, not already placed)
-  for (const node of deduped) {
-    if (node === indexFile || referencedIds.has(node.id)) continue
-    if (isDetailOnly(node)) continue
-    columns.push(kNodeToColumnViewCached(repo, node, wipLimits, foldDepths))
-  }
-}
-
-// =============================================================================
-// Per-column memoization
-// =============================================================================
-
-/**
- * Cache for kNodeToColumnView results to avoid re-deriving unchanged columns.
- * Key: column node ID. The cache is invalidated per-column when:
- * - The column's children array reference changes (childrenCache was busted)
- * - The foldDepths map reference changes (fold state changed)
- * - WIP limits change
- *
- * This avoids the O(columns * cards) cost on every repoVersion bump when
- * only one column's children actually changed.
- */
-interface ColumnViewCacheEntry {
-  childrenRef: KNode[] // Reference identity check — childrenCache returns same array if not busted
-  wipLimitsRef: Map<string, number>
-  view: ColumnView
-}
-
-const columnViewCache = new Map<string, ColumnViewCacheEntry>()
-
-function kNodeToColumnViewCached(
-  repo: Repo,
-  node: KNode,
-  wipLimits: Map<string, number>,
-  foldDepths: Map<string, number>,
-): ColumnView {
-  const childrenRef = repo.getChildren(node.id)
-  const cached = columnViewCache.get(node.id)
-
-  // Cache key: childrenRef + wipLimits only.
-  // foldDepths is NOT used by kNodeToColumnView (param is _foldDepths) —
-  // fold expansion happens at the rendering layer (TreeNode), not here.
-  if (cached && cached.childrenRef === childrenRef && cached.wipLimitsRef === wipLimits) {
-    return cached.view
-  }
-
-  const view = kNodeToColumnView(repo, node, wipLimits, foldDepths)
-  columnViewCache.set(node.id, { childrenRef, wipLimitsRef: wipLimits, view })
-  return view
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/**
- * Deduplicate column nodes that share the same fs_path.
- * Import bugs can create duplicate file entries in the DB.
- * Keeps the node with more children; if tied, keeps the first occurrence.
- */
-export function deduplicateByFsPath(nodes: KNode[], getChildCount: (id: string) => number): KNode[] {
-  const seen = new Map<string, { node: KNode; childCount: number }>()
-  const result: KNode[] = []
-
-  for (const node of nodes) {
-    const path = node.fs_path
-    if (!path) {
-      result.push(node)
-      continue
-    }
-
-    const childCount = getChildCount(node.id)
-    const existing = seen.get(path)
-
-    if (!existing) {
-      seen.set(path, { node, childCount })
-      result.push(node)
-    } else if (childCount > existing.childCount) {
-      // Replace the previous entry with this one (more children)
-      const idx = result.indexOf(existing.node)
-      if (idx >= 0) result[idx] = node
-      seen.set(path, { node, childCount })
-    }
-    // Otherwise skip (existing has more or equal children)
-  }
-
-  return result
-}
-
-/**
- * Extract WIP limits from column nodes' frontmatter.
- */
-function extractWipLimits(nodes: KNode[]): Map<string, number> {
-  const limits = new Map<string, number>()
-
-  for (const node of nodes) {
-    const columnsConfig = (node.data as { columns?: Record<string, { limit?: number }> })?.columns
-    if (!columnsConfig) continue
-
-    for (const [colName, config] of Object.entries(columnsConfig)) {
-      if (typeof config?.limit === "number" && config.limit > 0) {
-        const normalizedName = colName.toLowerCase().replace(/\s+/g, "_")
-        limits.set(normalizedName, config.limit)
-      }
-    }
-  }
-
-  return limits
-}
-
-/**
- * Convert a KNode to ColumnView.
- */
-function kNodeToColumnView(
-  repo: Repo,
-  node: KNode,
-  wipLimits: Map<string, number>,
-  _foldDepths: Map<string, number>,
-): ColumnView {
-  // Use node.rules if available, otherwise parse from content (which may contain
-  // unparsed rules like "km.collapse:: true"), falling back to title.
-  const rules: SectionRules = node.rules ?? parseHeadingRules(node.content || node.title || "").rules
-
-  // Look up WIP limit
-  const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
-  const wipLimit = rules.limit ?? wipLimits.get(normalizedName)
-
-  // Split children into body (paragraphs) and structural (outline) cards
-  // When the column is a folder with an index file, exclude the index file from cards
-  const allCardNodes = repo.getChildren(node.id)
-  const folderIndex = node.fstype === "folder" ? findIndexFile(node, allCardNodes) : null
-  const filteredCardNodes = folderIndex ? allCardNodes.filter((c) => c.id !== folderIndex.id) : allCardNodes
-  const { body: bodyNodes, items: structuralNodes } = extractBody(filteredCardNodes)
-
-  const rawCards: KNode[] = []
-  const bodyIds = new Set<string>()
-
-  for (const child of bodyNodes) {
-    if (isCollapsedChild(child)) continue
-    rawCards.push(child)
-    if (!KNode.isEmbed(child)) bodyIds.add(child.id)
-  }
-  for (const child of structuralNodes) {
-    if (isCollapsedChild(child)) continue
-    rawCards.push(child)
-  }
-
-  return { node, cardNodes: toCardViews(repo, rawCards, bodyIds), wipLimit, rules }
-}
-
-/**
- * Create a virtual node for the body column.
- * This node represents leading non-section content grouped for display.
- */
-function createVirtualBodyNode(parentId: string | null): KNode {
-  const now = Date.now()
-  return {
-    id: `__body__${parentId ?? "root"}`,
-    type: "h",
-    item: {},
-    fstype: "mdsection",
-    parent_id: parentId,
-    parent_idx: 0,
-    title: "Description",
-    content: "",
-    data: {},
-    created_at: now,
-    updated_at: now,
-    version: "",
   }
 }

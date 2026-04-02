@@ -103,6 +103,10 @@ Internal and external linking directly impacts SEO authority and user experience
 - [ ] Check if new terminal emulators have appeared (add to terminfo.dev)
 - [ ] Check if Yoga has released updates (update flexily comparison if so)
 
+### SEO Quick Check
+Run `/marketing check` or follow [seo-check.md](seo-check.md).
+For a full audit, use `/marketing seo <site>` which delegates to 7 specialist SEO agents.
+
 ## After Audit
 
 1. Create beads for any stale content that needs refresh

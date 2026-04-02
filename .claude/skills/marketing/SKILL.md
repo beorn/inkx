@@ -1,6 +1,6 @@
 ---
 description: "Marketing — Content Marketing Coordination"
-argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|plan|enrich|census|legal]
+argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|seo|check|plan|enrich|census|legal]
 ---
 
 # Marketing — Content Marketing Coordination
@@ -26,6 +26,8 @@ Coordinates the entire content marketing effort across silvery.dev, termless.dev
 | `/marketing infra` | Load [workflows/infrastructure.md](workflows/infrastructure.md), set up/maintain platform | Setup |
 | `/marketing newsletter` | Load [workflows/newsletter.md](workflows/newsletter.md), draft monthly digest | Monthly |
 | `/marketing audit` | Load [workflows/audit.md](workflows/audit.md), check content freshness + SEO health | Monthly |
+| `/marketing seo <site>` | Run full SEO audit via /seo-audit agents | Quarterly |
+| `/marketing check` | Quick spot-check: fetch 5 pages/site, verify meta/OG/schema | Monthly |
 | `/marketing legal` | Load [workflows/legal.md](workflows/legal.md), license + privacy + dependency audit | Before launch, quarterly |
 | `/marketing plan` | Review and update the strategy doc | Quarterly |
 
@@ -48,7 +50,7 @@ This section tracks when each workflow was last run. Update after each execution
 | Task | Status | Last Run | Notes |
 |------|--------|----------|-------|
 | robots.txt (all sites) | done | 2026-04-01 | terminfo.dev, silvery.dev, termless.dev, flexily, loggily |
-| JSON-LD structured data | done | 2026-04-01 | WebSite, BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo via @bearly/vitepress-enrich |
+| JSON-LD structured data | improved | 2026-04-02 | WebSite, BreadcrumbList, TechArticle, SoftwareSourceCode, FAQPage, HowTo via @bearly/vitepress-enrich. Added generateDescription(), SoftwareApplication schema, Dataset schema |
 | Meta descriptions (all sites) | fixed | 2026-04-02 | Auto-generated unique descriptions via generateDescription() in @bearly/vitepress-enrich. silvery: 146/146 unique, termless: 48/48, terminfo: 325/328, beorn.codes: adopted vitepress-enrich |
 | Breadcrumb schema | fixed | 2026-04-02 | BreadcrumbList on all sites. Fixed terminfo.dev template variable bug (fbe5352) |
 | Search Console submission | done | 2026-04-01 | All 4 properties: terminfo.dev, silvery.dev, termless.dev, beorn.codes (sitemap index → /flexily, /loggily, /mdspec) |
@@ -59,6 +61,7 @@ This section tracks when each workflow was last run. Update after each execution
 | Plausible analytics (all sites) | not started | — | All 3 sites have Cloudflare beacon.min.js instead |
 | Blog infrastructure (silvery.dev) | not started | — | |
 | Newsletter setup (ecosystem) | not started | — | |
+| vitepress-enrich improvements | done | 2026-04-02 | author object type (Person), datePublished, og:image width/height dimensions |
 | OG image generation | partial | 2026-04-02 | terminfo.dev + termless.dev: SVG→PNG converted. loggily + mdspec: SVG only (social platforms can't render). silvery: still SVG |
 
 ### SEO Audits (2026-04-02)
@@ -120,6 +123,8 @@ Last measured: 2026-03-25
 | **Publish** | After an article passes review | Same day as write completion |
 | **Newsletter** | Accumulated 3-4 published articles | Monthly |
 | **Audit** | Regular maintenance | Monthly |
+| **SEO Check** | After major site changes, or every 3 weeks | Every 3 weeks |
+| **SEO Full Audit** | Strategy review, or when scores need baseline | Quarterly |
 | **Plan** | Strategy review, priority shift, new products | Quarterly |
 
 ## Sites
@@ -208,4 +213,5 @@ docs/data/probes.data.ts ← DERIVED: computed at build time from content/
 | [workflows/census.md](workflows/census.md) | Census probe pipeline |
 | [workflows/content-review.md](workflows/content-review.md) | GPT Pro quality review (~$5-15, 10 dimensions) |
 | [workflows/audit.md](workflows/audit.md) | Content freshness and SEO health check |
+| [workflows/seo-check.md](workflows/seo-check.md) | Lightweight SEO spot-check (meta, OG, schema, links) |
 | [workflows/legal.md](workflows/legal.md) | License, privacy, dependency, content legal audit |
