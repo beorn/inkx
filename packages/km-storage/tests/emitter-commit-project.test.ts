@@ -184,9 +184,7 @@ describe("commit/project split", () => {
     const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
 
     // Simulate the wrapEmitterForReconcile pattern: use commit() for FS-origin events
-    const event = emitter.commit(
-      { type: "node_created", actor: "fs-watch", data: { id: "n3", type: "h" } },
-    )
+    const event = emitter.commit({ type: "node_created", actor: "fs-watch", data: { id: "n3", type: "h" } })
 
     // DB updated
     const meta = db.query("SELECT value FROM meta WHERE key = 'last_event'").get() as { value: string } | null
@@ -218,10 +216,7 @@ describe("commit/project split", () => {
     const emitter = createEmitter({ kmDir, db, fsSync, skipPersist: true })
 
     // Old pattern: emit with skipFsSync should still work
-    emitter.emit(
-      { type: "node_created", actor: "fs-watch", data: { id: "n4", type: "h" } },
-      { skipFsSync: true },
-    )
+    emitter.emit({ type: "node_created", actor: "fs-watch", data: { id: "n4", type: "h" } }, { skipFsSync: true })
 
     expect(fsSyncCalls).toEqual([])
 

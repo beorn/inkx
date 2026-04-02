@@ -86,7 +86,7 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  const descendantIds = getVisibleCardDescendants(ctx, card.id)
+  const descendantIds = getVisibleDescendants(ctx.viewIndex, card.id)
   const navState = extractNavState(ctx)
   const result = applyOutlineNav(navState, dir, descendantIds)
 
@@ -97,29 +97,29 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 }
 
 /**
- * Get flat list of all visible descendant IDs of a card, in DFS order.
+ * Get flat list of all visible descendant IDs of a node, in DFS order.
  *
  * Uses the ViewTree (which drives rendering) so navigation exactly matches what
  * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
  * at construction time.
  */
-function getVisibleCardDescendants(ctx: ActionCtx, cardId: string): string[] {
-  const cardView = ctx.viewIndex.get(cardId)
-  if (!cardView) return [cardId]
+function getVisibleDescendants(viewIndex: Map<string, ViewNode>, rootId: string): string[] {
+  const rootView = viewIndex.get(rootId)
+  if (!rootView) return [rootId]
 
-  const descendants: string[] = []
+  const ids: string[] = []
   // DFS walk — ViewNode.children is already pruned for hidden/collapsed nodes
-  const stack = [cardView]
+  const stack = [rootView]
   while (stack.length > 0) {
     const vn = stack.pop()!
-    descendants.push(vn.id)
+    ids.push(vn.id)
     // Push children in reverse so first child is processed first
     for (let i = vn.children.length - 1; i >= 0; i--) {
       stack.push(vn.children[i]!)
     }
   }
 
-  return descendants
+  return ids
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
@@ -260,7 +260,8 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
   }
 
   // Build flat list of all visible blocks in the current column
-  const blocks = getVisibleColumnBlocks(ctx)
+  const col = ctx.column
+  const blocks = col ? getVisibleDescendants(ctx.viewIndex, col.node.id) : []
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
   const navState = extractNavState(ctx)
@@ -275,35 +276,6 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
 
   runBoardEffects(ctx, result)
   return ok()
-}
-
-/**
- * Get flat list of all visible block IDs in the current column, in document order.
- *
- * Uses the ViewTree (which drives rendering) so navigation exactly matches what
- * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
- * at construction time.
- */
-function getVisibleColumnBlocks(ctx: ActionCtx): string[] {
-  const col = ctx.column
-  if (!col) return []
-
-  const colView = ctx.viewIndex.get(col.node.id)
-  if (!colView) return [col.node.id]
-
-  const blocks: string[] = []
-  // DFS walk — ViewNode.children is already pruned for hidden/collapsed nodes
-  const stack = [colView]
-  while (stack.length > 0) {
-    const vn = stack.pop()!
-    blocks.push(vn.id)
-    // Push children in reverse so first child is processed first
-    for (let i = vn.children.length - 1; i >= 0; i--) {
-      stack.push(vn.children[i]!)
-    }
-  }
-
-  return blocks
 }
 
 /** Default tree navigation (first, last, prev, next). */

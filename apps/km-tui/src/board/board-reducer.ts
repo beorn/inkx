@@ -532,30 +532,68 @@ export function applySelect(state: BoardNavState, nodeId: string): ApplyResult {
 }
 
 /**
- * Spatial block navigation (J/K — next/previous visible block in column).
+ * Unified list navigation — move cursor through an ordered list of IDs.
  *
- * visibleBlocks is pre-computed by the caller: [column header, card1, card1-child1, ...]
- * This function is pure index arithmetic.
+ * All index-based navigation (block nav, outline nav, page jump) reduces to:
+ * given a list of IDs and a current position, compute the next position.
+ *
+ * @param items - Ordered list of navigable IDs (blocks, descendants, cards)
+ * @param direction - "forward" (+1) or "backward" (-1)
+ * @param opts.step - How many items to jump (default: 1)
+ * @param opts.currentIndex - Override index lookup (default: indexOf cursorNodeId)
+ * @param opts.clearScrollAnchor - Also clear columnScrollAnchor (for page jump)
+ */
+export function applyListNav(
+  state: BoardNavState,
+  items: string[],
+  direction: "forward" | "backward",
+  opts?: { step?: number; currentIndex?: number; clearScrollAnchor?: boolean },
+): ApplyResult {
+  if (items.length === 0) return noChange(state)
+
+  const step = opts?.step ?? 1
+  const currentIdx = opts?.currentIndex ?? (state.cursorNodeId ? items.indexOf(state.cursorNodeId) : -1)
+  if (currentIdx < 0) return noChange(state)
+
+  const targetIdx =
+    direction === "forward" ? Math.min(items.length - 1, currentIdx + step) : Math.max(0, currentIdx - step)
+
+  if (targetIdx === currentIdx) return noChange(state)
+
+  const targetId = items[targetIdx]
+  if (!targetId) return noChange(state)
+
+  if (opts?.clearScrollAnchor) {
+    const newState: BoardNavState = {
+      ...state,
+      cursorNodeId: targetId,
+      columnScrollAnchor: null,
+    }
+    return {
+      state: newState,
+      effects: [{ type: "SCROLL_ANCHOR_CLEAR" }, { type: "SELECT", nodeId: targetId }],
+    }
+  }
+
+  return applySelect(state, targetId)
+}
+
+// ---------------------------------------------------------------------------
+// Thin wrappers — preserve call-site readability & the BoardNavOp dispatch
+// ---------------------------------------------------------------------------
+
+/**
+ * Spatial block navigation (J/K — next/previous visible block in column).
+ * Delegates to applyListNav.
  */
 export function applyBlockNav(state: BoardNavState, direction: "up" | "down", visibleBlocks: string[]): ApplyResult {
   if (!state.cursorNodeId) return noChange(state)
-  if (visibleBlocks.length === 0) return noChange(state)
-
-  const currentIdx = visibleBlocks.indexOf(state.cursorNodeId)
-  if (currentIdx < 0) return noChange(state)
-
-  const targetIdx = direction === "down" ? currentIdx + 1 : currentIdx - 1
-  if (targetIdx < 0 || targetIdx >= visibleBlocks.length) return noChange(state)
-
-  const targetId = visibleBlocks[targetIdx]!
-  return applySelect(state, targetId)
+  return applyListNav(state, visibleBlocks, direction === "down" ? "forward" : "backward")
 }
 
 /**
  * Outline mode prev/next sub-item navigation.
- *
- * descendantIds is pre-computed by the caller (visible descendants of the card).
- * Pure index arithmetic.
+ * Delegates to applyListNav.
  */
 export function applyOutlineNav(
   state: BoardNavState,
@@ -563,25 +601,12 @@ export function applyOutlineNav(
   descendantIds: string[],
 ): ApplyResult {
   if (!state.cursorNodeId) return noChange(state)
-
-  const currentIdx = descendantIds.indexOf(state.cursorNodeId)
-  if (currentIdx < 0) return noChange(state)
-
-  const targetIdx = direction === "prev" ? currentIdx - 1 : currentIdx + 1
-  if (targetIdx < 0 || targetIdx >= descendantIds.length) return noChange(state)
-
-  const targetId = descendantIds[targetIdx]
-  if (!targetId) return noChange(state)
-
-  return applySelect(state, targetId)
+  return applyListNav(state, descendantIds, direction === "next" ? "forward" : "backward")
 }
 
 /**
  * Page jump — move cursor by pageSize cards in the given direction.
- *
- * cardIds is the ordered list of card IDs in the column.
- * currentCardIndex is the index of the current card.
- * pageSize is calculated by the caller based on viewport dimensions.
+ * Delegates to applyListNav with step=pageSize and clearScrollAnchor.
  */
 export function applyPageJump(
   state: BoardNavState,
@@ -590,27 +615,11 @@ export function applyPageJump(
   currentCardIndex: number,
   pageSize: number,
 ): ApplyResult {
-  if (cardIds.length === 0) return noChange(state)
-
-  const targetIdx =
-    direction === "up"
-      ? Math.max(0, currentCardIndex - pageSize)
-      : Math.min(cardIds.length - 1, currentCardIndex + pageSize)
-
-  if (targetIdx === currentCardIndex) return noChange(state)
-
-  const targetId = cardIds[targetIdx]
-  if (!targetId) return noChange(state)
-
-  const newState: BoardNavState = {
-    ...state,
-    cursorNodeId: targetId,
-    columnScrollAnchor: null,
-  }
-  return {
-    state: newState,
-    effects: [{ type: "SCROLL_ANCHOR_CLEAR" }, { type: "SELECT", nodeId: targetId }],
-  }
+  return applyListNav(state, cardIds, direction === "down" ? "forward" : "backward", {
+    step: pageSize,
+    currentIndex: currentCardIndex,
+    clearScrollAnchor: true,
+  })
 }
 
 // =============================================================================
