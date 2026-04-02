@@ -157,6 +157,36 @@ export interface ActionCtx {
   getVisibleDescendantIds: (cardNode: KNode, maxDepth: number, foldDepths: Map<string, number>) => string[]
 }
 
+// ===== Delegated keys (pure pass-throughs from store) =====
+
+/** Keys of ActionCtx that are delegated directly from the store with no transformation. */
+export const DELEGATED_ACTION_CTX_KEYS = [
+  "dispatchBoard",
+  "setUI",
+  "setFoldDepths",
+  "getDetailCursorId",
+  "setDetailCursor",
+  "openDetailPane",
+  "closeDetailPane",
+  "toggleDetailPane",
+  "splitFocusedPane",
+  "closeFocusedPane",
+  "focusPaneInDirection",
+  "focusPreviousPane",
+  "cyclePaneFocus",
+  "focusPaneByNumber",
+  "focusPaneById",
+  "resizeFocusedPane",
+  "equalizePanes",
+  "zoomFocusedPane",
+  "closeAllButFocused",
+  "swapPaneInDirection",
+  "activateEmptyPane",
+] as const satisfies readonly (keyof ActionCtx)[]
+
+/** Union type of delegated ActionCtx keys. */
+export type DelegatedActionCtxKeys = (typeof DELEGATED_ACTION_CTX_KEYS)[number]
+
 // ===== Mode helpers =====
 
 /** Get the current editing mode */

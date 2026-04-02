@@ -26,6 +26,7 @@ import { clickToCursorOffset } from "./board/click-to-cursor.ts"
 import { needsRenderFlush } from "./board/board-actions-edit.ts"
 import { clearSelection } from "./keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "./tui-context.ts"
+import { DELEGATED_ACTION_CTX_KEYS } from "./tui-context.ts"
 import type { ColumnView } from "./types.ts"
 import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
@@ -43,6 +44,13 @@ import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts
 import type { PaneUI } from "./ui-reducer.ts"
 
 const perfLog = createLogger("km:perf")
+
+/** Pick a subset of keys from an object, returning a new object with only those keys. */
+function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+  const result = {} as Pick<T, K>
+  for (const key of keys) result[key] = obj[key]
+  return result
+}
 
 // =============================================================================
 // Shared key-name lookup table (Key boolean → display name)
@@ -340,27 +348,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       selectedNode,
       column,
       card,
-      dispatchBoard: (action) => s.dispatchBoard(action),
-      setUI: (partial) => s.setUI(partial),
-      setFoldDepths: (depths) => s.setFoldDepths(depths),
-      getDetailCursorId: () => s.getDetailCursorId(),
-      setDetailCursor: (id) => s.setDetailCursor(id),
-      openDetailPane: () => s.openDetailPane(),
-      closeDetailPane: () => s.closeDetailPane(),
-      toggleDetailPane: () => s.toggleDetailPane(),
-      splitFocusedPane: (direction) => s.splitFocusedPane(direction),
-      closeFocusedPane: () => s.closeFocusedPane(),
-      focusPaneInDirection: (direction) => s.focusPaneInDirection(direction),
-      focusPreviousPane: () => s.focusPreviousPane(),
-      cyclePaneFocus: (direction) => s.cyclePaneFocus(direction),
-      focusPaneByNumber: (number) => s.focusPaneByNumber(number),
-      focusPaneById: (paneId) => s.focusPaneById(paneId),
-      resizeFocusedPane: (delta, axis) => s.resizeFocusedPane(delta, axis),
-      equalizePanes: () => s.equalizePanes(),
-      zoomFocusedPane: () => s.zoomFocusedPane(),
-      closeAllButFocused: () => s.closeAllButFocused(),
-      swapPaneInDirection: (direction) => s.swapPaneInDirection(direction),
-      activateEmptyPane: () => s.activateEmptyPane(),
+      // Delegated store methods (pure pass-throughs)
+      ...pick(s, DELEGATED_ACTION_CTX_KEYS),
       focusedPaneViewType: () => {
         const ws = get().workspace
         const pane = ws.panes.get(ws.focusedPaneId)
