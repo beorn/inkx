@@ -523,6 +523,8 @@ function getNode(id: string) {
 | User input validation failure | Handle gracefully               |
 | External API failure          | Handle gracefully               |
 
+**Invariant violations throw.** Only user-caused errors (bad input, network failures) are logged gracefully. Pre-release policy: fail fast, fail loud. Runtime invariant checks (e.g. `checkInvariants` in board-app) always throw `InvariantViolationError` — there is no log-only mode.
+
 **Why**: Bugs surface at the call site, not later as mysterious failures.
 
 **Guidelines:**

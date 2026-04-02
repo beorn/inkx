@@ -1,11 +1,8 @@
 /**
  * Runtime Invariant Checks
  *
- * Validates board state consistency after every action. Catches corruption
- * early instead of silently degrading.
- *
- * Enable crash-on-violation: KM_STRICT=1
- * In non-strict mode: logs violations but does not crash.
+ * Validates board state consistency after every action. Throws on violation —
+ * invariant failures are programming errors and must surface immediately.
  *
  * These invariants run after every dispatchAction in board-app.ts.
  * They check the RESULTING state (after mutations), not the input state.
@@ -15,9 +12,6 @@ import { createLogger } from "loggily"
 import type { ActionCtx } from "./tui-context.ts"
 
 const log = createLogger("km:invariants")
-
-/** Whether to throw on invariant violations (vs. log-only) */
-const isStrict = !!process.env.KM_STRICT
 
 /** Virtual/synthetic node ID prefixes — these nodes don't exist in the repo by design */
 const VIRTUAL_PREFIXES = ["__meta__", "__body__"]
@@ -43,7 +37,7 @@ export interface InvariantViolation {
  * Called after every action in handleKey/handleMouse.
  * Takes a fresh ActionCtx (rebuilt after mutations).
  *
- * Returns violations found. In strict mode, throws on first violation.
+ * Throws InvariantViolationError if any violation is found.
  */
 export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
   const violations: InvariantViolation[] = []
@@ -195,17 +189,15 @@ export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
     }
   }
 
-  // Report violations
+  // Invariant violations are programming errors — throw immediately
   if (violations.length > 0) {
+    const first = violations[0]!
+    // Log all violations before throwing so the full picture is in debug output
     for (const v of violations) {
       const idStr = v.ids ? ` ${JSON.stringify(v.ids)}` : ""
       log.error?.(`INVARIANT [${v.check}]: ${v.message}${idStr}`)
     }
-
-    if (isStrict) {
-      const first = violations[0]!
-      throw new InvariantViolationError(first.check, first.message, first.ids)
-    }
+    throw new InvariantViolationError(first.check, first.message, first.ids)
   }
 
   return violations
@@ -228,7 +220,8 @@ function isDescendantOf(ctx: ActionCtx, nodeId: string, ancestorId: string): boo
 }
 
 /**
- * Error thrown when an invariant is violated in strict mode (KM_STRICT=1).
+ * Error thrown when an invariant is violated.
+ * Invariant violations are programming errors — they always throw.
  */
 export class InvariantViolationError extends Error {
   readonly check: string

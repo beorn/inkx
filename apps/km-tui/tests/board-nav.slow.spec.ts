@@ -1022,7 +1022,10 @@ describe("Spatial block navigation (J/K)", () => {
       () =>
         item(
           "board",
-          item("Column", item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b"))),
+          item(
+            "Column",
+            item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b")),
+          ),
         ),
       { columns: 80, rows: 24 },
     )

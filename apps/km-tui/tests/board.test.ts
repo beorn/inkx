@@ -123,7 +123,7 @@ describe("Runtime invariants", () => {
     // Verify no violations by navigating with invariants enabled
     board.command("cursor_down")
     board.expect("#1b[data-cursor]").toExist()
-    // If invariants were violated, the press would have failed (in strict mode)
+    // If invariants were violated, the press would have thrown
   })
 
   test("InvariantViolationError has correct properties", () => {
@@ -135,8 +135,8 @@ describe("Runtime invariants", () => {
     expect(err.name).toBe("InvariantViolationError")
   })
 
-  test("invariants detect cursor pointing to deleted node", () => {
-    // Suppress console.error from invariant logging
+  test("invariants throw on cursor pointing to deleted node", () => {
+    // Suppress log.error output that fires before the throw
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const repo = createFakeRepo({
@@ -154,15 +154,14 @@ describe("Runtime invariants", () => {
       isAtCardLevel: false,
     } as any
 
-    const violations = checkInvariants(ctx)
-    expect(violations.length).toBeGreaterThan(0)
-    expect(violations[0]!.check).toBe("cursor-exists")
+    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
+    expect(() => checkInvariants(ctx)).toThrow(/cursor-exists/)
 
     spy.mockRestore()
   })
 
-  test("invariants detect edit targeting deleted node", () => {
-    // Suppress console.error from invariant logging
+  test("invariants throw on edit targeting deleted node", () => {
+    // Suppress log.error output that fires before the throw
     const spy = vi.spyOn(console, "error").mockImplementation(() => {})
 
     const repo = createFakeRepo({
@@ -183,10 +182,8 @@ describe("Runtime invariants", () => {
       isAtCardLevel: false,
     } as any
 
-    const violations = checkInvariants(ctx)
-    const editViolation = violations.find((v: any) => v.check === "edit-node-exists")
-    expect(editViolation).toBeDefined()
-    expect(editViolation!.message).toContain("non-existent")
+    expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
+    expect(() => checkInvariants(ctx)).toThrow(/edit-node-exists/)
 
     spy.mockRestore()
   })

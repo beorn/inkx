@@ -246,11 +246,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       process.exit(1)
     }
     if (error instanceof InvariantViolationError) {
-      // KM_STRICT detected state corruption
+      // Invariant violation = programming error in state management
       process.stderr.write("\n\n[km] State invariant violation detected!\n")
       process.stderr.write(`Check: ${error.check}\n`)
       process.stderr.write(error.message + "\n")
-      process.stderr.write("\nThis indicates a state corruption bug. Run without KM_STRICT=1 to continue.\n")
+      process.stderr.write("\nThis is a bug — please file an issue with the check name and steps to reproduce.\n")
       process.exit(1)
     }
     process.stderr.write(`\n\nTUI crashed with error: ${error.message}\n`)
