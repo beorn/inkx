@@ -502,18 +502,21 @@ function TreeNodeImpl({
   )
 
   // Check if a descendant is being edited or has cursor — expand to show all children.
-  // This handles both: (1) edit mode on deeply nested sub-items, (2) cursor on hidden children.
+  // Uses per-node reactive signals where possible to avoid O(N) global re-renders.
   const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
-  const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId)
-  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
-  const shouldExpand = (
+  const editNodeId = useAppStore<BoardAppStore, string | null | undefined>(
+    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId,
+  )
+  // Cursor expansion: use the existing per-card signal (O(1) re-renders) instead of
+  // subscribing to global cursorNodeId (would cause O(N) re-renders on every cursor move).
+  const cursorInDescendant = useReactive(nodeStore.getOrCreate(node.id).cursorInDescendant)
+  const shouldExpand =
     // Edit: card-level expansion
     (depth === 0 && editingCardNodeId === node.id) ||
     // Edit: sub-item-level expansion (any depth)
     (depth > 0 && editNodeId != null && isAncestorOf(repo, node.id, editNodeId)) ||
-    // Cursor: if cursor is on a descendant below the fold, expand to show it
-    (cursorNodeId != null && cursorNodeId !== node.id && isAncestorOf(repo, node.id, cursorNodeId))
-  )
+    // Cursor: card-level expansion when cursor is on a descendant
+    (depth === 0 && cursorInDescendant)
 
   // Child rendering
   // Apply task status filter (e.g., hide done/dropped) at all tree depths

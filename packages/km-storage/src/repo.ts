@@ -374,12 +374,14 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         const parentId = node?.parent_id ?? null
         dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
         childrenCache.bust(parentId)
-        // Also bust grandparent so ViewNodeColumnCache (keyed on column children ref) invalidates
-        // when a card's child content changes. Without this, the column-level cache hit returns
-        // stale card subtrees because only the card's children ref changed, not the column's.
-        if (parentId) {
-          const parent = dataStore.getNode(parentId)
-          if (parent?.parent_id) childrenCache.bust(parent.parent_id)
+        // Bust ancestor chain so ViewNodeColumnCache invalidates on deep edits.
+        // The cache is keyed on column-level childrenRef — without busting ancestors,
+        // edits to deeply nested nodes (sub-sub-items) would show stale content.
+        let bustId = parentId
+        for (let i = 0; i < 4 && bustId; i++) {
+          const bustNode = dataStore.getNode(bustId)
+          bustId = bustNode?.parent_id ?? null
+          if (bustId) childrenCache.bust(bustId)
         }
         clearNameIndex()
         clearResolveCache()

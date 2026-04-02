@@ -700,7 +700,7 @@ export function Board({ patchedConsole }: BoardProps) {
       if (inlineEditBlock?.nodeId) {
         // Walk up parent chain to find the containing card (handles sub-sub-items at any depth)
         let walkId: string | null = inlineEditBlock.nodeId
-        while (walkId) {
+        for (let walkDepth = 0; walkDepth < 20 && walkId; walkDepth++) {
           const walkNode = repo.getNode(walkId)
           if (!walkNode?.parent_id) break
           const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === walkNode.parent_id))

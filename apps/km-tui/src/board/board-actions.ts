@@ -1831,7 +1831,9 @@ function findAdjacentEditNode(
   nodeId: string,
   direction: "up" | "down",
   col: ColumnView | undefined,
+  depth = 0,
 ): KNode | null {
+  if (depth > 20) return null // defensive guard against cycles
   const node = repo.getNode(nodeId)
   if (!node?.parent_id) return null
 
@@ -1853,7 +1855,7 @@ function findAdjacentEditNode(
   }
 
   // No sibling in that direction — recurse up to parent level
-  return findAdjacentEditNode(repo, node.parent_id, direction, col)
+  return findAdjacentEditNode(repo, node.parent_id, direction, col, depth + 1)
 }
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitAtBoundary = false): ActionResult {
