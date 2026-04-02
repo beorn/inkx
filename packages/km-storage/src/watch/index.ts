@@ -17,6 +17,11 @@ export { FsWriter } from "./fs-writer.ts"
 
 export type { SyncConfig, SyncFromFsResult } from "./sync.ts"
 
+// Bulk sync (standalone FS<->DB sync, usable from TUI and CLI)
+export { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
+
+export type { BulkSyncDeps, SyncProgressCallback, SyncProgress, BlockIdAssigner } from "./bulk-sync.ts"
+
 // Reconcile
 export { reconcileDirectory, applyReconcileOps, applyReconcileOpsAsync, getParentNodeId } from "./reconcile.ts"
 
@@ -41,6 +46,11 @@ export type { PatternMatcher, PatternMatcherOptions } from "../ignore.ts"
 export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 
 export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts"
+
+// Heartbeat (periodic reconciliation)
+export { createHeartbeat, DEFAULT_HEARTBEAT } from "./heartbeat.ts"
+
+export type { HeartbeatConfig, HeartbeatDeps, Heartbeat } from "./heartbeat.ts"
 
 // Reconciliation engine (FS→DB)
 export { createReconciliationEngine } from "./reconciliation-engine.ts"

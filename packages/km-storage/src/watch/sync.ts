@@ -2,8 +2,8 @@
  * Sync Manager
  *
  * Orchestrates bidirectional sync between filesystem and database.
- * Delegates reconciliation (FS→DB) to ReconciliationEngine and
- * projection (DB→FS) to EventHandlers.
+ * Delegates reconciliation (FS→DB) to ReconciliationEngine,
+ * projection (DB→FS) to EventHandlers, and bulk sync to BulkSync.
  */
 
 import { createLogger } from "loggily"
@@ -11,78 +11,28 @@ import { mkdirSync, renameSync } from "fs"
 import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
-import { dirname, join } from "path"
-import { toAbsoluteFsPath } from "../path-utils.ts"
+import { join } from "path"
 import { EventEmitter } from "events"
-import { FileSystemWatcher, scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
+import { FileSystemWatcher } from "./watcher.ts"
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
-import { reconcileDirectory, applyReconcileOps, type ReconcileOp } from "./reconcile.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
 import { WriteTokenMap } from "./write-tokens.ts"
 import { createSyncState, type SyncState as SyncStateStore } from "./sync-state.ts"
-import { getIgnorePatterns, createIgnoreMatcher } from "../ignore.ts"
+import { getIgnorePatterns } from "../ignore.ts"
 import { type Event } from "@km/core"
-import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
+import { createEmitter, type Emitter } from "../emitter.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
-
-/**
- * Wrap an emitter so all emit() calls use commit() (no filesystem projection).
- * Used for FS-origin reconciliation to prevent echo loops by construction:
- * FS change → DB update → commit (no project) → no write back to FS.
- *
- * This is the structural loop break: reconciliation never projects.
- */
-function wrapEmitterForReconcile(emitter: Emitter): Emitter {
-  return {
-    ...emitter,
-    emit(event: Parameters<Emitter["emit"]>[0], options: EmitOptions = {}) {
-      // Use commit() directly — structurally prevents echo loops
-      // (skipFsSync is still supported for backwards compat but redundant here)
-      return emitter.commit(event, options)
-    },
-  }
-}
-
-/** Progress info for sync operations */
-interface SyncProgress {
-  phase: string
-  current: number
-  total: number
-}
-
-/** Callback for sync progress reporting */
-export type SyncProgressCallback = (info: SyncProgress) => void
-import {
-  getAllNodes,
-  getNode,
-  getSubtree,
-  nodesToMarkdown,
-  evaluateAllRules,
-  createRuleContext,
-  type StepYield,
-} from "../index.ts"
-import { findFileNode } from "./watch-utils.ts"
+import { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
+import type { BulkSyncDeps, SyncProgressCallback, SyncFromFsResult } from "./bulk-sync.ts"
+export type { SyncProgressCallback, SyncFromFsResult } from "./bulk-sync.ts"
+import type { StepYield } from "../index.ts"
 import { createHeartbeat, DEFAULT_HEARTBEAT, type Heartbeat, type HeartbeatConfig } from "./heartbeat.ts"
 
-/** Result from syncFromFs */
-export interface SyncFromFsResult {
-  processed: number
-  directories: number
-  duration: number
-}
-
-export interface HeartbeatConfig {
-  /** Enable periodic reconciliation to catch silently dropped events (default: true) */
-  enabled: boolean
-  /** Interval between heartbeat checks in ms (default: 60000 = 1 min) */
-  intervalMs: number
-  /** Only run heartbeat if idle for this long in ms (default: 30000 = 30s) */
-  idleThresholdMs: number
-}
+export type { HeartbeatConfig } from "./heartbeat.ts"
 
 export interface SyncConfig {
   db: Database
@@ -108,12 +58,6 @@ export interface SyncConfig {
   clearInFlightDelayMs?: number
 }
 
-const DEFAULT_HEARTBEAT: HeartbeatConfig = {
-  enabled: true,
-  intervalMs: 60000, // 1 minute
-  idleThresholdMs: 30000, // 30 seconds
-}
-
 const DEFAULT_CONFIG: Partial<SyncConfig> = {
   debounceFs: 5000,
   debounceApply: 3000,
@@ -121,7 +65,8 @@ const DEFAULT_CONFIG: Partial<SyncConfig> = {
   useWorker: true,
 }
 
-export type SyncState = "idle" | "fs_debouncing" | "db_debouncing" | "reconciling" | "applying" | "emitting" | "writing"
+export type { SyncState } from "./heartbeat.ts"
+import type { SyncState } from "./heartbeat.ts"
 
 export class SyncManager extends EventEmitter {
   private db: Database
@@ -147,10 +92,7 @@ export class SyncManager extends EventEmitter {
   private syncState: SyncStateStore
 
   // Heartbeat reconciliation
-  private heartbeatConfig: HeartbeatConfig
-  private heartbeatTimer: ReturnType<typeof setInterval> | undefined
-  private lastActivityTime: number = Date.now()
-  private heartbeatDrift: number = 0
+  private heartbeat: Heartbeat
 
   constructor(config: SyncConfig) {
     super()
@@ -159,12 +101,6 @@ export class SyncManager extends EventEmitter {
     this.kmDir = join(this.config.repoPath, ".km")
     this.emitter = config.emitter ?? createEmitter({ kmDir: this.kmDir, db: this.db })
     this.syncState = createSyncState(this.db)
-
-    // Initialize heartbeat config
-    this.heartbeatConfig = {
-      ...DEFAULT_HEARTBEAT,
-      ...config.heartbeat,
-    }
 
     // Use injected watcher if provided (for testing with ChaosWatcher)
     // Otherwise use worker-based watcher by default (non-blocking)
@@ -206,6 +142,26 @@ export class SyncManager extends EventEmitter {
       writeQueue: this.writeQueue,
       reconcileEmitter,
     })
+
+    // Create heartbeat
+    this.heartbeat = createHeartbeat(
+      { ...DEFAULT_HEARTBEAT, ...config.heartbeat },
+      {
+        engine: this.engine,
+        syncState: this.syncState,
+        writeQueue: this.writeQueue,
+        db: this.db,
+        repoPath: this.config.repoPath,
+        ignorePatterns: () => this.ignorePatterns,
+        getParsePool: () => this.getParsePool(),
+        getState: () => this.state,
+        setState: (s) => this.setState(s),
+        isStopped: () => this.stopped,
+        onError: (error) => this.emit("error", error),
+        onDrift: (info) => this.emit("heartbeat:drift", info),
+        onComplete: (info) => this.emit("heartbeat:complete", info),
+      },
+    )
 
     // Create async FsWriteTarget that queues writes to WriteQueue
     const fsTarget: FsWriteTarget = {
@@ -281,7 +237,7 @@ export class SyncManager extends EventEmitter {
     log.debug?.(`starting sync manager for ${this.config.repoPath}`)
     this.ignorePatterns = getIgnorePatterns(this.config.repoPath)
     this.watcher.start(this.config.repoPath)
-    this.startHeartbeat()
+    this.heartbeat.start()
     this.emit("started")
   }
 
@@ -293,7 +249,7 @@ export class SyncManager extends EventEmitter {
   async stop(): Promise<void> {
     log.debug?.("stopping sync manager")
     this.stopped = true
-    this.stopHeartbeat()
+    this.heartbeat.stop()
     await this.watcher.stop()
     if (this.inFlightSyncs.size > 0) {
       log.debug?.(`waiting for ${this.inFlightSyncs.size} in-flight syncs`)
@@ -316,143 +272,11 @@ export class SyncManager extends EventEmitter {
 
   // ─── Heartbeat ──────────────────────────────────────────────────────────
 
-  private startHeartbeat(): void {
-    if (!this.heartbeatConfig.enabled) {
-      log.debug?.("heartbeat disabled")
-      return
-    }
-    if (this.heartbeatTimer) return
-
-    log.debug?.(
-      `starting heartbeat: interval=${this.heartbeatConfig.intervalMs}ms, idleThreshold=${this.heartbeatConfig.idleThresholdMs}ms`,
-    )
-
-    this.heartbeatTimer = setInterval(() => {
-      void this.runHeartbeat()
-    }, this.heartbeatConfig.intervalMs)
-  }
-
-  private stopHeartbeat(): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer)
-      this.heartbeatTimer = undefined
-      log.debug?.("heartbeat stopped")
-    }
-  }
-
-  private async runHeartbeat(): Promise<void> {
-    if (this.stopped) return
-
-    const now = Date.now()
-    const idleTime = now - this.lastActivityTime
-
-    if (idleTime < this.heartbeatConfig.idleThresholdMs) {
-      log.debug?.(`heartbeat: skipping, idle=${idleTime}ms < threshold=${this.heartbeatConfig.idleThresholdMs}ms`)
-      return
-    }
-
-    if (this.state !== "idle") {
-      log.debug?.(`heartbeat: skipping, state=${this.state}`)
-      return
-    }
-
-    if (this.writeQueue.getPendingCount() > 0) {
-      log.debug?.(`heartbeat: skipping, pending writes=${this.writeQueue.getPendingCount()}`)
-      return
-    }
-
-    log.debug?.("heartbeat: running reconciliation")
-    const start = Date.now()
-
-    try {
-      this.setState("reconciling")
-
-      const ops = await this.engine.reconcileAsync(this.config.repoPath, this.ignorePatterns)
-
-      if (ops.length > 0) {
-        log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)
-        this.heartbeatDrift += ops.length
-
-        this.setState("emitting")
-        await this.engine.applyOpsAsync(ops, await this.getParsePool())
-
-        this.emit("heartbeat:drift", {
-          opsCount: ops.length,
-          totalDrift: this.heartbeatDrift,
-        })
-      }
-
-      // Re-project dirty paths (failed writes recovered by heartbeat)
-      this.reprojectDirtyPaths()
-
-      log.debug?.(`heartbeat: completed in ${Date.now() - start}ms, ops=${ops.length}`)
-      this.emit("heartbeat:complete", {
-        duration: Date.now() - start,
-        opsCount: ops.length,
-      })
-    } catch (error) {
-      log.debug?.(`heartbeat: error ${String(error)}`)
-      this.emit("error", error)
-    } finally {
-      this.setState("idle")
-    }
-  }
-
-  /**
-   * Re-project dirty paths from DB to FS.
-   * Called during heartbeat to recover from failed writes.
-   */
-  private reprojectDirtyPaths(): void {
-    const dirtyPaths = this.syncState.getDirtyPaths()
-    if (dirtyPaths.length === 0) return
-
-    log.debug?.(`heartbeat: re-projecting ${dirtyPaths.length} dirty paths`)
-    for (const fsPath of dirtyPaths) {
-      try {
-        const fileNode = getAllNodes(this.db).find((n) => n.fs_path === fsPath)
-        if (!fileNode) {
-          // Node no longer exists — clear the dirty flag
-          this.syncState.clearDirty(fsPath)
-          continue
-        }
-        const absPath = toAbsoluteFsPath(this.config.repoPath, fsPath)
-        const subtree = getSubtree(this.db, fileNode.id)
-        const content = nodesToMarkdown(subtree, getAllNodes(this.db))
-        this.writeQueue.queue({
-          path: absPath,
-          content,
-          sourceEventId: "heartbeat-reproject",
-        })
-        this.syncState.clearDirty(fsPath)
-      } catch (error) {
-        log.debug?.(`heartbeat: failed to re-project ${fsPath}: ${String(error)}`)
-      }
-    }
-  }
-
   /**
    * Force a heartbeat reconciliation now (for testing/debugging).
    */
   forceHeartbeat(): { opsCount: number; duration: number } {
-    const start = Date.now()
-    this.setState("reconciling")
-
-    try {
-      const ops = this.engine.reconcile(this.config.repoPath, this.ignorePatterns)
-
-      if (ops.length > 0) {
-        this.setState("emitting")
-        this.engine.applyOps(ops)
-        this.heartbeatDrift += ops.length
-      }
-
-      // Re-project dirty paths
-      this.reprojectDirtyPaths()
-
-      return { opsCount: ops.length, duration: Date.now() - start }
-    } finally {
-      this.setState("idle")
-    }
+    return this.heartbeat.force()
   }
 
   // ─── State & Diagnostics ────────────────────────────────────────────────
@@ -463,12 +287,7 @@ export class SyncManager extends EventEmitter {
     lastActivityTime: number
     idleSinceMs: number
   } {
-    return {
-      enabled: this.heartbeatConfig.enabled,
-      totalDrift: this.heartbeatDrift,
-      lastActivityTime: this.lastActivityTime,
-      idleSinceMs: Date.now() - this.lastActivityTime,
-    }
+    return this.heartbeat.diagnostics()
   }
 
   getState(): SyncState {
@@ -505,7 +324,7 @@ export class SyncManager extends EventEmitter {
     if (this.stopped) return
 
     using span = log.span("fs-sync", { paths: data.paths.length, dirs: data.directories.length })
-    this.lastActivityTime = Date.now()
+    this.heartbeat.touchActivity()
     this.setState("reconciling")
 
     for (const dir of data.directories) {
@@ -528,7 +347,7 @@ export class SyncManager extends EventEmitter {
       }
     }
     if (!this.stopped) {
-      this.lastActivityTime = Date.now()
+      this.heartbeat.touchActivity()
       this.setState("idle")
     }
   }
@@ -547,165 +366,29 @@ export class SyncManager extends EventEmitter {
     void this.handlers.applyEventToFs(event)
   }
 
-  // ─── Full Sync Operations ──────────────────────────────────────────────
+  // ─── Full Sync Operations (delegated to BulkSync) ─────────────────────
+
+  /** Build BulkSyncDeps from SyncManager internals */
+  private getBulkSyncDeps(): BulkSyncDeps {
+    return {
+      db: this.db,
+      repoPath: this.config.repoPath,
+      writeQueue: this.writeQueue,
+      emitter: this.emitter,
+      createBlockIdAssigner: (eventId: string) => this.handlers.createBlockIdAssigner(eventId),
+    }
+  }
 
   async syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult> {
-    const gen = this.syncFromFsWithProgress()
-    let result = await gen.next()
-    let currentPhase = "Syncing"
-    while (!result.done) {
-      const value = result.value
-      if (typeof value === "string") {
-        currentPhase = value
-        onProgress?.({ phase: value, current: 0, total: 0 })
-      } else if ("current" in value || "total" in value) {
-        onProgress?.({
-          phase: currentPhase,
-          current: value.current ?? 0,
-          total: value.total ?? 0,
-        })
-      }
-      result = await gen.next()
-    }
-    return result.value
+    return BulkSync.fromFs(this.getBulkSyncDeps(), onProgress)
   }
 
   async *syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult> {
-    log.debug?.(`syncFromFs: scanning ${this.config.repoPath}`)
-    const start = Date.now()
-
-    const ignoreMatcher = createIgnoreMatcher(this.config.repoPath)
-
-    yield { declare: ["Scanning", "Reconciling", "Rules"] }
-
-    // Phase 1: Scanning
-    yield "Scanning"
-
-    const entries: ScanEntry[] = []
-    const dirToFiles = new Map<string, ScanEntry[]>()
-    let scanCount = 0
-
-    for (const entry of scanDirectoryRecursiveGen(
-      this.config.repoPath,
-      (path) => path.endsWith(".md"),
-      ignoreMatcher,
-    )) {
-      entries.push(entry)
-      const dir = dirname(entry.path)
-      const files = dirToFiles.get(dir) ?? []
-      files.push(entry)
-      dirToFiles.set(dir, files)
-
-      scanCount++
-      if (scanCount % 25 === 0) {
-        yield { current: scanCount, total: 0 }
-      }
-    }
-
-    const totalFiles = entries.length
-    log.debug?.(`syncFromFs: found ${totalFiles} files`)
-    yield { current: totalFiles, total: totalFiles }
-
-    // Phase 2: Reconciling
-    yield "Reconciling"
-
-    const allOps: ReconcileOp[] = []
-    for (const dir of dirToFiles.keys()) {
-      const ops = reconcileDirectory(this.db, dir, this.config.repoPath, ignoreMatcher)
-      allOps.push(...ops)
-    }
-
-    const BATCH_SIZE = 25
-    const totalOps = allOps.length || 1
-    let opsProcessed = 0
-
-    this.db.run("BEGIN IMMEDIATE")
-    try {
-      for (let i = 0; i < allOps.length; i += BATCH_SIZE) {
-        const batch = allOps.slice(i, i + BATCH_SIZE)
-        applyReconcileOps(this.db, batch, this.config.repoPath, wrapEmitterForReconcile(this.emitter))
-        opsProcessed += batch.length
-        yield { current: opsProcessed, total: totalOps }
-      }
-      this.db.run("COMMIT")
-    } catch (error) {
-      this.db.run("ROLLBACK")
-      throw error
-    }
-
-    if (allOps.length === 0) {
-      yield { current: 1, total: 1 }
-    }
-
-    // Phase 3: Rules
-    yield "Rules"
-    const ruleCtx = createRuleContext()
-    for (const progress of evaluateAllRules(this.db, ruleCtx)) {
-      yield { current: progress.current, total: progress.total }
-    }
-
-    const pendingFiles = Array.from(ruleCtx.pendingWriteBack)
-    if (pendingFiles.length > 0) {
-      log.debug?.(`syncFromFs: writing back ${pendingFiles.length} files after rule evaluation`)
-      for (const filePath of pendingFiles) {
-        if (!filePath.endsWith(".md")) {
-          log.debug?.(`syncFromFs: SKIPPING non-.md file in write-back filePath=${filePath}`)
-          continue
-        }
-
-        const fileNode = getAllNodes(this.db).find((n) => n.fs_path === filePath)
-        if (fileNode) {
-          const blockIds = this.handlers.createBlockIdAssigner("rule-evaluation")
-          const absPath = toAbsoluteFsPath(this.config.repoPath, filePath)
-          const subtree = getSubtree(this.db, fileNode.id)
-          const content = nodesToMarkdown(subtree, getAllNodes(this.db), blockIds.assign)
-          this.writeQueue.queue({
-            path: absPath,
-            content,
-            sourceEventId: "rule-evaluation",
-          })
-          blockIds.rewriteSourceFiles(fileNode.id)
-        }
-      }
-      await this.writeQueue.forceFlush()
-    }
-
-    const duration = Date.now() - start
-    const dirCount = dirToFiles.size
-    log.debug?.(`syncFromFs: processed ${opsProcessed} ops in ${dirCount} dirs in ${duration}ms`)
-    return { processed: opsProcessed, directories: dirCount, duration }
+    yield* BulkSync.fromFsWithProgress(this.getBulkSyncDeps())
   }
 
   async syncToFs(): Promise<{ written: number }> {
-    log.debug?.("syncToFs: starting")
-    const start = Date.now()
-
-    const nodes = getAllNodes(this.db)
-    const fileNodes = nodes.filter(
-      (n) => n.type === "h" && n.item && n.fstype === "mdfile" && n.fs_path?.endsWith(".md"),
-    )
-
-    log.debug?.(`syncToFs: writing ${fileNodes.length} files`)
-
-    for (const fileNode of fileNodes) {
-      if (!fileNode.fs_path) continue
-      const blockIds = this.handlers.createBlockIdAssigner("sync-to-fs")
-      const absPath = toAbsoluteFsPath(this.config.repoPath, fileNode.fs_path)
-      const subtree = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtree, nodes, blockIds.assign)
-
-      this.writeQueue.queue({
-        path: absPath,
-        content,
-        sourceEventId: "sync-to-fs",
-      })
-      blockIds.rewriteSourceFiles(fileNode.id)
-    }
-
-    await this.writeQueue.forceFlush()
-
-    log.debug?.(`syncToFs: wrote ${fileNodes.length} files in ${Date.now() - start}ms`)
-    return { written: fileNodes.length }
+    return BulkSync.toFs(this.getBulkSyncDeps())
   }
 
   // ─── Status ─────────────────────────────────────────────────────────────
