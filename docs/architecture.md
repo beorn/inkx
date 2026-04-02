@@ -98,9 +98,9 @@ interface ColumnView { node: KNode; cardNodes: CardView[]; rules?: SectionRules;
 interface CardView extends KNode { resolvedNode?: KNode; isBody: boolean; hasBodyChildren: boolean }
 ```
 
-### ViewNode — Explicit Visual Tree (migration in progress)
+### ViewNode — Explicit Visual Tree
 
-A recursive tree structure replacing the flat ColumnView/CardView derivation. Defined in `@km/board` ([packages/km-board/src/view-tree.ts](../packages/km-board/src/view-tree.ts)). Each node carries its visual role, parent pointer, and resolved embed data.
+The authoritative visual tree. Every navigation, cursor classification, and column derivation goes through ViewNode. Defined in `@km/board` ([packages/km-board/src/view-tree.ts](../packages/km-board/src/view-tree.ts)). Each node carries its visual role, parent pointer, and resolved embed data. Hidden nodes are filtered at tree construction time.
 
 ```typescript
 type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
@@ -112,9 +112,7 @@ interface ViewNode {
 }
 ```
 
-`buildViewTree(repo, rootId, foldDepths)` builds the tree from Repo data. `buildViewIndex(tree)` provides O(1) lookup. `deriveCursorPath(index, nodeId)` walks parent pointers to produce a visual path from root to cursor.
-
-**Migration status**: ViewNode is computed in parallel with legacy ColumnView derivation. An equivalence check logs warnings when the two disagree. Once equivalence is proven, ViewNode replaces the legacy path. ActionCtx already exposes `viewTree` and `viewIndex`.
+`buildViewTree(repo, rootId, foldDepths, cache?, hiddenNodeIds?)` builds the tree with per-column caching. `buildViewIndex(tree)` provides O(1) lookup. `classifyCursorFromViewIndex(index, nodeId)` derives cursor card/column/selection level. `viewNodeToColumnViews(tree)` produces ColumnView[] for React rendering.
 
 ## Five Layers
 
@@ -161,8 +159,8 @@ file.md on disk
   | repo-loader.ts, pipeline.ts
 Repo.getChildren(rootId) -> KNode[]
   | cached, O(1) per call
-useColumns hook: extractBody -> split body/columns -> toCardViews -> ColumnView[]
-  | apps/km-tui/src/hooks/use-columns.ts
+buildViewTree -> viewNodeToColumnViews -> ColumnView[]
+  | @km/board (ViewNode tree), apps/km-tui/src/hooks/use-columns.ts (React hook)
 React render: Board -> CardColumn -> TreeNode -> silvery Box/Text
   | silvery pipeline
 ANSI output: incremental buffer diff -> terminal
@@ -186,14 +184,12 @@ useSyncExternalStore triggers -> useColumns re-derives -> re-render
 ```
 User presses j/k/h/l
   | binding resolves to cursorMove command
-View navigation computes target nodeId
-  | view-navigation.ts: classifies cursor (board/column/card/subitem)
-  | queries Repo for siblings, parent chain, body detection
-Dispatch SELECT action with target nodeId
+ViewNode navigation computes target nodeId
+  | view-navigation.ts: traverses ViewNode tree (parent pointers, sibling arrays)
+Dispatch SELECT action with target nodeId + cached viewIndex
   | board reducer updates cursorNodeId
-CursorStore derives cursorCardNodeId + cursorColumnNodeId
-  | legacy: parent_id walk from cursorNodeId to rootId
-  | new: deriveCursorPath via ViewNode tree (parallel, with equivalence check)
+classifyCursorFromViewIndex derives cursorCardNodeId + cursorColumnNodeId
+  | O(1) ViewNode lookup + parent pointer walk
 Components re-render via useSyncExternalStore (only 2 cards: old + new cursor)
 ```
 
@@ -236,9 +232,9 @@ Keypress -> CommandAction -> board-actions.ts (2600 lines) -> handler -> Repo mu
 
 Action handlers receive an `ActionCtx` — a large context object re-derived on each keypress with columns, cursor indices, node references, ViewNode tree, and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
 
-### Active migration: ViewNode tree
+### ViewNode as Single Authority
 
-The ViewNode tree (in ActionCtx as `viewTree` and `viewIndex`) provides a single authoritative derivation of visual roles, replacing scattered ad-hoc computations. Currently computed in parallel with legacy ColumnView for equivalence validation. Once proven, it replaces the legacy path and enables cursor-path-based navigation.
+The ViewNode tree (in ActionCtx as `viewTree` and `viewIndex`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Column derivation (`useColumns`) delegates to `buildViewTree + viewNodeToColumnViews`. Hidden nodes are filtered at tree construction time. Cursor classification uses `classifyCursorFromViewIndex` (O(1) lookup + parent walk). Navigation traverses ViewNode parent/children pointers directly.
 
 ### Target: TEA State Machines + Plugin Slices
 
@@ -256,7 +252,7 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 |---------|-------------|-------------|
 | `Editor` | board-app-store + ActionCtx | `Board` — single state machine |
 | `Element` / `Text` | KNode (item/block) | KNode (unchanged) |
-| `Path` | cursorNodeId (bare ID) | `cursorPath: string[]` via ViewNode |
+| `Path` | cursorNodeId + classifyCursorFromViewIndex | `cursorPath: string[]` via ViewNode |
 | `Operation` | BoardAction + CommandAction | `BoardOp` — unified discriminated union |
 | `Transform` | board-actions.ts (2600 lines) | Per-concern handlers, composed via pipeline |
 | `Plugin` | (hardcoded throughout) | Middleware: `(state, op, next) -> [state, effects]` |

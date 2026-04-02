@@ -64,7 +64,7 @@ Every interactive subsystem mapped to its current state management approach:
 | **Text editing** | `board-actions-edit.ts`, `useEditContext` | Ref-based, imperative | `PlainText.apply()` dispatch (Phase 1) |
 | **Search** | `SearchDialog.tsx`, `Omnibox.tsx` | Imperative handlers, local state | `Search.apply()` (Phase 2) |
 | **Selection** | `board-actions-selection.ts` | Implicit in board state | Part of `Board.apply()` (Phase 2) |
-| **Undo** | `history-plugin.ts`, `board-app-store.ts` | `withHistory` implemented + tested, not yet wired in | `withHistory` integrated into app (Phase 2) |
+| **Undo** | `undo-stack.ts`, `undoable-repo.ts` | Imperative UndoStack + UndoableRepo (active system) | TEA undo middleware (Phase 2) |
 | **Navigation history** | `board-app-store.ts` | Data-only back/forward stack | Part of `Board.apply()` (Phase 2) |
 | **Command system** | `command-bridge.ts`, `board-app.ts` | Key → command → operation (already data-driven) | Unchanged (routes to TEA machines) |
 

@@ -1,6 +1,8 @@
 # Architecture Review Findings
 
-Three-pass architectural review of the km codebase. Evidence-based with grep counts and file paths. Distinguishes between what ViewNode migration addresses and what remains open.
+**Historical snapshot (2026-04-02).** All five simplification opportunities have been addressed — see km-all.simplification epic (closed). This document preserves the pre-refactor analysis for reference.
+
+Three-pass architectural review of the km codebase. Evidence-based with grep counts and file paths from before the ViewNode unification.
 
 ## Pass 1: Inventory
 
