@@ -166,8 +166,26 @@ export class EventHandlers {
   }
 
   /**
-   * Handle node updated — regenerate the containing file.
-   * Reconciles external changes first to avoid data loss.
+   * save(node) — the core domain verb for DB→FS sync.
+   *
+   * Finds the containing file, serializes its subtree to markdown,
+   * writes to disk, and cascades block ID rewrites to other files.
+   * This is the single primitive that all event handlers use.
+   */
+  save(node: KNode): void {
+    const fileNode = findFileNode(this.db, node)
+    if (!fileNode?.fs_path) return
+
+    const blockIds = this.createBlockIdAssigner()
+    const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
+    const subtreeNodes = getSubtree(this.db, fileNode.id)
+    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
+    this.fsTarget.writeFile(absPath, content, this.currentEventId)
+    blockIds.rewriteSourceFiles(fileNode.id)
+  }
+
+  /**
+   * Handle node updated — save the containing file.
    */
   private handleNodeUpdated(event: Event): void {
     if (!event.target) return
@@ -188,26 +206,13 @@ export class EventHandlers {
       return
     }
 
-    const fileNode = findFileNode(this.db, node)
-    if (!fileNode?.fs_path) return
-
     // File rename: content change on the file node itself → rename .md file
-    if (node.id === fileNode.id && changes.content && fileNode.fs_path.endsWith(".md")) {
+    const fileNode = findFileNode(this.db, node)
+    if (node.id === fileNode?.id && changes.content && fileNode.fs_path?.endsWith(".md")) {
       this.handleFileRename(fileNode, changes.content, event.id)
     }
 
-    const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-    // NOTE: reconcileIfChanged removed here. For user-origin events, the DB
-    // is the authority. Reconciling from a stale file (written by a previous
-    // event in the same batch) causes data loss — e.g., name set by inline
-    // edit gets overwritten by the empty heading from the prior write.
-    // External edits are handled by the watcher's periodic reconciliation.
-
-    const blockIds = this.createBlockIdAssigner()
-    const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-    this.fsTarget.writeFile(absPath, content, this.currentEventId)
-    blockIds.rewriteSourceFiles(fileNode.id)
+    this.save(node)
   }
 
   /**
@@ -223,17 +228,9 @@ export class EventHandlers {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
       this.fsTarget.writeFile(absPath, "", this.currentEventId)
     } else if (data.parent_id && data.parent_id !== ".") {
-      // Non-file node (task, section, etc.) created under a file → regenerate
+      // Non-file node (task, section, etc.) created under a file → save
       const parent = getNode(this.db, data.parent_id)
-      if (!parent) return
-      const fileNode = findFileNode(this.db, parent)
-      if (!fileNode?.fs_path) return
-      const blockIds = this.createBlockIdAssigner()
-      const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-      const subtreeNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-      this.fsTarget.writeFile(absPath, content, this.currentEventId)
-      blockIds.rewriteSourceFiles(fileNode.id)
+      if (parent) this.save(parent)
     }
   }
 
@@ -273,18 +270,9 @@ export class EventHandlers {
         }
       }
     } else if (data?.parent_id) {
-      // Non-file node (section, task, paragraph): regenerate the parent file
-      // to reflect the deletion. Reconcile first to avoid overwriting external edits.
+      // Non-file node (section, task, paragraph): save the parent file
       const parent = getNode(this.db, data.parent_id)
-      if (!parent) return
-      const fileNode = findFileNode(this.db, parent)
-      if (!fileNode?.fs_path) return
-      const blockIds = this.createBlockIdAssigner()
-      const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-      const subtreeNodes = getSubtree(this.db, fileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-      this.fsTarget.writeFile(absPath, content, this.currentEventId)
-      blockIds.rewriteSourceFiles(fileNode.id)
+      if (parent) this.save(parent)
     }
   }
 
@@ -301,32 +289,20 @@ export class EventHandlers {
     const node = getNode(this.db, event.target)
     if (!node) return
 
-    // Regenerate the DESTINATION file (where the node now lives)
-    const destFileNode = findFileNode(this.db, node)
-    if (destFileNode?.fs_path) {
-      const blockIds = this.createBlockIdAssigner()
-      const absPath = toAbsoluteFsPath(this.repoPath, destFileNode.fs_path)
-      const subtreeNodes = getSubtree(this.db, destFileNode.id)
-      const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-      this.fsTarget.writeFile(absPath, content, this.currentEventId)
-      blockIds.rewriteSourceFiles(destFileNode.id)
-    }
+    // Save the DESTINATION file (where the node now lives)
+    this.save(node)
 
-    // Regenerate the SOURCE file (where the node used to live) to remove stale content
+    // Save the SOURCE file (where the node used to live) to remove stale content
     const data = event.data as { old_parent_id?: string | null }
     const oldParentId = data?.old_parent_id
     if (oldParentId) {
       const oldParent = getNode(this.db, oldParentId)
       if (oldParent) {
         const sourceFileNode = findFileNode(this.db, oldParent)
-        // Only regenerate if source differs from destination (cross-file move)
+        const destFileNode = findFileNode(this.db, node)
+        // Only save if source differs from destination (cross-file move)
         if (sourceFileNode?.fs_path && sourceFileNode.id !== destFileNode?.id) {
-          const blockIds = this.createBlockIdAssigner()
-          const absPath = toAbsoluteFsPath(this.repoPath, sourceFileNode.fs_path)
-          const subtreeNodes = getSubtree(this.db, sourceFileNode.id)
-          const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-          this.fsTarget.writeFile(absPath, content, this.currentEventId)
-          blockIds.rewriteSourceFiles(sourceFileNode.id)
+          this.save(oldParent)
         }
       }
     }
@@ -382,19 +358,8 @@ export class EventHandlers {
    */
   private handleTaskEvent(event: Event): void {
     if (!event.target) return
-
     const node = getNode(this.db, event.target)
-    if (!node) return
-
-    const fileNode = findFileNode(this.db, node)
-    if (!fileNode?.fs_path) return
-
-    const blockIds = this.createBlockIdAssigner()
-    const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
-    const subtreeNodes = getSubtree(this.db, fileNode.id)
-    const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-    this.fsTarget.writeFile(absPath, content, this.currentEventId)
-    blockIds.rewriteSourceFiles(fileNode.id)
+    if (node) this.save(node)
   }
 
   /**
