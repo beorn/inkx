@@ -836,3 +836,138 @@ describe("flushGeneration cleanup", () => {
     expect(queue.getPendingCount()).toBe(0)
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pending Path Rewrite (renamePending / dropPending / renamePendingSubtree)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("renamePending", () => {
+  test("rewrites queued path from old to new", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({ fs: createMockFs({ history }) })
+
+    queue.queue({ path: "/vault/old-name.md", content: "hello", sourceEventId: "1" })
+    const result = queue.renamePending("/vault/old-name.md", "/vault/new-name.md")
+
+    expect(result).toBe(true)
+    expect(queue.getPendingPaths()).toEqual(new Set(["/vault/new-name.md"]))
+    expect(queue.getPendingPaths().has("/vault/old-name.md")).toBe(false)
+
+    await queue.forceFlush()
+    expect(history).toEqual(["write:/vault/new-name.md"])
+  })
+
+  test("returns false if no pending write for path", () => {
+    const queue = createWriteQueue({ fs: createMockFs() })
+
+    const result = queue.renamePending("/vault/nonexistent.md", "/vault/other.md")
+    expect(result).toBe(false)
+  })
+
+  test("flushed write goes to new path after renamePending", async () => {
+    const history: string[] = []
+    const mockFs = createMockFs({ history })
+    const writtenContent = new Map<string, string>()
+    mockFs.writeFileSync = (path: string, content: string) => {
+      history.push(`write:${path}`)
+      writtenContent.set(path, content)
+    }
+
+    const queue = createWriteQueue({ fs: mockFs })
+
+    queue.queue({ path: "/old.md", content: "my content", sourceEventId: "1" })
+    queue.renamePending("/old.md", "/new.md")
+    await queue.forceFlush()
+
+    expect(history).toEqual(["write:/new.md"])
+    expect(writtenContent.get("/new.md")).toBe("my content")
+    expect(writtenContent.has("/old.md")).toBe(false)
+  })
+
+  test("no-op when path has already flushed", async () => {
+    const queue = createWriteQueue({ fs: createMockFs() })
+
+    queue.queue({ path: "/test.md", content: "data", sourceEventId: "1" })
+    await queue.forceFlush()
+
+    // Path is no longer pending — renamePending should return false
+    const result = queue.renamePending("/test.md", "/renamed.md")
+    expect(result).toBe(false)
+  })
+})
+
+describe("dropPending", () => {
+  test("cancels a queued write", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({ fs: createMockFs({ history }) })
+
+    queue.queue({ path: "/vault/deleted.md", content: "gone", sourceEventId: "1" })
+    const result = queue.dropPending("/vault/deleted.md")
+
+    expect(result).toBe(true)
+    expect(queue.getPendingCount()).toBe(0)
+
+    await queue.forceFlush()
+    expect(history).toEqual([])
+  })
+
+  test("returns false if no pending write for path", () => {
+    const queue = createWriteQueue({ fs: createMockFs() })
+    expect(queue.dropPending("/nonexistent.md")).toBe(false)
+  })
+})
+
+describe("renamePendingSubtree", () => {
+  test("rewrites all descendant paths under renamed directory", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({ fs: createMockFs({ history }) })
+
+    queue.queue({ path: "/vault/old-dir/a.md", content: "a", sourceEventId: "1" })
+    queue.queue({ path: "/vault/old-dir/sub/b.md", content: "b", sourceEventId: "2" })
+    queue.queue({ path: "/vault/other/c.md", content: "c", sourceEventId: "3" })
+
+    const count = queue.renamePendingSubtree("/vault/old-dir", "/vault/new-dir")
+
+    expect(count).toBe(2)
+    expect(queue.getPendingPaths()).toEqual(
+      new Set(["/vault/new-dir/a.md", "/vault/new-dir/sub/b.md", "/vault/other/c.md"]),
+    )
+
+    await queue.forceFlush()
+    expect(history).toContain("write:/vault/new-dir/a.md")
+    expect(history).toContain("write:/vault/new-dir/sub/b.md")
+    expect(history).toContain("write:/vault/other/c.md")
+    expect(history).not.toContain("write:/vault/old-dir/a.md")
+    expect(history).not.toContain("write:/vault/old-dir/sub/b.md")
+  })
+
+  test("rewrites exact-match directory path (no trailing slash)", async () => {
+    const history: string[] = []
+    const queue = createWriteQueue({ fs: createMockFs({ history }) })
+
+    // A pending write whose path exactly matches the old prefix (the directory itself)
+    queue.queue({ path: "/vault/old-dir", content: "index", sourceEventId: "1" })
+
+    const count = queue.renamePendingSubtree("/vault/old-dir", "/vault/new-dir")
+    expect(count).toBe(1)
+    expect(queue.getPendingPaths()).toEqual(new Set(["/vault/new-dir"]))
+  })
+
+  test("returns 0 when no pending writes match prefix", () => {
+    const queue = createWriteQueue({ fs: createMockFs() })
+    queue.queue({ path: "/vault/other/a.md", content: "a", sourceEventId: "1" })
+
+    const count = queue.renamePendingSubtree("/vault/old-dir", "/vault/new-dir")
+    expect(count).toBe(0)
+  })
+
+  test("does not match paths that merely start with prefix string", () => {
+    const queue = createWriteQueue({ fs: createMockFs() })
+    // "/vault/old-directory/x.md" starts with "/vault/old-dir" but is NOT under it
+    queue.queue({ path: "/vault/old-directory/x.md", content: "x", sourceEventId: "1" })
+
+    const count = queue.renamePendingSubtree("/vault/old-dir", "/vault/new-dir")
+    expect(count).toBe(0)
+    expect(queue.getPendingPaths()).toEqual(new Set(["/vault/old-directory/x.md"]))
+  })
+})
