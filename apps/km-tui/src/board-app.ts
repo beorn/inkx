@@ -31,14 +31,8 @@ import type { ColumnView } from "./types.ts"
 import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { checkInvariants } from "./invariants.ts"
-import { deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
-import {
-  buildViewTree,
-  buildViewIndex,
-  viewNodeToColumnViews,
-  type ViewNode,
-  type ViewNodeColumnCache,
-} from "@km/board"
+import { deriveColumnsWithTree, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import { buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
@@ -257,13 +251,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Reuse viewNode cache if rootId hasn't changed (zoom); clear on zoom change
       const viewNodeCache: ViewNodeColumnCache =
         locals.layoutCache && locals.layoutCache.rootId === rootId ? locals.layoutCache.viewNodeCache : new Map()
+      // Single derivation path via deriveColumnsWithTree — shared ViewNodeColumnCache
+      const result = deriveColumnsWithTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
+      viewTree = result.viewTree
       if (board?.viewMode === "detail") {
+        // Detail mode uses its own column derivation but shares the viewTree for navigation
         columns = deriveDetailColumns(s.repo, rootId, foldDepths)
-        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
       } else {
-        // Derive viewTree first, then columns from it — single derivation path
-        viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
-        columns = viewNodeToColumnViews(viewTree) as ColumnView[]
+        columns = result.columns
       }
       nodeIndex = buildNodeIndex(columns)
       viewIndex = buildViewIndex(viewTree)
@@ -348,8 +343,17 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       selectedNode,
       column,
       card,
-      // Delegated store methods (pure pass-throughs)
+      // Delegated store methods (pure pass-throughs, dispatchBoard overridden below)
       ...pick(s, DELEGATED_ACTION_CTX_KEYS),
+      // Override dispatchBoard to inject cached viewIndex into SELECT actions,
+      // avoiding a redundant buildViewTree+buildViewIndex on every cursor move.
+      dispatchBoard: (action) => {
+        if (action.type === "SELECT" && !action._viewIndex) {
+          s.dispatchBoard({ ...action, _viewIndex: viewIndex })
+        } else {
+          s.dispatchBoard(action)
+        }
+      },
       focusedPaneViewType: () => {
         const ws = get().workspace
         const pane = ws.panes.get(ws.focusedPaneId)

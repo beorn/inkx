@@ -495,10 +495,15 @@ export function createBoardAppStoreState(
             focusedPane.curswantX = null
             focusedPane.curswantY = null
           }
-          // Derive cursor ancestors from tree structure
+          // Derive cursor ancestors from tree structure.
+          // When _viewIndex is provided (injected by buildActionCtx), use it directly
+          // to avoid rebuilding the entire ViewTree on every cursor move.
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
-          const viewNav = getViewNavigation(focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards")
-          const ancestors = viewNav.classifyCursor(action.nodeId, rootId, s.repo)
+          const ancestors = action._viewIndex
+            ? classifyCursorFromViewIndex(action._viewIndex, action.nodeId)
+            : getViewNavigation(
+                focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards",
+              ).classifyCursor(action.nodeId, rootId, s.repo)
           // Click hint: the click handler always knows the exact visual card. When
           // clicking inside an embed, the data model parent chain leads to the source
           // card, not the visual card. The click hint overrides unconditionally.
@@ -507,7 +512,11 @@ export function createBoardAppStoreState(
             action.cardHintSource === "click" &&
             ancestors.cursorCardNodeId !== action.cardNodeId
           ) {
-            const hintAncestors = viewNav.classifyCursor(action.cardNodeId, rootId, s.repo)
+            const hintAncestors = action._viewIndex
+              ? classifyCursorFromViewIndex(action._viewIndex, action.cardNodeId)
+              : getViewNavigation(
+                  focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards",
+                ).classifyCursor(action.cardNodeId, rootId, s.repo)
             if (hintAncestors.selectionLevel === "card") {
               ancestors.cursorCardNodeId = hintAncestors.cursorCardNodeId
               ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
@@ -687,11 +696,14 @@ export function createBoardAppStoreState(
           }
         })
 
-        // Update cursor store synchronously (progressive reveal in Board handles transition UX)
+        // Update cursor store synchronously after structural changes (TOGGLE_FOLD, ZOOM_IN,
+        // SET_ROOT, etc.). Unlike SELECT which can reuse a cached viewIndex, these actions
+        // change rootId/foldDepths so a fresh tree build is required. This is fine — these
+        // actions are infrequent compared to cursor moves (j/k). React components (Board.tsx)
+        // also dispatch these directly, so we can't defer to buildActionCtx in board-app.ts.
         const s = _get()
         const board = getActiveBoardPane(s)
         if (board) {
-          // Derive cursor classification from ViewNode tree
           const vTree = buildViewTree(s.repo, board.rootId, board.foldDepths)
           const vIndex = buildViewIndex(vTree)
           const ancestors = classifyCursorFromViewIndex(vIndex, board.cursorNodeId)

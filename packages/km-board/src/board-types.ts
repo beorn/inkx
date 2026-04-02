@@ -87,7 +87,14 @@ export type BoardAction =
   // Cursor selection (navigation handler calls this with computed nodeId)
   // cardNodeId + cardHintSource: click handler passes the visual card as a definitive hint.
   // Used for embeds where the data model parent chain leads to the wrong card.
-  | { type: "SELECT"; nodeId: string | null; cardNodeId?: string; cardHintSource?: "click" }
+  | {
+      type: "SELECT"
+      nodeId: string | null
+      cardNodeId?: string
+      cardHintSource?: "click"
+      /** Pre-built viewIndex from buildActionCtx cache — avoids redundant buildViewTree */
+      _viewIndex?: Map<string, import("./view-tree.ts").ViewNode>
+    }
 
   // Fold/unfold (manipulates foldDepths Map)
   | { type: "TOGGLE_FOLD"; nodeId: string }
