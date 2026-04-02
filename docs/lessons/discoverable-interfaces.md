@@ -1,0 +1,90 @@
+# Discoverable Interfaces
+
+**TL;DR**: Put methods on core interfaces, not as bare functions. Bare functions are invisible; interface methods are the vocabulary of the system.
+
+---
+
+## The Problem
+
+During the nav-clarity refactor (2026-04-02), we found the same DFS traversal reimplemented three times:
+
+1. `getVisibleDescendantIds` in board-app.ts — foldDepth-limited repo walk
+2. `getVisibleColumnBlocks` in board-actions-nav.ts — manual stack-based DFS of ViewTree
+3. `getVisibleCardDescendants` in board-actions-nav.ts — identical DFS, different root
+
+Each was written independently by a different session. Each works. None knew the others existed.
+
+Meanwhile, `dfsTraversal` — the correct, tested, canonical DFS — sat exported from `@km/board` but was never found by the code that needed it. It was a bare function in a 500-line file, not a method on the data structure it operates on.
+
+## Why It Happens
+
+When an agent (or human) needs "all visible descendants of a ViewNode," they:
+
+1. Look at the `ViewNode` interface — no traversal methods
+2. Look at `viewIndex` (a `Map`) — no traversal methods
+3. Grep for "descendants" — find `getVisibleDescendantIds` (wrong function, foldDepth-limited)
+4. Write their own DFS
+
+Step 3 is the trap. They find *a* function but not *the right* function. Or they find nothing and write from scratch. Either way, duplication.
+
+If `ViewNode` had a `descendants()` method, or there was a `ViewTree` namespace with `ViewTree.descendants(index, rootId)`, step 1 would have found it immediately.
+
+## The Principle
+
+**Core data structures should carry their operations.** Not as implementation details, but as the vocabulary of the system.
+
+When you put `descendants()` on ViewTree, you're not just saving code — you're defining a concept. You're saying "this is how you ask for descendants in this system." Every future session, every agent, every contributor discovers it by inspecting the type.
+
+Bare functions hide vocabulary. Interface methods *are* vocabulary.
+
+## The Pattern
+
+```
+// BAD: bare function in a large file
+// Nobody finds this unless they know to grep for "dfsTraversal"
+export function* dfsTraversal(tree: ViewNode): Generator<ViewNode> { ... }
+
+// GOOD: namespace method — discoverable via autocomplete + type inspection
+export const ViewTree = {
+  dfs(node: ViewNode): Generator<ViewNode>,
+  descendantIds(index: Map<string, ViewNode>, rootId: string): string[],
+  adjacentSibling(node: ViewNode, delta: 1 | -1): ViewNode | null,
+  deepestLast(index: Map<string, ViewNode>, nodeId: string): ViewNode | null,
+}
+```
+
+The difference isn't technical — both work. The difference is that an agent writing navigation code will type `ViewTree.` and see the full API surface. They'll never see a bare function buried in another file.
+
+## The Design Heuristic
+
+Ask: "If I needed this operation, where would I look first?"
+
+- If the answer is "the interface/namespace of the data structure" → put it there
+- If the answer is "I'd grep for it" → it's invisible and will be reimplemented
+
+This applies at every level:
+
+| Data | Vocabulary |
+|------|-----------|
+| `KNode` | `KNode.isOutline()`, `KNode.isTask()`, `KNode.matches()` |
+| `TreeWalk` | `TreeWalk.nodes(tree, root, { match, into })` |
+| `ViewTree` | `ViewTree.dfs()`, `ViewTree.descendantIds()`, `ViewTree.adjacentSibling()` |
+| `Repo` | `repo.getNode()`, `repo.getChildren()` |
+
+`KNode` and `TreeWalk` already follow this pattern. `ViewTree` doesn't yet — that's why navigation reimplemented DFS three times.
+
+## Rules
+
+1. **If a function operates on a core data structure, it belongs on that structure's namespace.** Not in a consumer file.
+
+2. **If two sessions independently write the same operation, the interface is missing a method.** Add it to the source, not as another bare function.
+
+3. **Namespaces over instance methods.** Keep data structures plain (no methods on `ViewNode`). Put operations on a companion namespace (`ViewTree.*`). This is the SlateJS/KNode pattern — proven and consistent.
+
+4. **Export the namespace from the barrel.** If `ViewTree.descendantIds` exists but isn't in `@km/board`'s index.ts, it's still invisible.
+
+## Related
+
+- [docs/principles.md — Plain Domain Language](../principles.md#principle-plain-language): "Name things so that someone unfamiliar with the codebase can read a function and understand what it does."
+- [docs/principles.md — Composable Domain Objects](../principles.md#principle-plain-objects): The vocabulary principle extends objects to operations — the API surface IS the domain language.
+- [docs/lessons/refactoring.md — Case Study 3](refactoring.md): Documentation drift — same root cause (the canonical way exists but isn't discoverable).
