@@ -14,15 +14,24 @@ import type { ActionCtx } from "../tui-context.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { requestRenderFlush } from "./board-actions-edit.ts"
 import type { ApplyResult, BoardEffect } from "./board-reducer.ts"
+import { defaultNormalize, validateEffects } from "./normalize-plugins.ts"
 
 /**
  * Execute all effects from a Board.apply() result against the runtime.
  *
- * Effects are processed in order — the reducer controls sequencing.
- * Each effect maps to exactly one ActionCtx mutation.
+ * Effects are normalized (auto-derive title, name) then validated before execution.
+ * The normalization pipeline eliminates the class of bugs where callers set
+ * content but forget title/name (see /why analysis, commit dff82084).
  */
 export function runBoardEffects(ctx: ActionCtx, result: ApplyResult): void {
-  for (const effect of result.effects) {
+  // Normalize: auto-derive title from content, name from content for outlines
+  const getNode = (id: string) => ctx.repo.getNode(id)
+  const effects = defaultNormalize(result.effects, getNode)
+
+  // Validate invariants (throws on violation — catch bugs at mutation time)
+  validateEffects(effects, getNode)
+
+  for (const effect of effects) {
     runEffect(ctx, effect)
   }
 }
