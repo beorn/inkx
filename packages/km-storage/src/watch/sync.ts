@@ -490,9 +490,9 @@ export class SyncManager extends EventEmitter {
     this.lastActivityTime = Date.now()
     this.setState("reconciling")
 
-    try {
-      for (const dir of data.directories) {
-        if (this.stopped) break
+    for (const dir of data.directories) {
+      if (this.stopped) break
+      try {
         using dirSpan = span.span("reconcile-dir", { dir })
         const rawOps = await reconcileDirectoryAsync(this.db, dir, this.config.repoPath, this.ignorePatterns)
         const ops = this.filterRecentWriteOps(rawOps)
@@ -510,12 +510,14 @@ export class SyncManager extends EventEmitter {
           })
           applySpan.spanData.ops = ops.length
         }
+      } catch (error) {
+        // Suppress errors after stop (DB closed, temp dir removed — expected during teardown)
+        if (this.stopped) return
+        // F7: Log error for this directory but continue processing remaining directories.
+        // One bad directory (EACCES, ENOENT race, corrupt file) should not abort the entire sync.
+        span.error?.(`directory ${dir} failed: ${error instanceof Error ? error.message : String(error)}`)
+        this.emit("error", error)
       }
-    } catch (error) {
-      // Suppress errors after stop (DB closed, temp dir removed — expected during teardown)
-      if (this.stopped) return
-      span.error?.(error instanceof Error ? error.message : String(error))
-      this.emit("error", error)
     }
     if (!this.stopped) {
       this.lastActivityTime = Date.now()
