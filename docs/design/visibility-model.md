@@ -43,7 +43,7 @@ km has three independent mechanisms that control node visibility, each operating
 
 Previously, **rendering used the ViewNode tree but navigation/counting used raw repo traversal with foldDepths** (`walkVisibleDescendants`, `getVisibleDescendantIds`). This caused bugs where navigation could reach invisible nodes or miss visible ones (see bead km-tui.j-skips-grandchildren).
 
-**Resolution**: Navigation now walks the ViewTree directly via `getVisibleDescendants` in `board-actions-nav.ts`. The old `walkVisibleDescendants`, `countVisibleDescendants`, and `getVisibleDescendantIds` functions have been removed from `board-app.ts`.
+**Resolution**: Navigation now uses `ViewTree.descendantIds()` and `ViewTree.nodes()` from the `@km/board` namespace. The old bare functions (`walkVisibleDescendants`, `countVisibleDescendants`, `getVisibleDescendantIds`, `getVisibleDescendants`, `dfsTraversal`) have all been removed or replaced by ViewTree namespace methods.
 
 ## Current State
 
