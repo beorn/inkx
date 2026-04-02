@@ -41,3 +41,8 @@ export type { PatternMatcher, PatternMatcherOptions } from "../ignore.ts"
 export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
 
 export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts"
+
+// Sync state (persisted content-hash baseline)
+export { createSyncState } from "./sync-state.ts"
+
+export type { SyncState, SyncStateEntry } from "./sync-state.ts"

@@ -379,6 +379,7 @@ export interface Event {
   target?: string // What it affects (node ID)
   data: Record<string, unknown>
   ts: number // Unix milliseconds
+  origin?: "tui" | "fs" | "replay" | "system" // Source of the event (for commit/project split)
 }
 
 // Event data types for type safety

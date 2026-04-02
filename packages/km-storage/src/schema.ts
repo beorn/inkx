@@ -120,6 +120,18 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_links_unique
 CREATE INDEX IF NOT EXISTS idx_links_source ON links(source_id);
 CREATE INDEX IF NOT EXISTS idx_links_target_name ON links(target_name);
 CREATE INDEX IF NOT EXISTS idx_links_target_id ON links(target_id);
+
+-- Sync state: content-hash baseline for bidirectional sync
+-- Tracks what we last projected (wrote) or observed (read) for each file path.
+-- Used to detect external vs own changes without relying on in-memory tokens alone.
+CREATE TABLE IF NOT EXISTS sync_state (
+  fs_path TEXT PRIMARY KEY,
+  node_id TEXT,
+  baseline_hash TEXT NOT NULL,
+  baseline_kind TEXT NOT NULL DEFAULT 'projected',  -- 'projected' | 'observed'
+  last_seen_mtime_ns INTEGER,
+  dirty INTEGER NOT NULL DEFAULT 0
+);
 `
 
 /**
