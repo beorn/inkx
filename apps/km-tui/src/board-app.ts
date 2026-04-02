@@ -31,6 +31,7 @@ import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { checkInvariants } from "./invariants.ts"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import { buildViewTree, buildViewIndex, type ViewNode } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
@@ -81,6 +82,8 @@ export interface BoardAppLocals {
     repoVersion: number
     columns: ColumnView[]
     nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+    viewTree: ViewNode
+    viewIndex: Map<string, ViewNode>
   } | null
   chordTimer: ReturnType<typeof setTimeout> | null
   pendingChordShownAt: number
@@ -201,6 +204,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // foldDepths uses reference equality — each fold/unfold creates a new Map
     let columns: ColumnView[]
     let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+    let viewTree: ViewNode
+    let viewIndex: Map<string, ViewNode>
     if (
       locals.layoutCache &&
       locals.layoutCache.rootId === rootId &&
@@ -209,6 +214,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     ) {
       columns = locals.layoutCache.columns
       nodeIndex = locals.layoutCache.nodeIndex
+      viewTree = locals.layoutCache.viewTree
+      viewIndex = locals.layoutCache.viewIndex
     } else {
       // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
       const topChildren = s.repo.getChildren(rootId)
@@ -216,7 +223,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
       columns = derive(s.repo, rootId, foldDepths)
       nodeIndex = buildNodeIndex(columns)
-      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex }
+      viewTree = buildViewTree(s.repo, rootId, foldDepths)
+      viewIndex = buildViewIndex(viewTree)
+      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex }
     }
     const cursorCardNodeId = s.cursorStore.getState().cursorCardNodeId
     const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id), cursorCardNodeId)
@@ -245,6 +254,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       cardIndex: cursor.cardIndex,
       isAtCardLevel: cursor.isAtCardLevel,
       nodeIndex,
+      viewTree,
+      viewIndex,
       navigator: s.navigator,
       viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
       toastQueue: s.toastQueue,

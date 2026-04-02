@@ -15,7 +15,7 @@ import type { BoardAction } from "./board-types.ts"
 import type { ColumnView } from "./types.ts"
 import type { PaneUI, EditMode } from "./ui-reducer.ts"
 import { getEditMode } from "./ui-reducer.ts"
-import type { GridNavigator } from "@km/board"
+import type { GridNavigator, ViewNode } from "@km/board"
 import type { ViewNavigation } from "./view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
 import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -57,6 +57,10 @@ export interface ActionCtx {
   cardIndex: number
   isAtCardLevel: boolean
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
+  /** ViewNode tree — explicit visual hierarchy (replaces ad-hoc role derivation) */
+  viewTree: ViewNode
+  /** ViewNode index — O(1) lookup by node ID */
+  viewIndex: Map<string, ViewNode>
 
   // === Derived (computed once per key event) ===
   /** Currently selected node (null if none) */
