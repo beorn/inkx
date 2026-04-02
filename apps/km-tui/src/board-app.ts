@@ -383,8 +383,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
       },
       hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
-      countVisibleDescendants: (node, depth, maxDepth, foldDepths) =>
-        countVisibleDescendants(s.repo, node, depth, maxDepth, foldDepths),
       getVisibleDescendantIds: (cardNode, maxDepth, foldDepths) =>
         getVisibleDescendantIds(s.repo, cardNode, maxDepth, foldDepths, rootId),
     }
@@ -1098,7 +1096,7 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
 
 /**
  * Walk visible descendants in DFS order, calling `visitor` for each visible child.
- * Shared tree-walk logic used by both countVisibleDescendants and getVisibleDescendantIds.
+ * Shared tree-walk logic used by getVisibleDescendantIds.
  *
  * @param maxChildren - Optional cap on children per node (e.g., 10 for counting).
  */
@@ -1120,32 +1118,6 @@ function walkVisibleDescendants(
     const childDepth = foldDepths.get(child.id) ?? remainingDepth - 1
     walkVisibleDescendants(repo, child, depth + 1, maxDepth, foldDepths, childDepth, visitor, maxChildren)
   }
-}
-
-function countVisibleDescendants(
-  repo: { getChildren(id: string): { id: string }[] },
-  node: { id: string },
-  depth: number,
-  maxDepth: number,
-  foldDepths: Map<string, number>,
-  remainingDepth?: number,
-): number {
-  const effectiveDepth = foldDepths.get(node.id) ?? remainingDepth ?? Infinity
-  if (depth > maxDepth || effectiveDepth <= 0) return 0
-  let count = 0
-  walkVisibleDescendants(
-    repo,
-    node,
-    depth,
-    maxDepth,
-    foldDepths,
-    effectiveDepth,
-    () => {
-      count++
-    },
-    10,
-  )
-  return count
 }
 
 /**

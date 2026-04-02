@@ -151,8 +151,6 @@ export interface ActionCtx {
   getParentPaneId: () => string | null
 
   // === Utilities ===
-  /** Count visible descendants for outline mode */
-  countVisibleDescendants: (node: KNode, depth: number, maxDepth: number, foldDepths: Map<string, number>) => number
   /** Get flat list of visible descendant IDs in DFS order (card itself first, then descendants) */
   getVisibleDescendantIds: (cardNode: KNode, maxDepth: number, foldDepths: Map<string, number>) => string[]
 }
