@@ -503,14 +503,14 @@ function TreeNodeImpl({
 
   // Check if a descendant is being edited or has cursor — expand to show all children.
   // Uses per-node reactive signals where possible to avoid O(N) global re-renders.
-  const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
+  const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
   const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) =>
     s.workspace ? getActiveBoardPane(s)?.inlineEditBlock?.nodeId : undefined,
   )
   // Cursor expansion: reuse cursorInDescendant from above (per-card signal, O(1) re-renders)
   const shouldExpand =
     // Edit: card-level expansion
-    (depth === 0 && editingCardNodeId === node.id) ||
+    (depth === 0 && expandedEditCardId === node.id) ||
     // Edit: sub-item-level expansion (any depth)
     (depth > 0 && editNodeId != null && isAncestorOf(repo, node.id, editNodeId)) ||
     // Cursor: card-level expansion when cursor is on a descendant

@@ -114,7 +114,7 @@ export class ReactiveNodeStore {
 
   // ── Edit expansion state ──
   /** Card node ID that should expand because a descendant is being edited */
-  editingCardNodeId = new Reactive<string | null>(null)
+  expandedEditCardId = new Reactive<string | null>(null)
 
   // ── Hover state (centralized, coalesced across I/O events) ──
   private hoveredNodeId: string | null = null
@@ -293,7 +293,7 @@ export class ReactiveNodeStore {
   }
 
   /** Sync inline edit state. Replaces syncEditToAtoms.
-   *  When cardNodeId is present (sub-item editing), sets editingCardNodeId
+   *  When cardNodeId is present (sub-item editing), sets expandedEditCardId
    *  so the parent card can expand to show all children. */
   syncEdit(
     oldNodeId: string | null,
@@ -315,8 +315,8 @@ export class ReactiveNodeStore {
         stickyX: newState.stickyX,
       }
     }
-    // Update editingCardNodeId for parent card expansion
-    this.editingCardNodeId.value = cardNodeId ?? null
+    // Update expandedEditCardId for parent card expansion
+    this.expandedEditCardId.value = cardNodeId ?? null
   }
 
   /** Remove node entries. Call on zoom/root change. */

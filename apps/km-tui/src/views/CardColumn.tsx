@@ -187,13 +187,13 @@ export const Card = React.memo(
     const isPrevAtCursor = prevCardNodeId != null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
 
     // Check if this card is in inline edit mode (for border color).
-    // Also matches when a sub-item of this card is being edited (derived editingCardNodeId).
-    const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
+    // Also matches when a sub-item of this card is being edited (derived expandedEditCardId).
+    const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
       const edit = getActiveBoardPane(s)?.inlineEditBlock
       return edit?.nodeId === nodeId
     })
-    const isEditing = isDirectlyEditing || editingCardNodeId === nodeId
+    const isEditing = isDirectlyEditing || expandedEditCardId === nodeId
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useAppStore<BoardAppStore, boolean>(
