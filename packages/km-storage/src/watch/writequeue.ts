@@ -590,6 +590,18 @@ export class WriteQueue extends EventEmitter {
     // Track generation so clearInFlight from an older flush doesn't
     // clear protection set by a newer flush (race condition fix).
     const gen = ++this.currentGeneration
+
+    // Safety cap: if flushGeneration grows beyond 10k entries (indicates
+    // cleanup timers were delayed or lost), prune entries older than 10
+    // generations back. This prevents unbounded memory growth in long sessions.
+    if (this.flushGeneration.size > 10_000) {
+      const pruneThreshold = gen - 10
+      for (const [path, pathGen] of this.flushGeneration) {
+        if (pathGen < pruneThreshold) {
+          this.flushGeneration.delete(path)
+        }
+      }
+    }
     for (const write of writes) {
       if (this.watcher) {
         this.watcher.markInFlight(write.path)
@@ -718,7 +730,7 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
-   * Clear all pending writes
+   * Clear all pending writes and flush-tracking state
    */
   clear(): void {
     if (this.debounceTimer) {
@@ -726,6 +738,7 @@ export class WriteQueue extends EventEmitter {
       this.debounceTimer = undefined
     }
     this.pending.clear()
+    this.flushGeneration.clear()
   }
 }
 
