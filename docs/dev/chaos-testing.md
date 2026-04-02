@@ -24,7 +24,7 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 | ---------------------- | ----------- | ---------------------------------------- |
 | `@beorn/watcher-chaos` | ✅ Complete | `vendor/watcher-chaos/`            |
 | WatcherInterface DI    | ✅ Complete | `packages/km-storage/src/watch/types.ts` |
-| SyncManager injection  | ✅ Complete | `config.watcher` option                  |
+| createSync injection   | ✅ Complete | `config.watcher` option                  |
 | 25+ chaos tests        | ✅ Passing  | `packages/km-storage/tests/sync/chaos/`  |
 | 11 chaos scenarios     | ✅ Built-in | See table below                          |
 
@@ -566,8 +566,9 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
 
 // In test setup:
 const testWatcher = new TestWatcher(100) // 100ms debounce
-const syncManager = new SyncManager({
-  repoPath: REPO_DIR,
+const syncManager = createSync({
+  db, repoPath: REPO_DIR,
+  debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
   watcher: testWatcher, // Inject controllable watcher
   heartbeat: { enabled: false }, // Disable setInterval heartbeat
 })
@@ -590,7 +591,8 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 1. **Disable heartbeat in tests:**
 
    ```typescript
-   syncManager = new SyncManager({
+   syncManager = createSync({
+     db, repoPath, debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
      heartbeat: { enabled: false },
    })
    ```

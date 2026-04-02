@@ -30,12 +30,12 @@
 
 ### `watch/sync-test-helpers.ts`
 
-| Helper                                       | Purpose                                           |
-| -------------------------------------------- | ------------------------------------------------- |
-| `createTestSyncManager(db, path, overrides)` | SyncManager with fast debounces, no worker thread |
-| `setupSyncManager(stack, manager, emitter)`  | Lifecycle with AsyncDisposableStack cleanup       |
-| `waitForReady(manager)`                      | Wait for watcher initialization                   |
-| `waitForStateChange(events)`                 | Wait for specific sync events                     |
+| Helper                                | Purpose                                            |
+| ------------------------------------- | -------------------------------------------------- |
+| `createTestSync(db, path, overrides)` | Sync with fast debounces, no worker thread         |
+| `setupSync(stack, sync, emitter)`     | Lifecycle with AsyncDisposableStack cleanup        |
+| `waitForReady(sync)`                  | Wait for watcher initialization                    |
+| `createStateChangeWaiter()`           | Wait for reconciling → idle cycle (callback-based) |
 
 ### `sync/chaos/` (fuzz testing)
 

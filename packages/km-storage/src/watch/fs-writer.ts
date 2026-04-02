@@ -2,10 +2,10 @@
  * FsWriter — lightweight FsSync for CLI / non-TUI contexts
  *
  * Synchronously writes DB changes back to .md files.
- * Unlike SyncManager, has no watcher, no WriteQueue, no debouncing.
+ * Unlike createSync(), has no watcher, no WriteQueue, no debouncing.
  * Designed for one-shot CLI commands that do a mutation and exit.
  *
- * The TUI replaces this with SyncManager via emitter.setFsSync().
+ * The TUI replaces this with createSync() via emitter.setFsSync().
  */
 
 import { createLogger } from "loggily"

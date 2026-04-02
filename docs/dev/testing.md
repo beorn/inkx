@@ -46,7 +46,7 @@ const db = new Database("/path/to/db")
 const repoPath = "/Users/beorn/myrepo"
 
 // ❌ Real watcher - slow, flaky, non-deterministic
-const syncManager = new SyncManager({ useWorker: true })
+const syncManager = createSync({ db, repoPath, useWorker: true, debounceFs: 0, debounceApply: 0, conflictStrategy: "last_write_wins" })
 ```
 
 ### Correct Patterns
@@ -60,8 +60,8 @@ await withTestEnv(async ({ db, repo, repoDir }) => {
 // ✅ FakeRepo for state-only tests - no DB at all
 const repo = createFakeRepo({ nodes: fixtures })
 
-// ✅ Mock watcher for sync tests
-const syncManager = new SyncManager({ db, useWorker: false })
+// ✅ Mock watcher for sync tests (use createTestSync helper in test files)
+const syncManager = createSync({ db, repoPath, debounceFs: 0, debounceApply: 0, conflictStrategy: "last_write_wins", useWorker: false })
 ```
 
 ---

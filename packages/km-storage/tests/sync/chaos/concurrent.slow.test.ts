@@ -144,6 +144,7 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
     await withTestEnv(
       async ({ repoDir, data, emitter }) => {
         const testWatcher = new TestWatcher(100)
+        const stateChangeListeners: Array<(state: string) => void> = []
 
         const syncManager = createSync({
           db: data.database,
@@ -153,6 +154,11 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
           conflictStrategy: "last_write_wins",
           heartbeat: { enabled: false },
           watcher: testWatcher,
+          callbacks: {
+            onStateChange: (state) => {
+              for (const listener of stateChangeListeners) listener(state)
+            },
+          },
         })
 
         emitter.setFsSync(syncManager)
@@ -172,6 +178,9 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
             writeAndTrigger: (path, content) => {
               writeFileSync(path, content)
               testWatcher.triggerChange(path)
+            },
+            onStateChange: (handler) => {
+              stateChangeListeners.push(handler)
             },
           })
         } finally {
@@ -240,7 +249,7 @@ describe("Concurrent Edit Tests", () => {
 
         // Count reconciliation cycles via state transitions to "idle"
         let syncCount = 0
-        ctx.syncManager.on("state-change", (state: string) => {
+        ctx.onStateChange((state: string) => {
           if (state === "idle") syncCount++
         })
 
