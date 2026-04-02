@@ -1227,7 +1227,7 @@ describe("detail pane j/k navigation", () => {
   })
 
   test("cursor highlight works for all children (not just first)", () => {
-    // Regression: deriveCursorAncestors classified outline children as column-level
+    // Regression: cursor classification used to classify outline children as column-level
     // (selectionLevel: "column"), breaking card highlight for all but the initial item.
     const nodes: KNode[] = [
       {

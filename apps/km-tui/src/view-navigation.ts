@@ -9,13 +9,11 @@
  */
 
 import type { Repo } from "@km/storage"
-import { KNode } from "@km/core"
 import { createLogger } from "loggily"
 import { findIndexFile } from "@km/core"
-import { extractBody } from "@km/tree"
 import type { GridNavigator, ViewNode } from "@km/board"
+import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
 import type { ViewMode } from "./types.ts"
-import { deriveCursorAncestors } from "./cursor-store.ts"
 import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
 
 const log = createLogger("km:nav")
@@ -38,9 +36,9 @@ export interface NavState {
   /** Hidden node IDs — navigation skips these nodes */
   hiddenNodeIds?: Set<string>
   /** ViewNode tree — explicit visual hierarchy for ViewNode-based navigation */
-  viewTree?: ViewNode
+  viewTree: ViewNode
   /** ViewNode index — O(1) lookup by node ID */
-  viewIndex?: Map<string, ViewNode>
+  viewIndex: Map<string, ViewNode>
 }
 
 /**
@@ -77,24 +75,11 @@ export interface ViewNavigation {
  */
 export function createCardsViewNavigation(): ViewNavigation {
   return {
-    navigate(dir, state, repo, navigator) {
-      let result: string | null
-
-      if (state.viewTree && state.viewIndex) {
-        // ViewNode-based navigation (primary path)
-        if (dir === "up" || dir === "down") {
-          result = vnNavigateVertical(dir, state, navigator)
-        } else {
-          result = vnNavigateHorizontal(dir, state, navigator)
-        }
-      } else {
-        // Legacy fallback — no ViewNode tree available (shouldn't happen in normal operation)
-        if (dir === "up" || dir === "down") {
-          result = navigateVertical(dir, state, repo, navigator)
-        } else {
-          result = navigateHorizontal(dir, state, repo, navigator)
-        }
-      }
+    navigate(dir, state, _repo, navigator) {
+      const result =
+        dir === "up" || dir === "down"
+          ? vnNavigateVertical(dir, state, navigator)
+          : vnNavigateHorizontal(dir, state, navigator)
 
       // Runtime invariant: navigation must never land on a hidden node
       if (result && state.hiddenNodeIds?.has(result)) {
@@ -104,12 +89,9 @@ export function createCardsViewNavigation(): ViewNavigation {
       return result
     },
     classifyCursor(nodeId, rootId, repo) {
-      return deriveCursorAncestors(
-        (id) => repo.getNode(id),
-        rootId,
-        nodeId,
-        (pid) => repo.getChildren(pid),
-      )
+      const vTree = buildViewTree(repo, rootId, new Map())
+      const vIndex = buildViewIndex(vTree)
+      return classifyCursorFromViewIndex(vIndex, nodeId)
     },
   }
 }
@@ -247,7 +229,7 @@ export function getViewNavigation(viewMode: ViewMode): ViewNavigation {
 }
 
 // =============================================================================
-// ViewNode-based navigation (Phase 2b)
+// ViewNode-based navigation
 // =============================================================================
 
 /**
@@ -356,7 +338,6 @@ function vnVisibleCards(col: ViewNode, hiddenNodeIds?: Set<string>): ViewNode[] 
  */
 function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: GridNavigator): string | null {
   const { cursorNodeId, hiddenNodeIds, viewTree, viewIndex } = state
-  if (!viewTree || !viewIndex) return null
 
   const vn = viewIndex.get(cursorNodeId)
   if (!vn) {
@@ -480,7 +461,6 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
  */
 function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator: GridNavigator): string | null {
   const { cursorNodeId, hiddenNodeIds, viewTree, viewIndex } = state
-  if (!viewTree || !viewIndex) return null
 
   const vn = viewIndex.get(cursorNodeId)
   if (!vn) {
@@ -582,7 +562,6 @@ function vnNavigateToStructuralCol(
   sourceColId?: string,
 ): string | null {
   const { hiddenNodeIds, viewTree } = state
-  if (!viewTree) return null
 
   // View column index: offset by 1 if body column exists (body is view column 0)
   const structCols = vnStructuralColumns(viewTree, hiddenNodeIds)
@@ -603,7 +582,7 @@ function vnNavigateToStructuralCol(
   if (isAtColumnLevel) {
     // At column header: if current column has cards, stay at header level
     if (sourceColId) {
-      const sourceColVn = state.viewIndex?.get(sourceColId)
+      const sourceColVn = state.viewIndex.get(sourceColId)
       if (sourceColVn) {
         const sourceCards = vnVisibleCards(sourceColVn, hiddenNodeIds)
         if (sourceCards.length > 0) {
@@ -675,8 +654,6 @@ function vnNavigateToBody(
 // Shared helpers
 // =============================================================================
 
-import { indexOfChild } from "./sibling-index.ts"
-
 /**
  * Get navigable children of a node, filtering out index files for folders.
  *
@@ -692,393 +669,4 @@ export function getNavigableChildren(parentId: string | null, repo: Repo): impor
   const indexFile = findIndexFile(parentNode, children)
   if (!indexFile) return children
   return children.filter((c) => c.id !== indexFile.id)
-}
-
-// =============================================================================
-// LEGACY FALLBACK — repo-based navigation (used when ViewNode tree is unavailable)
-//
-// These functions implement the original navigation logic that walks the repo
-// data model directly. They are kept as an emergency fallback path in case
-// viewTree/viewIndex are not populated (shouldn't happen in normal operation).
-// The primary navigation path uses ViewNode-based functions above.
-// =============================================================================
-
-function filterMeaningfulBody<T extends { content?: string }>(nodes: T[]): T[] {
-  return nodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
-}
-
-/** Get card ID by index, throw if out of bounds (programming error). */
-function cardAt(cards: { id: string }[], idx: number): string {
-  const card = cards[idx]
-  if (!card) {
-    throw new Error(`[nav] card index ${idx} out of bounds (${cards.length} cards)`)
-  }
-  return card.id
-}
-
-function getSibling(nodeId: string, repo: Repo, delta: 1 | -1, hiddenNodeIds?: Set<string>): string | null {
-  const node = repo.getNode(nodeId)
-  if (!node) throw new Error(`[nav] node not in repo: ${nodeId}`)
-  const siblings = getNavigableChildren(node.parent_id, repo)
-  const idx = indexOfChild(siblings, nodeId)
-  if (idx < 0) {
-    throw new Error(`[nav] node ${nodeId} not found in parent's children`)
-  }
-  // Skip hidden nodes in the given direction
-  let targetIdx = idx + delta
-  while (targetIdx >= 0 && targetIdx < siblings.length && hiddenNodeIds?.has(siblings[targetIdx]!.id)) {
-    targetIdx += delta
-  }
-  if (targetIdx < 0 || targetIdx >= siblings.length) return null
-  return siblings[targetIdx]?.id ?? null
-}
-
-function findAncestorAtDepth(nodeId: string, rootId: string | null, depth: number, repo: Repo): string | null {
-  const chain: string[] = []
-  let currentId: string | null = nodeId
-
-  while (currentId !== rootId && currentId !== null) {
-    chain.push(currentId)
-    const node = repo.getNode(currentId)
-    if (!node) {
-      throw new Error(`[nav] broken parent chain: ${currentId} not in repo`)
-    }
-    currentId = node.parent_id
-  }
-
-  const targetIndex = chain.length - depth
-  if (targetIndex < 0 || targetIndex >= chain.length) return null
-  const result = chain[targetIndex]
-  if (!result) {
-    throw new Error(`[nav] chain index ${targetIndex} missing after bounds check`)
-  }
-  return result
-}
-
-function navigateVertical(dir: "up" | "down", state: NavState, repo: Repo, navigator: GridNavigator): string | null {
-  const { cursorNodeId, rootId, hiddenNodeIds } = state
-
-  if (cursorNodeId.startsWith("__body__")) {
-    if (dir === "down") {
-      const allChildren = repo.getChildren(rootId)
-      const { body } = extractBody(allChildren)
-      const bodyNodes = filterMeaningfulBody(body)
-      return bodyNodes[0]?.id ?? null
-    }
-    return rootId
-  }
-
-  const cursorNode = repo.getNode(cursorNodeId)
-  if (!cursorNode) {
-    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
-    return rootId
-  }
-
-  const isAtBoardLevel = cursorNodeId === rootId
-  const isDirectChildOfRoot = cursorNode.parent_id === rootId && !isAtBoardLevel
-  const isBodyContent = isDirectChildOfRoot && !KNode.isOutline(cursorNode)
-  const isAtColumnLevel = isDirectChildOfRoot && !isBodyContent
-  const isAtCardLevel = !isAtBoardLevel && !isAtColumnLevel
-
-  let cardNodeId = cursorNodeId
-  let isBodyCardDescendant = false
-  if (isAtCardLevel && !isBodyContent) {
-    if (state.cursorCardNodeId) {
-      cardNodeId = state.cursorCardNodeId
-      const directChildOfRoot = findAncestorAtDepth(state.cursorCardNodeId, rootId, 0, repo)
-      if (directChildOfRoot) {
-        const directChildNode = repo.getNode(state.cursorCardNodeId)
-        if (directChildNode && directChildNode.parent_id === rootId && !KNode.isOutline(directChildNode)) {
-          isBodyCardDescendant = true
-        }
-      }
-    } else {
-      const directChildOfRoot = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
-      if (directChildOfRoot) {
-        const directChildNode = repo.getNode(directChildOfRoot)
-        if (directChildNode && !KNode.isOutline(directChildNode)) {
-          cardNodeId = directChildOfRoot
-          isBodyCardDescendant = true
-        } else {
-          const cardAncestor = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
-          if (cardAncestor) cardNodeId = cardAncestor
-        }
-      }
-    }
-  }
-
-  const isInsideCard = isAtCardLevel && !isBodyContent && cursorNodeId !== cardNodeId
-  if (isInsideCard) {
-    if (dir === "down") {
-      const next = getSibling(cursorNodeId, repo, 1, hiddenNodeIds)
-      if (next) return next
-      let walkId: string | null = cursorNode.parent_id
-      while (walkId && walkId !== cardNodeId) {
-        const parentNext = getSibling(walkId, repo, 1, hiddenNodeIds)
-        if (parentNext) return parentNext
-        const walkNode = repo.getNode(walkId)
-        walkId = walkNode?.parent_id ?? null
-      }
-      return getSibling(cardNodeId, repo, 1, hiddenNodeIds)
-    } else {
-      const prev = getSibling(cursorNodeId, repo, -1, hiddenNodeIds)
-      if (prev) return prev
-      return cursorNode.parent_id
-    }
-  }
-
-  if (dir === "down") {
-    if (isAtBoardLevel) {
-      const stickyX = navigator.stickyX
-      const allChildren = repo.getChildren(rootId)
-      const { body: rawBody, items: rawCols } = extractBody(allChildren)
-      const rawBodyNodes = filterMeaningfulBody(rawBody)
-      const bodyNodes = hiddenNodeIds ? rawBodyNodes.filter((n) => !hiddenNodeIds.has(n.id)) : rawBodyNodes
-      const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
-
-      if (stickyX !== null) {
-        if (stickyX < structuralCols.length) {
-          return structuralCols[stickyX]?.id ?? null
-        }
-      }
-
-      if (bodyNodes.length > 0) {
-        return bodyNodes[0]?.id ?? null
-      }
-      const visibleChildren = hiddenNodeIds ? allChildren.filter((n) => !hiddenNodeIds.has(n.id)) : allChildren
-      return structuralCols[0]?.id ?? visibleChildren[0]?.id ?? null
-    }
-
-    if (isBodyContent || isBodyCardDescendant) {
-      const effectiveCursorId = isBodyCardDescendant ? cardNodeId : cursorNodeId
-      const allChildren = repo.getChildren(rootId)
-      const { body: rawBody } = extractBody(allChildren)
-      const bodyNodes = filterMeaningfulBody(rawBody)
-      const bodyIdx = bodyNodes.findIndex((n) => n.id === effectiveCursorId)
-      if (bodyIdx >= 0 && bodyIdx < bodyNodes.length - 1) {
-        return bodyNodes[bodyIdx + 1]?.id ?? null
-      }
-      return null
-    }
-
-    if (isAtColumnLevel) {
-      if (state.collapsedNodes.has(cursorNodeId)) return null
-      const cards = getNavigableChildren(cursorNodeId, repo)
-      const firstVisible = hiddenNodeIds ? cards.find((c) => !hiddenNodeIds.has(c.id)) : cards[0]
-      return firstVisible?.id ?? null
-    }
-
-    if (isAtCardLevel) {
-      return getSibling(cardNodeId, repo, 1, hiddenNodeIds)
-    }
-  } else {
-    if (isBodyContent || isBodyCardDescendant) {
-      const effectiveCursorId = isBodyCardDescendant ? cardNodeId : cursorNodeId
-      const allChildren = repo.getChildren(rootId)
-      const { body: rawBody } = extractBody(allChildren)
-      const bodyNodes = filterMeaningfulBody(rawBody)
-      const bodyIdx = bodyNodes.findIndex((n) => n.id === effectiveCursorId)
-      if (bodyIdx > 0) {
-        return bodyNodes[bodyIdx - 1]?.id ?? null
-      }
-      return `__body__${rootId ?? "root"}`
-    }
-
-    if (isAtCardLevel) {
-      const prev = getSibling(cardNodeId, repo, -1, hiddenNodeIds)
-      if (prev) return prev
-      const cardNode = repo.getNode(cardNodeId)
-      return cardNode?.parent_id ?? cursorNode.parent_id
-    }
-
-    if (isAtColumnLevel) {
-      const allChildren = repo.getChildren(rootId)
-      const { items: rawCols } = extractBody(allChildren)
-      const visibleCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
-      const colIdx = indexOfChild(visibleCols, cursorNodeId)
-      if (colIdx >= 0) navigator.setStickyX(colIdx)
-      return rootId
-    }
-
-    if (isAtBoardLevel) {
-      return null
-    }
-  }
-
-  return null
-}
-
-function navigateHorizontal(
-  dir: "left" | "right",
-  state: NavState,
-  repo: Repo,
-  navigator: GridNavigator,
-): string | null {
-  const { cursorNodeId, rootId, hiddenNodeIds } = state
-
-  if (cursorNodeId.startsWith("__body__")) {
-    if (dir === "left") return null
-    const allChildren = repo.getChildren(rootId)
-    const { items: rawCols } = extractBody(allChildren)
-    const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
-    if (structuralCols.length === 0) return null
-    return structuralCols[0]?.id ?? null
-  }
-
-  const cursorNode = repo.getNode(cursorNodeId)
-  if (!cursorNode) {
-    log.error?.(`cursor node not in repo: ${cursorNodeId}, falling back to root`)
-    return rootId
-  }
-
-  if (cursorNodeId === rootId) return null
-
-  const allChildren = repo.getChildren(rootId)
-  const { body: rawBody, items: rawCols } = extractBody(allChildren)
-  const rawBodyNodes = filterMeaningfulBody(rawBody)
-  const bodyNodes = hiddenNodeIds ? rawBodyNodes.filter((n) => !hiddenNodeIds.has(n.id)) : rawBodyNodes
-  const structuralCols = hiddenNodeIds ? rawCols.filter((n) => !hiddenNodeIds.has(n.id)) : rawCols
-  const hasBody = bodyNodes.length > 0
-
-  const cursorDirectChild = findAncestorAtDepth(cursorNodeId, rootId, 1, repo)
-  if (!cursorDirectChild) {
-    throw new Error(`[nav] cursor ${cursorNodeId} has no ancestor under root ${rootId}`)
-  }
-  const isInBody = hasBody && bodyNodes.some((n) => n.id === cursorDirectChild)
-
-  if (isInBody) {
-    if (dir === "left") return null
-    if (structuralCols.length === 0) return null
-    return navigateToStructuralCol(0, structuralCols, state, navigator, repo, hasBody)
-  }
-
-  const cursorColId = cursorDirectChild
-  const colIdx = indexOfChild(structuralCols, cursorColId)
-  if (colIdx < 0) {
-    if (structuralCols.length > 0) return structuralCols[0]!.id
-    if (hasBody) return bodyNodes[0]?.id ?? null
-    return null
-  }
-
-  const isAtColumnLevel = cursorNode.parent_id === rootId
-
-  if (dir === "left") {
-    if (colIdx === 0) {
-      if (!hasBody) return null
-      let sourceCardIdx: number | undefined
-      if (!isAtColumnLevel) {
-        const cardInCol = findAncestorAtDepth(cursorNodeId, rootId, 2, repo)
-        if (cardInCol) {
-          const colChildren = repo.getChildren(cursorColId)
-          sourceCardIdx = indexOfChild(colChildren, cardInCol)
-          if (sourceCardIdx < 0) sourceCardIdx = undefined
-        }
-      }
-      return navigateToBody(bodyNodes, navigator, sourceCardIdx)
-    }
-    return navigateToStructuralCol(
-      colIdx - 1,
-      structuralCols,
-      state,
-      navigator,
-      repo,
-      hasBody,
-      isAtColumnLevel,
-      cursorColId,
-    )
-  }
-
-  const targetColIdx = colIdx + 1
-  if (targetColIdx >= structuralCols.length) return null
-  return navigateToStructuralCol(
-    targetColIdx,
-    structuralCols,
-    state,
-    navigator,
-    repo,
-    hasBody,
-    isAtColumnLevel,
-    cursorColId,
-  )
-}
-
-function navigateToStructuralCol(
-  structIdx: number,
-  structuralCols: { id: string }[],
-  state: NavState,
-  navigator: GridNavigator,
-  repo: Repo,
-  hasBody: boolean,
-  isAtColumnLevel?: boolean,
-  sourceColId?: string,
-): string | null {
-  const targetCol = structuralCols[structIdx]
-  if (!targetCol) return null
-
-  const viewColIdx = hasBody ? structIdx + 1 : structIdx
-
-  if (state.collapsedNodes.has(targetCol.id)) {
-    return targetCol.id
-  }
-
-  const targetCards = getNavigableChildren(targetCol.id, repo)
-
-  if (targetCards.length === 0) {
-    return targetCol.id
-  }
-
-  if (isAtColumnLevel) {
-    if (sourceColId) {
-      const currentCards = getNavigableChildren(sourceColId, repo)
-      if (currentCards.length > 0) {
-        return targetCol.id
-      }
-    }
-    const stickyY = navigator.stickyY
-    if (stickyY !== null) {
-      if (navigator.hasSection(viewColIdx)) {
-        const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
-        return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
-      }
-      navigator.setDeferredNavigation(viewColIdx, stickyY)
-      return cardAt(targetCards, 0)
-    }
-    return targetCol.id
-  }
-
-  const stickyY = navigator.stickyY
-  if (stickyY === null) {
-    return cardAt(targetCards, 0)
-  }
-
-  if (navigator.hasSection(viewColIdx)) {
-    const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
-    return cardAt(targetCards, Math.min(Math.max(0, targetCardIdx), targetCards.length - 1))
-  }
-
-  navigator.setDeferredNavigation(viewColIdx, stickyY)
-  return cardAt(targetCards, 0)
-}
-
-function navigateToBody(bodyNodes: { id: string }[], navigator: GridNavigator, sourceCardIdx?: number): string | null {
-  if (bodyNodes.length === 0) return null
-
-  const stickyY = navigator.stickyY
-  if (stickyY === null) {
-    return bodyNodes[0]?.id ?? null
-  }
-
-  if (sourceCardIdx !== undefined) {
-    const clampedIdx = Math.min(sourceCardIdx, bodyNodes.length - 1)
-    navigator.setDeferredNavigation(0, stickyY)
-    return bodyNodes[clampedIdx]?.id ?? null
-  }
-
-  if (navigator.hasSection(0)) {
-    const targetCardIdx = navigator.findItemAtY(0, stickyY)
-    const clampedIdx = Math.min(Math.max(0, targetCardIdx), bodyNodes.length - 1)
-    return bodyNodes[clampedIdx]?.id ?? null
-  }
-
-  return bodyNodes[0]?.id ?? null
 }

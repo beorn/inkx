@@ -406,6 +406,8 @@ export function navStateFrom(ctx: ActionCtx): NavState {
     collapsedNodes: ctx.collapsedNodes,
     cursorCardNodeId: ctx.cursorCardNodeId,
     hiddenNodeIds: ctx.hiddenNodeIds.size > 0 ? ctx.hiddenNodeIds : undefined,
+    viewTree: ctx.viewTree,
+    viewIndex: ctx.viewIndex,
   }
 }
 

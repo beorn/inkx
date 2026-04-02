@@ -20,14 +20,20 @@
 
 import { describe, it, test, expect, afterEach, vi } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { createFakeRepo } from "@km/storage"
+import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardDriver } from "../src/driver.ts"
 import { createCardsViewNavigation, type NavState } from "../src/view-navigation.ts"
-import { createGridNavigator } from "@km/board"
+import { createGridNavigator, buildViewTree, buildViewIndex } from "@km/board"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
 import { getActiveBoardPane } from "../src/board-app-store.ts"
+
+function makeNavState(cursorNodeId: string, rootId: string, repo: Repo): NavState {
+  const vTree = buildViewTree(repo, rootId, new Map())
+  const vIndex = buildViewIndex(vTree)
+  return { cursorNodeId, rootId, foldDepths: new Map(), collapsedNodes: new Set(), viewTree: vTree, viewIndex: vIndex }
+}
 
 function cursor(nodeId: string): string {
   return `[id="${nodeId}"][data-cursor]`
@@ -245,12 +251,7 @@ describe("body content navigation", () => {
     const nav = createCardsViewNavigation()
     const registry = createGridNavigator()
 
-    const navState: NavState = {
-      cursorNodeId: "body text",
-      rootId: "board",
-      foldDepths: new Map(),
-      collapsedNodes: new Set(),
-    }
+    const navState = makeNavState("body text", "board", repo)
 
     // Down from single body card should be null (boundary)
     const downTarget = nav.navigate("down", navState, repo, registry)
@@ -275,54 +276,19 @@ describe("body content navigation", () => {
     const registry = createGridNavigator()
 
     // Down from p1 → p2
-    expect(
-      nav.navigate(
-        "down",
-        { cursorNodeId: "p1", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
-        repo,
-        registry,
-      ),
-    ).toBe("p2")
+    expect(nav.navigate("down", makeNavState("p1", "board", repo), repo, registry)).toBe("p2")
 
     // Down from p2 → p3
-    expect(
-      nav.navigate(
-        "down",
-        { cursorNodeId: "p2", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
-        repo,
-        registry,
-      ),
-    ).toBe("p3")
+    expect(nav.navigate("down", makeNavState("p2", "board", repo), repo, registry)).toBe("p3")
 
     // Down from p3 → null (boundary)
-    expect(
-      nav.navigate(
-        "down",
-        { cursorNodeId: "p3", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
-        repo,
-        registry,
-      ),
-    ).toBeNull()
+    expect(nav.navigate("down", makeNavState("p3", "board", repo), repo, registry)).toBeNull()
 
     // Up from p3 → p2
-    expect(
-      nav.navigate(
-        "up",
-        { cursorNodeId: "p3", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
-        repo,
-        registry,
-      ),
-    ).toBe("p2")
+    expect(nav.navigate("up", makeNavState("p3", "board", repo), repo, registry)).toBe("p2")
 
     // Up from p1 → body column header
-    expect(
-      nav.navigate(
-        "up",
-        { cursorNodeId: "p1", rootId: "board", foldDepths: new Map(), collapsedNodes: new Set() },
-        repo,
-        registry,
-      ),
-    ).toBe("__body__board")
+    expect(nav.navigate("up", makeNavState("p1", "board", repo), repo, registry)).toBe("__body__board")
   })
 })
 

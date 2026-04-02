@@ -39,7 +39,7 @@ import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createCursorStore, type CursorStore } from "./cursor-store.ts"
-import { buildViewTree, buildViewIndex, deriveCursorPath } from "@km/board"
+import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex } from "@km/board"
 import { getViewNavigation } from "./view-navigation.ts"
 import { createUndoStack, type UndoStack } from "./undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -434,17 +434,11 @@ export function createBoardAppStoreState(
               // Derive cursor classification from ViewNode tree
               const vTree = buildViewTree(params.repo, board.rootId, board.foldDepths)
               const vIndex = buildViewIndex(vTree)
-              const cursorPath = deriveCursorPath(vIndex, board.cursorNodeId)
-              const cursorColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
-              const cursorCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
-              const selectionLevel: "board" | "column" | "card" =
-                cursorPath.length === 0 ? "board" : cursorPath.length === 1 ? "column" : "card"
+              const ancestors = classifyCursorFromViewIndex(vIndex, board.cursorNodeId)
 
               board.cursorStore.setState({
                 cursorNodeId: board.cursorNodeId,
-                cursorCardNodeId,
-                cursorColumnNodeId,
-                selectionLevel,
+                ...ancestors,
               })
             }
           }
@@ -700,17 +694,11 @@ export function createBoardAppStoreState(
           // Derive cursor classification from ViewNode tree
           const vTree = buildViewTree(s.repo, board.rootId, board.foldDepths)
           const vIndex = buildViewIndex(vTree)
-          const cursorPath = board.cursorNodeId ? deriveCursorPath(vIndex, board.cursorNodeId) : []
-          const cursorColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
-          const cursorCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
-          const selectionLevel: "board" | "column" | "card" =
-            cursorPath.length === 0 ? "board" : cursorPath.length === 1 ? "column" : "card"
+          const ancestors = classifyCursorFromViewIndex(vIndex, board.cursorNodeId)
 
           s.cursorStore.setState({
             cursorNodeId: board.cursorNodeId,
-            cursorCardNodeId,
-            cursorColumnNodeId,
-            selectionLevel,
+            ...ancestors,
           })
         }
       },

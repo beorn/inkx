@@ -497,6 +497,30 @@ export function deriveCursorPath(index: Map<string, ViewNode>, nodeId: string): 
   return path
 }
 
+/**
+ * Classify a cursor node using the ViewNode index.
+ *
+ * Returns the card ancestor, column ancestor, and selection level — derived
+ * from the ViewNode tree's parent pointers rather than walking the data model's
+ * parent_id chain. This replaces the legacy deriveCursorAncestors function.
+ */
+export function classifyCursorFromViewIndex(
+  index: Map<string, ViewNode>,
+  nodeId: string | null,
+): { cursorCardNodeId: string | null; cursorColumnNodeId: string | null; selectionLevel: "board" | "column" | "card" } {
+  if (!nodeId) {
+    return { cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }
+  }
+
+  const cursorPath = deriveCursorPath(index, nodeId)
+  const cursorColumnNodeId = cursorPath.length >= 1 ? cursorPath[0]! : null
+  const cursorCardNodeId = cursorPath.length >= 2 ? cursorPath[1]! : null
+  const selectionLevel: "board" | "column" | "card" =
+    cursorPath.length === 0 ? "board" : cursorPath.length === 1 ? "column" : "card"
+
+  return { cursorCardNodeId, cursorColumnNodeId, selectionLevel }
+}
+
 /** Lightweight column descriptor for backward compatibility with ColumnView */
 export interface CompatColumnView {
   nodeId: string

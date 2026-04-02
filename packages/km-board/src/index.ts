@@ -42,7 +42,14 @@ export { createGridNavigator } from "./grid-navigator.ts"
 export type { GridNavigator, CrossAxisResult } from "./grid-navigator.ts"
 
 // ===== View Tree =====
-export { buildViewTree, buildViewIndex, dfsTraversal, deriveCursorPath, toColumnViews } from "./view-tree.ts"
+export {
+  buildViewTree,
+  buildViewIndex,
+  dfsTraversal,
+  deriveCursorPath,
+  classifyCursorFromViewIndex,
+  toColumnViews,
+} from "./view-tree.ts"
 export type {
   ViewNode,
   ViewRole,
