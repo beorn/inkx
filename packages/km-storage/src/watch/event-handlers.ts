@@ -48,6 +48,15 @@ export interface FsWriteTarget {
 
   /** Record a write token for a path (for watcher suppression). Optional. */
   recordWriteToken?(absPath: string, content: string): void
+
+  /** Rewrite a pending write's path when the target file is renamed. Optional. */
+  renamePending?(oldPath: string, newPath: string): boolean
+
+  /** Cancel a pending write for a deleted file. Optional. */
+  dropPending?(path: string): boolean
+
+  /** Rewrite all pending writes under a renamed directory. Optional. */
+  renamePendingSubtree?(oldPrefix: string, newPrefix: string): number
 }
 
 /**
@@ -441,6 +450,10 @@ export class EventHandlers {
 
     log.info?.(`folder rename: ${oldFsPath} → ${newFsPath}`)
 
+    // Rewrite all pending writes under the old directory to the new path
+    // BEFORE the rename so queued writes flush to the new location
+    this.fsTarget.renamePendingSubtree?.(oldAbsPath, newAbsPath)
+
     if (existsSync(oldAbsPath)) {
       this.fsTarget.markInFlight?.(oldAbsPath)
       this.fsTarget.markInFlight?.(newAbsPath)
@@ -544,6 +557,10 @@ export class EventHandlers {
     }
 
     log.info?.(`file rename: ${oldFsPath} → ${newFsPath}`)
+
+    // Rewrite any pending write from old path to new path BEFORE the rename
+    // so the queued write flushes to the new location instead of recreating the old file
+    this.fsTarget.renamePending?.(oldAbsPath, newAbsPath)
 
     if (existsSync(oldAbsPath)) {
       this.fsTarget.markInFlight?.(oldAbsPath)

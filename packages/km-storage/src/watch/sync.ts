@@ -225,6 +225,15 @@ export class SyncManager extends EventEmitter {
         this.writeTokens.record(absPath, content)
         this.syncState.recordProjection(absPath, content)
       },
+      renamePending: (oldPath: string, newPath: string) => {
+        return this.writeQueue.renamePending(oldPath, newPath)
+      },
+      renamePendingSubtree: (oldPrefix: string, newPrefix: string) => {
+        return this.writeQueue.renamePendingSubtree(oldPrefix, newPrefix)
+      },
+      dropPending: (path: string) => {
+        return this.writeQueue.dropPending(path)
+      },
     }
 
     this.handlers = new EventHandlers(this.db, this.config.repoPath, this.emitter, fsTarget)
