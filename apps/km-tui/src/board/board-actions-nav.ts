@@ -76,11 +76,17 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
   return result
 }
 
-/** Outline mode prev/next sub-item navigation using node IDs. */
+/**
+ * Outline mode prev/next sub-item navigation using ViewTree.
+ *
+ * Uses the ViewTree (which drives rendering) so navigation exactly matches what
+ * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
+ * at construction time — same approach as getVisibleColumnBlocks for spatial nav.
+ */
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
-  const descendantIds = ctx.getVisibleDescendantIds(card, Infinity, ctx.foldDepths)
+  const descendantIds = getVisibleCardDescendants(ctx, card.id)
   const navState = extractNavState(ctx)
   const result = applyOutlineNav(navState, dir, descendantIds)
 
@@ -88,6 +94,32 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 
   runBoardEffects(ctx, result)
   return ok()
+}
+
+/**
+ * Get flat list of all visible descendant IDs of a card, in DFS order.
+ *
+ * Uses the ViewTree (which drives rendering) so navigation exactly matches what
+ * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
+ * at construction time.
+ */
+function getVisibleCardDescendants(ctx: ActionCtx, cardId: string): string[] {
+  const cardView = ctx.viewIndex.get(cardId)
+  if (!cardView) return [cardId]
+
+  const descendants: string[] = []
+  // DFS walk — ViewNode.children is already pruned for hidden/collapsed nodes
+  const stack = [cardView]
+  while (stack.length > 0) {
+    const vn = stack.pop()!
+    descendants.push(vn.id)
+    // Push children in reverse so first child is processed first
+    for (let i = vn.children.length - 1; i >= 0; i--) {
+      stack.push(vn.children[i]!)
+    }
+  }
+
+  return descendants
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */

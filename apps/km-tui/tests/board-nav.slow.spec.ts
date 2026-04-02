@@ -881,11 +881,11 @@ describe("Sub-block navigation", () => {
 })
 
 // =============================================================================
-// Outline nav (cursor_prev/cursor_next inside a card's sub-items)
+// Outline nav (j/k inside a card's sub-items with depth-2+ descendants)
 // =============================================================================
 
-describe("Outline navigation (cursor_prev/cursor_next)", () => {
-  test("cursor_next traverses into grandchildren (depth 2+) when visible", () => {
+describe("Outline navigation with grandchildren", () => {
+  test("j/k traverse into grandchildren (depth 2+) when clicking sub-items", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -905,48 +905,25 @@ describe("Outline navigation (cursor_prev/cursor_next)", () => {
     board.click(box.x + 1, box.y)
     board.expect("#section-a[data-cursor]").toExist()
 
-    // cursor_next should go to grandchild-1 (NOT section-b — must traverse depth 2+)
-    board.command("cursor_next")
+    // j should navigate through grandchildren (depth 2+), not skip them
+    board.command("cursor_down")
     board.expect("#grandchild-1[data-cursor]").toExist()
 
-    // cursor_next → grandchild-2
-    board.command("cursor_next")
+    board.command("cursor_down")
     board.expect("#grandchild-2[data-cursor]").toExist()
 
-    // cursor_next → section-b
-    board.command("cursor_next")
-    board.expect("#section-b[data-cursor]").toExist()
-  })
-
-  test("cursor_prev walks backward through grandchildren", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item(
-            "Column",
-            item("card", item("section-a", item("grandchild-1"), item("grandchild-2")), item("section-b")),
-          ),
-        ),
-      { columns: 80, rows: 24 },
-    )
-
-    // Click section-b to enter outline mode
-    const el = board.q("[id='section-b']")
-    const box = el.boundingBox()!
-    board.click(box.x + 1, box.y)
+    // j from grandchild-2 → section-b (next sibling of section-a)
+    board.command("cursor_down")
     board.expect("#section-b[data-cursor]").toExist()
 
-    // cursor_prev → grandchild-2 (must descend into section-a's children)
-    board.command("cursor_prev")
+    // k back through grandchildren
+    board.command("cursor_up")
     board.expect("#grandchild-2[data-cursor]").toExist()
 
-    // cursor_prev → grandchild-1
-    board.command("cursor_prev")
+    board.command("cursor_up")
     board.expect("#grandchild-1[data-cursor]").toExist()
 
-    // cursor_prev → section-a
-    board.command("cursor_prev")
+    board.command("cursor_up")
     board.expect("#section-a[data-cursor]").toExist()
   })
 })
