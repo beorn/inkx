@@ -16,6 +16,7 @@ import {
   toColumnViews,
   type ViewTreeRepo,
   type ViewNode,
+  type ViewNodeColumnCache,
 } from "../src/view-tree.ts"
 
 // =============================================================================
@@ -498,5 +499,201 @@ describe("toColumnViews", () => {
     expect(columns).toHaveLength(2)
     expect(columns[0]!.isVirtual).toBe(true)
     expect(columns[0]!.nodeId).toBe("__body__root")
+  })
+})
+
+// =============================================================================
+// Per-column caching tests
+// =============================================================================
+
+/**
+ * A mock repo that caches getChildren results by reference identity,
+ * so we can control cache invalidation by calling bustChildren().
+ */
+function createCachingMockRepo(initialNodes: KNode[]) {
+  const nodeMap = new Map<string, KNode>()
+  for (const n of initialNodes) nodeMap.set(n.id, n)
+
+  // Cache of children arrays keyed by parentId (null → "__null__")
+  const childrenCache = new Map<string, KNode[]>()
+
+  function cacheKey(parentId: string | null): string {
+    return parentId ?? "__null__"
+  }
+
+  const repo: ViewTreeRepo = {
+    getNode(id: string) {
+      return nodeMap.get(id) ?? null
+    },
+    getChildren(parentId: string | null) {
+      const key = cacheKey(parentId)
+      const cached = childrenCache.get(key)
+      if (cached) return cached
+      const result = [...nodeMap.values()]
+        .filter((n) => n.parent_id === parentId)
+        .sort((a, b) => a.parent_idx - b.parent_idx)
+      childrenCache.set(key, result)
+      return result
+    },
+    getNodesBatch(ids: string[]) {
+      const result = new Map<string, KNode>()
+      for (const id of ids) {
+        const n = nodeMap.get(id)
+        if (n) result.set(id, n)
+      }
+      return result
+    },
+  }
+
+  return {
+    repo,
+    /** Add a node to the mock repo */
+    addNode(node: KNode) {
+      nodeMap.set(node.id, node)
+      // Bust the parent's children cache so next getChildren returns a new array
+      childrenCache.delete(cacheKey(node.parent_id))
+    },
+    /** Remove a node from the mock repo */
+    removeNode(id: string) {
+      const node = nodeMap.get(id)
+      if (node) {
+        nodeMap.delete(id)
+        childrenCache.delete(cacheKey(node.parent_id))
+      }
+    },
+    /** Bust children cache for a specific parent (forces new array reference) */
+    bustChildren(parentId: string | null) {
+      childrenCache.delete(cacheKey(parentId))
+    },
+  }
+}
+
+describe("buildViewTree caching", () => {
+  const emptyFoldDepths = new Map<string, number>()
+
+  test("cache hit: unchanged columns reuse same ViewNode object", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Todo"),
+      heading("col2", "root", 1, "Done"),
+      paragraph("c1", "col1", 0, "Task 1"),
+      paragraph("c2", "col2", 0, "Task 2"),
+    ]
+
+    const { repo } = createCachingMockRepo(nodes)
+    const cache: ViewNodeColumnCache = new Map()
+
+    // First build populates cache
+    const tree1 = buildViewTree(repo, "root", emptyFoldDepths, cache)
+    expect(tree1.children).toHaveLength(2)
+    expect(cache.size).toBe(2)
+
+    const col1v1 = tree1.children[0]!
+    const col2v1 = tree1.children[1]!
+
+    // Second build with same repo state — should reuse cached ViewNodes
+    const tree2 = buildViewTree(repo, "root", emptyFoldDepths, cache)
+    expect(tree2.children[0]).toBe(col1v1) // Same object reference
+    expect(tree2.children[1]).toBe(col2v1) // Same object reference
+  })
+
+  test("cache miss: mutated column rebuilds only that column", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Todo"),
+      heading("col2", "root", 1, "Done"),
+      paragraph("c1", "col1", 0, "Task 1"),
+      paragraph("c2", "col2", 0, "Task 2"),
+    ]
+
+    const mock = createCachingMockRepo(nodes)
+    const cache: ViewNodeColumnCache = new Map()
+
+    // First build
+    const tree1 = buildViewTree(mock.repo, "root", emptyFoldDepths, cache)
+    const col1v1 = tree1.children[0]!
+    const col2v1 = tree1.children[1]!
+
+    // Mutate col1: add a new card
+    mock.addNode(paragraph("c1b", "col1", 1, "Task 1B"))
+
+    // Second build
+    const tree2 = buildViewTree(mock.repo, "root", emptyFoldDepths, cache)
+    expect(tree2.children[0]).not.toBe(col1v1) // col1 rebuilt (new children ref)
+    expect(tree2.children[1]).toBe(col2v1)     // col2 unchanged (cache hit)
+
+    // The rebuilt col1 has the new card
+    expect(tree2.children[0]!.children).toHaveLength(2)
+    expect(tree2.children[0]!.children[1]!.id).toBe("c1b")
+  })
+
+  test("no cache: works identically to uncached build", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Todo"),
+      paragraph("c1", "col1", 0, "Task 1"),
+    ]
+
+    const { repo } = createCachingMockRepo(nodes)
+
+    // Build without cache
+    const tree1 = buildViewTree(repo, "root", emptyFoldDepths)
+    // Build with empty cache
+    const cache: ViewNodeColumnCache = new Map()
+    const tree2 = buildViewTree(repo, "root", emptyFoldDepths, cache)
+
+    // Same structure
+    expect(tree1.children).toHaveLength(tree2.children.length)
+    expect(tree1.children[0]!.id).toBe(tree2.children[0]!.id)
+    expect(tree1.children[0]!.children.length).toBe(tree2.children[0]!.children.length)
+  })
+
+  test("cache cleared on zoom change: fresh cache for new rootId", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Todo"),
+      heading("col2", "root", 1, "Done"),
+      paragraph("c1", "col1", 0, "Task 1"),
+      paragraph("c2", "col2", 0, "Task 2"),
+      // col1 also has sub-columns when zoomed into
+      heading("sub1", "col1", 1, "Sub Section"),
+      paragraph("s1", "sub1", 0, "Sub Task"),
+    ]
+
+    const { repo } = createCachingMockRepo(nodes)
+
+    // Build at root level
+    const cache1: ViewNodeColumnCache = new Map()
+    const tree1 = buildViewTree(repo, "root", emptyFoldDepths, cache1)
+    expect(cache1.size).toBe(2) // col1, col2
+
+    // Simulate zoom: create a new cache (as board-app.ts does on rootId change)
+    const cache2: ViewNodeColumnCache = new Map()
+    const tree2 = buildViewTree(repo, "col1", emptyFoldDepths, cache2)
+    expect(tree2.role).toBe("board")
+    expect(tree2.id).toBe("col1")
+    // sub1 is now a column
+    expect(cache2.size).toBeGreaterThan(0)
+    // Old cache entries are irrelevant — no cross-contamination
+    expect(cache1.size).toBe(2)
+  })
+
+  test("cached column parent pointer is updated to new root", () => {
+    const nodes: KNode[] = [
+      heading("root", null, 0),
+      heading("col1", "root", 0, "Todo"),
+      paragraph("c1", "col1", 0, "Task 1"),
+    ]
+
+    const { repo } = createCachingMockRepo(nodes)
+    const cache: ViewNodeColumnCache = new Map()
+
+    const tree1 = buildViewTree(repo, "root", emptyFoldDepths, cache)
+    expect(tree1.children[0]!.parent).toBe(tree1)
+
+    // Second build creates a new root
+    const tree2 = buildViewTree(repo, "root", emptyFoldDepths, cache)
+    expect(tree2).not.toBe(tree1) // New root
+    expect(tree2.children[0]!.parent).toBe(tree2) // Parent pointer updated
   })
 })

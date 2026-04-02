@@ -45,6 +45,21 @@ export interface ViewTreeRepo {
   getNodesBatch(ids: string[]): Map<string, KNode>
 }
 
+/**
+ * Per-column ViewNode cache entry.
+ * Keyed on column node ID; invalidated when the column's children array
+ * reference changes (childrenCache returns a new array when busted).
+ */
+export interface ViewNodeCacheEntry {
+  /** Reference identity check — childrenCache returns same array if not busted */
+  childrenRef: KNode[]
+  /** Cached ViewNode subtree for this column */
+  node: ViewNode
+}
+
+/** Cache for per-column ViewNode subtrees. Pass to buildViewTree to enable caching. */
+export type ViewNodeColumnCache = Map<string, ViewNodeCacheEntry>
+
 // =============================================================================
 // Constants — detail-only detection (mirrors use-columns.ts)
 // =============================================================================
@@ -154,7 +169,7 @@ function createVirtualBodyNode(parentId: string | null): KNode {
  * The tree root has role "board", its children are columns (or body-column),
  * column children are cards, and card children are subitems.
  */
-export function buildViewTree(repo: ViewTreeRepo, rootId: string | null, _foldDepths: Map<string, number>): ViewNode {
+export function buildViewTree(repo: ViewTreeRepo, rootId: string | null, _foldDepths: Map<string, number>, cache?: ViewNodeColumnCache): ViewNode {
   const boardNode = rootId ? repo.getNode(rootId) : null
 
   const root: ViewNode = {
@@ -198,15 +213,50 @@ export function buildViewTree(repo: ViewTreeRepo, rootId: string | null, _foldDe
   const indexFile = rootNode?.fstype === "folder" ? findIndexFile(rootNode, deduped) : null
 
   if (indexFile) {
-    expandIndexFileViewNodes(repo, indexFile, deduped, root)
+    expandIndexFileViewNodes(repo, indexFile, deduped, root, cache)
   } else {
     for (const node of deduped) {
       if (isDetailOnly(node)) continue
-      root.children.push(buildColumnNode(repo, node, root))
+      root.children.push(buildColumnNodeCached(repo, node, root, cache))
     }
   }
 
   return root
+}
+
+// =============================================================================
+// Cached column builder
+// =============================================================================
+
+/**
+ * Build a column ViewNode, using the cache when available.
+ * Cache key: column node ID. Invalidated when the column's children array
+ * reference changes (the repo's childrenCache returns a new array on bust).
+ */
+function buildColumnNodeCached(
+  repo: ViewTreeRepo,
+  node: KNode,
+  parent: ViewNode,
+  cache?: ViewNodeColumnCache,
+): ViewNode {
+  if (cache) {
+    const childrenRef = repo.getChildren(node.id)
+    const entry = cache.get(node.id)
+
+    if (entry && entry.childrenRef === childrenRef) {
+      // Cache hit — reuse subtree, fix parent pointer to new root
+      const cached = entry.node
+      cached.parent = parent
+      return cached
+    }
+
+    // Cache miss — build fresh, store in cache
+    const col = buildColumnNode(repo, node, parent)
+    cache.set(node.id, { childrenRef, node: col })
+    return col
+  }
+
+  return buildColumnNode(repo, node, parent)
 }
 
 // =============================================================================
@@ -313,7 +363,7 @@ function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vi
 // Folder-index expansion (mirrors expandIndexFileColumns in use-columns.ts)
 // =============================================================================
 
-function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped: KNode[], root: ViewNode): void {
+function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped: KNode[], root: ViewNode, cache?: ViewNodeColumnCache): void {
   const indexChildren = repo.getChildren(indexFile.id)
   const { body: indexBody } = extractBody(indexChildren)
 
@@ -344,7 +394,7 @@ function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped:
   const resolveSlot = (target: string): boolean => {
     const child = deduped.find((n) => n !== indexFile && namesAreSimilar(n.name ?? "", target))
     if (child) {
-      root.children.push(buildColumnNode(repo, child, root))
+      root.children.push(buildColumnNodeCached(repo, child, root, cache))
       referencedIds.add(child.id)
       return true
     }
@@ -368,7 +418,7 @@ function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped:
     }
     if (KNode.isOutline(child)) {
       if (!isDetailOnly(child)) {
-        root.children.push(buildColumnNode(repo, child, root))
+        root.children.push(buildColumnNodeCached(repo, child, root, cache))
       }
     } else if (!indexBody.includes(child) && isBodyContent(child)) {
       fallbackBody.push(child)
@@ -397,7 +447,7 @@ function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped:
   for (const node of deduped) {
     if (node === indexFile || referencedIds.has(node.id)) continue
     if (isDetailOnly(node)) continue
-    root.children.push(buildColumnNode(repo, node, root))
+    root.children.push(buildColumnNodeCached(repo, node, root, cache))
   }
 }
 

@@ -43,4 +43,4 @@ export type { GridNavigator, CrossAxisResult } from "./grid-navigator.ts"
 
 // ===== View Tree =====
 export { buildViewTree, buildViewIndex, dfsTraversal, deriveCursorPath, toColumnViews } from "./view-tree.ts"
-export type { ViewNode, ViewRole, ViewTreeRepo, CompatColumnView } from "./view-tree.ts"
+export type { ViewNode, ViewRole, ViewTreeRepo, CompatColumnView, ViewNodeCacheEntry, ViewNodeColumnCache } from "./view-tree.ts"

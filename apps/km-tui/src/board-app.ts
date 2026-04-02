@@ -31,7 +31,7 @@ import { readBoardHidden, isHidden } from "./hidden.ts"
 import { getViewNavigation } from "./view-navigation.ts"
 import { checkInvariants } from "./invariants.ts"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
-import { buildViewTree, buildViewIndex, type ViewNode } from "@km/board"
+import { buildViewTree, buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "./layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "./ui-reducer.ts"
@@ -85,6 +85,7 @@ export interface BoardAppLocals {
     viewTree: ViewNode
     viewIndex: Map<string, ViewNode>
     hiddenNodeIds: Set<string>
+    viewNodeCache: ViewNodeColumnCache
   } | null
   /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
   cursorCache: {
@@ -238,10 +239,15 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
       columns = derive(s.repo, rootId, foldDepths)
       nodeIndex = buildNodeIndex(columns)
-      viewTree = buildViewTree(s.repo, rootId, foldDepths)
+      // Reuse viewNode cache if rootId hasn't changed (zoom); clear on zoom change
+      const viewNodeCache: ViewNodeColumnCache =
+        locals.layoutCache && locals.layoutCache.rootId === rootId
+          ? locals.layoutCache.viewNodeCache
+          : new Map()
+      viewTree = buildViewTree(s.repo, rootId, foldDepths, viewNodeCache)
       viewIndex = buildViewIndex(viewTree)
       hiddenNodeIds = computeHiddenNodeIds(s.repo, columns)
-      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex, hiddenNodeIds }
+      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex, hiddenNodeIds, viewNodeCache }
     }
     const cursorState = s.cursorStore.getState()
     const cursorCardNodeId = cursorState.cursorCardNodeId
