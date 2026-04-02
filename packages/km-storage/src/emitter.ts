@@ -139,10 +139,15 @@ export function createEmitter(options: EmitterOptions): Emitter {
       }
 
       // 2. Persist to events.jsonl (unless skipPersist is set per-call or as default)
+      // Isolated: failure here must not prevent broadcast (step 3) or fs sync (step 4)
       const shouldPersist = !(emitOptions.skipPersist ?? defaultSkipPersist)
       if (shouldPersist) {
-        ensureKmDir()
-        appendFileSync(eventsPath, JSON.stringify(event) + "\n")
+        try {
+          ensureKmDir()
+          appendFileSync(eventsPath, JSON.stringify(event) + "\n")
+        } catch (err) {
+          log.error?.(`events.jsonl append failed for ${event.type}: ${err}`)
+        }
       }
 
       // 3. Broadcast via event hub — isolated so failure doesn't block fs sync
