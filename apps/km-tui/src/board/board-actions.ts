@@ -1826,6 +1826,16 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
  *  Cards at column level use col.cardNodes for sibling lookup.
  *  Sub-section nodes walk siblings via extractBody().items, then recurse up
  *  to the parent level — so sub→sibling, sub→next-card, and card→card all work. */
+/** Walk to the deepest last descendant — the bottom-most editable node in a subtree. */
+function findDeepestLast(repo: ActionCtx["repo"], nodeId: string, depth = 0): KNode | null {
+  if (depth > 20) return repo.getNode(nodeId) ?? null
+  const children = repo.getChildren(nodeId)
+  const { items } = extractBody(children)
+  if (items.length === 0) return repo.getNode(nodeId) ?? null
+  const lastItem = items[items.length - 1]!
+  return findDeepestLast(repo, lastItem.id, depth + 1)
+}
+
 function findAdjacentEditNode(
   repo: ActionCtx["repo"],
   nodeId: string,
@@ -1920,6 +1930,25 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   const adjacentNode = findAdjacentEditNode(ctx.repo, edit.nodeId, direction, ctx.column)
 
   if (adjacentNode) {
+    // For "up" direction: navigate to the deepest last descendant (bottom of card).
+    // This includes sub-sections below body blocks — auto-expand makes them visible.
+    if (direction === "up") {
+      const deepest = findDeepestLast(ctx.repo, adjacentNode.id)
+      if (deepest && deepest.id !== adjacentNode.id) {
+        const deepBodyCount = extractBody(ctx.repo.getChildren(deepest.id)).body.length
+        ctx.dispatchBoard({ type: "SELECT", nodeId: deepest.id })
+        ctx.setUI({
+          inlineEditBlock: {
+            nodeId: deepest.id,
+            blockIndex: deepBodyCount,
+            initialCursorPos: "end",
+            stickyX,
+          },
+        })
+        requestRenderFlush()
+        return ok()
+      }
+    }
     const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentNode.id)).body.length
     const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
     ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentNode.id })

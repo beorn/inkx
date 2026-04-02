@@ -19,7 +19,10 @@ import {
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
+import { createLogger } from "loggily"
 import { getModeStack } from "./dialog-guard.ts"
+
+const log = createLogger("km:command-bridge")
 
 /** Cached Kitty keyboard protocol detection (static — doesn't change at runtime).
  * In test environments, Kitty is disabled so bare y/d/p bindings work (tests don't
@@ -115,9 +118,34 @@ function buildCommandContexts(ctx: ActionCtx) {
       return children.some((c) => c.item)
     },
     editLevel() {
-      // When editing, the level is determined by where the edited node sits in the board
-      if (!ui.inlineEditBlock) return "card" as const
-      return ctx.colIndex < 0 ? ("board" as const) : ctx.isAtCardLevel ? ("card" as const) : ("column" as const)
+      // When editing, the level is determined by where the EDITED NODE sits in the board.
+      // Uses the editing node's position in nodeIndex, not the cursor position, to avoid
+      // misclassification when cursor and editing node diverge (e.g., after creating a
+      // new node that hasn't been indexed yet).
+      if (!ui.inlineEditBlock) {
+        log.error?.("editLevel() called without inlineEditBlock")
+        return "card" as const
+      }
+      const editNodeId = ui.inlineEditBlock.nodeId
+
+      // Direct lookup in nodeIndex
+      let entry = ctx.nodeIndex?.get(editNodeId)
+
+      // If not found, walk up the parent chain (same as deriveCursorIndices)
+      if (!entry) {
+        let current = ctx.repo.getNode(editNodeId)
+        for (let i = 0; i < 20 && current?.parent_id; i++) {
+          entry = ctx.nodeIndex?.get(current.parent_id)
+          if (entry) break
+          current = ctx.repo.getNode(current.parent_id)
+        }
+      }
+
+      if (!entry) {
+        log.error?.(`editLevel(): editing node ${editNodeId} not found in nodeIndex`)
+        return "card" as const
+      }
+      return entry.cardIndex < 0 ? ("column" as const) : ("card" as const)
     },
   })
 
