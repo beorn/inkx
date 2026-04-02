@@ -505,7 +505,7 @@ function TreeNodeImpl({
   // Uses per-node reactive signals where possible to avoid O(N) global re-renders.
   const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
   const editNodeId = useAppStore<BoardAppStore, string | null | undefined>(
-    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId,
+    (s) => s.workspace ? getActiveBoardPane(s)?.inlineEditBlock?.nodeId : undefined,
   )
   // Cursor expansion: reuse cursorInDescendant from above (per-card signal, O(1) re-renders)
   const shouldExpand =
