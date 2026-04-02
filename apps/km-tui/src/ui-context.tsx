@@ -10,8 +10,7 @@ import React, { createContext, useContext, useMemo } from "react"
 import { useApp as useAppStore, useAppShallow } from "@silvery/create/create-app"
 import type { UIState, PaneUI, IconStyle, BorderMode } from "./ui-reducer.ts"
 import { createEmptyFilterProperties } from "./ui-reducer.ts"
-import type { BoardAppStore } from "./board-app-store.ts"
-import { getActiveBoardPane } from "./board-app-store.ts"
+import { Workspace, type BoardAppStore } from "./board-app-store.ts"
 import { mergePaneUI, type PerPaneUIFields } from "./board-types.ts"
 
 /** Default per-pane UI field values (used when no board pane is focused) */
@@ -80,7 +79,7 @@ export function useSetUI(): BoardAppStore["setUI"] {
  */
 export function usePaneUI(): PaneUI {
   return useAppShallow<BoardAppStore, PaneUI>((s) => {
-    const pane = getActiveBoardPane(s)
+    const pane = Workspace.getActiveBoardPane(s)
     if (!pane) return { ...s.ui, ...DEFAULT_PANE_UI } as PaneUI
     return mergePaneUI(s.ui, pane)
   })
@@ -99,7 +98,7 @@ export function usePaneUI(): PaneUI {
  */
 export function useTreeConfig() {
   return useAppShallow<BoardAppStore, TreeConfig>((s) => {
-    const pane = getActiveBoardPane(s)
+    const pane = Workspace.getActiveBoardPane(s)
     return deriveTreeConfig(pane?.viewMode ?? "columns", pane?.maxContentLines ?? 3, s.ui)
   })
 }

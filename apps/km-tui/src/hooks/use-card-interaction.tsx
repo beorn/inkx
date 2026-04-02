@@ -11,8 +11,7 @@ import React, { useCallback, useEffect, useRef } from "react"
 import { StoreContext } from "@silvery/create/create-app"
 import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
-import type { BoardAppStore } from "../board-app-store.ts"
-import { getActiveBoardPane } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { usePopover } from "../views/Popover.tsx"
@@ -87,7 +86,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       }
 
       if (e.metaKey || cmdHeld) {
-        const boardPane = getActiveBoardPane(state)
+        const boardPane = Workspace.getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
       } else {

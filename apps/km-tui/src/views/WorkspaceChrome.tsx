@@ -10,7 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
-import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import { usePaneUI } from "../ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
@@ -180,19 +180,19 @@ export function WorkspaceChrome({
   const ui = usePaneUI()
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
   const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = getActiveBoardPane(s)
+    const p = Workspace.getActiveBoardPane(s)
     return p?.rootPath ?? null
   })
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => {
-    const p = getActiveBoardPane(s)
+    const p = Workspace.getActiveBoardPane(s)
     return p?.moveState.active ?? false
   })
   const rootId = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = getActiveBoardPane(s)
+    const p = Workspace.getActiveBoardPane(s)
     return p?.rootId ?? null
   })
   const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = getActiveBoardPane(s)
+    const p = Workspace.getActiveBoardPane(s)
     return p?.cursorNodeId ?? null
   })
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
@@ -468,7 +468,7 @@ export interface WorkspaceBottomBarProps {
 export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): React.ReactElement {
   const ui = usePaneUI()
   const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = getActiveBoardPane(s)
+    const p = Workspace.getActiveBoardPane(s)
     return p?.rootPath ?? null
   })
   const repo = useRepo()

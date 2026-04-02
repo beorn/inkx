@@ -46,8 +46,8 @@ import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 // cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)
-import type { CursorStore } from "../cursor-store.ts"
-import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
+import { SelectionLevel, type CursorStore } from "../cursor-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
@@ -746,8 +746,7 @@ export function Board({ patchedConsole }: BoardProps) {
     [columns, cursorPosition, nodeIndex],
   )
 
-  const derivedSelectionLevel: "board" | "column" | "card" =
-    cursorPosition.colIndex < 0 ? "board" : cursorPosition.isAtCardLevel ? "card" : "column"
+  const derivedSelectionLevel = SelectionLevel.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
 
   // Read hidden paths for filtering (re-read only when hidden list actually changes)
   const hiddenPaths = useMemo(() => readBoardHidden(repo.path), [repo.path, ui.hiddenVersion])
@@ -1049,7 +1048,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         const targetId = href.slice("km://zoom/".length)
         if (!targetId) return
         const state = storeApi.getState()
-        const boardPane = getActiveBoardPane(state)
+        const boardPane = Workspace.getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
         return
@@ -1062,7 +1061,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
       // Read current state imperatively (event handler, not render)
       const state = storeApi.getState()
-      const boardPane = getActiveBoardPane(state)
+      const boardPane = Workspace.getActiveBoardPane(state)
       const rootId = boardPane?.rootId ?? null
 
       // In detail view: clicking a link zooms the detail view to that node

@@ -15,7 +15,7 @@ import { createLogger } from "loggily"
 type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "./board-app-store.ts"
-import { createBoardAppStoreState, getActiveBoardPane, type CreateBoardAppStoreParams } from "./board-app-store.ts"
+import { createBoardAppStoreState, Workspace, type CreateBoardAppStoreParams } from "./board-app-store.ts"
 import { isBoardPane, isDetailViewPane } from "./board-types.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
@@ -220,7 +220,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
    */
   function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     const s = get()
-    const board = getActiveBoardPane(s)
+    const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
     const cursorNodeId = board?.cursorNodeId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()

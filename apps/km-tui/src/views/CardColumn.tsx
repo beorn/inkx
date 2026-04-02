@@ -17,7 +17,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board-types.ts"
 import type { CardView, ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
-import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import { parseToPlainText, InlineText } from "../text/index.ts"
@@ -190,14 +190,14 @@ export const Card = React.memo(
     // Also matches when a sub-item of this card is being edited (derived expandedEditCardId).
     const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
-      const edit = getActiveBoardPane(s)?.inlineEditBlock
+      const edit = Workspace.getActiveBoardPane(s)?.inlineEditBlock
       return edit?.nodeId === nodeId
     })
     const isEditing = isDirectlyEditing || expandedEditCardId === nodeId
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
     const isMultiSelected = useAppStore<BoardAppStore, boolean>(
-      (s) => getActiveBoardPane(s)?.multiSelected.has(nodeId) ?? false,
+      (s) => Workspace.getActiveBoardPane(s)?.multiSelected.has(nodeId) ?? false,
     )
 
     // Compute overflow: check if any children are hidden by maxContentLines.
@@ -584,12 +584,12 @@ export const Column = React.memo(function Column({
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useAppStore<BoardAppStore, boolean>(
-    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === nodeId,
+    (s) => Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId === nodeId,
   )
 
   // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
   const columnScrollAnchor = useAppStore<BoardAppStore, number | null>((s) => {
-    const pane = getActiveBoardPane(s)
+    const pane = Workspace.getActiveBoardPane(s)
     return pane?.columnScrollAnchor?.colIdx === colIndex ? pane.columnScrollAnchor.anchor : null
   })
 

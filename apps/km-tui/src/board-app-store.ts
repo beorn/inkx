@@ -7,8 +7,8 @@
  * - driver reads via handle.store.getState()
  *
  * Board navigation state lives in workspace.panes (each BoardPaneState owns
- * its rootId, cursorNodeId, foldDepths, etc). Use getActiveBoardPane() to
- * access the currently-targeted board pane.
+ * its rootId, cursorNodeId, foldDepths, etc). Use Workspace.getActiveBoardPane()
+ * to access the currently-targeted board pane.
  *
  * UI fields are grouped under `ui`.
  *
@@ -67,7 +67,7 @@ import { resolveEmbed } from "./views/embed-display.ts"
  *
  * Board navigation state (rootId, cursorNodeId, foldDepths, etc.) lives in
  * workspace.panes — each BoardPaneState holds its own navigation state.
- * Use getActiveBoardPane(state) to access the targeted board pane.
+ * Use Workspace.getActiveBoardPane(state) to access the targeted board pane.
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
  * demand by the key handler (buildActionCtx) and by React (useColumns hook).
@@ -105,47 +105,73 @@ export interface BoardAppState {
   _searchReplaceReplaceHandler: ((query: string) => void) | null
 }
 
-/**
- * Get the focused pane's state from the workspace.
- */
-export function getFocusedPane(state: BoardAppState): PaneState {
-  const pane = state.workspace.panes.get(state.workspace.focusedPaneId)
-  if (!pane) throw new Error(`Focused pane "${state.workspace.focusedPaneId}" not found in workspace`)
-  return pane
-}
+// =============================================================================
+// Workspace namespace — discoverable pane accessors
+// =============================================================================
 
 /**
- * Get the board pane that keyboard commands and navigation should target.
+ * Namespace for workspace pane queries.
  *
- * If the focused pane is a board, returns it directly.
- * If focused on a detail pane, returns the detail pane itself (it IS a board pane).
- * For empty panes, falls back to any board pane.
+ * Prefer `Workspace.getActiveBoardPane(state)` over accessing
+ * `state.workspace.panes` directly — it encapsulates focus logic,
+ * detail-pane fallback, and the pane map lookup in one place.
  */
-export function getActiveBoardPane(state: BoardAppState): BoardPaneState | null {
-  const focusedId = state.workspace.focusedPaneId
-  const focused = state.workspace.panes.get(focusedId)
-  if (focused && isBoardPane(focused)) {
-    return focused
-  }
+export const Workspace = {
+  /** Get the focused pane's state (throws if not found). */
+  getFocusedPane(state: BoardAppState): PaneState {
+    const pane = state.workspace.panes.get(state.workspace.focusedPaneId)
+    if (!pane) throw new Error(`Focused pane "${state.workspace.focusedPaneId}" not found in workspace`)
+    return pane
+  },
 
-  // Last resort (empty pane focused): find any board pane
-  for (const pane of state.workspace.panes.values()) {
-    if (isBoardPane(pane)) return pane
-  }
-  return null
+  /** Get the focused pane's ID. */
+  getFocusedPaneId(state: BoardAppState): string {
+    return state.workspace.focusedPaneId
+  },
+
+  /** Look up a pane by ID (returns undefined if not found). */
+  getPane(state: BoardAppState, paneId: string): PaneState | undefined {
+    return state.workspace.panes.get(paneId)
+  },
+
+  /**
+   * Get the board pane that keyboard commands and navigation should target.
+   *
+   * If the focused pane is a board, returns it directly.
+   * If focused on a detail pane, returns the detail pane itself (it IS a board pane).
+   * For empty panes, falls back to any board pane.
+   */
+  getActiveBoardPane(state: BoardAppState): BoardPaneState | null {
+    const focusedId = state.workspace.focusedPaneId
+    const focused = state.workspace.panes.get(focusedId)
+    if (focused && isBoardPane(focused)) {
+      return focused
+    }
+
+    // Last resort (empty pane focused): find any board pane
+    for (const pane of state.workspace.panes.values()) {
+      if (isBoardPane(pane)) return pane
+    }
+    return null
+  },
+
+  /**
+   * Get the parent board pane for a detail pane.
+   * Returns null if the focused pane is not a detail pane.
+   */
+  getParentBoardPane(state: BoardAppState): BoardPaneState | null {
+    const focused = Workspace.getActiveBoardPane(state)
+    if (!focused || !isDetailViewPane(focused) || !focused.parentPaneId) return null
+    const parent = state.workspace.panes.get(focused.parentPaneId)
+    if (parent && isBoardPane(parent)) return parent
+    return null
+  },
 }
 
-/**
- * Get the parent board pane for a detail pane.
- * Returns null if the focused pane is not a detail pane.
- */
-export function getParentBoardPane(state: BoardAppState): BoardPaneState | null {
-  const focused = getActiveBoardPane(state)
-  if (!focused || !isDetailViewPane(focused) || !focused.parentPaneId) return null
-  const parent = state.workspace.panes.get(focused.parentPaneId)
-  if (parent && isBoardPane(parent)) return parent
-  return null
-}
+// Bare aliases for backward compatibility (used extensively in tests and internal store code)
+export const getFocusedPane = Workspace.getFocusedPane
+export const getActiveBoardPane = Workspace.getActiveBoardPane
+export const getParentBoardPane = Workspace.getParentBoardPane
 
 /**
  * Actions on the store.

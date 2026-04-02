@@ -17,7 +17,7 @@ import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
@@ -73,7 +73,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId ?? null,
+    (s) => Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId ?? null,
   )
 
   const count = column.cardNodes.length

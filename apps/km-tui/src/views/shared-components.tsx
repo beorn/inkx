@@ -12,7 +12,7 @@ import { createLogger } from "loggily"
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
-import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
@@ -66,12 +66,12 @@ export const MemoizedTreeCard = React.memo(
     const cursorIsSelected = _cursorCardNodeId === card.id && _selLevel === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useAppStore<BoardAppStore, boolean>(
-      (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId === card.id,
+      (s) => Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId === card.id,
     )
 
     // Fold depth: per-card override or root's depth budget
     const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {
-      const board = getActiveBoardPane(s)
+      const board = Workspace.getActiveBoardPane(s)
       if (!board) return 1
       const cardOverride = board.foldDepths.get(card.id)
       if (cardOverride !== undefined) return cardOverride

@@ -69,7 +69,7 @@ import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
 import {
   createBoardAppStoreState,
-  getActiveBoardPane,
+  Workspace,
   type BoardAppStore,
   type CreateBoardAppStoreParams,
 } from "./board-app-store.ts"
@@ -248,7 +248,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // Build command context from store state — derive layout on demand
   const getContext = (): CommandContext => {
     const s = store.getState()
-    const board = getActiveBoardPane(s)
+    const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
     const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
@@ -345,7 +345,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const getDriverState = (): TUIDriverState => {
     const baseState = baseGetState()
     const s = store.getState()
-    const board = getActiveBoardPane(s)
+    const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 

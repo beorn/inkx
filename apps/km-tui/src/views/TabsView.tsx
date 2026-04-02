@@ -18,7 +18,7 @@ import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -47,7 +47,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId ?? null,
+    (s) => Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId ?? null,
   )
 
   // Get current column
