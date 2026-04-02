@@ -1,8 +1,25 @@
-# Discoverable Interfaces
+# Discoverable Interfaces — Fewer Concepts, Richer Reuse
 
-**TL;DR**: Put methods on core interfaces, not as bare functions. Bare functions are invisible; interface methods are the vocabulary of the system.
+**TL;DR**: The system's quality scales with the richness of a few core domain objects — not the number of ad-hoc helpers scattered across files. Put operations on core namespaces. Make them discoverable. Let the vocabulary do the work.
 
 ---
+
+## The Design Philosophy
+
+A well-designed system has **few concepts that compose richly**, not many concepts that each do one thing. When you add a new operation, the question isn't "where should this function go?" — it's "which domain object does this belong to?"
+
+In km, the domain objects are:
+
+| Layer | Node | Tree | Traversal |
+|-------|------|------|-----------|
+| Data | `KNode` | `KTree` (future) | `KTree.nodes(root, { match, into })` |
+| View | `ViewNode` | `ViewTree` | `ViewTree.nodes(root, { match, into })` |
+
+These aren't just data structures — they're the **vocabulary of the system**. Every operation on a tree (traverse, find siblings, get descendants, find deepest node) belongs on these namespaces. Every type check on a node (`isOutline`, `isTask`, `isBody`) belongs on the node namespace.
+
+When a developer (or AI agent) needs to do something with a ViewNode, they type `ViewTree.` and see the full API. They don't grep. They don't write a new function. They use the vocabulary.
+
+**The principle**: if you find yourself writing a helper function that operates on a core domain object, it probably belongs ON that domain object's namespace. The function isn't wrong — its location is wrong. Moving it to the namespace makes it discoverable and prevents the next person from reimplementing it.
 
 ## The Problem
 
