@@ -79,7 +79,7 @@ export const KNode = {
   },
 
   /** Check if node properties match a partial shape. */
-  matches(node: NodeLike & Record<string, unknown>, props: Record<string, unknown>): boolean {
+  matches(node: NodeLike, props: Record<string, unknown>): boolean {
     for (const key in props) {
       if ((node as Record<string, unknown>)[key] !== props[key]) return false
     }
