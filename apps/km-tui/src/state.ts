@@ -25,6 +25,12 @@ import {
  * Build cards for a column from its body and structural children.
  * Each body node is its own navigable card (body for styling).
  * Structural (oi) nodes are regular cards.
+ *
+ * This is a simplified version of toCardViews() from hooks/use-columns.ts,
+ * used only during initial load (buildBoardStateGenerator). It skips:
+ * - Embed resolution (resolvedNode is always undefined)
+ * - hasBodyChildren detection (always false)
+ * The canonical runtime path uses toCardViews() which resolves these.
  */
 function buildColumnCards(bodyNodes: KNode[], structuralNodes: KNode[]): CardView[] {
   const cards: CardView[] = []
@@ -131,7 +137,23 @@ export function* initBoardStateGenerator(
 }
 
 /**
- * Generator version of buildBoardState that yields progress
+ * Generator version of buildBoardState that yields progress.
+ *
+ * INITIAL-LOAD column derivation path. This is NOT the canonical runtime path —
+ * that is deriveColumnsFromRepo() in hooks/use-columns.ts. This path exists for:
+ * - Fast startup with progress yielding (loading screen)
+ * - Collecting collapsedColumns/collapsedNodeIds for initial board state
+ * - Simplified CardView construction (no embed resolution, no hasBodyChildren)
+ *
+ * Differences from deriveColumnsFromRepo:
+ * - No folder-index file expansion (index files handled at column level only)
+ * - No embed resolution (CardView.resolvedNode is always undefined)
+ * - No per-column memoization cache
+ * - WIP limits extracted from root node frontmatter (not column nodes)
+ * - Yields progress between columns for loading UI
+ *
+ * Structural equivalence with deriveColumnsFromRepo is tested in
+ * board-zoom.slow.spec.ts ("Zoom View Diff" describe block).
  */
 // oxlint-disable-next-line complexity/complexity -- Async generator with batched queries
 export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator<StepYield, InitialBoardData, unknown> {
@@ -297,6 +319,9 @@ function normalizeColumnName(name: string): string {
 /**
  * Build board state from a specific root ID (synchronous).
  * Delegates to the generator version, exhausting all yields.
+ *
+ * Used for initial board setup (driver.ts, test helpers). For runtime column
+ * derivation after the board is live, use deriveColumnsFromRepo() instead.
  */
 export function buildBoardState(repo: Repo, rootId: string): InitialBoardData {
   const gen = buildBoardStateGenerator(repo, rootId)

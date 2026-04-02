@@ -91,6 +91,10 @@ export function isDetailOnly(node: KNode): boolean {
 /**
  * Convert KNode[] to CardView[] with batch-resolved embeds.
  * bodyIds: Set of node IDs that are body blocks (before first outline item).
+ *
+ * Called multiple times per derivation (body columns, structural columns,
+ * index file expansion, detail view) — each call operates on a different
+ * node set so results cannot be shared.
  */
 function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView[] {
   // Batch-resolve embed targets in one SQL query
@@ -302,12 +306,21 @@ function mapDescendants(
 }
 
 /**
- * Pure function to derive columns from Repo.
- * Can be used outside of React for testing and in the store for synchronous layout.
+ * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
+ *
+ * All runtime column derivation paths must delegate here:
+ * - useColumns() hook (React render path)
+ * - buildActionCtx() in board-app.ts (key handler path, with layout cache)
+ * - driver.ts getContext/getDriverState (test/AI automation path)
+ *
+ * Note: buildBoardState/buildBoardStateGenerator in state.ts is a separate
+ * initial-load path that produces InitialBoardData (includes ColumnView[]).
+ * It uses a simplified CardView construction (no embed resolution, no
+ * hasBodyChildren check) for fast startup with progress yielding. The two
+ * paths are tested for structural equivalence in board-zoom.slow.spec.ts.
  *
  * Uses extractBody to split root children into leading body content and
- * structural (outline) columns -- matching buildBoardState's logic so that
- * zoomed-in views render identically to the board root.
+ * structural (outline) columns.
  */
 export function deriveColumnsFromRepo(
   repo: Repo,

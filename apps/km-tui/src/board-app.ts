@@ -202,7 +202,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   /**
    * Build an ActionCtx from store state.
    * Called on each key event to get fresh state.
-   * Caches columns/nodeIndex between calls when state is unchanged.
+   * Delegates to deriveColumnsFromRepo() (the canonical column derivation)
+   * and caches columns/nodeIndex between calls when state is unchanged.
    */
   function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
     const s = get()
