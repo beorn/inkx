@@ -9,7 +9,7 @@ import { describe, test, expect } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
 import { join, relative } from "path"
 import type { Database } from "bun:sqlite"
-import { reconcileDirectory, applyReconcileOps, getParentNodeId } from "../../src/watch/reconcile.ts"
+import { reconcileDirectory, applyReconcileOps, getParentNodeId, type DirectoryScanner } from "../../src/watch/reconcile.ts"
 import { getNodeByPath } from "../../src/db-queries/core-lookup.ts"
 import { getChildren } from "../../src/db-queries/tree-traversal.ts"
 import { withTestEnv, clearConfigCache } from "@km/storage"
@@ -569,6 +569,127 @@ describe("reconcile.ts", () => {
         const filePath = createMdFile(folderPath, "child.md", "# Child")
 
         expect(getParentNodeId(db, toRel(filePath))).toBe(folderNode.id)
+      }))
+  })
+
+  describe("displaced-delete inode verification", () => {
+    test("deletes displaced node when its DB inode differs from FS (stale)", () =>
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        // Create two files and sync them
+        const fileA = createMdFile(repoDir, "old-name.md", "# File A")
+        const fileB = createMdFile(repoDir, "target.md", "# File B")
+        await syncDir(db, repoDir, repoDir, emitter)
+
+        const nodeA = assertNodeExists(db, fileA)
+        const nodeB = assertNodeExists(db, fileB)
+        const inoA = nodeA.fs_ino!
+        const inoB = nodeB.fs_ino!
+        expect(inoA).not.toBe(inoB)
+
+        // Simulate: file A renamed to target.md on FS (overwriting B).
+        // Use a custom scanner to report the FS state after the rename:
+        // only "target.md" exists, with inode of file A.
+        const fakeScanner: DirectoryScanner = () => [
+          { path: join(repoDir, "target.md"), ino: inoA, mtime: Date.now(), isDirectory: false },
+        ]
+
+        const ops = reconcileDirectory(db, repoDir, repoDir, undefined, fakeScanner)
+
+        // Node B (at target.md) has inoB in DB, but FS shows inoA — B is stale
+        const deleteOp = ops.find((op) => op.type === "delete" && op.nodeId === nodeB.id)
+        expect(deleteOp).toBeDefined()
+
+        // Node A should be renamed to target.md
+        const renameOp = ops.find((op) => op.type === "rename" && op.nodeId === nodeA.id)
+        expect(renameOp).toBeDefined()
+      }))
+
+    test("skips rename when displaced node has no tracked inode (concurrent creation)", () =>
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        // Create file A and sync it
+        const fileA = createMdFile(repoDir, "old-name.md", "# File A")
+        await syncDir(db, repoDir, repoDir, emitter)
+        const nodeA = assertNodeExists(db, fileA)
+        const inoA = nodeA.fs_ino!
+
+        // Manually insert a node at target.md WITHOUT an inode (simulates
+        // a concurrent creation that hasn't been fully reconciled yet)
+        const { applyEventWithDb } = await import("../../src/db-events.ts")
+        applyEventWithDb(db, {
+          id: "target.md",
+          type: "node_created",
+          actor: "test",
+          ts: Date.now(),
+          data: {
+            id: "target.md",
+            type: "h",
+            item: {},
+            fstype: "mdfile",
+            fs_path: "target.md",
+            name: "target",
+            // No fs_ino — simulating concurrent creation without inode tracking
+          },
+        })
+
+        const nodeB = getNodeByPath(db, "target.md")
+        expect(nodeB).not.toBeNull()
+        expect(nodeB!.fs_ino).toBeFalsy()
+
+        // Simulate: FS shows target.md with inoA (file A's inode)
+        const fakeScanner: DirectoryScanner = () => [
+          { path: join(repoDir, "target.md"), ino: inoA, mtime: Date.now(), isDirectory: false },
+        ]
+
+        const ops = reconcileDirectory(db, repoDir, repoDir, undefined, fakeScanner)
+
+        // Node B has no inode in DB — it might be a concurrent creation.
+        // Should NOT delete node B and should NOT rename node A.
+        const deleteOp = ops.find((op) => op.type === "delete" && op.nodeId === nodeB!.id)
+        expect(deleteOp).toBeUndefined()
+
+        const renameOp = ops.find((op) => op.type === "rename" && op.nodeId === nodeA.id)
+        expect(renameOp).toBeUndefined()
+      }))
+
+    test("also deletes displaced descendants when directory node is stale", () =>
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        // Create folder B with a child file, sync them
+        const folderB = createFolder(repoDir, "target-folder")
+        createMdFile(folderB, "child.md", "# Child of B")
+        await syncDir(db, repoDir, repoDir, emitter)
+        await syncDir(db, folderB, repoDir, emitter)
+
+        const nodeFolderB = assertNodeExists(db, folderB)
+        const inoFolderB = nodeFolderB.fs_ino!
+
+        // Create folder A and sync it
+        const folderA = createFolder(repoDir, "old-folder")
+        await syncDir(db, repoDir, repoDir, emitter)
+        const nodeFolderA = assertNodeExists(db, folderA)
+        const inoFolderA = nodeFolderA.fs_ino!
+        expect(inoFolderA).not.toBe(inoFolderB)
+
+        // Simulate: folder A renamed to target-folder on FS
+        // FS shows target-folder with folder A's inode, and old-folder is gone
+        const fakeScanner: DirectoryScanner = () => [
+          { path: join(repoDir, "target-folder"), ino: inoFolderA, mtime: Date.now(), isDirectory: true },
+        ]
+
+        const ops = reconcileDirectory(db, repoDir, repoDir, undefined, fakeScanner)
+
+        // Folder B (at target-folder) is stale — its inode differs from FS
+        const deleteFolderOp = ops.find((op) => op.type === "delete" && op.nodeId === nodeFolderB.id)
+        expect(deleteFolderOp).toBeDefined()
+
+        // Child of B should also be deleted (displaced descendant)
+        const deleteChildOp = ops.find(
+          (op) => op.type === "delete" && op.path === "target-folder/child.md",
+        )
+        expect(deleteChildOp).toBeDefined()
+
+        // Folder A should be renamed to target-folder
+        const renameOp = ops.find((op) => op.type === "rename" && op.nodeId === nodeFolderA.id)
+        expect(renameOp).toBeDefined()
       }))
   })
 

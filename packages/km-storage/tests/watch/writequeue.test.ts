@@ -762,4 +762,77 @@ describe("flush mutex", () => {
     const writes = history.filter((h) => h.startsWith("write:"))
     expect(writes).toEqual(["write:/a.md"])
   })
+
+  test("flush drains items queued during an active flush", async () => {
+    const history: string[] = []
+    let writeCount = 0
+
+    const mockFs = createMockFs({ history })
+    const origWrite = mockFs.writeFileSync
+    mockFs.writeFileSync = function (this: unknown, path: string, content: string, encoding?: BufferEncoding) {
+      writeCount++
+      if (writeCount === 1) {
+        // Simulate slow first write via transient error + retry
+        throw codeError("EBUSY", "Resource busy")
+      }
+      history.push(`write:${path}:${content}`)
+    }
+
+    const queue = createWriteQueue({
+      fs: mockFs,
+      retry: { maxRetries: 3, baseDelayMs: 30, maxDelayMs: 50, jitterFactor: 0 },
+    })
+
+    // Start flushing first item
+    queue.queue({ path: "/first.md", content: "v1", sourceEventId: "1" })
+    const flushPromise = queue.flush()
+
+    // Queue a second item during the flush (simulates queue() during active doFlush)
+    // Use setTimeout to ensure it's queued after flush starts but before it finishes
+    setTimeout(() => {
+      queue.queue({ path: "/second.md", content: "v2", sourceEventId: "2" })
+    }, 10)
+
+    // Wait for flush to complete — should drain BOTH items
+    await flushPromise
+
+    const writes = history.filter((h) => h.startsWith("write:"))
+    expect(writes).toContain("write:/first.md:v1")
+    expect(writes).toContain("write:/second.md:v2")
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// flushGeneration Cleanup
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("flushGeneration cleanup", () => {
+  test("clear() resets flushGeneration map", async () => {
+    const mockFs = createMockFs()
+    const queue = createWriteQueue({ fs: mockFs })
+
+    const inFlightPaths = new Set<string>()
+    queue.setWatcher({
+      markInFlight: (path: string) => inFlightPaths.add(path),
+      clearInFlight: (path: string) => inFlightPaths.delete(path),
+    })
+
+    // Queue and flush to populate flushGeneration
+    queue.queue({ path: "/a.md", content: "hello", sourceEventId: "1" })
+    queue.queue({ path: "/b.md", content: "world", sourceEventId: "2" })
+    await queue.forceFlush()
+
+    // Verify in-flight tracking is active
+    expect(inFlightPaths.size).toBeGreaterThan(0)
+
+    // clear() should reset the queue state
+    queue.clear()
+
+    // Now wait for the old clear timers to fire — they should NOT crash
+    // or misbehave because flushGeneration was cleared
+    await new Promise((r) => setTimeout(r, 1500))
+
+    // Queue should be fully reset
+    expect(queue.getPendingCount()).toBe(0)
+  })
 })
