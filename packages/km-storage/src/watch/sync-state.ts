@@ -112,16 +112,14 @@ export function createSyncState(db: Database): SyncState {
     },
 
     get(fsPath: string): SyncStateEntry | null {
-      const row = getStmt.get(fsPath) as
-        | {
-            fs_path: string
-            node_id: string | null
-            baseline_hash: string
-            baseline_kind: string
-            last_seen_mtime_ns: number | null
-            dirty: number
-          }
-        | null
+      const row = getStmt.get(fsPath) as {
+        fs_path: string
+        node_id: string | null
+        baseline_hash: string
+        baseline_kind: string
+        last_seen_mtime_ns: number | null
+        dirty: number
+      } | null
       if (!row) return null
       return {
         fs_path: row.fs_path,
