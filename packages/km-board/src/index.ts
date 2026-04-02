@@ -16,6 +16,7 @@ export type {
   // Core state and actions
   BoardState,
   BoardAction,
+  MoveState,
   NavHistoryEntry,
   // Common types
   TNode,
