@@ -79,6 +79,8 @@ export interface SyncConfig {
   heartbeat?: Partial<HeartbeatConfig>
   /** Custom watcher instance (for testing with ChaosWatcher). If provided, useWorker is ignored. */
   watcher?: WatcherInterface
+  /** Inject shared emitter (e.g., repo's emitter). If not provided, creates a private emitter. */
+  emitter?: Emitter
 }
 
 const DEFAULT_HEARTBEAT: HeartbeatConfig = {
@@ -130,7 +132,7 @@ export class SyncManager extends EventEmitter {
     this.db = config.db
     this.config = { ...DEFAULT_CONFIG, ...config } as SyncConfig
     this.kmDir = join(this.config.repoPath, ".km")
-    this.emitter = createEmitter({ kmDir: this.kmDir, db: this.db })
+    this.emitter = config.emitter ?? createEmitter({ kmDir: this.kmDir, db: this.db })
 
     // Initialize heartbeat config
     this.heartbeatConfig = {
