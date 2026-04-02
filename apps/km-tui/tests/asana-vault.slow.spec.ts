@@ -10,7 +10,19 @@
 import { describe, test, expect } from "vitest"
 import { testBoard } from "./helpers/real-board.ts"
 import { resolve } from "path"
-import { getNavigableChildren } from "../src/view-navigation.ts"
+import { findIndexFile, type KNode } from "@km/core"
+import type { Repo } from "@km/storage"
+
+/** Get navigable children of a node, filtering out index files for folders. */
+function getNavigableChildren(parentId: string | null, repo: Repo): KNode[] {
+  const children = repo.getChildren(parentId)
+  if (!parentId) return children
+  const parentNode = repo.getNode(parentId)
+  if (parentNode?.fstype !== "folder") return children
+  const indexFile = findIndexFile(parentNode, children)
+  if (!indexFile) return children
+  return children.filter((c) => c.id !== indexFile.id)
+}
 
 const ASANA_VAULT = resolve(import.meta.dirname, "../../../imports/asana")
 

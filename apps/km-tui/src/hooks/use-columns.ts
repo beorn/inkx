@@ -23,6 +23,8 @@ import { buildViewTree, viewNodeToColumnViews, type ViewNodeColumnCache, type Vi
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:columns") as any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const perfLog = createLogger("km:perf") as any
 
 // =============================================================================
 // Column derivation — delegates to ViewNode tree
@@ -221,7 +223,6 @@ export function deriveCursorIndices(
   }
 
   // Cursor node not found in visible columns
-  const perfLog = createLogger("km:perf")
   perfLog.debug?.(`cursor node ${cursorNodeId?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`)
   return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
 }
@@ -251,8 +252,6 @@ export function useColumns(
   // Subscribe to repo mutations — triggers re-render on any mutation
   const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
 
-  const effectiveVersion = repoVersion
-
   // Batch-preload children cache before column derivation + Card mount.
   const derive = viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
   const [columns, setColumns] = useState<ColumnView[]>(() => {
@@ -261,15 +260,15 @@ export function useColumns(
   })
 
   // Track deps to detect changes.
-  const depsRef = useRef({ rootId, version: effectiveVersion })
+  const depsRef = useRef({ rootId, version: repoVersion })
   const foldDepthsRef = useRef(foldDepths)
   foldDepthsRef.current = foldDepths
 
   // Synchronous column derivation on rootId or version change.
-  if (depsRef.current.rootId !== rootId || depsRef.current.version !== effectiveVersion) {
+  if (depsRef.current.rootId !== rootId || depsRef.current.version !== repoVersion) {
     repo.preloadSubtree(rootId, 3)
     const newColumns = derive(repo, rootId, foldDepthsRef.current)
-    depsRef.current = { rootId, version: effectiveVersion }
+    depsRef.current = { rootId, version: repoVersion }
     setColumns(newColumns)
   }
 

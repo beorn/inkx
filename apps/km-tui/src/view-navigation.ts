@@ -9,7 +9,6 @@
  */
 
 import type { Repo } from "@km/storage"
-import { findIndexFile } from "@km/core"
 import type { GridNavigator, ViewNode } from "@km/board"
 import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
 import type { ViewMode } from "./types.ts"
@@ -234,14 +233,6 @@ function vnSibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
 }
 
 /**
- * Get the index of a ViewNode among its parent's children.
- */
-function vnIndex(vn: ViewNode): number {
-  if (!vn.parent) return -1
-  return vn.parent.children.indexOf(vn)
-}
-
-/**
  * Walk up ancestors to find the containing column ViewNode.
  */
 function vnFindColumn(vn: ViewNode): ViewNode | null {
@@ -279,14 +270,6 @@ function vnStructuralColumnIndex(col: ViewNode): number {
     structIdx++
   }
   return -1
-}
-
-/**
- * Get all columns from the board.
- * Hidden nodes are already excluded at tree construction time.
- */
-function vnVisibleColumns(board: ViewNode): ViewNode[] {
-  return board.children
 }
 
 /**
@@ -342,7 +325,7 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
         const visCards = vnVisibleCards(bodyCol)
         if (visCards.length > 0) return visCards[0]!.id
       }
-      const visCols = vnVisibleColumns(viewTree)
+      const visCols = viewTree.children
       return visCols[0]?.id ?? null
     }
     // k from board → null
@@ -520,7 +503,7 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
       const cardVn = vn.role === "card" ? vn : vnFindCard(vn)
       let sourceCardIdx: number | undefined
       if (cardVn) {
-        sourceCardIdx = vnIndex(cardVn)
+        sourceCardIdx = cardVn.parent ? cardVn.parent.children.indexOf(cardVn) : -1
         if (sourceCardIdx < 0) sourceCardIdx = undefined
       }
       return vnNavigateToBody(bodyCol, navigator, sourceCardIdx)
@@ -626,25 +609,4 @@ function vnNavigateToBody(bodyCol: ViewNode, navigator: GridNavigator, sourceCar
   }
 
   return visCards[0]?.id ?? null
-}
-
-// =============================================================================
-// Shared helpers
-// =============================================================================
-
-/**
- * Get navigable children of a node, filtering out index files for folders.
- *
- * The view layer (kNodeToColumnView) filters index files from cardNodes so they
- * are not rendered. Navigation must match: if a node is invisible in the view,
- * the cursor must not land on it. This mirrors the filtering at use-columns.ts:776-778.
- */
-export function getNavigableChildren(parentId: string | null, repo: Repo): import("@km/core").KNode[] {
-  const children = repo.getChildren(parentId)
-  if (!parentId) return children
-  const parentNode = repo.getNode(parentId)
-  if (parentNode?.fstype !== "folder") return children
-  const indexFile = findIndexFile(parentNode, children)
-  if (!indexFile) return children
-  return children.filter((c) => c.id !== indexFile.id)
 }
