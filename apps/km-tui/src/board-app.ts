@@ -84,6 +84,7 @@ export interface BoardAppLocals {
     nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
     viewTree: ViewNode
     viewIndex: Map<string, ViewNode>
+    hiddenNodeIds: Set<string>
   } | null
   chordTimer: ReturnType<typeof setTimeout> | null
   pendingChordShownAt: number
@@ -206,6 +207,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
     let viewTree: ViewNode
     let viewIndex: Map<string, ViewNode>
+    let hiddenNodeIds: Set<string>
     if (
       locals.layoutCache &&
       locals.layoutCache.rootId === rootId &&
@@ -216,6 +218,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       nodeIndex = locals.layoutCache.nodeIndex
       viewTree = locals.layoutCache.viewTree
       viewIndex = locals.layoutCache.viewIndex
+      hiddenNodeIds = locals.layoutCache.hiddenNodeIds
     } else {
       // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
       const topChildren = s.repo.getChildren(rootId)
@@ -225,7 +228,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       nodeIndex = buildNodeIndex(columns)
       viewTree = buildViewTree(s.repo, rootId, foldDepths)
       viewIndex = buildViewIndex(viewTree)
-      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex }
+      hiddenNodeIds = computeHiddenNodeIds(s.repo, columns)
+      locals.layoutCache = { rootId, foldDepths, repoVersion, columns, nodeIndex, viewTree, viewIndex, hiddenNodeIds }
     }
     const cursorCardNodeId = s.cursorStore.getState().cursorCardNodeId
     const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id), cursorCardNodeId)
@@ -242,7 +246,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       rootPath: board?.rootPath ?? null,
       cursorNodeId,
       cursorCardNodeId: s.cursorStore.getState().cursorCardNodeId,
-      hiddenNodeIds: computeHiddenNodeIds(s.repo, columns),
+      hiddenNodeIds,
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),
       moveMode: board?.moveMode ?? false,
