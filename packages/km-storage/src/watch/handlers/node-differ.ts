@@ -68,64 +68,166 @@ function makeStructuralKey(parentId: string | null, ordinal: number, type: strin
 }
 
 /**
+ * Simple content hash for matching nodes without block_id.
+ * Uses content + type as identity within a parent group.
+ */
+function contentHash(node: KNode): string {
+  return `${node.type}:${node.content ?? ""}`
+}
+
+/**
  * Diff existing nodes against new nodes
+ *
+ * Uses a three-phase matching strategy:
+ * 1. Match by block_id (strongest anchor — stable across reordering)
+ * 2. Match by content hash within same parent+type (for nodes without block_id)
+ * 3. Match by structural key / ordinal (last resort)
  *
  * Returns changes and a map from new IDs to existing IDs (for link remapping).
  */
-// oxlint-disable-next-line complexity/complexity -- Field comparison refactored with arrays — residual complexity
+// oxlint-disable-next-line complexity/complexity -- Three-phase matching requires branching
 export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
   const changes: NodeChange[] = []
 
-  // Index existing by structural key (parent + ordinal + type)
+  // Map from new node IDs to existing node IDs (for parent_id remapping)
+  const idMap = new Map<string, string>()
+
+  // Track which existing nodes have been matched (by existing node id)
+  const matchedExistingIds = new Set<string>()
+  // Track which new nodes have been matched (by new node id)
+  const matchedNewIds = new Set<string>()
+
+  // Separate file nodes from child nodes
+  const existingFile = existing.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
+  const newFile = newNodes.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
+
+  // File node matching (always first)
+  if (existingFile && newFile) {
+    idMap.set(newFile.id, existingFile.id)
+    matchedExistingIds.add(existingFile.id)
+    matchedNewIds.add(newFile.id)
+  }
+
+  // Filter to non-file child nodes
+  const existingChildren = existing.filter(
+    (n) => !(KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile")),
+  )
+  const newChildren = newNodes.filter(
+    (n) => !(KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile")),
+  )
+
+  // --- Phase 1: Match by block_id (strongest anchor) ---
+  const existingByBlockId = new Map<string, KNode>()
+  for (const node of existingChildren) {
+    if (node.block_id) existingByBlockId.set(node.block_id, node)
+  }
+
+  for (const node of newChildren) {
+    if (node.block_id && existingByBlockId.has(node.block_id)) {
+      const match = existingByBlockId.get(node.block_id)!
+      idMap.set(node.id, match.id)
+      matchedExistingIds.add(match.id)
+      matchedNewIds.add(node.id)
+      existingByBlockId.delete(node.block_id)
+    }
+  }
+
+  // --- Phase 2: Match by content hash within (parent, type) ---
+  // Group unmatched existing nodes by (remapped parent_id, type) → ordered list
+  const existingByParentType = new Map<string, KNode[]>()
+  for (const node of existingChildren) {
+    if (matchedExistingIds.has(node.id)) continue
+    const parentKey = `${node.parent_id ?? "root"}:${node.type}`
+    let group = existingByParentType.get(parentKey)
+    if (!group) {
+      group = []
+      existingByParentType.set(parentKey, group)
+    }
+    group.push(node)
+  }
+  // Sort each group by parent_idx to maintain stable order
+  for (const [, group] of existingByParentType) {
+    group.sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
+  }
+
+  // Build content-hash → indices map for each parent+type group
+  // Using indices into the group array so we can match duplicates in order
+  const existingHashIndices = new Map<string, Map<string, number[]>>()
+  for (const [parentTypeKey, group] of existingByParentType) {
+    const hashMap = new Map<string, number[]>()
+    for (let i = 0; i < group.length; i++) {
+      const node = group[i]!
+      const hash = contentHash(node)
+      // Skip empty content — it's a poor identity signal
+      if (!node.content) continue
+      let indices = hashMap.get(hash)
+      if (!indices) {
+        indices = []
+        hashMap.set(hash, indices)
+      }
+      indices.push(i)
+    }
+    existingHashIndices.set(parentTypeKey, hashMap)
+  }
+
+  // Match new nodes by content hash (in order for duplicates)
+  for (const node of newChildren) {
+    if (matchedNewIds.has(node.id)) continue
+    if (!node.content) continue // Skip empty content nodes
+
+    const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
+    const parentTypeKey = `${remappedParentId ?? "root"}:${node.type}`
+    const hashMap = existingHashIndices.get(parentTypeKey)
+    if (!hashMap) continue
+
+    const hash = contentHash(node)
+    const indices = hashMap.get(hash)
+    if (!indices || indices.length === 0) continue
+
+    const group = existingByParentType.get(parentTypeKey)!
+    // Take the first available (preserves order for duplicates)
+    const idx = indices.shift()!
+    const match = group[idx]!
+
+    idMap.set(node.id, match.id)
+    matchedExistingIds.add(match.id)
+    matchedNewIds.add(node.id)
+  }
+
+  // --- Phase 3: Match by structural key / ordinal (fallback) ---
   const existingOrdinals = computeOrdinals(existing)
   const existingByKey = new Map<string, KNode>()
-  for (const node of existing) {
-    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
+  for (const node of existingChildren) {
+    if (matchedExistingIds.has(node.id)) continue
     const ordinal = existingOrdinals.get(node.id) ?? 0
     const key = makeStructuralKey(node.parent_id, ordinal, node.type)
     existingByKey.set(key, node)
   }
 
-  // Map from new node IDs to existing node IDs (for parent_id remapping)
-  const idMap = new Map<string, string>()
-
-  // First pass: match file nodes by type (always root)
-  const existingFile = existing.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
-  const newFile = newNodes.find((n) => KNode.isOutline(n) && (n.fstype === "file" || n.fstype === "mdfile"))
-  if (existingFile && newFile) {
-    idMap.set(newFile.id, existingFile.id)
-  }
-
-  // Process non-file nodes with remapped parent IDs
   const newOrdinals = computeOrdinals(newNodes)
-  for (const node of newNodes) {
-    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
+  for (const node of newChildren) {
+    if (matchedNewIds.has(node.id)) continue
 
-    // Remap parent_id for key lookup
     const remappedParentId = node.parent_id ? (idMap.get(node.parent_id) ?? node.parent_id) : null
     const ordinal = newOrdinals.get(node.id) ?? 0
     const key = makeStructuralKey(remappedParentId, ordinal, node.type)
 
     const existingNode = existingByKey.get(key)
-
-    if (!existingNode) {
-      // New node - need to remap its parent_id to existing parent
-      const nodeToCreate = { ...node }
-      if (nodeToCreate.parent_id && idMap.has(nodeToCreate.parent_id)) {
-        const mappedId = idMap.get(nodeToCreate.parent_id)
-        if (mappedId) {
-          nodeToCreate.parent_id = mappedId
-        }
-      }
-      changes.push({
-        type: "created",
-        node: nodeToCreate,
-      })
-    } else {
-      // Map new ID to existing ID for child nodes
+    if (existingNode) {
       idMap.set(node.id, existingNode.id)
+      matchedExistingIds.add(existingNode.id)
+      matchedNewIds.add(node.id)
+      existingByKey.delete(key)
+    }
+  }
 
-      // Check for changes
+  // --- Emit changes ---
+  // Process all new child nodes: matched → check for updates, unmatched → created
+  for (const node of newChildren) {
+    const existingId = idMap.get(node.id)
+    if (existingId) {
+      // Matched — check for field changes
+      const existingNode = existing.find((n) => n.id === existingId)!
       const nodeChanges = diffNodeFields(existingNode, node, CHILD_DIFF_FIELDS)
 
       // Preserve embed_source from existing node — parser can't resolve
@@ -137,12 +239,23 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
       if (Object.keys(nodeChanges).length > 0) {
         changes.push({
           type: "updated",
-          nodeId: existingNode.id,
+          nodeId: existingId,
           changes: nodeChanges,
         })
       }
-
-      existingByKey.delete(key)
+    } else {
+      // Unmatched new node — created
+      const nodeToCreate = { ...node }
+      if (nodeToCreate.parent_id && idMap.has(nodeToCreate.parent_id)) {
+        const mappedId = idMap.get(nodeToCreate.parent_id)
+        if (mappedId) {
+          nodeToCreate.parent_id = mappedId
+        }
+      }
+      changes.push({
+        type: "created",
+        node: nodeToCreate,
+      })
     }
   }
 
@@ -156,13 +269,11 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
         changes: nodeChanges,
       })
     }
-    // File nodes are not in existingByKey (skipped during indexing)
   }
 
-  // Remaining existing nodes were deleted
-  for (const [, node] of existingByKey) {
-    // Don't delete file nodes
-    if (KNode.isOutline(node) && (node.fstype === "file" || node.fstype === "mdfile")) continue
+  // Unmatched existing nodes were deleted
+  for (const node of existingChildren) {
+    if (matchedExistingIds.has(node.id)) continue
     changes.push({
       type: "deleted",
       nodeId: node.id,

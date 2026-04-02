@@ -566,4 +566,407 @@ describe("diffNodes", () => {
       expect(result.changes).toHaveLength(0)
     })
   })
+
+  describe("ordinal-drift resistance", () => {
+    test("insert paragraph at top preserves later siblings' IDs", () => {
+      // The core bug: inserting a paragraph at the top shifts all ordinals,
+      // causing each existing node to look like the previous one.
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          content: "Alpha",
+        }),
+        makeNode({
+          id: "task-b",
+          type: "p",
+          parent_id: "file-1",
+          parent_idx: 1,
+          content: "Beta",
+        }),
+        makeNode({
+          id: "task-c",
+          type: "p",
+          parent_id: "file-1",
+          parent_idx: 2,
+          content: "Charlie",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "new-top",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "New paragraph at top",
+        }),
+        makeNode({
+          id: "task-a-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 1,
+          content: "Alpha",
+        }),
+        makeNode({
+          id: "task-b-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 2,
+          content: "Beta",
+        }),
+        makeNode({
+          id: "task-c-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 3,
+          content: "Charlie",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      // Content-hash matching should preserve the original IDs
+      expect(result.idMap.get("task-a-new")).toBe("task-a")
+      expect(result.idMap.get("task-b-new")).toBe("task-b")
+      expect(result.idMap.get("task-c-new")).toBe("task-c")
+
+      // The new paragraph should be created, not matched to an existing node
+      const created = result.changes.filter((c) => c.type === "created")
+      expect(created).toHaveLength(1)
+      expect(created[0]?.node?.content).toBe("New paragraph at top")
+
+      // No deletions — all existing nodes found their match
+      const deleted = result.changes.filter((c) => c.type === "deleted")
+      expect(deleted).toHaveLength(0)
+    })
+
+    test("insert paragraph in middle preserves surrounding siblings", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          content: "Alpha",
+        }),
+        makeNode({
+          id: "task-b",
+          type: "p",
+          parent_id: "file-1",
+          parent_idx: 1,
+          content: "Beta",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "Alpha",
+        }),
+        makeNode({
+          id: "inserted",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 1,
+          content: "Inserted in middle",
+        }),
+        makeNode({
+          id: "task-b-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 2,
+          content: "Beta",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      expect(result.idMap.get("task-a-new")).toBe("task-a")
+      expect(result.idMap.get("task-b-new")).toBe("task-b")
+
+      const created = result.changes.filter((c) => c.type === "created")
+      expect(created).toHaveLength(1)
+      expect(created[0]?.node?.content).toBe("Inserted in middle")
+    })
+  })
+
+  describe("block_id matching", () => {
+    test("block_id takes priority over ordinal position", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          block_id: "bid-alpha",
+          content: "Alpha",
+        }),
+        makeNode({
+          id: "task-b",
+          type: "p",
+          parent_id: "file-1",
+          parent_idx: 1,
+          block_id: "bid-beta",
+          content: "Beta",
+        }),
+      ]
+      // Nodes reordered — block_id should anchor them
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-b-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0, // Was at index 1, now at 0
+          block_id: "bid-beta",
+          content: "Beta",
+        }),
+        makeNode({
+          id: "task-a-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 1, // Was at index 0, now at 1
+          block_id: "bid-alpha",
+          content: "Alpha",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      // block_id matching ignores ordinal
+      expect(result.idMap.get("task-a-new")).toBe("task-a")
+      expect(result.idMap.get("task-b-new")).toBe("task-b")
+
+      // No creates or deletes — just reordering
+      const created = result.changes.filter((c) => c.type === "created")
+      const deleted = result.changes.filter((c) => c.type === "deleted")
+      expect(created).toHaveLength(0)
+      expect(deleted).toHaveLength(0)
+    })
+
+    test("block_id match even when content changes", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          block_id: "bid-1",
+          content: "Original text",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          block_id: "bid-1",
+          content: "Updated text",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      expect(result.idMap.get("task-a-new")).toBe("task-a")
+      const updated = result.changes.find((c) => c.type === "updated")
+      expect(updated?.nodeId).toBe("task-a")
+      expect(updated?.changes?.content).toBe("Updated text")
+    })
+  })
+
+  describe("content hash matching", () => {
+    test("content hash matches nodes without block_id", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-a",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          content: "Unique content here",
+        }),
+      ]
+      // New paragraph inserted before, shifting the ordinal
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "new-first",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "Brand new node",
+        }),
+        makeNode({
+          id: "task-a-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 1, // Shifted from ordinal 0 to 1
+          content: "Unique content here",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      // Content hash should match despite ordinal shift
+      expect(result.idMap.get("task-a-new")).toBe("task-a")
+    })
+
+    test("duplicate content under same parent matches in order", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "dup-1",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          content: "Same text",
+        }),
+        makeNode({
+          id: "dup-2",
+          type: "p",
+          parent_id: "file-1",
+          parent_idx: 1,
+          content: "Same text",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "dup-new-1",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "Same text",
+        }),
+        makeNode({
+          id: "dup-new-2",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 1,
+          content: "Same text",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      // First duplicate matches first, second matches second
+      expect(result.idMap.get("dup-new-1")).toBe("dup-1")
+      expect(result.idMap.get("dup-new-2")).toBe("dup-2")
+      expect(result.changes.filter((c) => c.type === "created")).toHaveLength(0)
+      expect(result.changes.filter((c) => c.type === "deleted")).toHaveLength(0)
+    })
+
+    test("empty content does not create false matches", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "empty-1",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          content: "",
+        }),
+        makeNode({
+          id: "task-a",
+          type: "p",
+          parent_id: "file-1",
+          parent_idx: 1,
+          content: "Real content",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "empty-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "",
+        }),
+        makeNode({
+          id: "task-a-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 1,
+          content: "Real content",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      // Real content node should match by content hash
+      expect(result.idMap.get("task-a-new")).toBe("task-a")
+      // Empty nodes fall through to ordinal matching
+      expect(result.idMap.get("empty-new")).toBe("empty-1")
+    })
+
+    test("content hash does not match across different parents", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "section-a",
+          type: "h",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+        }),
+        makeNode({
+          id: "task-under-a",
+          type: "p",
+          parent_id: "section-a",
+          parent_idx: 0,
+          content: "Shared text",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "section-a-new",
+          type: "h",
+          parent_id: "file-new",
+          parent_idx: 0,
+        }),
+        makeNode({
+          id: "section-b-new",
+          type: "h",
+          parent_id: "file-new",
+          parent_idx: 1,
+        }),
+        makeNode({
+          id: "task-under-b-new",
+          type: "p",
+          parent_id: "section-b-new",
+          parent_idx: 0,
+          content: "Shared text", // Same content, different parent
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      // Should NOT match task-under-b-new to task-under-a (different parents)
+      expect(result.idMap.get("task-under-b-new")).not.toBe("task-under-a")
+      // The old node should be deleted since it was under section-a
+      const deleted = result.changes.filter((c) => c.type === "deleted")
+      expect(deleted.some((c) => c.nodeId === "task-under-a")).toBe(true)
+    })
+  })
 })
