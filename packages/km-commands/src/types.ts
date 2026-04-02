@@ -44,7 +44,7 @@ export interface CommandContext {
   columnCount: number
 
   // State flags (for commands that need them)
-  moveMode: boolean
+  moveMode: boolean // derived from MoveState.active
   foldDepths: Map<string, number>
 
   /** Destination for location-aware commands (e.g., "i" for inbox, "1" for favorite 1) */

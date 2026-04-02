@@ -39,11 +39,11 @@ describe("Escape Layering", () => {
 
     // Enter move mode with 'mm'
     board.command("enter_move_mode")
-    expect(getActiveBoardPane(store.getState())!.moveMode).toBe(true)
+    expect(getActiveBoardPane(store.getState())!.moveState.active).toBe(true)
 
     // Escape cancels move mode
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.moveMode).toBe(false)
+    expect(getActiveBoardPane(store.getState())!.moveState.active).toBe(false)
   })
 
   // ---------------------------------------------------------------------------

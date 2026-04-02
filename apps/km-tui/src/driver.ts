@@ -115,7 +115,7 @@ export interface TUIDriverState extends AppState {
   /** Detail pane open */
   detailPaneOpen: boolean
   /** Move mode active */
-  moveMode: boolean
+  moveMode: boolean // derived from moveState.active
   /** Layout data (columns, colIndex, cardIndex) */
   columns: import("./types.ts").ColumnView[]
   colIndex: number
@@ -270,7 +270,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       siblingCount: column?.cardNodes.length ?? 0,
       columnIndex: cursor.colIndex,
       columnCount: cols.length,
-      moveMode: board?.moveMode ?? false,
+      moveMode: board?.moveState.active ?? false,
       foldDepths,
     }
   }
@@ -376,7 +376,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
         help: s.ui.showHelp,
       },
       detailPaneOpen: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
-      moveMode: board?.moveMode ?? false,
+      moveMode: board?.moveState.active ?? false,
       columns: cols,
       colIndex: cursor.colIndex,
       cardIndex: cursor.cardIndex,

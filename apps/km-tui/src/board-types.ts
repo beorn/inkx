@@ -29,6 +29,16 @@ export type { TPath } from "@km/tree"
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
 
+// ===== Move State =====
+
+/**
+ * Move mode state machine.
+ * Either inactive (no move in progress) or active with source nodes and original cursor.
+ */
+export type MoveState =
+  | { active: false }
+  | { active: true; sourceNodes: string[]; sourceCursorNodeId: string | null }
+
 // ===== Board State =====
 
 /**
@@ -67,9 +77,7 @@ export interface BoardState {
   navHistoryIndex: number
 
   // Move mode (m + destination)
-  moveMode: boolean
-  moveSourceNodes: string[] // Node IDs being moved
-  moveSourceCursorNodeId: string | null // Original cursor node
+  moveState: MoveState
 
   // Sticky cursor coordinates (curswant)
   // See bead km-jm2r for details on the curswant pattern
@@ -177,9 +185,7 @@ export function createBoardState(
     collapsedNodes: collapsedNodeIds ?? new Set(),
     navHistory: [],
     navHistoryIndex: 0,
-    moveMode: false,
-    moveSourceNodes: [],
-    moveSourceCursorNodeId: null,
+    moveState: { active: false },
     curswantX: null,
     curswantY: null,
   }
@@ -300,9 +306,7 @@ export interface BoardPaneState extends PaneStateBase {
   collapsedNodes: Set<string>
   navHistory: NavHistoryEntry[]
   navHistoryIndex: number
-  moveMode: boolean
-  moveSourceNodes: string[]
-  moveSourceCursorNodeId: string | null
+  moveState: MoveState
   curswantX: number | null
   curswantY: number | null
 
@@ -470,9 +474,7 @@ export function createPaneState(
     collapsedNodes: board.collapsedNodes,
     navHistory: board.navHistory,
     navHistoryIndex: board.navHistoryIndex,
-    moveMode: board.moveMode,
-    moveSourceNodes: board.moveSourceNodes,
-    moveSourceCursorNodeId: board.moveSourceCursorNodeId,
+    moveState: board.moveState,
     curswantX: board.curswantX,
     curswantY: board.curswantY,
     viewMode: opts.viewMode,

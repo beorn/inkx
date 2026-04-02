@@ -129,7 +129,7 @@ export const invariants = {
    * Move mode should be consistent with state
    */
   validMoveMode(state: FuzzState, action: string): void {
-    // moveMode is a boolean
+    // moveMode is derived from moveState.active (still a boolean in FuzzState)
     expect(typeof state.moveMode, `moveMode should be boolean after ${action}`).toBe("boolean")
   },
 

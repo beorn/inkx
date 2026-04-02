@@ -134,29 +134,30 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
 
       return {
         ...state,
-        moveMode: true,
-        moveSourceNodes: action.nodeIds,
-        moveSourceCursorNodeId: action.cursorNodeId,
+        moveState: {
+          active: true,
+          sourceNodes: action.nodeIds,
+          sourceCursorNodeId: action.cursorNodeId,
+        },
       }
     }
 
     case "CONFIRM_MOVE": {
       return {
         ...state,
-        moveMode: false,
-        moveSourceNodes: [],
-        moveSourceCursorNodeId: null,
+        moveState: { active: false },
         selectedNodes: new Set(), // Clear selection after move
       }
     }
 
     case "CANCEL_MOVE": {
+      const sourceCursor = state.moveState.active
+        ? state.moveState.sourceCursorNodeId
+        : null
       return {
         ...state,
-        moveMode: false,
-        moveSourceNodes: [],
-        cursorNodeId: state.moveSourceCursorNodeId ?? state.cursorNodeId,
-        moveSourceCursorNodeId: null,
+        moveState: { active: false },
+        cursorNodeId: sourceCursor ?? state.cursorNodeId,
         curswantX: null,
         curswantY: null,
       }
@@ -208,9 +209,7 @@ export function createBoardState(
     collapsedNodes: new Set(),
     navHistory: [],
     navHistoryIndex: 0,
-    moveMode: false,
-    moveSourceNodes: [],
-    moveSourceCursorNodeId: null,
+    moveState: { active: false },
     maxContentLines: 2,
     curswantX: null,
     curswantY: null,

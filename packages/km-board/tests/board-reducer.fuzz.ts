@@ -20,7 +20,7 @@
  *
  * 1. **No exceptions**: reducer never throws for valid actions
  * 2. **maxContentLines bounded**: always in [0, 10]
- * 3. **Move mode consistency**: moveSourceNodes non-empty iff moveMode is true
+ * 3. **Move mode consistency**: sourceNodes non-empty iff moveState.active is true
  * 4. **navHistoryIndex bounded**: always in [0, navHistory.length]
  * 5. **Immutability**: original state is never mutated
  * 6. **Collection types**: Sets remain Sets, Maps remain Maps
@@ -167,11 +167,9 @@ function checkInvariants(state: BoardState, action: BoardAction, before: BoardSt
   expect(state.maxContentLines, `maxContentLines in range ${label}`).toBeGreaterThanOrEqual(0)
   expect(state.maxContentLines, `maxContentLines in range ${label}`).toBeLessThanOrEqual(10)
 
-  // 2. Move mode consistency: moveSourceNodes non-empty iff moveMode is true
-  if (state.moveMode) {
-    expect(state.moveSourceNodes.length, `moveMode=true requires non-empty moveSourceNodes ${label}`).toBeGreaterThan(0)
-  } else {
-    expect(state.moveSourceNodes.length, `moveMode=false requires empty moveSourceNodes ${label}`).toBe(0)
+  // 2. Move mode consistency: sourceNodes non-empty iff moveState.active is true
+  if (state.moveState.active) {
+    expect(state.moveState.sourceNodes.length, `moveState.active=true requires non-empty sourceNodes ${label}`).toBeGreaterThan(0)
   }
 
   // 3. navHistoryIndex is bounded [0, navHistory.length]
@@ -192,8 +190,11 @@ function checkInvariants(state: BoardState, action: BoardAction, before: BoardSt
     expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("cursorNodeId")
   }
 
-  // 6. moveSourceNodes is an array
-  expect(Array.isArray(state.moveSourceNodes), `moveSourceNodes is array ${label}`).toBe(true)
+  // 6. moveState has valid shape
+  expect(typeof state.moveState.active, `moveState.active is boolean ${label}`).toBe("boolean")
+  if (state.moveState.active) {
+    expect(Array.isArray(state.moveState.sourceNodes), `moveState.sourceNodes is array ${label}`).toBe(true)
+  }
 
   // 7. Immutability: original state's collections were not mutated
   //    (We check sizes of the before state's collections haven't changed)
@@ -227,7 +228,8 @@ function snapshotMutableState(state: BoardState) {
     collapsedNodesSize: state.collapsedNodes.size,
     collapsedNodesEntries: [...state.collapsedNodes],
     navHistoryLength: state.navHistory.length,
-    moveSourceNodesLength: state.moveSourceNodes.length,
+    moveStateActive: state.moveState.active,
+    moveSourceNodesLength: state.moveState.active ? state.moveState.sourceNodes.length : 0,
   }
 }
 
@@ -247,7 +249,8 @@ function checkImmutability(state: BoardState, snapshot: ReturnType<typeof snapsh
   expect([...state.collapsedNodes], `collapsedNodes entries unchanged ${label}`).toEqual(snapshot.collapsedNodesEntries)
 
   expect(state.navHistory.length, `navHistory length unchanged ${label}`).toBe(snapshot.navHistoryLength)
-  expect(state.moveSourceNodes.length, `moveSourceNodes length unchanged ${label}`).toBe(snapshot.moveSourceNodesLength)
+  const currentMoveSourceLength = state.moveState.active ? state.moveState.sourceNodes.length : 0
+  expect(currentMoveSourceLength, `moveSourceNodes length unchanged ${label}`).toBe(snapshot.moveSourceNodesLength)
 }
 
 // =============================================================================

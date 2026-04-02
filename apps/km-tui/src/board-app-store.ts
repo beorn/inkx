@@ -674,28 +674,29 @@ export function createBoardAppStoreState(
             case "ENTER_MOVE_MODE": {
               if (action.nodeIds.length === 0) return state
               paneUpdate = {
-                moveMode: true,
-                moveSourceNodes: action.nodeIds,
-                moveSourceCursorNodeId: action.cursorNodeId,
+                moveState: {
+                  active: true,
+                  sourceNodes: action.nodeIds,
+                  sourceCursorNodeId: action.cursorNodeId,
+                },
               }
               break
             }
 
             case "CONFIRM_MOVE": {
               paneUpdate = {
-                moveMode: false,
-                moveSourceNodes: [],
-                moveSourceCursorNodeId: null,
+                moveState: { active: false },
               }
               break
             }
 
             case "CANCEL_MOVE": {
+              const sourceCursor = pane.moveState.active
+                ? pane.moveState.sourceCursorNodeId
+                : null
               paneUpdate = {
-                moveMode: false,
-                moveSourceNodes: [],
-                cursorNodeId: pane.moveSourceCursorNodeId ?? pane.cursorNodeId,
-                moveSourceCursorNodeId: null,
+                moveState: { active: false },
+                cursorNodeId: sourceCursor ?? pane.cursorNodeId,
                 curswantX: null,
                 curswantY: null,
               }

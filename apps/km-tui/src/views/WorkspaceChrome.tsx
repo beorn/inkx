@@ -185,7 +185,7 @@ export function WorkspaceChrome({
   })
   const moveMode = useAppStore<BoardAppStore, boolean>((s) => {
     const p = getActiveBoardPane(s)
-    return p?.moveMode ?? false
+    return p?.moveState.active ?? false
   })
   const rootId = useAppStore<BoardAppStore, string | null>((s) => {
     const p = getActiveBoardPane(s)

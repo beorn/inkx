@@ -457,7 +457,7 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
  */
 export function handleConfirmMove(ctx: ActionCtx): void {
   const { repo, dispatchBoard } = ctx
-  const sourceNodeIds = ctx.moveSourceNodes
+  const sourceNodeIds = ctx.moveState.active ? ctx.moveState.sourceNodes : []
   if (sourceNodeIds.length === 0) return
   const targetCol = ctx.column
   if (!targetCol) return

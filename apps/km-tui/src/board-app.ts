@@ -296,9 +296,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       hiddenNodeIds,
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),
-      moveMode: board?.moveMode ?? false,
-      moveSourceNodes: board?.moveSourceNodes ?? [],
-      moveSourceCursorNodeId: board?.moveSourceCursorNodeId ?? null,
+      moveState: board?.moveState ?? { active: false },
       ui: effectiveUI,
       columns,
       colIndex: cursor.colIndex,
@@ -540,7 +538,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
       columnIndex: ctx.colIndex >= 0 ? ctx.colIndex : 0,
       columnCount: ctx.columns.length,
-      moveMode: ctx.moveMode,
+      moveMode: ctx.moveState.active,
       foldDepths: ctx.foldDepths,
     }
 

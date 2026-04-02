@@ -64,7 +64,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     !!ui.searchReplace
 
   const kbCtx = buildKeybindingContext({
-    inMoveMode: ctx.moveMode,
+    inMoveMode: ctx.moveState.active,
     inSearchMode: ui.showSearchDialog,
     inInputMode:
       ui.showNewItemDialog ||
@@ -133,7 +133,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,
     columnCount: columns.length,
-    moveMode: ctx.moveMode,
+    moveMode: ctx.moveState.active,
     foldDepths: ctx.foldDepths,
   })
 

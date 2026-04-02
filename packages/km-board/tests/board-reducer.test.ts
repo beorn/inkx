@@ -51,9 +51,7 @@ describe("createBoardState", () => {
 
   it("initializes move mode as disabled", () => {
     const state = createBoardState()
-    expect(state.moveMode).toBe(false)
-    expect(state.moveSourceNodes).toEqual([])
-    expect(state.moveSourceCursorNodeId).toBeNull()
+    expect(state.moveState).toEqual({ active: false })
   })
 
   it("initializes default view configuration", () => {
@@ -391,9 +389,11 @@ describe("ENTER_MOVE_MODE action", () => {
       nodeIds: ["node-1", "node-2"],
       cursorNodeId: "cursor-1",
     })
-    expect(newState.moveMode).toBe(true)
-    expect(newState.moveSourceNodes).toEqual(["node-1", "node-2"])
-    expect(newState.moveSourceCursorNodeId).toBe("cursor-1")
+    expect(newState.moveState).toEqual({
+      active: true,
+      sourceNodes: ["node-1", "node-2"],
+      sourceCursorNodeId: "cursor-1",
+    })
   })
 
   it("does nothing with empty node array", () => {
@@ -403,8 +403,7 @@ describe("ENTER_MOVE_MODE action", () => {
       nodeIds: [],
       cursorNodeId: "cursor-1",
     })
-    expect(newState.moveMode).toBe(false)
-    expect(newState.moveSourceNodes).toEqual([])
+    expect(newState.moveState).toEqual({ active: false })
   })
 
   it("accepts null cursor node ID", () => {
@@ -414,8 +413,10 @@ describe("ENTER_MOVE_MODE action", () => {
       nodeIds: ["node-1"],
       cursorNodeId: null,
     })
-    expect(newState.moveMode).toBe(true)
-    expect(newState.moveSourceCursorNodeId).toBeNull()
+    expect(newState.moveState.active).toBe(true)
+    if (newState.moveState.active) {
+      expect(newState.moveState.sourceCursorNodeId).toBeNull()
+    }
   })
 })
 
@@ -431,15 +432,14 @@ describe("CONFIRM_MOVE action", () => {
     const state = createBoardState()
     const moveMode = enterMoveMode(state, ["node-1"], "cursor-1")
     const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
-    expect(confirmed.moveMode).toBe(false)
+    expect(confirmed.moveState).toEqual({ active: false })
   })
 
   it("clears move source nodes", () => {
     const state = createBoardState()
     const moveMode = enterMoveMode(state, ["node-1", "node-2"], "cursor-1")
     const confirmed = dispatch(moveMode, { type: "CONFIRM_MOVE" })
-    expect(confirmed.moveSourceNodes).toEqual([])
-    expect(confirmed.moveSourceCursorNodeId).toBeNull()
+    expect(confirmed.moveState).toEqual({ active: false })
   })
 
   it("clears selection after move", () => {
@@ -465,7 +465,7 @@ describe("CANCEL_MOVE action", () => {
       },
       { type: "CANCEL_MOVE" },
     ])
-    expect(cancelled.moveMode).toBe(false)
+    expect(cancelled.moveState).toEqual({ active: false })
   })
 
   it("restores original cursor position", () => {
@@ -674,7 +674,7 @@ describe("Edge cases", () => {
     expect(cleared.selectedNodes.size).toBe(0)
 
     const cancelled = dispatch(state, { type: "CANCEL_MOVE" })
-    expect(cancelled.moveMode).toBe(false)
+    expect(cancelled.moveState).toEqual({ active: false })
   })
 })
 
@@ -707,7 +707,7 @@ describe("Integration scenarios", () => {
       { type: "CONFIRM_MOVE" },
     ])
 
-    expect(state.moveMode).toBe(false)
+    expect(state.moveState).toEqual({ active: false })
     expect(state.selectedNodes.size).toBe(0)
   })
 

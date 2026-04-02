@@ -17,6 +17,16 @@ export type { TPath } from "@km/tree"
 
 export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
 
+// ===== Move State =====
+
+/**
+ * Move mode state machine.
+ * Either inactive (no move in progress) or active with source nodes and original cursor.
+ */
+export type MoveState =
+  | { active: false }
+  | { active: true; sourceNodes: string[]; sourceCursorNodeId: string | null }
+
 // ===== Board State (NEW - simplified architecture) =====
 
 /**
@@ -57,9 +67,7 @@ export interface BoardState {
   navHistoryIndex: number
 
   // Move mode (m + destination)
-  moveMode: boolean
-  moveSourceNodes: string[] // Node IDs being moved
-  moveSourceCursorNodeId: string | null // Original cursor node
+  moveState: MoveState
 
   // View configuration
   maxContentLines: number

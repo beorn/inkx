@@ -41,9 +41,7 @@ export interface ActionCtx {
   hiddenNodeIds: Set<string>
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
-  moveMode: boolean
-  moveSourceNodes: string[]
-  moveSourceCursorNodeId: string | null
+  moveState: import("./board-types.ts").MoveState
 
   // === State (merged global + per-pane) ===
   ui: PaneUI

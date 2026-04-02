@@ -2169,7 +2169,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
     return ok()
   }
 
-  if (ctx.moveMode) {
+  if (ctx.moveState.active) {
     dispatchBoard({ type: "CANCEL_MOVE" })
     return ok()
   }
