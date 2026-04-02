@@ -137,23 +137,31 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 
 ### Principle: Centralized Core Flows
 
-**The insight**: Each major flow should be readable in one place using domain vocabulary. If understanding a flow requires tracing through 5 files, the flow is scattered.
+**The insight**: Core structures and flows should each be readable in one place. Types show what exists. Factories show how it composes. Handlers show what happens. If understanding any of these requires tracing through 5 files, the design is scattered.
 
-**The pattern**: A core flow reads as a sequence of domain operations in a single function or file:
+**Three levels of centralization:**
 
+1. **Types as blueprint** — a package's `types.ts` reads like a specification. The type definitions compose domain objects and show how they relate. A reader understands the system's shape from types alone.
+
+2. **Factories as architecture** — `createRepo()`, `createBoard()`, `createSyncManager()` read like pseudocode composition. They wire together domain objects and show the full structure. When you read the factory, you see the architecture.
+
+3. **Handlers as flows** — a core flow reads as a sequence of domain operations:
 ```
 keypress → command → direction → ViewTree.descendantIds → applyListNav → cursor update
 ```
+Not: implementation details scattered across 5 files.
 
-Not: implementation details scattered across board-actions-nav.ts, board-app.ts, view-tree.ts, board-state.ts, and column-nav.ts.
+**The test**: "Can a new developer read this one function/file and understand the full [structure/flow]?" If they need 4 tabs and 3 intermediate states in their head, it needs centralizing.
 
-**The test**: "Can a new developer read this one function and understand the full flow?" If the answer is no — if they need to open 4 tabs and hold 3 intermediate states in their head — the flow needs to be centralized.
+**Why**: Scattered structures and flows are the #1 cause of accidental reimplementation. When the architecture is visible in one place, developers see the existing vocabulary and use it. When it's scattered, they see fragments and rewrite from scratch.
 
-**Why**: Scattered flows are the #1 cause of accidental reimplementation. When the flow is visible in one place, a developer sees the existing vocabulary and uses it. When it's scattered, they see implementation fragments and rewrite from scratch.
+**Note**: This is a guideline, not an absolute — sometimes concerns genuinely can't be colocated. The goal is to minimize the number of places a reader must look, not to force everything into one file.
 
 **Guidelines:**
-- [ ] Core flows readable in one place — navigation, sync, rendering each have a single entry point that reads like pseudocode
-- [ ] Domain vocabulary carries the "how" — the flow function carries the "what"
+- [ ] Types as blueprint — `types.ts` reads like a specification of what exists
+- [ ] Factories as architecture — `createX()` reads like pseudocode showing how things compose
+- [ ] Flows readable in one place — navigation, sync, rendering each have a single entry point
+- [ ] Domain vocabulary carries the "how" — the flow/factory carries the "what"
 
 ---
 
