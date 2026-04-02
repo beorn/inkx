@@ -817,12 +817,12 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
       return ok()
     case "TEXT_CURSOR_UP": {
       const moved = activeEditTargetRef.current?.cursorUp() ?? false
-      if (!moved) return handleEditBlockNavigate(ctx, "up")
+      if (!moved) return handleEditBlockNavigate(ctx, "up", true)
       return ok()
     }
     case "TEXT_CURSOR_DOWN": {
       const moved = activeEditTargetRef.current?.cursorDown() ?? false
-      if (!moved) return handleEditBlockNavigate(ctx, "down")
+      if (!moved) return handleEditBlockNavigate(ctx, "down", true)
       return ok()
     }
     case "TEXT_CURSOR_START":
@@ -1852,7 +1852,7 @@ function findAdjacentEditNode(
   return findAdjacentEditNode(repo, node.parent_id, direction, col)
 }
 
-function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): ActionResult {
+function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitAtBoundary = false): ActionResult {
   const { ui } = ctx
   const edit = ui.inlineEditBlock
   if (!edit) return ok()
@@ -1927,9 +1927,12 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down"): Acti
     return ok()
   }
 
-  // No adjacent node — exit edit mode entirely
-  ctx.setUI({ inlineEditBlock: null })
-  return handleCursorMove(ctx, direction === "down" ? "down" : "up")
+  // No adjacent node — bell (ctrl-n/p) or exit edit mode (arrow keys)
+  if (exitAtBoundary) {
+    ctx.setUI({ inlineEditBlock: null })
+    return handleCursorMove(ctx, direction === "down" ? "down" : "up")
+  }
+  return boundary("edit_block_navigate", "no adjacent node")
 }
 
 function handleToggleFold(ctx: ActionCtx): ActionResult {
