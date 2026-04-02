@@ -122,7 +122,6 @@ type AssertComplete<Union extends string, List extends readonly Union[]> =
 
 const VERB_TYPE_LIST = ["CURSOR_TO", "REPARENT_TO", "LINK_TO", "CREATE_AT"] as const satisfies readonly VerbOp["type"][]
 const _verb: AssertComplete<VerbOp["type"], typeof VERB_TYPE_LIST> = true
-const VERB_TYPES: ReadonlySet<string> = new Set(VERB_TYPE_LIST)
 
 const NAV_TYPE_LIST = [
   "CURSOR_MOVE",
@@ -139,7 +138,6 @@ const NAV_TYPE_LIST = [
   "UNFOLD_LEVEL",
 ] as const satisfies readonly NavOp["type"][]
 const _nav: AssertComplete<NavOp["type"], typeof NAV_TYPE_LIST> = true
-const NAV_TYPES: ReadonlySet<string> = new Set(NAV_TYPE_LIST)
 
 const EDIT_TYPE_LIST = [
   "ENTER_INLINE_EDIT",
@@ -168,7 +166,6 @@ const EDIT_TYPE_LIST = [
   "SHIFT_RIGHT",
 ] as const satisfies readonly EditOp["type"][]
 const _edit: AssertComplete<EditOp["type"], typeof EDIT_TYPE_LIST> = true
-const EDIT_TYPES: ReadonlySet<string> = new Set(EDIT_TYPE_LIST)
 
 const TEXT_TYPE_LIST = [
   "TEXT_INSERT",
@@ -195,7 +192,6 @@ const TEXT_TYPE_LIST = [
   "TEXT_ITALIC",
 ] as const satisfies readonly TextOp["type"][]
 const _text: AssertComplete<TextOp["type"], typeof TEXT_TYPE_LIST> = true
-const TEXT_TYPES: ReadonlySet<string> = new Set(TEXT_TYPE_LIST)
 
 // Type-safe: if a new BoardOp type is added but not listed here, TypeScript errors.
 const BOARD_TYPE_LIST = [
@@ -229,9 +225,7 @@ const BOARD_TYPE_LIST = [
   "HIDE_NODE",
   "TOGGLE_SHOW_HIDDEN",
 ] as const satisfies readonly BoardOp["type"][]
-
 const _board: AssertComplete<BoardOp["type"], typeof BOARD_TYPE_LIST> = true
-const BOARD_TYPES: ReadonlySet<string> = new Set(BOARD_TYPE_LIST)
 
 const DIALOG_TYPE_LIST = [
   "SHOW_NEW_ITEM_DIALOG",
@@ -290,7 +284,6 @@ const DIALOG_TYPE_LIST = [
   "FOCUS_PREV",
 ] as const satisfies readonly DialogOp["type"][]
 const _dialog: AssertComplete<DialogOp["type"], typeof DIALOG_TYPE_LIST> = true
-const DIALOG_TYPES: ReadonlySet<string> = new Set(DIALOG_TYPE_LIST)
 
 const PANE_TYPE_LIST = [
   "PANE_SPLIT",
@@ -310,30 +303,42 @@ const PANE_TYPE_LIST = [
   "TOGGLE_DETAIL_PANE",
 ] as const satisfies readonly PaneOp["type"][]
 const _pane: AssertComplete<PaneOp["type"], typeof PANE_TYPE_LIST> = true
-const PANE_TYPES: ReadonlySet<string> = new Set(PANE_TYPE_LIST)
 
 // ViewOp types: everything not matched above (no Set needed — it's the fallback)
 
-function isVerbOp(action: CommandAction): action is VerbOp {
-  return VERB_TYPES.has(action.type)
-}
-function isNavOp(action: CommandAction): action is NavOp {
-  return NAV_TYPES.has(action.type)
-}
-function isEditOp(action: CommandAction): action is EditOp {
-  return EDIT_TYPES.has(action.type)
-}
-function isTextOp(action: CommandAction): action is TextOp {
-  return TEXT_TYPES.has(action.type)
-}
-function isBoardOp(action: CommandAction): action is BoardOp {
-  return BOARD_TYPES.has(action.type)
-}
-function isDialogOp(action: CommandAction): action is DialogOp {
-  return DIALOG_TYPES.has(action.type)
-}
-function isPaneOp(action: CommandAction): action is PaneOp {
-  return PANE_TYPES.has(action.type)
+/**
+ * Unified namespace for action category type guards.
+ *
+ * Usage: `ActionType.is("verb", action)` narrows to VerbOp.
+ * Categories and their Sets are also exposed: `ActionType.verb`, `ActionType.nav`, etc.
+ */
+// oxlint-disable-next-line typescript/no-namespace -- intentional grouping of related type guards
+namespace ActionType {
+  /** Category name → narrowed Op type */
+  interface CategoryMap {
+    verb: VerbOp
+    nav: NavOp
+    edit: EditOp
+    text: TextOp
+    board: BoardOp
+    dialog: DialogOp
+    pane: PaneOp
+  }
+
+  export const verb: ReadonlySet<string> = new Set(VERB_TYPE_LIST)
+  export const nav: ReadonlySet<string> = new Set(NAV_TYPE_LIST)
+  export const edit: ReadonlySet<string> = new Set(EDIT_TYPE_LIST)
+  export const text: ReadonlySet<string> = new Set(TEXT_TYPE_LIST)
+  export const board: ReadonlySet<string> = new Set(BOARD_TYPE_LIST)
+  export const dialog: ReadonlySet<string> = new Set(DIALOG_TYPE_LIST)
+  export const pane: ReadonlySet<string> = new Set(PANE_TYPE_LIST)
+
+  const sets: Record<keyof CategoryMap, ReadonlySet<string>> = { verb, nav, edit, text, board, dialog, pane }
+
+  /** O(1) type guard: `ActionType.is("verb", action)` narrows action to VerbOp. */
+  export function is<K extends keyof CategoryMap>(category: K, action: CommandAction): action is CategoryMap[K] {
+    return sets[category].has(action.type)
+  }
 }
 
 // MAX_FOLD_DEPTH is now in board-reducer.ts
@@ -445,13 +450,13 @@ export { updateSearchReplaceMatches } from "./board-actions-search-replace.ts"
  * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
 export function handleCommandAction(ctx: ActionCtx, action: CommandAction): ActionResult {
-  if (isVerbOp(action)) return handleVerbAction(ctx, action)
-  if (isNavOp(action)) return handleNavAction(ctx, action)
-  if (isEditOp(action)) return handleEditAction(ctx, action)
-  if (isTextOp(action)) return handleTextAction(ctx, action)
-  if (isBoardOp(action)) return handleBoardAction(ctx, action)
-  if (isDialogOp(action)) return handleDialogAction(ctx, action)
-  if (isPaneOp(action)) return handlePaneAction(ctx, action)
+  if (ActionType.is("verb", action)) return handleVerbAction(ctx, action)
+  if (ActionType.is("nav", action)) return handleNavAction(ctx, action)
+  if (ActionType.is("edit", action)) return handleEditAction(ctx, action)
+  if (ActionType.is("text", action)) return handleTextAction(ctx, action)
+  if (ActionType.is("board", action)) return handleBoardAction(ctx, action)
+  if (ActionType.is("dialog", action)) return handleDialogAction(ctx, action)
+  if (ActionType.is("pane", action)) return handlePaneAction(ctx, action)
   // ViewOp is the fallback — no type guard needed
   return handleViewAction(ctx, action as ViewOp)
 }
@@ -536,7 +541,7 @@ function handleVerbAction(ctx: ActionCtx, action: VerbOp): ActionResult {
       return handleCreateAt(ctx, createTarget)
     }
     // VerbAction is a single interface (not a DU) — TS can't narrow to never.
-    // The isVerbOp type guard guarantees only verb types reach here.
+    // The ActionType.is("verb") type guard guarantees only verb types reach here.
   }
 }
 
