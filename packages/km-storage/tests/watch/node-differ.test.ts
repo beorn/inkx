@@ -385,6 +385,40 @@ describe("diffNodes", () => {
       expect((updated?.changes?.data as Record<string, unknown>)?.rules).toBeUndefined()
     })
 
+    test("accepts clearing content field (external edit empties a field)", () => {
+      const existing = [
+        makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-1",
+          type: "p",
+          item: {},
+          parent_id: "file-1",
+          parent_idx: 0,
+          content: "Some content",
+          name: "Some name",
+        }),
+      ]
+      const newNodes = [
+        makeNode({ id: "file-new", type: "h", item: {}, fstype: "mdfile" }),
+        makeNode({
+          id: "task-new",
+          type: "p",
+          parent_id: "file-new",
+          parent_idx: 0,
+          content: "",
+          name: "",
+        }),
+      ]
+
+      const result = diffNodes(existing, newNodes)
+
+      const updated = result.changes.find((c) => c.type === "updated")
+      expect(updated?.nodeId).toBe("task-1")
+      // Both content and name should be cleared — the old guard would have skipped these
+      expect(updated?.changes?.content).toBe("")
+      expect(updated?.changes?.name).toBe("")
+    })
+
     test("no changes when nodes are identical", () => {
       const existing = [
         makeNode({ id: "file-1", type: "h", item: {}, fstype: "mdfile", content: "File" }),

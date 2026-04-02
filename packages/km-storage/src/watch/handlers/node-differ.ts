@@ -197,10 +197,6 @@ function diffNodeFields(existing: KNode, newNode: KNode, fields: readonly string
     const existingVal = (existing as unknown as Record<string, unknown>)[field]
     const newVal = (newNode as unknown as Record<string, unknown>)[field]
     if (newVal !== existingVal) {
-      // Never overwrite non-empty text fields with empty values during reconciliation.
-      // This prevents the watcher from clobbering content/name set by inline edit
-      // when it reads a stale file written before the save was applied to DB.
-      if ((field === "name" || field === "content") && !newVal && existingVal) continue
       changes[field] = newVal
     }
   }
