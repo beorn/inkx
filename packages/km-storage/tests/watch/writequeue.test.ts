@@ -59,12 +59,15 @@ function createMockFs(
     history?: string[]
     /** Map of path -> mtime for conflict detection */
     mtimes?: Map<string, number>
+    /** Set of paths that are directories */
+    directories?: Set<string>
   } = {},
 ): FileSystemOps {
   let failCount = options.failCount ?? 0
   const failError = options.failError ?? codeError("EBUSY", "Resource busy")
   const history = options.history ?? []
   const mtimes = options.mtimes ?? new Map<string, number>()
+  const directories = options.directories ?? new Set<string>()
 
   const maybeFail = () => {
     if (failCount > 0) {
@@ -84,6 +87,11 @@ function createMockFs(
       history.push(`delete:${path}`)
       mtimes.delete(path)
     },
+    rmSync: (path: string) => {
+      maybeFail()
+      history.push(`rmdir:${path}`)
+      mtimes.delete(path)
+    },
     mkdirSync: () => {},
     existsSync: (path: string) => mtimes.has(path),
     renameSync: (oldPath: string, newPath: string) => {
@@ -101,12 +109,13 @@ function createMockFs(
       if (mtime === undefined) {
         throw codeError("ENOENT")
       }
+      const isDir = directories.has(path)
       return {
         ino: 1,
         mtimeMs: mtime,
         size: 100,
-        isDirectory: () => false,
-        isFile: () => true,
+        isDirectory: () => isDir,
+        isFile: () => !isDir,
       }
     },
   }
@@ -294,6 +303,20 @@ describe("WriteQueue Retry Logic", () => {
     await queue.forceFlush()
 
     expect(history).toEqual(["delete:/test.md"])
+  })
+
+  test("deletes directories with rmSync instead of unlinkSync", async () => {
+    const history: string[] = []
+    const mtimes = new Map([["/my-folder", Date.now()]])
+    const directories = new Set(["/my-folder"])
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes, directories }),
+    })
+
+    queue.queueDelete("/my-folder", "1")
+    await queue.forceFlush()
+
+    expect(history).toEqual(["rmdir:/my-folder"])
   })
 
   test("retries rename operations", async () => {
@@ -628,7 +651,7 @@ describe("in-flight generation tracking", () => {
 describe("flush mutex", () => {
   test("concurrent flush calls are serialized — second waits for first", async () => {
     const history: string[] = []
-    let writeDelay: (() => void) | null = null
+    const writeDelay: (() => void) | null = null
 
     // Filesystem where the first write blocks until we release it
     const mockFs = createMockFs({ history })
@@ -647,9 +670,9 @@ describe("flush mutex", () => {
     }
 
     // Use a filesystem that delays writes via transient errors + retry
-    let slowResolve: (() => void) | null = null
+    const slowResolve: (() => void) | null = null
     const slowFs = createMockFs({ history })
-    let firstCall = true
+    const firstCall = true
     const origWrite = slowFs.writeFileSync
     slowFs.writeFileSync = (path: string, content: string, encoding?: BufferEncoding) => {
       origWrite(path, content, encoding)

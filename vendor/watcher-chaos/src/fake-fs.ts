@@ -52,6 +52,7 @@ export interface FileSystemOps {
   writeFileSync(path: string, content: string, encoding?: BufferEncoding): void
   readFileSync(path: string, encoding?: BufferEncoding): string
   unlinkSync(path: string): void
+  rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void
   mkdirSync(path: string, options?: { recursive?: boolean }): void
   existsSync(path: string): boolean
   renameSync(oldPath: string, newPath: string): void
@@ -250,6 +251,32 @@ export class FakeFileSystem implements FileSystemOps {
       const error = new Error(`EISDIR: illegal operation on a directory, unlink '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EISDIR"
       throw error
+    }
+
+    this.files.delete(normalized)
+  }
+
+  rmSync(path: string, options?: { recursive?: boolean; force?: boolean }): void {
+    const normalized = this.normalizePath(path)
+    const entry = this.files.get(normalized)
+
+    if (!entry) {
+      if (options?.force) return
+      const error = new Error(`ENOENT: no such file or directory, rm '${path}'`)
+      ;(error as NodeJS.ErrnoException).code = "ENOENT"
+      throw error
+    }
+
+    this.checkErrors(path, "unlink")
+
+    if (entry.type === "dir" && options?.recursive) {
+      // Remove all children first
+      const prefix = normalized + "/"
+      for (const childPath of this.files.keys()) {
+        if (childPath.startsWith(prefix)) {
+          this.files.delete(childPath)
+        }
+      }
     }
 
     this.files.delete(normalized)

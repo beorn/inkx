@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from "loggily"
-import { existsSync, mkdirSync, renameSync, unlinkSync, writeFileSync } from "fs"
+import { existsSync, mkdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "fs"
 import { dirname } from "path"
 import type { Database } from "bun:sqlite"
 import type { Event } from "@km/core"
@@ -38,7 +38,11 @@ export class FsWriter implements FsSync {
       },
       deleteFile: (absPath: string, _eventId?: string) => {
         if (existsSync(absPath)) {
-          unlinkSync(absPath)
+          if (statSync(absPath).isDirectory()) {
+            rmSync(absPath, { recursive: true, force: true })
+          } else {
+            unlinkSync(absPath)
+          }
         }
       },
       renameFile: (oldPath: string, newPath: string) => {

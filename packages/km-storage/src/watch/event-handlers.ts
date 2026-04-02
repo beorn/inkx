@@ -30,7 +30,7 @@ export interface FsWriteTarget {
   /** Write content to a file, creating parent directories as needed */
   writeFile(absPath: string, content: string, eventId?: string): void | Promise<void>
 
-  /** Delete a file. Noop if file doesn't exist. */
+  /** Delete a file or directory. Noop if path doesn't exist. */
   deleteFile(absPath: string, eventId?: string): void | Promise<void>
 
   /** Rename a file. Must not overwrite an existing target. */
