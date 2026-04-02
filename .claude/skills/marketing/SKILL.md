@@ -59,7 +59,8 @@ This section tracks when each workflow was last run. Update after each execution
 | Glossary auto-linking | done | 2026-04-01 | @bearly/vitepress-enrich on silvery.dev, termless.dev, terminfo.dev |
 | Doc-derived glossary | done | 2026-04-01 | extractGlossary() with 3 patterns, JSONL buckets |
 | Plausible analytics (all sites) | not started | — | All 3 sites have Cloudflare beacon.min.js instead |
-| Blog infrastructure (silvery.dev) | not started | — | |
+| Blog infrastructure (silvery.dev) | done | 2026-04-02 | /blog/ with welcome post, nav link added |
+| Social proof badges | deferred | — | Do NOT add until npm downloads >1k/week and GitHub stars >100. Low stats are anti-social-proof |
 | Newsletter setup (ecosystem) | not started | — | |
 | vitepress-enrich improvements | done | 2026-04-02 | author object type (Person), datePublished, og:image width/height dimensions |
 | OG image generation | partial | 2026-04-02 | terminfo.dev + termless.dev: SVG→PNG converted. loggily + mdspec: SVG only (social platforms can't render). silvery: still SVG |

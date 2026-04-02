@@ -1,7 +1,7 @@
 # SEO Health Check
 
 Quick verification that SEO infrastructure is working correctly across all sites.
-Run monthly or after major deployments.
+Run monthly or after major deployments. For a full audit, use `/marketing seo <site>`.
 
 ## Quick Check (5 minutes)
 
@@ -16,7 +16,7 @@ For each site (silvery.dev, terminfo.dev, termless.dev, beorn.codes/flexily):
    - [ ] Canonical URL present
    - [ ] No broken links on homepage
 
-3. Check Google Search Console:
+3. Check Google Search Console (manual — requires browser):
    - [ ] No new crawl errors
    - [ ] Pages indexed count stable or growing
    - [ ] No manual actions
@@ -24,4 +24,21 @@ For each site (silvery.dev, terminfo.dev, termless.dev, beorn.codes/flexily):
 ## After Check
 
 Update SKILL.md SEO Audits table with check date and any issues found.
-Create beads for any regressions.
+Create beads for any regressions under `km-market.seo`.
+
+## When to Run
+
+- After major site changes (new pages, restructuring, schema changes)
+- Every 3 weeks as a routine check
+- After deploying SEO fixes (to verify they landed)
+
+## Full Audit vs Quick Check
+
+| | Quick Check | Full Audit |
+|--|-------------|------------|
+| **Command** | `/marketing check` | `/marketing seo <site>` |
+| **Time** | 5 min | 15-30 min per site |
+| **Agents** | None (direct fetch) | 7 specialist agents |
+| **Scope** | Spot-check 2 pages/site | Full crawl, all pages |
+| **Output** | Pass/fail checklist | Score, report, action plan |
+| **Cadence** | Monthly / after deploys | Quarterly |

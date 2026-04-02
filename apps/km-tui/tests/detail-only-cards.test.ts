@@ -15,7 +15,8 @@ import { describe, expect, test } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
-import { deriveColumnsFromRepo, isCollapsedChild, isDetailOnly } from "../src/hooks/use-columns.ts"
+import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
+import { isCollapsedChild, isDetailOnly } from "@km/board"
 
 /** Create an li node with detailOnly data (like imported comments/attachments/activity) */
 function detailOnlyItem(id: string, content: string, ...childArrays: KNode[][]): KNode[] {

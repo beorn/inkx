@@ -49,6 +49,12 @@ export {
   deriveCursorPath,
   classifyCursorFromViewIndex,
   toColumnViews,
+  viewNodeToColumnViews,
+  // Canonical helpers — shared by view-tree, use-columns, state.ts, etc.
+  isCollapsedChild,
+  isDetailOnly,
+  deduplicateByFsPath,
+  extractWipLimits,
 } from "./view-tree.ts"
 export type {
   ViewNode,

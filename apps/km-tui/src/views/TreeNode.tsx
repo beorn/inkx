@@ -20,7 +20,7 @@ import {
   getParentContextEx as getParentContextExFromState,
 } from "../state.ts"
 import { extractBody } from "@km/tree"
-import { isCollapsedChild } from "../hooks/use-columns.ts"
+import { isCollapsedChild } from "@km/board"
 import { isSigilName, InlineText } from "../text/index.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
 import {
