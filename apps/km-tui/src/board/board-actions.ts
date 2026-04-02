@@ -1862,6 +1862,9 @@ function findAdjacentEditNode(
   if (idx !== -1) {
     const nextIdx = idx + (direction === "down" ? 1 : -1)
     if (nextIdx >= 0 && nextIdx < items.length) return items[nextIdx]!
+  } else if (!KNode.isOutline(node) && items.length > 0 && direction === "down") {
+    // Body block (paragraph, code, etc.) — not in items. Going down → first outline item.
+    return items[0]!
   }
 
   // No sibling in that direction — recurse up to parent level

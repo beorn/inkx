@@ -1398,6 +1398,53 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       expect(repo.getNode("child-a1")?.content).toContain("Y")
     })
 
+    test("ctrl-n from body block navigates to next sibling outline item", () => {
+      // Bug: clicking directly on a paragraph (type=p) body block then pressing ctrl-n
+      // fails with 'no adjacent node' because findAdjacentEditNode only checks
+      // extractBody().items (outline nodes), not body blocks.
+      // Note: sub-a/sub-b need children to be outline headings (type "h"), not leaf tasks (type "p")
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "col1",
+            item(
+              "card-1",
+              item.paragraph("body-para"),
+              item("sub-a", item("child-a1")),
+              item("sub-b", item("child-b1")),
+            ),
+          ),
+        ),
+      )
+
+      // Edit the body paragraph directly (blockIndex=0 on the paragraph node itself)
+      board.editNode("body-para", { card: "card-1" })
+      expect(board.screenshot()).toContain("INSERT")
+
+      // ctrl-n should navigate to the next outline item (sub-a), not error
+      board.press("ctrl+n")
+      board.expectEditing("sub-a")
+    })
+
+    test("ctrl-n from body block with only leaf siblings navigates to parent sibling", () => {
+      // When body block's siblings are all leaf tasks (type "p"), there are no outline items.
+      // ctrl-n should recurse up to parent and navigate to the next card.
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item("col1", item("card-1", item.paragraph("body-para"), item("task-a"), item("task-b")), item("card-2")),
+        ),
+      )
+
+      board.editNode("body-para", { card: "card-1" })
+      expect(board.screenshot()).toContain("INSERT")
+
+      // No outline siblings → should recurse up to card-1, then find card-2
+      board.press("ctrl+n")
+      board.expectEditing("card-2")
+    })
+
     test("ArrowDown from sub-section navigates to next sibling, not first card", () => {
       const { board } = testEnv(() =>
         item(
