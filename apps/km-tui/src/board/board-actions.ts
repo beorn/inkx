@@ -38,7 +38,6 @@ import {
   getNextSibling,
   getEditableText,
   setEditableText,
-  TreeWalk,
 } from "@km/tree"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
@@ -56,7 +55,8 @@ import {
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
-import type { ColumnView, ViewMode } from "../types.ts"
+import type { ViewNode } from "@km/board"
+import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
 
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
@@ -1823,49 +1823,54 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
   requestRenderFlush()
 }
 
-/** Find next/prev editable node using tree traversal.
- *  Cards at column level use col.cardNodes for sibling lookup.
- *  Sub-section nodes walk siblings via extractBody().items, then recurse up
- *  to the parent level — so sub→sibling, sub→next-card, and card→card all work. */
-/** Find the DFS-last node in a subtree — the true bottom-most descendant. */
-function findDeepestLast(repo: ActionCtx["repo"], nodeId: string): KNode | null {
-  let last: KNode | null = null
-  for (const [node] of TreeWalk.nodes(repo, nodeId)) {
-    last = node
+/** Find the DFS-last visible node in a subtree via ViewTree. */
+function findDeepestLast(viewIndex: Map<string, ViewNode>, nodeId: string): KNode | null {
+  const vn = viewIndex.get(nodeId)
+  if (!vn) return null
+  let deepest: ViewNode = vn
+  let lastChild = deepest.children[deepest.children.length - 1]
+  while (lastChild) {
+    deepest = lastChild
+    lastChild = deepest.children[deepest.children.length - 1]
   }
-  return last
+  return deepest.node
 }
 
+/** Find next/prev editable sibling node via ViewTree.
+ *  Walks the parent's children array (which is already pruned for visibility).
+ *  Skips body-block children (before the first outline child) since those are
+ *  navigated via blockIndex, not as separate edit targets.
+ *  If no sibling in the given direction, recurses up to the parent level. */
 function findAdjacentEditNode(
-  repo: ActionCtx["repo"],
+  viewIndex: Map<string, ViewNode>,
   nodeId: string,
   direction: "up" | "down",
-  col: ColumnView | undefined,
   depth = 0,
 ): KNode | null {
   if (depth > 20) return null // defensive guard against cycles
-  const node = repo.getNode(nodeId)
-  if (!node?.parent_id) return null
+  const vn = viewIndex.get(nodeId)
+  if (!vn?.parent) return null
 
-  // If this node is a card (in col.cardNodes), navigate between cards
-  const cardIdx = col?.cardNodes.findIndex((c) => c.id === nodeId) ?? -1
-  if (cardIdx !== -1) {
-    const adjIdx = cardIdx + (direction === "down" ? 1 : -1)
-    return col?.cardNodes[adjIdx] ?? null
+  // Get navigable siblings. At card/subitem level, skip body blocks (non-outline
+  // children before the first outline child) since those are navigated via blockIndex.
+  // At column level, all children (cards) are navigable — no filtering needed.
+  const allSiblings = vn.parent.children
+  const needsBodyFilter = vn.parent.role === "card" || vn.parent.role === "subitem"
+  let siblings = allSiblings
+  if (needsBodyFilter) {
+    const firstOutlineIdx = allSiblings.findIndex((s) => s.node && KNode.isOutline(s.node))
+    if (firstOutlineIdx > 0) siblings = allSiblings.slice(firstOutlineIdx)
   }
 
-  // Sub-section: walk structural siblings under the same parent
-  const allChildren = repo.getChildren(node.parent_id)
-  const { items } = extractBody(allChildren)
-  const idx = items.findIndex((s) => s.id === nodeId)
-
+  const idx = siblings.indexOf(vn)
   if (idx !== -1) {
     const nextIdx = idx + (direction === "down" ? 1 : -1)
-    if (nextIdx >= 0 && nextIdx < items.length) return items[nextIdx]!
+    const adjacent = siblings[nextIdx]
+    if (nextIdx >= 0 && adjacent) return adjacent.node
   }
 
   // No sibling in that direction — recurse up to parent level
-  return findAdjacentEditNode(repo, node.parent_id, direction, col, depth + 1)
+  return vn.parent.id ? findAdjacentEditNode(viewIndex, vn.parent.id, direction, depth + 1) : null
 }
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitAtBoundary = false): ActionResult {
@@ -1944,15 +1949,13 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   // enter that sibling's LAST child (or last body block) instead of its title.
   // This gives proper "bottom-up" traversal matching the "top-down" descent above.
 
-  // Find next/prev editable node using tree traversal instead of col.cardNodes lookup.
-  // Walks siblings via extractBody().items, then recurses up parent levels.
-  const adjacentNode = findAdjacentEditNode(ctx.repo, effectiveNodeId, direction, ctx.column)
+  // Find next/prev editable node via ViewTree — all nav now uses single source of truth.
+  const adjacentNode = findAdjacentEditNode(ctx.viewIndex, effectiveNodeId, direction)
 
   if (adjacentNode) {
-    // For "up" direction: navigate to the deepest last descendant (bottom of card).
-    // This includes sub-sections below body blocks — auto-expand makes them visible.
+    // For "up" direction: navigate to the deepest last visible descendant (bottom of card).
     if (direction === "up") {
-      const deepest = findDeepestLast(ctx.repo, adjacentNode.id)
+      const deepest = findDeepestLast(ctx.viewIndex, adjacentNode.id)
       if (deepest && deepest.id !== adjacentNode.id) {
         const deepBodyCount = extractBody(ctx.repo.getChildren(deepest.id)).body.length
         ctx.dispatchBoard({ type: "SELECT", nodeId: deepest.id })
