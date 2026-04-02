@@ -30,7 +30,8 @@
     "vendor/opentui/issues/",
     "vendor/flexily/**",
     "vendor/termless/packages/vt100/tests/backend.test.ts",
-    "vendor/silvery/tests/compat/ink/generated/**"
+    "vendor/silvery/tests/compat/ink/generated/**",
+    "vendor/bearly/plugins/tribe/server.ts"
   ],
   "rules": {
     "complexity/complexity": ["warn", { "cyclomatic": 30, "cognitive": 30 }],

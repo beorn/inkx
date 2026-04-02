@@ -35,9 +35,7 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
  * Move mode state machine.
  * Either inactive (no move in progress) or active with source nodes and original cursor.
  */
-export type MoveState =
-  | { active: false }
-  | { active: true; sourceNodes: string[]; sourceCursorNodeId: string | null }
+export type MoveState = { active: false } | { active: true; sourceNodes: string[]; sourceCursorNodeId: string | null }
 
 // ===== Board State =====
 

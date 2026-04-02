@@ -151,9 +151,7 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardAction): 
     }
 
     case "CANCEL_MOVE": {
-      const sourceCursor = state.moveState.active
-        ? state.moveState.sourceCursorNodeId
-        : null
+      const sourceCursor = state.moveState.active ? state.moveState.sourceCursorNodeId : null
       return {
         ...state,
         moveState: { active: false },

@@ -691,9 +691,7 @@ export function createBoardAppStoreState(
             }
 
             case "CANCEL_MOVE": {
-              const sourceCursor = pane.moveState.active
-                ? pane.moveState.sourceCursorNodeId
-                : null
+              const sourceCursor = pane.moveState.active ? pane.moveState.sourceCursorNodeId : null
               paneUpdate = {
                 moveState: { active: false },
                 cursorNodeId: sourceCursor ?? pane.cursorNodeId,

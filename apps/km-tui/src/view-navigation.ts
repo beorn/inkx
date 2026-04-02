@@ -323,7 +323,6 @@ function filterMeaningfulBody<T extends { content?: string }>(nodes: T[]): T[] {
   return nodes.filter((n) => n.content && n.content.replace(/<[^>]+>/g, "").trim().length > 0)
 }
 
-
 function navigateHorizontal(
   dir: "left" | "right",
   state: NavState,
@@ -770,7 +769,7 @@ function vnFindCard(vn: ViewNode): ViewNode | null {
  * Only counts visible columns when hiddenNodeIds is provided.
  */
 function vnColumnIndex(col: ViewNode, hiddenNodeIds?: Set<string>): number {
-  if (!col.parent || col.parent.role !== "board") return -1
+  if (col.parent?.role !== "board") return -1
   const cols = col.parent.children
   let visibleIdx = 0
   for (const c of cols) {
@@ -785,7 +784,7 @@ function vnColumnIndex(col: ViewNode, hiddenNodeIds?: Set<string>): number {
  * stickyX is an index into structural (non-body) columns only.
  */
 function vnStructuralColumnIndex(col: ViewNode, hiddenNodeIds?: Set<string>): number {
-  if (!col.parent || col.parent.role !== "board") return -1
+  if (col.parent?.role !== "board") return -1
   const cols = col.parent.children
   let structIdx = 0
   for (const c of cols) {
@@ -834,11 +833,7 @@ function vnVisibleCards(col: ViewNode, hiddenNodeIds?: Set<string>): ViewNode[] 
  * Uses the ViewNode tree to determine navigation targets instead of
  * ad-hoc repo walks. The tree already encodes visual roles.
  */
-function vnNavigateVertical(
-  dir: "up" | "down",
-  state: NavState,
-  navigator: GridNavigator,
-): string | null {
+function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: GridNavigator): string | null {
   const { cursorNodeId, hiddenNodeIds, viewTree, viewIndex } = state
   if (!viewTree || !viewIndex) return null
 
@@ -962,11 +957,7 @@ function vnNavigateVertical(
  *
  * Cross-column movement using the ViewNode tree.
  */
-function vnNavigateHorizontal(
-  dir: "left" | "right",
-  state: NavState,
-  navigator: GridNavigator,
-): string | null {
+function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator: GridNavigator): string | null {
   const { cursorNodeId, hiddenNodeIds, viewTree, viewIndex } = state
   if (!viewTree || !viewIndex) return null
 
@@ -999,27 +990,13 @@ function vnNavigateHorizontal(
         return vnNavigateToBody(bodyCol, navigator, hiddenNodeIds)
       }
       if (structIdx > 0) {
-        return vnNavigateToStructuralCol(
-          structCols[structIdx - 1]!,
-          state,
-          navigator,
-          bodyCol !== null,
-          true,
-          col.id,
-        )
+        return vnNavigateToStructuralCol(structCols[structIdx - 1]!, state, navigator, bodyCol !== null, true, col.id)
       }
       return null
     }
     // right
     if (structIdx >= 0 && structIdx + 1 < structCols.length) {
-      return vnNavigateToStructuralCol(
-        structCols[structIdx + 1]!,
-        state,
-        navigator,
-        bodyCol !== null,
-        true,
-        col.id,
-      )
+      return vnNavigateToStructuralCol(structCols[structIdx + 1]!, state, navigator, bodyCol !== null, true, col.id)
     }
     return null
   }
@@ -1064,26 +1041,12 @@ function vnNavigateHorizontal(
       }
       return vnNavigateToBody(bodyCol, navigator, hiddenNodeIds, sourceCardIdx)
     }
-    return vnNavigateToStructuralCol(
-      structCols[structIdx - 1]!,
-      state,
-      navigator,
-      hasBody,
-      false,
-      colVn.id,
-    )
+    return vnNavigateToStructuralCol(structCols[structIdx - 1]!, state, navigator, hasBody, false, colVn.id)
   }
 
   // right
   if (structIdx + 1 >= structCols.length) return null
-  return vnNavigateToStructuralCol(
-    structCols[structIdx + 1]!,
-    state,
-    navigator,
-    hasBody,
-    false,
-    colVn.id,
-  )
+  return vnNavigateToStructuralCol(structCols[structIdx + 1]!, state, navigator, hasBody, false, colVn.id)
 }
 
 /**

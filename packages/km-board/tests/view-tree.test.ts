@@ -31,9 +31,7 @@ function createMockRepo(nodes: KNode[]): ViewTreeRepo {
       return nodeMap.get(id) ?? null
     },
     getChildren(parentId: string | null) {
-      return nodes
-        .filter((n) => n.parent_id === parentId)
-        .sort((a, b) => a.parent_idx - b.parent_idx)
+      return nodes.filter((n) => n.parent_id === parentId).sort((a, b) => a.parent_idx - b.parent_idx)
     },
     getNodesBatch(ids: string[]) {
       const result = new Map<string, KNode>()
@@ -301,10 +299,7 @@ describe("buildViewTree", () => {
   })
 
   test("null rootId produces a board with __root__ id", () => {
-    const nodes: KNode[] = [
-      heading("col1", null, 0, "Column 1"),
-      paragraph("c1", "col1", 0, "Task 1"),
-    ]
+    const nodes: KNode[] = [heading("col1", null, 0, "Column 1"), paragraph("c1", "col1", 0, "Task 1")]
     const repo = createMockRepo(nodes)
     const tree = buildViewTree(repo, null, emptyFoldDepths)
 
@@ -315,10 +310,7 @@ describe("buildViewTree", () => {
   })
 
   test("body column with null root uses __body__root id", () => {
-    const nodes: KNode[] = [
-      block("p1", null, 0, "Description"),
-      heading("col1", null, 1, "Column"),
-    ]
+    const nodes: KNode[] = [block("p1", null, 0, "Description"), heading("col1", null, 1, "Column")]
     const repo = createMockRepo(nodes)
     const tree = buildViewTree(repo, null, emptyFoldDepths)
 
@@ -441,11 +433,7 @@ describe("deriveCursorPath", () => {
   })
 
   test("returns [columnId, cardId] for a card", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      heading("col", "root", 0),
-      paragraph("card", "col", 0, "Card"),
-    ]
+    const nodes: KNode[] = [heading("root", null, 0), heading("col", "root", 0), paragraph("card", "col", 0, "Card")]
     const repo = createMockRepo(nodes)
     const tree = buildViewTree(repo, "root", new Map())
     const index = buildViewIndex(tree)
@@ -454,10 +442,7 @@ describe("deriveCursorPath", () => {
   })
 
   test("returns [columnId] for a column", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      heading("col", "root", 0),
-    ]
+    const nodes: KNode[] = [heading("root", null, 0), heading("col", "root", 0)]
     const repo = createMockRepo(nodes)
     const tree = buildViewTree(repo, "root", new Map())
     const index = buildViewIndex(tree)

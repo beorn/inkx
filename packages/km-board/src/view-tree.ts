@@ -154,11 +154,7 @@ function createVirtualBodyNode(parentId: string | null): KNode {
  * The tree root has role "board", its children are columns (or body-column),
  * column children are cards, and card children are subitems.
  */
-export function buildViewTree(
-  repo: ViewTreeRepo,
-  rootId: string | null,
-  _foldDepths: Map<string, number>,
-): ViewNode {
+export function buildViewTree(repo: ViewTreeRepo, rootId: string | null, _foldDepths: Map<string, number>): ViewNode {
   const boardNode = rootId ? repo.getNode(rootId) : null
 
   const root: ViewNode = {
@@ -265,12 +261,7 @@ function buildColumnNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vie
 // Card + subitem builder
 // =============================================================================
 
-function buildCardNode(
-  repo: ViewTreeRepo,
-  node: KNode,
-  parent: ViewNode,
-  bodyIds: Set<string>,
-): ViewNode {
+function buildCardNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode, bodyIds: Set<string>): ViewNode {
   const isBody = bodyIds.has(node.id)
   const resolvedEmbed = node.embed_source ? (repo.getNode(node.embed_source) ?? undefined) : undefined
 
@@ -322,12 +313,7 @@ function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode): Vi
 // Folder-index expansion (mirrors expandIndexFileColumns in use-columns.ts)
 // =============================================================================
 
-function expandIndexFileViewNodes(
-  repo: ViewTreeRepo,
-  indexFile: KNode,
-  deduped: KNode[],
-  root: ViewNode,
-): void {
+function expandIndexFileViewNodes(repo: ViewTreeRepo, indexFile: KNode, deduped: KNode[], root: ViewNode): void {
   const indexChildren = repo.getChildren(indexFile.id)
   const { body: indexBody } = extractBody(indexChildren)
 

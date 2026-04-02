@@ -16,12 +16,7 @@ import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 // Helpers
 // =============================================================================
 
-function heading(
-  id: string,
-  parentId: string | null,
-  idx: number,
-  overrides: Partial<KNode> = {},
-): KNode {
+function heading(id: string, parentId: string | null, idx: number, overrides: Partial<KNode> = {}): KNode {
   return {
     id,
     type: "h",
@@ -62,12 +57,7 @@ function paragraph(
   }
 }
 
-function block(
-  id: string,
-  parentId: string | null,
-  idx: number,
-  content?: string,
-): KNode {
+function block(id: string, parentId: string | null, idx: number, content?: string): KNode {
   return {
     id,
     type: "p",

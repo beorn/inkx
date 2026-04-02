@@ -198,9 +198,9 @@ describe("walkTree", () => {
     const { repo, rootId, bId, b1Id, b1aId } = setupTree()
 
     // startAfter A1 → should yield A2, B, B1, B1a
-    const names = [...walkTree(repo, rootId, { startAfter: repo.getChildren(repo.getChildren(rootId)[0]!.id)[0]!.id })].map(
-      (e) => e.node.name ?? e.node.content,
-    )
+    const names = [
+      ...walkTree(repo, rootId, { startAfter: repo.getChildren(repo.getChildren(rootId)[0]!.id)[0]!.id }),
+    ].map((e) => e.node.name ?? e.node.content)
     expect(names).toEqual(["A2", "B", "B1", "B1a"])
   })
 

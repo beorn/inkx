@@ -169,7 +169,10 @@ function checkInvariants(state: BoardState, action: BoardAction, before: BoardSt
 
   // 2. Move mode consistency: sourceNodes non-empty iff moveState.active is true
   if (state.moveState.active) {
-    expect(state.moveState.sourceNodes.length, `moveState.active=true requires non-empty sourceNodes ${label}`).toBeGreaterThan(0)
+    expect(
+      state.moveState.sourceNodes.length,
+      `moveState.active=true requires non-empty sourceNodes ${label}`,
+    ).toBeGreaterThan(0)
   }
 
   // 3. navHistoryIndex is bounded [0, navHistory.length]
