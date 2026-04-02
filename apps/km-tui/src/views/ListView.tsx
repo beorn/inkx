@@ -4,13 +4,13 @@
  * Full-width tree/outline view of the board hierarchy.
  * Shows the same data as board view but in a hierarchical list format.
  *
- * Uses silvery VirtualList for React-level virtualization of large lists.
+ * Uses silvery ListView for React-level virtualization of large lists.
  *
  * Performance optimization: Pre-caches board pills for all visible nodes
  * to avoid O(n) database queries during render.
  */
 import React, { useMemo, useCallback } from "react"
-import { Box, Text, Small, VirtualList } from "@silvery/ag-react"
+import { Box, Text, Small, ListView as SilveryListView } from "@silvery/ag-react"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board-pills.ts"
@@ -131,7 +131,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     return 0
   }, [cursorColumnNodeId, cursorCardNodeId, selectionLevel, flatItems])
 
-  // Render item callback for VirtualList
+  // Render item callback for ListView
   const renderItem = useCallback(
     (item: FlatItem, flatIndex: number) => {
       if (item.type === "header") {
@@ -193,11 +193,14 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
         <Text> </Text>
       </Box>
 
-      {/* Virtualized list using silvery VirtualList */}
-      <VirtualList
+      {/* Virtualized list using silvery ListView */}
+      <SilveryListView
         items={flatItems}
         height={height - 1}
-        itemHeight={(item: FlatItem) => (item.type === "card" && item.card.id === editingNodeId ? 3 : 1)}
+        estimateHeight={(index: number) => {
+          const item = flatItems[index]
+          return item?.type === "card" && item.card.id === editingNodeId ? 3 : 1
+        }}
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}

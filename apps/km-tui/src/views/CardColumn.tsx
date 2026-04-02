@@ -1,7 +1,7 @@
 /**
  * Card and Column components for the Board view
  *
- * Uses silvery VirtualList for React-level virtualization of large card lists.
+ * Uses silvery ListView for React-level virtualization of large card lists.
  *
  * NODE MODEL V2: Receives ColumnView with CardView cards.
  * "column" is a parent KNode wrapped in ColumnView, "card" is a CardView (KNode + resolved embed data).
@@ -42,7 +42,7 @@ import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 /**
  * Estimated card height in rows (border + content + padding).
  * Used as fallback before actual heights are measured. After the first render,
- * VirtualList measures real card heights and uses those for scroll math.
+ * ListView measures real card heights and uses those for scroll math.
  * This estimate only matters for the initial render — a reasonable value
  * (4 rows = border + title + 1 child) prevents noticeable jumpiness.
  */
@@ -57,7 +57,7 @@ const OVERSCAN = 5
 
 /**
  * Maximum number of cards to render at once.
- * Cards are expensive (~15 hooks each), so keep this tight. VirtualList will
+ * Cards are expensive (~15 hooks each), so keep this tight. ListView will
  * always window the list — no bypass for small columns.
  */
 // No MAX_RENDERED_CARDS — the virtualizer computes the render window from
@@ -140,7 +140,7 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
 
   useScreenRectCallback(handleLayout)
 
-  // Clean up registry entry when VirtualList unmounts this card.
+  // Clean up registry entry when ListView unmounts this card.
   // Without this, stale entries with old screen positions remain in the
   // registry after scrolling, causing findItemAtY to return the wrong
   // card during h/l navigation (stickyY intersects stale bounding box).
@@ -549,9 +549,9 @@ interface ColumnProps {
  * Memoized Column - does NOT re-render on j/k within the same column.
  *
  * Column subscribes only to column selection state (stable on j/k).
- * ScrollTrackingVirtualList subscribes to cardIndex and passes scrollTo to VirtualList.
+ * ScrollTrackingVirtualList subscribes to cardIndex and passes scrollTo to ListView.
  * Cards get selection state from CursorStore self-subscription.
- * Result: j/k only re-renders ScrollTrackingVirtualList + VirtualList + 2 Cards.
+ * Result: j/k only re-renders ScrollTrackingVirtualList + ListView + 2 Cards.
  */
 // oxlint-disable-next-line complexity/complexity -- React component — JSX ternaries inflate score
 export const Column = React.memo(function Column({
@@ -815,7 +815,7 @@ export const Column = React.memo(function Column({
           items={column.cardNodes}
           width={width - 1}
           height={height - 2}
-          itemHeight={ESTIMATED_CARD_HEIGHT}
+          estimateHeight={ESTIMATED_CARD_HEIGHT}
           overscan={OVERSCAN}
           getKey={getKey}
           renderItem={renderItem}

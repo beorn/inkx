@@ -1,11 +1,11 @@
 /**
- * Scroll Helpers for VirtualList
+ * Scroll Helpers for ListView
  *
- * Shared utilities for VirtualList scroll behavior across views.
+ * Shared utilities for ListView scroll behavior across views.
  */
 
 /**
- * Calculate the scrollTo index for a VirtualList in a column.
+ * Calculate the scrollTo index for a ListView in a column.
  *
  * Only scrolls when the column is selected AND the selected card index is valid.
  * When the column is not selected, returns undefined to freeze scroll state.

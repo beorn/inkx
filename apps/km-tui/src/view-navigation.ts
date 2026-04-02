@@ -460,20 +460,39 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
     const bodyCol = vnBodyColumn(viewTree)
     const structIdx = structCols.indexOf(col)
 
+    const hasBody = bodyCol !== null
+
     if (dir === "left") {
       if (structIdx === 0) {
         // First structural col → body column (if it has cards)
         if (!bodyCol) return null
-        return vnNavigateToBody(bodyCol, navigator)
+        return vnNavigateToColumn(bodyCol, state, navigator, {
+          viewColIdx: 0,
+          isAtColumnLevel: true,
+          sourceColId: col.id,
+          canLandOnHeader: false,
+        })
       }
       if (structIdx > 0) {
-        return vnNavigateToStructuralCol(structCols[structIdx - 1]!, state, navigator, bodyCol !== null, true, col.id)
+        const targetIdx = structIdx - 1
+        return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+          viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
+          isAtColumnLevel: true,
+          sourceColId: col.id,
+          canLandOnHeader: true,
+        })
       }
       return null
     }
     // right
     if (structIdx >= 0 && structIdx + 1 < structCols.length) {
-      return vnNavigateToStructuralCol(structCols[structIdx + 1]!, state, navigator, bodyCol !== null, true, col.id)
+      const targetIdx = structIdx + 1
+      return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+        viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
+        isAtColumnLevel: true,
+        sourceColId: col.id,
+        canLandOnHeader: true,
+      })
     }
     return null
   }
@@ -526,37 +545,60 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
   return vnNavigateToStructuralCol(structCols[structIdx + 1]!, state, navigator, hasBody, false, colVn.id)
 }
 
+/** Options for vnNavigateToColumn controlling column-type-specific behavior. */
+interface VnNavigateToColumnOpts {
+  /** View column index for position registry lookups. */
+  viewColIdx: number
+  /**
+   * When true, the cursor is at column-header level (h/l between column headers).
+   * Structural columns use this to decide whether to stay at header or drop into cards.
+   */
+  isAtColumnLevel?: boolean
+  /**
+   * Source column ID when navigating at column level.
+   * If the source column has visible cards, navigation stays at header level.
+   */
+  sourceColId?: string
+  /**
+   * Source card index for index-based matching (body column cross-column nav).
+   * When provided, the target card is selected by clamped index instead of stickyY.
+   */
+  sourceCardIdx?: number
+  /**
+   * Whether the target column can serve as a landing spot (header).
+   * Structural columns return their header ID when collapsed or empty;
+   * body columns return null (they have no meaningful header to land on).
+   */
+  canLandOnHeader: boolean
+}
+
 /**
- * Navigate to a structural column ViewNode, selecting the appropriate card.
+ * Navigate to a column ViewNode, selecting the appropriate card.
+ *
+ * Unified helper for both structural and body column navigation.
+ * Behavior is controlled by `opts` — see VnNavigateToColumnOpts.
  */
-function vnNavigateToStructuralCol(
+function vnNavigateToColumn(
   targetCol: ViewNode,
   state: NavState,
   navigator: GridNavigator,
-  hasBody: boolean,
-  isAtColumnLevel?: boolean,
-  sourceColId?: string,
+  opts: VnNavigateToColumnOpts,
 ): string | null {
-  const { viewTree } = state
+  const { viewColIdx, isAtColumnLevel, sourceColId, sourceCardIdx, canLandOnHeader } = opts
 
-  // View column index: offset by 1 if body column exists (body is view column 0)
-  const structCols = vnStructuralColumns(viewTree)
-  const structIdx = structCols.indexOf(targetCol)
-  const viewColIdx = hasBody ? structIdx + 1 : structIdx
-
-  // Collapsed target → always land on column header
-  if (state.collapsedNodes.has(targetCol.id)) {
+  // Collapsed target → land on column header (structural only)
+  if (canLandOnHeader && state.collapsedNodes.has(targetCol.id)) {
     return targetCol.id
   }
 
   const visCards = vnVisibleCards(targetCol)
 
   if (visCards.length === 0) {
-    return targetCol.id
+    return canLandOnHeader ? targetCol.id : null
   }
 
   if (isAtColumnLevel) {
-    // At column header: if current column has cards, stay at header level
+    // At column header: if source column has cards, stay at header level
     if (sourceColId) {
       const sourceColVn = state.viewIndex.get(sourceColId)
       if (sourceColVn) {
@@ -576,47 +618,28 @@ function vnNavigateToStructuralCol(
       navigator.setDeferredNavigation(viewColIdx, stickyY)
       return visCards[0]?.id ?? null
     }
-    return targetCol.id
+    return canLandOnHeader ? targetCol.id : (visCards[0]?.id ?? null)
   }
 
-  // At card level: use stickyY
+  // At card level: use stickyY for position matching
   const stickyY = navigator.stickyY
   if (stickyY === null) {
     return visCards[0]?.id ?? null
   }
 
+  // Index-based matching (body column cross-column navigation)
+  if (sourceCardIdx !== undefined) {
+    const clampedIdx = Math.min(sourceCardIdx, visCards.length - 1)
+    navigator.setDeferredNavigation(viewColIdx, stickyY)
+    return visCards[clampedIdx]?.id ?? null
+  }
+
+  // Position-based matching via stickyY
   if (navigator.hasSection(viewColIdx)) {
     const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
     return visCards[Math.min(Math.max(0, targetCardIdx), visCards.length - 1)]?.id ?? null
   }
 
   navigator.setDeferredNavigation(viewColIdx, stickyY)
-  return visCards[0]?.id ?? null
-}
-
-/**
- * Navigate to the virtual body column, selecting the appropriate body card.
- */
-function vnNavigateToBody(bodyCol: ViewNode, navigator: GridNavigator, sourceCardIdx?: number): string | null {
-  const visCards = vnVisibleCards(bodyCol)
-  if (visCards.length === 0) return null
-
-  const stickyY = navigator.stickyY
-  if (stickyY === null) {
-    return visCards[0]?.id ?? null
-  }
-
-  if (sourceCardIdx !== undefined) {
-    const clampedIdx = Math.min(sourceCardIdx, visCards.length - 1)
-    navigator.setDeferredNavigation(0, stickyY)
-    return visCards[clampedIdx]?.id ?? null
-  }
-
-  if (navigator.hasSection(0)) {
-    const targetCardIdx = navigator.findItemAtY(0, stickyY)
-    const clampedIdx = Math.min(Math.max(0, targetCardIdx), visCards.length - 1)
-    return visCards[clampedIdx]?.id ?? null
-  }
-
   return visCards[0]?.id ?? null
 }

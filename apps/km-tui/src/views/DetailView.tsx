@@ -49,7 +49,7 @@ export interface DetailViewProps {
  * - Tree children rendered as Cards (matching column card infrastructure)
  *
  * Children use the same Card infrastructure as CardColumn: bordered cards
- * with fold indicators, overflow counts, and VirtualList virtualization.
+ * with fold indicators, overflow counts, and ListView virtualization.
  */
 export function DetailView({ rootId, width, height }: DetailViewProps): React.ReactElement {
   const repo = useRepo()

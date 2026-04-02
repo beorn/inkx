@@ -4,10 +4,10 @@
  * Similar to list view but with tab-based navigation between columns.
  * Only shows one column at a time with tabs at the top for switching.
  *
- * Uses silvery VirtualList for React-level virtualization.
+ * Uses silvery ListView for React-level virtualization.
  */
 import React, { useMemo } from "react"
-import { Box, Text, Small, VirtualList } from "@silvery/ag-react"
+import { Box, Text, Small, ListView } from "@silvery/ag-react"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
@@ -121,10 +121,10 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
       <Box flexDirection="column" width={width} height={height - 3}>
         {currentColumn ? (
           count > 0 ? (
-            <VirtualList
+            <ListView
               items={currentColumn.cardNodes}
               height={height - 3}
-              itemHeight={(card: KNode) => (card.id === editingNodeId ? 3 : 1)}
+              estimateHeight={(index: number) => (currentColumn.cardNodes[index]?.id === editingNodeId ? 3 : 1)}
               scrollTo={
                 cursorCardNodeId ? currentColumn.cardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined
               }

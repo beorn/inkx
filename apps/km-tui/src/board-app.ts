@@ -828,7 +828,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
 
       if (colIdx < 0) {
-        // Not over a column — detail pane scrolling is handled by VirtualList internally
+        // Not over a column — detail pane scrolling is handled by ListView internally
         return
       }
 

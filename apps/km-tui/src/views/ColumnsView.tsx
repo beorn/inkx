@@ -5,7 +5,7 @@
  * with hierarchical display of cards and their children.
  *
  * Uses silvery HorizontalVirtualList for horizontal column windowing and
- * VirtualList for React-level virtualization of large card lists.
+ * ListView for React-level virtualization of large card lists.
  */
 import React, { useCallback, useMemo } from "react"
 import { useRepo } from "../repo-context.tsx"
@@ -56,7 +56,7 @@ interface ColumnTreeProps {
  * Memoized ColumnTree - does NOT re-render on j/k within the same column.
  *
  * Column subscribes only to column selection state (stable on j/k).
- * ScrollTrackingVirtualList handles cardIndex subscription.
+ * ScrollTrackingVirtualList handles cardIndex subscription via ListView.
  * Cards use CursorStore self-subscription for selection state.
  */
 const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, height }: ColumnTreeProps) {
@@ -153,7 +153,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
           isSelected={isSelected}
           items={column.cardNodes}
           height={height - 2}
-          itemHeight={(card: KNode) => (card.id === editingNodeId ? 3 : 1)}
+          estimateHeight={(index: number) => (column.cardNodes[index]?.id === editingNodeId ? 3 : 1)}
           overscan={OVERSCAN}
           maxRendered={MAX_RENDERED_ITEMS}
           getKey={(card) => card.id}
