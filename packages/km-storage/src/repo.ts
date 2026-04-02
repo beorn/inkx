@@ -363,6 +363,12 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
 
   const mutations = {
     updateNode(id: string, changes: Partial<KNode>) {
+      // Auto-derive title from content if not explicitly set.
+      // This is the Repo-level invariant: content and title must stay in sync.
+      // Catches all code paths (effect runner, direct calls, undo replay).
+      if (changes.content !== undefined && changes.title === undefined) {
+        changes = { ...changes, title: changes.content }
+      }
       runWithHooks({ type: "update", nodeId: id, changes }, (ctx) => {
         const parentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
         dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
