@@ -19,7 +19,6 @@ import type { WatcherInterface } from "./types.ts"
 import {
   reconcileDirectory,
   reconcileDirectoryAsync,
-  reconcileIfChanged,
   applyReconcileOps,
   applyReconcileOpsAsync,
   type ReconcileOp,
