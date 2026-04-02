@@ -150,8 +150,8 @@ All events update the `meta.last_event` cursor in SQLite.
 - `reconcileDirectory()` catches stat errors per-entry (inaccessible files are skipped).
 - `applyReconcileOps()` processing errors propagate up to SyncManager, which logs them
   and emits an "error" event but keeps running.
-- `node-differ.ts`: guards prevent overwriting non-empty name/content with empty values
-  during reconciliation (defensive, pending WriteToken migration).
+- `node-differ.ts`: three-phase matching (block_id → content hash → ordinal fallback)
+  prevents identity drift when paragraphs are inserted or reordered.
 
 ## Ownership Model
 
@@ -178,6 +178,7 @@ prevents step 4 from writing the file back.
 **WriteTokenMap** records SHA-256 content hashes after each successful write.
 When the watcher sees a change, it computes the hash of the file content and
 checks against the stored token:
+
 - Hash matches → our write, consume token, skip reconciliation
 - Hash differs → external edit, reconcile normally
 

@@ -349,7 +349,7 @@ export class SyncManager extends EventEmitter {
         this.config.repoPath,
         this.ignorePatterns,
       )
-      const ops = this.filterRecentWriteOps(rawOps)
+      const ops = this.filterOwnedWriteOps(rawOps)
 
       if (ops.length > 0) {
         log.debug?.(`heartbeat: found ${ops.length} changes (drift detected)`)
@@ -405,7 +405,7 @@ export class SyncManager extends EventEmitter {
    * the old file content is still on disk. Without this check, reconciliation would
    * re-parse the stale file and re-create the deleted node.
    */
-  private filterRecentWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
+  private filterOwnedWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
     const pendingPaths = this.writeQueue.getPendingPaths()
     const filtered = ops.filter((op) => !this.hasWriteToken(op.path) && !pendingPaths.has(op.path))
     const skipped = ops.length - filtered.length
@@ -426,7 +426,7 @@ export class SyncManager extends EventEmitter {
 
     try {
       const rawOps = reconcileDirectory(this.db, this.config.repoPath, this.config.repoPath, this.ignorePatterns)
-      const ops = this.filterRecentWriteOps(rawOps)
+      const ops = this.filterOwnedWriteOps(rawOps)
 
       if (ops.length > 0) {
         this.setState("emitting")
@@ -516,7 +516,7 @@ export class SyncManager extends EventEmitter {
       try {
         using dirSpan = span.span("reconcile-dir", { dir })
         const rawOps = await reconcileDirectoryAsync(this.db, dir, this.config.repoPath, this.ignorePatterns)
-        const ops = this.filterRecentWriteOps(rawOps)
+        const ops = this.filterOwnedWriteOps(rawOps)
         dirSpan.spanData.ops = ops.length
 
         if (ops.length > 0 && !this.stopped) {

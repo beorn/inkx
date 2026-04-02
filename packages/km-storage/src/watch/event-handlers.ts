@@ -336,7 +336,7 @@ export class EventHandlers {
             log.info?.(`move-disk: ${node.fs_path} → ${relative(this.repoPath, newAbsPath)}`)
             this.fsTarget.markInFlight?.(oldAbsPath)
             this.fsTarget.markInFlight?.(newAbsPath)
-            void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+            this.fsTarget.renameFile(oldAbsPath, newAbsPath)
 
             // Update fs_path in DB
             const newRelPath = relative(this.repoPath, newAbsPath)
@@ -345,10 +345,11 @@ export class EventHandlers {
             // Cascade fs_path updates for folder descendants
             if (node.fstype === "folder") {
               const oldRelPath = node.fs_path
-              this.db.run(
-                `UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?) WHERE fs_path LIKE ? || '/%'`,
-                [newRelPath, oldRelPath.length + 1, oldRelPath],
-              )
+              this.db.run(`UPDATE nodes SET fs_path = ? || SUBSTR(fs_path, ?) WHERE fs_path LIKE ? || '/%'`, [
+                newRelPath,
+                oldRelPath.length + 1,
+                oldRelPath,
+              ])
             }
 
             this.fsTarget.clearInFlight?.(oldAbsPath, 1000)

@@ -323,9 +323,7 @@ describe("Bidirectional Sync E2E", () => {
         expect(tasks.length).toBe(2)
 
         // Note: The TUI edit to task_status may be overwritten by reconciliation.
-        // When reconcileIfChanged detects the file was modified externally, it
-        // re-parses the file which resets task_status. This is a known limitation
-        // of concurrent TUI+filesystem edits on the same file — the last writer
+        // Concurrent TUI+filesystem edits on the same file — the last writer
         // (filesystem reconciliation) wins. A field-level merge would fix this
         // but is not yet implemented.
       }),
