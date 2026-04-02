@@ -370,9 +370,17 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         changes = { ...changes, title: changes.content }
       }
       runWithHooks({ type: "update", nodeId: id, changes }, (ctx) => {
-        const parentId = dataStore.getNode(ctx.nodeId)?.parent_id ?? null
+        const node = dataStore.getNode(ctx.nodeId)
+        const parentId = node?.parent_id ?? null
         dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
         childrenCache.bust(parentId)
+        // Also bust grandparent so ViewNodeColumnCache (keyed on column children ref) invalidates
+        // when a card's child content changes. Without this, the column-level cache hit returns
+        // stale card subtrees because only the card's children ref changed, not the column's.
+        if (parentId) {
+          const parent = dataStore.getNode(parentId)
+          if (parent?.parent_id) childrenCache.bust(parent.parent_id)
+        }
         clearNameIndex()
         clearResolveCache()
       })
