@@ -1828,4 +1828,57 @@ describe("Inline Edit — Card Expansion", () => {
     expect(afterShot).toContain("sub4")
     expect(afterShot).toContain("sub5")
   })
+
+  test("card auto-expands when cursor navigates to child below maxContentLines fold", () => {
+    // Card with 5 children — maxContentLines defaults to 3, so children 4+ are hidden
+    const { board } = testEnv(() =>
+      item("board", item("col", item("card", item("sub1"), item("sub2"), item("sub3"), item("sub4"), item("sub5")))),
+    )
+
+    // Verify sub4 and sub5 are NOT visible initially (beyond maxContentLines=3)
+    const beforeShot = board.screenshot()
+    expect(beforeShot).toContain("sub1")
+    expect(beforeShot).toContain("sub3")
+    expect(beforeShot).not.toContain("sub5")
+
+    // Navigate cursor into card's children via block_nav_down (J), then cursor_down (j) through siblings
+    board.command("block_nav_down") // enter card → sub1
+    board.expect("#sub1[data-cursor]").toExist()
+    board.command("cursor_down") // → sub2
+    board.command("cursor_down") // → sub3
+    board.command("cursor_down") // → sub4
+    board.command("cursor_down") // → sub5
+
+    // Card should auto-expand to show the cursor target
+    board.expect("#sub5[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("sub5")
+  })
+
+  test("editing sub-sub-item expands intermediate parent nodes", () => {
+    // Nested structure: card > section > deep items (deep-d and deep-e beyond section's fold)
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "col",
+          item(
+            "card",
+            item("section", item("deep-a"), item("deep-b"), item("deep-c"), item("deep-d"), item("deep-e")),
+          ),
+        ),
+      ),
+    )
+
+    // deep-e is nested 2 levels deep and beyond section's maxContentLines — not visible initially
+    const beforeShot = board.screenshot()
+    expect(beforeShot).toContain("deep-a")
+    expect(beforeShot).not.toContain("deep-e")
+
+    // Enter edit on deep-e — both card AND section should expand to show it
+    board.editNode("deep-e")
+
+    // deep-e should now be visible — all ancestor nodes expanded
+    const afterShot = board.screenshot()
+    expect(afterShot).toContain("deep-e")
+  })
 })
