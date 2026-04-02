@@ -44,6 +44,9 @@ export interface FsWriteTarget {
 
   /** Clear in-flight status (for watcher debouncing). Optional. */
   clearInFlight?(absPath: string, delayMs?: number): void
+
+  /** Record a write token for a path (for watcher suppression). Optional. */
+  recordWriteToken?(absPath: string, content: string): void
 }
 
 /**

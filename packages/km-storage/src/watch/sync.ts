@@ -188,6 +188,9 @@ export class SyncManager extends EventEmitter {
       clearInFlight: (absPath: string, delayMs?: number) => {
         this.watcher.clearInFlight(absPath, delayMs)
       },
+      recordWriteToken: (absPath: string, content: string) => {
+        this.writeTokens.record(absPath, content)
+      },
     }
 
     this.handlers = new EventHandlers(this.db, this.config.repoPath, this.emitter, fsTarget)
