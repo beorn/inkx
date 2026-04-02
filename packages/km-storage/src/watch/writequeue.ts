@@ -280,6 +280,8 @@ export interface WriteQueueConfig {
   conflictStrategy?: ConflictStrategy
   /** Called after a successful writeFileSync with the path and content actually written */
   onWrite?: (path: string, content: string) => void
+  /** Delay before clearing in-flight status after writes, in ms (default: 1000) */
+  clearInFlightDelayMs?: number
 }
 
 const DEFAULT_CONFIG: WriteQueueConfig = {
@@ -309,6 +311,7 @@ export class WriteQueue extends EventEmitter {
   private watcher: InFlightTracker | null = null
   private fs: FileSystemOps
   private onWrite: ((path: string, content: string) => void) | undefined
+  private clearInFlightDelayMs: number
   /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
   private flushGeneration = new Map<string, number>()
   private currentGeneration = 0
@@ -322,6 +325,7 @@ export class WriteQueue extends EventEmitter {
     this.conflictStrategy = config.conflictStrategy ?? "last_write_wins"
     this.fs = config.fs ?? realFs
     this.onWrite = config.onWrite
+    this.clearInFlightDelayMs = config.clearInFlightDelayMs ?? 1000
   }
 
   /**
@@ -433,7 +437,24 @@ export class WriteQueue extends EventEmitter {
         if (!this.fs.existsSync(dir)) {
           this.fs.mkdirSync(dir, { recursive: true })
         }
-        this.fs.writeFileSync(op.path, op.content, "utf-8")
+        // Atomic write: write to temp file, then rename into place.
+        // This prevents watchers and external readers from seeing partial content.
+        // The .km-tmp extension is already in the default ignore patterns (matches **/*.tmp).
+        const tmpPath = op.path + ".km-tmp"
+        try {
+          this.fs.writeFileSync(tmpPath, op.content, "utf-8")
+          this.fs.renameSync(tmpPath, op.path)
+        } catch (err) {
+          // Clean up temp file if rename failed (writeFileSync may have succeeded)
+          try {
+            if (this.fs.existsSync(tmpPath)) {
+              this.fs.unlinkSync(tmpPath)
+            }
+          } catch {
+            // Best effort cleanup — ignore errors deleting temp file
+          }
+          throw err
+        }
         this.onWrite?.(op.path, op.content)
         break
       }
@@ -612,6 +633,13 @@ export class WriteQueue extends EventEmitter {
       if (this.watcher) {
         this.watcher.markInFlight(write.path)
         this.flushGeneration.set(write.path, gen)
+        // For writes, also mark the temp path used for atomic writes
+        // so the watcher doesn't trigger on the intermediate .km-tmp file.
+        if (write.type === "write") {
+          const tmpPath = write.path + ".km-tmp"
+          this.watcher.markInFlight(tmpPath)
+          this.flushGeneration.set(tmpPath, gen)
+        }
         // For renames, also mark the destination so the watcher
         // doesn't treat the new file as an external addition.
         if (write.type === "rename" && write.newPath) {
@@ -642,12 +670,20 @@ export class WriteQueue extends EventEmitter {
           this.watcher.clearInFlight(op.path, 0)
           this.flushGeneration.delete(op.path)
         }
+        // Clear temp path in-flight status for atomic writes
+        if (this.watcher && op.type === "write") {
+          const tmpPath = op.path + ".km-tmp"
+          if (this.flushGeneration.get(tmpPath) === gen) {
+            this.watcher.clearInFlight(tmpPath, 0)
+            this.flushGeneration.delete(tmpPath)
+          }
+        }
         if (this.watcher && op.type === "rename" && op.newPath && this.flushGeneration.get(op.newPath) === gen) {
           this.watcher.clearInFlight(op.newPath, 0)
           this.flushGeneration.delete(op.newPath)
         }
       }
-    }, 1000)
+    }, this.clearInFlightDelayMs)
 
     // Collect failures for error reporting (filter guarantees error exists)
     const failures = results.filter(

@@ -101,6 +101,14 @@ export interface SyncConfig {
   watcher?: WatcherInterface
   /** Inject shared emitter (e.g., repo's emitter). If not provided, creates a private emitter. */
   emitter?: Emitter
+  /** Retry config for WriteQueue (default: maxRetries=3, baseDelayMs=100, maxDelayMs=5000) */
+  retry?: {
+    maxRetries?: number
+    baseDelayMs?: number
+    maxDelayMs?: number
+  }
+  /** Delay before clearing in-flight status after writes, in ms (default: 1000) */
+  clearInFlightDelayMs?: number
 }
 
 const DEFAULT_HEARTBEAT: HeartbeatConfig = {
@@ -188,6 +196,8 @@ export class SyncManager extends EventEmitter {
 
     this.writeQueue = new WriteQueue({
       debounceMs: this.config.debounceApply,
+      retry: this.config.retry,
+      clearInFlightDelayMs: this.config.clearInFlightDelayMs,
       onWrite: (path, content) => {
         this.writeTokens.record(path, content)
         this.syncState.recordProjection(path, content)
