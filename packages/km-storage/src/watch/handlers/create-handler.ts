@@ -7,6 +7,7 @@
  */
 
 import { basename, dirname } from "path"
+import { createLogger } from "loggily"
 import { toRelativeFsPath } from "../../path-utils.ts"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
@@ -27,6 +28,8 @@ import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 import { handleUpdate } from "./update-handler.ts"
 import type { ParseResult } from "../../parse-pool.ts"
+
+const log = createLogger("km:storage:watch:create")
 
 /**
  * Context for tracking state during reconciliation.
@@ -353,8 +356,14 @@ function ensureFolderHierarchy(
     // Add folder to resolver so files can link to it (e.g., ![[inbox]])
     resolver.addFile(folderId, folderName)
     return folderId
-  } catch {
-    // Parent folder doesn't exist on filesystem
+  } catch (err: unknown) {
+    // ENOENT is expected — parent folder was deleted before we could stat it.
+    // Other errors (EACCES, EIO) indicate real problems — log at warn level
+    // so they're visible during normal operation (F6: don't swallow stat errors silently).
+    const code = err instanceof Error && "code" in err ? (err as NodeJS.ErrnoException).code : undefined
+    if (code !== "ENOENT") {
+      log.warn?.(`ensureFolderHierarchy: statSync failed for ${parentPath}: ${String(err)}`)
+    }
     return null
   }
 }
