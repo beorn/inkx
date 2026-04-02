@@ -457,14 +457,14 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         // Name didn't change — only update content
         if (node.content !== newContent) {
           // Use this.updateNode so undo proxy can intercept when wrapped
-          this.updateNode(id, { content: newContent })
+          this.updateNode(id, { content: newContent, title: newContent })
         }
         return
       }
 
       // 1. Rename the node itself (update both content and name)
       // Use this.updateNode (not mutations.updateNode) so undo proxy intercepts
-      this.updateNode(id, { content: newContent, name: newName })
+      this.updateNode(id, { content: newContent, name: newName, title: newContent })
 
       // 2. Update backlinks in source nodes
       const backlinks = dbGetBacklinks(deps.db, id)

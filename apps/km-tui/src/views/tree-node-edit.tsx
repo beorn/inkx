@@ -98,7 +98,7 @@ export function TitleEditor({
       // For outline nodes (headings, folders, sections), update name alongside content.
       // Without this, save-on-exit (Escape) would set content but leave name stale,
       // causing the filesystem sync to create new folders instead of renaming.
-      const changes: Partial<KNode> = { content: newContent, ...metaFields }
+      const changes: Partial<KNode> = { content: newContent, title: newContent, ...metaFields }
       if (KNode.isOutline(displayNode)) {
         changes.name = newContent.replace(/^- \[.\]\s*/, "")
       }
@@ -156,7 +156,7 @@ export function TitleEditor({
       } else if (newContent !== originalContent) {
         // Name and content diverged — just update content, don't rename
         undoHandle.setCursor(displayNode.id)
-        repo.updateNode(displayNode.id, { content: newContent })
+        repo.updateNode(displayNode.id, { content: newContent, title: newContent })
       }
 
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
