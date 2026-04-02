@@ -144,7 +144,7 @@ export class EventHandlers {
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+          this.fsTarget.writeFile(absPath, content, this.currentEventId)
         }
       },
     }
@@ -191,7 +191,7 @@ export class EventHandlers {
     const blockIds = this.createBlockIdAssigner()
     const subtreeNodes = getSubtree(this.db, fileNode.id)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-    void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+    this.fsTarget.writeFile(absPath, content, this.currentEventId)
     blockIds.rewriteSourceFiles(fileNode.id)
   }
 
@@ -203,10 +203,10 @@ export class EventHandlers {
 
     if (data.type === "h" && data.item && data.fstype === "folder" && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
-      void this.fsTarget.mkdir(absPath)
+      this.fsTarget.mkdir(absPath)
     } else if (data.type === "h" && data.item && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
-      void this.fsTarget.writeFile(absPath, "", this.currentEventId)
+      this.fsTarget.writeFile(absPath, "", this.currentEventId)
     } else if (data.parent_id && data.parent_id !== ".") {
       // Non-file node (task, section, etc.) created under a file → regenerate
       const parent = getNode(this.db, data.parent_id)
@@ -217,7 +217,7 @@ export class EventHandlers {
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
       const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-      void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentEventId)
       blockIds.rewriteSourceFiles(fileNode.id)
     }
   }
@@ -246,7 +246,7 @@ export class EventHandlers {
       // File/folder node: delete the file from disk
       const absPath = toAbsoluteFsPath(this.repoPath, fsPath)
       if (existsSync(absPath)) {
-        void this.fsTarget.deleteFile(absPath, this.currentEventId)
+        this.fsTarget.deleteFile(absPath, this.currentEventId)
       }
 
       // If deleted node's parent is a folder, regenerate index file
@@ -268,7 +268,7 @@ export class EventHandlers {
       const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, fileNode.id)
       const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-      void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentEventId)
       blockIds.rewriteSourceFiles(fileNode.id)
     }
   }
@@ -293,7 +293,7 @@ export class EventHandlers {
       const absPath = toAbsoluteFsPath(this.repoPath, destFileNode.fs_path)
       const subtreeNodes = getSubtree(this.db, destFileNode.id)
       const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-      void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentEventId)
       blockIds.rewriteSourceFiles(destFileNode.id)
     }
 
@@ -310,7 +310,7 @@ export class EventHandlers {
           const absPath = toAbsoluteFsPath(this.repoPath, sourceFileNode.fs_path)
           const subtreeNodes = getSubtree(this.db, sourceFileNode.id)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-          void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+          this.fsTarget.writeFile(absPath, content, this.currentEventId)
           blockIds.rewriteSourceFiles(sourceFileNode.id)
         }
       }
@@ -341,7 +341,7 @@ export class EventHandlers {
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     const subtreeNodes = getSubtree(this.db, fileNode.id)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-    void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+    this.fsTarget.writeFile(absPath, content, this.currentEventId)
     blockIds.rewriteSourceFiles(fileNode.id)
   }
 
@@ -369,14 +369,14 @@ export class EventHandlers {
     if (existingIndex?.fs_path) {
       // Update existing index file
       const absPath = toAbsoluteFsPath(this.repoPath, existingIndex.fs_path)
-      void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentEventId)
     } else if (config.materialization === "full") {
       // Only "full" mode auto-creates index files. "metadata" mode only updates existing ones —
       // the user creates the index file manually, materialization keeps it in sync.
       const filename = indexFileName(node.name ?? "", config.naming)
       const newFsPath = join(folderPath, filename)
       const absPath = toAbsoluteFsPath(this.repoPath, newFsPath)
-      void this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentEventId)
     }
   }
 
@@ -407,7 +407,7 @@ export class EventHandlers {
     if (existsSync(oldAbsPath)) {
       this.fsTarget.markInFlight?.(oldAbsPath)
       this.fsTarget.markInFlight?.(newAbsPath)
-      void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+      this.fsTarget.renameFile(oldAbsPath, newAbsPath)
       this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
     }
@@ -425,7 +425,7 @@ export class EventHandlers {
             log.info?.(`index file rename: ${oldIndexName} → ${newIndexName}`)
             this.fsTarget.markInFlight?.(oldIndexAbsPath)
             this.fsTarget.markInFlight?.(newIndexAbsPath)
-            void this.fsTarget.renameFile(oldIndexAbsPath, newIndexAbsPath)
+            this.fsTarget.renameFile(oldIndexAbsPath, newIndexAbsPath)
             this.fsTarget.clearInFlight?.(oldIndexAbsPath, 1000)
             this.fsTarget.clearInFlight?.(newIndexAbsPath, 1000)
             indexRenameSucceeded = true
@@ -511,7 +511,7 @@ export class EventHandlers {
     if (existsSync(oldAbsPath)) {
       this.fsTarget.markInFlight?.(oldAbsPath)
       this.fsTarget.markInFlight?.(newAbsPath)
-      void this.fsTarget.renameFile(oldAbsPath, newAbsPath)
+      this.fsTarget.renameFile(oldAbsPath, newAbsPath)
       this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
       this.fsTarget.clearInFlight?.(newAbsPath, 1000)
 

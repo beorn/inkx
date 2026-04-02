@@ -74,9 +74,9 @@ function applyNodeCreated(db: Database, event: Event): void {
   const taskMarker = (data.task_marker as string) ?? task?.marker ?? null
   const taskStatus = (data.task_status as string) ?? task?.status ?? null
 
-  // Use INSERT OR IGNORE as safety net for duplicate path-based IDs
+  // INSERT OR IGNORE as safety net for duplicate path-based IDs
   // This can happen if both discovery and watch handler create the same node
-  db.run(
+  const result = db.run(
     `
     INSERT OR IGNORE INTO nodes (
       id, type, fstype, parent_id, item, embed_source, parent_idx,
@@ -124,6 +124,10 @@ function applyNodeCreated(db: Database, event: Event): void {
       event.id,
     ],
   )
+
+  if (result.changes === 0) {
+    log.warn?.(`node_created collision: id=${(data.id as string)?.slice(-8)} already exists, event ignored`)
+  }
 }
 
 function applyNodeUpdated(db: Database, event: Event): void {
