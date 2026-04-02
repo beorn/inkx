@@ -698,10 +698,17 @@ export function Board({ patchedConsole }: BoardProps) {
     if (prev !== inlineEditBlock) {
       let derivedCardNodeId: string | undefined
       if (inlineEditBlock?.nodeId) {
-        const editNode = repo.getNode(inlineEditBlock.nodeId)
-        if (editNode?.parent_id) {
-          const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === editNode.parent_id))
-          if (isCard) derivedCardNodeId = editNode.parent_id
+        // Walk up parent chain to find the containing card (handles sub-sub-items at any depth)
+        let walkId: string | null = inlineEditBlock.nodeId
+        while (walkId) {
+          const walkNode = repo.getNode(walkId)
+          if (!walkNode?.parent_id) break
+          const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === walkNode.parent_id))
+          if (isCard) {
+            derivedCardNodeId = walkNode.parent_id
+            break
+          }
+          walkId = walkNode.parent_id
         }
       }
       nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock, derivedCardNodeId)

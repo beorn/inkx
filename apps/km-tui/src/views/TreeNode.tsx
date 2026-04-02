@@ -42,6 +42,8 @@ import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { log } from "../log.ts"
+import { useApp as useAppStore } from "@silvery/create/create-app"
+import { getActiveBoardPane, type BoardAppStore } from "../board-app-store.ts"
 import type { ErrorInfo } from "react"
 
 // ============================================================================
@@ -499,17 +501,27 @@ function TreeNodeImpl({
     [registry, depth, colIndex, cardIndex],
   )
 
-  // Check if a descendant of this card is being edited — expand to show all children
+  // Check if a descendant is being edited or has cursor — expand to show all children.
+  // This handles both: (1) edit mode on deeply nested sub-items, (2) cursor on hidden children.
   const editingCardNodeId = useReactive(nodeStore.editingCardNodeId)
-  const isDescendantEditing = depth === 0 && editingCardNodeId === node.id
+  const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) => getActiveBoardPane(s)?.inlineEditBlock?.nodeId)
+  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
+  const shouldExpand = (
+    // Edit: card-level expansion
+    (depth === 0 && editingCardNodeId === node.id) ||
+    // Edit: sub-item-level expansion (any depth)
+    (depth > 0 && editNodeId != null && isAncestorOf(repo, node.id, editNodeId)) ||
+    // Cursor: if cursor is on a descendant below the fold, expand to show it
+    (cursorNodeId != null && cursorNodeId !== node.id && isAncestorOf(repo, node.id, cursorNodeId))
+  )
 
   // Child rendering
   // Apply task status filter (e.g., hide done/dropped) at all tree depths
   // taskStatusFilter is now from TreeRenderContext (board-wide, no per-node subscription)
   // In multiline (cards) mode, maxContentLines controls how many children are visible.
   // In oneliner mode, a fixed cap prevents performance issues with large nodes.
-  // When a descendant is being edited, bypass the limit to show all children.
-  const maxChildren = isDescendantEditing
+  // When a descendant is being edited or cursor is on it, bypass the limit.
+  const maxChildren = shouldExpand
     ? Infinity
     : variant === "multiline"
       ? maxContentLines
@@ -1127,4 +1139,16 @@ function NodeChildren({
       )}
     </Box>
   )
+}
+
+/** Walk up parent_id chain to check if `ancestorId` is an ancestor of `nodeId`. */
+function isAncestorOf(repo: { getNode(id: string): KNode | undefined }, ancestorId: string, nodeId: string): boolean {
+  let walkId: string | null = nodeId
+  for (let i = 0; i < 20 && walkId; i++) {
+    const n = repo.getNode(walkId)
+    if (!n?.parent_id) return false
+    if (n.parent_id === ancestorId) return true
+    walkId = n.parent_id
+  }
+  return false
 }
