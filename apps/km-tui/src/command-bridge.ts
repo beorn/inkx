@@ -16,6 +16,7 @@ import {
   type KeyCommandResult,
   type TNode,
 } from "@km/commands"
+import { Tree } from "@km/tree"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
@@ -131,13 +132,11 @@ function buildCommandContexts(ctx: ActionCtx) {
       // Direct lookup in nodeIndex
       let entry = ctx.nodeIndex?.get(editNodeId)
 
-      // If not found, walk up the parent chain (same as deriveCursorIndices)
-      if (!entry) {
-        let current = ctx.repo.getNode(editNodeId)
-        for (let i = 0; i < 20 && current?.parent_id; i++) {
-          entry = ctx.nodeIndex?.get(current.parent_id)
+      // If not found, walk up ancestors to find the containing card/column
+      if (!entry && ctx.nodeIndex) {
+        for (const ancestor of Tree.ancestors(ctx.repo, editNodeId)) {
+          entry = ctx.nodeIndex.get(ancestor.id)
           if (entry) break
-          current = ctx.repo.getNode(current.parent_id)
         }
       }
 

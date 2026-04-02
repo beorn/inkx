@@ -56,6 +56,7 @@ const _log = createLogger("km:tui:board")
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
+import { Tree } from "@km/tree"
 import { TreeRenderProvider, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../ui-context.tsx"
 import { getPathSegments } from "./board-top-bar.ts"
 import type { PathSegment } from "../layout/path.ts"
@@ -693,30 +694,24 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Sync inline edit state. Derives cardNodeId from parent_id so callers
   // never need to pass it — if the edit node is inside a card, the card expands.
-  // Walks UP (ancestors), not DOWN (descendants) — TreeWalk.nodes() doesn't apply.
-  // TODO: Consider Tree.ancestors() generator if this pattern recurs.
   useEffect(() => {
     const prev = prevInlineEditRef.current
     if (prev !== inlineEditBlock) {
       let derivedCardNodeId: string | undefined
       if (inlineEditBlock?.nodeId) {
-        // Walk up parent chain to find the containing card (handles sub-sub-items at any depth)
-        let walkId: string | null = inlineEditBlock.nodeId
-        for (let walkDepth = 0; walkDepth < 20 && walkId; walkDepth++) {
-          const walkNode = repo.getNode(walkId)
-          if (!walkNode?.parent_id) break
-          const isCard = columns.some((col) => col.cardNodes.some((c) => c.id === walkNode.parent_id))
-          if (isCard) {
-            derivedCardNodeId = walkNode.parent_id
+        // Walk up ancestors to find the containing card via O(1) nodeIndex lookup
+        for (const ancestor of Tree.ancestors(repo, inlineEditBlock.nodeId)) {
+          const entry = nodeIndex.get(ancestor.id)
+          if (entry && entry.cardIndex >= 0) {
+            derivedCardNodeId = ancestor.id
             break
           }
-          walkId = walkNode.parent_id
         }
       }
       nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock, derivedCardNodeId)
       prevInlineEditRef.current = inlineEditBlock
     }
-  }, [nodeStore, inlineEditBlock, repo, columns])
+  }, [nodeStore, inlineEditBlock, repo, nodeIndex])
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks

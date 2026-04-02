@@ -19,7 +19,7 @@ import {
   getParentContext as getParentContextFromState,
   getParentContextEx as getParentContextExFromState,
 } from "../state.ts"
-import { extractBody } from "@km/tree"
+import { extractBody, Tree, type TreeReader } from "@km/tree"
 import { isCollapsedChild } from "@km/board"
 import { isSigilName, InlineText } from "../text/index.ts"
 import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
@@ -1142,20 +1142,7 @@ function NodeChildren({
   )
 }
 
-/** Walk up parent_id chain to check if `ancestorId` is an ancestor of `nodeId`.
- *  O(depth) via parent_id — more efficient than TreeWalk.nodes() which is O(subtree).
- *  TODO: Consider Tree.ancestors() generator if this pattern recurs. */
-function isAncestorOf(
-  repo: { getNode(id: string): KNode | null | undefined },
-  ancestorId: string,
-  nodeId: string,
-): boolean {
-  let walkId: string | null = nodeId
-  for (let i = 0; i < 20 && walkId; i++) {
-    const n = repo.getNode(walkId)
-    if (!n?.parent_id) return false
-    if (n.parent_id === ancestorId) return true
-    walkId = n.parent_id
-  }
-  return false
+/** Check if `ancestorId` is an ancestor of `nodeId` via Tree.ancestors(). */
+function isAncestorOf(repo: TreeReader, ancestorId: string, nodeId: string): boolean {
+  return Tree.ancestors(repo, nodeId).some((a) => a.id === ancestorId)
 }
