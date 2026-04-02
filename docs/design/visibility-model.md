@@ -27,7 +27,7 @@ km has three independent mechanisms that control node visibility, each operating
 
 **How it works**: `foldDepths` is a `Map<string, number>` on `BoardState`. Each entry maps a node ID to a depth budget. `TOGGLE_FOLD` sets a node's depth to 0 (fully folded) or deletes the entry (unfolded, inherit default).
 
-**Effect**: Controls fold/unfold UI state. Navigation now walks the ViewTree directly (via `getVisibleCardDescendants` and `getVisibleColumnBlocks` in `view-navigation.ts`), so foldDepths only matters insofar as ViewTree construction honors it.
+**Effect**: Controls fold/unfold UI state. Navigation now walks the ViewTree directly (via `getVisibleDescendants` in `board-actions-nav.ts`), so foldDepths only matters insofar as ViewTree construction honors it.
 
 ### 3. collapsedNodes — Column-Level Collapse (Rendering Width)
 
@@ -43,7 +43,7 @@ km has three independent mechanisms that control node visibility, each operating
 
 Previously, **rendering used the ViewNode tree but navigation/counting used raw repo traversal with foldDepths** (`walkVisibleDescendants`, `getVisibleDescendantIds`). This caused bugs where navigation could reach invisible nodes or miss visible ones (see bead km-tui.j-skips-grandchildren).
 
-**Resolution**: Navigation now walks the ViewTree directly via `getVisibleCardDescendants` and `getVisibleColumnBlocks` in `view-navigation.ts`. The old `walkVisibleDescendants`, `countVisibleDescendants`, and `getVisibleDescendantIds` functions have been removed from `board-app.ts`.
+**Resolution**: Navigation now walks the ViewTree directly via `getVisibleDescendants` in `board-actions-nav.ts`. The old `walkVisibleDescendants`, `countVisibleDescendants`, and `getVisibleDescendantIds` functions have been removed from `board-app.ts`.
 
 ## Current State
 
