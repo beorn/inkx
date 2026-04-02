@@ -38,7 +38,6 @@
 1 vendor/terminfo.dev/docs/data/linkify-content.ts
 1 vendor/terminfo.dev/packages/admin/src/report.ts
 1 vendor/terminfo.dev/packages/terminfo.dev/src/index.tsx
-1 vendor/termless/packages/cli/src/ui.tsx
 2 vendor/termless/sites/terminfo.dev/src/cli.ts
 3 vendor/termless/src/asciicast/reader.ts
 16 vendor/termless/tests/asciicast/writer.test.ts
