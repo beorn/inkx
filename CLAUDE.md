@@ -196,6 +196,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | [complete/](.claude/skills/complete/)                                | Session-end completeness audit (remnants, docs, beads, git)           |
 | [recall/](.claude/skills/recall/)                                   | Search past session knowledge (`bun recall "query"`)                  |
 | [max/](.claude/skills/max/)                                         | Parallel agents for independent tasks                                 |
+| [review-all/](.claude/skills/review-all/)                           | Consolidated mega-review — quarterly health check across all domains  |
 
 ### Silvery Development
 
