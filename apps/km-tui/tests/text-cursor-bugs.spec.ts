@@ -239,7 +239,7 @@ describe("text-cursor-bugs", () => {
       expect(cursorX).toBeGreaterThanOrEqual(0)
 
       // Now press Ctrl+A to go to start of text (Home is not bound in keybindings)
-      board.press("Control+a")
+      board.press("ctrl+a")
 
       // Find the cursor again — it should have moved
       let newCursorY = -1
@@ -299,7 +299,7 @@ describe("text-cursor-bugs", () => {
       board.press("Enter")
 
       // Move cursor to start with Ctrl+A (Home is not bound in keybindings)
-      board.press("Control+a")
+      board.press("ctrl+a")
 
       // Verify cursor is at start (offset 0)
       board.expectEditing("aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk lll")

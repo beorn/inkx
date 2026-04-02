@@ -206,7 +206,7 @@ describe("Inline Edit — Readline Integration", () => {
 
     board.press("Enter")
     // ab| → Ctrl+A → |ab → Delete → |b
-    board.press("Control+a")
+    board.press("ctrl+a")
     board.press("Delete")
     board.press("Escape") // save+exit (Enter splits in outliner mode)
 
@@ -214,12 +214,12 @@ describe("Inline Edit — Readline Integration", () => {
     expect(board.screenshot()).not.toContain("ab")
   })
 
-  test("Ctrl shortcuts (Control+A, Control+W) work through input layers", () => {
+  test("Ctrl shortcuts (ctrl+A, ctrl+W) work through input layers", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("xyz"))))
 
     board.press("Enter")
     // xyz| → Ctrl+A → |xyz → type "0" → 0xyz
-    board.press("Control+a")
+    board.press("ctrl+a")
     board.press("0")
     board.press("Escape") // save+exit (Enter splits in outliner mode)
 
@@ -497,7 +497,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
 
     board.press("Enter") // edit alpha, cursor at end
-    board.press("Control+a") // cursor to start
+    board.press("ctrl+a") // cursor to start
     board.press("Enter") // → sibling before
 
     expect(repo.getNode("alpha")?.content).toContain("alpha")
@@ -578,7 +578,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("parent", item("child1")), item("sibling"))))
 
     board.press("Enter") // edit parent, cursor at end
-    board.press("Control+a") // cursor to start
+    board.press("ctrl+a") // cursor to start
     board.press("Enter") // → sibling before (start always = sibling before)
 
     board.press("Escape")
@@ -628,7 +628,7 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
 
     board.press("Enter") // edit alpha (cursor at end of "alpha")
     // Delete all text: cursor at end → ctrl+u deletes to start
-    board.press("Control+u")
+    board.press("ctrl+u")
     board.press("Enter") // empty text, cursor at end → sibling after
 
     // alpha now has empty content
@@ -1256,7 +1256,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
     // Enter edit mode, move cursor to start
     board.press("Enter")
-    board.press("Control+a")
+    board.press("ctrl+a")
 
     // Press ArrowDown repeatedly — should traverse visual lines then exit edit mode
     // With columns=30 and border (2), available width ~26 chars.
@@ -1272,7 +1272,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     expect(screenshot).toContain("task1")
   })
 
-  test("Control+a clears cursor inverse attr at old position (incremental)", () => {
+  test("ctrl+a clears cursor inverse attr at old position (incremental)", () => {
     const longContent = "AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH"
     // checkIncremental: false — bottom bar format change causes stale incremental cells
     const { board } = testEnv(
@@ -1283,8 +1283,8 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
     // Enter edit mode (cursor at end of text)
     board.press("Enter")
 
-    // Control+a moves cursor to start — old cursor position must clear inverse attr
-    board.press("Control+a")
+    // ctrl+a moves cursor to start — old cursor position must clear inverse attr
+    board.press("ctrl+a")
   })
 
   test("ArrowUp at first visual line exits to previous block", () => {
@@ -1297,7 +1297,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
 
     // Enter edit mode, move cursor to start
     board.press("Enter")
-    board.press("Control+a")
+    board.press("ctrl+a")
 
     // ArrowUp at first visual line should exit edit mode (boundary)
     board.press("ArrowUp")
@@ -1364,7 +1364,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.press("X")
 
       // ctrl-n to next card
-      board.press("Control+n")
+      board.press("ctrl+n")
       board.expectEditing("task-2")
 
       // task-1 should be saved with the "X" appended
@@ -1391,7 +1391,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       board.press("Y")
 
       // ctrl-n to sibling sub-b
-      board.press("Control+n")
+      board.press("ctrl+n")
       board.expectEditing("sub-b")
 
       // child-a1 (the body block we edited) should be saved
@@ -1584,7 +1584,7 @@ describe("Inline Edit — Folder/Section Nodes", () => {
     board.press("Enter")
 
     // Delete existing text with Ctrl+U (kill to start — cursor is at end)
-    board.press("Control+u")
+    board.press("ctrl+u")
 
     // Type new name
     for (const c of "New") board.press(c)

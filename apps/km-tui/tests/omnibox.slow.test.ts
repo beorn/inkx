@@ -29,7 +29,7 @@ describe("omnibox", () => {
 
   it("opens with Ctrl+k", () => {
     const { board } = standardBoard()
-    board.press("Control+k")
+    board.press("ctrl+k")
     board.expect("[data-dialog='omnibox']").toExist()
   })
 

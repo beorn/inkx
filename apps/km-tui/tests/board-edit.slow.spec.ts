@@ -2,7 +2,7 @@
  * Board Acceptance Tests - Edit & Move Operations
  *
  * Tests for card shifting (opt+j/k/h/l), deletion (D), inline editing (Enter),
- * undo/redo (Control+z/y), and move mode (m).
+ * undo/redo (ctrl+z/y), and move mode (m).
  */
 
 import { describe, test, expect } from "vitest"
@@ -412,11 +412,11 @@ describe("Edit Operations", () => {
     expect(output).toContain("1b")
   })
 
-  test("Control+z undo is unimplemented (no crash)", () => {
+  test("ctrl+z undo is unimplemented (no crash)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Control+z")
+    board.press("ctrl+z")
 
     board.expect("#1a[data-cursor]").toExist()
     const output = board.screenshot()
@@ -424,11 +424,11 @@ describe("Edit Operations", () => {
     expect(output).toContain("1b")
   })
 
-  test("Control+y redo is unimplemented (no crash)", () => {
+  test("ctrl+y redo is unimplemented (no crash)", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
     board.expect("#1a[data-cursor]").toExist()
 
-    board.press("Control+y")
+    board.press("ctrl+y")
 
     board.expect("#1a[data-cursor]").toExist()
     const output = board.screenshot()
@@ -993,7 +993,7 @@ describe("Enter after edit creates sibling, not board jump", () => {
     // Enter edit mode on 1a
     board.press("Enter")
     // Move cursor to end of content (it should already be at end)
-    board.press("Control+e")
+    board.press("ctrl+e")
     // Press Enter to create sibling
     board.press("Enter")
 
