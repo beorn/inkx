@@ -89,7 +89,7 @@ bun vitest run apps/km-tui/tests/
 ## Architecture
 
 Layered: App → Board → Tree → Storage → Parser → Filesystem. Each layer calls only layer below.
-UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md).
+UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/README.md). For terminology, see [docs/glossary.md](docs/glossary.md).
 
 **State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. Actions and effects are serializable data. Machines compose via effects. This enables testing, replay, undo, portability (terminal + browser), and AI automation. See [docs/design/tea-state-machines.md](docs/design/tea-state-machines.md) and [docs/future/universal-editor.md](docs/future/universal-editor.md) for the full vision.
 
@@ -128,7 +128,7 @@ See [.claude/skills/git/worktree.md] for details.
 ## Code Style
 
 Factory functions, `using` cleanup, async generators, explicit DI. No classes, no globals, no `require`.
-See [docs/principles.md](docs/principles.md) for patterns, layout, and quick reference.
+Three domain building blocks: *domain objects* (stateful, factory-created), *domain interfaces* (type + pure functions), *domain types* (plain data shapes). See [docs/principles.md](docs/principles.md) for patterns and [docs/glossary.md](docs/glossary.md) for terminology.
 
 ## Problem Solving
 

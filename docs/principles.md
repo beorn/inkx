@@ -1318,6 +1318,8 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 
 > Extract all guidelines: `grep '- \[ \]' docs/principles.md`
 
+For terminology used throughout, see [glossary.md](glossary.md).
+
 ### Domain Object Inventory
 
 | Layer | Object | Namespace | Key operations |
