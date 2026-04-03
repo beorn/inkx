@@ -50,6 +50,7 @@ export {
   classifyCursorFromViewIndex,
   toColumnViews,
   viewNodeToColumnViews,
+  CARD_REMAINING_DEPTH,
   // Canonical helpers — shared by view-tree, use-columns, state.ts, etc.
   isCollapsedChild,
   isDetailOnly,

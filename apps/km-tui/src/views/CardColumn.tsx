@@ -35,7 +35,7 @@ import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
-import { isCollapsedChild } from "@km/board"
+import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 
 // =============================================================================
@@ -347,7 +347,7 @@ const Card = React.memo(
           <TreeNode
             node={card}
             depth={0}
-            remainingDepth={2}
+            remainingDepth={CARD_REMAINING_DEPTH}
             isSelected={isSelected}
             colIndex={colIndex}
             cardIndex={cardIndex}
@@ -433,7 +433,7 @@ const Card = React.memo(
             <TreeNode
               node={card}
               depth={0}
-              remainingDepth={2}
+              remainingDepth={CARD_REMAINING_DEPTH}
               isSelected={isSelected}
               colIndex={colIndex}
               cardIndex={cardIndex}

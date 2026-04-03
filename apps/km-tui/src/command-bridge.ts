@@ -108,13 +108,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     },
     hasVisibleChildren() {
       if (!ui.inlineEditBlock) return false
-      const nodeId = ui.inlineEditBlock.nodeId
-      if (ctx.foldDepths.get(nodeId) === 0) return false
-      const children = ctx.repo.getChildren(nodeId)
-      if (!children.some((c) => c.item)) return false
-      // Children folded by depth limit (FoldedChildRow) are not navigable
-      if (ViewTree.areChildrenFolded(nodeId, ctx.viewIndex, ctx.foldDepths)) return false
-      return true
+      return ViewTree.hasVisibleItemChildren(ctx.repo, ui.inlineEditBlock.nodeId, ctx.viewIndex, ctx.foldDepths)
     },
     editLevel() {
       // When editing, the level is determined by where the EDITED NODE sits in the board.

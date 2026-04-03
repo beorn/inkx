@@ -1718,7 +1718,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
 
   // Title split with visible children → after-portion becomes first child
   const hasVisibleChildren =
-    !isBodyBlock && hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.foldDepths, ctx.viewIndex)
+    !isBodyBlock && ViewTree.hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.viewIndex, ctx.foldDepths)
 
   try {
     if (hasVisibleChildren) {
@@ -1739,26 +1739,6 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   }
 
   return ok()
-}
-
-/** Check if a node has visible item children (not folded, has items).
- *  Checks for any `item: {}` children — not just `type: "h"` outline nodes —
- *  because the board renders all `item` children as cards when no structural items exist.
- *  Also checks that children would not be rendered as FoldedChildRow (hidden by
- *  remainingDepth). Children are folded when the node's effective remainingDepth <= 1
- *  (its ChildrenList gets remainingDepth-1 <= 0 → allFolded). */
-function hasVisibleItemChildren(
-  repo: ActionCtx["repo"],
-  nodeId: string,
-  foldDepths: Map<string, number>,
-  viewIndex?: Map<string, ViewNode>,
-): boolean {
-  if (foldDepths.get(nodeId) === 0) return false
-  const children = repo.getChildren(nodeId)
-  if (!children.some((c) => c.item)) return false
-  // Check if children would be folded by the render depth limit.
-  if (viewIndex && ViewTree.areChildrenFolded(nodeId, viewIndex, foldDepths)) return false
-  return true
 }
 
 /** Split node at offset, placing the after-portion as the first child instead of sibling. */

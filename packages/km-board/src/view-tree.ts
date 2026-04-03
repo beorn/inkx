@@ -602,39 +602,24 @@ export const ViewTree = {
     return index.get(id) ?? null
   },
 
-  /** Default remaining depth for card sub-items (matches CardColumn's remainingDepth={2}). */
-  CARD_REMAINING_DEPTH: 2 as const,
-
-  /** Check if a node's children would be rendered as FoldedChildRow (hidden by depth limit).
-   *  Counts the node's depth from its containing card in the ViewNode tree.
-   *  Children are folded when depth >= CARD_REMAINING_DEPTH - 1 (i.e., the node's
-   *  ChildrenList gets remainingDepth <= 0 → allFolded). */
-  areChildrenFolded(nodeId: string, viewIndex: Map<string, ViewNode>, foldDepths: Map<string, number>): boolean {
-    const vn = viewIndex.get(nodeId)
-    if (!vn) return false
-
-    // Node with an explicit fold override is handled by the caller's foldDepths.get() === 0 check.
-    // If the node has a positive fold override, the user explicitly unfolded it → children visible.
-    const foldOverride = foldDepths.get(nodeId)
-    if (foldOverride !== undefined && foldOverride > 0) return false
-
-    // Count depth from the containing card (edges from card to node)
-    let depth = 0
-    let current: ViewNode | null = vn
-    while (current) {
-      if (current.role === "card") break
-      depth++
-      current = current.parent
-    }
-    // Node is the card itself, or no card ancestor found → not folded by depth
-    if (!current || depth === 0) return false
-
-    // CardColumn renders with remainingDepth=CARD_REMAINING_DEPTH (default 2).
-    // At depth d from card, node's remainingDepth = CARD_REMAINING_DEPTH - d.
-    // ChildrenList gets (remainingDepth - 1), allFolded when <= 0.
-    // → children folded when CARD_REMAINING_DEPTH - depth - 1 <= 0
-    // → depth >= CARD_REMAINING_DEPTH - 1
-    return depth >= ViewTree.CARD_REMAINING_DEPTH - 1
+  /** Check whether a node has visible item children — the single source of truth
+   *  for "should Enter create a child or sibling?" logic.
+   *
+   *  Returns false when:
+   *  - The node is explicitly folded (foldDepths === 0)
+   *  - The node has no item children
+   *  - The node's children would be rendered as FoldedChildRow (beyond depth limit) */
+  hasVisibleItemChildren(
+    repo: ViewTreeRepo,
+    nodeId: string,
+    viewIndex: Map<string, ViewNode>,
+    foldDepths: Map<string, number>,
+  ): boolean {
+    if (foldDepths.get(nodeId) === 0) return false
+    const children = repo.getChildren(nodeId)
+    if (!children.some((c) => c.item)) return false
+    if (areChildrenBeyondDepthLimit(nodeId, viewIndex, foldDepths)) return false
+    return true
   },
 
   // === Add when needed ===
@@ -642,6 +627,48 @@ export const ViewTree = {
   // first(root) — first node in DFS
   // last(root) — last node in DFS (= nodes({ reverse }) first)
   // common(index, idA, idB) — lowest common ancestor
+}
+
+// =============================================================================
+// Constants
+// =============================================================================
+
+/** Default remaining depth for card sub-items.
+ *  CardColumn passes this as `remainingDepth` to TreeNode.
+ *  At this depth, children are rendered as full TreeNodes; beyond it, as FoldedChildRow. */
+export const CARD_REMAINING_DEPTH = 2
+
+// =============================================================================
+// Visibility helpers (private)
+// =============================================================================
+
+/** Check if a node's children are beyond the card's render depth limit.
+ *  Counts edges from the node up to its card ancestor. If depth >= CARD_REMAINING_DEPTH - 1,
+ *  the node's ChildrenList would get remainingDepth <= 0 → allFolded (FoldedChildRow). */
+function areChildrenBeyondDepthLimit(
+  nodeId: string,
+  viewIndex: Map<string, ViewNode>,
+  foldDepths: Map<string, number>,
+): boolean {
+  const vn = viewIndex.get(nodeId)
+  if (!vn) return false
+
+  // If the node has a positive fold override, the user explicitly unfolded → children visible
+  const foldOverride = foldDepths.get(nodeId)
+  if (foldOverride !== undefined && foldOverride > 0) return false
+
+  // Count depth from the containing card (edges from card to node)
+  let depth = 0
+  let current: ViewNode | null = vn
+  while (current) {
+    if (current.role === "card") break
+    depth++
+    current = current.parent
+  }
+  // Node is the card itself, or no card ancestor found → not beyond depth limit
+  if (!current || depth === 0) return false
+
+  return depth >= CARD_REMAINING_DEPTH - 1
 }
 
 // =============================================================================
