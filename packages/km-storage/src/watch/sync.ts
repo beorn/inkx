@@ -21,7 +21,7 @@ import { WriteQueue } from "./writequeue.ts"
 import { createOwnershipTracker, type OwnershipTracker } from "./ownership-tracker.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import { type Event } from "@km/core"
-import { type Emitter } from "../emitter.ts"
+import { type Emitter, type EmitOptions } from "../emitter.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
 import { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
@@ -107,8 +107,8 @@ export interface SyncableRepo {
   readonly database: Database
   readonly path: string
   readonly emitter: Emitter
-  apply(event: Omit<Event, "id" | "ts">, options?: { skipFsSync?: boolean }): Event
-  commit(event: Omit<Event, "id" | "ts">, options?: Record<string, unknown>): Event
+  apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+  commit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -425,15 +425,20 @@ export function withSync(config?: Partial<SyncConfig>) {
       },
     }
 
-    // Wrap emitter.apply() to add FS projection.
-    // This intercepts ALL callers (repo.apply, db-ops mutations, etc.)
-    const baseEmitterApply = emitter.apply.bind(emitter)
-    emitter.apply = (event, emitOptions = {}) => {
-      const result = baseEmitterApply(event, emitOptions)
-      if (!emitOptions.skipFsSync) {
-        void handlers.applyEventToFs(result)
+    // Subscribe to apply() to add FS projection.
+    // onApply fires after DB + persist + broadcast; commit() does NOT fire it,
+    // so FS-origin events (which use commit()) structurally cannot echo back.
+    const unsubscribe = emitter.onApply((event, options) => {
+      if (options.source !== "fs-import") {
+        void handlers.applyEventToFs(event)
       }
-      return result
+    })
+
+    // Ensure unsubscribe on stop
+    const baseStop = syncMethods.stop.bind(syncMethods)
+    syncMethods.stop = async () => {
+      unsubscribe()
+      await baseStop()
     }
 
     return { ...repo, ...syncMethods } as R & Sync

@@ -497,15 +497,12 @@ describe("Repo mutations trigger FS projection", () => {
     // Ensure .km dir exists so repo enters disk mode (emitter.apply gets FS decorator)
     mkdirSync(join(tempDir, ".km"), { recursive: true })
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
-    // Wrap emitter.apply to capture events flowing through the FS projection layer
-    const baseApply = repo.emitter.apply.bind(repo.emitter)
-    repo.emitter.apply = (event, options = {}) => {
-      const result = baseApply(event, options)
-      if (!options.skipFsSync) {
-        events.push(result)
+    // Subscribe to apply() to capture events flowing through the FS projection layer
+    repo.emitter.onApply((event, options) => {
+      if (options.source !== "fs-import") {
+        events.push(event)
       }
-      return result
-    }
+    })
     return { repo, events }
   }
 

@@ -809,7 +809,7 @@ export interface Repo extends Disposable {
    * Use for FS-origin events where projecting back to FS would cause echo loops.
    * Delegates to emitter.commit().
    */
-  commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
+  commit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
 
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)

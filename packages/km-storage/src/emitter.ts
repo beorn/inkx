@@ -4,11 +4,12 @@
  * Owns event emission lifecycle: kmDir, eventHub.
  * Replaces global singletons in emit.ts with explicit ownership.
  *
- * FS projection is handled by decorators (withFsWriter, withSync) that wrap
- * emitter.apply() — the Emitter itself has no knowledge of the filesystem.
+ * FS projection is handled by subscribers registered via onApply() —
+ * the Emitter itself has no knowledge of the filesystem.
  *
  * Usage:
  *   const emitter = createEmitter({ kmDir: "/path/to/.km" })
+ *   emitter.onApply((event, options) => { ... })
  *   emitter.apply({ type: "node_created", actor: "user", data: {...} })
  *   emitter.setEventHub({ broadcast: (e) => socket.send(e) })
  *   emitter.close()
@@ -20,6 +21,7 @@ import { join } from "path"
 import { ulid } from "ulid"
 import type { Event } from "@km/core"
 import type { Database } from "bun:sqlite"
+import type { CommitSource } from "./commit-types.ts"
 import { applyEventWithDb } from "./db-events.ts"
 
 const log = createLogger("km:storage:emitter")
@@ -37,12 +39,8 @@ export interface EmitOptions {
   skipPersist?: boolean
   /** Skip broadcasting via eventHub */
   skipBroadcast?: boolean
-  /**
-   * Skip filesystem projection.
-   * Checked by FS decorators (withFsWriter, withSync) that wrap emitter.apply().
-   * The Emitter itself ignores this flag — it's passed through to the decorator.
-   */
-  skipFsSync?: boolean
+  /** Provenance of this event — used by onApply subscribers to filter (e.g., skip FS projection for "fs-import" events) */
+  source?: CommitSource
   /** Database to apply event to (if not provided, event is not applied to db) */
   db?: Database
 }
@@ -68,27 +66,28 @@ export interface Emitter {
   readonly eventsPath: string
 
   /**
-   * Apply an event to the system (DB + journal + broadcast).
+   * Apply an event to the system (DB + journal + broadcast + onApply callbacks).
    *
    * 1. Applies to database (if db provided) — primary operation, DB consistency is non-negotiable
    * 2. Appends to events.jsonl (unless skipPersist) — if crash between 1 and 2, event is lost from journal but DB is correct
    * 3. Broadcasts via eventHub (unless skipBroadcast)
-   *
-   * FS projection is NOT handled here — it's added by decorators (withFsWriter,
-   * withSync) that wrap this method. The skipFsSync option is passed through
-   * to the decorator layer.
+   * 4. Notifies onApply subscribers (FS projection, etc.)
    */
   apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
 
   /**
    * Commit an event to the database and journal (no filesystem projection).
-   * Identical to apply() — both do DB + persist + broadcast.
-   *
-   * Kept as a separate method for semantic clarity: commit() signals
-   * "FS-origin event, don't project back" to callers, even though the
-   * Emitter itself treats them identically.
+   * Unlike apply(), does NOT fire onApply callbacks — structurally prevents
+   * echo loops for FS-origin events.
    */
-  commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
+  commit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+
+  /**
+   * Subscribe to successful apply() calls.
+   * Called after DB + persist + broadcast for every apply().
+   * Returns an unsubscribe function.
+   */
+  onApply(cb: (event: Event, options: EmitOptions) => void): () => void
 
   /** Set event hub for real-time broadcasting */
   setEventHub(hub: EventHub | null): void
@@ -114,6 +113,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
   const defaultDb = options.db ?? null
   const defaultSkipPersist = options.skipPersist ?? false
   let eventHub: EventHub | null = options.eventHub ?? null
+  const applyCallbacks = new Set<(event: Event, options: EmitOptions) => void>()
 
   const eventsPath = join(kmDir, "events.jsonl")
 
@@ -129,7 +129,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
    */
   function commitInternal(
     partialEvent: Omit<Event, "id" | "ts">,
-    commitOptions: Omit<EmitOptions, "skipFsSync"> = {},
+    commitOptions: EmitOptions = {},
   ): Event {
     const event: Event = {
       id: ulid(),
@@ -176,15 +176,29 @@ export function createEmitter(options: EmitterOptions): Emitter {
     },
 
     apply(partialEvent, emitOptions = {}) {
-      // DB + persist + broadcast. FS projection is added by decorators
-      // (withFsWriter, withSync) that wrap this method.
-      return commitInternal(partialEvent, emitOptions)
+      const event = commitInternal(partialEvent, emitOptions)
+      // Notify subscribers (FS projection, etc.)
+      for (const cb of applyCallbacks) {
+        try {
+          cb(event, emitOptions)
+        } catch (err) {
+          log.error?.(`onApply callback failed for ${event.type}: ${err}`)
+        }
+      }
+      return event
     },
 
     commit(partialEvent, commitOptions = {}) {
-      // Identical to apply() at the Emitter level.
-      // Semantically signals "don't project to FS" to callers.
+      // Identical to apply() at the Emitter level but does NOT fire onApply callbacks.
+      // Used for FS-origin events where projecting back to FS would cause echo loops.
       return commitInternal(partialEvent, commitOptions)
+    },
+
+    onApply(cb) {
+      applyCallbacks.add(cb)
+      return () => {
+        applyCallbacks.delete(cb)
+      }
     },
 
     setEventHub(hub) {
@@ -197,6 +211,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
 
     close() {
       eventHub = null
+      applyCallbacks.clear()
     },
   }
 }

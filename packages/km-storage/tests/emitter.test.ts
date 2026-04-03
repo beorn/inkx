@@ -204,11 +204,11 @@ describe("F1: Multiple callback isolation", () => {
 })
 
 // =============================================================================
-// skipFsSync — decorator layer checks this; emitter passes it through
+// onApply subscriber — source-based filtering for FS projection
 // =============================================================================
 
-describe("skipFsSync option passthrough", () => {
-  test("skipFsSync is passed through to decorator wrappers", () => {
+describe("onApply subscriber with source filtering", () => {
+  test("source: fs-import skips FS projection subscriber", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -224,22 +224,19 @@ describe("skipFsSync option passthrough", () => {
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
 
-    // Simulate a decorator that wraps emitter.apply (like withFsWriter/withSync)
-    const baseApply = emitter.apply.bind(emitter)
-    emitter.apply = (event, options = {}) => {
-      const result = baseApply(event, options)
-      if (!options.skipFsSync) {
-        fsCalls.push(result.type)
+    // Register onApply subscriber (same pattern as withFsWriter/withSync)
+    emitter.onApply((event, options) => {
+      if (options.source !== "fs-import") {
+        fsCalls.push(event.type)
       }
-      return result
-    }
+    })
 
-    // Apply with skipFsSync: true — decorator should skip FS projection
-    emitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } }, { skipFsSync: true })
+    // Apply with source: "fs-import" — subscriber should skip FS projection
+    emitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } }, { source: "fs-import" })
     expect(broadcastCalls).toEqual(["node_created"])
     expect(fsCalls).toEqual([])
 
-    // Apply without skipFsSync — decorator should run FS projection
+    // Apply without source — subscriber should run FS projection
     emitter.apply({ type: "node_updated", actor: "user", target: "t1", data: { content: "x" } })
     expect(fsCalls).toEqual(["node_updated"])
 
@@ -252,8 +249,8 @@ describe("skipFsSync option passthrough", () => {
 // Emitter wrapping — pattern used by decorators for FS-origin reconciliation
 // =============================================================================
 
-describe("Emitter wrapping for reconciliation", () => {
-  test("wrapped emitter adds skipFsSync to all apply calls", () => {
+describe("commit() vs apply() — structural echo prevention", () => {
+  test("commit() does not fire onApply subscribers", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -269,34 +266,23 @@ describe("Emitter wrapping for reconciliation", () => {
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
 
-    // Simulate FS decorator wrapping emitter.apply
-    const baseApply = emitter.apply.bind(emitter)
-    emitter.apply = (event, options = {}) => {
-      const result = baseApply(event, options)
-      if (!options.skipFsSync) {
-        fsCalls.push(result.type)
+    // Register onApply subscriber (same pattern as withFsWriter/withSync)
+    emitter.onApply((event, options) => {
+      if (options.source !== "fs-import") {
+        fsCalls.push(event.type)
       }
-      return result
-    }
+    })
 
-    // Create a wrapped emitter (same pattern as wrapEmitterForReconcile in sync.ts)
-    const wrappedEmitter: typeof emitter = {
-      ...emitter,
-      apply(event, options = {}) {
-        return emitter.apply(event, { ...options, skipFsSync: true })
-      },
-    }
-
-    // Apply via wrapped emitter — should broadcast but NOT trigger FS decorator
-    wrappedEmitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
-    wrappedEmitter.apply({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
+    // commit() bypasses onApply — should broadcast but NOT trigger subscriber
+    emitter.commit({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
+    emitter.commit({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
 
     // Broadcast still works (TUI gets notified)
     expect(broadcastCalls).toEqual(["node_created", "node_updated"])
-    // FS decorator is skipped (no echo back to filesystem)
+    // onApply subscriber is NOT called (commit bypasses it)
     expect(fsCalls).toEqual([])
 
-    // Direct emitter still triggers FS decorator (for TUI-origin events)
+    // Direct apply() still triggers subscriber (for TUI-origin events)
     emitter.apply({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
     expect(fsCalls).toEqual(["node_updated"])
 
@@ -304,7 +290,7 @@ describe("Emitter wrapping for reconciliation", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("wrapped emitter preserves other apply options", () => {
+  test("commit() preserves other options (skipBroadcast)", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -320,25 +306,15 @@ describe("Emitter wrapping for reconciliation", () => {
 
     const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
 
-    // Simulate FS decorator
-    const baseApply = emitter.apply.bind(emitter)
-    emitter.apply = (event, options = {}) => {
-      const result = baseApply(event, options)
-      if (!options.skipFsSync) {
-        fsCalls.push(result.type)
+    // Register onApply subscriber
+    emitter.onApply((event, options) => {
+      if (options.source !== "fs-import") {
+        fsCalls.push(event.type)
       }
-      return result
-    }
+    })
 
-    const wrappedEmitter: typeof emitter = {
-      ...emitter,
-      apply(event, options = {}) {
-        return emitter.apply(event, { ...options, skipFsSync: true })
-      },
-    }
-
-    // Wrapped apply with additional skipBroadcast — both should be respected
-    wrappedEmitter.apply(
+    // commit() with skipBroadcast — both should be respected
+    emitter.commit(
       { type: "node_created", actor: "fs-watch", data: { id: "w2", type: "h" } },
       { skipBroadcast: true },
     )

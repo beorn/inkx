@@ -64,16 +64,14 @@ export function withFsWriter<R extends SyncableRepo>(repo: R): FsWriterResult<R>
   const { database, path, emitter } = repo
   const handlers = new EventHandlers(database, path, emitter, syncFsTarget)
 
-  // Wrap emitter.apply() to add FS projection.
-  // This intercepts ALL callers (repo.apply, db-ops mutations, etc.)
-  const baseEmitterApply = emitter.apply.bind(emitter)
-  emitter.apply = (event, emitOptions = {}) => {
-    const result = baseEmitterApply(event, emitOptions)
-    if (!emitOptions.skipFsSync) {
-      handlers.applyEventToFs(result)
+  // Subscribe to apply() to add FS projection.
+  // onApply fires after DB + persist + broadcast; commit() does NOT fire it,
+  // so FS-origin events (which use commit()) structurally cannot echo back.
+  emitter.onApply((event, options) => {
+    if (options.source !== "fs-import") {
+      handlers.applyEventToFs(event)
     }
-    return result
-  }
+  })
 
   return {
     repo,
