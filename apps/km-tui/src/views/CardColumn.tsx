@@ -153,6 +153,22 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
   return null
 }
 
+/**
+ * Populates a ref with the card's screen-space bounding box for popover
+ * overlap positioning. Rendered inside the card's Box to get the correct
+ * NodeContext. Uses useScreenRectCallback (zero re-renders).
+ */
+function PopoverRectRegistrar({
+  rectRef,
+}: {
+  rectRef: React.MutableRefObject<{ x: number; y: number; width: number; height: number } | null>
+}): null {
+  useScreenRectCallback((rect) => {
+    rectRef.current = rect
+  })
+  return null
+}
+
 export const Card = React.memo(
   function Card({
     card,
@@ -179,7 +195,11 @@ export const Card = React.memo(
     const isSelected = cursorCardNodeId === nodeId && selLevel === "card"
 
     // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
-    const { hoverBorderColor, handlers: hoverHandlers } = useCardInteraction(nodeId, isSelected || isColSelected)
+    const {
+      hoverBorderColor,
+      cardRectRef,
+      handlers: hoverHandlers,
+    } = useCardInteraction(nodeId, isSelected || isColSelected)
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
@@ -195,10 +215,9 @@ export const Card = React.memo(
     })
     const isEditing = isDirectlyEditing || expandedEditCardId === nodeId
 
-    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L)
-    const isMultiSelected = useAppStore<BoardAppStore, boolean>(
-      (s) => Workspace.getActiveBoardPane(s)?.multiSelected.has(nodeId) ?? false,
-    )
+    // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
+    // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
+    const isMultiSelected = useReactive(nodeStore.getOrCreate(nodeId).multiSelected)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -277,6 +296,7 @@ export const Card = React.memo(
           {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+          <PopoverRectRegistrar rectRef={cardRectRef} />
           <Box
             id={nodeId}
             data-view="item"
@@ -320,6 +340,7 @@ export const Card = React.memo(
           {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+          <PopoverRectRegistrar rectRef={cardRectRef} />
           <TreeNode
             node={card}
             depth={0}
@@ -356,6 +377,7 @@ export const Card = React.memo(
           {...hoverHandlers}
         >
           <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+          <PopoverRectRegistrar rectRef={cardRectRef} />
           <Box
             id={nodeId}
             data-view="item"
@@ -404,6 +426,7 @@ export const Card = React.memo(
         >
           <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+            <PopoverRectRegistrar rectRef={cardRectRef} />
             <TreeNode
               node={card}
               depth={0}
@@ -440,6 +463,7 @@ export const Card = React.memo(
         {...hoverHandlers}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
+        <PopoverRectRegistrar rectRef={cardRectRef} />
         <TreeNode
           node={card}
           depth={0}
@@ -565,7 +589,7 @@ export const Column = React.memo(function Column({
   const repoUpdate = useRepoEffect(repo)
   const setUI = useSetUI()
   const {
-    treeConfig: { iconStyle, borderMode: _borderMode, maxContentLines },
+    treeConfig: { iconStyle, borderMode: _borderMode, maxContentLines: _maxContentLines },
   } = useTreeRenderContext()
   const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
   const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
