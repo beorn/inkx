@@ -1,215 +1,282 @@
 # Selection Model
 
-Unified selection for km — covers node selection, text editing, keyboard, mouse, voice, AI.
-Better than Apple's AppKit (which hides the anchor and has no unified text+node type).
+Unified selection architecture for km — designed for tree/outliner today, extensible to creative tools (Keynote, Numbers, Figma-class) tomorrow.
 
-## Core Type
+Reviewed by GPT 5.4 Pro (2x, $8.69 total). Key feedback incorporated.
+
+## Design Principles
+
+1. **One authoritative selection value** — no scattered state
+2. **Explicit anchor, focus, and lead** — nothing hidden or overloaded
+3. **Discriminated union** — `kind` field, not optional fields
+4. **Logical selection separate from visual projection** — `normalize/map/project` pipeline
+5. **Selection describes what the user selected, not what commands affect** — operation targeting is a separate layer
+6. **Per-scope ownership** — selection belongs to a selection scope (surface), not a pane
+7. **Extensible to new domains** — grid, canvas, handles via new `kind` variants
+
+## Core Types
 
 ```ts
-type Position = { nodeId: string; offset?: number }
+// === Points (positions in different spaces) ===
 
-type Selection = {
-  anchor: Position          // fixed end (set on click, stays on shift-extend)
-  focus: Position           // active end (moves with shift-click/shift-arrow)
-  toggled?: ReadonlySet<string>  // cmd+click additions/removals on top of range
-} | null
+type NodePoint = {
+  kind: "node"
+  nodeId: string
+  edge?: "before" | "on" | "after"  // insertion/gap positions
+}
+
+type TextPoint = {
+  kind: "text"
+  nodeId: string
+  field?: string                     // which editable field (title, body block, etc.)
+  offset: number                     // character position
+  affinity?: "forward" | "backward"  // line-wrap/bidi disambiguation
+}
+
+// Future extensions (not implemented yet):
+// type CellPoint = { kind: "cell"; sheetId: string; row: number; col: number }
+// type HandlePoint = { kind: "handle"; objectId: string; handleId: string }
+
+type Point = NodePoint | TextPoint
+
+// === Selection (discriminated union) ===
+
+type Selection =
+  | { kind: "none" }
+  | NodeSelection
+  | TextSelection
+  // Future: | GridSelection | SceneSelection | NestedSelection
+
+type NodeSelection = {
+  kind: "node"
+  scopeId: string                    // which selection surface owns this
+  selected: ReadonlySet<string>      // explicit membership (stable, not derived from range)
+  lead: string                       // primary item (inspector target, keyboard home)
+  anchor: string | null              // shift-extend origin (null = no range active)
+}
+
+type TextSelection = {
+  kind: "text"
+  scopeId: string
+  outer: NodeSelection               // the host node is selected structurally
+  anchor: TextPoint                  // fixed end
+  focus: TextPoint                   // active end (cursor position)
+}
 ```
 
-- `offset` absent → node position (navigating the tree)
-- `offset` present → text position (editing content)
-- `anchor === focus` → cursor (collapsed)
-- `anchor !== focus` → range (expanded)
-- `toggled` → discrete modifications on top of range (cmd+click)
-- `null` → nothing selected
+### Why explicit `selected: Set` instead of `range(anchor, focus)`
+
+The Pro review identified that `range XOR toggled` is unstable:
+- Extending a range can flip toggled items from "added" to "removed"
+- Shrinking a range can flip them from "removed" to "added"
+- API/voice commands need idempotent `add/remove`, not `toggle`
+
+Explicit membership is stable. The `anchor` field enables shift-extend: `extendTo(target)` computes a range walk and replaces `selected` with the result. Clean, predictable.
+
+### Why `lead` separate from `focus`
+
+`focus` in a range is the "moving end." `lead` is the "primary selected item" — inspector target, keyboard home, alignment reference. They diverge on Cmd+click:
+- Cmd+click F: adds F to selection. F becomes `lead`. But `focus` (range end) doesn't change.
+- Invariant: `lead` must be in `selected`.
+
+### Why `TextSelection` has `outer: NodeSelection`
+
+Creative tools need nested selection — the card/object is structurally selected (border highlight, handles), AND you're editing text inside it. `outer` gives you both at once.
 
 ## Namespace Interface
 
 ```ts
 const Selection = {
   // Constructors
-  none():    Selection                      // null
-  node(id):  Selection                      // collapsed node cursor
-  range(anchor, focus): Selection           // node range
-  text(nodeId, offset): Selection           // text caret
-  textRange(nodeId, anchor, focus): Selection  // text range
+  none(): Selection
+  node(scopeId: string, nodeId: string): Selection
+  text(scopeId: string, nodeId: string, field: string, offset: number): Selection
 
-  // Queries (like Tree.nodes / KNode.isTask)
-  nodes(sel, tree):      Iterable<KNode>    // all selected nodes in tree order
-  nodeIds(sel, tree):    Set<string>        // fast set for .has() checks
-  includes(sel, id, tree): boolean          // is this node selected?
-  isCollapsed(sel):      boolean
-  isTextMode(sel):       boolean
-  focus(sel):            Position | null     // active end
-  anchor(sel):           Position | null     // fixed end
+  // Common queries (work on all kinds)
+  isNone(sel): boolean
+  isCollapsed(sel): boolean
+  kind(sel): "none" | "node" | "text" | ...
+  lead(sel): string | null
+  scopeId(sel): string | null
 
-  // Transforms
-  collapse(sel):         Selection          // range → cursor at focus
-  extend(sel, nodeId):   Selection          // move focus, keep anchor
-  moveTo(sel, nodeId):   Selection          // collapse to new node
-  toggle(sel, nodeId):   Selection          // cmd+click: add/remove from toggled
-  enterText(sel, offset): Selection         // add offset → text mode
-  exitText(sel):         Selection          // strip offset → node mode
-  validate(sel, tree):   Selection          // snap to visible, clamp offsets
+  // Lifecycle (the core pipeline)
+  normalize(sel, doc): Selection           // structural validity (targets exist, offsets valid)
+  map(sel, operation, doc): Selection      // transform through document edits
+  project(sel, view, policy): Selection    // adapt to a specific view/pane
+}
+
+const NodeSelection = {
+  // Queries
+  members(sel): ReadonlySet<string>        // exact selected set
+  roots(sel, tree): string[]               // top-level selected (excludes selected descendants)
+  includes(sel, nodeId): boolean
+  lead(sel): string
+
+  // Mutations (all return new Selection)
+  selectOnly(scopeId, nodeId): Selection
+  add(sel, nodeId): Selection              // idempotent
+  remove(sel, nodeId): Selection           // idempotent
+  toggle(sel, nodeId): Selection           // for mouse gesture convenience
+  extendTo(sel, nodeId, tree): Selection   // shift-click: range walk, replaces selected
+  collapseToLead(sel): Selection           // Escape: keep only lead
+}
+
+const TextSelection = {
+  range(sel): { anchor: TextPoint; focus: TextPoint }
+  isCollapsed(sel): boolean
+  outerNode(sel): NodeSelection
 }
 ```
 
-## Derived State (never stored, always computed)
+## Derived State (never stored)
 
 ```
-isCollapsed(sel)      = posEqual(sel.anchor, sel.focus) && !sel.toggled?.size
-isTextMode(sel)       = sel?.focus.offset !== undefined
-isNodeMode(sel)       = sel !== null && sel.focus.offset === undefined
-cursorNodeId(sel)     = sel?.focus.nodeId
-cursorCardId(sel)     = ancestor(sel.focus.nodeId, "card")
-cursorColumnId(sel)   = ancestor(sel.focus.nodeId, "column")
-selectedNodeIds(sel)  = rangeWalk(anchor, focus, tree) XOR toggled
-inputMode(sel)        = sel === null ? "board" : isTextMode(sel) ? "text" : "node"
+inputMode(sel)         = sel.kind === "text" ? "text" : sel.kind === "none" ? "board" : "node"
+cursorNodeId(sel)      = sel.kind === "node" ? sel.lead : sel.kind === "text" ? sel.focus.nodeId : null
+cursorCardId(sel, tree) = ancestor(cursorNodeId, "card")
+cursorColId(sel, tree)  = ancestor(cursorNodeId, "column")
 ```
 
-## States
+Note: `inputMode` is a convenience for km. Creative tools keep tool/mode state separately from selection.
 
-| State | Selection value | Visual |
-|---|---|---|
-| Nothing selected | `null` | No highlight |
-| Node cursor | `{ anchor: {A}, focus: {A} }` | Yellow bg on node A |
-| Node range | `{ anchor: {A}, focus: {D} }` | Yellow bg on A..D |
-| Node range + toggle | `{ anchor: {A}, focus: {D}, toggled: {B, F} }` | A,C,D,F highlighted (B removed, F added) |
-| Text caret | `{ anchor: {A, 5}, focus: {A, 5} }` | Blinking cursor at offset 5 |
-| Text range | `{ anchor: {A, 5}, focus: {A, 12} }` | Blue highlight over text 5..12 |
+## normalize / map / project Pipeline
+
+### normalize(sel, doc)
+Structural validity against the document (not a view):
+- Does the target node still exist? → snap to nearest sibling or parent
+- Is the offset within content length? → clamp
+- Is `lead` in `selected`? → set lead to first selected
+
+### map(sel, operation, doc)
+Transform selection through document edits:
+- Node deleted → remove from selected, update lead
+- Node moved → update if in selected
+- Node split → selection follows the half containing the original position
+- Content inserted before offset → shift offset
+
+This is how undo/redo preserves selection — the transaction carries before/after selection.
+
+### project(sel, view, policy)
+Adapt to a specific pane's visible tree:
+- Hidden nodes → policy decides: preserve invisibly, proxy to ancestor, or remove
+- Filtered nodes → same policy
+- Out-of-scope nodes → remove from this pane's projection
+
+Policies:
+- `"preserve"` — keep logical selection, render what's visible (default)
+- `"proxy"` — snap hidden items to nearest visible ancestor
+- `"strict"` — remove non-visible items from selection
+
+Logical selection is NEVER mutated by projection. The pane gets a derived view.
 
 ## Gesture → Selection Transitions
 
-### Keyboard (node mode — no offset)
+### Keyboard (node mode)
 
-| Current | Key | New Selection |
+| Current | Key | Action |
 |---|---|---|
-| null | j | `{A₀, A₀}` — first visible node |
-| node(A) | j | `{B, B}` — next visible node |
-| node(A) | k | `{C, C}` — previous visible node |
-| node(A) | h | `{D, D}` — first card in prev column |
-| node(A) | l | `{E, E}` — first card in next column |
-| node(A) | Shift+j | `{A, B}` — start/extend range down |
-| node(A) | Shift+k | `{A, C}` — start/extend range up |
-| range(A,B) | Shift+j | `{A, B+1}` — extend range further |
-| range(A,B) | Shift+k | `{A, B-1}` — shrink range |
-| range(A,B) | j | `{B+1, B+1}` — collapse, move past focus |
-| range(A,B) | Escape | `{B, B}` — collapse to focus |
-| node(A) | Escape | `null` — clear |
-| node(A) | Enter | `{A', A', offset:0}` — enter text edit |
-| range+toggled | Shift+j | `{anchor, focus+1}` — shift RESETS toggled |
+| none | j | `selectOnly(first visible node)` |
+| node | j | `selectOnly(next visible)` |
+| node | Shift+j | `extendTo(next, tree)` |
+| node | Escape (has selection) | `collapseToLead()` |
+| node | Escape (lead only) | `none` |
+| node | Enter | → TextSelection (caret at field start) |
 
-### Keyboard (text mode — offset present)
+### Keyboard (text mode)
 
-| Current | Key | New Selection |
+| Current | Key | Action |
 |---|---|---|
-| caret(A,5) | Right | `{A,6}, {A,6}` — move caret |
-| caret(A,5) | Left | `{A,4}, {A,4}` — move caret |
-| caret(A,5) | Shift+Right | `{A,5}, {A,6}` — extend text range |
-| textRange(A,5,12) | Shift+Right | `{A,5}, {A,13}` — extend further |
-| caret(A,5) | Escape | `{A, A}` no offset — exit to node |
-| textRange(A,5,12) | Escape | `{A, A}` no offset — exit to node |
-| caret(A, end) | Down | `{A', 0}` — next editable node |
+| text | ArrowRight | move focus offset +1 |
+| text | Shift+Right | extend text range |
+| text | Escape | → outer NodeSelection |
 
-### Mouse (node mode)
+### Mouse
 
-| Current | Gesture | New Selection |
-|---|---|---|
-| any | Click B | `{B, B}` — collapse to clicked |
-| any | Shift+click B | `{anchor, B}` — range, clear toggled |
-| any | Cmd+click B | `{anchor, focus, toggled XOR {B}}` — toggle B |
-| any | Click empty | `null` — deselect |
-| any | Click text in B | `{B', off}, {B', off}` — enter text edit |
-| any | Drag across nodes | area-select → `{first, last}` range |
-
-### Mouse (text mode)
-
-| Current | Gesture | New Selection |
-|---|---|---|
-| caret(A,5) | Click text A@8 | `{A,8}, {A,8}` — reposition |
-| caret(A,5) | Click text B@3 | `{B,3}, {B,3}` — switch node |
-| caret(A,5) | Click node B | `{B, B}` no offset — exit text |
-| caret(A,5) | Drag text 5→12 | `{A,5}, {A,12}` — text range |
-| caret(A,5) | Click empty | `null` — deselect |
+| Gesture | Action |
+|---|---|
+| Click node B | `selectOnly(B)` |
+| Shift+click B | `extendTo(B, tree)` — replaces selected with range walk |
+| Cmd+click B | `toggle(B)` — B becomes lead |
+| Click text in B | → TextSelection at position |
+| Click empty | `none` |
+| Drag across nodes | area select → `selectOnly(hit-test results)` |
 
 ### Voice / AI / API
 
-| Command | Selection |
+| Command | Action |
 |---|---|
-| "Select card X" | `{X, X}` |
-| "Select from X to Y" | `{X, Y}` |
-| "Also select Z" | `{anchor, focus, toggled + {Z}}` |
-| "Deselect Z" | `{anchor, focus, toggled + {Z}}` (toggle off) |
-| "Edit card X" | `{X, 0}, {X, 0}` (with offset) |
-| "Deselect" | `null` |
-
-## Range + Toggle Composition Rules
-
-Based on Finder/macOS behavior:
-
-1. **Click** → collapse, clear toggled
-2. **Shift+click** → range from anchor, **clear toggled** (fresh range)
-3. **Cmd+click** → XOR node in toggled set, keep anchor+focus
-4. **Cmd+shift+click** → extend range AND preserve toggled (power user)
-5. **Escape** → collapse to focus, clear toggled
-
-`Selection.nodeIds()` computes: range walk (anchor→focus) ⊕ toggled (symmetric difference).
-
-This matches Finder. Shift resets discrete selections to a clean range. Cmd builds up discrete on top. Clean composition, no ambiguity.
-
-## Invariant
-
-After every state change:
-
-```ts
-Selection.validate(sel, visibleTree): Selection
-```
-
-- node not in visibleTree → snap to nearest visible ancestor
-- offset > content.length → clamp to end
-- node deleted → `null`
-
-Prevents: selecting hidden nodes, cursor on deleted node, offset past end of text.
+| "Select card X" | `selectOnly(X)` |
+| "Also select Y" | `add(Y)` — idempotent |
+| "Deselect Y" | `remove(Y)` — idempotent |
+| "Select from X to Y" | `extendTo(Y)` with anchor at X |
+| "Edit card X" | → TextSelection |
+| "Deselect all" | `none` |
 
 ## What This Replaces
 
-| Current (scattered state) | New (unified) |
+| Current (scattered) | New (unified) |
 |---|---|
-| `cursorNodeId` in CursorStore | `Selection.focus(sel).nodeId` |
-| `cursorCardNodeId` in CursorStore | `ancestor(focus, "card")` |
-| `cursorColumnNodeId` in CursorStore | `ancestor(focus, "column")` |
-| `selectionLevel` in CursorStore | `inputMode(sel)` |
-| `multiSelected: Set<string>` in UI state | `Selection.nodeIds(sel, tree)` |
-| `selectionAnchor` in UI state | `sel.anchor` |
-| `inlineEditBlock` in UI state | `isTextMode(sel)` |
-| `ReactiveNodeStore.multiSelected` signals | `Selection.nodeIds(sel, tree)` |
-| `expandWithDescendants()` | Part of `Selection.nodeIds()` |
+| `cursorNodeId` in CursorStore | `Selection.lead(sel)` or `sel.focus.nodeId` |
+| `cursorCardNodeId` | `ancestor(lead, "card")` |
+| `cursorColumnNodeId` | `ancestor(lead, "column")` |
+| `selectionLevel` | `inputMode(sel)` |
+| `multiSelected: Set<string>` | `NodeSelection.members(sel)` |
+| `selectionAnchor` | `sel.anchor` |
+| `inlineEditBlock` | `sel.kind === "text"` |
+| `ReactiveNodeStore.multiSelected` | `NodeSelection.members(sel)` |
+| `expandWithDescendants()` | NOT in selection — that's operation targeting |
 
-## Per-Pane
+### Important: `expandWithDescendants` is NOT selection
 
-Selection lives per-pane. Focused pane receives input.
+When a card is selected, its descendants are visually highlighted. But the selection is `{card}`, not `{card, child1, child2, ...}`. Visual highlighting of descendants is a **rendering concern**, not selection state. Commands decide independently what to affect:
+- Delete card → affects whole subtree
+- Rename → affects card title only
+- Move → moves card as one unit
+
+## Selection Scope
+
+Selection belongs to a scope (surface), not a pane. A pane may:
+- Own a scope (most common)
+- Mirror another scope (e.g., layers panel mirrors canvas selection)
+- Host multiple scopes (e.g., sidebar tree + main content)
 
 ```ts
-type PaneState = {
+type SelectionScope = {
+  id: string
   selection: Selection
+}
+
+type PaneState = {
+  scopeId: string           // which scope this pane reads/writes
   rootId: string
   viewMode: "cards" | "detail" | ...
 }
 ```
 
-## Prior Art Comparison
+## Undo Integration
 
-| Feature | Apple AppKit | Apple SwiftUI | SlateJS | ProseMirror | km (proposed) |
+- Content edits carry selection before/after as transaction metadata
+- Undo restores both document state and associated selection
+- Pure cursor moves do NOT create undo entries
+- Selection is part of the state machine: `(action, state) → [state, effects]`
+
+## Prior Art
+
+| Feature | Apple AppKit | SwiftUI | SlateJS | ProseMirror | km (this design) |
 |---|---|---|---|---|---|
-| Selection type | IndexSet (rows) | Set\<ID\> | {anchor, focus} | abstract Selection | {anchor, focus, toggled?} |
-| Anchor exposed | No (internal) | No | Yes | Yes (via $anchor) | Yes |
-| Text + node unified | No (separate views) | No | Yes (Point has offset) | Yes (ResolvedPos) | Yes (offset?) |
-| Discrete + range compose | Poorly (implicit) | Set only | N/A (text only) | N/A (text only) | XOR toggled set |
-| Validated against doc | No | No | No | Yes | Yes (visibleTree) |
-| Multi-pane | Responder chain | Binding-based | Single editor | Single editor | Per-pane data |
+| Type | IndexSet | Set\<ID\> | {anchor, focus} | abstract Selection | discriminated union |
+| Anchor | Hidden | Hidden | Exposed | Exposed | Exposed |
+| Lead/primary | No | No | No | No | **Yes** |
+| Text+node unified | No | No | Yes | Yes | **Yes (nested)** |
+| Discrete+range | Implicit | Set only | N/A | N/A | **Explicit set + extendTo** |
+| Validated | No | No | No | Yes | **Yes (normalize/map/project)** |
+| Nested selection | No | No | No | No | **Yes (outer+inner)** |
+| Multi-pane | Responder | Binding | Single | Single | **Scope-based** |
 
 ## Future Extensions
 
-- **Cross-node text selection**: anchor and focus in different nodeIds (like contentEditable)
-- **Multiple carets**: Array of Selections (like CodeMirror 6)
-- **Column-level selection**: Range where both positions are column-depth nodes
-- **Area select**: Mouse gesture → hit-test → node range
+- **GridSelection**: `{ kind: "grid"; scopeId; anchor: CellPoint; focus: CellPoint; selected: Set<CellRef> }`
+- **SceneSelection**: `{ kind: "scene"; scopeId; selected: Set<ObjectId>; lead: ObjectId }`
+- **NestedSelection**: `{ kind: "nested"; outer: SceneSelection; inner: HandleSelection | TextSelection }`
+- **Multiple cursors**: Array of TextSelections (like CodeMirror 6)
+- **Collaborative cursors**: Remote selections with user/color metadata
