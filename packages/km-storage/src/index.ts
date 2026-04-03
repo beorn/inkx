@@ -259,19 +259,7 @@ export { withReactive } from "./reactive.ts"
 export type { Reactive, ReadonlySignal } from "./reactive.ts"
 
 // Emitter domain object - owns event emission lifecycle
-// Replaces global singletons in emit.ts with explicit ownership
-// See: docs/00-principles.md
-export {
-  createEmitter,
-  // Helper functions that take emitter as first parameter
-  emitTaskClaimed as emitTaskClaimedWithEmitter,
-  emitTaskReleased as emitTaskReleasedWithEmitter,
-  emitTaskCompleted as emitTaskCompletedWithEmitter,
-  emitSessionStarted as emitSessionStartedWithEmitter,
-  emitSessionMessage as emitSessionMessageWithEmitter,
-  emitSessionToolCall as emitSessionToolCallWithEmitter,
-  emitSessionEnded as emitSessionEndedWithEmitter,
-} from "./emitter.ts"
+export { createEmitter } from "./emitter.ts"
 
 export type { Emitter, EmitterOptions, EmitOptions, EventHub } from "./emitter.ts"
 

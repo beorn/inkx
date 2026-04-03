@@ -127,10 +127,7 @@ export function createEmitter(options: EmitterOptions): Emitter {
    * Internal: apply to DB + persist + broadcast.
    * Both apply() and commit() delegate here.
    */
-  function commitInternal(
-    partialEvent: Omit<Event, "id" | "ts">,
-    commitOptions: EmitOptions = {},
-  ): Event {
+  function commitInternal(partialEvent: Omit<Event, "id" | "ts">, commitOptions: EmitOptions = {}): Event {
     const event: Event = {
       id: ulid(),
       ts: Date.now(),
@@ -240,17 +237,6 @@ export function emitNodeUpdated(
   return emitter.apply({ type: "node_updated", actor, target, data }, options)
 }
 
-/** Emit node_moved event */
-export function emitNodeMoved(
-  emitter: Emitter,
-  actor: string,
-  target: string,
-  data: { parent_id: string | null; parent_idx?: number },
-  options?: EmitOptions,
-): Event {
-  return emitter.apply({ type: "node_moved", actor, target, data }, options)
-}
-
 /** Emit node_deleted event */
 export function emitNodeDeleted(
   emitter: Emitter,
@@ -260,130 +246,4 @@ export function emitNodeDeleted(
   options?: EmitOptions,
 ): Event {
   return emitter.apply({ type: "node_deleted", actor, target, data: { reason } }, options)
-}
-
-/** Emit task_claimed event */
-export function emitTaskClaimed(emitter: Emitter, target: string, actor: string, options?: EmitOptions): Event {
-  return emitter.apply({ type: "task_claimed", actor, target, data: {} }, options)
-}
-
-/** Emit task_released event */
-export function emitTaskReleased(
-  emitter: Emitter,
-  target: string,
-  actor: string,
-  reason?: string,
-  options?: EmitOptions,
-): Event {
-  return emitter.apply({ type: "task_released", actor, target, data: { reason } }, options)
-}
-
-/** Emit task_completed event */
-export function emitTaskCompleted(
-  emitter: Emitter,
-  target: string,
-  actor: string,
-  summary?: string,
-  options?: EmitOptions,
-): Event {
-  return emitter.apply({ type: "task_completed", actor, target, data: { summary } }, options)
-}
-
-/** Emit session_started event */
-export function emitSessionStarted(
-  emitter: Emitter,
-  actor: string,
-  sessionId: string,
-  model: string,
-  target?: string,
-  systemPromptHash?: string,
-  options?: EmitOptions,
-): Event {
-  return emitter.apply(
-    {
-      type: "session_started",
-      actor,
-      target,
-      data: {
-        session_id: sessionId,
-        model,
-        system_prompt_hash: systemPromptHash,
-      },
-    },
-    options,
-  )
-}
-
-/** Emit session_message event */
-export function emitSessionMessage(
-  emitter: Emitter,
-  actor: string,
-  sessionId: string,
-  role: "user" | "assistant" | "system",
-  content: string,
-  tokens?: number,
-  options?: EmitOptions,
-): Event {
-  return emitter.apply(
-    {
-      type: "session_message",
-      actor,
-      data: { session_id: sessionId, role, content, tokens },
-    },
-    options,
-  )
-}
-
-/** Emit session_tool_call event */
-export function emitSessionToolCall(
-  emitter: Emitter,
-  actor: string,
-  sessionId: string,
-  tool: string,
-  args: Record<string, unknown>,
-  result?: unknown,
-  tokens?: number,
-  options?: EmitOptions,
-): Event {
-  return emitter.apply(
-    {
-      type: "session_tool_call",
-      actor,
-      data: { session_id: sessionId, tool, args, result, tokens },
-    },
-    options,
-  )
-}
-
-/** Emit session_ended event */
-export function emitSessionEnded(
-  emitter: Emitter,
-  actor: string,
-  sessionId: string,
-  status: "success" | "error" | "cancelled",
-  sessionOptions?: {
-    totalTokens?: number
-    costUsd?: number
-    filesModified?: string[]
-    summary?: string
-    error?: string
-  },
-  emitOpts?: EmitOptions,
-): Event {
-  return emitter.apply(
-    {
-      type: "session_ended",
-      actor,
-      data: {
-        session_id: sessionId,
-        status,
-        total_tokens: sessionOptions?.totalTokens,
-        cost_usd: sessionOptions?.costUsd,
-        files_modified: sessionOptions?.filesModified,
-        summary: sessionOptions?.summary,
-        error: sessionOptions?.error,
-      },
-    },
-    emitOpts,
-  )
 }
