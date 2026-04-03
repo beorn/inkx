@@ -414,7 +414,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
 
     // Clean up sync manager
     if (syncManager) {
-      options?.repo?.emitter.setFsSync(null)
       await syncManager.stop()
     }
 

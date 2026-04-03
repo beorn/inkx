@@ -246,11 +246,9 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(42)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       // Create test files
@@ -297,11 +295,9 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(123)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       writeFileSync(join(repoDir, "editable.md"), generateTaskFile(rng, "Editable"))
@@ -331,11 +327,9 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(999)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       // Create varied content
@@ -382,11 +376,9 @@ describe("Content Round-Trip Fuzz", () => {
   test("add_task between siblings causes known ID instability", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       writeFileSync(
@@ -404,7 +396,7 @@ describe("Content Round-Trip Fuzz", () => {
       await syncManager.syncFromFs()
 
       const before = snapshot(getAllNodes(db))
-      const sections = getAllNodes(db).filter((n) => n.type === "h" && !n.fstype)
+      const sections = getAllNodes(db).filter((n) => n.type === "h" && n.fstype === "mdsection")
       const taskSection = sections.find((s) => s.content === "Tasks")
       expect(taskSection).toBeDefined()
 
@@ -450,11 +442,9 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(555)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       writeFileSync(join(repoDir, "stable.md"), generateTaskFile(rng, "Stable"))
@@ -493,11 +483,9 @@ describe("Content Round-Trip Fuzz", () => {
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(777)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       // Create 5 files
@@ -560,11 +548,9 @@ describe("Content Round-Trip Fuzz", () => {
   test("section depth preserved through round-trip", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       // File with multiple heading levels
@@ -618,11 +604,9 @@ describe("Content Round-Trip Fuzz", () => {
   test("frontmatter preserved through round-trip", () =>
     withTestEnv(async ({ repoDir, db }) => {
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       writeFileSync(
@@ -676,11 +660,9 @@ type: daily
     withTestEnv(async ({ repoDir, db }) => {
       const rng = createSeededRandom(2024)
       const { repo, emitter } = createTestEnvRepo({ db, repoPath: repoDir, skipPersist: true })
-      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0 })
+      const syncManager = createTestSync(db, repoDir, { debounceFs: 0, debounceApply: 0, emitter })
 
       await using stack = new AsyncDisposableStack()
-      emitter.setFsSync(syncManager)
-      stack.defer(() => emitter.setFsSync(null))
       stack.defer(async () => await syncManager.stop())
 
       writeFileSync(join(repoDir, "golden.md"), generateTaskFile(rng, "Golden"))

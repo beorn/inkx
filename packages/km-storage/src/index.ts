@@ -260,7 +260,7 @@ export {
   emitSessionEnded as emitSessionEndedWithEmitter,
 } from "./emitter.ts"
 
-export type { Emitter, EmitterOptions, EmitOptions, EventHub, FsSync } from "./emitter.ts"
+export type { Emitter, EmitterOptions, EmitOptions, EventHub } from "./emitter.ts"
 
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config

@@ -138,7 +138,7 @@ describe("recursive delete", () => {
     const fakeEmitter = {
       kmDir: "/tmp",
       eventsPath: "/tmp/events.jsonl",
-      emit(event: Omit<Event, "id" | "ts">, _options?: unknown): Event {
+      apply(event: Omit<Event, "id" | "ts">, _options?: unknown): Event {
         const full: Event = { id: ulid(), ts: Date.now(), ...event }
         // Apply to db so we can verify recursive delete happens
         applyEventWithDb(db, full)
@@ -146,11 +146,7 @@ describe("recursive delete", () => {
         return full
       },
       setEventHub() {},
-      setFsSync() {},
       getEventHub() {
-        return null
-      },
-      getFsSync() {
         return null
       },
       close() {},

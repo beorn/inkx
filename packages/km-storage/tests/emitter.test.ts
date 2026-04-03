@@ -3,9 +3,12 @@
  *
  * Covers:
  * - F1: Error isolation in apply() — one bad listener must not kill the pipeline
- * - EventHub broadcast errors don't block FsSync
- * - FsSync errors don't suppress event return
- * - All steps (persist, db apply, broadcast, fs sync) execute in order
+ * - EventHub broadcast errors are isolated
+ * - All steps (persist, db apply, broadcast) execute in order
+ * - Emitter wrapping pattern for decorators (withFsWriter, withSync)
+ *
+ * Note: FS projection is handled by decorators (withFsWriter, withSync) that
+ * wrap emitter.apply(). The Emitter itself has no knowledge of the filesystem.
  */
 
 import { describe, test, expect, vi, beforeAll, afterAll } from "vitest"
@@ -14,7 +17,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
 import { setLogLevel, getLogLevel, type LogLevel } from "loggily"
-import { createEmitter, type EventHub, type FsSync } from "../src/emitter.ts"
+import { createEmitter, type EventHub } from "../src/emitter.ts"
 import { SCHEMA } from "../src/schema.ts"
 
 // Suppress log output in error-isolation tests (they deliberately trigger errors)
@@ -48,17 +51,10 @@ function createTmpDir(): string {
 // =============================================================================
 
 describe("F1: Error isolation in apply()", () => {
-  test("broadcast error does not prevent fsSync from running", () => {
+  test("broadcast error does not prevent event from being returned", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
-
-    const fsSyncCalls: string[] = []
-    const fsSync: FsSync = {
-      applyEventToFs(event) {
-        fsSyncCalls.push(event.type)
-      },
-    }
 
     const throwingHub: EventHub = {
       broadcast() {
@@ -70,7 +66,6 @@ describe("F1: Error isolation in apply()", () => {
       kmDir,
       db,
       eventHub: throwingHub,
-      fsSync,
     })
 
     // Should NOT throw — broadcast error is isolated
@@ -78,8 +73,6 @@ describe("F1: Error isolation in apply()", () => {
 
     expect(event).toBeDefined()
     expect(event.type).toBe("node_created")
-    // FsSync should still have run despite broadcast failure
-    expect(fsSyncCalls).toEqual(["node_created"])
 
     // DB event should still have been applied (meta cursor updated)
     const meta = db.query("SELECT value FROM meta WHERE key = 'last_event'").get() as { value: string } | null
@@ -90,72 +83,7 @@ describe("F1: Error isolation in apply()", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("fsSync I/O error does not prevent event from being returned", () => {
-    const db = createTestDb()
-    const dir = createTmpDir()
-    const kmDir = join(dir, ".km")
-
-    const broadcastCalls: string[] = []
-    const hub: EventHub = {
-      broadcast(event) {
-        broadcastCalls.push(event.type)
-      },
-    }
-
-    const throwingFsSync: FsSync = {
-      applyEventToFs() {
-        const err = new Error("disk full") as NodeJS.ErrnoException
-        err.code = "ENOSPC"
-        throw err
-      },
-    }
-
-    const emitter = createEmitter({
-      kmDir,
-      db,
-      eventHub: hub,
-      fsSync: throwingFsSync,
-    })
-
-    // I/O error in fsSync (has errno code) should be swallowed
-    const event = emitter.apply({ type: "node_updated", actor: "test", target: "t1", data: { content: "x" } })
-
-    expect(event).toBeDefined()
-    expect(event.type).toBe("node_updated")
-    // Broadcast should have run before fsSync
-    expect(broadcastCalls).toEqual(["node_updated"])
-
-    db.close()
-    rmSync(dir, { recursive: true })
-  })
-
-  test("fsSync programming error (no errno code) IS re-thrown", () => {
-    const db = createTestDb()
-    const dir = createTmpDir()
-    const kmDir = join(dir, ".km")
-
-    const throwingFsSync: FsSync = {
-      applyEventToFs() {
-        throw new TypeError("Cannot read properties of undefined")
-      },
-    }
-
-    const emitter = createEmitter({
-      kmDir,
-      db,
-      fsSync: throwingFsSync,
-    })
-
-    // Programming errors (no errno code) should propagate
-    expect(() => {
-      emitter.apply({ type: "node_created", actor: "test", data: { id: "n2", type: "h" } })
-    }).toThrow("Cannot read properties of undefined")
-
-    db.close()
-    rmSync(dir, { recursive: true })
-  })
-
-  test("apply returns event even when no hub or fsSync is set", () => {
+  test("apply returns event even when no hub is set", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -172,7 +100,7 @@ describe("F1: Error isolation in apply()", () => {
     rmSync(dir, { recursive: true })
   })
 
-  test("all four steps execute in order: persist, db, broadcast, fsSync", () => {
+  test("all three steps execute in order: persist, db, broadcast", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
@@ -185,17 +113,10 @@ describe("F1: Error isolation in apply()", () => {
       },
     }
 
-    const fsSync: FsSync = {
-      applyEventToFs() {
-        order.push("fsSync")
-      },
-    }
-
     const emitter = createEmitter({
       kmDir,
       db,
       eventHub: hub,
-      fsSync,
     })
 
     emitter.apply({ type: "node_created", actor: "test", data: { id: "n4", type: "h" } })
@@ -213,7 +134,7 @@ describe("F1: Error isolation in apply()", () => {
     // Insert "db" after persist
     order.splice(1, 0, "db")
 
-    expect(order).toEqual(["persist", "db", "broadcast", "fsSync"])
+    expect(order).toEqual(["persist", "db", "broadcast"])
 
     db.close()
     rmSync(dir, { recursive: true })
@@ -265,21 +186,16 @@ describe("F1: Multiple callback isolation", () => {
         calls.push("hub")
       },
     }
-    const fsSync: FsSync = {
-      applyEventToFs() {
-        calls.push("fsSync")
-      },
-    }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
     emitter.apply({ type: "node_created", actor: "test", data: { id: "c", type: "h" } })
-    expect(calls).toEqual(["hub", "fsSync"])
+    expect(calls).toEqual(["hub"])
 
     emitter.close()
     calls.length = 0
 
     emitter.apply({ type: "node_created", actor: "test", data: { id: "d", type: "h" } })
-    // After close, neither hub nor fsSync should be called
+    // After close, hub should not be called
     expect(calls).toEqual([])
 
     db.close()
@@ -288,16 +204,16 @@ describe("F1: Multiple callback isolation", () => {
 })
 
 // =============================================================================
-// skipFsSync — prevents echo loops for FS-origin events
+// skipFsSync — decorator layer checks this; emitter passes it through
 // =============================================================================
 
-describe("skipFsSync option", () => {
-  test("skipFsSync: true prevents fsSync from running", () => {
+describe("skipFsSync option passthrough", () => {
+  test("skipFsSync is passed through to decorator wrappers", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
 
-    const fsSyncCalls: string[] = []
+    const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
     const hub: EventHub = {
@@ -306,81 +222,26 @@ describe("skipFsSync option", () => {
       },
     }
 
-    const fsSync: FsSync = {
-      applyEventToFs(event) {
-        fsSyncCalls.push(event.type)
-      },
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+
+    // Simulate a decorator that wraps emitter.apply (like withFsWriter/withSync)
+    const baseApply = emitter.apply.bind(emitter)
+    emitter.apply = (event, options = {}) => {
+      const result = baseApply(event, options)
+      if (!options.skipFsSync) {
+        fsCalls.push(result.type)
+      }
+      return result
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
-
-    // Apply with skipFsSync: true — simulates FS-origin reconciliation
+    // Apply with skipFsSync: true — decorator should skip FS projection
     emitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } }, { skipFsSync: true })
-
-    // Broadcast should still run
     expect(broadcastCalls).toEqual(["node_created"])
-    // FsSync should NOT run — prevents echo loop
-    expect(fsSyncCalls).toEqual([])
+    expect(fsCalls).toEqual([])
 
-    db.close()
-    rmSync(dir, { recursive: true })
-  })
-
-  test("skipFsSync: false (default) allows fsSync to run", () => {
-    const db = createTestDb()
-    const dir = createTmpDir()
-    const kmDir = join(dir, ".km")
-
-    const fsSyncCalls: string[] = []
-
-    const fsSync: FsSync = {
-      applyEventToFs(event) {
-        fsSyncCalls.push(event.type)
-      },
-    }
-
-    const emitter = createEmitter({ kmDir, db, fsSync, skipPersist: true })
-
-    // Apply without skipFsSync — normal TUI-origin event
+    // Apply without skipFsSync — decorator should run FS projection
     emitter.apply({ type: "node_updated", actor: "user", target: "t1", data: { content: "x" } })
-
-    // FsSync should run
-    expect(fsSyncCalls).toEqual(["node_updated"])
-
-    db.close()
-    rmSync(dir, { recursive: true })
-  })
-
-  test("skipFsSync can be combined with other options", () => {
-    const db = createTestDb()
-    const dir = createTmpDir()
-    const kmDir = join(dir, ".km")
-
-    const fsSyncCalls: string[] = []
-    const broadcastCalls: string[] = []
-
-    const hub: EventHub = {
-      broadcast(event) {
-        broadcastCalls.push(event.type)
-      },
-    }
-
-    const fsSync: FsSync = {
-      applyEventToFs(event) {
-        fsSyncCalls.push(event.type)
-      },
-    }
-
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
-
-    // skipFsSync + skipBroadcast — neither should run
-    emitter.apply(
-      { type: "node_created", actor: "fs-watch", data: { id: "n2", type: "h" } },
-      { skipFsSync: true, skipBroadcast: true },
-    )
-
-    expect(broadcastCalls).toEqual([])
-    expect(fsSyncCalls).toEqual([])
+    expect(fsCalls).toEqual(["node_updated"])
 
     db.close()
     rmSync(dir, { recursive: true })
@@ -388,7 +249,7 @@ describe("skipFsSync option", () => {
 })
 
 // =============================================================================
-// Emitter wrapping — pattern used by SyncManager for FS-origin reconciliation
+// Emitter wrapping — pattern used by decorators for FS-origin reconciliation
 // =============================================================================
 
 describe("Emitter wrapping for reconciliation", () => {
@@ -397,7 +258,7 @@ describe("Emitter wrapping for reconciliation", () => {
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
 
-    const fsSyncCalls: string[] = []
+    const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
     const hub: EventHub = {
@@ -406,13 +267,17 @@ describe("Emitter wrapping for reconciliation", () => {
       },
     }
 
-    const fsSync: FsSync = {
-      applyEventToFs(event) {
-        fsSyncCalls.push(event.type)
-      },
-    }
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+    // Simulate FS decorator wrapping emitter.apply
+    const baseApply = emitter.apply.bind(emitter)
+    emitter.apply = (event, options = {}) => {
+      const result = baseApply(event, options)
+      if (!options.skipFsSync) {
+        fsCalls.push(result.type)
+      }
+      return result
+    }
 
     // Create a wrapped emitter (same pattern as wrapEmitterForReconcile in sync.ts)
     const wrappedEmitter: typeof emitter = {
@@ -422,18 +287,18 @@ describe("Emitter wrapping for reconciliation", () => {
       },
     }
 
-    // Apply via wrapped emitter — should broadcast but NOT write to fs
+    // Apply via wrapped emitter — should broadcast but NOT trigger FS decorator
     wrappedEmitter.apply({ type: "node_created", actor: "fs-watch", data: { id: "w1", type: "h" } })
     wrappedEmitter.apply({ type: "node_updated", actor: "fs-watch", target: "w1", data: { content: "x" } })
 
     // Broadcast still works (TUI gets notified)
     expect(broadcastCalls).toEqual(["node_created", "node_updated"])
-    // FsSync is skipped (no echo back to filesystem)
-    expect(fsSyncCalls).toEqual([])
+    // FS decorator is skipped (no echo back to filesystem)
+    expect(fsCalls).toEqual([])
 
-    // Direct emitter still has fsSync working (for TUI-origin events)
+    // Direct emitter still triggers FS decorator (for TUI-origin events)
     emitter.apply({ type: "node_updated", actor: "user", target: "u1", data: { content: "y" } })
-    expect(fsSyncCalls).toEqual(["node_updated"])
+    expect(fsCalls).toEqual(["node_updated"])
 
     db.close()
     rmSync(dir, { recursive: true })
@@ -444,7 +309,7 @@ describe("Emitter wrapping for reconciliation", () => {
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
 
-    const fsSyncCalls: string[] = []
+    const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
     const hub: EventHub = {
@@ -453,13 +318,17 @@ describe("Emitter wrapping for reconciliation", () => {
       },
     }
 
-    const fsSync: FsSync = {
-      applyEventToFs(event) {
-        fsSyncCalls.push(event.type)
-      },
-    }
+    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, fsSync, skipPersist: true })
+    // Simulate FS decorator
+    const baseApply = emitter.apply.bind(emitter)
+    emitter.apply = (event, options = {}) => {
+      const result = baseApply(event, options)
+      if (!options.skipFsSync) {
+        fsCalls.push(result.type)
+      }
+      return result
+    }
 
     const wrappedEmitter: typeof emitter = {
       ...emitter,
@@ -475,7 +344,7 @@ describe("Emitter wrapping for reconciliation", () => {
     )
 
     expect(broadcastCalls).toEqual([])
-    expect(fsSyncCalls).toEqual([])
+    expect(fsCalls).toEqual([])
 
     db.close()
     rmSync(dir, { recursive: true })

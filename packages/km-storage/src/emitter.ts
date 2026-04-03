@@ -1,14 +1,16 @@
 /**
  * Emitter Domain Object
  *
- * Owns event emission lifecycle: kmDir, eventHub, fsSync.
+ * Owns event emission lifecycle: kmDir, eventHub.
  * Replaces global singletons in emit.ts with explicit ownership.
+ *
+ * FS projection is handled by decorators (withFsWriter, withSync) that wrap
+ * emitter.apply() — the Emitter itself has no knowledge of the filesystem.
  *
  * Usage:
  *   const emitter = createEmitter({ kmDir: "/path/to/.km" })
  *   emitter.apply({ type: "node_created", actor: "user", data: {...} })
  *   emitter.setEventHub({ broadcast: (e) => socket.send(e) })
- *   emitter.setFsSync(syncManager)
  *   emitter.close()
  */
 
@@ -29,18 +31,17 @@ export interface EventHub {
   broadcast(event: Event): void
 }
 
-/** Filesystem sync callback (e.g., Sync object for bidirectional sync) */
-export interface FsSync {
-  applyEventToFs(event: Event): void
-}
-
 /** Options for apply() calls */
 export interface EmitOptions {
   /** Skip writing to events.jsonl */
   skipPersist?: boolean
   /** Skip broadcasting via eventHub */
   skipBroadcast?: boolean
-  /** Skip filesystem projection (for FS-origin events to prevent echo loops) */
+  /**
+   * Skip filesystem projection.
+   * Checked by FS decorators (withFsWriter, withSync) that wrap emitter.apply().
+   * The Emitter itself ignores this flag — it's passed through to the decorator.
+   */
   skipFsSync?: boolean
   /** Database to apply event to (if not provided, event is not applied to db) */
   db?: Database
@@ -54,8 +55,6 @@ export interface EmitterOptions {
   db?: Database
   /** Optional event hub for real-time broadcasting */
   eventHub?: EventHub
-  /** Optional filesystem sync callback */
-  fsSync?: FsSync
   /** Skip persisting events to filesystem by default (useful for mock fs tests) */
   skipPersist?: boolean
 }
@@ -69,47 +68,33 @@ export interface Emitter {
   readonly eventsPath: string
 
   /**
-   * Apply an event to the system (commit + save).
-   * Convenience method that calls commit() then save().
-   * Use for TUI-origin events where both DB and FS need updating.
+   * Apply an event to the system (DB + journal + broadcast).
    *
    * 1. Applies to database (if db provided) — primary operation, DB consistency is non-negotiable
    * 2. Appends to events.jsonl (unless skipPersist) — if crash between 1 and 2, event is lost from journal but DB is correct
    * 3. Broadcasts via eventHub (unless skipBroadcast)
-   * 4. Syncs to filesystem (if fsSync set and !skipFsSync)
+   *
+   * FS projection is NOT handled here — it's added by decorators (withFsWriter,
+   * withSync) that wrap this method. The skipFsSync option is passed through
+   * to the decorator layer.
    */
   apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
 
   /**
    * Commit an event to the database and journal (no filesystem projection).
-   * 1. Applies to database
-   * 2. Persists to events.jsonl
-   * 3. Broadcasts via eventHub
+   * Identical to apply() — both do DB + persist + broadcast.
    *
-   * Does NOT sync to filesystem. Use for FS-origin events (reconciliation)
-   * where projecting back to FS would cause echo loops.
+   * Kept as a separate method for semantic clarity: commit() signals
+   * "FS-origin event, don't project back" to callers, even though the
+   * Emitter itself treats them identically.
    */
   commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
-
-  /**
-   * Save an already-committed event to the filesystem.
-   * Only triggers filesystem sync — no DB apply, no persist, no broadcast.
-   *
-   * Called after commit() for TUI-origin events that need FS saving.
-   */
-  save(event: Event): void
 
   /** Set event hub for real-time broadcasting */
   setEventHub(hub: EventHub | null): void
 
-  /** Set filesystem sync callback */
-  setFsSync(sync: FsSync | null): void
-
   /** Get current event hub (for testing/inspection) */
   getEventHub(): EventHub | null
-
-  /** Get current fs sync (for testing/inspection) */
-  getFsSync(): FsSync | null
 
   /** Close emitter (clears callbacks) */
   close(): void
@@ -129,7 +114,6 @@ export function createEmitter(options: EmitterOptions): Emitter {
   const defaultDb = options.db ?? null
   const defaultSkipPersist = options.skipPersist ?? false
   let eventHub: EventHub | null = options.eventHub ?? null
-  let fsSync: FsSync | null = options.fsSync ?? null
 
   const eventsPath = join(kmDir, "events.jsonl")
 
@@ -140,8 +124,8 @@ export function createEmitter(options: EmitterOptions): Emitter {
   }
 
   /**
-   * Internal: apply to DB + persist + broadcast (steps 1-3).
-   * Shared by both commit() and emit().
+   * Internal: apply to DB + persist + broadcast.
+   * Both apply() and commit() delegate here.
    */
   function commitInternal(
     partialEvent: Omit<Event, "id" | "ts">,
@@ -183,26 +167,6 @@ export function createEmitter(options: EmitterOptions): Emitter {
     return event
   }
 
-  /**
-   * Internal: save an event to filesystem (step 4).
-   * Isolated from DB and broadcast — only triggers fsSync.
-   */
-  function saveInternal(event: Event): void {
-    if (!fsSync) return
-
-    try {
-      fsSync.applyEventToFs(event)
-    } catch (err) {
-      // Re-throw programming errors; swallow only filesystem I/O errors
-      if (err instanceof Error && (err as NodeJS.ErrnoException).code) {
-        // Has an errno code (ENOENT, EACCES, etc.) — filesystem error, log and continue
-        log.error?.(`fs sync failed for ${event.type}: ${err}`)
-      } else {
-        throw err
-      }
-    }
-  }
-
   return {
     get kmDir() {
       return kmDir
@@ -212,46 +176,27 @@ export function createEmitter(options: EmitterOptions): Emitter {
     },
 
     apply(partialEvent, emitOptions = {}) {
-      // apply = commit + save
-      const event = commitInternal(partialEvent, emitOptions)
-
-      // 4. Sync to filesystem (unless skipFsSync)
-      if (!emitOptions.skipFsSync) {
-        saveInternal(event)
-      }
-
-      return event
+      // DB + persist + broadcast. FS projection is added by decorators
+      // (withFsWriter, withSync) that wrap this method.
+      return commitInternal(partialEvent, emitOptions)
     },
 
     commit(partialEvent, commitOptions = {}) {
-      // DB + persist + broadcast only — no filesystem projection
+      // Identical to apply() at the Emitter level.
+      // Semantically signals "don't project to FS" to callers.
       return commitInternal(partialEvent, commitOptions)
-    },
-
-    save(event) {
-      // Filesystem save only — event must already be committed
-      saveInternal(event)
     },
 
     setEventHub(hub) {
       eventHub = hub
     },
 
-    setFsSync(sync) {
-      fsSync = sync
-    },
-
     getEventHub() {
       return eventHub
     },
 
-    getFsSync() {
-      return fsSync
-    },
-
     close() {
       eventHub = null
-      fsSync = null
     },
   }
 }

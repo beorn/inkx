@@ -10,7 +10,7 @@
  * Worker thread integration is tested separately.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 
@@ -21,7 +21,7 @@ describe("Bidirectional Sync E2E", () => {
   describe("TUI → Filesystem", () => {
     test("editing task status in model writes to file", () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter })
 
         await using stack = new AsyncDisposableStack()
         setupSync(stack, syncManager)
@@ -53,7 +53,7 @@ describe("Bidirectional Sync E2E", () => {
 
     test("creating new task in model creates file entry", () =>
       withTestEnv(async ({ repoDir, db, data, emitter }) => {
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter })
 
         await using stack = new AsyncDisposableStack()
         setupSync(stack, syncManager)
@@ -331,12 +331,9 @@ describe("Full Round-Trip", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        // Wire repo's emitter → SyncManager (matches tui.tsx:138)
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create test file
@@ -377,11 +374,9 @@ describe("Full Round-Trip", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         const testFile = join(repoDir, "edit-title.md")
@@ -538,11 +533,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         const testFile = join(repoDir, "old-name.md")
@@ -586,11 +579,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         const subDir = join(repoDir, "notes")
@@ -622,11 +613,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         writeFileSync(join(repoDir, "safe.md"), "# Safe\n")
@@ -652,11 +641,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         writeFileSync(join(repoDir, "My Note.md"), "# My Note\n\nBody text.\n")
@@ -756,11 +743,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create two files
@@ -804,11 +789,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create file with two sections
@@ -853,11 +836,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create folder structure: folderA/child.md, folderB/
@@ -876,7 +857,7 @@ describe("File & Folder Renames", () => {
         expect(childFile).toBeDefined()
         expect(folderBNode).toBeDefined()
         expect(childFile!.item).toBeTruthy()
-        expect(childFile!.fstype).toBe("file")
+        expect(childFile!.fstype).toBe("mdfile")
 
         // Move child file from folderA to folderB
         repo.moveNode(childFile!.id, folderBNode!.id, 0)
@@ -900,11 +881,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create: parentA/subdir/note.md, parentB/
@@ -945,16 +924,17 @@ describe("File & Folder Renames", () => {
 
     test("move-disk does not overwrite existing target", () =>
       withTestEnv(async ({ repoDir, db }) => {
+        // Suppress expected console.warn from move-disk abort
+        const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+
         const { repo, emitter: repoEmitter } = createTestEnvRepo({
           db,
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create: folderA/doc.md, folderB/doc.md (same name conflict)
@@ -986,6 +966,10 @@ describe("File & Folder Renames", () => {
         // folderB/doc.md should retain its original content
         const content = readFileSync(join(folderB, "doc.md"), "utf-8")
         expect(content).toContain("Doc B")
+
+        // Verify the warning was emitted
+        expect(warnSpy).toHaveBeenCalled()
+        warnSpy.mockRestore()
       }))
   })
 
@@ -997,11 +981,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create file with tasks
@@ -1039,11 +1021,10 @@ describe("File & Folder Renames", () => {
         })
         const syncManager = createTestSync(db, repoDir, {
           debounceApply: 5000, // Long debounce so write queue does NOT flush before reconcile
+          emitter: repoEmitter,
         })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create file with multiple tasks
@@ -1088,11 +1069,10 @@ describe("File & Folder Renames", () => {
         // Very long debounce — write will NOT flush during the test
         const syncManager = createTestSync(db, repoDir, {
           debounceApply: 60_000,
+          emitter: repoEmitter,
         })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         // Create file with multiple tasks
@@ -1140,11 +1120,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         const oldDir = join(repoDir, "projects")
@@ -1187,11 +1165,9 @@ describe("File & Folder Renames", () => {
           repoPath: repoDir,
           skipPersist: true,
         })
-        const syncManager = createTestSync(db, repoDir)
+        const syncManager = createTestSync(db, repoDir, { emitter: repoEmitter })
 
         await using stack = new AsyncDisposableStack()
-        repoEmitter.setFsSync(syncManager)
-        stack.defer(() => repoEmitter.setFsSync(null))
         stack.defer(async () => await syncManager.stop())
 
         const dir = join(repoDir, "inbox")

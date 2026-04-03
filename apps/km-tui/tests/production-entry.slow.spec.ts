@@ -481,15 +481,14 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
   })
 })
 
-describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerender)", () => {
-  test("repo.updateNode() via notifyFs triggers sync write", async () => {
+describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)", () => {
+  test("mutation via emitter.apply triggers sync write", async () => {
     // Diagnostic test: verifies the production wiring where
-    // Repo.updateNode() → notifyFs() → emitter.getFsSync().applyEventToFs()
-    // → EventHandlers.applyEventToFs() → writeQueue → file on disk.
+    // emitter.apply() → withSync decorator → EventHandlers.applyEventToFs()
+    // → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, createTestEnvRepo, withSync } = await import("@km/storage")
-    const { createEmitter } = await import("@km/storage")
+    const { withTestEnv, getAllNodes, withSync } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
@@ -509,7 +508,7 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
         },
       }
 
-      // Create sync via withSync (wraps repo.apply() with FS projection)
+      // Create sync via withSync (wraps emitter.apply() with FS projection)
       const syncManager = withSync({
         debounceFs: 100,
         debounceApply: 0,
@@ -526,19 +525,13 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
       expect(task).toBeDefined()
       expect(task!.content).toContain("Original title")
 
-      // Now create a Repo that uses this same db+emitter
-      // (simulating the production path where Repo.updateNode calls notifyFs)
-      const { repo } = createTestEnvRepo({
-        db,
-        repoPath: repoDir,
-        skipPersist: true,
+      // Mutate via emitter.apply (which withSync has wrapped with FS projection)
+      emitter.apply({
+        type: "node_updated",
+        actor: "user",
+        target: task!.id,
+        data: { content: "Edited title" },
       })
-
-      // Wire the SAME syncManager to the repo's emitter
-      repo.emitter.setFsSync(syncManager)
-
-      // Use REPO.updateNode() (not data.updateNode()) — this exercises notifyFs()
-      repo.updateNode(task!.id, { content: "Edited title" })
 
       // Wait for write queue to flush (debounce is 0, but flush is async)
       await Bun.sleep(200)
@@ -550,17 +543,15 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
 
       // Clean up
       await syncManager.stop()
-      repo.close()
     })
   })
 
-  test("emitter.getFsSync() returns non-null after withSync wiring", async () => {
-    // Diagnostic: verifies that withSync internally wires emitter.setFsSync
+  test("withSync wraps emitter.apply (apply !== commit after decoration)", async () => {
     const { withTestEnv, withSync: withSyncFn } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
-      // Before wiring, should be null
-      expect(emitter.getFsSync()).toBeNull()
+      // Before wiring, apply and commit are the same function
+      const applyBefore = emitter.apply
 
       // Build a minimal SyncableRepo and create sync via withSync
       const miniRepo = {
@@ -582,8 +573,8 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
         useWorker: false,
       })(miniRepo)
 
-      // withSync wires emitter.setFsSync internally — should be non-null
-      expect(emitter.getFsSync()).not.toBeNull()
+      // After withSync, emitter.apply should be wrapped (different function)
+      expect(emitter.apply).not.toBe(applyBefore)
 
       // Clean up
       await syncManager.stop()

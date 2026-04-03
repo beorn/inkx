@@ -11,7 +11,7 @@ import type { Repo, RepoStats } from "../repo.ts"
 import type { LoadError } from "../repo-loader.ts"
 import type { Link } from "../db.ts"
 import type { StepYield } from "../repo-loader.ts"
-import type { Emitter, EventHub, FsSync } from "../emitter.ts"
+import type { Emitter, EventHub } from "../emitter.ts"
 import { ulid } from "ulid"
 
 /**
@@ -95,7 +95,6 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
   // Create a no-op emitter for FakeRepo
   let fakeEventHub: EventHub | null = null
-  let fakeFsSync: FsSync | null = null
   const fakeEmitter: Emitter = {
     kmDir: "/fake/.km",
     eventsPath: "/fake/.km/events.jsonl",
@@ -104,27 +103,17 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       return { id: ulid(), ts: Date.now(), ...event } as Event
     },
     commit(event) {
-      // No-op commit for fake repo - just return a full event (no FS projection)
+      // No-op commit for fake repo - just return a full event
       return { id: ulid(), ts: Date.now(), ...event } as Event
-    },
-    save(_event) {
-      // No-op save for fake repo
     },
     setEventHub(hub) {
       fakeEventHub = hub
     },
-    setFsSync(sync) {
-      fakeFsSync = sync
-    },
     getEventHub() {
       return fakeEventHub
     },
-    getFsSync() {
-      return fakeFsSync
-    },
     close() {
       fakeEventHub = null
-      fakeFsSync = null
     },
   }
 
