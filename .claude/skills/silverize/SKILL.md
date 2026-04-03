@@ -296,9 +296,9 @@ After each fix: verify with `tsc --noEmit` + targeted tests.
 - Before a silvery release — ensure examples/demos are canonical
 - After `/code improve` suggests silvery-specific improvements
 
-## Phase 7: Code Quality (from /code improve)
+## Phase 7: Code Quality (from /code quality)
 
-After the silvery audit, run the [/code improve](../code/improve.md) strategic questions on the same target. Key checks:
+After the silvery audit, run the [/code quality](../code/quality.md) strategic questions on the same target. Key checks:
 
 **Abstraction quality** — What concept is this code modeling? Are there domain objects trying to emerge? What would this look like if it were easy?
 
