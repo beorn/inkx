@@ -246,7 +246,7 @@ export { loadConfigObject } from "./config-object.ts"
 export type { Config } from "./config-object.ts"
 
 // Commit taxonomy — types for the reactive store layer
-export { ResourceState } from "./commit-types.ts"
+export { ResourceState, computeDelta } from "./commit-types.ts"
 
 export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope, ResourceState as ResourceStateT } from "./commit-types.ts"
 

@@ -72,6 +72,43 @@ export const ResourceState = {
 } as const
 
 // =============================================================================
+// computeDelta — derive RepoDelta from an Event
+// =============================================================================
+
+/** Compute which nodes and parents were affected by an event. */
+export function computeDelta(event: Event): RepoDelta {
+  const nodeIds: string[] = []
+  const parentIds: string[] = []
+  const deletedNodeIds: string[] = []
+
+  switch (event.type) {
+    case "node_created":
+      nodeIds.push((event.data?.id as string) ?? event.target ?? "")
+      if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
+      break
+    case "node_updated":
+      if (event.target) nodeIds.push(event.target)
+      break
+    case "node_moved":
+      if (event.target) nodeIds.push(event.target)
+      if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
+      if (event.data?.old_parent_id) parentIds.push(event.data.old_parent_id as string)
+      break
+    case "node_deleted":
+      if (event.target) deletedNodeIds.push(event.target)
+      if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
+      break
+    case "task_claimed":
+    case "task_released":
+    case "task_completed":
+      if (event.target) nodeIds.push(event.target)
+      break
+  }
+
+  return { nodeIds, parentIds, deletedNodeIds }
+}
+
+// =============================================================================
 // ChangeEnvelope — replicated committed change (for sync between stores)
 // =============================================================================
 
