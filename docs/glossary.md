@@ -202,7 +202,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **heartbeat** — Periodic anti-entropy reconciliation in the sync system. Runs when idle, reconciles all directories to catch dropped watcher events, re-projects dirty paths.
 
-**hoverTarget** — A computed signal indicating which node the pointer currently hovers over. Used for hover effects, tooltips, and drop target visualization. Distinct from *pressTarget* (latched on mousedown).
+**hoverTarget** — A computed signal indicating which node the pointer currently hovers over. Used for hover effects, tooltips, and drop target visualization. Distinct from *pressHit* (latched on mousedown).
 
 ### I
 
@@ -236,7 +236,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 ### L
 
-**latch** — A signal value set on mousedown and cleared on mouseup/cancel. `pressOrigin` and `pressTarget` are latches — they freeze the gesture's starting context.
+**latch** — A signal value set on mousedown and cleared on mouseup/cancel. `pressOrigin` and `pressHit` are latches — they freeze the gesture's starting context.
 
 **layout feedback** — A silvery/flexily capability where components read their computed layout via `useContentRect()` during the same render pass. No second render needed.
 
@@ -324,7 +324,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **pressOrigin** — A gesture latch recording the `{ x, y }` coordinates of a mousedown. Used to calculate drag threshold. Cleared on mouseup/cancel.
 
-**pressTarget** — A gesture latch recording the node ID hit on mousedown. Determines the initial selecting kind. During drag, the kind may morph based on pointer position (see *gesture morphing*), but the original pressTarget remains latched.
+**pressHit** — A gesture latch recording the node ID hit on mousedown. Determines the initial selecting kind. During drag, the kind may morph based on pointer position (see *gesture morphing*), but the original pressHit remains latched.
 
 **property invariant** — A fuzz test pattern that verifies algebraic properties hold across random inputs. Examples: render idempotence, no-op stability, inverse operations.
 

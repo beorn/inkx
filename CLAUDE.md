@@ -123,7 +123,7 @@ See [.claude/skills/git/worktree.md] for details.
 
 ## Data Model
 
-**Read [docs/design/data-model.md](docs/design/data-model.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed).
+**Read [docs/design/data-model.md](docs/design/data-model.md) before making data model changes.** It defines the node tree (KNode, items vs blocks, km-ast vs storage types) and the board hierarchy (column/card/sub-item roles are positional, not typed). See also [docs/design/selection-model.md](docs/design/selection-model.md) for the selection model.
 
 ## Code Style
 
@@ -213,6 +213,7 @@ If you discover a skill doc is outdated (command changed, convention shifted, fi
 | Skill                                                               | Use When                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | [claude/](.claude/skills/claude/)                                   | Claude Code config (skills, MCP, hooks)                               |
+| [docs/](.claude/skills/docs/)                                       | Documentation management — glossary, review, audit                    |
 | [project-audit/](.claude/skills/project-audit/)                     | Deep project-wide audit (DRY, docs, naming, narrative)                |
 | [project-cleanup/](.claude/skills/project-cleanup/)                 | Root cleanup (tracked artifacts, gitignore, file organization)        |
 | [repo-health/](.claude/skills/repo-health/)                         | Package health audit (license, metadata, gitignore, docs, CI)        |
