@@ -20,43 +20,53 @@ Reviewed by GPT 5.4 Pro (3x, $13.59 total), Gemini 2.5 Pro, plus /big analysis.
 ```ts
 type ID = string & { readonly __brand: "ID" }
 
-type Range<T> = { anchor: T; focus: T }
+// Cursor — shared concept for both node and text
+// [cursor] = collapsed (just a position), [cursor, anchor] = range
+type Cursor<T> = { cursor: T; anchor?: T }
 
-type SelectionState = Map<string, SelectionValue>  // scopeName → selection value
+type TextPoint = {
+  nodeId: ID
+  offset: number
+  affinity?: "forward" | "backward"
+}
+
+type SelectionState = Map<string, SelectionValue>  // scopeName → value
 // Active scope resolved externally via focus system
 // Scope lifecycle: set() to create, delete() to dispose
 
 type SelectionValue = {
-  cursor: ID                     // where you "are" (inspector, keyboard, edit target)
-  anchor: ID                     // shift-extend origin
-  nodeIds: ReadonlySet<ID>       // the selected nodes (concrete set)
-  text?: Range<TextPoint>        // present = editing text in cursor node
+  node?: Cursor<ID>              // node cursor/range (where you "are" in the tree)
+  text?: Cursor<TextPoint>       // text cursor/range (where you "are" in text)
+  ids: ReadonlySet<ID>           // currently selected nodes
 } | undefined
 ```
 
-### Invariants (enforced by every mutator)
+**Three independent pieces:**
+- `node` — which node the cursor is on, and the shift-extend anchor. Absent = no node focus.
+- `text` — which text position the caret is at, and the text selection anchor. Absent = not editing text.
+- `ids` — what's selected. Always a concrete set. O(1) lookup.
+
+**Mode** is derived from presence: `!sel` = board, `node && !text` = node, `text` = text.
+
+**Different SelectionMachines** (gesture policies) can maintain different invariants on the same type. For example:
+- km outliner: `node` always present when `sel` exists, `text` clears on node gestures
+- creative tool: `node` range survives text editing, `ids` may include nodes from multiple containers
+- canvas: `node` without anchor (no linear range), `ids` from lasso only
+
+### Invariants (km outliner defaults)
 
 If `sel !== undefined`:
-- `sel.nodeIds.size > 0`
-- `sel.cursor ∈ sel.nodeIds`
-- `sel.anchor ∈ sel.nodeIds`
-- if `sel.text` exists, it targets `sel.cursor`'s node
+- `sel.ids.size > 0`
+- `sel.node !== undefined`
+- `sel.node.cursor ∈ sel.ids`
+- if `sel.node.anchor`, then `sel.node.anchor ∈ sel.ids`
+- if `sel.text`, then `sel.text.cursor.nodeId === sel.node.cursor`
 
-If a mutation would break these, the mutator repairs inline (never deferred to normalize).
+Mutators enforce these inline — never deferred to normalize.
 
-### Mode rule
+### Mode rule (km outliner)
 
-Node actions (`select`, `add`, `remove`, `toggle`, `extend`, `collapseToCursor`, `areaSelect`, `clear`) always clear `text`. Text editing is subordinate to node gestures.
-
-### Points
-
-```ts
-type TextPoint = {
-  nodeId: ID                         // the text-bearing node
-  offset: number
-  affinity?: "forward" | "backward"  // line-wrap disambiguation
-}
-```
+Node actions (`select`, `add`, `remove`, `toggle`, `extend`, `collapseToCursor`, `areaSelect`, `clear`) clear `text`. Text actions don't alter `node` or `ids`.
 
 ## SelectionSpace
 
@@ -75,59 +85,78 @@ Tree panes supply visible/view order. Canvas panes supply hit/z-order. Non-linea
 
 This means `extend()` uses **view order** — shift-select never silently includes collapsed/hidden nodes.
 
-## Selection.* — Complete API
+## Selection.* — The Interface
+
+Consumers ONLY use `Selection.*` — the internal representation is hidden behind this facade. This lets us change internals (e.g., switch from flat Set to IndexSet, or add fields) without breaking consumers.
 
 ```ts
 const Selection = {
-  // Constructors
-  node(nodeId):                       SelectionValue  // cursor=anchor=nodeId, nodeIds={nodeId}
+  // ── Constructors ──────────────────────────────────────────
+  of(nodeId):                         SelectionValue  // single node selected
   // clear → just use undefined
 
-  // Queries
-  hasSingleNode(sel):                 boolean         // nodeIds.size === 1
-  isTextCollapsed(sel):               boolean         // text?.anchor === text?.focus
-  cursorId(sel):                      ID | null       // sel?.cursor
-  includes(sel, nodeId):              boolean         // sel?.nodeIds.has(nodeId) ?? false
-  isEditing(sel):                     boolean         // sel?.text !== undefined
+  // ── Read (how consumers access selection) ─────────────────
+  cursor(sel):                        ID | undefined    // which node you're on
+  anchor(sel):                        ID | undefined    // shift-extend origin
+  ids(sel):                           ReadonlySet<ID>   // selected nodes
+  includes(sel, nodeId):              boolean           // is this node selected?
+  textCursor(sel):                    TextPoint | undefined
+  textAnchor(sel):                    TextPoint | undefined
+
+  hasSingleNode(sel):                 boolean
+  isEditing(sel):                     boolean
+  isTextCollapsed(sel):               boolean
+  inputMode(sel):                     "board" | "node" | "text"
   insertionPoint(sel, space):         InsertionPoint
 
-  // Node mutations (pure — all clear text, all preserve invariants)
-  select(nodeId):                     SelectionValue  // cursor=anchor=nodeId, nodeIds={nodeId}
-  add(sel, nodeId):                   SelectionValue  // nodeIds ∪ {nodeId}, cursor=nodeId
-  remove(sel, nodeId, space):         SelectionValue  // nodeIds \ {nodeId}, repair cursor/anchor
-  toggle(sel, nodeId, space):         SelectionValue  // XOR in nodeIds, repair cursor if needed
-  extend(sel, nodeId, space):         SelectionValue  // nodeIds=space.range(anchor, nodeId), cursor=nodeId
-  collapseToCursor(sel):              SelectionValue  // nodeIds={cursor}, anchor=cursor
-  areaSelect(base, hitIds, mode, space): SelectionValue  // commit against gesture-start baseline
+  // ── Node mutations (clear text, preserve invariants) ──────
+  select(nodeId):                     SelectionValue
+  add(sel, nodeId):                   SelectionValue
+  remove(sel, nodeId, space):         SelectionValue
+  toggle(sel, nodeId, space):         SelectionValue
+  extend(sel, nodeId, space):         SelectionValue
+  collapseToCursor(sel):              SelectionValue
+  areaSelect(base, hitIds, mode, space): SelectionValue
 
-  // Text mutations (do not alter nodeIds)
-  edit(sel, offset):                  SelectionValue  // set text at cursor node (preserves nodeIds)
-  stopEditing(sel):                   SelectionValue  // clear text
-  moveTextFocus(sel, offset):         SelectionValue
+  // ── Text mutations (don't touch node/ids) ─────────────────
+  edit(sel, offset):                  SelectionValue    // start editing at cursor node
+  stopEditing(sel):                   SelectionValue    // clear text
+  moveTextCursor(sel, offset):        SelectionValue
   extendTextRange(sel, offset):       SelectionValue
 
-  // Pipeline
-  normalize(sel, doc, space):         SelectionValue  // stale IDs, clamped offsets (post-edit repair)
-  map(sel, mapping):                  SelectionValue  // transform through document edits (v1: use selectionAfter)
+  // ── Pipeline ──────────────────────────────────────────────
+  normalize(sel, doc, space):         SelectionValue
+  map(sel, mapping):                  SelectionValue    // v1: prefer selectionAfter
 
-  // State machine (TEA)
+  // ── State machine (TEA) ───────────────────────────────────
   createState():                      SelectionState
   update(action, state, space):       [SelectionState, SelectionEffect[]]
-
-  // km convenience
-  inputMode(sel):                     "board" | "node" | "text"
 }
 ```
 
-### Cursor repair rules (used by toggle, remove, areaSelect)
+**The interface hides:**
+- Whether `node` and `text` are separate fields or nested
+- Whether anchor is stored or derived
+- The cursor repair strategy
+- Internal Set vs IndexSet vs range representation
 
-When a mutation removes the cursor from nodeIds:
-1. If old cursor is still in nodeIds → keep it
-2. Else use `space.nearest(oldCursor, nodeIds)` → nearest selected in view order
-3. Else use first in nodeIds
-4. If nodeIds is empty → return `undefined`
+**Consumers just call:**
+```ts
+const id = Selection.cursor(sel)           // which node am I on?
+const selected = Selection.ids(sel)         // what's selected?
+const editing = Selection.isEditing(sel)    // am I editing text?
+const yes = Selection.includes(sel, nodeId) // is this node selected?
+```
 
-Same logic for anchor repair.
+### Cursor repair (internal — hidden behind mutators)
+
+When a mutation removes the cursor from ids:
+1. Old cursor still in ids → keep
+2. Else `space.nearest(oldCursor, ids)` → nearest in view order
+3. Else first in ids
+4. Ids empty → `undefined`
+
+Same for anchor.
 
 ### Anchor update policy
 
@@ -161,13 +190,13 @@ This keeps the state model information-preserving. Collapse is a gesture policy,
 
 | Consumer | What it needs | Code |
 |---|---|---|
-| Inspector/properties | cursor node | `sel?.cursor` |
-| Keyboard routing | editing text? | `sel?.text !== undefined` |
-| Delete/move/copy | all selected nodes | `sel?.nodeIds` |
-| Per-node highlight | is this node selected? | `sel?.nodeIds.has(id) ?? false` |
-| Paste/Enter | text-first fallback | `sel?.text ? textOp() : nodeOp(sel.cursor)` |
+| Inspector/properties | cursor node | `Selection.cursor(sel)` |
+| Keyboard routing | editing text? | `Selection.isEditing(sel)` |
+| Delete/move/copy | all selected nodes | `Selection.ids(sel)` |
+| Per-node highlight | is this node selected? | `Selection.includes(sel, id)` |
+| Paste/Enter | text-first fallback | `Selection.isEditing(sel) ? textOp() : nodeOp()` |
 | Insert new content | insertion point | `Selection.insertionPoint(sel, space)` |
-| Scroll-to-reveal | cursor node | `sel?.cursor` |
+| Scroll-to-reveal | cursor node | `Selection.cursor(sel)` |
 
 Hot path: per-node highlight — `Set.has()` is O(1).
 
@@ -178,72 +207,61 @@ Hot path: per-node highlight — `Set.has()` is O(1).
 ### 1. Click A
 
 ```
-select("A")
-→ { cursor: "A", anchor: "A", nodeIds: {A} }
+Selection.select("A")
+→ { node: {cursor: "A"}, ids: {A} }
 ```
 
 ### 2. Shift+click D
 
 ```
-extend(sel, "D", space)
-→ { cursor: "D", anchor: "A", nodeIds: {A,B,C,D} }
-// space.range("A","D") = {A,B,C,D}
+Selection.extend(sel, "D", space)
+→ { node: {cursor: "D", anchor: "A"}, ids: {A,B,C,D} }
 ```
 
 ### 3. Cmd+click B (toggle off)
 
 ```
-toggle(sel, "B", space)
-→ { cursor: "A", anchor: "A", nodeIds: {A,C,D} }
-// B removed. cursor was D, but toggle-off moves cursor to target's nearest → A.
-```
-
-Wait — actually Pro said: if toggle removes a non-cursor node, cursor stays. If it removes the cursor, repair. B is not the cursor (D is), so cursor stays at D:
-
-```
-toggle(sel, "B", space)
-→ { cursor: "D", anchor: "A", nodeIds: {A,C,D} }
-// B removed. cursor stays at D (B wasn't cursor).
+Selection.toggle(sel, "B", space)
+→ { node: {cursor: "D", anchor: "A"}, ids: {A,C,D} }
+// B wasn't cursor → cursor stays at D.
 ```
 
 ### 4. Cmd+click F (toggle on)
 
 ```
-toggle(sel, "F", space)
-→ { cursor: "F", anchor: "A", nodeIds: {A,C,D,F} }
-// F added. cursor moves to F (last interacted).
+Selection.toggle(sel, "F", space)
+→ { node: {cursor: "F", anchor: "A"}, ids: {A,C,D,F} }
+// F added → cursor moves to F.
 ```
 
-### 5. Enter (edit text at cursor)
+### 5. Enter (edit)
 
 ```
-edit(sel, 0)
-→ { cursor: "F", anchor: "A", nodeIds: {A,C,D,F},
-    text: { anchor: {nodeId: "F", offset: 0}, focus: {nodeId: "F", offset: 0} } }
-// text set. node selection preserved.
+Selection.edit(sel, 0)
+→ { node: {cursor: "F", anchor: "A"}, ids: {A,C,D,F},
+    text: {cursor: {nodeId: "F", offset: 0}} }
 ```
 
 ### 6. Escape
 
 ```
-stopEditing(sel)
-→ { cursor: "F", anchor: "A", nodeIds: {A,C,D,F} }
-// text cleared. nodes unchanged.
+Selection.stopEditing(sel)
+→ { node: {cursor: "F", anchor: "A"}, ids: {A,C,D,F} }
 ```
 
 ### 7. Area select (replace)
 
 ```
-areaSelect(sel, {B,C}, "replace", space)
-→ { cursor: "B", anchor: "B", nodeIds: {B,C} }
+Selection.areaSelect(sel, {B,C}, "replace", space)
+→ { node: {cursor: "B"}, ids: {B,C} }
 ```
 
 ### 8. Cmd+drag area (XOR)
 
 ```
-areaSelect(sel, {C,D,E}, "xor", space)
-→ { cursor: "B", anchor: "B", nodeIds: {B,D,E} }
-// C removed, D+E added. cursor stays (still selected).
+Selection.areaSelect(sel, {C,D,E}, "xor", space)
+→ { node: {cursor: "B"}, ids: {B,D,E} }
+// C removed, D+E added. cursor stays.
 ```
 
 ## Actions
@@ -266,8 +284,7 @@ type SelectionAction =
   // Area (clears text)
   | { type: "areaSelect"; nodeIds; mode: "replace" | "xor" }
   // Scope
-  | { type: "ensureScope"; scopeName }
-  | { type: "disposeScope"; scopeName }
+  // Scope lifecycle managed directly on Map: state.set(name, sel) / state.delete(name)
 
 type SelectionEffect =
   | { type: "render" }
@@ -418,8 +435,11 @@ Focus (silvery) and Selection (km) are **orthogonal**:
   <BoardView />
 </SelectionProvider>
 
-const sel = useSelection()                    // SelectionValue
-const dispatch = useSelectionDispatch()        // (SelectionAction) → void
+// Inside components — everything through Selection.*
+const sel = useSelection()                          // SelectionValue
+const dispatch = useSelectionDispatch()              // (SelectionAction) → void
+const id = Selection.cursor(sel)                     // ID | undefined
+const selected = Selection.includes(sel, nodeId)     // boolean
 dispatch({ type: "toggle", nodeId: "B" })
 ```
 
@@ -427,13 +447,13 @@ dispatch({ type: "toggle", nodeId: "B" })
 
 | Before (scattered) | After (`Selection.*`) |
 |---|---|
-| `cursorNodeId` in CursorStore | `sel?.cursor` |
-| `cursorCardNodeId` | `ancestor(sel?.cursor, "card")` |
-| `cursorColumnNodeId` | `ancestor(sel?.cursor, "column")` |
+| `cursorNodeId` in CursorStore | `Selection.cursor(sel)` |
+| `cursorCardNodeId` | `ancestor(Selection.cursor(sel), "card")` |
+| `cursorColumnNodeId` | `ancestor(Selection.cursor(sel), "column")` |
 | `selectionLevel` / `editLevel` | `Selection.inputMode(sel)` |
-| `multiSelected: Set<string>` | `sel?.nodeIds` |
-| `selectionAnchor` | `sel?.anchor` |
-| `inlineEditBlock` | `sel?.text !== undefined` |
+| `multiSelected: Set<string>` | `Selection.ids(sel)` |
+| `selectionAnchor` | `Selection.anchor(sel)` |
+| `inlineEditBlock` | `Selection.isEditing(sel)` |
 | `expandWithDescendants()` | NOT in Selection — operation targeting |
 
 ## Undo
@@ -449,8 +469,8 @@ dispatch({ type: "toggle", nodeId: "B" })
 | Storage | IndexSet | {anchor, focus} | abstract | **concrete Set** |
 | Anchor/focus | Hidden | Exposed | Exposed | **Exposed** |
 | Primary/cursor | No | No | No | **Yes** |
-| Text+node | No | Yes | Yes | **Overlay** |
-| Membership | Stored | Stored | Stored | **Stored (Set)** |
+| Text+node | No | Yes | Yes | **Overlay (coexist)** |
+| Membership | Stored | Stored | Stored | **Stored Set, hidden by interface** |
 | Validated | No | No | Yes | **Invariants by construction** |
 | Namespace | N/A | Editor.* | N/A | **Selection.*** |
 | TEA | No | No | No | **Yes** |
