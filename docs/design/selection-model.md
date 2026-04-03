@@ -184,19 +184,36 @@ type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
 
 ## Integration
 
-**Scopes**: `SelectionState = Map<string, Selection>`. One scope per pane. Scope lifecycle via `Map.set()` / `Map.delete()`.
+### `withSelection` plugin
 
-**Focus**: Keyboard focus (silvery) is orthogonal to selection. Focus determines the active scope, but focus changes don't rewrite selection. Modals push a focus scope without changing selection.
+All selection logic is enforced by a `withSelection` plugin — same pattern as `withReactive`, `withSync`. It wraps the store and validates every mutation. Invariant violations throw (fail-fast, not silent repair).
 
-**Remapping**: Selection remapping is explicit in v1 — transactions carry `selectedBefore` / `selectedAfter`. A general position-mapping layer is deferred.
+```ts
+const store = withSelection(baseStore, space)
 
-**Undo**: Transactions carry selection snapshots. Cursor-only moves don't create undo entries.
+// Every mutation goes through the plugin:
+// - nodes.length > 0 (else throws)
+// - text[0].nodeId === nodes[0] (else throws)
+// - node mutations clear text
+// - cursor repair on remove/toggle
+// - provides signal DAG: selected, selecting, selection
+```
+
+The plugin provides the signal DAG and the `SelectionProvider` React component:
 
 ```tsx
-<SelectionProvider scopeName="board" space={space}>
+<store.SelectionProvider scopeName="board">
   <BoardView />
-</SelectionProvider>
+</store.SelectionProvider>
 ```
+
+**Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
+
+**Focus**: Keyboard focus (silvery) is orthogonal. Focus determines active scope. Modals don't change selection.
+
+**Remapping**: v1 uses explicit `selectedBefore` / `selectedAfter` on transactions.
+
+**Undo**: Transactions carry selection snapshots. Cursor-only moves don't create undo entries.
 
 ---
 
