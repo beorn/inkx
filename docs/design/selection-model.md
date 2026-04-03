@@ -26,35 +26,35 @@ No separate cursor/anchor fields anywhere. No invariants to enforce — position
 
 ## Signal DAG
 
-Two source signals, everything else derived:
+Three concepts: `selected` (committed), `selecting` (gesture), `selection` (what consumers see).
 
 ```ts
-const selection = signal<Selection | undefined>(undefined)   // committed
-const selecting = signal<Selecting | undefined>(undefined)   // active gesture
-
-const effective = computed(() =>
-  selecting.value?.effective(selection.value, space) ?? selection.value
+const selected  = signal<Selection | undefined>()   // committed state
+const selecting = signal<Selecting | undefined>()   // active gesture (if any)
+const selection = computed(() =>                     // effective — what consumers see
+  selecting.value?.effective(selected.value, space) ?? selected.value
 )
 
-// Derived — recompute only when effective changes
-const cursor    = computed(() => effective.value?.nodes[0])
-const ids       = computed(() => new Set(effective.value?.nodes))
-const isEditing = computed(() => effective.value?.text !== undefined)
-const inputMode = computed(() => !effective.value ? "board" : effective.value.text ? "text" : "node")
+// Derived from selection
+const cursor    = computed(() => selection.value?.nodes[0])
+const ids       = computed(() => new Set(selection.value?.nodes))
+const isEditing = computed(() => selection.value?.text !== undefined)
+const inputMode = computed(() => !selection.value ? "board" : selection.value.text ? "text" : "node")
 ```
 
 ```
-  gestures ──► selection (source)  ──┐
+  gestures ──► selected  (source)  ──┐
   gestures ──► selecting (source)  ──┤
                                      ▼
-                                  effective (computed)
+                                  selection (computed = effective)
                                      │
                     ┌────────┬───────┼────────┬──────────┐
                     ▼        ▼       ▼        ▼          ▼
                  cursor    ids   isEditing  inputMode  insertionPoint
 ```
 
-Components subscribe to the derived signal they need. No gesture → `effective` = `selection`. During gesture → `effective` = `selecting.effective()`. Commit writes to `selection`, cancel clears `selecting`.
+No gesture → `selection` = `selected`. During gesture → `selection` = `selecting.effective()`.
+Commit writes to `selected`. Cancel clears `selecting`.
 
 ## Selection.*
 
@@ -170,7 +170,7 @@ type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
 
 **map()**: v1 uses `selectionAfter` on transactions. Generic mapping deferred.
 
-**Undo**: Transactions carry `selectionBefore`/`selectionAfter`. Cursor-only moves no undo.
+**Undo**: Transactions carry `selectedBefore`/`selectedAfter`. Cursor-only moves no undo.
 
 ```tsx
 <SelectionProvider scopeName="board" space={space}>
