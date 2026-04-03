@@ -97,26 +97,23 @@ Node mutations always clear `text`. Text mutations never touch `nodes`.
 
 ## Interactions
 
-### Instant
+| Type | Trigger | Action | Overlay? | Cancel |
+|---|---|---|---|---|
+| `node-select` | click node | `select(id)` | — | — |
+| `node-toggle` | cmd+click | `toggle(id)` | — | — |
+| `node-areaselect` | drag lasso | `areaSelect(hits, mode)` | mouseup | Escape |
+| `node-shiftselect` | shift+click / shift+j/k | `extend(id)` | shift release | Escape |
+| `text-cursor` | click text / double-click | `select(id)` + `edit(offset)` | — | — |
+| `text-dragselect` | click+drag in text | `extendTextRange` | mouseup | Escape |
+| `text-shiftselect` | shift+arrow in text | `extendTextRange` | shift release | Escape |
+| `navigate` | j / k | `select(next/prev)` | — | — |
+| `enter-text` | Enter | `edit(0)` | — | — |
+| `exit-text` | Escape (in text) | `stopEditing` | — | — |
+| `exit-multi` | Escape (multi-select) | `collapseToCursor` | — | — |
+| `exit-all` | Escape (single node) | `clear` | — | — |
+| `drag-drop` | drag selected nodes | visual drop indicator | mouseup | Escape |
 
-| Trigger | Action |
-|---|---|
-| Click node | `select(id)` |
-| Cmd+click | `toggle(id)` |
-| Click text | `select(id)` + `edit(offset)` |
-| Double-click | `select(id)` + `edit(0)` |
-| Enter | `edit(0)` |
-| Escape | `stopEditing` / `collapseToCursor` / `clear` |
-| j / k | `select(next/prev)` |
-
-### Overlay (preview until gesture ends)
-
-| Type | Trigger | Commit on |
-|---|---|---|
-| `node-areaselect` | drag lasso (replace or XOR) | mouseup |
-| `node-shiftselect` | shift+click / shift+j/k | shift release |
-| `text-dragselect` | click+drag in text | mouseup |
-| `text-shiftselect` | shift+arrow in text | shift release |
+Overlay gestures preview the result until committed. Cancel discards — `selected` unchanged.
 
 Gestures can morph mid-drag: `text-dragselect` crossing a node boundary becomes `node-areaselect`. Drag back → reverts.
 
