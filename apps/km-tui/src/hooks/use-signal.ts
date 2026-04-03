@@ -20,10 +20,11 @@ import { ResourceState, type Reactive, type ReadonlySignal } from "@km/storage"
  */
 export function useSignal<T>(sig: ReadonlySignal<T>): T {
   return useSyncExternalStore(
-    (onStoreChange) => effect(() => {
-      sig()
-      onStoreChange()
-    }),
+    (onStoreChange) =>
+      effect(() => {
+        sig()
+        onStoreChange()
+      }),
     () => sig(),
   )
 }
