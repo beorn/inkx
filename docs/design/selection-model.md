@@ -61,7 +61,9 @@ No discriminated union. `undefined` = none, `!sel.text` = node mode, `sel.text` 
 
 **`anchor`** exists only for shift-extend — metadata for the next gesture, not part of the current selection.
 
-**`text`** is the text editing range within the cursor node. `edit()` sets it, `stopEditing()` clears it. The node selection (`cursor`, `nodeIds`) stays unchanged.
+**`text`** is the text editing range within the cursor node. `edit()` sets it, `stopEditing()` clears it.
+
+**Gesture policy for `edit()`**: In Keynote/Figma, entering text editing deselects other objects — `edit()` collapses `nodeIds` to `{cursor}`. The type *allows* multi-select during editing, but the default policy matches creative tool conventions. A future tool could override this.
 
 ### Points
 
