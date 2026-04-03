@@ -7,6 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { Workspace, type BoardAppStore } from "../src/board-app-store.ts"
 import { TC } from "./helpers/theme.ts"
 
 // =============================================================================
@@ -434,8 +435,9 @@ describe("Selection", () => {
     expect(board.getStatus()?.message).toMatch(/2 items/)
 
     // Verify the store-level multiSelected contains card-level IDs
-    const state = store.getState()
-    const multiSelected = state.workspace.panes.values().next().value?.multiSelected ?? state.ui.multiSelected
+    const state = store.getState() as BoardAppStore
+    const pane = Workspace.getActiveBoardPane(state)
+    const multiSelected = pane!.multiSelected
     expect(multiSelected.has("Parent")).toBe(true)
     expect(multiSelected.has("sibling")).toBe(true)
 
