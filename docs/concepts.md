@@ -54,6 +54,22 @@ Each layer is a **domain interface** (type + pure functions):
 event → command → op → apply() → [state, effects] → change → FS sync
 ```
 
+### Command routing
+
+The command pipeline has two routing levels:
+
+```
+event → when (route to command) → command (resolve to op) → apply()
+```
+
+**`when` clauses** are the first filter — keybindings evaluate conditions like `inputMode === "text"` or `Selection.isEditing(sel)` to select which command handles a key. This means one key (e.g., Backspace) routes to different commands based on context, and each command stays focused on one case.
+
+**Commands** are the second level — they read `CommandContext` (selection, cursor, node type, position) and resolve to concrete ops with specific locations. Commands can assume their `when` conditions are met.
+
+This two-level routing keeps commands simple. Instead of one "delete backward" command with 5 branches, you have 3 specialized commands, each with a `when` condition and a focused `execute()` that produces one kind of op.
+
+**Comparison with SlateJS**: SlateJS puts all routing inside commands (`editor.deleteBackward()` handles every case). km's `when` system does the routing externally, so commands are smaller and more testable.
+
 ---
 
 ## Everything is a Node
