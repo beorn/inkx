@@ -54,73 +54,77 @@ interface SelectionSpace {
 
 Tree panes supply visible order. Canvas panes supply z-order. `extend()` uses view order — shift-select never includes collapsed/hidden nodes.
 
-## State Flow
+## Reactive State
 
-| Name | Meaning | Lifetime |
-|---|---|---|
-| `selected` | committed selection | persistent (store) |
-| `selecting` | active gesture preview | transient |
-| `selection` | effective selection consumers see | computed |
+Everything derives from input signals. Unlike Decker (which fights the browser's selection), silvery owns it completely — pure reactive state, no DOM selection API.
 
-Without a gesture, `selection === selected`. During a gesture, `selection` is the preview computed from `selecting` and `selected`.
+### Signal DAG
+
+```
+  pointer ──────┐
+  modifiers ────┼──► selecting (computed: gesture preview from input state)
+  keyboard ─────┘         │
+                          ├── + selected (committed)
+                          ▼
+                       selection (computed: effective = selecting ?? selected)
+                          │
+             ┌────┬───────┼────────┬──────────┐
+             ▼    ▼       ▼        ▼          ▼
+          cursor ids  isEditing inputMode  insertionPoint
+```
 
 ```ts
-const selected  = signal<Selection | undefined>()
-const selecting = signal<Selecting | undefined>()
-const selection = computed(() =>
-  selecting.value?.effective(selected.value, space) ?? selected.value
-)
+// Input signals (from silvery runtime)
+const pointer   = signal<{ x: number; y: number; buttons: number }>()
+const modifiers = signal<{ shift: boolean; cmd: boolean; alt: boolean }>()
 
-// Derived from selection — consumers subscribe to what they need
+// State
+const selected  = signal<Selection | undefined>()   // committed
+
+// Derived gesture — what kind of selecting is happening right now?
+const selecting = computed(() => {
+  const ptr = pointer.value, mod = modifiers.value, sel = selected.value
+  if (ptr.buttons && mod.shift)  return extendPreview(sel, nodeAt(ptr), space)
+  if (ptr.buttons && mod.cmd)    return areaPreview(sel, hitTest(ptr), "xor")
+  if (ptr.buttons)               return areaPreview(sel, hitTest(ptr), "replace")
+  if (mod.shift)                 return extendPreview(sel, focusNode, space)  // kbd extend
+  return undefined               // no gesture active
+})
+
+// Effective selection — what consumers see
+const selection = computed(() => selecting.value ?? selected.value)
+
+// Derived from selection
 const cursor    = computed(() => Selection.cursor(selection.value))
 const ids       = computed(() => Selection.ids(selection.value))
 const isEditing = computed(() => Selection.isEditing(selection.value))
-const inputMode = computed(() => Selection.inputMode(selection.value))
 ```
 
-```
-  gestures ──► selected  (source)  ──┐
-  gestures ──► selecting (source)  ──┤
-                                     ▼
-                                  selection (computed)
-                                     │
-                    ┌────────┬───────┼────────┬──────────┐
-                    ▼        ▼       ▼        ▼          ▼
-                 cursor    ids   isEditing  inputMode  insertionPoint
-```
+### Commit and cancel
 
-Commit (mouseup / shift release) writes `selecting.effective()` to `selected`. Cancel (Escape) clears `selecting`.
+When a gesture ends (button release / shift release), `selecting` naturally becomes `undefined`. An effect commits the last preview to `selected`:
 
-### State machine
-
-Unlike Decker (which fights the browser's selection machinery), silvery owns selection completely — it's pure reactive state.
-
-```
-                    ┌──────────────────────────────────────────────┐
-                    │                                              │
-    ┌───────┐  click/j/k  ┌──────┐  Enter/click-text  ┌──────┐   │
-    │ board │────────────► │ node │───────────────────► │ text │   │
-    └───────┘              └──────┘ ◄──────────────────┘──────┘   │
-        ▲                     │  ▲      Escape             │      │
-        │ Escape              │  │                         │      │
-        │ (single)            │  └─────────────────────────┘      │
-        │                     │   cmd-click/shift/lasso/Escape    │
-        └─────────────────────┘                                   │
-                              │                                   │
-                              │  gesture starts                   │
-                              ▼                                   │
-                         ┌───────────┐                            │
-                         │ selecting │  (tentative)               │
-                         └───────────┘                            │
-                           │       │                              │
-                     commit│       │cancel                        │
-                           ▼       └──────────────────────────────┘
-                     selected updated                        (restore)
+```ts
+effect(() => {
+  if (prevSelecting && !selecting.value) {
+    selected.value = prevSelecting  // commit
+  }
+})
 ```
 
-Three modes (`board` → `node` → `text`) derived from `selection`. Escape steps up one level. Gestures enter `selecting` (tentative) which either commits or cancels.
+Cancel (Escape) clears `selecting` WITHOUT committing — `selected` unchanged.
 
-All transitions are reactive signal updates — no DOM selection API, no `window.getSelection()`, no `selectionchange` events. The entire state machine is testable as pure functions.
+Immediate actions (click, j/k, Enter, Escape) write to `selected` directly — no gesture preview needed.
+
+### Modes
+
+Three modes derived from `selection`. Escape steps up one level: text → node → board.
+
+```
+    board ──click/j/k──► node ──Enter/click-text──► text
+      ▲                    ▲                          │
+      └── Escape(single) ──┘──── Escape(text) ────────┘
+```
 
 ## Public API (`Selection.*`)
 
@@ -167,26 +171,26 @@ No `normalize` — invariant violations throw. Commands provide valid `selectedA
 
 ## Interactions
 
-| Type | Trigger | Action | Commit | Cancel |
-|---|---|---|---|---|
-| `node-select` | click / j / k | `select(id)` | immediate | — |
-| `node-select-toggle` | cmd+click | `toggle(id)` | immediate | — |
-| `node-areaselect` | drag lasso | `areaSelect(hits, "replace")` | mouseup | Escape |
-| `node-areaselect-toggle` | cmd+drag lasso | `areaSelect(hits, "xor")` | mouseup | Escape |
-| `node-shiftselect` | shift+click / shift+j/k | `extend(id)` | shift release | Escape |
-| `text-cursor` | click text / double-click | `select(id)` + `edit(offset)` | immediate | — |
-| `text-dragselect` | click+drag in text | `extendTextRange` | mouseup | Escape |
-| `text-shiftselect` | shift+arrow in text | `extendTextRange` | shift release | Escape |
-| `enter-text` | Enter | `edit(0)` | immediate | — |
-| `exit` | Escape (text mode) | `stopEditing` → node mode | immediate | — |
-| `exit` | Escape (multi-select) | `collapseToCursor` → single node | immediate | — |
-| `exit` | Escape (single node) | `clear` → board mode | immediate | — |
-| `drag-drop` | drag selected node | move all selected | drop | Escape |
-| `drag-drop` | drag unselected node | `select(id)` + move | drop | Escape |
+The gesture type is derived from input state — not imperative handlers:
 
-Non-immediate gestures preview via `selecting` until committed. Cancel discards.
+| Input state | Derived gesture | Commit |
+|---|---|---|
+| click | `select(nodeAt(ptr))` | immediate |
+| cmd+click | `toggle(nodeAt(ptr))` | immediate |
+| shift+click / shift+j/k | `extend(target)` preview | shift release |
+| drag | `areaSelect(hitTest, "replace")` preview | mouseup |
+| cmd+drag | `areaSelect(hitTest, "xor")` preview | mouseup |
+| click text / double-click | `select(id)` + `edit(offset)` | immediate |
+| drag in text | `extendTextRange` preview | mouseup |
+| shift+arrow in text | `extendTextRange` preview | shift release |
+| Enter | `edit(0)` | immediate |
+| Escape (text) | `stopEditing` | immediate |
+| Escape (multi) | `collapseToCursor` | immediate |
+| Escape (single) | `clear` | immediate |
+| drag selected node | move all — visual preview | drop |
+| drag unselected node | `select(id)` + move | drop |
 
-Gestures can morph mid-drag: `text-dragselect` crossing a node boundary becomes `node-areaselect`. Drag back reverts. Only the final state at gesture end commits.
+Gestures morph automatically: text-drag crossing a node boundary becomes node-areaselect (derived from pointer position). Drag back → reverts. All reactive — no manual session management.
 
 ## Example
 
@@ -250,21 +254,9 @@ export const Selection = {
 
 ## Appendix
 
-### Gesture sessions
+### Gesture derivation
 
-```ts
-type Selecting =
-  | AreaSelectSession
-  | NodeExtendSession
-  | TextDragSession
-  | TextExtendSession
-
-type AreaSelectSession  = { kind: "node-areaselect"; hitIds: readonly ID[]; mode: "replace"|"xor"; effective(sel, space): Selection }
-type NodeExtendSession  = { kind: "node-shiftselect"; anchor: ID; focus: ID; effective(sel, space): Selection }
-type TextDragSession    = { kind: "text-dragselect"; anchor: TextPoint; focus: TextPoint; effective(sel, space): Selection }
-type TextExtendSession  = { kind: "text-shiftselect"; anchor: TextPoint; focus: TextPoint; effective(sel, space): Selection }
-type DragDropSession    = { kind: "drag"; dragging: readonly ID[]; dropTarget: DropTarget|null; dropEffect: "move"|"copy"|"link" }
-```
+`selecting` is computed from input state, not imperatively managed. The derived value is a `Selection` preview (same type as `selected`). No separate session types needed — the gesture IS the input state. When inputs change, the preview recomputes. When inputs release, the preview commits.
 
 ### What this replaces
 
