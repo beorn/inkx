@@ -34,6 +34,7 @@ import {
   stripTaskMark,
   isHRContent,
   VARIANT_CONFIG,
+  MAX_EXPANDED_CHILDREN,
   type GetBoardPillsFn,
 } from "./tree-node-helpers.tsx"
 import { useNavigator } from "../layout-context.tsx"
@@ -524,9 +525,9 @@ function TreeNodeImpl({
   // taskStatusFilter is now from TreeRenderContext (board-wide, no per-node subscription)
   // In multiline (cards) mode, maxContentLines controls how many children are visible.
   // In oneliner mode, a fixed cap prevents performance issues with large nodes.
-  // When a descendant is being edited or cursor is on it, bypass the limit.
+  // When expanded (cursor/edit), cap to MAX_EXPANDED_CHILDREN to avoid overflow.
   const maxChildren = shouldExpand
-    ? Infinity
+    ? MAX_EXPANDED_CHILDREN
     : variant === "multiline"
       ? maxContentLines
       : VARIANT_CONFIG.oneliner.maxChildren

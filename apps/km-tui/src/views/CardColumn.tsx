@@ -34,7 +34,7 @@ import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
-import { isHRContent } from "./tree-node-helpers.tsx"
+import { isHRContent, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 
@@ -237,12 +237,14 @@ const Card = React.memo(
     // Filter out collapsed children (km.collapse:: true, detailOnly) — these are
     // only shown in the detail pane and must not inflate the overflow count.
     const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
-    // When cursor is inside this card (on a descendant), expand to show all children
+    // When cursor is inside this card (on a descendant), expand to show all children.
+    // Must match TreeNode's shouldExpand logic — only expand when cursor is on a
+    // descendant, not when cursor is on the card title itself.
     const cursorInDescendant = useReactive(nodeStore.getOrCreate(nodeId).cursorInDescendant)
-    const isExpanded = isSelected || cursorInDescendant
+    const isExpanded = cursorInDescendant || isEditing
 
     const childCount = childCountProp ?? children.length
-    const effectiveMax = isExpanded ? Infinity : maxChildren
+    const effectiveMax = isExpanded ? MAX_EXPANDED_CHILDREN : maxChildren
     const directHidden = Math.max(0, childCount - effectiveMax)
     const { hasOverflow, hiddenCount } = useMemo(() => {
       let total = directHidden
