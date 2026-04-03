@@ -97,7 +97,7 @@ Node mutations always clear `text`. Text mutations never touch `nodes`.
 
 ## Interactions
 
-| Type | Trigger | Action | Overlay? | Cancel |
+| Type | Trigger | Action | Tentative? | Cancel |
 |---|---|---|---|---|
 | `node-select` | click / j / k | `select(id)` | — | — |
 | `node-toggle` | cmd+click | `toggle(id)` | — | — |
@@ -110,7 +110,7 @@ Node mutations always clear `text`. Text mutations never touch `nodes`.
 | `exit` | Escape | `stopEditing` / `collapseToCursor` / `clear` | — | — |
 | `drag-drop` | drag selected nodes | visual drop indicator | mouseup | Escape |
 
-Overlay gestures preview the result until committed. Cancel discards — `selected` unchanged.
+Tentative gestures preview the result until committed (mouseup / shift release). Cancel (Escape) discards — `selected` unchanged.
 
 Gestures can morph mid-drag: `text-dragselect` crossing a node boundary becomes `node-areaselect`. Drag back → reverts.
 
