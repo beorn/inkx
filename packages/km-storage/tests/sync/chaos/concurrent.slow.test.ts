@@ -156,9 +156,6 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
           commit(event, options?) {
             return emitter.commit(event, options)
           },
-          save(event) {
-            emitter.save(event)
-          },
         }
         const syncManager = withSync({
           debounceFs: 100,

@@ -12,7 +12,6 @@ import { mkdirSync, renameSync } from "fs"
 import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:sync")
-import { join } from "path"
 import { FileSystemWatcher } from "./watcher.ts"
 import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
@@ -111,7 +110,6 @@ export interface SyncableRepo {
   readonly emitter: Emitter
   apply(event: Omit<Event, "id" | "ts">, options?: { skipFsSync?: boolean }): Event
   commit(event: Omit<Event, "id" | "ts">, options?: Record<string, unknown>): Event
-  save(event: Event): void
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -132,8 +130,6 @@ export function withSync(config?: Partial<SyncConfig>) {
     const db = repo.database
     const repoPath = repo.path
     const emitter = repo.emitter
-    const kmDir = join(repoPath, ".km")
-
     // ── Core services ──────────────────────────────────────────────────────
 
     const syncState: SyncStateStore = createSyncState(db)
@@ -162,6 +158,10 @@ export function withSync(config?: Partial<SyncConfig>) {
       onWrite: (path, content) => {
         writeTokens.record(path, content)
         syncState.recordProjection(path, content)
+      },
+      onDelete: (path) => {
+        writeTokens.recordDelete(path)
+        syncState.removePath(path)
       },
     })
     writeQueue.setWatcher(watcher)
@@ -431,9 +431,20 @@ export function withSync(config?: Partial<SyncConfig>) {
       },
     }
 
-    // Wire up emitter.setFsSync so repo.apply() triggers FS projection
-    emitter.setFsSync(syncMethods)
+    // Wrap repo.apply() to add FS projection as a decorator
+    const baseApply = repo.apply.bind(repo)
 
-    return { ...repo, ...syncMethods } as R & Sync
+    return {
+      ...repo,
+      ...syncMethods,
+      apply(event: Omit<Event, "id" | "ts">, options?: { skipFsSync?: boolean }): Event {
+        const result = baseApply(event, options)
+        // Project to FS unless explicitly skipped
+        if (!options?.skipFsSync) {
+          void handlers.applyEventToFs(result)
+        }
+        return result
+      },
+    } as R & Sync
   }
 }

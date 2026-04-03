@@ -71,9 +71,6 @@ describe.sequential("Worker Thread Integration", () => {
       commit(event, options?) {
         return emitter.commit(event, options)
       },
-      save(event) {
-        emitter.save(event)
-      },
     }
 
     // Create sync with the repo's database via callbacks

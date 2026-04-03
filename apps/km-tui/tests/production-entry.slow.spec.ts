@@ -507,12 +507,9 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
         commit(event: Parameters<typeof emitter.commit>[0], options?: Parameters<typeof emitter.commit>[1]) {
           return emitter.commit(event, options)
         },
-        save(event: Parameters<typeof emitter.save>[0]) {
-          emitter.save(event)
-        },
       }
 
-      // Create sync via withSync (wires emitter.setFsSync internally)
+      // Create sync via withSync (wraps repo.apply() with FS projection)
       const syncManager = withSync({
         debounceFs: 100,
         debounceApply: 0,
@@ -575,9 +572,6 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
         },
         commit(event: Parameters<typeof emitter.commit>[0], options?: Parameters<typeof emitter.commit>[1]) {
           return emitter.commit(event, options)
-        },
-        save(event: Parameters<typeof emitter.save>[0]) {
-          emitter.save(event)
         },
       }
 

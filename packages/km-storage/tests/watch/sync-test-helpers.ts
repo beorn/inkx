@@ -5,7 +5,7 @@
 import type { Database } from "bun:sqlite"
 import { join } from "path"
 
-import { createEmitter } from "../../src/emitter.ts"
+import { createEmitter, type Emitter } from "../../src/emitter.ts"
 import { withSync, type Sync, type SyncConfig, type SyncableRepo, type SyncCallbacks } from "../../src/watch/sync.ts"
 
 /** Default sync config for tests - fast debounces, no worker */
@@ -17,8 +17,8 @@ const TEST_DEFAULTS: Partial<SyncConfig> = {
 }
 
 /** Build a minimal SyncableRepo from db + repoPath (for tests without a full Repo) */
-function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
-  const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
+function buildSyncableRepo(db: Database, repoPath: string, existingEmitter?: Emitter): SyncableRepo {
+  const emitter = existingEmitter ?? createEmitter({ kmDir: join(repoPath, ".km"), db })
   return {
     database: db,
     path: repoPath,
@@ -29,9 +29,6 @@ function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
     commit(event, options?) {
       return emitter.commit(event, options)
     },
-    save(event) {
-      emitter.save(event)
-    },
   }
 }
 
@@ -39,10 +36,11 @@ function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
 export function createTestSync(
   db: Database,
   repoPath: string,
-  overrides?: Partial<SyncConfig> & { callbacks?: SyncCallbacks },
+  overrides?: Partial<SyncConfig> & { callbacks?: SyncCallbacks; emitter?: Emitter },
 ): Sync {
-  const repo = buildSyncableRepo(db, repoPath)
-  const decorated = withSync({ ...TEST_DEFAULTS, ...overrides })(repo)
+  const { emitter, ...syncOverrides } = overrides ?? {}
+  const repo = buildSyncableRepo(db, repoPath, emitter)
+  const decorated = withSync({ ...TEST_DEFAULTS, ...syncOverrides })(repo)
   return decorated
 }
 

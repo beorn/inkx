@@ -343,7 +343,6 @@ class KmDaemon extends EventEmitter {
       emitter: this.emitter,
       apply: (event, options?) => this.emitter.apply(event, options),
       commit: (event, options?) => this.emitter.commit(event, options),
-      save: (event) => this.emitter.save(event),
     }
 
     this.sync = withSync({
@@ -551,7 +550,7 @@ class KmDaemon extends EventEmitter {
     // Set up event hub for broadcasting
     this.emitter.setEventHub({ broadcast: (event) => this.broadcast(event) })
 
-    // Note: withSync() internally wires emitter.setFsSync()
+    // Note: withSync() wraps repo.apply() to add FS projection
 
     // Startup sweep - sync filesystem
     this.log("Starting filesystem sync...")

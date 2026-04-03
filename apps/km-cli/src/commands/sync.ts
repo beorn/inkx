@@ -83,9 +83,6 @@ function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
     commit(event, options?) {
       return emitter.commit(event, options)
     },
-    save(event) {
-      emitter.save(event)
-    },
   }
 }
 

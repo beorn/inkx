@@ -100,9 +100,6 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
     commit(event, opts?) {
       return emitter.commit(event, opts)
     },
-    save(event) {
-      emitter.save(event)
-    },
   }
 
   // Create Sync with typed callbacks that forward to our handler registry
