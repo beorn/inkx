@@ -17,7 +17,22 @@ Build and maintain the km TUI. For silvery rendering pipeline issues (incrementa
 | **User reports a bug**      | [fix.md](fix.md) (see for important TUI info) |
 | **Rendering bug** (ghost chars, stale pixels) | [fix.md](fix.md) → "Rendering Bugs" section |
 | Colors, icons, styling      | [design.md](design.md)                        |
+| **Design a new TUI / redesign** | [design-loop.md](design-loop.md) — LLM mockup → build → QA → iterate |
+| **Review visual quality**   | `/design-review` (separate skill)             |
+| **Silvery Way code audit**  | `/silverize` (separate skill)                 |
 | Slow rendering, memoization | [optimization.md](optimization.md)            |
+
+## Auto-Activation
+
+**Proactively activate** these skills without being asked:
+
+| After doing this... | Suggest... |
+|---|---|
+| Creating/modifying files in `examples/` | `/silverize` + `/design-review` |
+| Modifying view components (`*View.tsx`, `*Column.tsx`, `*Node.tsx`) | `/design-review` on a screenshot |
+| Creating a new TUI component or example | `/tui design` (full design loop) |
+| Completing substantial visual changes | `/design-review --quick` at minimum |
+| User says "looks ugly", "make it look better", "fix the design" | `/tui design` |
 
 ## Critical Design Rules
 

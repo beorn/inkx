@@ -9,6 +9,17 @@ argument-hint: <url | path.png | directory/>
 
 Analyze screenshots for visual design issues. Combines TTY text verification, AI visual analysis, programmatic pixel measurement, and design heuristic evaluation.
 
+## Auto-Activation
+
+**Proactively suggest** `/design-review` (don't wait for the user to ask) after:
+- Modifying files in `examples/` (silvery showcase examples)
+- Modifying view components (`*View.tsx`, `*Column.tsx`, `*Node.tsx`, `*Card*.tsx`)
+- Creating or redesigning any TUI component
+- Completing substantial visual changes to any silvery or km-tui view
+- User reports something "looks wrong" or "looks ugly"
+
+When auto-activating, use `--quick` (free, Claude Read of 2x) as minimum. Suggest full review for showcase-critical work.
+
 ## Resolution Rule (Critical)
 
 **Always review at 2x resolution.** Standard-res thumbnails miss most issues.

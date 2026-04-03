@@ -9,6 +9,14 @@ argument-hint: <file-or-directory> [--fix|--dry-run]
 
 Audit a file, package, or codebase against silvery's philosophy and technical standards. Finds code that fights the framework and shows the canonical silvery alternative.
 
+## Auto-Activation
+
+**Proactively suggest** `/silverize` (don't wait for the user to ask) after:
+- Creating or modifying files in `examples/` (silvery showcase examples)
+- Creating a new silvery component or example
+- Completing work that touches silvery view components
+- User asks to "clean up" or "improve" a TUI component
+
 ## Usage
 
 ```bash
