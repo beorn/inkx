@@ -63,7 +63,7 @@ import { resolveLinksAsync as resolveLinksAsyncImpl } from "./link-resolution.ts
 import { INSERT_NODE_SQL } from "./db-insert.ts"
 import { SCHEMA, migrateSchema } from "./schema.ts"
 import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
-import { FsWriter } from "./watch/fs-writer.ts"
+import { withFsWriter } from "./watch/fs-writer.ts"
 
 const log = createLogger("km:storage:repo")
 
@@ -300,7 +300,12 @@ function createQueryMethods(deps: RepoMethodDeps) {
       return {
         id: row.id as string,
         type: row.type as string,
-        item: composeItem(row.item, row.list_marker as string | null, row.task_marker as string | null, row.task_status as string | null),
+        item: composeItem(
+          row.item,
+          row.list_marker as string | null,
+          row.task_marker as string | null,
+          row.task_status as string | null,
+        ),
         fstype: row.fstype as string | null,
         parent_id: row.parent_id as string | null,
         parent_idx: row.parent_idx as number,
@@ -803,13 +808,6 @@ export interface Repo extends Disposable {
    */
   commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
 
-  /**
-   * Save an already-committed event to the filesystem.
-   * Only triggers FS sync — no DB apply, no persist, no broadcast.
-   * Delegates to emitter.save().
-   */
-  save(event: Event): void
-
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)
   // ===========================================================================
@@ -949,7 +947,7 @@ export interface Repo extends Disposable {
   /**
    * Regenerate the .md file that contains `nodeId`.
    * Walks up the parent chain to find the file node, then writes its subtree.
-   * No-op if the node has no file ancestor or if there's no FsSync configured.
+   * No-op if the node has no file ancestor or if there's no FS writer configured.
    */
   syncToFs(nodeId: string): void
 
@@ -1623,9 +1621,18 @@ export function* createRepo(
   const remainingUnexplored = [...unexploredDirs]
 
   // Register lightweight FS writer for disk-mode repos (CLI write-back).
-  // The TUI replaces this with withSync() which decorates the repo.
+  // The TUI replaces this with withSync() which wraps emitter.apply().
+  // Must happen before repo construction so syncToFs can reference applyEventToFs.
+  let fsApplyEventToFs: ((event: Event) => void) | null = null
   if (mode === "disk") {
-    emitter.setFsSync(new FsWriter(db, rootPath, emitter))
+    const result = withFsWriter({
+      database: db,
+      path: rootPath,
+      emitter,
+      apply: (event, options?) => emitter.apply(event, options),
+      commit: (event, options?) => emitter.commit(event, options),
+    })
+    fsApplyEventToFs = result.applyEventToFs
   }
 
   // Create FileTree for the repo root
@@ -1778,9 +1785,6 @@ export function* createRepo(
     commit(event, options?) {
       return emitter.commit(event, options)
     },
-    save(event) {
-      emitter.save(event)
-    },
 
     // Spread shared query and mutation methods
     ...queryMethods,
@@ -1788,22 +1792,25 @@ export function* createRepo(
 
     // Batch mutation helpers
     withDeferredFs(fn) {
-      const prev = emitter.getFsSync()
-      emitter.setFsSync(null)
+      // Temporarily swap emitter.apply to skip FS projection.
+      // The FS decorator wraps emitter.apply; replacing it with commit
+      // bypasses the wrapper so mutations only hit DB + journal + broadcast.
+      const wrapped = emitter.apply
+      emitter.apply = emitter.commit.bind(emitter) as typeof emitter.apply
       try {
         return fn()
       } finally {
-        emitter.setFsSync(prev)
+        emitter.apply = wrapped
       }
     },
 
     syncToFs(nodeId) {
-      const fsSync = emitter.getFsSync()
-      if (!fsSync) return
+      if (!fsApplyEventToFs) return
       const node = dataStore.getNode(nodeId)
       if (!node) return
-      // Synthesize a node_updated event to trigger file regeneration
-      fsSync.applyEventToFs({
+      // Synthesize a node_updated event to trigger file regeneration.
+      // Calls the FS handler directly — no DB, no journal, no broadcast.
+      fsApplyEventToFs({
         id: "sync",
         ts: Date.now(),
         type: "node_updated",
@@ -2013,9 +2020,6 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     },
     commit(event, options?) {
       return emitter.commit(event, options)
-    },
-    save(event) {
-      emitter.save(event)
     },
 
     // Spread shared query and mutation methods

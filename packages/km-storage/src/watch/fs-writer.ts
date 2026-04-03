@@ -1,62 +1,82 @@
 /**
- * FsWriter — lightweight FsSync for CLI / non-TUI contexts
+ * withFsWriter — lightweight decorator for CLI / non-TUI contexts
  *
- * Synchronously writes DB changes back to .md files.
+ * Synchronously writes DB changes back to .md files by wrapping emitter.apply().
  * Unlike withSync(), has no watcher, no WriteQueue, no debouncing.
  * Designed for one-shot CLI commands that do a mutation and exit.
  *
- * The TUI replaces this with withSync() which wraps repo.apply().
+ * The TUI replaces this with withSync() which adds bidirectional sync.
  */
 
-import { createLogger } from "loggily"
 import { existsSync, mkdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "fs"
 import { dirname } from "path"
-import type { Database } from "bun:sqlite"
 import type { Event } from "@km/core"
-import type { Emitter, FsSync } from "../emitter.ts"
-import { toAbsoluteFsPath } from "../path-utils.ts"
+import type { SyncableRepo } from "./sync.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 
-const log = createLogger("km:storage:watch:fs-writer")
+/** Result of withFsWriter — the repo plus a direct FS projection function */
+export interface FsWriterResult<R> {
+  repo: R
+  /** Project a single event to the filesystem (no DB, no journal, no broadcast) */
+  applyEventToFs(event: Event): void
+}
 
-export class FsWriter implements FsSync {
-  private handlers: EventHandlers
-
-  constructor(
-    private db: Database,
-    private repoPath: string,
-    private emitter: Emitter,
-  ) {
-    // Create sync FsWriteTarget using writeFileSync, mkdirSync, renameSync, unlinkSync
-    const fsTarget: FsWriteTarget = {
-      writeFile: (absPath: string, content: string, _eventId?: string) => {
-        const dir = dirname(absPath)
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true })
-        }
-        writeFileSync(absPath, content, "utf-8")
-      },
-      deleteFile: (absPath: string, _eventId?: string) => {
-        if (existsSync(absPath)) {
-          if (statSync(absPath).isDirectory()) {
-            rmSync(absPath, { recursive: true, force: true })
-          } else {
-            unlinkSync(absPath)
-          }
-        }
-      },
-      renameFile: (oldPath: string, newPath: string) => {
-        renameSync(oldPath, newPath)
-      },
-      mkdir: (absPath: string) => {
-        mkdirSync(absPath, { recursive: true })
-      },
+// Create sync FsWriteTarget using writeFileSync, mkdirSync, renameSync, unlinkSync
+const syncFsTarget: FsWriteTarget = {
+  writeFile: (absPath: string, content: string, _eventId?: string) => {
+    const dir = dirname(absPath)
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true })
     }
+    writeFileSync(absPath, content, "utf-8")
+  },
+  deleteFile: (absPath: string, _eventId?: string) => {
+    if (existsSync(absPath)) {
+      if (statSync(absPath).isDirectory()) {
+        rmSync(absPath, { recursive: true, force: true })
+      } else {
+        unlinkSync(absPath)
+      }
+    }
+  },
+  renameFile: (oldPath: string, newPath: string) => {
+    renameSync(oldPath, newPath)
+  },
+  mkdir: (absPath: string) => {
+    mkdirSync(absPath, { recursive: true })
+  },
+}
 
-    this.handlers = new EventHandlers(db, repoPath, emitter, fsTarget)
+/**
+ * Decorator that adds synchronous filesystem write-back to a repo.
+ *
+ * Wraps emitter.apply() to project events to .md files after DB commit.
+ * For CLI usage where mutations need immediate FS write-back.
+ *
+ * Returns the repo (unchanged) plus an `applyEventToFs` function for
+ * direct FS projection (used by repo.syncToFs after withDeferredFs).
+ *
+ * @example
+ * const { applyEventToFs } = withFsWriter(repo)
+ * repo.apply(event) // DB + journal + broadcast + write to .md
+ */
+export function withFsWriter<R extends SyncableRepo>(repo: R): FsWriterResult<R> {
+  const { database, path, emitter } = repo
+  const handlers = new EventHandlers(database, path, emitter, syncFsTarget)
+
+  // Wrap emitter.apply() to add FS projection.
+  // This intercepts ALL callers (repo.apply, db-ops mutations, etc.)
+  const baseEmitterApply = emitter.apply.bind(emitter)
+  emitter.apply = (event, emitOptions = {}) => {
+    const result = baseEmitterApply(event, emitOptions)
+    if (!emitOptions.skipFsSync) {
+      handlers.applyEventToFs(result)
+    }
+    return result
   }
 
-  applyEventToFs(event: Event): void {
-    this.handlers.applyEventToFs(event)
+  return {
+    repo,
+    applyEventToFs: (event: Event) => handlers.applyEventToFs(event),
   }
 }

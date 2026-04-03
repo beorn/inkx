@@ -15,12 +15,24 @@ import { describe, test, expect, vi } from "vitest"
 import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync, renameSync, utimesSync } from "fs"
 import { join } from "path"
 import type { Sync } from "../../src/watch/sync.ts"
-import { FsWriter } from "../../src/watch/fs-writer.ts"
+import { withFsWriter } from "../../src/watch/fs-writer.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
+import type { Emitter } from "../../src/emitter.ts"
 import { emitNodeUpdated } from "../../src/emitter.ts"
 import { indexFileName } from "../../src/index-file-writer.ts"
 import { findIndexFile } from "@km/core"
 import { createTestSync } from "../watch/sync-test-helpers.ts"
+
+/** Wire FsWriter decorator to an emitter for test FS write-back */
+function wireFsWriter(db: import("bun:sqlite").Database, repoDir: string, emitter: Emitter) {
+  withFsWriter({
+    database: db,
+    path: repoDir,
+    emitter,
+    apply: (e, o?) => emitter.apply(e, o),
+    commit: (e, o?) => emitter.commit(e, o),
+  })
+}
 
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
   // Clear config cache to ensure no stale config from previous tests
@@ -353,7 +365,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "none")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "my-folder"), { recursive: true })
         writeFileSync(join(repoDir, "my-folder", "child.md"), "# Child\n")
         await manager.syncFromFs()
@@ -367,7 +379,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "metadata")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "my-folder"), { recursive: true })
         writeFileSync(join(repoDir, "my-folder", "notes.md"), "# Notes\n")
         await manager.syncFromFs()
@@ -382,7 +394,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(join(fp, "docs"), { recursive: true })
         mkdirSync(join(fp, "src"), { recursive: true })
@@ -400,7 +412,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "metadata")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "docs"), { recursive: true })
         writeFileSync(join(repoDir, "docs", "docs.md"), "# Docs\n\nOriginal.\n")
         await manager.syncFromFs()
@@ -415,7 +427,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full", "index")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(join(fp, "child"), { recursive: true })
         writeFileSync(join(fp, "child", "readme.md"), "# R\n")
@@ -434,7 +446,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full", "index")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "proj"), { recursive: true })
         writeFileSync(join(repoDir, "proj", "child.md"), "# C\n")
         await manager.syncFromFs()
@@ -448,7 +460,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full", "same-name")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "proj"), { recursive: true })
         writeFileSync(join(repoDir, "proj", "child.md"), "# C\n")
         await manager.syncFromFs()
@@ -463,7 +475,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full", "dot-md")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "proj"), { recursive: true })
         writeFileSync(join(repoDir, "proj", "child.md"), "# C\n")
         await manager.syncFromFs()
@@ -529,7 +541,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "old-name", "child"), { recursive: true })
         writeFileSync(join(repoDir, "old-name", "index.md"), "# Old\n")
         writeFileSync(join(repoDir, "old-name", "child", "readme.md"), "# R\n")
@@ -543,7 +555,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "none")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "old-folder"), { recursive: true })
         writeFileSync(join(repoDir, "old-folder", "old-folder.md"), "# F\n")
         writeFileSync(join(repoDir, "old-folder", "child.md"), "# Child\n")
@@ -558,7 +570,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "none")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# My Project\n")
         writeFileSync(join(repoDir, "project", "child.md"), "# Child\n")
@@ -592,7 +604,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "none")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         // index.md does NOT match the folder name — it should NOT be renamed
         writeFileSync(join(repoDir, "project", "index.md"), "# My Project\n")
@@ -611,7 +623,7 @@ describe("index file roundtrip", () => {
         try {
           writeConfig(repoDir, "full")
           const manager = createTestSyncHelper(db, repoDir)
-          emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+          wireFsWriter(db, repoDir, emitter)
           const fp = join(repoDir, "project")
           mkdirSync(join(fp, "existing"), { recursive: true })
           writeFileSync(join(fp, "index.md"), "# P\n\n![[./existing]]\n")
@@ -652,7 +664,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(join(fp, "alpha"), { recursive: true })
         mkdirSync(join(fp, "beta"), { recursive: true })
@@ -670,7 +682,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(join(fp, "alpha"), { recursive: true })
         writeFileSync(join(fp, "index.md"), "# P\n\n![[./alpha]]\n")
@@ -868,7 +880,7 @@ describe("index file roundtrip", () => {
         writeConfig(repoDir, "full", "index")
         clearConfigCache()
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# My Project\n")
         writeFileSync(join(repoDir, "project", "child.md"), "# Child\n")
@@ -900,7 +912,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(join(fp, "alpha"), { recursive: true })
         mkdirSync(join(fp, "beta"), { recursive: true })
@@ -1093,7 +1105,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         writeFileSync(join(fp, "project.md"), "# Project\n")
@@ -1122,7 +1134,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "none")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         mkdirSync(join(repoDir, "project"), { recursive: true })
         writeFileSync(join(repoDir, "project", "project.md"), "# My Project\n")
         // Create a file that will conflict with the renamed index
@@ -1157,7 +1169,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         mkdirSync(join(fp, "docs"), { recursive: true })
@@ -1197,7 +1209,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         mkdirSync(join(fp, "alpha"), { recursive: true })
@@ -1289,7 +1301,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         mkdirSync(join(fp, "docs"), { recursive: true })
@@ -1312,7 +1324,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         mkdirSync(join(fp, "docs"), { recursive: true })
@@ -1355,7 +1367,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         mkdirSync(join(fp, "alpha"), { recursive: true })
@@ -1396,7 +1408,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         mkdirSync(join(fp, "src"), { recursive: true })
@@ -1519,7 +1531,7 @@ describe("index file roundtrip", () => {
       withTestEnv(async ({ repoDir, db, emitter }) => {
         writeConfig(repoDir, "full")
         const manager = createTestSyncHelper(db, repoDir)
-        emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+        wireFsWriter(db, repoDir, emitter)
         const fp = join(repoDir, "project")
         mkdirSync(fp, { recursive: true })
         writeFileSync(join(fp, "project.md"), "# Project\n")
@@ -1571,7 +1583,7 @@ describe("P. regression: no duplicate sections after sync", () => {
     withTestEnv(async ({ repoDir, db, emitter }) => {
       writeConfig(repoDir, "none")
       const manager = createTestSyncHelper(db, repoDir)
-      emitter.setFsSync(new FsWriter(db, repoDir, emitter))
+      wireFsWriter(db, repoDir, emitter)
       const fp = join(repoDir, "project")
       mkdirSync(fp, { recursive: true })
       writeFileSync(join(fp, "project.md"), "# Project\n\n## INBOX\n\n- [ ] Task A\n\n## DONE\n\n- [x] Task B\n")

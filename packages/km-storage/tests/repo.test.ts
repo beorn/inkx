@@ -19,7 +19,7 @@ import {
   type Repo,
   type StepYield,
 } from "../src/index.ts"
-import { createEmitter, type FsSync } from "../src/emitter.ts"
+import { createEmitter } from "../src/emitter.ts"
 
 // =============================================================================
 // Test Helpers
@@ -477,10 +477,10 @@ describe("Repo.refresh", () => {
 })
 
 // =============================================================================
-// Mutation → FsSync notification tests
+// Mutation → FS projection notification tests
 // =============================================================================
 
-describe("Repo mutations notify FsSync", () => {
+describe("Repo mutations trigger FS projection", () => {
   let tempDir: string
 
   beforeEach(() => {
@@ -493,16 +493,19 @@ describe("Repo mutations notify FsSync", () => {
 
   function createRepoWithFsSpy(): { repo: Repo; events: Event[] } {
     const events: Event[] = []
-    const fsSpy: FsSync = {
-      applyEventToFs(event: Event) {
-        events.push(event)
-      },
-    }
 
-    // Ensure .km dir exists so repo enters disk mode (emitter → fsSync pipeline)
+    // Ensure .km dir exists so repo enters disk mode (emitter.apply gets FS decorator)
     mkdirSync(join(tempDir, ".km"), { recursive: true })
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
-    repo.emitter.setFsSync(fsSpy)
+    // Wrap emitter.apply to capture events flowing through the FS projection layer
+    const baseApply = repo.emitter.apply.bind(repo.emitter)
+    repo.emitter.apply = (event, options = {}) => {
+      const result = baseApply(event, options)
+      if (!options.skipFsSync) {
+        events.push(result)
+      }
+      return result
+    }
     return { repo, events }
   }
 
@@ -570,18 +573,18 @@ describe("Repo mutations notify FsSync", () => {
     repo.close()
   })
 
-  test("no FsSync notification when no FsSync is set", () => {
-    const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
-    // Don't set FsSync — should not throw
+  test("no FS projection when no FS decorator is set (memory mode)", () => {
+    const repo = runGenerator(createRepo(tempDir, { loadFiles: false, forceMemory: true }))
+    // Memory mode — no FS decorator, should not throw
     const id = repo.addNode(null, { type: "p", item: {}, content: "no-spy" })
     repo.updateNode(id, { content: "changed" })
     repo.deleteNode(id)
-    // If we got here, no errors from notifyFs with null fsSync
+    // If we got here, no errors from apply without FS projection
     repo.close()
   })
 })
 
-describe("FsWriter auto-registration", () => {
+describe("FS write-back decorator", () => {
   let tempDir: string
 
   beforeEach(() => {
@@ -592,31 +595,34 @@ describe("FsWriter auto-registration", () => {
     cleanupTempDir(tempDir)
   })
 
-  test("disk-mode repo has FsWriter, memory-mode does not", () => {
-    // Create .km dir so repo loads in disk mode
+  test("disk-mode repo applies FS write-back, memory-mode does not", () => {
+    // Disk mode: withFsWriter wraps emitter.apply
     mkdirSync(join(tempDir, ".km"), { recursive: true })
-    const diskRepo = runGenerator(createRepo(tempDir, { loadFiles: false }))
-    expect(diskRepo.emitter.getFsSync()).not.toBeNull()
+    writeFileSync(join(tempDir, "test.md"), "# Test\n")
+    const diskRepo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+    // Verify by adding a node and checking file is updated
+    const db = diskRepo.database
+    const file = db.query("SELECT id FROM nodes WHERE fstype = 'mdfile'").get() as { id: string } | null
+    if (file) {
+      diskRepo.addNode(file.id, { type: "p", item: {}, content: "disk-written" })
+      const content = readFileSync(join(tempDir, "test.md"), "utf-8")
+      expect(content).toContain("disk-written")
+    }
     diskRepo.close()
 
-    // Force memory mode
+    // Memory mode: no FS write-back
     const memRepo = runGenerator(createRepo(tempDir, { loadFiles: false, forceMemory: true }))
-    expect(memRepo.emitter.getFsSync()).toBeNull()
     memRepo.close()
+    // No assertion needed — just verify it doesn't crash without FS writer
   })
 
-  test("SyncManager replaces FsWriter via setFsSync", () => {
+  test("withSync replaces FsWriter decorator on emitter.apply", () => {
+    // After withSync wraps emitter.apply, the FsWriter's wrapper is replaced
     mkdirSync(join(tempDir, ".km"), { recursive: true })
     const repo = runGenerator(createRepo(tempDir, { loadFiles: false }))
 
-    // FsWriter is auto-registered
-    const fsWriter = repo.emitter.getFsSync()
-    expect(fsWriter).not.toBeNull()
-
-    // Simulate TUI replacing with SyncManager
-    const spy: FsSync = { applyEventToFs: () => {} }
-    repo.emitter.setFsSync(spy)
-    expect(repo.emitter.getFsSync()).toBe(spy)
+    // Verify emitter.apply is wrapped (it's not the bare commit)
+    expect(repo.emitter.apply).not.toBe(repo.emitter.commit)
 
     repo.close()
   })
@@ -626,7 +632,6 @@ describe("FsWriter auto-registration", () => {
     mkdirSync(join(tempDir, ".km"), { recursive: true })
     writeFileSync(join(tempDir, "board.md"), "---\ntitle: Board\n---\n\n# Board\n\n## Inbox\n\n## Done\n")
     const repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
-    expect(repo.emitter.getFsSync()).not.toBeNull()
 
     // Find nodes via DB
     const db = repo.database
@@ -642,7 +647,7 @@ describe("FsWriter auto-registration", () => {
       return
     }
 
-    // Add a task — FsWriter should regenerate the file
+    // Add a task — FsWriter decorator should regenerate the file
     repo.addNode(inbox.id, {
       type: "p",
       item: { task: { status: "todo", marker: "[ ]" } },

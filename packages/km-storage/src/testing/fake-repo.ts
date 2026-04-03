@@ -6,7 +6,7 @@
  */
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
-import { KNode, type TaskStatus, type Event } from "@km/core"
+import { KNode, type Event } from "@km/core"
 import type { Repo, RepoStats } from "../repo.ts"
 import type { LoadError } from "../repo-loader.ts"
 import type { Link } from "../db.ts"
@@ -186,9 +186,6 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     },
     commit(event, options?) {
       return fakeEmitter.commit(event, options)
-    },
-    save(event) {
-      fakeEmitter.save(event)
     },
 
     sync() {

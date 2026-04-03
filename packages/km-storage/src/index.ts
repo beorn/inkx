@@ -192,7 +192,7 @@ export {
   scanDirectory,
   scanDirectoryRecursive,
   withSync,
-  FsWriter,
+  withFsWriter,
   reconcileDirectory,
   applyReconcileOps,
   applyReconcileOpsAsync,
