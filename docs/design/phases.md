@@ -5,7 +5,7 @@ Roadmap for migrating km's interactive subsystems to pure state machines followi
 ## Phase 1: PlainText — character-level editing
 
 **Status:** Not started
-**Scope:** Extract `PlainText.apply(state, op)` from silvery's `readline-ops.ts` / `useReadline.ts`. Pure noun-singleton, zero dependencies, no React.
+**Scope:** Extract `PlainText.apply(state, op)` from silvery's `readline-ops.ts` / `useReadline.ts`. Pure domain interface, zero dependencies, no React.
 
 Key deliverables:
 - `PlainText.apply()`, `PlainText.opFromKey()`, `PlainText.create()`
@@ -26,7 +26,7 @@ Key files (current):
 ## Phase 2: App Machines — Board, Dialog, Search
 
 **Status:** In progress (navigation reducer + history plugin shipped)
-**Scope:** Extract pure noun-singletons with `.apply()` for each app domain. Replace Zustand imperative mutations with composed pure machines.
+**Scope:** Extract pure domain interfaces with `.apply()` for each app domain. Replace Zustand imperative mutations with composed pure machines.
 
 Key deliverables:
 - `Board.apply()` -- cursor, navigation, fold/unfold, multi-select
@@ -87,7 +87,7 @@ What it enables:
 
 ```
 Phase 1 (planned)    PlainText.apply()     single plain text, cursor, readline
-Phase 2 (in progress) Board/Dialog/Search  app machines as pure noun-singletons
+Phase 2 (in progress) Board/Dialog/Search  app machines as pure domain interfaces
 Phase 3 (planned)    SlateJS integration   per-node body editing (rich text)
 Phase 4 (planned)    Tree.apply()          document tree, undo, CRDT
 ```

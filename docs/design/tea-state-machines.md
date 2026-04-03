@@ -9,7 +9,7 @@
 
 Operations are data (serializable). Effects are data (serializable). State transitions are pure functions. The runtime applies effects. Machines compose via effects.
 
-This holds at every scale — each machine is a **noun-singleton** (type + namespace of pure functions, inspired by SlateJS's `Editor`, `Node`, `Path` pattern):
+This holds at every scale — each machine is a **domain interface** (type + namespace of pure functions, inspired by SlateJS's `Editor`, `Node`, `Path` pattern):
 
 ```
 character editing    PlainText.apply(state, op)  → [state, effects]
@@ -28,13 +28,13 @@ Consistent naming across all layers — no mixing of synonyms:
 |---|---|---|
 | Data passed to `.apply()` | **operation** (`op`) | ~~action~~, ~~message~~, ~~command~~ |
 | Result side channel | **effect** | ~~side effect~~, ~~cmd~~ |
-| Type + function namespace | **noun-singleton** | ~~module~~, ~~class~~ |
+| Type + function namespace | **domain interface** | ~~module~~, ~~class~~ |
 | State transition function | **`.apply()`** | ~~`.update()`~~, ~~`.reduce()`~~ |
 | High-level compound operations | **transform** | ~~command~~ (reserved for user intent) |
 | Phase 1 character ops | **PlainTextOp** | ~16 high-level ops (cursor_left, yank, kill_to_end) |
 | Phase 4 structural ops | **TreeOp** | 9 SlateJS-compatible tree ops (insert_node, split_node) |
 
-**Note**: silvery's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = operation and `model` = state. We don't rename createStore — it's a general-purpose TEA container, not a noun-singleton.
+**Note**: silvery's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = operation and `model` = state. We don't rename createStore — it's a general-purpose TEA container, not a domain interface.
 
 ## Why This Shape
 
@@ -192,7 +192,7 @@ namespace Tree {
 
 ### App Machines (km-tui, Phase 2)
 
-Each domain becomes a noun-singleton with `.apply()`:
+Each domain becomes a domain interface with `.apply()`:
 
 ```ts
 namespace Board {
@@ -710,7 +710,7 @@ Both modes share the same rendering code. The only difference is who drives the 
 
 ### Phase 1: PlainText (Silvery/core) — character-level TEA
 
-Extract from `handleReadlineKey`. Pure noun-singleton, zero dependencies, no React.
+Extract from `handleReadlineKey`. Pure domain interface, zero dependencies, no React.
 
 ```ts
 PlainText.apply(state, op)       → [PlainTextState, PlainTextEffect[]]
@@ -724,7 +724,7 @@ PlainText.create(value?)         → PlainTextState
 - Kill ring managed via effects: `kill_ring_push` effect → app-level state; yank key → command layer resolves to `{ type: "yank", text }` before reaching PlainText.apply
 - Establishes the `.apply()` pattern that all subsequent phases follow
 
-### Phase 2: App machines (km-tui) — extract pure noun-singletons
+### Phase 2: App machines (km-tui) — extract pure domain interfaces
 
 Each domain becomes a namespace with `.apply()`:
 
@@ -782,7 +782,7 @@ Plugin composition: `compose(withHistory, withVim)(Tree.apply)` — collaboratio
 
 ```
 Phase 1 (planned)    PlainText.apply()      single plain text, cursor, readline
-Phase 2 (started)    Board/Dialog/Search    app machines as pure noun-singletons
+Phase 2 (started)    Board/Dialog/Search    app machines as pure domain interfaces
 Phase 3 (planned)    SlateJS integration    per-node body editing (rich text)
 Phase 4 (planned)    Tree.apply()           document tree, undo, CRDT
 ```
@@ -873,7 +873,7 @@ const store = createStore(
 )
 ```
 
-`tea(initialState, reducer, options?)` returns a Zustand `StateCreator`. The `reducer` is a noun-singleton `.apply()` — it receives `(state, op)` and returns either:
+`tea(initialState, reducer, options?)` returns a Zustand `StateCreator`. The `reducer` is a domain interface `.apply()` — it receives `(state, op)` and returns either:
 
 - **Level 3** (pure state): `state` — no effects, just a state transition.
 - **Level 4** (state + effects): `[state, effects]` — the full TEA tuple.
@@ -882,7 +882,7 @@ Detection is automatic via `Array.isArray`: a reducer can return bare state for 
 
 ### Connection to km
 
-km's noun-singletons produce the right shape. `applyNavigation(state, op)` (the board navigation reducer) already returns `{ state, effects }`. As more domains are extracted to `.apply()`, the `tea()` middleware wraps them so Zustand dispatches through them — the store gains a `dispatch(op)` method that calls `.apply()`, replaces state, and runs effects.
+km's domain interfaces produce the right shape. `applyNavigation(state, op)` (the board navigation reducer) already returns `{ state, effects }`. As more domains are extracted to `.apply()`, the `tea()` middleware wraps them so Zustand dispatches through them — the store gains a `dispatch(op)` method that calls `.apply()`, replaces state, and runs effects.
 
 On the app side, `EventHandlerContext` now has a `dispatch` property. When the backing store uses `tea()`, command handlers call `ctx.dispatch(op)` instead of imperative `ctx.set()` mutations. This is the bridge between the command system (user intent) and the state machine (pure transitions).
 
