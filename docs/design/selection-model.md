@@ -216,9 +216,22 @@ The derived gesture kind — determines what mutation `selecting` produces:
 | `text` | click text | `edit(offset)` | immediate |
 | `text-extend` | shift+arrow / shift+click in text | text range preview | shift release |
 | `text-drag` | drag in text | text range preview | mouseup |
-| `move` | drag node | visual drop indicator | drop |
+| `drop` | drag node | drop indicator + effect | drop |
 
 The kind is derived from `(target, modifiers, pointerState)` — not stored.
+
+The `drop` kind has its own derived sub-state — the drop effect:
+
+```ts
+const dropEffect = computed(() => {
+  // derived from modifiers + app config (source/target types)
+  if (modifiers.value.alt) return "copy"
+  if (modifiers.value.cmd) return "link"
+  return "move"  // default — app can override per source/target
+})
+```
+
+Drop effect, drop target (proximity-based), and drop indicator are all derived from input state during the drag.
 
 ### Gesture morphing (derived from pointer position during drag)
 
