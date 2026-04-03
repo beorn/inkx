@@ -769,7 +769,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
           ctx.undoHandle.endBatch()
           if (result) {
             ctx.setUI({ inlineEditBlock: null })
-            ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+            ctx.dispatchBoard({ type: "SELECT", nodeId: result.survivorId })
           }
           return ok()
         }
@@ -806,7 +806,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
           ctx.undoHandle.endBatch()
           if (result) {
             ctx.setUI({ inlineEditBlock: null })
-            ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+            ctx.dispatchBoard({ type: "SELECT", nodeId: result.survivorId })
           }
         } else {
           fwdTarget.deleteForward()
@@ -1950,9 +1950,10 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
       const adjView = ctx.viewIndex.get(adjacentNode.id)
       let deepest: ViewNode | undefined
       if (adjView) {
-        for (const vn of ViewTree.nodes(adjView, { reverse: true })) {
+        // Find deepest-last visible descendant by iterating all nodes.
+        // DFS order visits root first; the last node visited is the deepest-last leaf.
+        for (const vn of ViewTree.nodes(adjView)) {
           deepest = vn
-          break
         }
       }
       if (deepest?.node && deepest.id !== adjacentNode.id) {
