@@ -12,7 +12,6 @@ import {
   ViewTree,
   buildViewTree,
   buildViewIndex,
-  ViewTree,
   deriveCursorPath,
   toColumnViews,
   type ViewTreeRepo,

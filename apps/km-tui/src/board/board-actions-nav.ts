@@ -4,10 +4,10 @@
  * Handles cursor movement, history navigation, and sibling board navigation.
  */
 
-import { ViewTree } from "@km/board"
+import { ViewTree, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import { KNode } from "@km/core"
+import { KNode, getStatusForMarker } from "@km/core"
 import { extractBody } from "@km/tree"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
@@ -23,6 +23,17 @@ import {
   type BoardNavState,
 } from "./board-reducer.ts"
 import { runBoardEffects } from "./board-effect-runner.ts"
+
+/** Build a ViewTree match predicate that skips nodes hidden by task status filter. */
+function taskStatusMatchFn(ctx: ActionCtx): ((vn: ViewNode) => boolean) | undefined {
+  const filter = ctx.ui.filterProperties.taskStatus
+  if (filter.size === 0) return undefined
+  return (vn) => {
+    if (!vn.node) return true
+    const status = vn.node.item?.task?.status ?? getStatusForMarker(vn.node.item?.task?.marker)
+    return !status || filter.has(status)
+  }
+}
 
 /**
  * Handle cursor movement in any direction.
@@ -88,13 +99,25 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
   const cardView = ctx.viewIndex.get(card.id)
-  const descendantIds = cardView ? [...ViewTree.nodes(cardView)].map((vn) => vn.id) : [card.id]
+  const statusMatch = taskStatusMatchFn(ctx)
+  const descendantIds = cardView
+    ? [
+        ...ViewTree.nodes(cardView, { into: statusMatch ? (vn) => statusMatch(vn) : undefined, match: statusMatch }),
+      ].map((vn) => vn.id)
+    : [card.id]
   const navState = extractNavState(ctx)
   const result = applyOutlineNav(navState, dir, descendantIds)
 
   if (result.effects.length === 0) return boundary(dir)
 
   runBoardEffects(ctx, result)
+
+  // Auto-unfold if cursor landed beyond the card's render depth
+  const targetId = result.state.cursorNodeId
+  if (targetId) {
+    ensureCursorVisible(ctx, targetId)
+  }
+
   return ok()
 }
 
@@ -236,17 +259,22 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
   }
 
   // Build flat list of all visible blocks in the current column.
-  // Use `into` predicate to skip folded subtrees (foldDepths value of 0 = fully folded).
+  // `into`: skip folded subtrees (foldDepths === 0) AND task-filtered subtrees.
+  //   A done parent's children are invisible even if they're todo — don't descend.
+  // `match`: exclude the filtered node itself from the navigable list.
   const col = ctx.column
   const colView = col ? ctx.viewIndex.get(col.node.id) : undefined
   const { foldDepths } = ctx
+  const statusMatch = taskStatusMatchFn(ctx)
   const blocks = colView
     ? [
         ...ViewTree.nodes(colView, {
           into: (vn) => {
-            const fd = foldDepths.get(vn.id)
-            return fd === undefined || fd > 0
+            if (foldDepths.get(vn.id) === 0) return false
+            if (statusMatch && !statusMatch(vn)) return false
+            return true
           },
+          match: statusMatch,
         }),
       ].map((vn) => vn.id)
     : []
@@ -263,7 +291,52 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
   }
 
   runBoardEffects(ctx, result)
+
+  // Auto-unfold: if cursor landed on a node beyond the card's render depth,
+  // increase the card's fold depth so the cursor target becomes visible.
+  const targetId = result.state.cursorNodeId
+  if (targetId) {
+    ensureCursorVisible(ctx, targetId)
+  }
+
   return ok()
+}
+
+/**
+ * Ensure a cursor target is visible by auto-unfolding its containing card.
+ *
+ * When block navigation moves the cursor to a deeply nested node (beyond
+ * CARD_REMAINING_DEPTH), the node won't be rendered because its ancestors
+ * are displayed as FoldedChildRow. Fix: bump the card's fold depth to
+ * reveal the target.
+ */
+function ensureCursorVisible(ctx: ActionCtx, targetId: string): void {
+  const vn = ctx.viewIndex.get(targetId)
+  if (!vn) return
+
+  // Walk up to find the card ancestor and measure depth
+  let depth = 0
+  let current: ViewNode | null = vn
+  let cardNode: ViewNode | null = null
+  while (current) {
+    if (current.role === "card") {
+      cardNode = current
+      break
+    }
+    depth++
+    current = current.parent
+  }
+  if (!cardNode || depth === 0) return
+
+  // Check if the target is beyond the effective render depth for this card
+  const cardFoldOverride = ctx.foldDepths.get(cardNode.id)
+  const effectiveDepth = cardFoldOverride ?? CARD_REMAINING_DEPTH
+  if (depth <= effectiveDepth) return
+
+  // Set fold depth on the card to reveal the target
+  const newDepths = new Map(ctx.foldDepths)
+  newDepths.set(cardNode.id, depth)
+  ctx.setFoldDepths(newDepths)
 }
 
 /** Default tree navigation (first, last, prev, next). */

@@ -62,23 +62,24 @@ describe("overflow-top-spurious", () => {
 // =============================================================================
 
 describe("child count on subitems", () => {
-  test("subitem with children shows child count in card view", () => {
+  test("subitem with visible children hides child count in card view", () => {
     // Create a card with a subitem that itself has children.
-    // The subitem "Parent" has 3 children, so it should show " 3" on its line.
+    // The subitem "Parent" has 3 children rendered as FoldedChildRow.
+    // Child count is hidden when children are visible — overflow indicator replaces it.
     const { board } = testEnv(() =>
       item("board", item("col1", item("Card1", item("Parent", item("child-a"), item("child-b"), item("child-c"))))),
     )
 
     // The card should render "Parent" as a subitem inside Card1
     board.expectScreen("Parent")
-    // The child count " 3" should appear somewhere on screen near "Parent"
+    // Children are visible as FoldedChildRow entries
+    board.expectScreen("child-a")
+    // Child count should NOT appear on the Parent line (children are visible)
     const screenshot = board.screenshot()
-    // Find the line with "Parent"
     const lines = screenshot.split("\n")
     const parentLine = lines.find((l) => l.includes("Parent"))
     expect(parentLine).toBeDefined()
-    // Should show child count "3" on the same line
-    expect(parentLine).toContain("3")
+    expect(parentLine).not.toMatch(/\b3\b/)
   })
 
   test("virtual body cards preserve child count", () => {
@@ -180,11 +181,11 @@ describe("child count on subitems", () => {
     const screenshot = board.screenshot()
     // bodyTask should be visible in the virtual body column
     expect(screenshot).toContain("bodyTask")
-    // bodyTask should show child count 3 on its line
+    // bodyTask children are visible, so child count is hidden (overflow indicator replaces it)
     const lines = screenshot.split("\n")
     const bodyLine = lines.find((l) => l.includes("bodyTask"))
     expect(bodyLine).toBeDefined()
-    expect(bodyLine).toContain("3")
+    expect(bodyLine).not.toMatch(/\b3\b/)
   })
 })
 

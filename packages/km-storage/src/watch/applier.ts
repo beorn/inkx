@@ -300,6 +300,27 @@ function finalizeBatchLinks(
     })
   }
 
+  // When an index file is deleted, re-promote title from the next-priority index file.
+  // This runs regardless of materialization config — title promotion is always needed.
+  if (ctx.foldersNeedingIndexUpdate?.size) {
+    for (const folderId of ctx.foldersNeedingIndexUpdate) {
+      const folder = getNode(db, folderId)
+      if (!folder?.fstype || folder.fstype !== "folder") continue
+      const children = getChildren(db, folderId)
+      const newPrimary = findIndexFile(folder, children)
+      if (newPrimary) {
+        syncIndexFileToFolder({
+          db,
+          op: { type: "update", path: "", nodeId: newPrimary.id } as ReconcileOp,
+          repoRoot,
+          emitter,
+          fs,
+          ctx,
+        })
+      }
+    }
+  }
+
   // Re-materialize index files for folders that lost their index file
   // AND refresh index files for folders whose children changed (create/delete/move)
   const allFolderIds = new Set<string>()

@@ -1499,4 +1499,125 @@ describe("cursor-reveals-hidden", () => {
     expect(paneAfterFold.cursorNodeId).not.toBe("child-1")
     expect(board.q(`[data-cursor]`).count()).toBeGreaterThan(0)
   })
+
+  test("block_nav_down auto-unfolds when cursor moves beyond render depth", () => {
+    // Deep tree: card → item1a (depth 1) → 5 children at depth 2 (FoldedChildRow)
+    // CARD_REMAINING_DEPTH = 2: item1a visible, children rendered as FoldedChildRow
+    // When ctrl-n navigates past children, all siblings should be visible
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("card", item("item1a", item("c1"), item("c2"), item("c3"), item("c4"), item("c5")))),
+        ),
+      { rows: 30, checkIncremental: false },
+    )
+
+    // Navigate: card → item1a → c1 → c2 → ... → c5
+    board.command("block_nav_down") // card → item1a
+    board.expect("#item1a[data-cursor]").toExist()
+
+    board.command("block_nav_down") // item1a → c1
+    board.expect("#c1[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("c1")
+
+    // Navigate to the last child — all siblings should remain visible
+    board.command("block_nav_down") // c1 → c2
+    board.command("block_nav_down") // c2 → c3
+    board.command("block_nav_down") // c3 → c4
+    board.expect("#c4[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("c4")
+
+    board.command("block_nav_down") // c4 → c5
+    board.expect("#c5[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("c5")
+    // All siblings should be visible
+    expect(board.screenshot()).toContain("c1")
+    expect(board.screenshot()).toContain("c2")
+    expect(board.screenshot()).toContain("c3")
+    expect(board.screenshot()).toContain("c4")
+  })
+
+  test("block_nav_down skips task-status-filtered nodes", () => {
+    // Card has children, some with task status "done". When task filter hides done items,
+    // block_nav_down should skip them — cursor must not land on a hidden node.
+    const nodes = item("board", item("col1", item("Card", item("done-task"), item("todo-task"), item("another-done"))))
+    // Mark some as done
+    const doneNode = nodes.find((n) => n.id === "done-task")!
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
+    const anotherDone = nodes.find((n) => n.id === "another-done")!
+    anotherDone.item = { ...anotherDone.item, task: { status: "done", marker: "[x]" } }
+
+    const { board, store } = testEnv(() => nodes, { rows: 24, checkIncremental: false })
+
+    // Enable task filter: only show "todo" status
+    board.setUI({
+      filterProperties: {
+        taskStatus: new Set(["todo"]),
+        priority: new Set(),
+        dueDate: new Set(),
+        assignedTo: new Set(),
+        nodeType: new Set(),
+      },
+    })
+    // Force re-render
+    board.press("")
+
+    // Verify done tasks are hidden
+    expect(board.screenshot()).not.toContain("done-task")
+    expect(board.screenshot()).toContain("todo-task")
+
+    // Navigate: Card → should skip done-task, land on todo-task
+    board.command("block_nav_down")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.cursorNodeId).toBe("todo-task")
+    expect(board.screenshot()).toContain("todo-task")
+  })
+
+  test("block_nav_down skips done parent subtrees (todo children inside done parent)", () => {
+    // Matches ~vault/TODO.md: Card has done children (item1) with todo grandchildren (1-5).
+    // Block nav must NOT descend into done parent's subtree — those children are invisible.
+    const nodes = item(
+      "board",
+      item("col1", item("Card", item("done-parent", item("todo-grandchild")), item("todo-sibling"))),
+    )
+    const doneNode = nodes.find((n) => n.id === "done-parent")!
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
+
+    const { board, store } = testEnv(() => nodes, { rows: 24, checkIncremental: false })
+
+    board.setUI({
+      filterProperties: {
+        taskStatus: new Set(["todo"]),
+        priority: new Set(),
+        dueDate: new Set(),
+        assignedTo: new Set(),
+        nodeType: new Set(),
+      },
+    })
+    board.press("")
+
+    // ctrl-n from Card should skip done-parent AND its todo-grandchild, land on todo-sibling
+    board.command("block_nav_down")
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.cursorNodeId).toBe("todo-sibling")
+    expect(board.screenshot()).toContain("todo-sibling")
+    // Must NOT land on the invisible grandchild
+    expect(pane.cursorNodeId).not.toBe("todo-grandchild")
+  })
+
+  test("block_nav_down auto-unfolds deeply nested nodes", () => {
+    // 4-level deep: card → section → task → subtask (depth 3, invisible without unfold)
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("card", item("section-a", item("task-a", item("subtask-x")))))),
+      { rows: 30, checkIncremental: false },
+    )
+
+    board.command("block_nav_down") // card → section-a
+    board.command("block_nav_down") // section-a → task-a
+    board.command("block_nav_down") // task-a → subtask-x (depth 3)
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.cursorNodeId).toBe("subtask-x")
+    expect(board.screenshot()).toContain("subtask-x")
+  })
 })

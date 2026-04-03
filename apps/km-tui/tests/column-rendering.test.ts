@@ -574,23 +574,22 @@ describe("column header count", () => {
 // =============================================================================
 
 describe("card title subtask progress badge", () => {
-  test("card title shows subtask progress badge (done/total)", () => {
+  test("subtask badge hidden in cards view (overflow indicators replace it)", () => {
     const { board } = testEnv(
       () => item("board", item("col", item("parent", item("child-a"), item("child-b"), item("child-c")))),
       { columns: 60, rows: 24 },
     )
 
-    // The card title "parent" should show a subtask badge "0/3" (all todo, none done)
+    // In cards view, subtask badge is hidden — overflow indicators are enough
     const box = board.screen.nodeBox("parent")
     expect(box, "parent card should exist").not.toBeNull()
     if (!box) return
 
-    // Scan the title line for the badge text "0/3"
     const row = board.screen.text.split("\n")[box.y] ?? ""
-    expect(row).toContain("0/3")
+    expect(row).not.toContain("0/3")
   })
 
-  test("card title shows subtask progress for many children", () => {
+  test("subtask badge hidden for cards with many children", () => {
     const { board } = testEnv(
       () =>
         item(
@@ -607,9 +606,9 @@ describe("card title subtask progress badge", () => {
     expect(box, "big-parent should exist").not.toBeNull()
     if (!box) return
 
-    // Should show "0/7" (7 children, all todo)
+    // Badge hidden in cards view
     const row = board.screen.text.split("\n")[box.y] ?? ""
-    expect(row).toContain("0/7")
+    expect(row).not.toContain("0/7")
   })
 })
 

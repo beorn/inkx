@@ -8,7 +8,7 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { type KNode, isIndexFile, extractSlotTargets, namesAreSimilar } from "@km/core"
+import { type KNode, isIndexFile, findIndexFile, extractSlotTargets, namesAreSimilar } from "@km/core"
 import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
 import { getFileWithChildren, getNodeContentHash } from "../../db/queries/core-lookup.ts"
@@ -236,12 +236,16 @@ export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
   }
   if (node.fstype !== "mdfile") return
 
-  // Check if this file is an index file for its parent folder
-  // Note: parent_id may be "." (repo root sentinel) which returns null from getNode — that's normal
+  // Check if this file is the PRIMARY index file for its parent folder.
+  // When multiple index files exist (same-name.md + index.md), only the highest-priority
+  // one should promote its title. findIndexFile returns the winner.
   if (!node.parent_id) return
   const parent = getNode(db, node.parent_id)
   if (parent?.fstype !== "folder") return
   if (!isIndexFile(parent.name ?? "", node)) return
+  const folderSiblings = getChildren(db, parent.id)
+  const primaryIndex = findIndexFile(parent, folderSiblings)
+  if (!primaryIndex || primaryIndex.id !== node.id) return
 
   // Get the index file's children (sections parsed from the file)
   const indexChildren = getChildren(db, node.id)

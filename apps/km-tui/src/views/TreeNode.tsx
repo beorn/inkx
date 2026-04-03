@@ -10,7 +10,7 @@
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useReactive, type NodeEditState } from "../state/reactive.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
+import { Box, ErrorBoundary, Link, Text, useScreenRectCallback } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
 import { isCardView } from "../types.ts"
 import { useRepo } from "../repo-context.tsx"
@@ -504,14 +504,20 @@ function TreeNodeImpl({
   const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) =>
     s.workspace ? Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId : undefined,
   )
-  // Cursor expansion: reuse cursorInDescendant from above (per-card signal, O(1) re-renders)
+  // Cursor expansion: when cursor is inside this node's subtree, bypass maxContentLines
+  // so all siblings of the cursor target are visible.
+  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
+  const cursorIsChild =
+    cursorNodeId != null && cursorNodeId !== node.id && repo.getNode(cursorNodeId)?.parent_id === node.id
   const shouldExpand =
     // Edit: card-level expansion
     (depth === 0 && expandedEditCardId === node.id) ||
     // Edit: sub-item-level expansion (any depth)
     (depth > 0 && editNodeId != null && isAncestorOf(repo, node.id, editNodeId)) ||
-    // Cursor: card-level expansion when cursor is on a descendant
-    (depth === 0 && cursorInDescendant)
+    // Cursor: expand at card level when cursor is on a descendant
+    (depth === 0 && cursorInDescendant) ||
+    // Cursor: expand sub-items when cursor is a direct child
+    (depth > 0 && cursorIsChild)
 
   // Child rendering
   // Apply task status filter (e.g., hide done/dropped) at all tree depths
@@ -551,10 +557,6 @@ function TreeNodeImpl({
   // Children are hidden when individually folded
   const childrenVisible = hasChildren && !isFolded
   const childrenHidden = hasChildren && !childrenVisible
-
-  // In cards mode (multiline), suppress "+N more" at all levels — the Card
-  // component renders a border-based overflow indicator instead.
-  const suppressChildOverflow = !isOneliner
 
   return (
     <Box flexDirection="column" height={isOneliner ? 1 : undefined} overflow={isOneliner ? "hidden" : undefined}>
@@ -697,9 +699,9 @@ function TreeNodeImpl({
           </Box>
           {/* Right-aligned: child count — always gray (black when selected) */}
           {/* Never bold: bold gray renders as bright/white on terminals */}
-          {/* Hidden in card views where overflow indicator shows the count */}
+          {/* Hidden in cards view (overflow indicators are enough) */}
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
-          {hasChildren && !hideChildCount && (
+          {hasChildren && !hideChildCount && isOneliner && (
             <Box flexShrink={0}>
               <Text color={isHighlighted ? tc : "$disabled-fg"}>{` ${childCount}`}</Text>
             </Box>
@@ -711,7 +713,8 @@ function TreeNodeImpl({
             </Box>
           )}
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
-          {subtaskBadge && !isInlineEditing && (
+          {/* Hidden in cards view — overflow indicators are enough */}
+          {subtaskBadge && !isInlineEditing && isOneliner && (
             <Box flexShrink={0}>
               <Text color={isHighlighted ? tc : "$disabled-fg"}>{` ${subtaskBadge}`}</Text>
             </Box>
@@ -768,7 +771,7 @@ function TreeNodeImpl({
             getParentContext={resolvedGetParentContext}
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
-            showOverflowIndicator={!suppressChildOverflow}
+            showOverflowIndicator
             remainingDepth={resolvedDepth - 1}
           />
         </ErrorBoundary>
@@ -1002,8 +1005,8 @@ const FoldedChildRow = React.memo(
             )}
           </Text>
         </Box>
-        {/* Right-aligned: child count — mirrors TreeNode's count display */}
-        {hasChildren && (
+        {/* Right-aligned: child count — only in oneliner (columns) view */}
+        {hasChildren && treeConfig.variant === "oneliner" && (
           <Box flexShrink={0}>
             <Text color={"$disabled-fg"}>{` ${childCount}`}</Text>
           </Box>
@@ -1125,8 +1128,10 @@ function NodeChildren({
           />
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
-          <Box flexDirection="column" alignItems="center">
-            <Small wrap="truncate">+{totalHiddenCount} more</Small>
+          <Box paddingLeft={Math.max(0, depth) + 2}>
+            <Text color="$muted" wrap="truncate">
+              +{totalHiddenCount} more
+            </Text>
           </Box>
         )}
       </Box>
@@ -1158,8 +1163,10 @@ function NodeChildren({
         )
       })}
       {hiddenCount > 0 && showOverflowIndicator && (
-        <Box flexDirection="column" alignItems="center">
-          <Small wrap="truncate">+{hiddenCount} more</Small>
+        <Box paddingLeft={Math.max(0, depth) + 2}>
+          <Text color="$muted" wrap="truncate">
+            +{hiddenCount} more
+          </Text>
         </Box>
       )}
     </Box>

@@ -413,7 +413,7 @@ const Card = React.memo(
     if (hasOverflow) {
       // Inner width excludes the 2 border columns (left + right)
       const innerWidth = Math.max(0, width - 2)
-      const label = ` +${hiddenCount} `
+      const label = ` +${hiddenCount} more `
       const padding = Math.max(0, innerWidth - label.length)
       const leftPad = Math.floor(padding / 2)
       const rightPad = padding - leftPad
@@ -444,9 +444,9 @@ const Card = React.memo(
             />
           </Box>
           <Box width={width} height={1} flexShrink={0}>
-            <Text color={borderColor} wrap="truncate">
+            <Text wrap="truncate">
               <Text color={borderColor}>╰{"─".repeat(leftPad)}</Text>
-              <Text color="$disabled-fg"> +{hiddenCount} </Text>
+              <Text color="$text"> +{hiddenCount} more </Text>
               <Text color={borderColor}>{"─".repeat(rightPad)}╯</Text>
             </Text>
           </Box>
@@ -851,7 +851,7 @@ export const Column = React.memo(function Column({
             hiddenCount > 0 ? (
               <Box flexDirection="column" height={2} alignItems="center">
                 <Box height={1} />
-                <Text color="$disabled-fg">+{hiddenCount} hidden</Text>
+                <Text color="$text">+{hiddenCount} more cards</Text>
               </Box>
             ) : undefined
           }

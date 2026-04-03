@@ -117,6 +117,19 @@ export const selection: Invariant = (app) => {
   expect(node, `Selected node "${app.nodeId}" not in repo`).toBeDefined()
 }
 
+/** Cursor node is visible on screen */
+export const cursorVisible: Invariant = (app) => {
+  if (!app.nodeId) return
+  // Skip when in dialog — dialogs may overlay the cursor
+  const inDialog = app.dialogs.search || app.dialogs.help || app.dialogs.newItem || app.dialogs.itemPicker
+  if (inDialog) return
+  const node = app.repo.getNode(app.nodeId)
+  if (!node) return
+  const name = node.name ?? node.content ?? ""
+  if (!name) return
+  expect(app.text, `Cursor node "${name}" (${app.nodeId}) not visible on screen`).toContain(name)
+}
+
 /** All parent links are valid */
 export const parentLinks: Invariant = (app) => {
   for (const node of app.repo.data.getAllNodes()) {
@@ -149,10 +162,10 @@ export const layout: Invariant = (app) => {
 }
 
 /** Default invariants - call manually with board.check() */
-export const defaultInvariants: Invariant[] = [rendering, cursor, selection]
+export const defaultInvariants: Invariant[] = [rendering, cursor, selection, cursorVisible]
 
 /** All invariants - the mother of all checks */
-export const allInvariants: Invariant[] = [rendering, cursor, selection, parentLinks, nodeLinks, layout]
+export const allInvariants: Invariant[] = [rendering, cursor, selection, cursorVisible, parentLinks, nodeLinks, layout]
 
 // =============================================================================
 // The App Interface
