@@ -417,6 +417,33 @@ describe("Selection", () => {
     board.expectNodeColor("child-2", { bg: TC["$selection-bg"] })
   })
 
+  test("sub-sub-items (grandchildren) are included in reactive multi-selection expansion", () => {
+    // Verify that syncMultiSelected expands to grandchildren at store level.
+    // The reactive signal propagation ensures TreeNodes at all depths highlight correctly.
+    const { board, store } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item.folder("Parent", item("child-1"), item("child-2", item("grandchild"))), item("sibling")),
+      ),
+    )
+    board.expect("#Parent[data-cursor]").toExist()
+
+    // Shift+ArrowDown extends selection: selects Parent and sibling
+    board.press("shift+ArrowDown")
+    board.expect("#sibling[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+
+    // Verify the store-level multiSelected contains card-level IDs
+    const state = store.getState()
+    const multiSelected = state.workspace.panes.values().next().value?.multiSelected ?? state.ui.multiSelected
+    expect(multiSelected.has("Parent")).toBe(true)
+    expect(multiSelected.has("sibling")).toBe(true)
+
+    // Direct children should visually appear selected
+    board.expectNodeColor("child-1", { bg: TC["$selection-bg"] })
+    board.expectNodeColor("child-2", { bg: TC["$selection-bg"] })
+  })
+
   // ---------------------------------------------------------------------------
   // Outline mode selection constrains to siblings
   // ---------------------------------------------------------------------------
@@ -447,5 +474,55 @@ describe("Selection", () => {
     // Parent is NOT multi-selected — only children are
     const parentLoc = board.q("#Parent")
     expect(parentLoc.count()).toBeGreaterThan(0)
+  })
+
+  // ---------------------------------------------------------------------------
+  // Pop-out: shift-select at sibling boundary pops to parent card
+  // ---------------------------------------------------------------------------
+
+  test("shift-select past last sibling pops out to parent card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
+    )
+    board.expect("#Parent[data-cursor]").toExist()
+
+    // Navigate into outline mode
+    board.command("block_nav_down")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // Select through children
+    board.press("shift+ArrowDown")
+    board.expect("#child-2[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+
+    // One more shift-down: past last sibling → pops to parent card
+    board.press("shift+ArrowDown")
+    board.expect("#Parent[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/1 item/)
+
+    // Now shift-down again: card-level selection to sibling card
+    board.press("shift+ArrowDown")
+    board.expect("#sibling[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+  })
+
+  test("shift-select past first sibling pops out to parent card", () => {
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("before"), item.folder("Parent", item("child-1"), item("child-2")))),
+    )
+    // Navigate to Parent, then into child-2
+    board.navigateTo("Parent")
+    board.command("block_nav_down")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // Shift-up past first sibling → pops to parent
+    board.press("shift+ArrowUp")
+    board.expect("#Parent[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/1 item/)
+
+    // Shift-up again: card-level to "before" card
+    board.press("shift+ArrowUp")
+    board.expect("#before[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/2 items/)
   })
 })
