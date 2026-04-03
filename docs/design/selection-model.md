@@ -13,8 +13,9 @@ type Selection = {
   text?: readonly [TextPoint] | readonly [TextPoint, TextPoint]  // collapsed caret or range
 }
 
-type SelectionState = Map<string, Selection>     // scopeName → selection
 ```
+
+No global selection registry. Each `SelectionProvider` holds its own signals — the scope IS the provider instance.
 
 `nodes`: ordered array of selected node IDs. `nodes[0]` is the cursor (primary item). `nodes.at(-1)` is the anchor (shift-extend origin). IDs between are also selected.
 
@@ -123,7 +124,7 @@ All transitions are reactive signal updates — no DOM selection API, no `window
 
 ## Public API (`Selection.*`)
 
-Outside the selection module, code uses these helpers rather than reading fields directly. The `Selection` namespace (distinct from the `Selection` type) is the public interface.
+`Selection.*` helpers for common operations. Consumers can also read `sel.nodes` / `sel.text` directly — the interface isn't a hard wall.
 
 ```ts
 const Selection = {
@@ -136,32 +137,33 @@ const Selection = {
   textAnchor(sel):      TextPoint | undefined
   isEditing(sel):       boolean
   inputMode(sel):       "board" | "node" | "text"
-  insertionPoint(sel, space): InsertionPoint
 
-  // Node mutations (clear text, enforce invariants)
-  select(id):                    Selection     // nodes = [id]
-  toggle(sel, id, space):        Selection     // add or remove
-  extend(sel, id, space):        Selection     // nodes = [id, ...range, anchor]
-  areaSelect(sel, hitIds, mode, space): Selection
+  // Node mutations (clear text, enforce invariants — throw on violation)
+  select(id):                    Selection
+  toggle(sel, id, space):        Selection | undefined  // may empty the set
+  extend(sel, id, space):        Selection
+  areaSelect(sel, hitIds, mode, space): Selection | undefined
   clear():                       undefined
 
-  // Convenience (derived from above)
-  add(sel, id):                  Selection     // toggle, but idempotent (no-op if present)
-  remove(sel, id, space):        Selection     // toggle, but idempotent (no-op if absent)
+  // Convenience
+  add(sel, id):                  Selection     // idempotent toggle-on
+  remove(sel, id, space):        Selection | undefined  // idempotent toggle-off
   collapseToCursor(sel):         Selection     // = select(cursor(sel))
 
   // Text mutations (don't touch nodes)
-  edit(sel, offset):             Selection     // set text at cursor node
-  stopEditing(sel):              Selection     // clear text
+  edit(sel, offset):             Selection
+  stopEditing(sel):              Selection
   moveTextCursor(sel, offset):   Selection
   extendTextRange(sel, offset):  Selection
 
-  // Post-edit repair
-  normalize(sel, doc, space):    Selection
+  // Plugin
+  with(store, space):            SelectionStore
+  withNode(store, space):        SelectionStore
+  withText(store):               SelectionStore
 }
 ```
 
-Mutations accept `ID | TextPoint | Selection` as target (resolves to node ID automatically).
+No `normalize` — invariant violations throw. Commands provide valid `selectedAfter` on transactions. Stale-ID repair is a future collab concern.
 
 ## Interactions
 
@@ -201,43 +203,18 @@ Stored order is `[cursor, ...selected, anchor]`, not visual order.
 | 7 | Lasso B,C | `[B, C]` | — |
 | 8 | Cmd-lasso C,D,E | `[B, D, E]` | — |
 
-## Drop Targets
-
-```ts
-type InsertionPoint =
-  | { kind: "node"; parentId: ID; edge: "before" | "after"; referenceId: ID }
-  | { kind: "text"; nodeId: ID; offset: number }
-
-type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
-```
-
-`Selection.insertionPoint()` derives from cursor. During drag, the UI computes a `DropTarget` from pointer proximity. On drop, target converts to `InsertionPoint`, which drives the document mutation.
-
 ## Integration
 
 ### `@silvery/selection` package
 
 ```ts
-import { Selection, withSelection } from "@silvery/selection"
-
-const store = withSelection(baseStore, space)
-```
-
-Everything is co-located in one namespace:
-
-```ts
 import { Selection } from "@silvery/selection"
 
-// Pure functions (standalone — tests, SSR, custom wiring)
+// Pure functions
 Selection.cursor(sel)
 Selection.toggle(sel, id, space)
 
-// Plugins (composable — pick what you need)
-Selection.withNode(store, space)     // node selection only
-Selection.withText(store)            // add text overlay
-Selection.with(store, space)         // both (the default)
-
-// The default plugin provides everything
+// Plugin — provides signals + invariants + React provider
 const store = Selection.with(baseStore, space)
 store.selected                       // signal
 store.selecting                      // signal
@@ -250,43 +227,24 @@ store.selection                      // computed
 </store.SelectionProvider>
 ```
 
-One import. Use `Selection.*` for pure functions, `Selection.with()` for full integration, or `Selection.withNode()` / `Selection.withText()` individually.
-
-**km extends** silvery's `Selection` with domain-specific behavior:
+### km extensions
 
 ```ts
-// @km/selection — spreads silvery's Selection + adds km-specific
 import { Selection as Base } from "@silvery/selection"
 
 export const Selection = {
   ...Base,
   inputMode(sel):  "board" | "node" | "text",
   expandWithDescendants(ids, tree): Set<ID>,
-  with(store, space) { /* adds km invariants, command selectors, keybindings */ }
+  insertionPoint(sel, space): InsertionPoint,     // domain concept, not in silvery core
 }
 ```
 
-km consumers import from `@km/selection`. Silvery provides the foundation; km adds `inputMode`, operation targeting, keybindings.
+**Commands**: `when` selectors built on `Selection.*` — replaces scattered `editLevel` checks.
 
-**Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
+**Focus**: Orthogonal. Focus determines active scope. Modals don't change selection.
 
-**Commands**: Selection state drives command availability via `when` selectors:
-
-```ts
-// Command "when" predicates — all built on Selection.*
-when: (sel) => Selection.inputMode(sel) === "node"     // node-only commands (indent, move)
-when: (sel) => Selection.isEditing(sel)                 // text-only commands (bold, insert link)
-when: (sel) => Selection.ids(sel).size > 1              // multi-select commands (align, group)
-when: (sel) => sel !== undefined                        // anything selected
-```
-
-This replaces scattered `editLevel` / `selectionLevel` checks. One source of truth for command routing.
-
-**Focus**: Keyboard focus (silvery) is orthogonal. Focus determines active scope. Modals don't change selection.
-
-**Remapping**: v1 uses explicit `selectedBefore` / `selectedAfter` on transactions.
-
-**Undo**: Transactions carry selection snapshots. Cursor-only moves don't create undo entries.
+**Undo**: Transactions carry `selectedBefore` / `selectedAfter`. Cursor-only moves no undo.
 
 ---
 
@@ -317,6 +275,20 @@ type DragDropSession    = { kind: "drag"; dragging: readonly ID[]; dropTarget: D
 | `selectionAnchor` | `Selection.anchor(sel)` |
 | `inlineEditBlock` | `Selection.isEditing(sel)` |
 | `selectionLevel` | `Selection.inputMode(sel)` |
+
+### km domain types (not in silvery core)
+
+```ts
+type InsertionPoint =
+  | { kind: "node"; parentId: ID; edge: "before" | "after"; referenceId: ID }
+  | { kind: "text"; nodeId: ID; offset: number }
+
+type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
+```
+
+### Target overloads (future)
+
+Mutations could accept `ID | TextPoint | Selection` — resolves to node ID. Deferred to v2.
 
 ### Prior art
 
