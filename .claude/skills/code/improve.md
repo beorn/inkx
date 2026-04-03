@@ -18,6 +18,8 @@ argument-hint: [file-or-directory] [--dry-run]
 
 # Improve — What Would This Look Like If It Were Easy?
 
+**Read [docs/principles.md](../../../docs/principles.md) before improving.** Every improvement should align with the principles — they define what "better" means. Extract the full checklist with: `grep '- \[ \]' docs/principles.md`
+
 Design review + systematic simplification. Not a bug hunt, not a style check. Asks whether the abstractions are right AND whether the code is as concise as it should be.
 
 **Good refactoring reduces or maintains line count while improving clarity.** If changes add significant lines, you're probably over-engineering.

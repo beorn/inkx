@@ -28,6 +28,19 @@ Systematically review km codebase: Survey → Filter → Present → (optionally
 
 **Related**: `/code types` (type safety), `/tests review` (test suite)
 
+## Principles Compliance
+
+**Read [docs/principles.md](../../../docs/principles.md) before reviewing.** Every finding should be checked against the principles — they are the source of truth for what "good" looks like in km. Key principles to verify:
+
+- **Plain Domain Language** — operations on namespaces, algorithms read like pseudocode
+- **Domain Object Inventory** — new operations go on existing namespaces (KTree, ViewTree, PaneUI, etc.)
+- **Centralized Core Flows** — types as blueprint, factories as architecture, flows in one place
+- **The Discoverability Test** — typing `X.` shows the operation; duplication = missing method
+- **Fail Loud, Fail Now** — invariants throw, no silent failures
+- **Quality Plateau** — one way to do things, no dual patterns
+
+Extract the full guidelines with: `grep '- \[ \]' docs/principles.md`
+
 ## Code Style Rules (from CLAUDE.md)
 
 **Patterns (must have):**
@@ -192,6 +205,11 @@ TypeScript's `verbatimModuleSyntax` (in tsconfig base) enforces `import type` fo
 | Misaligned names   | `rootPath` returned as `path` - align names for shorthand syntax            |
 | Mixed visual weight| 20-line method mixed with one-liners at same level - extract or inline all  |
 | Wrapper types      | `interface XDeps { db: Database }` that just mirrors another - delete       |
+| Bare helper fn     | Helper on domain object but not on its namespace — fails discoverability test |
+| Scattered flow     | Core flow requires reading 4+ files to understand — should be one place     |
+| Inline type check  | `node.type === "h"` instead of `KNode.isOutline()` — duplicates domain logic |
+| Missing from vocab | Operation not on domain namespace (see [principles.md](../../../docs/principles.md#principle-domain-object-inventory)) |
+| Non-pseudocode     | Algorithm reads as implementation details, not domain operations            |
 
 ## Iteration 0.5: Pre-Survey Check (project-wide reviews only)
 
