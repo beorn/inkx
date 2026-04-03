@@ -145,6 +145,8 @@ Six kinds of selection interaction. The first four are **overlays** — tentativ
 | Click node B | `select("B")` |
 | Cmd+click B | `toggle("B")` |
 | Click text in B | `select("B")` + `edit(offset)` |
+| Double-click node B | `select("B")` + `edit(0)` (enter text) |
+| Double-click column | create new card (dispatch, not selection) |
 | Click empty | `clear` |
 | Enter | `edit(0)` |
 | Escape (text) | `stopEditing` |
@@ -153,6 +155,10 @@ Six kinds of selection interaction. The first four are **overlays** — tentativ
 | j / k | `select(next/prev)` |
 | Arrow keys (in text) | `moveTextCursor(offset)` |
 | API "Select X" | `select("X")` |
+
+### Cross-boundary promotion
+
+When a text drag-select crosses a node boundary (anchor and focus in different nodes), it **auto-promotes to node selection**: `stopEditing` + `select([anchorNode, focusNode])`. This is how Decker handles it — text selection that spans items becomes node selection.
 
 ### Visual only (no selection change)
 
