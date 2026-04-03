@@ -70,6 +70,29 @@ This two-level routing keeps commands simple. Instead of one "delete backward" c
 
 **Comparison with SlateJS**: SlateJS puts all routing inside commands (`editor.deleteBackward()` handles every case). km's `when` system does the routing externally, so commands are smaller and more testable.
 
+### Command context from the signal DAG
+
+Commands need state (cursor, selection, node) to resolve ops. In km, the **signal DAG already computes this** — `cursor`, `inputMode`, `selectedIds`, `cursorNode` are all derived signals, always up to date.
+
+Command dispatch snapshots signal values into a flat context object. No separate context builder needed — the DAG IS the builder. `when` clauses are signal reads too (already computed, zero work).
+
+```
+signals (always computed) → when (read signals) → command (pure fn of context → op)
+```
+
+The command context is **DAG snapshot + event-specific data**. The DAG part is free (cached). The event adds ephemeral context (which key, modifiers, mouse position, hit target):
+
+Each event type has its own **context prep handler** that bridges raw events to the command system:
+
+```
+keyboard handler: DAG + key + modifiers      → context → when → command → op
+mouse handler:    DAG + position + hit + btn  → context → when → command → op  
+FS handler:       DAG + path + changeType     → context → handler → op
+sync handler:     DAG + remote changes        → context → handler → op
+```
+
+The prep handler snapshots the DAG (free, cached) and adds event-specific data. Different event types produce different context shapes, but all feed into the same dispatch → apply pipeline.
+
 ---
 
 ## Everything is a Node
