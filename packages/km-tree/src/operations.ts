@@ -13,16 +13,10 @@
 
 import { KNode } from "@km/core"
 import type { TreeMutator } from "./block-ops.ts"
+import type { Point } from "./selection.ts"
 
-// =============================================================================
-// Selection (minimal — expanded in Phase 5)
-// =============================================================================
-
-/** Cursor position within the tree. */
-export interface Selection {
-  nodeId: string
-  offset: number
-}
+/** Re-export Point as Selection for the set_selection operation. */
+export type Selection = Point
 
 // =============================================================================
 // Operation Types

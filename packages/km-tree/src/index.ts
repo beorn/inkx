@@ -111,6 +111,15 @@ export {
   type Selection,
 } from "./operations.ts"
 
+// Selection — Point/Range types with auto-adjustment after operations
+export {
+  Point,
+  Range,
+  transformPoint,
+  transformRange,
+  transformSelection,
+} from "./selection.ts"
+
 // Outliner Reducer — TEA state machine for outliner operations
 export {
   applyTreeAction,
