@@ -114,6 +114,14 @@ export {
 // History — op-based undo/redo via operation inverse
 export { withHistory, type HistoryEditor } from "./history.ts"
 
+// Operation log — records ops for undo/collaboration/replay
+export {
+  createOperationLog,
+  replay,
+  type OperationLog,
+  type OperationEntry,
+} from "./operation-log.ts"
+
 // Selection — Point/Range types with auto-adjustment after operations
 export {
   Point,

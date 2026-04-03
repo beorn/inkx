@@ -14,6 +14,7 @@
 import { KNode } from "@km/core"
 import type { TreeMutator } from "./block-ops.ts"
 import { inverse, applyOperation, type Operation } from "./operations.ts"
+import type { OperationLog } from "./operation-log.ts"
 
 // =============================================================================
 // Types
@@ -44,7 +45,11 @@ export interface HistoryEditor extends TreeMutator {
  * Undo applies inverse(op) for each op in the batch, in reverse order.
  * Redo re-applies the original ops in forward order.
  */
-export function withHistory(tree: TreeMutator): HistoryEditor {
+export function withHistory(
+  tree: TreeMutator,
+  options?: { log?: OperationLog },
+): HistoryEditor {
+  const log = options?.log
   const undos: Operation[][] = []
   const redos: Operation[][] = []
   let currentBatch: Operation[] | null = null
@@ -59,6 +64,7 @@ export function withHistory(tree: TreeMutator): HistoryEditor {
       // Auto-batch: single op = single undo step
       undos.push([op])
       redos.length = 0 // new mutation clears redo stack
+      log?.append([op], { source: "user" })
     }
   }
 
@@ -138,14 +144,18 @@ export function withHistory(tree: TreeMutator): HistoryEditor {
       const batch = undos.pop()
       if (!batch) return
       isUndoRedo = true
+      const inverseOps: Operation[] = []
       try {
         for (const op of [...batch].reverse()) {
-          applyOperation(tree, inverse(op))
+          const inv = inverse(op)
+          applyOperation(tree, inv)
+          inverseOps.push(inv)
         }
       } finally {
         isUndoRedo = false
       }
       redos.push(batch)
+      log?.append(inverseOps, { source: "undo" })
     },
 
     redo() {
@@ -160,6 +170,7 @@ export function withHistory(tree: TreeMutator): HistoryEditor {
         isUndoRedo = false
       }
       undos.push(batch)
+      log?.append([...batch], { source: "redo" })
     },
 
     batch<R>(fn: () => R): R {
@@ -174,6 +185,7 @@ export function withHistory(tree: TreeMutator): HistoryEditor {
           if (currentBatch.length > 0) {
             undos.push(currentBatch)
             redos.length = 0
+            log?.append([...currentBatch], { source: "user" })
           }
           currentBatch = null
         }
