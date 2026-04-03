@@ -131,11 +131,11 @@ const editor = pipe(
 
 ### Key Files
 
-- `commit-types.ts` — CommitMeta, CommitResult, RepoDelta, ResourceState, ChangeEnvelope, computeDelta
-- `store.ts` — Store, Observable, Replicated interfaces + createStoreFromRepo
-- `sqlite-store.ts` — createSQLiteStore (direct Store on bun:sqlite)
-- `fs-store.ts` — createFsStore (filesystem as Store-shaped projection)
-- `reactive.ts` — withReactive decorator (alien-signals)
+- `store/commit-types.ts` — CommitMeta, CommitResult, RepoDelta, ResourceState, ChangeEnvelope, computeDelta
+- `store/store.ts` — Store, Observable, Replicated interfaces + createStoreFromRepo
+- `store/sqlite.ts` — createSQLiteStore (direct Store on bun:sqlite)
+- `store/fs.ts` — createFsStore (filesystem as Store-shaped projection)
+- `store/reactive.ts` — withReactive decorator (alien-signals)
 - `watch/sync.ts` — withSync decorator (FS bidirectional sync, onApply subscriber)
 - `emitter.ts` — event emission lifecycle (DB + journal + broadcast + onApply)
 
