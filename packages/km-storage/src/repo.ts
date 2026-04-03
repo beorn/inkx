@@ -20,6 +20,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSyn
 import { basename, dirname, join } from "path"
 
 import type { Event, KNode, TaskStatus } from "@km/core"
+import { composeItem } from "./item-helpers.ts"
 import type { Config } from "./config-object.ts"
 import { loadConfigObject } from "./config-object.ts"
 import type { DataStore, HasDatabase } from "./data-store.ts"
@@ -296,19 +297,10 @@ function createQueryMethods(deps: RepoMethodDeps) {
         .prepare("SELECT * FROM nodes WHERE id = '.' AND type = 'h' AND item = 1 AND fstype = 'folder'")
         .get() as Record<string, unknown> | undefined
       if (!row) return null
-      // Import rowToNode inline to avoid circular dependency
-      const taskMarker = row.task_marker as string | null
-      const taskStatus = row.task_status as TaskStatus | null
-      const listMarker = row.list_marker as string | null
       return {
         id: row.id as string,
         type: row.type as string,
-        item: row.item
-          ? {
-              ...(listMarker ? { list: listMarker } : {}),
-              ...(taskMarker ? { task: { marker: taskMarker, status: taskStatus ?? "todo" } } : {}),
-            }
-          : undefined,
+        item: composeItem(row.item, row.list_marker as string | null, row.task_marker as string | null, row.task_status as string | null),
         fstype: row.fstype as string | null,
         parent_id: row.parent_id as string | null,
         parent_idx: row.parent_idx as number,

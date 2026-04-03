@@ -35,7 +35,7 @@ import type { Emitter } from "./emitter.ts"
 import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
 import { createLinkResolver } from "./link-resolver.ts"
 import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./markdown-processing.ts"
-import { INSERT_NODE_PLAIN_SQL } from "./db-insert.ts"
+import { INSERT_NODE_PLAIN_SQL, insertNodeRow } from "./db-insert.ts"
 
 const log = createLogger("km:storage:pipeline")
 
@@ -417,37 +417,7 @@ function insertFileNodes(
 
   // Insert all nodes
   for (const node of file.nodes) {
-    const data = node.data ?? {}
-    insertStmt.run(
-      node.id,
-      node.type,
-      node.fstype ?? null,
-      node.parent_id ?? null,
-      node.item ? 1 : 0,
-      node.embed_source ?? null,
-      node.parent_idx ?? 0,
-      node.fs_path ?? null,
-      node.fs_ino ?? null,
-      node.fs_mtime ?? null,
-      node.name ?? null,
-      node.block_id ?? null,
-      node.title ?? null,
-      node.md_pos ?? null,
-      node.md_line ?? null,
-      node.item?.list ?? null,
-      node.item?.task?.marker ?? null,
-      node.item?.task?.status ?? null,
-      node.assigned_to ?? null,
-      node.due_at ?? null,
-      node.start_at ?? null,
-      node.priority ?? null,
-      node.content ?? null,
-      node.content_hash ?? null,
-      JSON.stringify(data),
-      node.created_at ?? now,
-      node.updated_at ?? now,
-      node.version || "",
-    )
+    insertNodeRow(insertStmt, node, now)
 
     // Emit event if emitter provided (syncing path)
     if (emitter) {

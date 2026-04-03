@@ -27,6 +27,7 @@ import { MemoryStore, type NodeStore } from "./store.ts"
 import { getIgnorePatterns, shouldIgnore, isHiddenFile } from "./ignore.ts"
 import { generatePathBasedId } from "./id-utils.ts"
 import { INSERT_NODE_SQL } from "./db-insert.ts"
+import { decomposeEventItem } from "./item-helpers.ts"
 
 // Import extracted modules
 import { discoverFiles, type UnexploredDir } from "./discovery.ts"
@@ -807,11 +808,7 @@ function* applyEvents(
           // Normalize parent_id: null → "." (repo root)
           const parentId = (data.parent_id as string) ?? "."
           // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
-          const item = data.item as Record<string, unknown> | undefined
-          const task = item?.task as { marker?: string; status?: string } | undefined
-          const listMarker = (data.list_marker as string) ?? (item?.list as string) ?? null
-          const taskMarker = (data.task_marker as string) ?? task?.marker ?? null
-          const taskStatus = (data.task_status as string) ?? task?.status ?? null
+          const { listMarker, taskMarker, taskStatus } = decomposeEventItem(data)
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
           // from km sync that events.jsonl also references (last_event cursor
           // may not cover all events). Matches applyEventWithDb behavior.

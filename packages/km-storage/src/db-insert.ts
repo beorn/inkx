@@ -9,6 +9,7 @@
 
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
+import { decomposeItem } from "./item-helpers.ts"
 
 // ============================================================================
 // INSERT OR IGNORE (idempotent — disk mode / deferred parsing)
@@ -33,12 +34,13 @@ export const INSERT_NODE_SQL = `
  */
 export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode, now: number): void {
   const data = node.data ?? {}
+  const ic = decomposeItem(node.item)
   stmt.run(
     node.id,
     node.type,
     node.fstype ?? null,
     node.parent_id ?? null,
-    node.item != null ? 1 : 0,
+    ic.item,
     node.embed_source ?? null,
     node.parent_idx ?? 0,
     node.fs_path ?? null,
@@ -49,9 +51,9 @@ export function insertNodeRow(stmt: ReturnType<Database["prepare"]>, node: KNode
     node.title ?? null,
     node.md_pos ?? null,
     node.md_line ?? null,
-    node.item?.list ?? null,
-    node.item?.task?.marker ?? null,
-    node.item?.task?.status ?? null,
+    ic.list_marker,
+    ic.task_marker,
+    ic.task_status,
     node.assigned_to ?? null,
     node.due_at ?? null,
     node.start_at ?? null,

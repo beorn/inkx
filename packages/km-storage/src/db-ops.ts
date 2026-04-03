@@ -12,7 +12,8 @@ import { createLogger } from "loggily"
 import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")
-import { getMarkerForStatus, type KNode, type TaskStatus, type ItemData } from "@km/core"
+import type { KNode } from "@km/core"
+import { decomposeItem } from "./item-helpers.ts"
 import { NODE_COLUMNS } from "./schema.ts"
 import type { Emitter } from "./emitter.ts"
 
@@ -185,19 +186,7 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
   const augmented: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(updates)) {
     if (key === "item") {
-      // item?: ItemData → flat: item (int), list_marker, task_marker, task_status
-      if (value == null) {
-        augmented.item = 0
-        augmented.list_marker = null
-        augmented.task_marker = null
-        augmented.task_status = null
-      } else {
-        const itemData = value as { list?: string; task?: { marker: string; status: string } }
-        augmented.item = 1
-        augmented.list_marker = itemData.list ?? null
-        augmented.task_marker = itemData.task?.marker ?? null
-        augmented.task_status = itemData.task?.status ?? null
-      }
+      Object.assign(augmented, decomposeItem(value as KNode["item"]))
     } else {
       augmented[key] = value
     }
@@ -299,13 +288,14 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     (node.type === undefined ? { list: "-", task: { marker: "[ ]" as const, status: "todo" as const } } : undefined)
   const itemObj = defaultItem
 
+  const ic = decomposeItem(itemObj)
   const nodeData = {
     id: nodeId,
     type: defaultType,
     fstype: node.fstype ?? null,
     parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
-    item: itemObj != null ? 1 : 0,
+    item: ic.item,
     embed_source: node.embed_source ?? null,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
@@ -313,9 +303,9 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     title: node.title ?? null,
     md_pos: node.md_pos ?? null,
     md_line: node.md_line ?? null,
-    list_marker: itemObj?.list ?? null,
-    task_marker: itemObj?.task?.marker ?? null,
-    task_status: itemObj?.task?.status ?? null,
+    list_marker: ic.list_marker,
+    task_marker: ic.task_marker,
+    task_status: ic.task_status,
     assigned_to: node.assigned_to ?? null,
     due_at: node.due_at ?? null,
     start_at: node.start_at ?? null,

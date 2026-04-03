@@ -10,6 +10,7 @@ import { existsSync, readdirSync, readFileSync, mkdirSync, writeFileSync, append
 import { join, dirname, basename, relative } from "path"
 import { toRelativeFsPath } from "./path-utils.ts"
 import type { KNode } from "@km/core"
+import { decomposeItem } from "./item-helpers.ts"
 import { parseMarkdownWithLinks } from "@km/markdown"
 import { SCHEMA, NODE_COLUMNS } from "./schema.ts"
 import { addLink } from "./db.ts"
@@ -383,6 +384,7 @@ export class MemoryStore extends BaseStore {
       }
     }
 
+    const ic = decomposeItem(node.item)
     this.db.run(
       `INSERT INTO nodes (
         id, type, fstype, parent_id, parent_idx, item, embed_source,
@@ -397,7 +399,7 @@ export class MemoryStore extends BaseStore {
         node.fstype ?? null,
         node.parent_id ?? null,
         node.parent_idx ?? 0,
-        node.item != null ? 1 : 0,
+        ic.item,
         node.embed_source ?? null,
         node.fs_path ?? null,
         node.md_pos ?? null,
@@ -407,9 +409,9 @@ export class MemoryStore extends BaseStore {
         node.content ?? null,
         node.content_hash ?? null,
         node.title ?? null,
-        node.item?.list ?? null,
-        node.item?.task?.marker ?? null,
-        node.item?.task?.status ?? null,
+        ic.list_marker,
+        ic.task_marker,
+        ic.task_status,
         node.assigned_to ?? null,
         node.due_at ?? null,
         node.start_at ?? null,
@@ -428,22 +430,11 @@ export class MemoryStore extends BaseStore {
     const node = this.getNode(id)
     if (!node) return
 
-    // Decompose nested item object into flat DB columns (matches db-ops.ts logic)
+    // Decompose nested item object into flat DB columns
     const augmented: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(changes)) {
       if (key === "item") {
-        if (value == null) {
-          augmented.item = 0
-          augmented.list_marker = null
-          augmented.task_marker = null
-          augmented.task_status = null
-        } else {
-          const itemData = value as { list?: string; task?: { marker: string; status: string } }
-          augmented.item = 1
-          augmented.list_marker = itemData.list ?? null
-          augmented.task_marker = itemData.task?.marker ?? null
-          augmented.task_status = itemData.task?.status ?? null
-        }
+        Object.assign(augmented, decomposeItem(value as KNode["item"]))
       } else {
         augmented[key] = value
       }
@@ -562,9 +553,10 @@ export class MemoryStore extends BaseStore {
     const parent_id = changes.parent_id ?? source.parent_id
     const parent_idx = changes.parent_idx ?? source.parent_idx + 0.001
     const newItem = changes.item ?? source.item
-    const task_status = newItem?.task?.status ?? "todo"
-    const task_marker = newItem?.task?.marker ?? "[ ]"
-    const list_marker = newItem?.list ?? source.item?.list ?? null
+    const ic = decomposeItem(newItem)
+    // Recurring tasks always have a task — default to todo/[ ] as safety net
+    const task_status = ic.task_status ?? "todo"
+    const task_marker = ic.task_marker ?? "[ ]"
     const assigned_to = changes.assigned_to ?? source.assigned_to ?? null
     const due_at = changes.due_at ?? source.due_at ?? null
     const start_at = changes.start_at ?? source.start_at ?? null
@@ -588,7 +580,7 @@ export class MemoryStore extends BaseStore {
         parent_id,
         parent_idx,
         1,
-        list_marker,
+        ic.list_marker,
         task_status,
         task_marker,
         assigned_to,

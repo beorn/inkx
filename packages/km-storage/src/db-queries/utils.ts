@@ -6,7 +6,8 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode, TaskStatus, TaskMarker, FsType, NodeType, NodeRules, Reminder, ItemData } from "@km/core"
+import type { KNode, TaskStatus, FsType, NodeType, NodeRules, Reminder } from "@km/core"
+import { composeItem } from "../item-helpers.ts"
 
 // =============================================================================
 // Utility Queries
@@ -61,15 +62,12 @@ export function rowToNode(row: Record<string, unknown>): KNode {
   const rules = data.rules as NodeRules | undefined
 
   // Assemble nested item object from flat DB columns
-  const taskMarker = (row.task_marker ?? undefined) as TaskMarker | undefined
-  const taskStatus = (row.task_status ?? undefined) as TaskStatus | undefined
-  const listMarker = (row.list_marker ?? undefined) as string | undefined
-  let item: ItemData | undefined
-  if (row.item) {
-    item = {}
-    if (listMarker) item.list = listMarker
-    if (taskMarker) item.task = { marker: taskMarker, status: taskStatus ?? "todo" }
-  }
+  const item = composeItem(
+    row.item,
+    (row.list_marker ?? undefined) as string | undefined,
+    (row.task_marker ?? undefined) as string | undefined,
+    (row.task_status ?? undefined) as string | undefined,
+  )
 
   return {
     id: row.id as string,
