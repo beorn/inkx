@@ -84,6 +84,7 @@ export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db.t
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 export { MemoryStore, createStoreFromRepo } from "./store.ts"
+export { createSQLiteStore } from "./sqlite-store.ts"
 
 export type { NodeStore, Store, Observable, Replicated } from "./store.ts"
 
