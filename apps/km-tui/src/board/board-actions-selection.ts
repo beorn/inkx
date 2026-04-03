@@ -90,10 +90,15 @@ function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): vo
   // Find target sibling
   const targetIdx = direction === "up" ? curIdx - 1 : curIdx + 1
   if (targetIdx < 0 || targetIdx >= siblings.length) {
-    // At boundary: select current item if starting fresh
-    if (ui.multiSelected.size === 0) {
+    // At boundary: "pop out" to parent — select the entire card.
+    // This transitions from outline-mode (sub-item) to card-level selection.
+    // Subsequent shift-selects will use card-level logic since cursor is on the card.
+    const parent = Tree.parent(repo, cursorId)
+    if (parent) {
+      dispatchBoard({ type: "SELECT", nodeId: parent.id })
       ctx.setUI({
-        multiSelected: new Set([cursorId]),
+        selectionAnchor: { nodeId: parent.id },
+        multiSelected: new Set([parent.id]),
         status: { level: "info", message: "1 item selected" },
       })
     }
