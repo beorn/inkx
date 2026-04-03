@@ -9,33 +9,10 @@ import type { Database } from "bun:sqlite"
 import type { KNode, Event } from "@km/core"
 import type { Store, Observable } from "./store.ts"
 import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
-import { computeDelta } from "./commit-types.ts"
+import { mergeDeltas } from "./commit-types.ts"
 import { applyEventWithDb } from "./db-events.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import { ulid } from "ulid"
-
-/**
- * Merge multiple per-event deltas into one aggregated RepoDelta.
- * Deduplicates IDs across the batch.
- */
-function mergeDeltas(events: readonly Event[]): RepoDelta {
-  const nodeIds = new Set<string>()
-  const parentIds = new Set<string>()
-  const deletedNodeIds = new Set<string>()
-
-  for (const event of events) {
-    const d = computeDelta(event)
-    for (const id of d.nodeIds) nodeIds.add(id)
-    for (const id of d.parentIds) parentIds.add(id)
-    for (const id of d.deletedNodeIds) deletedNodeIds.add(id)
-  }
-
-  return {
-    nodeIds: [...nodeIds],
-    parentIds: [...parentIds],
-    deletedNodeIds: [...deletedNodeIds],
-  }
-}
 
 /**
  * Create a Store & Observable backed directly by SQLite.
@@ -77,9 +54,9 @@ export function createSQLiteStore(db: Database): Store & Observable {
       const commitId = meta?.commitId ?? ulid()
       const commitResult: CommitResult = {
         meta: {
+          ...meta,
           commitId,
           source: meta?.source ?? "local",
-          ...meta,
         },
         events: appliedEvents,
         delta,

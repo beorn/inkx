@@ -18,7 +18,7 @@ import { join } from "path"
 import type { KNode, Event } from "@km/core"
 import type { Store, Observable } from "./store.ts"
 import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
-import { computeDelta } from "./commit-types.ts"
+import { computeDelta, mergeDeltas } from "./commit-types.ts"
 import { rowToNode } from "./db-queries/utils.ts"
 import { SCHEMA } from "./schema.ts"
 import { createEmitter, type Emitter } from "./emitter.ts"
@@ -239,9 +239,9 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
       const commitId = meta?.commitId ?? ulid()
       const commitResult: CommitResult = {
         meta: {
+          ...meta,
           commitId,
           source: meta?.source ?? "local",
-          ...meta,
         },
         events: appliedEvents,
         delta,
@@ -294,27 +294,4 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
   }
 
   return store
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-function mergeDeltas(events: readonly Event[]): RepoDelta {
-  const nodeIds = new Set<string>()
-  const parentIds = new Set<string>()
-  const deletedNodeIds = new Set<string>()
-
-  for (const event of events) {
-    const d = computeDelta(event)
-    for (const id of d.nodeIds) nodeIds.add(id)
-    for (const id of d.parentIds) parentIds.add(id)
-    for (const id of d.deletedNodeIds) deletedNodeIds.add(id)
-  }
-
-  return {
-    nodeIds: [...nodeIds],
-    parentIds: [...parentIds],
-    deletedNodeIds: [...deletedNodeIds],
-  }
 }

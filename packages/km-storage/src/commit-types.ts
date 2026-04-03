@@ -24,7 +24,7 @@ export interface CommitMeta {
   basis?: string
 }
 
-export type CommitSource = "local" | "undo" | "redo" | "fs-import" | "remote"
+export type CommitSource = "local" | "undo" | "redo" | "fs-import" | "remote" | "repo-direct"
 
 // =============================================================================
 // RepoDelta — invalidation signal: what changed (for UI subscriptions)
@@ -108,6 +108,29 @@ export function computeDelta(event: Event): RepoDelta {
   }
 
   return { nodeIds, parentIds, deletedNodeIds }
+}
+
+/**
+ * Merge multiple per-event deltas into one aggregated RepoDelta.
+ * Deduplicates IDs across the batch.
+ */
+export function mergeDeltas(events: readonly Event[]): RepoDelta {
+  const nodeIds = new Set<string>()
+  const parentIds = new Set<string>()
+  const deletedNodeIds = new Set<string>()
+
+  for (const event of events) {
+    const d = computeDelta(event)
+    for (const id of d.nodeIds) nodeIds.add(id)
+    for (const id of d.parentIds) parentIds.add(id)
+    for (const id of d.deletedNodeIds) deletedNodeIds.add(id)
+  }
+
+  return {
+    nodeIds: [...nodeIds],
+    parentIds: [...parentIds],
+    deletedNodeIds: [...deletedNodeIds],
+  }
 }
 
 // =============================================================================
