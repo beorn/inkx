@@ -156,9 +156,14 @@ Six kinds of selection interaction. The first four are **overlays** — tentativ
 | Arrow keys (in text) | `moveTextCursor(offset)` |
 | API "Select X" | `select("X")` |
 
-### Cross-boundary promotion
+### Gesture morphing
 
-When a text drag-select crosses a node boundary (anchor and focus in different nodes), it **auto-promotes to node selection**: `stopEditing` + `select([anchorNode, focusNode])`. This is how Decker handles it — text selection that spans items becomes node selection.
+A `selecting` gesture can change type mid-gesture:
+
+- `text-dragselect` → drag crosses node boundary → morphs to `node-areaselect`
+- `node-areaselect` → drag back into single node → morphs back to `text-dragselect`
+
+This is a `selecting` behavior, not a `selection` change — if you drag back before releasing, it reverts. Only the final state at mouseup commits. (This is how Decker's `dragMode` works: `"textselect"` ↔ `"areaselect"` transitions mid-gesture.)
 
 ### Visual only (no selection change)
 
