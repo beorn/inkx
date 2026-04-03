@@ -1117,7 +1117,7 @@
 {"created_at":"2026-04-02T14:59:37Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.listview-compositions","issue_id":"km-silvery.console-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T09:51:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.content-search","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T14:39:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.local-find","issue_id":"km-silvery.content-search","metadata":"{}","type":"supersedes"}
-{"created_at":"2026-04-02T09:51:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.copy-on-select","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:59:30Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.virtualinline-parity","issue_id":"km-silvery.copy-on-select","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:45Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.cursor-compat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T00:28:32Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.cursor-visibility","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-29T16:18:45Z","created_by":"claude:db326126","depends_on_id":"km-silvery.demos","issue_id":"km-silvery.dashboard-snapshot-test","metadata":"{}","type":"parent-child"}
@@ -1426,7 +1426,7 @@
 {"created_at":"2026-03-09T15:07:50Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.theme","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:36Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.theme-stack-leak","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:40Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.trace-mismatch","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-02T09:51:06Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.transcript-mode","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:59:29Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.virtualinline-parity","issue_id":"km-silvery.transcript-mode","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:44Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.transform-concat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:04Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.tree-shaking","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T14:59:38Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.listview-compositions","issue_id":"km-silvery.treeview-v2","metadata":"{}","type":"parent-child"}
@@ -1457,6 +1457,7 @@
 {"created_at":"2026-03-24T21:49:55Z","created_by":"claude:fed8de9e","depends_on_id":"km-silvery.era2b-2-commands","issue_id":"km-silvery.virtual-terminal","metadata":"{}","type":"blocks"}
 {"created_at":"2026-04-02T14:07:48Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.vt-naming","issue_id":"km-silvery.virtual-terminal","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-29T23:56:09Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-silvery","issue_id":"km-silvery.virtual-text-bg","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:59:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.virtualinline-parity","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:59:15Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.visual-regression","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-28T08:35:54Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.vlist-variable-height","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T14:59:40Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.virtual-terminal","issue_id":"km-silvery.vt-blog","metadata":"{}","type":"parent-child"}
@@ -1509,6 +1510,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-storage.asana-quality","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-storage.asana-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T15:06:18Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.atomic-writes","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:39:07Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.automerge-store","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T15:35:31Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.batch-reconcile-tx","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-storage.bench-queries","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-infra","issue_id":"km-storage.bench-sync","metadata":"{}","type":"parent-child"}
@@ -1561,11 +1563,13 @@
 {"created_at":"2026-04-02T13:51:19Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.flush-mutex","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T20:44:48Z","created_by":"claude:b92140a2","depends_on_id":"km-storage","issue_id":"km-storage.folder-file-merge","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-storage.fs-rename","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:39:06Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.fs-store","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T15:35:18Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.fstarget-cleanup","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-31T14:31:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.pro-review-storage","issue_id":"km-storage.fswriter-delete-broken","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T15:01:21Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.generational-tokens","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T15:40:32Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-storage.item-decompose","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T23:23:10Z","created_by":"claude:c9beade3","depends_on_id":"km-storage","issue_id":"km-storage.link-resolution-bugs","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:39:01Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.memory-store","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T13:46:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.move-disk","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T13:46:43Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.ordinal-drift","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-18T15:15:54Z","created_by":"claude:d29abbfa","depends_on_id":"km-storage","issue_id":"km-storage.parse-idempotent","metadata":"{}","type":"parent-child"}
@@ -1605,8 +1609,11 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-storage.skip-activities","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-storage.split-query","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T15:01:15Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.split-sync-manager","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:39:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.sqlite-store","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-storage","issue_id":"km-storage.stale-folder-rename","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-31T14:31:18Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.pro-review-storage","issue_id":"km-storage.stop-drops-writes","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:39:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.store-interface","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T22:39:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.store-sync","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-31T14:42:54Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage","issue_id":"km-storage.sync-architecture","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T13:46:41Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.sync-ownership","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T13:46:40Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage","issue_id":"km-storage.sync-refactor","metadata":"{}","type":"parent-child"}
@@ -1817,10 +1824,18 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tools","issue_id":"km-tools.ttyd-port","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T22:57:02Z","created_by":"claude:656602a3","depends_on_id":"km-infra","issue_id":"km-tools.worktree-submodule-check","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-board-4","issue_id":"km-tree-1","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-02T20:56:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.auto-normalize","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:34:20Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.editor-model","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T12:30:25Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tree.invariants","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T15:57:18Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.nav-clarity","issue_id":"km-tree.ktree-namespace","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:56:08Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.operation-log","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:56:05Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.operation-model","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T12:43:21Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tree.outliner-reshape","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:56:07Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.plugin-composition","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:56:38Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.refs","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T12:59:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tree.schema-fixes","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:56:06Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.selection-model","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-02T20:34:20Z","created_by":"Bjørn Stabell","depends_on_id":"km-tree.slatejs-alignment","issue_id":"km-tree.slatejs-rename","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T15:40:33Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tree.sort-midpoint","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T13:12:35Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tree.tree-nodes","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T12:42:23Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tree.walk","metadata":"{}","type":"parent-child"}
