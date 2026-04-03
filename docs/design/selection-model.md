@@ -192,13 +192,26 @@ import { Selection, withSelection } from "@silvery/selection"
 const store = withSelection(baseStore, space)
 ```
 
-**`Selection.*`** — pure functions over the `Selection` type. Works standalone (tests, SSR, custom wiring).
+Everything is co-located in one namespace:
 
-**`withSelection(store, space)`** — the plugin. Composes node + text selection internally. Provides:
-- `store.selected` / `store.selecting` / `store.selection` signals
-- `store.SelectionProvider` React component
-- Invariant enforcement (throws on violation)
-- Gesture session management
+```ts
+import { Selection } from "@silvery/selection"
+
+// Pure functions (standalone — tests, SSR, custom wiring)
+Selection.cursor(sel)
+Selection.toggle(sel, id, space)
+
+// Plugins (composable — pick what you need)
+Selection.withNode(store, space)     // node selection only
+Selection.withText(store)            // add text overlay
+Selection.with(store, space)         // both (the default)
+
+// The default plugin provides everything
+const store = Selection.with(baseStore, space)
+store.selected                       // signal
+store.selecting                      // signal
+store.selection                      // computed
+```
 
 ```tsx
 <store.SelectionProvider scopeName="board">
@@ -206,7 +219,7 @@ const store = withSelection(baseStore, space)
 </store.SelectionProvider>
 ```
 
-Internally, `withSelection` is composed from `withNodeSelection` + `withTextSelection`. For apps that only need node selection (file manager, image gallery), `withNodeSelection` is available directly. But the default is `withSelection` — everything included, text is just an optional field.
+One import. Use `Selection.*` for pure functions, `Selection.with()` for full integration, or `Selection.withNode()` / `Selection.withText()` individually.
 
 **Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
 
