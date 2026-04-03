@@ -82,7 +82,7 @@ signals (always computed) → when (read signals) → command (pure fn of contex
 
 The command context is **DAG snapshot + event-specific data**. The DAG part is free (cached). The event adds ephemeral context (which key, modifiers, mouse position, hit target):
 
-Each event type has its own **context prep handler** that bridges raw events to the command system:
+Each event type has its own **input adapter** that bridges raw events to the command system:
 
 ```
 keyboard handler: DAG + key + modifiers      → context → when → command → op
