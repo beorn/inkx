@@ -738,7 +738,7 @@ describe("filter hidden count indicator", () => {
 
     // No hidden indicator initially
     let screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
 
     // Apply text filter that hides 2 of 4 cards
     board.setUI({ filterText: "Fix" })
@@ -746,7 +746,7 @@ describe("filter hidden count indicator", () => {
 
     screen = board.screenshot()
     // 2 of 4 cards match "Fix", so 2 are hidden
-    expect(screen).toContain("+2 more cards")
+    expect(screen).toContain("+2 filtered")
   })
 
   test("hidden indicator disappears when filter is cleared", () => {
@@ -760,14 +760,14 @@ describe("filter hidden count indicator", () => {
     flushFilter(board)
 
     let screen = board.screenshot()
-    expect(screen).toContain("+2 more cards")
+    expect(screen).toContain("+2 filtered")
 
     // Clear filter
     board.setUI({ filterText: "" })
     flushFilter(board)
 
     screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
   })
 
   test("no hidden indicator when all cards match filter", () => {
@@ -781,7 +781,7 @@ describe("filter hidden count indicator", () => {
     flushFilter(board)
 
     const screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
   })
 
   test("hidden indicator appears right after last card, not at screen bottom", () => {
@@ -797,13 +797,13 @@ describe("filter hidden count indicator", () => {
     flushFilter(board)
 
     const screen = board.screenshot()
-    expect(screen).toContain("+2 more cards")
+    expect(screen).toContain("+2 filtered")
 
-    // Find the line containing "+2 more cards" — it should appear right after the 2 visible cards.
+    // Find the line containing "+2 filtered" — it should appear right after the 2 visible cards.
     // Layout: top bar (1) + spacer (1) + header (1) + separator (1) + 2 cards * ~5 rows = ~14.
     // Plus 1 blank line in the hidden indicator = ~15. Allow margin for spacing.
     const lines = screen.split("\n")
-    const hiddenLineIdx = lines.findIndex((l) => l.includes("+2 more cards"))
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+2 filtered"))
     expect(hiddenLineIdx).toBeGreaterThan(0) // Not first line
     expect(hiddenLineIdx).toBeLessThan(18) // Right after the 2 cards, not at screen bottom
   })
@@ -818,7 +818,7 @@ describe("filter hidden count indicator", () => {
 
     // No hidden indicator initially
     let screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
     expect(screen).toContain("doneTask")
 
     // Press vd to hide done tasks
@@ -828,12 +828,12 @@ describe("filter hidden count indicator", () => {
     expect(screen).toContain("todo1")
     expect(screen).toContain("todo2")
     expect(screen).not.toContain("doneTask")
-    expect(screen).toContain("+1 more cards")
+    expect(screen).toContain("+1 filtered")
 
     // Verify the indicator appears right after the cards, not with a large gap.
     // Layout: top bar (1) + spacer (1) + header (1) + separator (1) + 2 cards * ~5 rows = ~14.
     const lines = screen.split("\n")
-    const hiddenLineIdx = lines.findIndex((l) => l.includes("+1 more cards"))
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+1 filtered"))
     expect(hiddenLineIdx).toBeLessThan(18)
   })
 
@@ -849,14 +849,14 @@ describe("filter hidden count indicator", () => {
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
     // No hidden indicator initially
-    expect(board.screenshot()).not.toContain("more cards")
+    expect(board.screenshot()).not.toContain("filtered")
 
     // Press vd to hide done tasks
     board.command("toggle_hide_done")
 
     const screen = board.screenshot()
     // The done child should be hidden, so we should see +1 hidden
-    expect(screen).toContain("+1 more cards")
+    expect(screen).toContain("+1 filtered")
     // The todo child should still be visible
     expect(screen).toContain("todoChild")
   })
@@ -877,8 +877,8 @@ describe("filter hidden count indicator", () => {
     flushFilter(board)
 
     const screen = board.screenshot()
-    // Both columns should show "+1 more cards"
-    const matches = screen.match(/\+1 more cards/g)
+    // Both columns should show "+1 filtered"
+    const matches = screen.match(/\+1 filtered/g)
     expect(matches).not.toBeNull()
     expect(matches!.length).toBe(2)
   })
@@ -905,20 +905,20 @@ describe("filter hidden count indicator", () => {
 
     // No hidden indicator initially
     let screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
 
     // Apply text filter that shows only the 2 "Fix" cards, hiding 4
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
     screen = board.screenshot()
-    expect(screen).toContain("+4 more cards")
+    expect(screen).toContain("+4 filtered")
 
     // The indicator should be near the top of the screen (close to the 2 visible cards),
     // not near the bottom (row 39). With header + separator + 2 cards, expect it
     // somewhere around rows 8-15, definitely not past row 20.
     const lines = screen.split("\n")
-    const hiddenLineIdx = lines.findIndex((l) => l.includes("+4 more cards"))
+    const hiddenLineIdx = lines.findIndex((l) => l.includes("+4 filtered"))
     expect(hiddenLineIdx).toBeGreaterThan(0)
     expect(hiddenLineIdx).toBeLessThan(20) // Well above the screen bottom (row 39)
 
@@ -955,14 +955,14 @@ describe("filter hidden count indicator", () => {
     const screen = board.screenshot()
 
     // Hidden count should show +5 hidden (rendered as listFooter inside VirtualList)
-    expect(screen).toContain("+5 more cards")
+    expect(screen).toContain("+5 filtered")
 
     // 3 cards fit easily in 24 rows, so no overflow indicator
     expect(screen).not.toContain("▼")
 
     // The hidden indicator should appear right after the 3 cards, not at screen bottom
     const lines = screen.split("\n")
-    const hiddenIdx = lines.findIndex((l) => l.includes("+5 more cards"))
+    const hiddenIdx = lines.findIndex((l) => l.includes("+5 filtered"))
     expect(hiddenIdx).toBeGreaterThan(0)
     expect(hiddenIdx).toBeLessThan(18) // Well above row 23
   })
@@ -1005,6 +1005,6 @@ describe("filter hidden count indicator", () => {
 
     // The +5 hidden footer is inside the scroll container at the end,
     // so it's NOT visible when scrolled to top with overflow
-    expect(screen).not.toContain("+5 more cards")
+    expect(screen).not.toContain("+5 filtered")
   })
 })

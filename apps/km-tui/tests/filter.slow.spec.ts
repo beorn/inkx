@@ -170,16 +170,16 @@ describe("Filter/View Journeys", () => {
 
     // Step 1: No hidden indicator initially
     let screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
 
     // Step 2: vd hides 3 done tasks
     board.command("toggle_hide_done")
     screen = board.screenshot()
-    expect(screen).toContain("+3 more cards")
+    expect(screen).toContain("+3 filtered")
 
     // Step 3: vd again shows all tasks — no hidden indicator
     board.command("toggle_hide_done")
     screen = board.screenshot()
-    expect(screen).not.toContain("more cards")
+    expect(screen).not.toContain("filtered")
   })
 })

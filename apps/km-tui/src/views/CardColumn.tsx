@@ -856,7 +856,7 @@ export const Column = React.memo(function Column({
             hiddenCount > 0 ? (
               <Box flexDirection="column" height={2} alignItems="center">
                 <Box height={1} />
-                <Text color="$text">+{hiddenCount} more cards</Text>
+                <Text color="$muted">+{hiddenCount} filtered</Text>
               </Box>
             ) : undefined
           }
