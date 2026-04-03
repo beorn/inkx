@@ -125,7 +125,7 @@ const editor = pipe(
   withHistory,              // exists in km-tree, not yet wired to Store
   withTree,                 // exists in km-tree, not yet wired to Store
   withReactive,             // ✓ implemented — signals from delta
-  withSync(fsPeer),         // exists, migration to commit subscriber in progress
+  withSync(fsPeer),         // ✓ implemented — onApply subscriber, source-based filtering
 )
 ```
 
@@ -133,9 +133,11 @@ const editor = pipe(
 
 - `commit-types.ts` — CommitMeta, CommitResult, RepoDelta, ResourceState, ChangeEnvelope, computeDelta
 - `store.ts` — Store, Observable, Replicated interfaces + createStoreFromRepo
+- `sqlite-store.ts` — createSQLiteStore (direct Store on bun:sqlite)
+- `fs-store.ts` — createFsStore (filesystem as Store-shaped projection)
 - `reactive.ts` — withReactive decorator (alien-signals)
-- `watch/sync.ts` — withSync decorator (FS bidirectional sync)
-- `emitter.ts` — event emission lifecycle (DB + journal + broadcast)
+- `watch/sync.ts` — withSync decorator (FS bidirectional sync, onApply subscriber)
+- `emitter.ts` — event emission lifecycle (DB + journal + broadcast + onApply)
 
 ## Application (km-tui, km-cli)
 
