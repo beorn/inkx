@@ -642,6 +642,85 @@ describe("Inline Edit — Outliner Enter Behavior", () => {
     expect(siblings.length).toBe(2) // alpha + new
   })
 
+  // ── Folded children (hidden by depth limit) ────────────────
+
+  test("end, folded children (depth limit) → sibling after, not hidden child", () => {
+    // CardColumn renders with remainingDepth=2, so:
+    //   card: depth=0, remainingDepth=2
+    //   sub1: depth=1, remainingDepth=1 → full TreeNode, navigable
+    //   sub1's ChildrenList: remainingDepth=0 → allFolded → children are FoldedChildRow
+    // When cursor is on sub1 (which has children rendered as FoldedChildRow),
+    // Enter at end of title should create sibling (not child at the folded level).
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("card", item("sub1", item("gc1"), item("gc2")), item("sub2")))),
+    )
+
+    // Navigate to sub1
+    board.expect("#card[data-cursor]").toExist()
+    board.command("block_nav_down") // → sub1
+    board.expect("#sub1[data-cursor]").toExist()
+
+    // Enter inline edit → cursor at end of "sub1"
+    board.press("Enter")
+    // Press Enter again → should create sibling after sub1 (not child)
+    board.press("Enter")
+
+    // Exit edit mode on the new node
+    board.press("Escape")
+
+    // sub1 should NOT have gained a new child — still just gc1, gc2
+    const sub1Children = repo.getChildren("sub1")
+    expect(sub1Children.map((n) => n.id)).toEqual(["gc1", "gc2"])
+
+    // New node should be a sibling of sub1 (child of card)
+    const cardChildren = repo.getChildren("card")
+    expect(cardChildren.length).toBe(3) // sub1 + new sibling + sub2
+    const sub1Idx = cardChildren.findIndex((n) => n.id === "sub1")
+    const sub2Idx = cardChildren.findIndex((n) => n.id === "sub2")
+    expect(sub1Idx).toBe(0) // sub1 still first
+    // New sibling should be between sub1 and sub2
+    expect(sub2Idx).toBe(2)
+  })
+
+  test("middle, folded children (depth limit) → split as sibling, not child", () => {
+    // Same depth scenario: sub-item at depth 1 has children that are FoldedChildRow.
+    // Split at middle should produce sibling, not child.
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("card", item("abcd", item("deep1")), item("sub2")))),
+    )
+
+    // Navigate to "abcd" (sub-item with folded child)
+    board.command("block_nav_down") // → abcd
+    board.expect("#abcd[data-cursor]").toExist()
+
+    // Enter inline edit, move cursor to middle (ab|cd)
+    board.press("Enter")
+    board.press("ArrowLeft")
+    board.press("ArrowLeft")
+    board.press("Enter") // → split: "ab" stays, "cd" becomes sibling (not child)
+
+    board.press("Escape")
+
+    // "abcd" node should have truncated content (just "ab")
+    const origContent = repo.getNode("abcd")?.content ?? ""
+    expect(origContent).toContain("ab")
+    expect(origContent).not.toContain("cd")
+
+    // "cd" should be sibling of "abcd" (child of card), not child of "abcd"
+    const cardChildren = repo.getChildren("card")
+    const abIdx = cardChildren.findIndex((n) => (n.content ?? "").includes("ab"))
+    const cdIdx = cardChildren.findIndex((n) => (n.content ?? "").includes("cd"))
+    expect(abIdx).toBeLessThan(cdIdx)
+
+    // split() moves children to the after-node: "ab" has no children, "cd" inherits deep1
+    const abcdChildren = repo.getChildren("abcd")
+    expect(abcdChildren.length).toBe(0)
+    const cdNode = cardChildren.find((n) => (n.content ?? "").includes("cd"))
+    const cdChildren = repo.getChildren(cdNode!.id)
+    expect(cdChildren.length).toBe(1)
+    expect(cdChildren[0]!.id).toBe("deep1")
+  })
+
   test("Shift+Enter always inserts child at end", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("alpha"), item("beta"))))
 

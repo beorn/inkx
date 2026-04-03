@@ -17,6 +17,7 @@ import {
   type TNode,
 } from "@km/commands"
 import { Tree } from "@km/tree"
+import { ViewTree } from "@km/board"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { ActionCtx } from "./tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
@@ -107,9 +108,13 @@ function buildCommandContexts(ctx: ActionCtx) {
     },
     hasVisibleChildren() {
       if (!ui.inlineEditBlock) return false
-      if (ctx.foldDepths.get(ui.inlineEditBlock.nodeId) === 0) return false
-      const children = ctx.repo.getChildren(ui.inlineEditBlock.nodeId)
-      return children.some((c) => c.item)
+      const nodeId = ui.inlineEditBlock.nodeId
+      if (ctx.foldDepths.get(nodeId) === 0) return false
+      const children = ctx.repo.getChildren(nodeId)
+      if (!children.some((c) => c.item)) return false
+      // Children folded by depth limit (FoldedChildRow) are not navigable
+      if (ViewTree.areChildrenFolded(nodeId, ctx.viewIndex, ctx.foldDepths)) return false
+      return true
     },
     editLevel() {
       // When editing, the level is determined by where the EDITED NODE sits in the board.

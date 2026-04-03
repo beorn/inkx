@@ -602,6 +602,42 @@ export const ViewTree = {
     return index.get(id) ?? null
   },
 
+  /** Default remaining depth for card sub-items (matches CardColumn's remainingDepth={2}). */
+  CARD_REMAINING_DEPTH: 2 as const,
+
+  /** Check if a node's children would be rendered as FoldedChildRow.
+   *  Walks the ViewNode ancestor chain from node to card, computing the effective
+   *  remaining depth at each level (mirrors TreeNode's resolvedDepth cascade).
+   *  Returns true when the node's ChildrenList would have allFolded=true. */
+  areChildrenFolded(nodeId: string, viewIndex: Map<string, ViewNode>, foldDepths: Map<string, number>): boolean {
+    const vn = viewIndex.get(nodeId)
+    if (!vn) return false
+
+    // Collect path from node up to card (inclusive)
+    const path: ViewNode[] = [vn]
+    let current: ViewNode | null = vn
+    while (current && current.role !== "card") {
+      current = current.parent
+      if (current) path.push(current)
+    }
+
+    // If the node IS the card (or we couldn't find a card), children are not folded by depth
+    const cardVn = path[path.length - 1]
+    if (cardVn?.role !== "card") return false
+    if (cardVn === vn) return false
+
+    // Walk down from card to node, computing resolvedDepth at each level
+    let remainingDepth = foldDepths.get(cardVn.id) ?? ViewTree.CARD_REMAINING_DEPTH
+    for (let i = path.length - 2; i >= 0; i--) {
+      // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- loop bounds
+      const step = path[i]!
+      remainingDepth = foldDepths.get(step.id) ?? remainingDepth - 1
+    }
+
+    // Node's ChildrenList gets (remainingDepth - 1). allFolded when <= 0.
+    return remainingDepth - 1 <= 0
+  },
+
   // === Add when needed ===
   // *descendants(root, opts?) — DFS excluding root (nodes() minus first yield)
   // first(root) — first node in DFS
