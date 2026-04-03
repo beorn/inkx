@@ -17,7 +17,7 @@
  */
 
 import { createLogger } from "loggily"
-import type { RepoHooks, MutationContext, BeforeMutationResult } from "../repo.ts"
+import type { RepoHooks, MutationContext, BeforeMutationResult } from "../repo/repo.ts"
 
 /**
  * Configuration for chaos hook behavior

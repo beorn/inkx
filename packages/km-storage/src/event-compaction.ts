@@ -11,9 +11,9 @@ import { Database } from "bun:sqlite"
 import type { Event } from "@km/core"
 import { existsSync, readdirSync, statSync, writeFileSync } from "fs"
 import { join } from "path"
-import { readEvents } from "./repo-loader.ts"
-import { getNodeCount, getLastEventId } from "./db.ts"
-import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
+import { readEvents } from "./repo/loader.ts"
+import { getNodeCount, getLastEventId } from "./db/db.ts"
+import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
 
 /** Result of identifying or compacting stale events */
 export interface CompactionResult {

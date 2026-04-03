@@ -13,9 +13,9 @@ import { ulid } from "ulid"
 
 const log = createLogger("km:storage:db:ops")
 import type { KNode } from "@km/core"
-import { decomposeItem } from "./item-helpers.ts"
+import { decomposeItem } from "../item-helpers.ts"
 import { NODE_COLUMNS } from "./schema.ts"
-import type { Emitter } from "./emitter.ts"
+import type { Emitter } from "../emitter.ts"
 
 // =============================================================================
 // Factory: createDbOps

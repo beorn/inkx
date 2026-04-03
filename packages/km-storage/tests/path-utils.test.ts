@@ -20,7 +20,7 @@ import {
   resolvePathArg,
   toRelativeFsPath,
   toAbsoluteFsPath,
-} from "../src/path-utils.ts"
+} from "../src/fs/path-utils.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []

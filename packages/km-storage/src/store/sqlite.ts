@@ -10,8 +10,8 @@ import type { KNode, Event } from "@km/core"
 import type { Store, Observable } from "./store.ts"
 import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
 import { mergeDeltas } from "./commit-types.ts"
-import { applyEventWithDb } from "./db-events.ts"
-import { rowToNode } from "./db-queries/utils.ts"
+import { applyEventWithDb } from "../db/events.ts"
+import { rowToNode } from "../db/queries/utils.ts"
 import { ulid } from "ulid"
 
 /**

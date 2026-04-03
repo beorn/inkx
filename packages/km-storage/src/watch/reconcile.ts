@@ -9,10 +9,10 @@ import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { dirname, join } from "path"
 import type { KNode } from "@km/core"
-import { getNodesUnderPath, getNodeByPath } from "../db-queries/core-lookup.ts"
+import { getNodesUnderPath, getNodeByPath } from "../db/queries/core-lookup.ts"
 import { scanDirectory, scanDirectoryAsync } from "./watcher.ts"
-import type { PatternMatcher } from "../ignore.ts"
-import { toRelativeFsPath } from "../path-utils.ts"
+import type { PatternMatcher } from "../fs/ignore.ts"
+import { toRelativeFsPath } from "../fs/path-utils.ts"
 const log = createLogger("km:storage:watch:reconcile")
 
 export interface ReconcileOp {

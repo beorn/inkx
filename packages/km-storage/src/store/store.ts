@@ -5,8 +5,8 @@
  * Also re-exports NodeStore and MemoryStore for backwards compatibility.
  */
 
-export type { NodeStore } from "./store-types.ts"
-export { MemoryStore } from "./store-memory.ts"
+export type { NodeStore } from "./types.ts"
+export { MemoryStore } from "./memory.ts"
 
 // =============================================================================
 // Store — minimal reactive store interface
@@ -15,7 +15,7 @@ export { MemoryStore } from "./store-memory.ts"
 import type { KNode, Event } from "@km/core"
 import type { CommitMeta, CommitResult, RepoDelta, ChangeEnvelope } from "./commit-types.ts"
 import { computeDelta, mergeDeltas } from "./commit-types.ts"
-import type { Repo } from "./repo.ts"
+import type { Repo } from "../repo/repo.ts"
 import { ulid } from "ulid"
 
 /**

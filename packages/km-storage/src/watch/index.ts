@@ -39,8 +39,8 @@ export {
   matchesPattern,
   shouldIgnore,
   isHiddenFile,
-} from "../ignore.ts"
-export type { PatternMatcher, PatternMatcherOptions } from "../ignore.ts"
+} from "../fs/ignore.ts"
+export type { PatternMatcher, PatternMatcherOptions } from "../fs/ignore.ts"
 
 // Write queue
 export { WriteQueue } from "./writequeue.ts"

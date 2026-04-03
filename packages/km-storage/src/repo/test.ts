@@ -9,12 +9,12 @@ import { Database } from "bun:sqlite"
 import { createLogger } from "loggily"
 import { join } from "path"
 
-import type { DataStore, HasDatabase } from "./data-store.ts"
-import { createDBDataStore, createMemDataStore } from "./data-store.ts"
-import { createEmitter, type Emitter } from "./emitter.ts"
+import type { DataStore, HasDatabase } from "../data-store.ts"
+import { createDBDataStore, createMemDataStore } from "../data-store.ts"
+import { createEmitter, type Emitter } from "../emitter.ts"
 import type { Repo } from "./repo.ts"
 import { createBareRepo } from "./repo.ts"
-import { SCHEMA } from "./schema.ts"
+import { SCHEMA } from "../db/schema.ts"
 
 const log = createLogger("km:storage:repo:test")
 

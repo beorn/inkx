@@ -1,8 +1,8 @@
 import { describe, test, expect } from "vitest"
 import { effect } from "alien-signals"
-import { withReactive } from "../src/reactive.ts"
-import { createStoreFromRepo } from "../src/store.ts"
-import { ResourceState, type CommitResult } from "../src/commit-types.ts"
+import { withReactive } from "../src/store/reactive.ts"
+import { createStoreFromRepo } from "../src/store/store.ts"
+import { ResourceState, type CommitResult } from "../src/store/commit-types.ts"
 import type { Event } from "@km/core"
 import { createFakeRepo, board, column, task } from "../src/testing/index.ts"
 

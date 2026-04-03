@@ -12,11 +12,11 @@ import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 
 import { createTestRepo, addLink, type Repo } from "../src/index.ts"
-import { createLinkResolver } from "../src/link-resolver.ts"
-import { resolveLinks, resolveLinksBatch, updateTargetName } from "../src/db-links.ts"
-import { findFileByName } from "../src/db-queries/wikilink-resolver.ts"
-import { resolveByName, clearNameIndex, clearResolveCache } from "../src/db-queries/smart-resolver.ts"
-import { SCHEMA, migrateSchema } from "../src/schema.ts"
+import { createLinkResolver } from "../src/markdown/link-resolver.ts"
+import { resolveLinks, resolveLinksBatch, updateTargetName } from "../src/db/links.ts"
+import { findFileByName } from "../src/db/queries/wikilink-resolver.ts"
+import { resolveByName, clearNameIndex, clearResolveCache } from "../src/db/queries/smart-resolver.ts"
+import { SCHEMA, migrateSchema } from "../src/db/schema.ts"
 
 // =============================================================================
 // Bug 1a: Wikilinks resolve arbitrarily on name collision

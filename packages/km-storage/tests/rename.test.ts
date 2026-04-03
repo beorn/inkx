@@ -8,8 +8,8 @@ import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
 
 import { createTestRepo, addLink, type Repo } from "../src/index.ts"
-import { updateTargetName } from "../src/db-links.ts"
-import { SCHEMA } from "../src/schema.ts"
+import { updateTargetName } from "../src/db/links.ts"
+import { SCHEMA } from "../src/db/schema.ts"
 
 /** Create a test repo and add file-like nodes with names and backlinks */
 function setupRepoWithLinks(): {

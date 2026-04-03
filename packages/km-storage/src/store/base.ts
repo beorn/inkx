@@ -8,11 +8,11 @@
 import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, statSync, writeFileSync } from "fs"
 import { join, isAbsolute } from "path"
-import { toRelativeFsPath } from "./path-utils.ts"
+import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { getMarkerForStatus } from "@km/core"
 import type { KNode, TaskStatus } from "@km/core"
-import type { NodeStore } from "./store-types.ts"
-import { rowToNode } from "./db-queries/index.ts"
+import type { NodeStore } from "./types.ts"
+import { rowToNode } from "../db/queries/index.ts"
 
 /**
  * Base store implementation with shared query methods

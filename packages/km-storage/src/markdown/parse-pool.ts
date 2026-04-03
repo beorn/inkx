@@ -8,7 +8,7 @@
 
 import { createLogger } from "loggily"
 import { cpus } from "os"
-import type { ServiceStatus } from "./watcher.ts"
+import type { ServiceStatus } from "../watcher.ts"
 import type { ParseRequest, WorkerMessage, WorkerResponse } from "./parse-worker.ts"
 
 const log = createLogger("km:storage:parse-pool")

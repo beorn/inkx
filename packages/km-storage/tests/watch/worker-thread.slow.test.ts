@@ -18,7 +18,7 @@ import { join } from "path"
 import { withSync, type SyncableRepo } from "../../src/watch/sync.ts"
 import { getAllNodes, createRepo, createEmitter } from "../../src/index.ts"
 import { runGenerator } from "@km/core"
-import type { Repo } from "../../src/repo.ts"
+import type { Repo } from "../../src/repo/repo.ts"
 
 const TEST_DIR = "/tmp/kmtest-worker-thread"
 const REPO_DIR = join(TEST_DIR, "repo")

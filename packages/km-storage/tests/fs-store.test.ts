@@ -2,7 +2,7 @@ import { describe, test, expect, afterEach } from "vitest"
 import { mkdtempSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
-import { createFsStore, type FsStore } from "../src/fs-store.ts"
+import { createFsStore, type FsStore } from "../src/store/fs.ts"
 
 let store: FsStore | undefined
 

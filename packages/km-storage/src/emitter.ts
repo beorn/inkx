@@ -21,8 +21,8 @@ import { join } from "path"
 import { ulid } from "ulid"
 import type { Event } from "@km/core"
 import type { Database } from "bun:sqlite"
-import type { CommitSource } from "./commit-types.ts"
-import { applyEventWithDb } from "./db-events.ts"
+import type { CommitSource } from "./store/commit-types.ts"
+import { applyEventWithDb } from "./db/events.ts"
 
 const log = createLogger("km:storage:emitter")
 

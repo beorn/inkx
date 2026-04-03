@@ -7,8 +7,8 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { Database } from "bun:sqlite"
-import { SCHEMA } from "../src/schema.ts"
-import { getChildrenByType, getBodyChildren, getSubitems, getChildren } from "../src/db-queries/tree-traversal.ts"
+import { SCHEMA } from "../src/db/schema.ts"
+import { getChildrenByType, getBodyChildren, getSubitems, getChildren } from "../src/db/queries/tree-traversal.ts"
 import type { ItemData } from "@km/core"
 
 // =============================================================================

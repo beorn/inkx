@@ -12,8 +12,8 @@ import { Database } from "bun:sqlite"
 import { writeFileSync, readFileSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { applyEventWithDb } from "../src/db-events.ts"
-import { SCHEMA } from "../src/schema.ts"
+import { applyEventWithDb } from "../src/db/events.ts"
+import { SCHEMA } from "../src/db/schema.ts"
 
 // =============================================================================
 // Helpers

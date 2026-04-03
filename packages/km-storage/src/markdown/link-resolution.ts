@@ -17,7 +17,7 @@ declare function setImmediate(callback: (value?: unknown) => void): unknown
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { createLinkResolver } from "./link-resolver.ts"
-import type { StepYield, PendingLink, LoadError } from "./repo-loader.ts"
+import type { StepYield, PendingLink, LoadError } from "../repo/loader.ts"
 
 const log = createLogger("km:storage:link-resolution")
 

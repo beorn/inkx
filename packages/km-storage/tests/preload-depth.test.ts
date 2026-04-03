@@ -11,8 +11,8 @@ import { mkdtempSync, writeFileSync, mkdirSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
 import { runGenerator } from "@km/core"
-import { createRepo } from "../src/repo.ts"
-import type { Repo } from "../src/repo.ts"
+import { createRepo } from "../src/repo/repo.ts"
+import type { Repo } from "../src/repo/repo.ts"
 
 // ============================================================================
 // Test Helpers

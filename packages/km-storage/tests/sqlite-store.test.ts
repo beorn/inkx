@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach } from "vitest"
 import { Database } from "bun:sqlite"
-import { SCHEMA } from "../src/schema.ts"
-import { createSQLiteStore } from "../src/sqlite-store.ts"
+import { SCHEMA } from "../src/db/schema.ts"
+import { createSQLiteStore } from "../src/store/sqlite.ts"
 
 function createTestDb(): Database {
   const db = new Database(":memory:")
@@ -106,10 +106,10 @@ describe("createSQLiteStore", () => {
     })
 
     test("respects custom meta", () => {
-      const result = store.commit(
-        [{ type: "node_created", actor: "test", data: { id: "n1", type: "p" } }],
-        { source: "undo", commitId: "custom-id" },
-      )
+      const result = store.commit([{ type: "node_created", actor: "test", data: { id: "n1", type: "p" } }], {
+        source: "undo",
+        commitId: "custom-id",
+      })
 
       expect(result.meta.source).toBe("undo")
       expect(result.meta.commitId).toBe("custom-id")
@@ -119,9 +119,7 @@ describe("createSQLiteStore", () => {
       const results: ReturnType<typeof store.commit>[] = []
       store.onCommit((r) => results.push(r))
 
-      store.commit([
-        { type: "node_created", actor: "test", data: { id: "n1", type: "p" } },
-      ])
+      store.commit([{ type: "node_created", actor: "test", data: { id: "n1", type: "p" } }])
 
       expect(results).toHaveLength(1)
       expect(results[0]!.events[0]!.type).toBe("node_created")

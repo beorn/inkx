@@ -6,11 +6,11 @@
 
 import { basename, dirname } from "path"
 import { emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
-import { toRelativeFsPath } from "../../path-utils.ts"
+import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { getNode } from "../../index.ts"
-import { getNodeByPath } from "../../db-queries/core-lookup.ts"
+import { getNodeByPath } from "../../db/queries/core-lookup.ts"
 import type { Database } from "bun:sqlite"
 import { isIndexFile } from "@km/core"
 

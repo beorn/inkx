@@ -17,8 +17,8 @@ import { readFileSync } from "fs"
 import { createParsePool } from "./parse-pool.ts"
 import { runDeferredPipeline } from "./pipeline.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
-import { INSERT_NODE_SQL, insertNodeRow } from "./db-insert.ts"
-import type { DeferredFile, PendingLink } from "./repo-loader.ts"
+import { INSERT_NODE_SQL, insertNodeRow } from "../db/insert.ts"
+import type { DeferredFile, PendingLink } from "../repo/loader.ts"
 
 const log = createLogger("km:storage:deferred-parsing")
 

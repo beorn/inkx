@@ -16,7 +16,7 @@ import {
   shouldStoreInCas,
   storeContentAuto,
   loadContentAuto,
-} from "../src/cas.ts"
+} from "../src/fs/cas.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("cas.ts", () => {

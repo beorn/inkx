@@ -9,7 +9,7 @@
 
 import { describe, test, expect } from "vitest"
 import { parseQuery, resolveDateQuery } from "../src/query.ts"
-import { toFts5Query } from "../src/db.ts"
+import { toFts5Query } from "../src/db/db.ts"
 
 describe("Query Parser", () => {
   describe("parseQuery", () => {

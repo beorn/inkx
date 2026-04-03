@@ -11,10 +11,10 @@
 import { createLogger } from "loggily"
 import { dirname } from "path"
 import type { Database } from "bun:sqlite"
-import { toAbsoluteFsPath } from "../path-utils.ts"
+import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
 import { reconcileDirectory, applyReconcileOps, type ReconcileOp } from "./reconcile.ts"
-import { createIgnoreMatcher } from "../ignore.ts"
+import { createIgnoreMatcher } from "../fs/ignore.ts"
 import type { Emitter, EmitOptions } from "../emitter.ts"
 import type { WriteQueue } from "./writequeue.ts"
 import {

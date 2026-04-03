@@ -31,11 +31,11 @@ import type { Database } from "bun:sqlite"
 import { basename } from "path"
 import type { KNode } from "@km/core"
 import type { ParsePoolService } from "./parse-pool.ts"
-import type { Emitter } from "./emitter.ts"
-import { emitNodeCreated, emitNodeUpdated } from "./emitter.ts"
+import type { Emitter } from "../emitter.ts"
+import { emitNodeCreated, emitNodeUpdated } from "../emitter.ts"
 import { createLinkResolver } from "./link-resolver.ts"
-import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./markdown-processing.ts"
-import { INSERT_NODE_PLAIN_SQL, insertNodeRow } from "./db-insert.ts"
+import { resolveWikilink, type WikilinkRef, type ResolvedLink } from "./processing.ts"
+import { INSERT_NODE_PLAIN_SQL, insertNodeRow } from "../db/insert.ts"
 
 const log = createLogger("km:storage:pipeline")
 

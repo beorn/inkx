@@ -20,50 +20,50 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSyn
 import { basename, dirname, join } from "path"
 
 import type { Event, KNode, TaskStatus } from "@km/core"
-import { composeItem } from "./item-helpers.ts"
-import type { Config } from "./config-object.ts"
-import { loadConfigObject } from "./config-object.ts"
-import type { DataStore, HasDatabase } from "./data-store.ts"
-import { createDBDataStore } from "./data-store.ts"
+import { composeItem } from "../item-helpers.ts"
+import type { Config } from "../config-object.ts"
+import { loadConfigObject } from "../config-object.ts"
+import type { DataStore, HasDatabase } from "../data-store.ts"
+import { createDBDataStore } from "../data-store.ts"
 import {
   getBacklinks as dbGetBacklinks,
   getOutgoingLinks as dbGetOutgoingLinks,
   updateTargetName as dbUpdateTargetName,
   type Link,
-} from "./db-links.ts"
+} from "../db/links.ts"
 import {
   resolveNode as dbResolveNode,
   resolveByName as dbResolveByName,
   clearNameIndex,
   clearResolveCache,
-} from "./db-queries/smart-resolver.ts"
+} from "../db/queries/smart-resolver.ts"
 import {
   getAllTasks as dbGetAllTasks,
   getLinksTo as dbGetLinksTo,
   getTasksByStatus as dbGetTasksByStatus,
-} from "./db-queries/task-queries.ts"
+} from "../db/queries/task-queries.ts"
 import {
   getAncestors as dbGetAncestors,
   getChildCountsBatch as dbGetChildCountsBatch,
   getSubtree as dbGetSubtree,
   getSubtreeShallow as dbGetSubtreeShallow,
-} from "./db-queries/tree-traversal.ts"
-import { createEmitter, type Emitter, type EmitOptions } from "./emitter.ts"
-import type { FileTree } from "./file-tree.ts"
-import { createDiskFileTree } from "./file-tree.ts"
-import { executeQuery, parseQuery } from "./query.ts"
-import { type MutationContext, type RepoHooks } from "./repo-hooks.ts"
-import { loadRepo, type DeferredFile, type LoadError, type PendingLink, type StepYield } from "./repo-loader.ts"
-import { type UnexploredDir } from "./discovery.ts"
-import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
-import { generatePathBasedId } from "./id-utils.ts"
-import { toRelativeFsPath } from "./path-utils.ts"
+} from "../db/queries/tree-traversal.ts"
+import { createEmitter, type Emitter, type EmitOptions } from "../emitter.ts"
+import type { FileTree } from "../fs/file-tree.ts"
+import { createDiskFileTree } from "../fs/file-tree.ts"
+import { executeQuery, parseQuery } from "../query.ts"
+import { type MutationContext, type RepoHooks } from "./hooks.ts"
+import { loadRepo, type DeferredFile, type LoadError, type PendingLink, type StepYield } from "./loader.ts"
+import { type UnexploredDir } from "../discovery.ts"
+import { getIgnorePatterns, shouldIgnore } from "../fs/ignore.ts"
+import { generatePathBasedId } from "../fs/id-utils.ts"
+import { toRelativeFsPath } from "../fs/path-utils.ts"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
-import { resolveLinksAsync as resolveLinksAsyncImpl } from "./link-resolution.ts"
-import { INSERT_NODE_SQL } from "./db-insert.ts"
-import { SCHEMA, migrateSchema } from "./schema.ts"
-import { createWatcher, type Watcher, type WatcherOptions } from "./watcher.ts"
-import { withFsWriter } from "./watch/fs-writer.ts"
+import { resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
+import { INSERT_NODE_SQL } from "../db/insert.ts"
+import { SCHEMA, migrateSchema } from "../db/schema.ts"
+import { createWatcher, type Watcher, type WatcherOptions } from "../watcher.ts"
+import { withFsWriter } from "../watch/fs-writer.ts"
 
 const log = createLogger("km:storage:repo")
 
@@ -2084,10 +2084,10 @@ export {
   createTestRepo,
   type CreateTestEnvRepoOptions,
   type TestEnvRepoResult,
-} from "./repo-test.ts"
+} from "./test.ts"
 
 // =============================================================================
 // Re-export hook types from repo-hooks.ts
 // =============================================================================
 
-export { type BeforeMutationResult, type MutationContext, type RepoHooks } from "./repo-hooks.ts"
+export { type BeforeMutationResult, type MutationContext, type RepoHooks } from "./hooks.ts"

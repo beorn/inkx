@@ -15,7 +15,7 @@
 import { createLogger } from "loggily"
 import { readFileSync } from "fs"
 import type { Database } from "bun:sqlite"
-import { hashContent } from "../cas.ts"
+import { hashContent } from "../fs/cas.ts"
 import { createSyncState, type SyncState as SyncStateStore } from "./sync-state.ts"
 
 const log = createLogger("km:storage:watch:ownership")

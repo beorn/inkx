@@ -7,7 +7,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { mkdirSync, writeFileSync, rmSync } from "fs"
 import { join } from "path"
-import { createParsePool } from "../src/parse-pool.ts"
+import { createParsePool } from "../src/markdown/parse-pool.ts"
 
 const TEST_DIR = "/tmp/kmtest-parse-pool"
 

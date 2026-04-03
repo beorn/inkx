@@ -41,14 +41,14 @@ export {
   getAllNodes,
   getNodeCount,
   rowToNode,
-} from "./db-queries/index.ts"
+} from "./queries/index.ts"
 
-export type { SearchResult } from "./db-queries/index.ts"
+export type { SearchResult } from "./queries/index.ts"
 
 // Re-export db-accepting query operations
-export { executeQuery, queryTasks, queryNodes } from "./query.ts"
+export { executeQuery, queryTasks, queryNodes } from "../query.ts"
 
-export type { QueryAST } from "./query.ts"
+export type { QueryAST } from "../query.ts"
 
 // Re-export db-accepting link operations
 export {
@@ -58,12 +58,12 @@ export {
   getBacklinks,
   getBacklinksByName,
   resolveLinks,
-} from "./db-links.ts"
+} from "./links.ts"
 
-export type { Link } from "./db-links.ts"
+export type { Link } from "./links.ts"
 
 // Re-export db-accepting mutation operations
-export { createDbOps, type DbOps, buildEmbedChild, type EmbedChildOpts } from "./db-ops.ts"
+export { createDbOps, type DbOps, buildEmbedChild, type EmbedChildOpts } from "./ops.ts"
 
 // Re-export db-accepting event application (internal use)
-export { applyEventWithDb } from "./db-events.ts"
+export { applyEventWithDb } from "./events.ts"

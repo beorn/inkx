@@ -10,7 +10,7 @@ import { Database } from "bun:sqlite"
 import { writeFileSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
-import { SCHEMA } from "../../src/schema.ts"
+import { SCHEMA } from "../../src/db/schema.ts"
 import { createOwnershipTracker } from "../../src/watch/ownership-tracker.ts"
 
 function createTestDb(): Database {

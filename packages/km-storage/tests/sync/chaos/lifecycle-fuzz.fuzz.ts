@@ -19,7 +19,7 @@ import { generateFileContent } from "./event-picker.ts"
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
-import { SCHEMA } from "../../../src/schema.ts"
+import { SCHEMA } from "../../../src/db/schema.ts"
 import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -419,7 +419,7 @@ function getFsAndDbPaths(db: Database, mockFs: ReturnType<typeof createFakeFileS
   )
 
   const dbFileNodes = db
-    .prepare("SELECT fs_path FROM nodes WHERE type = 'file' AND fs_path IS NOT NULL")
+    .prepare("SELECT fs_path FROM nodes WHERE fstype IN ('mdfile', 'file', 'txtfile') AND fs_path IS NOT NULL")
     .all() as Array<{ fs_path: string }>
   const dbPaths = new Set(dbFileNodes.map((n) => n.fs_path))
 

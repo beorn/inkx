@@ -9,7 +9,7 @@ import { describe, test, expect, afterEach } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { MemoryStore } from "../src/store.ts"
+import { MemoryStore } from "../src/store/store.ts"
 import type { KNode } from "@km/core"
 
 // Track created directories for cleanup

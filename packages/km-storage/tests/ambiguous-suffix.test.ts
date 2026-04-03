@@ -12,7 +12,7 @@
 import { describe, test, expect } from "vitest"
 import { ulid } from "ulid"
 
-import { getNodeByIdPrefix, getTaskByIdPrefix, resolveNode } from "../src/db.ts"
+import { getNodeByIdPrefix, getTaskByIdPrefix, resolveNode } from "../src/db/db.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("ambiguous ID suffix resolution", () => {

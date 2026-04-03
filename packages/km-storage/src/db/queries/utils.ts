@@ -7,7 +7,7 @@
 
 import type { Database } from "bun:sqlite"
 import type { KNode, TaskStatus, FsType, NodeType, NodeRules, Reminder } from "@km/core"
-import { composeItem } from "../item-helpers.ts"
+import { composeItem } from "../../item-helpers.ts"
 
 // =============================================================================
 // Utility Queries

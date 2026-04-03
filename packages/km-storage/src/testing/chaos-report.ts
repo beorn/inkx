@@ -26,7 +26,7 @@
 import type { KNode } from "@km/core"
 import type { ChaosHooks, ChaosEvent, ChaosStats } from "./chaos-hooks.ts"
 import type { ChaosFakeRepo, ConsistencyIssue } from "./chaos-fake-repo.ts"
-import type { Repo } from "../repo.ts"
+import type { Repo } from "../repo/repo.ts"
 
 /**
  * Scenario configuration for chaos testing

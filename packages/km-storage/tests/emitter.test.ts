@@ -18,7 +18,7 @@ import { join } from "path"
 import { ulid } from "ulid"
 import { setLogLevel, getLogLevel, type LogLevel } from "loggily"
 import { createEmitter, type EventHub } from "../src/emitter.ts"
-import { SCHEMA } from "../src/schema.ts"
+import { SCHEMA } from "../src/db/schema.ts"
 
 // Suppress log output in error-isolation tests (they deliberately trigger errors)
 let savedLogLevel: LogLevel
@@ -314,10 +314,7 @@ describe("commit() vs apply() — structural echo prevention", () => {
     })
 
     // commit() with skipBroadcast — both should be respected
-    emitter.commit(
-      { type: "node_created", actor: "fs-watch", data: { id: "w2", type: "h" } },
-      { skipBroadcast: true },
-    )
+    emitter.commit({ type: "node_created", actor: "fs-watch", data: { id: "w2", type: "h" } }, { skipBroadcast: true })
 
     expect(broadcastCalls).toEqual([])
     expect(fsCalls).toEqual([])

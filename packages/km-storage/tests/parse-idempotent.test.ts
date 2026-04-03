@@ -13,9 +13,9 @@ import { mkdtempSync, writeFileSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
 
-import { SCHEMA } from "../src/schema.ts"
-import { loadRepo, parseStubFile, parseDeferredAsync } from "../src/repo-loader.ts"
-import { resolveNode, getChildren, getNode } from "../src/db.ts"
+import { SCHEMA } from "../src/db/schema.ts"
+import { loadRepo, parseStubFile, parseDeferredAsync } from "../src/repo/loader.ts"
+import { resolveNode, getChildren, getNode } from "../src/db/db.ts"
 
 /** Helper: exhaust a loadRepo generator and return the result */
 function runLoadRepo(...args: Parameters<typeof loadRepo>) {

@@ -11,7 +11,7 @@ import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { mkdtempSync, rmSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
-import { createDiskFileTree, createMemFileTree, type FileTree } from "../src/file-tree.ts"
+import { createDiskFileTree, createMemFileTree, type FileTree } from "../src/fs/file-tree.ts"
 
 // =============================================================================
 // Shared Test Suite (runs against all implementations)

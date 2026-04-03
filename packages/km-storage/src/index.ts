@@ -1,8 +1,8 @@
 // Database schema (for testing with in-memory databases)
-export { SCHEMA, migrateSchema } from "./schema.ts"
+export { SCHEMA, migrateSchema } from "./db/schema.ts"
 
 // Link resolver (for benchmarks and testing)
-export { createLinkResolver, type LinkResolver } from "./link-resolver.ts"
+export { createLinkResolver, type LinkResolver } from "./markdown/link-resolver.ts"
 
 // DataStore interface and factories (preferred API for tree operations)
 // See: docs/00-principles.md
@@ -20,9 +20,9 @@ export type {
 
 // FileTree interface and factories (simple file I/O abstraction)
 // See: docs/00-principles.md
-export { createDiskFileTree, createMemFileTree } from "./file-tree.ts"
+export { createDiskFileTree, createMemFileTree } from "./fs/file-tree.ts"
 
-export type { FileTree } from "./file-tree.ts"
+export type { FileTree } from "./fs/file-tree.ts"
 
 // Database operations (db-accepting functions for internal use)
 // All application code should use Repo domain object (createRepo) instead
@@ -77,24 +77,24 @@ export {
   buildEmbedChild,
   // Event application (internal use)
   applyEventWithDb,
-} from "./db.ts"
+} from "./db/db.ts"
 
-export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db.ts"
+export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db/db.ts"
 
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
-export { MemoryStore, createStoreFromRepo } from "./store.ts"
-export { createSQLiteStore } from "./sqlite-store.ts"
-export { createFsStore } from "./fs-store.ts"
+export { MemoryStore, createStoreFromRepo } from "./store/store.ts"
+export { createSQLiteStore } from "./store/sqlite.ts"
+export { createFsStore } from "./store/fs.ts"
 
-export type { NodeStore, Store, Observable, Replicated } from "./store.ts"
-export type { FsStore, FsStoreOptions } from "./fs-store.ts"
+export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
+export type { FsStore, FsStoreOptions } from "./store/fs.ts"
 
 // Unified repo loading
-export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo-loader.ts"
+export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo/loader.ts"
 
-export type { LoadResult, LoadOptions, PendingLink, DeferredFile, StepYield } from "./repo-loader.ts"
-export type { LoadError as RepoLoaderError } from "./repo-loader.ts"
+export type { LoadResult, LoadOptions, PendingLink, DeferredFile, StepYield } from "./repo/loader.ts"
+export type { LoadError as RepoLoaderError } from "./repo/loader.ts"
 
 // Event compaction & store health diagnostics
 export { identifyStaleEvents, compactEvents, vacuumDb, getStoreHealth } from "./event-compaction.ts"
@@ -103,9 +103,9 @@ export type { CompactionResult, StoreHealth } from "./event-compaction.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
-export { createParsePool } from "./parse-pool.ts"
+export { createParsePool } from "./markdown/parse-pool.ts"
 
-export type { ParsePoolService, ParseResult as PoolParseResult, ParsePoolOptions } from "./parse-pool.ts"
+export type { ParsePoolService, ParseResult as PoolParseResult, ParsePoolOptions } from "./markdown/parse-pool.ts"
 
 // Watcher domain object (Service for file sync)
 export { createWatcher } from "./watcher.ts"
@@ -113,9 +113,9 @@ export { createWatcher } from "./watcher.ts"
 export type { Watcher, WatcherOptions } from "./watcher.ts"
 
 // Database rules (add= materialization)
-export { evaluateAllRules, evaluateNodeRules, onNodeChanged, onNodeDeleted, createRuleContext } from "./db-rules.ts"
+export { evaluateAllRules, evaluateNodeRules, onNodeChanged, onNodeDeleted, createRuleContext } from "./db/rules.ts"
 
-export type { RulesProgress, RuleContext } from "./db-rules.ts"
+export type { RulesProgress, RuleContext } from "./db/rules.ts"
 
 // Content-addressable store
 export {
@@ -127,7 +127,7 @@ export {
   shouldStoreInCas,
   storeContentAuto,
   loadContentAuto,
-} from "./cas.ts"
+} from "./fs/cas.ts"
 
 // Query language
 export { parseQuery, resolveDateQuery } from "./query.ts"
@@ -156,9 +156,9 @@ export {
   toPendingLinks,
   toResolvedLinks,
   getFileNode,
-} from "./markdown-processing.ts"
+} from "./markdown/processing.ts"
 
-export type { ProcessedMarkdown, ResolvedLink } from "./markdown-processing.ts"
+export type { ProcessedMarkdown, ResolvedLink } from "./markdown/processing.ts"
 
 // Async generator pipeline (composable stages for loading/syncing)
 export {
@@ -169,9 +169,9 @@ export {
   runPipeline,
   collect,
   runDeferredPipeline,
-} from "./pipeline.ts"
+} from "./markdown/pipeline.ts"
 
-export type { ParseSource, ParsedFile, AppliedFile, PipelineOptions } from "./pipeline.ts"
+export type { ParseSource, ParsedFile, AppliedFile, PipelineOptions } from "./markdown/pipeline.ts"
 
 // Path utilities for filesystem-based node resolution
 export {
@@ -182,12 +182,12 @@ export {
   resolvePathArg,
   toRelativeFsPath,
   toAbsoluteFsPath,
-} from "./path-utils.ts"
+} from "./fs/path-utils.ts"
 
-export type { PathResolution, ResolvedPathArg } from "./path-utils.ts"
+export type { PathResolution, ResolvedPathArg } from "./fs/path-utils.ts"
 
 // ID utilities for consistent node ID generation
-export { generatePathBasedId } from "./id-utils.ts"
+export { generatePathBasedId } from "./fs/id-utils.ts"
 
 // Watch and sync (merged from @km/watch)
 export {
@@ -249,14 +249,14 @@ export { loadConfigObject } from "./config-object.ts"
 export type { Config } from "./config-object.ts"
 
 // Commit taxonomy — types for the reactive store layer
-export { ResourceState, computeDelta, mergeDeltas } from "./commit-types.ts"
+export { ResourceState, computeDelta, mergeDeltas } from "./store/commit-types.ts"
 
-export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope } from "./commit-types.ts"
+export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope } from "./store/commit-types.ts"
 
 // Reactive signals layer — per-node signals driven by RepoDelta
-export { withReactive } from "./reactive.ts"
+export { withReactive } from "./store/reactive.ts"
 
-export type { Reactive, ReadonlySignal } from "./reactive.ts"
+export type { Reactive, ReadonlySignal } from "./store/reactive.ts"
 
 // Emitter domain object - owns event emission lifecycle
 export { createEmitter } from "./emitter.ts"
@@ -266,7 +266,7 @@ export type { Emitter, EmitterOptions, EmitOptions, EventHub } from "./emitter.t
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config
 // See: docs/00-principles.md
-export { createRepo, createBareRepo, createTestRepo, createTestEnvRepo, IncompleteDatabase } from "./repo.ts"
+export { createRepo, createBareRepo, createTestRepo, createTestEnvRepo, IncompleteDatabase } from "./repo/repo.ts"
 
 export type {
   Repo,
@@ -279,7 +279,7 @@ export type {
   RepoStats,
   ExpandResult,
   ExpandProgress,
-} from "./repo.ts"
+} from "./repo/repo.ts"
 
 export type { UnexploredDir } from "./discovery.ts"
 

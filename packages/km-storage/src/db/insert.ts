@@ -9,7 +9,7 @@
 
 import type { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
-import { decomposeItem } from "./item-helpers.ts"
+import { decomposeItem } from "../item-helpers.ts"
 
 // ============================================================================
 // INSERT OR IGNORE (idempotent — disk mode / deferred parsing)

@@ -7,10 +7,10 @@
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
 import { KNode, type Event } from "@km/core"
-import type { Repo, RepoStats } from "../repo.ts"
-import type { LoadError } from "../repo-loader.ts"
-import type { Link } from "../db.ts"
-import type { StepYield } from "../repo-loader.ts"
+import type { Repo, RepoStats } from "../repo/repo.ts"
+import type { LoadError } from "../repo/loader.ts"
+import type { Link } from "../db/db.ts"
+import type { StepYield } from "../repo/loader.ts"
 import type { Emitter, EventHub } from "../emitter.ts"
 import { ulid } from "ulid"
 

@@ -7,8 +7,8 @@
 
 import type { Database } from "bun:sqlite"
 import { KNode, findIndexFile, isSlotNode } from "@km/core"
-import { getChildren, getSubtree } from "./db-queries/tree-traversal.ts"
-import { getAllNodes } from "./db-queries/utils.ts"
+import { getChildren, getSubtree } from "./db/queries/tree-traversal.ts"
+import { getAllNodes } from "./db/queries/utils.ts"
 import { nodesToMarkdown } from "@km/markdown"
 
 /**

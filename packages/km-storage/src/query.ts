@@ -7,8 +7,8 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { rowToNode } from "./db-queries/index.ts"
-import { parseTreeGlob, type TreeGlob } from "@km/core"
+import { rowToNode } from "./db/queries/index.ts"
+import { parseTreeGlob } from "@km/core"
 
 const log = createLogger("km:storage:query")
 import {

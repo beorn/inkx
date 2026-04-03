@@ -13,12 +13,12 @@ import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:heartbeat")
 
-import { toAbsoluteFsPath } from "../path-utils.ts"
+import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { getAllNodes, getSubtree, nodesToMarkdown } from "../index.ts"
 import type { ReconciliationEngine } from "./reconciliation-engine.ts"
 import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
-import type { ParsePoolService } from "../parse-pool.ts"
+import type { ParsePoolService } from "../markdown/parse-pool.ts"
 
 export interface HeartbeatConfig {
   /** Enable periodic reconciliation to catch silently dropped events (default: true) */

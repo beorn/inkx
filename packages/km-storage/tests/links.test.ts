@@ -9,8 +9,8 @@ import { describe, test, expect, afterEach } from "vitest"
 import { mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { MemoryStore } from "../src/store.ts"
-import { createLinkResolver } from "../src/link-resolver.ts"
+import { MemoryStore } from "../src/store/store.ts"
+import { createLinkResolver } from "../src/markdown/link-resolver.ts"
 
 // Track created directories for cleanup
 const createdDirs: string[] = []

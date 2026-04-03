@@ -18,10 +18,10 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { queryNodes } from "./query.ts"
-import { removeLinksFromSourceByRelationship } from "./db-links.ts"
-import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./db-queries/index.ts"
-import { createDbOps, buildEmbedChild } from "./db-ops.ts"
+import { queryNodes } from "../query.ts"
+import { removeLinksFromSourceByRelationship } from "./links.ts"
+import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./queries/index.ts"
+import { createDbOps, buildEmbedChild } from "./ops.ts"
 import { parseQuery, KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
@@ -157,7 +157,6 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
     }
   }
   const matchingNodes = [...matchingMap.values()]
-  const matchingIds = new Set(matchingMap.keys())
   log.debug?.(`evaluateAddRule: found ${matchingNodes.length} matches across ${queries.length} queries`)
 
   // Pre-build file ancestor cache for all matching nodes to avoid O(matches * depth) tree walks

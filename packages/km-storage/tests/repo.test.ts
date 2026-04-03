@@ -724,7 +724,7 @@ describe("deferred parsing deduplication", () => {
     expect(stub).toBeTruthy()
 
     // Parse the file (first time)
-    const { parseStubFile } = await import("../src/deferred-parsing.ts")
+    const { parseStubFile } = await import("../src/markdown/deferred.ts")
     parseStubFile(repo.database, stub!.id, join(dir, "launch-academy.md"), "launch-academy.md")
 
     const childrenAfterFirst = repo.database.prepare("SELECT content FROM nodes WHERE parent_id = ?").all(stub!.id) as {

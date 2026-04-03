@@ -9,19 +9,19 @@
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { type KNode, isIndexFile, extractSlotTargets, namesAreSimilar } from "@km/core"
-import { toRelativeFsPath } from "../../path-utils.ts"
+import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import { emitNodeCreated, emitNodeUpdated, emitNodeDeleted, type Emitter } from "../../emitter.ts"
-import { getFileWithChildren, getNodeContentHash } from "../../db-queries/core-lookup.ts"
-import { addLink, removeLinksFromSource } from "../../db-links.ts"
+import { getFileWithChildren, getNodeContentHash } from "../../db/queries/core-lookup.ts"
+import { addLink, removeLinksFromSource } from "../../db/links.ts"
 import {
   processMarkdownFile,
   toResolvedLinks,
   type ProcessedMarkdown,
   type WikilinkRef,
-} from "../../markdown-processing.ts"
+} from "../../markdown/processing.ts"
 import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
-import type { ParseResult } from "../../parse-pool.ts"
+import type { ParseResult } from "../../markdown/parse-pool.ts"
 import type { ReconcileContext } from "./create-handler.ts"
 import { diffNodes } from "./node-differ.ts"
 import { getNode, getChildren } from "../../index.ts"

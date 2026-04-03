@@ -6,7 +6,7 @@
  */
 
 import { Database } from "bun:sqlite"
-import { SCHEMA } from "../src/schema.ts"
+import { SCHEMA } from "../src/db/schema.ts"
 import type { ItemData } from "@km/core"
 
 /** Node data for seeding test databases */

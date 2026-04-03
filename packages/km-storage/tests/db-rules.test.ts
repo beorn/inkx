@@ -12,15 +12,15 @@ import { describe, test, expect, vi } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { MemoryStore } from "../src/store.ts"
+import { MemoryStore } from "../src/store/store.ts"
 import {
   evaluateNodeRules,
   evaluateAllRules,
   getNodesWithRules,
   getNodesWithRule,
   createRuleContext,
-} from "../src/db-rules.ts"
-import { getChildren, getChildCountsBatch } from "../src/db-queries/index.ts"
+} from "../src/db/rules.ts"
+import { getChildren, getChildCountsBatch } from "../src/db/queries/index.ts"
 import { KNode } from "@km/core"
 
 interface TestEnv {

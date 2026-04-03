@@ -11,8 +11,8 @@ import type { Database, SQLQueryBindings } from "bun:sqlite"
 const log = createLogger("km:storage:db:events")
 import type { Event } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
-import { deleteSubtree } from "./db-ops.ts"
-import { decomposeEventItem } from "./item-helpers.ts"
+import { deleteSubtree } from "./ops.ts"
+import { decomposeEventItem } from "../item-helpers.ts"
 
 // =============================================================================
 // Event Application

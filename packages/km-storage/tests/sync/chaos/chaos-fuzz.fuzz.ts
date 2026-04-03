@@ -14,7 +14,7 @@ import { chaos, drop, reorder, atomicSave, duplicate, type ChaosTransformerConfi
 import { createFakeFileSystem } from "./fake-fs.ts"
 import { Verifier } from "./verifier.ts"
 import { createEmitter } from "../../../src/emitter.ts"
-import { SCHEMA } from "../../../src/schema.ts"
+import { SCHEMA } from "../../../src/db/schema.ts"
 import { reconcileDirectoryRecursive, applyReconcileOps } from "../../../src/watch/reconcile.ts"
 import { getAllNodes, getChildren } from "../../../src/index.ts"
 import type { FsEvent } from "./types.ts"

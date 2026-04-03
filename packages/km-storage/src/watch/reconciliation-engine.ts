@@ -25,8 +25,8 @@ import {
 import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
 import type { Emitter } from "../emitter.ts"
-import type { ParsePoolService } from "../parse-pool.ts"
-import type { PatternMatcher } from "../ignore.ts"
+import type { ParsePoolService } from "../markdown/parse-pool.ts"
+import type { PatternMatcher } from "../fs/ignore.ts"
 
 export interface ReconciliationEngineConfig {
   db: Database

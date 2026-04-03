@@ -9,7 +9,7 @@
  * relying solely on volatile in-memory state.
  */
 
-import { hashContent } from "../cas.ts"
+import { hashContent } from "../fs/cas.ts"
 import type { Database } from "bun:sqlite"
 
 export interface SyncStateEntry {

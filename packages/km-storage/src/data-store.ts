@@ -15,16 +15,16 @@
 import { Database } from "bun:sqlite"
 import type { KNode } from "@km/core"
 import { ulid } from "ulid"
-import { SCHEMA } from "./schema.ts"
+import { SCHEMA } from "./db/schema.ts"
 import {
   getNode as dbGetNode,
   getNodesBatch as dbGetNodesBatch,
   getChildren as dbGetChildren,
   getAllNodes as dbGetAllNodes,
-} from "./db-queries/index.ts"
-import { createDbOps } from "./db-ops.ts"
+} from "./db/queries/index.ts"
+import { createDbOps } from "./db/ops.ts"
 import type { Emitter } from "./emitter.ts"
-import { search as dbSearch } from "./db-queries/full-text-search.ts"
+import { search as dbSearch } from "./db/queries/full-text-search.ts"
 
 // =============================================================================
 // Core Interface

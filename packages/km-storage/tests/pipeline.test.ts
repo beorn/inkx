@@ -6,8 +6,8 @@
 
 import { describe, test, expect, vi } from "vitest"
 import { Database } from "bun:sqlite"
-import { SCHEMA } from "../src/schema.ts"
-import { applyEventWithDb } from "../src/db-events.ts"
+import { SCHEMA } from "../src/db/schema.ts"
+import { applyEventWithDb } from "../src/db/events.ts"
 import {
   parseFiles,
   applyNodes,
@@ -18,8 +18,8 @@ import {
   type ParseSource,
   type ParsedFile,
   type AppliedFile,
-} from "../src/pipeline.ts"
-import type { ResolvedLink } from "../src/markdown-processing.ts"
+} from "../src/markdown/pipeline.ts"
+import type { ResolvedLink } from "../src/markdown/processing.ts"
 
 // ============================================================================
 // Test Helpers
@@ -580,6 +580,7 @@ describe("event replay with failures", () => {
   })
 
   test("duplicate node_created (INSERT OR IGNORE) does not corrupt existing node", () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
     const db = createTestDb()
 
     // Create a node

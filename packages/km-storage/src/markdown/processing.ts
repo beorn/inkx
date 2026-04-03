@@ -22,7 +22,7 @@
 import { createLogger } from "loggily"
 import type { Event, KNode } from "@km/core"
 import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
-import { hashContent } from "./cas.ts"
+import { hashContent } from "../fs/cas.ts"
 import type { LinkResolver } from "./link-resolver.ts"
 
 const log = createLogger("km:storage:markdown-data")

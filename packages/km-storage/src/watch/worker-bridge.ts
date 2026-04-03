@@ -11,7 +11,7 @@
 import { createLogger } from "loggily"
 import { createWorkerLogHandler } from "loggily/worker"
 import { EventEmitter } from "events"
-import { getIgnorePatterns } from "../ignore.ts"
+import { getIgnorePatterns } from "../fs/ignore.ts"
 import type { WorkerCommand, WorkerMessage, WatcherStatus, WatcherState } from "./worker-thread.ts"
 
 const log = createLogger("km:storage:watch:worker-bridge")

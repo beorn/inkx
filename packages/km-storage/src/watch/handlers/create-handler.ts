@@ -8,26 +8,26 @@
 
 import { basename, dirname } from "path"
 import { createLogger } from "loggily"
-import { toRelativeFsPath } from "../../path-utils.ts"
+import { toRelativeFsPath } from "../../fs/path-utils.ts"
 import { ulid } from "ulid"
 import type { Database } from "bun:sqlite"
-import { generatePathBasedId } from "../../id-utils.ts"
+import { generatePathBasedId } from "../../fs/id-utils.ts"
 import type { KNode } from "@km/core"
 import { emitNodeCreated, emitNodeUpdated, type Emitter } from "../../emitter.ts"
-import { getNodeByPath } from "../../db-queries/core-lookup.ts"
-import { addLink } from "../../db-links.ts"
-import type { LinkResolver } from "../../link-resolver.ts"
+import { getNodeByPath } from "../../db/queries/core-lookup.ts"
+import { addLink } from "../../db/links.ts"
+import type { LinkResolver } from "../../markdown/link-resolver.ts"
 import {
   processMarkdownFile,
   toResolvedLinks,
   type ProcessedMarkdown,
   type WikilinkRef,
-} from "../../markdown-processing.ts"
+} from "../../markdown/processing.ts"
 import { parsePlainTextToNodes } from "@km/markdown"
 import type { FileSystemOps } from "../writequeue.ts"
 import type { ReconcileOp } from "../reconcile.ts"
 import { handleUpdate } from "./update-handler.ts"
-import type { ParseResult } from "../../parse-pool.ts"
+import type { ParseResult } from "../../markdown/parse-pool.ts"
 
 const log = createLogger("km:storage:watch:create")
 

@@ -7,9 +7,9 @@
 
 import { describe, test, expect } from "vitest"
 import { Database } from "bun:sqlite"
-import { SCHEMA } from "../src/schema.ts"
-import { applyNodes, collect, type ParsedFile } from "../src/pipeline.ts"
-import { insertNodeRow, INSERT_NODE_SQL } from "../src/db-insert.ts"
+import { SCHEMA } from "../src/db/schema.ts"
+import { applyNodes, collect, type ParsedFile } from "../src/markdown/pipeline.ts"
+import { insertNodeRow, INSERT_NODE_SQL } from "../src/db/insert.ts"
 import type { KNode } from "@km/core"
 
 // ============================================================================

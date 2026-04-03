@@ -3,8 +3,8 @@
  */
 import { test, expect, describe } from "vitest"
 import { Database } from "bun:sqlite"
-import { SCHEMA, migrateSchema } from "../src/schema.ts"
-import { loadRepo, ensureRepoRootNode } from "../src/repo-loader.ts"
+import { SCHEMA, migrateSchema } from "../src/db/schema.ts"
+import { loadRepo, ensureRepoRootNode } from "../src/repo/loader.ts"
 import { mkdtempSync, mkdirSync, writeFileSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"

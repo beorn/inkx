@@ -10,7 +10,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import type { Database } from "bun:sqlite"
 import { parseQuery, executeQuery, queryTasks } from "../src/query.ts"
-import { search, searchWithSnippet } from "../src/db.ts"
+import { search, searchWithSnippet } from "../src/db/db.ts"
 import { createTestDatabase, seedTestData, formatDate, today, offsetDate } from "./query-test-helpers.ts"
 
 describe("Query Executor", () => {

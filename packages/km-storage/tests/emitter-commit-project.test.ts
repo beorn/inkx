@@ -15,7 +15,7 @@ import { join } from "path"
 import { ulid } from "ulid"
 import { setLogLevel, getLogLevel, type LogLevel } from "loggily"
 import { createEmitter, type EventHub } from "../src/emitter.ts"
-import { SCHEMA } from "../src/schema.ts"
+import { SCHEMA } from "../src/db/schema.ts"
 
 // Suppress log output in tests
 let savedLogLevel: LogLevel

@@ -10,9 +10,9 @@ import { mkdtempSync, writeFileSync, mkdirSync } from "fs"
 import { join } from "path"
 import { tmpdir } from "os"
 
-import { SCHEMA } from "../src/schema.ts"
-import { loadRepo, parseStubFile } from "../src/repo-loader.ts"
-import { resolveNode, getChildren } from "../src/db.ts"
+import { SCHEMA } from "../src/db/schema.ts"
+import { loadRepo, parseStubFile } from "../src/repo/loader.ts"
+import { resolveNode, getChildren } from "../src/db/db.ts"
 
 /** Run generator to completion */
 function exhaust<T>(gen: Generator<unknown, T, unknown>): T {

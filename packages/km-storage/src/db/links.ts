@@ -10,8 +10,8 @@
 
 import type { Database } from "bun:sqlite"
 import { createLogger } from "loggily"
-import { createDbOps } from "./db-ops.ts"
-import { findChildByContent } from "./db-queries/index.ts"
+import { createDbOps } from "./ops.ts"
+import { findChildByContent } from "./queries/index.ts"
 
 const log = createLogger("km:storage:db:links")
 

@@ -9,7 +9,7 @@
  * Replaces the timestamp-based recentWrites suppression with deterministic hashing.
  */
 
-import { hashContent } from "../cas.ts"
+import { hashContent } from "../fs/cas.ts"
 
 export class WriteTokenMap {
   private tokens = new Map<string, string>() // absPath -> sha256 hex hash

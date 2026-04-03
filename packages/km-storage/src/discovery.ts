@@ -24,10 +24,10 @@ import { join } from "path"
 import type { Event } from "@km/core"
 import { createLogger } from "loggily"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
-import { getIgnorePatterns, shouldIgnore } from "./ignore.ts"
-import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo-loader.ts"
-import { generatePathBasedId } from "./id-utils.ts"
-import { toRelativeFsPath } from "./path-utils.ts"
+import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
+import type { StepYield, PendingLink, DeferredFile, LoadError } from "./repo/loader.ts"
+import { generatePathBasedId } from "./fs/id-utils.ts"
+import { toRelativeFsPath } from "./fs/path-utils.ts"
 
 const log = createLogger("km:storage:discovery")
 

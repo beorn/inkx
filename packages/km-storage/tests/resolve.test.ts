@@ -14,7 +14,7 @@ import { join } from "path"
 import { writeFileSync } from "fs"
 import { ulid } from "ulid"
 
-import { resolveNode } from "../src/db.ts"
+import { resolveNode } from "../src/db/db.ts"
 import { withTestEnvSync } from "@km/storage"
 
 describe("resolveNode", () => {

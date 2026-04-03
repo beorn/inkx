@@ -124,7 +124,7 @@ const FS_CHAOS_REGISTRY: ChaosRegistry<FsEvent> = {
   rapid_succession: async function* (s) {
     for await (const e of s) yield e
   },
-  init_gap: (s, p) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).init_gap!(s, p, {} as SeededRandom),
+  init_gap: (s, p) => (builtinChaosRegistry as ChaosRegistry<FsEvent>).initGap!(s, p, {} as SeededRandom),
 }
 
 /**
