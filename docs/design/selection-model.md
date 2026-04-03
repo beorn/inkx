@@ -221,6 +221,22 @@ store.selection                      // computed
 
 One import. Use `Selection.*` for pure functions, `Selection.with()` for full integration, or `Selection.withNode()` / `Selection.withText()` individually.
 
+**km extends** silvery's `Selection` with domain-specific behavior:
+
+```ts
+// @km/selection — spreads silvery's Selection + adds km-specific
+import { Selection as Base } from "@silvery/selection"
+
+export const Selection = {
+  ...Base,
+  inputMode(sel):  "board" | "node" | "text",
+  expandWithDescendants(ids, tree): Set<ID>,
+  with(store, space) { /* adds km invariants, command selectors, keybindings */ }
+}
+```
+
+km consumers import from `@km/selection`. Silvery provides the foundation; km adds `inputMode`, operation targeting, keybindings.
+
 **Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
 
 **Commands**: Selection state drives command availability via `when` selectors:
