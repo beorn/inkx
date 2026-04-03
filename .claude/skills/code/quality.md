@@ -42,6 +42,7 @@ Check against all principles in [docs/principles.md](../../../docs/principles.md
 - Algorithms read like pseudocode / not implementation details at call sites
 - Unified API shapes across layers (`KTree.nodes()` ↔ `ViewTree.nodes()`)
 - Discoverability test: typing `X.` shows the operation needed
+- Terminology matches [docs/glossary.md](../../../docs/glossary.md) — variable names, comments, docs, and tests use the same words for the same concepts (e.g., "operation" not "action" for TEA state changes, "domain interface" not "noun-singleton", "cursor" not "lead")
 
 **Domain Object Inventory:**
 - New operations go on existing namespaces (KTree, ViewTree, PaneUI, ActionType, Workspace, SelectionLevel)
@@ -103,6 +104,7 @@ bun lint:unused 2>&1 | tee /tmp/knip-output.txt  # unused files/exports
 | Missing from vocab | Operation not in domain namespace inventory                                 |
 | Non-pseudocode     | Algorithm reads as implementation details, not domain operations            |
 | Dual pattern       | Two ways to do the same thing — consolidate to one                          |
+| Glossary drift     | Variable/comment/doc uses different word than glossary for same concept      |
 | **Architecture**   |                                                                             |
 | Layer violation    | Wrong layer import, raw field checks instead of namespace                   |
 | Over-engineering   | 1-implementation interface, unused config, single-use generic               |
