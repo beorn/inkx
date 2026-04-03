@@ -2,46 +2,35 @@
 
 Unified selection architecture for km — designed for tree/outliner today, extensible to creative tools (Keynote, Numbers, Figma-class) tomorrow.
 
-Reviewed by GPT 5.4 Pro (2x, $8.69 total). Key feedback incorporated.
+Everything goes through `Selection.*` — one namespace, one state machine, all centralized.
+
+Reviewed by GPT 5.4 Pro (2x), Gemini 2.5 Pro, then tightened through systematic DRY review.
 
 ## Design Principles
 
-1. **One authoritative selection value** — no scattered state
-2. **Explicit anchor, focus, and lead** — nothing hidden or overloaded
+1. **One namespace** — all selection logic lives in `Selection.*`
+2. **Minimum stored state** — only store interaction data; derive everything else
 3. **Discriminated union** — `kind` field, not optional fields
 4. **Logical selection separate from visual projection** — `normalize/map/project` pipeline
-5. **Selection describes what the user selected, not what commands affect** — operation targeting is a separate layer
-6. **Per-scope ownership** — selection belongs to a selection scope (surface), not a pane
-7. **Extensible to new domains** — grid, canvas, handles via new `kind` variants
+5. **Selection ≠ operation targets** — commands decide what to affect
+6. **Per-scope ownership** — selection belongs to a SelectionProvider, not a pane
+7. **Extensible** — grid, canvas, handles via new `kind` variants
 
-## Core Types
+## Stored State (minimal)
+
+The system stores only what it can't derive:
 
 ```ts
-// === Points (positions in different spaces) ===
+// === Top-level state (in TEA store) ===
 
-type NodePoint = {
-  kind: "node"
-  nodeId: string
-  edge?: "before" | "on" | "after"  // insertion/gap positions
+type SelectionState = {
+  scopes: Record<string, SelectionValue>  // scopeId → selection value
+  activeScope: string | null              // which scope has keyboard focus
 }
 
-type TextPoint = {
-  kind: "text"
-  nodeId: string
-  field?: string                     // which editable field (title, body block, etc.)
-  offset: number                     // character position
-  affinity?: "forward" | "backward"  // line-wrap/bidi disambiguation
-}
+// === Selection values (plain data, no methods) ===
 
-// Future extensions (not implemented yet):
-// type CellPoint = { kind: "cell"; sheetId: string; row: number; col: number }
-// type HandlePoint = { kind: "handle"; objectId: string; handleId: string }
-
-type Point = NodePoint | TextPoint
-
-// === Selection (discriminated union) ===
-
-type Selection =
+type SelectionValue =
   | { kind: "none" }
   | NodeSelection
   | TextSelection
@@ -49,234 +38,427 @@ type Selection =
 
 type NodeSelection = {
   kind: "node"
-  scopeId: string                    // which selection surface owns this
-  selected: ReadonlySet<string>      // explicit membership (stable, not derived from range)
-  lead: string                       // primary item (inspector target, keyboard home)
-  anchor: string | null              // shift-extend origin (null = no range active)
+  anchor: string                     // shift-extend origin
+  focus: string                      // moving end (last navigated to)
+  lead: string                       // primary item (inspector, keyboard home)
+  toggled: ReadonlySet<string>       // cmd-clicked items (XOR with range)
 }
 
 type TextSelection = {
   kind: "text"
-  scopeId: string
-  outer: NodeSelection               // the host node is selected structurally
+  outer: NodeSelection               // host node selected structurally
   anchor: TextPoint                  // fixed end
   focus: TextPoint                   // active end (cursor position)
 }
 ```
 
-### Why explicit `selected: Set` instead of `range(anchor, focus)`
+**What's NOT stored** (derived on read):
+- `members()` — `range(anchor→focus, tree) XOR toggled`
+- `roots()` — `removeNesting(members)`
+- `includes()` — membership check
+- `scopeId` — it's the key in `scopes` map, not duplicated in the value
+- `inputMode` — `sel.kind === "text" ? "text" : sel.kind === "none" ? "board" : "node"`
+- `cursorNodeId` — `sel.kind === "node" ? sel.lead : sel.focus.nodeId`
+- `insertionPoint` — derived from lead/focus
 
-The Pro review identified that `range XOR toggled` is unstable:
-- Extending a range can flip toggled items from "added" to "removed"
-- Shrinking a range can flip them from "removed" to "added"
-- API/voice commands need idempotent `add/remove`, not `toggle`
+**Why `lead` is stored, not derived**: `lead` = "primary item for inspector/alignment." It's usually `focus`, but diverges on cmd+click (lead moves to toggled node, focus stays). A derivation rule like "last interacted node" would require tracking gesture history — storing it is simpler and explicit.
 
-Explicit membership is stable. The `anchor` field enables shift-extend: `extendTo(target)` computes a range walk and replaces `selected` with the result. Clean, predictable.
+### Points
 
-### Why `lead` separate from `focus`
+```ts
+type NodePoint = {
+  kind: "node"
+  nodeId: string
+  edge?: "before" | "on" | "after"
+}
 
-`focus` in a range is the "moving end." `lead` is the "primary selected item" — inspector target, keyboard home, alignment reference. They diverge on Cmd+click:
-- Cmd+click F: adds F to selection. F becomes `lead`. But `focus` (range end) doesn't change.
-- Invariant: `lead` must be in `selected`.
+type TextPoint = {
+  kind: "text"
+  nodeId: string
+  field?: string                     // which editable field (title, body, etc.)
+  offset: number
+  affinity?: "forward" | "backward"  // line-wrap disambiguation
+}
 
-### Why `TextSelection` has `outer: NodeSelection`
+type Point = NodePoint | TextPoint
+// Future: CellPoint, HandlePoint
+```
 
-Creative tools need nested selection — the card/object is structurally selected (border highlight, handles), AND you're editing text inside it. `outer` gives you both at once.
-
-## Namespace Interface
+## Selection.* — Complete API
 
 ```ts
 const Selection = {
-  // Constructors
-  none(): Selection
-  node(scopeId: string, nodeId: string): Selection
-  text(scopeId: string, nodeId: string, field: string, offset: number): Selection
 
-  // Common queries (work on all kinds)
-  isNone(sel): boolean
-  isCollapsed(sel): boolean
-  kind(sel): "none" | "node" | "text" | ...
-  lead(sel): string | null
-  scopeId(sel): string | null
+  // ── Constructors ──────────────────────────────────────────
 
-  // Lifecycle (the core pipeline)
-  normalize(sel, doc): Selection           // structural validity (targets exist, offsets valid)
-  map(sel, operation, doc): Selection      // transform through document edits
-  project(sel, view, policy): Selection    // adapt to a specific view/pane
-}
+  none():                                          SelectionValue
+  node(nodeId: string):                            SelectionValue  // anchor=focus=lead=nodeId
+  text(nodeId: string, field: string, offset: number): SelectionValue
 
-const NodeSelection = {
-  // Queries
-  members(sel): ReadonlySet<string>        // exact selected set
-  roots(sel, tree): string[]               // top-level selected (excludes selected descendants)
-  includes(sel, nodeId): boolean
-  lead(sel): string
+  // ── Queries (all kinds) ───────────────────────────────────
 
-  // Mutations (all return new Selection)
-  selectOnly(scopeId, nodeId): Selection
-  add(sel, nodeId): Selection              // idempotent
-  remove(sel, nodeId): Selection           // idempotent
-  toggle(sel, nodeId): Selection           // for mouse gesture convenience
-  extendTo(sel, nodeId, tree): Selection   // shift-click: range walk, replaces selected
-  collapseToLead(sel): Selection           // Escape: keep only lead
-}
+  isNone(sel):       boolean
+  isCollapsed(sel):  boolean                       // single node or collapsed text
+  kind(sel):         "none" | "node" | "text"
+  lead(sel):         string | null
+  
+  // ── Derived membership (never stored) ─────────────────────
 
-const TextSelection = {
-  range(sel): { anchor: TextPoint; focus: TextPoint }
-  isCollapsed(sel): boolean
-  outerNode(sel): NodeSelection
+  members(sel, tree):              ReadonlySet<string>  // range(anchor→focus) XOR toggled
+  roots(sel, tree):                string[]             // removeNesting(members)
+  includes(sel, nodeId, tree):     boolean
+  insertionPoint(sel, tree):       InsertionPoint       // where new content would go
+
+  // ── Mutations (pure: SelectionValue → SelectionValue) ─────
+
+  selectOnly(nodeId):              SelectionValue  // anchor=focus=lead=nodeId, toggled=∅
+  add(sel, nodeId):                SelectionValue  // idempotent: add to toggled
+  remove(sel, nodeId):             SelectionValue  // idempotent: remove from toggled
+  toggle(sel, nodeId):             SelectionValue  // XOR in toggled, nodeId→lead
+  extendTo(sel, nodeId, tree):     SelectionValue  // shift: move focus, keep anchor
+  collapseToLead(sel):             SelectionValue  // Escape: anchor=focus=lead, toggled=∅
+  enterText(sel, nodeId, field, offset): SelectionValue  // → TextSelection
+  exitText(sel):                   SelectionValue  // → outer NodeSelection
+  moveTextFocus(sel, offset):      SelectionValue
+  extendTextTo(sel, offset):       SelectionValue
+  areaSelect(sel, nodeIds, mode):  SelectionValue  // mode: "replace" | "xor"
+
+  // ── Pipeline ──────────────────────────────────────────────
+
+  normalize(sel, doc):             SelectionValue  // structural validity
+  map(sel, operation, doc):        SelectionValue  // transform through edits
+  project(sel, view, policy):      SelectionValue  // adapt to pane's visible tree
+
+  // ── State machine (TEA) ───────────────────────────────────
+
+  createState():                                   SelectionState
+  update(action, state, tree):     [SelectionState, SelectionEffect[]]
+
+  // ── km convenience (not core) ─────────────────────────────
+
+  inputMode(sel):      "board" | "node" | "text"
+  cursorNodeId(sel):   string | null
 }
 ```
 
-## Derived State (never stored)
+**Scope management** is at the `SelectionState` level, not on individual values:
+- `update({ type: "activateScope", scopeId }, state, tree)` switches the active scope
+- Each scope remembers its last selection (like `FocusManager.scopeMemory`)
+
+## Example Flow
+
+A concrete walkthrough showing stored state and derived values at each step.
+
+**Setup**: Tree with nodes `A B C D E` as siblings under `root`.
+
+### 1. Click A
 
 ```
-inputMode(sel)         = sel.kind === "text" ? "text" : sel.kind === "none" ? "board" : "node"
-cursorNodeId(sel)      = sel.kind === "node" ? sel.lead : sel.kind === "text" ? sel.focus.nodeId : null
-cursorCardId(sel, tree) = ancestor(cursorNodeId, "card")
-cursorColId(sel, tree)  = ancestor(cursorNodeId, "column")
+dispatch({ type: "selectOnly", nodeId: "A" })
+
+Stored:  { kind: "node", anchor: "A", focus: "A", lead: "A", toggled: ∅ }
+Derived: members = {A}, roots = [A], inputMode = "node"
 ```
 
-Note: `inputMode` is a convenience for km. Creative tools keep tool/mode state separately from selection.
+### 2. Shift+click D (extend range)
+
+```
+dispatch({ type: "extendTo", nodeId: "D" })
+
+Stored:  { kind: "node", anchor: "A", focus: "D", lead: "A", toggled: ∅ }
+Derived: members = {A,B,C,D}, roots = [A,B,C,D], lead = "A"
+```
+
+### 3. Cmd+click B (toggle OFF — B is in range, XOR removes it)
+
+```
+dispatch({ type: "toggle", nodeId: "B" })
+
+Stored:  { kind: "node", anchor: "A", focus: "D", lead: "B", toggled: {B} }
+Derived: members = range(A→D) XOR {B} = {A,C,D}, lead = "B"
+```
+
+Note: `lead` is "B" (last interacted), even though B is now deselected. `normalize` will fix this — `lead` must be in `members()`.
+
+### 4. normalize (enforce invariants)
+
+```
+Selection.normalize(sel, doc)
+
+Stored:  { kind: "node", anchor: "A", focus: "D", lead: "D", toggled: {B} }
+         lead snapped to "D" (last in range that's still in members)
+Derived: members = {A,C,D}, lead = "D" ✓
+```
+
+### 5. Cmd+click F (toggle ON — F is outside range, XOR adds it)
+
+```
+dispatch({ type: "toggle", nodeId: "F" })
+
+Stored:  { kind: "node", anchor: "A", focus: "D", lead: "F", toggled: {B,F} }
+Derived: members = range(A→D) XOR {B,F} = {A,C,D,F}
+```
+
+### 6. Enter (edit text in lead)
+
+```
+dispatch({ type: "enterText", nodeId: "F", field: "title", offset: 0 })
+
+Stored:  { kind: "text",
+           outer: { kind: "node", anchor: "F", focus: "F", lead: "F", toggled: ∅ },
+           anchor: { kind: "text", nodeId: "F", field: "title", offset: 0 },
+           focus:  { kind: "text", nodeId: "F", field: "title", offset: 0 } }
+Derived: inputMode = "text", cursorNodeId = "F"
+```
+
+Note: entering text collapses the outer NodeSelection to just the lead node.
+
+### 7. Escape (back to node selection)
+
+```
+dispatch({ type: "exitText" })
+
+Stored:  outer NodeSelection is restored → { anchor: "F", focus: "F", lead: "F", toggled: ∅ }
+Derived: members = {F}, inputMode = "node"
+```
+
+### 8. Cmd+drag area select (Finder-style XOR)
+
+```
+// Drag lasso hits {C, D, E}. Mode = "xor" because Cmd is held.
+dispatch({ type: "areaSelect", nodeIds: ["C","D","E"], mode: "xor" })
+
+// Current members before area: {F}
+// XOR with {C,D,E}: adds C,D,E (not in current), keeps F
+Stored:  { kind: "node", anchor: "F", focus: "F", lead: "F", toggled: {C,D,E} }
+Derived: members = range(F→F) XOR {C,D,E} = {F,C,D,E} → members = {C,D,E,F}
+```
+
+## Actions (complete)
+
+```ts
+type SelectionAction =
+  // Node
+  | { type: "selectOnly"; nodeId: string }
+  | { type: "add"; nodeId: string }
+  | { type: "remove"; nodeId: string }
+  | { type: "toggle"; nodeId: string }
+  | { type: "extendTo"; nodeId: string }
+  | { type: "collapseToLead" }
+  | { type: "clear" }                                // → { kind: "none" }
+  // Text
+  | { type: "enterText"; nodeId: string; field: string; offset: number }
+  | { type: "exitText" }
+  | { type: "moveTextFocus"; offset: number }
+  | { type: "extendTextTo"; offset: number }
+  // Area select
+  | { type: "areaSelect"; nodeIds: string[]; mode: "replace" | "xor" }
+  // Scope
+  | { type: "activateScope"; scopeId: string }
+  // Pipeline (dispatched by the system, not by gestures)
+  | { type: "normalize"; doc: unknown }
+  | { type: "map"; operation: unknown; doc: unknown }
+
+type SelectionEffect =
+  | { type: "render" }
+  | { type: "scrollToLead" }
+```
 
 ## normalize / map / project Pipeline
 
-### normalize(sel, doc)
-Structural validity against the document (not a view):
-- Does the target node still exist? → snap to nearest sibling or parent
-- Is the offset within content length? → clamp
-- Is `lead` in `selected`? → set lead to first selected
+### Selection.normalize(sel, doc)
+Structural validity against the document:
+- Node doesn't exist? → snap anchor/focus to nearest sibling or parent
+- Offset beyond content length? → clamp
+- `lead` not in `members()`? → set to focus (or first member)
 
-### map(sel, operation, doc)
-Transform selection through document edits:
-- Node deleted → remove from selected, update lead
-- Node moved → update if in selected
-- Node split → selection follows the half containing the original position
-- Content inserted before offset → shift offset
+### Selection.map(sel, operation, doc)
+Transform through document edits:
+- Node deleted → remove from toggled, adjust anchor/focus
+- Node moved → update if in range or toggled
+- Node split → follow the half containing the original position
+- Text inserted before offset → shift offset
 
-This is how undo/redo preserves selection — the transaction carries before/after selection.
+Undo/redo carries selection before/after as transaction metadata.
 
-### project(sel, view, policy)
-Adapt to a specific pane's visible tree:
-- Hidden nodes → policy decides: preserve invisibly, proxy to ancestor, or remove
-- Filtered nodes → same policy
-- Out-of-scope nodes → remove from this pane's projection
-
-Policies:
+### Selection.project(sel, view, policy)
+Adapt to a pane's visible tree (never mutates logical selection):
 - `"preserve"` — keep logical selection, render what's visible (default)
 - `"proxy"` — snap hidden items to nearest visible ancestor
-- `"strict"` — remove non-visible items from selection
+- `"strict"` — remove non-visible items
 
-Logical selection is NEVER mutated by projection. The pane gets a derived view.
-
-## Gesture → Selection Transitions
+## Gesture → Action Mapping
 
 ### Keyboard (node mode)
 
-| Current | Key | Action |
-|---|---|---|
-| none | j | `selectOnly(first visible node)` |
-| node | j | `selectOnly(next visible)` |
-| node | Shift+j | `extendTo(next, tree)` |
-| node | Escape (has selection) | `collapseToLead()` |
-| node | Escape (lead only) | `none` |
-| node | Enter | → TextSelection (caret at field start) |
+| Key | Action |
+|---|---|
+| j | `selectOnly(nextVisible)` |
+| Shift+j | `extendTo(nextVisible)` |
+| Escape (multi) | `collapseToLead` |
+| Escape (single) | `clear` |
+| Enter | `enterText(lead, "title", 0)` |
 
 ### Keyboard (text mode)
 
-| Current | Key | Action |
-|---|---|---|
-| text | ArrowRight | move focus offset +1 |
-| text | Shift+Right | extend text range |
-| text | Escape | → outer NodeSelection |
+| Key | Action |
+|---|---|
+| ArrowRight | `moveTextFocus(+1)` |
+| Shift+Right | `extendTextTo(+1)` |
+| Escape | `exitText` |
 
 ### Mouse
 
 | Gesture | Action |
 |---|---|
-| Click node B | `selectOnly(B)` |
-| Shift+click B | `extendTo(B, tree)` — replaces selected with range walk |
-| Cmd+click B | `toggle(B)` — B becomes lead |
-| Click text in B | → TextSelection at position |
-| Click empty | `none` |
-| Drag across nodes | area select → `selectOnly(hit-test results)` |
+| Click node B | `selectOnly("B")` |
+| Shift+click B | `extendTo("B")` |
+| Cmd+click B | `toggle("B")` |
+| Click text in B | `enterText("B", field, offset)` |
+| Click empty | `clear` |
+| Drag lasso | `areaSelect(hitIds, "replace")` |
+| Cmd+drag lasso | `areaSelect(hitIds, "xor")` |
 
 ### Voice / AI / API
 
 | Command | Action |
 |---|---|
-| "Select card X" | `selectOnly(X)` |
-| "Also select Y" | `add(Y)` — idempotent |
-| "Deselect Y" | `remove(Y)` — idempotent |
-| "Select from X to Y" | `extendTo(Y)` with anchor at X |
-| "Edit card X" | → TextSelection |
-| "Deselect all" | `none` |
+| "Select card X" | `selectOnly("X")` |
+| "Also select Y" | `add("Y")` |
+| "Deselect Y" | `remove("Y")` |
+| "Select from X to Y" | `selectOnly("X")` then `extendTo("Y")` |
+| "Edit card X" | `enterText("X", "title", 0)` |
+| "Deselect all" | `clear` |
+
+## Insertion Points and Drop Targets
+
+Selection answers "what is selected." Two sibling concepts share the Point vocabulary:
+
+```
+SelectionValue   "what is selected"         persistent (TEA store)
+InsertionPoint   "where content goes"       derived: Selection.insertionPoint(sel, tree)
+DropTarget       "where drag lands"         transient gesture state
+```
+
+### InsertionPoint
+
+```ts
+type InsertionPoint =
+  | { kind: "node"; parentId: string; edge: "before" | "after"; referenceId: string }
+  | { kind: "text"; nodeId: string; field: string; offset: number }
+```
+
+**`Selection.insertionPoint(sel, tree)`** derives it:
+- NodeSelection → after `lead`
+- TextSelection → at `focus` offset
+- none → append to scope root
+
+### DropTarget (transient)
+
+```ts
+type NodeDropTarget = {
+  kind: "node"
+  where: "before" | "after" | "into"
+  targetId: string
+}
+
+type DragSession = {
+  dragging: ReadonlySet<string>
+  dropTarget: NodeDropTarget | null
+  dropEffect: "move" | "copy" | "link"  // default=move, Alt=copy, Cmd=link
+}
+```
+
+**Resolution** (Decker pattern): enumerate candidate positions for all visible nodes → compute proximity to pointer → filter cycles → select nearest within threshold.
+
+**Visual**: thin line for before/after, border highlight for "into", gap-aware positioning.
+
+**On drop**: `DropTarget` converts to `InsertionPoint` → feeds into a move/copy command.
+
+### Architecture
+
+```
+TEA Store (persistent)          Gesture State (transient)
+─────────────────────           ─────────────────────────
+SelectionState                  DragSession
+  scopes: { id → SelectionValue } dragging, dropTarget, dropEffect
+  activeScope: string
+                                AreaSelectSession
+                                  anchor, focus, hitIds
+                                  mode: "replace" | "xor"
+```
+
+Transient sessions produce `SelectionAction`s on completion:
+- Area select end → `{ type: "areaSelect", nodeIds, mode }`
+- Drop end → `moveNodes(dragging, insertionPoint)`
+
+## SelectionProvider (React integration)
+
+Modeled after silvery's `FocusManager`:
+
+| Concept | Focus (silvery) | Selection (this design) |
+|---|---|---|
+| State | `createFocusManager()` | `Selection.createState()` |
+| Provider | `FocusManagerContext` | `SelectionProvider` |
+| Scoping | `enterScope`/`activateScope` | `activateScope` action |
+| Memory | `scopeMemory` | `scopes: Record<string, SelectionValue>` |
+| Hook | `useFocusable()` | `useSelection()` / `useSelectionDispatch()` |
+| Subscribe | `subscribe`/`getSnapshot` | same pattern |
+
+```tsx
+<SelectionProvider scopeId="main-board" tree={tree}>
+  <BoardView />
+</SelectionProvider>
+
+// Inside components
+const sel = useSelection()                              // SelectionValue
+const dispatch = useSelectionDispatch()                  // (SelectionAction) → void
+const members = Selection.members(sel, tree)             // derived
+const isSelected = Selection.includes(sel, nodeId, tree) // derived
+dispatch({ type: "toggle", nodeId })                     // action
+```
 
 ## What This Replaces
 
-| Current (scattered) | New (unified) |
+| Before (scattered) | After (`Selection.*`) |
 |---|---|
-| `cursorNodeId` in CursorStore | `Selection.lead(sel)` or `sel.focus.nodeId` |
-| `cursorCardNodeId` | `ancestor(lead, "card")` |
-| `cursorColumnNodeId` | `ancestor(lead, "column")` |
-| `selectionLevel` | `inputMode(sel)` |
-| `multiSelected: Set<string>` | `NodeSelection.members(sel)` |
+| `cursorNodeId` in CursorStore | `Selection.lead(sel)` |
+| `cursorCardNodeId` | `ancestor(Selection.cursorNodeId(sel), "card")` |
+| `cursorColumnNodeId` | `ancestor(Selection.cursorNodeId(sel), "column")` |
+| `selectionLevel` | `Selection.inputMode(sel)` |
+| `multiSelected: Set<string>` | `Selection.members(sel, tree)` |
 | `selectionAnchor` | `sel.anchor` |
 | `inlineEditBlock` | `sel.kind === "text"` |
-| `ReactiveNodeStore.multiSelected` | `NodeSelection.members(sel)` |
-| `expandWithDescendants()` | NOT in selection — that's operation targeting |
+| `expandWithDescendants()` | NOT in Selection — that's operation targeting |
 
-### Important: `expandWithDescendants` is NOT selection
+### `expandWithDescendants` is NOT selection
 
-When a card is selected, its descendants are visually highlighted. But the selection is `{card}`, not `{card, child1, child2, ...}`. Visual highlighting of descendants is a **rendering concern**, not selection state. Commands decide independently what to affect:
-- Delete card → affects whole subtree
-- Rename → affects card title only
-- Move → moves card as one unit
-
-## Selection Scope
-
-Selection belongs to a scope (surface), not a pane. A pane may:
-- Own a scope (most common)
-- Mirror another scope (e.g., layers panel mirrors canvas selection)
-- Host multiple scopes (e.g., sidebar tree + main content)
-
-```ts
-type SelectionScope = {
-  id: string
-  selection: Selection
-}
-
-type PaneState = {
-  scopeId: string           // which scope this pane reads/writes
-  rootId: string
-  viewMode: "cards" | "detail" | ...
-}
-```
+Selection is `{card}`, not `{card, child1, child2}`. Visual highlighting of descendants is a rendering concern. Commands decide what to affect independently.
 
 ## Undo Integration
 
 - Content edits carry selection before/after as transaction metadata
-- Undo restores both document state and associated selection
+- Undo restores both document state and selection
 - Pure cursor moves do NOT create undo entries
-- Selection is part of the state machine: `(action, state) → [state, effects]`
 
 ## Prior Art
 
-| Feature | Apple AppKit | SwiftUI | SlateJS | ProseMirror | km (this design) |
-|---|---|---|---|---|---|
-| Type | IndexSet | Set\<ID\> | {anchor, focus} | abstract Selection | discriminated union |
-| Anchor | Hidden | Hidden | Exposed | Exposed | Exposed |
-| Lead/primary | No | No | No | No | **Yes** |
-| Text+node unified | No | No | Yes | Yes | **Yes (nested)** |
-| Discrete+range | Implicit | Set only | N/A | N/A | **Explicit set + extendTo** |
-| Validated | No | No | No | Yes | **Yes (normalize/map/project)** |
-| Nested selection | No | No | No | No | **Yes (outer+inner)** |
-| Multi-pane | Responder | Binding | Single | Single | **Scope-based** |
+| Feature | AppKit | SlateJS | ProseMirror | km |
+|---|---|---|---|---|
+| Selection type | IndexSet | {anchor, focus} | abstract | discriminated union |
+| Anchor/focus | Hidden | Exposed | Exposed | **Exposed** |
+| Lead/primary | No | No | No | **Yes** |
+| Text+node | No | Yes | Yes | **Yes (nested)** |
+| Membership | Stored | Stored | Stored | **Derived** |
+| Validated | No | No | Yes | **normalize/map/project** |
+| Single namespace | N/A | Editor.* | N/A | **Selection.*** |
+| TEA state machine | No | No | No | **Yes** |
 
 ## Future Extensions
 
-- **GridSelection**: `{ kind: "grid"; scopeId; anchor: CellPoint; focus: CellPoint; selected: Set<CellRef> }`
-- **SceneSelection**: `{ kind: "scene"; scopeId; selected: Set<ObjectId>; lead: ObjectId }`
+- **GridSelection**: `{ kind: "grid"; anchor: CellPoint; focus: CellPoint; selectedRanges: CellRect[] }`
+- **SceneSelection**: `{ kind: "scene"; anchor: string; focus: string; lead: string; toggled: Set<ObjectId> }`
 - **NestedSelection**: `{ kind: "nested"; outer: SceneSelection; inner: HandleSelection | TextSelection }`
-- **Multiple cursors**: Array of TextSelections (like CodeMirror 6)
+- **Multiple cursors**: Array of TextSelections (CodeMirror 6)
 - **Collaborative cursors**: Remote selections with user/color metadata
+- **CanvasDropTarget**: `{ kind: "canvas"; parentId: string; position: { x, y } }`
