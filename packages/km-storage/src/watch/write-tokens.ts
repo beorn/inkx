@@ -13,6 +13,7 @@ import { hashContent } from "../cas.ts"
 
 export class WriteTokenMap {
   private tokens = new Map<string, string>() // absPath -> sha256 hex hash
+  private deleted = new Set<string>() // absPath of files we deleted
 
   /** Record that we wrote this content to this path */
   record(absPath: string, content: string): void {
@@ -32,11 +33,33 @@ export class WriteTokenMap {
     return this.tokens.has(absPath)
   }
 
+  /** Record that we deleted this path */
+  recordDelete(absPath: string): void {
+    this.deleted.add(absPath)
+  }
+
+  /** Check if a delete was ours. Consumes the tombstone (one-shot). */
+  consumeDelete(absPath: string): boolean {
+    if (!this.deleted.has(absPath)) return false
+    this.deleted.delete(absPath)
+    return true
+  }
+
+  /** Check if we have a delete tombstone for this path (without consuming) */
+  hasDelete(absPath: string): boolean {
+    return this.deleted.has(absPath)
+  }
+
   clear(): void {
     this.tokens.clear()
+    this.deleted.clear()
   }
 
   get size(): number {
     return this.tokens.size
+  }
+
+  get deleteSize(): number {
+    return this.deleted.size
   }
 }

@@ -105,3 +105,83 @@ describe("WriteTokenMap", () => {
     expect(map.consume(path, "version 2")).toBe("ours")
   })
 })
+
+describe("WriteTokenMap — delete tracking", () => {
+  test("recordDelete() + consumeDelete() returns true", () => {
+    const map = new WriteTokenMap()
+    const path = "/tmp/test.md"
+
+    map.recordDelete(path)
+    expect(map.consumeDelete(path)).toBe(true)
+  })
+
+  test("consumeDelete() without prior recordDelete returns false", () => {
+    const map = new WriteTokenMap()
+    expect(map.consumeDelete("/tmp/unknown.md")).toBe(false)
+  })
+
+  test("consumeDelete is one-shot: second call returns false", () => {
+    const map = new WriteTokenMap()
+    const path = "/tmp/test.md"
+
+    map.recordDelete(path)
+    expect(map.consumeDelete(path)).toBe(true)
+    expect(map.consumeDelete(path)).toBe(false)
+  })
+
+  test("hasDelete() returns true after recordDelete, false after consumeDelete", () => {
+    const map = new WriteTokenMap()
+    const path = "/tmp/test.md"
+
+    expect(map.hasDelete(path)).toBe(false)
+    map.recordDelete(path)
+    expect(map.hasDelete(path)).toBe(true)
+    map.consumeDelete(path)
+    expect(map.hasDelete(path)).toBe(false)
+  })
+
+  test("clear() removes delete tombstones too", () => {
+    const map = new WriteTokenMap()
+    map.recordDelete("/tmp/a.md")
+    map.recordDelete("/tmp/b.md")
+    expect(map.deleteSize).toBe(2)
+
+    map.clear()
+    expect(map.deleteSize).toBe(0)
+    expect(map.hasDelete("/tmp/a.md")).toBe(false)
+  })
+
+  test("deleteSize tracks number of recorded tombstones", () => {
+    const map = new WriteTokenMap()
+    expect(map.deleteSize).toBe(0)
+
+    map.recordDelete("/tmp/a.md")
+    expect(map.deleteSize).toBe(1)
+
+    map.recordDelete("/tmp/b.md")
+    expect(map.deleteSize).toBe(2)
+
+    // Duplicate recordDelete is idempotent (Set behavior)
+    map.recordDelete("/tmp/a.md")
+    expect(map.deleteSize).toBe(2)
+
+    map.consumeDelete("/tmp/a.md")
+    expect(map.deleteSize).toBe(1)
+  })
+
+  test("delete tokens and write tokens are independent", () => {
+    const map = new WriteTokenMap()
+    const path = "/tmp/test.md"
+
+    map.record(path, "content")
+    map.recordDelete(path)
+
+    // Write token still works
+    expect(map.has(path)).toBe(true)
+    expect(map.consume(path, "content")).toBe("ours")
+
+    // Delete token still works after write token consumed
+    expect(map.hasDelete(path)).toBe(true)
+    expect(map.consumeDelete(path)).toBe(true)
+  })
+})

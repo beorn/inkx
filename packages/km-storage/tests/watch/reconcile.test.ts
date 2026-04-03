@@ -5,7 +5,7 @@
  * Uses isolated test environments for parallel execution.
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, vi } from "vitest"
 import { mkdirSync, rmSync, writeFileSync, statSync, utimesSync } from "fs"
 import { join, relative } from "path"
 import type { Database } from "bun:sqlite"
@@ -522,6 +522,7 @@ describe("reconcile.ts", () => {
 
     test("re-applying same folder does not create duplicate", () =>
       withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        vi.spyOn(console, "warn").mockImplementation(() => {})
         const folderPath = createFolder(repoDir, "no-dup-folder")
         await syncDir(db, repoDir, repoDir, emitter)
 
@@ -722,5 +723,127 @@ describe("reconcile.ts", () => {
         // Should keep the original node ID
         expect(allNodes[0]!.id).toBe(originalId)
       }))
+  })
+})
+
+describe("delete suppression (ReconciliationEngine)", () => {
+  /**
+   * When km deletes a file via WriteQueue, the watcher sees the unlink and
+   * reconcileDirectory generates a delete op. The reconciliation engine must
+   * suppress this delete op because it's our own delete — not an external one.
+   */
+  test("delete via km is suppressed by reconciliation engine", async () => {
+    const { WriteTokenMap } = await import("../../src/watch/write-tokens.ts")
+    const { createReconciliationEngine } = await import("../../src/watch/reconciliation-engine.ts")
+    const { WriteQueue } = await import("../../src/watch/writequeue.ts")
+    const { createSyncState } = await import("../../src/watch/sync-state.ts")
+
+    await withTestEnvRel(async ({ db, repoDir, emitter }) => {
+      // 1. Create a file and sync it into the DB
+      const filePath = createMdFile(repoDir, "to-delete.md", "# Delete Me\n")
+      await syncDir(db, repoDir, repoDir, emitter)
+      assertNodeExists(db, filePath)
+
+      // 2. Set up the reconciliation engine
+      const writeTokens = new WriteTokenMap()
+      const syncState = createSyncState(db)
+      const writeQueue = new WriteQueue({ debounceMs: 1 })
+
+      const engine = createReconciliationEngine({
+        db,
+        repoPath: repoDir,
+        writeTokens,
+        syncState,
+        writeQueue,
+        reconcileEmitter: emitter,
+      })
+
+      // 3. Simulate km deleting the file: record the delete token, then remove the file
+      writeTokens.recordDelete(filePath)
+      rmSync(filePath)
+
+      // 4. Run reconciliation — should generate a delete op but filter it out
+      const ops = engine.reconcile(repoDir, [])
+      expect(ops).toHaveLength(0)
+
+      // 5. Tombstone was consumed (one-shot)
+      expect(writeTokens.hasDelete(filePath)).toBe(false)
+    })
+  })
+
+  test("external delete is NOT suppressed", async () => {
+    const { WriteTokenMap } = await import("../../src/watch/write-tokens.ts")
+    const { createReconciliationEngine } = await import("../../src/watch/reconciliation-engine.ts")
+    const { WriteQueue } = await import("../../src/watch/writequeue.ts")
+    const { createSyncState } = await import("../../src/watch/sync-state.ts")
+
+    await withTestEnvRel(async ({ db, repoDir, emitter }) => {
+      // 1. Create a file and sync it into the DB
+      const filePath = createMdFile(repoDir, "external-delete.md", "# External\n")
+      await syncDir(db, repoDir, repoDir, emitter)
+      assertNodeExists(db, filePath)
+
+      // 2. Set up the reconciliation engine (no delete tokens recorded)
+      const writeTokens = new WriteTokenMap()
+      const syncState = createSyncState(db)
+      const writeQueue = new WriteQueue({ debounceMs: 1 })
+
+      const engine = createReconciliationEngine({
+        db,
+        repoPath: repoDir,
+        writeTokens,
+        syncState,
+        writeQueue,
+        reconcileEmitter: emitter,
+      })
+
+      // 3. Externally delete the file (no recordDelete — this simulates user/editor deleting)
+      rmSync(filePath)
+
+      // 4. Run reconciliation — delete op should pass through
+      const ops = engine.reconcile(repoDir, [])
+      expect(ops).toHaveLength(1)
+      expect(ops[0]!.type).toBe("delete")
+    })
+  })
+
+  test("pending delete in WriteQueue is also suppressed", async () => {
+    const { WriteTokenMap } = await import("../../src/watch/write-tokens.ts")
+    const { createReconciliationEngine } = await import("../../src/watch/reconciliation-engine.ts")
+    const { WriteQueue } = await import("../../src/watch/writequeue.ts")
+    const { createSyncState } = await import("../../src/watch/sync-state.ts")
+
+    await withTestEnvRel(async ({ db, repoDir, emitter }) => {
+      // 1. Create a file and sync it into the DB
+      const filePath = createMdFile(repoDir, "pending-delete.md", "# Pending\n")
+      await syncDir(db, repoDir, repoDir, emitter)
+      assertNodeExists(db, filePath)
+
+      // 2. Set up the reconciliation engine
+      const writeTokens = new WriteTokenMap()
+      const syncState = createSyncState(db)
+      const writeQueue = new WriteQueue({
+        debounceMs: 999999, // Never auto-flush
+      })
+
+      const engine = createReconciliationEngine({
+        db,
+        repoPath: repoDir,
+        writeTokens,
+        syncState,
+        writeQueue,
+        reconcileEmitter: emitter,
+      })
+
+      // 3. Queue a delete (not yet flushed — file still exists on disk)
+      // But also remove the file to simulate the race condition where
+      // reconciliation runs while the delete is pending
+      writeQueue.queueDelete(filePath, "test-event")
+      rmSync(filePath)
+
+      // 4. Run reconciliation — should be suppressed by pending path check
+      const ops = engine.reconcile(repoDir, [])
+      expect(ops).toHaveLength(0)
+    })
   })
 })

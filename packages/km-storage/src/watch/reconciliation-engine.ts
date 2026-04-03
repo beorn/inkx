@@ -10,6 +10,7 @@
 
 import { createLogger } from "loggily"
 import { readFileSync } from "fs"
+import { join } from "path"
 import type { Database } from "bun:sqlite"
 
 const log = createLogger("km:storage:watch:reconcile-engine")
@@ -79,21 +80,54 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
   }
 
   /**
+   * Check if a delete op was caused by us. Delete ops use relative paths,
+   * so we resolve to absolute for lookup against writeTokens (which stores abs paths).
+   * Consumes the tombstone on match (one-shot).
+   */
+  function isOwnedDelete(relPath: string): boolean {
+    const absPath = join(repoPath, relPath)
+
+    // Tier 1: in-memory delete tombstone (hot path)
+    if (writeTokens.consumeDelete(absPath)) return true
+
+    // Tier 2: pending delete in WriteQueue (pre-flush)
+    // Already covered by pendingPaths check in filterOwnedWriteOps,
+    // but pendingPaths uses abs paths and delete ops use rel paths,
+    // so we check explicitly here.
+    const pendingPaths = writeQueue.getPendingPaths()
+    if (pendingPaths.has(absPath)) return true
+
+    return false
+  }
+
+  /**
    * Filter reconcile ops to exclude files we wrote or have pending writes for.
    *
-   * Three suppression layers:
+   * Four suppression layers:
    * 1. writeTokens — in-memory content-hash tracking of files we wrote (post-flush)
    * 2. syncState — persisted content-hash baseline (survives restarts, falls back on cache miss)
    * 3. pendingPaths — files currently in the WriteQueue awaiting flush (pre-flush)
+   * 4. deleteTokens — in-memory tombstone for files we deleted (post-flush)
    *
    * Layer 3 is critical for the delete-noop bug (km-tui.delete-noop): after deleting
    * a node, the parent file is queued for regeneration. Before the WriteQueue flushes,
    * the old file content is still on disk. Without this check, reconciliation would
    * re-parse the stale file and re-create the deleted node.
+   *
+   * Layer 4 prevents the watcher from reconciling our own deletes: when km deletes
+   * a file via WriteQueue, the watcher sees the unlink and generates a delete op.
+   * Without this check, the delete op would re-emit node_deleted for an already-deleted node.
    */
   function filterOwnedWriteOps(ops: ReconcileOp[]): ReconcileOp[] {
     const pendingPaths = writeQueue.getPendingPaths()
-    const filtered = ops.filter((op) => !isOwnedWrite(op.path) && !pendingPaths.has(op.path))
+    const filtered = ops.filter((op) => {
+      // Delete ops use relative paths — check via dedicated delete ownership
+      if (op.type === "delete") {
+        return !isOwnedDelete(op.path)
+      }
+      // Create/update/rename ops use absolute paths
+      return !isOwnedWrite(op.path) && !pendingPaths.has(op.path)
+    })
     const skipped = ops.length - filtered.length
     if (skipped > 0) {
       log.debug?.(`reconcile: skipped ${skipped} ops for owned-write or pending-write files`)
