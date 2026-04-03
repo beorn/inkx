@@ -29,8 +29,7 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
                        WriteQueue.queue()   -> debounce + retry
                        WriteQueue.flush()   -> direct write (preserves inode)
                              |
-                       sync_state.recordProjection()  -> baseline hash
-                       writeTokens.record()           -> hot cache
+                       tracker.recordWrite()          -> L1 cache + L2 baseline
 
 
 FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
@@ -48,7 +47,7 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
        |-- scan FS entries (stat each file: path, ino, mtime)
        |-- query DB nodes under same directory
        |-- diff to generate ReconcileOps: create | update | rename | delete
-       |-- filter owned writes (two-tier: WriteTokenMap → sync_state)
+       |-- filter owned writes (two-tier: OwnershipTracker L1 → L2)
        |-- filter pending WriteQueue paths
        |
   applyReconcileOpsAsync()
@@ -84,15 +83,15 @@ the filesystem save never runs for watcher-detected changes.
 With the `withSync(config)(repo)` decorator, the apply/save split is handled
 by wrapping `repo.apply()` — no manual wiring needed.
 
-### Ownership: Two-Tier Detection
+### Ownership: Two-Tier Detection (OwnershipTracker)
 
-| Tier          | Storage       | Speed              | Survives Restart | Purpose                     |
-| ------------- | ------------- | ------------------ | ---------------- | --------------------------- |
-| WriteTokenMap | In-memory Map | O(1)               | No               | Hot cache for recent writes |
-| sync_state    | SQLite table  | O(1) prepared stmt | Yes              | Durable baseline hash       |
+| Tier                       | Storage       | Speed              | Survives Restart | Purpose                     |
+| -------------------------- | ------------- | ------------------ | ---------------- | --------------------------- |
+| L1 (in-memory write cache) | In-memory Map | O(1)               | No               | Hot cache for recent writes |
+| L2 (sync_state)            | SQLite table  | O(1) prepared stmt | Yes              | Durable baseline hash       |
 
-After writing a file: record in BOTH tiers.
-On watcher event: check WriteTokenMap first (fast), fall back to sync_state.
+After writing a file: `tracker.recordWrite()` records in BOTH tiers.
+On watcher event: L1 checked first (fast), fall back to L2 (reads file, compares hash).
 Match = our write, skip reconciliation. No match = external edit, reconcile.
 
 ### sync_state Table
@@ -150,10 +149,11 @@ CREATE TABLE sync_state (
 
 ### Ownership Tracking
 
-| Module            | Single Responsibility                                     |
-| ----------------- | --------------------------------------------------------- |
-| `write-tokens.ts` | In-memory content-hash cache (hot path, not restart-safe) |
-| `sync-state.ts`   | Persisted baseline hash in SQLite (durable, restart-safe) |
+| Module                 | Single Responsibility                                          |
+| ---------------------- | -------------------------------------------------------------- |
+| `ownership-tracker.ts` | Unified two-tier ownership: L1 in-memory + L2 SQLite           |
+| `sync-state.ts`        | Persisted baseline hash in SQLite (L2 backing store)           |
+| `write-tokens.ts`      | In-memory content-hash cache (legacy — inlined in tracker now) |
 
 ### Shared
 
@@ -222,7 +222,7 @@ All events carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance tr
 ### DB → FS (user edits)
 
 DB is always correct. Event handlers regenerate files from DB state.
-The watcher suppresses our own writes via two-tier ownership (WriteTokenMap + sync_state).
+The watcher suppresses our own writes via the OwnershipTracker (two-tier: L1 in-memory + L2 sync_state).
 
 ### FS → DB (external edits)
 
@@ -231,11 +231,11 @@ file content with DB, updates DB via `commit()` (no FS projection).
 
 ### Distinguishing our writes from external
 
-Two-tier ownership detection:
+Unified via `OwnershipTracker` (two-tier):
 
-1. **WriteTokenMap** (in-memory): SHA-256 hash recorded after each successful write.
+1. **L1** (in-memory): SHA-256 hash recorded after each successful write.
    Fast O(1) check. Not restart-safe.
-2. **sync_state table** (SQLite): Persisted baseline hash. Checked when WriteTokenMap
+2. **L2** (sync_state table, SQLite): Persisted baseline hash. Checked when L1
    misses. Restart-safe.
 
 Match = our write, skip. No match = external edit, reconcile.
@@ -256,7 +256,7 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 2. **DB authority for user events**: DB is the source of truth for all user-initiated
    mutations. Event handlers regenerate files from DB state directly.
 
-3. **Two-tier write suppression**: WriteTokenMap (hot) + sync_state (durable) prevent
+3. **Two-tier write suppression**: OwnershipTracker L1 (hot) + L2 (durable) prevent
    the watcher from reconciling files we just wrote.
 
 4. **Apply before persist**: The DB is updated before events.jsonl is appended.

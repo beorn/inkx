@@ -2,8 +2,8 @@
  * SyncState — Persisted content-hash baseline for bidirectional sync.
  *
  * Tracks what we last projected (wrote to FS) or observed (read from FS)
- * for each file path. This is the durable ground truth — WriteTokenMap
- * is the hot in-memory cache checked first for speed.
+ * for each file path. This is the durable L2 backing store for
+ * OwnershipTracker. The L1 in-memory cache is checked first for speed.
  *
  * Used to detect whether a file change is ours or external without
  * relying solely on volatile in-memory state.
