@@ -545,8 +545,7 @@ class KmDaemon extends EventEmitter {
     // Set up event hub for broadcasting
     this.emitter.setEventHub({ broadcast: (event) => this.broadcast(event) })
 
-    // Wire up filesystem sync so events propagate to markdown files
-    this.emitter.setFsSync(this.sync)
+    // Note: createSync() internally wires emitter.setFsSync() via withSync
 
     // Startup sweep - sync filesystem
     this.log("Starting filesystem sync...")

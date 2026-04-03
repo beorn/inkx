@@ -1631,7 +1631,7 @@ export function* createRepo(
   const remainingUnexplored = [...unexploredDirs]
 
   // Register lightweight FS writer for disk-mode repos (CLI write-back).
-  // The TUI replaces this with SyncManager via emitter.setFsSync().
+  // The TUI replaces this with withSync() which decorates the repo.
   if (mode === "disk") {
     emitter.setFsSync(new FsWriter(db, rootPath, emitter))
   }

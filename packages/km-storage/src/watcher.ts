@@ -1,8 +1,9 @@
 /**
  * Watcher - File Sync Service
  *
- * Wraps createSync() to implement the Service interface for lifecycle control.
+ * Wraps createSync() (legacy) to implement the Service interface for lifecycle control.
  * Created via createWatcher() or repo.watch().
+ * New code should use withSync(config)(repo) directly.
  */
 
 import { createLogger } from "loggily"
