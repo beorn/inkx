@@ -22,7 +22,7 @@ import { createBoardState } from "./board-types.ts"
 import type { InitialBoardData, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { BoardApp } from "./views/index.ts"
-import { createSync, type Sync } from "@km/storage"
+import { withSync, type Sync } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -113,14 +113,12 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
     log.debug?.(`Creating sync rootPath=${state.rootPath} watch=true worker=${useWorker}`)
-    syncManager = createSync({
-      db: options.repo.database,
-      repoPath: state.rootPath,
+    // withSync decorates the repo, wiring emitter.setFsSync internally
+    const syncedRepo = withSync({
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes
       conflictStrategy: "last_write_wins",
       useWorker, // Use worker thread by default (non-blocking)
-      emitter: options.repo.emitter, // Share emitter so FS-origin events flow through eventHub
       callbacks: {
         // Wire up filesystem changes → TUI refresh.
         // When sync finishes reconciling external file changes (DB updated),
@@ -148,10 +146,8 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
           kmEvents.emit("sync-error", { path: "", message: error instanceof Error ? error.message : String(error) })
         },
       },
-    })
-
-    // Wire up TUI changes → filesystem (always enabled for writes)
-    options.repo.emitter.setFsSync(syncManager)
+    })(options.repo)
+    syncManager = syncedRepo
 
     log.debug?.("Starting sync...")
     syncManager.start()

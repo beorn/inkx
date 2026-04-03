@@ -5,7 +5,13 @@
 import type { Database } from "bun:sqlite"
 
 import type { Emitter } from "../../src/emitter.ts"
-import { createSync, type Sync, type SyncConfig, type LegacySyncConfig, type SyncCallbacks } from "../../src/watch/sync.ts"
+import {
+  createSync,
+  type Sync,
+  type SyncConfig,
+  type LegacySyncConfig,
+  type SyncCallbacks,
+} from "../../src/watch/sync.ts"
 
 /** Default sync config for tests - fast debounces, no worker */
 const TEST_DEFAULTS: Partial<LegacySyncConfig> = {
