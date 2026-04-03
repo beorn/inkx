@@ -22,19 +22,81 @@ app coordination     Board.apply(state, op)      → [state, effects]
 
 ### Terminology
 
-Consistent naming across all layers — no mixing of synonyms:
+See [glossary.md](../glossary.md) for full definitions. Consistent naming across all layers:
 
 | Concept | Term | Not |
 |---|---|---|
-| Data passed to `.apply()` | **operation** (`op`) | ~~action~~, ~~message~~, ~~command~~ |
+| Something that happened | **event** | — |
+| Named, registered event handler | **command** | ~~action~~ |
+| Data passed to `.apply()` | **op** | ~~action~~, ~~message~~ |
+| Pure function implementing one op type | **op handler** | ~~reducer~~, ~~case~~ |
+| Factory binding handler + creating op data | **defineOp()** | — |
+| Read-only derivation from state | **selector** | ~~getter~~ |
+| Creates initial state | **constructor** | — |
 | Result side channel | **effect** | ~~side effect~~, ~~cmd~~ |
-| Type + function namespace | **domain interface** | ~~module~~, ~~class~~ |
-| State transition function | **`.apply()`** | ~~`.update()`~~, ~~`.reduce()`~~ |
-| High-level compound operations | **transform** | ~~command~~ (reserved for user intent) |
-| Phase 1 character ops | **PlainTextOp** | ~16 high-level ops (cursor_left, yank, kill_to_end) |
-| Phase 4 structural ops | **TreeOp** | 9 SlateJS-compatible tree ops (insert_node, split_node) |
+| Persisted record of what changed | **change** | ~~committed event~~ |
+| Type + function namespace | **domain interface** | ~~noun-singleton~~, ~~class~~ |
+| State transition dispatcher | **`.apply()`** | ~~`.update()`~~, ~~`.reduce()`~~ |
 
-**Note**: silvery's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = operation and `model` = state. We don't rename createStore — it's a general-purpose TEA container, not a domain interface.
+**Ban**: `Action` as a type name. Use `*Op` for dispatch types (`BoardOp`, `TreeOp`, `PlainTextOp`).
+
+### Domain interface anatomy
+
+A domain interface groups everything for one domain concept:
+
+```ts
+const Selection = {
+  // Constructor — creates initial state
+  create():                  Selection
+
+  // Selectors — read-only derivations from state
+  cursor(sel):               ID | undefined
+  ids(sel):                  ReadonlySet<ID>
+  isEditing(sel):            boolean
+
+  // Apply — dispatches ops to their handlers
+  apply(state, op):          [Selection, Effect[]]
+}
+```
+
+### Op handlers and defineOp()
+
+An **op handler** is the pure function that implements one op type. `defineOp()` binds a handler to an op type name, producing both the op creator (makes serializable data) and registering the handler for `apply()`:
+
+```ts
+// defineOp: binds handler + creates op data
+const toggle = defineOp("toggle", (state: Selection, { id }: { id: ID }) => {
+  // pure implementation — returns next state
+})
+
+// As op creator: produces serializable data
+toggle({ id: "abc" })  // → { type: "toggle", id: "abc" }
+
+// apply() dispatches to the handler:
+Selection.apply(state, toggle({ id: "abc" }))
+```
+
+This pattern makes the transition from "direct function call" to "dispatched machine" mechanical — just wrap the function in `defineOp()`. The handler stays pure and testable either way.
+
+### Unified pipeline
+
+```
+event → command/handler → op → apply(state, op) → [state, effects]
+                                      ↕                    ↓
+                                    state              changes
+                                      ↑                    ↓
+                                signals update ◄── persist + notify
+```
+
+**Providers** create events (keyboard, mouse, FS watcher, sync, timer). **Event handlers** process events into ops. **Commands** are event handlers that are registered — they get an ID, keybinding, and appear in the palette. Other handlers (reconciler, sync, heartbeat) produce ops too but aren't user-invocable.
+
+**Op types are named after the consuming machine**, not the producing source:
+- `BoardOp` — consumed by `Board.apply()`
+- `TreeOp` — consumed by `Tree.apply()` (invertible, atomic, serializable)
+- `PlainTextOp` — consumed by `PlainText.apply()`
+- `KmOp` — union of all domain ops, consumed by the root machine
+
+**Note**: silvery's `createStore` predates this design and uses `(msg, model) → [Model, Effect[]]`. Conceptually `msg` = op and `model` = state.
 
 ## Why This Shape
 

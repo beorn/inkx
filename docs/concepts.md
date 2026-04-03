@@ -189,27 +189,22 @@ The `/ .md #` suffix shows what was collapsed. See [ref/ui.md](ref/ui.md).
 
 ## Glossary
 
-| Term                | Definition                                                                  |
-| ------------------- | --------------------------------------------------------------------------- |
-| **KNode**           | Flat record with `parent_id`. Stored in SQLite.                             |
-| **TNode**           | Recursive tree with `children[]`. For navigation.                           |
-| **BoardState**      | Visual state: cursor, selection, fold, zoom.                                |
-| **repo root**       | Single folder node with `parent_id = null` representing the repository.     |
-| **memory mode**     | No `.km/`. SQLite in RAM. Ephemeral IDs.                                    |
-| **disk mode**       | `.km/` exists. SQLite on disk. Stable IDs, events, sync.                    |
-| **domain object**   | Plain object created by factory function with explicit dependencies.        |
-| **async generator** | Function that yields values over time. Composes into pipelines.             |
-| **composability**   | Ability to build complex systems from simple, reusable pieces.              |
-| **collapsing**      | Merging same-named folder/file/H1 into one display line.                    |
-| **cursoring**       | Moving to adjacent block (hjkl).                                            |
-| **navigating**      | Changing board root via zoom (u/Enter).                                     |
-| **shifting**        | Moving selected nodes in direction (opt+hjkl).                              |
-| **representation**  | One storage form translates to another (FileTree represents DataStore).     |
-| **fail fast**       | Throw immediately on programming errors, no defensive fallbacks.            |
-| **disposable**      | Object with `Symbol.dispose` for automatic cleanup via `using` keyword.     |
-| **pipeline**        | Composable sequence of async generator stages for data processing.          |
-| **buffering stage** | Async generator that exhausts upstream before yielding (for transactions).  |
-| **streaming stage** | Async generator that yields items as they arrive (for parallel processing). |
+See [glossary.md](glossary.md) for the full project glossary. Key terms for this page:
+
+| Term | Definition |
+|---|---|
+| **KNode** | Flat record with `parent_id`. Stored in SQLite. |
+| **TNode** | Recursive tree with `children[]`. For navigation. |
+| **domain object** | Stateful instance created by factory function. Examples: Repo, Term, Scope. |
+| **domain interface** | Type + pure function namespace sharing one name. Examples: KNode, Selection, ViewTree. |
+| **domain type** | Plain data shape, no function namespace. Examples: TextPoint, ID. |
+| **event** | Something that happened (keypress, file change, sync). |
+| **command** | Registered event handler (named, keybinding-mapped, palette-discoverable). |
+| **op** | Serializable data dispatched to `Machine.apply()`. |
+| **op handler** | Pure function implementing one op type, bound via `defineOp()`. |
+| **selector** | Pure function deriving a value from state. |
+| **effect** | Side-effect instruction emitted by apply. |
+| **change** | Persisted record of what changed (e.g., `node_created`). |
 
 ---
 

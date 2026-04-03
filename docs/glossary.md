@@ -16,26 +16,37 @@ This glossary is the single source of truth for project terminology. Use these t
 
 **vault** — A directory of markdown files managed by km. The user's primary working directory, often referenced as `~vault`.
 
-## User Input Pipelines
+## Unified Pipeline
 
-km has two parallel paths from user input to state change:
+```
+event → command/handler → op → apply(state, op) → [state, effects] → change
+```
 
-**Command path** (keyboard/palette -> named intent -> tree mutation -> persisted record):
-- **command** = named user intent (e.g., `file.save`). Triggered by keybinding or palette.
-- **operation** = atomic tree change (e.g., `insert_node`, `move_node`). The TEA term. Serializable.
-- **event** = storage-layer record of what happened (e.g., `node_created`). Persisted to journal.
-- (**transform** = position adjustment after operations, keeping Points/Ranges valid.)
+Six terms, no ambiguity:
 
-**Selection path** (pointer/keyboard -> physical gesture -> selection state):
-- **gesture** = physical interaction (click, drag, shift+click). Has a lifecycle: start, morph, commit/cancel.
-- **selecting kind** = classification of a gesture (`node`, `node-toggle`, `node-area`, etc.).
-- **Selecting.\* functions** = compute the next Selection from current state + inputs.
+- **event** — something happened (keyboard, mouse, FS change, sync, timer)
+- **command** — registered event handler (named, keybinding-mapped, palette-discoverable). One kind of handler — FS watcher, sync, and timers also handle events but aren't commands.
+- **op** — serializable data dispatched to `Machine.apply()`. Named after the consuming machine (`BoardOp`, `TreeOp`, `PlainTextOp`).
+- **apply()** — pure state transition: `(state, op) → [state, effects]`. Dispatches to **op handlers**.
+- **effect** — side-effect instruction emitted by apply (persist, notify, clipboard).
+- **change** — persisted record of what changed (e.g., `node_created`, `node_moved`).
+
+### Domain interface anatomy
+
+Each domain groups: **constructor** (creates state), **selectors** (read state), **apply** (transitions state via ops), **op handlers** (implement individual op types via `defineOp()`).
+
+### Selection path (parallel)
+
+Selection uses **transitions** (direct pure functions) rather than dispatched ops:
+- **gesture** = physical interaction with lifecycle (start, morph, commit/cancel)
+- **selecting kind** = classification (`node`, `node-toggle`, `node-area`, etc.)
+- **Selecting.\*** = transition functions computing next Selection from current + inputs
 
 ## Terms
 
 ### A
 
-**action** — A generic term for something that happens. In TEA context, the precise term is *operation*. In `@km/commands`, `CommandAction` uses "action" for its discriminated union of user-intent operations.
+**action** — Banned as a type name (too vague). Use *op* for dispatch data, *command* for named intent, *change* for persisted record. "Action" is fine in informal prose.
 
 **ag** — Short for "abstract graphics." The core rendering abstraction in silvery — a tree of `AgNode` objects produced by the React reconciler, which the pipeline lays out and renders to a terminal buffer.
 
@@ -83,7 +94,9 @@ km has two parallel paths from user input to state change:
 
 **column** — A visual role for a KNode at depth 1 (direct child of the board root). Rendered as a vertical lane containing cards.
 
-**command** — A named, introspectable user intent with an ID (e.g., `file.save`), label, description, and execute function. The command ID is serializable; keybindings map to command IDs, not directly to handlers. Commands call tree methods that produce *operations*, which become *events* when persisted.
+**change** — A persisted record of what changed in the storage layer (e.g., `node_created`, `node_moved`). Changes carry an `origin` (`"tui"`, `"fs"`, `"replay"`, `"system"`). The final stage of the pipeline: event → command → op → apply → effect → change.
+
+**command** — A registered event handler with an ID (e.g., `file.save`), label, keybinding, and execute function. Commands resolve input events + context into ops. One kind of event handler — FS watcher, sync, and timers also produce ops but aren't commands (not user-invocable, not in the palette).
 
 **command palette** — A searchable dialog listing all available commands. Opened via `:`. Users can fuzzy-search and invoke any command by name.
 
@@ -94,6 +107,8 @@ km has two parallel paths from user input to state change:
 **composability** — A core design principle: build complex systems from simple, reusable pieces — plain objects from factories, async generator pipelines, and decorator composition.
 
 **computed** — A derived reactive signal that recomputes when its dependencies change. In the selection model, `selectingKind`, `selecting`, `selection`, `hoverTarget`, and `dropEffect` are all computed signals.
+
+**constructor** — A function on a domain interface that creates initial state (`Selection.create()`, `Board.create(rootId)`). Part of the domain interface anatomy alongside selectors and apply.
 
 **contentRect** — The available content area of a component after accounting for padding, borders, and layout. Accessed via `useContentRect()` — synchronous, available during render.
 
@@ -110,6 +125,8 @@ km has two parallel paths from user input to state change:
 **cursor** — The primary selected node. `Selection.nodes[0]` is always the cursor. Determines which node receives edit operations and keyboard input. Contrast with *anchor*.
 
 ### D
+
+**defineOp()** — Factory that binds an op handler to a type name, producing both an op creator (makes serializable data) and registering the handler for `apply()`. Makes the transition from direct function call to dispatched machine mechanical.
 
 **depth** — A node's distance from the board root in the tree. Determines its visual role: 0 = board, 1 = column, 2 = card, 3+ = sub-item.
 
@@ -265,7 +282,11 @@ km has two parallel paths from user input to state change:
 
 **oi** — A km-ast parse type for outline items (folders, files, sections). Maps to KNode with `type: "h"` and `item`. Parser concept only — `fstype` distinguishes folder, file, and mdsection at the KNode level.
 
-**operation** — In TEA, a serializable data value passed to `.apply()` that describes an atomic state change. At the tree level, 7 operations: `insert_node`, `remove_node`, `set_node`, `move_node`, `split_node`, `merge_node`, `set_selection`. Each operation becomes an *event* when persisted.
+**op** — Serializable data dispatched to `Machine.apply()`. Named after the consuming machine: `BoardOp`, `TreeOp`, `PlainTextOp`. The universal term for "dispatchable state-machine input." `KmOp` is the union of all domain ops. See also: *op handler*, *defineOp()*, *apply*.
+
+**op handler** — A pure function implementing one op type within a machine. Op handlers are bound to type names via `defineOp()` and dispatched by `apply()`. Testable independently.
+
+**operation** — Synonym for *op*. Used in prose ("tree operations") and for the legacy `Operation` type (being renamed to `TreeOp`). At the tree level, 7 operations: `insert_node`, `remove_node`, `set_node`, `move_node`, `split_node`, `merge_node`, `set_selection`. Each becomes a *change* when persisted.
 
 **output phase** — The final phase of silvery's rendering pipeline. Diffs the new TerminalBuffer against the previous one and emits minimal ANSI escape sequences. Supports fullscreen and inline modes.
 
@@ -344,6 +365,8 @@ km has two parallel paths from user input to state change:
 **screenRect** — The absolute terminal coordinates of a component after layout. Used for hit testing and absolute positioning.
 
 **scroll** — `overflow="scroll"` on a Box enables automatic scrolling. silvery measures children, renders only what fits, and shows scroll indicators.
+
+**selector** — A pure function on a domain interface that derives a value from state without changing it. Examples: `Selection.cursor(sel)`, `Selection.ids(sel)`, `Board.visibleNodes(state)`. Part of the domain interface anatomy alongside constructors and apply.
 
 **selected** — The committed selection state that persists between gestures. Only updated when a gesture commits. `undefined` means board mode (no selection).
 
