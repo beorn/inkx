@@ -111,9 +111,20 @@ Consumers call `Selection.cursor(sel)`, `Selection.includes(sel, id)` — they d
 
 ## Interactions
 
-Every way selection changes, categorized by commit behavior.
+### Selection types
 
-### Instant (commit immediately)
+Six kinds of selection interaction. The first four are **overlays** — tentative until the gesture ends (shift released, mouse drag ended), cancellable with Escape.
+
+| Type | Input | What changes | Overlay? |
+|---|---|---|---|
+| `node-areaselect` | mouse drag (lasso) | `ids` (replace or XOR) | **yes** — commit on mouseup |
+| `node-shiftselect` | shift+click / shift+j/k | `node` + `ids` (range walk) | **yes** — commit on shift release |
+| `text-dragselect` | click+drag in text | `text` (anchor→focus) | **yes** — commit on mouseup |
+| `text-shiftselect` | shift+arrow / shift+click in text | `text` (extend range) | **yes** — commit on shift release |
+| `text-cursor` | click in text / arrow keys | `text` (position caret) | no — instant |
+| `node-select` | click / cmd+click / j/k / API | `node` + `ids` (replace or toggle) | no — instant |
+
+### Instant actions (node-select, text-cursor)
 
 | Trigger | Action |
 |---|---|
@@ -126,19 +137,8 @@ Every way selection changes, categorized by commit behavior.
 | Escape (multi) | `collapseToCursor` |
 | Escape (single) | `clear` |
 | j / k | `select(next/prev)` |
+| Arrow keys (in text) | `moveTextCursor(offset)` |
 | API "Select X" | `select("X")` |
-| API "Also Y" | `add("Y")` |
-| API "Deselect Y" | `remove("Y")` |
-
-### Overlay (preview → commit on gesture end)
-
-| Trigger | Overlays | Commit on |
-|---|---|---|
-| Shift+click / Shift+j/k | `node` + `ids` (range walk) | mouseup / shift release |
-| Drag lasso | `ids` (hit-test, replace) | mouseup |
-| Cmd+drag lasso | `ids` (hit-test, XOR) | mouseup |
-| Click+drag in text | `text` (drag-select) | mouseup |
-| Shift+arrow in text | `text` (extend range) | shift release |
 
 ### Visual only (no selection change)
 
@@ -147,15 +147,16 @@ Every way selection changes, categorized by commit behavior.
 | Drag selected nodes | drop indicator |
 | Hover | hover highlight |
 
-### Gesture session types
+### Gesture session types (for overlays)
 
 ```ts
-type GestureSession = { base: SelectionValue }
+type GestureSession = { base: SelectionValue }  // frozen at gesture start
 
-type AreaSelectSession   = GestureSession & { kind: "areaSelect"; hitIds: ReadonlySet<ID>; mode: "replace" | "xor" }
-type TextSelectSession   = GestureSession & { kind: "textSelect"; anchor: TextPoint; focus: TextPoint }
-type ExtendSession       = GestureSession & { kind: "extend"; anchor: ID; focus: ID }
-type DragSession         = { kind: "drag"; dragging: ReadonlySet<ID>; dropTarget: NodeDropTarget | null; dropEffect: "move" | "copy" | "link" }
+type AreaSelectSession   = GestureSession & { kind: "node-areaselect"; hitIds: ReadonlySet<ID>; mode: "replace" | "xor" }
+type NodeExtendSession   = GestureSession & { kind: "node-shiftselect"; anchor: ID; focus: ID }
+type TextDragSession     = GestureSession & { kind: "text-dragselect"; anchor: TextPoint; focus: TextPoint }
+type TextExtendSession   = GestureSession & { kind: "text-shiftselect"; anchor: TextPoint; focus: TextPoint }
+type DragDropSession     = { kind: "drag"; dragging: ReadonlySet<ID>; dropTarget: NodeDropTarget | null; dropEffect: "move" | "copy" | "link" }
 ```
 
 ## Example Flow
