@@ -117,14 +117,14 @@ CREATE TABLE sync_state (
 
 ### Orchestration
 
-| Module                     | Single Responsibility                                                   |
-| -------------------------- | ----------------------------------------------------------------------- |
+| Module                     | Single Responsibility                                                       |
+| -------------------------- | --------------------------------------------------------------------------- |
 | `sync.ts`                  | `withSync()` decorator: wraps repo.apply() with FS sync, watcher, heartbeat |
-| `heartbeat.ts`             | Periodic anti-entropy reconciliation (configurable interval, idle-gated) |
-| `bulk-sync.ts`             | `BulkSync.fromFs()` / `.toFs()` — one-shot sync operations             |
-| `reconciliation-engine.ts` | FS→DB: owned-write filtering, reconciliation, observation recording     |
-| `fs-writer.ts`             | CLI mode: synchronous DB→FS write-back, no watcher, no debouncing       |
-| `emitter.ts`               | commit/save split: DB+persist+broadcast vs FS save                      |
+| `heartbeat.ts`             | Periodic anti-entropy reconciliation (configurable interval, idle-gated)    |
+| `bulk-sync.ts`             | `BulkSync.fromFs()` / `.toFs()` — one-shot sync operations                  |
+| `reconciliation-engine.ts` | FS→DB: owned-write filtering, reconciliation, observation recording         |
+| `fs-writer.ts`             | CLI mode: synchronous DB→FS write-back, no watcher, no debouncing           |
+| `emitter.ts`               | commit/save split: DB+persist+broadcast vs FS save                          |
 
 ### FS → DB
 
@@ -270,13 +270,13 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 Both handle DB→FS via shared `EventHandlers` with `save(node)` as the core verb.
 Differ only in the `FsWriteTarget` they inject:
 
-| Aspect             | withSync (TUI)                         | FsWriter (CLI)       |
-| ------------------ | -------------------------------------- | -------------------- |
+| Aspect             | withSync (TUI)                         | FsWriter (CLI)                    |
+| ------------------ | -------------------------------------- | --------------------------------- |
 | Composition        | `withSync(config)(repo)` decorator     | `new FsWriter(db, path, emitter)` |
-| FsWriteTarget      | WriteQueue (async, debounced, retried) | writeFileSync (sync) |
-| Watcher            | Yes (chokidar + heartbeat)             | No                   |
-| In-flight tracking | Yes (markInFlight/clearInFlight)       | No                   |
-| Lifecycle          | Long-running, `await using`            | One-shot, GC'd       |
+| FsWriteTarget      | WriteQueue (async, debounced, retried) | writeFileSync (sync)              |
+| Watcher            | Yes (chokidar + heartbeat)             | No                                |
+| In-flight tracking | Yes (markInFlight/clearInFlight)       | No                                |
+| Lifecycle          | Long-running, `await using`            | One-shot, GC'd                    |
 
 ## Configuration
 

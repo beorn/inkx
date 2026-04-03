@@ -82,7 +82,7 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
  *
  * Uses the ViewTree (which drives rendering) so navigation exactly matches what
  * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
- * at construction time — same approach as ViewTree.nodeIds for spatial nav.
+ * at construction time — same approach as ViewTree.nodes() for spatial nav.
  */
 function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)

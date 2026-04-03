@@ -47,7 +47,7 @@ import {
   getSubtree as dbGetSubtree,
   getSubtreeShallow as dbGetSubtreeShallow,
 } from "./db-queries/tree-traversal.ts"
-import { createEmitter, type Emitter } from "./emitter.ts"
+import { createEmitter, type Emitter, type EmitOptions } from "./emitter.ts"
 import type { FileTree } from "./file-tree.ts"
 import { createDiskFileTree } from "./file-tree.ts"
 import { executeQuery, parseQuery } from "./query.ts"
@@ -797,6 +797,26 @@ export interface Repo extends Disposable {
 
   /** Event emitter for this repo (owns kmDir, eventHub, fsSync) */
   readonly emitter: Emitter
+
+  /**
+   * Apply an event to the system (DB + journal + broadcast + FS sync).
+   * Delegates to emitter.apply(). Prefer this over emitter.apply() directly.
+   */
+  apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+
+  /**
+   * Commit an event to DB + journal + broadcast (no FS sync).
+   * Use for FS-origin events where projecting back to FS would cause echo loops.
+   * Delegates to emitter.commit().
+   */
+  commit(event: Omit<Event, "id" | "ts">, options?: Omit<EmitOptions, "skipFsSync">): Event
+
+  /**
+   * Save an already-committed event to the filesystem.
+   * Only triggers FS sync — no DB apply, no persist, no broadcast.
+   * Delegates to emitter.save().
+   */
+  save(event: Event): void
 
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)
@@ -1759,6 +1779,17 @@ export function* createRepo(
 
     emitter,
 
+    // Event application (delegates to emitter)
+    apply(event, options?) {
+      return emitter.apply(event, options)
+    },
+    commit(event, options?) {
+      return emitter.commit(event, options)
+    },
+    save(event) {
+      emitter.save(event)
+    },
+
     // Spread shared query and mutation methods
     ...queryMethods,
     ...mutationMethods,
@@ -1982,6 +2013,17 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     get emitter() {
       ensureOpen()
       return emitter
+    },
+
+    // Event application (delegates to emitter)
+    apply(event, options?) {
+      return emitter.apply(event, options)
+    },
+    commit(event, options?) {
+      return emitter.commit(event, options)
+    },
+    save(event) {
+      emitter.save(event)
     },
 
     // Spread shared query and mutation methods

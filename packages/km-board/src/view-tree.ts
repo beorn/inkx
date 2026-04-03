@@ -607,9 +607,6 @@ export const ViewTree = {
   // first(root) — first node in DFS
   // last(root) — last node in DFS (= nodes({ reverse }) first)
   // common(index, idA, idB) — lowest common ancestor
-  // first(root) — first node in DFS
-  // last(root) — last node in DFS (= nodes({ reverse }) first)
-  // common(index, idA, idB) — lowest common ancestor
 }
 
 // =============================================================================
