@@ -99,16 +99,16 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   const fakeEmitter: Emitter = {
     kmDir: "/fake/.km",
     eventsPath: "/fake/.km/events.jsonl",
-    emit(event) {
-      // No-op emit for fake repo - just return a full event
+    apply(event) {
+      // No-op apply for fake repo - just return a full event
       return { id: ulid(), ts: Date.now(), ...event } as Event
     },
     commit(event) {
       // No-op commit for fake repo - just return a full event (no FS projection)
       return { id: ulid(), ts: Date.now(), ...event } as Event
     },
-    project(_event) {
-      // No-op project for fake repo
+    save(_event) {
+      // No-op save for fake repo
     },
     setEventHub(hub) {
       fakeEventHub = hub
@@ -179,6 +179,17 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
     config: {} as any,
     emitter: fakeEmitter,
+
+    // Event application (delegates to fakeEmitter)
+    apply(event, options?) {
+      return fakeEmitter.apply(event, options)
+    },
+    commit(event, options?) {
+      return fakeEmitter.commit(event, options)
+    },
+    save(event) {
+      fakeEmitter.save(event)
+    },
 
     sync() {
       // FakeRepo is in-memory, sync is a no-op
