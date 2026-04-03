@@ -136,6 +136,22 @@ const Selection = {
 - `update({ type: "activateScope", scopeId }, state, tree)` switches the active scope
 - Each scope remembers its last selection (like `FocusManager.scopeMemory`)
 
+## Consumer Taxonomy
+
+Different consumers need different slices of selection. The flat type makes all of them ergonomic:
+
+| Consumer | What it needs | Code |
+|---|---|---|
+| Inspector/properties | cursor node | `sel?.cursor` |
+| Keyboard routing | editing text? | `sel?.text !== undefined` |
+| Delete/move/copy | all selected nodes | `sel?.nodeIds` |
+| Per-node highlight | is this node selected? | `sel?.nodeIds.has(id) ?? false` |
+| Paste/Enter | text-first fallback | `sel?.text ? textOp() : nodeOp(sel.cursor)` |
+| Insert new content | insertion point | `Selection.insertionPoint(sel, tree)` |
+| Scroll-to-reveal | cursor node | `sel?.cursor` |
+
+The hot path is per-node highlight — called per-node per-render. `Set.has()` is O(1).
+
 ## Example Flow
 
 A concrete walkthrough showing stored state and derived values at each step.
