@@ -90,6 +90,37 @@ const inputMode = computed(() => Selection.inputMode(selection.value))
 
 Commit (mouseup / shift release) writes `selecting.effective()` to `selected`. Cancel (Escape) clears `selecting`.
 
+### State machine
+
+Unlike Decker (which fights the browser's selection machinery), silvery owns selection completely — it's pure reactive state.
+
+```
+                    ┌──────────────────────────────────────────────┐
+                    │                                              │
+    ┌───────┐  click/j/k  ┌──────┐  Enter/click-text  ┌──────┐   │
+    │ board │────────────► │ node │───────────────────► │ text │   │
+    └───────┘              └──────┘ ◄──────────────────┘──────┘   │
+        ▲                     │  ▲      Escape             │      │
+        │ Escape              │  │                         │      │
+        │ (single)            │  └─────────────────────────┘      │
+        │                     │   cmd-click/shift/lasso/Escape    │
+        └─────────────────────┘                                   │
+                              │                                   │
+                              │  gesture starts                   │
+                              ▼                                   │
+                         ┌───────────┐                            │
+                         │ selecting │  (tentative)               │
+                         └───────────┘                            │
+                           │       │                              │
+                     commit│       │cancel                        │
+                           ▼       └──────────────────────────────┘
+                     selected updated                        (restore)
+```
+
+Three modes (`board` → `node` → `text`) derived from `selection`. Escape steps up one level. Gestures enter `selecting` (tentative) which either commits or cancels.
+
+All transitions are reactive signal updates — no DOM selection API, no `window.getSelection()`, no `selectionchange` events. The entire state machine is testable as pure functions.
+
 ## Public API (`Selection.*`)
 
 Outside the selection module, code uses these helpers rather than reading fields directly. The `Selection` namespace (distinct from the `Selection` type) is the public interface.
