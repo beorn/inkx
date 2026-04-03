@@ -12,9 +12,11 @@
  * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
  */
 
-import { useRef, useState, useSyncExternalStore } from "react"
+import { useRef, useState } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
+import { useStore } from "../store-context.tsx"
+import { useCommitVersion } from "./use-signal.ts"
 import { createLogger } from "loggily"
 import type { CardView, ColumnView } from "../types.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
@@ -284,8 +286,10 @@ export function useColumns(
   foldDepths: Map<string, number>,
   viewMode?: string,
 ): ColumnView[] {
-  // Subscribe to repo mutations — triggers re-render on any mutation
-  const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
+  // Subscribe to all store commits — triggers re-render on any structural change.
+  // Uses broad subscription because column layout can be affected by any mutation.
+  const store = useStore()
+  const repoVersion = useCommitVersion(store)
 
   // Batch-preload children cache before column derivation + Card mount.
   const derive = viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo

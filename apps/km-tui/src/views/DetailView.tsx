@@ -10,20 +10,25 @@
  * convention (e.g., "__meta__Status", "__meta__Due").
  */
 
-import React, { useEffect, useMemo, useSyncExternalStore } from "react"
+import React, { useMemo } from "react"
 import { Box, Text, Small, H1, H2, H3, Muted, Blockquote, CodeBlock, HR } from "@silvery/ag-react"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { extractTaskDates } from "@km/core"
 import { getStatusIcon } from "../icons.ts"
-import { InlineText, InlineRenderProvider, type InlineRenderContext } from "../text/InlineComponents.tsx"
+import { InlineText, InlineRenderProvider } from "../text/InlineComponents.tsx"
 import { useTreeInlineContext } from "./tree-node-shared.ts"
 import { useRepo } from "../repo-context.tsx"
+import { useStore } from "../store-context.tsx"
+import { useChildIdsSignal } from "../hooks/use-signal.ts"
+import { ResourceState } from "@km/storage"
 import { useNodeStore, useReactive } from "../reactive.ts"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
 import { resolveEmbed } from "./embed-display.ts"
 import { parseDepsRefs } from "./tree-node-helpers.tsx"
+import { CheckboxIcon } from "./CheckboxIcon.tsx"
+import { useTreeRenderContext } from "../ui-context.tsx"
 
 // =============================================================================
 // DetailView Component
@@ -55,6 +60,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const repo = useRepo()
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const { undoHandle } = useTreeRenderContext()
 
   const rawNode = rootId ? repo.getNode(rootId) : null
   const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
@@ -63,10 +69,12 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   // All hooks must be called unconditionally (before any early return)
   const effectiveId = rootNode?.id ?? null
   const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
-  // Subscribe to repo mutations so children stay fresh after structural edits.
-  // Without repoVersion, useMemo deps [repo, effectiveId] never change for the same node.
-  const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
-  const children = useMemo(() => (effectiveId ? repo.getChildren(effectiveId) : []), [repo, effectiveId, repoVersion])
+  // Subscribe to this node's child list via signals — only re-renders when
+  // this specific parent's children change, not on every repo mutation.
+  const store = useStore()
+  const childIdsState = useChildIdsSignal(store, effectiveId ?? "")
+  const childIds = ResourceState.isLoaded(childIdsState) ? childIdsState.value : []
+  const children = useMemo(() => (effectiveId ? repo.getChildren(effectiveId) : []), [effectiveId, childIds])
   const inlineCtx = useTreeInlineContext(repo, effectiveId, undefined, undefined, undefined)
 
   if (!rootNode || !effectiveId) {
@@ -81,6 +89,8 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 
   const title = rootNode.content ?? rootNode.name ?? "(untitled)"
   const isTitleCursor = cursorCardNodeId === effectiveId
+  const rootIsTask = KNode.isTask(rootNode)
+  const rootStatusIcon = rootIsTask ? getStatusIcon(rootNode.item?.task?.status ?? "todo") : null
 
   return (
     <Box flexDirection="column" width={width} height={height} overflow="hidden">
@@ -95,6 +105,23 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           >
             <Box flexGrow={1} flexShrink={1}>
               <H1 color={isTitleCursor ? "$selection" : undefined} wrap="wrap">
+                {rootStatusIcon && (
+                  <>
+                    <CheckboxIcon
+                      nodeId={effectiveId}
+                      icon={rootStatusIcon}
+                      textColor={isTitleCursor ? "$selection" : undefined}
+                      shouldDim={false}
+                      isSelected={isTitleCursor}
+                      isMultiSelected={false}
+                      isDoneOrDropped={
+                        rootNode.item?.task?.status === "done" || rootNode.item?.task?.status === "dropped"
+                      }
+                      undoHandle={undoHandle}
+                    />
+                    <Text> </Text>
+                  </>
+                )}
                 <InlineText text={title} />
               </H1>
             </Box>
@@ -132,7 +159,13 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1 */}
           {children.length > 0 ? (
             <Box paddingLeft={1} flexDirection="column">
-              <DocContent nodes={children} depth={1} repo={repo} cursorNodeId={cursorCardNodeId} />
+              <DocContent
+                nodes={children}
+                depth={1}
+                repo={repo}
+                cursorNodeId={cursorCardNodeId}
+                undoHandle={undoHandle}
+              />
             </Box>
           ) : metaKeys.length === 0 ? (
             <Box paddingX={1}>
@@ -149,12 +182,14 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
 // DocContent — renders a node tree as a readable document
 // =============================================================================
 
-export interface DocContentProps {
+interface DocContentProps {
   nodes: KNodeType[]
   depth: number
   repo: { getChildren(parentId: string): KNodeType[]; getNode(id: string): KNodeType | null }
   cursorNodeId?: string | null
   maxExpandDepth?: number
+  /** Optional undo handle for interactive checkboxes */
+  undoHandle?: import("../undo/undoable-repo.ts").UndoableRepoHandle
 }
 
 /** Max heading depth to render content for. Deeper levels show collapsed summary. */
@@ -162,7 +197,14 @@ const MAX_EXPAND_DEPTH = 3
 /** Max items to render per level before truncating. */
 const MAX_ITEMS_PER_LEVEL = 30
 
-export function DocContent({ nodes, depth, repo, cursorNodeId, maxExpandDepth }: DocContentProps): React.ReactElement {
+export function DocContent({
+  nodes,
+  depth,
+  repo,
+  cursorNodeId,
+  maxExpandDepth,
+  undoHandle,
+}: DocContentProps): React.ReactElement {
   const effectiveMaxDepth = maxExpandDepth ?? MAX_EXPAND_DEPTH
   const visible = nodes.slice(0, MAX_ITEMS_PER_LEVEL)
   const truncated = nodes.length - visible.length
@@ -176,6 +218,7 @@ export function DocContent({ nodes, depth, repo, cursorNodeId, maxExpandDepth }:
           repo={repo}
           cursorNodeId={cursorNodeId}
           maxExpandDepth={effectiveMaxDepth}
+          undoHandle={undoHandle}
         />
       ))}
       {truncated > 0 && (
@@ -193,12 +236,14 @@ function DocNode({
   repo,
   cursorNodeId,
   maxExpandDepth,
+  undoHandle,
 }: {
   node: KNodeType
   depth: number
   repo: DocContentProps["repo"]
   cursorNodeId?: string | null
   maxExpandDepth?: number
+  undoHandle?: import("../undo/undoable-repo.ts").UndoableRepoHandle
 }): React.ReactElement {
   const content = node.content ?? node.name ?? ""
   const isHeading = KNode.isOutline(node)
@@ -234,19 +279,52 @@ function DocNode({
   // ── Heading ── H2/H3/muted-bold with spacing
   // Headings do NOT indent their children — content flows at current indent level.
   // A blank line after the heading provides visual separation.
+  // Headings that are also tasks show a task status icon before the title.
   if (isHeading) {
     const Heading = depth <= 1 ? H2 : depth === 2 ? H3 : null
     const headingColor = isCursor ? "$selection" : undefined
+    const headingTaskIcon = isTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
+    const headingIsDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
     return (
       <Box flexDirection="column">
         <Box height={1} />
         <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
           {Heading ? (
             <Heading color={headingColor} wrap="wrap">
+              {headingTaskIcon && (
+                <>
+                  <CheckboxIcon
+                    nodeId={node.id}
+                    icon={headingTaskIcon}
+                    textColor={isCursor ? "$selection" : undefined}
+                    shouldDim={false}
+                    isSelected={isCursor}
+                    isMultiSelected={false}
+                    isDoneOrDropped={headingIsDoneOrDropped}
+                    undoHandle={undoHandle}
+                  />
+                  <Text> </Text>
+                </>
+              )}
               <InlineText text={content} context={cursorCtx} />
             </Heading>
           ) : (
             <Text bold color={headingColor ?? "$muted"} wrap="wrap">
+              {headingTaskIcon && (
+                <>
+                  <CheckboxIcon
+                    nodeId={node.id}
+                    icon={headingTaskIcon}
+                    textColor={isCursor ? "$selection" : undefined}
+                    shouldDim={false}
+                    isSelected={isCursor}
+                    isMultiSelected={false}
+                    isDoneOrDropped={headingIsDoneOrDropped}
+                    undoHandle={undoHandle}
+                  />
+                  <Text> </Text>
+                </>
+              )}
               <InlineText text={content} context={cursorCtx} />
             </Text>
           )}
@@ -260,6 +338,7 @@ function DocNode({
               repo={repo}
               cursorNodeId={cursorNodeId}
               maxExpandDepth={maxExpandDepth}
+              undoHandle={undoHandle}
             />
           )
         ) : (
@@ -269,7 +348,7 @@ function DocNode({
     )
   }
 
-  // ── Task item ── status icon + content (matching board card style)
+  // ── Task item ── interactive checkbox + content (matching board card style)
   if (isTask) {
     const icon = getStatusIcon(node.item?.task?.status ?? "todo")
     const isDone = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
@@ -277,7 +356,17 @@ function DocNode({
     return (
       <Box flexDirection="column">
         <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>
-          <Text color={isCursor ? "$selection" : icon.color}>{icon.char} </Text>
+          <CheckboxIcon
+            nodeId={node.id}
+            icon={icon}
+            textColor={isCursor ? "$selection" : undefined}
+            shouldDim={false}
+            isSelected={isCursor}
+            isMultiSelected={false}
+            isDoneOrDropped={isDone}
+            undoHandle={undoHandle}
+          />
+          <Text> </Text>
           <Text color={textColor} strikethrough={isDone} wrap="wrap">
             <InlineText text={content} context={cursorCtx} />
           </Text>
@@ -290,6 +379,7 @@ function DocNode({
               repo={repo}
               cursorNodeId={cursorNodeId}
               maxExpandDepth={maxExpandDepth}
+              undoHandle={undoHandle}
             />
           )
         ) : (
@@ -317,6 +407,7 @@ function DocNode({
               repo={repo}
               cursorNodeId={cursorNodeId}
               maxExpandDepth={maxExpandDepth}
+              undoHandle={undoHandle}
             />
           )
         ) : (

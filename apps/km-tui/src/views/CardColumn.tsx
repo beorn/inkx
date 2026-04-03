@@ -6,7 +6,7 @@
  * NODE MODEL V2: Receives ColumnView with CardView cards.
  * "column" is a parent KNode wrapped in ColumnView, "card" is a CardView (KNode + resolved embed data).
  */
-import React, { useCallback, useEffect, useMemo, useSyncExternalStore } from "react"
+import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
@@ -30,6 +30,9 @@ import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderConte
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore, useReactive } from "../reactive.ts"
+import { useStore } from "../store-context.tsx"
+import { useChildIdsSignal } from "../hooks/use-signal.ts"
+import { ResourceState } from "@km/storage"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent } from "./tree-node-helpers.tsx"
 import { isCollapsedChild } from "@km/board"
@@ -68,7 +71,7 @@ const OVERSCAN = 5
 // Card Component
 // =============================================================================
 
-export interface CardProps {
+interface CardProps {
   card: KNode
   width: number
   colIndex: number
@@ -169,7 +172,7 @@ function PopoverRectRegistrar({
   return null
 }
 
-export const Card = React.memo(
+const Card = React.memo(
   function Card({
     card,
     width,
@@ -223,14 +226,14 @@ export const Card = React.memo(
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
     // Also accounts for title wrap lines (long titles that wrap to 2 lines).
     const repo = useRepo()
-    // Subscribe to repo mutations so children derivation stays fresh.
-    // Without this, useMemo below returns stale children after structural edits
-    // (e.g., indent reparents a node under this card, but useMemo deps [repo, card.id]
-    // don't change because repo is the same object reference).
-    const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
+    // Per-card child ID signal — re-derive children only when THIS card's children change,
+    // not on every repo mutation. Replaces broad useSyncExternalStore(repo.subscribe).
+    const store = useStore()
+    const childIdsState = useChildIdsSignal(store, card.id)
+    const childIds = ResourceState.isLoaded(childIdsState) ? childIdsState.value : []
     const { treeConfig } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
-    const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id, repoVersion])
+    const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id, childIds])
     // Filter out collapsed children (km.collapse:: true, detailOnly) — these are
     // only shown in the detail pane and must not inflate the overflow count.
     const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
@@ -686,7 +689,7 @@ export const Column = React.memo(function Column({
   const isColumnSelected = isSelected && selectionLevel === "column"
 
   // Derive column header presentation props (icon, colors, style)
-  const { ownColor, headerStyle, icon, typeSuffix, hasBody } = deriveColumnHeaderProps(repo, column.node, {
+  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, column.node, {
     iconStyle,
     isSelected,
     isColumnSelected,
@@ -820,7 +823,6 @@ export const Column = React.memo(function Column({
         isSelected={isSelected}
         isVirtual={isVirtual}
         wipLimit={wipLimit}
-        hasBody={hasBody}
         typeSuffix={typeSuffix}
         showSeparator
       >

@@ -1,15 +1,20 @@
-import { useMemo, useSyncExternalStore } from "react"
+import { useMemo } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
+import { ResourceState } from "@km/storage"
+import { useStore } from "../store-context.tsx"
+import { useChildIdsSignal } from "./use-signal.ts"
 
 /**
  * Generic hook to get children of any node.
- * Replaces the column-specific useColumns pattern.
- * Benefits from per-node children cache in repo.
+ * Uses per-parent child ID signals for fine-grained reactivity —
+ * only re-renders when this specific parent's children change.
  */
 export function useChildren(repo: Repo, parentId: string | null): KNode[] {
-  const repoVersion = useSyncExternalStore(repo.subscribe, repo.getSnapshot)
+  const store = useStore()
+  const childIdsState = useChildIdsSignal(store, parentId ?? "")
+  const childIds = ResourceState.isLoaded(childIdsState) ? childIdsState.value : []
   return useMemo(() => {
     return repo.getChildren(parentId)
-  }, [repoVersion, parentId])
+  }, [childIds, parentId])
 }
