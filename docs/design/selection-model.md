@@ -1,91 +1,90 @@
 # Selection Model
 
-Selection is two things: **where you are** (cursor) and **what's selected** (ids).
-Gestures build up a tentative selection (`selecting`), which commits to `selection` on gesture end.
+Selection is **where you are** and **what's selected**.
+Gestures build tentative selections (`selecting`), which commit on gesture end.
 Everything goes through `Selection.*`.
 
 ## The Type
 
 ```ts
 type ID = string & { readonly __brand: "ID" }
-type Cursor<T> = { cursor: T; anchor?: T }
 type TextPoint = { nodeId: ID; offset: number; affinity?: "forward" | "backward" }
 
-type SelectionValue = {
-  node?: Cursor<ID>            // where you are in the tree (cursor + shift-extend anchor)
-  text?: Cursor<TextPoint>     // where you are in text (caret + text selection anchor)
-  ids: ReadonlySet<ID>         // what's selected
-} | undefined
+type Selection = {
+  nodes: readonly ID[]              // [0] = cursor, [last] = anchor
+  text?: readonly TextPoint[]       // [0] = cursor, [last] = anchor — same principle
+}
+
+type SelectionState = Map<string, Selection>     // scopeName → selection
 ```
 
-Mode derived from presence: `!sel` = board, `node && !text` = node, `text` = text.
+Both arrays follow the same convention: `[0]` = cursor, `[last]` = anchor, everything between = also selected/highlighted. Collapsed = single element.
+
+Mode: `!sel` = board, `!sel.text` = node, `sel.text` = text.
+
+No separate cursor/anchor fields anywhere. No invariants to enforce — positions are structural.
 
 ## selection / selecting
 
 ```ts
-selection: SelectionValue              // committed (TEA store, frozen during gestures)
+selection: Selection | undefined           // committed (TEA store)
 
-selecting?: {                          // active gesture (transient, if any)
-  ...gestureFields                     // kind, hitIds, anchor, focus, mode, etc.
-  effective(sel, space): SelectionValue // sel + gesture delta
+selecting?: {                              // active gesture (transient)
+  ...gestureFields                         // kind, hitIds, focus, mode, etc.
+  effective(sel, space): Selection         // committed + gesture delta
 }
 
 useSelection() = selecting?.effective(selection, space) ?? selection
 ```
 
-- No gesture → consumers see `selection`
-- During gesture → consumers see `selecting.effective()`
-- **Commit** (mouseup / shift release) → effective writes to `selection`
-- **Cancel** (Escape) → `selecting` discarded
-
-Consumers never know which they're seeing. They just call `Selection.cursor(sel)`.
+No gesture → consumers see `selection`. During gesture → consumers see `effective()`.
+Commit (mouseup / shift release) → writes to store. Cancel (Escape) → discard.
 
 ## Selection.*
 
-The interface. Internals hidden — consumers never access fields directly.
+The interface. Consumers never access fields directly.
 
 ```ts
 const Selection = {
   // Read
-  cursor(sel):          ID | undefined
-  anchor(sel):          ID | undefined
-  ids(sel):             ReadonlySet<ID>
-  includes(sel, id):    boolean               // O(1)
-  isEditing(sel):       boolean
+  cursor(sel):          ID | undefined          // nodes[0]
+  anchor(sel):          ID | undefined          // nodes.at(-1)
+  includes(sel, id):    boolean                 // O(1) via cached Set
+  textCursor(sel):      TextPoint | undefined   // text?.[0]
+  textAnchor(sel):      TextPoint | undefined   // text?.at(-1)
+  isEditing(sel):       boolean                 // text !== undefined
   inputMode(sel):       "board" | "node" | "text"
   insertionPoint(sel, space): InsertionPoint
 
-  // Node mutations (clear text, enforce invariants)
-  select(id):           SelectionValue        // single node
-  add(sel, id):         SelectionValue
-  remove(sel, id, space): SelectionValue
-  toggle(sel, id, space): SelectionValue
-  extend(sel, id, space): SelectionValue      // shift: range walk anchor→id
-  collapseToCursor(sel):  SelectionValue
-  areaSelect(base, hitIds, mode, space): SelectionValue
+  // Node mutations (clear text)
+  select(id):           Selection               // nodes = [id]
+  add(sel, id):         Selection               // prepend id (becomes cursor)
+  remove(sel, id, space): Selection             // remove from array, repair ends
+  toggle(sel, id, space): Selection             // add or remove
+  extend(sel, id, space): Selection             // nodes = [id, ...range, anchor]
+  collapseToCursor(sel): Selection              // nodes = [cursor]
+  areaSelect(sel, hitIds, mode, space): Selection
 
-  // Text mutations (don't touch node/ids)
-  edit(sel, offset):    SelectionValue        // start editing at cursor node
-  stopEditing(sel):     SelectionValue
-  moveTextCursor(sel, offset): SelectionValue
-  extendTextRange(sel, offset): SelectionValue
+  // Text mutations (don't touch nodes)
+  edit(sel, offset):    Selection               // set text at cursor node
+  stopEditing(sel):     Selection               // clear text
+  moveTextCursor(sel, offset): Selection
+  extendTextRange(sel, offset): Selection
 
   // Post-edit repair
-  normalize(sel, doc, space): SelectionValue
+  normalize(sel, doc, space): Selection
 
   // TEA
   update(action, state, space): [SelectionState, SelectionEffect[]]
 }
 ```
 
-Mutations accept `ID | TextPoint | SelectionValue` as target (resolves to node ID).
-
-Node mutations always clear `text`. Text mutations never touch `node`/`ids`.
-Cursor must be in `ids` — mutators repair inline, never deferred.
+Mutations accept `ID | TextPoint | Selection` as target (resolves to node ID).
+Node mutations always clear `text`. Text mutations never touch `nodes`.
 
 ## Interactions
 
-### Instant (commit immediately)
+### Instant
 
 | Trigger | Action |
 |---|---|
@@ -96,7 +95,6 @@ Cursor must be in `ids` — mutators repair inline, never deferred.
 | Enter | `edit(0)` |
 | Escape | `stopEditing` / `collapseToCursor` / `clear` |
 | j / k | `select(next/prev)` |
-| Arrow (in text) | `moveTextCursor(offset)` |
 
 ### Overlay (preview until gesture ends)
 
@@ -107,41 +105,37 @@ Cursor must be in `ids` — mutators repair inline, never deferred.
 | `text-dragselect` | click+drag in text | mouseup |
 | `text-shiftselect` | shift+arrow in text | shift release |
 
-Gestures can **morph** mid-drag: `text-dragselect` crossing a node boundary becomes `node-areaselect`. Drag back → reverts. Only final state commits.
-
-### Visual only
-
-Drag-drop (drop indicator), hover highlight — no selection change.
+Gestures can morph mid-drag: `text-dragselect` crossing a node boundary becomes `node-areaselect`. Drag back → reverts.
 
 ## Example
 
-Tree: `A B C D E F` siblings.
+Siblings `A B C D E F`.
 
-| # | Gesture | State |
-|---|---|---|
-| 1 | Click A | `node:{cursor:"A"}, ids:{A}` |
-| 2 | Shift+D | `node:{cursor:"D", anchor:"A"}, ids:{A,B,C,D}` |
-| 3 | Cmd+B | `node:{cursor:"D", anchor:"A"}, ids:{A,C,D}` |
-| 4 | Cmd+F | `node:{cursor:"F", anchor:"A"}, ids:{A,C,D,F}` |
-| 5 | Enter | `..., text:{cursor:{F,0}}` — ids unchanged |
-| 6 | Escape | text cleared — ids unchanged |
-| 7 | Lasso B,C | `node:{cursor:"B"}, ids:{B,C}` |
-| 8 | Cmd+lasso C,D,E | `node:{cursor:"B"}, ids:{B,D,E}` |
+| # | Gesture | nodes | text |
+|---|---|---|---|
+| 1 | Click A | `[A]` | — |
+| 2 | Shift+D | `[D, B, C, A]` | — |
+| 3 | Cmd+B off | `[D, C, A]` | — |
+| 4 | Cmd+F on | `[F, D, C, A]` | — |
+| 5 | Enter | `[F, D, C, A]` | `[{F,0}]` |
+| 6 | Escape | `[F, D, C, A]` | — |
+| 7 | Lasso B,C | `[B, C]` | — |
+| 8 | Cmd+lasso C,D,E | `[B, D, E]` | — |
 
 ## SelectionSpace
 
-Order-dependent ops (`extend`, cursor repair) take a space — not a raw tree:
+Order-dependent ops take a space, not a raw tree:
 
 ```ts
 interface SelectionSpace {
   has(id: ID): boolean
   compare(a: ID, b: ID): number
-  range(a: ID, b: ID): ReadonlySet<ID>
+  range(a: ID, b: ID): readonly ID[]
   nearest(to: ID, among: Iterable<ID>): ID | null
 }
 ```
 
-Tree panes supply visible order. Canvas panes supply z-order. `extend()` uses view order — shift-select never includes hidden nodes.
+Tree panes supply visible order. Canvas panes supply z-order. `extend()` uses view order — never includes hidden nodes.
 
 ## Drop Targets
 
@@ -153,62 +147,51 @@ type InsertionPoint =
 type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
 ```
 
-`Selection.insertionPoint()` derives from cursor. Drop targets resolved by proximity during drag (Decker pattern). On drop, target converts to insertion point → document mutation.
+`Selection.insertionPoint()` derives from cursor. Drop targets by proximity during drag. On drop → insertion point → document mutation.
 
 ## Integration
 
-**Scopes**: `SelectionState = Map<string, SelectionValue>`. One scope per pane.
+**Scopes**: `Map<string, Selection>`. One per pane.
 
-**Focus**: Orthogonal. Focus (silvery) = which widget gets keys. Selection (km) = which data is selected. Active scope = `resolveSelectionOwner(focus)`. Modals don't change selection.
+**Focus**: Orthogonal (silvery). Active scope = `resolveSelectionOwner(focus)`. Modals don't change selection.
 
-**map()**: v1 uses `selectionAfter` on transactions. Generic `SelectionMapping` deferred.
+**map()**: v1 uses `selectionAfter` on transactions. Generic mapping deferred.
 
-**Undo**: Transactions carry `selectionBefore`/`selectionAfter`. Cursor-only moves don't create undo entries.
+**Undo**: Transactions carry `selectionBefore`/`selectionAfter`. Cursor-only moves no undo.
 
 ```tsx
 <SelectionProvider scopeName="board" space={space}>
   <BoardView />
 </SelectionProvider>
-
-const sel = useSelection()        // committed or gesture-effective
-const dispatch = useSelectionDispatch()
 ```
 
 ---
 
 ## Appendix
 
-### Invariants (km defaults)
-
-- `ids.size > 0` (else `undefined`)
-- `node` present when sel exists
-- `node.cursor ∈ ids`, `node.anchor ∈ ids`
-- `text.cursor.nodeId === node.cursor`
-- Node actions clear `text`; text actions don't touch `node`/`ids`
-
 ### Gesture sessions
 
 ```ts
-type AreaSelectSession  = { kind: "node-areaselect"; hitIds: ReadonlySet<ID>; mode: "replace"|"xor" }
+type AreaSelectSession  = { kind: "node-areaselect"; hitIds: readonly ID[]; mode: "replace"|"xor" }
 type NodeExtendSession  = { kind: "node-shiftselect"; anchor: ID; focus: ID }
 type TextDragSession    = { kind: "text-dragselect"; anchor: TextPoint; focus: TextPoint }
 type TextExtendSession  = { kind: "text-shiftselect"; anchor: TextPoint; focus: TextPoint }
-type DragDropSession    = { kind: "drag"; dragging: ReadonlySet<ID>; dropTarget: DropTarget|null; dropEffect: "move"|"copy"|"link" }
+type DragDropSession    = { kind: "drag"; dragging: readonly ID[]; dropTarget: DropTarget|null; dropEffect: "move"|"copy"|"link" }
 ```
+
+### Invariants (km defaults)
+
+- `nodes.length > 0` (else `undefined`)
+- `text[0].nodeId === nodes[0]` (when text present)
+- Node actions clear `text`; text actions don't touch `nodes`
 
 ### What this replaces
 
-| Before | After |
-|---|---|
-| `cursorNodeId` | `Selection.cursor(sel)` |
-| `selectionLevel` | `Selection.inputMode(sel)` |
-| `multiSelected` | `Selection.ids(sel)` |
-| `selectionAnchor` | `Selection.anchor(sel)` |
-| `inlineEditBlock` | `Selection.isEditing(sel)` |
+`cursorNodeId` → `Selection.cursor(sel)`, `multiSelected` → `Selection.includes(sel, id)`, `selectionAnchor` → `Selection.anchor(sel)`, `inlineEditBlock` → `Selection.isEditing(sel)`, `selectionLevel` → `Selection.inputMode(sel)`.
 
 ### Prior art
 
-AppKit (IndexSet, hidden anchor), SlateJS ({anchor, focus}, stored), ProseMirror (abstract, validated). km: concrete Set, explicit cursor, text overlay, invariants by construction, `Selection.*` namespace.
+AppKit (IndexSet), SlateJS ({anchor, focus}), ProseMirror (abstract). km: ordered array, text overlay, `Selection.*` namespace.
 
 ### Future
 
