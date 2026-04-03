@@ -63,7 +63,10 @@ No discriminated union. `undefined` = none, `!sel.text` = node mode, `sel.text` 
 
 **`text`** is the text editing range within the cursor node. `edit()` sets it, `stopEditing()` clears it.
 
-**Gesture policy for `edit()`**: In Keynote/Figma, entering text editing deselects other objects — `edit()` collapses `nodeIds` to `{cursor}`. The type *allows* multi-select during editing, but the default policy matches creative tool conventions. A future tool could override this.
+**Open question: `edit()` collapse vs preserve.** In Keynote/Figma, entering text editing deselects other objects. But the type allows both:
+- **Collapse** (Keynote): `edit()` sets `nodeIds = {cursor}`. Simpler, matches conventions.
+- **Preserve**: `edit()` keeps `nodeIds` intact. Enables "edit text while keeping multi-select for next operation."
+Currently defaulting to collapse. Needs real-world testing to decide.
 
 ### Points
 
