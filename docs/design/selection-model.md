@@ -24,21 +24,37 @@ Mode: `!sel` = board, `!sel.text` = node, `sel.text` = text.
 
 No separate cursor/anchor fields anywhere. No invariants to enforce — positions are structural.
 
-## selection / selecting
+## Signal DAG
+
+Two source signals, everything else derived:
 
 ```ts
-selection: Selection | undefined           // committed (TEA store)
+const selection = signal<Selection | undefined>(undefined)   // committed
+const selecting = signal<Selecting | undefined>(undefined)   // active gesture
 
-selecting?: {                              // active gesture (transient)
-  ...gestureFields                         // kind, hitIds, focus, mode, etc.
-  effective(sel, space): Selection         // committed + gesture delta
-}
+const effective = computed(() =>
+  selecting.value?.effective(selection.value, space) ?? selection.value
+)
 
-useSelection() = selecting?.effective(selection, space) ?? selection
+// Derived — recompute only when effective changes
+const cursor    = computed(() => effective.value?.nodes[0])
+const ids       = computed(() => new Set(effective.value?.nodes))
+const isEditing = computed(() => effective.value?.text !== undefined)
+const inputMode = computed(() => !effective.value ? "board" : effective.value.text ? "text" : "node")
 ```
 
-No gesture → consumers see `selection`. During gesture → consumers see `effective()`.
-Commit (mouseup / shift release) → writes to store. Cancel (Escape) → discard.
+```
+  gestures ──► selection (source)  ──┐
+  gestures ──► selecting (source)  ──┤
+                                     ▼
+                                  effective (computed)
+                                     │
+                    ┌────────┬───────┼────────┬──────────┐
+                    ▼        ▼       ▼        ▼          ▼
+                 cursor    ids   isEditing  inputMode  insertionPoint
+```
+
+Components subscribe to the derived signal they need. No gesture → `effective` = `selection`. During gesture → `effective` = `selecting.effective()`. Commit writes to `selection`, cancel clears `selecting`.
 
 ## Selection.*
 
@@ -73,9 +89,6 @@ const Selection = {
 
   // Post-edit repair
   normalize(sel, doc, space): Selection
-
-  // TEA
-  update(action, state, space): [SelectionState, SelectionEffect[]]
 }
 ```
 
