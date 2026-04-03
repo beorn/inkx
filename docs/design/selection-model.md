@@ -208,14 +208,14 @@ The derived gesture kind — determines what mutation `selecting` produces:
 
 | Kind | Derived when | Produces | Commit |
 |---|---|---|---|
-| `node-select` | click node | `select(id)` | immediate |
+| `node` | click node | `select(id)` | immediate |
 | `node-toggle` | cmd+click | `toggle(id)` | immediate |
 | `node-extend` | shift+click / shift+j/k | `extend(id)` preview | shift release |
-| `node-areaselect` | drag empty | area replace preview | mouseup |
-| `node-areaselect-toggle` | cmd+drag empty | area XOR preview | mouseup |
-| `text-cursor` | click text | `edit(offset)` | immediate |
+| `node-area` | drag empty | area replace preview | mouseup |
+| `node-area-toggle` | cmd+drag empty | area XOR preview | mouseup |
+| `text` | click text | `edit(offset)` | immediate |
 | `text-extend` | shift+arrow / shift+click in text | text range preview | shift release |
-| `text-dragselect` | drag in text | text range preview | mouseup |
+| `text-drag` | drag in text | text range preview | mouseup |
 | `move` | drag node | visual drop indicator | drop |
 
 The kind is derived from `(target, modifiers, pointerState)` — not stored.
