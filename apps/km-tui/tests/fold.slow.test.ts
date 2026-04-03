@@ -16,6 +16,7 @@
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { VirtualTerminal, outputPhase } from "@silvery/ag-term/toolbelt"
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 // =============================================================================
 // Fold all / unfold all commands
@@ -1445,5 +1446,57 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     // Unfold once — should work (depth goes from 0 to 1)
     board.command("unfold_node")
     expect(board.screenshot()).toContain("child-1")
+  })
+})
+
+// =============================================================================
+// Cursor reveals hidden nodes — cursor must never be invisible
+// =============================================================================
+
+describe("cursor-reveals-hidden", () => {
+  test("fold_all moves cursor out of hidden subtree to parent card", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+    )
+
+    // Navigate to child-1 using J (block nav down)
+    board.command("block_nav_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-1")
+
+    // Fold all — hides all children
+    board.command("fold_all")
+
+    // Children should be hidden
+    expect(board.screenshot()).not.toContain("child-1")
+
+    // BUG: cursor stays on hidden child-1 instead of moving to visible ancestor
+    const paneAfterFold = getActiveBoardPane(store.getState())!
+    expect(paneAfterFold.cursorNodeId).not.toBe("child-1")
+    // Cursor should be on a visible node (data-cursor attribute rendered on screen)
+    expect(board.q(`[data-cursor]`).count()).toBeGreaterThan(0)
+  })
+
+  test("TOGGLE_FOLD on card with cursor on child moves cursor to card", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+    )
+
+    // Navigate to child-1 using J (block nav down)
+    board.command("block_nav_down")
+    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-1")
+
+    // Toggle fold on the parent card via the board reducer directly
+    // (fold_node/H may not fold when cursor is on subitem — TOGGLE_FOLD is the direct path)
+    store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "Parent" })
+    // Force React to re-render
+    board.press("")
+
+    // After fold, children should be hidden
+    expect(board.screenshot()).not.toContain("child-1")
+
+    // Cursor should have moved to the card (not stuck on hidden child)
+    const paneAfterFold = getActiveBoardPane(store.getState())!
+    expect(paneAfterFold.cursorNodeId).not.toBe("child-1")
+    expect(board.q(`[data-cursor]`).count()).toBeGreaterThan(0)
   })
 })

@@ -20,7 +20,14 @@
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
-import type { BoardAction, BoardState, BoardPaneState, LayoutNode, PaneState, WorkspaceState } from "../board/board-types.ts"
+import type {
+  BoardAction,
+  BoardState,
+  BoardPaneState,
+  LayoutNode,
+  PaneState,
+  WorkspaceState,
+} from "../board/board-types.ts"
 import {
   createBoardState,
   createPaneState,
@@ -39,7 +46,7 @@ import { PANE_UI_FIELD_NAMES } from "../board/board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createCursorStore, type CursorStore } from "./cursor-store.ts"
-import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex } from "@km/board"
+import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -732,10 +739,28 @@ export function createBoardAppStoreState(
         if (board) {
           const vTree = buildViewTree(s.repo, board.rootId, board.foldDepths)
           const vIndex = buildViewIndex(vTree)
-          const ancestors = classifyCursorFromViewIndex(vIndex, board.cursorNodeId)
+
+          // Cursor rescue: if cursor node is hidden by fold state, move it to the
+          // nearest visible ancestor. Without this, folding a card while the cursor
+          // is on one of its children leaves the cursor invisible.
+          let cursorNodeId = board.cursorNodeId
+          if (cursorNodeId) {
+            const rescuedId = findVisibleAncestor(cursorNodeId, vIndex, board.foldDepths)
+            if (rescuedId !== cursorNodeId) {
+              cursorNodeId = rescuedId
+              // Update the pane's cursor to the rescued position
+              const focusedPaneId = s.workspace.focusedPaneId
+              const pane = s.workspace.panes.get(focusedPaneId)
+              if (pane && isBoardPane(pane)) {
+                pane.cursorNodeId = cursorNodeId
+              }
+            }
+          }
+
+          const ancestors = classifyCursorFromViewIndex(vIndex, cursorNodeId)
 
           s.cursorStore.setState({
-            cursorNodeId: board.cursorNodeId,
+            cursorNodeId,
             ...ancestors,
           })
         }
@@ -802,9 +827,37 @@ export function createBoardAppStoreState(
           const focusedPaneId = state.workspace.focusedPaneId
           const pane = state.workspace.panes.get(focusedPaneId)
           if (!pane || !isBoardPane(pane)) return state
-          const newPanes = updateBoardPane(state.workspace, focusedPaneId, pane, { foldDepths: depths })
+
+          // Cursor rescue: if cursor is on a node that will be hidden by the new
+          // fold depths, move it to the nearest visible ancestor before applying.
+          let paneUpdate: Partial<BoardPaneState> = { foldDepths: depths }
+          if (pane.cursorNodeId) {
+            const vTree = buildViewTree(state.repo, pane.rootId, depths)
+            const vIndex = buildViewIndex(vTree)
+            const rescuedId = findVisibleAncestor(pane.cursorNodeId, vIndex, depths)
+            if (rescuedId !== null && rescuedId !== pane.cursorNodeId) {
+              paneUpdate = { foldDepths: depths, cursorNodeId: rescuedId }
+            }
+          }
+
+          const newPanes = updateBoardPane(state.workspace, focusedPaneId, pane, paneUpdate)
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
+
+        // If cursor was rescued, update the cursor store so React components
+        // see the new cursor position immediately (same pattern as dispatchBoard's
+        // post-fold cursor store sync).
+        const s = _get()
+        const boardPane = getActiveBoardPane(s)
+        if (boardPane) {
+          const vTree = buildViewTree(s.repo, boardPane.rootId, boardPane.foldDepths)
+          const vIndex = buildViewIndex(vTree)
+          const ancestors = classifyCursorFromViewIndex(vIndex, boardPane.cursorNodeId)
+          s.cursorStore.setState({
+            cursorNodeId: boardPane.cursorNodeId,
+            ...ancestors,
+          })
+        }
       },
 
       setTextEditTarget(target: EditTarget | null) {
@@ -1264,6 +1317,82 @@ function updateBoardPane(
   const newPanes = new Map(workspace.panes)
   newPanes.set(paneId, { ...pane, ...update })
   return newPanes
+}
+
+// =============================================================================
+// Cursor Visibility Check
+// =============================================================================
+
+/**
+ * Check if a node is visible given the current fold state, and if not,
+ * find its nearest visible ancestor in the ViewTree.
+ *
+ * A node is hidden when:
+ * - Any ancestor card/column has a foldDepths entry of 0, OR
+ * - The node is deeper than CARD_REMAINING_DEPTH inside its card AND
+ *   no explicit fold override exists for intermediate ancestors
+ *
+ * Uses the ViewTree parent chain — walks up from the cursor node checking
+ * each ancestor's fold state until reaching a visible node.
+ *
+ * @returns The original nodeId if visible, or the nearest visible ancestor's ID
+ */
+function findVisibleAncestor(
+  nodeId: string,
+  viewIndex: Map<string, import("@km/board").ViewNode>,
+  foldDepths: Map<string, number>,
+): string | null {
+  const vn = viewIndex.get(nodeId)
+  if (!vn) return nodeId // Node not in view tree — leave it
+
+  // Board and column nodes are always visible
+  if (vn.role === "board" || vn.role === "column" || vn.role === "body-column") return nodeId
+
+  // Cards are always visible (they're direct children of columns in the ViewTree)
+  if (vn.role === "card") return nodeId
+
+  // For subitems: walk up to find if any ancestor hides this node via fold
+  // Check each ancestor from bottom up. If an ancestor is folded (depth 0),
+  // the cursor should move to that ancestor.
+  let current = vn.parent
+  let depthFromCard = 0
+  while (current) {
+    if (current.role === "card") {
+      // The card's fold depth determines if its children are visible
+      const cardFold = foldDepths.get(current.id)
+      if (cardFold !== undefined && cardFold <= 0) {
+        // Card is fully folded — cursor goes to the card
+        return current.id
+      }
+      // Card is not folded — check remaining depth from card.
+      // Default is CARD_REMAINING_DEPTH (2). Each level below the card
+      // consumes 1 depth. If depthFromCard >= effective remaining depth,
+      // the node is in the FoldedChildRow zone.
+      const effectiveDepth = cardFold ?? CARD_REMAINING_DEPTH
+      if (depthFromCard >= effectiveDepth) {
+        return current.id
+      }
+      // Node is within the visible depth of this card
+      return nodeId
+    }
+    if (current.role === "subitem") {
+      // Check if this intermediate subitem has a fold override
+      const subFold = foldDepths.get(current.id)
+      if (subFold !== undefined && subFold <= 0) {
+        // This intermediate node is folded — cursor goes to it
+        return current.id
+      }
+      depthFromCard++
+    }
+    if (current.role === "column" || current.role === "body-column" || current.role === "board") {
+      // Reached column/board without hitting a card — node is visible
+      return nodeId
+    }
+    current = current.parent
+  }
+
+  // Shouldn't reach here but return nodeId as safe fallback
+  return nodeId
 }
 
 // =============================================================================
