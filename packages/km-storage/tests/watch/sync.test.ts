@@ -23,8 +23,8 @@ interface ParsedEvent {
   data: Record<string, unknown>
 }
 
-import { createSync } from "../../src/watch/sync.ts"
 import { withTestEnv } from "@km/storage"
+import { createTestSync } from "./sync-test-helpers.ts"
 
 describe("Sync Integration", () => {
   describe("syncFromFs", () => {
@@ -42,9 +42,7 @@ This is a paragraph.
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -78,9 +76,7 @@ This is a paragraph.
         const testFile = join(subFolder, "nested.md")
         writeFileSync(testFile, "# Nested File\n\nContent here.")
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -114,9 +110,7 @@ Some content here.
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -146,9 +140,7 @@ Some content here.
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -176,9 +168,7 @@ Some content here.
         const testFile = join(repoDir, "ids.md")
         writeFileSync(testFile, "# Test\n\n- [ ] Task\n")
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -215,9 +205,7 @@ code
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -248,9 +236,7 @@ code
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -271,9 +257,7 @@ code
         const testFile = join(repoDir, "event-test.md")
         writeFileSync(testFile, "# Test\n")
 
-        const manager = createSync({
-          db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -314,9 +298,7 @@ code
         const testFile = join(deepFolder, "task.md")
         writeFileSync(testFile, "# Task\n\n- [ ] Do something\n")
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -347,9 +329,7 @@ code
         const testFile = join(subFolder, "readme.md")
         writeFileSync(testFile, "# Documentation\n\nSome content.\n")
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -376,9 +356,7 @@ code
         const testFile = join(level3, "deep.md")
         writeFileSync(testFile, "# Deep File\n")
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -418,9 +396,7 @@ code
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -457,9 +433,7 @@ code
         writeFileSync(join(subFolder, "file2.md"), "# File 2\n")
         writeFileSync(join(subFolder, "file3.md"), "# File 3\n")
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
@@ -502,9 +476,7 @@ code
         )
 
         // Use a long debounce so writes stay pending until stop()
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 60_000,
           conflictStrategy: "last_write_wins",
@@ -558,9 +530,7 @@ code
 `,
         )
 
-        const manager = createSync({
-          db: db,
-          repoPath: repoDir,
+        const manager = createTestSync(db, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "last_write_wins",

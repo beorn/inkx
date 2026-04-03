@@ -488,32 +488,44 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
     // → EventHandlers.applyEventToFs() → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
-    const { withTestEnv, getAllNodes, createTestEnvRepo, createSync } = await import("@km/storage")
+    const { withTestEnv, getAllNodes, createTestEnvRepo, withSync } = await import("@km/storage")
+    const { createEmitter } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
       // Create a markdown file with a task
       const testFile = join(repoDir, "tasks.md")
       writeFileSync(testFile, "# Tasks\n\n- [ ] Original title\n")
 
-      // Create sync (no worker, zero debounce for test)
-      const syncManager = createSync({
-        db,
-        repoPath: repoDir,
+      // Build a minimal SyncableRepo for withSync
+      const miniRepo = {
+        database: db,
+        path: repoDir,
+        emitter,
+        apply(event: Parameters<typeof emitter.apply>[0], options?: Parameters<typeof emitter.apply>[1]) {
+          return emitter.apply(event, options)
+        },
+        commit(event: Parameters<typeof emitter.commit>[0], options?: Parameters<typeof emitter.commit>[1]) {
+          return emitter.commit(event, options)
+        },
+        save(event: Parameters<typeof emitter.save>[0]) {
+          emitter.save(event)
+        },
+      }
+
+      // Create sync via withSync (wires emitter.setFsSync internally)
+      const syncManager = withSync({
         debounceFs: 100,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",
         useWorker: false,
-      })
-
-      // Wire up fsSync on the emitter (same as tui.tsx line 137)
-      emitter.setFsSync(syncManager)
+      })(miniRepo)
 
       // Initial sync to load files into DB
       await syncManager.syncFromFs()
 
       // Find the task node
       const allNodes = getAllNodes(db)
-      const task = allNodes.find((n) => n.item?.task?.marker != null)
+      const task = allNodes.find((n: { item?: { task?: { marker?: string } } }) => n.item?.task?.marker != null)
       expect(task).toBeDefined()
       expect(task!.content).toContain("Original title")
 
@@ -540,38 +552,46 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
       expect(content).not.toContain("Original title")
 
       // Clean up
-      emitter.setFsSync(null)
-      repo.emitter.setFsSync(null)
       await syncManager.stop()
       repo.close()
     })
   })
 
-  test("emitter.getFsSync() returns non-null when wired in tui.tsx pattern", async () => {
-    // Diagnostic: verifies the production wiring step
-    const { withTestEnv, createSync } = await import("@km/storage")
+  test("emitter.getFsSync() returns non-null after withSync wiring", async () => {
+    // Diagnostic: verifies that withSync internally wires emitter.setFsSync
+    const { withTestEnv, withSync: withSyncFn } = await import("@km/storage")
 
     await withTestEnv(async ({ repoDir, db, emitter }) => {
-      const syncManager = createSync({
-        db,
-        repoPath: repoDir,
+      // Before wiring, should be null
+      expect(emitter.getFsSync()).toBeNull()
+
+      // Build a minimal SyncableRepo and create sync via withSync
+      const miniRepo = {
+        database: db,
+        path: repoDir,
+        emitter,
+        apply(event: Parameters<typeof emitter.apply>[0], options?: Parameters<typeof emitter.apply>[1]) {
+          return emitter.apply(event, options)
+        },
+        commit(event: Parameters<typeof emitter.commit>[0], options?: Parameters<typeof emitter.commit>[1]) {
+          return emitter.commit(event, options)
+        },
+        save(event: Parameters<typeof emitter.save>[0]) {
+          emitter.save(event)
+        },
+      }
+
+      const syncManager = withSyncFn({
         debounceFs: 100,
         debounceApply: 0,
         conflictStrategy: "last_write_wins",
         useWorker: false,
-      })
+      })(miniRepo)
 
-      // Before wiring, should be null
-      expect(emitter.getFsSync()).toBeNull()
-
-      // Wire up (same as tui.tsx line 137)
-      emitter.setFsSync(syncManager)
-
-      // After wiring, should be non-null
+      // withSync wires emitter.setFsSync internally — should be non-null
       expect(emitter.getFsSync()).not.toBeNull()
 
       // Clean up
-      emitter.setFsSync(null)
       await syncManager.stop()
     })
   })

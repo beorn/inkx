@@ -23,7 +23,7 @@ import { WriteTokenMap } from "./write-tokens.ts"
 import { createSyncState, type SyncState as SyncStateStore } from "./sync-state.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import { type Event } from "@km/core"
-import { createEmitter, type Emitter } from "../emitter.ts"
+import { type Emitter } from "../emitter.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
 import { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
@@ -435,60 +435,5 @@ export function withSync(config?: Partial<SyncConfig>) {
     emitter.setFsSync(syncMethods)
 
     return { ...repo, ...syncMethods } as R & Sync
-  }
-}
-
-// ─── Backwards-compat wrapper (consumers still being migrated) ──────────────
-
-/** @deprecated Use withSync(config)(repo) instead */
-export interface LegacySyncConfig extends SyncConfig {
-  db: Database
-  repoPath: string
-  emitter?: Emitter
-}
-
-/** @deprecated Use withSync(config)(repo) instead */
-export function createSync(config: LegacySyncConfig): Sync {
-  // Build a minimal SyncableRepo shim from the legacy config fields
-  const db = config.db
-  const repoPath = config.repoPath
-  const kmDir = join(repoPath, ".km")
-  const emitter = config.emitter ?? createEmitter({ kmDir, db })
-
-  const shim: SyncableRepo = {
-    database: db,
-    path: repoPath,
-    emitter,
-    apply(event, options?) {
-      return emitter.apply(event, options)
-    },
-    commit(event, options?) {
-      return emitter.commit(event, options)
-    },
-    save(event) {
-      emitter.save(event)
-    },
-  }
-
-  // Extract sync-only config (strip db/repoPath/emitter)
-  const { db: _db, repoPath: _rp, emitter: _em, ...syncConfig } = config
-  const decorated = withSync(syncConfig)(shim)
-
-  // Return just the Sync portion (legacy callers don't expect repo methods)
-  return {
-    start: decorated.start.bind(decorated),
-    stop: decorated.stop.bind(decorated),
-    applyEventToFs: decorated.applyEventToFs.bind(decorated),
-    syncFromFs: decorated.syncFromFs.bind(decorated),
-    syncFromFsWithProgress: decorated.syncFromFsWithProgress.bind(decorated),
-    syncToFs: decorated.syncToFs.bind(decorated),
-    forceHeartbeat: decorated.forceHeartbeat.bind(decorated),
-    getState: decorated.getState.bind(decorated),
-    getStatus: decorated.getStatus.bind(decorated),
-    getWatcherStatus: decorated.getWatcherStatus.bind(decorated),
-    getHeartbeatDiagnostics: decorated.getHeartbeatDiagnostics.bind(decorated),
-    waitForInflight: decorated.waitForInflight.bind(decorated),
-    getInFlightCount: decorated.getInFlightCount.bind(decorated),
-    [Symbol.asyncDispose]: decorated[Symbol.asyncDispose].bind(decorated),
   }
 }

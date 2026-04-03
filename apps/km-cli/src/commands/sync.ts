@@ -15,7 +15,15 @@ import { Database } from "bun:sqlite"
 import { dirname, resolve, join } from "path"
 
 const log = createLogger("km:cli:sync") as FullLogger
-import { createSync, findKmRootFromPath, readEvents, SCHEMA, ensureRepoRootNode } from "@km/storage"
+import {
+  withSync,
+  type SyncableRepo,
+  createEmitter,
+  findKmRootFromPath,
+  readEvents,
+  SCHEMA,
+  ensureRepoRootNode,
+} from "@km/storage"
 import { formatPath } from "../utils/format-path.ts"
 
 // ============================================
@@ -62,6 +70,25 @@ export const syncCommand = new Command("sync")
 // Helper Functions
 // ============================================
 
+/** Build a minimal SyncableRepo from db + repoPath (for CLI commands without a full Repo) */
+function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
+  const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
+  return {
+    database: db,
+    path: repoPath,
+    emitter,
+    apply(event, options?) {
+      return emitter.apply(event, options)
+    },
+    commit(event, options?) {
+      return emitter.commit(event, options)
+    },
+    save(event) {
+      emitter.save(event)
+    },
+  }
+}
+
 /**
  * Start the continuous filesystem watcher
  */
@@ -71,9 +98,8 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
   console.log(term.dim(`Debounce: ${debounceMs}ms`))
   console.log(term.dim("Press Ctrl+C to stop\n"))
 
-  const manager = createSync({
-    db,
-    repoPath,
+  const repo = buildSyncableRepo(db, repoPath)
+  const manager = withSync({
     debounceFs: debounceMs,
     debounceApply: 3000,
     conflictStrategy: "last_write_wins",
@@ -100,7 +126,7 @@ function startWatch(repoPath: string, debounceMs: number, db: Database): void {
         console.error(term.red("Error:"), error)
       },
     },
-  })
+  })(repo)
 
   // Start watching
   manager.start()
@@ -168,13 +194,12 @@ async function runSync(
     }
 
     // Step 2: Sync with filesystem
-    const manager = createSync({
-      db,
-      repoPath,
+    const repo = buildSyncableRepo(db, repoPath)
+    const manager = withSync({
       debounceFs: 0,
       debounceApply: 0,
       conflictStrategy: "last_write_wins",
-    })
+    })(repo)
 
     if (options.toFs) {
       console.log(term.dim("Syncing database → filesystem..."))

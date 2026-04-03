@@ -237,7 +237,7 @@ describe("disk mode root node", () => {
   })
 })
 
-describe("km init: createSync creates nodes under root '.'", () => {
+describe("km init: withSync creates nodes under root '.'", () => {
   test("syncFromFs puts top-level files/folders under root '.'", async () => {
     const dir = createTempDir("sync-root")
     setupFiles(dir)
@@ -248,14 +248,12 @@ describe("km init: createSync creates nodes under root '.'", () => {
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))
 
     // Sync from filesystem (this is what km init does)
-    const { createSync } = await import("../../src/watch/sync.ts")
-    const manager = createSync({
-      db: repo.database,
-      repoPath: dir,
+    const { withSync } = await import("../../src/watch/sync.ts")
+    const manager = withSync({
       debounceFs: 0,
       debounceApply: 0,
       conflictStrategy: "last_write_wins",
-    })
+    })(repo)
     for await (const _progress of manager.syncFromFsWithProgress()) {
       // drain progress
     }

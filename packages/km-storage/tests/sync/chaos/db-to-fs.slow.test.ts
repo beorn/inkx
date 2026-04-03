@@ -23,7 +23,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -55,7 +55,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file with completed task
         const testFile = join(repoDir, "tasks.md")
@@ -89,7 +89,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -122,7 +122,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -155,7 +155,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -191,7 +191,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test files
         const file1 = join(repoDir, "file1.md")
@@ -236,7 +236,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file
         const testFile = join(repoDir, "tasks.md")
@@ -263,7 +263,7 @@ describe("DB → File Sync Tests", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file with mixed content
         const testFile = join(repoDir, "mixed.md")

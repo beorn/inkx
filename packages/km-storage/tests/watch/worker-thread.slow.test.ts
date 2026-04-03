@@ -15,8 +15,8 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs"
 import { join } from "path"
-import { createSync } from "../../src/watch/sync.ts"
-import { getAllNodes, createRepo } from "../../src/index.ts"
+import { withSync, type SyncableRepo } from "../../src/watch/sync.ts"
+import { getAllNodes, createRepo, createEmitter } from "../../src/index.ts"
 import { runGenerator } from "@km/core"
 import type { Repo } from "../../src/repo.ts"
 
@@ -59,10 +59,25 @@ describe.sequential("Worker Thread Integration", () => {
     repo = runGenerator(createRepo(REPO_DIR, { loadFiles: false }))
     const db = repo.database
 
+    // Build a minimal SyncableRepo for withSync
+    const emitter = createEmitter({ kmDir: join(REPO_DIR, ".km"), db })
+    const miniRepo: SyncableRepo = {
+      database: db,
+      path: REPO_DIR,
+      emitter,
+      apply(event, options?) {
+        return emitter.apply(event, options)
+      },
+      commit(event, options?) {
+        return emitter.commit(event, options)
+      },
+      save(event) {
+        emitter.save(event)
+      },
+    }
+
     // Create sync with the repo's database via callbacks
-    await using syncManager = createSync({
-      db,
-      repoPath: REPO_DIR,
+    await using syncManager = withSync({
       debounceFs: 100,
       debounceApply: 50,
       conflictStrategy: "last_write_wins",
@@ -76,7 +91,7 @@ describe.sequential("Worker Thread Integration", () => {
           }
         },
       },
-    })
+    })(miniRepo)
 
     // Initial sync
     await syncManager.syncFromFs()

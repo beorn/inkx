@@ -24,7 +24,7 @@ The sync system (file watching, reconciliation, write queue) is notoriously hard
 | ---------------------- | ----------- | ---------------------------------------- |
 | `@beorn/watcher-chaos` | ✅ Complete | `vendor/watcher-chaos/`            |
 | WatcherInterface DI    | ✅ Complete | `packages/km-storage/src/watch/types.ts` |
-| createSync injection   | ✅ Complete | `config.watcher` option                  |
+| withSync watcher injection | ✅ Complete | `config.watcher` option                  |
 | 25+ chaos tests        | ✅ Passing  | `packages/km-storage/tests/sync/chaos/`  |
 | 11 chaos scenarios     | ✅ Built-in | See table below                          |
 
@@ -566,12 +566,11 @@ class TestWatcher extends EventEmitter implements WatcherInterface {
 
 // In test setup:
 const testWatcher = new TestWatcher(100) // 100ms debounce
-const syncManager = createSync({
-  db, repoPath: REPO_DIR,
+const syncManager = withSync({
   debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
   watcher: testWatcher, // Inject controllable watcher
   heartbeat: { enabled: false }, // Disable setInterval heartbeat
-})
+})(repo)
 
 // In tests:
 function writeAndTrigger(path: string, content: string): void {
@@ -591,10 +590,10 @@ With fake timers, `setInterval` handlers run forever during `runAllAsync()`. Pre
 1. **Disable heartbeat in tests:**
 
    ```typescript
-   syncManager = createSync({
-     db, repoPath, debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
+   syncManager = withSync({
+     debounceFs: 100, debounceApply: 50, conflictStrategy: "last_write_wins",
      heartbeat: { enabled: false },
-   })
+   })(repo)
    ```
 
 2. **Use `tickAsync(ms)` instead of `runAllAsync()`:**

@@ -18,9 +18,9 @@ import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync, readdir
 import { join, basename } from "path"
 import { createSeededRandom, type SeededRandom } from "vimonkey"
 
-import { createSync } from "../../../src/watch/sync.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
 import { findIndexFile, extractSlotTargets } from "@km/core"
+import { createTestSync } from "../../watch/sync-test-helpers.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -38,13 +38,10 @@ function writeConfig(repoDir: string, materialization: "none" | "metadata" | "fu
 
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
   clearConfigCache()
-  return createSync({
-    repoPath: repoDir,
+  return createTestSync(db, repoDir, {
     debounceFs: 0,
     debounceApply: 0,
     conflictStrategy: "fs_wins",
-    useWorker: false,
-    db,
   })
 }
 

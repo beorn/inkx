@@ -20,7 +20,7 @@ import { EventEmitter } from "events"
 import FakeTimers, { type InstalledClock } from "@sinonjs/fake-timers"
 import type { WatcherInterface, SyncData } from "../../../src/watch/types.ts"
 import { withTestEnv, type DataStore, type HasDatabase } from "@km/storage"
-import { createSync, type Sync } from "../../../src/watch/sync.ts"
+import { withSync, type Sync, type SyncableRepo } from "../../../src/watch/sync.ts"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TestWatcher - Controllable watcher for deterministic testing
@@ -146,9 +146,21 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
         const testWatcher = new TestWatcher(100)
         const stateChangeListeners: Array<(state: string) => void> = []
 
-        const syncManager = createSync({
-          db: data.database,
-          repoPath: repoDir,
+        const miniRepo: SyncableRepo = {
+          database: data.database,
+          path: repoDir,
+          emitter,
+          apply(event, options?) {
+            return emitter.apply(event, options)
+          },
+          commit(event, options?) {
+            return emitter.commit(event, options)
+          },
+          save(event) {
+            emitter.save(event)
+          },
+        }
+        const syncManager = withSync({
           debounceFs: 100,
           debounceApply: 50,
           conflictStrategy: "last_write_wins",
@@ -159,9 +171,7 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
               for (const listener of stateChangeListeners) listener(state)
             },
           },
-        })
-
-        emitter.setFsSync(syncManager)
+        })(miniRepo)
 
         try {
           await fn({
@@ -187,7 +197,6 @@ async function withConcurrentTestEnv(fn: (ctx: ConcurrentTestCtx) => Promise<voi
           // CRITICAL: Uninstall fake timers BEFORE stopping the sync manager.
           // handleFsSync uses worker threads (parse pool) for markdown parsing,
           // and worker thread communication is blocked by fake timers.
-          emitter.setFsSync(null)
           if (clock) {
             clock.uninstall()
             clock = null

@@ -24,7 +24,7 @@ describe("Bidirectional Sync E2E", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create test file with a task
         const testFile = join(repoDir, "tasks.md")
@@ -56,7 +56,7 @@ describe("Bidirectional Sync E2E", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create file first
         const testFile = join(repoDir, "new-tasks.md")
@@ -95,7 +95,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create initial file
         const testFile = join(repoDir, "watch-test.md")
@@ -130,7 +130,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create initial file
         const testFile = join(repoDir, "external-edit.md")
@@ -172,7 +172,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create initial file
         const testFile = join(repoDir, "to-delete.md")
@@ -216,7 +216,7 @@ describe("Bidirectional Sync E2E", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create initial file
         const testFile = join(repoDir, "rapid.md")
@@ -261,7 +261,7 @@ describe("Bidirectional Sync E2E", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create initial file
         const testFile = join(repoDir, "conflict.md")
@@ -451,7 +451,7 @@ describe("Full Round-Trip", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         const testFile = join(repoDir, "reverse.md")
         writeFileSync(testFile, "# Reverse\n\n- [ ] Original\n")
@@ -493,7 +493,7 @@ describe("Full Round-Trip", () => {
         })
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         const testFile = join(repoDir, "external-done.md")
         writeFileSync(testFile, "# Tasks\n\n- [ ] My task\n")
@@ -680,7 +680,7 @@ describe("File & Folder Renames", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create valid file and sync
         const testFile = join(repoDir, "corrupt-test.md")
@@ -714,7 +714,7 @@ describe("File & Folder Renames", () => {
         const syncManager = createTestSync(db, repoDir)
 
         await using stack = new AsyncDisposableStack()
-        setupSync(stack, syncManager, emitter)
+        setupSync(stack, syncManager)
 
         // Create two files — one will be deleted, the other ensures the
         // directory is still scanned during reconciliation (syncFromFs only

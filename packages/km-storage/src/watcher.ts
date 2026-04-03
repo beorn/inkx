@@ -1,14 +1,16 @@
 /**
  * Watcher - File Sync Service
  *
- * Wraps createSync() (legacy) to implement the Service interface for lifecycle control.
+ * Wraps withSync() to implement the Service interface for lifecycle control.
  * Created via createWatcher() or repo.watch().
  * New code should use withSync(config)(repo) directly.
  */
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { createSync, type LegacySyncConfig } from "./watch/index.ts"
+import { join } from "path"
+import { withSync, type SyncableRepo, type SyncConfig } from "./watch/index.ts"
+import { createEmitter } from "./emitter.ts"
 import type { FileChange } from "./watch/index.ts"
 
 const log = createLogger("km:storage:watcher")
@@ -85,10 +87,26 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
 
   const handlers = new Map<string, Set<AnyHandler>>()
 
+  // Build a minimal SyncableRepo for withSync
+  const db = options.db
+  const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
+  const miniRepo: SyncableRepo = {
+    database: db,
+    path: repoPath,
+    emitter,
+    apply(event, opts?) {
+      return emitter.apply(event, opts)
+    },
+    commit(event, opts?) {
+      return emitter.commit(event, opts)
+    },
+    save(event) {
+      emitter.save(event)
+    },
+  }
+
   // Create Sync with typed callbacks that forward to our handler registry
-  const config: LegacySyncConfig = {
-    db: options.db,
-    repoPath,
+  const syncConfig: Partial<SyncConfig> = {
     debounceFs: options.debounceFs ?? 5000,
     debounceApply: options.debounceApply ?? 3000,
     conflictStrategy: options.conflictStrategy ?? "last_write_wins",
@@ -111,7 +129,7 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
     },
   }
 
-  const sync = createSync(config)
+  const sync = withSync(syncConfig)(miniRepo)
 
   const watcher: Watcher = {
     get status() {

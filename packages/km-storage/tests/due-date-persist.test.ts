@@ -12,17 +12,14 @@ import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
 import { withTestEnv, getAllNodes, getNode } from "@km/storage"
 import { parseMarkdownToNodes, nodesToMarkdown } from "@km/markdown"
-import { createSync } from "../src/watch/sync.ts"
+import { createTestSync } from "./watch/sync-test-helpers.ts"
 
 /** Create sync with test defaults */
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
-  return createSync({
-    repoPath: repoDir,
+  return createTestSync(db, repoDir, {
     debounceFs: 0,
     debounceApply: 0,
     conflictStrategy: "fs_wins",
-    useWorker: false,
-    db,
   })
 }
 

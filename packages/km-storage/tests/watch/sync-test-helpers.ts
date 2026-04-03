@@ -3,42 +3,51 @@
  */
 
 import type { Database } from "bun:sqlite"
+import { join } from "path"
 
-import type { Emitter } from "../../src/emitter.ts"
-import {
-  createSync,
-  type Sync,
-  type SyncConfig,
-  type LegacySyncConfig,
-  type SyncCallbacks,
-} from "../../src/watch/sync.ts"
+import { createEmitter } from "../../src/emitter.ts"
+import { withSync, type Sync, type SyncConfig, type SyncableRepo, type SyncCallbacks } from "../../src/watch/sync.ts"
 
 /** Default sync config for tests - fast debounces, no worker */
-const TEST_DEFAULTS: Partial<LegacySyncConfig> = {
+const TEST_DEFAULTS: Partial<SyncConfig> = {
   debounceFs: 100,
   debounceApply: 50,
   conflictStrategy: "last_write_wins",
   useWorker: false,
 }
 
+/** Build a minimal SyncableRepo from db + repoPath (for tests without a full Repo) */
+function buildSyncableRepo(db: Database, repoPath: string): SyncableRepo {
+  const emitter = createEmitter({ kmDir: join(repoPath, ".km"), db })
+  return {
+    database: db,
+    path: repoPath,
+    emitter,
+    apply(event, options?) {
+      return emitter.apply(event, options)
+    },
+    commit(event, options?) {
+      return emitter.commit(event, options)
+    },
+    save(event) {
+      emitter.save(event)
+    },
+  }
+}
+
 /** Create Sync with test defaults */
 export function createTestSync(
   db: Database,
   repoPath: string,
-  overrides?: Partial<LegacySyncConfig> & { callbacks?: SyncCallbacks },
+  overrides?: Partial<SyncConfig> & { callbacks?: SyncCallbacks },
 ): Sync {
-  return createSync({
-    db,
-    repoPath,
-    ...TEST_DEFAULTS,
-    ...overrides,
-  } as LegacySyncConfig)
+  const repo = buildSyncableRepo(db, repoPath)
+  const decorated = withSync({ ...TEST_DEFAULTS, ...overrides })(repo)
+  return decorated
 }
 
 /** Set up sync with automatic cleanup via AsyncDisposableStack */
-export function setupSync(stack: AsyncDisposableStack, sync: Sync, emitter: Emitter): void {
-  emitter.setFsSync(sync)
-  stack.defer(() => emitter.setFsSync(null))
+export function setupSync(stack: AsyncDisposableStack, sync: Sync): void {
   stack.defer(async () => await sync.stop())
 }
 

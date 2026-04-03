@@ -16,7 +16,7 @@ import { createTerm } from "@silvery/ag-react"
 
 const term = createTerm(process)
 import { Database } from "bun:sqlite"
-import { createSync, type Sync, findKmRootFromPath, createEmitter } from "@km/storage"
+import { withSync, type Sync, type SyncableRepo, findKmRootFromPath, createEmitter } from "@km/storage"
 import type { Emitter } from "@km/storage"
 import type { Event } from "@km/core"
 import { EventEmitter } from "events"
@@ -337,13 +337,19 @@ class KmDaemon extends EventEmitter {
     // Create emitter for event handling
     this.emitter = createEmitter({ kmDir, db })
 
-    this.sync = createSync({
-      db,
-      repoPath,
+    const miniRepo: SyncableRepo = {
+      database: db,
+      path: repoPath,
+      emitter: this.emitter,
+      apply: (event, options?) => this.emitter.apply(event, options),
+      commit: (event, options?) => this.emitter.commit(event, options),
+      save: (event) => this.emitter.save(event),
+    }
+
+    this.sync = withSync({
       debounceFs: 5000,
       debounceApply: 3000,
       conflictStrategy: "last_write_wins",
-      emitter: this.emitter,
       callbacks: {
         onStateChange: (state) => {
           this.log(`State: ${state}`)
@@ -355,7 +361,7 @@ class KmDaemon extends EventEmitter {
           this.log(`Error: ${String(error)}`, "error")
         },
       },
-    })
+    })(miniRepo)
   }
 
   /**
@@ -545,7 +551,7 @@ class KmDaemon extends EventEmitter {
     // Set up event hub for broadcasting
     this.emitter.setEventHub({ broadcast: (event) => this.broadcast(event) })
 
-    // Note: createSync() internally wires emitter.setFsSync() via withSync
+    // Note: withSync() internally wires emitter.setFsSync()
 
     // Startup sweep - sync filesystem
     this.log("Starting filesystem sync...")

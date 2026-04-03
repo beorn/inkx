@@ -10,9 +10,9 @@
 import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
-import { createSync } from "../../src/watch/sync.ts"
 import { getAllNodes, applyEventWithDb } from "../../src/index.ts"
 import { withTestEnv } from "@km/storage"
+import { createTestSync } from "../watch/sync-test-helpers.ts"
 
 /**
  * Original file contents - non-markdown files MUST remain unchanged
@@ -86,13 +86,10 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = createSync({
-          repoPath: repoDir,
+        const manager = createTestSync(data.database, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-          useWorker: false,
-          db: data.database,
         })
 
         const result = await manager.syncFromFs()
@@ -115,13 +112,10 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = createSync({
-          repoPath: repoDir,
+        const manager = createTestSync(data.database, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-          useWorker: false,
-          db: data.database,
         })
 
         await manager.syncFromFs()
@@ -139,13 +133,10 @@ describe("E2E Sync Safety", () => {
         createTestRepo(repoDir)
 
         // First import from filesystem
-        const manager = createSync({
-          repoPath: repoDir,
+        const manager = createTestSync(data.database, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-          useWorker: false,
-          db: data.database,
         })
 
         await manager.syncFromFs()
@@ -172,13 +163,10 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = createSync({
-          repoPath: repoDir,
+        const manager = createTestSync(data.database, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-          useWorker: false,
-          db: data.database,
         })
 
         await manager.syncFromFs()
@@ -201,13 +189,10 @@ describe("E2E Sync Safety", () => {
       withTestEnv(async ({ repoDir, data }) => {
         createTestRepo(repoDir)
 
-        const manager = createSync({
-          repoPath: repoDir,
+        const manager = createTestSync(data.database, repoDir, {
           debounceFs: 0,
           debounceApply: 0,
           conflictStrategy: "fs_wins",
-          useWorker: false,
-          db: data.database,
         })
 
         // Multiple round-trips

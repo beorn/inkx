@@ -14,23 +14,21 @@
 import { describe, test, expect, vi } from "vitest"
 import { writeFileSync, readFileSync, mkdirSync, existsSync, unlinkSync, renameSync, utimesSync } from "fs"
 import { join } from "path"
-import { createSync, type Sync } from "../../src/watch/sync.ts"
+import type { Sync } from "../../src/watch/sync.ts"
 import { FsWriter } from "../../src/watch/fs-writer.ts"
 import { getAllNodes, getChildren, getNode, withTestEnv, clearConfigCache } from "@km/storage"
 import { emitNodeUpdated } from "../../src/emitter.ts"
 import { indexFileName } from "../../src/index-file-writer.ts"
 import { findIndexFile } from "@km/core"
+import { createTestSync } from "../watch/sync-test-helpers.ts"
 
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
   // Clear config cache to ensure no stale config from previous tests
   clearConfigCache()
-  return createSync({
-    repoPath: repoDir,
+  return createTestSync(db, repoDir, {
     debounceFs: 0,
     debounceApply: 0,
     conflictStrategy: "fs_wins",
-    useWorker: false,
-    db,
   })
 }
 

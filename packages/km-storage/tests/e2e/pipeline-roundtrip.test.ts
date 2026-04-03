@@ -13,9 +13,9 @@
 import { describe, test, expect } from "vitest"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
-import { createSync } from "../../src/watch/sync.ts"
 import { getAllNodes, withTestEnv } from "@km/storage"
 import type { KNode } from "@km/core"
+import { createTestSync } from "../watch/sync-test-helpers.ts"
 
 // =============================================================================
 // Helpers
@@ -23,13 +23,10 @@ import type { KNode } from "@km/core"
 
 /** Create sync with test defaults (no worker, no debounce) */
 function createTestSyncHelper(db: import("bun:sqlite").Database, repoDir: string) {
-  return createSync({
-    repoPath: repoDir,
+  return createTestSync(db, repoDir, {
     debounceFs: 0,
     debounceApply: 0,
     conflictStrategy: "fs_wins",
-    useWorker: false,
-    db,
   })
 }
 
