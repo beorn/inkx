@@ -45,10 +45,7 @@ export interface HistoryEditor extends TreeMutator {
  * Undo applies inverse(op) for each op in the batch, in reverse order.
  * Redo re-applies the original ops in forward order.
  */
-export function withHistory(
-  tree: TreeMutator,
-  options?: { log?: OperationLog },
-): HistoryEditor {
+export function withHistory(tree: TreeMutator, options?: { log?: OperationLog }): HistoryEditor {
   const log = options?.log
   const undos: Operation[][] = []
   const redos: Operation[][] = []

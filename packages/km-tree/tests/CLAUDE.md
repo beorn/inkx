@@ -23,7 +23,7 @@ Block ops tests use `createTestRepo()` from `@km/storage` for an in-memory repo 
 
 ```typescript
 import { createTestRepo } from "@km/storage"
-import { split, mergeBackward } from "../src/block-ops.ts"
+import { split, mergeBackward } from "../src/ops/block-ops.ts"
 
 test("split creates sibling after cursor position", () => {
   const repo = createTestRepo()

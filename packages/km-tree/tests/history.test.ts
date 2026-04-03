@@ -16,8 +16,8 @@
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
 import { KNode } from "@km/core"
-import { withHistory, type HistoryEditor } from "../src/history.ts"
-import { withNormalization } from "../src/normalize.ts"
+import { withHistory, type HistoryEditor } from "../src/ops/history.ts"
+import { withNormalization } from "../src/ops/normalize.ts"
 
 // =============================================================================
 // Helpers

@@ -21,7 +21,7 @@ import {
   type SplitNodeOperation,
   type MergeNodeOperation,
   type SetSelectionOperation,
-} from "../src/operations.ts"
+} from "../src/ops/operations.ts"
 
 // =============================================================================
 // Helpers

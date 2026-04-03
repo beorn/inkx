@@ -13,7 +13,7 @@
 
 import { KNode } from "@km/core"
 import type { TreeMutator } from "./block-ops.ts"
-import type { Point } from "./selection.ts"
+import type { Point } from "../selection.ts"
 
 /** Re-export Point as Selection for the set_selection operation. */
 export type Selection = Point

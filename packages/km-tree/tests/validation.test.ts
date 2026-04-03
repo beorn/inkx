@@ -7,7 +7,7 @@
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { createTestRepo } from "@km/storage"
 import { withValidation, withTreeValidation } from "../src/validation.ts"
-import type { TreeMutator } from "../src/block-ops.ts"
+import type { TreeMutator } from "../src/ops/block-ops.ts"
 
 // Save/restore KM_STRICT across tests
 let savedStrict: string | undefined

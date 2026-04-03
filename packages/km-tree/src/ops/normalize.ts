@@ -17,18 +17,14 @@
  */
 
 import type { TreeMutator } from "./block-ops.ts"
-import { canHaveChildren } from "./schema.ts"
+import { canHaveChildren } from "../schema.ts"
 
 // =============================================================================
 // Types
 // =============================================================================
 
 /** A normalizer function that can fix a node. Call next() to run remaining normalizers. */
-export type Normalizer = (
-  nodeId: string,
-  tree: TreeMutator,
-  next: () => void,
-) => void
+export type Normalizer = (nodeId: string, tree: TreeMutator, next: () => void) => void
 
 // =============================================================================
 // Default Normalizers
@@ -78,10 +74,7 @@ function normalizeItemType(nodeId: string, tree: TreeMutator, next: () => void):
 }
 
 /** Default normalizer chain. */
-export const defaultNormalizers: readonly Normalizer[] = [
-  normalizeBlockChildren,
-  normalizeItemType,
-]
+export const defaultNormalizers: readonly Normalizer[] = [normalizeBlockChildren, normalizeItemType]
 
 // =============================================================================
 // Normalizer Engine
@@ -136,10 +129,7 @@ export interface NormalizedTreeMutator extends TreeMutator {
  * Wrap a TreeMutator to auto-normalize after every mutation.
  * Like SlateJS's normalizeNode() — prevents forgetting to normalize.
  */
-export function withNormalization(
-  tree: TreeMutator,
-  customNormalizers?: Normalizer[],
-): NormalizedTreeMutator {
+export function withNormalization(tree: TreeMutator, customNormalizers?: Normalizer[]): NormalizedTreeMutator {
   const engine = createNormalizer(customNormalizers)
   let batching = 0
   const dirtyNodes = new Set<string>()

@@ -11,7 +11,7 @@
  * most ops only affect the referenced node, not all subsequent paths.
  */
 
-import type { Operation } from "./operations.ts"
+import type { Operation } from "./ops/operations.ts"
 
 // =============================================================================
 // Point

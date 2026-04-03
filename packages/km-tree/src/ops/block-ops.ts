@@ -10,7 +10,7 @@
  */
 
 import { KNode, type ItemData, type TaskMarker, type TaskStatus } from "@km/core"
-import { midpoint } from "./sort-utils.ts"
+import { midpoint } from "../sort-utils.ts"
 
 // =============================================================================
 // Minimal Interface (subset of Repo that these operations need)

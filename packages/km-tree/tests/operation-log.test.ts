@@ -15,9 +15,9 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { createOperationLog, replay, type OperationLog } from "../src/operation-log.ts"
-import { withHistory } from "../src/history.ts"
-import type { Operation } from "../src/operations.ts"
+import { createOperationLog, replay, type OperationLog } from "../src/ops/operation-log.ts"
+import { withHistory } from "../src/ops/history.ts"
+import type { Operation } from "../src/ops/operations.ts"
 
 // =============================================================================
 // Helpers

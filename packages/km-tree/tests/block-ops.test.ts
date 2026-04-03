@@ -8,7 +8,7 @@
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
 import { KNode } from "@km/core"
-import { split, mergeBackward, mergeForward, detectPrefixConversion, degrade } from "../src/block-ops.ts"
+import { split, mergeBackward, mergeForward, detectPrefixConversion, degrade } from "../src/ops/block-ops.ts"
 import { KTree } from "../src/walk.ts"
 
 // =============================================================================

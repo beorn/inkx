@@ -5,7 +5,7 @@
  * Used by validators, outliner ops, and tests to enforce invariants.
  */
 
-import type { TreeMutator } from "./block-ops.ts"
+import type { TreeMutator } from "./ops/block-ops.ts"
 
 /** Can this node have children? Only items can. */
 export function canHaveChildren(node: { item?: unknown }): boolean {

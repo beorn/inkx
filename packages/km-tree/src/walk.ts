@@ -5,7 +5,7 @@
  */
 
 import { KNode } from "@km/core"
-import type { TreeMutator } from "./block-ops.ts"
+import type { TreeMutator } from "./ops/block-ops.ts"
 
 // =============================================================================
 // Tree.nodes — SlateJS-style pluggable traversal

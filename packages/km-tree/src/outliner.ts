@@ -22,7 +22,7 @@ import {
   mergeBackward,
   mergeForward,
   degrade,
-} from "./block-ops.ts"
+} from "./ops/block-ops.ts"
 import { midpoint } from "./sort-utils.ts"
 
 // =============================================================================

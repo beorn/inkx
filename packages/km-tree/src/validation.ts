@@ -6,7 +6,7 @@
  * withBatch: defers validation until the outermost batch completes.
  */
 
-import type { TreeMutator } from "./block-ops.ts"
+import type { TreeMutator } from "./ops/block-ops.ts"
 
 // =============================================================================
 // withValidation — wire validate() to mutation methods

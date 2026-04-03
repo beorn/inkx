@@ -10,8 +10,8 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { withNormalization, createNormalizer, defaultNormalizers, type Normalizer } from "../src/normalize.ts"
-import type { TreeMutator } from "../src/block-ops.ts"
+import { withNormalization, createNormalizer, defaultNormalizers, type Normalizer } from "../src/ops/normalize.ts"
+import type { TreeMutator } from "../src/ops/block-ops.ts"
 
 // =============================================================================
 // createNormalizer — engine basics

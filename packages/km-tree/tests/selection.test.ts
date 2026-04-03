@@ -9,13 +9,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  Point,
-  Range,
-  transformPoint,
-  transformRange,
-  transformSelection,
-} from "../src/selection.ts"
+import { Point, Range, transformPoint, transformRange, transformSelection } from "../src/selection.ts"
 import type {
   Operation,
   InsertNodeOperation,
@@ -25,7 +19,7 @@ import type {
   SplitNodeOperation,
   MergeNodeOperation,
   SetSelectionOperation,
-} from "../src/operations.ts"
+} from "../src/ops/operations.ts"
 
 // =============================================================================
 // Point
@@ -395,9 +389,7 @@ describe("transformRange", () => {
 
 describe("transformSelection", () => {
   test("null selection stays null", () => {
-    const ops: Operation[] = [
-      { type: "insert_node", parentId: "p1", index: 0, node: { type: "p" }, newId: "n1" },
-    ]
+    const ops: Operation[] = [{ type: "insert_node", parentId: "p1", index: 0, node: { type: "p" }, newId: "n1" }]
     expect(transformSelection(null, ops)).toBeNull()
   })
 

@@ -10,8 +10,8 @@ export type { TNode, TPath } from "./types.ts"
 export type { TaskStatus } from "./types.ts"
 
 // Actions
-export type { TAction } from "./actions.ts"
-export { isTAction, TActionTypes } from "./actions.ts"
+export type { TAction } from "./ops/actions.ts"
+export { isTAction, TActionTypes } from "./ops/actions.ts"
 
 // Queries
 export {
@@ -60,7 +60,7 @@ export {
   type SplitResult,
   type MergeResult,
   type PrefixConversion,
-} from "./block-ops.ts"
+} from "./ops/block-ops.ts"
 
 // Schema — structural rules for the node model
 export { canHaveChildren, canParent, canBecomeBlock } from "./schema.ts"
@@ -73,7 +73,7 @@ export {
   type Normalizer,
   type NormalizerEngine,
   type NormalizedTreeMutator,
-} from "./normalize.ts"
+} from "./ops/normalize.ts"
 
 // Tree walk — configurable DFS traversal and spatial queries
 export { KTree, type NodeEntry, type NodeMatch, type NodesOptions } from "./walk.ts"
@@ -109,27 +109,16 @@ export {
   type MergeNodeOperation,
   type SetSelectionOperation,
   type Selection,
-} from "./operations.ts"
+} from "./ops/operations.ts"
 
 // History — op-based undo/redo via operation inverse
-export { withHistory, type HistoryEditor } from "./history.ts"
+export { withHistory, type HistoryEditor } from "./ops/history.ts"
 
 // Operation log — records ops for undo/collaboration/replay
-export {
-  createOperationLog,
-  replay,
-  type OperationLog,
-  type OperationEntry,
-} from "./operation-log.ts"
+export { createOperationLog, replay, type OperationLog, type OperationEntry } from "./ops/operation-log.ts"
 
 // Selection — Point/Range types with auto-adjustment after operations
-export {
-  Point,
-  Range,
-  transformPoint,
-  transformRange,
-  transformSelection,
-} from "./selection.ts"
+export { Point, Range, transformPoint, transformRange, transformSelection } from "./selection.ts"
 
 // Outliner Reducer — TEA state machine for outliner operations
 export {
