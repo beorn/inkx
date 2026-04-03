@@ -99,18 +99,15 @@ Node mutations always clear `text`. Text mutations never touch `nodes`.
 
 | Type | Trigger | Action | Overlay? | Cancel |
 |---|---|---|---|---|
-| `node-select` | click node | `select(id)` | — | — |
+| `node-select` | click / j / k | `select(id)` | — | — |
 | `node-toggle` | cmd+click | `toggle(id)` | — | — |
 | `node-areaselect` | drag lasso | `areaSelect(hits, mode)` | mouseup | Escape |
 | `node-shiftselect` | shift+click / shift+j/k | `extend(id)` | shift release | Escape |
 | `text-cursor` | click text / double-click | `select(id)` + `edit(offset)` | — | — |
 | `text-dragselect` | click+drag in text | `extendTextRange` | mouseup | Escape |
 | `text-shiftselect` | shift+arrow in text | `extendTextRange` | shift release | Escape |
-| `navigate` | j / k | `select(next/prev)` | — | — |
 | `enter-text` | Enter | `edit(0)` | — | — |
-| `exit-text` | Escape (in text) | `stopEditing` | — | — |
-| `exit-multi` | Escape (multi-select) | `collapseToCursor` | — | — |
-| `exit-all` | Escape (single node) | `clear` | — | — |
+| `exit` | Escape | `stopEditing` / `collapseToCursor` / `clear` | — | — |
 | `drag-drop` | drag selected nodes | visual drop indicator | mouseup | Escape |
 
 Overlay gestures preview the result until committed. Cancel discards — `selected` unchanged.
