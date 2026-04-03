@@ -407,42 +407,145 @@ type AreaSelectSession = {
 
 **Resolution** (Decker pattern): enumerate candidates → proximity to pointer → filter cycles → nearest within threshold.
 
-## Gesture Overlays
+## Layers
 
-During gestures (area-select, drag), a **transient overlay** modifies how selection appears without committing to the store. The effective selection during a gesture is derived from `base + overlay`. On gesture end, the result commits to the store.
+Selection has three layers. Consumers always see the merged result — they don't know which layer they're reading from.
 
-### Area select / lasso
+```
+Layer 3: Gesture overlay      transient — preview during drag/shift/lasso
+Layer 2: Committed selection  persistent — the SelectionState in the TEA store
+Layer 1: Base                 snapshot — frozen at gesture start, restored on cancel
+```
+
+**Normal state** (no gesture active): consumers see Layer 2 directly.
+
+**During a gesture**: Layer 1 = frozen snapshot of Layer 2. Layer 3 = gesture delta. Consumers see `merge(Layer 1, Layer 3)`. Layer 2 is untouched.
+
+**On commit** (mouseup / key release): `merge(Layer 1, Layer 3)` writes to Layer 2. Layers 1+3 discarded.
+
+**On cancel** (Escape): Layers 1+3 discarded. Layer 2 unchanged.
+
+### Overlay kinds
+
+| Kind | Trigger | What changes | Commit |
+|---|---|---|---|
+| **Area select** | drag across empty space | `ids` (replace or XOR) | mouseup |
+| **Text drag-select** | click+drag in text | `text` (anchor→focus range) | mouseup |
+| **Shift-extend** | shift+click / shift+j/k | `node.cursor`, `ids` (range walk) | shift release or next non-shift action |
+| **Drag/drop** | drag selected nodes | nothing on selection (visual only) | drop → document mutation |
+
+All selection-modifying overlays share the same lifecycle. Drag/drop is different — it doesn't overlay selection, just shows a drop indicator.
+
+### Complete selection interaction catalogue
+
+Every way selection can change, categorized by commit behavior:
+
+**Instant (no overlay — commits immediately)**
+
+| Slug | Trigger | Effect |
+|---|---|---|
+| `click` | click node | `select(nodeId)` — single node |
+| `cmd-click` | cmd+click node | `toggle(nodeId)` — add/remove one |
+| `click-text` | click inside text | `select(nodeId)` + `edit(offset)` |
+| `click-empty` | click empty space | `clear` → undefined |
+| `escape-text` | Escape in text mode | `stopEditing` |
+| `escape-multi` | Escape with multi-select | `collapseToCursor` |
+| `escape-single` | Escape with single node | `clear` |
+| `enter` | Enter on node | `edit(0)` |
+| `j/k` | j/k navigation | `select(next/prev)` |
+| `api-select` | "Select card X" | `select(nodeId)` |
+| `api-add` | "Also select Y" | `add(nodeId)` |
+| `api-remove` | "Deselect Y" | `remove(nodeId)` |
+
+**Overlay (gesture preview → commit on end)**
+
+| Slug | Trigger | Overlay on | Commit on |
+|---|---|---|---|
+| `shift-click` | shift+click | `node` + `ids` (range walk) | immediate (single action) |
+| `shift-nav` | shift+j/k (held) | `node` + `ids` (incremental range) | shift release |
+| `lasso` | drag empty space | `ids` (hit-test, replace) | mouseup |
+| `cmd-lasso` | cmd+drag empty | `ids` (hit-test, XOR) | mouseup |
+| `text-drag` | click+drag in text | `text` (anchor→focus) | mouseup |
+| `shift-arrow` | shift+arrow in text | `text` (extend range) | shift release |
+
+**Visual-only (no selection change)**
+
+| Slug | Trigger | Visual |
+|---|---|---|
+| `drag-drop` | drag selected nodes | drop indicator line/highlight |
+| `hover` | mouse over node | hover highlight (if applicable) |
+| `drop-preview` | drag over drop target | insertion line / container highlight |
+
+### Gesture session types
 
 ```ts
-type AreaSelectSession = {
+// Base type for all gesture overlays
+type GestureSession = {
   base: SelectionValue              // snapshot at gesture start (frozen)
-  hitIds: ReadonlySet<ID>           // nodes inside lasso (updated on pointer move)
-  mode: "replace" | "xor"           // plain drag vs cmd+drag
 }
-```
 
-**Effective selection during lasso** (what renders):
-```ts
-effective = mode === "replace"
-  ? { ...base, ids: hitIds }
-  : { ...base, ids: symmetricDifference(base.ids, hitIds) }
-```
+// Area select / lasso (drag across nodes)
+type AreaSelectSession = GestureSession & {
+  kind: "areaSelect"
+  hitIds: ReadonlySet<ID>           // nodes inside lasso (updated on pointer move)
+  mode: "replace" | "xor"
+}
 
-**On gesture end**: `effective` commits → `Selection.areaSelect(base, hitIds, mode, space)`.
+// Text drag-select (click+drag in text)
+type TextSelectSession = GestureSession & {
+  kind: "textSelect"
+  anchor: TextPoint                 // where mousedown happened
+  focus: TextPoint                  // current pointer position
+}
 
-**On gesture cancel** (Escape): restore `base`, discard overlay.
+// Shift-extend (shift held + clicks/keys)
+type ExtendSession = GestureSession & {
+  kind: "extend"
+  anchor: ID                        // extend origin (fixed)
+  focus: ID                         // current extend target (moves)
+}
 
-Components render the *effective* selection during the gesture, not the committed store value. This means `Selection.includes(sel, id)` needs to account for active gesture overlays — either by passing the overlay to the query, or by having the provider merge them before exposing to consumers.
-
-### Drag / drop
-
-```ts
+// Drag / drop (doesn't overlay selection — visual drop indicator only)
 type DragSession = {
+  kind: "drag"
   dragging: ReadonlySet<ID>
   dropTarget: NodeDropTarget | null
   dropEffect: "move" | "copy" | "link"
 }
 ```
+
+### Effective selection (derived during gesture)
+
+```ts
+function deriveEffective(session: GestureSession, space: SelectionSpace): SelectionValue {
+  switch (session.kind) {
+    case "areaSelect":
+      return session.mode === "replace"
+        ? { ...session.base, ids: session.hitIds }
+        : { ...session.base, ids: symmetricDifference(session.base.ids, session.hitIds) }
+    case "textSelect":
+      return { ...session.base, text: { cursor: session.focus, anchor: session.anchor } }
+    case "extend":
+      return { ...session.base, 
+               node: { cursor: session.focus, anchor: session.anchor },
+               ids: space.range(session.anchor, session.focus) }
+  }
+}
+```
+
+### The provider merges committed + overlay
+
+```ts
+function useSelection(): SelectionValue {
+  const committed = store.get(scopeName)
+  const gesture = activeGestureSession
+  return gesture ? deriveEffective(gesture, space) : committed
+}
+```
+
+Consumers never know whether they're seeing committed or gesture-preview state. They just call `Selection.cursor(sel)`, `Selection.includes(sel, id)`. The gesture layer is invisible.
+
+### Drag / drop
 
 Drag doesn't overlay selection — dragged nodes stay selected. The overlay is visual only (drop indicator). On drop, a document mutation happens (move/copy), and selection may update via `selectionAfter`.
 
@@ -451,25 +554,12 @@ Drag doesn't overlay selection — dragged nodes stay selected. The overlay is v
 ```
 TEA Store (committed)           Gesture Overlay (transient)
 ─────────────────────           ─────────────────────────
-SelectionState                  AreaSelectSession?
-  Map<scopeName, SelectionValue>  base, hitIds, mode
-                                  → effective selection (derived)
+SelectionState                  GestureSession?
+  Map<scopeName, SelectionValue>  base + delta → effective (derived)
 
                                 DragSession?
-                                  dragging, dropTarget, dropEffect
-                                  → drop indicator (visual only)
+                                  visual only (drop indicator)
 ```
-
-**The provider merges committed + overlay** before exposing to consumers:
-```ts
-function useSelection(): SelectionValue {
-  const committed = store.get(scopeName)
-  const overlay = areaSelectSession
-  return overlay ? deriveEffective(overlay) : committed
-}
-```
-
-Consumers don't know whether they're seeing committed or overlay state — they just call `Selection.cursor(sel)`, `Selection.includes(sel, id)`. The gesture layer is invisible to them.
 
 ## SelectionProvider (React)
 
