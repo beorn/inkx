@@ -110,7 +110,8 @@ Node mutations always clear `text`. Text mutations never touch `nodes`.
 | `exit` | Escape (text mode) | `stopEditing` | immediate | — |
 | `exit` | Escape (multi-select) | `collapseToCursor` | immediate | — |
 | `exit` | Escape (single node) | `clear` → undefined | immediate | — |
-| `drag-drop` | drag selected nodes | visual drop indicator | mouseup | Escape |
+| `drag-drop` | drag selected node | move all selected | mouseup (drop) | Escape |
+| `drag-drop` | drag unselected node | `select(id)` + move it | mouseup (drop) | Escape |
 
 Non-immediate gestures preview the result via `selecting` until committed. Cancel discards — `selected` unchanged.
 
