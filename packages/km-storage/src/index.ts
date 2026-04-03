@@ -83,9 +83,9 @@ export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db.t
 
 // Store abstraction
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
-export { MemoryStore } from "./store.ts"
+export { MemoryStore, createStoreFromRepo } from "./store.ts"
 
-export type { NodeStore } from "./store.ts"
+export type { NodeStore, Store, Observable } from "./store.ts"
 
 // Unified repo loading
 export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo-loader.ts"
@@ -248,7 +248,14 @@ export type { Config } from "./config-object.ts"
 // Commit taxonomy — types for the reactive store layer
 export { ResourceState, computeDelta } from "./commit-types.ts"
 
-export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope, ResourceState as ResourceStateT } from "./commit-types.ts"
+export type {
+  CommitMeta,
+  CommitSource,
+  CommitResult,
+  RepoDelta,
+  ChangeEnvelope,
+  ResourceState as ResourceStateT,
+} from "./commit-types.ts"
 
 // Emitter domain object - owns event emission lifecycle
 // Replaces global singletons in emit.ts with explicit ownership
