@@ -308,7 +308,7 @@ After the silvery audit, run the [/code quality](../code/quality.md) strategic q
 
 **Interface design** — Do callers pass too many args? Do they always follow the same call sequence?
 
-See [improve.md](../code/improve.md) Phase 1 for the full question set.
+See [quality.md](../code/quality.md) Phase 2 for the full question set.
 
 ## Phase 8: Principles Audit (from docs/principles.md)
 

@@ -77,13 +77,13 @@ Is the code well-designed, maintainable, and free of architectural issues?
 ### Checks
 
 - [ ] **Architecture**: Layer violations (UI touching filesystem, cross-layer imports)
-  - Delegate to: `.claude/skills/code/review-code.md`
+  - Delegate to: `.claude/skills/code/quality.md`
 - [ ] **Complexity**: Hotspots — files >500 lines, functions >50 lines, deep nesting
   - Delegate to: `.claude/skills/code/complexity.md`
 - [ ] **Type safety**: Any `any` types, missing return types on public APIs, unsafe casts
   - Delegate to: `.claude/skills/code/review-types.md`
 - [ ] **Design opportunities**: Over-engineering, unnecessary abstractions, things that could be dramatically simpler
-  - Delegate to: `.claude/skills/code/improve.md` (report mode only — don't fix)
+  - Delegate to: `.claude/skills/code/quality.md` (report mode only — don't fix)
 - [ ] **Gravity wells**: Files that keep growing and touch everything (check `board-actions.ts`, `sync.ts`)
 
 ### Pass/fail
