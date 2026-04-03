@@ -206,6 +206,22 @@ See [glossary.md](glossary.md) for the full project glossary. Key terms for this
 | **effect** | Side-effect instruction emitted by apply. |
 | **change** | Persisted record of what changed (e.g., `node_created`). |
 
+### SlateJS comparison
+
+km's tree layer descends from SlateJS. Terminology mapping:
+
+| SlateJS | km | Notes |
+|---|---|---|
+| `editor.deleteBackward()` | **command** | User-facing intent, keybinding-mapped |
+| `Transforms.splitNodes(editor)` | `repo.splitNode()` | Implementation helpers commands call. No separate namespace — methods on Repo/TreeMutator |
+| `Operation` | **op** (`TreeOp`) | Atomic, invertible, serializable |
+| `Editor.apply(op)` | `Machine.apply(state, op)` | State transition. Ours is pure (returns new state), SlateJS mutates |
+| `Editor.nodes()`, `Node.string()` | **selectors** | Read-only queries on the domain interface |
+| `Node`, `Path`, `Point`, `Range` | **domain interfaces** | Type + function namespace. We use stable IDs instead of index-based paths |
+| `Operation.inverse()` | `TreeOp.inverse(op)` | Same concept. Ours is a standalone function (moving to domain interface) |
+
+Key differences: we use stable node IDs (not fragile index paths), effects are data (not imperative side effects), and state transitions are pure (return new state, not mutation).
+
 ---
 
 ## See Also

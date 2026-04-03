@@ -439,9 +439,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **toast** — A brief notification message that appears temporarily and auto-dismisses.
 
-**transform** — Two meanings:
-- *position transform*: adjusting a Point or Range after an operation to keep it valid (e.g., `transformPoint(point, op)`). Used for selection preservation across mutations.
-- *compound mutation* (planned, not yet implemented): a high-level user-facing mutation producing multiple atomic operations. Currently, commands call tree methods directly instead.
+**transform** — Position adjustment: `Point.transform(point, op)` adjusts a Point or Range after an operation to keep it valid. Used for selection preservation across mutations. Note: SlateJS's `Transforms.*` (compound mutation helpers) map to methods on Repo/TreeMutator in km — we don't have a separate Transforms namespace.
 
 **TreeMutator** — The interface Repo satisfies for tree mutations: `getNode`, `getChildren`, `addNode`, `updateNode`, `moveNode`, `deleteNode`. Decouples tree logic from storage.
 
