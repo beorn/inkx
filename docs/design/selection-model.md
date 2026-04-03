@@ -9,12 +9,11 @@ Reviewed by GPT 5.4 Pro (2x), Gemini 2.5 Pro, then tightened through systematic 
 ## Design Principles
 
 1. **One namespace** — all selection logic lives in `Selection.*`
-2. **Minimum stored state** — only store interaction data; derive everything else
-3. **Discriminated union** — `kind` field, not optional fields
+2. **Minimum stored state** — concrete nodeIds set + cursor + optional text range
+3. **Node + text coexist** — text editing is an overlay on node selection, not a replacement
 4. **Logical selection separate from visual projection** — `normalize/map/project` pipeline
 5. **Selection ≠ operation targets** — commands decide what to affect
 6. **Per-scope ownership** — selection belongs to a SelectionProvider, not a pane
-7. **Extensible** — grid, canvas, handles via new `kind` variants
 
 ## Stored State (minimal)
 
@@ -34,45 +33,35 @@ type SelectionState = {
 
 // === Selection values (plain data, no methods) ===
 
-// Range — two endpoints, same pattern everywhere
+// Range — two endpoints
 type Range<T> = { anchor: T; focus: T }
 
-type SelectionValue = NodeSelection | TextSelection | undefined
-// undefined = no selection (scope has no entry, or explicitly cleared)
-// Future: | GridSelection (genuinely different — rectangular ranges)
-
-type NodeSelection = {
-  kind: "node"
+type SelectionValue = {
   cursor: ID                     // where you "are" (inspector, keyboard, edit target)
-  nodeIds: ReadonlySet<ID>       // the selected nodes (concrete set, not derived)
+  nodeIds: ReadonlySet<ID>       // the selected nodes (concrete set)
   anchor?: ID                    // shift-extend origin (for next shift-click)
-}
-
-type TextSelection = {
-  kind: "text"
-  outer: NodeSelection           // host node selected structurally
-  range: Range<TextPoint>        // anchor = fixed end, focus = cursor position
-}
+  text?: Range<TextPoint>        // present = editing text in cursor node
+} | undefined
+// undefined = no selection
+// Future: GridSelection as a separate kind (rectangular ranges are structurally different)
 ```
 
-**`nodeIds` is the committed selection.** Every completed gesture stores its result directly — no derived membership, no range+toggled algebra.
+No discriminated union. `undefined` = none, `!sel.text` = node mode, `sel.text` = text mode. Multi-selection survives text editing naturally.
 
-**During an area-select gesture**, the effective selection is derived:
-```
-effective = mode === "replace"
-  ? areaHitIds
-  : symmetricDifference(sel.nodeIds, areaHitIds)
-```
-When the gesture completes, `effective` becomes the new `nodeIds`. Between gestures, `nodeIds` is the single source of truth — `includes()` is just `sel.nodeIds.has(id)` (O(1)).
+**`nodeIds` is the committed selection.** Every completed gesture stores its result directly. `includes()` is just `sel.nodeIds.has(id)` (O(1)).
+
+**During an area-select gesture**, the effective selection is derived from `sel.nodeIds` + transient lasso hits. On gesture end, the result commits to `nodeIds`.
 
 **What's derived** (not stored):
+- `inputMode` — `!sel ? "board" : sel.text ? "text" : "node"`
+- `cursorId(sel)` — `sel.cursor`
+- `insertionPoint` — after cursor
 - `scopeId` — the key in `scopes` map
 - `activeScope` — from FocusManager
-- `inputMode` — `!sel ? "board" : sel.kind === "text" ? "text" : "node"`
-- `cursorId(sel)` — `sel.cursor` for node, `sel.range.focus.nodeId` for text
-- `insertionPoint` — after cursor
 
-**`anchor`** exists only for shift-extend. It records where the last range started, so the next shift-click can re-extend from the same origin. It's metadata for the next gesture, not part of the current selection.
+**`anchor`** exists only for shift-extend — metadata for the next gesture, not part of the current selection.
+
+**`text`** is the text editing range within the cursor node. `edit()` sets it, `stopEditing()` clears it. The node selection (`cursor`, `nodeIds`) stays unchanged.
 
 ### Points
 
@@ -105,8 +94,9 @@ const Selection = {
 
   // Queries
   isCollapsed(sel):                boolean         // single node or collapsed text
-  cursorId(sel):                   ID | null       // node: sel.cursor, text: sel.range.focus.nodeId
+  cursorId(sel):                   ID | null       // sel.cursor
   includes(sel, nodeId):           boolean         // sel.nodeIds.has(nodeId)
+  isEditing(sel):                  boolean         // sel.text !== undefined
   insertionPoint(sel, tree):       InsertionPoint  // after cursor
 
   // Mutations (pure: SelectionValue → SelectionValue)
@@ -116,8 +106,8 @@ const Selection = {
   toggle(sel, nodeId):             SelectionValue  // XOR nodeId in nodeIds, cursor=nodeId
   extend(sel, nodeId, tree):       SelectionValue  // nodeIds = range(anchor→nodeId), cursor=nodeId
   collapse(sel):                   SelectionValue  // nodeIds={cursor}, anchor=cursor
-  edit(sel, nodeId, offset):       SelectionValue  // → TextSelection
-  stopEditing(sel):                SelectionValue  // → outer NodeSelection
+  edit(sel, nodeId, offset):       SelectionValue  // set text range on cursor node
+  stopEditing(sel):                SelectionValue  // clear text (node selection unchanged)
   moveCursor(sel, offset):         SelectionValue  // text: move focus offset
   extendText(sel, offset):         SelectionValue  // text: shift+arrow
   areaSelect(sel, nodeIds, mode):  SelectionValue  // commit area result into sel.nodeIds
@@ -152,7 +142,7 @@ A concrete walkthrough showing stored state and derived values at each step.
 ```
 dispatch({ type: "select", nodeId: "A" })
 
-{ kind: "node", cursor: "A", nodeIds: {A}, anchor: "A" }
+{ cursor: "A", nodeIds: {A}, anchor: "A" }
 ```
 
 ### 2. Shift+click D (extend range)
@@ -160,7 +150,7 @@ dispatch({ type: "select", nodeId: "A" })
 ```
 dispatch({ type: "extend", nodeId: "D" })
 
-{ kind: "node", cursor: "D", nodeIds: {A,B,C,D}, anchor: "A" }
+{ cursor: "D", nodeIds: {A,B,C,D}, anchor: "A" }
 // range walk A→D computed and stored as concrete set
 ```
 
@@ -169,8 +159,8 @@ dispatch({ type: "extend", nodeId: "D" })
 ```
 dispatch({ type: "toggle", nodeId: "B" })
 
-{ kind: "node", cursor: "A", nodeIds: {A,C,D}, anchor: "A" }
-// B removed from nodeIds. cursor stays at nearest selected (A).
+{ cursor: "A", nodeIds: {A,C,D}, anchor: "A" }
+// B removed. cursor stays at nearest selected.
 ```
 
 ### 4. Cmd+click F (toggle F on)
@@ -178,8 +168,8 @@ dispatch({ type: "toggle", nodeId: "B" })
 ```
 dispatch({ type: "toggle", nodeId: "F" })
 
-{ kind: "node", cursor: "F", nodeIds: {A,C,D,F}, anchor: "A" }
-// F added to nodeIds. cursor moves to F (last interacted).
+{ cursor: "F", nodeIds: {A,C,D,F}, anchor: "A" }
+// F added. cursor moves to F.
 ```
 
 ### 5. Enter (edit text at cursor)
@@ -187,39 +177,36 @@ dispatch({ type: "toggle", nodeId: "F" })
 ```
 dispatch({ type: "edit", nodeId: "F", offset: 0 })
 
-{ kind: "text",
-  outer: { kind: "node", cursor: "F", nodeIds: {A,C,D,F}, anchor: "A" },
-  range: { anchor: {nodeId: "F", offset: 0}, focus: {nodeId: "F", offset: 0} } }
-// Multi-selection preserved in outer. Cursor editing F's text.
+{ cursor: "F", nodeIds: {A,C,D,F}, anchor: "A",
+  text: { anchor: {nodeId: "F", offset: 0}, focus: {nodeId: "F", offset: 0} } }
+// text range set. node selection unchanged. multi-selection survives.
 ```
 
-### 6. Escape (back to node selection)
+### 6. Escape (stop editing)
 
 ```
 dispatch({ type: "stopEditing" })
 
-{ kind: "node", cursor: "F", nodeIds: {A,C,D,F}, anchor: "A" }
-// outer NodeSelection restored with multi-selection intact.
+{ cursor: "F", nodeIds: {A,C,D,F}, anchor: "A" }
+// text cleared. node selection unchanged.
 ```
 
 ### 7. Area select (replace)
 
 ```
-// Drag lasso hits {B, C}. Plain drag = replace.
 dispatch({ type: "areaSelect", nodeIds: ["B","C"], mode: "replace" })
 
-{ kind: "node", cursor: "B", nodeIds: {B,C}, anchor: "B" }
-// Previous selection replaced entirely.
+{ cursor: "B", nodeIds: {B,C}, anchor: "B" }
+// previous selection replaced entirely.
 ```
 
-### 8. Cmd+drag area select (Finder-style XOR)
+### 8. Cmd+drag area select (XOR)
 
 ```
-// Drag lasso hits {C, D, E}. Cmd held = xor.
 dispatch({ type: "areaSelect", nodeIds: ["C","D","E"], mode: "xor" })
 
-{ kind: "node", cursor: "B", nodeIds: {B,D,E}, anchor: "B" }
-// C was in nodeIds → removed. D,E were not → added.
+{ cursor: "B", nodeIds: {B,D,E}, anchor: "B" }
+// C removed (was in set), D+E added (were not).
 ```
 
 ## Actions (complete)
@@ -420,7 +407,7 @@ dispatch({ type: "toggle", nodeId })                     // action
 | `selectionLevel` | `Selection.inputMode(sel)` |
 | `multiSelected: Set<string>` | `Selection.nodeIds(sel, tree)` |
 | `selectionAnchor` | `sel.range.anchor` |
-| `inlineEditBlock` | `sel.kind === "text"` |
+| `inlineEditBlock` | `sel?.text !== undefined` |
 | `expandWithDescendants()` | NOT in Selection — that's operation targeting |
 
 ### `expandWithDescendants` is NOT selection
