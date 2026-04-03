@@ -209,6 +209,18 @@ The plugin provides the signal DAG and the `SelectionProvider` React component:
 
 **Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
 
+**Commands**: Selection state drives command availability via `when` selectors:
+
+```ts
+// Command "when" predicates — all built on Selection.*
+when: (sel) => Selection.inputMode(sel) === "node"     // node-only commands (indent, move)
+when: (sel) => Selection.isEditing(sel)                 // text-only commands (bold, insert link)
+when: (sel) => Selection.ids(sel).size > 1              // multi-select commands (align, group)
+when: (sel) => sel !== undefined                        // anything selected
+```
+
+This replaces scattered `editLevel` / `selectionLevel` checks. One source of truth for command routing.
+
 **Focus**: Keyboard focus (silvery) is orthogonal. Focus determines active scope. Modals don't change selection.
 
 **Remapping**: v1 uses explicit `selectedBefore` / `selectedAfter` on transactions.
