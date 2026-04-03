@@ -470,7 +470,7 @@ const Card = React.memo(
         <TreeNode
           node={card}
           depth={0}
-          remainingDepth={2}
+          remainingDepth={CARD_REMAINING_DEPTH}
           isSelected={isSelected}
           colIndex={colIndex}
           cardIndex={cardIndex}
