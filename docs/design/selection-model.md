@@ -184,28 +184,39 @@ type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
 
 ## Integration
 
-### `withSelection` plugin
+### `@silvery/selection` package
 
-All selection logic is enforced by a `withSelection` plugin — same pattern as `withReactive`, `withSync`. It wraps the store and validates every mutation. Invariant violations throw (fail-fast, not silent repair).
+Three layers:
 
 ```ts
-const store = withSelection(baseStore, space)
-
-// Every mutation goes through the plugin:
-// - nodes.length > 0 (else throws)
-// - text[0].nodeId === nodes[0] (else throws)
-// - node mutations clear text
-// - cursor repair on remove/toggle
-// - provides signal DAG: selected, selecting, selection
+import { Selection, withNodeSelection, withTextSelection } from "@silvery/selection"
 ```
 
-The plugin provides the signal DAG and the `SelectionProvider` React component:
+**`Selection.*`** — pure functions over the `Selection` type. No state, no signals. Works standalone (tests, SSR, custom state management).
+
+**`withNodeSelection(store)`** — adds node selection signals + invariants. Provides `selected`/`selecting`/`selection` signal DAG. Throws on invariant violation (fail-fast).
+
+**`withTextSelection(store)`** — adds text overlay on top of node selection. Text invariants (`text[0].nodeId === nodes[0]`), gesture morphing (text-drag → node-area).
+
+```ts
+// Compose plugins — same pattern as withReactive, withSync
+const store = withTextSelection(withNodeSelection(baseStore, space))
+
+store.selected                      // signal (committed)
+store.selecting                     // signal (gesture)
+store.selection                     // computed (effective)
+```
 
 ```tsx
 <store.SelectionProvider scopeName="board">
   <BoardView />
 </store.SelectionProvider>
 ```
+
+Apps choose what they need:
+- File manager: `withNodeSelection` only
+- Text editor with blocks: `withTextSelection(withNodeSelection(...))`
+- km: both + km-specific `inputMode`, keybindings, `expandWithDescendants`
 
 **Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
 
