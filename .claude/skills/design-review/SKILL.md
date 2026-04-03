@@ -62,14 +62,29 @@ Extract flags from `$ARGUMENTS`, then determine the input type:
 | Directory | Path ends with `/` or is a directory | Glob for `*.png` / `*.jpg`, review each |
 | TTY command | `--tty` flag with command | Run TTY text scan (Tier 0) |
 
-### Step 2: Choose review tier (benchmarked 2026-03-29)
+### Step 2: Choose review tier (benchmarked 2026-04-03)
 
-| Tier | What | Speed | Cost | Detection Rate |
-|------|------|-------|------|----------------|
-| **Tier 0: TTY text scan** | Run app in `mcp__tty`, scan for overflow past border chars | ~5s | Free | Catches 100% of overflow/clipping |
-| **Tier 1: Claude Read (2x)** | Read 2x PNG with Claude's built-in vision | Instant | Free | ~40% of all issues |
-| **Tier 2: Grok 4 review (2x)** | Send 2x PNG to Grok 4 with structured prompt | ~30s | ~$0.03 | ~95% of all issues |
-| **Tier 3: Gemini 2.5 Pro review (2x)** | Send 2x PNG to Gemini Pro | ~30s | ~$0.05 | ~85% of all issues |
+Same screenshot, same prompt, 5 models compared. Results below.
+
+| Tier | What | Speed | Cost | Rating | Issues Found | Best For |
+|------|------|-------|------|--------|-------------|----------|
+| **Tier 0: TTY text scan** | Run app in `mcp__tty`, scan for overflow past border chars | ~5s | Free | — | 100% overflow | Quick smoke |
+| **Tier 1: Claude Read (2x)** | Read 2x PNG with Claude's built-in vision (Opus 4.6 — #1 ARC-AGI visual reasoning) | Instant | Free | 5/10 | ~11 issues | Daily work, free |
+| **Tier 2: O3 (2x)** | Send 2x PNG to O3 | ~27s | ~$0.014 | 6/10 | ~11 issues | Best value — cheapest cloud |
+| **Tier 3: Gemini 3 Pro (2x)** | Send 2x PNG to Gemini 3 Pro Preview — harshest critic | ~41s | ~$0.021 | 3.5/10 | ~9 issues | "Is this ready?" gate |
+| **Tier 4: GPT 5.4 Pro (2x)** | Send 2x PNG to GPT 5.4 Pro — most detailed | ~295s | ~$1.46 | 5/10 | ~25 issues | Showcase-critical deep review |
+
+**Dropped from previous benchmark:**
+- Grok 4 ($0.046, 79s, 6/10) — no advantage over O3 at 3x the cost
+- Gemini 2.5 Pro ($0.023, 45s, 7/10) — too generous, missed too many issues
+
+**When to use which:**
+- **Daily work**: Tier 1 (free) — catches major issues, instant
+- **Before promoting to showcase**: Tier 3 (Gemini 3 Pro) — harshest, catches what you'd forgive
+- **Final review for flagship demos**: Tier 4 (GPT 5.4 Pro) — finds 2.5x more issues than any other model
+- **Emerging**: Gemini 3.1 Pro (not yet benchmarked — expected to be stronger than 3 Pro)
+
+**Update schedule**: Re-benchmark every 2 weeks as new models ship. Last benchmark: 2026-04-03.
 
 ---
 
