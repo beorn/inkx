@@ -514,7 +514,7 @@ function TreeNodeImpl({
     (depth === 0 && expandedEditCardId === node.id) ||
     // Edit: sub-item-level expansion (any depth)
     (depth > 0 && editNodeId != null && isAncestorOf(repo, node.id, editNodeId)) ||
-    // Cursor: expand at card level when cursor is on a descendant
+    // Cursor: expand card when cursor is on a descendant
     (depth === 0 && cursorInDescendant) ||
     // Cursor: expand sub-items when cursor is a direct child
     (depth > 0 && cursorIsChild)

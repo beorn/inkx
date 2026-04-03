@@ -237,15 +237,20 @@ const Card = React.memo(
     // Filter out collapsed children (km.collapse:: true, detailOnly) — these are
     // only shown in the detail pane and must not inflate the overflow count.
     const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
+    // When cursor is inside this card (on a descendant), expand to show all children
+    const cursorInDescendant = useReactive(nodeStore.getOrCreate(nodeId).cursorInDescendant)
+    const isExpanded = isSelected || cursorInDescendant
+
     const childCount = childCountProp ?? children.length
-    const directHidden = Math.max(0, childCount - maxChildren)
+    const effectiveMax = isExpanded ? Infinity : maxChildren
+    const directHidden = Math.max(0, childCount - effectiveMax)
     const { hasOverflow, hiddenCount } = useMemo(() => {
       let total = directHidden
-      const visibleChildren = children.slice(0, maxChildren)
+      const visibleChildren = children.slice(0, effectiveMax)
       for (const child of visibleChildren) {
         const grandchildren = repo.getChildren(child.id)
-        if (grandchildren.length > maxChildren) {
-          total += grandchildren.length - maxChildren
+        if (grandchildren.length > effectiveMax) {
+          total += grandchildren.length - effectiveMax
         }
       }
       // Title wrap: TreeNode constrainText() allows titles up to 2 lines.
@@ -257,7 +262,7 @@ const Card = React.memo(
       const titleExtraLines = Math.min(1, Math.max(0, Math.ceil(titleDisplayWidth / textWidth) - 1))
       total += titleExtraLines
       return { hasOverflow: total > 0, hiddenCount: total }
-    }, [directHidden, children, maxChildren, repo, card, treeConfig.cardInnerWidth])
+    }, [directHidden, children, effectiveMax, repo, card, treeConfig.cardInnerWidth])
 
     // HR nodes render as borderless centered content (unless being edited,
     // in which case they fall through to normal bordered card with InlineEditField).
