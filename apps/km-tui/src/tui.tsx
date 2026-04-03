@@ -113,7 +113,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
     log.debug?.(`Creating sync rootPath=${state.rootPath} watch=true worker=${useWorker}`)
-    // withSync decorates the repo, wiring emitter.setFsSync internally
+    // withSync decorates the repo, wrapping apply() to add FS sync
     const syncedRepo = withSync({
       debounceFs: 2000, // Debounce external changes (2s)
       debounceApply: 100, // Small debounce for batching TUI changes
