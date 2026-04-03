@@ -186,26 +186,19 @@ type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
 
 ### `@silvery/selection` package
 
-Three layers:
-
 ```ts
-import { Selection, withNodeSelection, withTextSelection } from "@silvery/selection"
+import { Selection, withSelection } from "@silvery/selection"
+
+const store = withSelection(baseStore, space)
 ```
 
-**`Selection.*`** — pure functions over the `Selection` type. No state, no signals. Works standalone (tests, SSR, custom state management).
+**`Selection.*`** — pure functions over the `Selection` type. Works standalone (tests, SSR, custom wiring).
 
-**`withNodeSelection(store)`** — adds node selection signals + invariants. Provides `selected`/`selecting`/`selection` signal DAG. Throws on invariant violation (fail-fast).
-
-**`withTextSelection(store)`** — adds text overlay on top of node selection. Text invariants (`text[0].nodeId === nodes[0]`), gesture morphing (text-drag → node-area).
-
-```ts
-// Compose plugins — same pattern as withReactive, withSync
-const store = withTextSelection(withNodeSelection(baseStore, space))
-
-store.selected                      // signal (committed)
-store.selecting                     // signal (gesture)
-store.selection                     // computed (effective)
-```
+**`withSelection(store, space)`** — the plugin. Composes node + text selection internally. Provides:
+- `store.selected` / `store.selecting` / `store.selection` signals
+- `store.SelectionProvider` React component
+- Invariant enforcement (throws on violation)
+- Gesture session management
 
 ```tsx
 <store.SelectionProvider scopeName="board">
@@ -213,10 +206,7 @@ store.selection                     // computed (effective)
 </store.SelectionProvider>
 ```
 
-Apps choose what they need:
-- File manager: `withNodeSelection` only
-- Text editor with blocks: `withTextSelection(withNodeSelection(...))`
-- km: both + km-specific `inputMode`, keybindings, `expandWithDescendants`
+Internally, `withSelection` is composed from `withNodeSelection` + `withTextSelection`. For apps that only need node selection (file manager, image gallery), `withNodeSelection` is available directly. But the default is `withSelection` — everything included, text is just an optional field.
 
 **Scopes**: `Map<string, Selection>`. One per pane. Lifecycle via the plugin.
 
