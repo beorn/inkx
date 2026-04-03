@@ -57,7 +57,12 @@ export { createReconciliationEngine } from "./reconciliation-engine.ts"
 
 export type { ReconciliationEngine, ReconciliationEngineConfig } from "./reconciliation-engine.ts"
 
-// Sync state (persisted content-hash baseline)
+// Ownership tracker (unified two-tier ownership: in-memory L1 + SQLite L2)
+export { createOwnershipTracker } from "./ownership-tracker.ts"
+
+export type { OwnershipTracker } from "./ownership-tracker.ts"
+
+// Sync state (persisted content-hash baseline — L2 backing store for OwnershipTracker)
 export { createSyncState } from "./sync-state.ts"
 
 export type { SyncState, SyncStateEntry } from "./sync-state.ts"

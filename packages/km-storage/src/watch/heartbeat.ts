@@ -16,7 +16,7 @@ const log = createLogger("km:storage:watch:heartbeat")
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getAllNodes, getSubtree, nodesToMarkdown } from "../index.ts"
 import type { ReconciliationEngine } from "./reconciliation-engine.ts"
-import type { SyncState as SyncStateStore } from "./sync-state.ts"
+import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
 import type { ParsePoolService } from "../parse-pool.ts"
 
@@ -39,7 +39,7 @@ export type SyncState = "idle" | "fs_debouncing" | "db_debouncing" | "reconcilin
 
 export interface HeartbeatDeps {
   engine: ReconciliationEngine
-  syncState: SyncStateStore
+  tracker: OwnershipTracker
   writeQueue: WriteQueue
   db: Database
   repoPath: string
@@ -59,7 +59,7 @@ export function createHeartbeat(config: HeartbeatConfig, deps: HeartbeatDeps) {
   let drift: number = 0
 
   function reprojectDirtyPaths(): void {
-    const dirtyPaths = deps.syncState.getDirtyPaths()
+    const dirtyPaths = deps.tracker.getDirtyPaths()
     if (dirtyPaths.length === 0) return
 
     log.debug?.(`re-projecting ${dirtyPaths.length} dirty paths`)
@@ -68,7 +68,7 @@ export function createHeartbeat(config: HeartbeatConfig, deps: HeartbeatDeps) {
         const fileNode = getAllNodes(deps.db).find((n) => n.fs_path === fsPath)
         if (!fileNode) {
           // Node no longer exists -- clear the dirty flag
-          deps.syncState.clearDirty(fsPath)
+          deps.tracker.clearDirty(fsPath)
           continue
         }
         const absPath = toAbsoluteFsPath(deps.repoPath, fsPath)
@@ -79,7 +79,7 @@ export function createHeartbeat(config: HeartbeatConfig, deps: HeartbeatDeps) {
           content,
           sourceEventId: "heartbeat-reproject",
         })
-        deps.syncState.clearDirty(fsPath)
+        deps.tracker.clearDirty(fsPath)
       } catch (error) {
         log.debug?.(`failed to re-project ${fsPath}: ${String(error)}`)
       }

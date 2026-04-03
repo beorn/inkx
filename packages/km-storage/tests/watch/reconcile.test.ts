@@ -775,10 +775,9 @@ describe("delete suppression (ReconciliationEngine)", () => {
    * suppress this delete op because it's our own delete — not an external one.
    */
   test("delete via km is suppressed by reconciliation engine", async () => {
-    const { WriteTokenMap } = await import("../../src/watch/write-tokens.ts")
+    const { createOwnershipTracker } = await import("../../src/watch/ownership-tracker.ts")
     const { createReconciliationEngine } = await import("../../src/watch/reconciliation-engine.ts")
     const { WriteQueue } = await import("../../src/watch/writequeue.ts")
-    const { createSyncState } = await import("../../src/watch/sync-state.ts")
 
     await withTestEnvRel(async ({ db, repoDir, emitter }) => {
       // 1. Create a file and sync it into the DB
@@ -787,21 +786,19 @@ describe("delete suppression (ReconciliationEngine)", () => {
       assertNodeExists(db, filePath)
 
       // 2. Set up the reconciliation engine
-      const writeTokens = new WriteTokenMap()
-      const syncState = createSyncState(db)
+      const tracker = createOwnershipTracker(db)
       const writeQueue = new WriteQueue({ debounceMs: 1 })
 
       const engine = createReconciliationEngine({
         db,
         repoPath: repoDir,
-        writeTokens,
-        syncState,
+        tracker,
         writeQueue,
         reconcileEmitter: emitter,
       })
 
-      // 3. Simulate km deleting the file: record the delete token, then remove the file
-      writeTokens.recordDelete(filePath)
+      // 3. Simulate km deleting the file: record the delete, then remove the file
+      tracker.recordDelete(filePath)
       rmSync(filePath)
 
       // 4. Run reconciliation — should generate a delete op but filter it out
@@ -809,15 +806,14 @@ describe("delete suppression (ReconciliationEngine)", () => {
       expect(ops).toHaveLength(0)
 
       // 5. Tombstone was consumed (one-shot)
-      expect(writeTokens.hasDelete(filePath)).toBe(false)
+      expect(tracker.isOwnedDelete(filePath)).toBe(false)
     })
   })
 
   test("external delete is NOT suppressed", async () => {
-    const { WriteTokenMap } = await import("../../src/watch/write-tokens.ts")
+    const { createOwnershipTracker } = await import("../../src/watch/ownership-tracker.ts")
     const { createReconciliationEngine } = await import("../../src/watch/reconciliation-engine.ts")
     const { WriteQueue } = await import("../../src/watch/writequeue.ts")
-    const { createSyncState } = await import("../../src/watch/sync-state.ts")
 
     await withTestEnvRel(async ({ db, repoDir, emitter }) => {
       // 1. Create a file and sync it into the DB
@@ -826,15 +822,13 @@ describe("delete suppression (ReconciliationEngine)", () => {
       assertNodeExists(db, filePath)
 
       // 2. Set up the reconciliation engine (no delete tokens recorded)
-      const writeTokens = new WriteTokenMap()
-      const syncState = createSyncState(db)
+      const tracker = createOwnershipTracker(db)
       const writeQueue = new WriteQueue({ debounceMs: 1 })
 
       const engine = createReconciliationEngine({
         db,
         repoPath: repoDir,
-        writeTokens,
-        syncState,
+        tracker,
         writeQueue,
         reconcileEmitter: emitter,
       })
@@ -850,10 +844,9 @@ describe("delete suppression (ReconciliationEngine)", () => {
   })
 
   test("pending delete in WriteQueue is also suppressed", async () => {
-    const { WriteTokenMap } = await import("../../src/watch/write-tokens.ts")
+    const { createOwnershipTracker } = await import("../../src/watch/ownership-tracker.ts")
     const { createReconciliationEngine } = await import("../../src/watch/reconciliation-engine.ts")
     const { WriteQueue } = await import("../../src/watch/writequeue.ts")
-    const { createSyncState } = await import("../../src/watch/sync-state.ts")
 
     await withTestEnvRel(async ({ db, repoDir, emitter }) => {
       // 1. Create a file and sync it into the DB
@@ -862,8 +855,7 @@ describe("delete suppression (ReconciliationEngine)", () => {
       assertNodeExists(db, filePath)
 
       // 2. Set up the reconciliation engine
-      const writeTokens = new WriteTokenMap()
-      const syncState = createSyncState(db)
+      const tracker = createOwnershipTracker(db)
       const writeQueue = new WriteQueue({
         debounceMs: 999999, // Never auto-flush
       })
@@ -871,8 +863,7 @@ describe("delete suppression (ReconciliationEngine)", () => {
       const engine = createReconciliationEngine({
         db,
         repoPath: repoDir,
-        writeTokens,
-        syncState,
+        tracker,
         writeQueue,
         reconcileEmitter: emitter,
       })

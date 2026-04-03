@@ -18,8 +18,7 @@ import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
 import { createParsePool, type ParsePoolService } from "../parse-pool.ts"
 import { WriteQueue } from "./writequeue.ts"
-import { WriteTokenMap } from "./write-tokens.ts"
-import { createSyncState, type SyncState as SyncStateStore } from "./sync-state.ts"
+import { createOwnershipTracker, type OwnershipTracker } from "./ownership-tracker.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import { type Event } from "@km/core"
 import { type Emitter } from "../emitter.ts"
@@ -132,8 +131,7 @@ export function withSync(config?: Partial<SyncConfig>) {
     const emitter = repo.emitter
     // ── Core services ──────────────────────────────────────────────────────
 
-    const syncState: SyncStateStore = createSyncState(db)
-    const writeTokens = new WriteTokenMap()
+    const tracker: OwnershipTracker = createOwnershipTracker(db)
 
     // ── Watcher ────────────────────────────────────────────────────────────
 
@@ -156,12 +154,10 @@ export function withSync(config?: Partial<SyncConfig>) {
       retry: cfg.retry,
       clearInFlightDelayMs: cfg.clearInFlightDelayMs,
       onWrite: (path, content) => {
-        writeTokens.record(path, content)
-        syncState.recordProjection(path, content)
+        tracker.recordWrite(path, content)
       },
       onDelete: (path) => {
-        writeTokens.recordDelete(path)
-        syncState.removePath(path)
+        tracker.recordDelete(path)
       },
     })
     writeQueue.setWatcher(watcher)
@@ -172,8 +168,7 @@ export function withSync(config?: Partial<SyncConfig>) {
     const engine: ReconciliationEngine = createReconciliationEngine({
       db: db,
       repoPath: repoPath,
-      writeTokens,
-      syncState,
+      tracker,
       writeQueue,
       reconcileEmitter,
     })
@@ -264,8 +259,7 @@ export function withSync(config?: Partial<SyncConfig>) {
         watcher.clearInFlight(absPath, delayMs)
       },
       recordWriteToken: (absPath: string, content: string) => {
-        writeTokens.record(absPath, content)
-        syncState.recordProjection(absPath, content)
+        tracker.recordWrite(absPath, content)
       },
       renamePending: (oldPath: string, newPath: string) => {
         return writeQueue.renamePending(oldPath, newPath)
@@ -286,7 +280,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       { ...DEFAULT_HEARTBEAT, ...cfg.heartbeat },
       {
         engine,
-        syncState,
+        tracker,
         writeQueue,
         db: db,
         repoPath: repoPath,
@@ -319,7 +313,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       callbacks?.onWriteErrors?.(errors as Array<{ path: string; error: Error; errorClass?: string }>)
       for (const err of errors as Array<{ path: string; errorClass?: string }>) {
         if (err.errorClass === "permanent") {
-          syncState.markDirty(err.path)
+          tracker.markDirty(err.path)
         }
       }
     })
@@ -431,20 +425,17 @@ export function withSync(config?: Partial<SyncConfig>) {
       },
     }
 
-    // Wrap repo.apply() to add FS projection as a decorator
-    const baseApply = repo.apply.bind(repo)
+    // Wrap emitter.apply() to add FS projection.
+    // This intercepts ALL callers (repo.apply, db-ops mutations, etc.)
+    const baseEmitterApply = emitter.apply.bind(emitter)
+    emitter.apply = (event, emitOptions = {}) => {
+      const result = baseEmitterApply(event, emitOptions)
+      if (!emitOptions.skipFsSync) {
+        void handlers.applyEventToFs(result)
+      }
+      return result
+    }
 
-    return {
-      ...repo,
-      ...syncMethods,
-      apply(event: Omit<Event, "id" | "ts">, options?: { skipFsSync?: boolean }): Event {
-        const result = baseApply(event, options)
-        // Project to FS unless explicitly skipped
-        if (!options?.skipFsSync) {
-          void handlers.applyEventToFs(result)
-        }
-        return result
-      },
-    } as R & Sync
+    return { ...repo, ...syncMethods } as R & Sync
   }
 }

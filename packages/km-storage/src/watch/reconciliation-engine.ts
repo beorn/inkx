@@ -22,8 +22,7 @@ import {
   applyReconcileOpsAsync,
   type ReconcileOp,
 } from "./reconcile.ts"
-import type { WriteTokenMap } from "./write-tokens.ts"
-import type { SyncState as SyncStateStore } from "./sync-state.ts"
+import type { OwnershipTracker } from "./ownership-tracker.ts"
 import type { WriteQueue } from "./writequeue.ts"
 import type { Emitter } from "../emitter.ts"
 import type { ParsePoolService } from "../parse-pool.ts"
@@ -32,8 +31,7 @@ import type { PatternMatcher } from "../ignore.ts"
 export interface ReconciliationEngineConfig {
   db: Database
   repoPath: string
-  writeTokens: WriteTokenMap
-  syncState: SyncStateStore
+  tracker: OwnershipTracker
   writeQueue: WriteQueue
   reconcileEmitter: Emitter
 }
@@ -47,48 +45,23 @@ export interface ReconciliationResult {
  * Create a reconciliation engine.
  *
  * Encapsulates all FS→DB reconciliation logic:
- * - Owned-write detection (two-tier: WriteTokenMap + syncState)
+ * - Owned-write detection (via OwnershipTracker — two-tier L1/L2)
  * - Pending-write filtering (WriteQueue paths)
  * - Observation recording after successful ops
  */
 export function createReconciliationEngine(config: ReconciliationEngineConfig) {
-  const { db, repoPath, writeTokens, syncState, writeQueue, reconcileEmitter } = config
-
-  /**
-   * Check if we own a file change. Two-tier lookup:
-   * 1. WriteTokenMap (in-memory hot cache) — fast, no DB query
-   * 2. syncState (persisted baseline) — survives restarts, requires file content read
-   *
-   * Returns true if the file content matches what we last wrote.
-   */
-  function isOwnedWrite(absPath: string): boolean {
-    // Tier 1: in-memory cache (fast path)
-    if (writeTokens.has(absPath)) return true
-
-    // Tier 2: persisted sync_state (cold path — survives restart)
-    try {
-      const content = readFileSync(absPath, "utf-8")
-      if (syncState.isOurs(absPath, content)) {
-        log.debug?.(`syncState hit for ${absPath} (writeToken cache miss, post-restart?)`)
-        return true
-      }
-    } catch {
-      // File unreadable (ENOENT, EACCES) — treat as external
-    }
-
-    return false
-  }
+  const { db, repoPath, tracker, writeQueue, reconcileEmitter } = config
 
   /**
    * Check if a delete op was caused by us. Delete ops use relative paths,
-   * so we resolve to absolute for lookup against writeTokens (which stores abs paths).
+   * so we resolve to absolute for lookup against tracker (which stores abs paths).
    * Consumes the tombstone on match (one-shot).
    */
   function isOwnedDelete(relPath: string): boolean {
     const absPath = join(repoPath, relPath)
 
     // Tier 1: in-memory delete tombstone (hot path)
-    if (writeTokens.consumeDelete(absPath)) return true
+    if (tracker.consumeDelete(absPath)) return true
 
     // Tier 2: pending delete in WriteQueue (pre-flush)
     // Already covered by pendingPaths check in filterOwnedWriteOps,
@@ -104,10 +77,10 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
    * Filter reconcile ops to exclude files we wrote or have pending writes for.
    *
    * Four suppression layers:
-   * 1. writeTokens — in-memory content-hash tracking of files we wrote (post-flush)
-   * 2. syncState — persisted content-hash baseline (survives restarts, falls back on cache miss)
+   * 1. tracker L1 — in-memory content-hash tracking of files we wrote (post-flush)
+   * 2. tracker L2 — persisted content-hash baseline (survives restarts, falls back on L1 miss)
    * 3. pendingPaths — files currently in the WriteQueue awaiting flush (pre-flush)
-   * 4. deleteTokens — in-memory tombstone for files we deleted (post-flush)
+   * 4. tracker delete tombstones — in-memory tombstone for files we deleted (post-flush)
    *
    * Layer 3 is critical for the delete-noop bug (km-tui.delete-noop): after deleting
    * a node, the parent file is queued for regeneration. Before the WriteQueue flushes,
@@ -126,7 +99,7 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
         return !isOwnedDelete(op.path)
       }
       // Create/update/rename ops use absolute paths
-      return !isOwnedWrite(op.path) && !pendingPaths.has(op.path)
+      return !tracker.isOwnedWrite(op.path) && !pendingPaths.has(op.path)
     })
     const skipped = ops.length - filtered.length
     if (skipped > 0) {
@@ -147,16 +120,16 @@ export function createReconciliationEngine(config: ReconciliationEngineConfig) {
           case "create":
           case "update": {
             const content = readFileSync(op.path, "utf-8")
-            syncState.recordObservation(op.path, content, op.nodeId)
+            tracker.recordObservation(op.path, content, op.nodeId)
             break
           }
           case "rename":
             if (op.oldPath) {
-              syncState.renamePath(op.oldPath, op.path)
+              tracker.renamePath(op.oldPath, op.path)
             }
             break
           case "delete":
-            syncState.removePath(op.path)
+            tracker.removePath(op.path)
             break
         }
       } catch {
