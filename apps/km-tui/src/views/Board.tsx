@@ -621,14 +621,15 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [nodeStore, foldDepths])
 
   // Incrementally sync multi-selection changes to reactive node state
+  // Pass repo so descendants of selected nodes also appear visually selected
   const prevMultiSelectedRef = useRef(multiSelected)
   useEffect(() => {
     const prev = prevMultiSelectedRef.current
     if (prev !== multiSelected) {
-      nodeStore.syncMultiSelected(prev, multiSelected)
+      nodeStore.syncMultiSelected(prev, multiSelected, repo)
       prevMultiSelectedRef.current = multiSelected
     }
-  }, [nodeStore, multiSelected])
+  }, [nodeStore, multiSelected, repo])
 
   // Incrementally sync inline edit state to reactive node state
   const inlineEditBlock = ui.inlineEditBlock

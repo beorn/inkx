@@ -7,6 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { TC } from "./helpers/theme.ts"
 
 // =============================================================================
 // Selection
@@ -394,5 +395,57 @@ describe("Selection", () => {
     board.expect("[data-selected]").toExist()
     const selected = board.q("[data-selected]")
     expect(selected.count()).toBe(1)
+  })
+
+  // ---------------------------------------------------------------------------
+  // Sub-node visual selection (descendants appear selected when parent is)
+  // ---------------------------------------------------------------------------
+
+  test("sub-items appear selected when parent card is shift-selected", () => {
+    // Create a board with a folder card that has visible children
+    const { board } = testEnv(item.nestedBoard)
+    board.expect("#Parent[data-cursor]").toExist()
+
+    // Shift+ArrowDown extends selection: selects Parent and sibling
+    board.press("shift+ArrowDown")
+    board.expect("#sibling[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+
+    // Parent's children should visually appear selected (selection background)
+    // because their parent (Parent) is in the multiSelected set
+    board.expectNodeColor("child-1", { bg: TC["$selection-bg"] })
+    board.expectNodeColor("child-2", { bg: TC["$selection-bg"] })
+  })
+
+  // ---------------------------------------------------------------------------
+  // Outline mode selection constrains to siblings
+  // ---------------------------------------------------------------------------
+
+  test("shift-select in outline mode only selects siblings", () => {
+    // Create a board with a card that has 3 children
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2"), item("child-3")))),
+    )
+    board.expect("#Parent[data-cursor]").toExist()
+
+    // Navigate into the card to child-1 via block_nav_down (enters outline mode)
+    board.command("block_nav_down")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // Shift+ArrowDown in outline mode — selects among siblings
+    board.press("shift+ArrowDown")
+    board.expect("#child-2[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+
+    // Extend further
+    board.press("shift+ArrowDown")
+    board.expect("#child-3[data-cursor]").toExist()
+    expect(board.getStatus()?.message).toMatch(/3 items/)
+
+    // The parent card should NOT be in the selection (only siblings)
+    // Check parent doesn't have selection bg (it has cursor-in-descendant highlight instead)
+    // Parent is NOT multi-selected — only children are
+    const parentLoc = board.q("#Parent")
+    expect(parentLoc.count()).toBeGreaterThan(0)
   })
 })

@@ -251,9 +251,10 @@ export class ReactiveNodeStore {
           cardState.foldOverride.value = cardFold
         }
 
-        // Multi-selection
+        // Multi-selection — mark the card and all its descendants
         if (multiSelected.has(card.id)) {
           cardState.multiSelected.value = true
+          this.hydrateDescendantSelection(repo, card.id)
         }
 
         // Excluded sigils — inherit from column (cards don't add own sigils)
@@ -278,15 +279,20 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync multi-selection changes. Replaces syncMultiSelectedToAtoms. */
-  syncMultiSelected(oldSelected: Set<string>, newSelected: Set<string>): void {
-    for (const key of oldSelected) {
-      if (!newSelected.has(key)) {
+  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected.
+   *  When a parent is selected, all children appear highlighted in the UI. */
+  syncMultiSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
+    // Expand both sets to include descendants so we diff the full visual selection
+    const oldExpanded = repo ? expandWithDescendants(oldSelected, repo) : oldSelected
+    const newExpanded = repo ? expandWithDescendants(newSelected, repo) : newSelected
+
+    for (const key of oldExpanded) {
+      if (!newExpanded.has(key)) {
         this.getOrCreate(key).multiSelected.value = false
       }
     }
-    for (const key of newSelected) {
-      if (!oldSelected.has(key)) {
+    for (const key of newExpanded) {
+      if (!oldExpanded.has(key)) {
         this.getOrCreate(key).multiSelected.value = true
       }
     }
@@ -319,11 +325,43 @@ export class ReactiveNodeStore {
     this.expandedEditCardId.value = cardNodeId ?? null
   }
 
+  /** Mark all descendants of a selected node as visually selected during hydration. */
+  private hydrateDescendantSelection(repo: Repo, parentId: string): void {
+    const children = repo.getChildren(parentId)
+    for (const child of children) {
+      this.getOrCreate(child.id).multiSelected.value = true
+      this.hydrateDescendantSelection(repo, child.id)
+    }
+  }
+
   /** Remove node entries. Call on zoom/root change. */
   private cleanup(nodeIds: Set<string>): void {
     for (const id of nodeIds) {
       this.nodes.delete(id)
     }
+  }
+}
+
+// =============================================================================
+// Helpers
+// =============================================================================
+
+/** Expand a set of node IDs to include all their descendants. */
+function expandWithDescendants(nodeIds: Set<string>, repo: Repo): Set<string> {
+  if (nodeIds.size === 0) return nodeIds
+  const expanded = new Set<string>(nodeIds)
+  for (const id of nodeIds) {
+    collectDescendants(id, repo, expanded)
+  }
+  return expanded
+}
+
+/** Recursively collect all descendants of a node into the target set. */
+function collectDescendants(nodeId: string, repo: Repo, target: Set<string>): void {
+  const children = repo.getChildren(nodeId)
+  for (const child of children) {
+    target.add(child.id)
+    collectDescendants(child.id, repo, target)
   }
 }
 
