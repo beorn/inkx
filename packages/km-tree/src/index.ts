@@ -111,6 +111,9 @@ export {
   type Selection,
 } from "./operations.ts"
 
+// History — op-based undo/redo via operation inverse
+export { withHistory, type HistoryEditor } from "./history.ts"
+
 // Selection — Point/Range types with auto-adjustment after operations
 export {
   Point,
