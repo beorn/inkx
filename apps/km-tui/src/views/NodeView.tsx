@@ -706,7 +706,6 @@ export function deriveColumnHeaderProps(
   headerStyle: ColumnHeaderStyle
   icon: StatusIcon
   typeSuffix: string | undefined
-  hasBody: boolean
 } {
   const isVirtual = opts.isVirtual ?? false
   const displayName = parseToPlainText(getNodeDisplayName(repo, node))
@@ -727,8 +726,5 @@ export function deriveColumnHeaderProps(
 
   const icon = getColumnHeaderIcon(node, opts.iconStyle, isVirtual, ownColor)
 
-  // Column body content is always visible as cards — never show ···
-  const hasBody = false
-
-  return { displayName, untitled, ownColor, headerStyle, icon, typeSuffix, hasBody }
+  return { displayName, untitled, ownColor, headerStyle, icon, typeSuffix }
 }

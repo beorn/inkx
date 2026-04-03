@@ -6,8 +6,8 @@
  */
 
 import React, { useMemo } from "react"
-import { Box, H1, Small } from "@silvery/ag-react"
-import type { KNode } from "@km/core"
+import { Box, H1, Small, Text } from "@silvery/ag-react"
+import { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import type { PopoverContent } from "./Popover.tsx"
@@ -16,6 +16,7 @@ import {
   getTypeBullet,
   getCircleBullet,
   getFoldMarker,
+  getStatusIcon,
   computeSearchDecorationsFromSource,
   type InlineRenderContext,
   type TextDecoration,
@@ -68,7 +69,11 @@ export function buildNodePopoverContent(
       const nodeChildren = repo.getChildren(node.id)
       const nodeTitle = node.content ?? node.name ?? "(untitled)"
       const badge = nodeBadgeLabel(node)
+      const nodeIsTask = KNode.isTask(node)
+      const statusIcon = nodeIsTask ? getStatusIcon(node.item?.task?.status ?? "todo") : null
+      const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
       const { DocContent } = require("../views/DetailView.tsx") as typeof import("../views/DetailView.tsx")
+      const { CheckboxIcon } = require("../views/CheckboxIcon.tsx") as typeof import("../views/CheckboxIcon.tsx")
       const { InlineText, InlineRenderProvider } =
         require("../text/InlineComponents.tsx") as typeof import("../text/InlineComponents.tsx")
       return React.createElement(
@@ -80,7 +85,27 @@ export function buildNodePopoverContent(
           React.createElement(
             Box,
             { flexGrow: 1, flexShrink: 1 },
-            React.createElement(H1, { wrap: "wrap" }, React.createElement(InlineText, { text: nodeTitle })),
+            React.createElement(
+              H1,
+              { wrap: "wrap" },
+              // Interactive task checkbox before title (clickable to toggle status)
+              statusIcon &&
+                React.createElement(
+                  React.Fragment,
+                  null,
+                  React.createElement(CheckboxIcon, {
+                    nodeId: node.id,
+                    icon: statusIcon,
+                    textColor: undefined,
+                    shouldDim: false,
+                    isSelected: false,
+                    isMultiSelected: false,
+                    isDoneOrDropped,
+                  }),
+                  React.createElement(Text, null, " "),
+                ),
+              React.createElement(InlineText, { text: nodeTitle }),
+            ),
           ),
           React.createElement(
             Box,

@@ -425,7 +425,7 @@ function DocNode({
       </Box>
     )
   }
-  if (!content) return <Box />
+  if (!content) return <></>
   if (node.type === "quote") {
     return (
       <Box id={node.id} paddingLeft={0} backgroundColor={bg} {...cursorProps}>

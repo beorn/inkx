@@ -413,10 +413,6 @@ function TreeNodeImpl({
     [displayNode.id, displayNode.assigned_to, displayNode.item?.task?.status, isOneliner, rootBoardId, getBoardPills],
   )
 
-  // Inline child count on card titles — removed in favor of +N overflow indicator.
-  // Only column headers show count (and only when WIP limit is configured).
-  const showInlineChildCount = false
-
   // Body content indicator: show ··· on card titles when node has body children
   // (paragraphs, quotes, code blocks, etc. — not just structural oi items)
   const hasBody = useMemo(() => {
@@ -615,6 +611,7 @@ function TreeNodeImpl({
                   isSelected={isSelected}
                   isMultiSelected={isMultiSelected}
                   isDoneOrDropped={style.isDoneOrDropped}
+                  undoHandle={undoHandle}
                 />
               ) : (
                 <Text
@@ -684,7 +681,6 @@ function TreeNodeImpl({
                     <InfoSuffix {...infoSuffixProps} stripColor={searchHighlight || shouldStripColor} />
                   </Text>
                 )}
-                {showInlineChildCount && <Text dimColor> {childCount}</Text>}
                 {!childrenHidden && showInlineContext && parentNodeId && (
                   <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
                     <Text italic>{contextSuffix}</Text>
@@ -979,7 +975,9 @@ const FoldedChildRow = React.memo(
       >
         <Box width={prefix.length} flexShrink={0}>
           <Text color={foldTc} dimColor={foldSd}>
-            <Text color={isMultiSelected ? foldTc : style.isDoneOrDropped ? undefined : prefix.markerColor}>{prefix.markerChar}</Text>
+            <Text color={isMultiSelected ? foldTc : style.isDoneOrDropped ? undefined : prefix.markerColor}>
+              {prefix.markerChar}
+            </Text>
             {prefix.afterMarker}
           </Text>
         </Box>

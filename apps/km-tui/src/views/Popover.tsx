@@ -16,7 +16,9 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
 import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
+import { useApp as useAppStore } from "@silvery/create/create-app"
 import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
+import type { BoardAppStore } from "../board-app-store.ts"
 
 // =============================================================================
 // Types
@@ -47,6 +49,9 @@ export interface PopoverLine {
 export interface PopoverAnchor {
   x: number
   y: number
+  /** Bounding box of the trigger element (e.g., a card). When provided,
+   *  the popover overlaps the card using corner-aligned cascade positioning. */
+  cardRect?: { x: number; y: number; width: number; height: number }
 }
 
 // =============================================================================
@@ -61,6 +66,83 @@ const SWAP_DELAY = 100
 const HIDE_DELAY = 300
 /** Window after hiding where re-hover shows immediately */
 const WARM_WINDOW = 200
+
+// =============================================================================
+// Corner cascade positioning (overlap mode)
+// =============================================================================
+
+interface ViewportDims {
+  cols: number
+  rows: number
+}
+
+/**
+ * Compute popover position using corner-aligned overlap positioning.
+ *
+ * The popover overlaps the card — its corner aligns with the card's corner,
+ * covering it with expanded content. Tries each corner in order:
+ *   1. Top-left aligned (preferred) — popover's top-left = card's top-left
+ *   2. Top-right aligned — popover's top-right = card's top-right
+ *   3. Bottom-left aligned — popover's bottom-left = card's bottom-left
+ *   4. Bottom-right aligned — popover's bottom-right = card's bottom-right
+ *
+ * Falls back to the first (top-left) if none fit perfectly.
+ */
+export function computeOverlapPosition(
+  cardRect: { x: number; y: number; width: number; height: number },
+  popoverWidth: number,
+  popoverHeight: number,
+  viewport: ViewportDims,
+): { top: number; left: number } {
+  // 1. Top-left aligned: popover's top-left = card's top-left
+  const tlTop = cardRect.y
+  const tlLeft = cardRect.x
+  if (tlTop >= 0 && tlLeft >= 0 && tlTop + popoverHeight <= viewport.rows && tlLeft + popoverWidth <= viewport.cols) {
+    return { top: tlTop, left: tlLeft }
+  }
+
+  // 2. Top-right aligned: popover's top-right = card's top-right
+  const trTop = cardRect.y
+  const trLeft = cardRect.x + cardRect.width - popoverWidth
+  if (trTop >= 0 && trLeft >= 0 && trTop + popoverHeight <= viewport.rows && trLeft + popoverWidth <= viewport.cols) {
+    return { top: trTop, left: trLeft }
+  }
+
+  // 3. Bottom-left aligned: popover's bottom-left = card's bottom-left
+  const blTop = cardRect.y + cardRect.height - popoverHeight
+  const blLeft = cardRect.x
+  if (blTop >= 0 && blLeft >= 0 && blTop + popoverHeight <= viewport.rows && blLeft + popoverWidth <= viewport.cols) {
+    return { top: blTop, left: blLeft }
+  }
+
+  // 4. Bottom-right aligned: popover's bottom-right = card's bottom-right
+  const brTop = cardRect.y + cardRect.height - popoverHeight
+  const brLeft = cardRect.x + cardRect.width - popoverWidth
+  if (brTop >= 0 && brLeft >= 0 && brTop + popoverHeight <= viewport.rows && brLeft + popoverWidth <= viewport.cols) {
+    return { top: brTop, left: brLeft }
+  }
+
+  // Fallback: top-left aligned, clamped to viewport
+  return {
+    top: Math.max(0, Math.min(tlTop, viewport.rows - popoverHeight)),
+    left: Math.max(0, Math.min(tlLeft, viewport.cols - popoverWidth)),
+  }
+}
+
+/**
+ * Compute popover position for point-based anchors (inline links, URL hovers).
+ * Places the popover below the anchor point, clamped to viewport.
+ */
+export function computePointPosition(
+  anchor: PopoverAnchor,
+  popoverWidth: number,
+  popoverHeight: number,
+  viewport: ViewportDims,
+): { top: number; left: number } {
+  const top = Math.min(anchor.y + 1, Math.max(0, viewport.rows - popoverHeight))
+  const left = Math.min(anchor.x, Math.max(0, viewport.cols - popoverWidth))
+  return { top, left }
+}
 
 // =============================================================================
 // Zustand store
@@ -223,11 +305,21 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
     setScrollOffset((prev) => Math.max(0, prev + (e.deltaY > 0 ? 1 : -1)))
   }, [])
 
+  // Viewport dimensions for position clamping and corner cascade
+  const dims = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
+
   if (!content || !anchor) return null
 
   const maxWidth = content.maxWidth ?? 60
-  const top = anchor.y + 1
-  const left = anchor.x
+  const maxHeight = 30
+  const viewport = { cols: dims.columns, rows: dims.rows }
+
+  // Corner-aligned overlap positioning when a card bounding box is provided;
+  // otherwise fall back to point-based positioning below the anchor.
+  const { top, left } = anchor.cardRect
+    ? computeOverlapPosition(anchor.cardRect, maxWidth, maxHeight, viewport)
+    : computePointPosition(anchor, maxWidth, maxHeight, viewport)
+
   const { cancelHide, hide } = store.getState()
 
   return (
@@ -236,7 +328,7 @@ const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: Po
       marginTop={top}
       marginLeft={left}
       maxWidth={maxWidth}
-      maxHeight={30}
+      maxHeight={maxHeight}
       flexDirection="column"
       borderStyle="round"
       borderColor="$border"

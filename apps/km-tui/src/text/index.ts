@@ -21,16 +21,11 @@ export {
   getTypeIcon,
   getNodeIcon,
   getFoldMarker,
-  COLORED_CIRCLE,
-  SMALL_BULLET,
   FOLDED_MARKER,
-  UNFOLDED_MARKER,
-  EMPTY_MARKER,
   getTypeBullet,
   getCircleBullet,
   getColumnHeaderIcon,
   isSigilName,
-  SIGIL_RE,
   type StatusIcon,
 } from "../icons.ts"
 

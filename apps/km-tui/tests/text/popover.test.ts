@@ -4,7 +4,12 @@
  */
 
 import { describe, it, expect } from "vitest"
-import { urlPopoverContent, internalLinkPopoverContent } from "../../src/views/Popover.tsx"
+import {
+  urlPopoverContent,
+  internalLinkPopoverContent,
+  computeOverlapPosition,
+  computePointPosition,
+} from "../../src/views/Popover.tsx"
 
 // =============================================================================
 // urlPopoverContent
@@ -84,5 +89,91 @@ describe("internalLinkPopoverContent", () => {
     expect(result.lines).toHaveLength(2)
     expect(result.lines[0]).toEqual({ text: "My Note", bold: true })
     expect(result.lines[1]).toEqual({ text: "First line of content...", dim: true })
+  })
+})
+
+// =============================================================================
+// computeOverlapPosition — corner cascade for card overlap
+// =============================================================================
+
+describe("computeOverlapPosition", () => {
+  const viewport = { cols: 80, rows: 24 }
+
+  it("prefers top-left aligned when popover fits", () => {
+    const cardRect = { x: 10, y: 5, width: 20, height: 4 }
+    const result = computeOverlapPosition(cardRect, 40, 15, viewport)
+    // Top-left of popover = top-left of card
+    expect(result).toEqual({ top: 5, left: 10 })
+  })
+
+  it("falls back to top-right when popover overflows right edge", () => {
+    // Card near right edge — popover (width=40) would overflow at x=50+40=90 > 80
+    const cardRect = { x: 50, y: 5, width: 20, height: 4 }
+    const result = computeOverlapPosition(cardRect, 40, 15, viewport)
+    // Top-right aligned: popover's right edge = card's right edge (50+20=70)
+    // So left = 70 - 40 = 30
+    expect(result).toEqual({ top: 5, left: 30 })
+  })
+
+  it("falls back to bottom-left when popover overflows bottom edge", () => {
+    // Card near bottom — popover (height=15) would overflow at y=15+15=30 > 24
+    const cardRect = { x: 5, y: 15, width: 20, height: 4 }
+    const result = computeOverlapPosition(cardRect, 30, 15, viewport)
+    // Bottom-left aligned: popover's bottom = card's bottom (15+4=19)
+    // So top = 19 - 15 = 4
+    expect(result).toEqual({ top: 4, left: 5 })
+  })
+
+  it("falls back to bottom-right when overflowing both right and bottom", () => {
+    // Card at bottom-right corner
+    const cardRect = { x: 50, y: 15, width: 20, height: 4 }
+    const result = computeOverlapPosition(cardRect, 40, 15, viewport)
+    // Bottom-right aligned: popover's bottom-right = card's bottom-right
+    // top = (15+4) - 15 = 4, left = (50+20) - 40 = 30
+    expect(result).toEqual({ top: 4, left: 30 })
+  })
+
+  it("clamps to viewport when no corner fits", () => {
+    // Tiny viewport, large popover
+    const smallViewport = { cols: 30, rows: 10 }
+    const cardRect = { x: 0, y: 0, width: 10, height: 3 }
+    const result = computeOverlapPosition(cardRect, 40, 15, smallViewport)
+    // Clamped to fit as best as possible
+    expect(result.top).toBeGreaterThanOrEqual(0)
+    expect(result.left).toBeGreaterThanOrEqual(0)
+  })
+
+  it("uses top-left for card at origin with space", () => {
+    const cardRect = { x: 0, y: 0, width: 20, height: 3 }
+    const result = computeOverlapPosition(cardRect, 30, 10, viewport)
+    expect(result).toEqual({ top: 0, left: 0 })
+  })
+})
+
+// =============================================================================
+// computePointPosition — point-based positioning (inline links)
+// =============================================================================
+
+describe("computePointPosition", () => {
+  const viewport = { cols: 80, rows: 24 }
+
+  it("places popover below the anchor point", () => {
+    const anchor = { x: 10, y: 5 }
+    const result = computePointPosition(anchor, 40, 10, viewport)
+    expect(result).toEqual({ top: 6, left: 10 })
+  })
+
+  it("clamps to viewport when anchor is near bottom", () => {
+    const anchor = { x: 10, y: 20 }
+    const result = computePointPosition(anchor, 40, 10, viewport)
+    // y+1=21, 21+10=31 > 24, so clamped: max(0, 24-10) = 14
+    expect(result.top).toBe(14)
+  })
+
+  it("clamps to viewport when anchor is near right edge", () => {
+    const anchor = { x: 60, y: 5 }
+    const result = computePointPosition(anchor, 40, 10, viewport)
+    // x=60, 60+40=100 > 80, so clamped: max(0, 80-40) = 40
+    expect(result.left).toBe(40)
   })
 })

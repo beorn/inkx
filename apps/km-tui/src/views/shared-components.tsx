@@ -216,7 +216,7 @@ export const MemoizedColumnHeader = React.memo(
     } = useTreeRenderContext()
 
     // Derive column header presentation props (icon, colors, style)
-    const { displayName, untitled, ownColor, headerStyle, icon, hasBody } = deriveColumnHeaderProps(repo, column.node, {
+    const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, column.node, {
       iconStyle,
       isSelected,
       isColumnSelected: isColSelected,
@@ -245,7 +245,6 @@ export const MemoizedColumnHeader = React.memo(
           isColumnSelected={isColSelected}
           isSelected={isSelected}
           wipLimit={column.wipLimit}
-          hasBody={hasBody}
           showTopSpacer={showTopSpacer}
           showSeparator={showSeparator}
         />

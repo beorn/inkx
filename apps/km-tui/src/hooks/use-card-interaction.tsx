@@ -19,10 +19,13 @@ import { useRepo } from "../repo-context.tsx"
 import { buildNodePopoverContent } from "../views/tree-node-shared.ts"
 import { getNodeDisplayName } from "../state.ts"
 
-export interface CardInteraction {
+interface CardInteraction {
   hovered: boolean
   armed: boolean
   hoverBorderColor: string | undefined
+  /** Ref to track the card's screen-space bounding box for popover overlap positioning.
+   *  Populate via useScreenRectCallback inside the card's Box. */
+  cardRectRef: React.MutableRefObject<{ x: number; y: number; width: number; height: number } | null>
   handlers: {
     onMouseEnter: (e: SilveryMouseEvent) => void
     onMouseMove: (e: SilveryMouseEvent) => void
@@ -49,8 +52,11 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   const popover = usePopover()
   const repo = useRepo()
 
-  // Track mouse position for popover anchor
+  // Track mouse position for popover anchor (fallback for point-based positioning)
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
+  // Track the card's screen-space bounding box for overlap positioning.
+  // Populated by a useScreenRectCallback registrar rendered inside the card's Box.
+  const cardRectRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null)
 
   const handleMouseEnter = useCallback(
     (e: SilveryMouseEvent) => {
@@ -71,6 +77,8 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
 
   const handleClick = useCallback(
     (e: SilveryMouseEvent) => {
+      // Skip if a child interactive element (checkbox, link) already handled this event
+      if (e.defaultPrevented) return
       if (!storeRef) return
       const state = storeRef.getState()
 
@@ -122,9 +130,13 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
           return resolved ? getNodeDisplayName(repo, resolved) : null
         }
         const inlineCtx = { resolveWikiLink, resolveWikiLinkId, resolveBlockRef, hideFields: true }
-        popover.show(buildNodePopoverContent(node, repo, inlineCtx), mousePos.current)
+        const anchor = {
+          ...mousePos.current,
+          cardRect: cardRectRef.current ?? undefined,
+        }
+        popover.show(buildNodePopoverContent(node, repo, inlineCtx), anchor)
       }
-    } else if (!armed) {
+    } else {
       // Cmd released or mouse left → hide the popover.
       // If mouse is still on card (!armed but hovered), Cmd was released — hide.
       // If mouse left card (!armed and !hovered), cancel pending show + start hide.
@@ -138,6 +150,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
     hovered,
     armed,
     hoverBorderColor,
+    cardRectRef,
     handlers: {
       onMouseEnter: handleMouseEnter,
       onMouseMove: handleMouseMove,

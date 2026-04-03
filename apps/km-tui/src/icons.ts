@@ -8,7 +8,7 @@
 import { KNode, type ItemData } from "@km/core"
 
 /** Regex for sigil names: strings starting with @, +, or # (e.g., @next, +project, #tag) */
-export const SIGIL_RE = /^[@#+]/
+const SIGIL_RE = /^[@#+]/
 
 /** Check if a string is a sigil name */
 export function isSigilName(name: string | null | undefined): boolean {
@@ -32,13 +32,13 @@ export const FOLDED_MARKER: StatusIcon = {
 }
 
 /** Marker for nodes with children that are visible (unfolded) - MEDIUM */
-export const UNFOLDED_MARKER: StatusIcon = {
+const UNFOLDED_MARKER: StatusIcon = {
   char: "\u2022", // • bullet
   color: "$fg",
 }
 
 /** Marker for nodes without children - TINY */
-export const EMPTY_MARKER: StatusIcon = {
+const EMPTY_MARKER: StatusIcon = {
   char: "\u00B7", // · middle dot
   color: "$muted",
 }
@@ -235,7 +235,7 @@ export function getColumnHeaderIcon(
 /**
  * Default filled circle icon for nodes with color but no status
  */
-export const COLORED_CIRCLE: StatusIcon = {
+const COLORED_CIRCLE: StatusIcon = {
   char: "\u25CF", // filled circle ●
   color: "$fg",
 }
@@ -243,7 +243,7 @@ export const COLORED_CIRCLE: StatusIcon = {
 /**
  * Small bullet for non-task items without color
  */
-export const SMALL_BULLET: StatusIcon = {
+const SMALL_BULLET: StatusIcon = {
   char: "\u00B7", // middle dot ·
   color: "$muted",
 }
