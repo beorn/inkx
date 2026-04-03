@@ -4,7 +4,6 @@
  * Utility functions for keyboard handling.
  */
 
-import type { KNode } from "@km/core"
 import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
@@ -98,7 +97,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
     for (let c = minCard; c <= maxCard; c++) {
       const card = ctx.columns[toCol]?.cardNodes[c]
       if (card) {
-        addCardItems(newSelected, ctx, card)
+        newSelected.add(card.id)
       }
     }
   } else {
@@ -109,7 +108,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
       const col = ctx.columns[colIdx]
       if (col) {
         for (const card of col.cardNodes) {
-          addCardItems(newSelected, ctx, card)
+          newSelected.add(card.id)
         }
       }
     }
@@ -151,11 +150,6 @@ export function clearSelection(ctx: ActionCtx): void {
 // =============================================================================
 
 type SelectionScope = "card" | "column" | "board"
-
-/** Add the card node ID to the selection set */
-function addCardItems(selected: Set<string>, _ctx: ActionCtx, card: KNode): void {
-  selected.add(card.id)
-}
 
 /** Build a selection set for the given scope (card, column, or board) */
 function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<string> {

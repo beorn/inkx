@@ -14,6 +14,7 @@ import { Tree } from "@km/tree"
 import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
+import { createSelectionEngine } from "../selection-engine.ts"
 
 /**
  * Extend selection vertically (up or down).
@@ -76,7 +77,8 @@ function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): vo
   const cursorId = ctx.cursorNodeId!
 
   // Get siblings at the same level
-  const siblings = Tree.siblings(repo, cursorId)
+  const engine = createSelectionEngine(repo)
+  const siblings = engine.getSiblings(cursorId)
   const curIdx = siblings.findIndex((s) => s.id === cursorId)
   if (curIdx === -1) return
 
