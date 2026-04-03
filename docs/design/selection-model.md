@@ -11,8 +11,8 @@ type ID = string & { readonly __brand: "ID" }
 type TextPoint = { nodeId: ID; offset: number; affinity?: "forward" | "backward" }
 
 type Selection = {
-  nodes: readonly ID[]              // [0] = cursor, [last] = anchor
-  text?: readonly TextPoint[]       // [0] = cursor, [last] = anchor — same principle
+  nodes: readonly [ID, ...ID[]]                                  // [0]=cursor, [last]=anchor
+  text?: readonly [TextPoint] | readonly [TextPoint, TextPoint]  // collapsed or range
 }
 
 type SelectionState = Map<string, Selection>     // scopeName → selection
