@@ -7,7 +7,7 @@
 
 import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
-import { createSync, type SyncConfig } from "./watch/index.ts"
+import { createSync, type LegacySyncConfig } from "./watch/index.ts"
 import type { FileChange } from "./watch/index.ts"
 
 const log = createLogger("km:storage:watcher")
@@ -85,7 +85,7 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
   const handlers = new Map<string, Set<AnyHandler>>()
 
   // Create Sync with typed callbacks that forward to our handler registry
-  const config: SyncConfig = {
+  const config: LegacySyncConfig = {
     db: options.db,
     repoPath,
     debounceFs: options.debounceFs ?? 5000,

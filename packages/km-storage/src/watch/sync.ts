@@ -1,9 +1,10 @@
 /**
- * Sync — Factory-based bidirectional sync between filesystem and database.
+ * Sync — Decorator-based bidirectional sync between filesystem and database.
  *
  * Orchestrates reconciliation (FS→DB) via ReconciliationEngine,
  * projection (DB→FS) via EventHandlers, and bulk sync via BulkSync.
- * Plain object from createSync() — typed callbacks, no EventEmitter.
+ *
+ * Usage: const syncedRepo = withSync({ debounceFs: 2000 })(repo)
  */
 
 import { createLogger } from "loggily"
@@ -36,8 +37,6 @@ export type { HeartbeatConfig } from "./heartbeat.ts"
 // ─── Config ──────────────────────────────────────────────────────────────────
 
 export interface SyncConfig {
-  db: Database
-  repoPath: string
   debounceFs: number
   debounceApply: number
   conflictStrategy: "last_write_wins" | "fs_wins" | "db_wins"
@@ -47,8 +46,6 @@ export interface SyncConfig {
   heartbeat?: Partial<HeartbeatConfig>
   /** Custom watcher instance (for testing with ChaosWatcher). If provided, useWorker is ignored. */
   watcher?: WatcherInterface
-  /** Inject shared emitter (e.g., repo's emitter). If not provided, creates a private emitter. */
-  emitter?: Emitter
   /** Retry config for WriteQueue (default: maxRetries=3, baseDelayMs=100, maxDelayMs=5000) */
   retry?: {
     maxRetries?: number
@@ -105,25 +102,49 @@ export interface Sync {
   [Symbol.asyncDispose](): Promise<void>
 }
 
+// ─── Minimal repo shape required by withSync ────────────────────────────────
+
+/** Minimal repo interface that withSync can decorate */
+export interface SyncableRepo {
+  readonly database: Database
+  readonly path: string
+  readonly emitter: Emitter
+  apply(event: Omit<Event, "id" | "ts">, options?: { skipFsSync?: boolean }): Event
+  commit(event: Omit<Event, "id" | "ts">, options?: Record<string, unknown>): Event
+  save(event: Event): void
+}
+
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
-export function createSync(config: SyncConfig): Sync {
-  const cfg = { ...DEFAULT_CONFIG, ...config } as SyncConfig
-  const callbacks = cfg.callbacks
-  const kmDir = join(cfg.repoPath, ".km")
+/**
+ * Decorator that adds bidirectional filesystem sync to a repo.
+ *
+ * @example
+ * const syncedRepo = withSync({ debounceFs: 2000 })(repo)
+ * syncedRepo.start()
+ * syncedRepo.apply(event) // DB + journal + broadcast + save to FS
+ * await syncedRepo.stop()
+ */
+export function withSync(config?: Partial<SyncConfig>) {
+  return <R extends SyncableRepo>(repo: R): R & Sync => {
+    const cfg = { ...DEFAULT_CONFIG, ...config } as SyncConfig
+    const callbacks = cfg.callbacks
+    const db = repo.database
+    const repoPath = repo.path
+    const emitter = repo.emitter
+    const kmDir = join(repoPath, ".km")
 
   // ── Core services ──────────────────────────────────────────────────────
 
-  const emitter: Emitter = config.emitter ?? createEmitter({ kmDir, db: cfg.db })
-  const syncState: SyncStateStore = createSyncState(cfg.db)
+  const syncState: SyncStateStore = createSyncState(db)
   const writeTokens = new WriteTokenMap()
 
   // ── Watcher ────────────────────────────────────────────────────────────
 
   let watcher: WatcherInterface
-  if (config.watcher) {
+  if (cfg.watcher) {
     log.debug?.("using injected watcher")
-    watcher = config.watcher
+    watcher = cfg.watcher
   } else if (cfg.useWorker !== false) {
     log.debug?.("using WorkerWatcher (non-blocking)")
     watcher = new WorkerWatcher({ debounceMs: cfg.debounceFs })
@@ -149,8 +170,8 @@ export function createSync(config: SyncConfig): Sync {
 
   const reconcileEmitter = wrapEmitterForReconcile(emitter)
   const engine: ReconciliationEngine = createReconciliationEngine({
-    db: cfg.db,
-    repoPath: cfg.repoPath,
+    db: db,
+    repoPath: repoPath,
     writeTokens,
     syncState,
     writeQueue,
@@ -257,18 +278,18 @@ export function createSync(config: SyncConfig): Sync {
     },
   }
 
-  const handlers = new EventHandlers(cfg.db, cfg.repoPath, emitter, fsTarget)
+  const handlers = new EventHandlers(db, repoPath, emitter, fsTarget)
 
   // ── Heartbeat ──────────────────────────────────────────────────────────
 
   const heartbeat: Heartbeat = createHeartbeat(
-    { ...DEFAULT_HEARTBEAT, ...config.heartbeat },
+    { ...DEFAULT_HEARTBEAT, ...cfg.heartbeat },
     {
       engine,
       syncState,
       writeQueue,
-      db: cfg.db,
-      repoPath: cfg.repoPath,
+      db: db,
+      repoPath: repoPath,
       ignorePatterns: () => ignorePatterns,
       getParsePool: () => getParsePool(),
       getState: () => state,
@@ -307,21 +328,21 @@ export function createSync(config: SyncConfig): Sync {
 
   function getBulkSyncDeps(): BulkSyncDeps {
     return {
-      db: cfg.db,
-      repoPath: cfg.repoPath,
+      db: db,
+      repoPath: repoPath,
       writeQueue,
       emitter,
       createBlockIdAssigner: (eventId: string) => handlers.createBlockIdAssigner(eventId),
     }
   }
 
-  // ── Build and return the Sync object ───────────────────────────────────
+  // ── Build the decorated repo ────────────────────────────────────────────
 
-  const sync: Sync = {
+  const syncMethods: Sync = {
     start(): void {
-      log.debug?.(`starting sync for ${cfg.repoPath}`)
-      ignorePatterns = getIgnorePatterns(cfg.repoPath)
-      watcher.start(cfg.repoPath)
+      log.debug?.(`starting sync for ${repoPath}`)
+      ignorePatterns = getIgnorePatterns(repoPath)
+      watcher.start(repoPath)
       heartbeat.start()
       callbacks?.onStarted?.()
     },
@@ -371,7 +392,7 @@ export function createSync(config: SyncConfig): Sync {
       const status: { state: SyncState; pendingWrites: number; repoPath: string; watcher?: WatcherStatus } = {
         state,
         pendingWrites: writeQueue.getPendingCount(),
-        repoPath: cfg.repoPath,
+        repoPath,
       }
       if (watcher instanceof WorkerWatcher) {
         status.watcher = watcher.getStatus()
@@ -406,9 +427,68 @@ export function createSync(config: SyncConfig): Sync {
     },
 
     async [Symbol.asyncDispose](): Promise<void> {
-      await sync.stop()
+      await syncMethods.stop()
     },
   }
 
-  return sync
+  // Wire up emitter.setFsSync so repo.apply() triggers FS projection
+  emitter.setFsSync(syncMethods)
+
+  return { ...repo, ...syncMethods } as R & Sync
+  }
+}
+
+// ─── Backwards-compat wrapper (consumers still being migrated) ──────────────
+
+/** @deprecated Use withSync(config)(repo) instead */
+export interface LegacySyncConfig extends SyncConfig {
+  db: Database
+  repoPath: string
+  emitter?: Emitter
+}
+
+/** @deprecated Use withSync(config)(repo) instead */
+export function createSync(config: LegacySyncConfig): Sync {
+  // Build a minimal SyncableRepo shim from the legacy config fields
+  const db = config.db
+  const repoPath = config.repoPath
+  const kmDir = join(repoPath, ".km")
+  const emitter = config.emitter ?? createEmitter({ kmDir, db })
+
+  const shim: SyncableRepo = {
+    database: db,
+    path: repoPath,
+    emitter,
+    apply(event, options?) {
+      return emitter.apply(event, options)
+    },
+    commit(event, options?) {
+      return emitter.commit(event, options)
+    },
+    save(event) {
+      emitter.save(event)
+    },
+  }
+
+  // Extract sync-only config (strip db/repoPath/emitter)
+  const { db: _db, repoPath: _rp, emitter: _em, ...syncConfig } = config
+  const decorated = withSync(syncConfig)(shim)
+
+  // Return just the Sync portion (legacy callers don't expect repo methods)
+  return {
+    start: decorated.start.bind(decorated),
+    stop: decorated.stop.bind(decorated),
+    applyEventToFs: decorated.applyEventToFs.bind(decorated),
+    syncFromFs: decorated.syncFromFs.bind(decorated),
+    syncFromFsWithProgress: decorated.syncFromFsWithProgress.bind(decorated),
+    syncToFs: decorated.syncToFs.bind(decorated),
+    forceHeartbeat: decorated.forceHeartbeat.bind(decorated),
+    getState: decorated.getState.bind(decorated),
+    getStatus: decorated.getStatus.bind(decorated),
+    getWatcherStatus: decorated.getWatcherStatus.bind(decorated),
+    getHeartbeatDiagnostics: decorated.getHeartbeatDiagnostics.bind(decorated),
+    waitForInflight: decorated.waitForInflight.bind(decorated),
+    getInFlightCount: decorated.getInFlightCount.bind(decorated),
+    [Symbol.asyncDispose]: decorated[Symbol.asyncDispose].bind(decorated),
+  }
 }

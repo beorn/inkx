@@ -5,10 +5,10 @@
 import type { Database } from "bun:sqlite"
 
 import type { Emitter } from "../../src/emitter.ts"
-import { createSync, type Sync, type SyncConfig, type SyncCallbacks } from "../../src/watch/sync.ts"
+import { createSync, type Sync, type SyncConfig, type LegacySyncConfig, type SyncCallbacks } from "../../src/watch/sync.ts"
 
 /** Default sync config for tests - fast debounces, no worker */
-const TEST_DEFAULTS: Partial<SyncConfig> = {
+const TEST_DEFAULTS: Partial<LegacySyncConfig> = {
   debounceFs: 100,
   debounceApply: 50,
   conflictStrategy: "last_write_wins",
@@ -19,14 +19,14 @@ const TEST_DEFAULTS: Partial<SyncConfig> = {
 export function createTestSync(
   db: Database,
   repoPath: string,
-  overrides?: Partial<SyncConfig> & { callbacks?: SyncCallbacks },
+  overrides?: Partial<LegacySyncConfig> & { callbacks?: SyncCallbacks },
 ): Sync {
   return createSync({
     db,
     repoPath,
     ...TEST_DEFAULTS,
     ...overrides,
-  } as SyncConfig)
+  } as LegacySyncConfig)
 }
 
 /** Set up sync with automatic cleanup via AsyncDisposableStack */
