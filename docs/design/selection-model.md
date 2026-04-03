@@ -24,7 +24,7 @@ The system stores only what it can't derive:
 // === Top-level state (in TEA store) ===
 
 // Branded type — makes it clear which strings are node IDs
-type NodeId = string & { readonly __brand: "NodeId" }
+type ID = string & { readonly __brand: "ID" }
 
 type SelectionState = {
   scopes: Record<string, SelectionValue>  // scopeId → selection value
@@ -34,18 +34,16 @@ type SelectionState = {
 
 // === Selection values (plain data, no methods) ===
 
-type SelectionValue =
-  | { kind: "none" }
-  | NodeSelection
-  | TextSelection
-  // Future: | GridSelection (genuinely different — rectangular ranges)
+type SelectionValue = NodeSelection | TextSelection | undefined
+// undefined = no selection (scope has no entry, or explicitly cleared)
+// Future: | GridSelection (genuinely different — rectangular ranges)
 
 type NodeSelection = {
   kind: "node"
-  anchor: NodeId                     // shift-extend origin
-  focus: NodeId                      // moving end (last navigated to)
-  lead: NodeId                       // primary item (inspector, keyboard home)
-  toggled: ReadonlySet<NodeId>       // cmd-clicked items (XOR with range)
+  anchor: ID                     // shift-extend origin
+  focus: ID                      // moving end (last navigated to)
+  lead: ID                       // primary item (inspector, keyboard home)
+  toggled: ReadonlySet<ID>       // cmd-clicked items (XOR with range)
 }
 
 type TextSelection = {
@@ -62,8 +60,8 @@ type TextSelection = {
 - `includes()` — node ID membership check
 - `scopeId` — it's the key in `scopes` map, not duplicated in the value
 - `activeScope` — it's `FocusManager.activeScopeId` (focus and selection share scope identity)
-- `inputMode` — `sel.kind === "text" ? "text" : sel.kind === "none" ? "board" : "node"`
-- `cursorNodeId` — `sel.kind === "node" ? sel.lead : sel.focus.nodeId`
+- `inputMode` — `!sel ? "board" : sel.kind === "text" ? "text" : "node"`
+- `cursorId` — `sel.kind === "node" ? sel.lead : sel.focus.nodeId`
 - `insertionPoint` — derived from lead/focus
 
 **Why `lead` is stored, not derived**: `lead` = "primary item for inspector/alignment." It's usually `focus`, but diverges on cmd+click (lead moves to toggled node, focus stays). A derivation rule like "last interacted node" would require tracking gesture history — storing it is simpler and explicit.
@@ -73,13 +71,13 @@ type TextSelection = {
 ```ts
 type NodePoint = {
   kind: "node"
-  nodeId: NodeId
+  nodeId: ID
   edge?: "before" | "on" | "after"
 }
 
 type TextPoint = {
   kind: "text"
-  nodeId: NodeId
+  nodeId: ID
   field?: string                     // which editable field (title, body, etc.)
   offset: number
   affinity?: "forward" | "backward"  // line-wrap disambiguation
@@ -93,56 +91,46 @@ type Point = NodePoint | TextPoint
 
 ```ts
 const Selection = {
+  // Constructors
+  node(nodeId):                    SelectionValue  // anchor=focus=lead=nodeId
+  text(nodeId, field, offset):     SelectionValue
+  // clear → just use undefined
 
-  // ── Constructors ──────────────────────────────────────────
+  // Queries
+  isCollapsed(sel):                boolean         // single node or collapsed text
+  leadId(sel):                     ID | null
 
-  none():                                          SelectionValue
-  node(nodeId: NodeId):                            SelectionValue  // anchor=focus=lead=nodeId
-  text(nodeId: NodeId, field: string, offset: number): SelectionValue
+  // Derived node IDs (never stored)
+  nodeIds(sel, tree):              ReadonlySet<ID> // removeNesting(rawNodeIds) — top-level only
+  rawNodeIds(sel, tree):           ReadonlySet<ID> // range(anchor→focus) XOR toggled (all)
+  includes(sel, nodeId, tree):     boolean
+  insertionPoint(sel, tree):       InsertionPoint
 
-  // ── Queries (all kinds) ───────────────────────────────────
-
-  isNone(sel):       boolean
-  isCollapsed(sel):  boolean                       // single node or collapsed text
-  kind(sel):         "none" | "node" | "text"
-  leadId(sel):       NodeId | null
-  
-  // ── Derived node IDs (never stored) ────────────────────────
-
-  nodeIds(sel, tree):              ReadonlySet<NodeId>  // removeNesting(rawNodeIds) — top-level only
-  rawNodeIds(sel, tree):           ReadonlySet<NodeId>  // range(anchor→focus) XOR toggled (all)
-  includes(sel, nodeId: NodeId, tree): boolean
-  insertionPoint(sel, tree):       InsertionPoint       // where new content would go
-
-  // ── Mutations (pure: SelectionValue → SelectionValue) ─────
-
-  select(nodeId: NodeId):          SelectionValue  // anchor=focus=lead=nodeId, toggled=∅
-  add(sel, nodeId: NodeId):        SelectionValue  // idempotent: add to toggled
-  remove(sel, nodeId: NodeId):     SelectionValue  // idempotent: remove from toggled
-  toggle(sel, nodeId: NodeId):     SelectionValue  // XOR in toggled, nodeId→lead
-  extend(sel, nodeId: NodeId, tree): SelectionValue // shift: move focus, keep anchor
+  // Mutations (pure: SelectionValue → SelectionValue)
+  select(nodeId):                  SelectionValue  // anchor=focus=lead=nodeId, toggled=∅
+  add(sel, nodeId):                SelectionValue  // idempotent: add to toggled
+  remove(sel, nodeId):             SelectionValue  // idempotent: remove from toggled
+  toggle(sel, nodeId):             SelectionValue  // XOR in toggled, nodeId→lead
+  extend(sel, nodeId, tree):       SelectionValue  // shift: move focus, keep anchor
   collapse(sel):                   SelectionValue  // Escape: anchor=focus=lead, toggled=∅
-  edit(sel, nodeId: NodeId, field: string, offset: number): SelectionValue  // → TextSelection
+  edit(sel, nodeId, field, offset):SelectionValue  // → TextSelection
   stopEditing(sel):                SelectionValue  // → outer NodeSelection
-  moveCursor(sel, offset: number): SelectionValue  // text: move focus offset
-  extendText(sel, offset: number): SelectionValue  // text: shift+arrow
-  areaSelect(sel, nodeIds: NodeId[], mode: "replace" | "xor"): SelectionValue
+  moveCursor(sel, offset):         SelectionValue  // text: move focus offset
+  extendText(sel, offset):         SelectionValue  // text: shift+arrow
+  areaSelect(sel, nodeIds, mode):  SelectionValue  // mode: "replace" | "xor"
 
-  // ── Pipeline ──────────────────────────────────────────────
+  // Pipeline
+  normalize(sel, doc):             SelectionValue
+  map(sel, operation, doc):        SelectionValue
+  project(sel, view, policy):      SelectionValue
 
-  normalize(sel, doc):             SelectionValue  // structural validity
-  map(sel, operation, doc):        SelectionValue  // transform through edits
-  project(sel, view, policy):      SelectionValue  // adapt to pane's visible tree
-
-  // ── State machine (TEA) ───────────────────────────────────
-
-  createState():                                   SelectionState
+  // State machine (TEA)
+  createState():                   SelectionState
   update(action, state, tree):     [SelectionState, SelectionEffect[]]
 
-  // ── km convenience (not core) ─────────────────────────────
-
-  inputMode(sel):      "board" | "node" | "text"
-  cursorNodeId(sel):   string | null
+  // km convenience (not core)
+  inputMode(sel):                  "board" | "node" | "text"
+  cursorId(sel):                   ID | null
 }
 ```
 
@@ -213,7 +201,7 @@ Stored:  { kind: "text",
            outer: { kind: "node", anchor: "F", focus: "F", lead: "F", toggled: ∅ },
            anchor: { kind: "text", nodeId: "F", field: "title", offset: 0 },
            focus:  { kind: "text", nodeId: "F", field: "title", offset: 0 } }
-Derived: inputMode = "text", cursorNodeId = "F"
+Derived: inputMode = "text", cursorId = "F"
 ```
 
 Note: entering text collapses the outer NodeSelection to just the lead node.
@@ -243,23 +231,19 @@ Derived: nodeIds = range(F→F) XOR {C,D,E} = {F,C,D,E} → nodeIds = {C,D,E,F}
 
 ```ts
 type SelectionAction =
-  // Node
-  | { type: "select"; nodeId: NodeId }
-  | { type: "add"; nodeId: NodeId }
-  | { type: "remove"; nodeId: NodeId }
-  | { type: "toggle"; nodeId: NodeId }
-  | { type: "extend"; nodeId: NodeId }
+  | { type: "select"; nodeId }
+  | { type: "add"; nodeId }
+  | { type: "remove"; nodeId }
+  | { type: "toggle"; nodeId }
+  | { type: "extend"; nodeId }
   | { type: "collapse" }
-  | { type: "clear" }                                // → { kind: "none" }
-  // Text
-  | { type: "edit"; nodeId: NodeId; field: string; offset: number }
+  | { type: "clear" }                          // → undefined
+  | { type: "edit"; nodeId; field; offset }
   | { type: "stopEditing" }
-  | { type: "moveCursor"; offset: number }
-  | { type: "extendText"; offset: number }
-  // Area select
-  | { type: "areaSelect"; nodeIds: NodeId[]; mode: "replace" | "xor" }
-  // Scope
-  | { type: "activateScope"; scopeId: string }
+  | { type: "moveCursor"; offset }
+  | { type: "extendText"; offset }
+  | { type: "areaSelect"; nodeIds; mode: "replace" | "xor" }
+  | { type: "activateScope"; scopeId }
   // Pipeline (dispatched by the system, not by gestures)
   | { type: "normalize"; doc: unknown }
   | { type: "map"; operation: unknown; doc: unknown }
@@ -435,9 +419,9 @@ dispatch({ type: "toggle", nodeId })                     // action
 
 | Before (scattered) | After (`Selection.*`) |
 |---|---|
-| `cursorNodeId` in CursorStore | `Selection.leadId(sel)` |
-| `cursorCardNodeId` | `ancestor(Selection.cursorNodeId(sel), "card")` |
-| `cursorColumnNodeId` | `ancestor(Selection.cursorNodeId(sel), "column")` |
+| `cursorId` in CursorStore | `Selection.leadId(sel)` |
+| `cursorCardID` | `ancestor(Selection.cursorId(sel), "card")` |
+| `cursorColumnID` | `ancestor(Selection.cursorId(sel), "column")` |
 | `selectionLevel` | `Selection.inputMode(sel)` |
 | `multiSelected: Set<string>` | `Selection.nodeIds(sel, tree)` |
 | `selectionAnchor` | `sel.anchor` |
