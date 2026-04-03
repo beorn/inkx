@@ -93,29 +93,35 @@ When a mutation removes cursor from ids: nearest in view order → first in ids 
 
 `select`/`collapseToCursor`/`areaSelect(replace)` → reset anchor. `extend` → keep anchor. `toggle`/`remove` that remove the anchor → reset to repaired cursor. Everything else → keep.
 
-## Layers
+## selection / selecting
 
-```
- 3. Gesture overlay    transient preview during drag/shift/lasso
- 2. Committed          the SelectionState in the TEA store
- 1. Base               frozen snapshot at gesture start
-```
+Two concepts:
 
-No gesture active → consumers see layer 2. During a gesture → consumers see `merge(base, overlay)`. Layer 2 is untouched until commit.
-
-- **Commit** (mouseup / shift release): merged result writes to layer 2
-- **Cancel** (Escape): layers 1+3 discarded, layer 2 unchanged
+- **`selection`** — the committed state (in the TEA store)
+- **`selecting`** — an active gesture in progress (transient, if any)
 
 ```ts
-// The provider merges layers transparently
-function useSelection(): SelectionValue {
-  const committed = store.get(scopeName)
-  const gesture = activeGesture
-  return gesture ? deriveEffective(gesture, space) : committed
+selection: SelectionValue               // committed
+
+selecting?: {
+  base: SelectionValue                  // snapshot of selection at gesture start
+  ...gestureFields                      // hitIds, focus, mode, etc.
+  effective(space): SelectionValue      // derived: base + gesture delta
 }
 ```
 
-Consumers call `Selection.cursor(sel)`, `Selection.includes(sel, id)` — they don't know which layer they're reading.
+No gesture active → consumers see `selection`. During a gesture → consumers see `selecting.effective(space)`. `selection` is untouched until commit.
+
+- **Commit** (mouseup / shift release): `selecting.effective()` writes to `selection`
+- **Cancel** (Escape): `selecting` discarded, `selection` unchanged
+
+```ts
+function useSelection(): SelectionValue {
+  return selecting?.effective(space) ?? selection
+}
+```
+
+Consumers call `Selection.cursor(sel)`, `Selection.includes(sel, id)` — they don't know whether they're seeing committed or in-progress state.
 
 ## Interactions
 
