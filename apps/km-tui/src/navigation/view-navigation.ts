@@ -11,8 +11,8 @@
 import type { Repo } from "@km/storage"
 import type { GridNavigator, ViewNode } from "@km/board"
 import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
-import type { ViewMode } from "./types.ts"
-import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
+import type { ViewMode } from "../types.ts"
+import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 
 // =============================================================================
 // ViewNavigation interface

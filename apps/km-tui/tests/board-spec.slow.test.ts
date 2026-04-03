@@ -11,7 +11,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 // =============================================================================
 // Helpers
@@ -177,28 +177,44 @@ describe("Visual mode", () => {
 // =============================================================================
 
 describe("J/K block navigation", () => {
-  // J/K now behave identically to j/k (spatial up/down navigation).
-  // The old drill-in/drill-out behavior was removed in favor of unified navigation.
+  // J/K do DFS block traversal — walk through all visible blocks in column order:
+  // column header, card1, card1-child1, card1-child2, ..., card2, ...
 
-  test("J moves to next sibling card (same as j)", () => {
+  test("J walks into children before next sibling (DFS order)", () => {
     const { board } = testEnv(item.nestedBoard)
 
     // Cursor starts on Parent
     board.expect("#Parent[data-cursor]").toExist()
 
-    // J moves to next sibling card, not into children
+    // J moves to first visible child (DFS order), not to sibling
+    board.command("block_nav_down")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // J continues to next child
+    board.command("block_nav_down")
+    board.expect("#child-2[data-cursor]").toExist()
+
+    // J moves to next sibling card after all children
     board.command("block_nav_down")
     board.expect("#sibling[data-cursor]").toExist()
   })
 
-  test("K moves to previous sibling card (same as k)", () => {
+  test("K walks backward through visible blocks (strict inverse of J)", () => {
     const { board } = testEnv(item.nestedBoard)
 
-    // Move to sibling first
-    board.command("cursor_down")
+    // Navigate to sibling via J (DFS: Parent → child-1 → child-2 → sibling)
+    board.command("block_nav_down") // → child-1
+    board.command("block_nav_down") // → child-2
+    board.command("block_nav_down") // → sibling
     board.expect("#sibling[data-cursor]").toExist()
 
-    // K moves back to Parent
+    // K walks back in exact reverse order
+    board.command("block_nav_up")
+    board.expect("#child-2[data-cursor]").toExist()
+
+    board.command("block_nav_up")
+    board.expect("#child-1[data-cursor]").toExist()
+
     board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
@@ -225,28 +241,29 @@ describe("J/K block navigation", () => {
     board.expectCursorVisible()
   })
 
-  test("J on folded card moves to next sibling (does not auto-unfold)", () => {
+  test("J on folded card skips hidden children and moves to next sibling", () => {
     const { board } = testEnv(item.nestedBoard)
 
     // Fold the parent
     board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-1")
 
-    // J moves to next sibling card, children stay hidden
+    // J skips hidden children, moves to next sibling card
     board.command("block_nav_down")
     expect(board.screenshot()).not.toContain("child-1")
     board.expect("#sibling[data-cursor]").toExist()
   })
 
-  test("J then K round-trip between sibling cards", () => {
+  test("J then K round-trip through DFS order", () => {
     const { board } = testEnv(item.nestedBoard)
 
     board.expect("#Parent[data-cursor]").toExist()
 
-    // J moves to next sibling, K returns
+    // J moves through DFS order
     board.command("block_nav_down")
-    board.expect("#sibling[data-cursor]").toExist()
+    board.expect("#child-1[data-cursor]").toExist()
 
+    // K returns
     board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
@@ -748,9 +765,9 @@ describe("Escape priority layering", () => {
 // =============================================================================
 
 describe("J/K block navigation edge cases", () => {
-  // J/K now behave identically to j/k (spatial up/down navigation).
+  // J/K do DFS block traversal — walk all visible blocks in column order.
 
-  test("J on folded card moves to next sibling (does not auto-unfold)", () => {
+  test("J on folded card skips hidden children, moves to next sibling", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling"))),
       { checkIncremental: false },
@@ -760,23 +777,31 @@ describe("J/K block navigation edge cases", () => {
     board.command("fold_node")
     expect(board.screenshot()).not.toContain("child-a")
 
-    // J moves to next sibling, children stay folded
+    // J skips hidden children, moves to next sibling
     board.command("block_nav_down")
     expect(board.screenshot()).not.toContain("child-a")
     board.expect("#sibling[data-cursor]").toExist()
   })
 
-  test("K from second card moves to first card", () => {
+  test("K from last block walks back through DFS order", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item.folder("Parent", item("child-x"), item("child-y")), item("sibling"))),
       { rows: 30, checkIncremental: false },
     )
 
-    // Move to sibling
-    board.command("block_nav_down")
+    // Walk forward to sibling via J (DFS: Parent → child-x → child-y → sibling)
+    board.command("block_nav_down") // → child-x
+    board.command("block_nav_down") // → child-y
+    board.command("block_nav_down") // → sibling
     board.expect("#sibling[data-cursor]").toExist()
 
-    // K moves back to Parent
+    // K walks back: sibling → child-y
+    board.command("block_nav_up")
+    board.expect("#child-y[data-cursor]").toExist()
+
+    // K continues: child-y → child-x → Parent
+    board.command("block_nav_up")
+    board.expect("#child-x[data-cursor]").toExist()
     board.command("block_nav_up")
     board.expect("#Parent[data-cursor]").toExist()
   })
@@ -788,18 +813,21 @@ describe("J/K block navigation edge cases", () => {
       { rows: 30, checkIncremental: false },
     )
 
-    // J/K navigate between cards A, B, C (same as j/k)
-    board.command("block_nav_down") // A -> B
+    // J walks DFS: A → a1 (first child)
+    board.command("block_nav_down")
     board.expectCursorVisible()
 
-    board.command("block_nav_up") // B -> A
+    // K walks back: a1 → A
+    board.command("block_nav_up")
     board.expectCursorVisible()
 
-    board.command("cursor_down") // A -> B
-    board.command("block_nav_down") // B -> C
+    // Walk to B via DFS: A → a1 → a2 → B
+    board.command("block_nav_down") // → a1
+    board.command("block_nav_down") // → a2
+    board.command("block_nav_down") // → B
     board.expectCursorVisible()
 
-    board.command("block_nav_up") // C -> B
+    board.command("block_nav_up") // B → a2
     board.expectCursorVisible()
   })
 })

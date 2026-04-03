@@ -21,7 +21,7 @@ import { createLogger } from "loggily"
 import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
 import { addHidden, removeHidden, computeHiddenPath, isHidden, readBoardHidden } from "../hidden.ts"
-import { ownerPaneId, detailPaneIdFor } from "../board-types.ts"
+import { ownerPaneId, detailPaneIdFor } from "./board-types.ts"
 import { DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { assertNever } from "../action-handlers.ts"
 import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDialogMode } from "../dialog-guard.ts"
@@ -32,7 +32,7 @@ import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { Selection } from "../selection.ts"
+import { Selection } from "../state/selection.ts"
 import {
   getFavorite,
   setFavorite,
@@ -48,7 +48,7 @@ import { Tree, midpoint } from "@km/tree"
 import type { ActionCtx } from "../tui-context.ts"
 import { ViewTree, type ViewNode } from "@km/board"
 import type { ViewMode } from "../types.ts"
-import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../ui-reducer.ts"
+import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
 
 import { mkdirSync, writeFileSync, existsSync } from "node:fs"
 import {

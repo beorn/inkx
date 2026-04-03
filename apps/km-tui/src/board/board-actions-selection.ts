@@ -14,7 +14,7 @@ import { Tree } from "@km/tree"
 import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { createSelectionEngine } from "../selection-engine.ts"
+import { createSelectionEngine } from "../state/selection-engine.ts"
 
 /**
  * Extend selection vertically (up or down).

@@ -14,8 +14,8 @@ import { Box, Text, CursorLine, useFocusManager, useEditContext, useModifierKeys
 import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
-import { PaneUI } from "../ui-reducer.ts"
-import type { UIState, LocalSearchState } from "../ui-reducer.ts"
+import { PaneUI } from "../state/ui-reducer.ts"
+import type { UIState, LocalSearchState } from "../state/ui-reducer.ts"
 import { useFlashOnChange, useLogToast, useSpinnerFrame } from "../hooks/use-status-animations.ts"
 
 /** Minimum inner width of the command box (excluding border chars) */

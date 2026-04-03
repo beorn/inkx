@@ -5,7 +5,7 @@
 import { describe, test, expect } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { __triggerChordTimeout } from "../src/board-app.ts"
+import { __triggerChordTimeout } from "../src/board/board-app.ts"
 import { getChordSuffixes } from "@km/commands"
 
 describe("which-key popup", () => {

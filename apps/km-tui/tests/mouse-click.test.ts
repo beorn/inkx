@@ -9,7 +9,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 // =============================================================================
 // Column Header Click

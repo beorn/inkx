@@ -9,8 +9,8 @@ import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import type { StoreApi } from "zustand"
-import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
-import { dispatchCommandById } from "../src/board-app.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
+import { dispatchCommandById } from "../src/board/board-app.ts"
 
 /**
  * Open the search dialog via the "search" command.

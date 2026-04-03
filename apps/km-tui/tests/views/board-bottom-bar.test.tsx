@@ -12,7 +12,7 @@ import { createRenderer } from "@silvery/test"
 import { testEnv, item } from "../helpers/board-test.ts"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { CommandBox, StatusCounters } from "../../src/views/CommandBox.tsx"
-import type { UIState, PaneUI } from "../../src/ui-reducer.ts"
+import type { UIState, PaneUI } from "../../src/state/ui-reducer.ts"
 
 const baseRender = createRenderer()
 

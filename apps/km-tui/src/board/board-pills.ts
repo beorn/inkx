@@ -9,9 +9,9 @@
  */
 
 import { KNode } from "@km/core"
-import type { Repo } from "./repo-context.tsx"
-import { getNodeDisplayName } from "./state.ts"
-import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "./text/index.ts"
+import type { Repo } from "../repo-context.tsx"
+import { getNodeDisplayName } from "../state.ts"
+import { GTD_BOARD_COLORS, normalizeBoardName, colorize } from "../text/index.ts"
 
 export interface BoardPill {
   name: string // Display name (e.g., "next" or "My Board")

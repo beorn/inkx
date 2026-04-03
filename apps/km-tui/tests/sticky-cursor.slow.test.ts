@@ -385,9 +385,13 @@ describe("stickyY reset on boundary actions", () => {
     press(board, "j", "j to 1e")
     board.expect("#1e[data-cursor]").toExist()
 
-    // Press h — boundary (leftmost column). Lazy capture fires and sets stickyY.
+    // Press h — at leftmost card goes to column header (not boundary)
+    press(board, "h", "h to column header")
+    board.expect("#col1[data-cursor]").toExist()
+
+    // Press h again — now at boundary
     press(board, "h", "h boundary at leftmost")
-    board.expect("#1e[data-cursor]").toExist()
+    board.expect("#col1[data-cursor]").toExist()
 
     // stickyY should be cleared after boundary
     expect(registry.stickyY, "stickyY cleared after boundary h").toBeNull()
@@ -441,14 +445,17 @@ describe("stickyY reset on boundary actions", () => {
     press(board, "h", "h to col1 from 2a")
     board.expect("#1a[data-cursor]").toExist()
 
-    // Boundary h at leftmost — stickyY cleared again
+    // h at leftmost card goes to column header
+    press(board, "h", "h to col1 header")
+    board.expect("#col1[data-cursor]").toExist()
+    // h at column header is boundary — stickyY cleared
     press(board, "h", "h boundary at col1")
-    board.expect("#1a[data-cursor]").toExist()
+    board.expect("#col1[data-cursor]").toExist()
     expect(registry.stickyY, "stickyY cleared after leftmost boundary").toBeNull()
 
-    // l should fresh-capture from 1a
-    press(board, "l", "l to col2 from 1a")
-    board.expect("#2a[data-cursor]").toExist()
+    // l from col1 header goes to col2 header
+    press(board, "l", "l to col2 header from col1 header")
+    board.expect("#col2[data-cursor]").toExist()
   })
 
   test("boundary h then immediate l fresh-captures from current position", () => {
@@ -467,20 +474,21 @@ describe("stickyY reset on boundary actions", () => {
     press(board, "j", "j to 1c")
     board.expect("#1c[data-cursor]").toExist()
 
-    // Press h — boundary (leftmost col). Lazy capture fires then is cleared.
-    press(board, "h", "h boundary at 1c")
-    board.expect("#1c[data-cursor]").toExist()
+    // Press h — at leftmost card goes to column header
+    press(board, "h", "h to col1 header")
+    board.expect("#col1[data-cursor]").toExist()
+    // Press h again — boundary
+    press(board, "h", "h boundary at col1")
+    board.expect("#col1[data-cursor]").toExist()
     expect(registry.stickyY, "stickyY null after boundary h").toBeNull()
 
-    // Press l — lazy capture fires fresh from 1c, should land on 2c
-    press(board, "l", "l from 1c to col2")
-    board.expect("#2c[data-cursor]").toExist()
-    expect(registry.stickyY, "stickyY set after successful l").not.toBeNull()
-
-    // Navigate up to 2a, then h back — verify column alignment preserved
-    press(board, "k", "k to 2b")
-    press(board, "k", "k to 2a")
+    // j down from header to 1a, then l to col2
+    press(board, "j", "j to 1a from header")
+    board.expect("#1a[data-cursor]").toExist()
+    // Press l — lazy capture fires fresh from 1a, should land on 2a
+    press(board, "l", "l from 1a to col2")
     board.expect("#2a[data-cursor]").toExist()
+    expect(registry.stickyY, "stickyY set after successful l").not.toBeNull()
 
     // h fresh-captures from 2a, lands on 1a
     press(board, "h", "h from 2a to col1")
@@ -505,17 +513,19 @@ describe("stickyY reset on boundary actions", () => {
     press(board, "j", "j to 1c")
     board.expect("#1c[data-cursor]").toExist()
 
-    // Boundary h — clears stickyY
-    press(board, "h", "h boundary")
+    // h at leftmost card goes to column header, then boundary
+    press(board, "h", "h to col1 header")
+    board.expect("#col1[data-cursor]").toExist()
+    press(board, "h", "h boundary at col1")
     expect(registry.stickyY).toBeNull()
 
-    // j down — also clears stickyY (no error from clearing null)
-    press(board, "j", "j boundary at bottom")
-    board.expect("#1c[data-cursor]").toExist()
+    // j down from header — goes to 1a
+    press(board, "j", "j to 1a from header")
+    board.expect("#1a[data-cursor]").toExist()
     expect(registry.stickyY).toBeNull()
 
-    // k up then l — should work normally
-    press(board, "k", "k to 1b")
+    // j down then l — should work normally
+    press(board, "j", "j to 1b")
     board.expect("#1b[data-cursor]").toExist()
     press(board, "l", "l to col2")
     board.expect("#2b[data-cursor]").toExist()

@@ -108,8 +108,8 @@ describe("Indent (Tab)", () => {
   describe("multi-level indent", () => {
     test("sequential indent from bottom nests progressively", () => {
       // Start: col1 = [A, B, C]
-      // Indent C under B → col1=[A, B], cursor clamped to B
-      // Indent B under A → col1=[A], cursor clamped to A
+      // Indent C under B → col1=[A, B], cursor follows C (now child of B)
+      // Navigate to B, indent B under A → col1=[A], cursor follows B
       // Result: A → B → C
       const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
@@ -119,7 +119,8 @@ describe("Indent (Tab)", () => {
       expect(childIds(repo, "B")).toEqual(["C"])
       expect(childIds(repo, "col1")).toEqual(["A", "B"])
 
-      // After indent C, cursor clamped to cardIndex=1 (B). Indent B under A.
+      // Cursor follows C (now under B). Navigate up to B to indent it.
+      board.command("cursor_up") // C → B (or card-level B)
       board.command("indent_node")
       expect(childIds(repo, "A")).toContain("B")
       expect(childIds(repo, "col1")).toEqual(["A"])
@@ -131,9 +132,9 @@ describe("Indent (Tab)", () => {
 
     test("four-level sequential indent", () => {
       // Start: col1 = [A, B, C, D]
-      // Indent D under C, cursor clamped to C
-      // Indent C under B, cursor clamped to B
-      // Indent B under A, cursor clamped to A
+      // Indent D under C, cursor follows D → navigate to C
+      // Indent C under B, cursor follows C → navigate to B
+      // Indent B under A, cursor follows B
       // Result: A → B → C → D
       const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
@@ -141,11 +142,13 @@ describe("Indent (Tab)", () => {
       board.command("indent_node")
       expect(childIds(repo, "C")).toEqual(["D"])
 
-      // cursor at cardIndex=2 (C in [A,B,C])
+      // Cursor follows D. Navigate to C to indent it.
+      board.command("cursor_up") // D → C
       board.command("indent_node")
       expect(childIds(repo, "B")).toContain("C")
 
-      // cursor at cardIndex=1 (B in [A,B])
+      // Cursor follows C. Navigate to B to indent it.
+      board.command("cursor_up") // C → B
       board.command("indent_node")
       expect(childIds(repo, "A")).toContain("B")
 
@@ -158,26 +161,29 @@ describe("Indent (Tab)", () => {
   })
 
   describe("cursor follows node after indent", () => {
-    test("cursor follows indented node to parent card", () => {
-      // col1: [A, B, C] — indent B under A → cursor follows B, resolves to card A
-      const { board, store } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+    test("cursor follows indented node", () => {
+      // col1: [A, B, C] — indent B under A → cursor follows B (now child of A)
+      const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
       board.command("cursor_down") // → B
-      board.command("indent_node") // indent B under A → col1=[A, C], cursor follows B → card A
+      board.command("indent_node") // indent B under A → col1=[A, C], cursor follows B
 
-      // Verify cursor store tracks B → resolves to card A
-      // (data-cursor render may be deferred after structural tree changes; cursor store is the source of truth)
-      expect(cursorTargetId(store)).toBe("A")
+      // B was indented under A
+      expect(childIds(repo, "A")).toEqual(["B"])
+      expect(childIds(repo, "col1")).toEqual(["A", "C"])
+      // Cursor follows B (the indented node)
+      expect(cursorTargetId(store)).toBe("B")
     })
 
     test("cursor follows indented node when last sibling", () => {
-      // col1: [A, B] — indent B under A → col1=[A], cursor follows B → card A
-      const { board, store } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+      // col1: [A, B] — indent B under A → col1=[A], cursor follows B
+      const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
 
       board.command("cursor_down") // → B
       board.command("indent_node") // indent B under A → col1=[A]
 
-      expect(cursorTargetId(store)).toBe("A")
+      expect(childIds(repo, "A")).toEqual(["B"])
+      expect(cursorTargetId(store)).toBe("B")
     })
   })
 })
@@ -397,8 +403,8 @@ describe("Edge cases", () => {
 
   test("sequential indent + outdent on different cards", () => {
     // col1: [A, B, C]
-    // Indent C under B → col1=[A, B], cursor on B
-    // Outdent B (with C as child) to board → col1=[A], board has [col1, B]
+    // Indent C under B → col1=[A, B], cursor follows C (now child of B)
+    // Navigate to B, outdent B (with C as child) to board
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Indent C under B
@@ -407,7 +413,8 @@ describe("Edge cases", () => {
     expect(childIds(repo, "B")).toEqual(["C"])
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
 
-    // cursor is on B (clamped from index 2 to 1)
+    // Cursor follows C (now child of B). Navigate up to B.
+    board.command("cursor_up") // → B
     // Outdent B (with C as child) from col1 to board
     board.press("shift+Tab")
     expect(childIds(repo, "board")).toContain("B")
@@ -420,13 +427,14 @@ describe("Edge cases", () => {
   test("multiple sequential indents building deep hierarchy", () => {
     const { board, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    // Indent D under C: col1=[A, B, C], cursor clamped to index 2 (C)
+    // Indent D under C: col1=[A, B, C], cursor follows D (now child of C)
     board.command("cursor_down").command("cursor_down").command("cursor_down") // → D
     board.command("indent_node")
     expect(childIds(repo, "C")).toEqual(["D"])
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
 
-    // cursor at C (index 2). Indent C under B: col1=[A, B], cursor clamped to 1 (B)
+    // Cursor follows D. Navigate to C to indent it under B.
+    board.command("cursor_up") // → C
     board.command("indent_node")
     expect(childIds(repo, "B")).toContain("C")
     expect(childIds(repo, "col1")).toEqual(["A", "B"])
@@ -539,18 +547,18 @@ describe("Multi-select outdent (atomic batch)", () => {
 describe("Cursor follows node (invariant)", () => {
   test.each([
     {
-      name: "indent: cursor follows to parent card",
+      name: "indent: cursor follows indented node (with siblings)",
       fixture: () => item("board", item("col1", item("A"), item("B"), item("C"))),
       nav: ["j"],
       key: "Tab",
-      expected: "A",
+      expected: "B",
     },
     {
-      name: "indent: cursor follows when only sibling left",
+      name: "indent: cursor follows indented node",
       fixture: () => item("board", item("col1", item("A"), item("B"))),
       nav: ["j"],
       key: "Tab",
-      expected: "A",
+      expected: "B",
     },
     {
       name: "outdent: cursor follows to board level",
@@ -578,12 +586,13 @@ describe("Cursor follows node (invariant)", () => {
 
   test("indent then navigate: can reach next sibling after indent", () => {
     // Verify navigation works after cursor-follows-node
-    // col1: [A, B, C] — indent B under A → cursor on A, then j → C
+    // col1: [A, B, C] — indent B under A → cursor follows B, navigate to C
     const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
 
     board.command("cursor_down") // → B
-    board.command("indent_node") // indent B → cursor on card A (col1=[A, C])
-    board.command("cursor_down") // → C
+    board.command("indent_node") // indent B → cursor follows B (now child of A)
+    // Navigate: cursor is on B (inside A). j should move down within the column.
+    board.command("cursor_down") // → C (next visible item)
 
     expect(board.q("[data-cursor]").textContent()).toContain("C")
   })
@@ -595,10 +604,10 @@ describe("Cursor follows node (invariant)", () => {
     expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
 
     board.command("cursor_down") // → B
-    board.command("indent_node") // indent B under A → cursor on card A
+    board.command("indent_node") // indent B under A → cursor follows B
     expect(childIds(repo, "col1")).toEqual(["A", "C"]) // B moved under A
     expect(childIds(repo, "A")).toEqual(["B"])
-    expect(cursorTargetId(store)).toBe("A")
+    expect(cursorTargetId(store)).toBe("B")
   })
 
   test("non-item nodes cannot be indented (type restriction)", () => {

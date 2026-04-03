@@ -7,8 +7,8 @@
  * Does NOT include app-specific UI state (modals, dialogs) — that belongs in ui-reducer.ts.
  */
 
-import type { CursorStore } from "./cursor-store.ts"
-import type { SelectionRange } from "./handlers/mouse-handler.ts"
+import type { CursorStore } from "../state/cursor-store.ts"
+import type { SelectionRange } from "../handlers/mouse-handler.ts"
 import {
   createEmptyFilterProperties,
   type FilterProperties,
@@ -16,7 +16,7 @@ import {
   type SearchReplaceState,
   type UIState,
   type PaneUI,
-} from "./ui-reducer.ts"
+} from "../state/ui-reducer.ts"
 
 // ===== Re-export canonical board types from @km/board =====
 

@@ -4,17 +4,17 @@
  * Handles cursor movement, history navigation, and sibling board navigation.
  */
 
-import { ViewTree, type ViewNode } from "@km/board"
+import { ViewTree } from "@km/board"
 import type { ActionResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
 import { extractBody } from "@km/tree"
 import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
-import { indexOfChild } from "../sibling-index.ts"
-import { detailPaneIdFor } from "../board-types.ts"
+import { indexOfChild } from "../navigation/sibling-index.ts"
+import { detailPaneIdFor } from "./board-types.ts"
 import type { ActionCtx } from "../tui-context.ts"
-import { type NavState } from "../view-navigation.ts"
+import { type NavState } from "../navigation/view-navigation.ts"
 import {
   applyBlockNav,
   applyOutlineNav,
@@ -235,10 +235,21 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
     return boundary(dir, "no cursor")
   }
 
-  // Build flat list of all visible blocks in the current column
+  // Build flat list of all visible blocks in the current column.
+  // Use `into` predicate to skip folded subtrees (foldDepths value of 0 = fully folded).
   const col = ctx.column
   const colView = col ? ctx.viewIndex.get(col.node.id) : undefined
-  const blocks = colView ? [...ViewTree.nodes(colView)].map((vn) => vn.id) : []
+  const { foldDepths } = ctx
+  const blocks = colView
+    ? [
+        ...ViewTree.nodes(colView, {
+          into: (vn) => {
+            const fd = foldDepths.get(vn.id)
+            return fd === undefined || fd > 0
+          },
+        }),
+      ].map((vn) => vn.id)
+    : []
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
   const navState = extractNavState(ctx)

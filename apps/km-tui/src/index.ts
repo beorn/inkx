@@ -19,13 +19,13 @@ export { BoardCore, BoardApp } from "./views/index.ts"
 export { RepoProvider, useRepo, type Repo } from "./repo-context.tsx"
 
 // Export store context for fine-grained reactive signals
-export { StoreProvider, useStore, type Store } from "./store-context.tsx"
+export { StoreProvider, useStore, type Store } from "./state/store-context.tsx"
 
 // Export signal hooks for reactive components
 export { useSignal, useNodeSignal, useChildIdsSignal } from "./hooks/use-signal.ts"
 
 // Export UI reducer utilities
-export { createInitialUIState, createInitialPaneUI, PaneUI } from "./ui-reducer.ts"
+export { createInitialUIState, createInitialPaneUI, PaneUI } from "./state/ui-reducer.ts"
 
 // Export grid navigator for card position tracking
 export { createGridNavigator } from "@km/board"
@@ -38,7 +38,7 @@ export {
   type NavigateResult,
   type NavigateAction,
   type NavigateRepo,
-} from "./navigate-to-node.ts"
+} from "./navigation/navigate-to-node.ts"
 
 // Export text utilities
 export * from "./text/index.ts"

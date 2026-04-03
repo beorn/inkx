@@ -7,7 +7,7 @@
  */
 
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import type { BoardAppStore } from "./board-app-store.ts"
+import type { BoardAppStore } from "./state/board-app-store.ts"
 import type { GridNavigator } from "@km/board"
 
 /**

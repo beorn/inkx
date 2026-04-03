@@ -10,9 +10,9 @@
  */
 import React from "react"
 import { Text, ModalDialog, Muted, Strong } from "@silvery/ag-react"
-import type { FilterProperties, IconStyle, ViewDialogRow } from "../ui-reducer.ts"
-import { VIEW_DIALOG_ROWS } from "../ui-reducer.ts"
-import type { ViewMode } from "../board-types.ts"
+import type { FilterProperties, IconStyle, ViewDialogRow } from "../state/ui-reducer.ts"
+import { VIEW_DIALOG_ROWS } from "../state/ui-reducer.ts"
+import type { ViewMode } from "../board/board-types.ts"
 
 interface FilterDialogProps {
   filterProperties: FilterProperties

@@ -13,7 +13,7 @@
 
 import { createLogger } from "loggily"
 import type { Repo } from "@km/storage"
-import { indexOfChild } from "../sibling-index.ts"
+import { indexOfChild } from "../navigation/sibling-index.ts"
 
 const log = createLogger("km:tui:nav")
 

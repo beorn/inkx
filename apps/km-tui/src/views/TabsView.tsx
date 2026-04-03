@@ -11,14 +11,14 @@ import { Box, Text, Small, ListView } from "@silvery/ag-react"
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
-import { deriveColumnExcludedSigils } from "../ui-context.tsx"
+import { deriveColumnExcludedSigils } from "../state/ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
-import { useNodeStore, useReactive } from "../reactive.ts"
+import { useNodeStore, useReactive } from "../state/reactive.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { Workspace, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 
 // Virtualization constants
 const OVERSCAN = 10

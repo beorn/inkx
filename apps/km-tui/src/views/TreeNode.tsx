@@ -8,7 +8,7 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
+import { useNodeStore, useReactive, type NodeEditState } from "../state/reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
@@ -22,7 +22,7 @@ import {
 import { extractBody, Tree, type TreeReader } from "@km/tree"
 import { isCollapsedChild } from "@km/board"
 import { isSigilName, InlineText } from "../text/index.ts"
-import { useTreeRenderContext, deriveExcludedSigils } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveExcludedSigils } from "../state/ui-context.tsx"
 import {
   getNodeStyle,
   buildPrefix,
@@ -44,7 +44,7 @@ import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { Workspace, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import type { ErrorInfo } from "react"
 
 // ============================================================================

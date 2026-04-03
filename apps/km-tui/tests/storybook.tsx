@@ -80,13 +80,13 @@ interface TUIBoardState {
   searchMode: boolean
   helpMode: boolean
 }
-import { TreeRenderProvider, deriveTreeConfig } from "../src/ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig } from "../src/state/ui-context.tsx"
 import { StoreContext } from "@silvery/create/create-app"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
-import { createCursorStore } from "../src/cursor-store.ts"
+import { createCursorStore } from "../src/state/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
-import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/reactive.ts"
-import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/ui-reducer.ts"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/state/reactive.ts"
+import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/state/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
 import type { Toast } from "@km/core"

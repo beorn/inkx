@@ -15,7 +15,7 @@
 import { useRef, useState } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
-import { useStore } from "../store-context.tsx"
+import { useStore } from "../state/store-context.tsx"
 import { useCommitVersion } from "./use-signal.ts"
 import { createLogger } from "loggily"
 import type { CardView, ColumnView } from "../types.ts"

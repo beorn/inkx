@@ -7,8 +7,8 @@
 
 import React from "react"
 import { Box, Strong, Text, useFocusManager } from "@silvery/ag-react"
-import { PaneUI } from "../ui-reducer.ts"
-import { isDetailPaneId } from "../board-types.ts"
+import { PaneUI } from "../state/ui-reducer.ts"
+import { isDetailPaneId } from "../board/board-types.ts"
 
 /** A single key hint: key label + action description */
 interface KeyHint {

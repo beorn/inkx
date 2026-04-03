@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import type { LayoutNode } from "../src/board-types.ts"
+import type { LayoutNode } from "../src/board/board-types.ts"
 import {
   adjustSplitRatio,
   equalizeLayout,

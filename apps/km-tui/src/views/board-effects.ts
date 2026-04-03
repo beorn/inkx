@@ -1,7 +1,7 @@
 /**
  * Board lifecycle effects - setup/teardown hooks
  */
-import type { UIState, SyncEvent } from "../ui-reducer.ts"
+import type { UIState, SyncEvent } from "../state/ui-reducer.ts"
 import { createPasteHandler, supportsFileDrop } from "../handlers/paste-handler.ts"
 import { tuiEvents } from "../tui.tsx"
 import type { WatcherStatus } from "@km/storage"

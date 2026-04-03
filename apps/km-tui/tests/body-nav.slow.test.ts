@@ -22,12 +22,12 @@ import { describe, it, test, expect, afterEach, vi } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardDriver } from "../src/driver.ts"
-import { createCardsViewNavigation, type NavState } from "../src/view-navigation.ts"
+import { createCardsViewNavigation, type NavState } from "../src/navigation/view-navigation.ts"
 import { createGridNavigator, buildViewTree, buildViewIndex } from "@km/board"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 function makeNavState(cursorNodeId: string, rootId: string, repo: Repo): NavState {
   const vTree = buildViewTree(repo, rootId, new Map())
@@ -1130,13 +1130,15 @@ describe("Body content: horizontal navigation (h/l)", () => {
     board.expect(cursor("intro")).toExist()
   })
 
-  test("h at body card is boundary (leftmost)", () => {
+  test("h at body card goes to body column header, then boundary", () => {
     const { board } = testEnv(() => item.file("doc", item.p("intro"), item.section("sec1", item("task1"))))
 
     // Start at body card
     board.expect(cursor("intro")).toExist()
 
-    // h at body column — boundary
+    // h at leftmost card goes to column header first
+    board.press("h")
+    // Then h again is boundary
     board.press("h")
     expect(board.bell).toBe(true)
   })
@@ -1231,16 +1233,20 @@ describe("Body content only (no sections)", () => {
     board.expect(cursor("p2")).toExist()
   })
 
-  test("h/l at body-only file hits boundary", () => {
+  test("h/l at body-only file hits boundary after column header", () => {
     const { board } = testEnv(() => item.file("doc", item.p("p1"), item.p("p2")))
 
     board.expect(cursor("p1")).toExist()
 
-    // h — boundary (leftmost)
+    // h at leftmost card goes to column header first
+    board.press("h")
+    // h at column header — boundary
     board.press("h")
     expect(board.bell).toBe(true)
 
-    // l — boundary (no structural columns)
+    // Navigate back to card
+    board.press("j")
+    // l — boundary (no structural columns to the right)
     board.press("l")
     expect(board.bell).toBe(true)
   })

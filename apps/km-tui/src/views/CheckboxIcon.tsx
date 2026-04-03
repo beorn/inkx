@@ -25,7 +25,7 @@ import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import type { StatusIcon } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
-import { Workspace, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 
 interface CheckboxIconProps {

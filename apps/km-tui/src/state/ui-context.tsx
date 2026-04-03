@@ -11,7 +11,7 @@ import { useApp as useAppStore, useAppShallow } from "@silvery/create/create-app
 import type { UIState, PaneUI, IconStyle, BorderMode } from "./ui-reducer.ts"
 import { createEmptyFilterProperties } from "./ui-reducer.ts"
 import { Workspace, type BoardAppStore } from "./board-app-store.ts"
-import { mergePaneUI, type PerPaneUIFields } from "./board-types.ts"
+import { mergePaneUI, type PerPaneUIFields } from "../board/board-types.ts"
 
 /** Default per-pane UI field values (used when no board pane is focused) */
 const DEFAULT_PANE_UI: PerPaneUIFields = {
@@ -37,10 +37,10 @@ const DEFAULT_PANE_UI: PerPaneUIFields = {
   mouseSelection: null,
   isMouseDragging: false,
 }
-import { useRepo, type Repo } from "./repo-context.tsx"
-import { getOwnColor } from "./board-pills.ts"
+import { useRepo, type Repo } from "../repo-context.tsx"
+import { getOwnColor } from "../board/board-pills.ts"
 import type { JobRunner } from "@km/core"
-import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
+import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 
 // =============================================================================
 // Core Hooks
@@ -262,7 +262,7 @@ export function useTreeRenderContext(): TreeRenderCtx {
  * Per-pane fields (viewMode, maxContentLines) must be passed explicitly.
  */
 export function deriveTreeConfig(
-  viewMode: import("./types.ts").ViewMode,
+  viewMode: import("../types.ts").ViewMode,
   maxContentLines: number,
   ui: { iconStyle: IconStyle; borderMode: BorderMode },
   cardInnerWidth = 30,

@@ -10,7 +10,7 @@
  */
 
 import React, { createContext, useContext, useRef, useSyncExternalStore } from "react"
-import type { CursorStore } from "./cursor-store.ts"
+import type { CursorStore } from "./state/cursor-store.ts"
 
 // =============================================================================
 // Context

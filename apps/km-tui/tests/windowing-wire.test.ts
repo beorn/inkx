@@ -23,21 +23,21 @@ import {
   getActiveBoardPane,
   type BoardAppStore,
   type CreateBoardAppStoreParams,
-} from "../src/board-app-store.ts"
+} from "../src/state/board-app-store.ts"
 import {
   createBoardState,
   createPaneState,
   isBoardPane,
   isDetailPaneId,
   type BoardPaneState,
-} from "../src/board-types.ts"
+} from "../src/board/board-types.ts"
 import type { PersistedWorkspace } from "../src/workspace-persist.ts"
-import { createInitialUIState } from "../src/ui-reducer.ts"
-import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
+import { createInitialUIState } from "../src/state/ui-reducer.ts"
+import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
 import { createToastQueue } from "@km/core"
 import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
-import { StoreProvider } from "../src/store-context.tsx"
+import { StoreProvider } from "../src/state/store-context.tsx"
 import { defaultKmTheme } from "../src/theme.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { TC } from "./helpers/theme.ts"

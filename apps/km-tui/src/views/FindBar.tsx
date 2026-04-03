@@ -8,7 +8,7 @@
 
 import React from "react"
 import { Box, Text, CursorLine, useEditContext } from "@silvery/ag-react"
-import type { LocalSearchState } from "../ui-reducer.ts"
+import type { LocalSearchState } from "../state/ui-reducer.ts"
 
 interface FindBarProps {
   localSearch: LocalSearchState

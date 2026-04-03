@@ -17,8 +17,8 @@ import { describe, test, expect } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
 import type { StoreApi } from "zustand"
-import type { BoardAppStore } from "../src/board-app-store.ts"
-import { dispatchCommandById } from "../src/board-app.ts"
+import type { BoardAppStore } from "../src/state/board-app-store.ts"
+import { dispatchCommandById } from "../src/board/board-app.ts"
 
 /**
  * Open the search dialog via the "search" command.

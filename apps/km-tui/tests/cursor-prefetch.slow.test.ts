@@ -151,13 +151,17 @@ describe("cursor prefetch on horizontal navigation", () => {
     board.command("cursor_right")
     board.expect("#2a[data-cursor]").toExist()
 
-    // Navigate to left boundary
+    // Navigate left
     board.command("cursor_left")
     board.expect("#1a[data-cursor]").toExist()
 
-    // Try to go further left — should hit boundary, no crash
+    // h at leftmost card goes to column header
     board.command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
+    board.expect("#col1[data-cursor]").toExist()
+
+    // h at column header is boundary, no crash
+    board.command("cursor_left")
+    board.expect("#col1[data-cursor]").toExist()
   })
 })
 

@@ -13,7 +13,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { DETAIL_DEFAULT_DEPTH } from "../src/view-navigation.ts"
+import { DETAIL_DEFAULT_DEPTH } from "../src/navigation/view-navigation.ts"
 
 describe("Detail Pane Journeys", () => {
   test("D opens detail pane and focuses it, D again closes it", () => {

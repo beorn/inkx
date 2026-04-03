@@ -7,7 +7,7 @@
 
 import { describe, test, expect, beforeEach } from "vitest"
 import { createModeStack, type InputMode } from "../src/input-mode.ts"
-import { PaneUI, createInitialPaneUI } from "../src/ui-reducer.ts"
+import { PaneUI, createInitialPaneUI } from "../src/state/ui-reducer.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("createModeStack", () => {

@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
-import { Path, NodePath } from "../src/path.ts"
+import { Path, NodePath } from "../src/navigation/path.ts"
 
 // =============================================================================
 // Test tree:

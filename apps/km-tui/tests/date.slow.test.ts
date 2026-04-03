@@ -15,7 +15,7 @@
 import { describe, test, it, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { __triggerChordTimeout } from "../src/board-app.ts"
+import { __triggerChordTimeout } from "../src/board/board-app.ts"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 import { formatDateBadge } from "../src/views/tree-node-helpers.tsx"

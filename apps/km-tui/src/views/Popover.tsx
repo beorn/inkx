@@ -18,7 +18,7 @@ import { createStore, useStore } from "zustand"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
-import type { BoardAppStore } from "../board-app-store.ts"
+import type { BoardAppStore } from "../state/board-app-store.ts"
 
 // =============================================================================
 // Types

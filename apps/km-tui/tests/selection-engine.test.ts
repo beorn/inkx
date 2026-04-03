@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createSelectionEngine, type SelectionEngine } from "../src/selection-engine.ts"
+import { createSelectionEngine, type SelectionEngine } from "../src/state/selection-engine.ts"
 import type { TreeReader } from "@km/tree"
 
 // =============================================================================

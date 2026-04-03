@@ -7,9 +7,9 @@
  */
 
 import { createContext, useContext, useSyncExternalStore } from "react"
-import type { Repo } from "./repo-context.tsx"
+import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
-import { getNodeDisplayName } from "./state.ts"
+import { getNodeDisplayName } from "../state.ts"
 import { createLogger } from "loggily"
 import { createSelectionEngine } from "./selection-engine.ts"
 

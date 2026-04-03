@@ -13,7 +13,7 @@
 import { act } from "react"
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import type { StoreApi } from "zustand"
 
 /** Dispatch a board action and flush React so DOM reflects the state change. */

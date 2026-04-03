@@ -7,7 +7,7 @@
  */
 import React from "react"
 import { Box, Text, Small } from "@silvery/ag-react"
-import type { SyncEvent } from "../ui-reducer.ts"
+import type { SyncEvent } from "../state/ui-reducer.ts"
 import type { WatcherStatus } from "@km/storage"
 
 const PANE_HEIGHT = 6

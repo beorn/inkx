@@ -8,8 +8,8 @@ import { type ActionResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
 import type { ActionCtx } from "../tui-context.ts"
 import { clearSelection } from "./keyboard-helpers.ts"
-import { Selection } from "../selection.ts"
-import { indexOfChild } from "../sibling-index.ts"
+import { Selection } from "../state/selection.ts"
+import { indexOfChild } from "../navigation/sibling-index.ts"
 
 // =============================================================================
 // Card Movement - Helpers

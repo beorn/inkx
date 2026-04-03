@@ -21,8 +21,8 @@ import {
   type CommandAction,
 } from "@km/commands"
 import React from "react"
-import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
-import { dispatchCommandById } from "../src/board-app.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
+import { dispatchCommandById } from "../src/board/board-app.ts"
 
 describe("withCommands", () => {
   // Create a mock registry with a few commands for testing

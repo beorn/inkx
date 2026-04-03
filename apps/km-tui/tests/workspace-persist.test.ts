@@ -3,9 +3,9 @@ import { mkdirSync, existsSync, writeFileSync, rmSync } from "node:fs"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 
-import type { WorkspaceState, PaneState, LayoutNode, BoardPaneState } from "../src/board-types.ts"
+import type { WorkspaceState, PaneState, LayoutNode, BoardPaneState } from "../src/board/board-types.ts"
 import type { Repo } from "../src/repo-context.tsx"
-import { createEmptyFilterProperties } from "../src/ui-reducer.ts"
+import { createEmptyFilterProperties } from "../src/state/ui-reducer.ts"
 import {
   serializeWorkspace,
   parsePersistedWorkspace,
@@ -45,7 +45,7 @@ function makePaneState(
     rootId?: string | null
     rootPath?: string | null
     viewMode?: "cards" | "list" | "columns" | "tabs"
-    filterProperties?: import("../src/ui-reducer.ts").FilterProperties
+    filterProperties?: import("../src/state/ui-reducer.ts").FilterProperties
   },
 ): BoardPaneState {
   return {

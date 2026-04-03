@@ -19,8 +19,8 @@
 
 import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
-import type { Repo } from "./repo-context.tsx"
-import type { BoardAction, BoardState, BoardPaneState, LayoutNode, PaneState, WorkspaceState } from "./board-types.ts"
+import type { Repo } from "../repo-context.tsx"
+import type { BoardAction, BoardState, BoardPaneState, LayoutNode, PaneState, WorkspaceState } from "../board/board-types.ts"
 import {
   createBoardState,
   createPaneState,
@@ -33,16 +33,16 @@ import {
   isDetailPaneId,
   getDetailPaneFor,
   hasDetailPaneFor,
-} from "./board-types.ts"
+} from "../board/board-types.ts"
 import type { UIState, PaneUI } from "./ui-reducer.ts"
-import { PANE_UI_FIELD_NAMES } from "./board-types.ts"
+import { PANE_UI_FIELD_NAMES } from "../board/board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex } from "@km/board"
-import { getViewNavigation } from "./view-navigation.ts"
-import { createUndoStack, type UndoStack } from "./undo-stack.ts"
-import { createUndoableRepo, type UndoableRepoHandle } from "./undo/undoable-repo.ts"
+import { getViewNavigation } from "../navigation/view-navigation.ts"
+import { createUndoStack, type UndoStack } from "../undo-stack.ts"
+import { createUndoableRepo, type UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import {
   splitLayoutNode,
   removeLayoutNode,
@@ -52,11 +52,11 @@ import {
   equalizeLayout,
   swapLeaves,
   setSplitRatioAbsolute,
-} from "./layout-helpers.ts"
-import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "./workspace-persist.ts"
-import { deserializeFilterProperties } from "./workspace-persist.ts"
-import { computeMetadataKeys, DETAIL_META_PREFIX } from "./views/detail-pane-items.ts"
-import { resolveEmbed } from "./views/embed-display.ts"
+} from "../layout-helpers.ts"
+import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "../workspace-persist.ts"
+import { deserializeFilterProperties } from "../workspace-persist.ts"
+import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
+import { resolveEmbed } from "../views/embed-display.ts"
 
 // =============================================================================
 // Store Types
@@ -245,7 +245,7 @@ export interface CreateBoardAppStoreParams {
   initialBoardState: BoardState
   initialUIState: UIState
   /** Initial view mode for the default pane (per-pane field, not stored in UIState) */
-  initialViewMode?: import("./types.ts").ViewMode
+  initialViewMode?: import("../types.ts").ViewMode
   dimensions: { columns: number; rows: number }
   /** Saved workspace to restore (layout + panes). If provided, overrides the default single-pane workspace. */
   savedWorkspace?: PersistedWorkspace | null

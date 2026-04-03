@@ -16,8 +16,8 @@ import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helper
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
-import { getActiveBoardPane, type BoardAppStore } from "../src/board-app-store.ts"
-import { dispatchCommandById } from "../src/board-app.ts"
+import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
+import { dispatchCommandById } from "../src/board/board-app.ts"
 import type { StoreApi } from "zustand"
 
 /**

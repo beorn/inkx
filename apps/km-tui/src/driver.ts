@@ -59,25 +59,25 @@ import {
 import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
 import { createStoreFromRepo, withReactive } from "@km/storage"
-import { createBoardState, hasDetailPaneFor } from "./board-types.ts"
+import { createBoardState, hasDetailPaneFor } from "./board/board-types.ts"
 
 import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
-import { StoreProvider } from "./store-context.tsx"
+import { StoreProvider } from "./state/store-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
-import { ensureCommandSystemInitialized } from "./command-bridge.ts"
+import { ensureCommandSystemInitialized } from "./board/command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
 import {
   createBoardAppStoreState,
   Workspace,
   type BoardAppStore,
   type CreateBoardAppStoreParams,
-} from "./board-app-store.ts"
-import { createInitialUIState } from "./ui-reducer.ts"
-import { handleKey } from "./board-app.ts"
-import { createCursorStoreFromRepo } from "./cursor-store.ts"
+} from "./state/board-app-store.ts"
+import { createInitialUIState } from "./state/ui-reducer.ts"
+import { handleKey } from "./board/board-app.ts"
+import { createCursorStoreFromRepo } from "./state/cursor-store.ts"
 
 // =============================================================================
 // Types
@@ -125,7 +125,7 @@ export interface TUIDriverState extends AppState {
   isAtCardLevel: boolean
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
   /** Raw UI state from store */
-  ui: import("./ui-reducer.ts").UIState
+  ui: import("./state/ui-reducer.ts").UIState
 }
 
 /**

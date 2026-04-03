@@ -133,14 +133,18 @@ describe("h/l at boundary crash (km-cwn2)", () => {
     // Start at first card
     board.expect("#1a[data-cursor]").toExist()
 
-    // Try to move left past boundary (should not crash)
+    // h at leftmost card goes to column header (not boundary)
     board.command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
+    board.expect("#col1[data-cursor]").toExist()
+
+    // h at column header is boundary - should not crash
+    board.command("cursor_left")
+    board.expect("#col1[data-cursor]").toExist()
 
     // Try a few more times to confirm stability
     for (let i = 0; i < 3; i++) {
       board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
+      board.expect("#col1[data-cursor]").toExist()
     }
   })
 })

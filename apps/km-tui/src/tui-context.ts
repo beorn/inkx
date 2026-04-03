@@ -11,12 +11,12 @@
 import type { KNode, ToastQueue } from "@km/core"
 import type { FocusManager } from "@silvery/ag-react"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction } from "./board-types.ts"
+import type { BoardAction } from "./board/board-types.ts"
 import type { ColumnView } from "./types.ts"
-import { PaneUI } from "./ui-reducer.ts"
-import type { EditMode } from "./ui-reducer.ts"
+import { PaneUI } from "./state/ui-reducer.ts"
+import type { EditMode } from "./state/ui-reducer.ts"
 import type { GridNavigator, ViewNode } from "@km/board"
-import type { ViewNavigation } from "./view-navigation.ts"
+import type { ViewNavigation } from "./navigation/view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
 import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
 
@@ -39,7 +39,7 @@ export interface ActionCtx {
   cursorCardNodeId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
-  moveState: import("./board-types.ts").MoveState
+  moveState: import("./board/board-types.ts").MoveState
 
   // === State (merged global + per-pane) ===
   ui: PaneUI

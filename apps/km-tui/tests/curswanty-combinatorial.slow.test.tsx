@@ -381,17 +381,18 @@ describe("curswantY combinatorial", () => {
 // =============================================================================
 
 describe("curswantY boundaries", () => {
-  test("h at leftmost column: no crash, cursor stays", () => {
+  test("h at leftmost column: goes to column header, no crash", () => {
     const { board } = testEnv(() => item("board", item("ColA", ...items("A", 5)), item("ColB", ...items("B", 5))), {
       rows: 24,
       columns: 80,
     })
 
     board.command("cursor_down").command("cursor_down") // go to A03
-    board.command("cursor_left") // already at leftmost
-    const cursor = cursorCardNum(board)
-    expect(cursor.prefix).toBe("A")
-    expect(cursor.num).toBe(3)
+    board.command("cursor_left") // goes to column header (not boundary)
+    board.expect("#ColA[data-cursor]").toExist()
+    // h again is boundary — stays at column header
+    board.command("cursor_left")
+    board.expect("#ColA[data-cursor]").toExist()
   })
 
   test("l at rightmost column: no crash, cursor stays", () => {

@@ -30,22 +30,22 @@ import { parseKey } from "@silvery/ag-term/runtime"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { expect } from "vitest"
 import { createRepo, type Repo } from "@km/storage"
-import { createBoardState } from "../../src/board-types.ts"
+import { createBoardState } from "../../src/board/board-types.ts"
 import { runGenerator, createToastQueue } from "@km/core"
 
 import { Board } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
-import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
+import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import {
   createBoardAppStoreState,
   type BoardAppStore,
   type CreateBoardAppStoreParams,
-} from "../../src/board-app-store.ts"
-import { createInitialUIState } from "../../src/ui-reducer.ts"
-import { handleKey } from "../../src/board-app.ts"
-import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
+} from "../../src/state/board-app-store.ts"
+import { createInitialUIState } from "../../src/state/ui-reducer.ts"
+import { handleKey } from "../../src/board/board-app.ts"
+import { createCursorStoreFromRepo } from "../../src/state/cursor-store.ts"
 
 export interface TestBoardOptions {
   /** Terminal columns (default: 80) */

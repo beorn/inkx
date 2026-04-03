@@ -189,16 +189,21 @@ describe("Keyboard Navigation: boundary behavior", () => {
     board.expect("#board[data-cursor]").toExist()
   })
 
-  test("h at first column rings bell and stays", () => {
+  test("h at first column card goes to header, then boundary rings bell", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))))
 
     // Start at first column
     board.expect("#1a[data-cursor]").toExist()
 
-    // Press h at boundary - should ring bell
+    // Press h at first card goes to column header (not boundary)
+    board.command("cursor_left")
+    expect(board.bell).toBe(false)
+    board.expect("#col1[data-cursor]").toExist()
+
+    // Press h at column header is boundary
     board.command("cursor_left")
     expect(board.bell).toBe(true)
-    board.expect("#1a[data-cursor]").toExist()
+    board.expect("#col1[data-cursor]").toExist()
   })
 
   test("l at last column rings bell and stays", () => {
@@ -242,7 +247,11 @@ describe("Keyboard Navigation: boundary behavior", () => {
   test("h boundary status clears after pressing j", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"))))
 
-    // At first column, press h - boundary
+    // At first column card, h goes to column header first
+    board.command("cursor_left") // 1a → col1
+    expect(board.bell).toBe(false)
+
+    // h at column header is boundary
     board.command("cursor_left")
     expect(board.bell).toBe(true)
     expect(board.hasStatus).toBe(true)
@@ -251,7 +260,7 @@ describe("Keyboard Navigation: boundary behavior", () => {
 
     // Press j - valid move, should clear status
     board.command("cursor_down")
-    board.expect("#1b[data-cursor]").toExist()
+    board.expect("#1a[data-cursor]").toExist()
     expect(board.bell).toBe(false)
     expect(board.hasStatus).toBe(false)
     expect(board.screenshot()).not.toContain("Can't move")
@@ -274,7 +283,11 @@ describe("Keyboard Navigation: boundary behavior", () => {
     expect(board.bell).toBe(false)
     expect(board.screenshot()).not.toContain("Can't move")
 
-    // h at first column - boundary again
+    // h at first column card goes to column header
+    board.command("cursor_left") // 1a → col1
+    expect(board.bell).toBe(false)
+
+    // h at column header is boundary
     board.command("cursor_left")
     expect(board.bell).toBe(true)
     expect(board.screenshot()).toContain("Can't move")

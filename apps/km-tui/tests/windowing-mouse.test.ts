@@ -11,15 +11,15 @@
 import { describe, test, expect } from "vitest"
 import { createStore } from "zustand"
 import { hitTestSplitBorder, hitTestPaneId, setSplitRatioAbsolute } from "../src/layout-helpers.ts"
-import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
-import { createBoardState } from "../src/board-types.ts"
-import { createInitialUIState } from "../src/ui-reducer.ts"
-import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
+import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
+import { createBoardState } from "../src/board/board-types.ts"
+import { createInitialUIState } from "../src/state/ui-reducer.ts"
+import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
 import { createToastQueue } from "@km/core"
 import { createFakeRepo } from "@km/storage"
 import { item } from "./helpers/board-test.ts"
-import type { LayoutNode } from "../src/board-types.ts"
+import type { LayoutNode } from "../src/board/board-types.ts"
 
 // =============================================================================
 // Test Helpers

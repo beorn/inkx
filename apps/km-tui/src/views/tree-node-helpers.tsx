@@ -8,7 +8,7 @@ import React from "react"
 import { Text } from "@silvery/ag-react"
 import { extractTitleTaskMarker, KNode, extractTaskDates } from "@km/core"
 import { getStatusIcon, type StatusIcon } from "../text/index.ts"
-import { formatBoardPills, getOwnColor, type BoardPill } from "../board-pills.ts"
+import { formatBoardPills, getOwnColor, type BoardPill } from "../board/board-pills.ts"
 
 // =============================================================================
 // HR Detection

@@ -9,18 +9,18 @@
 import React from "react"
 import { test, expect, describe, vi } from "vitest"
 import { createFakeRepo } from "@km/storage"
-import { createBoardState } from "../src/board-types.ts"
+import { createBoardState } from "../src/board/board-types.ts"
 import { createToastQueue } from "@km/core"
 import { InputLayerProvider } from "@silvery/ag-react"
 import { item } from "./helpers/board-test.ts"
-import { createBoardApp, handleKey } from "../src/board-app.ts"
-import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/board-app-store.ts"
-import { createInitialUIState } from "../src/ui-reducer.ts"
+import { createBoardApp, handleKey } from "../src/board/board-app.ts"
+import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
+import { createInitialUIState } from "../src/state/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { buildBoardState } from "../src/state.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
-import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
+import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 
 /** Helper: React.createElement with children as prop (avoids React 19 overload mismatch) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

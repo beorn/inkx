@@ -2,7 +2,7 @@ import { useMemo } from "react"
 import type { Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { ResourceState } from "@km/storage"
-import { useStore } from "../store-context.tsx"
+import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "./use-signal.ts"
 
 /**

@@ -9,7 +9,7 @@ import React from "react"
 import { createRenderer } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { KeyBar } from "../../src/views/key-bar.tsx"
-import type { PaneUI } from "../../src/ui-reducer.ts"
+import type { PaneUI } from "../../src/state/ui-reducer.ts"
 
 const render = createRenderer()
 

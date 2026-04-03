@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, test, vi } from "vitest"
-import { type SelectionCtx, type BatchCtx, type MoveCtx, Selection } from "../src/selection.ts"
+import { type SelectionCtx, type BatchCtx, type MoveCtx, Selection } from "../src/state/selection.ts"
 import type { KNode } from "@km/core"
 
 // =============================================================================

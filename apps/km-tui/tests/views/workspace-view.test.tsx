@@ -10,8 +10,8 @@ import React from "react"
 import { createRenderer } from "@silvery/test"
 import { Text } from "@silvery/ag-react"
 import { WorkspaceView } from "../../src/views/WorkspaceView.tsx"
-import type { LayoutNode, PaneState, PaneViewType } from "../../src/board-types.ts"
-import { createBoardState, createPaneState, createEmptyPaneState } from "../../src/board-types.ts"
+import type { LayoutNode, PaneState, PaneViewType } from "../../src/board/board-types.ts"
+import { createBoardState, createPaneState, createEmptyPaneState } from "../../src/board/board-types.ts"
 import { usePaneLabel } from "../../src/pane-context.tsx"
 
 const render = createRenderer()

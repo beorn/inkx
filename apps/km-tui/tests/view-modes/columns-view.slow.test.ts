@@ -168,12 +168,16 @@ describe("Columns View", () => {
       assertBoundary(board, key, expected)
     })
 
-    test("h stops at left boundary", () => {
+    test("h stops at left boundary (after column header)", () => {
       const { board } = columnsBoard(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
         columns: 120,
       })
       board.expect("#1a[data-cursor]").toExist()
-      assertBoundary(board, "h", "1a")
+      // h at leftmost card goes to column header first
+      board.press("h")
+      board.expect("#col1[data-cursor]").toExist()
+      // h at column header is boundary
+      assertBoundary(board, "h", "col1")
     })
 
     test("l stops at right boundary", () => {

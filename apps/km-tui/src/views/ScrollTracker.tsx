@@ -10,7 +10,7 @@
  */
 import React, { useMemo } from "react"
 import { ListView, type ListViewProps } from "@silvery/ag-react"
-import { useNodeStore, useReactive } from "../reactive.ts"
+import { useNodeStore, useReactive } from "../state/reactive.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
 interface ScrollTrackingListViewProps<T> extends Omit<ListViewProps<T>, "scrollTo"> {

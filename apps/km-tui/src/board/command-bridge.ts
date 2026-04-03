@@ -19,12 +19,12 @@ import {
 import { Tree } from "@km/tree"
 import { ViewTree } from "@km/board"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
-import type { ActionCtx } from "./tui-context.ts"
+import type { ActionCtx } from "../tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
-import { SelectionLevel } from "./cursor-store.ts"
-import { PaneUI } from "./ui-reducer.ts"
+import { SelectionLevel } from "../state/cursor-store.ts"
+import { PaneUI } from "../state/ui-reducer.ts"
 import { createLogger } from "loggily"
-import { getModeStack } from "./dialog-guard.ts"
+import { getModeStack } from "../dialog-guard.ts"
 
 const log = createLogger("km:command-bridge")
 

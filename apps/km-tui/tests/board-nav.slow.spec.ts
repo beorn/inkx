@@ -72,15 +72,12 @@ describe("Cursoring", () => {
       board.command("cursor_left")
       board.expect("#1a[data-cursor]").toExist()
 
-      // h at left boundary stops
+      // h at left card goes to column header first
       board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
-      board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
+      board.expect("#col1[data-cursor]").toExist()
 
-      // --- Header level ---
-      // Go to column headers
-      board.command("cursor_up")
+      // h at left column header boundary stops
+      board.command("cursor_left")
       board.expect("#col1[data-cursor]").toExist()
 
       // l right through headers
@@ -361,9 +358,13 @@ describe("Cursoring", () => {
       board.command("cursor_left")
       board.expect("#1a[data-cursor]").toExist()
 
-      // h at left boundary stops
+      // h at left card goes to column header first
       board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
+      board.expect("#col1[data-cursor]").toExist()
+
+      // h at column header is boundary
+      board.command("cursor_left")
+      board.expect("#col1[data-cursor]").toExist()
     })
   })
 
@@ -433,9 +434,13 @@ describe("Cursoring", () => {
       board.command("cursor_left")
       board.expect("#1a[data-cursor]").toExist()
 
-      // h at left boundary stops
+      // h at left card goes to column header
       board.command("cursor_left")
-      board.expect("#1a[data-cursor]").toExist()
+      board.expect("#col1[data-cursor]").toExist()
+
+      // h at column header is boundary
+      board.command("cursor_left")
+      board.expect("#col1[data-cursor]").toExist()
     })
 
     test("cursor position when switching tabs", () => {
@@ -534,12 +539,20 @@ describe("Boundaries and Edge Cases", () => {
     })
   })
 
-  test("single column: h and l do nothing", () => {
+  test("single column: h goes to column header, l does nothing", () => {
     const { board } = testEnv(() => item("board", item("col", item("task"))))
     board.expect("#task[data-cursor]").toExist()
 
-    // h does nothing (no columns to left)
+    // h at first card of first column goes to column header
     board.command("cursor_left")
+    board.expect("#col[data-cursor]").toExist()
+
+    // h at column header is boundary
+    board.command("cursor_left")
+    board.expect("#col[data-cursor]").toExist()
+
+    // Navigate back to card for l test
+    board.command("cursor_down")
     board.expect("#task[data-cursor]").toExist()
 
     // l does nothing (no columns to right)
@@ -591,27 +604,29 @@ describe("Boundaries and Edge Cases", () => {
     board.command("cursor_left")
     board.expect("#1a[data-cursor]").toExist()
 
-    // Try h multiple times - should stay at col1
+    // h at leftmost card goes to column header
     board.command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
-    board.command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
-    board.command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
+    board.expect("#col1[data-cursor]").toExist()
 
-    // --- l boundary: navigate right to last column ---
-    board.command("cursor_right")
-    board.expect("#2a[data-cursor]").toExist()
-    board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    // h at column header boundary stays
+    board.command("cursor_left")
+    board.expect("#col1[data-cursor]").toExist()
+    board.command("cursor_left")
+    board.expect("#col1[data-cursor]").toExist()
 
-    // Try l multiple times - should stay at col3
+    // --- l boundary: navigate right from column header goes to next column header ---
     board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    board.expect("#col2[data-cursor]").toExist()
     board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    board.expect("#col3[data-cursor]").toExist()
+
+    // Try l multiple times at rightmost header - should stay at col3
     board.command("cursor_right")
-    board.expect("#3a[data-cursor]").toExist()
+    board.expect("#col3[data-cursor]").toExist()
+    board.command("cursor_right")
+    board.expect("#col3[data-cursor]").toExist()
+    board.command("cursor_right")
+    board.expect("#col3[data-cursor]").toExist()
   })
 
   test("g does nothing at first card", () => {
@@ -701,7 +716,7 @@ describe("Boundary Feedback (Bell + Status)", () => {
   })
 
   test.each([
-    { key: "h", setup: [], finalId: "#1a", desc: "h at left boundary" },
+    { key: "h", setup: ["h"], finalId: "#col1", desc: "h at left boundary (from column header)" },
     { key: "l", setup: ["l"], finalId: "#2a", desc: "l at right boundary" },
     { key: "j", setup: ["j"], finalId: "#1b", desc: "j at bottom boundary" },
   ])("$desc shows feedback", ({ key, setup, finalId }) => {
@@ -721,8 +736,9 @@ describe("Boundary Feedback (Bell + Status)", () => {
     // No flash initially
     expect(board.q("[data-bell-flash]").count()).toBe(0)
 
-    // Hit left boundary
-    board.command("cursor_left")
+    // h at leftmost card goes to column header, then h again hits boundary
+    board.command("cursor_left") // 1a → col1 (column header)
+    board.command("cursor_left") // col1 → boundary
     expect(board.bell).toBe(true)
     expect(board.q("[data-bell-flash]").count()).toBe(1)
 
@@ -767,12 +783,15 @@ describe("Boundary Feedback (Bell + Status)", () => {
 
   test("bell fires for each horizontal boundary direction", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a"))))
-    // Single card, single column — h and l are horizontal boundaries
+    // Single card, single column — h goes to col header first, then boundary
 
-    board.command("cursor_left")
+    board.command("cursor_left") // 1a → col1 (column header)
+    expect(board.bell).toBe(false) // not a boundary yet
+    board.command("cursor_left") // col1 → boundary
     expect(board.bell).toBe(true)
 
-    board.command("cursor_right")
+    board.command("cursor_down") // clear bell, go to 1a
+    board.command("cursor_right") // right boundary
     expect(board.bell).toBe(true)
   })
 

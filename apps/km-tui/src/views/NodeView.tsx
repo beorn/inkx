@@ -38,7 +38,7 @@ import {
   parseToPlainText,
   InlineText,
 } from "../text/index.ts"
-import { getOwnColor, getHeaderStyle } from "../board-pills.ts"
+import { getOwnColor, getHeaderStyle } from "../board/board-pills.ts"
 import { getNodeDisplayName, isNodeUntitled, getCollapsedTypeSuffix } from "../state.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { StatusIcon } from "../text/index.ts"

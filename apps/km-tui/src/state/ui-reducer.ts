@@ -15,9 +15,9 @@ export interface SyncEvent {
  * State updates are done via setUI() on the Zustand store.
  */
 
-import type { ViewMode } from "./types.ts"
+import type { ViewMode } from "../types.ts"
 import type { WatcherStatus } from "@km/storage"
-import type { PerPaneUIFields } from "./board-types.ts"
+import type { PerPaneUIFields } from "../board/board-types.ts"
 
 // =============================================================================
 // UI State Type

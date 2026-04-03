@@ -11,7 +11,7 @@
 
 import React, { useMemo } from "react"
 import { Box, Text, useTheme } from "@silvery/ag-react"
-import { ownerPaneId, isDetailViewPane, type LayoutNode, type PaneState } from "../board-types.ts"
+import { ownerPaneId, isDetailViewPane, type LayoutNode, type PaneState } from "../board/board-types.ts"
 import { getLayoutPaneIds } from "../layout-helpers.ts"
 import { PaneLabelProvider } from "../pane-context.tsx"
 import { deriveUnfocusedTheme } from "../theme.ts"

@@ -12,16 +12,16 @@ import { createLogger } from "loggily"
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
-import { Workspace, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { TreeNode } from "./TreeNode.tsx"
-import type { BoardPill } from "../board-pills.ts"
+import type { BoardPill } from "../board/board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
 import type { TextDecoration } from "../text/index.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
-import { useTreeRenderContext } from "../ui-context.tsx"
-import { useNodeStore, useReactive } from "../reactive.ts"
+import { useTreeRenderContext } from "../state/ui-context.tsx"
+import { useNodeStore, useReactive } from "../state/reactive.ts"
 
 // =============================================================================
 // Memoized Tree Card Component

@@ -15,7 +15,7 @@
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/board-app-store.ts"
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Inline Editing", () => {
   test("Enter on card enters inline edit, shows editable text", () => {

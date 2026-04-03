@@ -16,10 +16,10 @@
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
-import type { LayoutNode, PaneState, WorkspaceState, ViewMode } from "./board-types.ts"
-import { isBoardPane } from "./board-types.ts"
-import type { FilterProperties } from "./ui-reducer.ts"
-import { createEmptyFilterProperties } from "./ui-reducer.ts"
+import type { LayoutNode, PaneState, WorkspaceState, ViewMode } from "./board/board-types.ts"
+import { isBoardPane } from "./board/board-types.ts"
+import type { FilterProperties } from "./state/ui-reducer.ts"
+import { createEmptyFilterProperties } from "./state/ui-reducer.ts"
 import type { Repo } from "./repo-context.tsx"
 
 // =============================================================================

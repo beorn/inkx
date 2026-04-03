@@ -42,7 +42,7 @@ const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
     type,
     children.length === 1 ? { ...props, children: children[0] } : children.length > 0 ? { ...props, children } : props,
   )
-import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/reactive.ts"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/state/reactive.ts"
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
 import { compareBuffers, formatMismatch } from "@silvery/ag-term/toolbelt"
 import { StoreContext } from "@silvery/create/create-app"
@@ -57,32 +57,32 @@ import {
 } from "@silvery/ag-react"
 import { expect } from "vitest"
 import { createFakeRepo, type Repo, createStoreFromRepo, withReactive } from "@km/storage"
-import { StoreProvider } from "../../src/store-context.tsx"
-import { createBoardState, createPaneState } from "../../src/board-types.ts"
+import { StoreProvider } from "../../src/state/store-context.tsx"
+import { createBoardState, createPaneState } from "../../src/board/board-types.ts"
 import { createToastQueue, type KNode, type NodeRules, type NodeType, type ItemData, type TaskStatus } from "@km/core"
 import { parseHeadingRules } from "@km/markdown"
 
 import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
 import { buildBoardState } from "../../src/state.ts"
-import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../../src/ui-reducer.ts"
+import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../../src/state/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
-import { ensureCommandSystemInitialized } from "../../src/command-bridge.ts"
+import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { getChordState } from "@km/commands"
 import { resetModeStack } from "../../src/dialog-guard.ts"
-import { TreeRenderProvider, deriveTreeConfig } from "../../src/ui-context.tsx"
+import { TreeRenderProvider, deriveTreeConfig } from "../../src/state/ui-context.tsx"
 import {
   createBoardAppStoreState,
   getActiveBoardPane,
   type BoardAppStore,
   type BoardAppState,
   type CreateBoardAppStoreParams,
-} from "../../src/board-app-store.ts"
-import { handleKey, handleMouse, resetBoardAppState } from "../../src/board-app.ts"
+} from "../../src/state/board-app-store.ts"
+import { handleKey, handleMouse, resetBoardAppState } from "../../src/board/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "@silvery/ag-react"
 import type { InitialBoardData } from "../../src/types.ts"
-import { createCursorStoreFromRepo } from "../../src/cursor-store.ts"
+import { createCursorStoreFromRepo } from "../../src/state/cursor-store.ts"
 
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.

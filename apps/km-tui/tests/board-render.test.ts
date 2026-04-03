@@ -20,7 +20,7 @@ import { item } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
 import type { Repo } from "@km/storage"
-import { StoreProvider } from "../src/store-context.tsx"
+import { StoreProvider } from "../src/state/store-context.tsx"
 
 // Minimal mock repo for pure rendering tests - only needs getChildren for display name
 function createMockRepo(childrenMap?: Map<string, KNode[]>): Repo {

@@ -5,7 +5,7 @@
  * resizing, equalizing, and swapping leaf panes.
  */
 
-import type { LayoutNode } from "./board-types.ts"
+import type { LayoutNode } from "./board/board-types.ts"
 
 // =============================================================================
 // Layout Tree Helpers (Pure Functions)

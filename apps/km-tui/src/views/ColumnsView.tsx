@@ -15,13 +15,13 @@ import { createLogger } from "loggily"
 const log = createLogger("km:tui:columns")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
-import { useTreeRenderContext, deriveColumnExcludedSigils } from "../ui-context.tsx"
+import { useTreeRenderContext, deriveColumnExcludedSigils } from "../state/ui-context.tsx"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { Workspace, type BoardAppStore } from "../board-app-store.ts"
+import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useNodeStore, useReactive } from "../reactive.ts"
+import { useNodeStore, useReactive } from "../state/reactive.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================

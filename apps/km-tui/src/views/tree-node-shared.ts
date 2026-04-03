@@ -11,7 +11,7 @@ import { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import type { PopoverContent } from "./Popover.tsx"
-import { deriveExcludedSigils } from "../ui-context.tsx"
+import { deriveExcludedSigils } from "../state/ui-context.tsx"
 import {
   getTypeBullet,
   getCircleBullet,
