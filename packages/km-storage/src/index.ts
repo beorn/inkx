@@ -245,6 +245,11 @@ export { loadConfigObject } from "./config-object.ts"
 
 export type { Config } from "./config-object.ts"
 
+// Commit taxonomy — types for the reactive store layer
+export { ResourceState } from "./commit-types.ts"
+
+export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope, ResourceState as ResourceStateT } from "./commit-types.ts"
+
 // Emitter domain object - owns event emission lifecycle
 // Replaces global singletons in emit.ts with explicit ownership
 // See: docs/00-principles.md
