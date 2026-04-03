@@ -16,7 +16,7 @@ import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { isDetailViewPane } from "../board/board-types.ts"
 import type { CardView, ColumnView } from "../types.ts"
-import type { KNode } from "@km/core"
+import { type KNode, getStatusForMarker } from "@km/core"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
@@ -231,12 +231,21 @@ const Card = React.memo(
     const store = useStore()
     const childIdsState = useChildIdsSignal(store, card.id)
     const childIds = ResourceState.isLoaded(childIdsState) ? childIdsState.value : []
-    const { treeConfig } = useTreeRenderContext()
+    const { treeConfig, taskStatusFilter } = useTreeRenderContext()
     const maxChildren = treeConfig.maxContentLines
     const rawChildren = useMemo(() => repo.getChildren(card.id), [repo, card.id, childIds])
-    // Filter out collapsed children (km.collapse:: true, detailOnly) — these are
-    // only shown in the detail pane and must not inflate the overflow count.
-    const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
+    // Filter out collapsed children AND task-status-filtered children.
+    // Must match TreeNode's filtering so overflow count reflects what's actually rendered.
+    const children = useMemo(() => {
+      let filtered = rawChildren.filter((c) => !isCollapsedChild(c))
+      if (taskStatusFilter.size > 0) {
+        filtered = filtered.filter((c) => {
+          const status = c.item?.task?.status ?? getStatusForMarker(c.item?.task?.marker)
+          return !status || taskStatusFilter.has(status)
+        })
+      }
+      return filtered
+    }, [rawChildren, taskStatusFilter])
     // When cursor is inside this card (on a descendant), expand to show all children.
     // Must match TreeNode's shouldExpand logic — only expand when cursor is on a
     // descendant, not when cursor is on the card title itself.
