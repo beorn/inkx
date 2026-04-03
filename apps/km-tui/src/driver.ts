@@ -58,10 +58,12 @@ import {
 } from "@km/commands"
 import { createToastQueue } from "@km/core"
 import type { Repo } from "@km/storage"
+import { createStoreFromRepo, withReactive } from "@km/storage"
 import { createBoardState, hasDetailPaneFor } from "./board-types.ts"
 
 import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
+import { StoreProvider } from "./store-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
 import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
@@ -209,6 +211,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
+  // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion)
+  const reactiveStore = withReactive(createStoreFromRepo(repo))
+
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   // TODO(km-canonical): Once the driver uses a full pipe() chain with withFocus(),
   // the focus manager can be provided via the plugin instead of manual creation.
@@ -236,9 +241,12 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       React.createElement(
         FocusManagerContext.Provider,
         { value: focusManager },
-        React.createElement(RepoProvider, {
-          repo,
-          children: boardAppElement,
+        React.createElement(StoreProvider, {
+          store: reactiveStore,
+          children: React.createElement(RepoProvider, {
+            repo,
+            children: boardAppElement,
+          }),
         }),
       ),
     ),

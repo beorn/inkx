@@ -36,7 +36,8 @@ import { createInitialUIState } from "../src/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
 import { createToastQueue } from "@km/core"
-import { createFakeRepo } from "@km/storage"
+import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
+import { StoreProvider } from "../src/store-context.tsx"
 import { defaultKmTheme } from "../src/theme.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { TC } from "./helpers/theme.ts"
@@ -339,6 +340,7 @@ describe("windowing — visual rendering", () => {
     // Disable incremental check: the multi-pass stabilization (useContentRect
     // width changes from fallback to actual) causes expected incremental mismatches.
     const focusManager = createFocusManager()
+    const reactiveStore = withReactive(createStoreFromRepo(repo))
     const render = createRenderer({ cols, rows, singlePassLayout: true })
     const result = render(
       h(
@@ -350,7 +352,7 @@ describe("windowing — visual rendering", () => {
           h(
             FocusManagerContext.Provider,
             { value: focusManager },
-            h(RepoProvider, { repo }, h(BoardApp, { toastQueue })),
+            h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo }, h(BoardApp, { toastQueue }))),
           ),
         ),
       ),

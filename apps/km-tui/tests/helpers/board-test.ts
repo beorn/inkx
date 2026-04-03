@@ -56,7 +56,8 @@ import {
   createMouseEventProcessor,
 } from "@silvery/ag-react"
 import { expect } from "vitest"
-import { createFakeRepo, type Repo } from "@km/storage"
+import { createFakeRepo, type Repo, createStoreFromRepo, withReactive } from "@km/storage"
+import { StoreProvider } from "../../src/store-context.tsx"
 import { createBoardState, createPaneState } from "../../src/board-types.ts"
 import { createToastQueue, type KNode, type NodeRules, type NodeType, type ItemData, type TaskStatus } from "@km/core"
 import { parseHeadingRules } from "@km/markdown"
@@ -540,6 +541,9 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
+  // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion)
+  const reactiveStore = withReactive(createStoreFromRepo(repo))
+
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   const focusManager = createFocusManager()
 
@@ -560,7 +564,11 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
       h(
         StoreContext.Provider,
         { value: store as StoreApi<unknown> },
-        h(FocusManagerContext.Provider, { value: focusManager }, h(RepoProvider, { repo, children: boardAppElement })),
+        h(
+          FocusManagerContext.Provider,
+          { value: focusManager },
+          h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: boardAppElement })),
+        ),
       ),
     ),
     { incremental: options?.incremental ?? true },
@@ -1939,11 +1947,16 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     },
     boardCoreElement,
   )
+  const reactiveStore = withReactive(createStoreFromRepo(repo))
   const result = render(
     h(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      h(ReactiveNodeStoreProvider, { value: nodeStore }, h(RepoProvider, { repo, children: wrappedElement })),
+      h(
+        ReactiveNodeStoreProvider,
+        { value: nodeStore },
+        h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: wrappedElement })),
+      ),
     ),
   )
 
@@ -2010,6 +2023,7 @@ export function renderBoardWithStore(
   }
 
   const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
+  const reactiveStore = withReactive(createStoreFromRepo(repo))
 
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const renderFn = options.render ?? createRenderer({ cols: columns, rows, singlePassLayout: true })
@@ -2025,7 +2039,10 @@ export function renderBoardWithStore(
     React.createElement(
       StoreContext.Provider,
       { value: store as StoreApi<unknown> },
-      React.createElement(RepoProvider, { repo, children: boardElement }),
+      React.createElement(StoreProvider, {
+        store: reactiveStore,
+        children: React.createElement(RepoProvider, { repo, children: boardElement }),
+      }),
     ),
   )
 }

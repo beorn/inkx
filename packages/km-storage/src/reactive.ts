@@ -59,41 +59,60 @@ export function withReactive<S extends Store & Observable>(store: S): S & Reacti
     // Skip if no signals exist yet (nothing to update)
     if (nodeSignals.size === 0 && childIdsSignals.size === 0) return
 
+    // Broad refresh: repo was mutated directly (not through store.commit),
+    // so we don't know which specific nodes/parents changed. Refresh all signals.
+    const isBroadRefresh = result.meta.source === "repo-direct"
+
     startBatch()
     try {
-      // Update node content signals
-      for (const id of delta.nodeIds) {
-        const sig = nodeSignals.get(id)
-        if (sig) {
+      if (isBroadRefresh) {
+        // Refresh all node signals
+        for (const [id, sig] of nodeSignals) {
           const node = store.peekNode(id)
           sig(node ? ResourceState.loaded(node) : ResourceState.unloaded())
         }
-      }
-
-      // Update child list signals
-      for (const parentId of delta.parentIds) {
-        const sig = childIdsSignals.get(parentId)
-        if (sig) {
+        // Refresh all child list signals
+        for (const [parentId, sig] of childIdsSignals) {
           const ids = store.peekChildIds(parentId)
           sig(ResourceState.loaded(ids))
         }
-      }
+      } else {
+        // Targeted refresh: update only affected signals from delta
+        for (const id of delta.nodeIds) {
+          const sig = nodeSignals.get(id)
+          if (sig) {
+            const node = store.peekNode(id)
+            sig(node ? ResourceState.loaded(node) : ResourceState.unloaded())
+          }
+        }
 
-      // Mark deleted nodes
-      for (const id of delta.deletedNodeIds) {
-        const sig = nodeSignals.get(id)
-        if (sig) sig(ResourceState.deleted())
+        for (const parentId of delta.parentIds) {
+          const sig = childIdsSignals.get(parentId)
+          if (sig) {
+            const ids = store.peekChildIds(parentId)
+            sig(ResourceState.loaded(ids))
+          }
+        }
+
+        for (const id of delta.deletedNodeIds) {
+          const sig = nodeSignals.get(id)
+          if (sig) sig(ResourceState.deleted())
+        }
       }
     } finally {
       endBatch()
     }
   })
 
+  // Chain dispose: clean up our subscription, then the underlying store's dispose if present
+  const storeDispose = Symbol.dispose in store ? (store as Disposable)[Symbol.dispose] : undefined
+
   return {
     ...store,
 
     [Symbol.dispose]() {
       unsubscribe()
+      storeDispose?.()
     },
 
     nodeState(id: string): ReadonlySignal<ResourceState<KNode>> {

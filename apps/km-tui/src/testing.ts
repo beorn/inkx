@@ -35,10 +35,12 @@ import type { AutoLocator, FilterOptions } from "@silvery/test"
 import type { AgNode } from "@silvery/ag-react"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
+import { createStoreFromRepo, withReactive } from "@km/storage"
 import type { InitialBoardData, ColumnView } from "./types.ts"
 import { BoardCore } from "./views/index.ts"
 import { createInitialPaneUI } from "./ui-reducer.ts"
 import { RepoProvider } from "./repo-context.tsx"
+import { StoreProvider } from "./store-context.tsx"
 import { CursorStoreProvider } from "./cursor-context.tsx"
 import { createCursorStoreFromRepo } from "./cursor-store.ts"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "./reactive.ts"
@@ -225,8 +227,10 @@ export async function createBoardTest(
   nodeStore.syncCursor(cursorStore.getState())
   cursorStore.subscribe(() => nodeStore.syncCursor(cursorStore.getState()))
 
+  const reactiveStore = withReactive(createStoreFromRepo(repo))
   const repoElement = React.createElement(RepoProvider, { repo, children: boardCoreElement })
-  const cursorElement = React.createElement(CursorStoreProvider, { store: cursorStore, children: repoElement })
+  const storeElement = React.createElement(StoreProvider, { store: reactiveStore, children: repoElement })
+  const cursorElement = React.createElement(CursorStoreProvider, { store: cursorStore, children: storeElement })
   const app = render(React.createElement(ReactiveNodeStoreProvider, { value: nodeStore, children: cursorElement }))
 
   // Current data - updated after each input

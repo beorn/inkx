@@ -18,8 +18,9 @@ import { useChildren } from "../src/hooks/use-children.ts"
 import { createCardNode } from "./fixtures/board-fixtures.ts"
 import { item } from "./helpers/board-test.ts"
 import type { KNode } from "@km/core"
-import { createFakeRepo } from "@km/storage"
+import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
 import type { Repo } from "@km/storage"
+import { StoreProvider } from "../src/store-context.tsx"
 
 // Minimal mock repo for pure rendering tests - only needs getChildren for display name
 function createMockRepo(childrenMap?: Map<string, KNode[]>): Repo {
@@ -179,6 +180,13 @@ function ChildrenDisplay({ repo, parentId }: { repo: Parameters<typeof useChildr
   return React.createElement(Text, null, children.map((c) => c.id).join(","))
 }
 
+/** Wrap ChildrenDisplay with StoreProvider for signal-based reactivity */
+function renderChildrenDisplay(repo: Repo, parentId: string | null) {
+  const reactiveStore = withReactive(createStoreFromRepo(repo))
+  const inner = React.createElement(ChildrenDisplay, { repo, parentId })
+  return React.createElement(StoreProvider, { store: reactiveStore, children: inner })
+}
+
 const render = createRenderer()
 
 describe("useChildren", () => {
@@ -186,7 +194,7 @@ describe("useChildren", () => {
     const nodes = item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")))
     const repo = createFakeRepo({ nodes })
 
-    const app = render(React.createElement(ChildrenDisplay, { repo, parentId: "col1" }))
+    const app = render(renderChildrenDisplay(repo, "col1"))
 
     expect(app.text).toContain("1a,1b")
   })
@@ -195,7 +203,7 @@ describe("useChildren", () => {
     const nodes = item("board", item("col1", item("task1")))
     const repo = createFakeRepo({ nodes })
 
-    const app = render(React.createElement(ChildrenDisplay, { repo, parentId: "task1" }))
+    const app = render(renderChildrenDisplay(repo, "task1"))
 
     // Leaf node has no children — empty string from join
     expect(app.text).toBe("")
@@ -206,7 +214,7 @@ describe("useChildren", () => {
     const repo = createFakeRepo({ nodes })
 
     // "board" has parent_id: null, so getChildren(null) returns [board]
-    const app = render(React.createElement(ChildrenDisplay, { repo, parentId: null }))
+    const app = render(renderChildrenDisplay(repo, null))
 
     expect(app.text).toContain("board")
   })
@@ -215,15 +223,13 @@ describe("useChildren", () => {
     const nodes = item("board", item("col1", item("task1")))
     const repo = createFakeRepo({ nodes })
 
-    const el = React.createElement(ChildrenDisplay, {
-      repo,
-      parentId: "col1",
-    })
+    const el = renderChildrenDisplay(repo, "col1")
     const app = render(el)
 
     expect(app.text).toBe("task1")
 
-    // Mutate and trigger re-render via rerender
+    // Mutate repo directly — the store bridge detects this and fires onCommit,
+    // which updates the child ID signal and triggers React re-render.
     repo.addNode("col1", { type: "p", item: {}, content: "task2" })
     act(() => {
       app.rerender(el)
