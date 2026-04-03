@@ -253,10 +253,11 @@ describe("edit mode expansion cap", () => {
     // Card with 50 children. When cursor is on a descendant (shouldExpand=true),
     // children should be capped at MAX_EXPANDED_CHILDREN (20), not Infinity.
     const children = Array.from({ length: 50 }, (_, i) => item(`child-${i}`))
-    const { board } = testEnv(
-      () => item("board", item("col1", item("BigCard", ...children))),
-      { rows: 30, columns: 80, checkIncremental: false },
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("BigCard", ...children))), {
+      rows: 30,
+      columns: 80,
+      checkIncremental: false,
+    })
 
     // Navigate into child-0 (shouldExpand triggers at card level)
     board.command("block_nav_down") // BigCard → child-0

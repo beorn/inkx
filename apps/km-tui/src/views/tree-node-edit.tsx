@@ -17,7 +17,7 @@ import type { JobRunner } from "@km/core"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
-import { isHRContent, stripTaskMark } from "./tree-node-helpers.tsx"
+import { isHRContent, stripTaskMark, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { InlineText } from "../text/index.ts"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 
@@ -275,12 +275,28 @@ export function BodyBlockEditor({
     setUI({ inlineEditBlock: null })
   }, [setUI])
 
+  // Cap visible body children to prevent cards with hundreds of items from
+  // overflowing the card border. Show a window around the active edit block.
+  // Must be before the early return to satisfy React hooks rules.
+  const visibleBody = useMemo(() => {
+    if (bodyChildren.length === 0) return { children: bodyChildren, startIndex: 0 }
+    if (bodyChildren.length <= MAX_EXPANDED_CHILDREN) return { children: bodyChildren, startIndex: 0 }
+    // Center the window around the active block (editBlockIndex is 1-based, 0 = title)
+    const activeIdx = Math.max(0, editBlockIndex - 1) // convert to 0-based child index
+    const half = Math.floor(MAX_EXPANDED_CHILDREN / 2)
+    let start = Math.max(0, activeIdx - half)
+    const end = Math.min(bodyChildren.length, start + MAX_EXPANDED_CHILDREN)
+    start = Math.max(0, end - MAX_EXPANDED_CHILDREN) // adjust if near the end
+    return { children: bodyChildren.slice(start, end), startIndex: start }
+  }, [bodyChildren, editBlockIndex])
+
   if (bodyChildren.length === 0) return null
 
   return (
     <>
-      {bodyChildren.map((child, i) => {
-        const blockIndex = i + 1 // 0 is title
+      {visibleBody.children.map((child, i) => {
+        const realIndex = visibleBody.startIndex + i
+        const blockIndex = realIndex + 1 // 0 is title
         const isActiveBlock = editBlockIndex === blockIndex
         return (
           <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>

@@ -58,6 +58,14 @@ export const VARIANT_CONFIG = {
   multiline: { maxChildren: 8, showInfoColumns: false },
 } as const
 
+/**
+ * Maximum children shown when a card is expanded (edit mode, cursor on descendant).
+ * Prevents cards with many children (e.g., Inbox with 93+ items) from rendering
+ * hundreds of lines and overflowing past the card border into other cards.
+ * 20 lines gives enough context for editing while keeping the card bounded.
+ */
+export const MAX_EXPANDED_CHILDREN = 20
+
 // =============================================================================
 // Style Helpers
 // =============================================================================
