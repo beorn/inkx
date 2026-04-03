@@ -82,10 +82,12 @@ export function computeDelta(event: Event): RepoDelta {
   const deletedNodeIds: string[] = []
 
   switch (event.type) {
-    case "node_created":
-      nodeIds.push((event.data?.id as string) ?? event.target ?? "")
+    case "node_created": {
+      const createdId = (event.data?.id as string) ?? event.target
+      if (createdId) nodeIds.push(createdId)
       if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
       break
+    }
     case "node_updated":
       if (event.target) nodeIds.push(event.target)
       break

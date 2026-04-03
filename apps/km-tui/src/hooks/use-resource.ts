@@ -6,12 +6,9 @@ export type { ResourceState } from "@km/storage"
 
 /**
  * Wrap repo.getNode in ResourceState — makes null-vs-missing explicit.
- * When withReactive ships, this will use signals instead of getNode.
+ * For signal-based reactivity, use useNodeSignal from use-signal.ts instead.
  */
-export function useNodeResource(
-  repo: Pick<Repo, "getNode">,
-  id: string,
-): ResourceState<KNode> {
+export function useNodeResource(repo: Pick<Repo, "getNode">, id: string): ResourceState<KNode> {
   const node = repo.getNode(id)
   if (node === null) return ResourceState.unloaded()
   return ResourceState.loaded(node)
@@ -30,9 +27,6 @@ export function useChildIdsResource(
 }
 
 /** Convenience: extract loaded node value or undefined. */
-export function useLoadedNode(
-  repo: Pick<Repo, "getNode">,
-  id: string,
-): KNode | undefined {
+export function useLoadedNode(repo: Pick<Repo, "getNode">, id: string): KNode | undefined {
   return ResourceState.value(useNodeResource(repo, id))
 }

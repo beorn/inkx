@@ -115,15 +115,17 @@ interface Reactive {
 
 Signals are lazy (created on first access), updated in batch from RepoDelta on each commit. `ResourceState<T>` makes loading lifecycle explicit: `unloaded | loading | loaded | deleted | error`.
 
-### Composition Target
+### Composition Target (aspirational)
+
+Currently `createStoreFromRepo(repo)` + `withReactive(store)` are implemented. The full pipe composition is the target:
 
 ```ts
 const editor = pipe(
-  createSQLiteStore(db),   // authority — raw persistence
-  withHistory,              // record committed effects for undo
-  withTree,                 // normalize after every commit
-  withReactive,             // signals from delta (commit subscriber)
-  withSync(fsPeer),         // FS projection (commit subscriber)
+  createSQLiteStore(db),   // ✓ implemented — raw persistence
+  withHistory,              // exists in km-tree, not yet wired to Store
+  withTree,                 // exists in km-tree, not yet wired to Store
+  withReactive,             // ✓ implemented — signals from delta
+  withSync(fsPeer),         // exists, migration to commit subscriber in progress
 )
 ```
 

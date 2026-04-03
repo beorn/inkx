@@ -48,12 +48,12 @@ type WritableSignal<T> = { (): T; (value: T): void }
  * - Deleted nodes get ResourceState.deleted(), not removed from map
  *   (consumers may still hold a reference and need to see the transition)
  */
-export function withReactive<S extends Store & Observable>(store: S): S & Reactive {
+export function withReactive<S extends Store & Observable>(store: S): S & Reactive & Disposable {
   const nodeSignals = new Map<string, WritableSignal<ResourceState<KNode>>>()
   const childIdsSignals = new Map<string, WritableSignal<ResourceState<readonly string[]>>>()
 
   // Subscribe to all commits — update affected signals from delta
-  store.onCommit((result: CommitResult) => {
+  const unsubscribe = store.onCommit((result: CommitResult) => {
     const { delta } = result
 
     // Skip if no signals exist yet (nothing to update)
@@ -91,6 +91,10 @@ export function withReactive<S extends Store & Observable>(store: S): S & Reacti
 
   return {
     ...store,
+
+    [Symbol.dispose]() {
+      unsubscribe()
+    },
 
     nodeState(id: string): ReadonlySignal<ResourceState<KNode>> {
       let sig = nodeSignals.get(id)

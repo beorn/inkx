@@ -159,6 +159,9 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       applyToNodes(full)
       return full
     },
+    onApply() {
+      return () => {}
+    },
     setEventHub(hub) {
       fakeEventHub = hub
     },

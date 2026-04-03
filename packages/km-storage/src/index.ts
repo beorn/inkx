@@ -255,7 +255,6 @@ export type {
   CommitResult,
   RepoDelta,
   ChangeEnvelope,
-  ResourceState as ResourceStateT,
 } from "./commit-types.ts"
 
 // Reactive signals layer — per-node signals driven by RepoDelta

@@ -113,9 +113,9 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
       const commitId = meta?.commitId ?? ulid()
       const commitResult: CommitResult = {
         meta: {
+          ...meta,
           commitId,
           source: meta?.source ?? "local",
-          ...meta,
         },
         events: appliedEvents,
         delta,
@@ -146,6 +146,8 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
     },
 
     applyChanges(changes) {
+      if (changes.length === 0) return { meta: { commitId: ulid(), source: "remote" }, events: [], delta: { nodeIds: [], parentIds: [], deletedNodeIds: [] } }
+
       const allEvents: Event[] = []
       for (const envelope of changes) {
         for (const event of envelope.changes) {
