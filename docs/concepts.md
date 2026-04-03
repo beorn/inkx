@@ -39,11 +39,11 @@ Tree      operations, history, normalize      atomic ops, undo, invariants
 View      ViewNode tree, Selection, Board     what you see and interact with
 ```
 
-Each layer is a **domain interface** (type + pure functions):
+Each layer has a primary abstraction (domain interface, domain object, or external system):
 
 | Layer | Domain Interface | State | Key Operations |
 |---|---|---|---|
-| **FS** | (filesystem — not a domain interface) | `.md` files | read, write, watch |
+| **FS** | filesystem (external system) | `.md` files | read, write, watch |
 | **Repo** | `Repo` (domain object) | SQLite rows | `getNode`, `getChildren`, `addNode`, `moveNode` |
 | **Tree** | `KTree`, `TreeOp` | node tree | `KTree.nodes()`, `TreeOp.inverse()`, `withHistory()` |
 | **View** | `ViewTree`, `Selection`, `Board` | derived visual state | `ViewTree.nodes()`, `Selection.cursor()`, `Board.apply()` |
@@ -92,6 +92,8 @@ sync handler:     DAG + remote changes        → context → handler → op
 ```
 
 The prep handler snapshots the DAG (free, cached) and adds event-specific data. Different event types produce different context shapes, but all feed into the same dispatch → apply pipeline.
+
+The snapshot must be **atomic** — the same immutable snapshot is used for both `when` evaluation and command execution. No signals update between routing and execution.
 
 ---
 
@@ -198,7 +200,7 @@ These create backlinks with relationship type, enabling queries like:
 | Mode       | Trigger       | Description                                                     |
 | ---------- | ------------- | --------------------------------------------------------------- |
 | **Memory** | No `.km/`     | SQLite in RAM. Changes go directly to `.md` files. No history.  |
-| **Disk**   | `.km/` exists | SQLite on disk. Full tracking: event history, stable IDs, sync. |
+| **Disk**   | `.km/` exists | SQLite on disk. Full tracking: change history, stable IDs, sync. |
 
 Both modes are **read-write**. The difference is where state lives:
 
@@ -283,7 +285,7 @@ km's tree layer descends from SlateJS. Terminology mapping:
 | SlateJS | km | Notes |
 |---|---|---|
 | `editor.deleteBackward()` | **command** | User-facing intent, keybinding-mapped |
-| `Transforms.splitNodes(editor)` | `repo.splitNode()` | Implementation helpers commands call. No separate namespace — methods on Repo/TreeMutator |
+| `Transforms.splitNodes(editor)` | `repo.splitNode()` | Implementation helpers op handlers call. No separate namespace — methods on Repo/TreeMutator |
 | `Operation` | **op** (`TreeOp`) | Atomic, invertible, serializable |
 | `Editor.apply(op)` | `Machine.apply(state, op)` | State transition. Ours is pure (returns new state), SlateJS mutates |
 | `Editor.nodes()`, `Node.string()` | **selectors** | Read-only queries on the domain interface |

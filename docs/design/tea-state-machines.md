@@ -45,17 +45,17 @@ See [glossary.md](../glossary.md) for full definitions. Consistent naming across
 A domain interface groups everything for one domain concept:
 
 ```ts
-const Selection = {
+const Board = {
   // Constructor — creates initial state
-  create():                  Selection
+  create(rootId):            BoardState
 
   // Selectors — read-only derivations from state
-  cursor(sel):               ID | undefined
-  ids(sel):                  ReadonlySet<ID>
-  isEditing(sel):            boolean
+  visibleNodes(state):       ID[]
+  cursorColumn(state):       number
+  canZoomOut(state):         boolean
 
   // Apply — dispatches ops to their handlers
-  apply(state, op):          [Selection, Effect[]]
+  apply(state, op: BoardOp): [BoardState, Effect[]]
 }
 ```
 
