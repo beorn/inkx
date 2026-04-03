@@ -85,8 +85,10 @@ export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db.t
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 export { MemoryStore, createStoreFromRepo } from "./store.ts"
 export { createSQLiteStore } from "./sqlite-store.ts"
+export { createFsStore } from "./fs-store.ts"
 
 export type { NodeStore, Store, Observable, Replicated } from "./store.ts"
+export type { FsStore, FsStoreOptions } from "./fs-store.ts"
 
 // Unified repo loading
 export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo-loader.ts"
@@ -249,13 +251,7 @@ export type { Config } from "./config-object.ts"
 // Commit taxonomy — types for the reactive store layer
 export { ResourceState, computeDelta } from "./commit-types.ts"
 
-export type {
-  CommitMeta,
-  CommitSource,
-  CommitResult,
-  RepoDelta,
-  ChangeEnvelope,
-} from "./commit-types.ts"
+export type { CommitMeta, CommitSource, CommitResult, RepoDelta, ChangeEnvelope } from "./commit-types.ts"
 
 // Reactive signals layer — per-node signals driven by RepoDelta
 export { withReactive } from "./reactive.ts"
