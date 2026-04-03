@@ -287,9 +287,9 @@ Stored order: `[cursor, ...selected, anchor]`.
 import { Selection } from "@silvery/selection"
 
 const store = Selection.with(baseStore, space)
-store.selected    // signal
-store.selecting   // computed (gesture preview)
-store.selection   // computed (effective)
+store.selected    // signal (per scope)
+store.selecting   // computed (per scope — gesture preview)
+store.selection   // computed (per scope — effective)
 ```
 
 ```tsx
@@ -297,6 +297,18 @@ store.selection   // computed (effective)
   <BoardView />
 </store.SelectionProvider>
 ```
+
+### Global vs per-scope signals
+
+| Signal | Scope | Why |
+|---|---|---|
+| `pointer`, `modifiers`, `mouseState` | global (runtime) | one mouse, one keyboard |
+| `hoverTarget`, `hoverEffect`, `hoverPopup` | global | one pointer = one hover |
+| `selected`, `selecting`, `selection` | per provider | each pane has its own selection |
+| `space` | per provider | each pane has its own ordering |
+| `dropEffect`, `dropTarget` | global (during drag) | one drag at a time |
+
+`SelectionProvider` connects global inputs to per-scope selection: "when events happen in MY area, derive MY `selecting`." In split view, clicking the left pane only affects the left pane's selection.
 
 ### km extensions
 
