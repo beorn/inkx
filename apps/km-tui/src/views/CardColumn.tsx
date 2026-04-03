@@ -643,8 +643,7 @@ export const Column = React.memo(function Column({
   const count = column.cardNodes.length
   const wipLimit = column.wipLimit
   const isVirtual = column.isVirtual ?? false
-  const hiddenCards = (column.totalCardCount ?? column.cardNodes.length) - column.cardNodes.length
-  const hiddenCount = hiddenCards + (column.hiddenDescendantCount ?? 0)
+  const hiddenCount = (column.totalCardCount ?? column.cardNodes.length) - column.cardNodes.length
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
