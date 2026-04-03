@@ -10,6 +10,7 @@
   "dependencies": {
     "@km/core": "workspace:*",
     "@km/markdown": "workspace:*",
+    "alien-signals": "^3.1.2",
     "cosmiconfig": "^9.0.0",
     "yaml": "^2.8.2"
   },

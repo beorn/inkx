@@ -93,18 +93,71 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   // Initialize with provided data
   reset()
 
-  // Create a no-op emitter for FakeRepo
+  // Create a mutation-aware emitter for FakeRepo
   let fakeEventHub: EventHub | null = null
+
+  function applyToNodes(event: Event): void {
+    switch (event.type) {
+      case "node_created": {
+        const id = (event.data?.id as string) ?? event.target ?? ulid()
+        const parent_id = (event.data?.parent_id as string) ?? null
+        nodes.set(id, {
+          id,
+          type: ((event.data?.type as string) ?? "p") as KNode["type"],
+          item: (event.data?.item ?? {}) as KNode["item"],
+          fstype: (event.data?.fstype as KNode["fstype"]) ?? undefined,
+          content: (event.data?.content as string) ?? "",
+          title: (event.data?.title as string) ?? "",
+          parent_id,
+          parent_idx: (event.data?.parent_idx as number) ?? 0,
+          embed_source: null,
+          data: {},
+          created_at: event.ts,
+          updated_at: event.ts,
+          version: "fake",
+        })
+        break
+      }
+      case "node_updated": {
+        const node = nodes.get(event.target ?? "")
+        if (node && event.data) {
+          nodes.set(node.id, { ...node, ...event.data, id: node.id, updated_at: event.ts })
+        }
+        break
+      }
+      case "node_moved": {
+        const node = nodes.get(event.target ?? "")
+        if (node && event.data) {
+          nodes.set(node.id, {
+            ...node,
+            parent_id: (event.data.parent_id as string) ?? node.parent_id,
+            parent_idx: (event.data.parent_idx as number) ?? node.parent_idx,
+            updated_at: event.ts,
+          })
+        }
+        break
+      }
+      case "node_deleted": {
+        nodes.delete(event.target ?? "")
+        break
+      }
+    }
+    mutationVersion++
+    notifyListeners()
+  }
+
   const fakeEmitter: Emitter = {
     kmDir: "/fake/.km",
     eventsPath: "/fake/.km/events.jsonl",
     apply(event) {
-      // No-op apply for fake repo - just return a full event
-      return { id: ulid(), ts: Date.now(), ...event } as Event
+      const full = { id: ulid(), ts: Date.now(), ...event } as Event
+      applyToNodes(full)
+      return full
     },
     commit(event) {
-      // No-op commit for fake repo - just return a full event
-      return { id: ulid(), ts: Date.now(), ...event } as Event
+      const full = { id: ulid(), ts: Date.now(), ...event } as Event
+      applyToNodes(full)
+      return full
     },
     setEventHub(hub) {
       fakeEventHub = hub

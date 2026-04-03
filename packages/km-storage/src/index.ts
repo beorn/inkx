@@ -85,7 +85,7 @@ export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db.t
 // NOTE: DiskStore removed - use DataStore + Emitter pattern via createRepo()
 export { MemoryStore, createStoreFromRepo } from "./store.ts"
 
-export type { NodeStore, Store, Observable } from "./store.ts"
+export type { NodeStore, Store, Observable, Replicated } from "./store.ts"
 
 // Unified repo loading
 export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo-loader.ts"
@@ -256,6 +256,11 @@ export type {
   ChangeEnvelope,
   ResourceState as ResourceStateT,
 } from "./commit-types.ts"
+
+// Reactive signals layer — per-node signals driven by RepoDelta
+export { withReactive } from "./reactive.ts"
+
+export type { Reactive, ReadonlySignal } from "./reactive.ts"
 
 // Emitter domain object - owns event emission lifecycle
 // Replaces global singletons in emit.ts with explicit ownership
