@@ -25,7 +25,8 @@ The system stores only what it can't derive:
 
 type SelectionState = {
   scopes: Record<string, SelectionValue>  // scopeId → selection value
-  activeScope: string | null              // which scope has keyboard focus
+  // activeScope is NOT stored here — it's FocusManager.activeScopeId
+  // Selection and focus share the same scope identity
 }
 
 // === Selection values (plain data, no methods) ===
@@ -34,7 +35,7 @@ type SelectionValue =
   | { kind: "none" }
   | NodeSelection
   | TextSelection
-  // Future: | GridSelection | SceneSelection | NestedSelection
+  // Future: | GridSelection (genuinely different — rectangular ranges)
 
 type NodeSelection = {
   kind: "node"
@@ -57,6 +58,7 @@ type TextSelection = {
 - `roots()` — `removeNesting(members)`
 - `includes()` — membership check
 - `scopeId` — it's the key in `scopes` map, not duplicated in the value
+- `activeScope` — it's `FocusManager.activeScopeId` (focus and selection share scope identity)
 - `inputMode` — `sel.kind === "text" ? "text" : sel.kind === "none" ? "board" : "node"`
 - `cursorNodeId` — `sel.kind === "node" ? sel.lead : sel.focus.nodeId`
 - `insertionPoint` — derived from lead/focus
@@ -394,23 +396,31 @@ Transient sessions produce `SelectionAction`s on completion:
 
 ## SelectionProvider (React integration)
 
-Modeled after silvery's `FocusManager`:
+### Relationship to FocusManager
 
-| Concept | Focus (silvery) | Selection (this design) |
-|---|---|---|
-| State | `createFocusManager()` | `Selection.createState()` |
-| Provider | `FocusManagerContext` | `SelectionProvider` |
-| Scoping | `enterScope`/`activateScope` | `activateScope` action |
-| Memory | `scopeMemory` | `scopes: Record<string, SelectionValue>` |
-| Hook | `useFocusable()` | `useSelection()` / `useSelectionDispatch()` |
-| Subscribe | `subscribe`/`getSnapshot` | same pattern |
+Selection is built ON TOP of Focus, not instead of it:
+
+```
+silvery (any TUI app)           km (app with selection)
+─────────────────────           ─────────────────────────
+FocusManager                    SelectionProvider
+  "which widget gets keys"        "which data is selected"
+  activeElement: AgNode           anchor/focus/lead/toggled
+  activeScopeId  ←──────────→   active scope (shared)
+  tab order, spatial nav          j/k nav, shift-extend, cmd-click
+  scope stack (modals)            scope stack (panes, drill-in)
+```
+
+FocusManager stays in silvery — it's the low-level primitive for any TUI app (forms, dialogs don't need selection). SelectionProvider composes it: selection changes update focus, focus changes can update selection. They share scope identity.
+
+### API
 
 ```tsx
 <SelectionProvider scopeId="main-board" tree={tree}>
   <BoardView />
 </SelectionProvider>
 
-// Inside components
+// Inside components — everything through Selection.*
 const sel = useSelection()                              // SelectionValue
 const dispatch = useSelectionDispatch()                  // (SelectionAction) → void
 const members = Selection.members(sel, tree)             // derived
@@ -456,9 +466,21 @@ Selection is `{card}`, not `{card, child1, child2}`. Visual highlighting of desc
 
 ## Future Extensions
 
-- **GridSelection**: `{ kind: "grid"; anchor: CellPoint; focus: CellPoint; selectedRanges: CellRect[] }`
-- **SceneSelection**: `{ kind: "scene"; anchor: string; focus: string; lead: string; toggled: Set<ObjectId> }`
-- **NestedSelection**: `{ kind: "nested"; outer: SceneSelection; inner: HandleSelection | TextSelection }`
-- **Multiple cursors**: Array of TextSelections (CodeMirror 6)
-- **Collaborative cursors**: Remote selections with user/color metadata
-- **CanvasDropTarget**: `{ kind: "canvas"; parentId: string; position: { x, y } }`
+### What DOESN'T need new kinds
+
+**Canvas/scene selection** — NodeSelection already works. Canvas objects are nodes in a scene graph. The difference is `members()` behavior: no range walk (no linear order), just `{anchor} ∪ toggled`. Anchor/focus/lead/toggled all apply. z-order hit cycling is a gesture concern, not a selection type.
+
+**Nested/drill-in selection** — Entering a group (Figma double-click) is a scope change, not a selection kind. Push a new scope with `rootId = group`, selection within is still NodeSelection. TextSelection already handles the innermost case (text editing inside a selected node via `outer`).
+
+**Handle/sub-object selection** — Selecting a Bezier control point or resize handle is a scope change to the object's internals, with NodeSelection over handle IDs. Or extend `toggled` to reference sub-object paths.
+
+### What DOES need new kinds
+
+- **GridSelection**: genuinely different — rectangular ranges, row/column headers, active cell separate from selection range, formula bar editing. `{ kind: "grid"; selectedRanges: CellRect[]; activeCell: CellPoint; anchor: CellPoint }`
+- **Multiple cursors**: Array of TextSelections (CodeMirror 6 model)
+- **Collaborative cursors**: Remote selections with user/color metadata (presence overlay, not local selection)
+
+### Other extensions
+
+- **CanvasDropTarget**: `{ kind: "canvas"; parentId: string; position: { x, y } }` — 2D drop targets
+- **Scope stack**: push/pop for drill-in (entering groups, tables, text boxes) — builds on FocusManager's existing scope stack
