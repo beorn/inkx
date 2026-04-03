@@ -58,9 +58,7 @@ describe("withReactive", () => {
     const before = sig()
     expect(ResourceState.value(before)?.content).toBe("t1")
 
-    store.commit([
-      { type: "node_updated", actor: "test", target: t1Id, data: { content: "updated" } },
-    ])
+    store.commit([{ type: "node_updated", actor: "test", target: t1Id, data: { content: "updated" } }])
 
     const after = sig()
     expect(after.status).toBe("loaded")
@@ -93,9 +91,7 @@ describe("withReactive", () => {
     const sig = store.nodeState(t2Id)
     expect(sig().status).toBe("loaded")
 
-    store.commit([
-      { type: "node_deleted", actor: "test", target: t2Id, data: { parent_id: colId } },
-    ])
+    store.commit([{ type: "node_deleted", actor: "test", target: t2Id, data: { parent_id: colId } }])
 
     expect(sig().status).toBe("deleted")
   })
@@ -104,9 +100,7 @@ describe("withReactive", () => {
     const { store, t1Id } = setupReactiveStore()
 
     // Commit before any signal access
-    store.commit([
-      { type: "node_updated", actor: "test", target: t1Id, data: { content: "changed" } },
-    ])
+    store.commit([{ type: "node_updated", actor: "test", target: t1Id, data: { content: "changed" } }])
 
     // Now access signal — should get current state, not stale
     const sig = store.nodeState(t1Id)
@@ -136,9 +130,7 @@ describe("withReactive", () => {
 
     expect(values).toEqual(["t1"])
 
-    store.commit([
-      { type: "node_updated", actor: "test", target: t1Id, data: { content: "v2" } },
-    ])
+    store.commit([{ type: "node_updated", actor: "test", target: t1Id, data: { content: "v2" } }])
 
     expect(values).toEqual(["t1", "v2"])
     dispose()
@@ -207,7 +199,14 @@ describe("Replicated interface", () => {
         commitId: "remote-1",
         source: "remote",
         changes: [
-          { type: "node_updated", actor: "remote", target: t1Id, data: { content: "remote-v" }, id: "r1", ts: Date.now() },
+          {
+            type: "node_updated",
+            actor: "remote",
+            target: t1Id,
+            data: { content: "remote-v" },
+            id: "r1",
+            ts: Date.now(),
+          },
         ],
       },
     ])
