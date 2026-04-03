@@ -2,7 +2,7 @@
 
 Selection is reactive state derived from user input. Because silvery owns the UI (no DOM selection API to fight), the entire system is a signal DAG: input signals → derived gesture → effective selection → consumer reads.
 
-## The Type
+## Type
 
 ```ts
 type ID = string & { readonly __brand: "ID" }
@@ -14,163 +14,115 @@ type Selection = {
 }
 ```
 
-`nodes[0]` = cursor, `nodes.at(-1)` = anchor. Cursor and anchor are structural positions, not separate fields.
+`nodes[0]` = cursor (primary), `nodes.at(-1)` = anchor (shift-extend origin). Structural positions, not separate fields.
 
-`text` = optional caret/range within the cursor node. Never spans nodes.
+`text` = optional caret/range within the cursor node. One point = collapsed caret. Two = range. Never spans nodes.
 
-Mode derived: `!sel` = board, `!sel.text` = node, `sel.text` = text.
+Mode: `!sel` = board, `!sel.text` = node, `sel.text` = text.
 
-## The Signal DAG
+## Signal DAG
 
 Three input signals. One state signal. Everything else derived.
 
 ```
-  INPUT SIGNALS                    DERIVED                         CONSUMERS
-  ─────────────                    ───────                         ─────────
-  pointer (x, y, buttons)  ─┐
+  GLOBAL INPUTS                      PER-SCOPE DERIVED              CONSUMERS
+  ─────────────                      ──────────────────              ─────────
+  pointer (x, y, buttons) ──┐
   modifiers (shift/cmd/opt) ─┼──► selectingKind ──► selecting ─┐
-  keyboard events ───────────┘    (what gesture?)   (preview)  │
+  keyboard events ───────────┘    (gesture type)    (preview)  │
                                                                ├──► selection ──► cursor
                                         selected ──────────────┘    (effective)   ids
                                         (committed)                               isEditing
-                                                                                  inputMode
+
+  GLOBAL DERIVED
+  ──────────────
+  pointer ──► mouseState (idle/pressed/dragging)
+         ──► hoverTarget ──► hoverEffect, hoverPopup
+         ──► dropTarget, dropEffect (during drag)
 ```
 
 ```ts
-// Input signals (from silvery runtime)
+// Global inputs (silvery runtime)
 const pointer   = signal<{ x: number; y: number; buttons: number }>()
 const modifiers = signal<{ shift: boolean; cmd: boolean; opt: boolean }>()
 
-// State (the only mutable thing)
-const selected  = signal<Selection | undefined>()
+// Global derived
+const mouseState  = computed(() => !ptr.buttons ? "idle" : distance < threshold ? "pressed" : "dragging")
+const hoverTarget = computed(() => nodeAt(pointer.value))
+const dropEffect  = computed(() => mod.opt ? "copy" : mod.cmd ? "link" : "move")
 
-// Everything below is derived ────────────────────────────────────
+// Per-scope state (the only mutable thing per provider)
+const selected = signal<Selection | undefined>()
 
-// 1. What kind of gesture is active?
-const selectingKind = computed(() => {
-  const ptr = pointer.value, mod = modifiers.value
-  // See "Selecting kinds" table below
-})
-
-// 2. What would the selection look like if this gesture committed now?
-const selecting = computed(() => {
-  // Derived from selectingKind + pointer + selected + space
-  // Returns a Selection preview, or undefined if no gesture
-})
-
-// 3. What do consumers see?
-const selection = computed(() => selecting.value ?? selected.value)
-
-// 4. Convenience derivations
-const cursor    = computed(() => Selection.cursor(selection.value))
-const ids       = computed(() => Selection.ids(selection.value))
-const isEditing = computed(() => Selection.isEditing(selection.value))
-const inputMode = computed(() => Selection.inputMode(selection.value))
+// Per-scope derived
+const selectingKind = computed(() => /* from target + modifiers + mouseState */)
+const selecting     = computed(() => /* preview from kind + pointer + selected + space */)
+const selection     = computed(() => selecting.value ?? selected.value)
+const cursor        = computed(() => Selection.cursor(selection.value))
+const ids           = computed(() => Selection.ids(selection.value))
 ```
 
 ### Selecting kinds
 
-The gesture kind is derived from `(target, modifiers, pointerState)`:
+Derived from `(target, modifiers, mouseState)` — not stored:
 
-| Kind | Derived when | Produces | Commit |
+| Kind | Input | Produces | Commit |
 |---|---|---|---|
-| `node` | click node | `select(id)` | immediate |
+| `node` | click node / j / k | `select(id)` | immediate |
 | `node-toggle` | cmd+click | `toggle(id)` | immediate |
-| `node-extend` | shift+click / shift+j/k | `extend(id)` preview | shift release |
+| `node-extend` | shift+click / shift+j/k | extend preview | shift release |
 | `node-area` | drag empty | area replace preview | mouseup |
 | `node-area-toggle` | cmd+drag empty | area XOR preview | mouseup |
-| `text` | click text | `edit(offset)` | immediate |
+| `text` | click text / double-click / Enter | `edit(offset)` | immediate |
 | `text-extend` | shift+arrow / shift+click in text | text range preview | shift release |
 | `text-drag` | drag in text | text range preview | mouseup |
-| `drop` | drag node | drop indicator + effect | drop |
+| `drop` | drag node | drop indicator | drop |
 
-### Commit and cancel
+Immediate kinds write to `selected` directly. Preview kinds produce `selecting` — committed when inputs release, cancelled by Escape.
 
-Immediate kinds write to `selected` directly. Preview kinds produce a tentative `selecting` that commits when input releases:
+### Commit effect
 
 ```ts
 effect(() => {
-  if (prevSelecting && !selecting.value) {
-    selected.value = prevSelecting  // gesture ended → commit
-  }
+  if (prevSelecting && !selecting.value) selected.value = prevSelecting
 })
 ```
-
-Cancel (Escape) clears `selecting` without committing — `selected` unchanged.
-
-## Mouse State Machine
-
-Mouse state is also derived from pointer signals:
-
-```ts
-const mouseState = computed(() => {
-  const ptr = pointer.value
-  if (!ptr.buttons) return "idle"
-  if (distance(ptr, downPoint) < threshold) return "pressed"
-  return "dragging"
-})
-
-const hoverTarget  = computed(() => nodeAt(pointer.value))          // what's under the pointer
-const hoverEffect  = computed(() => deriveHoverEffect(hoverTarget, selection))  // highlight, tooltip, etc.
-const hoverPopup   = computed(() => shouldShowPopup(hoverTarget, hoverDelay))   // derived from hover duration
-```
-
-```
-idle ──mousedown──► pressed ──moved beyond threshold──► dragging ──mouseup──► commit
-  ▲                    │                                    │
-  │                    │ mouseup (no drag = click)          │ Escape
-  │                    ▼                                    ▼
-  └──────────────── immediate action                     cancel
-```
-
-All derived — `mouseState`, `hoverTarget`, `hoverEffect`, `hoverPopup` are computed signals.
-
-### What's under the pointer determines the gesture
-
-| Mousedown target | Click (no drag) | Drag |
-|---|---|---|
-| empty space | `clear` | `node-area` lasso |
-| unselected node | `node` select | `select(id)` → `drop` move |
-| selected node | `node` select | `drop` move all |
-| cursor node | no-op | `drop` move all |
-| text (editing) | `text` position caret | `text-drag` select |
-| text (other node) | `node` select + `text` edit | `text-drag` select |
-
-### Modifier keys transform the gesture
-
-| Modifier | Click becomes | Drag becomes |
-|---|---|---|
-| (none) | `node` / `text` | `node-area` / `drop` |
-| Cmd | `node-toggle` | `node-area-toggle` |
-| Shift | `node-extend` | `node-extend` (continuous preview) |
-| Opt | — | `drop` with effect=copy |
 
 ### Gesture morphing
 
-During drag, the kind recomputes continuously from pointer position:
+During drag, the kind recomputes continuously. Text-drag crossing a node boundary becomes node-area. Drag back reverts. All derived from pointer position — no manual mode switching.
 
-```
-text-drag ◄─────────────────────────────► node-area
-            pointer leaves cursor node      pointer returns to cursor node text
-```
+## Mouse
 
-No explicit mode switching. The computed signal re-derives the kind from current pointer position.
+### Target → gesture
 
-### Drop effect
+| Mousedown target | Click | Drag |
+|---|---|---|
+| empty space | `clear` | `node-area` |
+| unselected node | `node` select | select → `drop` |
+| selected node | `node` select | `drop` (all selected) |
+| cursor node | no-op | `drop` (all selected) |
+| text (editing) | `text` caret | `text-drag` |
+| text (other node) | select + `text` | select + `text-drag` |
 
-The `drop` kind has a sub-signal for the operation type:
+### Modifiers → gesture transform
 
-```ts
-const dropEffect = computed(() => {
-  if (modifiers.value.opt) return "copy"
-  if (modifiers.value.cmd) return "link"
-  return "move"  // app can override per source/target
-})
-```
+| Modifier | Click | Drag |
+|---|---|---|
+| (none) | `node` / `text` | `node-area` / `drop` |
+| Cmd | `node-toggle` | `node-area-toggle` |
+| Shift | `node-extend` | `node-extend` preview |
+| Opt | — | `drop` (copy) |
 
-Changes reactively mid-drag as user presses/releases modifier keys.
+### Double-click
 
-## Keyboard State Machine
+| Target | Action |
+|---|---|
+| Node | select + edit |
+| Text (editing) | select word |
+| Container | create child |
+
+## Keyboard
 
 ### Node mode
 
@@ -179,8 +131,7 @@ Changes reactively mid-drag as user presses/releases modifier keys.
 | j / k | `node` | immediate |
 | Shift+j/k | `node-extend` | shift release |
 | Enter | `text` | immediate |
-| Escape (multi) | — | immediate (`collapseToCursor`) |
-| Escape (single) | — | immediate (`clear`) |
+| Escape | steps up: multi → single → board |
 
 ### Text mode
 
@@ -188,52 +139,44 @@ Changes reactively mid-drag as user presses/releases modifier keys.
 |---|---|---|
 | Arrow keys | `text` | immediate |
 | Shift+Arrow | `text-extend` | shift release |
-| Escape | — | immediate (`stopEditing`) |
-
-### Double-click
-
-| Target | Action |
-|---|---|
-| Node | `select(id)` + `edit(0)` |
-| Text (editing) | select word (text engine) |
-| Column | create child (dispatch) |
+| Escape | `stopEditing` → node mode |
 
 ### Mode ladder
 
-Escape always steps up one level:
-
 ```
-text ──Escape──► node ──Escape──► board
-                  ▲                  │
-                  └── click/j/k ─────┘
+text ──Esc──► node ──Esc──► board ──click/j──► node ──Enter──► text
 ```
 
 ## SelectionSpace
 
-Order-dependent operations take a `space`:
+"In what order are nodes arranged?" — different views answer differently.
+
+When you shift-click D, the system needs to know which nodes are between A and D. A tree view says `[A, B, C, D]`. A filtered view hiding B says `[A, C, D]`. A canvas has no linear order at all.
+
+`SelectionSpace` is the view's answer. Each pane provides its own:
 
 ```ts
 interface SelectionSpace {
-  has(id: ID): boolean
-  compare(a: ID, b: ID): number
-  range(a: ID, b: ID): readonly ID[]
-  nearest(to: ID, among: Iterable<ID>): ID | null
+  has(id: ID): boolean                         // is this node visible?
+  compare(a: ID, b: ID): number               // ordering
+  range(a: ID, b: ID): readonly ID[]           // nodes between a and b (inclusive)
+  nearest(to: ID, among: Iterable<ID>): ID | null  // closest in view order
 }
 ```
 
-Tree panes supply visible order. Canvas panes supply z-order. `extend()` uses view order — shift-select never includes hidden nodes.
+Used by `extend()` (shift-click range walk), `toggle()`/`remove()` (cursor repair — pick nearest remaining), `areaSelect()` (cursor choice). Without it, selection would include hidden/collapsed nodes.
 
 ## Selection.*
 
-Helpers for common operations. `sel.nodes` / `sel.text` also readable directly.
+Helpers + mutations + plugin. `sel.nodes` / `sel.text` also readable directly.
 
 ```ts
 const Selection = {
   // Read
   cursor(sel):       ID | undefined
   anchor(sel):       ID | undefined
-  ids(sel):          ReadonlySet<ID>
-  includes(sel, id): boolean                // O(1)
+  ids(sel):          ReadonlySet<ID>        // O(1) includes
+  includes(sel, id): boolean
   isEditing(sel):    boolean
   inputMode(sel):    "board" | "node" | "text"
 
@@ -243,7 +186,7 @@ const Selection = {
   extend(sel, id, space):         Selection
   areaSelect(sel, hitIds, mode, space): Selection | undefined
   clear():                        undefined
-  add(sel, id):                   Selection           // convenience
+  add(sel, id):                   Selection              // convenience
   remove(sel, id, space):         Selection | undefined
   collapseToCursor(sel):          Selection
 
@@ -258,11 +201,7 @@ const Selection = {
 }
 ```
 
-### Invariants (enforced by mutators — violations throw)
-
-- `nodes.length > 0` (else `undefined`)
-- `text[0].nodeId === nodes[0]`
-- Node mutations clear `text`; text mutations don't touch `nodes`
+Invariants (violations throw): `nodes.length > 0`, `text[0].nodeId === nodes[0]`, node mutations clear `text`.
 
 ## Example
 
@@ -279,17 +218,13 @@ Stored order: `[cursor, ...selected, anchor]`.
 | 7 | Lasso B,C | `[B, C]` | — |
 | 8 | Cmd-lasso C,D,E | `[B, D, E]` | — |
 
-## Integration
+## Package
 
 ### `@silvery/selection`
 
 ```ts
 import { Selection } from "@silvery/selection"
-
 const store = Selection.with(baseStore, space)
-store.selected    // signal (per scope)
-store.selecting   // computed (per scope — gesture preview)
-store.selection   // computed (per scope — effective)
 ```
 
 ```tsx
@@ -298,31 +233,20 @@ store.selection   // computed (per scope — effective)
 </store.SelectionProvider>
 ```
 
-### Global vs per-scope signals
-
 | Signal | Scope | Why |
 |---|---|---|
-| `pointer`, `modifiers`, `mouseState` | global (runtime) | one mouse, one keyboard |
-| `hoverTarget`, `hoverEffect`, `hoverPopup` | global | one pointer = one hover |
-| `selected`, `selecting`, `selection` | per provider | each pane has its own selection |
-| `space` | per provider | each pane has its own ordering |
-| `dropEffect`, `dropTarget` | global (during drag) | one drag at a time |
-
-`SelectionProvider` connects global inputs to per-scope selection: "when events happen in MY area, derive MY `selecting`." In split view, clicking the left pane only affects the left pane's selection.
+| pointer, modifiers, mouseState | global | one mouse, one keyboard |
+| hoverTarget, hoverEffect, dropTarget, dropEffect | global | one pointer, one drag |
+| selected, selecting, selection, space | per provider | each pane owns its selection |
 
 ### km extensions
 
 ```ts
 import { Selection as Base } from "@silvery/selection"
-export const Selection = {
-  ...Base,
-  inputMode(sel),
-  expandWithDescendants(ids, tree),
-  insertionPoint(sel, space),
-}
+export const Selection = { ...Base, inputMode, expandWithDescendants, insertionPoint }
 ```
 
-**Commands**: `when` selectors on `Selection.*`. **Focus**: orthogonal. **Undo**: `selectedBefore`/`selectedAfter` on transactions.
+Commands: `when` selectors on `Selection.*`. Focus: orthogonal. Undo: `selectedBefore`/`selectedAfter` on transactions.
 
 ---
 
@@ -330,23 +254,16 @@ export const Selection = {
 
 ### What this replaces
 
-| Before | After |
-|---|---|
-| `cursorNodeId` | `Selection.cursor(sel)` |
-| `multiSelected` | `Selection.ids(sel)` |
-| `selectionAnchor` | `Selection.anchor(sel)` |
-| `inlineEditBlock` | `Selection.isEditing(sel)` |
-| `selectionLevel` | `Selection.inputMode(sel)` |
+`cursorNodeId` → `cursor(sel)`, `multiSelected` → `ids(sel)`, `selectionAnchor` → `anchor(sel)`, `inlineEditBlock` → `isEditing(sel)`, `selectionLevel` → `inputMode(sel)`.
 
 ### km domain types
 
 ```ts
-type InsertionPoint =
-  | { kind: "node"; parentId: ID; edge: "before" | "after"; referenceId: ID }
-  | { kind: "text"; nodeId: ID; offset: number }
-type DropTarget = { where: "before" | "after" | "into"; targetId: ID }
+type InsertionPoint = { kind: "node"; parentId: ID; edge: "before"|"after"; referenceId: ID }
+                    | { kind: "text"; nodeId: ID; offset: number }
+type DropTarget = { where: "before"|"after"|"into"; targetId: ID }
 ```
 
 ### Future
 
-Canvas (same type, no range walk), drill-in (scope push), GridSelection (rectangular ranges), multiple cursors, collaborative presence.
+Canvas (same type, no range), drill-in (scope push), GridSelection, multiple cursors, collaborative presence.
