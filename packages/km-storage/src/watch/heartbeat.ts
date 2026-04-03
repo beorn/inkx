@@ -4,7 +4,7 @@
  * Runs on a timer, skips when busy or not idle long enough,
  * and re-projects dirty paths (failed writes recovered by heartbeat).
  *
- * Extracted from SyncManager to separate scheduling concerns from
+ * Extracted from withSync to separate scheduling concerns from
  * watcher lifecycle and event wiring.
  */
 

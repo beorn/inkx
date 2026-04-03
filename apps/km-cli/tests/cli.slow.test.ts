@@ -788,8 +788,8 @@ describe("Bidirectional sync - km status writes to markdown file", () => {
 
   afterEach(() => cleanupTestDirs())
 
-  // TODO: CLI commands need to set up fsSync to write changes back to files
-  // This requires using Emitter.setFsSync() from the Emitter domain object
+  // TODO: CLI commands need withFsWriter to write changes back to files
+  // createRepo in disk mode auto-registers withFsWriter on the emitter
   test.skip("km status done should update markdown file with [x]", async () => {
     const task = await getTaskByContent("Open task")
     const doneResult = await km(["status", task.id, "done"])

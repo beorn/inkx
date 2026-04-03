@@ -1,5 +1,5 @@
 /**
- * Shared utilities for file watching (used by FsWriter and SyncManager)
+ * Shared utilities for file watching (used by withFsWriter and withSync)
  */
 
 import type { Database } from "bun:sqlite"

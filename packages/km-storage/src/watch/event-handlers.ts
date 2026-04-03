@@ -1,7 +1,7 @@
 /**
  * Event Handlers — Shared logic for applying DB events to filesystem
  *
- * Extracted from SyncManager and FsWriter to eliminate duplicate handler code.
+ * Shared event→filesystem projection logic used by withFsWriter and withSync.
  * Uses FsWriteTarget interface to abstract sync vs async write mechanisms.
  */
 
@@ -24,7 +24,7 @@ const log = createLogger("km:storage:watch:event-handlers")
 
 /**
  * FsWriteTarget — abstraction layer for filesystem write operations.
- * Allows both sync (FsWriter) and async (SyncManager) implementations.
+ * Allows both sync (withFsWriter) and async (withSync) implementations.
  */
 export interface FsWriteTarget {
   /** Write content to a file, creating parent directories as needed */

@@ -345,7 +345,7 @@ async function profile() {
   // Summary
   out("\n=== Timeline ===")
   out("After steps.run() completes, runBoard() does:")
-  out("  1. SyncManager setup (skip in profile)")
+  out("  1. withSync setup (skip in profile)")
   out("  2. createBoardApp() — store + state init")
   out("  3. boardApp.run() — React mount → first render")
   out("     This includes: useState initializer (deriveColumnsFromRepo),")

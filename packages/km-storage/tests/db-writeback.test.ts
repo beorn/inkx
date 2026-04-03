@@ -3,8 +3,8 @@
  *
  * Verifies that applyEventWithDb correctly updates the database for
  * task_status and date field changes WITHOUT directly writing to the
- * filesystem. Filesystem write-back is handled by the SyncManager/
- * FsWriter pipeline (tested in sync.test.ts and fs-writer.test.ts).
+ * filesystem. Filesystem write-back is handled by FS decorators
+ * (withFsWriter/withSync) that wrap emitter.apply().
  */
 
 import { describe, test, expect } from "vitest"
@@ -103,7 +103,7 @@ describe("applyEventWithDb: task_status updates DB without FS writes", () => {
     // Wait to ensure no async writes land
     await Bun.sleep(100)
 
-    // File should be UNCHANGED -- FS writes are handled by SyncManager, not db-events
+    // File should be UNCHANGED -- FS writes are handled by FS decorators, not db-events
     const content = readFileSync(filePath, "utf-8")
     expect(content).toBe(originalContent)
 

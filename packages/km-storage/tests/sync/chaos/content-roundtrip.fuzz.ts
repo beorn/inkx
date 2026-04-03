@@ -10,7 +10,7 @@
  *   3. Structural drift — parent/child relationships that break across re-parse
  *
  * Architecture:
- *   Uses real SyncManager with debounce=0 so mutations flow immediately to FS.
+ *   Uses real withSync with debounce=0 so mutations flow immediately to FS.
  *   After each mutation, calls syncFromFs() to re-parse and reconcile.
  *   Compares DB state snapshots before write and after re-parse.
  */
@@ -270,7 +270,7 @@ describe("Content Round-Trip Fuzz", () => {
         const newStatus = task.item?.task?.status === "done" ? "todo" : "done"
         const newMark = newStatus === "done" ? "[x]" : "[ ]"
 
-        // Mutate via repo (triggers FS write via SyncManager)
+        // Mutate via repo (triggers FS write via withSync decorator)
         repo.updateNode(task.id, { item: { task: { status: newStatus, marker: newMark } } })
 
         // Wait for write queue flush

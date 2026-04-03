@@ -181,8 +181,8 @@ function applyNodeUpdated(db: Database, event: Event): void {
   db.run(sql, values as SQLQueryBindings[])
 
   // NOTE: Filesystem write-back (task_status, dates) is handled by
-  // SyncManager.applyEventToFs / FsWriter.applyEventToFs, which regenerate
-  // the entire file from DB state via the WriteQueue pipeline.
+  // FS decorators (withFsWriter/withSync) that wrap emitter.apply(),
+  // which regenerate the entire file from DB state.
   // Direct FS writes here would race with that pipeline.
 }
 

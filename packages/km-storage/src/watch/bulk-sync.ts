@@ -1,8 +1,8 @@
 /**
  * BulkSync — standalone bulk sync operations (FS<->DB)
  *
- * Extracted from SyncManager so these operations can be used from
- * both TUI (via SyncManager) and CLI (directly, without watcher lifecycle).
+ * Standalone bulk sync operations, usable from both TUI (via withSync)
+ * and CLI (directly, without watcher lifecycle).
  *
  * BulkSync.fromFs: scan filesystem, reconcile into DB, evaluate rules.
  * BulkSync.toFs: write all DB file nodes to disk.
@@ -136,10 +136,24 @@ export const BulkSync = {
       files.push(entry)
       dirToFiles.set(dir, files)
 
+      // Ensure all ancestor directories up to (but not including) repoPath are reconciled.
+      // Without this, directories that don't directly contain .md files are never
+      // discovered (e.g., empty sibling folders, intermediate parent directories).
+      let ancestor = dirname(dir)
+      while (ancestor.length >= repoPath.length && !dirToFiles.has(ancestor)) {
+        dirToFiles.set(ancestor, [])
+        ancestor = dirname(ancestor)
+      }
+
       scanCount++
       if (scanCount % 25 === 0) {
         yield { current: scanCount, total: 0 }
       }
+    }
+
+    // Always reconcile the repo root to discover top-level directories/files
+    if (!dirToFiles.has(repoPath)) {
+      dirToFiles.set(repoPath, [])
     }
 
     const totalFiles = entries.length

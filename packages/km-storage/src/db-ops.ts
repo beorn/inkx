@@ -149,7 +149,7 @@ function moveNodeImpl(
 ): void {
   log.debug?.(`moveNode: ${nodeId} → parent=${newParentId} idx=${newParentIdx} emitter=${!!emitter}`)
   if (emitter) {
-    // Snapshot old parent before emission so downstream handlers (FsWriter, SyncManager)
+    // Snapshot old parent before emission so downstream FS projection decorators
     // can regenerate the source file after a cross-file move
     const row = db.query("SELECT parent_id FROM nodes WHERE id = ?").get(nodeId) as { parent_id: string | null } | null
     const oldParentId = row?.parent_id ?? null
@@ -239,7 +239,7 @@ function updateNodeImpl(db: Database, nodeId: string, updates: Record<string, un
 function deleteNodeImpl(db: Database, nodeId: string, emitter?: Emitter): void {
   log.debug?.(`deleteNode: ${nodeId} emitter=${!!emitter}`)
   if (emitter) {
-    // Snapshot metadata before deletion so downstream (e.g. SyncManager) can act
+    // Snapshot metadata before deletion so downstream FS projection decorators can act
     const node = db.query("SELECT fs_path, type, parent_id, item FROM nodes WHERE id = ?").get(nodeId) as {
       fs_path: string | null
       type: string

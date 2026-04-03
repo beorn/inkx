@@ -4,7 +4,7 @@
  * Handles FS→DB reconciliation: scanning the filesystem for changes,
  * filtering out owned writes, and recording observations after successful ops.
  *
- * Extracted from SyncManager to separate reconciliation concerns from
+ * Extracted from withSync to separate reconciliation concerns from
  * watcher lifecycle, heartbeat scheduling, and event wiring.
  */
 

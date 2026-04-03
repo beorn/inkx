@@ -317,7 +317,7 @@ describe("Bidirectional Sync E2E", () => {
  *   repo.updateNode() → DB updated → useSyncExternalStore notified → file written
  *
  * Reverse (filesystem edit):
- *   file changed → SyncManager reconciles → DB updated → state-change event fired
+ *   file changed → withSync reconciles → DB updated → state-change event fired
  *
  * These tests use repo-level APIs (not raw DataStore) to match production behavior.
  */

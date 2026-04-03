@@ -7,7 +7,7 @@
  * - Body content preservation during folder mutations
  * - Concurrent index file edits + folder updates
  *
- * Uses real SyncManager with debounce=0, real filesystem (withTestEnv).
+ * Uses real withSync with debounce=0, real filesystem (withTestEnv).
  */
 
 import { describe, test as _test, expect } from "vitest"

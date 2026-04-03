@@ -8,7 +8,7 @@
  *
  * NOTE: This test cannot use withTestEnv because worker thread messages trigger
  * handlers outside the AsyncLocalStorage context. Instead, we use file-based
- * database storage so the SyncManager's internal runWithKmDir calls can access
+ * database storage so the withSync decorator's internal calls can access
  * the same database during async operations.
  */
 

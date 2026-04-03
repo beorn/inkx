@@ -509,7 +509,7 @@ describe("Repo mutations trigger FS projection", () => {
     return { repo, events }
   }
 
-  test("updateNode notifies FsSync with node_updated event", () => {
+  test("updateNode triggers FS projection with node_updated event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
     const id = repo.addNode(null, { type: "p", item: {}, content: "original" })
@@ -525,7 +525,7 @@ describe("Repo mutations trigger FS projection", () => {
     repo.close()
   })
 
-  test("moveNode notifies FsSync with node_moved event", () => {
+  test("moveNode triggers FS projection with node_moved event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
     const parentA = repo.addNode(null, { type: "h", item: {}, content: "A" })
@@ -543,7 +543,7 @@ describe("Repo mutations trigger FS projection", () => {
     repo.close()
   })
 
-  test("deleteNode notifies FsSync with node_deleted event", () => {
+  test("deleteNode triggers FS projection with node_deleted event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
     const id = repo.addNode(null, { type: "p", item: {}, content: "to-delete" })
@@ -559,7 +559,7 @@ describe("Repo mutations trigger FS projection", () => {
     repo.close()
   })
 
-  test("addNode notifies FsSync with node_created event", () => {
+  test("addNode triggers FS projection with node_created event", () => {
     const { repo, events } = createRepoWithFsSpy()
 
     events.length = 0

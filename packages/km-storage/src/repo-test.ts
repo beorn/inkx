@@ -78,8 +78,8 @@ export interface TestEnvRepoResult {
  *   skipPersist: true,
  * })
  *
- * // Use emitter for sync wiring
- * emitter.setFsSync(syncManager)
+ * // Use emitter for sync wiring — withSync wraps emitter.apply()
+ * // const syncManager = createTestSync(db, repoDir, { emitter })
  *
  * // Use data for mutations (events flow to emitter)
  * data.addNode(null, { type: "p", item: { list: "-", task: { marker: "[ ]", status: "todo" } }, content: "Test" })
