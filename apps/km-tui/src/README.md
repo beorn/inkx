@@ -113,15 +113,15 @@ Key principle: **AST before rendering** — parse to structured nodes, then rend
 The TUI automatically syncs with the filesystem:
 
 ```
-TUI edits → emit events → SyncManager → write to .md files
-External .md edits → SyncManager → emit events → TUI refreshes
+TUI edits → repo.apply(event) → withSync saves to .md files
+External .md edits → withSync reconciles → repo.apply → TUI refreshes
 ```
 
 **How it works:**
 
-1. `tui.ts` creates a `SyncManager` with file watching enabled
-2. `setFsSync(syncManager)` wires TUI changes → filesystem writes
-3. `syncManager.start()` watches for external filesystem changes
+1. `tui.ts` wraps the repo with `withSync(config)(repo)` — adds file watching + FS sync
+2. `repo.apply(event)` automatically saves changes to disk (withSync wraps apply)
+3. `repo.start()` watches for external filesystem changes
 4. On external change: reconcile → apply ops to DB → `repo.touch()`
 5. `repo.touch()` busts cache + bumps version → `useColumns` re-derives via `useSyncExternalStore`
 

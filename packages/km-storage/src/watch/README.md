@@ -82,7 +82,7 @@ FS-origin reconciliation uses `commit()` only. This structurally prevents echo l
 the filesystem save never runs for watcher-detected changes.
 
 With the `withSync(config)(repo)` decorator, the apply/save split is handled
-by wrapping `repo.apply()` — no manual `setFsSync()` wiring needed.
+by wrapping `repo.apply()` — no manual wiring needed.
 
 ### Ownership: Two-Tier Detection
 

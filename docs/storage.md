@@ -666,7 +666,7 @@ The old functions still work but delegate to `loadRepo()`:
 | Cold start | `loadRepo()`   | CLI startup, initial load      |
 | Hot path   | `applyEvent()` | Real-time file watcher changes |
 
-The `SyncManager` handles the hot path via file watching → `reconcileDirectory()` → `applyEvent()`.
+The `withSync()` decorator handles the hot path via file watching → `reconcileDirectory()` → `repo.apply()`.
 
 ---
 
