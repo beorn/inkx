@@ -41,6 +41,8 @@ Three input signals. One state signal. Everything else derived.
          ──► dropTarget, dropEffect (during drag)
 ```
 
+The provider receives the visible nodes in order. This is how the gesture layer knows the view's ordering — no separate `SelectionSpace` abstraction.
+
 ```ts
 // Global inputs (silvery runtime)
 const pointer   = signal<{ x: number; y: number; buttons: number }>()
@@ -51,26 +53,24 @@ const mouseState  = computed(() => !ptr.buttons ? "idle" : distance < threshold 
 const hoverTarget = computed(() => nodeAt(pointer.value))
 const dropEffect  = computed(() => mod.opt ? "copy" : mod.cmd ? "link" : "move")
 
-// Per-scope state (the only mutable thing per provider)
+// Per-scope state
 const selected = signal<Selection | undefined>()
 
 // Per-scope derived
 const selectingKind = computed(() => /* from target + modifiers + mouseState */)
-const selecting     = computed(() => /* preview from kind + pointer + selected + space */)
+const selecting     = computed(() => /* preview from kind + pointer + selected + nodes */)
 const selection     = computed(() => selecting.value ?? selected.value)
-const cursor        = computed(() => Selection.cursor(selection.value))
-const ids           = computed(() => Selection.ids(selection.value))
 ```
 
 ### Selecting kinds
 
-Derived from `(target, modifiers, mouseState)` — not stored:
+Derived from `(target, modifiers, mouseState)`:
 
 | Kind | Input | Produces | Commit |
 |---|---|---|---|
 | `node` | click node / j / k | `select(id)` | immediate |
 | `node-toggle` | cmd+click | `toggle(id)` | immediate |
-| `node-extend` | shift+click / shift+j/k | extend preview | shift release |
+| `node-extend` | shift+click / shift+j/k | range preview | shift release |
 | `node-area` | drag empty | area replace preview | mouseup |
 | `node-area-toggle` | cmd+drag empty | area XOR preview | mouseup |
 | `text` | click text / double-click / Enter | `edit(offset)` | immediate |
@@ -80,7 +80,7 @@ Derived from `(target, modifiers, mouseState)` — not stored:
 
 Immediate kinds write to `selected` directly. Preview kinds produce `selecting` — committed when inputs release, cancelled by Escape.
 
-### Commit effect
+### Commit
 
 ```ts
 effect(() => {
@@ -90,7 +90,7 @@ effect(() => {
 
 ### Gesture morphing
 
-During drag, the kind recomputes continuously. Text-drag crossing a node boundary becomes node-area. Drag back reverts. All derived from pointer position — no manual mode switching.
+During drag, the kind recomputes continuously. Text-drag crossing a node boundary becomes node-area. Drag back reverts. Derived from pointer position.
 
 ## Mouse
 
@@ -105,7 +105,7 @@ During drag, the kind recomputes continuously. Text-drag crossing a node boundar
 | text (editing) | `text` caret | `text-drag` |
 | text (other node) | select + `text` | select + `text-drag` |
 
-### Modifiers → gesture transform
+### Modifiers
 
 | Modifier | Click | Drag |
 |---|---|---|
@@ -114,80 +114,51 @@ During drag, the kind recomputes continuously. Text-drag crossing a node boundar
 | Shift | `node-extend` | `node-extend` preview |
 | Opt | — | `drop` (copy) |
 
+### Drop effect
+
+```ts
+const dropEffect = computed(() => mod.opt ? "copy" : mod.cmd ? "link" : "move")
+```
+
 ### Double-click
 
-| Target | Action |
-|---|---|
-| Node | select + edit |
-| Text (editing) | select word |
-| Container | create child |
+Node → select + edit. Text (editing) → select word. Container → create child.
 
 ## Keyboard
 
-### Node mode
+| Mode | Key | Kind | Commit |
+|---|---|---|---|
+| node | j / k | `node` | immediate |
+| node | Shift+j/k | `node-extend` | shift release |
+| node | Enter | `text` | immediate |
+| node | Escape | steps up: multi → single → board |
+| text | Arrow | `text` | immediate |
+| text | Shift+Arrow | `text-extend` | shift release |
+| text | Escape | → node mode |
 
-| Key | Kind | Commit |
-|---|---|---|
-| j / k | `node` | immediate |
-| Shift+j/k | `node-extend` | shift release |
-| Enter | `text` | immediate |
-| Escape | steps up: multi → single → board |
-
-### Text mode
-
-| Key | Kind | Commit |
-|---|---|---|
-| Arrow keys | `text` | immediate |
-| Shift+Arrow | `text-extend` | shift release |
-| Escape | `stopEditing` → node mode |
-
-### Mode ladder
-
-```
-text ──Esc──► node ──Esc──► board ──click/j──► node ──Enter──► text
-```
-
-## SelectionSpace
-
-"In what order are nodes arranged?" — different views answer differently.
-
-When you shift-click D, the system needs to know which nodes are between A and D. A tree view says `[A, B, C, D]`. A filtered view hiding B says `[A, C, D]`. A canvas has no linear order at all.
-
-`SelectionSpace` is the view's answer. Each pane provides its own:
-
-```ts
-interface SelectionSpace {
-  has(id: ID): boolean                         // is this node visible?
-  compare(a: ID, b: ID): number               // ordering
-  range(a: ID, b: ID): readonly ID[]           // nodes between a and b (inclusive)
-  nearest(to: ID, among: Iterable<ID>): ID | null  // closest in view order
-}
-```
-
-Used by `extend()` (shift-click range walk), `toggle()`/`remove()` (cursor repair — pick nearest remaining), `areaSelect()` (cursor choice). Without it, selection would include hidden/collapsed nodes.
+Mode ladder: `text ──Esc──► node ──Esc──► board ──click/j──► node ──Enter──► text`
 
 ## Selection.*
 
-Helpers + mutations + plugin. `sel.nodes` / `sel.text` also readable directly.
+Pure functions on `Selection` values. No ordering dependency — Selection doesn't know about view order. Consumers can also read `sel.nodes` / `sel.text` directly.
 
 ```ts
 const Selection = {
   // Read
   cursor(sel):       ID | undefined
   anchor(sel):       ID | undefined
-  ids(sel):          ReadonlySet<ID>        // O(1) includes
-  includes(sel, id): boolean
+  ids(sel):          ReadonlySet<ID>
+  includes(sel, id): boolean                      // O(1)
   isEditing(sel):    boolean
   inputMode(sel):    "board" | "node" | "text"
 
   // Node mutations (clear text, throw on invariant violation)
   select(id):                     Selection
-  toggle(sel, id, space):         Selection | undefined
-  extend(sel, id, space):         Selection
-  areaSelect(sel, hitIds, mode, space): Selection | undefined
+  toggle(sel, id):                Selection | undefined
+  areaSelect(sel, hitIds, mode):  Selection | undefined
   clear():                        undefined
-  add(sel, id):                   Selection              // convenience
-  remove(sel, id, space):         Selection | undefined
+  add(sel, id):                   Selection        // convenience
+  remove(sel, id):                Selection | undefined
   collapseToCursor(sel):          Selection
 
   // Text mutations (don't touch nodes)
@@ -197,11 +168,44 @@ const Selection = {
   extendTextRange(sel, offset):   Selection
 
   // Plugin
-  with(store, space):             SelectionStore
+  with(store, nodes):             SelectionStore
 }
 ```
 
+**No `space` parameter.** `Selection.*` is pure array/set operations.
+
+- `extend` is NOT in `Selection.*` — the gesture layer computes the range from the view's node order, then calls `areaSelect(sel, rangeIds, "replace")`
+- Cursor repair on `toggle`/`remove` uses simple fallback (first remaining node). The gesture layer can upgrade to "nearest in view" if needed.
+
 Invariants (violations throw): `nodes.length > 0`, `text[0].nodeId === nodes[0]`, node mutations clear `text`.
+
+## Provider
+
+The provider receives the visible nodes in order. This is how gestures derive range walks and cursor repair — the view already knows the order.
+
+```tsx
+<SelectionProvider nodes={visibleNodeIds}>
+  <BoardView />
+</SelectionProvider>
+```
+
+The `nodes` prop is how the provider knows the view's ordering. No separate `SelectionSpace` interface. When the view changes (collapse, filter, sort), `nodes` updates → gesture derivations recompute.
+
+| Signal | Scope | Why |
+|---|---|---|
+| pointer, modifiers, mouseState | global | one mouse, one keyboard |
+| hoverTarget, hoverEffect, dropTarget, dropEffect | global | one pointer, one drag |
+| selected, selecting, selection | per provider | each pane owns its selection |
+| nodes (visible order) | per provider | each pane has its own ordering |
+
+### km extensions
+
+```ts
+import { Selection as Base } from "@silvery/selection"
+export const Selection = { ...Base, inputMode, expandWithDescendants, insertionPoint }
+```
+
+Commands: `when` selectors on `Selection.*`. Focus: orthogonal. Undo: `selectedBefore`/`selectedAfter` on transactions.
 
 ## Example
 
@@ -217,36 +221,6 @@ Stored order: `[cursor, ...selected, anchor]`.
 | 6 | Escape | `[F, D, C, A]` | — |
 | 7 | Lasso B,C | `[B, C]` | — |
 | 8 | Cmd-lasso C,D,E | `[B, D, E]` | — |
-
-## Package
-
-### `@silvery/selection`
-
-```ts
-import { Selection } from "@silvery/selection"
-const store = Selection.with(baseStore, space)
-```
-
-```tsx
-<store.SelectionProvider scopeName="board">
-  <BoardView />
-</store.SelectionProvider>
-```
-
-| Signal | Scope | Why |
-|---|---|---|
-| pointer, modifiers, mouseState | global | one mouse, one keyboard |
-| hoverTarget, hoverEffect, dropTarget, dropEffect | global | one pointer, one drag |
-| selected, selecting, selection, space | per provider | each pane owns its selection |
-
-### km extensions
-
-```ts
-import { Selection as Base } from "@silvery/selection"
-export const Selection = { ...Base, inputMode, expandWithDescendants, insertionPoint }
-```
-
-Commands: `when` selectors on `Selection.*`. Focus: orthogonal. Undo: `selectedBefore`/`selectedAfter` on transactions.
 
 ---
 
