@@ -49,8 +49,6 @@ import {
   colorize,
   GTD_BOARD_COLORS,
   FOLDED_MARKER,
-  UNFOLDED_MARKER,
-  EMPTY_MARKER,
 } from "../src/text/index.ts"
 import {
   wrapText,
@@ -597,11 +595,11 @@ function Layer1FoldMarkers(): React.ReactElement {
       </Text>
       <Text>
         {" "}
-        <Text color={UNFOLDED_MARKER.color}>{UNFOLDED_MARKER.char}</Text> UNFOLDED_MARKER (• U+2022) - medium bullet
+        <Text color={"white"}>{"•"}</Text> UNFOLDED_MARKER (• U+2022) - medium bullet
       </Text>
       <Text>
         {" "}
-        <Text color={EMPTY_MARKER.color}>{EMPTY_MARKER.char}</Text> EMPTY_MARKER (· U+00B7) - tiny dot
+        <Text color={"gray"}>{"·"}</Text> EMPTY_MARKER (· U+00B7) - tiny dot
       </Text>
       <Text> </Text>
 
@@ -633,15 +631,15 @@ function Layer1FoldMarkers(): React.ReactElement {
       </Text>
       <Text>
         {" "}
-        <Text>{UNFOLDED_MARKER.char}</Text> <Text color="yellow">◧</Text> Unfolded WIP task
+        <Text>{"•"}</Text> <Text color="yellow">◧</Text> Unfolded WIP task
       </Text>
       <Text>
         {" "}
-        <Text color="gray">{EMPTY_MARKER.char}</Text> <Text color="green">▣</Text> Leaf done task
+        <Text color="gray">{"·"}</Text> <Text color="green">▣</Text> Leaf done task
       </Text>
       <Text>
         {" "}
-        <Text color="gray">{EMPTY_MARKER.char}</Text> Regular note (no status)
+        <Text color="gray">{"·"}</Text> Regular note (no status)
       </Text>
     </>
   )
