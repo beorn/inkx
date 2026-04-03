@@ -5,6 +5,14 @@ argument-hint: [deep|opinion|debate] <prompt>
 
 # LLM - Multi-Model Queries
 
+## Model Freshness
+
+Models evolve fast. Re-check available models every 2 weeks:
+- Run: `bun llm --list` to see current models
+- Check leaderboards: whatllm.org, vellum.ai/llm-leaderboard, artificialanalysis.ai
+- Update types.ts with new models, remove deprecated ones
+- Last updated: 2026-04-03
+
 **Keywords**: gpt, chatgpt, openai, gemini, grok, deep research, thinkdeep, second opinion, consensus, research, ask, quick question, fast answer, LLM query
 
 **Claude: Use this when the user wants another model's perspective or deep research (OpenAI's research mode, NOT DeepSeek).**
