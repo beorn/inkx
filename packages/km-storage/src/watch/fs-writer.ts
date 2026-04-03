@@ -1,7 +1,7 @@
 /**
  * withFsWriter — lightweight decorator for CLI / non-TUI contexts
  *
- * Synchronously writes DB changes back to .md files by wrapping emitter.apply().
+ * Synchronously writes DB changes back to .md files via emitter.onApply().
  * Unlike withSync(), has no watcher, no WriteQueue, no debouncing.
  * Designed for one-shot CLI commands that do a mutation and exit.
  *
@@ -50,7 +50,7 @@ const syncFsTarget: FsWriteTarget = {
 /**
  * Decorator that adds synchronous filesystem write-back to a repo.
  *
- * Wraps emitter.apply() to project events to .md files after DB commit.
+ * Subscribes to emitter.onApply() to project events to .md files after DB commit.
  * For CLI usage where mutations need immediate FS write-back.
  *
  * Returns the repo (unchanged) plus an `applyEventToFs` function for
