@@ -407,17 +407,69 @@ type AreaSelectSession = {
 
 **Resolution** (Decker pattern): enumerate candidates → proximity to pointer → filter cycles → nearest within threshold.
 
+## Gesture Overlays
+
+During gestures (area-select, drag), a **transient overlay** modifies how selection appears without committing to the store. The effective selection during a gesture is derived from `base + overlay`. On gesture end, the result commits to the store.
+
+### Area select / lasso
+
+```ts
+type AreaSelectSession = {
+  base: SelectionValue              // snapshot at gesture start (frozen)
+  hitIds: ReadonlySet<ID>           // nodes inside lasso (updated on pointer move)
+  mode: "replace" | "xor"           // plain drag vs cmd+drag
+}
+```
+
+**Effective selection during lasso** (what renders):
+```ts
+effective = mode === "replace"
+  ? { ...base, ids: hitIds }
+  : { ...base, ids: symmetricDifference(base.ids, hitIds) }
+```
+
+**On gesture end**: `effective` commits → `Selection.areaSelect(base, hitIds, mode, space)`.
+
+**On gesture cancel** (Escape): restore `base`, discard overlay.
+
+Components render the *effective* selection during the gesture, not the committed store value. This means `Selection.includes(sel, id)` needs to account for active gesture overlays — either by passing the overlay to the query, or by having the provider merge them before exposing to consumers.
+
+### Drag / drop
+
+```ts
+type DragSession = {
+  dragging: ReadonlySet<ID>
+  dropTarget: NodeDropTarget | null
+  dropEffect: "move" | "copy" | "link"
+}
+```
+
+Drag doesn't overlay selection — dragged nodes stay selected. The overlay is visual only (drop indicator). On drop, a document mutation happens (move/copy), and selection may update via `selectionAfter`.
+
 ### Architecture
 
 ```
-TEA Store (persistent)          Gesture State (transient)
+TEA Store (committed)           Gesture Overlay (transient)
 ─────────────────────           ─────────────────────────
-SelectionState                  DragSession
-  scopes: { id → SelectionValue } dragging, dropTarget, dropEffect
+SelectionState                  AreaSelectSession?
+  Map<scopeName, SelectionValue>  base, hitIds, mode
+                                  → effective selection (derived)
 
-                                AreaSelectSession
-                                  base, hitIds, mode
+                                DragSession?
+                                  dragging, dropTarget, dropEffect
+                                  → drop indicator (visual only)
 ```
+
+**The provider merges committed + overlay** before exposing to consumers:
+```ts
+function useSelection(): SelectionValue {
+  const committed = store.get(scopeName)
+  const overlay = areaSelectSession
+  return overlay ? deriveEffective(overlay) : committed
+}
+```
+
+Consumers don't know whether they're seeing committed or overlay state — they just call `Selection.cursor(sel)`, `Selection.includes(sel, id)`. The gesture layer is invisible to them.
 
 ## SelectionProvider (React)
 
