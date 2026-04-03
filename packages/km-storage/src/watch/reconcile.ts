@@ -151,18 +151,6 @@ function reconcileFromEntries(db: Database, dirPath: string, repoRoot: string, f
           }
         }
       }
-    } else if (existingByPath?.fs_ino && existingByPath.fs_ino !== entry.ino) {
-      // Atomic write: same path but different inode
-      // This happens when editors save via temp file + rename (Vim, VSCode, etc.)
-      // Treat as an update but also update the inode
-      log.debug?.(`atomic write detected path=${entry.path} oldIno=${existingByPath.fs_ino} newIno=${entry.ino}`)
-      ops.push({
-        type: "update",
-        nodeId: existingByPath.id,
-        path: entry.path, // Keep absolute for FS operations
-        ino: entry.ino, // New inode to track
-        mtime: entry.mtime,
-      })
     } else if (!existingByPath) {
       // New file/folder
       ops.push({

@@ -236,8 +236,8 @@ describe("WriteQueue Retry Logic", () => {
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
     const { flushed } = await flushAndCapture(queue)
 
-    // Atomic write: temp file write + rename into place
-    expect(history).toEqual(["write:/test.md.km-tmp", "rename:/test.md.km-tmp->/test.md"])
+    // Direct write to target path
+    expect(history).toEqual(["write:/test.md"])
     expect(flushed.results[0]?.attempts).toBe(1)
     expect(flushed.results[0]?.success).toBe(true)
   })
@@ -251,8 +251,8 @@ describe("WriteQueue Retry Logic", () => {
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
     const { flushed } = await flushAndCapture(queue)
 
-    // Atomic write: after 2 retries, temp write + rename succeed
-    expect(history).toEqual(["write:/test.md.km-tmp", "rename:/test.md.km-tmp->/test.md"])
+    // Direct write succeeds after 2 retries
+    expect(history).toEqual(["write:/test.md"])
     expect(flushed.results[0]?.attempts).toBe(3)
     expect(flushed.results[0]?.success).toBe(true)
     expect(flushed.retries).toBe(2)
@@ -341,11 +341,11 @@ describe("WriteQueue Retry Logic", () => {
     const mockFs = createMockFs({ history })
     mockFs.writeFileSync = (path: string) => {
       callCount++
-      // Fail first file's temp write twice (transient), succeed second file, fail third permanently
-      if (path === "/a.md.km-tmp" && callCount <= 2) {
+      // Fail first file's write twice (transient), succeed second file, fail third permanently
+      if (path === "/a.md" && callCount <= 2) {
         throw codeError("EBUSY", "Busy")
       }
-      if (path === "/c.md.km-tmp") {
+      if (path === "/c.md") {
         throw codeError("EACCES", "Permission denied")
       }
       history.push(`write:${path}`)
@@ -358,10 +358,10 @@ describe("WriteQueue Retry Logic", () => {
     queue.queue({ path: "/c.md", content: "c", sourceEventId: "3" })
     const { flushed } = await flushAndCapture(queue)
 
-    // a.md succeeds after retries (atomic: temp write + rename), b.md first try, c.md fails permanently
-    expect(history).toContain("write:/a.md.km-tmp")
-    expect(history).toContain("write:/b.md.km-tmp")
-    expect(history).not.toContain("write:/c.md.km-tmp")
+    // a.md succeeds after retries, b.md first try, c.md fails permanently
+    expect(history).toContain("write:/a.md")
+    expect(history).toContain("write:/b.md")
+    expect(history).not.toContain("write:/c.md")
 
     expect(flushed.errors).toBe(1) // c.md failed
     expect(flushed.retries).toBe(2) // a.md needed 2 retries
@@ -377,8 +377,8 @@ describe("WriteQueue Retry Logic", () => {
     queue.queue({ path: "/test.md", content: "test", sourceEventId: "1" })
     const { flushed } = await flushAndCapture(queue)
 
-    // Atomic write: temp file + rename
-    expect(history).toEqual(["write:/test.md.km-tmp", "rename:/test.md.km-tmp->/test.md"])
+    // Direct write succeeds after retries
+    expect(history).toEqual(["write:/test.md"])
     expect(flushed.results[0]?.attempts).toBe(6) // 1 initial + 5 retries
     expect(flushed.results[0]?.success).toBe(true)
   })
@@ -401,8 +401,8 @@ describe("Conflict Detection", () => {
     queue.queue({ path: "/test.md", content: "updated", sourceEventId: "1" })
     const { flushed } = await flushAndCapture(queue)
 
-    // Atomic write: temp + rename
-    expect(history).toEqual(["write:/test.md.km-tmp", "rename:/test.md.km-tmp->/test.md"])
+    // Direct write
+    expect(history).toEqual(["write:/test.md"])
     expect(flushed.conflicts).toBe(0)
     expect(flushed.results[0]?.conflict).toBeUndefined()
   })
@@ -427,8 +427,8 @@ describe("Conflict Detection", () => {
 
     const { flushed } = await flushAndCapture(queue)
 
-    // last_write_wins: should still write despite conflict (atomic: temp + rename)
-    expect(history).toEqual(["write:/test.md.km-tmp", "rename:/test.md.km-tmp->/test.md"])
+    // last_write_wins: should still write despite conflict
+    expect(history).toEqual(["write:/test.md"])
     expect(flushed.conflicts).toBe(1)
     expect(conflictsEvent).toHaveLength(1)
     expect(flushed.results[0]?.conflict?.resolution).toBe("written")
@@ -476,8 +476,8 @@ describe("Conflict Detection", () => {
 
     const { flushed } = await flushAndCapture(queue)
 
-    // db_wins: should write despite conflict (atomic: temp + rename)
-    expect(history).toEqual(["write:/test.md.km-tmp", "rename:/test.md.km-tmp->/test.md"])
+    // db_wins: should write despite conflict
+    expect(history).toEqual(["write:/test.md"])
     expect(flushed.conflicts).toBe(1)
     expect(flushed.results[0]?.conflict?.resolution).toBe("written")
   })
@@ -493,8 +493,8 @@ describe("Conflict Detection", () => {
     queue.queue({ path: "/new.md", content: "new file", sourceEventId: "1" })
     const { flushed } = await flushAndCapture(queue)
 
-    // Atomic write: temp + rename
-    expect(history).toEqual(["write:/new.md.km-tmp", "rename:/new.md.km-tmp->/new.md"])
+    // Direct write
+    expect(history).toEqual(["write:/new.md"])
     expect(flushed.conflicts).toBe(0)
   })
 
@@ -702,9 +702,8 @@ describe("flush mutex", () => {
     await Promise.all([flush1, flush2])
 
     // v1 writes first (from flush 1), then v2 writes (from flush 2 after mutex release)
-    // Atomic writes go to .km-tmp before rename
     const writes = history.filter((h) => h.startsWith("write:"))
-    expect(writes).toEqual(["write:/test.md.km-tmp:v1", "write:/test.md.km-tmp:v2"])
+    expect(writes).toEqual(["write:/test.md:v1", "write:/test.md:v2"])
   })
 
   test("newer content wins when queued during active flush", async () => {
@@ -737,11 +736,10 @@ describe("flush mutex", () => {
     await Promise.all([flush1, flush2])
 
     // Both writes happen, but the last one (newest) is what remains on disk
-    // Atomic writes go to .km-tmp before rename
     const writes = history.filter((h) => h.startsWith("write:"))
     expect(writes.length).toBeGreaterThanOrEqual(1)
     // The final write must be the newer content
-    expect(writes[writes.length - 1]).toBe("write:/doc.md.km-tmp:new")
+    expect(writes[writes.length - 1]).toBe("write:/doc.md:new")
   })
 
   test("flush is a no-op when nothing is pending after waiting", async () => {
@@ -757,9 +755,9 @@ describe("flush mutex", () => {
     // Second flush with no new work should be fast and not write anything extra
     await queue.flush()
 
-    // Atomic write: temp file + rename
+    // Direct write
     const writes = history.filter((h) => h.startsWith("write:"))
-    expect(writes).toEqual(["write:/a.md.km-tmp"])
+    expect(writes).toEqual(["write:/a.md"])
   })
 
   test("flush drains items queued during an active flush", async () => {
@@ -795,6 +793,7 @@ describe("flush mutex", () => {
     // Wait for flush to complete — should drain BOTH items
     await flushPromise
 
+    // Direct writes to target paths
     const writes = history.filter((h) => h.startsWith("write:"))
     expect(writes).toContain("write:/first.md:v1")
     expect(writes).toContain("write:/second.md:v2")
@@ -853,6 +852,7 @@ describe("renamePending", () => {
     expect(queue.getPendingPaths().has("/vault/old-name.md")).toBe(false)
 
     await queue.forceFlush()
+    // Direct write to the new path
     expect(history).toEqual(["write:/vault/new-name.md"])
   })
 
@@ -878,6 +878,7 @@ describe("renamePending", () => {
     queue.renamePending("/old.md", "/new.md")
     await queue.forceFlush()
 
+    // Direct write to the new path
     expect(history).toEqual(["write:/new.md"])
     expect(writtenContent.get("/new.md")).toBe("my content")
     expect(writtenContent.has("/old.md")).toBe(false)
@@ -933,6 +934,7 @@ describe("renamePendingSubtree", () => {
     )
 
     await queue.forceFlush()
+    // Direct writes to new paths
     expect(history).toContain("write:/vault/new-dir/a.md")
     expect(history).toContain("write:/vault/new-dir/sub/b.md")
     expect(history).toContain("write:/vault/other/c.md")
@@ -1056,7 +1058,7 @@ describe("Chaos: conflict detection with strategies", () => {
     expect(conflicts[0]?.currentMtime).toBe(5000)
     expect(conflicts[0]?.resolution).toBe("written")
     // File was written despite conflict
-    expect(history).toContain("write:/doc.md.km-tmp")
+    expect(history).toContain("write:/doc.md")
   })
 
   test("mtime mismatch detected with fs_wins — discards write", async () => {
@@ -1113,8 +1115,8 @@ describe("Chaos: concurrent flush behavior", () => {
 
     // Both files should have been written
     const writes = history.filter((h) => h.startsWith("write:"))
-    expect(writes).toContain("write:/a.md.km-tmp:alpha")
-    expect(writes).toContain("write:/b.md.km-tmp:beta")
+    expect(writes).toContain("write:/a.md:alpha")
+    expect(writes).toContain("write:/b.md:beta")
   })
 
   test("rapid sequential edits to same file are coalesced", async () => {
@@ -1182,31 +1184,18 @@ describe("Chaos: transient failure during flush, then success", () => {
     // bad.md failed, good.md succeeded
     expect(errorsEvent).toHaveLength(1)
     const writes = history.filter((h) => h.startsWith("write:"))
-    expect(writes).toContain("write:/good.md.km-tmp:ok")
+    expect(writes).toContain("write:/good.md:ok")
     expect(writes.every((w) => !w.includes("bad"))).toBe(true)
   })
 })
 
-describe("Chaos: atomic write cleanup", () => {
-  test("temp file is cleaned up when rename fails", async () => {
+describe("Chaos: write failure handling", () => {
+  test("write failure is reported as error", async () => {
     const history: string[] = []
     const mockFs = createMockFs({ history })
 
-    // writeFileSync succeeds (creates temp), but renameSync fails
-    let renameCallCount = 0
-    const origRename = mockFs.renameSync
-    mockFs.renameSync = (oldPath: string, newPath: string) => {
-      // Only fail on atomic write renames (tmp->final), not explicit renames
-      if (oldPath.endsWith(".km-tmp")) {
-        renameCallCount++
-        throw codeError("EACCES", "Permission denied on rename")
-      }
-      origRename(oldPath, newPath)
-    }
-    // existsSync needs to return true for the temp file so cleanup works
-    mockFs.existsSync = (path: string) => {
-      if (path.endsWith(".km-tmp")) return true
-      return false
+    mockFs.writeFileSync = () => {
+      throw codeError("EACCES", "Permission denied on write")
     }
 
     const queue = createWriteQueue({ fs: mockFs, retry: { maxRetries: 0 } })
@@ -1215,11 +1204,10 @@ describe("Chaos: atomic write cleanup", () => {
     const { flushed } = await flushAndCapture(queue)
 
     expect(flushed.results[0]?.success).toBe(false)
-    // Temp file should have been cleaned up (unlink called)
-    expect(history).toContain("delete:/test.md.km-tmp")
+    expect(flushed.results[0]?.error?.code).toBe("EACCES")
   })
 
-  test("in-flight tracking covers both temp and final paths", async () => {
+  test("in-flight tracking covers write path", async () => {
     const mockFs = createMockFs()
     const queue = createWriteQueue({ fs: mockFs })
 
@@ -1233,12 +1221,8 @@ describe("Chaos: atomic write cleanup", () => {
     queue.queue({ path: "/file.md", content: "data", sourceEventId: "1" })
     await queue.forceFlush()
 
-    // Both the final path and temp path should have been marked
-    // (temp may already be cleared by clearInFlight timer, but markInFlight should have been called)
-    // We can't check the set directly after flush since mark happens before flush completes
-    // Instead, verify the final path is still in-flight (1000ms timer hasn't expired yet)
+    // The target path should be in-flight (1000ms timer hasn't expired yet)
     expect(markedPaths.has("/file.md")).toBe(true)
-    expect(markedPaths.has("/file.md.km-tmp")).toBe(true)
   })
 })
 

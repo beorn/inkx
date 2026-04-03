@@ -280,6 +280,8 @@ export interface WriteQueueConfig {
   conflictStrategy?: ConflictStrategy
   /** Called after a successful writeFileSync with the path and content actually written */
   onWrite?: (path: string, content: string) => void
+  /** Called after a successful delete (unlinkSync/rmSync) with the path deleted */
+  onDelete?: (path: string) => void
   /** Delay before clearing in-flight status after writes, in ms (default: 1000) */
   clearInFlightDelayMs?: number
 }
@@ -311,6 +313,7 @@ export class WriteQueue extends EventEmitter {
   private watcher: InFlightTracker | null = null
   private fs: FileSystemOps
   private onWrite: ((path: string, content: string) => void) | undefined
+  private onDelete: ((path: string) => void) | undefined
   private clearInFlightDelayMs: number
   /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
   private flushGeneration = new Map<string, number>()
@@ -325,6 +328,7 @@ export class WriteQueue extends EventEmitter {
     this.conflictStrategy = config.conflictStrategy ?? "last_write_wins"
     this.fs = config.fs ?? realFs
     this.onWrite = config.onWrite
+    this.onDelete = config.onDelete
     this.clearInFlightDelayMs = config.clearInFlightDelayMs ?? 1000
   }
 
@@ -419,6 +423,7 @@ export class WriteQueue extends EventEmitter {
             log.info?.(`fs: delete ${op.path}`)
             this.fs.unlinkSync(op.path)
           }
+          this.onDelete?.(op.path)
         }
         break
       case "rename":
@@ -618,13 +623,6 @@ export class WriteQueue extends EventEmitter {
       if (this.watcher) {
         this.watcher.markInFlight(write.path)
         this.flushGeneration.set(write.path, gen)
-        // For writes, also mark the temp path used for atomic writes
-        // so the watcher doesn't trigger on the intermediate .km-tmp file.
-        if (write.type === "write") {
-          const tmpPath = write.path + ".km-tmp"
-          this.watcher.markInFlight(tmpPath)
-          this.flushGeneration.set(tmpPath, gen)
-        }
         // For renames, also mark the destination so the watcher
         // doesn't treat the new file as an external addition.
         if (write.type === "rename" && write.newPath) {
@@ -654,14 +652,6 @@ export class WriteQueue extends EventEmitter {
         if (this.watcher && this.flushGeneration.get(op.path) === gen) {
           this.watcher.clearInFlight(op.path, 0)
           this.flushGeneration.delete(op.path)
-        }
-        // Clear temp path in-flight status for atomic writes
-        if (this.watcher && op.type === "write") {
-          const tmpPath = op.path + ".km-tmp"
-          if (this.flushGeneration.get(tmpPath) === gen) {
-            this.watcher.clearInFlight(tmpPath, 0)
-            this.flushGeneration.delete(tmpPath)
-          }
         }
         if (this.watcher && op.type === "rename" && op.newPath && this.flushGeneration.get(op.newPath) === gen) {
           this.watcher.clearInFlight(op.newPath, 0)

@@ -27,7 +27,7 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
                              |
                        nodesToMarkdown()    -> serialize subtree
                        WriteQueue.queue()   -> debounce + retry
-                       WriteQueue.flush()   -> atomic write (temp+rename)
+                       WriteQueue.flush()   -> direct write (preserves inode)
                              |
                        sync_state.recordProjection()  -> baseline hash
                        writeTokens.record()           -> hot cache
@@ -191,7 +191,8 @@ All events carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance tr
 
 ### WriteQueue (writequeue.ts)
 
-- **Atomic writes**: temp file (.km-tmp) + rename into place. Watchers see rename, not partial content.
+- **Direct writes**: writeFileSync to the target path. Preserves inode identity so the
+  reconciler doesn't need special atomic-write detection.
 - **Transient errors** (EBUSY, EAGAIN, EMFILE, ENOSPC, EIO, ETIMEDOUT): retried with
   exponential backoff (configurable: default 100ms base, max 5s, 3 attempts).
 - **Permanent errors** (EACCES, EPERM, ENOENT, EROFS): no retry, path marked dirty in sync_state.
@@ -262,8 +263,8 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
    A crash between steps 1 and 2 loses the event from the journal but the DB is
    correct — safer than the reverse.
 
-5. **Atomic writes**: WriteQueue writes to `.km-tmp` then renames into place.
-   External readers never see partial content.
+5. **Direct writes**: WriteQueue writes directly to the target path, preserving
+   inode identity. This avoids inode churn that would confuse the reconciler.
 
 ## withSync vs FsWriter
 
