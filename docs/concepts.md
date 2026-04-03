@@ -21,7 +21,7 @@ projects/                     Node (folder)
 **Currently implements:** Tasks with GTD workflow
 **Planned:** Notes, contacts, calendar events, custom content types
 
-Any node can have properties. A node with a `status` property is a task. A node with `email` and `phone` properties could be a contact. The tree is the universal primitive.
+Any node can have properties. A node with `item.task` is a task. A node with `email` and `phone` properties could be a contact. The tree is the universal primitive.
 
 ---
 
@@ -48,7 +48,7 @@ Each layer has a primary abstraction (domain interface, domain object, or extern
 | **Tree** | `KTree`, `TreeOp` | node tree | `KTree.nodes()`, `TreeOp.inverse()`, `withHistory()` |
 | **View** | `ViewTree`, `Selection`, `Board` | derived visual state | `ViewTree.nodes()`, `Selection.cursor()`, `Board.apply()` |
 
-**Data flows down** (FS → Repo → View). **Mutations flow up** (command → op → tree method → change → FS sync). The **unified pipeline** connects them:
+**Data flows down** (FS → Repo → View). **Mutations flow up** (command → op → apply → effects → change → FS sync). The **unified pipeline** connects them:
 
 ```
 event → command → op → apply() → [state, effects] → change → FS sync
@@ -85,10 +85,10 @@ The command context is **DAG snapshot + event-specific data**. The DAG part is f
 Each event type has its own **input adapter** that bridges raw events to the command system:
 
 ```
-keyboard handler: DAG + key + modifiers      → context → when → command → op
-mouse handler:    DAG + position + hit + btn  → context → when → command → op  
-FS handler:       DAG + path + changeType     → context → handler → op
-sync handler:     DAG + remote changes        → context → handler → op
+keyboard adapter: DAG + key + modifiers      → context → when → command → op
+mouse adapter:    DAG + position + hit + btn  → context → when → command → op  
+FS adapter:       DAG + path + changeType     → context → handler → op
+sync adapter:     DAG + remote changes        → context → handler → op
 ```
 
 The prep handler snapshots the DAG (free, cached) and adds event-specific data. Different event types produce different context shapes, but all feed into the same dispatch → apply pipeline.
@@ -154,7 +154,7 @@ Status answers: **Can I work on this?**
 - `done` — No, it's finished
 - `dropped` — No, decided not to do it
 
-**Note:** `wip` enables cross-board queries for "what's being worked on" (`status:wip`). The `task_claimed` event sets status to `wip`; `task_released` sets it back to `todo`.
+**Note:** `wip` enables cross-board queries for "what's being worked on" (`status:wip`). The `task_claimed` change sets status to `wip`; `task_released` sets it back to `todo`.
 
 ---
 

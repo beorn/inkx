@@ -213,7 +213,7 @@ Selection.* is deliberately small — reads + constructors. Mutation logic (togg
 
 ### Selecting.*
 
-Gesture algebra — computes the next Selection from the current one + inputs. Takes `visibleNodes` explicitly because these operations need ordering context. Separate from `Selection.*` because selecting is an action, Selection is data.
+Selection transitions — computes the next Selection from the current one + inputs. Takes `visibleNodes` explicitly because these operations need ordering context. Separate from `Selection.*` because `Selecting.*` transitions state, `Selection.*` reads it.
 
 ```ts
 const Selecting = {
@@ -249,9 +249,9 @@ const Selecting = {
 | `collapse(sel)` | preserved | cursor |
 | `remove` — removing cursor | first remaining | reset to new cursor if anchor removed |
 
-`areaSelect` expects `hitIds` in `visibleNodes` order — the caller normalizes hit-test results before passing them. The middle elements of `nodes` (between cursor and anchor) follow visible order.
+`areaSelect` expects `hitIds` in `visibleNodes` order — the caller normalizes hit-test results before passing them. For `areaSelect` and `extend`, the middle elements follow visible order. For `toggle`, new IDs are prepended (becoming cursor) and middle order is not re-sorted.
 
-Invariants (violations throw): `nodes.length > 0`, `text[0].nodeId === nodes[0]`, `text[1]?.nodeId === nodes[0]`, node gestures clear `text`.
+Invariants (violations throw): `nodes.length > 0`, no duplicate IDs in `nodes`, `text[0].nodeId === nodes[0]`, `text[1]?.nodeId === nodes[0]`, node transitions clear `text`.
 
 ## Provider
 
@@ -273,7 +273,8 @@ When `nodes` changes (collapse, filter, sort, delete), the provider reconciles `
 2. If cursor was pruned, repair to nearest remaining selected node (or first in `nodes`)
 3. If anchor was pruned, reset anchor to cursor
 4. If all selected nodes pruned, `selected` becomes `undefined` (board mode)
-5. If a gesture is active (`selecting`), cancel it — stale gesture state is dangerous
+5. If `nodes` reordered with same IDs, re-normalize middle element order to match new visible order
+6. If a gesture is active (`selecting`), cancel it — stale gesture state is dangerous
 
 | Signal | Scope | Why |
 |---|---|---|
@@ -287,7 +288,7 @@ When `nodes` changes (collapse, filter, sort, delete), the provider reconciles `
 
 ```ts
 import { Selection as Base, Selecting as BaseSelecting } from "@silvery/selection"
-export const Selection = { ...Base, inputMode, expandWithDescendants, insertionPoint }
+export const Selection = { ...Base, expandWithDescendants, insertionPoint }
 export const Selecting = { ...BaseSelecting }
 ```
 
