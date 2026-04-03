@@ -5,8 +5,13 @@
  * Follows the arm-on-hover pattern from silvery's Link component.
  *
  * Click toggles between done and the previous non-done status (defaults to todo).
- * Calls preventDefault()/stopPropagation() to prevent the board handler from also
- * selecting the card or moving the cursor.
+ * Calls preventDefault()/stopPropagation() on both mousedown and click to prevent
+ * the board handler from selecting the card or moving the cursor.
+ *
+ * After toggling, re-selects the current cursor node to counteract reactive
+ * re-evaluation that would otherwise move the cursor to the changed node.
+ * This mirrors handleTaskStatusCycle (board-actions-edit.ts) which explicitly
+ * re-selects after toggling status via the keyboard shortcut.
  *
  * Works in board tree, detail view, and popover contexts. The undoHandle prop is
  * optional — when omitted (e.g., in popovers rendered outside TreeRenderProvider),
@@ -15,10 +20,12 @@
 
 import React, { useCallback, useState } from "react"
 import { Text, useMouseCursor } from "@silvery/ag-react"
+import { StoreContext } from "@silvery/create/create-app"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { getMarkerForStatus, type TaskStatus } from "@km/core"
 import type { StatusIcon } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
+import { Workspace, type BoardAppStore } from "../board-app-store.ts"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 
 interface CheckboxIconProps {
@@ -61,6 +68,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
   useMouseCursor(armed ? "pointer" : null)
 
   const repo = useRepo()
+  const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
 
   const handleMouseEnter = useCallback(() => {
     setHovered(true)
@@ -68,6 +76,13 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
 
   const handleMouseLeave = useCallback(() => {
     setHovered(false)
+  }, [])
+
+  // Prevent the board-level mousedown handler from moving the cursor
+  // to this sub-item when the user clicks the checkbox icon.
+  const handleMouseDown = useCallback((e: SilveryMouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
   }, [])
 
   const handleClick = useCallback(
@@ -86,14 +101,28 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       const currentStatus = targetNode.item?.task?.status ?? "todo"
       const newStatus: TaskStatus = currentStatus === "done" ? "todo" : "done"
 
-      // Toggle via direct repo mutation. The board's card click handler
-      // is blocked by stopPropagation/preventDefault above.
-      undoHandle?.setCursor(nodeId)
+      // Record the current cursor position for undo (not the checkbox's node),
+      // so undo restores the cursor to where it was before the click.
+      const state = storeRef?.getState()
+      const boardPane = state ? Workspace.getActiveBoardPane(state) : null
+      const cursorNodeId = boardPane?.cursorNodeId ?? null
+      if (cursorNodeId) undoHandle?.setCursor(cursorNodeId)
+
+      // Mutate via repo — same call as the keyboard path (runRepoEffect).
       repo.updateNode(targetId, {
         item: { ...targetNode.item, task: { status: newStatus, marker: getMarkerForStatus(newStatus) } },
       })
+
+      // Re-select the current cursor node to preserve cursor position.
+      // Without this, the reactive subscription to node changes can
+      // re-evaluate board state and move the cursor to the changed node.
+      // This mirrors handleTaskStatusCycle (board-actions-edit.ts) which
+      // explicitly re-selects after toggling status.
+      if (cursorNodeId && state) {
+        state.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
+      }
     },
-    [nodeId, repo, undoHandle],
+    [nodeId, repo, undoHandle, storeRef],
   )
 
   // Determine the icon color
@@ -107,6 +136,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       color={armed ? armedColor : normalColor}
       dimColor={armed ? false : shouldDim}
       bold={armed}
+      onMouseDown={handleMouseDown}
       onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

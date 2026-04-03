@@ -129,4 +129,40 @@ describe("checkbox interaction", () => {
     expect(repo.getNode("task-1")?.item?.task?.status).toBe("todo")
     expect(repo.getNode("task-3")?.item?.task?.status).toBe("wip")
   })
+
+  // =========================================================================
+  // Cursor preservation on checkbox click (regression: km-tui.checkbox-cursor-move)
+  // =========================================================================
+
+  test("keyboard toggle on cursor node preserves cursor position", () => {
+    const { board, repo } = testEnv(
+      () =>
+        item.root(
+          "board",
+          item("Column", item.task("task-1", "todo"), item.task("task-2", "todo"), item.task("task-3", "todo")),
+        ),
+      { columns: 80, rows: 24 },
+    )
+
+    // Cursor starts on task-1. Toggle it.
+    board.expectState({ cursor: "task-1" })
+    board.command("toggle_task_done")
+
+    // Cursor stays on task-1 after toggle
+    board.expectState({ cursor: "task-1" })
+    expect(repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+
+    // Navigate to task-2, toggle task-2
+    board.navigateTo("task-2")
+    board.expectState({ cursor: "task-2" })
+    board.command("toggle_task_done")
+
+    // Cursor stays on task-2
+    board.expectState({ cursor: "task-2" })
+    expect(repo.getNode("task-2")?.item?.task?.status).toBe("wip")
+
+    // task-1 and task-3 unchanged
+    expect(repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+    expect(repo.getNode("task-3")?.item?.task?.status).toBe("todo")
+  })
 })
