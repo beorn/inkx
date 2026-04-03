@@ -29,7 +29,7 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
                        WriteQueue.queue()   -> debounce + retry
                        WriteQueue.flush()   -> atomic write (temp+rename)
                              |
-                       sync_state.recordSave()        -> baseline hash
+                       sync_state.recordProjection()  -> baseline hash
                        writeTokens.record()           -> hot cache
 
 
@@ -142,11 +142,11 @@ CREATE TABLE sync_state (
 
 ### DB → FS
 
-| Module              | Single Responsibility                                                            |
-| ------------------- | -------------------------------------------------------------------------------- |
-| `event-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by SyncManager + FsWriter) |
-| `writequeue.ts`     | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite     |
-| `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename                |
+| Module              | Single Responsibility                                                         |
+| ------------------- | ----------------------------------------------------------------------------- |
+| `event-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by withSync + FsWriter) |
+| `writequeue.ts`     | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite  |
+| `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename             |
 
 ### Ownership Tracking
 

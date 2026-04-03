@@ -17,7 +17,7 @@ import { withTestEnvSync } from "@km/storage"
 
 describe("ambiguous ID suffix resolution", () => {
   // Helper: create two nodes whose IDs share the same suffix
-  function createNodesWithSharedSuffix(emitter: { emit: (e: any) => any }, suffix: string): [string, string] {
+  function createNodesWithSharedSuffix(emitter: { apply: (e: any) => any }, suffix: string): [string, string] {
     // Create two ULIDs, then replace the last N chars with our suffix
     const id1 = ulid().slice(0, -suffix.length) + suffix
     const id2 = ulid().slice(0, -suffix.length) + suffix

@@ -358,7 +358,7 @@ Each test directory has a `CLAUDE.md` with package-specific helpers, fixtures, a
 |---------|-------|-------|-------------|-----------|
 | **km-tui** | 112 | User journeys (L5) | `item()`, `testEnv()`, `board.app()`, invariants | [tests/CLAUDE.md](../../../apps/km-tui/tests/CLAUDE.md) |
 | **km-board** | 2 | Action sequences (L4) | None (inline state) | [tests/CLAUDE.md](../../../packages/km-board/tests/CLAUDE.md) |
-| **km-storage** | 44 | Pipeline integrity (L3) | `createTestDatabase()`, `createTestSyncManager()`, chaos fuzz | [tests/CLAUDE.md](../../../packages/km-storage/tests/CLAUDE.md) |
+| **km-storage** | 44 | Pipeline integrity (L3) | `createTestDatabase()`, `createTestSync()`, chaos fuzz | [tests/CLAUDE.md](../../../packages/km-storage/tests/CLAUDE.md) |
 | **km-markdown** | 15 | Parse fidelity (L2) | `parse()`, `roundtrip()`, `makeTestNode()` | [tests/CLAUDE.md](../../../packages/km-markdown/tests/CLAUDE.md) |
 | **km-core** | 11 | Contracts (L1) | None (pure functions) | [tests/CLAUDE.md](../../../packages/km-core/tests/CLAUDE.md) |
 | **km-cli** | 7 | Command output | mdspec plugin, `km-repl.ts` | [tests/CLAUDE.md](../../../apps/km-cli/tests/CLAUDE.md) |

@@ -74,7 +74,7 @@ tests/
   ├── testing/                  # In-memory store setup
   ├── e2e/                      # Full app end-to-end
   ├── sync/chaos/               # Fuzz/chaos testing
-  └── watch/sync-test-helpers.ts # SyncManager factory
+  └── watch/sync-test-helpers.ts # createSync/withSync factory
 ```
 
 ## Ad-Hoc Testing (Quick Verification)
@@ -109,7 +109,7 @@ test("quick check: my scenario", async () => {
 ## Efficiency
 
 - **Always use in-memory SQLite** (`createTestDatabase()` or `withMemoryStore()`) for fast tests. Disk DB is only for `TEST_MODE=real` CI runs.
-- **Use `useWorker: false`** in `createTestSyncManager()` — avoids spawning a real file watcher thread.
+- **Use `useWorker: false`** in `createTestSync()` / `createSync()` — avoids spawning a real file watcher thread.
 - **Fast debounces** — test sync manager uses 1ms debounce, not production 300ms.
 - Tests needing real filesystem or real watcher must be `.slow.test.ts`.
 
