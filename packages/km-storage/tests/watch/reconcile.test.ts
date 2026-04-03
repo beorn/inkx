@@ -237,6 +237,48 @@ describe("reconcile.ts", () => {
         expect(renameOp!.nodeId).toBe(node.id)
       }))
 
+    test("direct writeFileSync preserves inode", () =>
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        const filePath = createMdFile(repoDir, "direct.md", "# Original")
+        await syncDir(db, repoDir, repoDir, emitter)
+
+        const node = assertNodeExists(db, filePath)
+        const originalIno = statSync(filePath).ino
+        expect(node.fs_ino).toBe(originalIno)
+
+        // Direct write (how WriteQueue works after simplification)
+        writeFileSync(filePath, "# Updated\n", "utf-8")
+
+        // Inode should be preserved — same file, overwritten in place
+        expect(statSync(filePath).ino).toBe(originalIno)
+      }))
+
+    test("external atomic write (temp+rename) changes inode and triggers update", () =>
+      withTestEnvRel(async ({ db, repoDir, emitter }) => {
+        const filePath = createMdFile(repoDir, "external.md", "# Original")
+        await syncDir(db, repoDir, repoDir, emitter)
+
+        const node = assertNodeExists(db, filePath)
+        const originalIno = statSync(filePath).ino
+        expect(node.fs_ino).toBe(originalIno)
+
+        // Simulate external editor atomic write (vim, Obsidian): write temp + rename
+        const tmpPath = filePath + ".tmp"
+        writeFileSync(tmpPath, "# Edited externally\n", "utf-8")
+        const { renameSync } = await import("fs")
+        renameSync(tmpPath, filePath)
+
+        // Inode changes with atomic write
+        const newIno = statSync(filePath).ino
+        expect(newIno).not.toBe(originalIno)
+
+        // Reconciler should detect the change via mtime (not special inode handling)
+        const ops = reconcileDirectory(db, repoDir, repoDir)
+        expect(ops.length).toBe(1)
+        expect(ops[0]!.type).toBe("update")
+        expect(ops[0]!.ino).toBe(newIno)
+      }))
+
     test("returns empty array when nothing changed", () =>
       withTestEnvRel(async ({ db, repoDir, emitter }) => {
         createMdFile(repoDir, "stable.md", "# Stable")
