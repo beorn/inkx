@@ -7,7 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { getEditableText } from "../src/block-ops.ts"
+import { KNode } from "@km/core"
 import {
   applyTreeAction,
   captureTreeState,
@@ -302,8 +302,8 @@ describe("SPLIT_BLOCK action", () => {
     // Before node has "Bra", after node has "vo"
     const beforeNode = repo.getNode(splitEffect!.beforeId)!
     const afterNode = repo.getNode(splitEffect!.afterId)!
-    expect(getEditableText(beforeNode)).toBe("Bra")
-    expect(getEditableText(afterNode)).toBe("vo")
+    expect(KNode.string(beforeNode)).toBe("Bra")
+    expect(KNode.string(afterNode)).toBe("vo")
 
     // Focus moved to the new node
     expect(newState.focusedNodeId).toBe(splitEffect!.afterId)
@@ -323,7 +323,7 @@ describe("SPLIT_BLOCK action", () => {
     expect(splitEffect.beforeId).toBe(bId)
 
     const afterNode = repo.getNode(splitEffect.afterId)!
-    expect(getEditableText(afterNode)).toBe("")
+    expect(KNode.string(afterNode)).toBe("")
     expect(afterNode.parent_id).toBe(parentId)
   })
 
@@ -424,7 +424,7 @@ describe("MERGE_BLOCK forward", () => {
 
     // B now has merged text
     const bNode = repo.getNode(bId)!
-    expect(getEditableText(bNode)).toBe("BravoCharlie")
+    expect(KNode.string(bNode)).toBe("BravoCharlie")
 
     // C is deleted
     expect(repo.getNode(cId)).toBeNull()
@@ -472,7 +472,7 @@ describe("INSERT_NODE action", () => {
 
     const newNode = repo.getNode(createdEffect!.nodeId)!
     expect(newNode.parent_id).toBe(parentId)
-    expect(getEditableText(newNode)).toBe("Delta")
+    expect(KNode.string(newNode)).toBe("Delta")
 
     // Focus moved to new node
     expect(newState.focusedNodeId).toBe(createdEffect!.nodeId)

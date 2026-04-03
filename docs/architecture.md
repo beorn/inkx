@@ -132,7 +132,7 @@ Each layer calls only the layer below. UI never touches filesystem. All mutation
 - `@km/core` — KNode, Position, ItemData, task status, metadata extraction. Pure functions.
 - `@km/markdown` — Parser: markdown <-> KNode (stateless, no DB)
 - `@km/storage` — Repo: SQLite CRUD, file sync, watch, events. Depends on core + markdown.
-- `@km/tree` — Tree mutations via TreeMutator interface (splitNode, merge, indent, outdent)
+- `@km/tree` — Tree mutations via TreeMutator interface (split, merge, indent, outdent)
 - `@km/board` — BoardState + reducer, ViewNode tree. ID-based, no tree traversal.
 - `@km/commands` — Command registry, keybindings, context-aware dispatch
 

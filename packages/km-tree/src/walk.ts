@@ -154,6 +154,32 @@ export const KTree = {
       }
     }
   },
+
+  /**
+   * Get the previous sibling of a node.
+   * Returns null if the node is the first child.
+   */
+  previous(tree: TreeMutator, nodeId: string): KNode | null {
+    const node = tree.getNode(nodeId)
+    if (!node?.parent_id) return null
+
+    const siblings = tree.getChildren(node.parent_id)
+    const index = siblings.findIndex((s) => s.id === nodeId)
+    return index > 0 ? (siblings[index - 1] ?? null) : null
+  },
+
+  /**
+   * Get the next sibling of a node.
+   * Returns null if the node is the last child.
+   */
+  next(tree: TreeMutator, nodeId: string): KNode | null {
+    const node = tree.getNode(nodeId)
+    if (!node?.parent_id) return null
+
+    const siblings = tree.getChildren(node.parent_id)
+    const index = siblings.findIndex((s) => s.id === nodeId)
+    return index < siblings.length - 1 ? (siblings[index + 1] ?? null) : null
+  },
 }
 
 /**

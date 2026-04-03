@@ -2,8 +2,8 @@
  * Block Operations - Split and Merge
  *
  * Pure tree operations for outline editing:
- * - splitNode: Split a node's content at cursor position into two siblings
- * - mergeWithPrevious: Merge a node with its previous sibling (Backspace at start)
+ * - split: Split a node's content at cursor position into two siblings
+ * - mergeBackward: Merge a node with its previous sibling (Backspace at start)
  *
  * These operate on a minimal TreeMutator interface that Repo satisfies.
  * No UI, no rendering - just tree structure manipulation.
@@ -68,14 +68,14 @@ export interface MergeResult {
  * @param offset - Character offset in the node's display text (name or content)
  * @returns SplitResult with IDs of the two resulting nodes
  */
-export function splitNode(tree: TreeMutator, nodeId: string, offset: number): SplitResult {
+export function split(tree: TreeMutator, nodeId: string, offset: number): SplitResult {
   const node = tree.getNode(nodeId)
-  if (!node) throw new Error(`splitNode: node not found: ${nodeId}`)
+  if (!node) throw new Error(`split: node not found: ${nodeId}`)
 
   const parentId = node.parent_id
-  if (!parentId) throw new Error(`splitNode: node has no parent: ${nodeId}`)
+  if (!parentId) throw new Error(`split: node has no parent: ${nodeId}`)
 
-  const text = getEditableText(node)
+  const text = KNode.string(node)
   const clampedOffset = Math.max(0, Math.min(offset, text.length))
 
   const beforeText = text.slice(0, clampedOffset)
@@ -93,14 +93,14 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
   const props = KNode.extractProps(node)
   const newNode: Partial<KNode> = {
     ...props,
-    content: setEditableText(node, afterText),
+    content: KNode.setString(node, afterText),
     parent_idx: newSortOrder,
   }
 
   const newId = tree.addNode(parentId, newNode)
 
   // Update original node with text before cursor
-  tree.updateNode(nodeId, { content: setEditableText(node, beforeText) })
+  tree.updateNode(nodeId, { content: KNode.setString(node, beforeText) })
 
   // Move children of the original node to the new node
   const children = tree.getChildren(nodeId)
@@ -128,7 +128,7 @@ export function splitNode(tree: TreeMutator, nodeId: string, offset: number): Sp
  * @param nodeId - ID of the node to merge backward
  * @returns MergeResult with survivor ID and cursor offset, or null if no merge possible
  */
-export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResult | null {
+export function mergeBackward(tree: TreeMutator, nodeId: string): MergeResult | null {
   const node = tree.getNode(nodeId)
   if (!node) return null
 
@@ -138,7 +138,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
   const siblings = tree.getChildren(parentId)
   const currentIndex = siblings.findIndex((s) => s.id === nodeId)
 
-  const text = getEditableText(node)
+  const text = KNode.string(node)
   const isEmpty = text.length === 0
   const children = tree.getChildren(nodeId)
 
@@ -146,7 +146,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
     // Has previous sibling
     // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- currentIndex > 0 guarantees prev exists
     const prev = siblings[currentIndex - 1]!
-    const prevText = getEditableText(prev)
+    const prevText = KNode.string(prev)
     const prevChildren = tree.getChildren(prev.id)
 
     if (isEmpty && children.length === 0) {
@@ -158,7 +158,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
     if (prevChildren.length === 0) {
       // Prev has no children: merge prev content into this node
       const mergedText = prevText + text
-      tree.updateNode(nodeId, { content: setEditableText(node, mergedText) })
+      tree.updateNode(nodeId, { content: KNode.setString(node, mergedText) })
 
       // Move any children of prev to before our children
       // (prev is childless in this branch, so nothing to move)
@@ -199,7 +199,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
 /**
  * Merge a node with its next sibling (Delete at end of title).
  *
- * Mirror of mergeWithPrevious. The current node survives (keeps its type/traits).
+ * Mirror of mergeBackward. The current node survives (keeps its type/traits).
  * Next sibling's text is appended and next is deleted.
  *
  * Merge rules:
@@ -212,7 +212,7 @@ export function mergeWithPrevious(tree: TreeMutator, nodeId: string): MergeResul
  * @param nodeId - ID of the node to merge forward from
  * @returns MergeResult with survivor ID and cursor offset, or null if no merge possible
  */
-export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | null {
+export function mergeForward(tree: TreeMutator, nodeId: string): MergeResult | null {
   const node = tree.getNode(nodeId)
   if (!node) return null
 
@@ -227,11 +227,11 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
     return null
   }
 
-  const text = getEditableText(node)
+  const text = KNode.string(node)
 
   // oxlint-disable-next-line typescript-eslint(no-non-null-assertion) -- bounds check above guarantees next exists
   const next = siblings[currentIndex + 1]!
-  const nextText = getEditableText(next)
+  const nextText = KNode.string(next)
   const nextChildren = tree.getChildren(next.id)
 
   if (nextText.length === 0 && nextChildren.length === 0) {
@@ -242,7 +242,7 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
 
   // Append next's text to current node
   const mergedText = text + nextText
-  tree.updateNode(nodeId, { content: setEditableText(node, mergedText) })
+  tree.updateNode(nodeId, { content: KNode.setString(node, mergedText) })
 
   // Reparent next's children under current node
   if (nextChildren.length > 0) {
@@ -262,68 +262,6 @@ export function mergeWithNext(tree: TreeMutator, nodeId: string): MergeResult | 
   tree.deleteNode(next.id)
 
   return { survivorId: nodeId, cursorOffset: text.length }
-}
-
-// =============================================================================
-// Helpers
-// =============================================================================
-
-/**
- * Get the display/edit text of a node.
- * For outline items (type:"h", item != null), this is the name (heading text).
- * For list items with task markers, strips the checkbox prefix.
- * For other types, this is the content.
- */
-export function getEditableText(node: KNode): string {
-  // Outline items use name as their heading text
-  if (KNode.isOutline(node)) return node.name ?? node.content ?? ""
-  // Tasks (list items with item.task): content includes the checkbox prefix "- [x] ..."
-  // Strip exactly the prefix "- [.] " (dash, space, bracket, mark, bracket, space)
-  if (node.item?.task && node.content) {
-    return node.content.replace(/^- \[.\] /, "")
-  }
-  return node.content ?? ""
-}
-
-/**
- * Set the display/edit text of a node, preserving the content format.
- * Returns the new content string (does NOT mutate).
- */
-export function setEditableText(node: KNode, text: string): string {
-  if (KNode.isOutline(node)) return text
-  const taskMarker = node.item?.task?.marker
-  if (taskMarker) {
-    // Extract inner character from marker: "[x]" → "x"
-    const inner = taskMarker.length === 3 ? taskMarker[1] : " "
-    return `- [${inner}] ${text}`
-  }
-  return text
-}
-
-/**
- * Get the previous visible sibling of a node.
- * Returns null if the node is the first child.
- */
-export function getPreviousSibling(tree: TreeMutator, nodeId: string): KNode | null {
-  const node = tree.getNode(nodeId)
-  if (!node?.parent_id) return null
-
-  const siblings = tree.getChildren(node.parent_id)
-  const index = siblings.findIndex((s) => s.id === nodeId)
-  return index > 0 ? (siblings[index - 1] ?? null) : null
-}
-
-/**
- * Get the next visible sibling of a node.
- * Returns null if the node is the last child.
- */
-export function getNextSibling(tree: TreeMutator, nodeId: string): KNode | null {
-  const node = tree.getNode(nodeId)
-  if (!node?.parent_id) return null
-
-  const siblings = tree.getChildren(node.parent_id)
-  const index = siblings.findIndex((s) => s.id === nodeId)
-  return index < siblings.length - 1 ? (siblings[index + 1] ?? null) : null
 }
 
 // =============================================================================
@@ -440,7 +378,7 @@ export function detectPrefixConversion(content: string): PrefixConversion | null
  *
  * Returns node changes to apply, or null if no degradation possible (should merge).
  */
-export function backspaceDegradation(node: KNode, tree?: TreeMutator, nodeId?: string): Partial<KNode> | null {
+export function degrade(node: KNode, tree?: TreeMutator, nodeId?: string): Partial<KNode> | null {
   // Step 1: Strip task trait — keep item but remove task
   if (node.item?.task) {
     const { task: _, ...restItem } = node.item

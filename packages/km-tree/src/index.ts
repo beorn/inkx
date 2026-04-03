@@ -51,15 +51,11 @@ export { Tree, type TreeReader, type TreeMover } from "./tree.ts"
 
 // Block operations (split/merge for outline editing)
 export {
-  splitNode,
-  mergeWithPrevious,
-  mergeWithNext,
-  getEditableText,
-  setEditableText,
-  getPreviousSibling,
-  getNextSibling,
+  split,
+  mergeBackward,
+  mergeForward,
   detectPrefixConversion,
-  backspaceDegradation,
+  degrade,
   type TreeMutator,
   type SplitResult,
   type MergeResult,

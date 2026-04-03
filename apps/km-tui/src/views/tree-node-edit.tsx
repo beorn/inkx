@@ -10,7 +10,7 @@ import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
 import { KNode, stringifyTaskMetadata, parseTaskMetadataFromText } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
-import { extractBody, splitNode, mergeWithPrevious } from "@km/tree"
+import { extractBody, split, mergeBackward } from "@km/tree"
 import type { NodeEditState } from "../reactive.ts"
 import type { BoardAppStore } from "../board-app-store.ts"
 import type { JobRunner } from "@km/core"
@@ -179,7 +179,7 @@ export function TitleEditor({
       try {
         undoHandle.setCursor(displayNode.id)
         undoHandle.startBatch("Split node")
-        const result = splitNode(repo, displayNode.id, offset)
+        const result = split(repo, displayNode.id, offset)
         undoHandle.endBatch()
         // Focus the new node (text after cursor) in edit mode
         setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
@@ -197,7 +197,7 @@ export function TitleEditor({
     try {
       undoHandle.setCursor(displayNode.id)
       undoHandle.startBatch("Merge nodes")
-      const result = mergeWithPrevious(repo, displayNode.id)
+      const result = mergeBackward(repo, displayNode.id)
       undoHandle.endBatch()
       if (result) {
         // Focus the survivor with cursor at the merge point
@@ -302,7 +302,7 @@ export function BodyBlockEditor({
                   try {
                     undoHandle.setCursor(displayNode.id)
                     undoHandle.startBatch("Split block")
-                    const result = splitNode(repo, child.id, offset)
+                    const result = split(repo, child.id, offset)
                     undoHandle.endBatch()
                     setUI({
                       inlineEditBlock: {
@@ -319,7 +319,7 @@ export function BodyBlockEditor({
                   try {
                     undoHandle.setCursor(displayNode.id)
                     undoHandle.startBatch("Merge blocks")
-                    const result = mergeWithPrevious(repo, child.id)
+                    const result = mergeBackward(repo, child.id)
                     undoHandle.endBatch()
                     if (result) {
                       setUI({

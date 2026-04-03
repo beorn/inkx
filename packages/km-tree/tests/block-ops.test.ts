@@ -1,23 +1,15 @@
 /**
  * Block Operations Tests - Split and Merge
  *
- * Tests for pure tree operations: splitNode, mergeWithPrevious.
+ * Tests for pure tree operations: split, mergeBackward.
  * Uses createTestRepo for an in-memory Repo that satisfies TreeMutator.
  */
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import {
-  splitNode,
-  mergeWithPrevious,
-  mergeWithNext,
-  getEditableText,
-  setEditableText,
-  getPreviousSibling,
-  getNextSibling,
-  detectPrefixConversion,
-  backspaceDegradation,
-} from "../src/block-ops.ts"
+import { KNode } from "@km/core"
+import { split, mergeBackward, mergeForward, detectPrefixConversion, degrade } from "../src/block-ops.ts"
+import { KTree } from "../src/walk.ts"
 
 // =============================================================================
 // Helpers
@@ -95,17 +87,17 @@ function setupSectionTree() {
 }
 
 // =============================================================================
-// getEditableText / setEditableText
+// KNode.string / KNode.setString
 // =============================================================================
 
-describe("getEditableText", () => {
+describe("KNode.string", () => {
   test("returns task content without checkbox prefix", () => {
     const node = {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
       content: "- [ ] Buy groceries",
     } as any
-    expect(getEditableText(node)).toBe("Buy groceries")
+    expect(KNode.string(node)).toBe("Buy groceries")
   })
 
   test("returns outline item name", () => {
@@ -115,12 +107,12 @@ describe("getEditableText", () => {
       name: "My Section",
       content: "My Section",
     } as any
-    expect(getEditableText(node)).toBe("My Section")
+    expect(KNode.string(node)).toBe("My Section")
   })
 
   test("returns content for other types", () => {
     const node = { type: "p", content: "Hello world" } as any
-    expect(getEditableText(node)).toBe("Hello world")
+    expect(KNode.string(node)).toBe("Hello world")
   })
 
   test("handles done task marker", () => {
@@ -129,22 +121,22 @@ describe("getEditableText", () => {
       item: { list: "-", task: { marker: "[x]", status: "done" } },
       content: "- [x] Completed item",
     } as any
-    expect(getEditableText(node)).toBe("Completed item")
+    expect(KNode.string(node)).toBe("Completed item")
   })
 
   test("handles null content", () => {
     const node = { type: "p", content: null } as any
-    expect(getEditableText(node)).toBe("")
+    expect(KNode.string(node)).toBe("")
   })
 })
 
-describe("setEditableText", () => {
+describe("KNode.setString", () => {
   test("wraps task text with checkbox prefix", () => {
     const node = {
       type: "p",
       item: { task: { marker: "[ ]", status: "todo" } },
     } as any
-    expect(setEditableText(node, "New text")).toBe("- [ ] New text")
+    expect(KNode.setString(node, "New text")).toBe("- [ ] New text")
   })
 
   test("preserves done task marker", () => {
@@ -152,42 +144,42 @@ describe("setEditableText", () => {
       type: "p",
       item: { task: { marker: "[x]", status: "done" } },
     } as any
-    expect(setEditableText(node, "Done item")).toBe("- [x] Done item")
+    expect(KNode.setString(node, "Done item")).toBe("- [x] Done item")
   })
 
   test("returns plain text for outline items", () => {
     const node = { type: "h", item: {} } as any
-    expect(setEditableText(node, "Section Name")).toBe("Section Name")
+    expect(KNode.setString(node, "Section Name")).toBe("Section Name")
   })
 
   test("returns plain text for other types", () => {
     const node = { type: "p" } as any
-    expect(setEditableText(node, "Paragraph")).toBe("Paragraph")
+    expect(KNode.setString(node, "Paragraph")).toBe("Paragraph")
   })
 })
 
 // =============================================================================
-// splitNode
+// split
 // =============================================================================
 
-describe("splitNode", () => {
+describe("split", () => {
   test("split task in middle creates two tasks", () => {
     const { repo, parentId, task2Id } = setupTaskTree()
 
     // "Charlie delta" - split at offset 7 (after "Charlie")
-    const result = splitNode(repo, task2Id, 7)
+    const result = split(repo, task2Id, 7)
 
     expect(result.beforeId).toBe(task2Id)
 
     // Original node should have "Charlie"
     const before = repo.getNode(result.beforeId)!
-    expect(getEditableText(before)).toBe("Charlie")
+    expect(KNode.string(before)).toBe("Charlie")
     expect(before.type).toBe("p")
     expect(before.item).toBeDefined()
 
     // New node should have " delta"
     const after = repo.getNode(result.afterId)!
-    expect(getEditableText(after)).toBe(" delta")
+    expect(KNode.string(after)).toBe(" delta")
     expect(after.type).toBe("p")
     expect(after.item).toBeDefined()
     expect(after.item?.task?.status).toBe("todo")
@@ -202,15 +194,15 @@ describe("splitNode", () => {
   test("split at start creates empty node before", () => {
     const { repo, parentId, task2Id } = setupTaskTree()
 
-    const result = splitNode(repo, task2Id, 0)
+    const result = split(repo, task2Id, 0)
 
     // Original node should be empty
     const before = repo.getNode(result.beforeId)!
-    expect(getEditableText(before)).toBe("")
+    expect(KNode.string(before)).toBe("")
 
     // New node should have full text
     const after = repo.getNode(result.afterId)!
-    expect(getEditableText(after)).toBe("Charlie delta")
+    expect(KNode.string(after)).toBe("Charlie delta")
 
     // 4 children total
     const children = repo.getChildren(parentId)
@@ -220,15 +212,15 @@ describe("splitNode", () => {
   test("split at end creates empty node after", () => {
     const { repo, parentId, task2Id } = setupTaskTree()
 
-    const result = splitNode(repo, task2Id, 13) // "Charlie delta" = 13 chars
+    const result = split(repo, task2Id, 13) // "Charlie delta" = 13 chars
 
     // Original node keeps full text
     const before = repo.getNode(result.beforeId)!
-    expect(getEditableText(before)).toBe("Charlie delta")
+    expect(KNode.string(before)).toBe("Charlie delta")
 
     // New node is empty
     const after = repo.getNode(result.afterId)!
-    expect(getEditableText(after)).toBe("")
+    expect(KNode.string(after)).toBe("")
 
     const children = repo.getChildren(parentId)
     expect(children).toHaveLength(4)
@@ -245,7 +237,7 @@ describe("splitNode", () => {
       parent_idx: 1,
     })
 
-    const result = splitNode(repo, task2Id, 7)
+    const result = split(repo, task2Id, 7)
 
     // Children should now be under the new (after) node
     const afterChildren = repo.getChildren(result.afterId)
@@ -268,7 +260,7 @@ describe("splitNode", () => {
       parent_idx: 4,
     })
 
-    const result = splitNode(repo, doneId, 14) // after "Completed task"
+    const result = split(repo, doneId, 14) // after "Completed task"
 
     const after = repo.getNode(result.afterId)!
     expect(after.item?.task?.marker).toBe("[ ]")
@@ -296,7 +288,7 @@ describe("splitNode", () => {
       parent_idx: 1,
     })
 
-    const result = splitNode(repo, nodeId, 5)
+    const result = split(repo, nodeId, 5)
 
     const after = repo.getNode(result.afterId)!
     // data is a system key — not inherited by extractProps
@@ -316,7 +308,7 @@ describe("splitNode", () => {
       parent_idx: 4,
     })
 
-    const result = splitNode(repo, nodeId, 10)
+    const result = split(repo, nodeId, 10)
 
     const after = repo.getNode(result.afterId)!
     expect(after.priority).toBe("P1")
@@ -327,7 +319,7 @@ describe("splitNode", () => {
     const { repo, sec1Id } = setupSectionTree()
 
     // "Section One" - split at offset 7 (after "Section")
-    const result = splitNode(repo, sec1Id, 7)
+    const result = split(repo, sec1Id, 7)
 
     const before = repo.getNode(result.beforeId)!
     expect(before.content).toBe("Section")
@@ -341,7 +333,7 @@ describe("splitNode", () => {
   test("new node sort order is between current and next sibling", () => {
     const { repo, task1Id, task2Id, task3Id } = setupTaskTree()
 
-    const result = splitNode(repo, task2Id, 5)
+    const result = split(repo, task2Id, 5)
 
     const after = repo.getNode(result.afterId)!
     const task2 = repo.getNode(task2Id)!
@@ -355,7 +347,7 @@ describe("splitNode", () => {
   test("split last sibling places new node after", () => {
     const { repo, task3Id } = setupTaskTree()
 
-    const result = splitNode(repo, task3Id, 4)
+    const result = split(repo, task3Id, 4)
 
     const after = repo.getNode(result.afterId)!
     const task3 = repo.getNode(task3Id)!
@@ -365,40 +357,40 @@ describe("splitNode", () => {
 
   test("throws on non-existent node", () => {
     const { repo } = setupTaskTree()
-    expect(() => splitNode(repo, "nonexistent", 5)).toThrow("node not found")
+    expect(() => split(repo, "nonexistent", 5)).toThrow("node not found")
   })
 
   test("clamps offset to valid range", () => {
     const { repo, task2Id } = setupTaskTree()
 
     // Offset beyond text length should clamp
-    const result = splitNode(repo, task2Id, 999)
+    const result = split(repo, task2Id, 999)
 
     const before = repo.getNode(result.beforeId)!
-    expect(getEditableText(before)).toBe("Charlie delta")
+    expect(KNode.string(before)).toBe("Charlie delta")
 
     const after = repo.getNode(result.afterId)!
-    expect(getEditableText(after)).toBe("")
+    expect(KNode.string(after)).toBe("")
   })
 
   test("negative offset clamps to 0", () => {
     const { repo, task2Id } = setupTaskTree()
 
-    const result = splitNode(repo, task2Id, -5)
+    const result = split(repo, task2Id, -5)
 
     const before = repo.getNode(result.beforeId)!
-    expect(getEditableText(before)).toBe("")
+    expect(KNode.string(before)).toBe("")
 
     const after = repo.getNode(result.afterId)!
-    expect(getEditableText(after)).toBe("Charlie delta")
+    expect(KNode.string(after)).toBe("Charlie delta")
   })
 })
 
 // =============================================================================
-// mergeWithPrevious
+// mergeBackward
 // =============================================================================
 
-describe("mergeWithPrevious", () => {
+describe("mergeBackward", () => {
   test("empty node with previous: deletes node, cursor to prev", () => {
     const { repo, parentId } = setupTaskTree()
 
@@ -413,7 +405,7 @@ describe("mergeWithPrevious", () => {
     const childrenBefore = repo.getChildren(parentId)
     const prevId = childrenBefore.find((c) => c.parent_idx < 1.5 && c.id !== emptyId)?.id
 
-    const result = mergeWithPrevious(repo, emptyId)
+    const result = mergeBackward(repo, emptyId)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(prevId)
@@ -424,7 +416,7 @@ describe("mergeWithPrevious", () => {
     const { repo, task1Id, task2Id } = setupTaskTree()
 
     // task1 = "Alpha bravo", task2 = "Charlie delta"
-    const result = mergeWithPrevious(repo, task2Id)
+    const result = mergeBackward(repo, task2Id)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(task2Id)
@@ -432,7 +424,7 @@ describe("mergeWithPrevious", () => {
 
     // task2 now has merged content
     const merged = repo.getNode(task2Id)!
-    expect(getEditableText(merged)).toBe("Alpha bravoCharlie delta")
+    expect(KNode.string(merged)).toBe("Alpha bravoCharlie delta")
 
     // task1 is deleted
     expect(repo.getNode(task1Id)).toBeNull()
@@ -449,7 +441,7 @@ describe("mergeWithPrevious", () => {
       parent_idx: 1,
     })
 
-    const result = mergeWithPrevious(repo, task2Id)
+    const result = mergeBackward(repo, task2Id)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(task2Id)
@@ -473,7 +465,7 @@ describe("mergeWithPrevious", () => {
       parent_idx: 1,
     })
 
-    const result = mergeWithPrevious(repo, childId)
+    const result = mergeBackward(repo, childId)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(childId)
@@ -504,7 +496,7 @@ describe("mergeWithPrevious", () => {
 
     // rootId's parent is "." (the virtual root)
     // Outdenting should move child to be a sibling of rootId under "."
-    const result = mergeWithPrevious(repo, childId)
+    const result = mergeBackward(repo, childId)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(childId)
@@ -516,13 +508,13 @@ describe("mergeWithPrevious", () => {
 
   test("non-existent node returns null", () => {
     const { repo } = setupTaskTree()
-    expect(mergeWithPrevious(repo, "nonexistent")).toBeNull()
+    expect(mergeBackward(repo, "nonexistent")).toBeNull()
   })
 
   test("merge preserves remaining sibling order", () => {
     const { repo, parentId, task1Id, task2Id, task3Id } = setupTaskTree()
 
-    mergeWithPrevious(repo, task2Id)
+    mergeBackward(repo, task2Id)
 
     // task1 is deleted, task2 and task3 remain
     const children = repo.getChildren(parentId)
@@ -533,10 +525,10 @@ describe("mergeWithPrevious", () => {
 })
 
 // =============================================================================
-// mergeWithNext
+// mergeForward
 // =============================================================================
 
-describe("mergeWithNext", () => {
+describe("mergeForward", () => {
   test("next is empty with no children: deletes next", () => {
     const { repo, parentId, task2Id } = setupTaskTree()
 
@@ -548,7 +540,7 @@ describe("mergeWithNext", () => {
       parent_idx: 2.5,
     })
 
-    const result = mergeWithNext(repo, task2Id)
+    const result = mergeForward(repo, task2Id)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(task2Id)
@@ -560,7 +552,7 @@ describe("mergeWithNext", () => {
     const { repo, task2Id, task3Id } = setupTaskTree()
 
     // task2 = "Charlie delta", task3 = "Echo foxtrot"
-    const result = mergeWithNext(repo, task2Id)
+    const result = mergeForward(repo, task2Id)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(task2Id)
@@ -568,7 +560,7 @@ describe("mergeWithNext", () => {
 
     // task2 now has merged content
     const merged = repo.getNode(task2Id)!
-    expect(getEditableText(merged)).toBe("Charlie deltaEcho foxtrot")
+    expect(KNode.string(merged)).toBe("Charlie deltaEcho foxtrot")
 
     // task3 is deleted
     expect(repo.getNode(task3Id)).toBeNull()
@@ -585,7 +577,7 @@ describe("mergeWithNext", () => {
       parent_idx: 1,
     })
 
-    const result = mergeWithNext(repo, task2Id)
+    const result = mergeForward(repo, task2Id)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(task2Id)
@@ -593,7 +585,7 @@ describe("mergeWithNext", () => {
 
     // task2 has merged content
     const merged = repo.getNode(task2Id)!
-    expect(getEditableText(merged)).toBe("Charlie deltaEcho foxtrot")
+    expect(KNode.string(merged)).toBe("Charlie deltaEcho foxtrot")
 
     // task3's child is now under task2
     const task2Children = repo.getChildren(task2Id)
@@ -607,19 +599,19 @@ describe("mergeWithNext", () => {
   test("no next sibling: returns null", () => {
     const { repo, task3Id } = setupTaskTree()
 
-    const result = mergeWithNext(repo, task3Id)
+    const result = mergeForward(repo, task3Id)
     expect(result).toBeNull()
   })
 
   test("non-existent node: returns null", () => {
     const { repo } = setupTaskTree()
-    expect(mergeWithNext(repo, "nonexistent")).toBeNull()
+    expect(mergeForward(repo, "nonexistent")).toBeNull()
   })
 
   test("preserves remaining sibling order", () => {
     const { repo, parentId, task1Id, task2Id, task3Id } = setupTaskTree()
 
-    mergeWithNext(repo, task1Id)
+    mergeForward(repo, task1Id)
 
     // task2 is deleted, task1 and task3 remain
     const children = repo.getChildren(parentId)
@@ -637,7 +629,7 @@ describe("mergeWithNext", () => {
       content: "- [x] Charlie delta",
     })
 
-    const result = mergeWithNext(repo, task1Id)
+    const result = mergeForward(repo, task1Id)
 
     // task1 (todo) survives, task2 (done) is consumed
     const survivor = repo.getNode(result!.survivorId)!
@@ -648,14 +640,14 @@ describe("mergeWithNext", () => {
   test("works with section (h+item) nodes", () => {
     const { repo, sec1Id, sec2Id } = setupSectionTree()
 
-    const result = mergeWithNext(repo, sec1Id)
+    const result = mergeForward(repo, sec1Id)
 
     expect(result).not.toBeNull()
     expect(result!.survivorId).toBe(sec1Id)
     expect(result!.cursorOffset).toBe(11) // "Section One" length
 
     const merged = repo.getNode(sec1Id)!
-    // h+item nodes use name field via getEditableText, but content is set via setEditableText
+    // h+item nodes use name field via KNode.string, but content is set via KNode.setString
     expect(merged.content).toBe("Section OneSection Two")
 
     expect(repo.getNode(sec2Id)).toBeNull()
@@ -680,7 +672,7 @@ describe("mergeWithNext", () => {
       parent_idx: 1,
     })
 
-    mergeWithNext(repo, task2Id)
+    mergeForward(repo, task2Id)
 
     // Both children should be under task2
     const children = repo.getChildren(task2Id)
@@ -691,44 +683,44 @@ describe("mergeWithNext", () => {
 })
 
 // =============================================================================
-// getPreviousSibling / getNextSibling
+// KTree.previous / KTree.next
 // =============================================================================
 
-describe("getPreviousSibling", () => {
+describe("KTree.previous", () => {
   test("returns previous sibling", () => {
     const { repo, task1Id, task2Id } = setupTaskTree()
-    const prev = getPreviousSibling(repo, task2Id)
+    const prev = KTree.previous(repo, task2Id)
     expect(prev?.id).toBe(task1Id)
   })
 
   test("returns null for first child", () => {
     const { repo, task1Id } = setupTaskTree()
-    const prev = getPreviousSibling(repo, task1Id)
+    const prev = KTree.previous(repo, task1Id)
     expect(prev).toBeNull()
   })
 
   test("returns null for non-existent node", () => {
     const { repo } = setupTaskTree()
-    expect(getPreviousSibling(repo, "nonexistent")).toBeNull()
+    expect(KTree.previous(repo, "nonexistent")).toBeNull()
   })
 })
 
-describe("getNextSibling", () => {
+describe("KTree.next", () => {
   test("returns next sibling", () => {
     const { repo, task2Id, task3Id } = setupTaskTree()
-    const next = getNextSibling(repo, task2Id)
+    const next = KTree.next(repo, task2Id)
     expect(next?.id).toBe(task3Id)
   })
 
   test("returns null for last child", () => {
     const { repo, task3Id } = setupTaskTree()
-    const next = getNextSibling(repo, task3Id)
+    const next = KTree.next(repo, task3Id)
     expect(next).toBeNull()
   })
 
   test("returns null for non-existent node", () => {
     const { repo } = setupTaskTree()
-    expect(getNextSibling(repo, "nonexistent")).toBeNull()
+    expect(KTree.next(repo, "nonexistent")).toBeNull()
   })
 })
 
@@ -950,16 +942,16 @@ describe("detectPrefixConversion", () => {
 })
 
 // =============================================================================
-// backspaceDegradation
+// degrade
 // =============================================================================
 
-describe("backspaceDegradation", () => {
+describe("degrade", () => {
   test("strips task from task node", () => {
     const node = {
       type: "p",
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).not.toBeNull()
     expect(result!.item?.task).toBeUndefined()
     // list stays — only task is stripped
@@ -971,7 +963,7 @@ describe("backspaceDegradation", () => {
       type: "p",
       item: { list: "-" },
     } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).not.toBeNull()
     expect(result!.type).toBe("p")
     expect(result!.item?.list).toBeUndefined()
@@ -984,7 +976,7 @@ describe("backspaceDegradation", () => {
       fstype: "mdsection",
       name: "Heading",
     } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).not.toBeNull()
     expect(result!.type).toBe("p")
     expect(result!.fstype).toBeUndefined()
@@ -992,21 +984,21 @@ describe("backspaceDegradation", () => {
 
   test("converts quote to p", () => {
     const node = { type: "quote" } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).not.toBeNull()
     expect(result!.type).toBe("p")
   })
 
   test("converts hr to p", () => {
     const node = { type: "hr" } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).not.toBeNull()
     expect(result!.type).toBe("p")
   })
 
   test("returns null for plain paragraph (should merge)", () => {
     const node = { type: "p" } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).toBeNull()
   })
 
@@ -1015,7 +1007,7 @@ describe("backspaceDegradation", () => {
       type: "p",
       item: { list: "-", task: { marker: "[x]", status: "done" } },
     } as any
-    const result = backspaceDegradation(node)
+    const result = degrade(node)
     expect(result).not.toBeNull()
     expect(result!.item?.task).toBeUndefined()
     expect(result!.item?.list).toBe("-")
@@ -1036,7 +1028,7 @@ describe("backspaceDegradation", () => {
 
     const node = repo.getNode(itemId)!
     // With tree context: should skip item removal and fall through to type check
-    const result = backspaceDegradation(node, repo, itemId)
+    const result = degrade(node, repo, itemId)
     // Node is already type "p", so after skipping item removal it returns null (merge)
     expect(result).toBeNull()
   })
@@ -1052,7 +1044,7 @@ describe("backspaceDegradation", () => {
     })
 
     const node = repo.getNode(itemId)!
-    const result = backspaceDegradation(node, repo, itemId)
+    const result = degrade(node, repo, itemId)
     expect(result).not.toBeNull()
     expect(result!.item).toBeUndefined()
     expect(result!.type).toBe("p")
@@ -1072,27 +1064,11 @@ describe("backspaceDegradation", () => {
     repo.addNode(sectionId, { type: "p", item: {}, content: "Child", parent_idx: 1 })
 
     const node = repo.getNode(sectionId)!
-    const result = backspaceDegradation(node, repo, sectionId)
+    const result = degrade(node, repo, sectionId)
     // Skips item removal (has children), falls through to type conversion (h → p)
     expect(result).not.toBeNull()
     expect(result!.type).toBe("p")
     // Item trait is NOT removed (still has children)
     expect(result!.item).toBeUndefined()
-  })
-})
-
-// =============================================================================
-// getEditableText / setEditableText (canonical names)
-// =============================================================================
-
-describe("getEditableText", () => {
-  test("is the same function as getEditableText", () => {
-    expect(getEditableText).toBe(getEditableText)
-  })
-})
-
-describe("setEditableText", () => {
-  test("is the same function as setEditableText", () => {
-    expect(setEditableText).toBe(setEditableText)
   })
 })

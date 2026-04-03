@@ -28,17 +28,8 @@ import { markDialogConfirmed, isDialogConfirmGracePeriod, pushDialogMode, popDia
 import { indentNode, outdentNode } from "../keyboard/keyboard-card-ops.ts"
 import { activeEditTargetRef, activeEditContextRef, copyToClipboard } from "@silvery/ag-react"
 import { dialogTargetRef } from "../dialog-target.ts"
-import {
-  extractBody,
-  splitNode,
-  mergeWithNext,
-  mergeWithPrevious,
-  detectPrefixConversion,
-  backspaceDegradation,
-  getNextSibling,
-  getEditableText,
-  setEditableText,
-} from "@km/tree"
+import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
+import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../selection.ts"
@@ -715,7 +706,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
               changes.content = remainingText
             } else if (changes.item?.task?.marker) {
               const fakeNode = { ...node, ...changes } as typeof node
-              changes.content = setEditableText(fakeNode, remainingText)
+              changes.content = KNode.setString(fakeNode, remainingText)
               if (!changes.type) changes.type = "p"
               if (changes.item === undefined) changes.item = {}
             } else {
@@ -754,7 +745,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
         }
         const node = ctx.repo.getNode(nodeId)
         if (node) {
-          const degradation = backspaceDegradation(node, ctx.repo, nodeId)
+          const degradation = degrade(node, ctx.repo, nodeId)
           if (degradation) {
             ctx.undoHandle.setCursor(ctx.cursorNodeId)
             applyDegradation(node, degradation, content)
@@ -763,14 +754,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
             return ok()
           }
           bsTarget.save()
-          ctx.undoHandle.setCursor(ctx.cursorNodeId)
-          ctx.undoHandle.startBatch("Merge backward")
-          const result = mergeWithPrevious(ctx.repo, nodeId)
-          ctx.undoHandle.endBatch()
-          if (result) {
-            ctx.setUI({ inlineEditBlock: null })
-            ctx.dispatchBoard({ type: "SELECT", nodeId: result.survivorId })
-          }
+          boardMergeBackward(ctx, nodeId)
           return ok()
         }
       }
@@ -788,26 +772,19 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
           executeDelete(ctx, nodeId)
         } else if (cursor >= content.length) {
           const nodeId = ctx.ui.inlineEditBlock.nodeId
-          const nextNode = getNextSibling(ctx.repo, nodeId)
+          const nextNode = KTree.next(ctx.repo, nodeId)
           if (nextNode) {
-            const degradation = backspaceDegradation(nextNode, ctx.repo, nextNode.id)
+            const degradation = degrade(nextNode, ctx.repo, nextNode.id)
             if (degradation) {
               ctx.undoHandle.setCursor(ctx.cursorNodeId)
-              applyDegradation(nextNode, degradation, getEditableText(nextNode))
+              applyDegradation(nextNode, degradation, KNode.string(nextNode))
               runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: nextNode.id, updates: degradation })
               ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
               return ok()
             }
           }
           fwdTarget.save()
-          ctx.undoHandle.setCursor(ctx.cursorNodeId)
-          ctx.undoHandle.startBatch("Merge forward")
-          const result = mergeWithNext(ctx.repo, nodeId)
-          ctx.undoHandle.endBatch()
-          if (result) {
-            ctx.setUI({ inlineEditBlock: null })
-            ctx.dispatchBoard({ type: "SELECT", nodeId: result.survivorId })
-          }
+          boardMergeForward(ctx, nodeId)
         } else {
           fwdTarget.deleteForward()
         }
@@ -1727,7 +1704,7 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   if (!node) return ok()
 
   // Materialize content for folder nodes (title stored as data.name, not content field).
-  // Without this, splitNode/splitAsChild would operate on empty string.
+  // Without this, split/splitAsChild would operate on empty string.
   if (node.content == null) {
     const editText = editTarget.getContent()
     runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { content: editText } })
@@ -1743,18 +1720,16 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
   const hasVisibleChildren = !isBodyBlock && hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.foldDepths)
 
   try {
-    ctx.undoHandle.setCursor(nodeId)
-    ctx.undoHandle.startBatch("Split node")
     if (hasVisibleChildren) {
+      // Split placing after-portion as first child (not sibling)
+      ctx.undoHandle.setCursor(nodeId)
+      ctx.undoHandle.startBatch("Split node")
       const result = splitAsChild(ctx.repo, nodeId, adjustedOffset)
       ctx.undoHandle.endBatch()
       ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
       ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
     } else {
-      const result = splitNode(ctx.repo, nodeId, adjustedOffset)
-      ctx.undoHandle.endBatch()
-      ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
-      ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+      boardSplit(ctx, nodeId, adjustedOffset)
     }
     requestRenderFlush()
   } catch {

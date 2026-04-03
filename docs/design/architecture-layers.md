@@ -56,7 +56,7 @@ export interface TreeMutator {
 }
 ```
 
-Provides: `splitNode`, `mergeWithPrevious`, `indentNode`, `outdentNode`. Currently scattered across files -- a Tree consolidation is planned (bead `km-core.slate-interfaces`).
+Provides: `split`, `mergeBackward`, `indentNode`, `outdentNode`. Currently scattered across files -- a Tree consolidation is planned (bead `km-core.slate-interfaces`).
 
 ## Application (km-tui, km-cli)
 

@@ -18,11 +18,10 @@ import {
   type TreeMutator,
   type SplitResult,
   type MergeResult,
-  splitNode,
-  mergeWithPrevious,
-  mergeWithNext,
-  getEditableText,
-  backspaceDegradation,
+  split,
+  mergeBackward,
+  mergeForward,
+  degrade,
 } from "./block-ops.ts"
 import { midpoint } from "./sort-utils.ts"
 
@@ -105,7 +104,7 @@ export function createOutlinerContext(
   const siblings = parentId ? tree.getChildren(parentId) : []
   const myIndex = siblings.findIndex((s) => s.id === nodeId)
   const children = tree.getChildren(nodeId)
-  const text = getEditableText(node)
+  const text = KNode.string(node)
 
   const isIndentable = policy?.isIndentable ? policy.isIndentable(node) : KNode.isItem(node)
 
@@ -223,7 +222,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
       const node = tree.getNode(nodeId)
       if (!node?.parent_id) return null
 
-      const text = getEditableText(node)
+      const text = KNode.string(node)
       const children = tree.getChildren(nodeId)
       const hasChildren = children.length > 0
       const childrenVisible = policy?.childrenVisible ? policy.childrenVisible(nodeId) : true
@@ -252,7 +251,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
       }
 
       // cursorAtMiddle: split at cursor using block-ops
-      const result: SplitResult = splitNode(tree, nodeId, cursorOffset)
+      const result: SplitResult = split(tree, nodeId, cursorOffset)
       return { beforeId: result.beforeId, afterId: result.afterId }
     },
 
@@ -261,7 +260,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
       if (!node) return null
 
       // Step 1-3: Degradation ladder (strip traits before merging)
-      const degradation = backspaceDegradation(node, tree, nodeId)
+      const degradation = degrade(node, tree, nodeId)
       if (degradation) {
         tree.updateNode(nodeId, degradation)
         return {
@@ -273,7 +272,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
       }
 
       // Node is a plain paragraph — proceed with merge/structural operations
-      const text = getEditableText(node)
+      const text = KNode.string(node)
       const isEmpty = text.length === 0
       const children = tree.getChildren(nodeId)
       const parentId = node.parent_id
@@ -287,7 +286,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
         // Has previous sibling
         const prev = siblings[myIndex - 1]
         if (!prev) return null
-        const prevText = getEditableText(prev)
+        const prevText = KNode.string(prev)
         const prevChildren = tree.getChildren(prev.id)
 
         // Step 4: empty + no children → delete, cursor to prev
@@ -302,7 +301,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
 
         // Step 5: has content + prev is childless → prepend prev content, delete prev
         if (prevChildren.length === 0) {
-          const result: MergeResult | null = mergeWithPrevious(tree, nodeId)
+          const result: MergeResult | null = mergeBackward(tree, nodeId)
           if (!result) return null
           return {
             type: "merged",
@@ -312,7 +311,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
         }
 
         // Step 6: has content + prev has children → move as last child of prev
-        const result: MergeResult | null = mergeWithPrevious(tree, nodeId)
+        const result: MergeResult | null = mergeBackward(tree, nodeId)
         if (!result) return null
         return {
           type: "reparented",
@@ -325,7 +324,7 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
       const parent = tree.getNode(parentId)
       if (!parent?.parent_id) return null
 
-      const result: MergeResult | null = mergeWithPrevious(tree, nodeId)
+      const result: MergeResult | null = mergeBackward(tree, nodeId)
       if (!result) return null
       return {
         type: "outdented",
@@ -350,8 +349,8 @@ export function withOutliner(tree: TreeMutator, policy?: OutlinerPolicy): Outlin
       // Next has children → no-op (conservative, per spec)
       if (nextChildren.length > 0) return null
 
-      const text = getEditableText(node)
-      const result: MergeResult | null = mergeWithNext(tree, nodeId)
+      const text = KNode.string(node)
+      const result: MergeResult | null = mergeForward(tree, nodeId)
       if (!result) return null
 
       return {

@@ -717,7 +717,7 @@ describe("Enter on task cards", () => {
     expect(newestNode.item?.list).toBe("-")
   })
 
-  // BUG VARIANT 2: Tasks with prefixed content (as produced by splitNode or
+  // BUG VARIANT 2: Tasks with prefixed content (as produced by split or
   // real vault materialization where content = "- [ ] text").
   // Targets: handleTitleSave re-adding the task marker prefix when content
   // already has it, causing double-prefix corruption; and task type loss

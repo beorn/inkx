@@ -7,7 +7,6 @@
 
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
-import { getEditableText, setEditableText } from "@km/tree"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
@@ -169,7 +168,7 @@ export function handleSearchReplaceTabField(ctx: ActionCtx): ActionResult {
  * Search visible nodes for matches (used by search/replace dialog).
  * Pure function — usable from both action handlers and React callbacks.
  *
- * Uses getEditableText for correct text extraction (handles oi names, task prefixes).
+ * Uses KNode.string for correct text extraction (handles oi names, task prefixes).
  * Accepts a repo for node lookup since columns only contain node snapshots
  * and replacements may have mutated the repo since the last render.
  */
@@ -199,7 +198,7 @@ export function searchReplaceMatchingNodeIds(
       // Re-fetch from repo for freshness after replacements
       const node = repo.getNode(card.id)
       if (!node) continue
-      const text = getEditableText(node)
+      const text = KNode.string(node)
       if (useRegex && regex) {
         regex.lastIndex = 0
         if (regex.test(text)) {
@@ -227,7 +226,7 @@ function replaceInNode(
   const node = ctx.repo.getNode(nodeId)
   if (!node) return false
 
-  const text = getEditableText(node)
+  const text = KNode.string(node)
   let newText: string
 
   if (useRegex) {
@@ -254,7 +253,7 @@ function replaceInNode(
   if (newText === text) return false
 
   // Apply the change via the repo
-  const newContent = setEditableText(node, newText)
+  const newContent = KNode.setString(node, newText)
   if (KNode.isOutline(node)) {
     runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { name: newContent } })
   } else {

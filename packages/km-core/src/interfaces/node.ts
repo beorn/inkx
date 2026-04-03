@@ -87,6 +87,34 @@ export const KNode = {
   },
 
   /**
+   * Get the display/edit text of a node.
+   * For outline items (type:"h", item != null), this is the name (heading text).
+   * For list items with task markers, strips the checkbox prefix.
+   * For other types, this is the content.
+   */
+  string(node: KNode): string {
+    if (KNode.isOutline(node)) return node.name ?? node.content ?? ""
+    if (node.item?.task && node.content) {
+      return node.content.replace(/^- \[.\] /, "")
+    }
+    return node.content ?? ""
+  },
+
+  /**
+   * Set the display/edit text of a node, preserving the content format.
+   * Returns the new content string (does NOT mutate).
+   */
+  setString(node: KNode, text: string): string {
+    if (KNode.isOutline(node)) return text
+    const taskMarker = node.item?.task?.marker
+    if (taskMarker) {
+      const inner = taskMarker.length === 3 ? taskMarker[1] : " "
+      return `- [${inner}] ${text}`
+    }
+    return text
+  },
+
+  /**
    * Extract inheritable properties from a node (SlateJS-compatible pattern).
    * Strips system fields, returns everything else. New fields auto-inherit.
    * Task nodes get reset to unchecked (todo / [ ]).
