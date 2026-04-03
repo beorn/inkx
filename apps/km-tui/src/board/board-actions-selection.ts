@@ -10,24 +10,33 @@
  * - Shift-H/L: column-level selection (selectColumnRange)
  */
 
+import { Tree } from "@km/tree"
 import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 
 /**
  * Extend selection vertically (up or down).
- * Moves focus up/down within the same column; selection derived from anchor to focus.
+ *
+ * Level-aware: when cursor is on a sub-item (outline mode), selects among
+ * siblings at the same depth. When at card level, selects between cards.
  */
 export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "down"): void {
   const { ui, dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card
+  const cursorId = ctx.cursorNodeId
 
-  if (!card || !col) return
+  if (!card || !col || !cursorId) return
 
-  // Initialize anchor if starting fresh — set via setUI AND mutate ctx.ui
-  // so that updateSelectionRange (called below) can read it synchronously
-  // before React flushes the batched update.
+  // Outline mode: cursor is on a sub-item within a card
+  const inOutlineMode = cursorId !== card.id
+
+  if (inOutlineMode) {
+    return handleExtendSelectOutline(ctx, direction)
+  }
+
+  // Card-level selection (original behavior)
   const initAnchor = ui.selectionAnchor === null
   if (initAnchor) {
     const anchor = { nodeId: card.id }
@@ -35,12 +44,10 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
     ctx.ui.selectionAnchor = anchor
   }
 
-  // Calculate target
   const targetIdx =
     direction === "up" ? Math.max(0, ctx.cardIndex - 1) : Math.min(col.cardNodes.length - 1, ctx.cardIndex + 1)
 
   if (targetIdx === ctx.cardIndex) {
-    // At boundary: if we just initialized the anchor, select the current card
     if (initAnchor) {
       const newSelected = new Set(ui.multiSelected)
       newSelected.add(card.id)
@@ -52,14 +59,64 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
     return
   }
 
-  // Move cursor (focus)
   const treeDir: TreeDirection = direction === "up" ? "prev" : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
-    // Derive selection from anchor to new focus
     updateSelectionRange(ctx, ctx.colIndex, targetIdx)
   }
+}
+
+/**
+ * Extend selection among siblings at the same depth (outline mode).
+ * Uses Tree.siblings to navigate within the same parent.
+ */
+function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): void {
+  const { ui, dispatchBoard, repo } = ctx
+  const cursorId = ctx.cursorNodeId!
+
+  // Get siblings at the same level
+  const siblings = Tree.siblings(repo, cursorId)
+  const curIdx = siblings.findIndex((s) => s.id === cursorId)
+  if (curIdx === -1) return
+
+  // Initialize anchor at current position
+  if (ui.selectionAnchor === null) {
+    const anchor = { nodeId: cursorId }
+    ctx.setUI({ selectionAnchor: anchor })
+    ctx.ui.selectionAnchor = anchor
+  }
+
+  // Find target sibling
+  const targetIdx = direction === "up" ? curIdx - 1 : curIdx + 1
+  if (targetIdx < 0 || targetIdx >= siblings.length) {
+    // At boundary: select current item if starting fresh
+    if (ui.multiSelected.size === 0) {
+      ctx.setUI({
+        multiSelected: new Set([cursorId]),
+        status: { level: "info", message: "1 item selected" },
+      })
+    }
+    return
+  }
+
+  const targetId = siblings[targetIdx]!.id
+  dispatchBoard({ type: "SELECT", nodeId: targetId })
+
+  // Build selection range: all siblings between anchor and focus
+  const anchorId = ui.selectionAnchor?.nodeId ?? cursorId
+  const anchorIdx = siblings.findIndex((s) => s.id === anchorId)
+  const newSelected = new Set<string>()
+  const lo = Math.min(anchorIdx, targetIdx)
+  const hi = Math.max(anchorIdx, targetIdx)
+  for (let i = lo; i <= hi; i++) {
+    newSelected.add(siblings[i]!.id)
+  }
+
+  ctx.setUI({
+    multiSelected: newSelected,
+    status: { level: "info", message: `${newSelected.size} item${newSelected.size > 1 ? "s" : ""} selected` },
+  })
 }
 
 /**
