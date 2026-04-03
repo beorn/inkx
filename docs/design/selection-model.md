@@ -35,15 +35,21 @@ Enforced by every mutator — never deferred.
 
 ## Interface
 
-Consumers only use `Selection.*` — internals are hidden.
+Consumers only use `Selection.*` — internals are hidden. Helpers accept `SelectionValue` uniformly — callers don't need to check mode first.
 
 ```ts
+// Target — what mutations accept (resolves to a node ID)
+type Target = ID | TextPoint | SelectionValue
+// ID → that node
+// TextPoint → the node at textPoint.nodeId
+// SelectionValue → the cursor node
+
 const Selection = {
-  // Read
+  // Read (work on any SelectionValue — node, text, or undefined)
   cursor(sel):                      ID | undefined
   anchor(sel):                      ID | undefined
   ids(sel):                         ReadonlySet<ID>
-  includes(sel, nodeId):            boolean             // ids.has() — O(1)
+  includes(sel, target):            boolean             // ids.has(resolveId(target))
   textCursor(sel):                  TextPoint | undefined
   textAnchor(sel):                  TextPoint | undefined
   hasSingleNode(sel):               boolean
@@ -53,12 +59,12 @@ const Selection = {
   insertionPoint(sel, space):       InsertionPoint
 
   // Node mutations (clear text, preserve invariants)
-  of(nodeId):                       SelectionValue      // single node
-  select(nodeId):                   SelectionValue      // cursor=anchor=nodeId, ids={nodeId}
-  add(sel, nodeId):                 SelectionValue      // ids ∪ {nodeId}
-  remove(sel, nodeId, space):       SelectionValue      // ids \ {nodeId}, repair cursor
-  toggle(sel, nodeId, space):       SelectionValue      // XOR nodeId in ids
-  extend(sel, nodeId, space):       SelectionValue      // ids = space.range(anchor, nodeId)
+  of(target):                       SelectionValue      // single node
+  select(target):                   SelectionValue      // cursor=anchor=id, ids={id}
+  add(sel, target):                 SelectionValue      // ids ∪ {id}
+  remove(sel, target, space):       SelectionValue      // ids \ {id}, repair cursor
+  toggle(sel, target, space):       SelectionValue      // XOR id in ids
+  extend(sel, target, space):       SelectionValue      // ids = space.range(anchor, id)
   collapseToCursor(sel):            SelectionValue      // ids = {cursor}
   areaSelect(base, hitIds, mode, space): SelectionValue // commit against gesture-start base
 
@@ -76,6 +82,8 @@ const Selection = {
   update(action, state, space):     [SelectionState, SelectionEffect[]]
 }
 ```
+
+`Target` resolves to a node ID: bare ID passes through, TextPoint extracts `.nodeId`, SelectionValue extracts `.cursor`. This means a command can call `Selection.toggle(sel, otherSel, space)` — toggling whatever `otherSel` is pointing at.
 
 ### Cursor repair (internal — hidden behind mutators)
 
