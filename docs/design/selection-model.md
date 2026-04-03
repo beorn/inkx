@@ -23,14 +23,14 @@ Mode derived from presence: `!sel` = board, `node && !text` = node, `text` = tex
 ## selection / selecting
 
 ```ts
-selection: SelectionValue              // committed (TEA store)
+selection: SelectionValue              // committed (TEA store, frozen during gestures)
 
-selecting?: {                          // active gesture (transient)
-  base: SelectionValue                 // frozen snapshot at gesture start
-  effective(space): SelectionValue     // base + gesture delta
+selecting?: {                          // active gesture (transient, if any)
+  ...gestureFields                     // kind, hitIds, anchor, focus, mode, etc.
+  effective(sel, space): SelectionValue // sel + gesture delta
 }
 
-useSelection() = selecting?.effective(space) ?? selection
+useSelection() = selecting?.effective(selection, space) ?? selection
 ```
 
 - No gesture → consumers see `selection`
@@ -189,11 +189,10 @@ const dispatch = useSelectionDispatch()
 ### Gesture sessions
 
 ```ts
-type GestureSession = { base: SelectionValue }
-type AreaSelectSession  = GestureSession & { kind: "node-areaselect"; hitIds: ReadonlySet<ID>; mode: "replace"|"xor" }
-type NodeExtendSession  = GestureSession & { kind: "node-shiftselect"; anchor: ID; focus: ID }
-type TextDragSession    = GestureSession & { kind: "text-dragselect"; anchor: TextPoint; focus: TextPoint }
-type TextExtendSession  = GestureSession & { kind: "text-shiftselect"; anchor: TextPoint; focus: TextPoint }
+type AreaSelectSession  = { kind: "node-areaselect"; hitIds: ReadonlySet<ID>; mode: "replace"|"xor" }
+type NodeExtendSession  = { kind: "node-shiftselect"; anchor: ID; focus: ID }
+type TextDragSession    = { kind: "text-dragselect"; anchor: TextPoint; focus: TextPoint }
+type TextExtendSession  = { kind: "text-shiftselect"; anchor: TextPoint; focus: TextPoint }
 type DragDropSession    = { kind: "drag"; dragging: ReadonlySet<ID>; dropTarget: DropTarget|null; dropEffect: "move"|"copy"|"link" }
 ```
 
