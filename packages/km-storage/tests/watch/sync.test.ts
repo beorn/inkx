@@ -511,6 +511,126 @@ code
       }))
   })
 
+  describe("formatting-only external edits", () => {
+    test("formatting-only edit updates baseline hash but does not rewrite file", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const testFile = join(repoDir, "format-test.md")
+        const originalContent = `# Tasks
+
+- [ ] Alpha
+- [ ] Beta
+`
+        writeFileSync(testFile, originalContent)
+
+        const manager = createTestSync(db, repoDir, {
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+        })
+
+        // Initial sync
+        await manager.syncFromFs()
+
+        // Verify initial state
+        const allNodes = getAllNodes(db)
+        const tasks = allNodes.filter((n) => n.item?.task?.status != null)
+        expect(tasks.length).toBe(2)
+
+        // Snapshot node state before the formatting edit
+        const nodesBefore = getAllNodes(db).map((n) => ({
+          id: n.id,
+          content: n.content,
+          type: n.type,
+          item: JSON.stringify(n.item),
+          data: JSON.stringify(n.data),
+        }))
+
+        // Make a formatting-only change: add extra blank lines
+        const formattedContent = `# Tasks
+
+
+- [ ] Alpha
+
+- [ ] Beta
+
+`
+        writeFileSync(testFile, formattedContent)
+
+        // Re-sync
+        await manager.syncFromFs()
+
+        // Verify: nodes unchanged (no semantic edits)
+        const nodesAfter = getAllNodes(db).map((n) => ({
+          id: n.id,
+          content: n.content,
+          type: n.type,
+          item: JSON.stringify(n.item),
+          data: JSON.stringify(n.data),
+        }))
+        expect(nodesAfter).toEqual(nodesBefore)
+
+        // Verify: file on disk still has the formatting edit (not rewritten)
+        const diskContent = readFileSync(testFile, "utf-8")
+        expect(diskContent).toBe(formattedContent)
+      }))
+
+    test("semantic edit after formatting-only edit is still detected", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const testFile = join(repoDir, "semantic-after-format.md")
+        writeFileSync(
+          testFile,
+          `# Tasks
+
+- [ ] Alpha
+- [ ] Beta
+`,
+        )
+
+        const manager = createTestSync(db, repoDir, {
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "fs_wins",
+        })
+
+        // Initial sync
+        await manager.syncFromFs()
+
+        // Formatting-only edit
+        writeFileSync(
+          testFile,
+          `# Tasks
+
+
+- [ ] Alpha
+
+- [ ] Beta
+
+`,
+        )
+        await manager.syncFromFs()
+
+        // Now make a semantic edit: mark Alpha as done
+        writeFileSync(
+          testFile,
+          `# Tasks
+
+
+- [x] Alpha
+
+- [ ] Beta
+
+`,
+        )
+        await manager.syncFromFs()
+
+        // Verify: Alpha is now done in DB
+        const allNodes = getAllNodes(db)
+        const alpha = allNodes.find((n) => n.content === "Alpha")
+        expect(alpha).toBeDefined()
+        expect(alpha!.item?.task?.status).toBe("done")
+      }))
+  })
+
   describe("applyEventToFs — node_created for section nodes", () => {
     test("creating a section node regenerates parent file", () =>
       withTestEnv(async ({ repoDir, db }) => {

@@ -125,6 +125,21 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
   // Diff and emit changes
   const { changes, idMap } = diffNodes(existingNodes, newNodes)
 
+  // Formatting-only edit: raw bytes changed but parsed nodes are identical.
+  // Update baseline hash so we don't re-process, but skip DB updates and file rewrite.
+  if (changes.length === 0) {
+    log.debug?.(`handleUpdate: formatting-only change for ${op.path}, updating baseline hash only`)
+    const baselineUpdates: Record<string, unknown> = {
+      fs_mtime: mtime,
+      content_hash: hash,
+    }
+    if (ino !== undefined) {
+      baselineUpdates.fs_ino = ino
+    }
+    emitNodeUpdated(emitter, "fs-watch", op.nodeId, baselineUpdates)
+    return
+  }
+
   for (const change of changes) {
     switch (change.type) {
       case "created":
