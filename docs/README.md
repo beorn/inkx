@@ -91,7 +91,7 @@ km init                    # Enable persistence (stable IDs, history)
 | [design/tea-state-machines.md](design/tea-state-machines.md)                 | TEA state machine architecture (`(state, op) -> [state, effects]`) |
 | [design/phases.md](design/phases.md)                                         | TEA migration roadmap (phase status and key files)       |
 | [design/data-model.md](design/data-model.md)                                 | Node tree (KNode, items vs blocks) and board hierarchy   |
-| [design/outliner-spec.md](design/outliner-spec.md)                           | Outliner editing operations (splitBlock, indent, merge)  |
+| [design/outliner-spec.md](design/outliner-spec.md)                           | Outliner editing operations (split, indent, merge)       |
 | [design/architecture-layers.md](design/architecture-layers.md)               | Three-layer architecture (Domain, Operations, Application) |
 | [design/render-neutral-tui.md](design/render-neutral-tui.md)                 | Render-neutral TUI design                                |
 | [design/terminal-integration-testing.md](design/terminal-integration-testing.md) | Terminal integration testing strategy                |

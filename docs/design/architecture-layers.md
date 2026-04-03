@@ -56,7 +56,15 @@ export interface TreeMutator {
 }
 ```
 
-Provides: `split`, `mergeBackward`, `indentNode`, `outdentNode`. Currently scattered across files -- a Tree consolidation is planned (bead `km-core.slate-interfaces`).
+Provides: `split`, `mergeBackward`, `mergeForward`, `indentNode`, `outdentNode`, `degrade`.
+
+Also provides a SlateJS-aligned operations layer:
+
+- **`operations.ts`** — 7 atomic Operation types (`insert_node`, `remove_node`, `set_node`, `move_node`, `split_node`, `merge_node`, `set_selection`) with `inverse()` and `applyOperation()`
+- **`selection.ts`** — `Point` (nodeId + offset), `Range` (anchor + focus), transform helpers for adjusting selection after ops
+- **`history.ts`** — `withHistory` decorator for op-based undo/redo with batch grouping
+- **`operation-log.ts`** — `OperationLog` for append-only op recording with sequence-based filtering
+- **`normalize.ts`** — `withNormalization` decorator for auto-enforcing schema constraints after mutations
 
 ## Application (km-tui, km-cli)
 

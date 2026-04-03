@@ -119,6 +119,10 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
+| Data | `Operation` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
+| Data | `Point`, `Range` | `Point`, `Range` | text-level selection, `transformPoint`, `transformRange` |
+| Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
+| Data | `OperationLog` | `createOperationLog` | `.append()`, `.getSince()`, `.seq()` |
 | View | `ViewNode` | `ViewTree` | `.nodes()`, `.next()`, `.prev()`, `.ancestors()`, `.get()` |
 | Storage | `Repo` | — | `.apply()`, `.commit()`, `.getNode()`, `.getChildren()` |
 | Storage | `Sync` | `withSync()` | `.start()`, `.stop()`, `.save()`, `.forceHeartbeat()` |
@@ -1319,6 +1323,9 @@ When reviewing PRs, the question is: "Does this follow the principles?" If not, 
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
+| Data | `Operation` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
+| Data | `Point`, `Range` | `Point`, `Range` | text-level selection, transforms |
+| Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
 | View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |
 | State | `BoardNavState` | `applyListNav` | list-based cursor navigation |
 | UI | `PaneUI` | `PaneUI` | `.editMode()`, `.isInDialog()` |

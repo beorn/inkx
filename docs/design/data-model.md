@@ -126,6 +126,28 @@ Board Root ─────────── fstype: "repo" or "folder"
 
 **Role is positional, not typed.** The same KNode type can be a column, card, or sub-item depending on where it sits in the tree.
 
+## Operations Layer
+
+Tree mutations are expressed as **atomic Operations** — 7 types inspired by SlateJS but using stable IDs (not paths):
+
+```
+insert_node, remove_node, set_node, move_node, split_node, merge_node, set_selection
+```
+
+Every operation is invertible: `inverse(op)` produces the op that undoes it. High-level mutations (split, mergeBackward) emit operations via an `onOp` callback, enabling undo without reimplementing business logic.
+
+**Modules** (all in `packages/km-tree/src/`):
+
+| Module | What |
+|---|---|
+| `operations.ts` | 7 Operation types, `inverse()`, `applyOperation()` |
+| `selection.ts` | `Point` (nodeId + offset), `Range` (anchor + focus), `transformPoint`/`transformRange` for auto-adjusting selection after ops |
+| `history.ts` | `withHistory` decorator — captures ops for undo/redo, groups into batches |
+| `operation-log.ts` | `OperationLog` — append-only in-memory log with sequence-based filtering for replay/sync |
+| `normalize.ts` | `withNormalization` decorator — enforces schema constraints after every mutation |
+
+**Composition**: decorators compose — `withHistory(withNormalization(tree))` gives a TreeMutator with both undo and auto-normalization.
+
 ## Cursor Model
 
 Three levels of cursor tracking for efficient re-rendering:
@@ -162,6 +184,15 @@ The cursor is a single node. **Selection** is a set of nodes — the cursor plus
 - Selection lives within one column — no cross-column selection
 
 **CursorContext (future)** should include the full selection, not just the cursor node. This way operations don't need to separately query the selection.
+
+### Text-Level Selection (Point & Range)
+
+In addition to the node-level cursor, the operations layer defines **text-level selection** for within-node editing:
+
+- **Point** — `{ nodeId, offset }` identifies a position within a node's text content
+- **Range** — `{ anchor, focus }` spans from one point to another; when collapsed, represents a text cursor
+
+Points use stable node IDs (not paths), so `transformPoint`/`transformRange` after tree operations is simpler than in SlateJS — most ops only affect the referenced node.
 
 ## Body Content
 
