@@ -596,12 +596,6 @@ describe("filesystem sync: repo.updateNode() writes to disk (km-tui.save-rerende
     })
   })
 
-  test("shouldApplyToFs returns true for actor=user", async () => {
-    const { shouldApplyToFs } = await import("@km/storage")
-    expect(shouldApplyToFs("user")).toBe(true)
-    expect(shouldApplyToFs("fs-watch")).toBe(false)
-  })
-
   test("repo.subscribe fires on updateNode (useSyncExternalStore contract)", () => {
     // Verifies the contract useSyncExternalStore relies on:
     // subscribe(cb) registers listener, updateNode increments version, cb fires.

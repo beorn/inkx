@@ -15,7 +15,6 @@ import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../path-utils.ts"
 import { getIgnorePatterns } from "../ignore.ts"
 import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
-import { shouldApplyToFs } from "./writequeue.ts"
 // reconcileIfChanged removed — DB is authority for user-origin events
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { getFolderIndexConfig } from "../config.ts"
@@ -80,7 +79,7 @@ export class EventHandlers {
    * Apply a database event to filesystem
    */
   applyEventToFs(event: Event): void {
-    if (!shouldApplyToFs(event.actor)) {
+    if (event.actor === "fs-watch") {
       log.debug?.(`skipping fs apply for actor=${event.actor} event=${event.type}`)
       return
     }
@@ -289,33 +288,11 @@ export class EventHandlers {
     const node = getNode(this.db, event.target)
     if (!node) return
 
-    // Save the DESTINATION file (where the node now lives)
-    this.save(node)
-
-    // Save the SOURCE file (where the node used to live) to remove stale content
-    const data = event.data as { old_parent_id?: string | null }
-    const oldParentId = data?.old_parent_id
-    if (oldParentId) {
-      const oldParent = getNode(this.db, oldParentId)
-      if (oldParent) {
-        const sourceFileNode = findFileNode(this.db, oldParent)
-        const destFileNode = findFileNode(this.db, node)
-        // Only save if source differs from destination (cross-file move)
-        if (sourceFileNode?.fs_path && sourceFileNode.id !== destFileNode?.id) {
-          this.save(oldParent)
-        }
-      }
-    }
-
-    // If moved node's parent is a folder with materialization, regenerate its index file
-    const parent = node.parent_id ? getNode(this.db, node.parent_id) : null
-    if (parent?.fstype === "folder" && parent.fs_path) {
-      this.handleFolderIndexUpdate(parent)
-    }
-
-    // Handle file/folder item moves on disk — when a file or folder node is moved
-    // between parents, the actual filesystem entry must be relocated too.
-    if (node.item && (node.fstype === "file" || node.fstype === "folder") && node.fs_path) {
+    // Handle file/folder item moves on disk FIRST — when a file or folder node
+    // is moved between parents, the actual filesystem entry must be relocated
+    // before any save() calls, so save() writes to the correct (new) path.
+    let didDiskMove = false
+    if (node.item && (node.fstype === "file" || node.fstype === "mdfile" || node.fstype === "folder") && node.fs_path) {
       const oldAbsPath = toAbsoluteFsPath(this.repoPath, node.fs_path)
       const newParent = node.parent_id ? getNode(this.db, node.parent_id) : null
       if (newParent?.fs_path) {
@@ -327,6 +304,10 @@ export class EventHandlers {
             log.info?.(`move-disk: ${node.fs_path} → ${relative(this.repoPath, newAbsPath)}`)
             this.fsTarget.markInFlight?.(oldAbsPath)
             this.fsTarget.markInFlight?.(newAbsPath)
+
+            // Drop any pending writes to the old path before renaming
+            this.fsTarget.dropPending?.(oldAbsPath)
+
             this.fsTarget.renameFile(oldAbsPath, newAbsPath)
 
             // Update fs_path in DB
@@ -345,9 +326,41 @@ export class EventHandlers {
 
             this.fsTarget.clearInFlight?.(oldAbsPath, 1000)
             this.fsTarget.clearInFlight?.(newAbsPath, 1000)
+            didDiskMove = true
           }
         }
       }
+    }
+
+    // Save the DESTINATION file (where the node now lives).
+    // For disk-moved file/folder items, re-read the node to pick up the updated fs_path.
+    if (didDiskMove) {
+      const refreshed = getNode(this.db, event.target)
+      if (refreshed) this.save(refreshed)
+    } else {
+      this.save(node)
+    }
+
+    // Save the SOURCE file (where the node used to live) to remove stale content
+    const data = event.data as { old_parent_id?: string | null }
+    const oldParentId = data?.old_parent_id
+    if (oldParentId) {
+      const oldParent = getNode(this.db, oldParentId)
+      if (oldParent) {
+        const sourceFileNode = findFileNode(this.db, oldParent)
+        const destNode = didDiskMove ? getNode(this.db, event.target) : node
+        const destFileNode = destNode ? findFileNode(this.db, destNode) : null
+        // Only save if source differs from destination (cross-file move)
+        if (sourceFileNode?.fs_path && sourceFileNode.id !== destFileNode?.id) {
+          this.save(oldParent)
+        }
+      }
+    }
+
+    // If moved node's parent is a folder with materialization, regenerate its index file
+    const parent = node.parent_id ? getNode(this.db, node.parent_id) : null
+    if (parent?.fstype === "folder" && parent.fs_path) {
+      this.handleFolderIndexUpdate(parent)
     }
   }
 

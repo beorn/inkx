@@ -437,24 +437,9 @@ export class WriteQueue extends EventEmitter {
         if (!this.fs.existsSync(dir)) {
           this.fs.mkdirSync(dir, { recursive: true })
         }
-        // Atomic write: write to temp file, then rename into place.
-        // This prevents watchers and external readers from seeing partial content.
-        // The .km-tmp extension is already in the default ignore patterns (matches **/*.tmp).
-        const tmpPath = op.path + ".km-tmp"
-        try {
-          this.fs.writeFileSync(tmpPath, op.content, "utf-8")
-          this.fs.renameSync(tmpPath, op.path)
-        } catch (err) {
-          // Clean up temp file if rename failed (writeFileSync may have succeeded)
-          try {
-            if (this.fs.existsSync(tmpPath)) {
-              this.fs.unlinkSync(tmpPath)
-            }
-          } catch {
-            // Best effort cleanup — ignore errors deleting temp file
-          }
-          throw err
-        }
+        // Direct write — preserves inode identity so the reconciler
+        // doesn't see a spurious inode change on every save.
+        this.fs.writeFileSync(op.path, op.content, "utf-8")
         this.onWrite?.(op.path, op.content)
         break
       }
@@ -829,12 +814,4 @@ export class WriteQueue extends EventEmitter {
     this.pending.clear()
     this.flushGeneration.clear()
   }
-}
-
-/**
- * Check if an event should be applied to filesystem
- */
-export function shouldApplyToFs(actor: string): boolean {
-  // Don't apply events that came from filesystem watching
-  return actor !== "fs-watch"
 }

@@ -208,7 +208,6 @@ export {
   shouldIgnore,
   isHiddenFile,
   WriteQueue,
-  shouldApplyToFs,
 } from "./watch/index.ts"
 
 export type {

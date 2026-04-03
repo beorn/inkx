@@ -43,7 +43,7 @@ export {
 export type { PatternMatcher, PatternMatcherOptions } from "../ignore.ts"
 
 // Write queue
-export { WriteQueue, shouldApplyToFs } from "./writequeue.ts"
+export { WriteQueue } from "./writequeue.ts"
 
 export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts"
 

@@ -207,8 +207,8 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
  * children ordering and title in the DB.
  *
  * Circular sync is already prevented: events emitted here use actor "fs-watch",
- * and shouldApplyToFs("fs-watch") returns false — so these changes won't trigger
- * the write path to regenerate the index file.
+ * and the event-handler skips fs-watch-origin events — so these changes won't
+ * trigger the write path to regenerate the index file.
  */
 export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
   const { db, op, emitter } = options
@@ -216,7 +216,7 @@ export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {
 
   const node = getNode(db, op.nodeId)
   if (!node) {
-    log.error?.(`syncIndexFileToFolder: node not found for id=${op.nodeId}`)
+    log.debug?.(`syncIndexFileToFolder: node not found for id=${op.nodeId} (deleted during batch)`)
     return
   }
   if (node.fstype !== "mdfile") return
