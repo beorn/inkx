@@ -172,6 +172,9 @@ function createQueryMethods(deps: RepoMethodDeps) {
     getChildren(parentId: string | null) {
       return childrenCache.get(parentId)
     },
+    getChildIds(parentId: string | null): readonly string[] {
+      return childrenCache.get(parentId).map((n) => n.id)
+    },
     getSubtree(nodeId: string) {
       return dbGetSubtree(db, nodeId)
     },
@@ -820,6 +823,9 @@ export interface Repo extends Disposable {
 
   /** Get children of a node (null for root) */
   getChildren(parentId: string | null): KNode[]
+
+  /** Get child IDs of a node (null for root) — structural read without full node hydration */
+  getChildIds(parentId: string | null): readonly string[]
 
   /** Get full subtree under a node */
   getSubtree(nodeId: string): KNode[]

@@ -46,6 +46,10 @@ export abstract class BaseStore implements NodeStore {
     return rows.map(rowToNode)
   }
 
+  getChildIds(parentId: string | null): readonly string[] {
+    return this.getChildren(parentId).map((n) => n.id)
+  }
+
   getAncestors(nodeId: string): KNode[] {
     const rows = this.db
       .query(

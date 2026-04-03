@@ -210,6 +210,10 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
         .sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
     },
 
+    getChildIds(parentId) {
+      return this.getChildren(parentId).map((n) => n.id)
+    },
+
     getChildCounts(parentIds) {
       ensureNotClosed()
       const counts = new Map<string, number>()

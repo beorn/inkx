@@ -22,6 +22,7 @@ export interface NodeStore extends Disposable {
   getNode(id: string): KNode | null
   getNodeByPath(fsPath: string): KNode | null
   getChildren(parentId: string | null): KNode[]
+  getChildIds(parentId: string | null): readonly string[]
   getAncestors(nodeId: string): KNode[]
   getSubtree(rootId: string): KNode[]
   getAllNodes(): KNode[]

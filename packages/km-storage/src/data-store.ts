@@ -51,6 +51,9 @@ export interface DataStore extends Disposable {
   /** Get children of a node (null for root-level nodes) */
   getChildren(parentId: string | null): KNode[]
 
+  /** Get child IDs of a node (null for root-level nodes) — structural read without full node hydration */
+  getChildIds(parentId: string | null): readonly string[]
+
   /** Get all nodes in the store */
   getAllNodes(): KNode[]
 
@@ -181,6 +184,10 @@ export function createMapDataStore(): MapDataStore {
       return children.sort((a, b) => (a.parent_idx ?? 0) - (b.parent_idx ?? 0))
     },
 
+    getChildIds(parentId) {
+      return this.getChildren(parentId).map((n) => n.id)
+    },
+
     getAllNodes() {
       return Array.from(nodes.values())
     },
@@ -303,6 +310,10 @@ export function createMemDataStore(): DataStore & HasDatabase {
       return dbGetChildren(db, parentId)
     },
 
+    getChildIds(parentId) {
+      return this.getChildren(parentId).map((n) => n.id)
+    },
+
     getAllNodes() {
       return dbGetAllNodes(db)
     },
@@ -378,6 +389,10 @@ export function createDBDataStore(db: Database, options?: DBDataStoreOptions): D
 
     getChildren(parentId) {
       return dbGetChildren(db, parentId)
+    },
+
+    getChildIds(parentId) {
+      return this.getChildren(parentId).map((n) => n.id)
     },
 
     getAllNodes() {
