@@ -169,28 +169,73 @@ const Selection = {
 
 No `normalize` — invariant violations throw. Commands provide valid `selectedAfter` on transactions. Stale-ID repair is a future collab concern.
 
-## Interactions
+## Input State Machine
 
-The gesture type is derived from input state — not imperative handlers:
+The gesture type is derived from `(pointerState, target, modifiers, selected)`. No imperative session management.
 
-| Input state | Derived gesture | Commit |
+### Mouse states
+
+```
+idle ──mousedown──► pressed ──moved beyond threshold──► dragging ──mouseup──► commit
+  ▲                    │                                    │
+  │                    │ mouseup (no drag)                  │ Escape
+  │                    ▼                                    ▼
+  └──────────────── click (immediate)                   cancel (restore)
+```
+
+### What target was under the pointer on mousedown?
+
+| Target | Click (no drag) | Drag |
 |---|---|---|
-| click | `select(nodeAt(ptr))` | immediate |
-| cmd+click | `toggle(nodeAt(ptr))` | immediate |
-| shift+click / shift+j/k | `extend(target)` preview | shift release |
-| drag | `areaSelect(hitTest, "replace")` preview | mouseup |
-| cmd+drag | `areaSelect(hitTest, "xor")` preview | mouseup |
-| click text / double-click | `select(id)` + `edit(offset)` | immediate |
-| drag in text | `extendTextRange` preview | mouseup |
-| shift+arrow in text | `extendTextRange` preview | shift release |
-| Enter | `edit(0)` | immediate |
-| Escape (text) | `stopEditing` | immediate |
-| Escape (multi) | `collapseToCursor` | immediate |
-| Escape (single) | `clear` | immediate |
-| drag selected node | move all — visual preview | drop |
-| drag unselected node | `select(id)` + move | drop |
+| empty space | `clear` | **area select** (lasso) |
+| unselected node | `select(id)` | `select(id)` + **move** |
+| selected node (not cursor) | `select(id)` | **move all selected** |
+| cursor node | (no-op or `select`) | **move all selected** |
+| text (editing, same node) | position caret | **text drag-select** |
+| text (different node) | `select(id)` + `edit(offset)` | `select(id)` + **text drag-select** |
 
-Gestures morph automatically: text-drag crossing a node boundary becomes node-areaselect (derived from pointer position). Drag back → reverts. All reactive — no manual session management.
+### Modifier keys change the gesture
+
+| Modifier | Effect on click | Effect on drag |
+|---|---|---|
+| (none) | replace selection | area-replace / move |
+| Cmd | `toggle(id)` | area-toggle (XOR) |
+| Shift | `extend(id)` → commit | shift-extend preview → commit on release |
+
+### Gesture morphing (derived from pointer position during drag)
+
+```
+text-dragselect ◄──────────────────────────────────► node-areaselect
+                  pointer leaves text node              pointer enters text node
+                  of cursor node                        of cursor node
+```
+
+The gesture kind is recomputed continuously from pointer position. If a text-drag crosses a node boundary, the preview becomes an area select. Drag back → reverts to text select. No explicit mode switching — it's derived.
+
+### Keyboard (node mode)
+
+| Key | Action |
+|---|---|
+| j / k | `select(next/prev)` — immediate |
+| Shift+j / Shift+k | `extend` preview → commit on shift release |
+| Enter | `edit(0)` — immediate |
+| Escape | `stopEditing` / `collapseToCursor` / `clear` (steps up one mode level) |
+
+### Keyboard (text mode)
+
+| Key | Action |
+|---|---|
+| Arrow keys | `moveTextCursor` — immediate |
+| Shift+Arrow | `extendTextRange` preview → commit on shift release |
+| Escape | `stopEditing` → node mode |
+
+### Double-click
+
+| Target | Action |
+|---|---|
+| Node (not editing) | `select(id)` + `edit(0)` — enter text mode |
+| Text (editing) | select word (text-level, handled by text engine) |
+| Column / container | create new child (dispatch, not selection) |
 
 ## Example
 
