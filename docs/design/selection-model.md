@@ -109,13 +109,15 @@ const Selection = {
 
   // Node mutations (clear text, enforce invariants)
   select(id):                    Selection     // nodes = [id]
-  add(sel, id):                  Selection     // prepend (becomes cursor)
-  remove(sel, id, space):        Selection     // remove, repair cursor/anchor
   toggle(sel, id, space):        Selection     // add or remove
   extend(sel, id, space):        Selection     // nodes = [id, ...range, anchor]
-  collapseToCursor(sel):         Selection     // nodes = [cursor]
   areaSelect(sel, hitIds, mode, space): Selection
   clear():                       undefined
+
+  // Convenience (derived from above)
+  add(sel, id):                  Selection     // toggle, but idempotent (no-op if present)
+  remove(sel, id, space):        Selection     // toggle, but idempotent (no-op if absent)
+  collapseToCursor(sel):         Selection     // = select(cursor(sel))
 
   // Text mutations (don't touch nodes)
   edit(sel, offset):             Selection     // set text at cursor node
