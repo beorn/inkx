@@ -12,7 +12,7 @@ import { useNodeStore, useReactive, type NodeEditState } from "../reactive.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Small, Text, useScreenRectCallback } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
-import { isCardView, type CardView } from "../types.ts"
+import { isCardView } from "../types.ts"
 import { useRepo } from "../repo-context.tsx"
 import {
   isNodeUntitled,
@@ -41,6 +41,7 @@ import { stripKnownMentions } from "./detail-pane-helpers.ts"
 import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
+import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import { Workspace, type BoardAppStore } from "../board-app-store.ts"
@@ -602,12 +603,26 @@ function TreeNodeImpl({
           backgroundColor={effectiveBg}
           height={isOneliner || isCardChild ? 1 : undefined}
         >
-          {/* Fixed-width prefix box (fold marker only - new cards style) */}
+          {/* Fixed-width prefix box (bullet/checkbox) */}
           <Box width={prefix.length} flexShrink={0}>
             <Text color={tc} dimColor={sd}>
-              <Text color={isSelected || isMultiSelected ? tc : style.isDoneOrDropped ? undefined : prefix.markerColor}>
-                {prefix.markerChar}
-              </Text>
+              {nodeIsTask && style.taskStatusIcon ? (
+                <CheckboxIcon
+                  nodeId={node.id}
+                  icon={style.taskStatusIcon}
+                  textColor={tc}
+                  shouldDim={sd}
+                  isSelected={isSelected}
+                  isMultiSelected={isMultiSelected}
+                  isDoneOrDropped={style.isDoneOrDropped}
+                />
+              ) : (
+                <Text
+                  color={isSelected || isMultiSelected ? tc : style.isDoneOrDropped ? undefined : prefix.markerColor}
+                >
+                  {prefix.markerChar}
+                </Text>
+              )}
               {prefix.afterMarker}
             </Text>
           </Box>
@@ -916,9 +931,13 @@ const FoldedChildRow = React.memo(
     } = useTreeRenderContext()
     const repo = useRepo()
 
+    // Read multi-selection signal so grandchildren highlight when parent is selected
+    const nodeStore = useNodeStore()
+    const isMultiSelected = useReactive(nodeStore.getOrCreate(node.id).multiSelected)
+
     const nodeIsTask = KNode.isTask(node)
     const hasChildren = childCount > 0
-    const style = getNodeStyle(node, false, false, false, depth, false)
+    const style = getNodeStyle(node, false, isMultiSelected, false, depth, false)
     if (dim) style.shouldDim = true
 
     // Search match highlighting: white bg / black fg (current match brighter)
@@ -960,13 +979,13 @@ const FoldedChildRow = React.memo(
       >
         <Box width={prefix.length} flexShrink={0}>
           <Text color={foldTc} dimColor={foldSd}>
-            <Text color={style.isDoneOrDropped ? undefined : prefix.markerColor}>{prefix.markerChar}</Text>
+            <Text color={isMultiSelected ? foldTc : style.isDoneOrDropped ? undefined : prefix.markerColor}>{prefix.markerChar}</Text>
             {prefix.afterMarker}
           </Text>
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
-            color={isBrokenEmbed ? "$error" : (foldTc ?? style.ownColor)}
+            color={isBrokenEmbed && !isMultiSelected ? "$error" : (foldTc ?? style.ownColor)}
             dimColor={foldSd}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"
@@ -974,7 +993,14 @@ const FoldedChildRow = React.memo(
             {node.type === "code" || node.type === "table" ? (
               displayContent
             ) : (
-              <InlineText text={displayContent} context={inlineContext} decorations={foldSearchDecorations} />
+              <InlineText
+                text={displayContent}
+                context={{
+                  ...inlineContext,
+                  colorOverride: searchHighlight || isMultiSelected || style.isDoneOrDropped ? null : undefined,
+                }}
+                decorations={foldSearchDecorations}
+              />
             )}
           </Text>
         </Box>

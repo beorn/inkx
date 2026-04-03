@@ -444,6 +444,8 @@ describe("Selection", () => {
     // Direct children should visually appear selected
     board.expectNodeColor("child-1", { bg: TC["$selection-bg"] })
     board.expectNodeColor("child-2", { bg: TC["$selection-bg"] })
+    // Grandchildren (sub-sub-items) should ALSO be visually selected
+    board.expectNodeColor("grandchild", { bg: TC["$selection-bg"] })
   })
 
   // ---------------------------------------------------------------------------
