@@ -25,6 +25,37 @@ Any node can have properties. A node with a `status` property is a task. A node 
 
 ---
 
+## Core Structure
+
+Four layers, bottom to top:
+
+```
+FS        markdown files on disk              source of truth
+            ↕ parse / serialize
+Repo      KNode tree in SQLite                queryable, subscribable
+            ↕ build / mutate
+Tree      operations, history, normalize      atomic ops, undo, invariants
+            ↕ derive
+View      ViewNode tree, Selection, Board     what you see and interact with
+```
+
+Each layer is a **domain interface** (type + pure functions):
+
+| Layer | Domain Interface | State | Key Operations |
+|---|---|---|---|
+| **FS** | (filesystem — not a domain interface) | `.md` files | read, write, watch |
+| **Repo** | `Repo` (domain object) | SQLite rows | `getNode`, `getChildren`, `addNode`, `moveNode` |
+| **Tree** | `KTree`, `TreeOp` | node tree | `KTree.nodes()`, `TreeOp.inverse()`, `withHistory()` |
+| **View** | `ViewTree`, `Selection`, `Board` | derived visual state | `ViewTree.nodes()`, `Selection.cursor()`, `Board.apply()` |
+
+**Data flows down** (FS → Repo → View). **Mutations flow up** (command → op → tree method → change → FS sync). The **unified pipeline** connects them:
+
+```
+event → command → op → apply() → [state, effects] → change → FS sync
+```
+
+---
+
 ## Everything is a Node
 
 Nodes form a tree representing your markdown files and their content:
