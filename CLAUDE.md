@@ -101,7 +101,7 @@ Each package has its own CLAUDE.md with API documentation. See [.claude/skills/g
 
 **Silvery is a general-purpose TUI library; km is its showcase.** Design and iterate on them together — km should leverage all Silvery features when available, and when a feature is missing, implement it in silvery (not as a km workaround). Silvery should be independently excellent; km proves it.
 
-**When editing any component** (km or silvery), read [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md) and [Styling](vendor/silvery/docs/guide/styling.md) first. Use canonical components (SelectList, TextInput, VirtualList), semantic theme tokens (`$primary`, `$muted`), and typography presets — never manual key handlers, hardcoded ANSI codes, or raw color values.
+**When editing any component** (km or silvery), read [The Silvery Way](vendor/silvery/docs/guide/the-silvery-way.md) and [Styling](vendor/silvery/docs/guide/styling.md) first. Use canonical components (SelectList, TextInput, ListView), semantic theme tokens (`$primary`, `$muted`), and typography presets — never manual key handlers, hardcoded ANSI codes, or raw color values.
 
 **Vendor package.json independence:** Vendor packages must not use `workspace:*` dependencies — they are standalone repos that must work outside the km monorepo. Use npm versions or `github:owner/repo` for cross-vendor deps. The km root `package.json` `overrides` section maps these to workspace copies for local development (e.g., `"vimonkey": "$vimonkey"`).
 
