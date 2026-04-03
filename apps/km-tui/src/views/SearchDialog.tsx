@@ -5,7 +5,9 @@
  * Press '/' to open, search to filter, Enter to navigate to selection.
  */
 import React from "react"
-import { Box, Text, Small, Muted, Strong, ErrorBoundary, ModalDialog } from "@silvery/ag-react"
+import { Box, Text, Small, Muted, Strong, ErrorBoundary, ModalDialog, useSearchOptional } from "@silvery/ag-react"
+import type { Searchable } from "@silvery/ag-react"
+import type { SearchMatch } from "@silvery/ag-term/search-overlay"
 import { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import type { Repo } from "../repo-context.tsx"
@@ -198,6 +200,32 @@ export const SearchDialog = React.forwardRef<SearchDialogHandle, SearchDialogPro
     [repo, trimmedQuery, effectiveScopeNodeIds],
   )
   resultsRef.current = results
+
+  // Register as a Searchable in silvery's SearchProvider (if available).
+  // This integrates repo search with the same infrastructure as Ctrl+F local find.
+  // The dialog keeps its own state for the rich UI; this just makes the search
+  // infrastructure aware that a repo searchable exists while the dialog is open.
+  const searchCtx = useSearchOptional()
+  React.useEffect(() => {
+    if (!searchCtx) return
+    const repoSearchable: Searchable = {
+      search(query: string): SearchMatch[] {
+        const nodes = searchNodes(repo, query, effectiveScopeNodeIds)
+        return nodes.map((_node, i) => ({
+          row: i,
+          startCol: 0,
+          endCol: 0,
+        }))
+      },
+      reveal(match: SearchMatch) {
+        const node = resultsRef.current[match.row]
+        if (node) {
+          onSelectRef.current(node.node)
+        }
+      },
+    }
+    return searchCtx.registerSearchable("repo", repoSearchable)
+  }, [searchCtx, repo, effectiveScopeNodeIds])
 
   React.useImperativeHandle(ref, () => ({
     focusInput() {
