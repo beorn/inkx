@@ -22,10 +22,9 @@ type ID = string & { readonly __brand: "ID" }
 
 type Range<T> = { anchor: T; focus: T }
 
-type SelectionState = {
-  scopes: Record<string, SelectionValue>  // scopeId → selection value
-  // activeScope resolved externally via focus system, not stored here
-}
+type SelectionState = Map<string, SelectionValue>  // scopeName → selection value
+// Active scope resolved externally via focus system
+// Scope lifecycle: set() to create, delete() to dispose
 
 type SelectionValue = {
   cursor: ID                     // where you "are" (inspector, keyboard, edit target)
@@ -267,8 +266,8 @@ type SelectionAction =
   // Area (clears text)
   | { type: "areaSelect"; nodeIds; mode: "replace" | "xor" }
   // Scope
-  | { type: "ensureScope"; scopeId }
-  | { type: "disposeScope"; scopeId }
+  | { type: "ensureScope"; scopeName }
+  | { type: "disposeScope"; scopeName }
 
 type SelectionEffect =
   | { type: "render" }
@@ -415,7 +414,7 @@ Focus (silvery) and Selection (km) are **orthogonal**:
 - `resolveSelectionOwner` maps focus scope → selection scope (not always 1:1)
 
 ```tsx
-<SelectionProvider scopeId="main-board" space={space}>
+<SelectionProvider scopeName="main-board" space={space}>
   <BoardView />
 </SelectionProvider>
 
