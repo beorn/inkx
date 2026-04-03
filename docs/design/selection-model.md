@@ -107,9 +107,9 @@ Node mutations always clear `text`. Text mutations never touch `nodes`.
 | `text-dragselect` | click+drag in text | `extendTextRange` | mouseup | Escape |
 | `text-shiftselect` | shift+arrow in text | `extendTextRange` | shift release | Escape |
 | `enter-text` | Enter | `edit(0)` | immediate | — |
-| `exit` | Escape (text mode) | `stopEditing` | immediate | — |
-| `exit` | Escape (multi-select) | `collapseToCursor` | immediate | — |
-| `exit` | Escape (single node) | `clear` → undefined | immediate | — |
+| `exit` | Escape (editing text) | `stopEditing` → node mode | immediate | — |
+| `exit` | Escape (multiple nodes) | `collapseToCursor` → single node | immediate | — |
+| `exit` | Escape (single node) | `clear` → board mode | immediate | — |
 | `drag-drop` | drag selected node | move all selected | mouseup (drop) | Escape |
 | `drag-drop` | drag unselected node | `select(id)` + move it | mouseup (drop) | Escape |
 
