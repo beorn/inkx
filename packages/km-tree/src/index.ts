@@ -65,6 +65,16 @@ export {
 // Schema — structural rules for the node model
 export { canHaveChildren, canParent, canBecomeBlock } from "./schema.ts"
 
+// Normalization — auto-enforcement of schema rules after mutations
+export {
+  withNormalization,
+  createNormalizer,
+  defaultNormalizers,
+  type Normalizer,
+  type NormalizerEngine,
+  type NormalizedTreeMutator,
+} from "./normalize.ts"
+
 // Tree walk — configurable DFS traversal and spatial queries
 export { KTree, type NodeEntry, type NodeMatch, type NodesOptions } from "./walk.ts"
 
@@ -85,6 +95,21 @@ export {
   type JoinBackwardResult,
   type JoinForwardResult,
 } from "./outliner.ts"
+
+// Operations — low-level atomic ops with inverse (SlateJS-inspired, ID-based)
+export {
+  inverse,
+  applyOperation,
+  type Operation,
+  type InsertNodeOperation,
+  type RemoveNodeOperation,
+  type SetNodeOperation,
+  type MoveNodeOperation,
+  type SplitNodeOperation,
+  type MergeNodeOperation,
+  type SetSelectionOperation,
+  type Selection,
+} from "./operations.ts"
 
 // Outliner Reducer — TEA state machine for outliner operations
 export {
