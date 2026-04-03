@@ -18,6 +18,12 @@ export { BoardCore, BoardApp } from "./views/index.ts"
 // Export repo context for wrapping components
 export { RepoProvider, useRepo, type Repo } from "./repo-context.tsx"
 
+// Export store context for fine-grained reactive signals
+export { StoreProvider, useStore, type Store } from "./store-context.tsx"
+
+// Export signal hooks for reactive components
+export { useSignal, useNodeSignal, useChildIdsSignal } from "./hooks/use-signal.ts"
+
 // Export UI reducer utilities
 export { createInitialUIState, createInitialPaneUI, PaneUI } from "./ui-reducer.ts"
 

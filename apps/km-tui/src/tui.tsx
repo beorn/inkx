@@ -21,8 +21,9 @@ import { restoreTerminal } from "./raw-signals.ts"
 import { createBoardState } from "./board-types.ts"
 import type { InitialBoardData, TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
+import { StoreProvider } from "./store-context.tsx"
 import { BoardApp } from "./views/index.ts"
-import { withSync, type Sync } from "@km/storage"
+import { withSync, createStoreFromRepo, withReactive, type Sync } from "@km/storage"
 import { createBoardApp } from "./board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./board-app-store.ts"
@@ -323,6 +324,10 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       savedWorkspace,
     }
 
+    // Create reactive store from repo: wrap Repo as Store, then add signal reactivity
+    using reactiveStore = withReactive(createStoreFromRepo(options.repo))
+    log.debug?.("reactive store created for fine-grained per-node reactivity")
+
     // Create L3 app (Zustand store + term:key handler)
     // TODO(km-canonical): Migrate to pipe() composition once createApp() supports plugin-based
     // event handler registration. Currently createApp() takes event handlers as a map in the
@@ -345,9 +350,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       const handle = await boardApp.run(
         <ThemeProvider theme={theme}>
           <RepoProvider repo={options.repo}>
-            <InputLayerProvider>
-              <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
-            </InputLayerProvider>
+            <StoreProvider store={reactiveStore}>
+              <InputLayerProvider>
+                <BoardApp initialViewMode={viewMode} patchedConsole={patched} toastQueue={toastQueue} />
+              </InputLayerProvider>
+            </StoreProvider>
           </RepoProvider>
         </ThemeProvider>,
         isInteractive
