@@ -32,7 +32,13 @@ import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { clearSelection, progressiveSelectAll, getSelectedNodes, getSelectedNodeIds, moveSelectedTo } from "./board-selection-helpers.ts"
+import {
+  clearSelection,
+  progressiveSelectAll,
+  getSelectedNodes,
+  getSelectedNodeIds,
+  moveSelectedTo,
+} from "./board-selection-helpers.ts"
 import {
   getFavorite,
   setFavorite,

@@ -73,7 +73,7 @@ function mockCtx(opts: {
       ...(opts.children ? { getChildren: (parentId: string | null) => children.get(parentId) ?? [] } : {}),
     },
     undoHandle: mockUndoHandle(),
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any
 }
 
