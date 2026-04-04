@@ -35,7 +35,7 @@ export interface InvariantViolation {
  * Check all invariants against the current state.
  *
  * Called after every action in handleKey/handleMouse.
- * Takes a fresh ActionCtx (rebuilt after mutations).
+ * Takes a fresh OpCtx (rebuilt after mutations).
  *
  * Throws InvariantViolationError if any violation is found.
  */

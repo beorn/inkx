@@ -40,7 +40,7 @@ export function ensureCommandSystemInitialized(): void {
   initCommandSystem()
 }
 
-/** Build command and keybinding contexts from the current ActionCtx */
+/** Build command and keybinding contexts from the current OpCtx */
 function buildCommandContexts(ctx: OpCtx) {
   const { ui, selectedNode } = ctx
 

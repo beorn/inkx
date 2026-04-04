@@ -273,7 +273,7 @@ async function profile() {
   handle.unmount()
   devNull.close()
 
-  // Phase 8: Measure preloadSubtree (called in buildActionCtx on every keypress)
+  // Phase 8: Measure preloadSubtree (called in buildOpCtx on every keypress)
   out("\n--- preloadSubtree cost ---")
   // Clear cache to simulate cold start
   ;(repo as any)._childrenCache?.clear?.()

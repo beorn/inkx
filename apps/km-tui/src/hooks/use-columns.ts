@@ -42,7 +42,7 @@ const defaultViewNodeCache: ViewNodeColumnCache = new Map()
 
 /**
  * Internal derivation — builds ViewNode tree and converts to ColumnView[].
- * Returns both for callers that need the tree (buildActionCtx).
+ * Returns both for callers that need the tree (buildOpCtx).
  *
  * @param cache - External ViewNodeColumnCache (per-pane in board-app, default singleton elsewhere)
  * @param hiddenNodeIds - Node IDs to exclude from the tree (board-level hidden filtering)
@@ -71,7 +71,7 @@ function deriveColumnsAndTree(
  *
  * All runtime column derivation paths must delegate here:
  * - useColumns() hook (React render path)
- * - buildActionCtx() in board-app.ts (key handler path, via deriveColumnsWithTree)
+ * - buildOpCtx() in board-app.ts (key handler path, via deriveColumnsWithTree)
  * - driver.ts getContext/getDriverState (test/AI automation path)
  *
  * Delegates to buildViewTree() for tree construction and viewNodeToColumnViews()
@@ -88,7 +88,7 @@ export function deriveColumnsFromRepo(
 
 /**
  * Extended column derivation that also returns the ViewNode tree.
- * Used by buildActionCtx which needs both columns and the tree for navigation/indexing.
+ * Used by buildOpCtx which needs both columns and the tree for navigation/indexing.
  *
  * @param cache - External ViewNodeColumnCache (per-pane cache for cross-call memoization)
  * @param hiddenNodeIds - Node IDs to exclude from the tree (board-level hidden filtering)

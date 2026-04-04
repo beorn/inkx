@@ -13,7 +13,7 @@
  * UI fields are grouped under `ui`.
  *
  * Layout (columns, cursor position) is derived on demand — never stored.
- * The key handler derives layout fresh each keypress via buildActionCtx().
+ * The key handler derives layout fresh each keypress via buildOpCtx().
  * React derives layout via useColumns + useCursorPosition.
  */
 
@@ -79,7 +79,7 @@ import { resolveEmbed } from "../views/embed-display.ts"
  * Use Workspace.getActiveBoardPane(state) to access the targeted board pane.
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
- * demand by the key handler (buildActionCtx) and by React (useColumns hook).
+ * demand by the key handler (buildOpCtx) and by React (useColumns hook).
  */
 export interface BoardAppState {
   // --- Workspace (canonical source of board navigation state) ---
@@ -448,12 +448,12 @@ export function createBoardAppStoreState(
     }
 
     // Create @silvery/selection store with mutable view tree source.
-    // The source is updated by buildActionCtx after each layout derivation.
+    // The source is updated by buildOpCtx after each layout derivation.
     const { app: selApp, source: selTreeSource } = createSelectionAdapter()
     const sel = createSelection(selApp)
 
     // Initialize sel store with the initial cursor from the active board pane.
-    // The selTreeSource hasn't been populated yet (happens in buildActionCtx),
+    // The selTreeSource hasn't been populated yet (happens in buildOpCtx),
     // but we need a cursor so Board.tsx can read sel.node.cursor() on first render.
     // Build a temporary view tree just for initial cursor selection.
     const activePaneInit = Array.from(workspace.panes.values()).find((p) => isBoardPane(p) && p.cursorNodeId) as
@@ -549,7 +549,7 @@ export function createBoardAppStoreState(
             }
           }
           // Derive cursor ancestors from tree structure.
-          // When _viewIndex is provided (injected by buildActionCtx), use it directly
+          // When _viewIndex is provided (injected by buildOpCtx), use it directly
           // to avoid rebuilding the entire ViewTree on every cursor move.
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
           const ancestors = action._viewIndex
@@ -735,7 +735,7 @@ export function createBoardAppStoreState(
         // SET_ROOT, etc.). Unlike SELECT which can reuse a cached viewIndex, these actions
         // change rootId/foldDepths so a fresh tree build is required. This is fine — these
         // actions are infrequent compared to cursor moves (j/k). React components (Board.tsx)
-        // also dispatch these directly, so we can't defer to buildActionCtx in board-app.ts.
+        // also dispatch these directly, so we can't defer to buildOpCtx in board-app.ts.
         const s = _get()
         const board = getActiveBoardPane(s)
         if (board) {

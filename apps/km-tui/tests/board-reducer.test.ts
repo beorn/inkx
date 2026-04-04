@@ -912,7 +912,7 @@ import { runBoardEffects } from "../src/board/board-effect-runner.ts"
 import type { ApplyResult, BoardEffect } from "../src/board/board-reducer.ts"
 import { createSelection } from "@silvery/selection"
 
-/** Minimal mock ActionCtx for testing effect runner. Tracks all calls. */
+/** Minimal mock OpCtx for testing effect runner. Tracks all calls. */
 function mockCtx() {
   const calls: { method: string; args: unknown[] }[] = []
   const sel = createSelection({

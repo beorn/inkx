@@ -334,7 +334,7 @@ namespace ActionType {
 
 // MAX_FOLD_DEPTH is now in board-reducer.ts
 
-/** Extract BoardNavState from ActionCtx for fold reducer functions. */
+/** Extract BoardNavState from OpCtx for fold reducer functions. */
 function extractFoldState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
     cursorNodeId: ctx.cursorNodeId,

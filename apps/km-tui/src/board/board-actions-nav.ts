@@ -464,7 +464,7 @@ export function navStateFrom(ctx: OpCtx): NavState {
   }
 }
 
-/** Extract BoardNavState from ActionCtx for pure reducer functions. */
+/** Extract BoardNavState from OpCtx for pure reducer functions. */
 function extractNavState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
     cursorNodeId: ctx.cursorNodeId,

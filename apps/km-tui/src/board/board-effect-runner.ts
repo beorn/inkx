@@ -2,7 +2,7 @@
  * Board Effect Runner
  *
  * Centralized interpreter for BoardEffect values produced by Board.apply().
- * Each effect type maps to exactly one imperative side effect on ActionCtx.
+ * Each effect type maps to exactly one imperative side effect on OpCtx.
  *
  * The reducer is pure (state, op) → {state, effects}. This module is the
  * impure boundary that executes those effects against the runtime.
@@ -11,7 +11,7 @@
  */
 
 import type { OpCtx } from "../tui-context.ts"
-import { clearSelection } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection } from "./board-selection-helpers.ts"
 import { requestRenderFlush } from "./board-actions-edit.ts"
 import type { ApplyResult, BoardEffect } from "./board-reducer.ts"
 import { defaultNormalize, validateEffects } from "./normalize-plugins.ts"

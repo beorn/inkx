@@ -92,7 +92,7 @@ export type BoardReducerOp =
       nodeId: string | null
       cardNodeId?: string
       cardHintSource?: "click"
-      /** Pre-built viewIndex from buildActionCtx cache — avoids redundant buildViewTree */
+      /** Pre-built viewIndex from buildopctx cache — avoids redundant buildViewTree */
       _viewIndex?: Map<string, import("./view-tree.ts").ViewNode>
     }
 

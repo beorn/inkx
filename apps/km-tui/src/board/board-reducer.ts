@@ -801,7 +801,7 @@ function noChange(state: BoardNavState): ApplyResult {
 // =============================================================================
 
 /**
- * Create a minimal BoardNavState for testing or extraction from ActionCtx.
+ * Create a minimal BoardNavState for testing or extraction from OpCtx.
  */
 export function createBoardNavState(overrides: Partial<BoardNavState> = {}): BoardNavState {
   return {

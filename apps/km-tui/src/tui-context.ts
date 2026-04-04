@@ -170,8 +170,8 @@ export interface OpCtx {
 
 // ===== Delegated keys (pure pass-throughs from store) =====
 
-/** Keys of ActionCtx that are delegated directly from the store with no transformation. */
-export const DELEGATED_ACTION_CTX_KEYS = [
+/** Keys of OpCtx that are delegated directly from the store with no transformation. */
+export const DELEGATED_OP_CTX_KEYS = [
   "dispatchBoard",
   "setUI",
   "setFoldDepths",
@@ -195,8 +195,8 @@ export const DELEGATED_ACTION_CTX_KEYS = [
   "activateEmptyPane",
 ] as const satisfies readonly (keyof OpCtx)[]
 
-/** Union type of delegated ActionCtx keys. */
-export type DelegatedOpCtxKeys = (typeof DELEGATED_ACTION_CTX_KEYS)[number]
+/** Union type of delegated OpCtx keys. */
+export type DelegatedOpCtxKeys = (typeof DELEGATED_OP_CTX_KEYS)[number]
 
 // ===== Mode helpers =====
 

@@ -24,9 +24,9 @@ import { getModeStack, resetModeStack } from "../dialog-guard.ts"
 import { handleKmOp } from "./board-actions.ts"
 import { clickToCursorOffset } from "./click-to-cursor.ts"
 import { needsRenderFlush } from "./board-actions-edit.ts"
-import { clearSelection } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import { DELEGATED_ACTION_CTX_KEYS } from "../tui-context.ts"
+import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { readBoardHidden, isHidden } from "../hidden.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
@@ -218,12 +218,12 @@ function computeHiddenNodeIds(
 
 export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers {
   /**
-   * Build an ActionCtx from store state.
+   * Build an OpCtx from store state.
    * Called on each key event to get fresh state.
    * Calls buildViewTree + viewNodeToColumnViews (via deriveColumnsFromRepo)
    * and caches columns/nodeIndex between calls when state is unchanged.
    */
-  function buildActionCtx(
+  function buildOpCtx(
     get: () => BoardAppStore,
     exit: () => void,
     set?: (partial: Partial<BoardAppStore>) => void,
@@ -313,7 +313,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     // textEditHints is mutated directly by action handlers (ctx.textEditHints = {...}).
     // Use a local variable + setter that writes through to the Zustand store so
-    // React components and subsequent buildActionCtx() calls see the update.
+    // React components and subsequent buildOpCtx() calls see the update.
     let _textEditHints = s.textEditHints
 
     const ctx: OpCtx = {
@@ -354,7 +354,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       column,
       card,
       // Delegated store methods (pure pass-throughs, dispatchBoard overridden below)
-      ...pick(s, DELEGATED_ACTION_CTX_KEYS),
+      ...pick(s, DELEGATED_OP_CTX_KEYS),
       // Override dispatchBoard to inject cached viewIndex into SELECT actions,
       // avoiding a redundant buildViewTree+buildViewIndex on every cursor move.
       dispatchBoard: (action) => {
@@ -382,7 +382,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         return null
       },
       exit,
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildActionCtx is called
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- set by handleKey/handleMouse before buildOpCtx is called
       focusManager: locals.cachedFocusManager!,
       focus: locals.cachedFocus ?? (() => {}),
       activateScope: locals.cachedActivateScope ?? (() => {}),
@@ -503,7 +503,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   /** Fire the chord timeout: resolve the pending prefix as its standalone command. */
   function fireChordTimeout(get: () => BoardAppStore, exitApp: () => void): void {
     locals.chordTimeoutFiredAt = performance.now()
-    const freshCtx = buildActionCtx(get, exitApp)
+    const freshCtx = buildOpCtx(get, exitApp)
     const timeoutResult = processChordTimeout(freshCtx)
     if (timeoutResult?.actions) {
       const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
@@ -533,7 +533,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   /**
    * Execute a command by ID — used by omnibox/command palette.
    *
-   * Builds fresh ActionCtx, calls executeCommand, then dispatches resulting actions.
+   * Builds fresh OpCtx, calls executeCommand, then dispatches resulting actions.
    * Call from React callbacks (e.g., omnibox onSelect) that have store access.
    */
   function dispatchCommandById(
@@ -543,7 +543,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     targetId?: string,
   ): void {
     ensureCommandSystemInitialized()
-    const ctx = buildActionCtx(get, exitApp)
+    const ctx = buildOpCtx(get, exitApp)
 
     // Build command context for the executor
     const cmdCtx = {
@@ -669,7 +669,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     exitApp: () => void,
     set?: (partial: Partial<BoardAppStore>) => void,
   ): void {
-    const ctx = buildActionCtx(get, exitApp, set)
+    const ctx = buildOpCtx(get, exitApp, set)
 
     // Phase 1: Dispatch — resolve keybinding to command
     let result: ReturnType<typeof processKeyWithContext>
@@ -756,7 +756,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Phase 3: Invariant checks — verify state consistency after mutations
       {
         using _invariants = parentSpan.span("invariants")
-        const freshCtx = buildActionCtx(get, exitApp)
+        const freshCtx = buildOpCtx(get, exitApp)
         const violations = checkInvariants(freshCtx)
         if (violations.length > 0) {
           parentSpan.spanData.invariantViolations = violations.length
@@ -836,7 +836,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     if (mouse.action === "wheel") {
       // Scroll wheel → scroll the column or detail pane under the mouse pointer
-      const opctx = buildActionCtx(get, () => {}, ctx.set)
+      const opctx = buildOpCtx(get, () => {}, ctx.set)
       const colIdx = resolveMouseToColumn(opctx, mouse.x)
 
       if (colIdx < 0) {
@@ -859,7 +859,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     }
 
     if (mouse.action === "down" && mouse.button === 0) {
-      const opctx = buildActionCtx(get, () => {}, ctx.set)
+      const opctx = buildOpCtx(get, () => {}, ctx.set)
 
       // DOM-style hit testing via silvery render tree
       const hitNode = ctx.hitTest(mouse.x, mouse.y)
@@ -996,7 +996,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     }
   }
 
-  return { handleKey, handleMouse, buildOpCtx: buildActionCtx, dispatchCommandById, triggerChordTimeout }
+  return { handleKey, handleMouse, buildOpCtx, dispatchCommandById, triggerChordTimeout }
 } // end createBoardAppHandlers
 
 // =============================================================================
