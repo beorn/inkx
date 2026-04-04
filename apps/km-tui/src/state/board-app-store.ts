@@ -21,7 +21,7 @@ import type { ToastQueue, JobRunner } from "@km/core"
 import { createJobRunner } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import type {
-  BoardAction,
+  BoardReducerOp,
   BoardState,
   BoardPaneState,
   LayoutNode,
@@ -46,6 +46,8 @@ import { PANE_UI_FIELD_NAMES } from "../board/board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createCursorStore, type CursorStore } from "./cursor-store.ts"
+import { createSelection, type SelectionStore } from "@silvery/selection"
+import { createSelectionAppAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
@@ -100,6 +102,11 @@ export interface BoardAppState {
 
   // --- Cursor store (lightweight pub/sub, bypasses Zustand for cursor moves) ---
   cursorStore: CursorStore
+
+  // --- Selection store (@silvery/selection — reactive selection state) ---
+  sel: SelectionStore
+  /** Update the selection adapter's view tree source (called after layout derivation) */
+  selTreeSource: SelectionTreeSource
 
   // --- Undo/redo ---
   undoStack: UndoStack
@@ -185,7 +192,7 @@ export const getParentBoardPane = Workspace.getParentBoardPane
  */
 export interface BoardAppActions {
   // Board action dispatcher (inlined from boardReducer)
-  dispatchBoard(action: BoardAction): void
+  dispatchBoard(action: BoardReducerOp): void
 
   // UI state update — accepts both global and per-pane fields.
   // Automatically routes per-pane fields (viewMode, multiSelected, etc.) to the focused BoardPaneState,
@@ -483,6 +490,21 @@ export function createBoardAppStoreState(
       workspace = createDefaultWorkspace(initialPaneBoard, params)
     }
 
+    // Create @silvery/selection store with mutable view tree source.
+    // The source callbacks are updated by buildActionCtx after each layout derivation.
+    const selTreeSource: SelectionTreeSource = {
+      _viewIndex: new Map(),
+      _viewTree: { id: "__root__", role: "board", node: null, parent: null, children: [], isBody: false },
+      getViewIndex() {
+        return this._viewIndex
+      },
+      getViewTree() {
+        return this._viewTree
+      },
+    } as SelectionTreeSource & { _viewIndex: Map<string, import("@km/board").ViewNode>; _viewTree: import("@km/board").ViewNode }
+    const selApp = createSelectionAppAdapter(selTreeSource)
+    const sel = createSelection(selApp)
+
     return {
       // Workspace (canonical source of board navigation state)
       workspace,
@@ -505,6 +527,10 @@ export function createBoardAppStoreState(
       // Cursor store
       cursorStore: params.cursorStore,
 
+      // Selection store
+      sel,
+      selTreeSource,
+
       // Undo/redo
       undoStack,
       undoHandle,
@@ -516,8 +542,8 @@ export function createBoardAppStoreState(
 
       // --- Board action dispatcher (inlined from boardReducer) ---
 
-      // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardAction union
-      dispatchBoard(action: BoardAction) {
+      // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardReducerOp union
+      dispatchBoard(action: BoardReducerOp) {
         // --- Fast path: SELECT bypasses Zustand set() entirely ---
         if (action.type === "SELECT") {
           const s = _get()

@@ -138,6 +138,7 @@
         "@km/storage": "workspace:*",
         "@km/tree": "workspace:*",
         "@silvery/ag-react": "workspace:*",
+        "@silvery/selection": "workspace:*",
         "@silvery/theme": "workspace:*",
         "react": "catalog:",
         "zustand": "^5.0.11",
@@ -251,6 +252,7 @@
       "dependencies": {
         "@km/core": "workspace:*",
         "@km/markdown": "workspace:*",
+        "alien-signals": "^3.1.2",
         "cosmiconfig": "^9.0.0",
         "yaml": "^2.8.2",
       },
@@ -263,6 +265,13 @@
       "name": "@km/tree",
       "dependencies": {
         "@km/core": "workspace:*",
+      },
+    },
+    "packages/silvery-selection": {
+      "name": "@silvery/selection",
+      "version": "0.1.0",
+      "dependencies": {
+        "alien-signals": "^3.1.2",
       },
     },
     "vendor/accountly": {
@@ -318,8 +327,8 @@
       },
     },
     "vendor/bearly/packages/vitepress-enrich": {
-      "name": "vitepress-enrich",
-      "version": "0.4.0",
+      "name": "@bearly/vitepress-enrich",
+      "version": "0.3.6",
       "peerDependencies": {
         "markdown-it": ">=14",
         "vitepress": ">=1",
@@ -768,6 +777,7 @@
     "@silvery/headless": "vendor/silvery/packages/headless",
     "@silvery/model": "vendor/silvery/packages/model",
     "@silvery/scope": "vendor/silvery/packages/scope",
+    "@silvery/selection": "packages/silvery-selection",
     "@silvery/signals": "vendor/silvery/packages/signals",
     "@silvery/test": "vendor/silvery/packages/test",
     "@silvery/theme": "vendor/silvery/packages/theme",
@@ -777,7 +787,6 @@
     "loggily": "vendor/loggily",
     "silvery": "vendor/silvery",
     "vimonkey": "vendor/vimonkey",
-    "vitepress-enrich": "vendor/bearly/packages/vitepress-enrich",
     "vt100.js": "file:vendor/vt100/packages/vt100",
     "vt220.js": "file:vendor/vt100/packages/vt220",
     "vterm.js": "file:vendor/vt100/packages/vterm",
@@ -853,6 +862,8 @@
     "@babel/parser": ["@babel/parser@7.29.2", "", { "dependencies": { "@babel/types": "^7.29.0" }, "bin": "./bin/babel-parser.js" }, "sha512-4GgRzy/+fsBa72/RZVJmGKPmZu9Byn8o4MoLpmNe1m8ZfYnz5emHLQz3U4gLud6Zwl0RZIcgiLD7Uq7ySFuDLA=="],
 
     "@babel/types": ["@babel/types@7.29.0", "", { "dependencies": { "@babel/helper-string-parser": "^7.27.1", "@babel/helper-validator-identifier": "^7.28.5" } }, "sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A=="],
+
+    "@bearly/vitepress-enrich": ["@bearly/vitepress-enrich@workspace:vendor/bearly/packages/vitepress-enrich"],
 
     "@beorn/accountly": ["@beorn/accountly@workspace:vendor/accountly"],
 
@@ -1407,6 +1418,8 @@
     "@silvery/model": ["@silvery/model@workspace:vendor/silvery/packages/model"],
 
     "@silvery/scope": ["@silvery/scope@workspace:vendor/silvery/packages/scope"],
+
+    "@silvery/selection": ["@silvery/selection@workspace:packages/silvery-selection"],
 
     "@silvery/signals": ["@silvery/signals@workspace:vendor/silvery/packages/signals"],
 
@@ -2612,7 +2625,7 @@
 
     "vitepress": ["vitepress@1.6.4", "", { "dependencies": { "@docsearch/css": "3.8.2", "@docsearch/js": "3.8.2", "@iconify-json/simple-icons": "^1.2.21", "@shikijs/core": "^2.1.0", "@shikijs/transformers": "^2.1.0", "@shikijs/types": "^2.1.0", "@types/markdown-it": "^14.1.2", "@vitejs/plugin-vue": "^5.2.1", "@vue/devtools-api": "^7.7.0", "@vue/shared": "^3.5.13", "@vueuse/core": "^12.4.0", "@vueuse/integrations": "^12.4.0", "focus-trap": "^7.6.4", "mark.js": "8.11.1", "minisearch": "^7.1.1", "shiki": "^2.1.0", "vite": "^5.4.14", "vue": "^3.5.13" }, "peerDependencies": { "markdown-it-mathjax3": "^4", "postcss": "^8" }, "optionalPeers": ["markdown-it-mathjax3", "postcss"], "bin": { "vitepress": "bin/vitepress.js" } }, "sha512-+2ym1/+0VVrbhNyRoFFesVvBvHAVMZMK0rw60E3X/5349M1GuVdKeazuksqopEdvkKwKGs21Q729jX81/bkBJg=="],
 
-    "vitepress-enrich": ["vitepress-enrich@workspace:vendor/bearly/packages/vitepress-enrich"],
+    "vitepress-enrich": ["vitepress-enrich@0.4.0", "", { "peerDependencies": { "markdown-it": ">=14", "vitepress": ">=1" }, "optionalPeers": ["markdown-it", "vitepress"] }, "sha512-PvISQZwC36F3eRysr0Mc2TRFChXQYFNpdQu3yVfF5ok/x6VGJw0Z3tY7WMAZiUyE66lImx7rLfqYM2aVPja1Ng=="],
 
     "vitepress-plugin-llms": ["vitepress-plugin-llms@1.12.0", "", { "dependencies": { "gray-matter": "^4.0.3", "markdown-it": "^14.1.0", "markdown-title": "^1.0.2", "mdast-util-from-markdown": "^2.0.3", "millify": "^6.1.0", "minimatch": "^10.2.4", "path-to-regexp": "^6.3.0", "picocolors": "^1.1.1", "pretty-bytes": "^7.1.0", "remark": "^15.0.1", "remark-frontmatter": "^5.0.0", "tokenx": "^1.3.0", "unist-util-remove": "^4.0.0", "unist-util-visit": "^5.1.0" } }, "sha512-zuzL7a8UJuGl46le5cAy/QxKMGlpSylcsLjDDn6BYPc1u+eP3nzoQk9ne9XFBqrE7exoJlIYJELVN8HMgYlFKQ=="],
 
