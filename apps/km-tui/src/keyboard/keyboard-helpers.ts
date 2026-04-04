@@ -47,7 +47,7 @@ export function saveNavHistoryFromPane(
     foldDepths: Map<string, number>
   },
 ): void {
-  const cursorNodeId = (pane.sel?.node.cursor() as string | null) ?? pane.cursorNodeId
+  const cursorNodeId = (pane.sel?.node.cursor() as string | null) ?? null
   pushNavHistoryEntry(
     setUI,
     pane.rootId,
