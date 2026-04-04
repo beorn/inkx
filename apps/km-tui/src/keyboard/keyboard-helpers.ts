@@ -35,14 +35,7 @@ function pushNavHistoryEntry(
 
 /** Push nav history from ActionCtx (convenience wrapper) */
 export function saveNavHistory(ctx: ActionCtx): void {
-  pushNavHistoryEntry(
-    ctx.setUI,
-    ctx.rootId,
-    ctx.colIndex,
-    ctx.cardIndex,
-    ctx.cursorNodeId,
-    ctx.foldDepths,
-  )
+  pushNavHistoryEntry(ctx.setUI, ctx.rootId, ctx.colIndex, ctx.cardIndex, ctx.cursorNodeId, ctx.foldDepths)
 }
 
 /** Push nav history from pane state (for imperative use outside ActionCtx) */

@@ -46,9 +46,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   }, [cursorColumnNodeId, columnsProp])
 
   // Track editing state for dynamic item height (border adds 2 rows)
-  const editingNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => (s.sel.text()?.nodeId as string) ?? null,
-  )
+  const editingNodeId = useAppStore<BoardAppStore, string | null>((s) => (s.sel.text()?.nodeId as string) ?? null)
 
   // Get current column
   const currentColumn = columnsProp[colIndex]

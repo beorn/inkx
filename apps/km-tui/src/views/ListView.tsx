@@ -63,9 +63,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const selectionLevel = useReactive(nodeStore.selectionLevel)
 
   // Track editing state for dynamic item height (border adds 2 rows)
-  const editingNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => (s.sel.text()?.nodeId as string) ?? null,
-  )
+  const editingNodeId = useAppStore<BoardAppStore, string | null>((s) => (s.sel.text()?.nodeId as string) ?? null)
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {

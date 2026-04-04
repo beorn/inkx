@@ -203,7 +203,10 @@ export function TitleEditor({
       undoHandle.endBatch()
       if (result) {
         // Focus the survivor with cursor at the merge point
-        sel.text.edit(result.survivorId as import("@silvery/selection").ID, typeof result.cursorOffset === "number" ? result.cursorOffset : 0)
+        sel.text.edit(
+          result.survivorId as import("@silvery/selection").ID,
+          typeof result.cursorOffset === "number" ? result.cursorOffset : 0,
+        )
       }
     } catch {
       undoHandle.endBatch()
@@ -337,7 +340,10 @@ export function BodyBlockEditor({
                     const result = mergeBackward(repo, child.id)
                     undoHandle.endBatch()
                     if (result) {
-                      sel.text.edit(result.survivorId as import("@silvery/selection").ID, typeof result.cursorOffset === "number" ? result.cursorOffset : 0)
+                      sel.text.edit(
+                        result.survivorId as import("@silvery/selection").ID,
+                        typeof result.cursorOffset === "number" ? result.cursorOffset : 0,
+                      )
                     }
                   } catch {
                     undoHandle.endBatch()

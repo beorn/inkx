@@ -72,9 +72,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   const isSelected = cursorColumnNodeId === column.node.id
 
   // Track editing state for dynamic item height (border adds 2 rows)
-  const editingNodeId = useAppStore<BoardAppStore, string | null>(
-    (s) => (s.sel.text()?.nodeId as string) ?? null,
-  )
+  const editingNodeId = useAppStore<BoardAppStore, string | null>((s) => (s.sel.text()?.nodeId as string) ?? null)
 
   const count = column.cardNodes.length
 

@@ -26,7 +26,13 @@ import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { composeRawEditContent } from "./tree-node-edit.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { usePaneId } from "../pane-context.tsx"
-import { useUISelector, useSetUI, useSel, deriveColumnExcludedSigils, useTreeRenderContext } from "../state/ui-context.tsx"
+import {
+  useUISelector,
+  useSetUI,
+  useSel,
+  deriveColumnExcludedSigils,
+  useTreeRenderContext,
+} from "../state/ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore, useReactive } from "../state/reactive.ts"
@@ -626,9 +632,7 @@ export const Column = React.memo(function Column({
   const isSelected = cursorColumnNodeId === nodeId
 
   // Check if this column header is being inline-edited
-  const isInlineEditing = useAppStore<BoardAppStore, boolean>(
-    (s) => s.sel.text()?.nodeId === nodeId,
-  )
+  const isInlineEditing = useAppStore<BoardAppStore, boolean>((s) => s.sel.text()?.nodeId === nodeId)
 
   // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
   const columnScrollAnchor = useAppStore<BoardAppStore, number | null>((s) => {

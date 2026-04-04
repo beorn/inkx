@@ -604,7 +604,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const nodeStore = useMemo(() => new ReactiveNodeStore(), [])
 
   // Hydrate reactive node state on initial load and root change (zoom)
-  const selIds = useAppStore<import("../state/board-app-store.ts").BoardAppStore, ReadonlyArray<string>>((s) => s.sel.node.ids() as unknown as ReadonlyArray<string>)
+  const selIds = useAppStore<import("../state/board-app-store.ts").BoardAppStore, ReadonlyArray<string>>(
+    (s) => s.sel.node.ids() as unknown as ReadonlyArray<string>,
+  )
   const multiSelected = new Set(selIds) // compat bridge for hydrate
   useEffect(() => {
     nodeStore.hydrate(repo, rootId, foldDepths, multiSelected)
@@ -633,7 +635,10 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [nodeStore, multiSelected, repo])
 
   // Incrementally sync inline edit state to reactive node state
-  const textEditState = useAppStore<import("../state/board-app-store.ts").BoardAppStore, { nodeId: string; blockIndex: number } | null>((s) => {
+  const textEditState = useAppStore<
+    import("../state/board-app-store.ts").BoardAppStore,
+    { nodeId: string; blockIndex: number } | null
+  >((s) => {
     const t = s.sel.text()
     if (!t) return null
     return { nodeId: t.nodeId as string, blockIndex: s.textEditHints?.blockIndex ?? 0 }
@@ -995,7 +1000,10 @@ export function Board({ patchedConsole }: BoardProps) {
       <TreeRenderProvider
         treeConfig={treeConfig}
         setUI={setUI}
-        sel={useAppStore<import("../state/board-app-store.ts").BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)}
+        sel={useAppStore<
+          import("../state/board-app-store.ts").BoardAppStore,
+          import("@silvery/selection").SelectionStore
+        >((s) => s.sel)}
         rootBoardId={findBoardRootId(repo, rootId)}
         searchMatchNodeIds={searchMatchNodeIds}
         currentMatchNodeId={currentMatchNodeId}
