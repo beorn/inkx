@@ -329,7 +329,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     return {
       repo: s.repo,
       sel: s.sel,
-      selectedIds: s.sel.node.ids(),
+      selectedIds: Object.assign(s.sel.node.ids(), { get size() { return this.length } }),
       textEditHints: s.textEditHints,
       rootId,
       rootPath: board?.rootPath ?? null,
@@ -559,7 +559,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         : null,
       currentNodeId: ctx.selectedNode?.id ?? null,
       cursorNodeId: ctx.cursorNodeId,
-      selectedNodes: Array.from(ctx.ui.multiSelected),
+      selectedNodes: Array.from(ctx.selectedIds),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
       siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
@@ -905,14 +905,14 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         now - locals.lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
 
       // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
-      if (!mouse.ctrl && actionCtx.ui.multiSelected.size > 0) {
+      if (!mouse.ctrl && actionCtx.selectedIds.size > 0) {
         clearSelection(actionCtx)
       }
 
       // When in inline edit mode, handle clicks differently:
       // - Inside same card → save + re-enter edit on clicked node
       // - Outside card → exit edit mode, proceed with normal click
-      const edit = actionCtx.ui.inlineEditBlock
+      const edit = actionCtx.sel.text()
       if (edit && selectId && !isColumnNode) {
         const editCardId = actionCtx.card?.id
         // Check if clicked node is inside the same card
@@ -938,16 +938,15 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             // Different node in same card → save + re-enter edit on clicked node
             activeEditTargetRef.current?.save()
             actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-            actionCtx.setUI({
-              inlineEditBlock: { nodeId, blockIndex: 0, initialCursorPos: "start" },
-            })
+            actionCtx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
+            actionCtx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
           }
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
           return
         }
         // Different card → exit edit mode, fall through to normal click
         activeEditTargetRef.current?.save()
-        actionCtx.setUI({ inlineEditBlock: null })
+        actionCtx.sel.text.deselect()
       }
 
       if (!selectId) {
@@ -985,10 +984,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        const selected = new Set(actionCtx.ui.multiSelected)
-        if (selected.has(selectId)) selected.delete(selectId)
-        else selected.add(selectId)
-        actionCtx.setUI({ multiSelected: selected })
+        actionCtx.sel.node.select([selectId as import("@silvery/selection").ID], true)
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       } else {
         // Single click → select the card (not sub-block)

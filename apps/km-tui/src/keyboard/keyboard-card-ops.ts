@@ -81,7 +81,7 @@ function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCa
       }
     }
   }
-  ctx.setUI({ multiSelected: newSelected })
+  ctx.sel.node.select(Array.from(newSelected) as import("@silvery/selection").ID[])
 }
 
 // =============================================================================

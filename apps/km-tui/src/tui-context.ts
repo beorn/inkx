@@ -33,8 +33,9 @@ export interface ActionCtx {
 
   // === Selection (@silvery/selection store) ===
   sel: SelectionStore
-  /** Selected node IDs from sel.node.ids (for Selection.nodes() etc.) */
-  selectedIds: { readonly size: number; has(id: string): boolean; [Symbol.iterator](): Iterator<string> }
+  /** Selected node IDs from sel.node.ids (for Selection.nodes() etc.)
+   * OrderedSet has .length (array) — we alias .size = .length for compatibility. */
+  selectedIds: { readonly size: number; readonly length: number; has(id: string): boolean; [Symbol.iterator](): Iterator<string> }
   /** Transient km-specific text editing hints (block index, initial cursor pos).
    * Complements sel.text() which owns nodeId + offset. */
   textEditHints: TextEditHints | null

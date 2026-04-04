@@ -8,6 +8,7 @@
 import React from "react"
 import { Box, Strong, Text, useFocusManager } from "@silvery/ag-react"
 import { PaneUI } from "../state/ui-reducer.ts"
+import { useSel } from "../state/ui-context.tsx"
 import { isDetailPaneId } from "../board/board-types.ts"
 
 /** A single key hint: key label + action description */
@@ -65,10 +66,9 @@ const MULTI_HINTS: KeyHint[] = [
   { key: "Esc", action: "clear" },
 ]
 
-function getKeyBarMode(ui: PaneUI, isDetailPaneFocused: boolean): KeyBarMode {
-  const editMode = PaneUI.editMode(ui)
+function getKeyBarMode(ui: PaneUI, isDetailPaneFocused: boolean, isTextEditing: boolean): KeyBarMode {
+  const editMode = PaneUI.editMode(ui, isTextEditing)
   if (editMode === "text") return "TEXT"
-  if (ui.visualMode) return "VISUAL"
   if (isDetailPaneFocused) return "PANE"
   return "NODE"
 }
@@ -93,9 +93,10 @@ interface KeyBarProps {
 }
 
 export function KeyBar({ ui, termWidth }: KeyBarProps): React.ReactElement {
+  const sel = useSel()
   const { activeScopeId } = useFocusManager()
-  const mode = getKeyBarMode(ui, activeScopeId !== null && isDetailPaneId(activeScopeId))
-  const hints = getHints(mode, ui.multiSelected.size > 0)
+  const mode = getKeyBarMode(ui, activeScopeId !== null && isDetailPaneId(activeScopeId), sel.text() !== null)
+  const hints = getHints(mode, sel.node.ids().length > 0)
 
   return (
     <Box flexDirection="row" flexShrink={0} width={termWidth} id="key-bar">

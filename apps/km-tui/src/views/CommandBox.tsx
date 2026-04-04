@@ -15,6 +15,7 @@ import { getChordSuffixes, getCommand, locationLabel } from "@km/commands"
 import type { ToastQueue } from "@km/core"
 import type { WatcherStatus } from "@km/storage"
 import { PaneUI } from "../state/ui-reducer.ts"
+import { useSel } from "../state/ui-context.tsx"
 import type { UIState, LocalSearchState } from "../state/ui-reducer.ts"
 import { useFlashOnChange, useLogToast, useSpinnerFrame } from "../hooks/use-status-animations.ts"
 
@@ -199,16 +200,19 @@ export function CommandBox({
   localSearch,
   onQueryChange,
 }: CommandBoxProps): React.ReactElement | null {
+  const sel = useSel()
+  const isTextEditing = sel.text() !== null
+
   // Toast when first console log arrives
   const logTotal = consoleStats?.total ?? 0
   useLogToast(logTotal, toastQueue)
 
   // Derive mode label
-  const editMode = PaneUI.editMode(ui)
+  const editMode = PaneUI.editMode(ui, isTextEditing)
   let modeLabel: string
   if (moveMode) {
     modeLabel = "MOVE"
-  } else if (ui.visualMode) {
+  } else if (false /* visual mode removed */) {
     modeLabel = "VISUAL"
   } else if (localSearch) {
     modeLabel = "FIND"
@@ -228,7 +232,8 @@ export function CommandBox({
   const chordActive = ui.pendingChord !== null && !ui.chordTimedOut
 
   // Multi-selection count
-  const multiSuffix = ui.multiSelected.size > 0 ? `[${ui.multiSelected.size}]` : ""
+  const selIds = sel.node.ids()
+  const multiSuffix = selIds.length > 0 ? `[${selIds.length}]` : ""
 
   // Command bar is "active" when the user is typing into it (omnibox, find input, search-replace)
   const isCommandInput = !!(ui.showOmnibox || localSearch?.isInputActive || ui.searchReplace)

@@ -68,15 +68,15 @@ export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
     }
   }
 
-  // 3. inlineEditBlock.nodeId exists in the repo (if editing)
-  const editBlock = ctx.ui.inlineEditBlock
-  if (editBlock) {
-    const editNode = ctx.repo.getNode(editBlock.nodeId)
+  // 3. text editing nodeId exists in the repo (if editing)
+  const editText = ctx.sel.text()
+  if (editText) {
+    const editNode = ctx.repo.getNode(editText.nodeId)
     if (!editNode) {
       violations.push({
         check: "edit-node-exists",
         message: `Inline edit targets non-existent node`,
-        ids: { editNodeId: editBlock.nodeId },
+        ids: { editNodeId: editText.nodeId },
       })
     }
   }
@@ -114,7 +114,7 @@ export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
   }
 
   // 5. Multi-selection: all selected node IDs exist in repo
-  for (const nodeId of ctx.ui.multiSelected) {
+  for (const nodeId of ctx.selectedIds) {
     const node = ctx.repo.getNode(nodeId)
     if (!node) {
       violations.push({
