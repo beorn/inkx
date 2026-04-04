@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from "
 import { join } from "path"
 
 import { withTestEnv } from "@km/storage"
-import { EventHandlers, type FsWriteTarget } from "../../src/watch/event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "../../src/watch/event-handlers.ts"
 import { createEmitter } from "../../src/emitter.ts"
 
 /** Minimal FsWriteTarget that tracks recorded tokens and rename calls */
@@ -72,10 +72,10 @@ describe("rename write tokens", () => {
       insertFileNode(db, "file1", "Old Name", "Old Name.md")
 
       const { target, recordedTokens } = createMockFsTarget()
-      const handlers = new EventHandlers(db, repoDir, emitter, target)
+      const handlers = new ChangeHandlers(db, repoDir, emitter, target)
 
       // Simulate a node_updated event that triggers file rename
-      handlers.applyEventToFs({
+      handlers.applyChangeToFs({
         id: "evt1",
         ts: Date.now(),
         type: "node_updated",
@@ -109,10 +109,10 @@ describe("rename write tokens", () => {
       insertFolderNode(db, "folder1", "my-folder", "my-folder")
 
       const { target, recordedTokens } = createMockFsTarget()
-      const handlers = new EventHandlers(db, repoDir, emitter, target)
+      const handlers = new ChangeHandlers(db, repoDir, emitter, target)
 
       // Simulate folder rename via node_updated
-      handlers.applyEventToFs({
+      handlers.applyChangeToFs({
         id: "evt2",
         ts: Date.now(),
         type: "node_updated",
@@ -139,10 +139,10 @@ describe("rename write tokens", () => {
       insertFileNode(db, "file2", "Ghost", "Ghost.md")
 
       const { target, recordedTokens, renames } = createMockFsTarget()
-      const handlers = new EventHandlers(db, repoDir, emitter, target)
+      const handlers = new ChangeHandlers(db, repoDir, emitter, target)
 
       // Should not throw — no-op when source doesn't exist
-      handlers.applyEventToFs({
+      handlers.applyChangeToFs({
         id: "evt3",
         ts: Date.now(),
         type: "node_updated",
@@ -169,9 +169,9 @@ describe("rename journal entries", () => {
       insertFileNode(db, "jfile1", "Journal Test", "Journal Test.md")
 
       const { target } = createMockFsTarget()
-      const handlers = new EventHandlers(db, repoDir, emitter, target)
+      const handlers = new ChangeHandlers(db, repoDir, emitter, target)
 
-      handlers.applyEventToFs({
+      handlers.applyChangeToFs({
         id: "evt4",
         ts: Date.now(),
         type: "node_updated",
@@ -215,9 +215,9 @@ describe("rename journal entries", () => {
       insertFolderNode(db, "jfolder1", "journal-folder", "journal-folder")
 
       const { target } = createMockFsTarget()
-      const handlers = new EventHandlers(db, repoDir, emitter, target)
+      const handlers = new ChangeHandlers(db, repoDir, emitter, target)
 
-      handlers.applyEventToFs({
+      handlers.applyChangeToFs({
         id: "evt5",
         ts: Date.now(),
         type: "node_updated",

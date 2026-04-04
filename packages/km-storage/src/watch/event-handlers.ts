@@ -1,7 +1,7 @@
 /**
- * Change Handlers — Shared logic for applying DB events to filesystem
+ * Change Handlers — Shared logic for applying DB changes to filesystem
  *
- * Shared event→filesystem projection logic used by withFsWriter and withSync.
+ * Shared change→filesystem projection logic used by withFsWriter and withSync.
  * Uses FsWriteTarget interface to abstract sync vs async write mechanisms.
  */
 
@@ -15,12 +15,12 @@ import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
 import { getAllNodes, getChildren, getNode, getSubtree, nodesToMarkdown } from "../index.ts"
-// reconcileIfChanged removed — DB is authority for user-origin events
+// reconcileIfChanged removed — DB is authority for user-origin changes
 import { findFileNode, titleToFilename } from "./watch-utils.ts"
 import { getFolderIndexConfig } from "../config.ts"
 import { buildIndexContent, indexFileName } from "../index-file-writer.ts"
 
-const log = createLogger("km:storage:watch:event-handlers")
+const log = createLogger("km:storage:watch:change-handlers")
 
 /**
  * FsWriteTarget — abstraction layer for filesystem write operations.
@@ -28,10 +28,10 @@ const log = createLogger("km:storage:watch:event-handlers")
  */
 export interface FsWriteTarget {
   /** Write content to a file, creating parent directories as needed */
-  writeFile(absPath: string, content: string, eventId?: string): void | Promise<void>
+  writeFile(absPath: string, content: string, changeId?: string): void | Promise<void>
 
   /** Delete a file or directory. Noop if path doesn't exist. */
-  deleteFile(absPath: string, eventId?: string): void | Promise<void>
+  deleteFile(absPath: string, changeId?: string): void | Promise<void>
 
   /** Rename a file. Must not overwrite an existing target. */
   renameFile(oldPath: string, newPath: string): void | Promise<void>
@@ -59,12 +59,12 @@ export interface FsWriteTarget {
 }
 
 /**
- * EventHandlers — shared node mutation handlers.
+ * ChangeHandlers — shared node mutation handlers.
  * Parameterized by FsWriteTarget to work with both sync and async write mechanisms.
  */
-export class EventHandlers {
+export class ChangeHandlers {
   private ignorePatterns: string[]
-  private currentEventId: string = ""
+  private currentChangeId: string = ""
 
   constructor(
     private db: Database,
@@ -76,40 +76,40 @@ export class EventHandlers {
   }
 
   /**
-   * Apply a database event to filesystem
+   * Apply a database change to filesystem
    */
-  applyEventToFs(event: Change): void {
-    if (event.actor === "fs-watch") {
-      log.debug?.(`skipping fs apply for actor=${event.actor} event=${event.type}`)
+  applyChangeToFs(change: Change): void {
+    if (change.actor === "fs-watch") {
+      log.debug?.(`skipping fs apply for actor=${change.actor} change=${change.type}`)
       return
     }
 
-    log.debug?.(`applying ${event.type} to fs: ${event.target ?? "no-target"}`)
+    log.debug?.(`applying ${change.type} to fs: ${change.target ?? "no-target"}`)
 
-    // Store eventId for this event's handler lifecycle
-    this.currentEventId = event.id
+    // Store changeId for this change's handler lifecycle
+    this.currentChangeId = change.id
 
-    switch (event.type) {
+    switch (change.type) {
       case "node_updated":
-        this.handleNodeUpdated(event)
+        this.handleNodeUpdated(change)
         break
       case "node_created":
-        this.handleNodeCreated(event)
+        this.handleNodeCreated(change)
         break
       case "node_deleted":
-        this.handleNodeDeleted(event)
+        this.handleNodeDeleted(change)
         break
       case "node_moved":
-        this.handleNodeMoved(event)
+        this.handleNodeMoved(change)
         break
       case "task_claimed":
       case "task_released":
       case "task_completed":
-        this.handleTaskEvent(event)
+        this.handleTaskChange(change)
         break
     }
 
-    this.currentEventId = ""
+    this.currentChangeId = ""
   }
 
   /**
@@ -117,12 +117,12 @@ export class EventHandlers {
    * After serialization, call rewriteSourceFiles to write ^block-id
    * suffixes into the files that contain the referenced nodes.
    *
-   * @param eventId — optional override for the event ID used in writes.
-   *   When omitted, uses `this.currentEventId` (set during applyEventToFs).
-   *   Pass explicitly when calling from outside the event handler lifecycle
+   * @param changeId — optional override for the change ID used in writes.
+   *   When omitted, uses `this.currentChangeId` (set during applyChangeToFs).
+   *   Pass explicitly when calling from outside the change handler lifecycle
    *   (e.g. syncFromFs, syncToFs).
    */
-  createBlockIdAssigner(eventId?: string): {
+  createBlockIdAssigner(changeId?: string): {
     assign: (nodeId: string, blockId: string) => void
     rewriteSourceFiles: (excludeFileId?: string) => void
   } {
@@ -148,7 +148,7 @@ export class EventHandlers {
           if (file && file.id !== excludeFileId) fileIds.add(file.id)
         }
         // Rewrite each affected source file (without assignBlockId to prevent cascading)
-        const writeEventId = eventId ?? this.currentEventId
+        const writeChangeId = changeId ?? this.currentChangeId
         for (const fileId of fileIds) {
           const file = getNode(this.db, fileId)
           if (!file?.fs_path) {
@@ -158,7 +158,7 @@ export class EventHandlers {
           const absPath = toAbsoluteFsPath(this.repoPath, file.fs_path)
           const subtreeNodes = getSubtree(this.db, fileId)
           const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db))
-          this.fsTarget.writeFile(absPath, content, writeEventId)
+          this.fsTarget.writeFile(absPath, content, writeChangeId)
         }
       },
     }
@@ -169,7 +169,7 @@ export class EventHandlers {
    *
    * Finds the containing file, serializes its subtree to markdown,
    * writes to disk, and cascades block ID rewrites to other files.
-   * This is the single primitive that all event handlers use.
+   * This is the single primitive that all change handlers use.
    */
   save(node: KNode): void {
     const fileNode = findFileNode(this.db, node)
@@ -179,23 +179,23 @@ export class EventHandlers {
     const absPath = toAbsoluteFsPath(this.repoPath, fileNode.fs_path)
     const subtreeNodes = getSubtree(this.db, fileNode.id)
     const content = nodesToMarkdown(subtreeNodes, getAllNodes(this.db), blockIds.assign)
-    this.fsTarget.writeFile(absPath, content, this.currentEventId)
+    this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     blockIds.rewriteSourceFiles(fileNode.id)
   }
 
   /**
    * Handle node updated — save the containing file.
    */
-  private handleNodeUpdated(event: Change): void {
-    if (!event.target) return
+  private handleNodeUpdated(change: Change): void {
+    if (!change.target) return
 
-    const node = getNode(this.db, event.target)
+    const node = getNode(this.db, change.target)
     if (!node) return
-    const changes = event.data as Partial<KNode>
+    const updates = change.data as Partial<KNode>
 
     // Folder rename: content change on a folder → rename directory on disk
-    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path && changes.content) {
-      this.handleFolderRename(node, changes.content, event.id)
+    if (KNode.isOutline(node) && node.fstype === "folder" && node.fs_path && updates.content) {
+      this.handleFolderRename(node, updates.content, change.id)
       return
     }
 
@@ -207,8 +207,8 @@ export class EventHandlers {
 
     // File rename: content change on the file node itself → rename .md file
     const fileNode = findFileNode(this.db, node)
-    if (node.id === fileNode?.id && changes.content && fileNode.fs_path?.endsWith(".md")) {
-      this.handleFileRename(fileNode, changes.content, event.id)
+    if (node.id === fileNode?.id && updates.content && fileNode.fs_path?.endsWith(".md")) {
+      this.handleFileRename(fileNode, updates.content, change.id)
     }
 
     this.save(node)
@@ -217,15 +217,15 @@ export class EventHandlers {
   /**
    * Handle node created — create directory, empty file, or regenerate parent file.
    */
-  private handleNodeCreated(event: Change): void {
-    const data = event.data as Partial<KNode>
+  private handleNodeCreated(change: Change): void {
+    const data = change.data as Partial<KNode>
 
     if (data.type === "h" && data.item && data.fstype === "folder" && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
       this.fsTarget.mkdir(absPath)
     } else if (data.type === "h" && data.item && (data.fstype === "file" || data.fstype === "mdfile") && data.fs_path) {
       const absPath = toAbsoluteFsPath(this.repoPath, data.fs_path)
-      this.fsTarget.writeFile(absPath, "", this.currentEventId)
+      this.fsTarget.writeFile(absPath, "", this.currentChangeId)
     } else if (data.parent_id && data.parent_id !== ".") {
       // Non-file node (task, section, etc.) created under a file → save
       const parent = getNode(this.db, data.parent_id)
@@ -236,13 +236,13 @@ export class EventHandlers {
   /**
    * Handle node deleted — remove file/directory, or regenerate parent file.
    * Node is already deleted from DB by the time fsSync runs,
-   * so we read metadata from event.data (snapshotted before deletion).
+   * so we read metadata from change.data (snapshotted before deletion).
    */
-  private handleNodeDeleted(event: Change): void {
-    if (!event.target) return
+  private handleNodeDeleted(change: Change): void {
+    if (!change.target) return
 
-    // Node is already deleted from DB — use data passed in event payload
-    const data = event.data as
+    // Node is already deleted from DB — use data passed in change payload
+    const data = change.data as
       | {
           fs_path?: string
           type?: string
@@ -257,7 +257,7 @@ export class EventHandlers {
       // File/folder node: delete the file from disk
       const absPath = toAbsoluteFsPath(this.repoPath, fsPath)
       if (existsSync(absPath)) {
-        this.fsTarget.deleteFile(absPath, this.currentEventId)
+        this.fsTarget.deleteFile(absPath, this.currentChangeId)
       }
 
       // If deleted node's parent is a folder, regenerate index file
@@ -279,13 +279,13 @@ export class EventHandlers {
    * Handle node moved — regenerate BOTH the source and destination files.
    *
    * The node's parent_id in the DB already points to the new parent (DB updated
-   * before fsSync runs). The event data carries old_parent_id so we can find
+   * before fsSync runs). The change data carries old_parent_id so we can find
    * and regenerate the source file, preventing stale content on disk.
    */
-  private handleNodeMoved(event: Change): void {
-    if (!event.target) return
+  private handleNodeMoved(change: Change): void {
+    if (!change.target) return
 
-    const node = getNode(this.db, event.target)
+    const node = getNode(this.db, change.target)
     if (!node) return
 
     // Handle file/folder item moves on disk FIRST — when a file or folder node
@@ -335,20 +335,20 @@ export class EventHandlers {
     // Save the DESTINATION file (where the node now lives).
     // For disk-moved file/folder items, re-read the node to pick up the updated fs_path.
     if (didDiskMove) {
-      const refreshed = getNode(this.db, event.target)
+      const refreshed = getNode(this.db, change.target)
       if (refreshed) this.save(refreshed)
     } else {
       this.save(node)
     }
 
     // Save the SOURCE file (where the node used to live) to remove stale content
-    const data = event.data as { old_parent_id?: string | null }
+    const data = change.data as { old_parent_id?: string | null }
     const oldParentId = data?.old_parent_id
     if (oldParentId) {
       const oldParent = getNode(this.db, oldParentId)
       if (oldParent) {
         const sourceFileNode = findFileNode(this.db, oldParent)
-        const destNode = didDiskMove ? getNode(this.db, event.target) : node
+        const destNode = didDiskMove ? getNode(this.db, change.target) : node
         const destFileNode = destNode ? findFileNode(this.db, destNode) : null
         // Only save if source differs from destination (cross-file move)
         if (sourceFileNode?.fs_path && sourceFileNode.id !== destFileNode?.id) {
@@ -365,13 +365,13 @@ export class EventHandlers {
   }
 
   /**
-   * Handle task lifecycle events (claimed, released, completed).
+   * Handle task lifecycle changes (claimed, released, completed).
    * These update task_status/task_marker in DB but need the containing
    * file regenerated so the change appears in markdown.
    */
-  private handleTaskEvent(event: Change): void {
-    if (!event.target) return
-    const node = getNode(this.db, event.target)
+  private handleTaskChange(change: Change): void {
+    if (!change.target) return
+    const node = getNode(this.db, change.target)
     if (node) this.save(node)
   }
 
@@ -399,21 +399,21 @@ export class EventHandlers {
     if (existingIndex?.fs_path) {
       // Update existing index file
       const absPath = toAbsoluteFsPath(this.repoPath, existingIndex.fs_path)
-      this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     } else if (config.materialization === "full") {
       // Only "full" mode auto-creates index files. "metadata" mode only updates existing ones —
       // the user creates the index file manually, materialization keeps it in sync.
       const filename = indexFileName(node.name ?? "", config.naming)
       const newFsPath = join(folderPath, filename)
       const absPath = toAbsoluteFsPath(this.repoPath, newFsPath)
-      this.fsTarget.writeFile(absPath, content, this.currentEventId)
+      this.fsTarget.writeFile(absPath, content, this.currentChangeId)
     }
   }
 
   /**
    * Rename a folder directory on disk when its content (name) changes.
    */
-  private handleFolderRename(node: KNode, newName: string, _eventId: string): void {
+  private handleFolderRename(node: KNode, newName: string, _changeId: string): void {
     const oldFsPath = node.fs_path ?? ""
     const oldAbsPath = toAbsoluteFsPath(this.repoPath, oldFsPath)
     const parentDir = dirname(oldFsPath)
@@ -496,7 +496,7 @@ export class EventHandlers {
       oldPrefix + "%",
     ])
 
-    // Journal the folder rename for event-sourcing completeness
+    // Journal the folder rename for change-sourcing completeness
     this.journalRename(node.id, { fs_path: newFsPath, name: newName, old_fs_path: oldFsPath })
 
     // Only update the index file's name and fs_path in DB if the FS rename succeeded
@@ -522,7 +522,7 @@ export class EventHandlers {
   /**
    * Rename a .md file when its H1 title changes.
    */
-  private handleFileRename(fileNode: KNode, newTitle: string, _eventId: string): void {
+  private handleFileRename(fileNode: KNode, newTitle: string, _changeId: string): void {
     const oldFsPath = fileNode.fs_path
     if (!oldFsPath) return
 
@@ -572,7 +572,7 @@ export class EventHandlers {
       fileNode.id,
     ])
 
-    // Journal the file rename for event-sourcing completeness
+    // Journal the file rename for change-sourcing completeness
     this.journalRename(fileNode.id, { fs_path: newFsPath, name: newName, title: newTitle, old_fs_path: oldFsPath })
 
     // Mutate node so caller writes content at new path
@@ -592,10 +592,10 @@ export class EventHandlers {
   /**
    * Journal a rename operation to changes.jsonl.
    * The DB is already updated by direct mutation (for atomicity with the FS rename),
-   * so this only persists to the journal for event-sourcing completeness.
+   * so this only persists to the journal for change-sourcing completeness.
    */
   private journalRename(nodeId: string, changes: Record<string, unknown>): void {
-    const event: Change = {
+    const change: Change = {
       id: ulid(),
       ts: Date.now(),
       type: "node_updated",
@@ -606,7 +606,7 @@ export class EventHandlers {
     try {
       const dir = dirname(this.emitter.changesPath)
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-      appendFileSync(this.emitter.changesPath, JSON.stringify(event) + "\n")
+      appendFileSync(this.emitter.changesPath, JSON.stringify(change) + "\n")
     } catch (err) {
       log.error?.(`journalRename failed for ${nodeId}: ${String(err)}`)
     }

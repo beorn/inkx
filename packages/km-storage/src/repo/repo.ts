@@ -799,17 +799,17 @@ export interface Repo extends Disposable {
   readonly emitter: Emitter
 
   /**
-   * Apply an event to the system (DB + journal + broadcast + FS sync).
+   * Apply a change to the system (DB + journal + broadcast + FS sync).
    * Delegates to emitter.apply(). Prefer this over emitter.apply() directly.
    */
-  apply(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
+  apply(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 
   /**
-   * Commit an event to DB + journal + broadcast (no FS sync).
-   * Use for FS-origin events where projecting back to FS would cause echo loops.
+   * Commit a change to DB + journal + broadcast (no FS sync).
+   * Use for FS-origin changes where projecting back to FS would cause echo loops.
    * Delegates to emitter.commit().
    */
-  commit(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
+  commit(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)
@@ -1003,7 +1003,7 @@ export interface Repo extends Disposable {
   /**
    * Refresh the repo state.
    * - Memory mode: re-scan filesystem
-   * - Disk mode: re-apply unapplied events
+   * - Disk mode: re-apply unapplied changes
    *
    * This is a generator that yields progress info during refresh.
    * Use runGenerator() for silent refresh, or iterate for progress.
@@ -1628,17 +1628,17 @@ export function* createRepo(
 
   // Register lightweight FS writer for disk-mode repos (CLI write-back).
   // The TUI replaces this with withSync() which wraps emitter.apply().
-  // Must happen before repo construction so syncToFs can reference applyEventToFs.
-  let fsApplyEventToFs: ((event: Change) => void) | null = null
+  // Must happen before repo construction so syncToFs can reference applyChangeToFs.
+  let fsApplyChangeToFs: ((change: Change) => void) | null = null
   if (mode === "disk") {
     const result = withFsWriter({
       database: db,
       path: rootPath,
       emitter,
-      apply: (event, options?) => emitter.apply(event, options),
-      commit: (event, options?) => emitter.commit(event, options),
+      apply: (change, options?) => emitter.apply(change, options),
+      commit: (change, options?) => emitter.commit(change, options),
     })
-    fsApplyEventToFs = result.applyEventToFs
+    fsApplyChangeToFs = result.applyChangeToFs
   }
 
   // Create FileTree for the repo root
@@ -1785,11 +1785,11 @@ export function* createRepo(
     emitter,
 
     // Change application (delegates to emitter)
-    apply(event, options?) {
-      return emitter.apply(event, options)
+    apply(change, options?) {
+      return emitter.apply(change, options)
     },
-    commit(event, options?) {
-      return emitter.commit(event, options)
+    commit(change, options?) {
+      return emitter.commit(change, options)
     },
 
     // Spread shared query and mutation methods
@@ -1811,12 +1811,12 @@ export function* createRepo(
     },
 
     syncToFs(nodeId) {
-      if (!fsApplyEventToFs) return
+      if (!fsApplyChangeToFs) return
       const node = dataStore.getNode(nodeId)
       if (!node) return
-      // Synthesize a node_updated event to trigger file regeneration.
+      // Synthesize a node_updated change to trigger file regeneration.
       // Calls the FS handler directly — no DB, no journal, no broadcast.
-      fsApplyEventToFs({
+      fsApplyChangeToFs({
         id: "sync",
         ts: Date.now(),
         type: "node_updated",
@@ -2021,11 +2021,11 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
     },
 
     // Change application (delegates to emitter)
-    apply(event, options?) {
-      return emitter.apply(event, options)
+    apply(change, options?) {
+      return emitter.apply(change, options)
     },
-    commit(event, options?) {
-      return emitter.commit(event, options)
+    commit(change, options?) {
+      return emitter.commit(change, options)
     },
 
     // Spread shared query and mutation methods

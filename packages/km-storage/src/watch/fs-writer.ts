@@ -12,25 +12,25 @@ import { existsSync, mkdirSync, renameSync, rmSync, statSync, unlinkSync, writeF
 import { dirname } from "path"
 import type { Change } from "@km/core"
 import type { SyncableRepo } from "./sync.ts"
-import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "./event-handlers.ts"
 
 /** Result of withFsWriter — the repo plus a direct FS projection function */
 export interface FsWriterResult<R> {
   repo: R
-  /** Project a single event to the filesystem (no DB, no journal, no broadcast) */
-  applyEventToFs(event: Change): void
+  /** Project a single change to the filesystem (no DB, no journal, no broadcast) */
+  applyChangeToFs(change: Change): void
 }
 
 // Create sync FsWriteTarget using writeFileSync, mkdirSync, renameSync, unlinkSync
 const syncFsTarget: FsWriteTarget = {
-  writeFile: (absPath: string, content: string, _eventId?: string) => {
+  writeFile: (absPath: string, content: string, _changeId?: string) => {
     const dir = dirname(absPath)
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true })
     }
     writeFileSync(absPath, content, "utf-8")
   },
-  deleteFile: (absPath: string, _eventId?: string) => {
+  deleteFile: (absPath: string, _changeId?: string) => {
     if (existsSync(absPath)) {
       if (statSync(absPath).isDirectory()) {
         rmSync(absPath, { recursive: true, force: true })
@@ -50,31 +50,31 @@ const syncFsTarget: FsWriteTarget = {
 /**
  * Decorator that adds synchronous filesystem write-back to a repo.
  *
- * Subscribes to emitter.onApply() to project events to .md files after DB commit.
+ * Subscribes to emitter.onApply() to project changes to .md files after DB commit.
  * For CLI usage where mutations need immediate FS write-back.
  *
- * Returns the repo (unchanged) plus an `applyEventToFs` function for
+ * Returns the repo (unchanged) plus an `applyChangeToFs` function for
  * direct FS projection (used by repo.syncToFs after withDeferredFs).
  *
  * @example
- * const { applyEventToFs } = withFsWriter(repo)
- * repo.apply(event) // DB + journal + broadcast + write to .md
+ * const { applyChangeToFs } = withFsWriter(repo)
+ * repo.apply(change) // DB + journal + broadcast + write to .md
  */
 export function withFsWriter<R extends SyncableRepo>(repo: R): FsWriterResult<R> {
   const { database, path, emitter } = repo
-  const handlers = new EventHandlers(database, path, emitter, syncFsTarget)
+  const handlers = new ChangeHandlers(database, path, emitter, syncFsTarget)
 
   // Subscribe to apply() to add FS projection.
   // onApply fires after DB + persist + broadcast; commit() does NOT fire it,
-  // so FS-origin events (which use commit()) structurally cannot echo back.
-  emitter.onApply((event, options) => {
+  // so FS-origin changes (which use commit()) structurally cannot echo back.
+  emitter.onApply((change, options) => {
     if (options.source !== "fs-import") {
-      handlers.applyEventToFs(event)
+      handlers.applyChangeToFs(change)
     }
   })
 
   return {
     repo,
-    applyEventToFs: (event: Change) => handlers.applyEventToFs(event),
+    applyChangeToFs: (change: Change) => handlers.applyChangeToFs(change),
   }
 }

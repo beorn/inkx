@@ -258,7 +258,7 @@ export { withReactive } from "./store/reactive.ts"
 
 export type { Reactive, ReadonlySignal } from "./store/reactive.ts"
 
-// Emitter domain object - owns event emission lifecycle
+// Emitter domain object - owns change emission lifecycle
 export { createEmitter } from "./emitter.ts"
 
 export type { Emitter, EmitterOptions, EmitOptions, ChangeHub } from "./emitter.ts"

@@ -492,7 +492,7 @@ code
         db.run("UPDATE nodes SET task_status = 'done', updated_at = ? WHERE id = ?", [Date.now(), alpha!.id])
 
         // Apply event to trigger a writeQueue entry
-        manager.applyEventToFs({
+        manager.applyChangeToFs({
           id: "test-stop-flush",
           ts: Date.now(),
           type: "node_updated",
@@ -631,7 +631,7 @@ code
       }))
   })
 
-  describe("applyEventToFs — node_created for section nodes", () => {
+  describe("applyChangeToFs — node_created for section nodes", () => {
     test("creating a section node regenerates parent file", () =>
       withTestEnv(async ({ repoDir, db }) => {
         // Create a file with two sections
@@ -703,7 +703,7 @@ code
         )
 
         // Apply the event to filesystem
-        manager.applyEventToFs(newSectionEvent)
+        manager.applyChangeToFs(newSectionEvent)
 
         // Wait for debounced write queue to flush (debounceMs=0 still uses setTimeout)
         await new Promise((r) => setTimeout(r, 50))

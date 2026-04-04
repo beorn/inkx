@@ -94,11 +94,11 @@ export function createWatcher(repoPath: string, options: WatcherOptions): Watche
     database: db,
     path: repoPath,
     emitter,
-    apply(event, opts?) {
-      return emitter.apply(event, opts)
+    apply(change, opts?) {
+      return emitter.apply(change, opts)
     },
-    commit(event, opts?) {
-      return emitter.commit(event, opts)
+    commit(change, opts?) {
+      return emitter.commit(change, opts)
     },
   }
 

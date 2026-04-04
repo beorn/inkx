@@ -2,12 +2,12 @@
  * Filesystem Store — wraps the filesystem as a Store-shaped projection boundary.
  *
  * The FS store maintains an in-memory SQLite database that mirrors FS state.
- * It composes existing infrastructure (EventHandlers, ReconciliationEngine,
+ * It composes existing infrastructure (ChangeHandlers, ReconciliationEngine,
  * BulkSync, WriteQueue, FileSystemWatcher) behind the Store & Observable interface.
  *
  * - peekNode/peekChildIds: read from the internal DB (populated via syncFromFs)
- * - commit: apply events to the internal DB, then project to FS via EventHandlers
- * - onCommit: watch for external FS changes, reconcile into events, fire callbacks
+ * - commit: apply changes to the internal DB, then project to FS via ChangeHandlers
+ * - onCommit: watch for external FS changes, reconcile into changes, fire callbacks
  */
 
 import { Database } from "bun:sqlite"
@@ -22,7 +22,7 @@ import { computeDelta, mergeDeltas } from "./commit-types.ts"
 import { rowToNode } from "../db/queries/utils.ts"
 import { SCHEMA } from "../db/schema.ts"
 import { createEmitter, type Emitter } from "../emitter.ts"
-import { EventHandlers, type FsWriteTarget } from "../watch/event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "../watch/event-handlers.ts"
 import { WriteQueue } from "../watch/writequeue.ts"
 import { createOwnershipTracker, type OwnershipTracker } from "../watch/ownership-tracker.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "../watch/reconciliation-engine.ts"
@@ -57,7 +57,7 @@ export interface FsStore extends Store, Observable, AsyncDisposable {
  *
  * The returned store wraps a directory as a store-shaped projection boundary:
  * - Reads come from an in-memory SQLite DB synced from the filesystem
- * - Writes project events as file changes via the existing EventHandlers
+ * - Writes project changes as file mutations via the existing ChangeHandlers
  * - External FS changes are detected by the watcher and emitted as commits
  *
  * After creation, call `syncFromFs()` to populate the internal state from disk.
@@ -81,7 +81,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
   const db = new Database(":memory:")
   db.run(SCHEMA)
 
-  // Emitter for event lifecycle (skipPersist — we don't journal FS store events)
+  // Emitter for change lifecycle (skipPersist — we don't journal FS store changes)
   const emitter: Emitter = createEmitter({ kmDir, db, skipPersist: true })
 
   // Ownership tracker for watcher suppression
@@ -108,13 +108,13 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     reconcileEmitter,
   })
 
-  // FS write target for EventHandlers (DB→FS projection)
+  // FS write target for ChangeHandlers (DB→FS projection)
   const fsTarget: FsWriteTarget = {
-    writeFile: (absPath, content, eventId) => {
-      writeQueue.queue({ path: absPath, content, sourceEventId: eventId || "" })
+    writeFile: (absPath, content, changeId) => {
+      writeQueue.queue({ path: absPath, content, sourceEventId: changeId || "" })
     },
-    deleteFile: (absPath, eventId) => {
-      writeQueue.queueDelete(absPath, eventId || "")
+    deleteFile: (absPath, changeId) => {
+      writeQueue.queueDelete(absPath, changeId || "")
     },
     renameFile: (oldPath, newPath) => {
       renameSync(oldPath, newPath)
@@ -130,7 +130,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     dropPending: (path) => writeQueue.dropPending(path),
   }
 
-  const handlers = new EventHandlers(db, repoPath, emitter, fsTarget)
+  const handlers = new ChangeHandlers(db, repoPath, emitter, fsTarget)
 
   // Commit listeners (for onCommit)
   const listeners = new Set<(result: CommitResult) => void>()
@@ -196,10 +196,10 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     }
   }
 
-  // Subscribe to apply() to project user-origin events to FS
-  const unsubApply = emitter.onApply((event, emitOptions) => {
+  // Subscribe to apply() to project user-origin changes to FS
+  const unsubApply = emitter.onApply((change, emitOptions) => {
     if (emitOptions.source !== "fs-import") {
-      handlers.applyEventToFs(event)
+      handlers.applyChangeToFs(change)
     }
   })
 

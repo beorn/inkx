@@ -2,7 +2,7 @@
  * Sync — Decorator-based bidirectional sync between filesystem and database.
  *
  * Orchestrates reconciliation (FS→DB) via ReconciliationEngine,
- * projection (DB→FS) via EventHandlers, and bulk sync via BulkSync.
+ * projection (DB→FS) via ChangeHandlers, and bulk sync via BulkSync.
  *
  * Usage: const syncedRepo = withSync({ debounceFs: 2000 })(repo)
  */
@@ -22,7 +22,7 @@ import { createOwnershipTracker, type OwnershipTracker } from "./ownership-track
 import { getIgnorePatterns } from "../fs/ignore.ts"
 import { type Change } from "@km/core"
 import { type Emitter, type EmitOptions } from "../emitter.ts"
-import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "./event-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
 import { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
 import type { BulkSyncDeps, SyncProgressCallback, SyncFromFsResult } from "./bulk-sync.ts"
@@ -86,7 +86,7 @@ import type { SyncState } from "./heartbeat.ts"
 export interface Sync {
   start(): void
   stop(): Promise<void>
-  applyEventToFs(event: Change): void
+  applyChangeToFs(change: Change): void
   syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult>
   syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult>
   syncToFs(): Promise<{ written: number }>
@@ -107,8 +107,8 @@ export interface SyncableRepo {
   readonly database: Database
   readonly path: string
   readonly emitter: Emitter
-  apply(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
-  commit(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
+  apply(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
+  commit(change: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -119,7 +119,7 @@ export interface SyncableRepo {
  * @example
  * const syncedRepo = withSync({ debounceFs: 2000 })(repo)
  * syncedRepo.start()
- * syncedRepo.apply(event) // DB + journal + broadcast + save to FS
+ * syncedRepo.apply(change) // DB + journal + broadcast + save to FS
  * await syncedRepo.stop()
  */
 export function withSync(config?: Partial<SyncConfig>) {
@@ -237,7 +237,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       void promise.finally(() => inFlightSyncs.delete(promise))
     }
 
-    // ── FsWriteTarget (for EventHandlers) ──────────────────────────────────
+    // ── FsWriteTarget (for ChangeHandlers) ──────────────────────────────────
 
     const fsTarget: FsWriteTarget = {
       writeFile: (absPath: string, content: string, eventId?: string) => {
@@ -272,7 +272,7 @@ export function withSync(config?: Partial<SyncConfig>) {
       },
     }
 
-    const handlers = new EventHandlers(db, repoPath, emitter, fsTarget)
+    const handlers = new ChangeHandlers(db, repoPath, emitter, fsTarget)
 
     // ── Heartbeat ──────────────────────────────────────────────────────────
 
@@ -358,8 +358,8 @@ export function withSync(config?: Partial<SyncConfig>) {
         callbacks?.onStopped?.()
       },
 
-      applyEventToFs(event: Change): void {
-        void handlers.applyEventToFs(event)
+      applyChangeToFs(change: Change): void {
+        void handlers.applyChangeToFs(change)
       },
 
       async syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult> {
@@ -427,10 +427,10 @@ export function withSync(config?: Partial<SyncConfig>) {
 
     // Subscribe to apply() to add FS projection.
     // onApply fires after DB + persist + broadcast; commit() does NOT fire it,
-    // so FS-origin events (which use commit()) structurally cannot echo back.
-    const unsubscribe = emitter.onApply((event, options) => {
+    // so FS-origin changes (which use commit()) structurally cannot echo back.
+    const unsubscribe = emitter.onApply((change, options) => {
       if (options.source !== "fs-import") {
-        void handlers.applyEventToFs(event)
+        void handlers.applyChangeToFs(change)
       }
     })
 
