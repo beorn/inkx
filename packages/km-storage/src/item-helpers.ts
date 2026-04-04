@@ -73,23 +73,23 @@ export function composeItem(
 }
 
 // =============================================================================
-// Legacy event decompose: handles both nested item object and flat fields
+// Legacy change decompose: handles both nested item object and flat fields
 // =============================================================================
 
 /**
- * Extract flat DB columns from an event's data record.
- * Handles both nested item format (new) and flat fields (legacy events).
+ * Extract flat DB columns from a change's data record.
+ * Handles both nested item format (new) and flat fields (legacy changes).
  *
  * @example
  *   // New format: { item: { list: "-", task: { marker: "[ ]", status: "todo" } } }
- *   decomposeEventItem(data)
+ *   decomposeChangeItem(data)
  *   // → { listMarker: "-", taskMarker: "[ ]", taskStatus: "todo" }
  *
  *   // Legacy format: { list_marker: "-", task_marker: "[ ]", task_status: "todo" }
- *   decomposeEventItem(data)
+ *   decomposeChangeItem(data)
  *   // → { listMarker: "-", taskMarker: "[ ]", taskStatus: "todo" }
  */
-export function decomposeEventItem(data: Record<string, unknown>): {
+export function decomposeChangeItem(data: Record<string, unknown>): {
   listMarker: string | null
   taskMarker: string | null
   taskStatus: string | null

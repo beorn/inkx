@@ -1137,7 +1137,7 @@ function expandUnexploredDirectory(
   const ignorePatterns = getIgnorePatterns(repoRoot)
   const preloadDepth = options.preloadDepth ?? Infinity
   const now = Date.now()
-  const events: Change[] = []
+  const changes: Change[] = []
   const pendingLinks: PendingLink[] = []
   const newUnexploredDirs: UnexploredDir[] = []
   const visitedDirs = new Set<string>()
@@ -1152,14 +1152,14 @@ function expandUnexploredDirectory(
   // Scan starting at depth 0 relative to this directory
   scanDir(fullPath, dir.id, 0)
 
-  // Apply events to database
-  if (events.length > 0) {
+  // Apply changes to database
+  if (changes.length > 0) {
     db.run("BEGIN IMMEDIATE")
     try {
       const insertStmt = db.prepare(INSERT_NODE_SQL)
-      for (const event of events) {
-        if (event.type === "node_created") {
-          const data = event.data as Record<string, unknown>
+      for (const change of changes) {
+        if (change.type === "node_created") {
+          const data = change.data as Record<string, unknown>
           insertStmt.run(
             data.id as string,
             data.type as string,
@@ -1186,9 +1186,9 @@ function expandUnexploredDirectory(
             (data.content as string) ?? null,
             (data.content_hash as string) ?? null,
             JSON.stringify(data.data ?? {}),
-            event.ts,
-            event.ts,
-            event.id,
+            change.ts,
+            change.ts,
+            change.id,
           )
         }
       }
@@ -1199,7 +1199,7 @@ function expandUnexploredDirectory(
     }
   }
 
-  return { nodeCount: events.length, pendingLinks, newUnexploredDirs }
+  return { nodeCount: changes.length, pendingLinks, newUnexploredDirs }
 
   function scanDir(dirPath: string, parentId: string, depth: number): void {
     let entries
@@ -1259,7 +1259,7 @@ function expandUnexploredDirectory(
   function handleDir(dirPath: string, parentId: string, order: number, name: string, depth: number): void {
     const folderId = generatePathBasedId(repoRoot, dirPath)
     const relPath = toRelativeFsPath(repoRoot, dirPath)
-    events.push({
+    changes.push({
       id: folderId,
       type: "node_created",
       actor: "fs-expand",
@@ -1300,7 +1300,7 @@ function expandUnexploredDirectory(
 
     if (!isMd && !isTxt) {
       // Non-markdown file
-      events.push({
+      changes.push({
         id: fileId,
         type: "node_created",
         actor: "fs-expand",
@@ -1322,7 +1322,7 @@ function expandUnexploredDirectory(
     if (options.parseMode === "stub") {
       const ext = isTxt ? /\.txt$/i : /\.md$/i
       const name = entryName.replace(ext, "")
-      events.push({
+      changes.push({
         id: fileId,
         type: "node_created",
         actor: "fs-expand",
@@ -1357,7 +1357,7 @@ function expandUnexploredDirectory(
 
         for (const node of nodes) {
           const nodeId = node.id ?? generatePathBasedId(repoRoot, filePath, node.md_line)
-          events.push({
+          changes.push({
             id: nodeId,
             type: "node_created",
             actor: "fs-expand",

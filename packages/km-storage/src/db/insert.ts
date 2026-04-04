@@ -15,9 +15,9 @@ import { decomposeItem } from "../item-helpers.ts"
 // INSERT OR IGNORE (idempotent — disk mode / deferred parsing)
 // ============================================================================
 
-/** SQL for the INSERT OR IGNORE used by applyEvents, parseDeferredSequential, and parseStubFile.
+/** SQL for the INSERT OR IGNORE used by applyChanges, parseDeferredSequential, and parseStubFile.
  * Uses INSERT OR IGNORE to match applyChangeWithDb behavior — in disk mode,
- * changes.jsonl may contain events for nodes that already exist in state.db. */
+ * changes.jsonl may contain changes for nodes that already exist in state.db. */
 export const INSERT_NODE_SQL = `
   INSERT OR IGNORE INTO nodes (
     id, type, fstype, parent_id, item, embed_source, parent_idx,

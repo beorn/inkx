@@ -90,13 +90,13 @@ export interface DataStore extends Disposable {
 // =============================================================================
 
 /**
- * Event-sourced capability - provides access to event log and rebuild.
- * Use for infrastructure code that needs to replay or inspect events.
+ * Change-sourced capability - provides access to change log and rebuild.
+ * Use for infrastructure code that needs to replay or inspect changes.
  */
-export interface EventSourced {
-  /** Event log for replaying/inspecting events */
-  readonly events: EventLog
-  /** Rebuild state from events */
+export interface ChangeSourced {
+  /** Change log for replaying/inspecting changes */
+  readonly changeLog: ChangeLog
+  /** Rebuild state from changes */
   rebuild(): Promise<void>
 }
 
@@ -110,18 +110,18 @@ export interface HasDatabase {
 }
 
 /**
- * Event log interface for event-sourced stores.
+ * Change log interface for change-sourced stores.
  */
-export interface EventLog {
-  append(event: StoreEvent): void
-  read(): AsyncIterable<StoreEvent>
-  getLastEventId(): string | null
+export interface ChangeLog {
+  append(change: StoreChange): void
+  read(): AsyncIterable<StoreChange>
+  getLastChangeId(): string | null
 }
 
 /**
- * Store event for event sourcing.
+ * Store change for change sourcing.
  */
-export interface StoreEvent {
+export interface StoreChange {
   id: string
   type: string
   timestamp: number
@@ -132,8 +132,8 @@ export interface StoreEvent {
 // Composed Types
 // =============================================================================
 
-/** DataStore backed by SQLite with event sourcing */
-export type DBDataStore = DataStore & EventSourced & HasDatabase
+/** DataStore backed by SQLite with change sourcing */
+export type DBDataStore = DataStore & ChangeSourced & HasDatabase
 
 /** Pure in-memory DataStore (fastest, for testing) */
 export type MapDataStore = DataStore

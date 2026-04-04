@@ -12,10 +12,10 @@ export type {
   DataStore,
   MapDataStore,
   DBDataStore,
-  EventSourced,
+  ChangeSourced,
   HasDatabase,
-  EventLog,
-  StoreEvent,
+  ChangeLog,
+  StoreChange,
 } from "./data-store.ts"
 
 // FileTree interface and factories (simple file I/O abstraction)

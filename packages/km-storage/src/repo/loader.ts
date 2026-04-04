@@ -27,7 +27,7 @@ import { MemoryStore, type NodeStore } from "../store/store.ts"
 import { getIgnorePatterns, shouldIgnore, isHiddenFile } from "../fs/ignore.ts"
 import { generatePathBasedId } from "../fs/id-utils.ts"
 import { INSERT_NODE_SQL } from "../db/insert.ts"
-import { decomposeEventItem } from "../item-helpers.ts"
+import { decomposeChangeItem } from "../item-helpers.ts"
 
 // Import extracted modules
 import { discoverFiles, type UnexploredDir } from "../discovery.ts"
@@ -191,21 +191,21 @@ export function* loadRepo(rootPath?: string, options?: LoadOptions): Generator<S
   // 2a. Ensure repo root node exists (discovery needs it for parent_id)
   ensureRepoRootNode(db, repoRoot)
 
-  // 3. Mode-specific event source
-  const source: EventSource =
+  // 3. Mode-specific change source
+  const source: ChangeSource =
     mode === "memory"
       ? yield* discoverMemoryMode(repoRoot, errors, db, discoverOnly, options?.preloadDepth)
-      : yield* discoverFromEvents(db, kmDir ?? "", options?.force ?? false, errors)
+      : yield* discoverFromChanges(db, kmDir ?? "", options?.force ?? false, errors)
 
   // 4. Shared pipeline (normalizes parent_id: null → ".")
-  yield* applyEvents(db, source.events, errors, repoRoot)
+  yield* applyChanges(db, source.changes, errors, repoRoot)
 
   // 4a. Disk mode: reconcile filesystem to detect externally added/removed files
   let reconcileDeferredFiles: DeferredFile[] = []
   if (mode === "disk") {
     const reconcileResult = yield* reconcileFilesystem(db, repoRoot, errors)
-    if (reconcileResult.events.length > 0) {
-      yield* applyEvents(db, reconcileResult.events, errors, repoRoot)
+    if (reconcileResult.changes.length > 0) {
+      yield* applyChanges(db, reconcileResult.changes, errors, repoRoot)
     }
     reconcileDeferredFiles = reconcileResult.deferredFiles
   }
@@ -313,8 +313,8 @@ export const parseStubFile = parseStubFileImpl
 // INTERNAL TYPES
 // ============================================================================
 
-interface EventSource {
-  events: Change[]
+interface ChangeSource {
+  changes: Change[]
   pendingLinks: PendingLink[]
   deferredFiles?: DeferredFile[]
   unexploredDirs?: UnexploredDir[]
@@ -417,7 +417,7 @@ function* discoverMemoryMode(
   db: Database,
   discoverOnly: boolean,
   preloadDepth?: number,
-): Generator<StepYield, EventSource, unknown> {
+): Generator<StepYield, ChangeSource, unknown> {
   return yield* discoverFiles(repoRoot, db, {
     parseMode: discoverOnly ? "stub" : "full",
     errors,
@@ -426,18 +426,18 @@ function* discoverMemoryMode(
 }
 
 // ============================================================================
-// EVENT READING
+// CHANGE READING
 // ============================================================================
 
 /**
  * Parse changes.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
  * Returns empty array if file doesn't exist.
  */
-function parseEventsFile(kmDir: string, caller: string): Change[] {
+function parseChangesFile(kmDir: string, caller: string): Change[] {
   const changesPath = join(kmDir, "changes.jsonl")
 
   if (!existsSync(changesPath)) {
-    log.debug?.(`no events file at ${changesPath}`)
+    log.debug?.(`no changes file at ${changesPath}`)
     return []
   }
 
@@ -446,16 +446,16 @@ function parseEventsFile(kmDir: string, caller: string): Change[] {
 
   log.debug?.(`reading ${lines.length} lines from changes.jsonl`)
 
-  const events: Change[] = []
+  const changes: Change[] = []
   const seen = new Set<string>()
   let skippedCount = 0
 
   for (const line of lines) {
     try {
-      const event = JSON.parse(line) as Change
-      if (!seen.has(event.id)) {
-        seen.add(event.id)
-        events.push(event)
+      const change = JSON.parse(line) as Change
+      if (!seen.has(change.id)) {
+        seen.add(change.id)
+        changes.push(change)
       }
     } catch {
       skippedCount++
@@ -467,46 +467,46 @@ function parseEventsFile(kmDir: string, caller: string): Change[] {
   }
 
   // Sort by ULID (lexicographic = chronological)
-  events.sort((a, b) => a.id.localeCompare(b.id))
+  changes.sort((a, b) => a.id.localeCompare(b.id))
 
-  log.debug?.(`read ${events.length} events`)
-  return events
+  log.debug?.(`read ${changes.length} changes`)
+  return changes
 }
 
 export function readChanges(kmDir: string): Change[] {
-  return parseEventsFile(kmDir, "readChanges")
+  return parseChangesFile(kmDir, "readChanges")
 }
 
 // ============================================================================
 // DISK MODE DISCOVERY
 // ============================================================================
 
-function* discoverFromEvents(
+function* discoverFromChanges(
   db: Database,
   kmDir: string,
   force: boolean,
   _errors: LoadError[],
-): Generator<StepYield, EventSource, unknown> {
-  yield "Reading events"
+): Generator<StepYield, ChangeSource, unknown> {
+  yield "Reading changes"
 
-  const allEvents = parseEventsFile(kmDir, "discoverFromEvents")
+  const allChanges = parseChangesFile(kmDir, "discoverFromChanges")
 
-  // Filter to only new events (unless force rebuild)
-  let events: Change[]
+  // Filter to only new changes (unless force rebuild)
+  let changes: Change[]
   const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
     | { value: string }
     | undefined
 
   if (force) {
-    events = allEvents
+    changes = allChanges
   } else {
-    events = lastApplied?.value ? allEvents.filter((e) => e.id > lastApplied.value) : allEvents
+    changes = lastApplied?.value ? allChanges.filter((e) => e.id > lastApplied.value) : allChanges
   }
 
-  yield { current: events.length, total: events.length }
-  log.debug?.(`discovered ${allEvents.length} events (${events.length} new)`)
+  yield { current: changes.length, total: changes.length }
+  log.debug?.(`discovered ${allChanges.length} changes (${changes.length} new)`)
 
-  return { events, pendingLinks: [] }
+  return { changes, pendingLinks: [] }
 }
 
 // ============================================================================
@@ -514,14 +514,14 @@ function* discoverFromEvents(
 // ============================================================================
 
 /**
- * After disk mode applies events from changes.jsonl, scan the filesystem
+ * After disk mode applies changes from changes.jsonl, scan the filesystem
  * to detect files present on disk but missing from the DB (externally added),
  * and files in the DB that no longer exist on disk (externally deleted).
  *
- * Generates node_created / node_deleted events for the differences.
+ * Generates node_created / node_deleted changes for the differences.
  */
 interface ReconcileResult {
-  events: Change[]
+  changes: Change[]
   deferredFiles: DeferredFile[]
 }
 
@@ -532,7 +532,7 @@ function* reconcileFilesystem(
 ): Generator<StepYield, ReconcileResult, unknown> {
   yield "Reconciling filesystem"
 
-  const events: Change[] = []
+  const changes: Change[] = []
   const deferredFiles: DeferredFile[] = []
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
@@ -548,7 +548,7 @@ function* reconcileFilesystem(
   if (dbRows.some((row) => isAbsolute(row.fs_path))) {
     log.debug?.("reconcileFilesystem: skipping — DB contains absolute fs_path values")
     yield { current: 0, total: 0 }
-    return { events, deferredFiles }
+    return { changes, deferredFiles }
   }
 
   const dbPathSet = new Set<string>()
@@ -567,7 +567,7 @@ function* reconcileFilesystem(
   } catch {
     errors.push({ phase: "discover", message: `Cannot resolve repo root: ${repoRoot}` })
     yield { current: 0, total: 0 }
-    return { events, deferredFiles }
+    return { changes, deferredFiles }
   }
 
   const visitedDirs = new Set<string>([repoRealpath])
@@ -653,7 +653,7 @@ function* reconcileFilesystem(
   // Track newly created node IDs by relPath (for parent lookup of nested new entries)
   const newPathToId = new Map<string, string>()
 
-  // Find files on disk but NOT in DB → generate node_created events
+  // Find files on disk but NOT in DB → generate node_created changes
   for (const relPath of newPaths) {
     const fullPath = join(repoRoot, relPath)
     const entryName = basename(relPath)
@@ -683,7 +683,7 @@ function* reconcileFilesystem(
     }
 
     if (stat.isDirectory()) {
-      events.push({
+      changes.push({
         id: nodeId,
         type: "node_created",
         actor: "fs-reconcile",
@@ -704,7 +704,7 @@ function* reconcileFilesystem(
       const isTxt = entryName.endsWith(".txt")
       const ext = isTxt ? /\.txt$/i : /\.md$/i
       const name = entryName.replace(ext, "")
-      events.push({
+      changes.push({
         id: nodeId,
         type: "node_created",
         actor: "fs-reconcile",
@@ -725,7 +725,7 @@ function* reconcileFilesystem(
       deferredFiles.push({ nodeId, fsPath: fullPath })
     } else {
       // Non-markdown file
-      events.push({
+      changes.push({
         id: nodeId,
         type: "node_created",
         actor: "fs-reconcile",
@@ -744,10 +744,10 @@ function* reconcileFilesystem(
     }
   }
 
-  // Find files in DB but NOT on disk → generate node_deleted events
+  // Find files in DB but NOT on disk → generate node_deleted changes
   for (const [relPath, nodeId] of dbPathToId) {
     if (!fsPathSet.has(relPath)) {
-      events.push({
+      changes.push({
         id: `reconcile-del-${nodeId}`,
         type: "node_deleted",
         actor: "fs-reconcile",
@@ -759,62 +759,62 @@ function* reconcileFilesystem(
   }
 
   log.debug?.(
-    `reconcileFilesystem: ${events.length} events, ${deferredFiles.length} deferred (fs=${fsPathSet.size} db=${dbPathSet.size})`,
+    `reconcileFilesystem: ${changes.length} changes, ${deferredFiles.length} deferred (fs=${fsPathSet.size} db=${dbPathSet.size})`,
   )
-  yield { current: events.length, total: events.length }
+  yield { current: changes.length, total: changes.length }
 
-  return { events, deferredFiles }
+  return { changes, deferredFiles }
 }
 
 // ============================================================================
 // SHARED PIPELINE
 // ============================================================================
 
-// oxlint-disable-next-line complexity/complexity -- 35/30: event type switch with validation guards, exhaustive by design
-function* applyEvents(
+// oxlint-disable-next-line complexity/complexity -- 35/30: change type switch with validation guards, exhaustive by design
+function* applyChanges(
   db: Database,
-  events: Change[],
+  changes: Change[],
   errors: LoadError[],
   repoRoot: string,
 ): Generator<StepYield, void, unknown> {
   yield "Applying changes"
 
-  const total = events.length
+  const total = changes.length
   if (total === 0) return
 
   db.run("BEGIN IMMEDIATE")
   try {
     const insertStmt = db.prepare(INSERT_NODE_SQL)
-    // Track node IDs whose creation failed — skip subsequent events targeting them.
-    // The event log is append-only and ordered; if a node_created fails, all
-    // subsequent events referencing that node would cascade-fail. Skipping them
-    // avoids noise and preserves ordered-event semantics within a node's lifecycle.
+    // Track node IDs whose creation failed — skip subsequent changes targeting them.
+    // The change log is append-only and ordered; if a node_created fails, all
+    // subsequent changes referencing that node would cascade-fail. Skipping them
+    // avoids noise and preserves ordered-change semantics within a node's lifecycle.
     const failedNodeIds = new Set<string>()
     let unexpectedFailureCount = 0
     let skippedCascadeCount = 0
 
-    for (const [i, event] of events.entries()) {
-      // Skip events targeting a node whose creation failed (prevents cascade failures)
-      const targetId = event.target ?? (event.data as Record<string, unknown>)?.id
+    for (const [i, change] of changes.entries()) {
+      // Skip changes targeting a node whose creation failed (prevents cascade failures)
+      const targetId = change.target ?? (change.data as Record<string, unknown>)?.id
       if (typeof targetId === "string" && failedNodeIds.has(targetId)) {
-        log.debug?.(`skipping ${event.type} for failed node ${targetId.slice(-8)}`)
+        log.debug?.(`skipping ${change.type} for failed node ${targetId.slice(-8)}`)
         skippedCascadeCount++
         continue
       }
 
       try {
-        if (event.type === "node_created") {
-          const data = event.data as Record<string, unknown>
-          // Normalize fs_path: old events may have absolute paths
+        if (change.type === "node_created") {
+          const data = change.data as Record<string, unknown>
+          // Normalize fs_path: old changes may have absolute paths
           const rawFsPath = (data.fs_path as string) ?? null
           const fsPath = rawFsPath && isAbsolute(rawFsPath) ? toRelativeFsPath(repoRoot, rawFsPath) : rawFsPath
           // Normalize parent_id: null → "." (repo root)
           const parentId = (data.parent_id as string) ?? "."
           // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
-          const { listMarker, taskMarker, taskStatus } = decomposeEventItem(data)
+          const { listMarker, taskMarker, taskStatus } = decomposeChangeItem(data)
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
           // from km sync that changes.jsonl also references (last_event cursor
-          // may not cover all events). Matches applyChangeWithDb behavior.
+          // may not cover all changes). Matches applyChangeWithDb behavior.
           // Expected duplicates are silently ignored (no exception thrown).
           insertStmt.run(
             data.id as string,
@@ -842,31 +842,31 @@ function* applyEvents(
             (data.content as string) ?? null,
             (data.content_hash as string) ?? null,
             JSON.stringify(data.data ?? {}),
-            event.ts,
-            event.ts,
-            event.id,
+            change.ts,
+            change.ts,
+            change.id,
           )
         } else {
-          applyChangeWithDb(db, event)
+          applyChangeWithDb(db, change)
         }
       } catch (err) {
         // Any error reaching here is unexpected — expected duplicates are handled
         // by INSERT OR IGNORE (no exception). We continue replaying remaining
-        // events because the event log is append-only and may contain stale/duplicate
-        // events from prior sessions that fail harmlessly.
+        // changes because the change log is append-only and may contain stale/duplicate
+        // changes from prior sessions that fail harmlessly.
         unexpectedFailureCount++
         const message = err instanceof Error ? err.message : String(err)
         errors.push({ phase: "apply", message })
 
-        if (event.type === "node_created") {
-          // Track the node ID so dependent events (update, move, delete) are skipped
-          const nodeId = (event.data as Record<string, unknown>)?.id as string | undefined
+        if (change.type === "node_created") {
+          // Track the node ID so dependent changes (update, move, delete) are skipped
+          const nodeId = (change.data as Record<string, unknown>)?.id as string | undefined
           if (nodeId) {
             failedNodeIds.add(nodeId)
-            log.warn?.(`node_created failed for ${nodeId.slice(-8)}, will skip dependent events: ${message}`)
+            log.warn?.(`node_created failed for ${nodeId.slice(-8)}, will skip dependent changes: ${message}`)
           }
         } else {
-          log.warn?.(`${event.type} failed for ${(event.target ?? "?").slice(-8)}: ${message}`)
+          log.warn?.(`${change.type} failed for ${(change.target ?? "?").slice(-8)}: ${message}`)
         }
       }
 
@@ -878,9 +878,9 @@ function* applyEvents(
     // Summary warning so the user knows replay had issues
     if (unexpectedFailureCount > 0) {
       log.warn?.(
-        `applyEvents: ${unexpectedFailureCount} unexpected failure(s) during replay` +
+        `applyChanges: ${unexpectedFailureCount} unexpected failure(s) during replay` +
           (failedNodeIds.size > 0 ? `, ${failedNodeIds.size} node(s) failed creation` : "") +
-          (skippedCascadeCount > 0 ? `, ${skippedCascadeCount} dependent event(s) skipped` : ""),
+          (skippedCascadeCount > 0 ? `, ${skippedCascadeCount} dependent change(s) skipped` : ""),
       )
     }
 

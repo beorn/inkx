@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { decomposeItem, composeItem, decomposeEventItem } from "../src/item-helpers.ts"
+import { decomposeItem, composeItem, decomposeChangeItem } from "../src/item-helpers.ts"
 
 describe("decomposeItem", () => {
   test("undefined → all null, item=0", () => {
@@ -119,12 +119,12 @@ describe("composeItem", () => {
   })
 })
 
-describe("decomposeEventItem", () => {
+describe("decomposeChangeItem", () => {
   test("new format: nested item object", () => {
     const data = {
       item: { list: "-", task: { marker: "[ ]", status: "todo" } },
     }
-    expect(decomposeEventItem(data)).toEqual({
+    expect(decomposeChangeItem(data)).toEqual({
       listMarker: "-",
       taskMarker: "[ ]",
       taskStatus: "todo",
@@ -137,7 +137,7 @@ describe("decomposeEventItem", () => {
       task_marker: "[x]",
       task_status: "done",
     }
-    expect(decomposeEventItem(data)).toEqual({
+    expect(decomposeChangeItem(data)).toEqual({
       listMarker: "*",
       taskMarker: "[x]",
       taskStatus: "done",
@@ -151,7 +151,7 @@ describe("decomposeEventItem", () => {
       task_marker: "[x]",
       task_status: "done",
     }
-    expect(decomposeEventItem(data)).toEqual({
+    expect(decomposeChangeItem(data)).toEqual({
       listMarker: "*",
       taskMarker: "[x]",
       taskStatus: "done",
@@ -159,7 +159,7 @@ describe("decomposeEventItem", () => {
   })
 
   test("no item data → all null", () => {
-    expect(decomposeEventItem({})).toEqual({
+    expect(decomposeChangeItem({})).toEqual({
       listMarker: null,
       taskMarker: null,
       taskStatus: null,

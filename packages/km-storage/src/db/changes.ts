@@ -12,7 +12,7 @@ const log = createLogger("km:storage:db:changes")
 import type { Change } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 import { deleteSubtree } from "./ops.ts"
-import { decomposeEventItem } from "../item-helpers.ts"
+import { decomposeChangeItem } from "../item-helpers.ts"
 
 // =============================================================================
 // Change Application
@@ -69,7 +69,7 @@ function applyNodeCreated(db: Database, change: Change): void {
   const data = change.data as Record<string, unknown>
 
   // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
-  const { listMarker, taskMarker, taskStatus } = decomposeEventItem(data)
+  const { listMarker, taskMarker, taskStatus } = decomposeChangeItem(data)
 
   // INSERT OR IGNORE as safety net for duplicate path-based IDs
   // This can happen if both discovery and watch handler create the same node

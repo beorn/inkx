@@ -62,7 +62,7 @@ export interface DiscoveryOptions {
 
 /** Result from discoverFiles */
 export interface DiscoveryResult {
-  events: Change[]
+  changes: Change[]
   pendingLinks: PendingLink[]
   /** Files to parse later (stub mode only) */
   deferredFiles?: DeferredFile[]
@@ -76,7 +76,7 @@ export interface DiscoveryResult {
 
 /**
  * Unified filesystem discovery.
- * Scans directory tree and generates events for files/folders.
+ * Scans directory tree and generates changes for files/folders.
  *
  * In "stub" mode: creates stub file nodes without parsing markdown.
  * In "full" mode: parses markdown and extracts wikilinks.
@@ -85,7 +85,7 @@ export interface DiscoveryResult {
  * @param db - Database for querying repo root node
  * @param options - Discovery options
  * @yields Progress updates
- * @returns Events and pending links/deferred files
+ * @returns Changes and pending links/deferred files
  */
 export function* discoverFiles(
   repoRoot: string,
@@ -97,7 +97,7 @@ export function* discoverFiles(
 
   yield "Discovering files"
 
-  const events: Change[] = []
+  const changes: Change[] = []
   const pendingLinks: PendingLink[] = []
   const deferredFiles: DeferredFile[] = []
   const unexploredDirs: UnexploredDir[] = []
@@ -148,7 +148,7 @@ export function* discoverFiles(
   yield { current, total }
 
   const result: DiscoveryResult =
-    parseMode === "stub" ? { events, pendingLinks: [], deferredFiles } : { events, pendingLinks }
+    parseMode === "stub" ? { changes, pendingLinks: [], deferredFiles } : { changes, pendingLinks }
   if (unexploredDirs.length > 0) result.unexploredDirs = unexploredDirs
   return result
 
@@ -217,8 +217,8 @@ export function* discoverFiles(
         if (targetStat.isDirectory()) {
           if (!tryEnterDirectory(fullPath, true)) continue
           const folderId = generateId(repoRoot, fullPath)
-          events.push(
-            createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+          changes.push(
+            createFolderChange(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
           )
           // Depth limit: record as unexplored instead of recursing
           if (depth >= preloadDepth) {
@@ -246,8 +246,8 @@ export function* discoverFiles(
       if (entry.isDirectory()) {
         if (!tryEnterDirectory(fullPath)) continue
         const folderId = generateId(repoRoot, fullPath)
-        events.push(
-          createFolderEvent(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
+        changes.push(
+          createFolderChange(folderId, parentId, order++, toRelativeFsPath(repoRoot, fullPath), entry.name, now),
         )
         // Depth limit: record as unexplored instead of recursing
         if (depth >= preloadDepth) {
@@ -282,7 +282,7 @@ export function* discoverFiles(
 
     if (!isMd && !isTxt) {
       const fileId = generateId(repoRoot, fullPath)
-      events.push(createNonMdFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), entryName, now))
+      changes.push(createNonMdFileChange(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), entryName, now))
       return
     }
     if (parseMode === "stub") {
@@ -305,7 +305,7 @@ export function* discoverFiles(
     const name = entryName.replace(ext, "")
     const fstype = isTxt ? "txtfile" : "mdfile"
 
-    events.push(createStubFileEvent(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now, fstype))
+    changes.push(createStubFileChange(fileId, parentId, order, toRelativeFsPath(repoRoot, fullPath), name, now, fstype))
     deferredFiles.push({ nodeId: fileId, fsPath: fullPath })
 
     current++
@@ -336,10 +336,10 @@ export function* discoverFiles(
         fileNode.fs_path = toRelativeFsPath(repoRoot, fullPath)
       }
 
-      // Convert nodes to events
+      // Convert nodes to changes
       for (const node of nodes) {
         const nodeId = node.id ?? generateId(repoRoot, fullPath, node.md_line)
-        events.push({
+        changes.push({
           id: nodeId,
           type: "node_created",
           actor: "fs-scan",
@@ -448,8 +448,8 @@ function generateId(repoRoot: string, filePath: string, lineNum?: number): strin
   return generatePathBasedId(repoRoot, filePath, lineNum)
 }
 
-/** Create folder event */
-function createFolderEvent(
+/** Create folder change */
+function createFolderChange(
   id: string,
   parentId: string | null,
   order: number,
@@ -476,8 +476,8 @@ function createFolderEvent(
   }
 }
 
-/** Create stub file event (no parsing) */
-function createStubFileEvent(
+/** Create stub file change (no parsing) */
+function createStubFileChange(
   id: string,
   parentId: string | null,
   order: number,
@@ -506,8 +506,8 @@ function createStubFileEvent(
   }
 }
 
-/** Create non-markdown file event */
-function createNonMdFileEvent(
+/** Create non-markdown file change */
+function createNonMdFileChange(
   id: string,
   parentId: string | null,
   order: number,
