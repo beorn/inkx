@@ -60,6 +60,21 @@ For any vendor package to be "standalone-ready":
 | **watcher-chaos**    | —                      | File watcher chaos testing                                |
 | **silvery-internal** | —                      | Internal design docs (not published)                      |
 
+## Internal vs Public (`vendor/internal/` vs `vendor/*/`)
+
+`vendor/internal/` is the workspace. `vendor/*/docs/` and `vendor/*/examples/` are the showcase.
+
+**Everything starts internal.** Design docs, example drafts, mockups, prototypes, blog drafts — all begin in `vendor/internal/<project>/`. Don't create WIP content in public directories (`vendor/*/docs/`, `vendor/*/examples/`). Public directories are for polished, approved work only.
+
+**Promotion requires approval.** Before moving anything from internal to public:
+
+1. Content meets quality standards (showcase rubric for examples, editorial review for docs)
+2. User has approved the promotion
+
+**Public → internal demotion.** If published content breaks or degrades below quality bar, move it back to internal. Fix there, re-promote when ready.
+
+**Reference rule:** Public docs must never reference `vendor/internal/` content. Internal docs can reference anything.
+
 ## ESM Publishing
 
 Publish raw TypeScript source — no build step. Node.js 23.6+ strips types natively; Bun always could.

@@ -190,7 +190,7 @@ Paths that use ViewTree navigate exactly what the user sees. Repo-based paths ca
         |  maps key + when-guard -> commandId
         v
     command definition (km-commands/commands/navigation.ts)
-        |  produces BoardAction: { type: "CURSOR_MOVE", dir: "..." }
+        |  produces BoardReducerOp: { type: "CURSOR_MOVE", dir: "..." }
         v
     handleNavAction (board-actions.ts)
         |  dispatches on action.type

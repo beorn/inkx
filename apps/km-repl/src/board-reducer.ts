@@ -8,7 +8,7 @@
  * its own BoardState with the full tree for REPL navigation.
  */
 
-import type { BoardState, BoardAction, TNode, TPath, NodeDirection } from "./board-types.ts"
+import type { BoardState, BoardReducerOp, TNode, TPath, NodeDirection } from "./board-types.ts"
 
 /**
  * Get node at a given path in the tree
@@ -300,7 +300,7 @@ function handleUnfoldLevel(state: BoardState, depth: number): BoardState {
  * Board state reducer - handles navigation and UI state
  */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive switch reducer pattern
-export function boardReducer(state: BoardState, action: BoardAction): BoardState {
+export function boardReducer(state: BoardState, action: BoardReducerOp): BoardState {
   switch (action.type) {
     case "CURSOR_MOVE":
       return handleCursorMove(state, action.dir)

@@ -7,7 +7,7 @@
 import { describe, test, expect, vi } from "vitest"
 import { Database } from "bun:sqlite"
 import { SCHEMA } from "../src/db/schema.ts"
-import { applyEventWithDb } from "../src/db/events.ts"
+import { applyChangeWithDb } from "../src/db/changes.ts"
 import {
   parseFiles,
   applyNodes,
@@ -502,7 +502,7 @@ describe("event replay with failures", () => {
     }
 
     // This should succeed
-    applyEventWithDb(db, createEvent)
+    applyChangeWithDb(db, createEvent)
 
     // Verify node exists
     const node = db.query("SELECT id FROM nodes WHERE id = ?").get("node-alpha") as { id: string } | null
@@ -519,7 +519,7 @@ describe("event replay with failures", () => {
     }
 
     // This should succeed
-    applyEventWithDb(db, updateEvent)
+    applyChangeWithDb(db, updateEvent)
 
     // Verify update applied
     const updated = db.query("SELECT content FROM nodes WHERE id = ?").get("node-alpha") as { content: string } | null
@@ -537,7 +537,7 @@ describe("event replay with failures", () => {
     }
 
     // This should NOT throw — applyNodeUpdated just runs UPDATE with 0 rows affected
-    expect(() => applyEventWithDb(db, orphanUpdate)).not.toThrow()
+    expect(() => applyChangeWithDb(db, orphanUpdate)).not.toThrow()
 
     // The non-existent node should still not exist (no accidental creation)
     const ghost = db.query("SELECT id FROM nodes WHERE id = ?").get("node-never-created")
@@ -559,7 +559,7 @@ describe("event replay with failures", () => {
     }
 
     // Should not throw — deleteSubtree handles missing nodes gracefully
-    expect(() => applyEventWithDb(db, deleteEvent)).not.toThrow()
+    expect(() => applyChangeWithDb(db, deleteEvent)).not.toThrow()
   })
 
   test("move event for non-existent node does not throw", () => {
@@ -576,7 +576,7 @@ describe("event replay with failures", () => {
     }
 
     // Should not throw — UPDATE with 0 rows affected is a no-op
-    expect(() => applyEventWithDb(db, moveEvent)).not.toThrow()
+    expect(() => applyChangeWithDb(db, moveEvent)).not.toThrow()
   })
 
   test("duplicate node_created (INSERT OR IGNORE) does not corrupt existing node", () => {
@@ -599,7 +599,7 @@ describe("event replay with failures", () => {
       },
     }
 
-    applyEventWithDb(db, createEvent1)
+    applyChangeWithDb(db, createEvent1)
 
     // Verify original content
     const original = db.query("SELECT content FROM nodes WHERE id = ?").get("dup-node") as { content: string } | null
@@ -622,7 +622,7 @@ describe("event replay with failures", () => {
     }
 
     // Should not throw (INSERT OR IGNORE)
-    expect(() => applyEventWithDb(db, createEvent2)).not.toThrow()
+    expect(() => applyChangeWithDb(db, createEvent2)).not.toThrow()
 
     // Original content should be preserved (not overwritten by duplicate)
     const afterDup = db.query("SELECT content FROM nodes WHERE id = ?").get("dup-node") as { content: string } | null

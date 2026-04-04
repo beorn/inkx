@@ -12,7 +12,7 @@ export { MemoryStore } from "./memory.ts"
 // Store — minimal reactive store interface
 // =============================================================================
 
-import type { KNode, Event } from "@km/core"
+import type { KNode, Change } from "@km/core"
 import type { CommitMeta, CommitResult, RepoDelta, ChangeEnvelope } from "./commit-types.ts"
 import { computeDelta, mergeDeltas } from "./commit-types.ts"
 import type { Repo } from "../repo/repo.ts"
@@ -29,8 +29,8 @@ export interface Store {
   /** Child IDs of a parent, synchronous snapshot */
   peekChildIds(parentId: string): readonly string[]
 
-  /** Apply a batch of events atomically, returning a CommitResult with delta */
-  commit(events: readonly Omit<Event, "id" | "ts">[], meta?: Partial<CommitMeta>): CommitResult
+  /** Apply a batch of changes atomically, returning a CommitResult with delta */
+  commit(changes: readonly Omit<Change, "id" | "ts">[], meta?: Partial<CommitMeta>): CommitResult
 }
 
 /** Observable: subscribe to committed changes */
@@ -44,11 +44,11 @@ export interface Observable {
  * getChanges(since?) returns committed envelopes since a cursor.
  * applyChanges() imports envelopes from another store.
  *
- * For mem↔sqlite sync: C = Event (identity mapping).
+ * For mem↔sqlite sync: C = Change (identity mapping).
  * For FS sync: C is domain-specific (markdown codec).
  * For Automerge: C is Automerge changes (CRDT-native).
  */
-export interface Replicated<C = Event> {
+export interface Replicated<C = Change> {
   getChanges(since?: string): readonly ChangeEnvelope<C>[]
   applyChanges(changes: readonly ChangeEnvelope<C>[]): CommitResult
 }
@@ -75,7 +75,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
     // Fire a broad onCommit so reactive signals can refresh.
     const broadResult: CommitResult = {
       meta: { commitId: ulid(), source: "repo-direct" },
-      events: [],
+      changes: [],
       delta: { nodeIds: [], parentIds: ["__all__"], deletedNodeIds: [] },
     }
     for (const cb of listeners) cb(broadResult)
@@ -94,15 +94,15 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
       return repo.getChildren(parentId).map((n) => n.id)
     },
 
-    commit(events, meta?) {
+    commit(changes, meta?) {
       inCommit = true
       try {
-        const appliedEvents: Event[] = []
-        for (const event of events) {
-          appliedEvents.push(repo.apply(event))
+        const appliedChanges: Change[] = []
+        for (const change of changes) {
+          appliedChanges.push(repo.apply(change))
         }
 
-        const delta = mergeDeltas(appliedEvents)
+        const delta = mergeDeltas(appliedChanges)
         const commitId = meta?.commitId ?? ulid()
         const commitResult: CommitResult = {
           meta: {
@@ -110,7 +110,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
             commitId,
             source: meta?.source ?? "local",
           },
-          events: appliedEvents,
+          changes: appliedChanges,
           delta,
         }
 
@@ -120,7 +120,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
           source: commitResult.meta.source,
           actorId: commitResult.meta.actorId,
           basis: commitResult.meta.basis,
-          changes: appliedEvents,
+          changes: appliedChanges,
         })
 
         for (const cb of listeners) cb(commitResult)
@@ -141,30 +141,30 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
       return idx === -1 ? changeLog : changeLog.slice(idx + 1)
     },
 
-    applyChanges(changes) {
-      if (changes.length === 0) {
+    applyChanges(envelopes) {
+      if (envelopes.length === 0) {
         return {
           meta: { commitId: ulid(), source: "remote" },
-          events: [],
+          changes: [],
           delta: { nodeIds: [], parentIds: [], deletedNodeIds: [] },
         }
       }
 
       inCommit = true
       try {
-        const allEvents: Event[] = []
-        for (const envelope of changes) {
-          for (const event of envelope.changes) {
-            allEvents.push(repo.apply(event))
+        const allChanges: Change[] = []
+        for (const envelope of envelopes) {
+          for (const change of envelope.changes) {
+            allChanges.push(repo.apply(change))
           }
         }
 
-        const delta = mergeDeltas(allEvents)
-        const source = changes[0]?.source ?? "remote"
+        const delta = mergeDeltas(allChanges)
+        const source = envelopes[0]?.source ?? "remote"
         const commitId = ulid()
         const commitResult: CommitResult = {
           meta: { commitId, source },
-          events: allEvents,
+          changes: allChanges,
           delta,
         }
 
@@ -172,7 +172,7 @@ export function createStoreFromRepo(repo: Repo): Store & Observable & Replicated
         changeLog.push({
           commitId,
           source,
-          changes: allEvents,
+          changes: allChanges,
         })
 
         for (const cb of listeners) cb(commitResult)

@@ -15,7 +15,7 @@ import { createLogger } from "loggily"
 import { mkdirSync, renameSync, existsSync } from "fs"
 import { join } from "path"
 
-import type { KNode, Event } from "@km/core"
+import type { KNode, Change } from "@km/core"
 import type { Store, Observable } from "./store.ts"
 import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
 import { computeDelta, mergeDeltas } from "./commit-types.ts"
@@ -71,7 +71,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     mkdirSync(repoPath, { recursive: true })
   }
 
-  // Ensure .km directory exists for emitter events.jsonl
+  // Ensure .km directory exists for emitter changes.jsonl
   const kmDir = join(repoPath, ".km")
   if (!existsSync(kmDir)) {
     mkdirSync(kmDir, { recursive: true })
@@ -185,7 +185,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
     if (nodeIds.size > 0 || deletedNodeIds.size > 0) {
       const commitResult: CommitResult = {
         meta: { commitId: ulid(), source: "fs-import" },
-        events: [], // FS reconciliation doesn't produce discrete events
+        changes: [], // FS reconciliation doesn't produce discrete events
         delta: {
           nodeIds: [...nodeIds],
           parentIds: [...parentIds],
@@ -228,14 +228,14 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
       return rows.map((r) => r.id)
     },
 
-    commit(events: readonly Omit<Event, "id" | "ts">[], meta?: Partial<CommitMeta>): CommitResult {
-      const appliedEvents: Event[] = []
-      for (const partial of events) {
-        const event = emitter.apply(partial, { source: meta?.source ?? "local" })
-        appliedEvents.push(event)
+    commit(changes: readonly Omit<Change, "id" | "ts">[], meta?: Partial<CommitMeta>): CommitResult {
+      const applied: Change[] = []
+      for (const partial of changes) {
+        const change = emitter.apply(partial, { source: meta?.source ?? "local" })
+        applied.push(change)
       }
 
-      const delta = mergeDeltas(appliedEvents)
+      const delta = mergeDeltas(applied)
       const commitId = meta?.commitId ?? ulid()
       const commitResult: CommitResult = {
         meta: {
@@ -243,7 +243,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
           commitId,
           source: meta?.source ?? "local",
         },
-        events: appliedEvents,
+        changes: applied,
         delta,
       }
 

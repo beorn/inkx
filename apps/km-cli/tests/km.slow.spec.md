@@ -131,7 +131,7 @@ Next steps:
 [...]
 
 $ ls "$INIT_DIR/.km"
-events.jsonl
+changes.jsonl
 state.db
 [...]
 

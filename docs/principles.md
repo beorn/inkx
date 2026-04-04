@@ -119,7 +119,7 @@ If your narrative needs technical jargon to make sense, the names are wrong. If 
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| Data | `Operation` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
+| Data | `TreeOp` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
 | Data | `Point`, `Range` | `Point`, `Range` | text-level selection, `transformPoint`, `transformRange` |
 | Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
 | Data | `OperationLog` | `createOperationLog` | `.append()`, `.getSince()`, `.seq()` |
@@ -1087,12 +1087,12 @@ throw new Error(
   `Data conflict: "${name}" was modified externally.\n` +
   `  File: ${fsPath}\n` +
   `  Your version: ${hash.slice(0,8)}...\n` +
-  `Recovery: Your edits are in .km/events.jsonl`
+  `Recovery: Your edits are in .km/changes.jsonl`
 )
 
 log.warn?.(
   `Stale event: "${name}" ${type} at ${fsPath} already exists. ` +
-  `Run 'km gc' to clean events.jsonl.`
+  `Run 'km gc' to clean changes.jsonl.`
 )
 ```
 
@@ -1325,7 +1325,7 @@ For terminology used throughout, see [glossary.md](glossary.md).
 | Layer | Object | Namespace | Key operations |
 |-------|--------|-----------|----------------|
 | Data | `KNode` | `KTree` | `.nodes()`, `.ancestors()`, `.isOutline()`, `.isTask()` |
-| Data | `Operation` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
+| Data | `TreeOp` | `inverse`, `applyOperation` | 7 atomic tree ops with invertibility |
 | Data | `Point`, `Range` | `Point`, `Range` | text-level selection, transforms |
 | Data | `HistoryEditor` | `withHistory` | `.undo()`, `.redo()`, `.batch()` |
 | View | `ViewNode` | `ViewTree` | `.nodes()`, `.sibling()` |

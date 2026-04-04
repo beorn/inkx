@@ -1,4 +1,4 @@
-import type { CommandAction, CommandDef } from "../types.ts"
+import type { KmOp, CommandDef } from "../types.ts"
 import { moveTo as moveToVerb, addTo as addToVerb } from "../verb-locations.ts"
 
 // Move mode commands return minimal actions (MoveAction types).
@@ -171,10 +171,10 @@ const move = {
   shortLabel: "move",
   description: "Move selected node(s) to a target board",
   category: "Edit",
-  execute: (ctx): CommandAction | null => {
+  execute: (ctx): KmOp | null => {
     const t = ctx.targetId
     if (!t) return null
-    return moveToVerb(t)(ctx) as CommandAction | null
+    return moveToVerb(t)(ctx) as KmOp | null
   },
 } satisfies CommandDef
 
@@ -186,10 +186,10 @@ const add = {
   shortLabel: "add",
   description: "Add a property or link to the current node",
   category: "Edit",
-  execute: (ctx): CommandAction | null => {
+  execute: (ctx): KmOp | null => {
     const t = ctx.targetId
     if (!t) return null
-    return addToVerb(t)(ctx) as CommandAction | null
+    return addToVerb(t)(ctx) as KmOp | null
   },
 } satisfies CommandDef
 

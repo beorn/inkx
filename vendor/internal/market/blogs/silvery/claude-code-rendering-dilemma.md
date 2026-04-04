@@ -112,7 +112,7 @@ This is the mode that addresses the dilemma directly. I split the output into tw
 On top of that: **incremental rendering** (only changed cells redraw), **content graduation** (completed exchanges become terminal-owned text — Cmd+F, selection, scroll all work natively), and **flat memory** (graduated items leave the React tree, so GC pressure stays low even in long sessions).
 
 ::: details How deep does the incremental rendering go?
-It's not just "diff the screen buffer." The layout engine — [Flexily](https://beorn.codes/flexily), a pure TypeScript flexbox implementation — caches layout results and skips recalculation for unchanged subtrees. The text measurement layer (Pretext) caches grapheme widths and line-break results so re-wrapping only happens when content or width actually changes. The render phase tracks 7 independent dirty flags per node — a border color change doesn't cascade through 200 child nodes. The output phase writes only changed cells. A typical interactive update takes ~169 microseconds end-to-end.
+It's not just "diff the screen buffer." The layout engine — [Flexily](https://beorn.codes/flexily), a pure TypeScript flexbox implementation — caches layout results and skips recalculation for unchanged subtrees. The text measurement layer (Pretext) caches grapheme widths and line-break results so re-wrapping only happens when content or width actually changes. The render phase tracks 7 indepenfor thdent dirty flags per node — a border color change doesn't cascade through 200 child nodes. The output phase writes only changed cells. A typical interactive update takes ~169 microseconds end-to-end.
 :::
 
 ### Mode 2: Fullscreen

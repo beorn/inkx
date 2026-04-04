@@ -10,7 +10,7 @@
 
 import { existsSync, mkdirSync, renameSync, rmSync, statSync, unlinkSync, writeFileSync } from "fs"
 import { dirname } from "path"
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 import type { SyncableRepo } from "./sync.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 
@@ -18,7 +18,7 @@ import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 export interface FsWriterResult<R> {
   repo: R
   /** Project a single event to the filesystem (no DB, no journal, no broadcast) */
-  applyEventToFs(event: Event): void
+  applyEventToFs(event: Change): void
 }
 
 // Create sync FsWriteTarget using writeFileSync, mkdirSync, renameSync, unlinkSync
@@ -75,6 +75,6 @@ export function withFsWriter<R extends SyncableRepo>(repo: R): FsWriterResult<R>
 
   return {
     repo,
-    applyEventToFs: (event: Event) => handlers.applyEventToFs(event),
+    applyEventToFs: (event: Change) => handlers.applyEventToFs(event),
   }
 }

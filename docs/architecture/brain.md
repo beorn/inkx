@@ -415,7 +415,7 @@ Like a database WAL + checkpointing — the snapshot is the baseline, recent log
 - **CAS** — Content-addressable store for large content and binaries (`@km/storage`)
 
 **Planned** (described in this document):
-- Log-based event architecture (currently: events.jsonl, planned: per-log JSONL files)
+- Log-based event architecture (currently: changes.jsonl, planned: per-log JSONL files)
 - Statement store (`packages/km-memory/` — not yet created)
 - Structured extraction (markdown → statements via deterministic parsing)
 - NL extraction (agent chat log transcripts → statements via LLM, background)

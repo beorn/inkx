@@ -18,9 +18,9 @@ import { Database } from "bun:sqlite"
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
 import { join, dirname, basename, isAbsolute } from "path"
 import { toRelativeFsPath } from "../fs/path-utils.ts"
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 import { SCHEMA } from "../db/schema.ts"
-import { applyEventWithDb } from "../db/events.ts"
+import { applyChangeWithDb } from "../db/changes.ts"
 import { evaluateAllRules, createRuleContext } from "../db/rules.ts"
 import { findKmRootFromPath } from "../fs/path-utils.ts"
 import { MemoryStore, type NodeStore } from "../store/store.ts"
@@ -32,7 +32,10 @@ import { decomposeEventItem } from "../item-helpers.ts"
 // Import extracted modules
 import { discoverFiles, type UnexploredDir } from "../discovery.ts"
 import { resolveLinksGen, resolveLinksAsync as resolveLinksAsyncImpl } from "../markdown/link-resolution.ts"
-import { parseDeferredAsync as parseDeferredAsyncImpl, parseStubFile as parseStubFileImpl } from "../markdown/deferred.ts"
+import {
+  parseDeferredAsync as parseDeferredAsyncImpl,
+  parseStubFile as parseStubFileImpl,
+} from "../markdown/deferred.ts"
 
 const log = createLogger("km:storage:repo-loader")
 
@@ -97,8 +100,8 @@ export interface LoadOptions {
   db?: Database
   /**
    * Explicit mode override. When set, bypasses .km directory detection.
-   * - "memory": Scan filesystem, don't read events.jsonl
-   * - "disk": Read from events.jsonl
+   * - "memory": Scan filesystem, don't read changes.jsonl
+   * - "disk": Read from changes.jsonl
    */
   mode?: "memory" | "disk"
   /**
@@ -311,7 +314,7 @@ export const parseStubFile = parseStubFileImpl
 // ============================================================================
 
 interface EventSource {
-  events: Event[]
+  events: Change[]
   pendingLinks: PendingLink[]
   deferredFiles?: DeferredFile[]
   unexploredDirs?: UnexploredDir[]
@@ -427,29 +430,29 @@ function* discoverMemoryMode(
 // ============================================================================
 
 /**
- * Parse events.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
+ * Parse changes.jsonl: dedup by id, warn on malformed lines, sort chronologically (ULID).
  * Returns empty array if file doesn't exist.
  */
-function parseEventsFile(kmDir: string, caller: string): Event[] {
-  const eventsPath = join(kmDir, "events.jsonl")
+function parseEventsFile(kmDir: string, caller: string): Change[] {
+  const changesPath = join(kmDir, "changes.jsonl")
 
-  if (!existsSync(eventsPath)) {
-    log.debug?.(`no events file at ${eventsPath}`)
+  if (!existsSync(changesPath)) {
+    log.debug?.(`no events file at ${changesPath}`)
     return []
   }
 
-  const content = readFileSync(eventsPath, "utf-8")
+  const content = readFileSync(changesPath, "utf-8")
   const lines = content.split("\n").filter((line) => line.trim())
 
-  log.debug?.(`reading ${lines.length} lines from events.jsonl`)
+  log.debug?.(`reading ${lines.length} lines from changes.jsonl`)
 
-  const events: Event[] = []
+  const events: Change[] = []
   const seen = new Set<string>()
   let skippedCount = 0
 
   for (const line of lines) {
     try {
-      const event = JSON.parse(line) as Event
+      const event = JSON.parse(line) as Change
       if (!seen.has(event.id)) {
         seen.add(event.id)
         events.push(event)
@@ -460,7 +463,7 @@ function parseEventsFile(kmDir: string, caller: string): Event[] {
   }
 
   if (skippedCount > 0) {
-    log.warn?.(`${caller}: skipped ${skippedCount} malformed line(s) in events.jsonl`)
+    log.warn?.(`${caller}: skipped ${skippedCount} malformed line(s) in changes.jsonl`)
   }
 
   // Sort by ULID (lexicographic = chronological)
@@ -470,8 +473,8 @@ function parseEventsFile(kmDir: string, caller: string): Event[] {
   return events
 }
 
-export function readEvents(kmDir: string): Event[] {
-  return parseEventsFile(kmDir, "readEvents")
+export function readChanges(kmDir: string): Change[] {
+  return parseEventsFile(kmDir, "readChanges")
 }
 
 // ============================================================================
@@ -489,7 +492,7 @@ function* discoverFromEvents(
   const allEvents = parseEventsFile(kmDir, "discoverFromEvents")
 
   // Filter to only new events (unless force rebuild)
-  let events: Event[]
+  let events: Change[]
   const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
     | { value: string }
     | undefined
@@ -511,14 +514,14 @@ function* discoverFromEvents(
 // ============================================================================
 
 /**
- * After disk mode applies events from events.jsonl, scan the filesystem
+ * After disk mode applies events from changes.jsonl, scan the filesystem
  * to detect files present on disk but missing from the DB (externally added),
  * and files in the DB that no longer exist on disk (externally deleted).
  *
  * Generates node_created / node_deleted events for the differences.
  */
 interface ReconcileResult {
-  events: Event[]
+  events: Change[]
   deferredFiles: DeferredFile[]
 }
 
@@ -529,7 +532,7 @@ function* reconcileFilesystem(
 ): Generator<StepYield, ReconcileResult, unknown> {
   yield "Reconciling filesystem"
 
-  const events: Event[] = []
+  const events: Change[] = []
   const deferredFiles: DeferredFile[] = []
   const now = Date.now()
   const ignorePatterns = getIgnorePatterns(repoRoot)
@@ -770,7 +773,7 @@ function* reconcileFilesystem(
 // oxlint-disable-next-line complexity/complexity -- 35/30: event type switch with validation guards, exhaustive by design
 function* applyEvents(
   db: Database,
-  events: Event[],
+  events: Change[],
   errors: LoadError[],
   repoRoot: string,
 ): Generator<StepYield, void, unknown> {
@@ -810,8 +813,8 @@ function* applyEvents(
           // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
           const { listMarker, taskMarker, taskStatus } = decomposeEventItem(data)
           // INSERT OR IGNORE: in disk mode, state.db may already have nodes
-          // from km sync that events.jsonl also references (last_event cursor
-          // may not cover all events). Matches applyEventWithDb behavior.
+          // from km sync that changes.jsonl also references (last_event cursor
+          // may not cover all events). Matches applyChangeWithDb behavior.
           // Expected duplicates are silently ignored (no exception thrown).
           insertStmt.run(
             data.id as string,
@@ -844,7 +847,7 @@ function* applyEvents(
             event.id,
           )
         } else {
-          applyEventWithDb(db, event)
+          applyChangeWithDb(db, event)
         }
       } catch (err) {
         // Any error reaching here is unexpected — expected duplicates are handled

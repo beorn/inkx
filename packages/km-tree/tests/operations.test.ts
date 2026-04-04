@@ -13,7 +13,7 @@ import { KNode } from "@km/core"
 import {
   inverse,
   applyOperation,
-  type Operation,
+  type TreeOp,
   type InsertNodeOperation,
   type RemoveNodeOperation,
   type SetNodeOperation,
@@ -454,7 +454,7 @@ describe("operation capture from block-ops", () => {
     const text = KNode.string(node) // "Alpha bravo"
 
     // The operations that split(repo, child1Id, 5) would emit:
-    const ops: Operation[] = [
+    const ops: TreeOp[] = [
       {
         type: "set_node",
         nodeId: child1Id,
@@ -489,7 +489,7 @@ describe("operation capture from block-ops", () => {
     const child2 = repo.getNode(child2Id)!
 
     // The operations that merging child2 into child1 would emit:
-    const ops: Operation[] = [
+    const ops: TreeOp[] = [
       {
         type: "set_node",
         nodeId: child1Id,
@@ -527,7 +527,7 @@ describe("operation capture from block-ops", () => {
 
 describe("double inverse", () => {
   test("inverse(inverse(op)) returns equivalent operation", () => {
-    const ops: Operation[] = [
+    const ops: TreeOp[] = [
       {
         type: "insert_node",
         parentId: "p1",

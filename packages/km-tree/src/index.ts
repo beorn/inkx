@@ -99,15 +99,15 @@ export {
 // Operations — low-level atomic ops with inverse (SlateJS-inspired, ID-based)
 export {
   inverse,
-  applyOperation,
-  type Operation,
-  type InsertNodeOperation,
-  type RemoveNodeOperation,
-  type SetNodeOperation,
-  type MoveNodeOperation,
-  type SplitNodeOperation,
-  type MergeNodeOperation,
-  type SetSelectionOperation,
+  applyTreeOp,
+  type TreeOp,
+  type InsertNodeTreeOp,
+  type RemoveNodeTreeOp,
+  type SetNodeTreeOp,
+  type MoveNodeTreeOp,
+  type SplitNodeTreeOp,
+  type MergeNodeTreeOp,
+  type SetSelectionTreeOp,
   type Selection,
 } from "./ops/operations.ts"
 
@@ -115,7 +115,7 @@ export {
 export { withHistory, type HistoryEditor } from "./ops/history.ts"
 
 // Operation log — records ops for undo/collaboration/replay
-export { createOperationLog, replay, type OperationLog, type OperationEntry } from "./ops/operation-log.ts"
+export { createTreeOpLog, replay, type TreeOpLog, type TreeOpEntry } from "./ops/operation-log.ts"
 
 // Selection — Point/Range types with auto-adjustment after operations
 export { Point, Range, transformPoint, transformRange, transformSelection } from "./selection.ts"

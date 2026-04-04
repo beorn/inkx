@@ -90,7 +90,7 @@ export type NodeDirection = "next" | "prev" | "in" | "out" | "first" | "last" | 
  * Full set of actions supported by km-repl's command parser.
  * Some are no-ops in the reducer but are valid commands.
  */
-export type BoardAction =
+export type BoardReducerOp =
   // Navigation
   | { type: "CURSOR_MOVE"; dir: NodeDirection }
   | { type: "NAV_CROSS_COLUMN"; direction: "left" | "right" }

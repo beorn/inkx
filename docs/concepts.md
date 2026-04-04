@@ -206,7 +206,7 @@ Both modes are **read-write**. The difference is where state lives:
 
 - **Memory**: SQLite rebuilt from `.md` files each run. Toggle tasks, browse structure. Changes write through to `.md` files but aren't tracked. Node IDs are ephemeral. Great for quick access or using km on any repo.
 
-- **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change logged to `events.jsonl`. Stable node IDs, undo capability, sync support. Use for your own projects.
+- **Disk**: Run `km init` once. SQLite persists in `.km/state.db`. Every change logged to `changes.jsonl`. Stable node IDs, undo capability, sync support. Use for your own projects.
 
 ```bash
 km task               # Works anywhere (memory mode)
@@ -221,7 +221,7 @@ km init               # Enable tracking (creates .km/, disk mode)
 
 ```
 .km/
-├── events.jsonl      # Append-only event log (git-tracked)
+├── changes.jsonl      # Append-only event log (git-tracked)
 └── state.db          # SQLite cache (gitignored, rebuildable)
 ```
 
@@ -273,7 +273,8 @@ See [glossary.md](glossary.md) for the full project glossary. Key terms for this
 | **event** | Something that happened (keypress, file change, sync). |
 | **command** | Registered event handler (named, keybinding-mapped, palette-discoverable). |
 | **op** | Serializable data dispatched to `Machine.apply()`. |
-| **op handler** | Pure function implementing one op type, bound via `defineOp()`. |
+| **op handler** | Pure function implementing one op type, defined in a `createSlice()` handler map. |
+| **op() proxy** | Ergonomic wrapper: `op(model).method(args)` routes through `apply()` as serializable data. |
 | **selector** | Pure function deriving a value from state. |
 | **effect** | Side-effect instruction emitted by apply. |
 | **change** | Persisted record of what changed (e.g., `node_created`). |
@@ -286,11 +287,11 @@ km's tree layer descends from SlateJS. Terminology mapping:
 |---|---|---|
 | `editor.deleteBackward()` | **command** | User-facing intent, keybinding-mapped |
 | `Transforms.splitNodes(editor)` | `repo.splitNode()` | Implementation helpers op handlers call. No separate namespace — methods on Repo/TreeMutator |
-| `Operation` | **op** (`TreeOp`) | Atomic, invertible, serializable |
+| `TreeOp` | **op** (`TreeOp`) | Atomic, invertible, serializable |
 | `Editor.apply(op)` | `Machine.apply(state, op)` | State transition. Ours is pure (returns new state), SlateJS mutates |
 | `Editor.nodes()`, `Node.string()` | **selectors** | Read-only queries on the domain interface |
 | `Node`, `Path`, `Point`, `Range` | **domain interfaces** | Type + function namespace. We use stable IDs instead of index-based paths |
-| `Operation.inverse()` | `TreeOp.inverse(op)` | Same concept. Ours is a standalone function (moving to domain interface) |
+| `TreeOp.inverse()` | `TreeOp.inverse(op)` | Same concept. Ours is a standalone function (moving to domain interface) |
 
 Key differences: we use stable node IDs (not fragile index paths), effects are data (not imperative side effects), and state transitions are pure (return new state, not mutation).
 

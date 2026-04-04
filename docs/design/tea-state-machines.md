@@ -30,7 +30,8 @@ See [glossary.md](../glossary.md) for full definitions. Consistent naming across
 | Named, registered event handler | **command** | ~~action~~ |
 | Data passed to `.apply()` | **op** | ~~action~~, ~~message~~ |
 | Pure function implementing one op type | **op handler** | ~~reducer~~, ~~case~~ |
-| Factory binding handler + creating op data | **defineOp()** | — |
+| Handler map + typed apply dispatcher | **createSlice()** | — |
+| Ergonomic proxy routing calls through apply | **op() proxy** | — |
 | Read-only derivation from state | **selector** | ~~getter~~ |
 | Creates initial state | **constructor** | — |
 | Result side channel | **effect** | ~~side effect~~, ~~cmd~~ |
@@ -59,24 +60,51 @@ const Board = {
 }
 ```
 
-### Op handlers and defineOp()
+### Op handlers: createSlice() + op() proxy
 
-An **op handler** is the pure function that implements one op type. `defineOp()` binds a handler to an op type name, producing both the op creator (makes serializable data) and registering the handler for `apply()`:
+Two layers work together to make state machines ergonomic:
+
+**`createSlice()`** is the foundation (shipped in `@silvery/create`). It takes a handler map, infers the op union, and produces a typed `apply()` dispatcher:
 
 ```ts
-// defineOp: binds handler + creates op data
-const toggle = defineOp("toggle", (state: Selection, { id }: { id: ID }) => {
-  // pure implementation — returns next state
+// createSlice: define handlers, get typed apply()
+const Selection = createSlice(() => initialState, {
+  toggle(state: SelectionState, { id }: { id: ID }) {
+    // pure implementation — returns next state
+  },
+  clear(state: SelectionState) {
+    return { ...state, nodes: [] }
+  },
 })
 
-// As op creator: produces serializable data
-toggle({ id: "abc" })  // → { type: "toggle", id: "abc" }
+// Each handler name becomes an op variant:
+Selection.apply(state, { op: "toggle", id: "abc" })
+Selection.apply(state, { op: "clear" })
 
-// apply() dispatches to the handler:
-Selection.apply(state, toggle({ id: "abc" }))
+// Handlers are also directly accessible for unit testing:
+Selection.toggle(state, { id: "abc" })
 ```
 
-This pattern makes the transition from "direct function call" to "dispatched machine" mechanical — just wrap the function in `defineOp()`. The handler stays pure and testable either way.
+See `vendor/silvery/packages/create/src/core/slice.ts` for the implementation.
+
+**`op()` proxy** is the ergonomic layer on top. A JavaScript Proxy intercepts method calls and routes them through `apply()` as serializable `{ path, args }` data:
+
+```ts
+// Direct call — not intercepted, fast, but invisible to plugins
+model.chat.submit({ text: "hello" })
+
+// op() proxy — same call, but routed through apply() pipeline
+op(model).chat.submit({ text: "hello" })
+// Captured as: { type: "model-op", path: ["chat", "submit"], args: [{ text: "hello" }] }
+```
+
+The method name IS the op type. The arguments ARE the op data. Plugins (undo, tracing, recording) intercept via `apply()` without the caller changing anything — just wrap the target in `op()`.
+
+**When to use which:**
+- `createSlice()` — always, for defining state machines with typed handlers and apply
+- `op()` proxy — when mutations need interception (undo, recording, collaboration). The caller decides per-call whether to use `op(model).method()` (intercepted) or `model.method()` (direct)
+
+See `vendor/internal/silvery/design/v15-tea/app.md` § `op() Proxy` for the full design. Bead: km-all.1.
 
 ### Unified pipeline
 
@@ -303,7 +331,7 @@ km adopts this pattern with ID-based addressing:
 | `Path` | `Path` | Retained for local tree navigation, but not for addressing |
 | `Point` | `Point` | `{ nodeId, offset }` instead of `{ path, offset }` |
 | `Range` | `Range` | `{ anchor: Point, focus: Point }` — same shape, ID-based Points |
-| `Operation` | `TreeOp` | Same 8 types, `nodeId` replaces `path` |
+| `TreeOp` | `TreeOp` | Same 8 types, `nodeId` replaces `path` |
 | `Transforms` | `Transforms` | Same API, pure: `Transforms.insertText(tree, text) → [TreeState, TreeEffect[]]` |
 
 ### `.apply()` — The Universal Verb
@@ -528,7 +556,7 @@ Following SlateJS's pattern: plugins extend the **state type itself**, not a gen
 ```ts
 // SlateJS (mutable): plugins extend the Editor interface
 interface HistoryEditor extends Editor {
-  history: { undos: Operation[][]; redos: Operation[][] }
+  history: { undos: TreeOp[][]; redos: TreeOp[][] }
 }
 const withHistory = (editor: Editor): HistoryEditor => { ... }
 

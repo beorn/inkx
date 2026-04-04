@@ -1,7 +1,7 @@
 /**
  * Tests for disk mode filesystem reconciliation (km-storage.disk-reconcile)
  *
- * When .km/ exists, loadRepo uses "disk mode" which reads events.jsonl.
+ * When .km/ exists, loadRepo uses "disk mode" which reads changes.jsonl.
  * After applying events, reconciliation scans the filesystem to detect:
  * - Files present on disk but missing from the DB (externally added)
  * - Files in the DB that no longer exist on disk (externally deleted)
@@ -26,7 +26,7 @@ function runLoadRepo(...args: Parameters<typeof loadRepo>) {
   return result.value
 }
 
-/** Helper: create a .km directory with events.jsonl from given events */
+/** Helper: create a .km directory with changes.jsonl from given events */
 function setupDiskMode(
   repoRoot: string,
   events: Array<{
@@ -53,7 +53,7 @@ function setupDiskMode(
     return JSON.stringify(event)
   })
 
-  writeFileSync(join(kmDir, "events.jsonl"), lines.join("\n") + "\n")
+  writeFileSync(join(kmDir, "changes.jsonl"), lines.join("\n") + "\n")
 }
 
 describe("disk mode filesystem reconciliation", () => {

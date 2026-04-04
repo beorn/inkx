@@ -75,8 +75,8 @@ export {
   // Mutation operations (factory pattern - use createDbOps())
   createDbOps,
   buildEmbedChild,
-  // Event application (internal use)
-  applyEventWithDb,
+  // Change application (internal use)
+  applyChangeWithDb,
 } from "./db/db.ts"
 
 export type { Link, SearchResult, QueryAST, DbOps, EmbedChildOpts } from "./db/db.ts"
@@ -91,15 +91,15 @@ export type { NodeStore, Store, Observable, Replicated } from "./store/store.ts"
 export type { FsStore, FsStoreOptions } from "./store/fs.ts"
 
 // Unified repo loading
-export { readEvents, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo/loader.ts"
+export { readChanges, resolveLinksAsync, parseDeferredAsync, parseStubFile, ensureRepoRootNode } from "./repo/loader.ts"
 
 export type { LoadResult, LoadOptions, PendingLink, DeferredFile, StepYield } from "./repo/loader.ts"
 export type { LoadError as RepoLoaderError } from "./repo/loader.ts"
 
-// Event compaction & store health diagnostics
-export { identifyStaleEvents, compactEvents, vacuumDb, getStoreHealth } from "./event-compaction.ts"
+// Change compaction & store health diagnostics
+export { identifyStaleChanges, compactChanges, vacuumDb, getStoreHealth } from "./change-compaction.ts"
 
-export type { CompactionResult, StoreHealth } from "./event-compaction.ts"
+export type { CompactionResult, StoreHealth } from "./change-compaction.ts"
 
 // km-fast-md.6: Worker pool for parallel parsing
 // km-disposable.3: Service factory pattern
@@ -261,7 +261,7 @@ export type { Reactive, ReadonlySignal } from "./store/reactive.ts"
 // Emitter domain object - owns event emission lifecycle
 export { createEmitter } from "./emitter.ts"
 
-export type { Emitter, EmitterOptions, EmitOptions, EventHub } from "./emitter.ts"
+export type { Emitter, EmitterOptions, EmitOptions, ChangeHub } from "./emitter.ts"
 
 // Repo domain object - PREFERRED API for new code
 // Composed: DataStore + FileTree + Config

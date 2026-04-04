@@ -21,7 +21,7 @@
 import type { Database } from "bun:sqlite"
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "fs"
 import { join } from "path"
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 import { createLogger } from "loggily"
 import { parseMarkdownWithLinks, parsePlainTextToNodes } from "@km/markdown"
 import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
@@ -62,7 +62,7 @@ export interface DiscoveryOptions {
 
 /** Result from discoverFiles */
 export interface DiscoveryResult {
-  events: Event[]
+  events: Change[]
   pendingLinks: PendingLink[]
   /** Files to parse later (stub mode only) */
   deferredFiles?: DeferredFile[]
@@ -97,7 +97,7 @@ export function* discoverFiles(
 
   yield "Discovering files"
 
-  const events: Event[] = []
+  const events: Change[] = []
   const pendingLinks: PendingLink[] = []
   const deferredFiles: DeferredFile[] = []
   const unexploredDirs: UnexploredDir[] = []
@@ -456,7 +456,7 @@ function createFolderEvent(
   fsPath: string,
   name: string,
   ts: number,
-): Event {
+): Change {
   return {
     id,
     type: "node_created",
@@ -485,7 +485,7 @@ function createStubFileEvent(
   name: string,
   ts: number,
   fstype: "mdfile" | "txtfile" = "mdfile",
-): Event {
+): Change {
   return {
     id,
     type: "node_created",
@@ -514,7 +514,7 @@ function createNonMdFileEvent(
   fsPath: string,
   name: string,
   ts: number,
-): Event {
+): Change {
   return {
     id,
     type: "node_created",

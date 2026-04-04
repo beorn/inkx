@@ -35,7 +35,7 @@ export interface RepoHooks {
   /** Called after a successful mutation. */
   afterMutation?(ctx: MutationContext): void
   /** Called after a query operation. */
-  afterQuery?(operation: string, result: unknown): void
+  afterQuery?(treeop: string, result: unknown): void
   /** Called when repo is closed. */
   onClose?(): void
 }

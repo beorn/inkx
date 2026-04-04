@@ -8,8 +8,6 @@
 
 import type { Node, Data } from "mdast"
 import type { PropertyValue } from "../parser.ts"
-import type { ItemData } from "@km/core"
-
 // =============================================================================
 // Module augmentation — extends existing mdast node Data interfaces
 // =============================================================================

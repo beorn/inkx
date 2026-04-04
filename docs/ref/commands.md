@@ -2,7 +2,7 @@
 
 ## Overview
 
-The command system (`@km/commands`) provides a registry of command definitions and keybindings for the TUI. Commands are pure functions that receive a `CommandContext` and return `CommandAction` values dispatched by the caller.
+The command system (`@km/commands`) provides a registry of command definitions and keybindings for the TUI. Commands are pure functions that receive a `CommandContext` and return `KmOp` values dispatched by the caller.
 
 ### Architecture
 
@@ -15,14 +15,14 @@ resolveKeybinding(key, modifiers, KeybindingContext)
         |
 executeCommand(commandId, CommandContext)
         |
-CommandAction returned to caller (TUI handler dispatches)
+KmOp returned to caller (TUI handler dispatches)
 ```
 
 The command system is intentionally decoupled from the TUI: commands know nothing about React, Ink, or the board reducer. The TUI's `board-actions.ts` handles dispatching the returned actions to the appropriate reducer or storage layer.
 
 ### Key Design Decisions
 
-- **Commands return actions, not execute them**: Commands are pure functions returning `CommandAction` values. The TUI handler decides how to dispatch each action type (board reducer, storage mutation, UI state change).
+- **Commands return actions, not execute them**: Commands are pure functions returning `KmOp` values. The TUI handler decides how to dispatch each action type (board reducer, storage mutation, UI state change).
 - **Keybindings are separate from commands**: A `Keybinding` maps a key+modifiers to a `commandId`. A `CommandDef` defines the command logic. This separation allows the same command to have multiple bindings and enables programmatic execution without keybindings.
 - **No global state in commands**: Commands receive all needed state via `CommandContext`. The registry and keybinding list are module-level but created via factory functions for test isolation.
 
@@ -30,7 +30,7 @@ The command system is intentionally decoupled from the TUI: commands know nothin
 
 ```
 packages/km-commands/src/
-  types.ts          -- CommandDef, CommandContext, CommandAction, all action interfaces
+  types.ts          -- CommandDef, CommandContext, KmOp, all op interfaces
   registry.ts       -- CommandRegistry factory + module-level default registry
   executor.ts       -- executeCommand(), buildContext()
   keybindings.ts    -- Keybinding type, resolveKeybinding(), defaultKeybindings[]
@@ -82,11 +82,11 @@ interface CommandDef {
   category: CommandCategory  // "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View"
   shortcuts?: string[]       // Informational only (actual bindings in defaultKeybindings[])
   modes?: CommandMode[]      // "normal" | "move" | "search" | "input"
-  execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+  execute: (ctx: CommandContext) => KmOp | KmOp[] | null
 }
 ```
 
-### CommandAction
+### KmOp
 
 The union of all action types a command can return:
 

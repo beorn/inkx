@@ -1,11 +1,11 @@
 /**
  * Tests for the focused sub-union type categorization.
  *
- * Verifies that every action type in CommandAction belongs to exactly one sub-union,
+ * Verifies that every op type in KmOp belongs to exactly one sub-union,
  * and that the sub-unions are disjoint (no type string appears in more than one set).
  */
 import { describe, test, expect } from "vitest"
-import type { CommandAction, VerbOp, NavOp, EditOp, TextOp, BoardOp, DialogOp, PaneOp, ViewOp } from "../src/types.ts"
+import type { KmOp, VerbOp, NavOp, EditOp, TextOp, BoardOp, DialogOp, PaneOp, ViewOp } from "../src/types.ts"
 
 // Collect all type strings from each sub-union for runtime verification.
 // These mirror the Sets in board-actions.ts — if they diverge, tests will catch it.
@@ -291,8 +291,8 @@ describe("sub-union categorization", () => {
     const pane: PaneOp = { type: "PANE_CLOSE" }
     const view: ViewOp = { type: "QUIT" }
 
-    // All should be assignable to CommandAction
-    const actions: CommandAction[] = [verb, nav, edit, text, board, dialog, pane, view]
+    // All should be assignable to KmOp
+    const actions: KmOp[] = [verb, nav, edit, text, board, dialog, pane, view]
     expect(actions).toHaveLength(8)
   })
 })

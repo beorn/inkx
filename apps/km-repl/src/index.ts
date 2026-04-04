@@ -21,7 +21,7 @@ export {
 export {
   runShell,
   executeCommand,
-  executeBoardAction,
+  executeBoardReducerOp,
   executeShellCommand,
   serializeState,
   formatStateHuman,
@@ -58,11 +58,11 @@ export {
   tryExecuteRegisteredCommand,
   isRegisteredCommand,
   getCommandsByCategory,
-  type CommandAction,
+  type KmOp,
   type CommandContext,
 } from "./command-adapter.ts"
 
 // Board state types (local to km-repl - decoupled from @km/board)
-export type { BoardState, BoardAction, TNode, TPath, NodeDirection } from "./board-types.ts"
+export type { BoardState, BoardReducerOp, TNode, TPath, NodeDirection } from "./board-types.ts"
 export { boardReducer, createBoardState, findPathToNode, getNodeAtPath } from "./board-reducer.ts"
 export type { TaskStatus } from "@km/core"

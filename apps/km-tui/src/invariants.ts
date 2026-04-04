@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from "loggily"
-import type { ActionCtx } from "./tui-context.ts"
+import type { OpCtx } from "./tui-context.ts"
 
 const log = createLogger("km:invariants")
 
@@ -39,7 +39,7 @@ export interface InvariantViolation {
  *
  * Throws InvariantViolationError if any violation is found.
  */
-export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
+export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   const violations: InvariantViolation[] = []
 
   // 1. Cursor points to a valid, existing node (or is null for empty board)
@@ -215,7 +215,7 @@ export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
  * Check if nodeId is a descendant of ancestorId (or equal to it).
  * Walks up the parent chain. Stops at 100 iterations to prevent infinite loops.
  */
-function isDescendantOf(ctx: ActionCtx, nodeId: string, ancestorId: string): boolean {
+function isDescendantOf(ctx: OpCtx, nodeId: string, ancestorId: string): boolean {
   let current: string | null = nodeId
   let depth = 0
   while (current && depth < 100) {

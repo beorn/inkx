@@ -1,4 +1,4 @@
-import type { CommandMode, TNode, CommandContext, CommandAction } from "./types.ts"
+import type { CommandMode, TNode, CommandContext, KmOp } from "./types.ts"
 import type { ResolvedBinding } from "./types.ts"
 import type { WhenPredicate } from "./when.ts"
 import {
@@ -48,7 +48,7 @@ export interface Keybinding {
   /** Destination target for location-aware commands (e.g., "i" for inbox) */
   targetId?: string
   /** Direct execute function — bypasses command registry when set (verb x location grid) */
-  execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+  execute?: (ctx: CommandContext) => KmOp | KmOp[] | null
   modes?: CommandMode[]
   when?: WhenPredicate | ((ctx: KeybindingContext) => boolean)
 }

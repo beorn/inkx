@@ -2,24 +2,24 @@
  * Session Queries
  *
  * Query functions for agent sessions.
- * Sessions are stored as events in events.jsonl.
+ * Sessions are stored as changes in changes.jsonl.
  */
 
 import type { SessionStartedData, SessionEndedData } from "@km/core"
-import { readEvents } from "@km/storage"
+import { readChanges } from "@km/storage"
 import type { Session, SessionFilter, SessionStatus } from "./types.ts"
 
 /**
  * Query sessions, optionally filtered.
  *
- * Reads session_started and session_ended events from events.jsonl,
+ * Reads session_started and session_ended changes from changes.jsonl,
  * reconstructs Session objects, and applies filters.
  *
- * @param kmDir - Path to .km directory containing events.jsonl
+ * @param kmDir - Path to .km directory containing changes.jsonl
  * @param filter - Optional filter criteria
  */
 export function querySessions(kmDir: string, filter?: SessionFilter): Session[] {
-  const events = readEvents(kmDir)
+  const events = readChanges(kmDir)
 
   // Build sessions from events
   const sessionMap = new Map<string, Session>()

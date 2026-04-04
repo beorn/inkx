@@ -145,7 +145,7 @@ async function runBenchmarks(): Promise<BenchResult[]> {
 
   for (const file of BENCH_FILES) {
     process.stderr.write(`  ${file}... `)
-    const res = await run(["bun", "vitest", "bench", file, "--outputJson", tmpFile], { timeout: 120_000 })
+    const _res = await run(["bun", "vitest", "bench", file, "--outputJson", tmpFile], { timeout: 120_000 })
 
     if (existsSync(tmpFile)) {
       try {

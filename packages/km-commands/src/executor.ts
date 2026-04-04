@@ -1,14 +1,10 @@
 import { createLogger } from "loggily"
-import type { CommandContext, CommandAction, ViewMode } from "./types.ts"
+import type { CommandContext, KmOp, ViewMode } from "./types.ts"
 import { getCommand } from "./registry.ts"
 
 const log = createLogger("km:commands:executor")
 
-export function executeCommand(
-  id: string,
-  ctx: CommandContext,
-  targetId?: string,
-): CommandAction | CommandAction[] | null {
+export function executeCommand(id: string, ctx: CommandContext, targetId?: string): KmOp | KmOp[] | null {
   const cmd = getCommand(id)
   if (!cmd) {
     log.debug?.(`command not found: ${id}`)

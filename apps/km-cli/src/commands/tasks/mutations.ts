@@ -9,7 +9,6 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { resolvePathArg, parseTaskMetadata, extractTags } from "@km/storage"
 import { loadRepo } from "../../load-repo.ts"
-import type { TaskStatus } from "@km/core"
 import { getRootPath } from "../../program.ts"
 import { findNodeByPathOrId } from "./queries.ts"
 

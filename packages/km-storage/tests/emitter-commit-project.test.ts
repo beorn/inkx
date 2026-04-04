@@ -14,7 +14,7 @@ import { mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
 import { setLogLevel, getLogLevel, type LogLevel } from "loggily"
-import { createEmitter, type EventHub } from "../src/emitter.ts"
+import { createEmitter, type ChangeHub } from "../src/emitter.ts"
 import { SCHEMA } from "../src/db/schema.ts"
 
 // Suppress log output in tests
@@ -47,13 +47,13 @@ describe("commit/apply split", () => {
 
     const broadcastCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     const event = emitter.commit({ type: "node_created", actor: "fs-watch", data: { id: "n1", type: "h" } })
 
@@ -81,13 +81,13 @@ describe("commit/apply split", () => {
     const broadcastCalls: string[] = []
     const fsCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     // Register onApply subscriber (same pattern as withFsWriter/withSync)
     emitter.onApply((event, options) => {
@@ -119,13 +119,13 @@ describe("commit/apply split", () => {
     const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     // Register onApply subscriber
     emitter.onApply((event, options) => {
@@ -184,13 +184,13 @@ describe("commit/apply split", () => {
     const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     // Register onApply subscriber
     emitter.onApply((event, options) => {

@@ -816,7 +816,7 @@ bdCommand
   })
 
 // bd rename <old-id> <new-id> - Rename an issue
-const renameCmd = bdCommand
+bdCommand
   .command("rename <old-id> <new-id>")
   .description("Rename an issue ID (updates all references)")
   .action(async (oldId: string, newId: string) => {

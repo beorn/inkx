@@ -420,7 +420,7 @@ The existing [agents.md](../future/agents.md) describes an **in-process** agent 
 |-----------|-----------|-------|
 | Scope | Agents within a single km process | Independent Claude Code sessions |
 | Lifecycle | km spawns/stops agents | Sessions start/stop independently |
-| Communication | Unix socket + events.jsonl | SQLite message bus + MCP channel |
+| Communication | Unix socket + changes.jsonl | SQLite message bus + MCP channel |
 | Coordination | Hub TUI dashboard | Chief session + beads |
 | Use case | Specialized km workers (reviewer, researcher) | Parallel Claude Code sessions on same project |
 

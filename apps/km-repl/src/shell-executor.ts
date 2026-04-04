@@ -5,7 +5,7 @@
  * Supports both JSON and line (human-readable) output modes.
  */
 
-import type { BoardState, BoardAction, TPath, TNode } from "./board-types.ts"
+import type { BoardState, BoardReducerOp, TPath, TNode } from "./board-types.ts"
 import type { TaskStatus } from "@km/core"
 import { boardReducer, getNodeAtPath } from "./board-reducer.ts"
 import { parseCommand, getCommandHelp } from "./command-parser.ts"
@@ -18,7 +18,7 @@ import type { ShellCommand } from "./command-parser.ts"
  */
 export type OutputEvent =
   | { event: "init"; state: SerializedState; ts: number }
-  | { event: "action"; action: BoardAction; ts: number }
+  | { event: "action"; action: BoardReducerOp; ts: number }
   | { event: "state"; state: SerializedState; ts: number }
   | { event: "error"; error: string; ts: number }
   | { event: "output"; text: string; ts: number }
@@ -41,7 +41,7 @@ export interface SerializedState {
  * Action log entry for log/logs commands
  */
 export interface ActionLogEntry {
-  action: BoardAction
+  action: BoardReducerOp
   cursor: TPath
   ts: number
 }
@@ -606,7 +606,7 @@ function handleMutation(command: ShellCommand, ctx: ShellContext, ts: number): v
 }
 
 /**
- * Execute a shell command (not a BoardAction)
+ * Execute a shell command (not a BoardReducerOp)
  */
 export async function executeShellCommand(command: ShellCommand, ctx: ShellContext): Promise<{ quit: boolean }> {
   const ts = Date.now()
@@ -676,9 +676,9 @@ export async function executeShellCommand(command: ShellCommand, ctx: ShellConte
 }
 
 /**
- * Execute a BoardAction
+ * Execute a BoardReducerOp
  */
-export function executeBoardAction(action: BoardAction, ctx: ShellContext): BoardState {
+export function executeBoardReducerOp(action: BoardReducerOp, ctx: ShellContext): BoardState {
   const ts = Date.now()
 
   // Log the action (JSON mode to stdout, verbose mode to stderr via stdlog)
@@ -733,7 +733,7 @@ export async function executeCommand(line: string, ctx: ShellContext): Promise<{
   // Key map used for KEY: and KEYS: markers
   // Shell uses structural navigation (prev/next/in/out) - no visual cursor logic
   // Note: App-specific actions (modals, search, help) are not available in km-sh
-  const keyMap: Record<string, BoardAction> = {
+  const keyMap: Record<string, BoardReducerOp> = {
     // Structural cursor movement (vim style keys)
     j: { type: "CURSOR_MOVE", dir: "next" },
     k: { type: "CURSOR_MOVE", dir: "prev" },
@@ -775,7 +775,7 @@ export async function executeCommand(line: string, ctx: ShellContext): Promise<{
       const key = result.error.slice(4)
       const action = keyMap[key]
       if (action) {
-        const newState = executeBoardAction(action, ctx)
+        const newState = executeBoardReducerOp(action, ctx)
         return { state: newState, quit: false }
       } else {
         if (ctx.jsonMode) {
@@ -795,7 +795,7 @@ export async function executeCommand(line: string, ctx: ShellContext): Promise<{
         const action = keyMap[key]
         if (action) {
           ctx.state = currentState
-          currentState = executeBoardAction(action, ctx)
+          currentState = executeBoardReducerOp(action, ctx)
         } else {
           if (ctx.jsonMode) {
             ctx.output({ event: "error", error: `Unknown key: ${key}`, ts })
@@ -827,7 +827,7 @@ export async function executeCommand(line: string, ctx: ShellContext): Promise<{
     const { quit } = await executeShellCommand(result.command, ctx)
     return { state: ctx.state, quit }
   } else {
-    const newState = executeBoardAction(result.action, ctx)
+    const newState = executeBoardReducerOp(result.action, ctx)
     return { state: newState, quit: false }
   }
 }

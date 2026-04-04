@@ -10,14 +10,14 @@
  * See docs/design/tea-state-machines.md for the TEA vision.
  */
 
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { requestRenderFlush } from "./board-actions-edit.ts"
 import type { ApplyResult, BoardEffect } from "./board-reducer.ts"
 import { defaultNormalize, validateEffects } from "./normalize-plugins.ts"
 
 /** Execute a single repo mutation through the effect pipeline (normalization + validation). */
-export function runRepoEffect(ctx: ActionCtx, effect: BoardEffect): void {
+export function runRepoEffect(ctx: OpCtx, effect: BoardEffect): void {
   const getNode = (id: string) => ctx.repo.getNode(id)
   const effects = defaultNormalize([effect], getNode)
   validateEffects(effects, getNode)
@@ -31,7 +31,7 @@ export function runRepoEffect(ctx: ActionCtx, effect: BoardEffect): void {
  * The normalization pipeline eliminates the class of bugs where callers set
  * content but forget title/name (see /why analysis, commit dff82084).
  */
-export function runBoardEffects(ctx: ActionCtx, result: ApplyResult): void {
+export function runBoardEffects(ctx: OpCtx, result: ApplyResult): void {
   // Normalize: auto-derive title from content, name from content for outlines
   const getNode = (id: string) => ctx.repo.getNode(id)
   const effects = defaultNormalize(result.effects, getNode)
@@ -45,7 +45,7 @@ export function runBoardEffects(ctx: ActionCtx, result: ApplyResult): void {
 }
 
 /** Execute a single BoardEffect. */
-function runEffect(ctx: ActionCtx, effect: BoardEffect): void {
+function runEffect(ctx: OpCtx, effect: BoardEffect): void {
   switch (effect.type) {
     // Navigation effects
     case "SELECT":

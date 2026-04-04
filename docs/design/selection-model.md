@@ -1,336 +1,612 @@
 # Selection Model
 
-Selection is reactive state derived from user input. Because silvery owns the UI (no DOM selection API to fight), the entire system is a signal DAG: input signals → derived gesture → effective selection → consumer reads.
+`@silvery/selection` — a reactive selection store for silvery apps. Reads the ag node tree for structure. Built on alien-signals.
 
-## Type
+One integrated system. km adds board-specific behavior as app code, not extensions. For the full industry landscape and future extensibility notes, see [selection-landscape.md](selection-landscape.md).
+
+## Why
+
+km's current selection is scattered across 6 files with 5 different state fields (`cursorNodeId`, `multiSelected`, `selectionAnchor`, `inlineEditBlock`, `selectAllLevel`). Three reactive systems coexist (Zustand, CursorStore pub/sub, alien-signals). No formal gesture lifecycle — area-select and drag-drop are impossible to add cleanly.
+
+Decker's selection system (decker-cardboard) ships the right concepts — `selectedIds`/`selectingIds` split, `DragMode` enum, area-select with modifier support — but the implementation has three specific problems:
+
+1. **State in three places**: DOM attributes (`data-selected`, `data-dragmode`), Zustand store (`selectedIds`, `dragMode`), and JavaScript closure variables (`let anchor`, `let focus` in areaselect.ts). Each can be stale relative to the others.
+2. **Browser-inconsistent drag events**: HTML5 `dragstart`/`dragover`/`drop`/`dragend` fire in different orders across Chrome, Firefox, Safari. The imperative handlers depend on event ordering that isn't guaranteed.
+3. **DOM as mutable state**: The DOM is both rendering output AND state storage. Browser fires events in unexpected order → DOM state is stale → handler reads inconsistent state → bug.
+
+When something breaks, you're reconstructing what happened across three state sources with browser-dependent event ordering. Untestable.
+
+This design fixes all of it:
+
+- **One state atom** — not three places. No DOM state, no closure variables. All state in one serializable object.
+- **Pure state machine** — `(state, event) → [newState, effects]`. Event ordering doesn't matter — the machine processes events one at a time. Same result regardless of browser.
+- **No HTML5 drag API** — silvery uses low-level pointer events (down/move/up). No browser-inconsistent `dragstart`/`dragover`/`drop`. The state machine implements drag from pointer primitives. (For React DOM: use `pointerdown`/`pointermove`/`pointerup` instead of HTML5 drag — this is what tldraw does.)
+- **Every transition logged** — replay the exact event sequence that caused a bug. Test in isolation.
+
+### Alignment with tldraw
+
+tldraw is the gold standard for canvas selection. Our architecture aligns on the key structural choices — see [selection-landscape.md](selection-landscape.md) for the full comparison.
+
+**Same:** selection as ID array in reactive store, edit mode as separate state, group drill-in via focus/root ID, pointing states before drag threshold, signals for reactivity + state machine for decisions.
+
+**Our improvements:** pure function state machine (testable, replayable — tldraw's StateNode classes have side effects), cursor/anchor for tree UIs (tldraw is set-only — no linear order in canvas), per-node signals (tldraw uses global overlay).
+
+### Per-node interactive signals
+
+The selection store writes `node.selected` directly on ag nodes (bead: km-silvery.1). Planned extension — not just selection but all interactive state as per-node signals:
+
+```ts
+agNode.hovered       // pointer over this node (written by pointer system)
+agNode.armed         // pointer-down, will receive click (:active — written by pointer system)
+agNode.selected      // in selection (written by selection store)
+agNode.focused       // has keyboard focus (written by focus manager)
+agNode.dropTarget    // drag hovering over (written by drag system)
+```
+
+Selection rolls this out first: `sel.node.select([id])` diffs old vs new, writes `node.selected = true/false` on only the changed nodes (2 writes for a cursor move). Other consumers (rendering, a11y, default theme) read the signal. No global set checks. Maximum granularity. silvery can auto-apply default interactive styling (hover highlight, focus ring, selection border) without app code.
+
+### Learnings from tldraw
+
+1. **Enumerate all pointing states explicitly.** tldraw has 7 distinct pointing states (`pointing_canvas`, `pointing_shape`, `pointing_selection`, `pointing_resize_handle`, `pointing_rotate_handle`, `pointing_handle`, `pointing_arrow_label`). Our pointer state machine should list each as a named state in the pure transition function, not just a table.
+
+2. **`getOutermostSelectableShape(hit, root)`** — when clicking a node inside a group/card, walk up to find the outermost container to select (respecting `sel.root`). km already does this for cards: clicking a sub-item selects the card. Silvery should provide this as a core function: `getSelectableAncestor(nodeId, root)` — returns the outermost selectable node within the current root scope.
+
+3. **Batch pointer-move events + skip no-ops.** tldraw batches move events to next tick, flushes everything else immediately. Adopt for performance. Additionally: every apply function must check if the result actually changed before writing. `applySelect` with the same IDs → no write, no signal notification. `applyPointerEvent` during area-drag → compare hit set before/after, skip if identical. Text drag → skip if offset unchanged. This prevents re-renders on every pointer-move when the selection hasn't actually changed.
+
+4. **Per-node signals is our TUI divergence.** tldraw renders selection as a global overlay (blue bounds drawn on top). Works for canvas where indicators are uniform. For TUI, components render their own selected state (border color, background). Per-node signals fit TUI; overlay fits canvas.
+
+5. **Complex sub-selections need sub-state machines.** tldraw's crop has 5 nested states. Our `sel.crop.select(rect)` stub is too simple for real crop interaction. When building crop, it'll need its own pointer states within the main state machine.
+
+6. **Tool-specific transient highlights.** tldraw has `hintingShapeIds` and `erasingShapeIds` — separate from selection. If we add eraser or tool-hint features, add per-node signals: `node.hinting`, `node.erasing`.
+
+7. **Pure state machine is our main improvement over tldraw.** Their `StateNode` classes call `editor.setSelectedShapes()` directly — not testable without a full Editor. Our `(state, event) → [state, effects]` enables replay, logging, and unit testing. This is the key architectural win.
+
+### Could this work in React DOM?
+
+Yes — the architecture is not silvery-specific. The three layers (pure state machine → state atom → reactive projections) work in any React app:
+
+- **Pure state machine**: framework-agnostic — same `(state, event) → [state, effects]` works anywhere
+- **State atom**: Zustand, Jotai, or alien-signals — any reactive primitive
+- **Reactive projections**: React hooks (`useSyncExternalStore`, `useSelector`) or signals
+- **Per-node signals**: map to data attributes (`data-selected="true"`) or per-component `useSelector` calls
+- **Hit testing**: `document.elementsFromPoint(x, y)` (what Decker uses) instead of ag tree `hitTest`
+- **Pointer events**: same DOM events, same state machine, different hit testing backend
+
+The silvery-specific part is reading the ag tree for ordering/hierarchy. In React DOM, you'd pass an ordered ID list explicitly (like we originally had with `nodes: readonly ID[]`). The state machine and selection operations are identical.
+
+## Two layers
+
+**Node selection** (Layer 1) — which nodes are selected. Always present.
+
+**Sub-selection** (Layer 2) — editing within the cursor node. Optional. Text caret, path points, crop region — polymorphic via `sel.sub`. Cleared by any node operation.
+
+Mode: no cursor = idle, cursor without sub = node, cursor with sub = sub kind (text, path, crop, ...).
+
+## Store API
 
 ```ts
 type ID = string & { readonly __brand: "ID" }
-type TextPoint = { nodeId: ID; offset: number; affinity?: "forward" | "backward" }
 
-type Selection = {
-  nodes: readonly [ID, ...ID[]]                                  // [0]=cursor, [last]=anchor
-  text?: readonly [TextPoint] | readonly [TextPoint, TextPoint]  // collapsed caret or range
-}
+// OrderedSet<T> = ReadonlyArray<T> with O(1) .has(). Array order + Set lookup.
+type OrderedSet<T> = ReadonlyArray<T> & { has(value: T): boolean }
+
+const sel = createSelection(app)
 ```
 
-`nodes[0]` = cursor (primary), `nodes.at(-1)` = anchor (shift-extend origin). Structural positions, not separate fields.
+### Node selection
 
-`text` = optional caret/range within the cursor node. One point = collapsed caret. Two = range. Text follows the same convention: `text[0]` = text cursor, `text.at(-1)` = text anchor. Never spans nodes — both endpoints target `nodes[0]`.
+```ts
+sel.node.cursor                         // Computed<ID | null> — primary selected
+sel.node.anchor                         // Computed<ID | null> — extend origin
+sel.node.ids                            // Computed<OrderedSet<ID>> — the selection (tree-walk order, O(1) .has())
 
-Mode: `!sel` = board, `!sel.text` = node, `sel.text` = text.
+sel.node.select(ids, toggle?)           // replace, or XOR toggle. IDs normalized to tree-walk order. Cursor/anchor from normalized result.
+sel.node.extend(cursor)                 // range: anchor stays, cursor moves, fills between.
+sel.node.collapse()                     // multi → single. Keep cursor, reset anchor.
+sel.node.remove(id)                     // remove one. Repairs cursor/anchor.
+                                        // node.select([]) = deselect (same as sel.deselect)
+sel.node.selectableAncestor(id)         // walk up to outermost selectable node within sel.root. Click sub-item → returns the card.
+```
+
+`OrderedSet<ID>` = array with O(1) `.has()`. Order follows ag tree walk. Reconciliation maintains order when tree changes.
+
+`cursor` is always in `ids`. `anchor` is always in `ids` (or null). Single selection: cursor = anchor. Idle (board mode): cursor = null, anchor = null, ids = empty.
+
+### Sub-selection
+
+One polymorphic slot. Only one sub-selection active at a time. `sel.sub` is the one writable signal — `sel.text/path/crop` are computed from it.
+
+```ts
+sel.sub()                               // read: the active sub-selection (any kind), or null
+sel.sub = createTextSelection(...)      // write: enter a sub-selection
+sel.sub = null                     // write: exit any sub-selection
+```
+
+`sel.text`, `sel.path`, `sel.crop` are typed accessors over `sel.sub`:
+
+```ts
+// Text sub-selection [LIVE]
+sel.text()                              // { kind: "text"; nodeId: ID; cursor: number; anchor?: number } | null
+sel.text.edit(nodeId, offset)           // enter text mode + ensures cursor/ids includes the parent selectable node
+sel.text.select(cursor?, anchor?)       // move caret (1 arg) or set range (2 args)
+sel.text.deselect()                     // = sel.sub = null
+
+// Path sub-selection [STUB — proves the pattern, not wired in]
+sel.path()                              // { kind: "path"; shapeId: ID; pointIds: OrderedSet<ID> } | null
+sel.path.edit(shapeId, pointIds?)       // enter path editing
+sel.path.select(pointIds, toggle?)      // select points
+sel.path.deselect()                     // = sel.sub = null
+
+// Crop sub-selection [STUB — proves the pattern, not wired in]
+sel.crop()                              // { kind: "crop"; objectId: ID; rect: Rect } | null
+sel.crop.edit(objectId)                 // enter crop mode
+sel.crop.select(rect)                   // update crop rect
+sel.crop.deselect()                     // = sel.sub = null
+```
+
+Each follows the same shape: `edit` to enter, `select` to modify, `deselect` to exit. All sugar over `sel.sub` assignment. Factories are pure data constructors.
+
+> **Simplification note (Pro review 2026-04):** path/crop stubs are premature — only text has a real consumer. Consider replacing `sel.sub` with direct `sel.text` field when a second sub-kind isn't imminent. Keeping stubs for now as design-time proof of extensibility. If/when a second sub-kind arrives, normalize with shared `targetId` field across all sub-selection types.
+
+```ts
+createTextSelection(nodeId, offset)     // → { kind: "text", nodeId, cursor: offset }
+createPathSelection(shapeId, pointIds?) // → { kind: "path", shapeId, pointIds }
+createCropSelection(objectId)           // → { kind: "crop", objectId, rect: default }
+```
+
+**Signal pattern:** `sel.text()` returns plain data (no methods, tiny allocation). `sel.text.edit/select/deselect` are stable methods on the function object — created once. For fine-grained subscription, derive: `computed(() => sel.text()?.nodeId)`.
+
+### Drag
+
+Pointer drags that change selection (area-select, text-drag). Not for manipulation (translate/resize/rotate — those are app-level, outside the selection store).
+
+```ts
+sel.drag()                              // { startSource, startPosition, startState, rect? } | null
+sel.drag.start(hit, origin)             // snapshot full state (nodes + sub), start preview mode
+sel.drag.end()                       // preview becomes committed
+sel.drag.cancel()                       // revert entire state to startState
+```
+
+Any layer can use the drag lifecycle — node-level (lasso), text (text-drag), path (point drag), crop (rect drag). `startState` snapshots the full `SelectionState`, so cancel reverts everything.
+
+During drag, operations update a preview internally. `sel.node.ids` and `sel.text()` always show the effective state. For rendering the committed vs preview distinction, read `sel.drag()?.startState`.
 
 ```ts
 type PressHit =
-  | { scopeId: string; kind: "empty" }
-  | { scopeId: string; kind: "node"; id: ID }
-  | { scopeId: string; kind: "text"; id: ID; offset: number }
+  | { kind: "empty" }
+  | { kind: "node"; nodeId: ID }
+  | { kind: "text"; nodeId: ID; offset: number }
 ```
 
-`PressHit` is latched on mousedown. It determines the gesture kind and which provider/pane owns the gesture. Richer than a bare ID — distinguishes empty space, node body, and text content.
+`PressHit.text.nodeId` is the editable block node — in km, blocks are nodes at a specific tree depth. No separate `blockId` concept; it's all node IDs.
 
-## Signal DAG
+Immediate interactions (click, j/k) skip the drag — write to committed directly.
 
-Three input signals. One state signal. Everything else derived.
-
-```
-  GLOBAL INPUTS                      PER-SCOPE DERIVED              CONSUMERS
-  ─────────────                      ──────────────────              ─────────
-  pointer (x, y, buttons) ──┐
-  modifiers (shift/cmd/opt) ─┼──► selectingKind ──► selecting ─┐
-  keyboard events ───────────┘    (gesture type)    (preview)  │
-                                                               ├──► selection ──► cursor
-                                        selected ──────────────┘    (effective)   ids
-                                        (committed)                               isEditing
-
-  GLOBAL DERIVED
-  ──────────────
-  pointer ──► mouseState (idle/pressed/dragging)
-         ──► hoverTarget ──► hoverEffect, hoverPopup
-         ──► dropTarget, dropEffect (during drag)
-
-  GESTURE LATCHES (set on mousedown, cleared on mouseup/cancel)
-  ──────────────
-  pressOrigin ── (x, y) for drag threshold
-  pressHit    ── what was hit on mousedown (determines gesture kind + scope)
-```
-
-The provider receives the visible nodes in order. This is how the gesture layer knows the view's ordering — no separate `SelectionSpace` abstraction.
+### Root
 
 ```ts
-// Global inputs (silvery runtime)
-const pointer   = signal<{ x: number; y: number; buttons: number }>()
-const modifiers = signal<{ shift: boolean; cmd: boolean; opt: boolean }>()
-
-// Gesture latches (set on mousedown, cleared on mouseup/cancel)
-const pressOrigin = signal<{ x: number; y: number } | undefined>()
-const pressHit    = signal<PressHit | undefined>()
-
-// Global derived
-const mouseState  = computed(() => !ptr.buttons ? "idle" : distance < threshold ? "pressed" : "dragging")
-const hoverTarget = computed(() => nodeAt(pointer.value))
-const dropEffect  = computed(() => mod.opt ? "copy" : mod.cmd ? "link" : "move")
-
-// Per-scope state
-const selected = signal<Selection | undefined>()
-
-// Per-scope derived
-const selectingKind = computed(() => /* from pressHit + modifiers + mouseState */)
-const selecting     = computed(() => /* preview from kind + pointer + selected + nodes */)
-const selection     = computed(() => selecting.value ?? selected.value)
+sel.root.id                             // Computed<ID | null> — null = top level
+sel.root.set(id)                        // enter: constrain selection to this subtree
+sel.root.up()                           // exit: pop root to its parent in the ag tree (or null)
 ```
 
-Note: `selectingKind` derives from **latched `pressHit`** (not live `hoverTarget`). The gesture kind is determined when the mousedown occurs and doesn't change based on where the pointer currently hovers. `selected` is the baseline for all gesture previews — it's frozen during gestures and only updates on commit.
+All operations are relative to the root subtree. `root.up()` walks one level up — if root is "card-5", it becomes card-5's parent (or null for top level). Group, frame, zoom, embed are all just a root change.
 
-### Selecting kinds
+### Cross-layer
 
-Derived from `(pressHit, modifiers, mouseState)`:
+```ts
+sel.kind                           // Computed: "idle" | "node" | sel.sub()?.kind
+sel.deselect()                          // clear everything (node + sub)
+sel.selectAll(layer?)                   // progressive expand, or constrained ("text"/"node")
+```
 
-| Kind | Input | Produces | Commit |
-|---|---|---|---|
-| `node` | click node / j / k | `select(id)` | immediate |
-| `node-toggle` | cmd+click | `toggle(id)` | immediate |
-| `node-extend` | shift+click / shift+j/k | range preview | shift release |
-| `node-area` | drag empty | area replace preview | mouseup |
-| `node-area-toggle` | cmd+drag empty | area XOR preview | mouseup |
-| `text` | click text / double-click / Enter | `edit(offset)` | immediate |
-| `text-extend` | shift+arrow / shift+click in text | text range preview | shift release |
-| `text-drag` | drag in text | text range preview | mouseup |
-| `drop` | drag node | drop indicator | drop |
+## Interaction rules
 
-Immediate kinds write to `selected` directly. Preview kinds produce `selecting` — committed on explicit trigger, cancelled by Escape.
+All in one place:
 
-### Commit and cancel
-
-Gestures end for specific reasons — not just because `selecting` became undefined:
-
-| Trigger | Effect |
+| State change | Side effects |
 |---|---|
-| mouseup (during area/text-drag) | commit `selecting` → `selected` |
-| shift release (during extend) | commit `selecting` → `selected` |
-| drop (during drag) | commit drop operation |
-| Escape | **cancel** — discard `selecting`, `selected` unchanged |
-| blur / nodes change | cancel (preserve `selected`, discard gesture) |
+| Node op (`sel.node.*`) | Clears `sel.sub` |
+| Root change (`sel.root.*`) | Cancel drag first, then reconcile |
+| Tree change (ag tree mutated) | Cancel drag first, then reconcile |
+| `sel.sub = ...` (low-level) | Node state unchanged |
+| `sel.text.edit()` (typed helper) | Ensures cursor node matches — may update nodes |
+| `sel.drag` active | Operations write to preview |
+| `sel.drag` cancelled (cleared without `end()`) | Reverts to startState |
+| `sel.drag` + `sel.sub` both active | Allowed (text-drag) |
+| `sel.text.select()` when not in text mode | No-op |
+| `sel.path.select()` when not in path mode | No-op |
+| Any operation where result = current state | No write, no signal notifications (skip no-ops) |
+
+## Selection follows tree ops (SlateJS pattern)
+
+**Current implementation**: reconciliation as an effect triggered by ag tree changes. This works but has a gap between tree change and selection fixup.
+
+**Target architecture** (bead: km-silvery.selection.3): eliminate the reconciliation effect. Instead, every tree op transforms selection in the same `apply()` call — one transaction, atomic:
 
 ```ts
-// Commit: explicit trigger writes selecting → selected
-function commitGesture() {
-  if (selecting.value) selected.value = selecting.value
-  clearGestureLatches()
-}
-
-// Cancel: discard gesture, keep selected unchanged
-function cancelGesture() {
-  clearGestureLatches()
-  // selecting recomputes to undefined → selection falls back to selected
+function applyTreeOp(state: AppState, op: TreeOp): AppState {
+  const prevTree = state.tree
+  const nextTree = applyToTree(prevTree, op)
+  const nextSelection = transformSelection(state.selection, op, prevTree, nextTree)
+  return { ...state, tree: nextTree, selection: nextSelection }
 }
 ```
 
-**Event ordering**: commit reads the gesture snapshot BEFORE clearing buttons/modifiers/latches. Otherwise mouseup could erase `selecting` before the commit captures it. Sequence: snapshot selecting → write to selected → clear latches → update pointer state.
+`transformSelection` receives BOTH pre- and post-op trees — needed for "nearest surviving node" repair and identity-preserving moves.
 
-**Preselect on drag**: when dragging an unselected node or text in another node, the preselect (moving cursor to that node) happens on mousedown, not on drag threshold crossing. This sets the frozen baseline before the drag gesture begins.
+This matches SlateJS's `Editor.apply(op)` which transforms both document and selection through each operation. No reconciliation effect, no watcher, no stale state. Undo reverses both tree + selection atomically.
 
-### Gesture morphing
+**Undo**: each history batch stores `selectionBefore` (the selection state at the start of the transaction). Undo restores tree via inverse ops + restores `selectionBefore`. This is the Slate-aligned way to make atomic undo work.
 
-During drag, the kind recomputes continuously from pointer position. Text-drag crossing a node boundary becomes node-area. Drag back reverts. The kind is derived from the current pointer position relative to `pressHit`, not re-derived from scratch.
+**Sub-selection on move**: if a block is moved but its identity survives, preserve `sel.text` (don't clear sub on pure move). Only clear sub when the block is deleted.
 
-## Mouse
+**All tree changes through apply()**: including remote ops, normalization, reset/import. If there are backdoors that skip apply(), the inline transform breaks.
 
-### Target → gesture
+### Reconciliation rules (shared by both approaches)
 
-Target below refers to **pressHit** (latched on mousedown):
+Whether triggered as an effect (current) or inline in tree ops (target):
 
-| Mousedown target | Click | Drag |
+1. If drag active → cancel first
+2. Remove deleted IDs, maintain order
+3. If cursor removed → nearest remaining in tree-walk order
+4. If anchor removed → reset to cursor
+5. If all removed → deselect
+6. If edited block deleted/moved → clear sub
+
+## Progressive select-all
+
+`sel.selectAll()` walks up the ag tree:
+
+1. Sub active, partial → expand to full (e.g., all text in block)
+2. Sub active, full → exit sub, continue node-level
+3. Single node or partial siblings → all siblings
+4. All siblings → ascend to parent's siblings
+5. Only-child → immediate ascend
+6. At root → no-op
+
+No external state. Derives next expansion from current selection + tree.
+
+## Cursor/anchor rules
+
+| Operation | Cursor | Anchor |
 |---|---|---|
-| empty space | `clear` | `node-area` |
-| unselected node | `node` select | select → `drop` |
-| selected node | `node` select | `drop` (all selected) |
-| cursor node | no-op | `drop` (all selected) |
-| text (editing) | `text` caret | `text-drag` |
-| text (other node) | select + `text` | select + `text-drag` |
+| `node.select(ids)` replace | `ids[0]` | `ids.at(-1)` |
+| `node.select(ids, true)` toggle add | `ids[0]` | preserved |
+| `node.select(ids, true)` toggle remove non-cursor | preserved | preserved (or cursor if anchor gone) |
+| `node.select(ids, true)` toggle remove cursor | first remaining | reset to new cursor |
+| `node.extend(cursor)` | `cursor` | preserved (range fills anchor↔cursor) |
+| `selectAll()` | preserved | cursor |
+| `node.collapse()` | preserved | cursor |
+| `node.remove(id)` non-cursor | preserved | preserved (or cursor if anchor gone) |
+| `node.remove(id)` cursor | first remaining | reset to new cursor |
 
-### Modifiers
+## Pointer state machine
 
-| Modifier | Click | Drag |
-|---|---|---|
-| (none) | `node` / `text` | `node-area` / `drop` |
-| Cmd | `node-toggle` | `node-area-toggle` |
-| Shift | `node-extend` | `node-extend` preview |
-| Opt | — | `drop` (copy) |
+Pure function: `(ptrState, event, tree) → [newPtrState, SelectionEffect[]]`. The pseudocode below shows effects as method calls for readability — the actual implementation returns effect data, not imperative calls.
 
-Shift+drag from empty space is not defined — falls back to `node-area` (shift ignored for area select).
+All pointing states cancel back to idle on Escape.
 
-### Drop effect
+```
+ptr-idle
+  │
+  pointer-down → resolve PressHit from ag tree
+  │
+  ├─ hit-empty ──────────► ptr-pointing-empty
+  ├─ hit-node (unselected) ► ptr-pointing-node
+  ├─ hit-node (selected) ──► ptr-pointing-selection
+  └─ hit-text ─────────────► ptr-pointing-text
+```
+
+### Pointing states (before threshold)
 
 ```ts
-const dropEffect = computed(() => mod.opt ? "copy" : mod.cmd ? "link" : "move")
+// ptr-pointing-empty
+onPointerUp:   sel.deselect()
+onDragStart:   sel.drag.start(hit, origin)                    // → ptr-dragging-area
+
+// ptr-pointing-node (unselected)
+onPointerUp:   if (cmd) sel.node.select([hit.nodeId], true)   // toggle
+               else if (shift) sel.node.extend(hit.nodeId)    // extend
+               else sel.node.select([hit.nodeId])             // replace
+onDragStart:   sel.node.select([hit.nodeId])                  // preselect
+               → emit "manipulation-drag" effect (app handles — NOT sel.drag)
+
+// ptr-pointing-selection (already selected node)
+onPointerUp:   sel.node.select([hit.nodeId])                  // reselect (collapse multi to this one)
+onDragStart:   → emit "manipulation-drag" effect (app handles — NOT sel.drag)
+
+// ptr-pointing-text
+onPointerUp:   sel.text.edit(hit.nodeId, hit.offset)          // enter text / move caret
+onDragStart:   sel.text.edit(hit.nodeId, hit.offset)          // start caret
+               sel.drag.start(hit, origin)                    // → ptr-dragging-text
+```
+
+### Dragging states (after threshold)
+
+```ts
+// ptr-dragging-area (started from empty)
+onPointerMove(x, y):
+  const hit = hitTest(x, y)
+  if (hit.kind === "text") {
+    sel.text.edit(hit.nodeId, hit.offset)                     // morph → text-drag
+  } else {
+    if (sel.text()) sel.sub = null                            // morph back → area
+    const ids = nodesInRect(sel.drag().startPosition, {x, y})
+    if (cmd) sel.node.select(ids, true)                       // toggle
+    else sel.node.select(ids)                                 // replace
+  }
+onPointerUp:   sel.drag.end()
+onEscape:      sel.drag.cancel()
+
+// ptr-dragging-text (started from text)
+onPointerMove(x, y):
+  const hit = hitTest(x, y)
+  if (hit.kind === "text") {
+    sel.text.select(hit.offset, sel.drag().startState.sub?.cursor)  // extend range
+  } else {
+    sel.sub = null                                            // morph → area
+    sel.node.select(nodesInRect(sel.drag().startPosition, {x, y}))
+  }
+onPointerUp:   sel.drag.end()
+onEscape:      sel.drag.cancel()
 ```
 
 ### Double-click
 
-Node → select + edit. Text (editing) → select word. Container → create child.
+```ts
+onDoubleClick(hit):
+  if (hit.kind === "node") sel.text.edit(hit.nodeId, 0)       // select + enter text
+  if (hit.kind === "text") selectWord(hit.nodeId, hit.offset)  // select word (app-defined boundaries)
+```
+
+### Modifier effects during gestures
+
+| Modifier | During click | During drag |
+|---|---|---|
+| (none) | select / edit | area-select / drag |
+| Cmd | toggle | area-toggle (XOR) |
+| Shift | extend | extend preview |
+| Opt | — | drag-drop (copy — manipulation, not selection) |
 
 ## Keyboard
 
-| Mode | Key | Kind | Commit |
-|---|---|---|---|
-| node | j / k | `node` | immediate |
-| node | Shift+j/k | `node-extend` | shift release |
-| node | Enter | `text` | immediate |
-| node | Escape | steps up: multi → single → board |
-| text | Arrow | `text` | immediate |
-| text | Shift+Arrow | `text-extend` | shift release |
-| text | Escape | → node mode |
+| Mode | Key | Effect |
+|---|---|---|
+| node | j / k | `sel.node.select` |
+| node | Shift+j/k | `sel.node.extend` |
+| node | Enter | `sel.text.edit(nodeId, offset)` |
+| node | A | `sel.selectAll()` |
+| node | Escape | collapse → deselect |
+| text | Arrow | `sel.text.select(newOffset)` |
+| text | Shift+Arrow | `sel.text.select(newOffset, sel.text()?.anchor)` |
+| text | Escape | `sel.text.deselect()` |
 
 Mode ladder: `text ──Esc──► node ──Esc──► board ──click/j──► node ──Enter──► text`
 
-Keyboard gestures are event-driven (reducer logic), not pure signal derivation — each keypress produces an immediate mutation or starts/extends a preview.
+## Architecture: state machine + signals
 
-## Selection.*
+Two layers with distinct roles:
 
-Read helpers and constructors on `Selection` values. Pure, no ordering dependency. Consumers can also read `sel.nodes` / `sel.text` directly.
+**State machine** — where decisions happen. Pure functions: `(state, event) → [newState, effects]`. Testable, replayable, debuggable.
+
+**Signals** — where reactivity happens. Projections of the state atom into forms consumers need. No decisions — just derived views with granular subscriptions.
+
+```
+events → pure state machine → state atom → signals → consumers
+          (decisions)          (one source)  (projections)
+```
+
+### Flow: keyboard j/k (node cursoring)
+
+```
+keypress "j"
+  → app resolves next node from ag tree
+  → applySelect(state, [nextId], tree)         ← pure function
+  → new state: { cursor: nextId, ids: {nextId}, sub: null }
+  → state atom updated
+  → sel.node.cursor recomputes → Card components re-render  ← signal projection
+  → sel.node.ids recomputes → selection highlight updates
+  → sel.kind recomputes ("node")
+```
+
+### Flow: pointer click on node
+
+```
+mousedown on card
+  → applyPointerEvent(ptrState, down(hit, origin))   ← pure: ptrState → "pointing"
+mouseup (no movement)
+  → applyPointerEvent(ptrState, up())                 ← pure: ptrState → "idle", emit select effect
+  → applySelect(state, [hitNodeId], tree)             ← pure: updates selection
+  → state atom updated
+  → signals recompute → UI updates
+```
+
+### Flow: pointer drag area-select with morphing
+
+```
+mousedown on empty
+  → applyPointerEvent: ptrState → "pointing-empty"
+mousemove past threshold
+  → applyPointerEvent: ptrState → "dragging-area", emit drag.start effect
+  → store snapshots state (startState)
+mousemove (continuous)
+  → applyPointerEvent: ptrState stays "dragging-area", emit node.select(hitIds) effect
+  → store updates preview → sel.node.ids shows preview
+mousemove into text region
+  → applyPointerEvent: ptrState → "dragging-text", emit text.edit + sub.clear effects  ← morph
+  → signals recompute → UI reflects text-drag mode
+mouseup
+  → applyPointerEvent: ptrState → "idle", emit drag.end effect
+  → store commits preview → signals show committed state
+```
+
+### Flow: tree op deletes selected node (SlateJS pattern)
+
+```
+user deletes node C (C was selected)
+  → applyDeleteNode(state, "C")                       ← pure: one apply for tree + selection
+    → tree: remove C
+    → selection: transformSelection(sel, deleteOp, tree)
+      → remove C from ids, repair cursor to nearest, cancel drag if active
+  → state atom updated (tree + selection together)
+  → signals recompute → UI reflects both changes atomically
+  → undo reverses both: restores C in tree AND in selection
+```
+
+### Flow: Escape key (mode ladder)
+
+```
+Escape pressed
+  → app checks sel.kind:
+    "text"  → applyExitSub(state)         ← pure: clears sub, preserves nodes
+    "node"  → applyCollapse(state)        ← pure: multi → single (or deselect if single)
+    "idle"  → no-op
+  → state atom updated
+  → sel.kind recomputes → mode ladder advances
+  → sel.text() recomputes → text editor unmounts
+```
+
+### What goes where
+
+| Concern | Layer | Why |
+|---|---|---|
+| "On click, what selection changes?" | State machine | Decision logic — testable |
+| "Is this node selected?" | Signal (`sel.node.ids.has(id)`) | Reactive projection — granular subscription |
+| "Click vs drag threshold" | State machine (pointer) | Discrete transition |
+| "What's under the pointer?" | Signal (`hoverHit`) | Continuous derivation |
+| "Morphing text↔area during drag" | State machine (pointer) | Explicit transition, debuggable |
+| "Which component re-renders?" | Signals | Dependency tracking |
+| "Undo snapshot" | State machine output | Plain data from pure function |
+
+### Rule of thumb
+
+If it has an `if` statement making a decision → state machine.
+If it's projecting/transforming existing state for a consumer → signal.
+
+### SlateJS alignment
+
+km's tree layer descends from SlateJS. The selection system aligns with the same architecture:
+
+| SlateJS | km / silvery |
+|---|---|
+| `Editor.apply(op)` | unified `apply()` for tree + selection |
+| `Selection.transform(sel, op)` | `transformSelection(sel, treeOp, tree)` |
+| `Operation` with `inverse()` | `TreeOp` + `SelectionOp` with inverse |
+| Selection = `{ anchor, focus }` | `SelectionSnapshot = { cursor, anchor, ids, sub, root }` |
+| `NodeSelection` (whole node) | `sel.node.*` |
+| `TextSelection` (range) | `sel.text.*` (sub-selection) |
+| Transactions | TEA `apply()` pipeline with `op()` proxy |
+| Normalize after mutation | Selection transform in same apply (not a separate pass) |
+
+One apply, one transaction. Tree ops transform selection inline. Undo reverses both. No separate reconciliation system.
+
+## Internal state model
+
+One explicit type for the full store state:
 
 ```ts
-const Selection = {
-  // Read
-  cursor(sel):       ID | undefined
-  anchor(sel):       ID | undefined
-  ids(sel):          ReadonlySet<ID>
-  includes(sel, id): boolean                      // O(1)
-  isEditing(sel):    boolean
-  inputMode(sel):    "board" | "node" | "text"
+type SelectionSnapshot = {
+  cursor: ID | null
+  anchor: ID | null
+  ids: readonly ID[]              // stored as plain array (serializable). OrderedSet is a computed view.
+  sub: SubSelection | null
+  root: ID | null
+}
 
-  // Construct
-  from(nodes, text?):  Selection                  // validates invariants
-  clear():             undefined
+type DragState = {
+  startHit: PressHit
+  startPosition: { x: number; y: number }
+  startState: SelectionSnapshot   // frozen baseline — drag previews compute against THIS, not iteratively
+}
 
-  // Plugin
-  with(store, nodes):  SelectionStore
+type StoreState = {
+  committed: SelectionSnapshot    // the truth when not dragging
+  drag: DragState | null          // non-null during drag; committed is frozen, preview is derived
+  pointer: PointerState           // pointer state machine state
 }
 ```
 
-Selection.* is deliberately small — reads + constructors. Mutation logic (toggle, extend, areaSelect, etc.) lives in the gesture layer, which needs visible node order anyway. This keeps the value model pure and the gesture logic honest about its dependencies.
+**Drag previews are baseline-based:** during area-select, each pointer-move recomputes the preview from `drag.startState`, NOT from the previous preview. `previewReplace(startState, rectIds)`, `previewToggle(startState, rectIds)`. This prevents oscillation/flicker during cmd-toggle drag.
 
-### Selecting.*
+`sel.node.ids` (the public API) returns an `OrderedSet` computed view over the effective `ids` array. The stored state is a plain array — serializable for undo/replay.
 
-Selection transitions — computes the next Selection from the current one + inputs. Takes `visibleNodes` explicitly because these operations need ordering context. Separate from `Selection.*` because `Selecting.*` transitions state, `Selection.*` reads it.
+## Pure transitions + op() proxy
+
+Operations internally use pure functions. Tests call them directly.
 
 ```ts
-const Selecting = {
-  // Node-level (clear text)
-  select(id):                                          Selection
-  toggle(sel, id):                                     Selection | undefined
-  extend(sel, target, visibleNodes):                   Selection
-  areaSelect(sel, hitIds, mode, visibleNodes):          Selection | undefined
-  collapse(sel):                                       Selection
-  remove(sel, id):                                     Selection | undefined
+function applySelect(state: SelectionSnapshot, ids: ID[], tree, toggle?): SelectionSnapshot
+function applyExtend(state: SelectionSnapshot, cursor: ID, tree): SelectionSnapshot
+function applyReconcile(state: SelectionSnapshot, tree): SelectionSnapshot
+// ... all apply functions take and return SelectionSnapshot
+```
 
-  // Text-level (don't touch nodes)
-  edit(sel, offset):                                   Selection
-  stopEditing(sel):                                    Selection
-  moveTextCursor(sel, offset):                         Selection
-  extendTextRange(sel, offset):                        Selection
+### op() — operations as data, ergonomically
+
+silvery's `op()` proxy (see `vendor/internal/silvery/design/v15-tea/app.md`) intercepts method calls and routes them through `apply()` as serializable data. You write normal method calls — same API, same autocomplete — and get logging/undo/replay for free:
+
+```ts
+// Direct — fast, no overhead
+sel.node.select(["C"])
+
+// Through op() — intercepted by plugins (undo, tracing, logging)
+op(sel).node.select(["C"])
+// → apply({ type: "model-op", path: ["node", "select"], args: [["C"]], run: ... })
+```
+
+No `defineOp()` ceremony. The method name IS the op type. The arguments ARE the op data. The proxy reifies automatically.
+
+**Default usage should be through `op()`** — most selection changes should be undoable. Direct calls (`sel.node.select()` without `op()`) are the exception for performance-critical paths (e.g., pointer-move preview updates during drag where undo granularity is drag-level, not per-pixel).
+
+```ts
+// Normal (most code): undoable
+op(sel).node.select(["C"])
+op(sel).text.edit("para1", 5)
+
+// Exception (drag preview): not individually undoable, drag.end/cancel handles it
+sel.node.select(hitIds)  // direct — inside drag, preview only
+```
+
+Undo captures `SelectionState` snapshots. `op()` records the path + args for replay. Both are plain data, serializable.
+
+## Content model
+
+The ag tree provides everything: IDs, ordering (tree walk), hierarchy (parent/children), visibility (rendered = selectable), hit testing (screenRect).
+
+Assumptions:
+- Tree hierarchy — nodes have parent/children
+- Character-addressed text — integer offsets (unit app-defined)
+- Block containment — text blocks are descendants of selectable nodes
+- Single-block editing — one block at a time
+
+## km integration
+
+```ts
+const sel = createSelection(app)
+
+// Board-specific helpers — just app code, not extensions
+function extendHorizontal(sel, direction) {
+  const columnIds = getColumnRangeIds(sel.node.cursor, direction)
+  sel.node.select(columnIds)
 }
+
+const cursorCardId = computed(() => deriveCardAncestor(sel.node.cursor, viewIndex))
+const cursorColumnId = computed(() => deriveColumnAncestor(sel.node.cursor, viewIndex))
 ```
 
-`areaSelect` receives already-filtered `hitIds` — the caller (gesture layer / provider) decides which nodes in the lasso rectangle are eligible before passing them. This keeps domain concerns (cards vs blocks) out of the selection algebra. km filters by node role in its gesture layer (e.g., Opt+drag passes only card IDs, skipping inline blocks).
+## Migration (km-tui)
 
-### Cursor/anchor rules
-
-| Gesture | Cursor becomes | Anchor becomes |
+| Current | New | Notes |
 |---|---|---|
-| `select(id)` | `id` | `id` |
-| `toggle` — adding | new `id` | preserved |
-| `toggle` — removing non-cursor | preserved | preserved (or cursor if anchor removed) |
-| `toggle` — removing cursor | first remaining | reset to new cursor |
-| `areaSelect(_, ids, "replace")` | `ids[0]` | `ids.at(-1)` |
-| `areaSelect(_, ids, "xor")` | preserved if still selected, else first remaining | preserved if still selected, else last remaining |
-| `extend(sel, target, nodes)` | `target` | preserved (extend origin) |
-| `collapse(sel)` | preserved | cursor |
-| `remove` — removing cursor | first remaining | reset to new cursor if anchor removed |
-
-`areaSelect` expects `hitIds` in `visibleNodes` order — the caller normalizes hit-test results before passing them. For `areaSelect` and `extend`, the middle elements follow visible order. For `toggle`, new IDs are prepended (becoming cursor) and middle order is not re-sorted.
-
-Invariants (violations throw): `nodes.length > 0`, no duplicate IDs in `nodes`, `text[0].nodeId === nodes[0]`, `text[1]?.nodeId === nodes[0]`, node transitions clear `text`.
-
-## Provider
-
-The provider receives the visible nodes in order. This is how gestures derive range walks and cursor repair — the view already knows the order.
-
-```tsx
-<SelectionProvider nodes={visibleNodeIds}>
-  <BoardView />
-</SelectionProvider>
-```
-
-The `nodes` prop is how the provider knows the view's ordering. No separate `SelectionSpace` interface. When the view changes (collapse, filter, sort), `nodes` updates → gesture derivations recompute.
-
-### Nodes-change reconciliation
-
-When `nodes` changes (collapse, filter, sort, delete), the provider reconciles `selected`:
-
-1. Remove any selected IDs no longer in `nodes` (prune invisible)
-2. If cursor was pruned, repair to nearest remaining selected node (or first in `nodes`)
-3. If anchor was pruned, reset anchor to cursor
-4. If all selected nodes pruned, `selected` becomes `undefined` (board mode)
-5. If `nodes` reordered with same IDs, re-normalize middle element order to match new visible order
-6. If a gesture is active (`selecting`), cancel it — stale gesture state is dangerous
-
-| Signal | Scope | Why |
-|---|---|---|
-| pointer, modifiers, mouseState | global | one mouse, one keyboard |
-| pressOrigin, pressHit | global | one pointer, one gesture |
-| hoverTarget, hoverEffect, dropTarget, dropEffect | global | one pointer, one drag |
-| selected, selecting, selection | per provider | each pane owns its selection |
-| nodes (visible order) | per provider | each pane has its own ordering |
-
-### km extensions
-
-```ts
-import { Selection as Base, Selecting as BaseSelecting } from "@silvery/selection"
-export const Selection = { ...Base, expandWithDescendants, insertionPoint }
-export const Selecting = { ...BaseSelecting }
-```
-
-km's gesture layer filters hitIds before calling `Selecting.areaSelect` — e.g., Opt+drag passes only card IDs (filtering by `node.role === "card"`).
-
-Commands: `when` selectors on `Selection.*`. Focus: orthogonal. Undo: `selectedBefore`/`selectedAfter` on transactions.
-
-## Example
-
-Stored order: `[cursor, ...selected, anchor]`.
-
-| # | Gesture | nodes | text |
-|---|---|---|---|
-| 1 | Click A | `[A]` | — |
-| 2 | Shift-click D | `[D, B, C, A]` | — |
-| 3 | Cmd-click B (off) | `[D, C, A]` | — |
-| 4 | Cmd-click F (on) | `[F, D, C, A]` | — |
-| 5 | Enter | `[F, D, C, A]` | `[{F,0}]` |
-| 6 | Escape | `[F, D, C, A]` | — |
-| 7 | Lasso B,C | `[B, C]` | — |
-| 8 | Cmd-lasso C,D,E | `[B, D, E]` | — |
-
----
-
-## Appendix
-
-### What this replaces
-
-`cursorNodeId` → `cursor(sel)`, `multiSelected` → `ids(sel)`, `selectionAnchor` → `anchor(sel)`, `inlineEditBlock` → `isEditing(sel)`, `selectionLevel` → `inputMode(sel)`.
-
-### km domain types
-
-```ts
-type InsertionPoint = { kind: "node"; parentId: ID; edge: "before"|"after"; referenceId: ID }
-                    | { kind: "text"; nodeId: ID; offset: number }
-type DropTarget = { where: "before"|"after"|"into"; targetId: ID }
-```
-
-### Visual lasso
-
-During `node-area` / `node-area-toggle` gestures, render a lasso rectangle via ANSI styling overlay (inverse video + dim background on cells within the drag rectangle). Uses the same mechanism as silvery's existing `renderSelectionOverlay()`. Works in all terminals.
-
-### Future
-
-Canvas (same type, no range), drill-in (scope push), GridSelection, multiple cursors, collaborative presence.
+| `cursorNodeId` | `sel.node.cursor` | Computed |
+| `multiSelected` | `sel.node.ids` | OrderedSet |
+| `selectionAnchor` | `sel.node.anchor` | Computed |
+| `inlineEditBlock` | `sel.text()` | TextEdit or null |
+| `selectionLevel` | `sel.kind` | Computed |
+| `visualMode` / `visualAnchor` | km gesture handler | App code |
+| `selectAllLevel` | not needed | Derived |
+| `curswantX` / `curswantY` | km sticky cursor helper | App code |
+| `CursorStore` | deleted | Subsumed |
+| `cursorCardNodeId` | `cursorCardId` computed | km app code |
+| Zustand | alien-signals (Phase 9) | One reactive system |

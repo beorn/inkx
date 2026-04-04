@@ -6,12 +6,12 @@
  */
 /* oxlint-disable complexity/complexity -- Test helper — setup complexity is acceptable */
 
-import { KNode, type Event } from "@km/core"
+import { KNode, type Change } from "@km/core"
 import type { Repo, RepoStats } from "../repo/repo.ts"
 import type { LoadError } from "../repo/loader.ts"
 import type { Link } from "../db/db.ts"
 import type { StepYield } from "../repo/loader.ts"
-import type { Emitter, EventHub } from "../emitter.ts"
+import type { Emitter, ChangeHub } from "../emitter.ts"
 import { ulid } from "ulid"
 
 /**
@@ -94,9 +94,9 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
   reset()
 
   // Create a mutation-aware emitter for FakeRepo
-  let fakeEventHub: EventHub | null = null
+  let fakeChangeHub: ChangeHub | null = null
 
-  function applyToNodes(event: Event): void {
+  function applyToNodes(event: Change): void {
     switch (event.type) {
       case "node_created": {
         const id = (event.data?.id as string) ?? event.target ?? ulid()
@@ -148,28 +148,28 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
 
   const fakeEmitter: Emitter = {
     kmDir: "/fake/.km",
-    eventsPath: "/fake/.km/events.jsonl",
+    changesPath: "/fake/.km/changes.jsonl",
     apply(event) {
-      const full = { id: ulid(), ts: Date.now(), ...event } as Event
+      const full = { id: ulid(), ts: Date.now(), ...event } as Change
       applyToNodes(full)
       return full
     },
     commit(event) {
-      const full = { id: ulid(), ts: Date.now(), ...event } as Event
+      const full = { id: ulid(), ts: Date.now(), ...event } as Change
       applyToNodes(full)
       return full
     },
     onApply() {
       return () => {}
     },
-    setEventHub(hub) {
-      fakeEventHub = hub
+    setChangeHub(hub) {
+      fakeChangeHub = hub
     },
-    getEventHub() {
-      return fakeEventHub
+    getChangeHub() {
+      return fakeChangeHub
     },
     close() {
-      fakeEventHub = null
+      fakeChangeHub = null
     },
   }
 
@@ -225,7 +225,7 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
     config: {} as any,
     emitter: fakeEmitter,
 
-    // Event application (delegates to fakeEmitter)
+    // Change application (delegates to fakeEmitter)
     apply(event, options?) {
       return fakeEmitter.apply(event, options)
     },

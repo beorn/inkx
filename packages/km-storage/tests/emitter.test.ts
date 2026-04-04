@@ -3,7 +3,7 @@
  *
  * Covers:
  * - F1: Error isolation in apply() — one bad listener must not kill the pipeline
- * - EventHub broadcast errors are isolated
+ * - ChangeHub broadcast errors are isolated
  * - All steps (persist, db apply, broadcast) execute in order
  * - Emitter wrapping pattern for decorators (withFsWriter, withSync)
  *
@@ -17,7 +17,7 @@ import { existsSync, mkdirSync, readFileSync, rmSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
 import { setLogLevel, getLogLevel, type LogLevel } from "loggily"
-import { createEmitter, type EventHub } from "../src/emitter.ts"
+import { createEmitter, type ChangeHub } from "../src/emitter.ts"
 import { SCHEMA } from "../src/db/schema.ts"
 
 // Suppress log output in error-isolation tests (they deliberately trigger errors)
@@ -56,7 +56,7 @@ describe("F1: Error isolation in apply()", () => {
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
 
-    const throwingHub: EventHub = {
+    const throwingHub: ChangeHub = {
       broadcast() {
         throw new Error("broadcast exploded")
       },
@@ -65,7 +65,7 @@ describe("F1: Error isolation in apply()", () => {
     const emitter = createEmitter({
       kmDir,
       db,
-      eventHub: throwingHub,
+      changeHub: throwingHub,
     })
 
     // Should NOT throw — broadcast error is isolated
@@ -107,7 +107,7 @@ describe("F1: Error isolation in apply()", () => {
 
     const order: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast() {
         order.push("broadcast")
       },
@@ -116,15 +116,15 @@ describe("F1: Error isolation in apply()", () => {
     const emitter = createEmitter({
       kmDir,
       db,
-      eventHub: hub,
+      changeHub: hub,
     })
 
     emitter.apply({ type: "node_created", actor: "test", data: { id: "n4", type: "h" } })
 
-    // Verify events.jsonl was written (persist step)
-    const eventsPath = join(kmDir, "events.jsonl")
-    expect(existsSync(eventsPath)).toBe(true)
-    const lines = readFileSync(eventsPath, "utf-8").trim().split("\n")
+    // Verify changes.jsonl was written (persist step)
+    const changesPath = join(kmDir, "changes.jsonl")
+    expect(existsSync(changesPath)).toBe(true)
+    const lines = readFileSync(changesPath, "utf-8").trim().split("\n")
     expect(lines.length).toBe(1)
     order.unshift("persist") // We know it ran because file exists
 
@@ -146,28 +146,28 @@ describe("F1: Error isolation in apply()", () => {
 // =============================================================================
 
 describe("F1: Multiple callback isolation", () => {
-  test("setEventHub replaces hub — old hub no longer called", () => {
+  test("setChangeHub replaces hub — old hub no longer called", () => {
     const db = createTestDb()
     const dir = createTmpDir()
     const kmDir = join(dir, ".km")
 
     const calls: string[] = []
-    const hub1: EventHub = {
+    const hub1: ChangeHub = {
       broadcast() {
         calls.push("hub1")
       },
     }
-    const hub2: EventHub = {
+    const hub2: ChangeHub = {
       broadcast() {
         calls.push("hub2")
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub1, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub1, skipPersist: true })
     emitter.apply({ type: "node_created", actor: "test", data: { id: "a", type: "h" } })
     expect(calls).toEqual(["hub1"])
 
-    emitter.setEventHub(hub2)
+    emitter.setChangeHub(hub2)
     emitter.apply({ type: "node_created", actor: "test", data: { id: "b", type: "h" } })
     expect(calls).toEqual(["hub1", "hub2"])
 
@@ -181,13 +181,13 @@ describe("F1: Multiple callback isolation", () => {
     const kmDir = join(dir, ".km")
 
     const calls: string[] = []
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast() {
         calls.push("hub")
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
     emitter.apply({ type: "node_created", actor: "test", data: { id: "c", type: "h" } })
     expect(calls).toEqual(["hub"])
 
@@ -216,13 +216,13 @@ describe("onApply subscriber with source filtering", () => {
     const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     // Register onApply subscriber (same pattern as withFsWriter/withSync)
     emitter.onApply((event, options) => {
@@ -258,13 +258,13 @@ describe("commit() vs apply() — structural echo prevention", () => {
     const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     // Register onApply subscriber (same pattern as withFsWriter/withSync)
     emitter.onApply((event, options) => {
@@ -298,13 +298,13 @@ describe("commit() vs apply() — structural echo prevention", () => {
     const fsCalls: string[] = []
     const broadcastCalls: string[] = []
 
-    const hub: EventHub = {
+    const hub: ChangeHub = {
       broadcast(event) {
         broadcastCalls.push(event.type)
       },
     }
 
-    const emitter = createEmitter({ kmDir, db, eventHub: hub, skipPersist: true })
+    const emitter = createEmitter({ kmDir, db, changeHub: hub, skipPersist: true })
 
     // Register onApply subscriber
     emitter.onApply((event, options) => {

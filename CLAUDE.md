@@ -115,9 +115,11 @@ See [.claude/skills/git/worktree.md] for details.
 - `vendor/internal/silvery/` — silvery design docs, mockups, prototypes, roadmap (git submodule → beorn/silvery-internal)
 - `vendor/internal/bearly/` — bearly/tribe design docs (tracked in km repo)
 
-**What goes here:** design documents, architecture plans, marketing strategies, competitive analysis, launch plans, internal roadmaps, mockups, prototypes — anything that informs development but shouldn't be published.
+**What goes here:** design documents, architecture plans, marketing strategies, competitive analysis, launch plans, internal roadmaps, mockups, prototypes, example drafts — anything that informs development but shouldn't be published.
 
 **What does NOT go here:** public documentation (that goes in each package's `docs/`), code (that goes in `src/`), tests (that goes in `tests/`).
+
+**Promotion flow:** All docs, examples, and mockups start in `vendor/internal/`. They move to public locations (`vendor/*/docs/`, `vendor/*/examples/`) only when polished and approved. Internal is the workspace; public is the showcase. Don't create drafts in public directories.
 
 **Rule:** If it's in `vendor/internal/`, it's private. If it's in `vendor/*/docs/`, it's public. Never reference `vendor/internal/` content from public docs.
 

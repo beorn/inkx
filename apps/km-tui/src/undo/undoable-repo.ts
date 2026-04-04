@@ -21,7 +21,7 @@ import { createLogger } from "loggily"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoStack, FoldState } from "../undo-stack.ts"
-import { type TreeOp, type HistoryEntry, invertOperations } from "./operations.ts"
+import { type TreeOp, type HistoryEntry, invertTreeOps } from "./operations.ts"
 
 const log = createLogger("km:tui:undo:repo")
 
@@ -108,8 +108,8 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
 
     // Auto-batch: single mutation = one HistoryEntry
     const entry: HistoryEntry = {
-      operations: [op],
-      inverseOperations: invertOperations([op]),
+      treeops: [op],
+      inverseTreeOps: invertTreeOps([op]),
       cursorBefore,
       cursorAfter,
       label: undefined,
@@ -118,8 +118,8 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
     undoStack.push({
       label: entry.label ?? readableOpLabel(op.type),
       cursorNodeId: entry.cursorBefore,
-      undo: () => applyOps(entry.inverseOperations),
-      redo: () => applyOps(entry.operations),
+      undo: () => applyOps(entry.inverseTreeOps),
+      redo: () => applyOps(entry.treeops),
     })
 
     // Reset cursor state after push
@@ -267,8 +267,8 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
       }
 
       const entry: HistoryEntry = {
-        operations: ops,
-        inverseOperations: invertOperations(ops),
+        treeops: ops,
+        inverseTreeOps: invertTreeOps(ops),
         cursorBefore,
         cursorAfter,
         label: batchLabel,
@@ -277,8 +277,8 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
       undoStack.push({
         label: entry.label ?? `batch(${ops.length})`,
         cursorNodeId: entry.cursorBefore,
-        undo: () => applyOps(entry.inverseOperations),
-        redo: () => applyOps(entry.operations),
+        undo: () => applyOps(entry.inverseTreeOps),
+        redo: () => applyOps(entry.treeops),
       })
 
       batchLabel = undefined

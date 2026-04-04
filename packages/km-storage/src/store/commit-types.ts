@@ -1,16 +1,16 @@
 /**
  * Commit Taxonomy — types for the reactive store layer.
  *
- * Operation: user intent — what the editor receives
- *   (Already exists in packages/km-tree/src/operations.ts as Operation type)
+ * TreeOp: user intent — what the editor receives
+ *   (Already exists in packages/km-tree/src/ops/operations.ts as TreeOp type)
  *
- * Event: canonical state mutation — what the store commits
- *   (Already exists in packages/km-core as Event type)
+ * Change: canonical state mutation — what the store commits
+ *   (Already exists in packages/km-core as Change type)
  *
  * This file adds: CommitMeta, CommitResult, RepoDelta, ResourceState, ChangeEnvelope.
  */
 
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 
 // =============================================================================
 // CommitMeta — provenance of a commit
@@ -45,7 +45,7 @@ export interface RepoDelta {
 
 export interface CommitResult {
   meta: CommitMeta
-  events: readonly Event[]
+  changes: readonly Change[]
   delta: RepoDelta
 }
 
@@ -72,38 +72,38 @@ export const ResourceState = {
 } as const
 
 // =============================================================================
-// computeDelta — derive RepoDelta from an Event
+// computeDelta — derive RepoDelta from a Change
 // =============================================================================
 
-/** Compute which nodes and parents were affected by an event. */
-export function computeDelta(event: Event): RepoDelta {
+/** Compute which nodes and parents were affected by a change. */
+export function computeDelta(change: Change): RepoDelta {
   const nodeIds: string[] = []
   const parentIds: string[] = []
   const deletedNodeIds: string[] = []
 
-  switch (event.type) {
+  switch (change.type) {
     case "node_created": {
-      const createdId = (event.data?.id as string) ?? event.target
+      const createdId = (change.data?.id as string) ?? change.target
       if (createdId) nodeIds.push(createdId)
-      if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
+      if (change.data?.parent_id) parentIds.push(change.data.parent_id as string)
       break
     }
     case "node_updated":
-      if (event.target) nodeIds.push(event.target)
+      if (change.target) nodeIds.push(change.target)
       break
     case "node_moved":
-      if (event.target) nodeIds.push(event.target)
-      if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
-      if (event.data?.old_parent_id) parentIds.push(event.data.old_parent_id as string)
+      if (change.target) nodeIds.push(change.target)
+      if (change.data?.parent_id) parentIds.push(change.data.parent_id as string)
+      if (change.data?.old_parent_id) parentIds.push(change.data.old_parent_id as string)
       break
     case "node_deleted":
-      if (event.target) deletedNodeIds.push(event.target)
-      if (event.data?.parent_id) parentIds.push(event.data.parent_id as string)
+      if (change.target) deletedNodeIds.push(change.target)
+      if (change.data?.parent_id) parentIds.push(change.data.parent_id as string)
       break
     case "task_claimed":
     case "task_released":
     case "task_completed":
-      if (event.target) nodeIds.push(event.target)
+      if (change.target) nodeIds.push(change.target)
       break
   }
 
@@ -111,16 +111,16 @@ export function computeDelta(event: Event): RepoDelta {
 }
 
 /**
- * Merge multiple per-event deltas into one aggregated RepoDelta.
+ * Merge multiple per-change deltas into one aggregated RepoDelta.
  * Deduplicates IDs across the batch.
  */
-export function mergeDeltas(events: readonly Event[]): RepoDelta {
+export function mergeDeltas(changes: readonly Change[]): RepoDelta {
   const nodeIds = new Set<string>()
   const parentIds = new Set<string>()
   const deletedNodeIds = new Set<string>()
 
-  for (const event of events) {
-    const d = computeDelta(event)
+  for (const change of changes) {
+    const d = computeDelta(change)
     for (const id of d.nodeIds) nodeIds.add(id)
     for (const id of d.parentIds) parentIds.add(id)
     for (const id of d.deletedNodeIds) deletedNodeIds.add(id)
@@ -137,7 +137,7 @@ export function mergeDeltas(events: readonly Event[]): RepoDelta {
 // ChangeEnvelope — replicated committed change (for sync between stores)
 // =============================================================================
 
-export interface ChangeEnvelope<C = Event> {
+export interface ChangeEnvelope<C = Change> {
   commitId: string
   source: CommitSource
   actorId?: string

@@ -1,5 +1,5 @@
 /**
- * Event Handlers — Shared logic for applying DB events to filesystem
+ * Change Handlers — Shared logic for applying DB events to filesystem
  *
  * Shared event→filesystem projection logic used by withFsWriter and withSync.
  * Uses FsWriteTarget interface to abstract sync vs async write mechanisms.
@@ -10,7 +10,7 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync } from
 import { basename, dirname, join, relative } from "path"
 import type { Database } from "bun:sqlite"
 import { ulid } from "ulid"
-import { type Event, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
+import { type Change, KNode, findIndexFile, namesAreSimilar, type ItemData } from "@km/core"
 import type { Emitter } from "../emitter.ts"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
@@ -78,7 +78,7 @@ export class EventHandlers {
   /**
    * Apply a database event to filesystem
    */
-  applyEventToFs(event: Event): void {
+  applyEventToFs(event: Change): void {
     if (event.actor === "fs-watch") {
       log.debug?.(`skipping fs apply for actor=${event.actor} event=${event.type}`)
       return
@@ -186,7 +186,7 @@ export class EventHandlers {
   /**
    * Handle node updated — save the containing file.
    */
-  private handleNodeUpdated(event: Event): void {
+  private handleNodeUpdated(event: Change): void {
     if (!event.target) return
 
     const node = getNode(this.db, event.target)
@@ -217,7 +217,7 @@ export class EventHandlers {
   /**
    * Handle node created — create directory, empty file, or regenerate parent file.
    */
-  private handleNodeCreated(event: Event): void {
+  private handleNodeCreated(event: Change): void {
     const data = event.data as Partial<KNode>
 
     if (data.type === "h" && data.item && data.fstype === "folder" && data.fs_path) {
@@ -238,7 +238,7 @@ export class EventHandlers {
    * Node is already deleted from DB by the time fsSync runs,
    * so we read metadata from event.data (snapshotted before deletion).
    */
-  private handleNodeDeleted(event: Event): void {
+  private handleNodeDeleted(event: Change): void {
     if (!event.target) return
 
     // Node is already deleted from DB — use data passed in event payload
@@ -282,7 +282,7 @@ export class EventHandlers {
    * before fsSync runs). The event data carries old_parent_id so we can find
    * and regenerate the source file, preventing stale content on disk.
    */
-  private handleNodeMoved(event: Event): void {
+  private handleNodeMoved(event: Change): void {
     if (!event.target) return
 
     const node = getNode(this.db, event.target)
@@ -369,7 +369,7 @@ export class EventHandlers {
    * These update task_status/task_marker in DB but need the containing
    * file regenerated so the change appears in markdown.
    */
-  private handleTaskEvent(event: Event): void {
+  private handleTaskEvent(event: Change): void {
     if (!event.target) return
     const node = getNode(this.db, event.target)
     if (node) this.save(node)
@@ -590,12 +590,12 @@ export class EventHandlers {
   }
 
   /**
-   * Journal a rename operation to events.jsonl.
+   * Journal a rename operation to changes.jsonl.
    * The DB is already updated by direct mutation (for atomicity with the FS rename),
    * so this only persists to the journal for event-sourcing completeness.
    */
   private journalRename(nodeId: string, changes: Record<string, unknown>): void {
-    const event: Event = {
+    const event: Change = {
       id: ulid(),
       ts: Date.now(),
       type: "node_updated",
@@ -604,9 +604,9 @@ export class EventHandlers {
       data: changes,
     }
     try {
-      const dir = dirname(this.emitter.eventsPath)
+      const dir = dirname(this.emitter.changesPath)
       if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-      appendFileSync(this.emitter.eventsPath, JSON.stringify(event) + "\n")
+      appendFileSync(this.emitter.changesPath, JSON.stringify(event) + "\n")
     } catch (err) {
       log.error?.(`journalRename failed for ${nodeId}: ${String(err)}`)
     }

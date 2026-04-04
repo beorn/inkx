@@ -14,7 +14,7 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
        |
        |-- commit():
        |     1. Apply to DB ------> applyEventWithDb() [db-events.ts]
-       |     2. Persist ----------> append to .km/events.jsonl
+       |     2. Persist ----------> append to .km/changes.jsonl
        |     3. Broadcast --------> eventHub.broadcast(event)
        |
        '-- save():
@@ -259,7 +259,7 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 3. **Two-tier write suppression**: OwnershipTracker L1 (hot) + L2 (durable) prevent
    the watcher from reconciling files we just wrote.
 
-4. **Apply before persist**: The DB is updated before events.jsonl is appended.
+4. **Apply before persist**: The DB is updated before changes.jsonl is appended.
    A crash between steps 1 and 2 loses the event from the journal but the DB is
    correct — safer than the reverse.
 

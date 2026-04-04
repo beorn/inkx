@@ -110,8 +110,8 @@ describe("absolute path detection", () => {
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
        VALUES ('file1', 'oi', '.', 0, '/old/absolute/repo/@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
-    // Write events.jsonl so the DB isn't considered "fresh"
-    writeFileSync(join(dir, ".km/events.jsonl"), "")
+    // Write changes.jsonl so the DB isn't considered "fresh"
+    writeFileSync(join(dir, ".km/changes.jsonl"), "")
     db.close()
 
     // Reopening in disk mode should throw due to absolute paths
@@ -137,7 +137,7 @@ describe("absolute path detection", () => {
       `INSERT INTO nodes (id, type, parent_id, parent_idx, fs_path, created_at, updated_at, version, data)
        VALUES ('file1', 'oi', '.', 0, '@next.md', ${Date.now()}, ${Date.now()}, '1', '{}')`,
     )
-    writeFileSync(join(dir, ".km/events.jsonl"), "")
+    writeFileSync(join(dir, ".km/changes.jsonl"), "")
     db.close()
 
     // Should open without error
@@ -148,15 +148,15 @@ describe("absolute path detection", () => {
 })
 
 describe("disk mode root node", () => {
-  test("events.jsonl with parent_id:null folders get reparented under root '.'", () => {
+  test("changes.jsonl with parent_id:null folders get reparented under root '.'", () => {
     const dir = createTempDir("disk-root")
     setupFiles(dir)
     // Create directories referenced by events so filesystem reconciliation doesn't delete them
     mkdirSync(join(dir, "ref"), { recursive: true })
     mkdirSync(join(dir, ".km"), { recursive: true })
 
-    // Create events.jsonl with top-level folders having parent_id: null
-    // (this is how older events.jsonl files look — folders are root-level)
+    // Create changes.jsonl with top-level folders having parent_id: null
+    // (this is how older changes.jsonl files look — folders are root-level)
     const now = Date.now()
     const events = [
       {
@@ -212,7 +212,7 @@ describe("disk mode root node", () => {
       },
     ]
 
-    writeFileSync(join(dir, ".km/events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    writeFileSync(join(dir, ".km/changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))
 
@@ -242,7 +242,7 @@ describe("km init: withSync creates nodes under root '.'", () => {
     const dir = createTempDir("sync-root")
     setupFiles(dir)
     mkdirSync(join(dir, ".km"), { recursive: true })
-    writeFileSync(join(dir, ".km/events.jsonl"), "")
+    writeFileSync(join(dir, ".km/changes.jsonl"), "")
 
     // Load repo (creates root "." node via ensureRepoRootNode)
     using repo = runGenerator(createRepo(dir, { loadFiles: true }))

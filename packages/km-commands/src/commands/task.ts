@@ -1,7 +1,7 @@
-import type { CommandAction, CommandDef, TaskStatus, TaskSetStatusAction } from "../types.ts"
+import type { KmOp, CommandDef, TaskStatus, TaskSetStatusOp } from "../types.ts"
 
 // Re-export for consumers
-export type { TaskSetStatusAction as TaskAction } from "../types.ts"
+export type { TaskSetStatusOp as TaskAction } from "../types.ts"
 
 // Status cycle: todo -> wip -> done -> dropped -> todo
 function getNextStatus(current: TaskStatus | null | undefined): TaskStatus {
@@ -38,7 +38,7 @@ const cycleTaskStatus = {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: newStatus,
-    } satisfies TaskSetStatusAction
+    } satisfies TaskSetStatusOp
   },
 } satisfies CommandDef
 
@@ -56,7 +56,7 @@ const toggleTaskDone = {
       type: "TASK_SET_STATUS",
       nodeId: ctx.currentNodeId,
       status: newStatus,
-    } satisfies TaskSetStatusAction
+    } satisfies TaskSetStatusOp
   },
 } satisfies CommandDef
 
@@ -68,7 +68,7 @@ function createSetStatusCommand(id: string, name: string, description: string, s
     category: "Task",
     execute: (ctx) => {
       if (!ctx.currentNodeId) return null
-      return { type: "TASK_SET_STATUS", nodeId: ctx.currentNodeId, status } satisfies TaskSetStatusAction
+      return { type: "TASK_SET_STATUS", nodeId: ctx.currentNodeId, status } satisfies TaskSetStatusOp
     },
   }
 }
@@ -192,7 +192,7 @@ const clearTask = {
   description: "Remove all task properties (status, dates, priority, assignee)",
   category: "Task",
   shortLabel: "clear",
-  execute: (ctx): CommandAction | null => {
+  execute: (ctx): KmOp | null => {
     if (!ctx.currentNodeId) return null
     return { type: "CLEAR_TASK", nodeId: ctx.currentNodeId }
   },

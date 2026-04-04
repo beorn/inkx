@@ -3,7 +3,7 @@
  *
  * Verifies that rename handlers:
  * 1. Record write tokens at new paths (watcher suppression)
- * 2. Journal rename operations to events.jsonl
+ * 2. Journal rename operations to changes.jsonl
  */
 
 import { describe, test, expect } from "vitest"
@@ -157,7 +157,7 @@ describe("rename write tokens", () => {
 })
 
 describe("rename journal entries", () => {
-  test("file rename creates journal entry in events.jsonl", () =>
+  test("file rename creates journal entry in changes.jsonl", () =>
     withTestEnv(({ repoDir, db, kmDir }) => {
       // Create file on disk
       const oldPath = join(repoDir, "Journal Test.md")
@@ -181,10 +181,10 @@ describe("rename journal entries", () => {
       })
 
       // Read the events journal
-      const eventsPath = join(kmDir, "events.jsonl")
-      expect(existsSync(eventsPath)).toBe(true)
+      const changesPath = join(kmDir, "changes.jsonl")
+      expect(existsSync(changesPath)).toBe(true)
 
-      const lines = readFileSync(eventsPath, "utf-8").trim().split("\n")
+      const lines = readFileSync(changesPath, "utf-8").trim().split("\n")
       const events = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
 
       // Find the rename journal entry (has old_fs_path indicating it's from journalRename)
@@ -226,10 +226,10 @@ describe("rename journal entries", () => {
         data: { content: "renamed-journal-folder" },
       })
 
-      const eventsPath = join(kmDir, "events.jsonl")
-      expect(existsSync(eventsPath)).toBe(true)
+      const changesPath = join(kmDir, "changes.jsonl")
+      expect(existsSync(changesPath)).toBe(true)
 
-      const lines = readFileSync(eventsPath, "utf-8").trim().split("\n")
+      const lines = readFileSync(changesPath, "utf-8").trim().split("\n")
       const events = lines.map((line) => JSON.parse(line) as Record<string, unknown>)
 
       const renameEvent = events.find(

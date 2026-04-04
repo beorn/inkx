@@ -5,7 +5,7 @@
  * This allows gradual migration from keyboard-handler.ts.
  */
 
-import type { CommandContext, CommandAction, TNode } from "./types.ts"
+import type { CommandContext, KmOp, TNode } from "./types.ts"
 import type { KeybindingContext } from "./keybindings.ts"
 import { resolveKeybinding, initDefaultKeybindings, isChordPrefix, resolveChord } from "./keybindings.ts"
 import { executeCommand } from "./executor.ts"
@@ -18,10 +18,10 @@ function resolveActions(
   resolved: {
     commandId: string
     targetId?: string
-    execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+    execute?: (ctx: CommandContext) => KmOp | KmOp[] | null
   },
   ctx: CommandContext,
-): CommandAction | CommandAction[] | null {
+): KmOp | KmOp[] | null {
   if (resolved.execute) {
     const effectiveCtx = resolved.targetId ? { ...ctx, targetId: resolved.targetId } : ctx
     return resolved.execute(effectiveCtx)
@@ -30,8 +30,8 @@ function resolveActions(
 }
 
 /** Flatten multiple nullable action results into a single array */
-function flattenActions(...results: (CommandAction | CommandAction[] | null)[]): CommandAction[] {
-  const out: CommandAction[] = []
+function flattenActions(...results: (KmOp | KmOp[] | null)[]): KmOp[] {
+  const out: KmOp[] = []
   for (const r of results) {
     if (r) {
       if (Array.isArray(r)) out.push(...r)
@@ -108,7 +108,7 @@ export interface KeyCommandResult {
   /** The command that was executed, or null if no command matched */
   commandId: string | null
   /** The action(s) to dispatch, or null if command returned null */
-  actions: CommandAction | CommandAction[] | null
+  actions: KmOp | KmOp[] | null
   /** Whether a command was found (even if it returned null) */
   handled: boolean
   /** If set, a chord is pending (show in status bar, start timeout) */
@@ -354,4 +354,4 @@ export function wouldHandleKey(input: string, key: KeyEvent, kbCtx: KeybindingCo
 
 // Re-export for convenience
 
-export type { CommandContext, CommandAction }
+export type { CommandContext, KmOp }

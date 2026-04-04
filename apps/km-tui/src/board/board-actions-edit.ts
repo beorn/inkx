@@ -28,7 +28,7 @@ import { Tree, midpoint } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
 import { Selection } from "../state/selection.ts"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 
@@ -59,7 +59,7 @@ export function requestRenderFlush(): void {
  * Multi-select: deletes all selected cards. Shows confirmation if ANY node
  * has children/backlinks/metadata. All-or-nothing after confirmation.
  */
-export function handleDeleteNode(ctx: ActionCtx): void {
+export function handleDeleteNode(ctx: OpCtx): void {
   const { repo } = ctx
   const col = ctx.column
   const card = ctx.card
@@ -123,7 +123,7 @@ export function handleDeleteNode(ctx: ActionCtx): void {
  * Counts all descendants recursively for the warning message.
  */
 function handleDeleteColumn(
-  ctx: ActionCtx,
+  ctx: OpCtx,
   col: {
     node: { id: string; name?: string | null; content?: string | null; data?: Record<string, unknown> | null }
   },
@@ -172,7 +172,7 @@ function handleDeleteColumn(
  * Adjusts cursor: for card-level deletes, moves to adjacent card;
  * for column-level deletes, moves to adjacent column.
  */
-export function executeDelete(ctx: ActionCtx, nodeId: string): void {
+export function executeDelete(ctx: OpCtx, nodeId: string): void {
   executeBatchDelete(ctx, [nodeId])
 }
 
@@ -182,7 +182,7 @@ export function executeDelete(ctx: ActionCtx, nodeId: string): void {
  * Deletes nodes bottom-up (highest index first) to avoid index invalidation.
  * Clears multi-selection after deletion.
  */
-export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
+export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
   const { repo } = ctx
   const deleteSet = new Set(nodeIds)
 
@@ -255,14 +255,14 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
 /**
  * Create a new sibling node after the current card and enter inline edit on it.
  */
-export function handleAddNodeAfter(ctx: ActionCtx): void {
+export function handleAddNodeAfter(ctx: OpCtx): void {
   handleAddNode(ctx, "after")
 }
 
 /**
  * Create a new sibling node before the current card and enter inline edit on it.
  */
-export function handleAddNodeBefore(ctx: ActionCtx): void {
+export function handleAddNodeBefore(ctx: OpCtx): void {
   handleAddNode(ctx, "before")
 }
 
@@ -271,7 +271,7 @@ export function handleAddNodeBefore(ctx: ActionCtx): void {
  * Node type depends on the root: heading root → list item (card),
  * file/folder root → heading (column).
  */
-function handleAddFirstChild(ctx: ActionCtx): void {
+function handleAddFirstChild(ctx: OpCtx): void {
   const { repo } = ctx
   if (!ctx.rootId) return
 
@@ -296,7 +296,7 @@ function handleAddFirstChild(ctx: ActionCtx): void {
  * Sort order is placed as midpoint between cursor and adjacent sibling.
  * Inherits node type from cursor node (task → task, section → section).
  */
-function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
+function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   const { repo } = ctx
   const col = ctx.column
   if (!col) {
@@ -348,7 +348,7 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
  * Create a new child node under the current card and enter inline edit on it.
  * (a-prefix chord: ai = add child item)
  */
-export function handleAddNodeChild(ctx: ActionCtx): void {
+export function handleAddNodeChild(ctx: OpCtx): void {
   const { repo } = ctx
   const cursorId = ctx.cursorNodeId
   if (!cursorId) return
@@ -380,7 +380,7 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
  * Create a new sibling of the current node's parent (uncle node) and enter inline edit.
  * (a-prefix chord: ah = add item at parent level)
  */
-export function handleAddNodeAtParent(ctx: ActionCtx): void {
+export function handleAddNodeAtParent(ctx: OpCtx): void {
   const { repo } = ctx
   const cursorId = ctx.cursorNodeId
   if (!cursorId) return
@@ -422,7 +422,7 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
  * Duplicate a node: create a copy immediately after it with the same content and type.
  * Pushes an undo entry that deletes the new node.
  */
-export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
+export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
   const { repo } = ctx
   const col = ctx.column
   if (!col) return
@@ -463,7 +463,7 @@ export function handleDuplicateNode(ctx: ActionCtx, nodeId: string): void {
 /**
  * Confirm move operation - move selected nodes to target column.
  */
-export function handleConfirmMove(ctx: ActionCtx): void {
+export function handleConfirmMove(ctx: OpCtx): void {
   const { repo, dispatchBoard } = ctx
   const sourceNodeIds = ctx.moveState.active ? ctx.moveState.sourceNodes : []
   if (sourceNodeIds.length === 0) return
@@ -496,7 +496,7 @@ export function handleConfirmMove(ctx: ActionCtx): void {
  * Each card advances from its own current status independently.
  * Selection is preserved — status is an in-place modification.
  */
-export function handleTaskStatusCycle(ctx: ActionCtx): void {
+export function handleTaskStatusCycle(ctx: OpCtx): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
   const count = Selection.forEach(ctx, "Toggle status", (c) => {
@@ -570,7 +570,7 @@ export function handleTaskStatusCycle(ctx: ActionCtx): void {
  * Clear all task properties from selected cards (status, dates, priority, assignee, recurrence).
  * Batch-aware: when multi-selection is active, clears all selected cards.
  */
-export function handleClearTask(ctx: ActionCtx): void {
+export function handleClearTask(ctx: OpCtx): void {
   const count = Selection.forEach(ctx, "Clear task", (c) => {
     const targetId = c.embed_source || c.id
     const targetNode = ctx.repo.getNode(targetId)
@@ -599,7 +599,7 @@ export function handleClearTask(ctx: ActionCtx): void {
  * When cursor is on a card: up/down shifts within column, left/right moves between columns.
  * When cursor is on a column header: left/right reorders columns.
  */
-export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left" | "right"): ActionResult {
+export function handleShiftCard(ctx: OpCtx, direction: "up" | "down" | "left" | "right"): ActionResult {
   const col = ctx.column
   const card = ctx.card
 
@@ -623,7 +623,7 @@ export function handleShiftCard(ctx: ActionCtx, direction: "up" | "down" | "left
  * Reorder a column by swapping its sort order with the adjacent column.
  */
 function moveColumn(
-  ctx: ActionCtx,
+  ctx: OpCtx,
   col: { node: { id: string; parent_idx: number } },
   direction: "left" | "right",
 ): ActionResult {
@@ -671,7 +671,7 @@ function moveColumn(
  * disk writes and watcher events), only assign distinct indices to the two
  * columns being swapped.
  */
-function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB: number): void {
+function normalizeColumnSortOrders(ctx: OpCtx, colIndexA: number, colIndexB: number): void {
   const { repo } = ctx
   const colA = ctx.columns[colIndexA]
   const colB = ctx.columns[colIndexB]
@@ -700,7 +700,7 @@ function normalizeColumnSortOrders(ctx: ActionCtx, colIndexA: number, colIndexB:
  * The column becomes a child of the previous column. Cursor moves to
  * the previous column to follow the indented content.
  */
-export function handleIndentColumn(ctx: ActionCtx, col: ColumnView): ActionResult {
+export function handleIndentColumn(ctx: OpCtx, col: ColumnView): ActionResult {
   const { repo } = ctx
   const columns = ctx.columns
   const colIndex = columns.findIndex((c) => c.node.id === col.node.id)

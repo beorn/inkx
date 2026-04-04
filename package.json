@@ -33,6 +33,7 @@
     "@silvery/theme": "$@silvery/theme",
     "@silvery/test": "$@silvery/test",
     "@silvery/commander": "$@silvery/commander",
+    "@silvery/selection": "$@silvery/selection",
     "flexily": "$flexily",
     "loggily": "$loggily",
     "@termless/core": "$@termless/core",

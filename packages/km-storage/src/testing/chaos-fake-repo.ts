@@ -13,7 +13,7 @@ import { createFakeRepo, type FakeRepo, type FakeRepoOptions } from "./fake-repo
  */
 export interface TransactionLogEntry {
   timestamp: number
-  operation: "add" | "update" | "delete" | "move" | "inject" | "corrupt"
+  treeop: "add" | "update" | "delete" | "move" | "inject" | "corrupt"
   nodeId: string
   details?: Record<string, unknown>
 }
@@ -170,7 +170,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "add",
+          treeop: "add",
           nodeId: id,
           details: { parentId, type: nodeData.type },
         })
@@ -183,7 +183,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "update",
+          treeop: "update",
           nodeId: id,
           details: { changedFields: Object.keys(changes) },
         })
@@ -196,7 +196,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "delete",
+          treeop: "delete",
           nodeId: id,
         })
       }
@@ -207,7 +207,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "move",
+          treeop: "move",
           nodeId: id,
           details: { newParentId, position },
         })
@@ -247,7 +247,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "inject",
+          treeop: "inject",
           nodeId: node.id,
           details: { method: "setNode" },
         })
@@ -264,7 +264,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "inject",
+          treeop: "inject",
           nodeId: node.id,
           details: { method: "injectOrphan", invalidParentId: node.parent_id },
         })
@@ -280,7 +280,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "inject",
+          treeop: "inject",
           nodeId: node.id,
           details: { method: "injectDuplicate", hadExisting: !!existing },
         })
@@ -303,7 +303,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "corrupt",
+          treeop: "corrupt",
           nodeId: ancestorId,
           details: { method: "injectCircularRef", circularTo: nodeId },
         })
@@ -451,7 +451,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "corrupt",
+          treeop: "corrupt",
           nodeId,
           details: { method: "simulatePartialWrite", missingFields },
         })
@@ -507,7 +507,7 @@ export function createChaosFakeRepo(options: ChaosFakeRepoOptions = {}): ChaosFa
       if (logTransactions) {
         transactionLog.push({
           timestamp: Date.now(),
-          operation: "corrupt",
+          treeop: "corrupt",
           nodeId,
           details: { method: "simulateCorruption", type },
         })

@@ -92,7 +92,7 @@ my-vault/
 ├── .obsidian/              # Obsidian config (ignored by km)
 ├── .km/                    # Brain state
 │   ├── state.db            # Queryable index
-│   └── events.jsonl        # Full history
+│   └── changes.jsonl        # Full history
 ├── .claude/                # Claude Code config
 │   ├── CLAUDE.md           # Agent instructions
 │   └── skills/             # Agent capabilities

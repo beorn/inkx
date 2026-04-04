@@ -311,7 +311,7 @@ interface TUIContext {
   layout: ColumnsLayout;
   selectedNode: TNode | null;
   dispatch: Dispatch<UIAction>;
-  dispatchBoard: Dispatch<BoardAction>;
+  dispatchBoard: Dispatch<BoardReducerOp>;
 }
 // Built once per input, passed to all handlers
 ```

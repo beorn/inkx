@@ -1,7 +1,7 @@
 /**
  * DB Event Application Tests
  *
- * Verifies that applyEventWithDb correctly updates the database for
+ * Verifies that applyChangeWithDb correctly updates the database for
  * task_status and date field changes WITHOUT directly writing to the
  * filesystem. Filesystem write-back is handled by FS decorators
  * (withFsWriter/withSync) that wrap emitter.apply().
@@ -12,7 +12,7 @@ import { Database } from "bun:sqlite"
 import { writeFileSync, readFileSync, mkdirSync, rmSync } from "fs"
 import { join } from "path"
 import { ulid } from "ulid"
-import { applyEventWithDb } from "../src/db/events.ts"
+import { applyChangeWithDb } from "../src/db/changes.ts"
 import { SCHEMA } from "../src/db/schema.ts"
 
 // =============================================================================
@@ -61,12 +61,12 @@ function seedFileWithTask(
 // DB-only: task_status updates the database correctly
 // =============================================================================
 
-describe("applyEventWithDb: task_status updates DB without FS writes", () => {
+describe("applyChangeWithDb: task_status updates DB without FS writes", () => {
   test("node_updated with task_status updates DB", () => {
     const db = createTestDb()
     const { taskId } = seedFileWithTask(db, "/fake/tasks.md", 2, "todo")
 
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "node_updated",
       actor: "user",
@@ -91,7 +91,7 @@ describe("applyEventWithDb: task_status updates DB without FS writes", () => {
 
     const { taskId } = seedFileWithTask(db, filePath, 2, "todo")
 
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "node_updated",
       actor: "user",
@@ -116,12 +116,12 @@ describe("applyEventWithDb: task_status updates DB without FS writes", () => {
 // DB-only: date field updates
 // =============================================================================
 
-describe("applyEventWithDb: date field updates DB without FS writes", () => {
+describe("applyChangeWithDb: date field updates DB without FS writes", () => {
   test("node_updated with due_at updates DB", () => {
     const db = createTestDb()
     const { taskId } = seedFileWithTask(db, "/fake/tasks.md", 2, "todo")
 
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "node_updated",
       actor: "user",
@@ -146,7 +146,7 @@ describe("applyEventWithDb: date field updates DB without FS writes", () => {
 
     const { taskId } = seedFileWithTask(db, filePath, 2, "todo")
 
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "node_updated",
       actor: "user",
@@ -171,12 +171,12 @@ describe("applyEventWithDb: date field updates DB without FS writes", () => {
 // Task lifecycle events update DB correctly
 // =============================================================================
 
-describe("applyEventWithDb: task lifecycle events", () => {
+describe("applyChangeWithDb: task lifecycle events", () => {
   test("task_claimed sets status to wip and assigns actor", () => {
     const db = createTestDb()
     const { taskId } = seedFileWithTask(db, "/fake/tasks.md", 2, "todo")
 
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "task_claimed",
       actor: "agent-1",
@@ -200,7 +200,7 @@ describe("applyEventWithDb: task lifecycle events", () => {
     const { taskId } = seedFileWithTask(db, "/fake/tasks.md", 2, "todo")
 
     // First claim it
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "task_claimed",
       actor: "agent-1",
@@ -210,7 +210,7 @@ describe("applyEventWithDb: task lifecycle events", () => {
     })
 
     // Then release it
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "task_released",
       actor: "agent-1",
@@ -233,7 +233,7 @@ describe("applyEventWithDb: task lifecycle events", () => {
     const db = createTestDb()
     const { taskId } = seedFileWithTask(db, "/fake/tasks.md", 2, "todo")
 
-    applyEventWithDb(db, {
+    applyChangeWithDb(db, {
       id: ulid(),
       type: "task_completed",
       actor: "agent-1",

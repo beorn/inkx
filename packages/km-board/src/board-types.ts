@@ -83,7 +83,7 @@ export interface BoardState {
  * view config actions (INCREASE/DECREASE_CONTENT_LINES) are NOT board reducer actions.
  * They are handled at the app layer via per-pane UI state. See km-commands BoardOp.
  */
-export type BoardAction =
+export type BoardReducerOp =
   // Cursor selection (navigation handler calls this with computed nodeId)
   // cardNodeId + cardHintSource: click handler passes the visual card as a definitive hint.
   // Used for embeds where the data model parent chain leads to the wrong card.

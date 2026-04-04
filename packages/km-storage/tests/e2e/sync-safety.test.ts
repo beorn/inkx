@@ -10,7 +10,7 @@
 import { describe, test, expect } from "vitest"
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs"
 import { join } from "path"
-import { getAllNodes, applyEventWithDb } from "../../src/index.ts"
+import { getAllNodes, applyChangeWithDb } from "../../src/index.ts"
 import { withTestEnv } from "@km/storage"
 import { createTestSync } from "../watch/sync-test-helpers.ts"
 

@@ -146,29 +146,26 @@ export class FakeFileSystem implements FileSystemOps {
     this.errorRng = null
   }
 
-  private checkErrors(path: string, operation: string): void {
+  private checkErrors(path: string, treeop: string): void {
     const normalized = this.normalizePath(path)
 
     // Check permission denied
     if (this.errorInjection.permissionDenied?.includes(normalized)) {
-      const error = new Error(`EACCES: permission denied, ${operation} '${path}'`)
+      const error = new Error(`EACCES: permission denied, ${treeop} '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EACCES"
       throw error
     }
 
     // Check I/O error
     if (this.errorInjection.ioError?.includes(normalized)) {
-      const error = new Error(`EIO: i/o error, ${operation} '${path}'`)
+      const error = new Error(`EIO: i/o error, ${treeop} '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EIO"
       throw error
     }
 
     // Check read-only
-    if (
-      this.errorInjection.readOnly?.includes(normalized) &&
-      ["write", "unlink", "mkdir", "rename"].includes(operation)
-    ) {
-      const error = new Error(`EROFS: read-only file system, ${operation} '${path}'`)
+    if (this.errorInjection.readOnly?.includes(normalized) && ["write", "unlink", "mkdir", "rename"].includes(treeop)) {
+      const error = new Error(`EROFS: read-only file system, ${treeop} '${path}'`)
       ;(error as NodeJS.ErrnoException).code = "EROFS"
       throw error
     }
@@ -176,7 +173,7 @@ export class FakeFileSystem implements FileSystemOps {
     // Random error injection
     if (this.errorInjection.errorRate && this.errorRng) {
       if (this.errorRng() < this.errorInjection.errorRate) {
-        const error = new Error(`EIO: i/o error, ${operation} '${path}'`)
+        const error = new Error(`EIO: i/o error, ${treeop} '${path}'`)
         ;(error as NodeJS.ErrnoException).code = "EIO"
         throw error
       }

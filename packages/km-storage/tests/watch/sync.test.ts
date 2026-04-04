@@ -265,10 +265,10 @@ code
 
         await manager.syncFromFs()
 
-        const eventsPath = join(kmDir, "events.jsonl")
+        const changesPath = join(kmDir, "changes.jsonl")
 
-        if (existsSync(eventsPath)) {
-          const content = readFileSync(eventsPath, "utf-8")
+        if (existsSync(changesPath)) {
+          const content = readFileSync(changesPath, "utf-8")
           const lines = content.trim().split("\n")
 
           for (const line of lines) {

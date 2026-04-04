@@ -160,7 +160,7 @@ export function parseStubFile(db: Database, nodeId: string, fsPath: string, rela
 
 /**
  * Delete all descendants of a node (recursive subtree, not the node itself).
- * Used before re-parsing a file to prevent duplicate children when events.jsonl
+ * Used before re-parsing a file to prevent duplicate children when changes.jsonl
  * or a prior parse already created children under the same parent.
  */
 export function deleteSubtreeChildren(db: Database, nodeId: string): void {

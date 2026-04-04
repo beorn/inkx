@@ -16,14 +16,14 @@ import {
   getAllCommands,
   buildContext,
   executeCommand as executeRegisteredCommand,
-  type CommandAction,
+  type KmOp,
   type CommandContext,
   type ViewMode,
 } from "@km/commands"
 import type { TNode } from "@km/board"
 
 // Re-export types for consumers
-export type { CommandAction, CommandContext }
+export type { KmOp, CommandContext }
 
 let initialized = false
 
@@ -106,7 +106,7 @@ export function tryExecuteRegisteredCommand(
   commandId: string,
   viewMode: ViewMode = "list",
   options: ShellContextOptions = {},
-): CommandAction | CommandAction[] | null {
+): KmOp | KmOp[] | null {
   initShellCommands()
 
   const cmd = getCommand(commandId)

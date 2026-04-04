@@ -10,7 +10,7 @@ import { mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, statSync } 
 import { join } from "path"
 
 import { runGenerator } from "@km/core"
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 import {
   createRepo,
   createBareRepo,
@@ -378,7 +378,7 @@ describe("Repo.needsRebuild", () => {
     expect(repo.needsRebuild()).toBe(false)
   })
 
-  test("returns false for disk mode with no events.jsonl", () => {
+  test("returns false for disk mode with no changes.jsonl", () => {
     // Create .km directory but no events file
     const kmDir = join(tempDir, ".km")
     mkdirSync(kmDir, { recursive: true })
@@ -402,14 +402,14 @@ describe("Repo.needsRebuild", () => {
     }
 
     // Manually add an event that wasn't applied (simulate external write)
-    const eventsPath = join(kmDir, "events.jsonl")
+    const changesPath = join(kmDir, "changes.jsonl")
     const newEvent = JSON.stringify({
       id: "zzzzzzzz-test-event-id",
       type: "update",
       nodeId: "fake",
       ts: Date.now(),
     })
-    writeFileSync(eventsPath, newEvent + "\n", { flag: "a" })
+    writeFileSync(changesPath, newEvent + "\n", { flag: "a" })
 
     // Reopen repo and check
     using repo = runGenerator(createRepo(tempDir))
@@ -491,8 +491,8 @@ describe("Repo mutations trigger FS projection", () => {
     cleanupTempDir(tempDir)
   })
 
-  function createRepoWithFsSpy(): { repo: Repo; events: Event[] } {
-    const events: Event[] = []
+  function createRepoWithFsSpy(): { repo: Repo; events: Change[] } {
+    const events: Change[] = []
 
     // Ensure .km dir exists so repo enters disk mode (emitter.apply gets FS decorator)
     mkdirSync(join(tempDir, ".km"), { recursive: true })

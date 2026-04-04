@@ -20,7 +20,7 @@ import {
   type SyncableRepo,
   createEmitter,
   findKmRootFromPath,
-  readEvents,
+  readChanges,
   SCHEMA,
   ensureRepoRootNode,
 } from "@km/storage"
@@ -168,26 +168,26 @@ async function runSync(
   }
 
   try {
-    // Step 1: Apply any pending events from events.jsonl to state.db
-    const events = readEvents(kmRoot)
+    // Step 1: Apply any pending events from changes.jsonl to state.db
+    const events = readChanges(kmRoot)
     const lastApplied = db.prepare("SELECT value FROM meta WHERE key = ?").get("last_event") as
       | { value: string }
       | undefined
     const newEvents = events.filter((e) => !lastApplied?.value || e.id > lastApplied.value)
 
     if (newEvents.length > 0) {
-      const { applyEventWithDb } = await import("@km/storage")
+      const { applyChangeWithDb } = await import("@km/storage")
       db.run("BEGIN IMMEDIATE")
       try {
         for (const event of newEvents) {
-          applyEventWithDb(db, event)
+          applyChangeWithDb(db, event)
         }
         db.run("COMMIT")
       } catch (error) {
         db.run("ROLLBACK")
         throw error
       }
-      console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from events.jsonl`)
+      console.log(term.green("✓"), `Applied ${newEvents.length} event(s) from changes.jsonl`)
     }
 
     // Step 2: Sync with filesystem

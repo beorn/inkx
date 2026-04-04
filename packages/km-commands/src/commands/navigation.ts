@@ -109,7 +109,7 @@ const zoomIn = {
   category: "Navigation",
   execute: (ctx) => {
     if (!ctx.currentNode) return null
-    // BoardAction: just the nodeId, no tree data needed
+    // BoardReducerOp: just the nodeId, no tree data needed
     return { type: "ZOOM_IN", nodeId: ctx.currentNode.id }
   },
 } satisfies CommandDef

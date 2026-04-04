@@ -19,7 +19,7 @@ import { createLogger } from "loggily"
 import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
-import type { Event, KNode, TaskStatus } from "@km/core"
+import type { Change, KNode, TaskStatus } from "@km/core"
 import { composeItem } from "../item-helpers.ts"
 import type { Config } from "../config-object.ts"
 import { loadConfigObject } from "../config-object.ts"
@@ -611,15 +611,15 @@ function updateRenameReferences(
 function checkNeedsRebuild(rootPath: string, db: Database): boolean {
   const kmDir = join(rootPath, ".km")
   const dbPath = join(kmDir, "state.db")
-  const eventsPath = join(kmDir, "events.jsonl")
+  const changesPath = join(kmDir, "changes.jsonl")
 
   if (!existsSync(dbPath)) {
     log.debug?.("needsRebuild: yes (no state.db)")
     return true
   }
 
-  if (!existsSync(eventsPath)) {
-    log.debug?.("needsRebuild: no (no events.jsonl)")
+  if (!existsSync(changesPath)) {
+    log.debug?.("needsRebuild: no (no changes.jsonl)")
     return false
   }
 
@@ -630,14 +630,14 @@ function checkNeedsRebuild(rootPath: string, db: Database): boolean {
 
   const lastAppliedId = lastApplied?.value
   if (!lastAppliedId) {
-    const content = existsSync(eventsPath) ? readFileSync(eventsPath, "utf-8") : ""
+    const content = existsSync(changesPath) ? readFileSync(changesPath, "utf-8") : ""
     const hasEvents = content.trim().length > 0
     log.debug?.(`needsRebuild result=${hasEvents ? "yes" : "no"} reason=no last_event`)
     return hasEvents
   }
 
   // Check if events file has newer events
-  const content = readFileSync(eventsPath, "utf-8")
+  const content = readFileSync(changesPath, "utf-8")
   const lines = content.split("\n").filter((l: string) => l.trim())
   if (lines.length === 0) {
     log.debug?.("needsRebuild: no (no events)")
@@ -795,21 +795,21 @@ export interface Repo extends Disposable {
   /** Load all remaining unexplored directories (for background indexing) */
   expandAll(): AsyncGenerator<ExpandProgress>
 
-  /** Event emitter for this repo (owns kmDir, eventHub, fsSync) */
+  /** Change emitter for this repo (owns kmDir, changeHub, fsSync) */
   readonly emitter: Emitter
 
   /**
    * Apply an event to the system (DB + journal + broadcast + FS sync).
    * Delegates to emitter.apply(). Prefer this over emitter.apply() directly.
    */
-  apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+  apply(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 
   /**
    * Commit an event to DB + journal + broadcast (no FS sync).
    * Use for FS-origin events where projecting back to FS would cause echo loops.
    * Delegates to emitter.commit().
    */
-  commit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+  commit(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 
   // ===========================================================================
   // Repo-compatible query methods (proxies to data store)
@@ -945,7 +945,7 @@ export interface Repo extends Disposable {
 
   /**
    * Run a function with FS sync paused.
-   * Mutations inside `fn` write to DB/events.jsonl but skip FS regeneration.
+   * Mutations inside `fn` write to DB/changes.jsonl but skip FS regeneration.
    * After `fn` completes, call `syncToFs(nodeId)` to regenerate affected files.
    */
   withDeferredFs<T>(fn: () => T): T
@@ -1067,10 +1067,10 @@ function detectAbsolutePaths(db: Database): string | null {
  * 3. Database has very few nodes overall (<=1, original check)
  */
 function isDatabaseIncomplete(db: Database, rootPath: string, kmDir: string): string | null {
-  // Fresh init: missing or empty events.jsonl means sync hasn't run yet — not corrupt
-  const eventsPath = join(kmDir, "events.jsonl")
-  if (!existsSync(eventsPath)) return null
-  const eventsContent = readFileSync(eventsPath, "utf-8").trim()
+  // Fresh init: missing or empty changes.jsonl means sync hasn't run yet — not corrupt
+  const changesPath = join(kmDir, "changes.jsonl")
+  if (!existsSync(changesPath)) return null
+  const eventsContent = readFileSync(changesPath, "utf-8").trim()
   if (eventsContent.length === 0) return null
 
   // Count filesystem entries that should be indexed
@@ -1137,7 +1137,7 @@ function expandUnexploredDirectory(
   const ignorePatterns = getIgnorePatterns(repoRoot)
   const preloadDepth = options.preloadDepth ?? Infinity
   const now = Date.now()
-  const events: Event[] = []
+  const events: Change[] = []
   const pendingLinks: PendingLink[] = []
   const newUnexploredDirs: UnexploredDir[] = []
   const visitedDirs = new Set<string>()
@@ -1629,7 +1629,7 @@ export function* createRepo(
   // Register lightweight FS writer for disk-mode repos (CLI write-back).
   // The TUI replaces this with withSync() which wraps emitter.apply().
   // Must happen before repo construction so syncToFs can reference applyEventToFs.
-  let fsApplyEventToFs: ((event: Event) => void) | null = null
+  let fsApplyEventToFs: ((event: Change) => void) | null = null
   if (mode === "disk") {
     const result = withFsWriter({
       database: db,
@@ -1784,7 +1784,7 @@ export function* createRepo(
 
     emitter,
 
-    // Event application (delegates to emitter)
+    // Change application (delegates to emitter)
     apply(event, options?) {
       return emitter.apply(event, options)
     },
@@ -1823,7 +1823,7 @@ export function* createRepo(
         actor: "user",
         target: nodeId,
         data: {},
-      } as Event)
+      } as Change)
     },
 
     // Full-repo specific methods
@@ -1905,7 +1905,7 @@ export interface CreateBareRepoOptions {
   hooks?: RepoHooks
   /** Pre-created emitter (if not provided, one is created) */
   emitter?: Emitter
-  /** Skip persisting events to events.jsonl (useful for tests) */
+  /** Skip persisting events to changes.jsonl (useful for tests) */
   skipPersist?: boolean
 }
 
@@ -2020,7 +2020,7 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
       return emitter
     },
 
-    // Event application (delegates to emitter)
+    // Change application (delegates to emitter)
     apply(event, options?) {
       return emitter.apply(event, options)
     },
@@ -2079,12 +2079,7 @@ export function createBareRepo(dataStore: DataStore & HasDatabase, options: Crea
 // Re-export test factories from repo-test.ts
 // =============================================================================
 
-export {
-  createTestEnvRepo,
-  createTestRepo,
-  type CreateTestEnvRepoOptions,
-  type TestEnvRepoResult,
-} from "./test.ts"
+export { createTestEnvRepo, createTestRepo, type CreateTestEnvRepoOptions, type TestEnvRepoResult } from "./test.ts"
 
 // =============================================================================
 // Re-export hook types from repo-hooks.ts

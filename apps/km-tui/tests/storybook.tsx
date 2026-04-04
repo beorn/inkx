@@ -148,7 +148,6 @@ const mockZustandStore = createStore(() => ({
   textEditHints: null,
 }))
 
-
 // Wrap children with all providers TreeNode needs
 const storybookNodeStore = new ReactiveNodeStore()
 const noopUndoHandle = {
@@ -167,31 +166,31 @@ export function StorybookProviders({ children }: { children: React.ReactNode }):
   return (
     <StoreContext.Provider value={mockZustandStore}>
       <ReactiveNodeStoreProvider value={storybookNodeStore}>
-          <TreeRenderProvider
-            treeConfig={treeConfig}
-            setUI={() => {}}
-            sel={
-              {
-                text: Object.assign(() => null, { edit() {}, select() {}, deselect() {} }),
-                node: {
-                  cursor: () => null,
-                  anchor: () => null,
-                  ids: () => Object.assign([] as any, { has: () => false }),
-                  select() {},
-                  extend() {},
-                  collapse() {},
-                  remove() {},
-                },
-              } as any
-            }
-            rootBoardId={null}
-            jobRunner={{ submit: () => ({ cancel() {} }) } as any}
-            undoHandle={noopUndoHandle as any}
-            taskStatusFilter={new Set<string>()}
-            boardFocused={true}
-          >
-            {children}
-          </TreeRenderProvider>
+        <TreeRenderProvider
+          treeConfig={treeConfig}
+          setUI={() => {}}
+          sel={
+            {
+              text: Object.assign(() => null, { edit() {}, select() {}, deselect() {} }),
+              node: {
+                cursor: () => null,
+                anchor: () => null,
+                ids: () => Object.assign([] as any, { has: () => false }),
+                select() {},
+                extend() {},
+                collapse() {},
+                remove() {},
+              },
+            } as any
+          }
+          rootBoardId={null}
+          jobRunner={{ submit: () => ({ cancel() {} }) } as any}
+          undoHandle={noopUndoHandle as any}
+          taskStatusFilter={new Set<string>()}
+          boardFocused={true}
+        >
+          {children}
+        </TreeRenderProvider>
       </ReactiveNodeStoreProvider>
     </StoreContext.Provider>
   )

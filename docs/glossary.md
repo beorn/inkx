@@ -33,7 +33,7 @@ Six terms, no ambiguity:
 
 ### Domain interface anatomy
 
-Each domain groups: **constructor** (creates state), **selectors** (read state), **apply** (transitions state via ops), **op handlers** (implement individual op types via `defineOp()`).
+Each domain groups: **constructor** (creates state), **selectors** (read state), **apply** (transitions state via ops), **op handlers** (implement individual op types via `createSlice()`).
 
 ### Selection path (parallel)
 
@@ -120,13 +120,17 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **createScope** — Factory for structured concurrency. Returns a `Scope` that tracks child tasks and timers, cancellable via dispose. Works with `using` for automatic cleanup.
 
+**createSlice()** — Factory that defines a set of op handlers and produces a typed `apply(state, op)` dispatcher. The foundation for TEA state machines in `@silvery/create`. Handlers are plain functions `(state, params) → state`; the slice infers the op union and routes by op name. See `vendor/silvery/packages/create/src/core/slice.ts`.
+
 **createTerm** — Factory for the `Term` abstraction. Three variants: real terminals (stdin/stdout), headless (no output), and termless (terminal emulator mode).
 
-**cursor** — The primary selected node. `Selection.nodes[0]` is always the cursor. Determines which node receives edit operations and keyboard input. Contrast with *anchor*.
+**cursor** — The primary selected node. `sel.cursor` is always in `sel.selected`. Determines which node receives edit operations and keyboard input. At the text level, the cursor is the text caret position (`sel.sub.head`). Contrast with *anchor*. See also *cursoring*.
+
+**cursoring** — Moving the cursor between nodes (j/k/arrow keys). Distinct from *navigate* (changing the board root / view root). Cursoring changes which node is selected; navigating changes which subtree is visible.
 
 ### D
 
-**defineOp()** — Factory that binds an op handler to a type name, producing both an op creator (makes serializable data) and registering the handler for `apply()`. Makes the transition from direct function call to dispatched machine mechanical.
+**defineOp()** — The low-level mechanism inside `createSlice()` that binds an op handler to a type name and dispatches via `apply()`. Developers rarely use `defineOp()` directly — `createSlice()` defines the handlers, and `op()` proxy provides the ergonomic calling convention. See *op() proxy*, *createSlice()*.
 
 **depth** — A node's distance from the board root in the tree. Determines its visual role: 0 = board, 1 = column, 2 = card, 3+ = sub-item.
 
@@ -134,7 +138,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **dirty flag** — A flag on AgNodes indicating they need re-rendering, enabling incremental rendering of only changed subtrees. In sync, marks files needing re-projection.
 
-**disk mode** — Storage mode active when `.km/` exists. SQLite persisted in `.km/state.db`, events logged to `events.jsonl`, stable ULID node IDs, full history. Contrast with *memory mode*.
+**disk mode** — Storage mode active when `.km/` exists. SQLite persisted in `.km/state.db`, events logged to `changes.jsonl`, stable ULID node IDs, full history. Contrast with *memory mode*.
 
 **disposable** — An object implementing `Symbol.dispose` for automatic cleanup via the `using` keyword (TC39 Explicit Resource Management).
 
@@ -162,7 +166,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 - *storage*: a canonical state mutation record persisted to the journal. Types: `node_created`, `node_updated`, `node_moved`, `node_deleted`, etc. Events carry an `origin` (`"tui"`, `"fs"`, `"replay"`, `"system"`). The final stage of the command path: command -> transform -> operation -> event.
 - *input*: a DOM-style occurrence (key press, mouse click, resize) delivered by the terminal. These are raw signals, not to be confused with storage events.
 
-**event sourcing** — State changes stored as an append-only log rather than overwriting state. km uses event-sourcing-lite: events appended to `.km/events.jsonl`, SQLite is a rebuildable cache.
+**event sourcing** — State changes stored as an append-only log rather than overwriting state. km uses event-sourcing-lite: events appended to `.km/changes.jsonl`, SQLite is a rebuildable cache.
 
 ### F
 
@@ -282,11 +286,13 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **oi** — A km-ast parse type for outline items (folders, files, sections). Maps to KNode with `type: "h"` and `item`. Parser concept only — `fstype` distinguishes folder, file, and mdsection at the KNode level.
 
-**op** — Serializable data dispatched to `Machine.apply()`. Named after the consuming machine: `BoardOp`, `TreeOp`, `PlainTextOp`. The universal term for "dispatchable state-machine input." `KmOp` is the union of all domain ops. See also: *op handler*, *defineOp()*, *apply*.
+**op** — Serializable data dispatched to `Machine.apply()`. Named after the consuming machine: `BoardOp`, `TreeOp`, `PlainTextOp`. The universal term for "dispatchable state-machine input." `KmOp` is the union of all domain ops. See also: *op handler*, *op() proxy*, *createSlice()*, *apply*.
 
-**op handler** — A pure function implementing one op type within a machine. Op handlers are bound to type names via `defineOp()` and dispatched by `apply()`. Testable independently.
+**op() proxy** — Ergonomic wrapper that intercepts method calls on a model and routes them through `apply()` as serializable `{ path, args }` data. `op(model).method(args)` behaves like `model.method(args)` but is interceptable by plugins (undo, tracing, recording). The method name IS the op type, the arguments ARE the op data. Built on `createSlice()` + `apply()`. See `vendor/internal/silvery/design/v15-tea/app.md`.
 
-**operation** — Synonym for *op*. Used in prose ("tree operations") and for the legacy `Operation` type (being renamed to `TreeOp`). At the tree level, 7 operations: `insert_node`, `remove_node`, `set_node`, `move_node`, `split_node`, `merge_node`, `set_selection`. Each becomes a *change* when persisted.
+**op handler** — A pure function implementing one op type within a machine. Op handlers are defined in a `createSlice()` handler map and dispatched by `apply()`. Testable independently.
+
+**operation** — Synonym for *op*. Used in prose ("tree operations") and for the `TreeOp` type (renamed from `Operation`). At the tree level, 7 operations: `insert_node`, `remove_node`, `set_node`, `move_node`, `split_node`, `merge_node`, `set_selection`. Each becomes a *change* when persisted.
 
 **output phase** — The final phase of silvery's rendering pipeline. Diffs the new TerminalBuffer against the previous one and emits minimal ANSI escape sequences. Supports fullscreen and inline modes.
 

@@ -79,7 +79,7 @@ export function createRemoteRepo(opts: RemoteRepoOptions): Promise<RemoteRepo> {
     for (const cb of listeners) cb()
   }
 
-  function rpc(method: string, ...args: unknown[]): Promise<unknown> {
+  function _rpc(method: string, ...args: unknown[]): Promise<unknown> {
     const id = ++rpcId
     return new Promise((resolve, reject) => {
       pending.set(id, { resolve, reject })

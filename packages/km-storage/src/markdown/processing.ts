@@ -20,7 +20,7 @@
  */
 
 import { createLogger } from "loggily"
-import type { Event, KNode } from "@km/core"
+import type { Change, KNode } from "@km/core"
 import { parseMarkdownWithLinks, type ParseResult } from "@km/markdown"
 import { hashContent } from "../fs/cas.ts"
 import type { LinkResolver } from "./link-resolver.ts"
@@ -94,7 +94,7 @@ export function processMarkdownFile(content: string, path: string, ino?: number,
  * Convert processed markdown to node_created events.
  * Used by the loading path for batch event application.
  */
-export function toNodeEvents(processed: ProcessedMarkdown, actor: string, timestamp?: number): Event[] {
+export function toNodeEvents(processed: ProcessedMarkdown, actor: string, timestamp?: number): Change[] {
   const ts = timestamp ?? Date.now()
 
   return processed.nodes.map((node) => ({

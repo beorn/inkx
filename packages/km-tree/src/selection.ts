@@ -11,7 +11,7 @@
  * most ops only affect the referenced node, not all subsequent paths.
  */
 
-import type { Operation } from "./ops/operations.ts"
+import type { TreeOp } from "./ops/operations.ts"
 
 // =============================================================================
 // Point
@@ -104,7 +104,7 @@ export const Range = {
  * - merge_node: if point is in the merged (deleted) node, shift into target
  * - set_selection: no effect on points
  */
-export function transformPoint(point: Point, op: Operation): Point | null {
+export function transformPoint(point: Point, op: TreeOp): Point | null {
   switch (op.type) {
     case "insert_node":
       // New node gets a new ID — existing points unaffected
@@ -165,7 +165,7 @@ export function transformPoint(point: Point, op: Operation): Point | null {
  * If only one point becomes null (node deleted), the range collapses
  * to the surviving point.
  */
-export function transformRange(range: Range, op: Operation): Range | null {
+export function transformRange(range: Range, op: TreeOp): Range | null {
   const anchor = transformPoint(range.anchor, op)
   const focus = transformPoint(range.focus, op)
 
@@ -184,7 +184,7 @@ export function transformRange(range: Range, op: Operation): Range | null {
  * Transform a selection through a sequence of operations.
  * Returns the adjusted selection, or null if it was invalidated.
  */
-export function transformSelection(selection: Range | null, ops: Operation[]): Range | null {
+export function transformSelection(selection: Range | null, ops: TreeOp[]): Range | null {
   if (selection == null) return null
   let result: Range | null = selection
   for (const op of ops) {

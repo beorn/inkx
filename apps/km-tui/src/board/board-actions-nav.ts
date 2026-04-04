@@ -13,7 +13,7 @@ import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
 import { detailPaneIdFor } from "./board-types.ts"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import { type NavState } from "../navigation/view-navigation.ts"
 import {
   applyBlockNav,
@@ -25,7 +25,7 @@ import {
 import { runBoardEffects } from "./board-effect-runner.ts"
 
 /** Build a ViewTree match predicate that skips nodes hidden by task status filter. */
-function taskStatusMatchFn(ctx: ActionCtx): ((vn: ViewNode) => boolean) | undefined {
+function taskStatusMatchFn(ctx: OpCtx): ((vn: ViewNode) => boolean) | undefined {
   const filter = ctx.ui.filterProperties.taskStatus
   if (filter.size === 0) return undefined
   return (vn) => {
@@ -41,7 +41,7 @@ function taskStatusMatchFn(ctx: ActionCtx): ((vn: ViewNode) => boolean) | undefi
  * Dispatches to per-mode handlers: outline, selection, horizontal,
  * vertical (hierarchical), and tree-based navigation.
  */
-export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
+export function handleCursorMove(ctx: OpCtx, dir: string): ActionResult {
   const { ui } = ctx
 
   // Outline mode sub-item navigation (when cursor is inside a card's descendants)
@@ -95,7 +95,7 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
  * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
  * at construction time — same approach as ViewTree.nodes() for spatial nav.
  */
-function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
+function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
   const cardView = ctx.viewIndex.get(card.id)
@@ -122,7 +122,7 @@ function handleOutlineNav(ctx: ActionCtx, dir: "prev" | "next", card: KNode | un
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
-function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResult {
+function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): ActionResult {
   const { ui, dispatchBoard, navigator, viewNavigation } = ctx
   const isDetailPane = ctx.focusedPaneViewType() === "detail"
 
@@ -228,7 +228,7 @@ function handleHorizontalNav(ctx: ActionCtx, dir: "left" | "right"): ActionResul
 }
 
 /** Hierarchical vertical navigation (j/k up/down). */
-function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
+function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): ActionResult {
   const { dispatchBoard, navigator, viewNavigation } = ctx
 
   if (!ctx.cursorNodeId) {
@@ -253,7 +253,7 @@ function handleVerticalNav(ctx: ActionCtx, dir: "up" | "down"): ActionResult {
  * J moves forward (+1), K moves backward (-1). Bell at boundaries.
  * Key invariant: J and K are strict inverses.
  */
-function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
+function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): ActionResult {
   if (!ctx.cursorNodeId) {
     return boundary(dir, "no cursor")
   }
@@ -310,7 +310,7 @@ function handleBlockNav(ctx: ActionCtx, dir: "in" | "out"): ActionResult {
  * are displayed as FoldedChildRow. Fix: bump the card's fold depth to
  * reveal the target.
  */
-function ensureCursorVisible(ctx: ActionCtx, targetId: string): void {
+function ensureCursorVisible(ctx: OpCtx, targetId: string): void {
   const vn = ctx.viewIndex.get(targetId)
   if (!vn) return
 
@@ -340,7 +340,7 @@ function ensureCursorVisible(ctx: ActionCtx, targetId: string): void {
 }
 
 /** Default tree navigation (first, last, prev, next). */
-function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
+function handleTreeNav(ctx: OpCtx, dir: string): ActionResult {
   const { dispatchBoard } = ctx
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
@@ -354,18 +354,18 @@ function handleTreeNav(ctx: ActionCtx, dir: string): ActionResult {
 /**
  * Navigate back in history.
  */
-export function handleNavBack(ctx: ActionCtx): ActionResult {
+export function handleNavBack(ctx: OpCtx): ActionResult {
   return navigateHistory(ctx, -1)
 }
 
 /**
  * Navigate forward in history.
  */
-export function handleNavForward(ctx: ActionCtx): ActionResult {
+export function handleNavForward(ctx: OpCtx): ActionResult {
   return navigateHistory(ctx, 1)
 }
 
-function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
+function navigateHistory(ctx: OpCtx, delta: -1 | 1): ActionResult {
   const { ui, dispatchBoard } = ctx
   const newIndex = ui.navHistoryIndex + delta
 
@@ -396,7 +396,7 @@ function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
 /**
  * Navigate to sibling board.
  */
-export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"): ActionResult {
+export function handleNavSiblingBoard(ctx: OpCtx, direction: "next" | "prev"): ActionResult {
   const { dispatchBoard } = ctx
 
   if (!ctx.rootId) {
@@ -434,7 +434,7 @@ export function handleNavSiblingBoard(ctx: ActionCtx, direction: "next" | "prev"
 /**
  * Page jump up or down.
  */
-export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
+export function handlePageJump(ctx: OpCtx, direction: "up" | "down"): void {
   const { ui } = ctx
   const col = ctx.column
 
@@ -449,7 +449,7 @@ export function handlePageJump(ctx: ActionCtx, direction: "up" | "down"): void {
 }
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
-export function navStateFrom(ctx: ActionCtx): NavState {
+export function navStateFrom(ctx: OpCtx): NavState {
   if (!ctx.cursorNodeId) {
     throw new Error("[nav] navStateFrom: cursorNodeId is null")
   }
@@ -465,7 +465,7 @@ export function navStateFrom(ctx: ActionCtx): NavState {
 }
 
 /** Extract BoardNavState from ActionCtx for pure reducer functions. */
-function extractNavState(ctx: ActionCtx): BoardNavState {
+function extractNavState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
     cursorNodeId: ctx.cursorNodeId,
     cursorCardNodeId: ctx.cursorCardNodeId,

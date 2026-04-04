@@ -20,7 +20,7 @@ import { createParsePool, type ParsePoolService } from "../markdown/parse-pool.t
 import { WriteQueue } from "./writequeue.ts"
 import { createOwnershipTracker, type OwnershipTracker } from "./ownership-tracker.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
-import { type Event } from "@km/core"
+import { type Change } from "@km/core"
 import { type Emitter, type EmitOptions } from "../emitter.ts"
 import { EventHandlers, type FsWriteTarget } from "./event-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
@@ -86,7 +86,7 @@ import type { SyncState } from "./heartbeat.ts"
 export interface Sync {
   start(): void
   stop(): Promise<void>
-  applyEventToFs(event: Event): void
+  applyEventToFs(event: Change): void
   syncFromFs(onProgress?: SyncProgressCallback): Promise<SyncFromFsResult>
   syncFromFsWithProgress(): AsyncGenerator<StepYield, SyncFromFsResult>
   syncToFs(): Promise<{ written: number }>
@@ -107,8 +107,8 @@ export interface SyncableRepo {
   readonly database: Database
   readonly path: string
   readonly emitter: Emitter
-  apply(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
-  commit(event: Omit<Event, "id" | "ts">, options?: EmitOptions): Event
+  apply(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
+  commit(event: Omit<Change, "id" | "ts">, options?: EmitOptions): Change
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
@@ -358,7 +358,7 @@ export function withSync(config?: Partial<SyncConfig>) {
         callbacks?.onStopped?.()
       },
 
-      applyEventToFs(event: Event): void {
+      applyEventToFs(event: Change): void {
         void handlers.applyEventToFs(event)
       },
 

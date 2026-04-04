@@ -65,7 +65,7 @@ Effect handlers at the edge turn events into real actions (send email, push noti
 
 ```
 .km/
-├── events.jsonl      # Source of truth (includes session logs)
+├── changes.jsonl      # Source of truth (includes session logs)
 ├── events.sock       # Unix socket for IPC (runtime only)
 └── state.db          # SQLite snapshot (gitignored)
 ```
@@ -74,7 +74,7 @@ Effect handlers at the edge turn events into real actions (send email, push noti
 ┌─────────────────────────────────────────────────────────────┐
 │  Agent Runtime                                              │
 │                                                             │
-│  Agent ──► claim task ──► emit() ──► events.jsonl           │
+│  Agent ──► claim task ──► emit() ──► changes.jsonl           │
 │    │                                      │                 │
 │    │                                      ▼                 │
 │    │                               Unix socket              │

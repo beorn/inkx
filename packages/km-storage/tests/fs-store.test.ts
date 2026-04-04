@@ -56,7 +56,7 @@ describe("createFsStore", () => {
 
     expect(result.meta.source).toBe("local")
     expect(result.meta.commitId).toBeTruthy()
-    expect(result.events).toHaveLength(1)
+    expect(result.changes).toHaveLength(1)
     expect(result.delta.nodeIds).toContain("node-1")
 
     const node = store.peekNode("node-1")
@@ -127,7 +127,7 @@ describe("createFsStore", () => {
     ])
 
     expect(results).toHaveLength(1)
-    expect(results[0]!.events[0]!.type).toBe("node_created")
+    expect(results[0]!.changes[0]!.type).toBe("node_created")
   })
 
   test("onCommit unsubscribe stops notifications", () => {
@@ -161,7 +161,7 @@ describe("createFsStore", () => {
       },
     ])
 
-    expect(result.events).toHaveLength(2)
+    expect(result.changes).toHaveLength(2)
     expect(result.delta.nodeIds).toContain("n1")
     expect(result.delta.nodeIds).toContain("n2")
     expect(result.delta.parentIds).toEqual(["root"])

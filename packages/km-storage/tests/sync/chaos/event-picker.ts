@@ -16,9 +16,9 @@ interface FileState {
 const DIR_NAMES = ["notes", "tasks", "docs", "archive", "projects"] as const
 const FILE_NAMES = ["note", "task", "doc", "readme", "index", "inbox"] as const
 
-type Operation = "add" | "change" | "unlink" | "rename"
-const OPERATIONS: readonly Operation[] = ["add", "change", "unlink", "rename"]
-const OPERATION_WEIGHTS: Partial<Record<Operation, number>> = {
+type TreeOp = "add" | "change" | "unlink" | "rename"
+const OPERATIONS: readonly TreeOp[] = ["add", "change", "unlink", "rename"]
+const OPERATION_WEIGHTS: Partial<Record<TreeOp, number>> = {
   add: 3,
   change: 5,
   unlink: 1,
@@ -82,7 +82,7 @@ function createFsEventPicker(initialFiles: string[]): Picker<FsEvent> {
  * Choose a valid operation given current file state.
  * Falls back to 'add' when no files exist, avoids 'unlink' with only 1 file.
  */
-function chooseOperation(random: SeededRandom, state: FileState): Operation {
+function chooseOperation(random: SeededRandom, state: FileState): TreeOp {
   if (state.files.size === 0) return "add"
 
   if (state.files.size === 1) {

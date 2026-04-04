@@ -17,7 +17,7 @@ import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
 import { createOperationLog, replay, type OperationLog } from "../src/ops/operation-log.ts"
 import { withHistory } from "../src/ops/history.ts"
-import type { Operation } from "../src/ops/operations.ts"
+import type { TreeOp } from "../src/ops/operations.ts"
 
 // =============================================================================
 // Helpers
@@ -44,7 +44,7 @@ function setupTree() {
   return { repo, parentId, child1Id, child2Id }
 }
 
-function makeOp(content: string): Operation {
+function makeOp(content: string): TreeOp {
   return {
     type: "set_node",
     nodeId: "n1",

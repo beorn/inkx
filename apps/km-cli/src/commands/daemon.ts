@@ -18,7 +18,7 @@ const term = createTerm(process)
 import { Database } from "bun:sqlite"
 import { withSync, type Sync, type SyncableRepo, findKmRootFromPath, createEmitter } from "@km/storage"
 import type { Emitter } from "@km/storage"
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 import { EventEmitter } from "events"
 
 // ============================================
@@ -494,7 +494,7 @@ class KmDaemon extends EventEmitter {
   /**
    * Broadcast an event to all subscribers
    */
-  private broadcast(event: Event): void {
+  private broadcast(event: Change): void {
     this.eventsProcessed++
     const data = JSON.stringify({ type: "event", event }) + "\n"
     for (const socket of this.subscribers) {
@@ -548,7 +548,7 @@ class KmDaemon extends EventEmitter {
     this.server.listen(this.paths.socket)
 
     // Set up event hub for broadcasting
-    this.emitter.setEventHub({ broadcast: (event) => this.broadcast(event) })
+    this.emitter.setChangeHub({ broadcast: (event) => this.broadcast(event) })
 
     // Note: withSync() wraps repo.apply() to add FS projection
 

@@ -6,7 +6,7 @@
  * All use when: textInputFocused predicate in keybindings.
  */
 
-import type { CommandDef, CommandAction } from "../types.ts"
+import type { CommandDef, KmOp } from "../types.ts"
 
 /** Create a tag-only text editing command (dispatches a single action type) */
 function textCmd<T extends string>(id: string, name: string, description: string, type: T): CommandDef {
@@ -15,7 +15,7 @@ function textCmd<T extends string>(id: string, name: string, description: string
     name,
     description,
     category: "TextEdit",
-    execute: (): CommandAction => ({ type }) as CommandAction,
+    execute: (): KmOp => ({ type }) as KmOp,
   }
 }
 

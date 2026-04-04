@@ -4,7 +4,7 @@
  * Bug 1: deleteNodeImpl and applyNodeDeleted must recursively delete
  * descendants and clean up links. The emitted event must include metadata.
  *
- * Bug 2: identifyStaleEvents must not mark node_created as stale when
+ * Bug 2: identifyStaleChanges must not mark node_created as stale when
  * later events for the same node exist in the log.
  */
 
@@ -15,9 +15,9 @@ import { join } from "path"
 import { ulid } from "ulid"
 import { SCHEMA } from "../src/db/schema.ts"
 import { createDbOps } from "../src/db/ops.ts"
-import { applyEventWithDb } from "../src/db/events.ts"
-import { identifyStaleEvents } from "../src/event-compaction.ts"
-import type { Event } from "@km/core"
+import { applyChangeWithDb } from "../src/db/changes.ts"
+import { identifyStaleChanges } from "../src/change-compaction.ts"
+import type { Change } from "@km/core"
 
 // =============================================================================
 // Helpers
@@ -134,19 +134,19 @@ describe("recursive delete", () => {
     insertNode(db, "parent", ".", { fs_path: "tasks.md", type: "h" })
     insertNode(db, "child", "parent")
 
-    const emittedEvents: Event[] = []
+    const emittedEvents: Change[] = []
     const fakeEmitter = {
       kmDir: "/tmp",
-      eventsPath: "/tmp/events.jsonl",
-      apply(event: Omit<Event, "id" | "ts">, _options?: unknown): Event {
-        const full: Event = { id: ulid(), ts: Date.now(), ...event }
+      changesPath: "/tmp/changes.jsonl",
+      apply(event: Omit<Change, "id" | "ts">, _options?: unknown): Change {
+        const full: Change = { id: ulid(), ts: Date.now(), ...event }
         // Apply to db so we can verify recursive delete happens
-        applyEventWithDb(db, full)
+        applyChangeWithDb(db, full)
         emittedEvents.push(full)
         return full
       },
-      setEventHub() {},
-      getEventHub() {
+      setChangeHub() {},
+      getChangeHub() {
         return null
       },
       close() {},
@@ -173,7 +173,7 @@ describe("recursive delete", () => {
     insertNode(db, "A1a", "A1")
     expect(getNodeCount(db)).toBe(6)
 
-    const event: Event = {
+    const event: Change = {
       id: ulid(),
       ts: Date.now(),
       type: "node_deleted",
@@ -181,7 +181,7 @@ describe("recursive delete", () => {
       target: "root",
       data: {},
     }
-    applyEventWithDb(db, event)
+    applyChangeWithDb(db, event)
 
     expect(getNodeCount(db)).toBe(0)
   })
@@ -197,7 +197,7 @@ describe("recursive delete", () => {
     insertLink(db, "unrelated", "unrelated") // no relation to deleted nodes
     expect(getLinkCount(db)).toBe(3)
 
-    const event: Event = {
+    const event: Change = {
       id: ulid(),
       ts: Date.now(),
       type: "node_deleted",
@@ -205,7 +205,7 @@ describe("recursive delete", () => {
       target: "parent",
       data: {},
     }
-    applyEventWithDb(db, event)
+    applyChangeWithDb(db, event)
 
     expect(getLinkCount(db)).toBe(1)
   })
@@ -251,7 +251,7 @@ describe("recursive delete", () => {
 })
 
 // =============================================================================
-// Bug 2: Event Compaction Replay
+// Bug 2: Change Compaction Replay
 // =============================================================================
 
 describe("event compaction replay", () => {
@@ -263,7 +263,7 @@ describe("event compaction replay", () => {
     const nodeId = "node-abc"
 
     // Write events: create + update
-    const events: Event[] = [
+    const events: Change[] = [
       { id: "evt1", ts: 1000, type: "node_created", actor: "user", data: { id: nodeId, type: "p", content: "hello" } },
       {
         id: "evt2",
@@ -274,17 +274,17 @@ describe("event compaction replay", () => {
         data: { content: "updated hello" },
       },
     ]
-    writeFileSync(join(kmDir, "events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    writeFileSync(join(kmDir, "changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     // Build a DB with the node in it (simulating current state)
     const db = createTestDatabase()
     insertNode(db, nodeId, null, { content: "updated hello" })
 
-    const result = identifyStaleEvents(kmDir, db)
+    const result = identifyStaleChanges(kmDir, db)
 
     // The create event must be preserved (it has a later update)
     expect(result.staleCount).toBe(0)
-    expect(result.keptEvents.length).toBe(2)
+    expect(result.keptChanges.length).toBe(2)
   })
 
   test("node_created with later delete is preserved", () => {
@@ -294,20 +294,20 @@ describe("event compaction replay", () => {
 
     const nodeId = "node-del"
 
-    const events: Event[] = [
+    const events: Change[] = [
       { id: "evt1", ts: 1000, type: "node_created", actor: "user", data: { id: nodeId, type: "p", content: "temp" } },
       { id: "evt2", ts: 2000, type: "node_deleted", actor: "user", target: nodeId, data: {} },
     ]
-    writeFileSync(join(kmDir, "events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    writeFileSync(join(kmDir, "changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     // Node was created and deleted, so it doesn't exist in DB
     const db = createTestDatabase()
 
-    const result = identifyStaleEvents(kmDir, db)
+    const result = identifyStaleChanges(kmDir, db)
 
     // Both events should be kept — the create is needed for the delete to make sense
     expect(result.staleCount).toBe(0)
-    expect(result.keptEvents.length).toBe(2)
+    expect(result.keptChanges.length).toBe(2)
   })
 
   test("standalone node_created for existing node with no later events IS stale", () => {
@@ -317,7 +317,7 @@ describe("event compaction replay", () => {
 
     const nodeId = "node-stale"
 
-    const events: Event[] = [
+    const events: Change[] = [
       {
         id: "evt1",
         ts: 1000,
@@ -326,17 +326,17 @@ describe("event compaction replay", () => {
         data: { id: nodeId, type: "p", content: "stale" },
       },
     ]
-    writeFileSync(join(kmDir, "events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    writeFileSync(join(kmDir, "changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     // Node exists in DB (from file parsing), no later events
     const db = createTestDatabase()
     insertNode(db, nodeId, null, { content: "stale" })
 
-    const result = identifyStaleEvents(kmDir, db)
+    const result = identifyStaleChanges(kmDir, db)
 
     // This create IS stale: node exists in DB and no later events reference it
     expect(result.staleCount).toBe(1)
-    expect(result.keptEvents.length).toBe(0)
+    expect(result.keptChanges.length).toBe(0)
   })
 
   test("compacted events are replayable to produce same final state", () => {
@@ -347,7 +347,7 @@ describe("event compaction replay", () => {
     const nodeA = "node-A"
     const nodeB = "node-B"
 
-    const events: Event[] = [
+    const events: Change[] = [
       {
         id: "evt1",
         ts: 1000,
@@ -364,24 +364,24 @@ describe("event compaction replay", () => {
       },
       { id: "evt3", ts: 3000, type: "node_updated", actor: "user", target: nodeA, data: { content: "A updated" } },
     ]
-    writeFileSync(join(kmDir, "events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    writeFileSync(join(kmDir, "changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     // Build "current" DB with both nodes
     const currentDb = createTestDatabase()
     insertNode(currentDb, nodeA, ".", { content: "A updated" })
     insertNode(currentDb, nodeB, ".", { content: "B" })
 
-    const result = identifyStaleEvents(kmDir, currentDb)
+    const result = identifyStaleChanges(kmDir, currentDb)
 
     // nodeA's create must be preserved (has later update)
     // nodeB's create is stale (exists in DB, no later events)
-    expect(result.keptEvents.map((e) => e.id)).toContain("evt1")
-    expect(result.keptEvents.map((e) => e.id)).toContain("evt3")
+    expect(result.keptChanges.map((e) => e.id)).toContain("evt1")
+    expect(result.keptChanges.map((e) => e.id)).toContain("evt3")
 
     // Replay the kept events onto an empty DB
     const replayDb = createTestDatabase()
-    for (const event of result.keptEvents) {
-      applyEventWithDb(replayDb, event)
+    for (const event of result.keptChanges) {
+      applyChangeWithDb(replayDb, event)
     }
 
     // nodeA must exist with updated content
@@ -397,7 +397,7 @@ describe("event compaction replay", () => {
     const kmDir = join(testDir, ".km")
     mkdirSync(kmDir, { recursive: true })
 
-    const events: Event[] = [
+    const events: Change[] = [
       {
         id: "evt1",
         ts: 1000,
@@ -407,12 +407,12 @@ describe("event compaction replay", () => {
       },
       { id: "evt2", ts: 2000, type: "message", actor: "user", data: { text: "hello" } },
     ]
-    writeFileSync(join(kmDir, "events.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
+    writeFileSync(join(kmDir, "changes.jsonl"), events.map((e) => JSON.stringify(e)).join("\n") + "\n")
 
     const db = createTestDatabase()
-    const result = identifyStaleEvents(kmDir, db)
+    const result = identifyStaleChanges(kmDir, db)
 
     expect(result.staleCount).toBe(0)
-    expect(result.keptEvents.length).toBe(2)
+    expect(result.keptChanges.length).toBe(2)
   })
 })

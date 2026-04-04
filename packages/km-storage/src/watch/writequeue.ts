@@ -36,7 +36,7 @@ export type ErrorType =
  */
 export interface PermissionError {
   path: string
-  operation: "read" | "write" | "delete" | "rename"
+  treeop: "read" | "write" | "delete" | "rename"
   code: string
   message: string
   suggestion: string
@@ -234,7 +234,7 @@ export type ConflictStrategy =
 /**
  * Write operation types using discriminated union
  */
-export type WriteOperation =
+export type WriteTreeOp =
   | {
       type: "write"
       path: string
@@ -294,8 +294,8 @@ const DEFAULT_CONFIG: WriteQueueConfig = {
 /**
  * Result of a single operation execution with retry
  */
-export interface OperationResult {
-  op: WriteOperation
+export interface TreeOpResult {
+  op: WriteTreeOp
   success: boolean
   attempts: number
   error?: Error & { code?: string }
@@ -305,7 +305,7 @@ export interface OperationResult {
 }
 
 export class WriteQueue extends EventEmitter {
-  private pending: Map<string, WriteOperation> = new Map()
+  private pending: Map<string, WriteTreeOp> = new Map()
   private debounceTimer: ReturnType<typeof setTimeout> | undefined
   private config: WriteQueueConfig
   private retryConfig: RetryConfig
@@ -411,7 +411,7 @@ export class WriteQueue extends EventEmitter {
   /**
    * Execute a single filesystem operation (no retry)
    */
-  private executeOp(op: WriteOperation): void {
+  private executeOp(op: WriteTreeOp): void {
     switch (op.type) {
       case "delete":
         if (this.fs.existsSync(op.path)) {
@@ -454,7 +454,7 @@ export class WriteQueue extends EventEmitter {
   /**
    * Check for conflict before writing
    */
-  private checkForConflict(op: WriteOperation): ConflictInfo | null {
+  private checkForConflict(op: WriteTreeOp): ConflictInfo | null {
     if (op.type !== "write" || op.baseMtime === undefined) {
       return null
     }
@@ -493,7 +493,7 @@ export class WriteQueue extends EventEmitter {
   /**
    * Execute operation with retry logic for transient failures
    */
-  private async executeWithRetry(op: WriteOperation): Promise<OperationResult> {
+  private async executeWithRetry(op: WriteTreeOp): Promise<TreeOpResult> {
     let lastError: (Error & { code?: string }) | undefined
     let attempts = 0
 
@@ -633,7 +633,7 @@ export class WriteQueue extends EventEmitter {
     }
 
     // Process writes with retry logic
-    const results: OperationResult[] = []
+    const results: TreeOpResult[] = []
     let totalRetries = 0
 
     for (const op of writes) {
@@ -662,7 +662,7 @@ export class WriteQueue extends EventEmitter {
 
     // Collect failures for error reporting (filter guarantees error exists)
     const failures = results.filter(
-      (r): r is OperationResult & { error: Error & { code?: string } } => !r.success && r.error !== undefined,
+      (r): r is TreeOpResult & { error: Error & { code?: string } } => !r.success && r.error !== undefined,
     )
     const errors = failures.map((f) => ({
       path: f.op.path,
@@ -699,7 +699,7 @@ export class WriteQueue extends EventEmitter {
     // Emit specific event for permission errors (actionable by user)
     if (permissionErrors.length > 0) {
       log.debug?.(
-        `permission denied: ${JSON.stringify(permissionErrors.map((p) => ({ path: p.path, operation: p.operation, code: p.code })))}`,
+        `permission denied: ${JSON.stringify(permissionErrors.map((p) => ({ path: p.path, operation: p.treeop, code: p.code })))}`,
       )
       this.emit("permission-denied", permissionErrors)
     }

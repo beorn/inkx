@@ -573,14 +573,14 @@ describe("reconcile.ts", () => {
         expect((db.query(countQuery).get() as { cnt: number }).cnt).toBe(1)
 
         // Simulate watch handler and discovery both running
-        const { applyEventWithDb } = await import("../../src/db/events.ts")
+        const { applyChangeWithDb } = await import("../../src/db/changes.ts")
         const { generatePathBasedId } = await import("../../src/fs/id-utils.ts")
 
         const folderId = generatePathBasedId(repoDir, folderPath)
         expect(folderId).toBe("no-dup-folder")
 
         // This should not throw due to INSERT OR IGNORE
-        applyEventWithDb(db, {
+        applyChangeWithDb(db, {
           id: folderId,
           type: "node_created",
           actor: "test",
@@ -662,8 +662,8 @@ describe("reconcile.ts", () => {
 
         // Manually insert a node at target.md WITHOUT an inode (simulates
         // a concurrent creation that hasn't been fully reconciled yet)
-        const { applyEventWithDb } = await import("../../src/db/events.ts")
-        applyEventWithDb(db, {
+        const { applyChangeWithDb } = await import("../../src/db/changes.ts")
+        applyChangeWithDb(db, {
           id: "target.md",
           type: "node_created",
           actor: "test",

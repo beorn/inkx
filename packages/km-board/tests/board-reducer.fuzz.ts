@@ -31,7 +31,7 @@
 import { describe, expect } from "vitest"
 import { test, gen, take } from "vimonkey"
 import { boardReducer, createBoardState } from "../src/board-reducer.ts"
-import type { BoardAction, BoardState } from "../src/board-types.ts"
+import type { BoardReducerOp, BoardState } from "../src/board-types.ts"
 
 // =============================================================================
 // Action Generators
@@ -58,13 +58,13 @@ const NODE_IDS = [
 const PATHS = ["/file1.md", "/file2.md", "/dir/file3.md", "/notes/daily.md", null]
 
 /**
- * Generate a random BoardAction.
+ * Generate a random BoardReducerOp.
  *
  * Uses weighted distribution to simulate realistic usage patterns:
  * cursor movement is most common, fold/collapse moderately common,
  * move mode and root changes least common.
  */
-function randomAction(pick: (arr: readonly string[]) => string, pickFloat: () => number): BoardAction {
+function randomAction(pick: (arr: readonly string[]) => string, pickFloat: () => number): BoardReducerOp {
   const r = pickFloat()
 
   // SELECT (30%) — most common
@@ -139,7 +139,7 @@ function randomAction(pick: (arr: readonly string[]) => string, pickFloat: () =>
  * These invariants must hold after ANY valid action, regardless of
  * what state we started in.
  */
-function checkInvariants(state: BoardState, action: BoardAction, before: BoardState): void {
+function checkInvariants(state: BoardState, action: BoardReducerOp, before: BoardState): void {
   const label = `after ${action.type}`
 
   // 1. Move mode consistency: sourceNodes non-empty iff moveState.active is true
@@ -202,7 +202,11 @@ function snapshotMutableState(state: BoardState) {
 /**
  * Verify that the original state was not mutated by the reducer.
  */
-function checkImmutability(state: BoardState, snapshot: ReturnType<typeof snapshotMutableState>, action: BoardAction) {
+function checkImmutability(
+  state: BoardState,
+  snapshot: ReturnType<typeof snapshotMutableState>,
+  action: BoardReducerOp,
+) {
   const label = `immutability after ${action.type}`
 
   expect(state.foldDepths.size, `foldDepths size unchanged ${label}`).toBe(snapshot.foldDepthsSize)
@@ -238,7 +242,7 @@ describe("Board Reducer Fuzz Tests", () => {
       }),
       300,
     )) {
-      const action = _ as BoardAction
+      const action = _ as BoardReducerOp
       const snapshot = snapshotMutableState(state)
       const before = state
 
@@ -266,7 +270,7 @@ describe("Board Reducer Fuzz Tests", () => {
       }),
       200,
     )) {
-      const action = _ as BoardAction
+      const action = _ as BoardReducerOp
       const before = state
 
       state = boardReducer(state, action)
@@ -283,7 +287,7 @@ describe("Board Reducer Fuzz Tests", () => {
   test.fuzz("move mode transitions maintain invariants", async () => {
     let state = createBoardState("root", "/board.md", "node-1")
 
-    const moveActions: BoardAction[] = [
+    const moveActions: BoardReducerOp[] = [
       { type: "ENTER_MOVE_MODE", nodeIds: ["node-1", "node-2"], cursorNodeId: "node-1" },
       { type: "ENTER_MOVE_MODE", nodeIds: ["node-3"], cursorNodeId: null },
       { type: "ENTER_MOVE_MODE", nodeIds: [], cursorNodeId: "node-1" }, // empty — should no-op
@@ -308,7 +312,7 @@ describe("Board Reducer Fuzz Tests", () => {
   test.fuzz("navigation history stays consistent", async () => {
     let state = createBoardState("root", "/board.md", "node-1")
 
-    const navActions: BoardAction[] = [
+    const navActions: BoardReducerOp[] = [
       { type: "SET_ROOT", rootId: "root-2", rootPath: "/file2.md", cursorNodeId: "node-2" },
       { type: "SET_ROOT", rootId: "root-3", rootPath: "/file3.md", cursorNodeId: "node-3" },
       { type: "SET_ROOT", rootId: "root-4", rootPath: "/file4.md", cursorNodeId: "node-4" },
@@ -363,14 +367,14 @@ describe("Board Reducer Fuzz Tests", () => {
   test.fuzz("curswant cleared by cursor-resetting actions", async () => {
     let state = createBoardState("root", "/board.md", "node-1")
 
-    const curswantSetters: BoardAction[] = [
+    const curswantSetters: BoardReducerOp[] = [
       { type: "SET_CURSWANT", x: 5, y: 10 },
       { type: "SET_CURSWANT", x: 0 },
       { type: "SET_CURSWANT", y: 0 },
       { type: "SET_CURSWANT", x: 99, y: 99 },
     ]
 
-    const curswantClearers: BoardAction[] = [
+    const curswantClearers: BoardReducerOp[] = [
       { type: "SELECT", nodeId: "node-1" },
       { type: "ZOOM_IN", nodeId: "node-2" },
       { type: "SET_ROOT", rootId: "root-2", rootPath: "/f.md", cursorNodeId: "c" },
@@ -385,7 +389,7 @@ describe("Board Reducer Fuzz Tests", () => {
       }),
       100,
     )) {
-      const action = _ as BoardAction
+      const action = _ as BoardReducerOp
       state = boardReducer(state, action)
 
       // After a clearing action, curswant should be null
@@ -412,7 +416,7 @@ describe("Board Reducer Fuzz Tests", () => {
       }),
       1000,
     )) {
-      const action = _ as BoardAction
+      const action = _ as BoardReducerOp
       const before = state
 
       state = boardReducer(state, action)

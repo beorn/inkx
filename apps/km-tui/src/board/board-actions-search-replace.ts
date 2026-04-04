@@ -8,12 +8,12 @@
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 
 /** Open the search & replace dialog */
-export function handleSearchReplaceOpen(ctx: ActionCtx): ActionResult {
+export function handleSearchReplaceOpen(ctx: OpCtx): ActionResult {
   ctx.setUI({
     searchReplace: {
       searchQuery: "",
@@ -33,7 +33,7 @@ export function handleSearchReplaceOpen(ctx: ActionCtx): ActionResult {
 }
 
 /** Navigate to the next search/replace match */
-export function handleSearchReplaceNext(ctx: ActionCtx): ActionResult {
+export function handleSearchReplaceNext(ctx: OpCtx): ActionResult {
   const sr = ctx.ui.searchReplace
   if (!sr || sr.matchCount === 0) return boundary("search-replace", "No matches")
 
@@ -49,7 +49,7 @@ export function handleSearchReplaceNext(ctx: ActionCtx): ActionResult {
 }
 
 /** Navigate to the previous search/replace match */
-export function handleSearchReplacePrev(ctx: ActionCtx): ActionResult {
+export function handleSearchReplacePrev(ctx: OpCtx): ActionResult {
   const sr = ctx.ui.searchReplace
   if (!sr || sr.matchCount === 0) return boundary("search-replace", "No matches")
 
@@ -65,7 +65,7 @@ export function handleSearchReplacePrev(ctx: ActionCtx): ActionResult {
 }
 
 /** Replace the current match and advance to next */
-export function handleSearchReplaceDoReplace(ctx: ActionCtx): ActionResult {
+export function handleSearchReplaceDoReplace(ctx: OpCtx): ActionResult {
   const sr = ctx.ui.searchReplace
   if (!sr || sr.matchCount === 0 || !sr.searchQuery) return boundary("search-replace", "No matches to replace")
 
@@ -98,7 +98,7 @@ export function handleSearchReplaceDoReplace(ctx: ActionCtx): ActionResult {
 }
 
 /** Replace all matches */
-export function handleSearchReplaceDoReplaceAll(ctx: ActionCtx): ActionResult {
+export function handleSearchReplaceDoReplaceAll(ctx: OpCtx): ActionResult {
   const sr = ctx.ui.searchReplace
   if (!sr || sr.matchCount === 0 || !sr.searchQuery) return boundary("search-replace", "No matches to replace")
 
@@ -126,7 +126,7 @@ export function handleSearchReplaceDoReplaceAll(ctx: ActionCtx): ActionResult {
 }
 
 /** Toggle regex mode and recompute matches */
-export function handleSearchReplaceToggleRegex(ctx: ActionCtx): ActionResult {
+export function handleSearchReplaceToggleRegex(ctx: OpCtx): ActionResult {
   const sr = ctx.ui.searchReplace
   if (!sr) return ok()
 
@@ -151,7 +151,7 @@ export function handleSearchReplaceToggleRegex(ctx: ActionCtx): ActionResult {
 }
 
 /** Toggle between search and replace fields */
-export function handleSearchReplaceTabField(ctx: ActionCtx): ActionResult {
+export function handleSearchReplaceTabField(ctx: OpCtx): ActionResult {
   const sr = ctx.ui.searchReplace
   if (!sr) return ok()
 
@@ -216,7 +216,7 @@ export function searchReplaceMatchingNodeIds(
 
 /** Replace text in a single node. Returns true if replacement was made. */
 function replaceInNode(
-  ctx: ActionCtx,
+  ctx: OpCtx,
   nodeId: string,
   searchQuery: string,
   replaceQuery: string,
@@ -266,7 +266,7 @@ function replaceInNode(
  * Update search/replace results based on search query change.
  * Called from Board.tsx when the search input changes.
  */
-export function updateSearchReplaceMatches(ctx: ActionCtx, searchQuery: string): void {
+export function updateSearchReplaceMatches(ctx: OpCtx, searchQuery: string): void {
   const sr = ctx.ui.searchReplace
   if (!sr) return
 

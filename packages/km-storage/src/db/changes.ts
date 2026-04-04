@@ -1,52 +1,52 @@
 /**
- * Database Events - Event application and change tracking
+ * Database Changes — Change application and state tracking
  *
- * This module handles applying events to the database state.
- * Events are the source of truth for all state changes.
+ * This module handles applying changes to the database state.
+ * Changes are the source of truth for all state mutations.
  */
 
 import { createLogger } from "loggily"
 import type { Database, SQLQueryBindings } from "bun:sqlite"
 
-const log = createLogger("km:storage:db:events")
-import type { Event } from "@km/core"
+const log = createLogger("km:storage:db:changes")
+import type { Change } from "@km/core"
 import { NODE_COLUMNS } from "./schema.ts"
 import { deleteSubtree } from "./ops.ts"
 import { decomposeEventItem } from "../item-helpers.ts"
 
 // =============================================================================
-// Event Application
+// Change Application
 // =============================================================================
 
 /**
- * Apply an event to the database (db-accepting version)
+ * Apply a change to the database (db-accepting version)
  */
-export function applyEventWithDb(db: Database, event: Event): void {
-  log.debug?.(`${event.type} ${event.target?.slice(-8) ?? ""}`)
+export function applyChangeWithDb(db: Database, change: Change): void {
+  log.debug?.(`${change.type} ${change.target?.slice(-8) ?? ""}`)
 
-  switch (event.type) {
+  switch (change.type) {
     case "node_created":
-      applyNodeCreated(db, event)
+      applyNodeCreated(db, change)
       break
     case "node_updated":
-      applyNodeUpdated(db, event)
+      applyNodeUpdated(db, change)
       break
     case "node_moved":
-      applyNodeMoved(db, event)
+      applyNodeMoved(db, change)
       break
     case "node_deleted":
-      applyNodeDeleted(db, event)
+      applyNodeDeleted(db, change)
       break
     case "task_claimed":
-      applyTaskClaimed(db, event)
+      applyTaskClaimed(db, change)
       break
     case "task_released":
-      applyTaskReleased(db, event)
+      applyTaskReleased(db, change)
       break
     case "task_completed":
-      applyTaskCompleted(db, event)
+      applyTaskCompleted(db, change)
       break
-    // Session events don't modify state.db
+    // Session changes don't modify state.db
     case "session_started":
     case "session_message":
     case "session_tool_call":
@@ -57,16 +57,16 @@ export function applyEventWithDb(db: Database, event: Event): void {
       break
   }
 
-  // Update last event cursor
-  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event", event.id])
+  // Update last change cursor
+  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)", ["last_event", change.id])
 }
 
 // =============================================================================
-// Event Handlers
+// Change Handlers
 // =============================================================================
 
-function applyNodeCreated(db: Database, event: Event): void {
-  const data = event.data as Record<string, unknown>
+function applyNodeCreated(db: Database, change: Change): void {
+  const data = change.data as Record<string, unknown>
 
   // Extract flat DB columns from nested item object (new format) or flat fields (legacy)
   const { listMarker, taskMarker, taskStatus } = decomposeEventItem(data)
@@ -116,21 +116,21 @@ function applyNodeCreated(db: Database, event: Event): void {
       (data.content as string) ?? null,
       (data.content_hash as string) ?? null,
       JSON.stringify(data.data ?? {}),
-      event.ts,
-      event.ts,
-      event.id,
+      change.ts,
+      change.ts,
+      change.id,
     ],
   )
 
   if (result.changes === 0) {
-    log.warn?.(`node_created collision: id=${(data.id as string)?.slice(-8)} already exists, event ignored`)
+    log.warn?.(`node_created collision: id=${(data.id as string)?.slice(-8)} already exists, change ignored`)
   }
 }
 
-function applyNodeUpdated(db: Database, event: Event): void {
-  if (!event.target) return
+function applyNodeUpdated(db: Database, change: Change): void {
+  if (!change.target) return
 
-  const data = event.data as Record<string, unknown>
+  const data = change.data as Record<string, unknown>
 
   const sets: string[] = []
   const values: unknown[] = []
@@ -175,7 +175,7 @@ function applyNodeUpdated(db: Database, event: Event): void {
   }
 
   sets.push("updated_at = ?", "version = ?")
-  values.push(event.ts, event.id, event.target)
+  values.push(change.ts, change.id, change.target)
 
   const sql = `UPDATE nodes SET ${sets.join(", ")} WHERE id = ?`
   db.run(sql, values as SQLQueryBindings[])
@@ -186,10 +186,10 @@ function applyNodeUpdated(db: Database, event: Event): void {
   // Direct FS writes here would race with that pipeline.
 }
 
-function applyNodeMoved(db: Database, event: Event): void {
-  if (!event.target) return
+function applyNodeMoved(db: Database, change: Change): void {
+  if (!change.target) return
 
-  const data = event.data as { parent_id: string | null; parent_idx?: number }
+  const data = change.data as { parent_id: string | null; parent_idx?: number }
 
   db.run(
     `
@@ -197,17 +197,17 @@ function applyNodeMoved(db: Database, event: Event): void {
     SET parent_id = ?, parent_idx = ?, updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [data.parent_id, data.parent_idx ?? 0, event.ts, event.id, event.target],
+    [data.parent_id, data.parent_idx ?? 0, change.ts, change.id, change.target],
   )
 }
 
-function applyNodeDeleted(db: Database, event: Event): void {
-  if (!event.target) return
-  deleteSubtree(db, event.target)
+function applyNodeDeleted(db: Database, change: Change): void {
+  if (!change.target) return
+  deleteSubtree(db, change.target)
 }
 
-function applyTaskClaimed(db: Database, event: Event): void {
-  if (!event.target) return
+function applyTaskClaimed(db: Database, change: Change): void {
+  if (!change.target) return
 
   db.run(
     `
@@ -215,12 +215,12 @@ function applyTaskClaimed(db: Database, event: Event): void {
     SET assigned_to = ?, task_status = 'wip', updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [event.actor, event.ts, event.id, event.target],
+    [change.actor, change.ts, change.id, change.target],
   )
 }
 
-function applyTaskReleased(db: Database, event: Event): void {
-  if (!event.target) return
+function applyTaskReleased(db: Database, change: Change): void {
+  if (!change.target) return
 
   db.run(
     `
@@ -228,12 +228,12 @@ function applyTaskReleased(db: Database, event: Event): void {
     SET assigned_to = NULL, task_status = 'todo', updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [event.ts, event.id, event.target],
+    [change.ts, change.id, change.target],
   )
 }
 
-function applyTaskCompleted(db: Database, event: Event): void {
-  if (!event.target) return
+function applyTaskCompleted(db: Database, change: Change): void {
+  if (!change.target) return
 
   db.run(
     `
@@ -241,7 +241,7 @@ function applyTaskCompleted(db: Database, event: Event): void {
     SET task_status = 'done', task_marker = '[x]', updated_at = ?, version = ?
     WHERE id = ?
   `,
-    [event.ts, event.id, event.target],
+    [change.ts, change.id, change.target],
   )
 }
 

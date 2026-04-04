@@ -9,7 +9,7 @@
  */
 
 import { createLogger } from "loggily"
-import type { BoardState, BoardAction } from "./board-types.ts"
+import type { BoardState, BoardReducerOp } from "./board-types.ts"
 
 const log = createLogger("km:board:reducer")
 
@@ -21,7 +21,7 @@ const log = createLogger("km:board:reducer")
  *
  * IMPORTANT: No tree traversal here - navigation handlers use Repo.
  */
-export function simplifiedBoardReducer(state: BoardState, action: BoardAction): BoardState {
+export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp): BoardState {
   log.debug?.(`action: ${action.type}`)
 
   switch (action.type) {

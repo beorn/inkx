@@ -10,7 +10,7 @@
  */
 
 import { split, mergeBackward, mergeForward, type SplitResult, type MergeResult } from "@km/tree"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 
 // =============================================================================
 // Split
@@ -20,7 +20,7 @@ import type { ActionCtx } from "../tui-context.ts"
  * Split a node at offset, creating a sibling after. Cursor moves to the new node.
  * Caller must save the edit target and materialize content before calling.
  */
-export function boardSplit(ctx: ActionCtx, nodeId: string, offset: number): SplitResult {
+export function boardSplit(ctx: OpCtx, nodeId: string, offset: number): SplitResult {
   ctx.undoHandle.setCursor(nodeId)
   ctx.undoHandle.startBatch("Split node")
   const result = split(ctx.repo, nodeId, offset)
@@ -39,7 +39,7 @@ export function boardSplit(ctx: ActionCtx, nodeId: string, offset: number): Spli
  * Merge a node with its previous sibling. Cursor moves to the survivor.
  * Returns null if no previous sibling exists.
  */
-export function boardMergeBackward(ctx: ActionCtx, nodeId: string): MergeResult | null {
+export function boardMergeBackward(ctx: OpCtx, nodeId: string): MergeResult | null {
   ctx.undoHandle.setCursor(ctx.cursorNodeId ?? nodeId)
   ctx.undoHandle.startBatch("Merge backward")
   const result = mergeBackward(ctx.repo, nodeId)
@@ -59,7 +59,7 @@ export function boardMergeBackward(ctx: ActionCtx, nodeId: string): MergeResult 
  * Merge a node with its next sibling. Cursor moves to the survivor.
  * Returns null if no next sibling exists.
  */
-export function boardMergeForward(ctx: ActionCtx, nodeId: string): MergeResult | null {
+export function boardMergeForward(ctx: OpCtx, nodeId: string): MergeResult | null {
   ctx.undoHandle.setCursor(ctx.cursorNodeId ?? nodeId)
   ctx.undoHandle.startBatch("Merge forward")
   const result = mergeForward(ctx.repo, nodeId)

@@ -6,7 +6,7 @@
 
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import { clearSelection } from "./keyboard-helpers.ts"
 import { Selection } from "../state/selection.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
@@ -21,7 +21,7 @@ import { indexOfChild } from "../navigation/sibling-index.ts"
  * fractional insertion between equal values produces wrong sort order.
  * Assigns sequential integers [0, 1, 2, ...] when duplicates exist.
  */
-function normalizeSortOrders(ctx: ActionCtx, col: { cardNodes: KNode[]; node: { id: string } }): void {
+function normalizeSortOrders(ctx: OpCtx, col: { cardNodes: KNode[]; node: { id: string } }): void {
   const seen = new Set<number>()
   let hasDuplicates = false
   for (const card of col.cardNodes) {
@@ -67,7 +67,7 @@ function calculateSortOrder(col: { cardNodes: KNode[] }, targetIndex: number, di
  * Rebuild multi-selection set by matching moved card IDs against
  * the current column's children after a board state refresh.
  */
-function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCardIds: string[]): void {
+function rebuildSelectionForMovedCards(ctx: OpCtx, colIndex: number, movedCardIds: string[]): void {
   const newSelected = new Set<string>()
   const allChildren = ctx.repo.getChildren(ctx.rootId)
   const columns = allChildren.filter((n) => !KNode.isBlock(n))
@@ -89,7 +89,7 @@ function rebuildSelectionForMovedCards(ctx: ActionCtx, colIndex: number, movedCa
 // =============================================================================
 
 /** Move card within column (up/down) */
-export function moveCardInColumn(ctx: ActionCtx, card: KNode, direction: "up" | "down"): ActionResult {
+export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "down"): ActionResult {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return boundary(direction)
 
@@ -151,7 +151,7 @@ export function moveCardInColumn(ctx: ActionCtx, card: KNode, direction: "up" | 
 }
 
 /** Move card to different column (left/right) */
-export function moveCardToColumn(ctx: ActionCtx, card: KNode, direction: "left" | "right"): ActionResult {
+export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "right"): ActionResult {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return boundary(direction)
 
@@ -202,7 +202,7 @@ export function moveCardToColumn(ctx: ActionCtx, card: KNode, direction: "left" 
 
 /** Indent node: reparent under previous sibling (make it last child).
  * Returns true if indent succeeded, false if blocked (caller should bell). */
-export function indentNode(ctx: ActionCtx, card: KNode): boolean {
+export function indentNode(ctx: OpCtx, card: KNode): boolean {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
@@ -224,7 +224,7 @@ export function indentNode(ctx: ActionCtx, card: KNode): boolean {
 
 /** Outdent node: make it a sibling of its parent.
  * Returns true if outdent succeeded, false if blocked (caller should bell). */
-export function outdentNode(ctx: ActionCtx, card: KNode): boolean {
+export function outdentNode(ctx: OpCtx, card: KNode): boolean {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
@@ -247,7 +247,7 @@ export function outdentNode(ctx: ActionCtx, card: KNode): boolean {
 // Items (oi, li) are indentable — not blocks or links
 
 /** Check if a card can be indented (has a previous sibling to nest under) */
-function canIndent(ctx: ActionCtx, card: KNode): boolean {
+function canIndent(ctx: OpCtx, card: KNode): boolean {
   if (!KNode.isItem(card)) return false
 
   const parentId = card.parent_id
@@ -259,7 +259,7 @@ function canIndent(ctx: ActionCtx, card: KNode): boolean {
 }
 
 /** Check if a card can be outdented (has a grandparent to move to) */
-function canOutdent(ctx: ActionCtx, card: KNode): boolean {
+function canOutdent(ctx: OpCtx, card: KNode): boolean {
   if (!KNode.isItem(card)) return false
 
   const parentId = card.parent_id
@@ -272,7 +272,7 @@ function canOutdent(ctx: ActionCtx, card: KNode): boolean {
 // --- Indent/Outdent Execution ---
 
 /** Execute indent for a single card (no validation, no refresh). */
-function executeIndent(ctx: ActionCtx, card: KNode): void {
+function executeIndent(ctx: OpCtx, card: KNode): void {
   const parentId = card.parent_id
   if (!parentId) return
 
@@ -292,7 +292,7 @@ function executeIndent(ctx: ActionCtx, card: KNode): void {
 }
 
 /** Execute outdent for a single card (no validation, no refresh) */
-function executeOutdent(ctx: ActionCtx, card: KNode): void {
+function executeOutdent(ctx: OpCtx, card: KNode): void {
   const parentId = card.parent_id
   if (!parentId) return
 
@@ -321,7 +321,7 @@ function executeOutdent(ctx: ActionCtx, card: KNode): void {
  * All-or-nothing: if any card can't be indented, none are.
  * Cards are processed bottom-up to avoid invalidating indices.
  */
-function indentNodesAtomically(ctx: ActionCtx, col: { cardNodes: KNode[] }, selectedIndices: number[]): boolean {
+function indentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selectedIndices: number[]): boolean {
   // Validate ALL cards can be indented
   const cards = selectedIndices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
   if (cards.length === 0) return false
@@ -355,7 +355,7 @@ function indentNodesAtomically(ctx: ActionCtx, col: { cardNodes: KNode[] }, sele
  * All-or-nothing: if any card can't be outdented, none are.
  * Cards are processed top-down to maintain sort order.
  */
-function outdentNodesAtomically(ctx: ActionCtx, col: { cardNodes: KNode[] }, selectedIndices: number[]): boolean {
+function outdentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selectedIndices: number[]): boolean {
   // Validate ALL cards can be outdented
   const cards = selectedIndices.map((i) => col.cardNodes[i]).filter((c): c is KNode => c !== undefined)
   if (cards.length === 0) return false

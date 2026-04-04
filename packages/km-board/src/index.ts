@@ -15,7 +15,7 @@
 export type {
   // Core state and actions
   BoardState,
-  BoardAction,
+  BoardReducerOp,
   MoveState,
   NavHistoryEntry,
   // Common types

@@ -68,9 +68,9 @@ export const initCommand = new Command("init")
       if (existsSync(staleDb)) unlinkSync(staleDb)
     }
 
-    // Create empty events.jsonl
-    const eventsPath = join(kmDir, "events.jsonl")
-    writeFileSync(eventsPath, "")
+    // Create empty changes.jsonl
+    const changesPath = join(kmDir, "changes.jsonl")
+    writeFileSync(changesPath, "")
 
     console.log(term.bold("Initializing .km"), term.dim(`(repo ${formatPath(targetDir)})`))
     console.log(term.green("✓"), "Created .km/")

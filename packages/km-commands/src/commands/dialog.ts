@@ -5,7 +5,7 @@
  * These are routed via when predicates that check dialog state.
  */
 
-import type { CommandDef, CommandAction } from "../types.ts"
+import type { CommandDef, KmOp } from "../types.ts"
 
 export const dialogCommands: CommandDef[] = [
   {
@@ -13,35 +13,35 @@ export const dialogCommands: CommandDef[] = [
     name: "Dialog Navigate Up",
     description: "Move selection up in dialog",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "DIALOG_NAV_UP" }),
+    execute: (): KmOp => ({ type: "DIALOG_NAV_UP" }),
   },
   {
     id: "dialog.nav_down",
     name: "Dialog Navigate Down",
     description: "Move selection down in dialog",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "DIALOG_NAV_DOWN" }),
+    execute: (): KmOp => ({ type: "DIALOG_NAV_DOWN" }),
   },
   {
     id: "dialog.confirm",
     name: "Dialog Confirm",
     description: "Confirm dialog selection",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "DIALOG_CONFIRM" }),
+    execute: (): KmOp => ({ type: "DIALOG_CONFIRM" }),
   },
   {
     id: "dialog.cancel",
     name: "Dialog Cancel",
     description: "Cancel and close dialog",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "DIALOG_CANCEL" }),
+    execute: (): KmOp => ({ type: "DIALOG_CANCEL" }),
   },
   {
     id: "dialog.toggle_search_scope",
     name: "Toggle Search Scope",
     description: "Toggle search scope between All and Selected",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "TOGGLE_SEARCH_SCOPE" }),
+    execute: (): KmOp => ({ type: "TOGGLE_SEARCH_SCOPE" }),
   },
 ]
 
@@ -66,28 +66,28 @@ export const favoritesDialogCommands: CommandDef[] = [
     name: "Select Favorite Key",
     description: "Select a key to view/assign/clear",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_SELECT_KEY", key: "" }), // key injected by caller
+    execute: (): KmOp => ({ type: "FAVORITES_SELECT_KEY", key: "" }), // key injected by caller
   },
   {
     id: "favorites.assign",
     name: "Assign Favorite",
     description: "Assign cursor node to the selected key",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_ASSIGN" }),
+    execute: (): KmOp => ({ type: "FAVORITES_ASSIGN" }),
   },
   {
     id: "favorites.clear",
     name: "Clear Favorite",
     description: "Clear the selected favorite",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_CLEAR" }),
+    execute: (): KmOp => ({ type: "FAVORITES_CLEAR" }),
   },
   {
     id: "favorites.back",
     name: "Back to Favorites List",
     description: "Return to favorites list from detail view",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "FAVORITES_BACK" }),
+    execute: (): KmOp => ({ type: "FAVORITES_BACK" }),
   },
 ]
 
@@ -97,20 +97,20 @@ export const filterDialogCommands: CommandDef[] = [
     name: "Filter Navigate Left",
     description: "Move to previous filter option",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "DIALOG_NAV_LEFT" }),
+    execute: (): KmOp => ({ type: "DIALOG_NAV_LEFT" }),
   },
   {
     id: "filter.nav_right",
     name: "Filter Navigate Right",
     description: "Move to next filter option",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "DIALOG_NAV_RIGHT" }),
+    execute: (): KmOp => ({ type: "DIALOG_NAV_RIGHT" }),
   },
   {
     id: "filter.clear_all",
     name: "Clear All Filters",
     description: "Clear all active filters",
     category: "Navigation",
-    execute: (): CommandAction => ({ type: "CLEAR_ALL_FILTER_PROPERTIES" }),
+    execute: (): KmOp => ({ type: "CLEAR_ALL_FILTER_PROPERTIES" }),
   },
 ]

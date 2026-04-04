@@ -97,10 +97,10 @@ describe("createSQLiteStore", () => {
 
       expect(result.meta.source).toBe("local")
       expect(result.meta.commitId).toBeTruthy()
-      expect(result.events).toHaveLength(1)
-      expect(result.events[0]!.type).toBe("node_created")
-      expect(result.events[0]!.id).toBeTruthy()
-      expect(result.events[0]!.ts).toBeGreaterThan(0)
+      expect(result.changes).toHaveLength(1)
+      expect(result.changes[0]!.type).toBe("node_created")
+      expect(result.changes[0]!.id).toBeTruthy()
+      expect(result.changes[0]!.ts).toBeGreaterThan(0)
       expect(result.delta.nodeIds).toContain("n1")
       expect(result.delta.parentIds).toContain("root")
     })
@@ -122,7 +122,7 @@ describe("createSQLiteStore", () => {
       store.commit([{ type: "node_created", actor: "test", data: { id: "n1", type: "p" } }])
 
       expect(results).toHaveLength(1)
-      expect(results[0]!.events[0]!.type).toBe("node_created")
+      expect(results[0]!.changes[0]!.type).toBe("node_created")
     })
 
     test("merges deltas across multiple events in one commit", () => {
@@ -139,7 +139,7 @@ describe("createSQLiteStore", () => {
         },
       ])
 
-      expect(result.events).toHaveLength(2)
+      expect(result.changes).toHaveLength(2)
       // Both nodes in delta
       expect(result.delta.nodeIds).toContain("n1")
       expect(result.delta.nodeIds).toContain("n2")

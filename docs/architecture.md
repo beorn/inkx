@@ -85,9 +85,9 @@ interface BoardState {
 
 Key design: **no tree data in state**. Navigation and rendering query Repo on demand. Visual layout (columns, cards, cursor indices) is derived at render time — never stored.
 
-### BoardAction / CommandAction
+### BoardReducerOp / KmOp
 
-`BoardAction` — discriminated union dispatched to the reducer (`SELECT`, `TOGGLE_FOLD`, `ZOOM_IN`, etc.). `CommandAction` — higher-level user intent (verbs, nav, edits, text ops, dialog ops) dispatched through the command system. Defined in `@km/commands`.
+`BoardReducerOp` — discriminated union dispatched to the reducer (`SELECT`, `TOGGLE_FOLD`, `ZOOM_IN`, etc.). `KmOp` — higher-level user intent (verbs, nav, edits, text ops, dialog ops) dispatched through the command system. Defined in `@km/commands`.
 
 ### ColumnView / CardView — Derived View Models
 
@@ -171,7 +171,7 @@ ANSI output: incremental buffer diff -> terminal
 ```
 User presses key (e.g., 'x' to toggle task status)
   | silvery useInput -> key normalization -> binding resolution
-CommandAction dispatched to handler
+KmOp dispatched to handler
   | board-actions.ts router -> focused handler
 Handler calls Repo mutation (e.g., repo.updateNode(id, changes))
   | SQLite update + file write (bidirectional sync)
@@ -227,7 +227,7 @@ This is a **rendering rule, not data**. The same KNode renders as a column when 
 ### Current: Imperative Handlers
 
 ```
-Keypress -> CommandAction -> board-actions.ts (2600 lines) -> handler -> Repo mutation + state update
+Keypress -> KmOp -> board-actions.ts (2600 lines) -> handler -> Repo mutation + state update
 ```
 
 Action handlers receive an `ActionCtx` — a large context object re-derived on each keypress with columns, cursor indices, node references, ViewNode tree, and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
@@ -253,7 +253,7 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 | `Editor` | board-app-store + ActionCtx | `Board` — single state machine |
 | `Element` / `Text` | KNode (item/block) | KNode (unchanged) |
 | `Path` | cursorNodeId + classifyCursorFromViewIndex | `cursorPath: string[]` via ViewNode |
-| `Operation` | BoardAction + CommandAction | `BoardOp` — unified discriminated union |
+| `Operation` | BoardReducerOp + KmOp | `KmOp` — unified discriminated union (done) |
 | `Transform` | board-actions.ts (2600 lines) | Per-concern handlers, composed via pipeline |
 | `Plugin` | (hardcoded throughout) | Middleware: `(state, op, next) -> [state, effects]` |
 

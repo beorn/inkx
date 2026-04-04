@@ -13,8 +13,8 @@
 
 import { KNode } from "@km/core"
 import type { TreeMutator } from "./block-ops.ts"
-import { inverse, applyOperation, type Operation } from "./operations.ts"
-import type { OperationLog } from "./operation-log.ts"
+import { inverse, applyTreeOp, type TreeOp } from "./operations.ts"
+import type { TreeOpLog } from "./operation-log.ts"
 
 // =============================================================================
 // Types
@@ -28,7 +28,7 @@ export interface HistoryEditor extends TreeMutator {
   /** Run a batch of operations that will be a single undo step. */
   batch<R>(fn: () => R): R
   /** The undo/redo stacks. */
-  history: { undos: Operation[][]; redos: Operation[][] }
+  history: { undos: TreeOp[][]; redos: TreeOp[][] }
 }
 
 // =============================================================================
@@ -45,14 +45,14 @@ export interface HistoryEditor extends TreeMutator {
  * Undo applies inverse(op) for each op in the batch, in reverse order.
  * Redo re-applies the original ops in forward order.
  */
-export function withHistory(tree: TreeMutator, options?: { log?: OperationLog }): HistoryEditor {
+export function withHistory(tree: TreeMutator, options?: { log?: TreeOpLog }): HistoryEditor {
   const log = options?.log
-  const undos: Operation[][] = []
-  const redos: Operation[][] = []
-  let currentBatch: Operation[] | null = null
+  const undos: TreeOp[][] = []
+  const redos: TreeOp[][] = []
+  let currentBatch: TreeOp[] | null = null
   let isUndoRedo = false
 
-  function record(op: Operation): void {
+  function record(op: TreeOp): void {
     if (isUndoRedo) return
 
     if (currentBatch) {
@@ -141,11 +141,11 @@ export function withHistory(tree: TreeMutator, options?: { log?: OperationLog })
       const batch = undos.pop()
       if (!batch) return
       isUndoRedo = true
-      const inverseOps: Operation[] = []
+      const inverseOps: TreeOp[] = []
       try {
         for (const op of [...batch].reverse()) {
           const inv = inverse(op)
-          applyOperation(tree, inv)
+          applyTreeOp(tree, inv)
           inverseOps.push(inv)
         }
       } finally {
@@ -161,7 +161,7 @@ export function withHistory(tree: TreeMutator, options?: { log?: OperationLog })
       isUndoRedo = true
       try {
         for (const op of batch) {
-          applyOperation(tree, op)
+          applyTreeOp(tree, op)
         }
       } finally {
         isUndoRedo = false

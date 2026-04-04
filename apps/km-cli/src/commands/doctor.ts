@@ -1,7 +1,7 @@
 /**
  * Doctor Command
  *
- * Diagnose and repair km stores (worktree, events.jsonl, state.db).
+ * Diagnose and repair km stores (worktree, changes.jsonl, state.db).
  * Replaces the old rebuild command with a structured set of subcommands.
  */
 
@@ -18,7 +18,7 @@ const log = createLogger("km:cli:doctor")
 
 import { Database } from "bun:sqlite"
 import {
-  compactEvents,
+  compactChanges,
   createRepo,
   findKmRootFromPath,
   getStoreHealth,
@@ -52,33 +52,33 @@ const doctorGcCommand = new Command("gc")
 
     try {
       // Compact events
-      const eventsPath = join(kmDir, "events.jsonl")
-      if (existsSync(eventsPath)) {
+      const changesPath = join(kmDir, "changes.jsonl")
+      if (existsSync(changesPath)) {
         if (options.dryRun) {
-          // Use identifyStaleEvents for dry run
-          const { identifyStaleEvents } = await import("@km/storage")
-          const result = identifyStaleEvents(kmDir, db)
+          // Use identifyStaleChanges for dry run
+          const { identifyStaleChanges } = await import("@km/storage")
+          const result = identifyStaleChanges(kmDir, db)
           if (result.staleCount > 0) {
             console.log(
-              `  events.jsonl  ${result.totalEvents} → ${result.totalEvents - result.staleCount} events ` +
+              `  changes.jsonl  ${result.totalChanges} → ${result.totalChanges - result.staleCount} events ` +
                 term.dim(`(would remove ${result.staleCount} stale)`),
             )
           } else {
-            console.log(`  events.jsonl  ${result.totalEvents} events`, term.dim("(no stale events)"))
+            console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
           }
           console.log(term.dim("  state.db      VACUUM (dry run, skipped)"))
           return
         }
 
         const start = performance.now()
-        const result = compactEvents(kmDir, db)
+        const result = compactChanges(kmDir, db)
         if (result.staleCount > 0) {
           console.log(
-            `  events.jsonl  ${result.totalEvents} → ${result.totalEvents - result.staleCount} events ` +
+            `  changes.jsonl  ${result.totalChanges} → ${result.totalChanges - result.staleCount} events ` +
               term.dim(`(removed ${result.staleCount} stale)`),
           )
         } else {
-          console.log(`  events.jsonl  ${result.totalEvents} events`, term.dim("(no stale events)"))
+          console.log(`  changes.jsonl  ${result.totalChanges} events`, term.dim("(no stale events)"))
         }
 
         // Vacuum
@@ -92,7 +92,7 @@ const doctorGcCommand = new Command("gc")
         const elapsed = Math.round(performance.now() - start)
         console.log(term.green("✓"), `Compacted in ${elapsed}ms`)
       } else {
-        console.log(term.dim("  No events.jsonl found, nothing to compact"))
+        console.log(term.dim("  No changes.jsonl found, nothing to compact"))
       }
     } finally {
       db.close()
@@ -111,7 +111,7 @@ const doctorRebuildCommand = new Command("rebuild")
     if (options.dryRun) {
       const dbPath = join(kmDir, "state.db")
       console.log(`  Would delete: ${dbPath}`)
-      console.log(`  Would rebuild from events.jsonl + worktree`)
+      console.log(`  Would rebuild from changes.jsonl + worktree`)
       return
     }
 
@@ -128,7 +128,7 @@ const doctorRebuildCommand = new Command("rebuild")
   })
 
 const doctorResetCommand = new Command("reset")
-  .description("Reset from worktree only (deletes events.jsonl + state.db)")
+  .description("Reset from worktree only (deletes changes.jsonl + state.db)")
   .argument("[path]", "Path to repo (default: current directory)")
   .option("--dry-run", "Show what would be reset without changing files")
   .action(async (path, options) => {
@@ -136,7 +136,7 @@ const doctorResetCommand = new Command("reset")
 
     console.log(term.bold("km doctor reset"), term.dim(`(repo ${formatPath(repoPath)})`))
 
-    const targets = ["events.jsonl", "state.db", "state.db-wal", "state.db-shm"]
+    const targets = ["changes.jsonl", "state.db", "state.db-wal", "state.db-shm"]
     const toDelete = targets.map((f) => join(kmDir, f)).filter((p) => existsSync(p))
 
     if (options.dryRun) {
@@ -152,7 +152,7 @@ const doctorResetCommand = new Command("reset")
       return
     }
 
-    // Delete events.jsonl and state.db (preserve config/blobs)
+    // Delete changes.jsonl and state.db (preserve config/blobs)
     for (const p of toDelete) {
       unlinkSync(p)
       log.debug?.(`deleted: ${p}`)
@@ -244,11 +244,11 @@ export const doctorCommand = new Command("doctor")
       console.log(`  Worktree       ${health.worktree.fileCount} files, ${health.worktree.dirCount} directories`)
 
       // Events
-      if (health.events) {
-        const staleInfo = health.events.staleCount > 0 ? ` (${health.events.staleCount} stale)` : ""
-        console.log(`  events.jsonl   ${health.events.count} events${staleInfo}, ${formatSize(health.events.size)}`)
+      if (health.changes) {
+        const staleInfo = health.changes.staleCount > 0 ? ` (${health.changes.staleCount} stale)` : ""
+        console.log(`  changes.jsonl   ${health.changes.count} events${staleInfo}, ${formatSize(health.changes.size)}`)
       } else {
-        console.log(`  events.jsonl   ${term.dim("(not found)")}`)
+        console.log(`  changes.jsonl   ${term.dim("(not found)")}`)
       }
 
       // Database

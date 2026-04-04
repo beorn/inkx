@@ -1,15 +1,15 @@
 /**
  * Command System Types
  *
- * Commands produce CommandActions which are dispatched to handlers in board-actions.ts.
- * Card-level actions (delete, indent, status, move, etc.) are inherently batch-aware:
+ * Commands produce KmOp values which are dispatched to handlers in board-actions.ts.
+ * Card-level ops (delete, indent, status, move, etc.) are inherently batch-aware:
  * handlers use Selection.nodes(ctx) to operate on multi-selected or cursor card.
  *
  * Batch convention: gather → validate (all-or-nothing) → confirm? → execute → cleanup.
  * See board-actions-edit.ts header for the full pattern.
  */
 
-import type { BoardAction, TNode, ViewMode, TaskStatus, NodeDirection } from "@km/board"
+import type { BoardReducerOp, TNode, ViewMode, TaskStatus, NodeDirection } from "@km/board"
 
 export type CommandCategory = "Navigation" | "Selection" | "Edit" | "Task" | "Fold" | "View" | "TextEdit"
 
@@ -22,7 +22,7 @@ export type CommandMode = "normal" | "move" | "search" | "input"
  * Command execution context.
  *
  * All fields are passed directly by the caller - no tree traversal needed.
- * Commands receive pre-computed position info and can return actions.
+ * Commands receive pre-computed position info and can return ops.
  */
 export interface CommandContext {
   // Current node (passed by caller)
@@ -56,7 +56,7 @@ export interface ResolvedBinding {
   commandId: string
   targetId?: string
   /** Direct execute function — bypasses command registry lookup when set */
-  execute?: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+  execute?: (ctx: CommandContext) => KmOp | KmOp[] | null
 }
 
 export interface CommandDef {
@@ -67,11 +67,11 @@ export interface CommandDef {
   description: string
   category: CommandCategory
   modes?: CommandMode[]
-  execute: (ctx: CommandContext) => CommandAction | CommandAction[] | null
+  execute: (ctx: CommandContext) => KmOp | KmOp[] | null
 }
 
-// Text editing action types (dispatched to TextEditTarget)
-export type TextEditAction =
+// Text editing op types (dispatched to TextEditTarget)
+export type TextEditOp =
   | { type: "TEXT_INSERT"; char: string }
   | { type: "TEXT_DELETE_BACKWARD" }
   | { type: "TEXT_DELETE_FORWARD" }
@@ -93,890 +93,874 @@ export type TextEditAction =
   | { type: "TEXT_LINEBREAK_AFTER" }
   | { type: "TEXT_CHILD_BLOCK" }
 
-// Custom action types for commands that operate outside the board reducer
-export interface TaskSetStatusAction {
+// Custom op types for commands that operate outside the board reducer
+export interface TaskSetStatusOp {
   type: "TASK_SET_STATUS"
   nodeId: string
   status: TaskStatus
 }
 
-export interface ClearTaskAction {
+export interface ClearTaskOp {
   type: "CLEAR_TASK"
   nodeId: string
 }
 
-// History actions for undo/redo (handled at app level, not board reducer)
-export interface HistoryUndoAction {
+// History ops for undo/redo (handled at app level, not board reducer)
+export interface HistoryUndoOp {
   type: "HISTORY_UNDO"
 }
 
-export interface HistoryRedoAction {
+export interface HistoryRedoOp {
   type: "HISTORY_REDO"
 }
 
-export type HistoryAction = HistoryUndoAction | HistoryRedoAction
+export type HistoryOp = HistoryUndoOp | HistoryRedoOp
 
-// UI actions (handled by TUI, not board reducer)
-interface ZoomOutwardsAction {
+// UI ops (handled by TUI, not board reducer)
+interface ZoomOutwardsOp {
   type: "ZOOM_OUTWARDS"
 }
 
-interface ZoomToRootAction {
+interface ZoomToRootOp {
   type: "ZOOM_TO_ROOT"
 }
 
-export interface CloseDetailPaneAction {
+export interface CloseDetailPaneOp {
   type: "CLOSE_DETAIL_PANE"
 }
 
-interface ToggleDetailPaneAction {
+interface ToggleDetailPaneOp {
   type: "TOGGLE_DETAIL_PANE"
 }
 
-export interface ShowHelpAction {
+export interface ShowHelpOp {
   type: "SHOW_HELP"
 }
 
-export interface HideHelpAction {
+export interface HideHelpOp {
   type: "HIDE_HELP"
 }
 
-interface HelpScrollUpAction {
+interface HelpScrollUpOp {
   type: "HELP_SCROLL_UP"
 }
 
-interface HelpScrollDownAction {
+interface HelpScrollDownOp {
   type: "HELP_SCROLL_DOWN"
 }
 
-export interface CycleViewModeAction {
+export interface CycleViewModeOp {
   type: "CYCLE_VIEW_MODE"
 }
 
-interface CycleIconStyleAction {
+interface CycleIconStyleOp {
   type: "CYCLE_ICON_STYLE"
 }
 
-export interface DeleteNodeAction {
+export interface DeleteNodeOp {
   type: "DELETE_NODE"
   nodeId: string
 }
 
 /** Select all (progressive: column first, then board-wide) */
-export interface SelectAllProgressiveAction {
+export interface SelectAllProgressiveOp {
   type: "SELECT_ALL"
 }
 
-// TUI-specific actions (dialogs, quit, favorites)
-export interface QuitAction {
+// TUI-specific ops (dialogs, quit, favorites)
+export interface QuitOp {
   type: "QUIT"
 }
 
-export interface ShowNewItemDialogAction {
+export interface ShowNewItemDialogOp {
   type: "SHOW_NEW_ITEM_DIALOG"
 }
 
-export interface ShowItemPickerAction {
+export interface ShowItemPickerOp {
   type: "SHOW_ITEM_PICKER"
 }
 
-interface ShowSearchDialogAction {
+interface ShowSearchDialogOp {
   type: "SHOW_SEARCH_DIALOG"
 }
 
-/** Unified verb x location action. Replaces stringly-typed action types like GOTO_BOARD, JUMP_TO_FAVORITE. */
-export interface VerbAction {
+/** Unified verb x location op. Replaces stringly-typed op types like GOTO_BOARD, JUMP_TO_FAVORITE. */
+export interface VerbOp {
   type: "CURSOR_TO" | "REPARENT_TO" | "LINK_TO" | "CREATE_AT"
   locationKey: string // location key — resolved by handler using repo context
 }
 
-export interface JumpToColumnAction {
+export interface JumpToColumnOp {
   type: "JUMP_TO_COLUMN"
   columnNumber: number // 1-9 (maps to column index 0-8)
 }
 
-export interface CloseOrQuitAction {
+export interface CloseOrQuitOp {
   type: "CLOSE_OR_QUIT" // Contextual: close dialog/pane/mode, or quit
 }
 
-interface AddLinkAction {
+interface AddLinkOp {
   type: "ADD_LINK" // Open link/reference picker
 }
 
-interface ReparentPickerAction {
+interface ReparentPickerOp {
   type: "REPARENT_PICKER" // Open reparent/move-to picker
 }
 
-export interface DialogNavUpAction {
+export interface DialogNavUpOp {
   type: "DIALOG_NAV_UP"
 }
 
-export interface DialogNavDownAction {
+export interface DialogNavDownOp {
   type: "DIALOG_NAV_DOWN"
 }
 
-export interface DialogNavLeftAction {
+export interface DialogNavLeftOp {
   type: "DIALOG_NAV_LEFT"
 }
 
-export interface DialogNavRightAction {
+export interface DialogNavRightOp {
   type: "DIALOG_NAV_RIGHT"
 }
 
-export interface DialogConfirmAction {
+export interface DialogConfirmOp {
   type: "DIALOG_CONFIRM"
 }
 
-export interface DialogCancelAction {
+export interface DialogCancelOp {
   type: "DIALOG_CANCEL"
 }
 
-interface ConsoleToggleAction {
+interface ConsoleToggleOp {
   type: "CONSOLE_TOGGLE"
 }
 
-interface ConsoleCloseAction {
+interface ConsoleCloseOp {
   type: "CONSOLE_CLOSE"
 }
 
-interface SyncPaneToggleAction {
+interface SyncPaneToggleOp {
   type: "SYNC_PANE_TOGGLE"
 }
 
-interface SyncPaneCloseAction {
+interface SyncPaneCloseOp {
   type: "SYNC_PANE_CLOSE"
 }
 
-interface DeleteConfirmExecuteAction {
+interface DeleteConfirmExecuteOp {
   type: "DELETE_CONFIRM_EXECUTE"
 }
 
-interface DeleteConfirmCancelAction {
+interface DeleteConfirmCancelOp {
   type: "DELETE_CONFIRM_CANCEL"
 }
 
-interface ToggleSearchScopeAction {
+interface ToggleSearchScopeOp {
   type: "TOGGLE_SEARCH_SCOPE"
 }
 
-interface ToastDismissAction {
+interface ToastDismissOp {
   type: "TOAST_DISMISS"
 }
 
 // Fold operations (handled by TUI)
 // scope: "root" = board-wide (used by fold_all/unfold_all)
 // scope: undefined = cursor node (default, used by fold_node/unfold_node)
-interface FoldNodeAction {
+interface FoldNodeOp {
   type: "FOLD_NODE"
   scope?: "root"
 }
 
-interface UnfoldNodeAction {
+interface UnfoldNodeOp {
   type: "UNFOLD_NODE"
   scope?: "root"
 }
 
-interface UnfoldRecursiveAction {
+interface UnfoldRecursiveOp {
   type: "UNFOLD_RECURSIVE"
 }
 
 // Hide operations (hide nodes from board)
-interface HideNodeAction {
+interface HideNodeOp {
   type: "HIDE_NODE"
 }
 
-interface ToggleShowHiddenAction {
+interface ToggleShowHiddenOp {
   type: "TOGGLE_SHOW_HIDDEN"
 }
 
 // Filter
-interface ShowFilterDialogAction {
+interface ShowFilterDialogOp {
   type: "SHOW_FILTER_DIALOG"
 }
-interface SetFilterAction {
+interface SetFilterOp {
   type: "SET_FILTER"
   text: string
 }
-interface ClearFilterAction {
+interface ClearFilterOp {
   type: "CLEAR_FILTER"
 }
-interface ToggleFilterPropertyAction {
+interface ToggleFilterPropertyOp {
   type: "TOGGLE_FILTER_PROPERTY"
   category: FilterCategory
   value: string
 }
-interface ClearFilterCategoryAction {
+interface ClearFilterCategoryOp {
   type: "CLEAR_FILTER_CATEGORY"
   category: FilterCategory
 }
-interface ClearAllFilterPropertiesAction {
+interface ClearAllFilterPropertiesOp {
   type: "CLEAR_ALL_FILTER_PROPERTIES"
 }
-interface ToggleHideDoneAction {
+interface ToggleHideDoneOp {
   type: "TOGGLE_HIDE_DONE"
 }
-interface ClearFiltersAction {
+interface ClearFiltersOp {
   type: "CLEAR_FILTERS"
 }
-type FilterAction =
-  | ShowFilterDialogAction
-  | SetFilterAction
-  | ClearFilterAction
-  | ToggleFilterPropertyAction
-  | ClearFilterCategoryAction
-  | ClearAllFilterPropertiesAction
-  | ToggleHideDoneAction
-  | ClearFiltersAction
-
-interface CommandPaletteAction {
+interface CommandPaletteOp {
   type: "COMMAND_PALETTE"
 }
 
 // Edit operations
-interface InsertAboveAction {
+interface InsertAboveOp {
   type: "INSERT_ABOVE"
 }
 
-interface InsertBelowAction {
+interface InsertBelowOp {
   type: "INSERT_BELOW"
 }
 
-interface InsertChildAction {
+interface InsertChildOp {
   type: "INSERT_CHILD"
 }
 
-interface InsertAtParentAction {
+interface InsertAtParentOp {
   type: "INSERT_AT_PARENT"
 }
 
-interface DuplicateNodeAction {
+interface DuplicateNodeOp {
   type: "DUPLICATE_NODE"
   nodeId: string
 }
 
-// Property actions
-interface SetDueDateAction {
+// Property ops
+interface SetDueDateOp {
   type: "SET_DUE_DATE"
   nodeId: string
 }
 
-interface SetStartDateAction {
+interface SetStartDateOp {
   type: "SET_START_DATE"
   nodeId: string
 }
 
-interface SetRecurringAction {
+interface SetRecurringOp {
   type: "SET_RECURRING"
   nodeId: string
 }
 
-interface SetPriorityAction {
+interface SetPriorityOp {
   type: "SET_PRIORITY"
   nodeId: string
 }
 
-interface SetPriority0Action {
+interface SetPriority0Op {
   type: "SET_PRIORITY_0"
   nodeId: string
 }
 
-interface SetPriority1Action {
+interface SetPriority1Op {
   type: "SET_PRIORITY_1"
   nodeId: string
 }
 
-interface SetPriority2Action {
+interface SetPriority2Op {
   type: "SET_PRIORITY_2"
   nodeId: string
 }
 
-interface SetPriority3Action {
+interface SetPriority3Op {
   type: "SET_PRIORITY_3"
   nodeId: string
 }
 
-interface SetPriority4Action {
+interface SetPriority4Op {
   type: "SET_PRIORITY_4"
   nodeId: string
 }
 
-// Date prompt dialog actions
-interface DatePromptConfirmAction {
+// Date prompt dialog ops
+interface DatePromptConfirmOp {
   type: "DATE_PROMPT_CONFIRM"
 }
 
-interface DatePromptCancelAction {
+interface DatePromptCancelOp {
   type: "DATE_PROMPT_CANCEL"
 }
 
-interface SetLabelAction {
+interface SetLabelOp {
   type: "SET_LABEL"
 }
 
-interface SetAssigneeAction {
+interface SetAssigneeOp {
   type: "SET_ASSIGNEE"
 }
 
-interface IncreaseOutlineDepthAction {
+interface IncreaseOutlineDepthOp {
   type: "INCREASE_OUTLINE_DEPTH"
 }
 
-interface DecreaseOutlineDepthAction {
+interface DecreaseOutlineDepthOp {
   type: "DECREASE_OUTLINE_DEPTH"
 }
 
-interface DevTestToastAction {
+interface DevTestToastOp {
   type: "DEV_TEST_TOAST"
 }
 
-interface NoopAction {
+interface NoopOp {
   type: "NOOP"
 }
 
-interface OpenInSystemAction {
+interface OpenInSystemOp {
   type: "OPEN_IN_SYSTEM"
   nodeId: string
 }
 
-interface OpenInTerminalAction {
+interface OpenInTerminalOp {
   type: "OPEN_IN_TERMINAL"
   nodeId: string
 }
 
-interface EnterInlineEditAction {
+interface EnterInlineEditOp {
   type: "ENTER_INLINE_EDIT"
   nodeId: string
   blockIndex?: number // 0 = title (default), 1+ = body children
 }
 
-export interface EditBlockNavigateAction {
+export interface EditBlockNavigateOp {
   type: "EDIT_BLOCK_NAVIGATE"
   direction: "up" | "down"
 }
 
-interface IndentNodeAction {
+interface IndentNodeOp {
   type: "INDENT_NODE"
 }
 
-export interface OutdentNodeAction {
+export interface OutdentNodeOp {
   type: "OUTDENT_NODE"
 }
 
-interface NavSiblingBoardAction {
+interface NavSiblingBoardOp {
   type: "NAV_SIBLING_BOARD"
   direction: "next" | "prev"
 }
 
-interface ZoomInwardsAction {
+interface ZoomInwardsOp {
   type: "ZOOM_INWARDS" // Zoom in one level closer to selected node
 }
 
-interface FollowLinkAction {
+interface FollowLinkOp {
   type: "FOLLOW_LINK" // Navigate to embedded link target in context
 }
 
-interface PageJumpAction {
+interface PageJumpOp {
   type: "PAGE_JUMP"
   direction: "up" | "down"
 }
 
-// Move mode command actions (TUI augments with context before dispatching to board)
-// These are returned by commands and converted to full BoardAction by board-actions.ts
+// Move mode command ops (TUI augments with context before dispatching to board)
+// These are returned by commands and converted to full BoardOp by board-actions.ts
 // Visual mode (vim-style range selection)
-interface VisualModeEnterAction {
+interface VisualModeEnterOp {
   type: "VISUAL_MODE_ENTER"
 }
 
-interface VisualModeExitAction {
+interface VisualModeExitOp {
   type: "VISUAL_MODE_EXIT"
 }
 
-interface EnterMoveModeAction {
+interface EnterMoveModeOp {
   type: "ENTER_MOVE_MODE"
 }
 
-interface ConfirmMoveAction {
+interface ConfirmMoveOp {
   type: "CONFIRM_MOVE"
 }
 
-interface CancelMoveAction {
+interface CancelMoveOp {
   type: "CANCEL_MOVE"
 }
 
-type MoveAction = EnterMoveModeAction | ConfirmMoveAction | CancelMoveAction
+type MoveOp = EnterMoveModeOp | ConfirmMoveOp | CancelMoveOp
 
-// Clipboard actions
-interface ClipboardCopyAction {
+// Clipboard ops
+interface ClipboardCopyOp {
   type: "CLIPBOARD_COPY"
 }
 
-interface ClipboardCutAction {
+interface ClipboardCutOp {
   type: "CLIPBOARD_CUT"
 }
 
-interface ClipboardPasteAction {
+interface ClipboardPasteOp {
   type: "CLIPBOARD_PASTE"
 }
 
-interface ShiftUpAction {
+interface ShiftUpOp {
   type: "SHIFT_UP"
 }
 
-interface ShiftDownAction {
+interface ShiftDownOp {
   type: "SHIFT_DOWN"
 }
 
-interface ShiftLeftAction {
+interface ShiftLeftOp {
   type: "SHIFT_LEFT"
 }
 
-interface ShiftRightAction {
+interface ShiftRightOp {
   type: "SHIFT_RIGHT"
 }
 
-// Stub actions for v2 keybindings (TODO: implement handlers)
-interface ArchiveNodeAction {
+// Stub ops for v2 keybindings (TODO: implement handlers)
+interface ArchiveNodeOp {
   type: "ARCHIVE_NODE"
   nodeId: string
 }
 
-interface CaptureAction {
+interface CaptureOp {
   type: "CAPTURE"
   /** Preset location (e.g., "inbox"). Undefined = open dialog with picker. */
   location?: string
 }
 
-interface SettingsAction {
+interface SettingsOp {
   type: "SETTINGS"
 }
 
 // Pane operations (Ctrl+W chords — windowing)
-interface PaneSplitAction {
+interface PaneSplitOp {
   type: "PANE_SPLIT"
   direction: "vertical" | "horizontal"
 }
 
-interface PaneCloseAction {
+interface PaneCloseOp {
   type: "PANE_CLOSE"
 }
 
-interface PaneFocusAction {
+interface PaneFocusOp {
   type: "PANE_FOCUS"
   direction: "left" | "right" | "up" | "down"
 }
 
-interface PaneFocusPreviousAction {
+interface PaneFocusPreviousOp {
   type: "PANE_FOCUS_PREVIOUS"
 }
 
-interface PaneFocusCycleAction {
+interface PaneFocusCycleOp {
   type: "PANE_FOCUS_CYCLE"
   direction: "next" | "prev"
 }
 
-interface PaneFocusNumberAction {
+interface PaneFocusNumberOp {
   type: "PANE_FOCUS_NUMBER"
   number: number
 }
 
-interface PaneResizeAction {
+interface PaneResizeOp {
   type: "PANE_RESIZE"
   delta: number
 }
 
-interface PaneResizeVerticalAction {
+interface PaneResizeVerticalOp {
   type: "PANE_RESIZE_VERTICAL"
   delta: number
 }
 
-interface PaneEqualizeAction {
+interface PaneEqualizeOp {
   type: "PANE_EQUALIZE"
 }
 
-interface PaneZoomAction {
+interface PaneZoomOp {
   type: "PANE_ZOOM"
 }
 
-interface PaneOnlyAction {
+interface PaneOnlyOp {
   type: "PANE_ONLY"
 }
 
-interface PaneSwapAction {
+interface PaneSwapOp {
   type: "PANE_SWAP"
   direction: "left" | "right" | "up" | "down"
 }
 
-interface PaneSplitAndPickAction {
+interface PaneSplitAndPickOp {
   type: "PANE_SPLIT_AND_PICK"
 }
 
 // Focus switching (Cmd+h/l — kitty protocol)
-interface FocusBoardAction {
+interface FocusBoardOp {
   type: "FOCUS_BOARD"
 }
 
-interface FocusDetailAction {
+interface FocusDetailOp {
   type: "FOCUS_DETAIL"
 }
 
 // Text formatting (Cmd+b/i — kitty protocol, text edit only)
-interface TextBoldAction {
+interface TextBoldOp {
   type: "TEXT_BOLD"
 }
 
-interface TextItalicAction {
+interface TextItalicOp {
   type: "TEXT_ITALIC"
 }
 
 // Task dialog (Cmd+t — kitty protocol)
-interface ShowTaskDialogAction {
+interface ShowTaskDialogOp {
   type: "SHOW_TASK_DIALOG"
 }
 
 // Local find (inline search bar)
-interface LocalFindOpenAction {
+interface LocalFindOpenOp {
   type: "LOCAL_FIND_OPEN"
 }
 
-interface LocalFindNextAction {
+interface LocalFindNextOp {
   type: "LOCAL_FIND_NEXT"
 }
 
-interface LocalFindPrevAction {
+interface LocalFindPrevOp {
   type: "LOCAL_FIND_PREV"
 }
 
-interface LocalFindCloseAction {
+interface LocalFindCloseOp {
   type: "LOCAL_FIND_CLOSE"
 }
 
-interface LocalFindConfirmAction {
+interface LocalFindConfirmOp {
   type: "LOCAL_FIND_CONFIRM"
 }
 
-type LocalFindAction =
-  | LocalFindOpenAction
-  | LocalFindNextAction
-  | LocalFindPrevAction
-  | LocalFindCloseAction
-  | LocalFindConfirmAction
+type LocalFindOp = LocalFindOpenOp | LocalFindNextOp | LocalFindPrevOp | LocalFindCloseOp | LocalFindConfirmOp
 
-// Search & replace dialog actions
-interface SearchReplaceOpenAction {
+// Search & replace dialog ops
+interface SearchReplaceOpenOp {
   type: "SEARCH_REPLACE_OPEN"
 }
 
-interface SearchReplaceCloseAction {
+interface SearchReplaceCloseOp {
   type: "SEARCH_REPLACE_CLOSE"
 }
 
-interface SearchReplaceNextAction {
+interface SearchReplaceNextOp {
   type: "SEARCH_REPLACE_NEXT"
 }
 
-interface SearchReplacePrevAction {
+interface SearchReplacePrevOp {
   type: "SEARCH_REPLACE_PREV"
 }
 
-interface SearchReplaceDoReplaceAction {
+interface SearchReplaceDoReplaceOp {
   type: "SEARCH_REPLACE_DO_REPLACE"
 }
 
-interface SearchReplaceDoReplaceAllAction {
+interface SearchReplaceDoReplaceAllOp {
   type: "SEARCH_REPLACE_DO_REPLACE_ALL"
 }
 
-interface SearchReplaceToggleRegexAction {
+interface SearchReplaceToggleRegexOp {
   type: "SEARCH_REPLACE_TOGGLE_REGEX"
 }
 
-interface FocusNextAction {
+interface FocusNextOp {
   type: "FOCUS_NEXT"
 }
 
-interface FocusPrevAction {
+interface FocusPrevOp {
   type: "FOCUS_PREV"
 }
 
-interface ManageFavoritesAction {
+interface ManageFavoritesOp {
   type: "MANAGE_FAVORITES"
 }
 
-interface FavoritesSelectKeyAction {
+interface FavoritesSelectKeyOp {
   type: "FAVORITES_SELECT_KEY"
   key: string
 }
 
-interface FavoritesAssignAction {
+interface FavoritesAssignOp {
   type: "FAVORITES_ASSIGN"
 }
 
-interface FavoritesClearAction {
+interface FavoritesClearOp {
   type: "FAVORITES_CLEAR"
 }
 
-interface FavoritesBackAction {
+interface FavoritesBackOp {
   type: "FAVORITES_BACK"
 }
 
-type SearchReplaceAction =
-  | SearchReplaceOpenAction
-  | SearchReplaceCloseAction
-  | SearchReplaceNextAction
-  | SearchReplacePrevAction
-  | SearchReplaceDoReplaceAction
-  | SearchReplaceDoReplaceAllAction
-  | SearchReplaceToggleRegexAction
+type SearchReplaceOp =
+  | SearchReplaceOpenOp
+  | SearchReplaceCloseOp
+  | SearchReplaceNextOp
+  | SearchReplacePrevOp
+  | SearchReplaceDoReplaceOp
+  | SearchReplaceDoReplaceAllOp
+  | SearchReplaceToggleRegexOp
 
 // =============================================================================
 // Focused Sub-Unions
 //
-// CommandAction is decomposed into focused sub-unions by domain. Each sub-union
-// maps to a dedicated handler function in board-actions.ts. The individual action
+// KmOp is decomposed into focused sub-unions by domain. Each sub-union
+// maps to a dedicated handler function in board-actions.ts. The individual op
 // interfaces above are unchanged — only the grouping is new.
 // =============================================================================
 
-// High-level navigation actions (interpreted by TUI, not dispatched to reducer)
-interface CursorMoveAction {
+// High-level navigation ops (interpreted by TUI, not dispatched to reducer)
+interface CursorMoveOp {
   type: "CURSOR_MOVE"
   dir: NodeDirection
 }
 
-interface NavBackAction {
+interface NavBackOp {
   type: "NAV_BACK"
 }
 
-interface NavForwardAction {
+interface NavForwardOp {
   type: "NAV_FORWARD"
 }
 
-interface FoldLevelAction {
+interface FoldLevelOp {
   type: "FOLD_LEVEL"
   depth: number
 }
 
-interface UnfoldLevelAction {
+interface UnfoldLevelOp {
   type: "UNFOLD_LEVEL"
   depth: number
 }
 
-interface SelectAllSiblingsAction {
+interface SelectAllSiblingsOp {
   type: "SELECT_ALL_SIBLINGS"
 }
 
-interface ExtendSelectUpAction {
+interface ExtendSelectUpOp {
   type: "EXTEND_SELECT_UP"
 }
 
-interface ExtendSelectDownAction {
+interface ExtendSelectDownOp {
   type: "EXTEND_SELECT_DOWN"
 }
 
-interface ExtendSelectLeftAction {
+interface ExtendSelectLeftOp {
   type: "EXTEND_SELECT_LEFT"
 }
 
-interface ExtendSelectRightAction {
+interface ExtendSelectRightOp {
   type: "EXTEND_SELECT_RIGHT"
 }
 
-/** Verb x Location actions — structured as VerbAction with locationKey. */
-export type VerbOp = VerbAction
+// VerbOp is defined above as the interface (line ~188)
 
 /** Navigation — cursor movement, zoom, page jumps, history. */
 export type NavOp =
-  | CursorMoveAction
-  | NavBackAction
-  | NavForwardAction
-  | NavSiblingBoardAction
-  | ZoomInwardsAction
-  | ZoomOutwardsAction
-  | ZoomToRootAction
-  | FollowLinkAction
-  | PageJumpAction
-  | JumpToColumnAction
-  | FoldLevelAction
-  | UnfoldLevelAction
+  | CursorMoveOp
+  | NavBackOp
+  | NavForwardOp
+  | NavSiblingBoardOp
+  | ZoomInwardsOp
+  | ZoomOutwardsOp
+  | ZoomToRootOp
+  | FollowLinkOp
+  | PageJumpOp
+  | JumpToColumnOp
+  | FoldLevelOp
+  | UnfoldLevelOp
 
 /** Structural editing — insert, delete, move, indent, clipboard, open. */
 export type EditOp =
-  | EnterInlineEditAction
-  | EditBlockNavigateAction
-  | IndentNodeAction
-  | OutdentNodeAction
-  | InsertAboveAction
-  | InsertBelowAction
-  | InsertChildAction
-  | InsertAtParentAction
-  | DeleteNodeAction
-  | DuplicateNodeAction
-  | OpenInSystemAction
-  | OpenInTerminalAction
-  | ClipboardCopyAction
-  | ClipboardCutAction
-  | ClipboardPasteAction
-  | AddLinkAction
-  | ReparentPickerAction
-  | ArchiveNodeAction
-  | TaskSetStatusAction
-  | ClearTaskAction
-  | ShiftUpAction
-  | ShiftDownAction
-  | ShiftLeftAction
-  | ShiftRightAction
+  | EnterInlineEditOp
+  | EditBlockNavigateOp
+  | IndentNodeOp
+  | OutdentNodeOp
+  | InsertAboveOp
+  | InsertBelowOp
+  | InsertChildOp
+  | InsertAtParentOp
+  | DeleteNodeOp
+  | DuplicateNodeOp
+  | OpenInSystemOp
+  | OpenInTerminalOp
+  | ClipboardCopyOp
+  | ClipboardCutOp
+  | ClipboardPasteOp
+  | AddLinkOp
+  | ReparentPickerOp
+  | ArchiveNodeOp
+  | TaskSetStatusOp
+  | ClearTaskOp
+  | ShiftUpOp
+  | ShiftDownOp
+  | ShiftLeftOp
+  | ShiftRightOp
 
 /** Text editing — character-level operations dispatched to EditTarget. */
-export type TextOp = TextEditAction | TextBoldAction | TextItalicAction
+export type TextOp = TextEditOp | TextBoldOp | TextItalicOp
 
 /**
- * Multi-select and view config actions.
- * These are command-layer actions handled by the TUI's action handler (via per-pane UI state),
+ * Multi-select and view config ops.
+ * These are command-layer ops handled by the TUI's op handler (via per-pane UI state),
  * NOT by the board reducer. They exist here because commands emit them as part of BoardOp.
  */
-interface SelectNodeAddAction {
+interface SelectNodeAddOp {
   type: "SELECT_NODE_ADD"
   nodeId: string
 }
 
-interface SelectNodeRemoveAction {
+interface SelectNodeRemoveOp {
   type: "SELECT_NODE_REMOVE"
   nodeId: string
 }
 
-interface SelectNodeToggleAction {
+interface SelectNodeToggleOp {
   type: "SELECT_NODE_TOGGLE"
   nodeId: string
 }
 
-interface ClearSelectionAction {
+interface ClearSelectionOp {
   type: "CLEAR_SELECTION"
 }
 
-interface IncreaseContentLinesAction {
+interface IncreaseContentLinesOp {
   type: "INCREASE_CONTENT_LINES"
 }
 
-interface DecreaseContentLinesAction {
+interface DecreaseContentLinesOp {
   type: "DECREASE_CONTENT_LINES"
 }
 
 /** Board state — selection, fold, visual mode, move mode, content lines. */
 export type BoardOp =
-  | BoardAction
-  | SelectNodeAddAction
-  | SelectNodeRemoveAction
-  | SelectNodeToggleAction
-  | ClearSelectionAction
-  | IncreaseContentLinesAction
-  | DecreaseContentLinesAction
-  | FoldNodeAction
-  | UnfoldNodeAction
-  | UnfoldRecursiveAction
-  | SelectAllProgressiveAction
-  | VisualModeEnterAction
-  | VisualModeExitAction
-  | ExtendSelectUpAction
-  | ExtendSelectDownAction
-  | ExtendSelectLeftAction
-  | ExtendSelectRightAction
-  | SelectAllSiblingsAction
-  | MoveAction
-  | HideNodeAction
-  | ToggleShowHiddenAction
+  | BoardReducerOp
+  | SelectNodeAddOp
+  | SelectNodeRemoveOp
+  | SelectNodeToggleOp
+  | ClearSelectionOp
+  | IncreaseContentLinesOp
+  | DecreaseContentLinesOp
+  | FoldNodeOp
+  | UnfoldNodeOp
+  | UnfoldRecursiveOp
+  | SelectAllProgressiveOp
+  | VisualModeEnterOp
+  | VisualModeExitOp
+  | ExtendSelectUpOp
+  | ExtendSelectDownOp
+  | ExtendSelectLeftOp
+  | ExtendSelectRightOp
+  | SelectAllSiblingsOp
+  | MoveOp
+  | HideNodeOp
+  | ToggleShowHiddenOp
 
 /** Dialogs — pickers, filter, favorites, date prompts, confirmations, search. */
 export type DialogOp =
-  | ShowNewItemDialogAction
-  | ShowItemPickerAction
-  | ShowTaskDialogAction
-  | ShowSearchDialogAction
-  | ShowFilterDialogAction
-  | SetFilterAction
-  | ClearFilterAction
-  | ToggleFilterPropertyAction
-  | ClearFilterCategoryAction
-  | ClearAllFilterPropertiesAction
-  | ToggleHideDoneAction
-  | ClearFiltersAction
-  | CommandPaletteAction
-  | DialogNavUpAction
-  | DialogNavDownAction
-  | DialogNavLeftAction
-  | DialogNavRightAction
-  | DialogConfirmAction
-  | DialogCancelAction
-  | ToggleSearchScopeAction
-  | DeleteConfirmExecuteAction
-  | DeleteConfirmCancelAction
-  | ManageFavoritesAction
-  | FavoritesSelectKeyAction
-  | FavoritesAssignAction
-  | FavoritesClearAction
-  | FavoritesBackAction
-  | SetDueDateAction
-  | SetStartDateAction
-  | SetRecurringAction
-  | SetPriorityAction
-  | SetPriority0Action
-  | SetPriority1Action
-  | SetPriority2Action
-  | SetPriority3Action
-  | SetPriority4Action
-  | SetLabelAction
-  | SetAssigneeAction
-  | DatePromptConfirmAction
-  | DatePromptCancelAction
-  | LocalFindAction
-  | SearchReplaceAction
-  | FocusNextAction
-  | FocusPrevAction
+  | ShowNewItemDialogOp
+  | ShowItemPickerOp
+  | ShowTaskDialogOp
+  | ShowSearchDialogOp
+  | ShowFilterDialogOp
+  | SetFilterOp
+  | ClearFilterOp
+  | ToggleFilterPropertyOp
+  | ClearFilterCategoryOp
+  | ClearAllFilterPropertiesOp
+  | ToggleHideDoneOp
+  | ClearFiltersOp
+  | CommandPaletteOp
+  | DialogNavUpOp
+  | DialogNavDownOp
+  | DialogNavLeftOp
+  | DialogNavRightOp
+  | DialogConfirmOp
+  | DialogCancelOp
+  | ToggleSearchScopeOp
+  | DeleteConfirmExecuteOp
+  | DeleteConfirmCancelOp
+  | ManageFavoritesOp
+  | FavoritesSelectKeyOp
+  | FavoritesAssignOp
+  | FavoritesClearOp
+  | FavoritesBackOp
+  | SetDueDateOp
+  | SetStartDateOp
+  | SetRecurringOp
+  | SetPriorityOp
+  | SetPriority0Op
+  | SetPriority1Op
+  | SetPriority2Op
+  | SetPriority3Op
+  | SetPriority4Op
+  | SetLabelOp
+  | SetAssigneeOp
+  | DatePromptConfirmOp
+  | DatePromptCancelOp
+  | LocalFindOp
+  | SearchReplaceOp
+  | FocusNextOp
+  | FocusPrevOp
 
 /** Pane management — split, close, focus, resize, detail pane. */
 export type PaneOp =
-  | PaneSplitAction
-  | PaneCloseAction
-  | PaneFocusAction
-  | PaneFocusPreviousAction
-  | PaneFocusCycleAction
-  | PaneFocusNumberAction
-  | PaneResizeAction
-  | PaneResizeVerticalAction
-  | PaneEqualizeAction
-  | PaneZoomAction
-  | PaneOnlyAction
-  | PaneSwapAction
-  | PaneSplitAndPickAction
-  | CloseDetailPaneAction
-  | ToggleDetailPaneAction
+  | PaneSplitOp
+  | PaneCloseOp
+  | PaneFocusOp
+  | PaneFocusPreviousOp
+  | PaneFocusCycleOp
+  | PaneFocusNumberOp
+  | PaneResizeOp
+  | PaneResizeVerticalOp
+  | PaneEqualizeOp
+  | PaneZoomOp
+  | PaneOnlyOp
+  | PaneSwapOp
+  | PaneSplitAndPickOp
+  | CloseDetailPaneOp
+  | ToggleDetailPaneOp
 
 /** View & app — lifecycle, view modes, help, console, history, misc. */
 export type ViewOp =
-  | QuitAction
-  | CloseOrQuitAction
-  | CycleViewModeAction
-  | CycleIconStyleAction
-  | ShowHelpAction
-  | HideHelpAction
-  | HelpScrollUpAction
-  | HelpScrollDownAction
-  | FocusBoardAction
-  | FocusDetailAction
-  | HistoryUndoAction
-  | HistoryRedoAction
-  | ConsoleToggleAction
-  | ConsoleCloseAction
-  | SyncPaneToggleAction
-  | SyncPaneCloseAction
-  | ToastDismissAction
-  | NoopAction
-  | IncreaseOutlineDepthAction
-  | DecreaseOutlineDepthAction
-  | CaptureAction
-  | SettingsAction
-  | DevTestToastAction
+  | QuitOp
+  | CloseOrQuitOp
+  | CycleViewModeOp
+  | CycleIconStyleOp
+  | ShowHelpOp
+  | HideHelpOp
+  | HelpScrollUpOp
+  | HelpScrollDownOp
+  | FocusBoardOp
+  | FocusDetailOp
+  | HistoryUndoOp
+  | HistoryRedoOp
+  | ConsoleToggleOp
+  | ConsoleCloseOp
+  | SyncPaneToggleOp
+  | SyncPaneCloseOp
+  | ToastDismissOp
+  | NoopOp
+  | IncreaseOutlineDepthOp
+  | DecreaseOutlineDepthOp
+  | CaptureOp
+  | SettingsOp
+  | DevTestToastOp
 
-// Combined action type — union of all focused sub-unions
-export type CommandAction = VerbOp | NavOp | EditOp | TextOp | BoardOp | DialogOp | PaneOp | ViewOp
+// Combined op type — union of all focused sub-unions
+export type KmOp = VerbOp | NavOp | EditOp | TextOp | BoardOp | DialogOp | PaneOp | ViewOp
 
 // Re-export for convenience
-export type { BoardAction, TNode, ViewMode, TaskStatus }
+export type { BoardReducerOp, TNode, ViewMode, TaskStatus }

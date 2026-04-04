@@ -22,16 +22,16 @@ export type Selection = Point
 // Operation Types
 // =============================================================================
 
-export type Operation =
-  | InsertNodeOperation
-  | RemoveNodeOperation
-  | SetNodeOperation
-  | MoveNodeOperation
-  | SplitNodeOperation
-  | MergeNodeOperation
-  | SetSelectionOperation
+export type TreeOp =
+  | InsertNodeTreeOp
+  | RemoveNodeTreeOp
+  | SetNodeTreeOp
+  | MoveNodeTreeOp
+  | SplitNodeTreeOp
+  | MergeNodeTreeOp
+  | SetSelectionTreeOp
 
-export interface InsertNodeOperation {
+export interface InsertNodeTreeOp {
   type: "insert_node"
   parentId: string
   index: number
@@ -39,7 +39,7 @@ export interface InsertNodeOperation {
   newId: string
 }
 
-export interface RemoveNodeOperation {
+export interface RemoveNodeTreeOp {
   type: "remove_node"
   nodeId: string
   /** Full snapshot for restore on inverse. */
@@ -48,14 +48,14 @@ export interface RemoveNodeOperation {
   index: number
 }
 
-export interface SetNodeOperation {
+export interface SetNodeTreeOp {
   type: "set_node"
   nodeId: string
   properties: Partial<KNode>
   oldProperties: Partial<KNode>
 }
 
-export interface MoveNodeOperation {
+export interface MoveNodeTreeOp {
   type: "move_node"
   nodeId: string
   oldParentId: string
@@ -64,7 +64,7 @@ export interface MoveNodeOperation {
   newIndex: number
 }
 
-export interface SplitNodeOperation {
+export interface SplitNodeTreeOp {
   type: "split_node"
   /** Node being split (keeps text before offset). */
   nodeId: string
@@ -76,7 +76,7 @@ export interface SplitNodeOperation {
   properties: Partial<KNode>
 }
 
-export interface MergeNodeOperation {
+export interface MergeNodeTreeOp {
   type: "merge_node"
   /** Node being merged (deleted after merge). */
   nodeId: string
@@ -86,7 +86,7 @@ export interface MergeNodeOperation {
   offset: number
 }
 
-export interface SetSelectionOperation {
+export interface SetSelectionTreeOp {
   type: "set_selection"
   oldSelection: Selection | null
   newSelection: Selection | null
@@ -100,7 +100,7 @@ export interface SetSelectionOperation {
  * Compute the inverse of an operation.
  * apply(inverse(op)) undoes the effect of apply(op).
  */
-export function inverse(op: Operation): Operation {
+export function inverse(op: TreeOp): TreeOp {
   switch (op.type) {
     case "insert_node":
       return {
@@ -175,7 +175,7 @@ export function inverse(op: Operation): Operation {
  * the full sequence of mutations. The atomic sub-operations are not emitted
  * separately — split/merge are treated as single logical units.
  */
-export function applyOperation(tree: TreeMutator, op: Operation): void {
+export function applyTreeOp(tree: TreeMutator, op: TreeOp): void {
   switch (op.type) {
     case "insert_node": {
       const node = { ...op.node, id: op.newId, parent_idx: op.index }

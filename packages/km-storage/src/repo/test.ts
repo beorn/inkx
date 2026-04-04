@@ -45,7 +45,7 @@ export interface CreateTestEnvRepoOptions {
   db?: Database
   /** Path to repo directory (required for kmDir calculation) */
   repoPath: string
-  /** Skip persisting events to events.jsonl (default: true for tests) */
+  /** Skip persisting events to changes.jsonl (default: true for tests) */
   skipPersist?: boolean
 }
 

@@ -1,44 +1,44 @@
 /**
- * Event Compaction & Store Health
+ * Change Compaction & Store Health
  *
  * Provides diagnostic and repair functions for the three km data stores:
  * - Worktree (markdown files on disk)
- * - events.jsonl (event log)
+ * - changes.jsonl (change log)
  * - state.db (materialized SQLite state)
  */
 
 import { Database } from "bun:sqlite"
-import type { Event } from "@km/core"
+import type { Change } from "@km/core"
 import { existsSync, readdirSync, statSync, writeFileSync } from "fs"
 import { join } from "path"
-import { readEvents } from "./repo/loader.ts"
+import { readChanges } from "./repo/loader.ts"
 import { getNodeCount, getLastEventId } from "./db/db.ts"
 import { getIgnorePatterns, shouldIgnore } from "./fs/ignore.ts"
 
-/** Result of identifying or compacting stale events */
+/** Result of identifying or compacting stale changes */
 export interface CompactionResult {
-  totalEvents: number
+  totalChanges: number
   staleCount: number
-  keptEvents: Event[]
+  keptChanges: Change[]
 }
 
 /** Health status of all three stores */
 export interface StoreHealth {
   worktree: { fileCount: number; dirCount: number }
-  events: { count: number; staleCount: number; size: number } | null
+  changes: { count: number; staleCount: number; size: number } | null
   db: { nodeCount: number; size: number; lastEventId: string | null } | null
   issues: string[]
 }
 
 /**
- * Identify stale events in events.jsonl by replaying them against the database.
- * Stale events are those whose node_created events would hit UNIQUE constraint
+ * Identify stale changes in changes.jsonl by replaying them against the database.
+ * Stale changes are those whose node_created changes would hit UNIQUE constraint
  * failures — they reference nodes that already exist from file parsing.
  */
-export function identifyStaleEvents(kmDir: string, db: Database): CompactionResult {
-  const events = readEvents(kmDir)
-  if (events.length === 0) {
-    return { totalEvents: 0, staleCount: 0, keptEvents: [] }
+export function identifyStaleChanges(kmDir: string, db: Database): CompactionResult {
+  const changes = readChanges(kmDir)
+  if (changes.length === 0) {
+    return { totalChanges: 0, staleCount: 0, keptChanges: [] }
   }
 
   // Check which node IDs already exist in the database
@@ -48,46 +48,46 @@ export function identifyStaleEvents(kmDir: string, db: Database): CompactionResu
     existingIds.add(row.id)
   }
 
-  // Build a set of node IDs that have later events (update, delete, move, etc.)
-  const nodesWithLaterEvents = new Set<string>()
-  for (const event of events) {
-    if (event.type !== "node_created" && event.target) {
-      nodesWithLaterEvents.add(event.target)
+  // Build a set of node IDs that have later changes (update, delete, move, etc.)
+  const nodesWithLaterChanges = new Set<string>()
+  for (const change of changes) {
+    if (change.type !== "node_created" && change.target) {
+      nodesWithLaterChanges.add(change.target)
     }
   }
 
-  const kept: Event[] = []
+  const kept: Change[] = []
   let staleCount = 0
 
-  for (const event of events) {
-    if (event.type === "node_created") {
-      const data = event.data as Record<string, unknown>
+  for (const change of changes) {
+    if (change.type === "node_created") {
+      const data = change.data as Record<string, unknown>
       const id = data.id as string | undefined
       // A node_created is only stale if the node exists in DB AND there are
-      // no later events referencing it. If later events exist, the create
+      // no later changes referencing it. If later changes exist, the create
       // must be preserved for replay ordering.
-      if (id && existingIds.has(id) && !nodesWithLaterEvents.has(id)) {
+      if (id && existingIds.has(id) && !nodesWithLaterChanges.has(id)) {
         staleCount++
         continue
       }
     }
-    kept.push(event)
+    kept.push(change)
   }
 
-  return { totalEvents: events.length, staleCount, keptEvents: kept }
+  return { totalChanges: changes.length, staleCount, keptChanges: kept }
 }
 
 /**
- * Compact events.jsonl by removing stale events and rewriting the file.
+ * Compact changes.jsonl by removing stale changes and rewriting the file.
  * Returns the compaction result.
  */
-export function compactEvents(kmDir: string, db: Database): CompactionResult {
-  const result = identifyStaleEvents(kmDir, db)
+export function compactChanges(kmDir: string, db: Database): CompactionResult {
+  const result = identifyStaleChanges(kmDir, db)
 
   if (result.staleCount > 0) {
-    const eventsPath = join(kmDir, "events.jsonl")
-    const lines = result.keptEvents.map((e) => JSON.stringify(e))
-    writeFileSync(eventsPath, lines.join("\n") + (lines.length > 0 ? "\n" : ""))
+    const changesPath = join(kmDir, "changes.jsonl")
+    const lines = result.keptChanges.map((c) => JSON.stringify(c))
+    writeFileSync(changesPath, lines.join("\n") + (lines.length > 0 ? "\n" : ""))
   }
 
   return result
@@ -119,23 +119,23 @@ export function getStoreHealth(repoPath: string, kmDir: string, db: Database | n
   // Worktree stats
   const worktree = countWorktree(repoPath, kmDir)
 
-  // Events stats
-  let events: StoreHealth["events"] = null
-  const eventsPath = join(kmDir, "events.jsonl")
-  if (existsSync(eventsPath)) {
-    const size = statSync(eventsPath).size
-    const allEvents = readEvents(kmDir)
+  // Changes stats
+  let changes: StoreHealth["changes"] = null
+  const changesPath = join(kmDir, "changes.jsonl")
+  if (existsSync(changesPath)) {
+    const size = statSync(changesPath).size
+    const allChanges = readChanges(kmDir)
     let staleCount = 0
 
     if (db) {
-      const result = identifyStaleEvents(kmDir, db)
+      const result = identifyStaleChanges(kmDir, db)
       staleCount = result.staleCount
     }
 
-    events = { count: allEvents.length, staleCount, size }
+    changes = { count: allChanges.length, staleCount, size }
 
     if (staleCount > 0) {
-      issues.push(`${staleCount} stale events in events.jsonl\n` + `      Run 'km doctor gc' to compact`)
+      issues.push(`${staleCount} stale changes in changes.jsonl\n` + `      Run 'km doctor gc' to compact`)
     }
   }
 
@@ -171,7 +171,7 @@ export function getStoreHealth(repoPath: string, kmDir: string, db: Database | n
     }
   }
 
-  return { worktree, events, db: dbInfo, issues }
+  return { worktree, changes, db: dbInfo, issues }
 }
 
 /** Count files and directories in the worktree (respecting ignore patterns) */

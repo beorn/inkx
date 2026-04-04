@@ -346,10 +346,10 @@ export interface TNode extends KNode {
 }
 
 // =============================================================================
-// Event Types
+// Change Types
 // =============================================================================
 
-export type EventType =
+export type ChangeType =
   // Node lifecycle
   | "node_created"
   | "node_updated"
@@ -359,30 +359,30 @@ export type EventType =
   | "task_claimed"
   | "task_released"
   | "task_completed"
-  // Session events (for agents)
+  // Session (for agents)
   | "session_started"
   | "session_message"
   | "session_tool_call"
   | "session_ended"
   // Messaging
   | "message"
-  // Sync events
+  // Sync
   | "conflict_created"
 
 /**
- * Event structure - immutable record of a change
+ * Change — immutable record of a state change (persisted to changes.jsonl).
  */
-export interface Event {
+export interface Change {
   id: string // ULID (globally unique, sortable)
-  type: EventType
+  type: ChangeType
   actor: string // Who caused this (user, agent, 'system', 'fs-watch')
   target?: string // What it affects (node ID)
   data: Record<string, unknown>
   ts: number // Unix milliseconds
-  origin?: "tui" | "fs" | "replay" | "system" // Source of the event (for commit/project split)
+  origin?: "tui" | "fs" | "replay" | "system" // Source of the change (for commit/project split)
 }
 
-// Event data types for type safety
+// Change data types for type safety
 export interface NodeCreatedData {
   id: string
   type: NodeType

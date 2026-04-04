@@ -9,7 +9,7 @@
  * - Keyboard handler (reference)
  */
 
-import type { BoardAction } from "./board-types.ts"
+import type { BoardReducerOp } from "./board-types.ts"
 
 /**
  * Command definition for the palette and help system.
@@ -27,7 +27,7 @@ export interface CommandDef {
   /** Category for grouping */
   category: CommandCategory
   /** The action to dispatch (or null if requires context) */
-  action: BoardAction | null
+  action: BoardReducerOp | null
   /** Whether this command needs additional context (like nodeId) */
   needsContext?: boolean
 }

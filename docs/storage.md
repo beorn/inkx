@@ -6,19 +6,19 @@ Modes, KNode schema, events, and bidirectional sync.
 
 ## Two Modes
 
-| Mode       | Trigger       | SQLite         | Event Log          | Node IDs  |
+| Mode       | Trigger       | SQLite         | Change Log         | Node IDs  |
 | ---------- | ------------- | -------------- | ------------------ | --------- |
 | **Memory** | No `.km/`     | `:memory:`     | None               | Ephemeral |
-| **Disk**   | `.km/` exists | `.km/state.db` | `.km/events.jsonl` | Stable    |
+| **Disk**   | `.km/` exists | `.km/state.db` | `.km/changes.jsonl` | Stable    |
 
 **Both modes are read-write.** The key differences:
 
 | Aspect         | Memory Mode                 | Disk Mode                                   |
 | -------------- | --------------------------- | ------------------------------------------- |
 | **SQLite**     | Rebuilt from `.md` each run | Persisted in `.km/state.db`                 |
-| **Event log**  | None                        | All changes in `events.jsonl`               |
+| **Change log** | None                        | All changes in `changes.jsonl`               |
 | **Node IDs**   | `path:line` (session-local) | ULIDs (permanent)                           |
-| **Write path** | Direct to `.md` files       | Event → SQLite → (optionally sync to `.md`) |
+| **Write path** | Direct to `.md` files       | Change → SQLite → (optionally sync to `.md`) |
 | **Startup**    | Scan filesystem             | Load SQLite                                 |
 | **History**    | None                        | Full audit trail                            |
 
@@ -44,15 +44,15 @@ km tasks              # Scans again, new IDs
 SQLite and events persist in `.km/`:
 
 ```bash
-km init               # Creates .km/state.db, events.jsonl
+km init               # Creates .km/state.db, changes.jsonl
 km tasks              # Loads from SQLite (fast)
-km status abc123 done # Appends to events.jsonl, updates SQLite
+km status abc123 done # Appends to changes.jsonl, updates SQLite
 # exit
 km show abc123        # Same ID still works
 ```
 
 - Run `km init` once to enable
-- All changes logged to `events.jsonl`
+- All changes logged to `changes.jsonl`
 - SQLite is a rebuildable cache
 - IDs are stable ULIDs
 - Enables: history, undo, sync, cross-session references
@@ -112,13 +112,13 @@ if (currentNode.parent_id === null) {
 
 ### Root Node
 
-The repo root node (`id = "."`) is created by `ensureRepoRootNode()` before discovery or event replay.
+The repo root node (`id = "."`) is created by `ensureRepoRootNode()` before discovery or change replay.
 
 - ID is `"."` (the relative path for repo root)
 - `fs_path = "."`, `is_repo_root = true` in data
 - Only node with `parent_id = NULL` — all other nodes must have a parent
 
-In `applyEvents`, any `parent_id: null` from old events.jsonl is normalized to `"."`.
+In `applyEvents`, any `parent_id: null` from old changes.jsonl is normalized to `"."`.
 
 `km doctor` detects orphan nodes and absolute `fs_path` values as health issues.
 
@@ -246,7 +246,7 @@ interface KNode {
   data: Record<string, unknown> // Frontmatter, custom fields
   created_at: number // Unix timestamp (ms)
   updated_at: number // Unix timestamp (ms)
-  version: string // Last event ID that modified this node
+  version: string // Last change ID that modified this node
 }
 ```
 
@@ -284,7 +284,7 @@ interface KNode {
 | `data`           | object         | Frontmatter and custom fields                 |
 | `created_at`     | number         | Creation timestamp (Unix ms)                  |
 | `updated_at`     | number         | Last update timestamp (Unix ms)               |
-| `version`        | string         | Event ID of last modification                 |
+| `version`        | string         | Change ID of last modification                |
 
 ### NodeRules
 
@@ -428,7 +428,7 @@ CREATE TABLE nodes (
   data JSON DEFAULT '{}',        -- Frontmatter, custom fields
   created_at INTEGER,            -- Unix ms
   updated_at INTEGER,            -- Unix ms
-  version TEXT                   -- Last event ID
+  version TEXT                   -- Last change ID
 );
 
 -- Indexes for common queries
@@ -511,23 +511,23 @@ CREATE TABLE meta (
 );
 ```
 
-Used for tracking event replay cursor and other internal state.
+Used for tracking change replay cursor and other internal state.
 
 ---
 
-## Events (Disk Mode Only)
+## Changes (Disk Mode Only)
 
-Events are append-only records in `.km/events.jsonl`. The `emit()` function is the central mutation path in @km/storage.
+Changes are append-only records in `.km/changes.jsonl`. The `emit()` function is the central mutation path in @km/storage.
 
-> **Planned**: The [brain architecture](architecture/brain.md) evolves events.jsonl into per-chat JSONL files (`.km/chats/`), where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and event types below remain the foundation.
+> **Planned**: The [brain architecture](architecture/brain.md) evolves changes.jsonl into per-chat JSONL files (`.km/chats/`), where all interactions — agent conversations, edit sessions, sync operations — are modeled as chats. The emit() pipeline and change types below remain the foundation.
 
 ### The 4-Path Multiplexer
 
 Every mutation flows through `emit()`, which triggers four parallel operations:
 
 ```
-emit(event)
-    ├─ Persist   → events.jsonl   (immutable audit log)
+emit(change)
+    ├─ Persist   → changes.jsonl   (immutable audit log)
     ├─ Project   → state.db       (SQLite cache)
     ├─ Broadcast → WebSocket      (real-time to other clients)
     └─ Sync      → filesystem     (write back to .md files)
@@ -546,12 +546,12 @@ The `actor` field controls which paths fire:
 
 `fs-watch` skips file sync to prevent write-back loops.
 
-### Event Structure
+### Change Structure
 
 ```typescript
-interface Event {
+interface Change {
   id: string // ULID
-  type: EventType
+  type: ChangeType
   actor: string // 'user', 'system', 'fs-watch', agent ID
   target?: string // Node ID
   data: unknown
@@ -559,7 +559,7 @@ interface Event {
 }
 ```
 
-### Event Types
+### Change Types
 
 ```typescript
 // Node lifecycle
@@ -584,9 +584,9 @@ async function rebuildState(): Promise<Database> {
   db.exec("DROP TABLE IF EXISTS nodes; ...")
   db.exec(CREATE_SCHEMA)
 
-  const events = readEventsSync(".km/events.jsonl")
-  for (const event of events) {
-    applyEvent(db, event)
+  const changes = readChangesSync(".km/changes.jsonl")
+  for (const change of changes) {
+    applyChange(db, change)
   }
 
   return db
@@ -629,7 +629,7 @@ interface LoadOptions {
 
 | Phase           | Memory Mode                   | Disk Mode                         |
 | --------------- | ----------------------------- | --------------------------------- |
-| **discover**    | Count markdown files          | Count events in events.jsonl      |
+| **discover**    | Count markdown files          | Count changes in changes.jsonl     |
 | **parse**       | Parse files → generate events | (skipped - events already parsed) |
 | **apply**       | Insert nodes into SQLite      | Apply events to SQLite            |
 | **resolve**     | Resolve wikilinks             | (skipped - resolved during apply) |
@@ -857,7 +857,7 @@ km view @next              # Filename (resolves @next.md)
 | -------------------------- | ------ | ---- |
 | View tree/tasks/board      | Yes    | Yes  |
 | Toggle checkboxes          | Yes    | Yes  |
-| Event history              | No     | Yes  |
+| Change history             | No     | Yes  |
 | Stable IDs across sessions | No     | Yes  |
 | `km show <id>` works later | No     | Yes  |
 | Undo/history               | No     | Yes  |
@@ -867,7 +867,7 @@ km view @next              # Filename (resolves @next.md)
 
 ## Bidirectional Sync (Disk Mode)
 
-In disk mode, km maintains sync between filesystem, SQLite, and event log.
+In disk mode, km maintains sync between filesystem, SQLite, and change log.
 
 ### Sync Flow
 
@@ -932,5 +932,5 @@ km doctor reset       # Reset from worktree only (trust filesystem)
 
 - [architecture/brain.md](architecture/brain.md) — Brain layer: chats, memory graph, solidification
 - [concepts.md](concepts.md) — Core concepts, two modes overview
-- [architecture.md](architecture.md) — Event system, data flow
+- [architecture.md](architecture.md) — Change system, data flow
 - [ref/markdown.md](ref/markdown.md) — Parsing .md to nodes

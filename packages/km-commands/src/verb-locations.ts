@@ -8,7 +8,7 @@
  * The grid helper generates Keybinding objects from the cross-product.
  */
 
-import type { CommandContext, CommandAction } from "./types.ts"
+import type { CommandContext, KmOp } from "./types.ts"
 import type { Keybinding, KeybindingContext } from "./keybindings.ts"
 import type { WhenPredicate } from "./when.ts"
 import { hasKitty } from "./when.ts"
@@ -17,7 +17,7 @@ import { getSystemLocation, getAllFavorites, SYSTEM_LOCATION_KEYS, getReservedKe
 // --- Verb Constructors ---
 // Functions that take a locationKey and return a command execute function
 
-export type Execute = (ctx: CommandContext) => CommandAction | CommandAction[] | null
+export type Execute = (ctx: CommandContext) => KmOp | KmOp[] | null
 
 /** Go to a target (navigates there) */
 export const goTo =

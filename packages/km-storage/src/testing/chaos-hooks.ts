@@ -270,10 +270,8 @@ export function createChaosHooks(config: ChaosHooksConfig = {}): ChaosHooks {
       log.debug?.(`mutation completed: ${ctx.type} ${ctx.nodeId}`)
     },
 
-    afterQuery(operation: string, result: unknown): void {
-      log.debug?.(
-        `query completed: ${operation} ${Array.isArray(result) ? `${result.length} results` : "single result"}`,
-      )
+    afterQuery(treeop: string, result: unknown): void {
+      log.debug?.(`query completed: ${treeop} ${Array.isArray(result) ? `${result.length} results` : "single result"}`)
     },
 
     // ChaosHooks-specific methods

@@ -12,15 +12,15 @@
 
 import { describe, it, expect } from "vitest"
 import { boardReducer, createBoardState } from "../src/board-reducer.ts"
-import type { BoardAction, BoardState } from "../src/board-types.ts"
+import type { BoardReducerOp, BoardState } from "../src/board-types.ts"
 
 // ===== Test Helpers =====
 
 /** Dispatch helper that wraps reducer call pattern */
-const dispatch = (state: BoardState, action: BoardAction): BoardState => boardReducer(state, action)
+const dispatch = (state: BoardState, action: BoardReducerOp): BoardState => boardReducer(state, action)
 
 /** Chain multiple actions through the reducer */
-const dispatchAll = (state: BoardState, actions: BoardAction[]): BoardState =>
+const dispatchAll = (state: BoardState, actions: BoardReducerOp[]): BoardState =>
   actions.reduce((s, action) => dispatch(s, action), state)
 
 // ===== State Initialization =====
@@ -243,7 +243,7 @@ describe("ZOOM_IN action", () => {
 // ===== Root Change =====
 
 describe("SET_ROOT action", () => {
-  const setRootAction = (rootId: string, rootPath: string, cursorNodeId: string): BoardAction => ({
+  const setRootAction = (rootId: string, rootPath: string, cursorNodeId: string): BoardReducerOp => ({
     type: "SET_ROOT",
     rootId,
     rootPath,
@@ -476,7 +476,7 @@ describe("SET_CURSWANT action", () => {
 describe("Error handling", () => {
   it("throws on unhandled action type", () => {
     const state = createBoardState()
-    const invalidAction = { type: "INVALID_ACTION" } as unknown as BoardAction
+    const invalidAction = { type: "INVALID_ACTION" } as unknown as BoardReducerOp
     expect(() => dispatch(state, invalidAction)).toThrow(/Unhandled action: INVALID_ACTION/)
   })
 })
@@ -488,7 +488,7 @@ describe("Edge cases", () => {
     const state = createBoardState()
 
     // Rapid sequence of operations
-    const actions: BoardAction[] = Array.from({ length: 100 }, (_, i) => ({
+    const actions: BoardReducerOp[] = Array.from({ length: 100 }, (_, i) => ({
       type: "SELECT",
       nodeId: `node-${i}`,
     }))

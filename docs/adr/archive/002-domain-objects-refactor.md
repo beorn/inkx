@@ -126,7 +126,7 @@ When you run `km` on a repo path:
 
 1. **If `.km/` exists:**
    - Load config via cosmicconfig rooted at repo path
-   - Open DataStore from `.km/` (database: `state.db`, events: `events.jsonl`)
+   - Open DataStore from `.km/` (database: `state.db`, events: `changes.jsonl`)
    - Sync is **opt-in** — call `repo.sync()` or `repo.watch()` to start
    - Both data and files persist independently
 
@@ -149,11 +149,11 @@ When you run `km` on a repo path:
 ├── inbox.md                  ├─ FileTree (files)
 ├── notes/meeting.md          ┘
 └── .km/                      ← km dir (created by `km init`)
-    ├── events.jsonl          ← canonical event log (git-tracked)
+    ├── changes.jsonl          ← canonical event log (git-tracked)
     └── state.db              ← nodes + sync metadata (derived, gitignored)
 ```
 
-> **Event sourcing:** `events.jsonl` is canonical. Everything in `cache/` can be rebuilt from events.
+> **Event sourcing:** `changes.jsonl` is canonical. Everything in `cache/` can be rebuilt from events.
 
 **For "canonical" to hold:**
 

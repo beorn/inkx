@@ -5,30 +5,30 @@
  * Supports sequence-based filtering for incremental sync.
  */
 
-import type { Operation } from "./operations.ts"
-import { applyOperation } from "./operations.ts"
+import type { TreeOp } from "./operations.ts"
+import { applyTreeOp } from "./operations.ts"
 import type { TreeMutator } from "./block-ops.ts"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-export interface OperationEntry {
+export interface TreeOpEntry {
   seq: number
-  ops: Operation[]
+  ops: TreeOp[]
   timestamp: number
   source?: string // "user" | "undo" | "redo" | "sync" | "normalize"
 }
 
-export interface OperationLog {
+export interface TreeOpLog {
   /** Append operations from a completed batch. */
-  append(ops: Operation[], metadata?: { source?: string; timestamp?: number }): void
+  append(ops: TreeOp[], metadata?: { source?: string; timestamp?: number }): void
 
   /** Get all operations (for replay). */
-  getAll(): OperationEntry[]
+  getAll(): TreeOpEntry[]
 
   /** Get operations since a sequence number (exclusive). */
-  getSince(seq: number): OperationEntry[]
+  getSince(seq: number): TreeOpEntry[]
 
   /** Current sequence number (0 if empty). */
   seq(): number
@@ -41,8 +41,8 @@ export interface OperationLog {
 // Factory
 // =============================================================================
 
-export function createOperationLog(): OperationLog {
-  const entries: OperationEntry[] = []
+export function createTreeOpLog(): TreeOpLog {
+  const entries: TreeOpEntry[] = []
   let nextSeq = 1
 
   return {
@@ -82,11 +82,11 @@ export function createOperationLog(): OperationLog {
  * Replay operations from a log onto a tree.
  * If fromSeq is provided, only replays entries after that sequence number.
  */
-export function replay(tree: TreeMutator, log: OperationLog, fromSeq?: number): void {
+export function replay(tree: TreeMutator, log: TreeOpLog, fromSeq?: number): void {
   const entries = fromSeq != null ? log.getSince(fromSeq) : log.getAll()
   for (const entry of entries) {
     for (const op of entry.ops) {
-      applyOperation(tree, op)
+      applyTreeOp(tree, op)
     }
   }
 }

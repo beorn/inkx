@@ -1,26 +1,26 @@
 /**
  * Command Parser for km-sh
  *
- * Parses command strings (line mode or JSON mode) into BoardAction objects.
+ * Parses command strings (line mode or JSON mode) into BoardReducerOp objects.
  * Supports:
  * - snake_case commands: cursor_next, cursor_prev, toggle_fold
  * - Key commands: key j, key <Enter>
  * - JSON actions: {"type": "CURSOR_NEXT"}
  */
 
-import type { BoardAction } from "./board-types.ts"
+import type { BoardReducerOp } from "./board-types.ts"
 import type { TaskStatus } from "@km/core"
 
 /**
  * Result of parsing a command
  */
 export type ParseResult =
-  | { ok: true; action: BoardAction }
+  | { ok: true; action: BoardReducerOp }
   | { ok: true; command: ShellCommand }
   | { ok: false; error: string }
 
 /**
- * Shell-specific commands (not BoardActions)
+ * Shell-specific commands (not BoardReducerOps)
  */
 export type ShellCommand =
   | { type: "STATE" } // Dump current state
@@ -41,9 +41,9 @@ export type ShellCommand =
   | { type: "SHIFT"; direction: "up" | "down" } // Move node within siblings
 
 /**
- * Map of snake_case command names to BoardAction types
+ * Map of snake_case command names to BoardReducerOp types
  */
-const SIMPLE_ACTIONS: Record<string, BoardAction> = {
+const SIMPLE_ACTIONS: Record<string, BoardReducerOp> = {
   // Structural cursor movement (prev/next/in/out)
   cursor_prev: { type: "CURSOR_MOVE", dir: "prev" },
   cursor_next: { type: "CURSOR_MOVE", dir: "next" },
@@ -79,7 +79,7 @@ const SIMPLE_ACTIONS: Record<string, BoardAction> = {
 
   // Shifting (opt+direction) - move nodes visually
   // NOTE: shift_up/shift_down are mutation commands (ShellCommand),
-  // handled in the switch statement below, not here as BoardActions.
+  // handled in the switch statement below, not here as BoardReducerOps.
   // They require storage integration to persist changes.
   shift_left: { type: "SHIFT_LEFT" },
   shift_right: { type: "SHIFT_RIGHT" },
@@ -97,7 +97,7 @@ const SIMPLE_ACTIONS: Record<string, BoardAction> = {
 }
 
 /**
- * Shell commands (not BoardActions)
+ * Shell commands (not BoardReducerOps)
  * Note: 'log', 'ls', 'cd', 'tree', 'cat' are handled specially in parseCommand to support args
  */
 const SHELL_COMMANDS: Record<string, ShellCommand> = {
@@ -114,7 +114,7 @@ const SHELL_COMMANDS: Record<string, ShellCommand> = {
  * Single-char commands mapped to actions or special handling
  * These can be used directly without the "key" prefix
  */
-const SINGLE_CHAR_MAP: Record<string, BoardAction | "KEY"> = {
+const SINGLE_CHAR_MAP: Record<string, BoardReducerOp | "KEY"> = {
   // Structural cursor movement (vim style hjkl)
   j: { type: "CURSOR_MOVE", dir: "next" }, // Next sibling
   k: { type: "CURSOR_MOVE", dir: "prev" }, // Previous sibling
@@ -193,7 +193,7 @@ export function parseKeySpec(spec: string): string | null {
 }
 
 /**
- * Parse a command string into a BoardAction or ShellCommand
+ * Parse a command string into a BoardReducerOp or ShellCommand
  */
 export function parseCommand(input: string): ParseResult {
   const trimmed = input.trim()
@@ -220,7 +220,7 @@ export function parseCommand(input: string): ParseResult {
       if (!parsed.type) {
         return { ok: false, error: "JSON action missing 'type' field" }
       }
-      return { ok: true, action: parsed as unknown as BoardAction }
+      return { ok: true, action: parsed as unknown as BoardReducerOp }
     } catch (e) {
       return {
         ok: false,
@@ -367,7 +367,7 @@ Key input:
   key <Name> - special key (e.g., key Enter)
 
 JSON mode:
-  {"type": "CURSOR_MOVE", "dir": "next"} - any valid BoardAction
+  {"type": "CURSOR_MOVE", "dir": "next"} - any valid BoardReducerOp
 `
 }
 
@@ -390,7 +390,7 @@ function nodeIdCommand(type: string) {
         error: `${type.toLowerCase()} requires a nodeId argument`,
       }
     }
-    return { ok: true, action: { type, nodeId } as unknown as BoardAction }
+    return { ok: true, action: { type, nodeId } as unknown as BoardReducerOp }
   }
 }
 
@@ -411,7 +411,7 @@ function depthCommand(type: string) {
         error: `${type.toLowerCase()} requires a numeric depth argument`,
       }
     }
-    return { ok: true, action: { type, depth } as unknown as BoardAction }
+    return { ok: true, action: { type, depth } as unknown as BoardReducerOp }
   }
 }
 
@@ -432,7 +432,7 @@ function pathCommand(type: string) {
         error: `${type.toLowerCase()} requires comma-separated numeric indices`,
       }
     }
-    return { ok: true, action: { type, path } as unknown as BoardAction }
+    return { ok: true, action: { type, path } as unknown as BoardReducerOp }
   }
 }
 

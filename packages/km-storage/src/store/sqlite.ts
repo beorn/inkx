@@ -6,11 +6,11 @@
  */
 
 import type { Database } from "bun:sqlite"
-import type { KNode, Event } from "@km/core"
+import type { KNode, Change } from "@km/core"
 import type { Store, Observable } from "./store.ts"
 import type { CommitMeta, CommitResult, RepoDelta } from "./commit-types.ts"
 import { mergeDeltas } from "./commit-types.ts"
-import { applyEventWithDb } from "../db/events.ts"
+import { applyChangeWithDb } from "../db/changes.ts"
 import { rowToNode } from "../db/queries/utils.ts"
 import { ulid } from "ulid"
 
@@ -19,7 +19,7 @@ import { ulid } from "ulid"
  *
  * - peekNode: SELECT from nodes table, converted via rowToNode
  * - peekChildIds: SELECT child IDs ordered by parent_idx
- * - commit: applies events via applyEventWithDb, computes delta, notifies listeners
+ * - commit: applies events via applyChangeWithDb, computes delta, notifies listeners
  */
 export function createSQLiteStore(db: Database): Store & Observable {
   const listeners = new Set<(result: CommitResult) => void>()
@@ -38,19 +38,19 @@ export function createSQLiteStore(db: Database): Store & Observable {
       return rows.map((r) => r.id)
     },
 
-    commit(events, meta?) {
-      const appliedEvents: Event[] = []
-      for (const partial of events) {
-        const event: Event = {
+    commit(changes, meta?) {
+      const applied: Change[] = []
+      for (const partial of changes) {
+        const change: Change = {
           ...partial,
           id: ulid(),
           ts: Date.now(),
         }
-        applyEventWithDb(db, event)
-        appliedEvents.push(event)
+        applyChangeWithDb(db, change)
+        applied.push(change)
       }
 
-      const delta = mergeDeltas(appliedEvents)
+      const delta = mergeDeltas(applied)
       const commitId = meta?.commitId ?? ulid()
       const commitResult: CommitResult = {
         meta: {
@@ -58,7 +58,7 @@ export function createSQLiteStore(db: Database): Store & Observable {
           commitId,
           source: meta?.source ?? "local",
         },
-        events: appliedEvents,
+        changes: applied,
         delta,
       }
 

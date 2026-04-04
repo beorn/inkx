@@ -11,7 +11,7 @@
 import { describe, test, expect } from "vitest"
 import { Point, Range, transformPoint, transformRange, transformSelection } from "../src/selection.ts"
 import type {
-  Operation,
+  TreeOp,
   InsertNodeOperation,
   RemoveNodeOperation,
   SetNodeOperation,
@@ -389,14 +389,14 @@ describe("transformRange", () => {
 
 describe("transformSelection", () => {
   test("null selection stays null", () => {
-    const ops: Operation[] = [{ type: "insert_node", parentId: "p1", index: 0, node: { type: "p" }, newId: "n1" }]
+    const ops: TreeOp[] = [{ type: "insert_node", parentId: "p1", index: 0, node: { type: "p" }, newId: "n1" }]
     expect(transformSelection(null, ops)).toBeNull()
   })
 
   test("transforms through multiple operations", () => {
     const selection = Range.cursor("n1", 5)
 
-    const ops: Operation[] = [
+    const ops: TreeOp[] = [
       // Split n1 at offset 3 — cursor at 5 moves to n2 at offset 2
       { type: "split_node", nodeId: "n1", offset: 3, newId: "n2", properties: { type: "p" } },
       // Set n2 content to something shorter — clamp offset
@@ -412,7 +412,7 @@ describe("transformSelection", () => {
 
   test("returns null when node is deleted mid-sequence", () => {
     const selection = Range.cursor("n1", 0)
-    const ops: Operation[] = [
+    const ops: TreeOp[] = [
       { type: "remove_node", nodeId: "n1", snapshot: { type: "p" }, parentId: "p1", index: 0 },
       { type: "insert_node", parentId: "p1", index: 0, node: { type: "p" }, newId: "n2" },
     ]

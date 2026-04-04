@@ -5,7 +5,7 @@
  */
 
 import type { ID } from "@silvery/selection"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 
 // =============================================================================
 // Navigation History
@@ -13,7 +13,7 @@ import type { ActionCtx } from "../tui-context.ts"
 
 /** Push a new entry to navigation history */
 function pushNavHistoryEntry(
-  setUI: ActionCtx["setUI"],
+  setUI: OpCtx["setUI"],
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
@@ -34,13 +34,13 @@ function pushNavHistoryEntry(
 }
 
 /** Push nav history from ActionCtx (convenience wrapper) */
-export function saveNavHistory(ctx: ActionCtx): void {
+export function saveNavHistory(ctx: OpCtx): void {
   pushNavHistoryEntry(ctx.setUI, ctx.rootId, ctx.colIndex, ctx.cardIndex, ctx.cursorNodeId, ctx.foldDepths)
 }
 
 /** Push nav history from pane state (for imperative use outside ActionCtx) */
 export function saveNavHistoryFromPane(
-  setUI: ActionCtx["setUI"],
+  setUI: OpCtx["setUI"],
   pane: {
     rootId: string | null
     cursorNodeId: string | null
@@ -68,7 +68,7 @@ export function saveNavHistoryFromPane(
  * - Same col, different cards: card range within column
  * - Different cols: all cards in all columns between anchor.col and focus.col
  */
-export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: number): void {
+export function updateSelectionRange(ctx: OpCtx, toCol: number, toCard: number): void {
   const anchorId = ctx.sel.node.anchor()
   if (!anchorId) return
   const newSelected: string[] = []
@@ -121,7 +121,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
 }
 
 /** Clear all selection state */
-export function clearSelection(ctx: ActionCtx): void {
+export function clearSelection(ctx: OpCtx): void {
   ctx.sel.deselect()
   ctx.setUI({ status: null })
 }
@@ -133,7 +133,7 @@ export function clearSelection(ctx: ActionCtx): void {
 type SelectionScope = "card" | "column" | "board"
 
 /** Build a selection set for the given scope (card, column, or board) */
-function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): string[] {
+function buildSelectAllSet(ctx: OpCtx, scope: SelectionScope): string[] {
   const selected: string[] = []
 
   if (scope === "card") {
@@ -165,7 +165,7 @@ function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): string[] {
  * Uses the size of the current selection to determine the next scope
  * Derives scope from current selection size.
  */
-export function progressiveSelectAll(ctx: ActionCtx): void {
+export function progressiveSelectAll(ctx: OpCtx): void {
   const col = ctx.columns[ctx.colIndex]
   const card = col?.cardNodes[ctx.cardIndex]
 

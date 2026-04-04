@@ -7,7 +7,7 @@
 
 import { type ActionResult, boundary, ok } from "@km/commands"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 
 /** Collect visible node IDs from columns in visual order */
@@ -42,7 +42,7 @@ export function findMatchingNodeIds(columns: ColumnView[], query: string): strin
 }
 
 /** Open the local find bar */
-export function handleLocalFindOpen(ctx: ActionCtx): ActionResult {
+export function handleLocalFindOpen(ctx: OpCtx): ActionResult {
   ctx.setUI({
     localSearch: {
       query: "",
@@ -59,7 +59,7 @@ export function handleLocalFindOpen(ctx: ActionCtx): ActionResult {
 }
 
 /** Navigate to the next match */
-export function handleLocalFindNext(ctx: ActionCtx): ActionResult {
+export function handleLocalFindNext(ctx: OpCtx): ActionResult {
   const ls = ctx.ui.localSearch
   if (!ls || ls.matchCount === 0) return boundary("find", "No matches")
 
@@ -75,7 +75,7 @@ export function handleLocalFindNext(ctx: ActionCtx): ActionResult {
 }
 
 /** Navigate to the previous match */
-export function handleLocalFindPrev(ctx: ActionCtx): ActionResult {
+export function handleLocalFindPrev(ctx: OpCtx): ActionResult {
   const ls = ctx.ui.localSearch
   if (!ls || ls.matchCount === 0) return boundary("find", "No matches")
 
@@ -94,7 +94,7 @@ export function handleLocalFindPrev(ctx: ActionCtx): ActionResult {
  * Update local search results based on query change.
  * Called from Board.tsx when the FindBar input changes.
  */
-export function updateLocalSearchMatches(ctx: ActionCtx, query: string): void {
+export function updateLocalSearchMatches(ctx: OpCtx, query: string): void {
   const matchNodeIds = findMatchingNodeIds(ctx.columns, query)
   const matchCount = matchNodeIds.length
 

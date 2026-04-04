@@ -78,7 +78,7 @@ Each layer:
 interface WithCommandsOptions<TContext> {
   registry: CommandRegistry
   getContext: () => TContext
-  handleAction: (action: CommandAction) => void
+  handleAction: (action: KmOp) => void
   getKeybindings?: () => Keybinding[]
 }
 ```

@@ -12,7 +12,7 @@ import { describe, test, expect } from "vitest"
 import { ulid } from "ulid"
 import { writeFileSync, readFileSync } from "fs"
 import { join } from "path"
-import { getAllNodes, getSubtree, nodesToMarkdown, applyEventWithDb, withTestEnv } from "@km/storage"
+import { getAllNodes, getSubtree, nodesToMarkdown, applyChangeWithDb, withTestEnv } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createTestSync } from "../watch/sync-test-helpers.ts"
 
@@ -284,7 +284,7 @@ describe("E2E Round-Trip Features", () => {
 
         // Step 3: Create embedding nodes programmatically (simulating `km add`)
         const taskAlpha = sourceTasks.find((t) => t.content?.includes("Alpha"))!
-        applyEventWithDb(data.database, {
+        applyChangeWithDb(data.database, {
           type: "node_created",
           id: ulid(),
           actor: "test",
@@ -353,7 +353,7 @@ describe("E2E Round-Trip Features", () => {
         )!
 
         // Create embedding with alias
-        applyEventWithDb(data.database, {
+        applyChangeWithDb(data.database, {
           type: "node_created",
           id: ulid(),
           actor: "test",

@@ -288,11 +288,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Use cached cursor indices when cursor+layout haven't changed
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     const cc = locals.cursorCache
-    if (
-      cc &&
-      cc.cursorNodeId === cursorNodeId &&
-      cc.nodeIndexRef === nodeIndex
-    ) {
+    if (cc && cc.cursorNodeId === cursorNodeId && cc.nodeIndexRef === nodeIndex) {
       cursor = cc
     } else {
       cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))

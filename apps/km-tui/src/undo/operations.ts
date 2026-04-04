@@ -66,9 +66,9 @@ export interface UpdateNodeOp {
  */
 export interface HistoryEntry {
   /** Forward operations (applied in order for redo) */
-  operations: TreeOp[]
+  treeops: TreeOp[]
   /** Precomputed inverse operations (applied in reverse order for undo) */
-  inverseOperations: TreeOp[]
+  inverseTreeOps: TreeOp[]
   /** Cursor position before the operation (restored on undo) */
   cursorBefore?: string | null
   /** Cursor position after the operation (restored on redo) */
@@ -89,7 +89,7 @@ export interface HistoryEntry {
  * - move_node → move_node (from/to swapped)
  * - update_node → update_node (before/after swapped)
  */
-export function invertOperation(op: TreeOp): TreeOp {
+export function invertTreeOp(op: TreeOp): TreeOp {
   switch (op.type) {
     case "add_node":
       return {
@@ -132,6 +132,6 @@ export function invertOperation(op: TreeOp): TreeOp {
  * The inverse list is in reverse order so that applying it
  * in forward order undoes the original operations correctly.
  */
-export function invertOperations(ops: TreeOp[]): TreeOp[] {
-  return ops.map(invertOperation).reverse()
+export function invertTreeOps(ops: TreeOp[]): TreeOp[] {
+  return ops.map(invertTreeOp).reverse()
 }

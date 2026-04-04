@@ -176,6 +176,8 @@
 {"issue_id":"km-rev-code-0203.3","label":"refactor"}
 {"issue_id":"km-rev-code-0203.4","label":"refactor"}
 {"issue_id":"km-silvery","label":"horizon:v1.0"}
+{"issue_id":"km-silvery.1","label":"horizon:v1.0"}
+{"issue_id":"km-silvery.1.1","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.absolute-mouse-events","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.ag-canvas","label":"horizon:v2.0"}
 {"issue_id":"km-silvery.ag-canvas.era2b","label":"horizon:v2.0"}

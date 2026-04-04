@@ -18,7 +18,7 @@ import { textEditingCommands } from "../src/commands/text-editing.ts"
 import { blockEditCommands } from "../src/commands/block-edit.ts"
 import { dialogCommands, filterDialogCommands, favoritesDialogCommands } from "../src/commands/dialog.ts"
 import { paneCommands } from "../src/commands/pane.ts"
-import type { CommandContext, TNode, CommandAction, CommandDef } from "../src/types.ts"
+import type { CommandContext, TNode, KmOp, CommandDef } from "../src/types.ts"
 
 // ============================================================================
 // Test Helpers
@@ -106,7 +106,7 @@ function executeCommand(
   commands: readonly CommandDef[],
   id: string,
   ctx: CommandContext = createContext(),
-): CommandAction | CommandAction[] | null {
+): KmOp | KmOp[] | null {
   return findCommand(commands, id).execute(ctx)
 }
 
@@ -305,7 +305,7 @@ describe("taskCommands", () => {
       ["done", "dropped"],
       ["dropped", "todo"],
     ] as const)("cycles %s -> %s", (from, to) => {
-      const result = executeCommand(taskCommands, "cycle_task_status", createTaskContext(from)) as CommandAction
+      const result = executeCommand(taskCommands, "cycle_task_status", createTaskContext(from)) as KmOp
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
         nodeId: "task-node",
@@ -321,7 +321,7 @@ describe("taskCommands", () => {
         }),
         currentNodeId: "task-node",
       })
-      const result = executeCommand(taskCommands, "cycle_task_status", ctx) as CommandAction
+      const result = executeCommand(taskCommands, "cycle_task_status", ctx) as KmOp
       expect((result as { status: string }).status).toBe("todo")
     })
   })
@@ -340,7 +340,7 @@ describe("taskCommands", () => {
       ["done", "todo"],
       ["wip", "done"],
     ] as const)("toggles %s -> %s", (from, to) => {
-      const result = executeCommand(taskCommands, "toggle_task_done", createTaskContext(from)) as CommandAction
+      const result = executeCommand(taskCommands, "toggle_task_done", createTaskContext(from)) as KmOp
       expect(result).toEqual({
         type: "TASK_SET_STATUS",
         nodeId: "task-node",
