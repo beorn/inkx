@@ -173,6 +173,7 @@ export function StorybookProviders({ children }: { children: React.ReactNode }):
           <TreeRenderProvider
             treeConfig={treeConfig}
             setUI={() => {}}
+            sel={{ text: Object.assign(() => null, { edit() {}, select() {}, deselect() {} }), node: { cursor: () => null, anchor: () => null, ids: () => Object.assign([] as any, { has: () => false }), select() {}, extend() {}, collapse() {}, remove() {} } } as any}
             rootBoardId={null}
             jobRunner={{ submit: () => ({ cancel() {} }) } as any}
             undoHandle={noopUndoHandle as any}

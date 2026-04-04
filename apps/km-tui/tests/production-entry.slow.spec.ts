@@ -453,7 +453,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 
     // Enter inline edit mode
     await handle.press("Enter")
-    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(handle.store.getState().sel.text()).not.toBeNull()
 
     // Type new text
     for (const c of "-updated") await handle.press(c)
@@ -462,7 +462,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
     await handle.press("Enter")
 
     // Outliner: inline edit is now on NEW sibling (not exited)
-    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(handle.store.getState().sel.text()).not.toBeNull()
 
     // Repo must be updated
     expect(repo.getNode("task1")?.content).toBe("task1-updated")
@@ -473,7 +473,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 
     // Exit new sibling edit mode, then navigate
     await handle.press("Escape")
-    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).toBeNull()
+    expect(handle.store.getState().sel.text()).toBeNull()
     await handle.press("j")
     expect(handle.text).toContain("task2")
 
@@ -949,11 +949,11 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     // Navigate to card and start inline edit
     await handle.press("j")
     await handle.press("Enter")
-    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).not.toBeNull()
+    expect(handle.store.getState().sel.text()).not.toBeNull()
 
     // Press Escape to exit inline edit first
     await handle.press("Escape")
-    expect(getActiveBoardPane(handle.store.getState())!.inlineEditBlock).toBeNull()
+    expect(handle.store.getState().sel.text()).toBeNull()
 
     // Now open date dialog
     await handle.press("t")

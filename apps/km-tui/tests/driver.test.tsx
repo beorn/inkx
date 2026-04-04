@@ -13,21 +13,15 @@ import { describe, test, expect, beforeEach } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { Box, Text, withCommands, withKeybindings } from "@silvery/ag-react"
 import type { CommandRegistryLike, WithCommandsOptions } from "@silvery/ag-react"
-import {
-  createCommandRegistry,
-  allCommands,
-  defaultKeybindings,
-  type CommandContext,
-  type CommandAction,
-} from "@km/commands"
+import { createCommandRegistry, allCommands, defaultKeybindings, type CommandContext, type KmOp } from "@km/commands"
 import React from "react"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { dispatchCommandById } from "../src/board/board-app.ts"
 
 describe("withCommands", () => {
   // Create a mock registry with a few commands for testing
-  let registry: CommandRegistryLike<CommandContext, CommandAction>
-  let dispatchedActions: CommandAction[]
+  let registry: CommandRegistryLike<CommandContext, KmOp>
+  let dispatchedActions: KmOp[]
 
   beforeEach(() => {
     dispatchedActions = []
@@ -52,7 +46,7 @@ describe("withCommands", () => {
     foldDepths: new Map(),
   }
 
-  const createOptions = (): WithCommandsOptions<CommandContext, CommandAction> => ({
+  const createOptions = (): WithCommandsOptions<CommandContext, KmOp> => ({
     registry,
     getContext: () => mockContext,
     handleAction: (action) => {
@@ -208,7 +202,7 @@ describe("withCommands", () => {
 })
 
 describe("withKeybindings", () => {
-  let dispatchedActions: CommandAction[]
+  let dispatchedActions: KmOp[]
 
   beforeEach(() => {
     dispatchedActions = []
@@ -360,7 +354,7 @@ describe("composed app driver", () => {
     const registry = createCommandRegistry()
     registry.registerAll(allCommands)
 
-    const actions: CommandAction[] = []
+    const actions: KmOp[] = []
 
     const mockContext: CommandContext = {
       currentNode: null,

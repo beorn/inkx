@@ -11,7 +11,11 @@
 import { describe, test, expect } from "vitest"
 import { createStore } from "zustand"
 import { hitTestSplitBorder, hitTestPaneId, setSplitRatioAbsolute } from "../src/layout-helpers.ts"
-import { createBoardAppStoreState, type BoardAppStore, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
+import {
+  createBoardAppStoreState,
+  type BoardAppStore,
+  type CreateBoardAppStoreParams,
+} from "../src/state/board-app-store.ts"
 import { createBoardState } from "../src/board/board-types.ts"
 import { createInitialUIState } from "../src/state/ui-reducer.ts"
 import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"

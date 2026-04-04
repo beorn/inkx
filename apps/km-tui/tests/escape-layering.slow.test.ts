@@ -26,11 +26,11 @@ describe("Escape Layering", () => {
 
     // Enter visual mode with 'v v' chord + space to select
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
 
     // Escape exits visual mode
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
+    expect(store.getState().sel.node.ids().length > 0).toBe(false)
   })
 
   test("Escape cancels move mode", () => {
@@ -141,11 +141,11 @@ describe("Escape Layering", () => {
     // Select multiple items with Shift+ArrowDown
     board.press("shift+ArrowDown")
     board.press("shift+ArrowDown")
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // Escape clears selection
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBe(0)
+    expect(store.getState().sel.node.ids().length).toBe(0)
   })
 
   // ---------------------------------------------------------------------------
@@ -171,12 +171,12 @@ describe("Escape Layering", () => {
 
     // Enter visual mode (which also creates a selection)
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // First Escape: exits visual mode (but selection may also be cleared since visual_mode_exit clears it)
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
+    expect(store.getState().sel.node.ids().length > 0).toBe(false)
   })
 
   test("Escape unfocuses detail pane before clearing selection", () => {
@@ -184,7 +184,7 @@ describe("Escape Layering", () => {
 
     // Select items
     board.press("shift+ArrowDown")
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // D opens + auto-focuses detail pane
     board.command("toggle_detail_pane")
@@ -196,12 +196,12 @@ describe("Escape Layering", () => {
     expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Selection is still there
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // Escape 2: close pane (selection still there)
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
   })
 
   // ---------------------------------------------------------------------------
@@ -229,7 +229,7 @@ describe("Escape Layering", () => {
 
     // Create selection
     board.press("shift+ArrowDown")
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // D opens + auto-focuses detail pane
     board.command("toggle_detail_pane")
@@ -243,11 +243,11 @@ describe("Escape Layering", () => {
     // Escape 2: close pane (selection still active)
     board.press("Escape")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // Escape 3: clear selection
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBe(0)
+    expect(store.getState().sel.node.ids().length).toBe(0)
 
     // Escape 3: nothing left → bell
     board.press("Escape")

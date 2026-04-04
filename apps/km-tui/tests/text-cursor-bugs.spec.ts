@@ -88,8 +88,8 @@ describe("text-cursor-bugs", () => {
       board.press("ArrowDown")
 
       board.expectEditing()
-      const editState = getActiveBoardPane(store.getState())!.inlineEditBlock
-      expect(editState?.stickyX).toBeDefined()
+      const hints = store.getState().textEditHints
+      expect(hints?.stickyX).toBeDefined()
     })
   })
 

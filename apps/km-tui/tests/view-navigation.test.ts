@@ -13,7 +13,11 @@ import { describe, it, expect } from "vitest"
 import { createFakeRepo, type Repo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { item } from "./helpers/board-test.ts"
-import { createCardsViewNavigation, createDetailViewNavigation, type NavState } from "../src/navigation/view-navigation.ts"
+import {
+  createCardsViewNavigation,
+  createDetailViewNavigation,
+  type NavState,
+} from "../src/navigation/view-navigation.ts"
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, createGridNavigator } from "@km/board"
 
 function makeState(

@@ -40,9 +40,9 @@ describe("Visual mode", () => {
 
     // Enter visual mode with v + space (chord)
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
     // Current card should be selected
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
   })
 
   test("j extends visual selection downward", () => {
@@ -50,12 +50,12 @@ describe("Visual mode", () => {
 
     // Enter visual mode
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
 
     // Move down to extend selection
     board.command("cursor_down")
     // Should have task1 and task2 selected (visual mode extends range)
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThanOrEqual(2)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThanOrEqual(2)
   })
 
   test("k contracts visual selection upward", () => {
@@ -67,11 +67,11 @@ describe("Visual mode", () => {
     // Extend down twice
     board.command("cursor_down")
     board.command("cursor_down")
-    const selectedAfterDown = getActiveBoardPane(store.getState())!.multiSelected.size
+    const selectedAfterDown = store.getState().sel.node.ids().length
 
     // Contract up
     board.command("cursor_up")
-    const selectedAfterUp = getActiveBoardPane(store.getState())!.multiSelected.size
+    const selectedAfterUp = store.getState().sel.node.ids().length
     expect(selectedAfterUp).toBeLessThan(selectedAfterDown)
   })
 
@@ -81,12 +81,12 @@ describe("Visual mode", () => {
     // Enter visual mode and extend selection
     board.command("visual_mode_enter").command("select_toggle")
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
-    expect(getActiveBoardPane(store.getState())!.multiSelected.size).toBeGreaterThan(0)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
+    expect(store.getState().sel.node.ids().length).toBeGreaterThan(0)
 
     // Escape exits visual mode
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
+    expect(store.getState().sel.node.ids().length > 0).toBe(false)
   })
 
   test("d (cut) in visual mode stages selected cards to clipboard", () => {
@@ -98,7 +98,7 @@ describe("Visual mode", () => {
     // Enter visual mode and extend selection to include task1 + task2
     board.command("visual_mode_enter").command("select_toggle")
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
 
     // Cut selected cards (stages to clipboard, doesn't remove yet)
     board.press("d")
@@ -120,7 +120,7 @@ describe("Visual mode", () => {
 
     // Enter visual mode and select task1
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
 
     // Copy stages to clipboard
     board.press("y")
@@ -150,9 +150,9 @@ describe("Visual mode", () => {
 
     // Enter and exit visual mode
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
+    expect(store.getState().sel.node.ids().length > 0).toBe(false)
 
     // Cursor should still be on task2
     board.expect("#task2[data-cursor]").toExist()
@@ -717,11 +717,11 @@ describe("Escape priority layering", () => {
 
     // Enter visual mode via v+space chord
     board.command("visual_mode_enter").command("select_toggle")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(true)
+    expect(store.getState().sel.node.ids().length > 0).toBe(true)
 
     // First Escape: exits visual mode (detail pane stays)
     board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.visualMode).toBe(false)
+    expect(store.getState().sel.node.ids().length > 0).toBe(false)
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
     // Second Escape: closes detail pane

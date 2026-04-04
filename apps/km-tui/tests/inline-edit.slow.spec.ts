@@ -1518,7 +1518,7 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
         ),
       )
 
-      const editBlock = () => getActiveBoardPane(board.getAppState())?.inlineEditBlock
+      const editBlock = () => board.getAppState().sel.text()
 
       // Edit para-1 directly (as if user clicked on it)
       board.editNode("para-1", { card: "card-1" })
@@ -1527,17 +1527,17 @@ describe("text cursor navigation (km-tui.text-cursor-nav)", () => {
       // ctrl-n should resolve to parent (card-1) and advance blockIndex to para-2
       board.press("ctrl+n")
       expect(editBlock()?.nodeId).toBe("card-1")
-      expect(editBlock()?.blockIndex).toBe(2) // 0=title, 1=para-1, 2=para-2
+      expect(board.getAppState().textEditHints?.blockIndex).toBe(2) // 0=title, 1=para-1, 2=para-2
 
       // ctrl-n again → blockIndex 3 (task-a)
       board.press("ctrl+n")
       expect(editBlock()?.nodeId).toBe("card-1")
-      expect(editBlock()?.blockIndex).toBe(3)
+      expect(board.getAppState().textEditHints?.blockIndex).toBe(3)
 
       // ctrl-n again → blockIndex 4 (task-b)
       board.press("ctrl+n")
       expect(editBlock()?.nodeId).toBe("card-1")
-      expect(editBlock()?.blockIndex).toBe(4)
+      expect(board.getAppState().textEditHints?.blockIndex).toBe(4)
 
       // ctrl-n past last body block → next card
       board.press("ctrl+n")

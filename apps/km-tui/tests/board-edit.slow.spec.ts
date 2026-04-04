@@ -1051,13 +1051,13 @@ describe("Enter after edit creates sibling, not board jump", () => {
 
     // Verify we're editing 1a
     const pane1 = getActiveBoardPane(store.getState())!
-    expect(pane1.inlineEditBlock?.nodeId).toBe("1a")
+    expect(store.getState().sel.text()?.nodeId).toBe("1a")
 
     // Press Enter to create a sibling — cursor + edit should move to new node
     board.press("Enter")
 
     const pane2 = getActiveBoardPane(store.getState())!
-    const newNodeId1 = pane2.inlineEditBlock?.nodeId
+    const newNodeId1 = store.getState().sel.text()?.nodeId
     expect(newNodeId1).toBeDefined()
     expect(newNodeId1).not.toBe("1a")
 
@@ -1074,7 +1074,7 @@ describe("Enter after edit creates sibling, not board jump", () => {
     board.press("Enter")
 
     const pane3 = getActiveBoardPane(store.getState())!
-    const newNodeId2 = pane3.inlineEditBlock?.nodeId
+    const newNodeId2 = store.getState().sel.text()?.nodeId
     expect(newNodeId2).toBeDefined()
     expect(newNodeId2).not.toBe(newNodeId1) // new sibling, not same node
 
@@ -1117,14 +1117,14 @@ describe("Enter after edit creates sibling, not board jump", () => {
 
     const pane = getActiveBoardPane(store.getState())!
     // Should be in edit mode on some node
-    expect(pane.inlineEditBlock).not.toBeNull()
+    expect(store.getState().sel.text()).not.toBeNull()
 
     // Press Enter to create sibling
     board.press("Enter")
 
     const pane2 = getActiveBoardPane(store.getState())!
     // Should still be in edit mode
-    expect(pane2.inlineEditBlock).not.toBeNull()
+    expect(store.getState().sel.text()).not.toBeNull()
     // Cursor should be on a real node (not null, not at board level)
     expect(pane2.cursorNodeId).toBeDefined()
     expect(pane2.cursorNodeId).not.toBeNull()
@@ -1143,13 +1143,13 @@ describe("Enter after edit creates sibling, not board jump", () => {
     // Manually set cursor to a position that would cause colIndex=-1
     // (simulating the state where cursor drifts from editing node)
     const pane = getActiveBoardPane(store.getState())!
-    expect(pane.inlineEditBlock?.nodeId).toBe("1a")
+    expect(store.getState().sel.text()?.nodeId).toBe("1a")
 
     // Press Enter — should create sibling (linebreak_after), not child (linebreak_child)
     board.press("Enter")
 
     const pane2 = getActiveBoardPane(store.getState())!
-    const newNodeId = pane2.inlineEditBlock?.nodeId
+    const newNodeId = store.getState().sel.text()?.nodeId
     expect(newNodeId).toBeDefined()
     expect(newNodeId).not.toBe("1a")
 

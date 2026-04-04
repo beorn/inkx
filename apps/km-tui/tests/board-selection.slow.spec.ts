@@ -437,9 +437,9 @@ describe("Selection", () => {
     // Verify the store-level multiSelected contains card-level IDs
     const state = store.getState() as BoardAppStore
     const pane = Workspace.getActiveBoardPane(state)
-    const multiSelected = pane!.multiSelected
-    expect(multiSelected.has("Parent")).toBe(true)
-    expect(multiSelected.has("sibling")).toBe(true)
+    const selIds = state.sel.node.ids()
+    expect(selIds.has("Parent" as any)).toBe(true)
+    expect(selIds.has("sibling" as any)).toBe(true)
 
     // Direct children should visually appear selected
     board.expectNodeColor("child-1", { bg: TC["$selection-bg"] })

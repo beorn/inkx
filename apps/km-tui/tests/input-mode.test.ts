@@ -158,8 +158,8 @@ describe("PaneUI.editMode", () => {
     expect(PaneUI.editMode(base)).toBe("node")
   })
 
-  test("returns 'text' when inlineEditBlock is set", () => {
-    expect(PaneUI.editMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 } })).toBe("text")
+  test("returns 'text' when text editing is active", () => {
+    expect(PaneUI.editMode(base, true)).toBe("text")
   })
 
   test("returns 'dialog' when search dialog is open", () => {
@@ -192,9 +192,7 @@ describe("PaneUI.editMode", () => {
 
   test("text mode takes precedence over dialog", () => {
     // If both inline edit and dialog are somehow active, text mode wins
-    expect(PaneUI.editMode({ ...base, inlineEditBlock: { nodeId: "n1", blockIndex: 0 }, showSearchDialog: true })).toBe(
-      "text",
-    )
+    expect(PaneUI.editMode({ ...base, showSearchDialog: true }, true)).toBe("text")
   })
 })
 

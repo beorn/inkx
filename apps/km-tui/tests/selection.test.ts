@@ -41,7 +41,7 @@ function mockCtx(opts: {
   }
 
   return {
-    ui: { multiSelected: opts.multiSelected ?? new Set() },
+    selectedIds: opts.multiSelected ?? new Set(),
     columns: [{ cardNodes: cards }],
     cursorNodeId: opts.cursorNodeId ?? cards[cardIndex]?.id ?? null,
     colIndex: opts.colIndex ?? 0,
