@@ -152,3 +152,25 @@ export type PointerHelpers = {
   readonly nodesInRect: (origin: PointerOrigin, current: PointerOrigin) => ID[]
   readonly dragThreshold: number
 }
+
+// --- Drag state ---
+
+export type DragState = {
+  readonly hit: PressHit
+  readonly origin: PointerOrigin
+  readonly startState: SelectionSnapshot
+}
+
+// --- Store types ---
+
+/** Minimal interface the store needs from the app's tree. */
+export type SelectionApp = {
+  readonly tree: {
+    walkOrder(root: ID | null): readonly ID[]
+    parent(id: ID): ID | undefined
+    children(id: ID): readonly ID[]
+  }
+}
+
+/** The kind of selection currently active. */
+export type SelectionKind = "idle" | "node" | "text" | "path" | "crop"
