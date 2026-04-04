@@ -55,7 +55,6 @@ export interface UIState {
     colIndex: number
     cardIndex: number
     cursorNodeId: string | null
-    multiSelected: Set<string>
     foldDepths?: Map<string, number>
   }>
   navHistoryIndex: number
@@ -142,12 +141,14 @@ export type PaneUI = UIState & PerPaneUIFields
 export namespace PaneUI {
   /**
    * Get the current editing mode from UI state.
-   * - "text": inline editing a node (inlineEditBlock is set)
+   * - "text": inline editing a node (sel.text() is set)
    * - "dialog": a dialog is open (search, new item, date prompt, etc.)
    * - "node": default navigation mode
+   *
+   * @param isTextEditing - whether text editing is active (from sel.text() !== null)
    */
-  export function editMode(ui: PaneUI): EditMode {
-    if (ui.inlineEditBlock) return "text"
+  export function editMode(ui: PaneUI, isTextEditing?: boolean): EditMode {
+    if (isTextEditing) return "text"
     if (isInDialog(ui)) return "dialog"
     return "node"
   }
@@ -171,9 +172,11 @@ export namespace PaneUI {
   /**
    * True when a text input has focus — either inline editing or a dialog input field.
    * Used by the keybinding system to suppress navigation keys during text entry.
+   *
+   * @param isTextEditing - whether text editing is active (from sel.text() !== null)
    */
-  export function isTextInputFocused(ui: PaneUI): boolean {
-    return !!ui.inlineEditBlock || isDialogInput(ui)
+  export function isTextInputFocused(ui: PaneUI, isTextEditing?: boolean): boolean {
+    return !!isTextEditing || isDialogInput(ui)
   }
 
   /**
@@ -415,14 +418,8 @@ export function createInitialPaneUI(
     ...createInitialUIState(dimensions, iconStyle),
     viewMode: initialViewMode,
     maxContentLines: 3,
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-    visualMode: false,
-    visualAnchor: null,
     collapsedColumns: new Set(collapsedColumns),
     columnScrollAnchor: null,
-    inlineEditBlock: null,
     localSearch: null,
     searchReplace: null,
     showFilterDialog: false,

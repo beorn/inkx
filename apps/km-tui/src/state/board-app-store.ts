@@ -107,6 +107,8 @@ export interface BoardAppState {
   sel: SelectionStore
   /** Update the selection adapter's view tree source (called after layout derivation) */
   selTreeSource: SelectionTreeSource
+  /** km-specific text edit hints (block index, initial cursor pos) — complements sel.text() */
+  textEditHints: import("../tui-context.ts").TextEditHints | null
 
   // --- Undo/redo ---
   undoStack: UndoStack
@@ -520,6 +522,7 @@ export function createBoardAppStoreState(
       // Selection store
       sel,
       selTreeSource,
+      textEditHints: null,
 
       // Undo/redo
       undoStack,

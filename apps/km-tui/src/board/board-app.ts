@@ -328,6 +328,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     return {
       repo: s.repo,
+      sel: s.sel,
+      textEditHints: s.textEditHints,
       rootId,
       rootPath: board?.rootPath ?? null,
       cursorNodeId,

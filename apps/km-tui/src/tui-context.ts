@@ -10,8 +10,9 @@
 
 import type { KNode, ToastQueue } from "@km/core"
 import type { FocusManager } from "@silvery/ag-react"
+import type { SelectionStore } from "@silvery/selection"
 import type { Repo } from "./repo-context.tsx"
-import type { BoardAction } from "./board/board-types.ts"
+import type { BoardReducerOp } from "./board/board-types.ts"
 import type { ColumnView } from "./types.ts"
 import { PaneUI } from "./state/ui-reducer.ts"
 import type { EditMode } from "./state/ui-reducer.ts"
@@ -29,6 +30,12 @@ import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
 export interface ActionCtx {
   // === Storage ===
   repo: Repo
+
+  // === Selection (@silvery/selection store) ===
+  sel: SelectionStore
+  /** Transient km-specific text editing hints (block index, initial cursor pos).
+   * Complements sel.text() which owns nodeId + offset. */
+  textEditHints: TextEditHints | null
 
   // === Board navigation (flat fields from store) ===
   rootId: string | null
@@ -68,7 +75,7 @@ export interface ActionCtx {
 
   // === Dispatchers ===
   /** Dispatch to board state (for SELECT, ZOOM_IN, MOVE, etc.) */
-  dispatchBoard: (action: BoardAction) => void
+  dispatchBoard: (action: BoardReducerOp) => void
   /** Set UI fields directly (partial update, shallow merge). Routes per-pane fields to pane state. */
   setUI: (partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) => void
   /** Set foldDepths (single source of truth at store root) */
@@ -187,7 +194,21 @@ export type DelegatedActionCtxKeys = (typeof DELEGATED_ACTION_CTX_KEYS)[number]
 
 /** Get the current editing mode */
 export function currentMode(ctx: ActionCtx): EditMode {
-  return PaneUI.editMode(ctx.ui)
+  return PaneUI.editMode(ctx.ui, ctx.sel.text() !== null)
+}
+
+/**
+ * Transient km-specific text editing hints.
+ * Lives alongside sel.text() which owns nodeId and cursor offset.
+ * These hints control which block within a node to edit and initial cursor placement.
+ */
+export interface TextEditHints {
+  /** Which block to edit: 0 = title, 1+ = body child at index (blockIndex - 1) */
+  blockIndex: number
+  /** Initial cursor placement hint (consumed once on mount) */
+  initialCursorPos?: "start" | "end" | number
+  /** Sticky X column for vertical cursor movement */
+  stickyX?: number
 }
 
 /** Enter text editing mode on a node */
@@ -197,10 +218,14 @@ export function enterTextMode(
   blockIndex = 0,
   initialCursorPos?: "start" | "end" | number,
 ): void {
-  ctx.setUI({ inlineEditBlock: { nodeId, blockIndex, initialCursorPos } })
+  const offset = initialCursorPos === "end" ? -1 : typeof initialCursorPos === "number" ? initialCursorPos : 0
+  ctx.sel.text.edit(nodeId as import("@silvery/selection").ID, offset)
+  // Store km-specific block hints
+  ctx.textEditHints = { blockIndex, initialCursorPos }
 }
 
 /** Exit text editing mode (save is handled by the EditContext cleanup) */
 export function exitTextMode(ctx: ActionCtx): void {
-  ctx.setUI({ inlineEditBlock: null })
+  ctx.sel.text.deselect()
+  ctx.textEditHints = null
 }
