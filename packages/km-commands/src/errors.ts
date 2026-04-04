@@ -1,7 +1,7 @@
 /**
- * ActionError Types - Expected Failures in Command Handling
+ * OpError Types - Expected Failures in Command Handling
  *
- * ActionResult is the return type for command handlers.
+ * OpResult is the return type for command handlers.
  * Use these for expected failures that callers should handle.
  *
  * - boundary: User at edge of navigation (should ring bell)
@@ -9,7 +9,7 @@
  * - unimplemented: Feature not yet implemented
  *
  * @example
- * function handleCursorMove(ctx: Context, dir: string): ActionResult {
+ * function handleCursorMove(ctx: Context, dir: string): OpResult {
  *   if (atBoundary) return boundary(dir)
  *   doMove()
  *   return ok()
@@ -19,37 +19,37 @@
 import { type Result, Err, OkVoid } from "@km/core"
 
 /**
- * ActionError - discriminated union of expected command failures.
+ * OpError - discriminated union of expected command failures.
  */
-export type ActionError =
+export type OpError =
   | { type: "boundary"; direction: string; message?: string }
   | { type: "precondition"; missing: string }
   | { type: "unimplemented"; feature: string }
 
 /**
- * ActionResult - the return type for command action handlers.
- * Ok(void) on success, Err(ActionError) on expected failure.
+ * OpResult - the return type for command op handlers.
+ * Ok(void) on success, Err(OpError) on expected failure.
  */
-export type ActionResult = Result<void, ActionError>
+export type OpResult = Result<void, OpError>
 
 /**
  * Create a boundary error (user at navigation edge).
  * UI should ring bell.
  */
-export const boundary = (direction: string, message?: string): ActionResult =>
+export const boundary = (direction: string, message?: string): OpResult =>
   Err({ type: "boundary", direction, message })
 
 /**
  * Create a precondition error (expected condition not met).
  */
-export const precondition = (missing: string): ActionResult => Err({ type: "precondition", missing })
+export const precondition = (missing: string): OpResult => Err({ type: "precondition", missing })
 
 /**
  * Create an unimplemented error (feature not yet built).
  */
-export const unimplemented = (feature: string): ActionResult => Err({ type: "unimplemented", feature })
+export const unimplemented = (feature: string): OpResult => Err({ type: "unimplemented", feature })
 
 /**
  * Create a success result.
  */
-export const ok = (): ActionResult => OkVoid
+export const ok = (): OpResult => OkVoid

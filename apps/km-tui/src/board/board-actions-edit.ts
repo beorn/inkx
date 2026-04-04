@@ -22,12 +22,11 @@
  */
 
 import { getMarkerForStatus, extractTaskDates, Position, type KNode, type TaskStatus } from "@km/core"
-import { type ActionResult, boundary, ok } from "@km/commands"
+import { type OpResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { Tree, midpoint } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
-import { clearSelection } from "../keyboard/keyboard-helpers.ts"
-import { getSelectedNodes, forEachSelected } from "./board-selection-helpers.ts"
+import { clearSelection, getSelectedNodes, forEachSelected } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
@@ -599,7 +598,7 @@ export function handleClearTask(ctx: OpCtx): void {
  * When cursor is on a card: up/down shifts within column, left/right moves between columns.
  * When cursor is on a column header: left/right reorders columns.
  */
-export function handleShiftCard(ctx: OpCtx, direction: "up" | "down" | "left" | "right"): ActionResult {
+export function handleShiftCard(ctx: OpCtx, direction: "up" | "down" | "left" | "right"): OpResult {
   const col = ctx.column
   const card = ctx.card
 
@@ -626,7 +625,7 @@ function moveColumn(
   ctx: OpCtx,
   col: { node: { id: string; parent_idx: number } },
   direction: "left" | "right",
-): ActionResult {
+): OpResult {
   if (!ctx.rootId) return boundary("move", "no root")
   const { repo } = ctx
   const columns = ctx.columns
@@ -700,7 +699,7 @@ function normalizeColumnSortOrders(ctx: OpCtx, colIndexA: number, colIndexB: num
  * The column becomes a child of the previous column. Cursor moves to
  * the previous column to follow the indented content.
  */
-export function handleIndentColumn(ctx: OpCtx, col: ColumnView): ActionResult {
+export function handleIndentColumn(ctx: OpCtx, col: ColumnView): OpResult {
   const { repo } = ctx
   const columns = ctx.columns
   const colIndex = columns.findIndex((c) => c.node.id === col.node.id)

@@ -4,11 +4,10 @@
  * Functions for moving, indenting, and outdenting cards.
  */
 
-import { type ActionResult, boundary, ok } from "@km/commands"
+import { type OpResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
 import type { OpCtx } from "../tui-context.ts"
-import { clearSelection } from "./keyboard-helpers.ts"
-import { getSelectedCardIndices } from "../board/board-selection-helpers.ts"
+import { clearSelection, getSelectedCardIndices } from "../board/board-selection-helpers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
 
 // =============================================================================
@@ -89,7 +88,7 @@ function rebuildSelectionForMovedCards(ctx: OpCtx, colIndex: number, movedCardId
 // =============================================================================
 
 /** Move card within column (up/down) */
-export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "down"): ActionResult {
+export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "down"): OpResult {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return boundary(direction)
 
@@ -151,7 +150,7 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
 }
 
 /** Move card to different column (left/right) */
-export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "right"): ActionResult {
+export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "right"): OpResult {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return boundary(direction)
 

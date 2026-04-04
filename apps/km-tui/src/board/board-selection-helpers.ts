@@ -9,6 +9,7 @@
  */
 
 import type { KNode, Position } from "@km/core"
+import type { ID } from "@silvery/selection"
 import { Tree } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
 import type { CardView } from "../types.ts"
@@ -103,4 +104,82 @@ export function forEachSelected(ctx: OpCtx, label: string, fn: (node: KNode) => 
   for (const card of cards) fn(card)
   if (cards.length > 1) ctx.undoHandle.endBatch()
   return cards.length
+}
+
+/**
+ * Clear all selection state and dismiss status bar message.
+ */
+export function clearSelection(ctx: OpCtx): void {
+  ctx.sel.deselect()
+  ctx.setUI({ status: null })
+}
+
+// =============================================================================
+// Progressive Selection
+// =============================================================================
+
+type SelectionScope = "card" | "column" | "board"
+
+/** Build a selection set for the given scope (card, column, or board) */
+function buildSelectAllSet(ctx: OpCtx, scope: SelectionScope): string[] {
+  const selected: string[] = []
+
+  if (scope === "card") {
+    const card = ctx.columns[ctx.colIndex]?.cardNodes[ctx.cardIndex]
+    if (card) {
+      selected.push(card.id)
+    }
+  } else if (scope === "column") {
+    const col = ctx.columns[ctx.colIndex]
+    if (col) {
+      for (const c of col.cardNodes) {
+        selected.push(c.id)
+      }
+    }
+  } else {
+    for (const column of ctx.columns) {
+      for (const c of column.cardNodes) {
+        selected.push(c.id)
+      }
+    }
+  }
+
+  return selected
+}
+
+/**
+ * Progressive select all with Shift+A.
+ *
+ * Uses the size of the current selection to determine the next scope.
+ * Derives scope from current selection size.
+ */
+export function progressiveSelectAll(ctx: OpCtx): void {
+  const col = ctx.columns[ctx.colIndex]
+  const card = col?.cardNodes[ctx.cardIndex]
+
+  // Derive outline mode: cursor is inside a card's sub-items
+  const inOutlineMode = ctx.cursorNodeId !== null && card !== undefined && ctx.cursorNodeId !== card.id
+  const currentSize = ctx.selectedIds.size
+
+  // Determine next scope based on current selection size
+  let scope: SelectionScope
+  if (currentSize === 0 && inOutlineMode && card) {
+    scope = "card"
+  } else if (col && currentSize <= (inOutlineMode ? 1 : 0)) {
+    scope = "column"
+  } else if (col && currentSize <= col.cardNodes.length) {
+    scope = "board"
+  } else {
+    // Already at board level, cycle back
+    scope = "board"
+  }
+
+  const newSelected = buildSelectAllSet(ctx, scope)
+  ctx.sel.node.select(newSelected as ID[])
+  ctx.setUI({
+    status: {
+      level: "info",
+      message: `All ${newSelected.length} items in ${scope} selected`,
+    },
+  })
 }

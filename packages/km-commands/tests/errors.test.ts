@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { boundary, precondition, unimplemented, ok, type ActionResult } from "../src/errors.ts"
+import { boundary, precondition, unimplemented, ok, type OpResult } from "../src/errors.ts"
 
-describe("ActionError constructors", () => {
+describe("OpError constructors", () => {
   it("boundary creates boundary error", () => {
     const result = boundary("up")
     expect(result.ok).toBe(false)
@@ -52,8 +52,8 @@ describe("ActionError constructors", () => {
     }
   })
 
-  it("ActionResult type can hold any ActionError", () => {
-    const results: ActionResult[] = [boundary("down"), precondition("selection"), unimplemented("paste"), ok()]
+  it("OpResult type can hold any OpError", () => {
+    const results: OpResult[] = [boundary("down"), precondition("selection"), unimplemented("paste"), ok()]
 
     expect(results[0]!.ok).toBe(false)
     expect(results[1]!.ok).toBe(false)

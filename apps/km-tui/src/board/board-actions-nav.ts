@@ -5,11 +5,12 @@
  */
 
 import { ViewTree, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
-import type { ActionResult } from "@km/commands"
+import type { OpResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { KNode, getStatusForMarker } from "@km/core"
 import { extractBody } from "@km/tree"
-import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection } from "./board-selection-helpers.ts"
+import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, isTreeDirection, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
 import { detailPaneIdFor } from "./board-types.ts"
@@ -41,7 +42,7 @@ function taskStatusMatchFn(ctx: OpCtx): ((vn: ViewNode) => boolean) | undefined 
  * Dispatches to per-mode handlers: outline, selection, horizontal,
  * vertical (hierarchical), and tree-based navigation.
  */
-export function handleCursorMove(ctx: OpCtx, dir: string): ActionResult {
+export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   const { ui } = ctx
 
   // Outline mode sub-item navigation (when cursor is inside a card's descendants)
@@ -95,7 +96,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): ActionResult {
  * the user sees on screen. Hidden/collapsed nodes are already pruned from ViewTree
  * at construction time — same approach as ViewTree.nodes() for spatial nav.
  */
-function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefined): ActionResult {
+function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefined): OpResult {
   if (!card || !ctx.cursorNodeId) return boundary(dir)
 
   const cardView = ctx.viewIndex.get(card.id)
@@ -122,7 +123,7 @@ function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefi
 }
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
-function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): ActionResult {
+function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
   const { ui, dispatchBoard, navigator, viewNavigation } = ctx
   const isDetailPane = ctx.focusedPaneViewType() === "detail"
 
@@ -228,7 +229,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): ActionResult {
 }
 
 /** Hierarchical vertical navigation (j/k up/down). */
-function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): ActionResult {
+function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
   const { dispatchBoard, navigator, viewNavigation } = ctx
 
   if (!ctx.cursorNodeId) {
@@ -253,7 +254,7 @@ function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): ActionResult {
  * J moves forward (+1), K moves backward (-1). Bell at boundaries.
  * Key invariant: J and K are strict inverses.
  */
-function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): ActionResult {
+function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
   if (!ctx.cursorNodeId) {
     return boundary(dir, "no cursor")
   }
@@ -340,7 +341,7 @@ function ensureCursorVisible(ctx: OpCtx, targetId: string): void {
 }
 
 /** Default tree navigation (first, last, prev, next). */
-function handleTreeNav(ctx: OpCtx, dir: string): ActionResult {
+function handleTreeNav(ctx: OpCtx, dir: string): OpResult {
   const { dispatchBoard } = ctx
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
@@ -354,18 +355,18 @@ function handleTreeNav(ctx: OpCtx, dir: string): ActionResult {
 /**
  * Navigate back in history.
  */
-export function handleNavBack(ctx: OpCtx): ActionResult {
+export function handleNavBack(ctx: OpCtx): OpResult {
   return navigateHistory(ctx, -1)
 }
 
 /**
  * Navigate forward in history.
  */
-export function handleNavForward(ctx: OpCtx): ActionResult {
+export function handleNavForward(ctx: OpCtx): OpResult {
   return navigateHistory(ctx, 1)
 }
 
-function navigateHistory(ctx: OpCtx, delta: -1 | 1): ActionResult {
+function navigateHistory(ctx: OpCtx, delta: -1 | 1): OpResult {
   const { ui, dispatchBoard } = ctx
   const newIndex = ui.navHistoryIndex + delta
 
@@ -396,7 +397,7 @@ function navigateHistory(ctx: OpCtx, delta: -1 | 1): ActionResult {
 /**
  * Navigate to sibling board.
  */
-export function handleNavSiblingBoard(ctx: OpCtx, direction: "next" | "prev"): ActionResult {
+export function handleNavSiblingBoard(ctx: OpCtx, direction: "next" | "prev"): OpResult {
   const { dispatchBoard } = ctx
 
   if (!ctx.rootId) {

@@ -4,10 +4,11 @@
  * Handles zoom in/out and related navigation between board levels.
  */
 
-import type { ActionResult } from "@km/commands"
+import type { OpResult } from "@km/commands"
 import { boundary, ok, precondition } from "@km/commands"
 import { KNode, type ItemData } from "@km/core"
-import { clearSelection, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection } from "./board-selection-helpers.ts"
+import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 
 /**
@@ -48,7 +49,7 @@ function firstCardId(
  * Walks up ancestors from current root to find the board file root (parent_id = null or ".").
  * Much faster than pressing Z repeatedly because computeDefaultFoldDepths only runs once.
  */
-export function handleZoomToRoot(ctx: OpCtx): ActionResult {
+export function handleZoomToRoot(ctx: OpCtx): OpResult {
   if (!ctx.rootId) return boundary("zoom", "Already at root")
 
   // Walk up to find board file root
@@ -80,7 +81,7 @@ export function handleZoomToRoot(ctx: OpCtx): ActionResult {
  * Zoom out to parent level.
  * Handles detail pane, outline mode, and actual zoom operations.
  */
-export function handleZoomOutwards(ctx: OpCtx): ActionResult {
+export function handleZoomOutwards(ctx: OpCtx): OpResult {
   const { ui: _ui, dispatchBoard } = ctx
 
   // Close overlays first
@@ -154,7 +155,7 @@ export function handleZoomOutwards(ctx: OpCtx): ActionResult {
  * Navigate cursor to its tree parent within the current board.
  * Card → column header → board root → boundary.
  */
-function navigateToParent(ctx: OpCtx): ActionResult {
+function navigateToParent(ctx: OpCtx): OpResult {
   if (!ctx.cursorNodeId) return boundary("up")
   const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
   if (!cursorNode?.parent_id) return boundary("up")
@@ -179,7 +180,7 @@ function navigateToParent(ctx: OpCtx): ActionResult {
 /**
  * Zoom into the selected card.
  */
-export function handleZoomIn(ctx: OpCtx): ActionResult {
+export function handleZoomIn(ctx: OpCtx): OpResult {
   const { dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card
@@ -210,7 +211,7 @@ export function handleZoomIn(ctx: OpCtx): ActionResult {
 /**
  * Zoom into a specific node by ID (works for both cards and columns)
  */
-export function handleZoomInNode(ctx: OpCtx, nodeId: string): ActionResult {
+export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
   const { dispatchBoard } = ctx
 
   // If node has no children, return boundary.
@@ -242,7 +243,7 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): ActionResult {
  *
  * Stops walking at repo root (parent_id === null).
  */
-export function handleFollowLink(ctx: OpCtx): ActionResult {
+export function handleFollowLink(ctx: OpCtx): OpResult {
   const { dispatchBoard } = ctx
   const card = ctx.card
   // Read embed_source fresh from the repo — the cached layout may have stale null
@@ -285,7 +286,7 @@ export function handleFollowLink(ctx: OpCtx): ActionResult {
 /**
  * Zoom inwards - handles outline mode sub-selection or standard zoom.
  */
-export function handleZoomInwards(ctx: OpCtx): ActionResult {
+export function handleZoomInwards(ctx: OpCtx): OpResult {
   const { ui: _ui, dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card

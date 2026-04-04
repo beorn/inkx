@@ -1,5 +1,5 @@
-// Error types for action handling
-export type { ActionError, ActionResult } from "./errors.ts"
+// Error types for op handling
+export type { OpError, OpResult } from "./errors.ts"
 export { boundary, precondition, unimplemented, ok } from "./errors.ts"
 
 // Types

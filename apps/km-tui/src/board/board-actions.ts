@@ -16,7 +16,7 @@
 import { spawn } from "node:child_process"
 import { dirname, join } from "node:path"
 import type { KmOp, VerbOp, NavOp, EditOp, TextOp, BoardOp, DialogOp, PaneOp, ViewOp } from "@km/commands"
-import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
+import { type OpResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "loggily"
 import * as chrono from "chrono-node"
 import { naturalToRRule, onNodeChanged, createRuleContext } from "@km/storage"
@@ -31,8 +31,8 @@ import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
-import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { getSelectedNodes, getSelectedNodeIds, moveSelectedTo } from "./board-selection-helpers.ts"
+import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
+import { clearSelection, progressiveSelectAll, getSelectedNodes, getSelectedNodeIds, moveSelectedTo } from "./board-selection-helpers.ts"
 import {
   getFavorite,
   setFavorite,
@@ -437,10 +437,10 @@ export { updateSearchReplaceMatches } from "./board-actions-search-replace.ts"
  * Routes to focused sub-handlers by action category. Each sub-handler has its
  * own exhaustive switch with assertNever, so TypeScript catches missing cases.
  *
- * Returns ActionResult: ok() on success, boundary/precondition/unimplemented on expected failure.
+ * Returns OpResult: ok() on success, boundary/precondition/unimplemented on expected failure.
  * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
-export function handleKmOp(ctx: OpCtx, action: KmOp): ActionResult {
+export function handleKmOp(ctx: OpCtx, action: KmOp): OpResult {
   if (ActionType.is("verb", action)) return handleVerbAction(ctx, action)
   if (ActionType.is("nav", action)) return handleNavAction(ctx, action)
   if (ActionType.is("edit", action)) return handleEditAction(ctx, action)
@@ -457,7 +457,7 @@ export function handleKmOp(ctx: OpCtx, action: KmOp): ActionResult {
 // =============================================================================
 
 /** VerbOp: verb x location actions (4 cases). */
-function handleVerbAction(ctx: OpCtx, action: VerbOp): ActionResult {
+function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
   switch (action.type) {
     case "CURSOR_TO": {
       // "{parent}" is special: zoom outwards (view-level, not positional)
@@ -537,7 +537,7 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): ActionResult {
 }
 
 /** NavOp: cursor movement, zoom, page jumps, history (12 cases). */
-function handleNavAction(ctx: OpCtx, action: NavOp): ActionResult {
+function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
   switch (action.type) {
     case "CURSOR_MOVE":
       // Navigate-away saves: confirm inline edit before moving cursor.
@@ -583,7 +583,7 @@ function handleNavAction(ctx: OpCtx, action: NavOp): ActionResult {
 
 /** EditOp: structural editing — insert, delete, move, indent, clipboard (24 cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive edit action switch
-function handleEditAction(ctx: OpCtx, action: EditOp): ActionResult {
+function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
   const col = ctx.column
   const card = ctx.card
 
@@ -681,7 +681,7 @@ function handleEditAction(ctx: OpCtx, action: EditOp): ActionResult {
 
 /** TextOp: character-level editing dispatched to EditTarget (22 cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive text action switch with inline edit logic
-function handleTextAction(ctx: OpCtx, action: TextOp): ActionResult {
+function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
   switch (action.type) {
     case "TEXT_INSERT": {
       const insertTarget = activeEditTargetRef.current
@@ -867,7 +867,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): ActionResult {
 
 /** BoardOp: selection, fold, visual mode, move mode, content lines (25+ cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive board state switch with fold logic
-function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): ActionResult {
+function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
   const col = ctx.column
   const card = ctx.card
 
@@ -1086,7 +1086,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): ActionResult {
 
 /** DialogOp: pickers, filter, favorites, date prompts, search, confirmations (44 cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive dialog switch covering all dialog/filter/search/property actions
-function handleDialogAction(ctx: OpCtx, action: DialogOp): ActionResult {
+function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
   switch (action.type) {
     case "SHOW_NEW_ITEM_DIALOG":
       pushDialogMode("dialog:newItem")
@@ -1407,7 +1407,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): ActionResult {
 }
 
 /** PaneOp: split, close, focus, resize, detail pane (15 cases). */
-function handlePaneAction(ctx: OpCtx, action: PaneOp): ActionResult {
+function handlePaneAction(ctx: OpCtx, action: PaneOp): OpResult {
   switch (action.type) {
     case "PANE_SPLIT": {
       const layoutDir = action.direction === "vertical" ? "h" : "v"
@@ -1483,7 +1483,7 @@ function handlePaneAction(ctx: OpCtx, action: PaneOp): ActionResult {
 }
 
 /** ViewOp: lifecycle, view modes, help, console, history, misc (23 cases). */
-function handleViewAction(ctx: OpCtx, action: ViewOp): ActionResult {
+function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
   switch (action.type) {
     case "QUIT":
       ctx.exit()
@@ -1660,7 +1660,7 @@ function handleLinebreakSibling(ctx: OpCtx, position: "before" | "after"): void 
 /** Enter in inline edit — split node at cursor position, adjusting for task markers and body blocks.
  *  Title split with visible children: after-portion becomes first child (not sibling).
  *  Title split without children / body block split: after-portion becomes sibling after. */
-function handleLinebreakSplit(ctx: OpCtx): ActionResult {
+function handleLinebreakSplit(ctx: OpCtx): OpResult {
   const edit = ctx.sel.text()
   if (!edit) return ok()
 
@@ -1815,7 +1815,7 @@ function findAdjacentEditNode(
   return vn.parent.id ? findAdjacentEditNode(viewIndex, vn.parent.id, direction, depth + 1) : null
 }
 
-function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBoundary = false): ActionResult {
+function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBoundary = false): OpResult {
   const { ui } = ctx
   const edit = ctx.sel.text()
   if (!edit) return ok()
@@ -1928,7 +1928,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
   return boundary("edit_block_navigate", "no adjacent node")
 }
 
-function handleToggleFold(ctx: OpCtx): ActionResult {
+function handleToggleFold(ctx: OpCtx): OpResult {
   const { repo } = ctx
   const card = ctx.card
 
@@ -1969,7 +1969,7 @@ function handleToggleFold(ctx: OpCtx): ActionResult {
   return ok()
 }
 
-function handleFavoritesSelectKey(ctx: OpCtx, key: string): ActionResult {
+function handleFavoritesSelectKey(ctx: OpCtx, key: string): OpResult {
   if (!key) return ok()
   if (RESERVED_KEYS.has(key)) {
     const label = getReservedKeyLabel(key)
@@ -1980,7 +1980,7 @@ function handleFavoritesSelectKey(ctx: OpCtx, key: string): ActionResult {
   return ok()
 }
 
-function handleFavoritesAssign(ctx: OpCtx): ActionResult {
+function handleFavoritesAssign(ctx: OpCtx): OpResult {
   const key = ctx.ui.favoritesSelectedKey
   if (!key) return ok()
 
@@ -2000,7 +2000,7 @@ function handleFavoritesAssign(ctx: OpCtx): ActionResult {
   return ok()
 }
 
-function handleFavoritesClear(ctx: OpCtx): ActionResult {
+function handleFavoritesClear(ctx: OpCtx): OpResult {
   const key = ctx.ui.favoritesSelectedKey
   if (!key) return ok()
 
@@ -2053,7 +2053,7 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
 }
 
 /** Move node(s) to resolved Position: same-parent → reorder, cross-parent → reparent batch. */
-function handleReparentTo(ctx: OpCtx, to: Position): ActionResult {
+function handleReparentTo(ctx: OpCtx, to: Position): OpResult {
   const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return boundary("move", "no selection")
 
@@ -2082,7 +2082,7 @@ function handleReparentTo(ctx: OpCtx, to: Position): ActionResult {
  * SET_ASSIGNEE, ADD_LINK, and REPARENT_PICKER (for "pick:+") action types.
  */
 /** Handle LINK_TO with resolved target. */
-function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): ActionResult {
+function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): OpResult {
   if (isPickTarget(to)) {
     const pickerType = to.pick === "#" ? "tag" : to.pick === "@" ? "assignee" : to.pick === "+" ? "project" : null
     if (!pickerType) {
@@ -2105,7 +2105,7 @@ function handleLinkTo(ctx: OpCtx, to: Position | PickTarget): ActionResult {
 }
 
 /** Handle CREATE_AT with resolved target (stub). */
-function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): ActionResult {
+function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): OpResult {
   if (isPickTarget(to)) {
     ctx.toastQueue.info("Create with picker not yet implemented")
     ctx.setUI({})
@@ -2117,7 +2117,7 @@ function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): ActionResult {
   return ok()
 }
 
-function handleJumpToColumn(ctx: OpCtx, columnNumber: number): ActionResult {
+function handleJumpToColumn(ctx: OpCtx, columnNumber: number): OpResult {
   const columns = ctx.columns
   const { dispatchBoard } = ctx
 
@@ -2138,7 +2138,7 @@ function handleJumpToColumn(ctx: OpCtx, columnNumber: number): ActionResult {
   return ok()
 }
 
-function handleCloseOrQuit(ctx: OpCtx): ActionResult {
+function handleCloseOrQuit(ctx: OpCtx): OpResult {
   const { ui, dispatchBoard } = ctx
 
   // v2 Escape Layering — each Escape pops one layer (follows focus stack):
@@ -2296,7 +2296,7 @@ function handleOpenInSystem(ctx: OpCtx, nodeId: string): void {
   spawnOpen(ctx, [result.fsPath], "open_in_system")
 }
 
-function handleHideNode(ctx: OpCtx): ActionResult {
+function handleHideNode(ctx: OpCtx): OpResult {
   const { repo } = ctx
   // Always hide at column level — Board.tsx filters columns, not individual cards.
   const node = ctx.column?.node
@@ -2348,7 +2348,7 @@ function getSelectedCardNodeIds(ctx: OpCtx): string[] {
 }
 
 /** Open the date prompt dialog for a given field. */
-function handleSetDatePrompt(ctx: OpCtx, field: "due_at" | "start_at" | "rrule"): ActionResult {
+function handleSetDatePrompt(ctx: OpCtx, field: "due_at" | "start_at" | "rrule"): OpResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary(field, "No card selected")
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- length > 0 guarantees [0] exists
@@ -2368,7 +2368,7 @@ function handleSetDatePrompt(ctx: OpCtx, field: "due_at" | "start_at" | "rrule")
 const PRIORITY_CYCLE = ["P0", "P1", "P2", "P3", "P4"] as const
 
 /** Cycle priority: none → P0 → P1 → P2 → P3 → P4 → none */
-function handleSetPriority(ctx: OpCtx, value?: string): ActionResult {
+function handleSetPriority(ctx: OpCtx, value?: string): OpResult {
   const nodeIds = getSelectedCardNodeIds(ctx)
   if (nodeIds.length === 0) return boundary("priority", "No card selected")
   const firstNodeId = nodeIds[0]
@@ -2451,7 +2451,7 @@ function resolveDate(input: string): { date: string; time: string } | null {
 
 /** Handle confirmation of the date prompt dialog. */
 // oxlint-disable-next-line complexity/complexity -- date parsing with multiple formats
-function handleDatePromptConfirm(ctx: OpCtx): ActionResult {
+function handleDatePromptConfirm(ctx: OpCtx): OpResult {
   const prompt = ctx.ui.datePrompt
   if (!prompt) return ok()
 
@@ -2529,7 +2529,7 @@ function handleDatePromptConfirm(ctx: OpCtx): ActionResult {
 // =============================================================================
 
 /** Copy or cut selected nodes to clipboard. */
-function handleClipboardCopy(ctx: OpCtx, mode: "copy" | "cut"): ActionResult {
+function handleClipboardCopy(ctx: OpCtx, mode: "copy" | "cut"): OpResult {
   const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return boundary("clipboard", "No card to copy")
 
@@ -2548,7 +2548,7 @@ function handleClipboardCopy(ctx: OpCtx, mode: "copy" | "cut"): ActionResult {
 }
 
 /** Paste nodes from clipboard as siblings after cursor. */
-function handleClipboardPaste(ctx: OpCtx): ActionResult {
+function handleClipboardPaste(ctx: OpCtx): OpResult {
   const clipboard = ctx.ui.clipboard
   if (!clipboard) return boundary("clipboard", "Nothing to paste")
 

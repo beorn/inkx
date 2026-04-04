@@ -5,8 +5,8 @@
  * and updating match results when the query changes.
  */
 
-import { type ActionResult, boundary, ok } from "@km/commands"
-import { clearSelection } from "../keyboard/keyboard-helpers.ts"
+import { type OpResult, boundary, ok } from "@km/commands"
+import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 
@@ -42,7 +42,7 @@ export function findMatchingNodeIds(columns: ColumnView[], query: string): strin
 }
 
 /** Open the local find bar */
-export function handleLocalFindOpen(ctx: OpCtx): ActionResult {
+export function handleLocalFindOpen(ctx: OpCtx): OpResult {
   ctx.setUI({
     localSearch: {
       query: "",
@@ -59,7 +59,7 @@ export function handleLocalFindOpen(ctx: OpCtx): ActionResult {
 }
 
 /** Navigate to the next match */
-export function handleLocalFindNext(ctx: OpCtx): ActionResult {
+export function handleLocalFindNext(ctx: OpCtx): OpResult {
   const ls = ctx.ui.localSearch
   if (!ls || ls.matchCount === 0) return boundary("find", "No matches")
 
@@ -75,7 +75,7 @@ export function handleLocalFindNext(ctx: OpCtx): ActionResult {
 }
 
 /** Navigate to the previous match */
-export function handleLocalFindPrev(ctx: OpCtx): ActionResult {
+export function handleLocalFindPrev(ctx: OpCtx): OpResult {
   const ls = ctx.ui.localSearch
   if (!ls || ls.matchCount === 0) return boundary("find", "No matches")
 
