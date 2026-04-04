@@ -36,8 +36,7 @@ export type OpResult = Result<void, OpError>
  * Create a boundary error (user at navigation edge).
  * UI should ring bell.
  */
-export const boundary = (direction: string, message?: string): OpResult =>
-  Err({ type: "boundary", direction, message })
+export const boundary = (direction: string, message?: string): OpResult => Err({ type: "boundary", direction, message })
 
 /**
  * Create a precondition error (expected condition not met).
