@@ -64,7 +64,7 @@ const PATHS = ["/file1.md", "/file2.md", "/dir/file3.md", "/notes/daily.md", nul
  * cursor movement is most common, fold/collapse moderately common,
  * move mode and root changes least common.
  */
-function randomAction(pick: (arr: readonly string[]) => string, pickFloat: () => number): BoardReducerOp {
+function randomOp(pick: (arr: readonly string[]) => string, pickFloat: () => number): BoardReducerOp {
   const r = pickFloat()
 
   // SELECT (30%) — most common
@@ -234,7 +234,7 @@ describe("Board Reducer Fuzz Tests", () => {
 
     for await (const _ of take(
       gen(({ random }) => {
-        const action = randomAction(
+        const action = randomOp(
           (arr) => arr[Math.floor(random.float() * arr.length)]!,
           () => random.float(),
         )
@@ -263,7 +263,7 @@ describe("Board Reducer Fuzz Tests", () => {
 
     for await (const _ of take(
       gen(({ random }) => {
-        return randomAction(
+        return randomOp(
           (arr) => arr[Math.floor(random.float() * arr.length)]!,
           () => random.float(),
         )
@@ -409,7 +409,7 @@ describe("Board Reducer Fuzz Tests", () => {
 
     for await (const _ of take(
       gen(({ random }) => {
-        return randomAction(
+        return randomOp(
           (arr) => arr[Math.floor(random.float() * arr.length)]!,
           () => random.float(),
         )
