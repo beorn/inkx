@@ -11,7 +11,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync, renameSync } from "
 import { join } from "path"
 
 import { withTestEnv } from "@km/storage"
-import { ChangeHandlers, type FsWriteTarget } from "../../src/watch/event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "../../src/watch/change-handlers.ts"
 import { createEmitter } from "../../src/emitter.ts"
 
 /** Minimal FsWriteTarget that tracks recorded tokens and rename calls */

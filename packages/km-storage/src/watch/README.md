@@ -75,7 +75,7 @@ The emitter has three methods:
 
 - `apply(event)` — The main verb: `commit()` then `save()`. Used by TUI-origin events.
 - `commit(event)` — DB apply + persist + broadcast. No filesystem writes.
-- `save(event)` — FS sync only. Writes files via EventHandlers.
+- `save(change)` — FS sync only. Writes files via ChangeHandlers.
 
 FS-origin reconciliation uses `commit()` only. This structurally prevents echo loops —
 the filesystem save never runs for watcher-detected changes.
@@ -143,7 +143,7 @@ CREATE TABLE sync_state (
 
 | Module              | Single Responsibility                                                         |
 | ------------------- | ----------------------------------------------------------------------------- |
-| `event-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by withSync + FsWriter) |
+| `change-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by withSync + FsWriter) |
 | `writequeue.ts`     | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite  |
 | `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename             |
 
@@ -268,7 +268,7 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 
 ## withSync vs FsWriter
 
-Both handle DB→FS via shared `EventHandlers` with `save(node)` as the core verb.
+Both handle DB→FS via shared `ChangeHandlers` with `save(node)` as the core verb.
 Differ only in the `FsWriteTarget` they inject:
 
 | Aspect             | withSync (TUI)                         | FsWriter (CLI)                    |

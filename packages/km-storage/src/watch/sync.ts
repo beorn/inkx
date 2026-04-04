@@ -22,7 +22,7 @@ import { createOwnershipTracker, type OwnershipTracker } from "./ownership-track
 import { getIgnorePatterns } from "../fs/ignore.ts"
 import { type Change } from "@km/core"
 import { type Emitter, type EmitOptions } from "../emitter.ts"
-import { ChangeHandlers, type FsWriteTarget } from "./event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "./change-handlers.ts"
 import { createReconciliationEngine, type ReconciliationEngine } from "./reconciliation-engine.ts"
 import { BulkSync, wrapEmitterForReconcile } from "./bulk-sync.ts"
 import type { BulkSyncDeps, SyncProgressCallback, SyncFromFsResult } from "./bulk-sync.ts"

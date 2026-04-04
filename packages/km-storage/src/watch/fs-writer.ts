@@ -12,7 +12,7 @@ import { existsSync, mkdirSync, renameSync, rmSync, statSync, unlinkSync, writeF
 import { dirname } from "path"
 import type { Change } from "@km/core"
 import type { SyncableRepo } from "./sync.ts"
-import { ChangeHandlers, type FsWriteTarget } from "./event-handlers.ts"
+import { ChangeHandlers, type FsWriteTarget } from "./change-handlers.ts"
 
 /** Result of withFsWriter — the repo plus a direct FS projection function */
 export interface FsWriterResult<R> {
