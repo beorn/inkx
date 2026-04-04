@@ -23,7 +23,8 @@
  * ```
  */
 
-import { signal, effect } from "alien-signals"
+import { signal } from "alien-signals"
+import { useState, useEffect, useRef } from "react"
 
 /**
  * Zustand-compatible StoreApi interface.
@@ -119,4 +120,28 @@ export function createSignalStore<T>(factory: StateCreator<T>): SignalStoreApi<T
   initialState = created
 
   return api
+}
+
+/**
+ * React hook to subscribe to a signal store with a selector.
+ * Drop-in replacement for Zustand's useStore(store, selector).
+ *
+ * @example
+ * ```tsx
+ * const content = useSignalStore(store, (s) => s.content)
+ * ```
+ */
+export function useSignalStore<T, U>(store: SignalStoreApi<T>, selector: (state: T) => U): U {
+  const [state, setState] = useState(() => selector(store.getState()))
+  const selectorRef = useRef(selector)
+  selectorRef.current = selector
+
+  useEffect(() => {
+    return store.subscribe((newState) => {
+      const next = selectorRef.current(newState)
+      setState((prev) => (Object.is(prev, next) ? prev : next))
+    })
+  }, [store])
+
+  return state
 }

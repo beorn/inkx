@@ -2,7 +2,7 @@
  * Popover System — hover-to-preview for links and node details.
  *
  * Architecture (Tippy.js singleton + Floating UI patterns):
- * - Zustand store holds popover state (content, anchor, timers)
+ * - Signal store holds popover state (content, anchor, timers)
  * - PopoverProvider creates the store and renders a persistent overlay
  * - PopoverOverlay subscribes to store — swaps content in place (no remount)
  * - Show delay (400ms) for cold start, instant swap when already visible
@@ -10,11 +10,11 @@
  * - Warm window (200ms) for instant re-show after recent hide
  * - Lazy render callback: expensive React trees only built when popover is visible
  *
- * Era2b migration path: Zustand store → createModel() with signal() accessors.
+ * Uses alien-signals via createSignalStore (Zustand API-compatible).
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
-import { createStore, useStore } from "zustand"
+import { createSignalStore, useSignalStore } from "../state/signal-store.ts"
 import { Box, Link, Spinner, Text } from "@silvery/ag-react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import type { SilveryMouseEvent, SilveryWheelEvent } from "@silvery/ag-term/mouse-events"
@@ -145,7 +145,7 @@ export function computePointPosition(
 }
 
 // =============================================================================
-// Zustand store
+// Signal store
 // =============================================================================
 
 interface PopoverStoreState {
@@ -182,7 +182,7 @@ function createPopoverStore() {
     }
   }
 
-  return createStore<PopoverStoreState>((set, get) => ({
+  return createSignalStore<PopoverStoreState>((set, get) => ({
     content: null,
     anchor: null,
     popoverHovered: false,
@@ -289,8 +289,8 @@ export function PopoverProvider({ children }: { children: React.ReactNode }): Re
 // =============================================================================
 
 const PopoverOverlay = React.memo(function PopoverOverlay({ store }: { store: PopoverStore }) {
-  const content = useStore(store, (s) => s.content)
-  const anchor = useStore(store, (s) => s.anchor)
+  const content = useSignalStore(store, (s) => s.content)
+  const anchor = useSignalStore(store, (s) => s.anchor)
   const [scrollOffset, setScrollOffset] = useState(0)
 
   // Reset scroll when content changes
