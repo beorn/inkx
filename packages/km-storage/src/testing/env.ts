@@ -123,7 +123,7 @@ export interface TestEnv {
    * Access raw db via data.database when needed.
    */
   data: DataStore & HasDatabase
-  /** Emitter domain object for event emission */
+  /** Emitter domain object for change emission */
   emitter: Emitter
 }
 

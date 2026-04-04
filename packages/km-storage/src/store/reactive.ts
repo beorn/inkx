@@ -44,7 +44,7 @@ type WritableSignal<T> = { (): T; (value: T): void }
  *
  * Signal lifecycle:
  * - Created lazily on first nodeState(id) / childIdsState(parentId) call
- * - Updated in batch when onCommit fires (one notification per commit, not per-event)
+ * - Updated in batch when onCommit fires (one notification per commit, not per-change)
  * - Deleted nodes get ResourceState.deleted(), not removed from map
  *   (consumers may still hold a reference and need to see the transition)
  */

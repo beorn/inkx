@@ -10,15 +10,15 @@ DB-ORIGIN EVENTS (TUI edit, CLI command, agent action)
 
   User action
        |
-  repo.apply(event)  [= commit() + save()]
+  repo.apply(change)  [= commit() + save()]
        |
        |-- commit():
-       |     1. Apply to DB ------> applyEventWithDb() [db-events.ts]
+       |     1. Apply to DB ------> applyChangeWithDb() [changes.ts]
        |     2. Persist ----------> append to .km/changes.jsonl
-       |     3. Broadcast --------> eventHub.broadcast(event)
+       |     3. Broadcast --------> changeHub.broadcast(change)
        |
        '-- save():
-             4. FS sync ----------> route(event) → handlers.save(node)
+             4. FS sync ----------> route(change) → handlers.save(node)
                                       |
                              +--------+--------+
                              |                 |
@@ -73,8 +73,8 @@ FS-ORIGIN EVENTS (external editor, git pull, Obsidian, Vim)
 
 The emitter has three methods:
 
-- `apply(event)` — The main verb: `commit()` then `save()`. Used by TUI-origin events.
-- `commit(event)` — DB apply + persist + broadcast. No filesystem writes.
+- `apply(change)` — The main verb: `commit()` then `save()`. Used by TUI-origin changes.
+- `commit(change)` — DB apply + persist + broadcast. No filesystem writes.
 - `save(change)` — FS sync only. Writes files via ChangeHandlers.
 
 FS-origin reconciliation uses `commit()` only. This structurally prevents echo loops —
@@ -141,11 +141,11 @@ CREATE TABLE sync_state (
 
 ### DB → FS
 
-| Module              | Single Responsibility                                                         |
-| ------------------- | ----------------------------------------------------------------------------- |
+| Module               | Single Responsibility                                                         |
+| -------------------- | ----------------------------------------------------------------------------- |
 | `change-handlers.ts` | Unified node mutation handlers for DB→FS sync (shared by withSync + FsWriter) |
-| `writequeue.ts`     | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite  |
-| `watch-utils.ts`    | Shared helpers: findFileNode (walk parent chain), titleToFilename             |
+| `writequeue.ts`      | Atomic writes (temp+rename), retry, conflict detection, pending path rewrite  |
+| `watch-utils.ts`     | Shared helpers: findFileNode (walk parent chain), titleToFilename             |
 
 ### Ownership Tracking
 
@@ -157,14 +157,14 @@ CREATE TABLE sync_state (
 
 ### Shared
 
-| Module         | Single Responsibility                                           |
-| -------------- | --------------------------------------------------------------- |
-| `db-events.ts` | Apply events to SQLite (switch on type -> INSERT/UPDATE/DELETE) |
-| `types.ts`     | WatcherInterface, SyncData type definitions                     |
+| Module       | Single Responsibility                                            |
+| ------------ | ---------------------------------------------------------------- |
+| `changes.ts` | Apply changes to SQLite (switch on type -> INSERT/UPDATE/DELETE) |
+| `types.ts`   | WatcherInterface, SyncData type definitions                      |
 
-## Event Types
+## Change Types
 
-| Event Type       | DB Handler (db-events.ts)                 | FS Handler (sync/fs-writer)                           |
+| Change Type      | DB Handler (changes.ts)                   | FS Handler (sync/fs-writer)                           |
 | ---------------- | ----------------------------------------- | ----------------------------------------------------- |
 | `node_created`   | INSERT into nodes                         | Create dir/file or regenerate parent file             |
 | `node_updated`   | UPDATE matching columns + json_patch data | Regenerate containing .md file (+ folder/file rename) |
@@ -174,7 +174,7 @@ CREATE TABLE sync_state (
 | `task_released`  | SET assigned_to=NULL, status='todo'       | Regenerate containing .md file                        |
 | `task_completed` | SET status='done', marker='[x]'           | Regenerate containing .md file                        |
 
-All events carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance tracking.
+All changes carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance tracking.
 
 ## Error Handling Rules
 
@@ -221,7 +221,7 @@ All events carry `origin?: "tui" | "fs" | "replay" | "system"` for provenance tr
 
 ### DB → FS (user edits)
 
-DB is always correct. Event handlers regenerate files from DB state.
+DB is always correct. Change handlers regenerate files from DB state.
 The watcher suppresses our own writes via the OwnershipTracker (two-tier: L1 in-memory + L2 sync_state).
 
 ### FS → DB (external edits)
@@ -250,17 +250,17 @@ Periodic anti-entropy check (configurable interval, default 60s, only when idle 
 
 ## Key Invariants
 
-1. **Structural loop prevention**: FS-origin events use `commit()` (no `project()`),
+1. **Structural loop prevention**: FS-origin changes use `commit()` (no `project()`),
    so they structurally cannot trigger filesystem writes.
 
-2. **DB authority for user events**: DB is the source of truth for all user-initiated
-   mutations. Event handlers regenerate files from DB state directly.
+2. **DB authority for user changes**: DB is the source of truth for all user-initiated
+   mutations. Change handlers regenerate files from DB state directly.
 
 3. **Two-tier write suppression**: OwnershipTracker L1 (hot) + L2 (durable) prevent
    the watcher from reconciling files we just wrote.
 
 4. **Apply before persist**: The DB is updated before changes.jsonl is appended.
-   A crash between steps 1 and 2 loses the event from the journal but the DB is
+   A crash between steps 1 and 2 loses the change from the journal but the DB is
    correct — safer than the reverse.
 
 5. **Direct writes**: WriteQueue writes directly to the target path, preserving

@@ -369,10 +369,10 @@ export interface DBDataStoreOptions {
  *
  * @param db - SQLite database instance (caller manages lifecycle)
  * @param options - Optional emitter for disk mode
- * @returns DataStore + HasDatabase (no event sourcing - caller manages)
+ * @returns DataStore + HasDatabase (no change sourcing - caller manages)
  */
 export function createDBDataStore(db: Database, options?: DBDataStoreOptions): DataStore & HasDatabase {
-  // Create ops with optional emitter - if emitter provided, events are emitted
+  // Create ops with optional emitter - if emitter provided, changes are emitted
   const ops = createDbOps(db, options?.emitter)
   let closed = false
 

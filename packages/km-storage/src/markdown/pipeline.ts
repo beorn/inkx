@@ -419,7 +419,7 @@ function insertFileNodes(
   for (const node of file.nodes) {
     insertNodeRow(insertStmt, node, now)
 
-    // Emit event if emitter provided (syncing path)
+    // Emit change if emitter provided (syncing path)
     if (emitter) {
       emitNodeCreated(emitter, "fs-watch", node as unknown as Record<string, unknown>)
     }
@@ -449,7 +449,7 @@ function updateFileMetadata(file: ParsedFile, db: Database, emitter: Emitter | u
     file.nodeId,
   ])
 
-  // Emit update event if emitter provided
+  // Emit update change if emitter provided
   if (emitter) {
     emitNodeUpdated(emitter, "fs-watch", file.nodeId, updates)
   }

@@ -91,8 +91,8 @@ export function processMarkdownFile(content: string, path: string, ino?: number,
 }
 
 /**
- * Convert processed markdown to node_created events.
- * Used by the loading path for batch event application.
+ * Convert processed markdown to node_created changes.
+ * Used by the loading path for batch change application.
  */
 export function toNodeEvents(processed: ProcessedMarkdown, actor: string, timestamp?: number): Change[] {
   const ts = timestamp ?? Date.now()

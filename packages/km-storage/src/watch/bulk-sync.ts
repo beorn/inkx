@@ -73,9 +73,9 @@ export interface BulkSyncDeps {
 export function wrapEmitterForReconcile(emitter: Emitter): Emitter {
   return {
     ...emitter,
-    apply(event: Parameters<Emitter["apply"]>[0], options: EmitOptions = {}) {
+    apply(change: Parameters<Emitter["apply"]>[0], options: EmitOptions = {}) {
       // Use commit() directly — structurally prevents echo loops
-      return emitter.commit(event, options)
+      return emitter.commit(change, options)
     },
   }
 }

@@ -193,8 +193,8 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
     })
 
     // Emit embed_source update so the in-memory store stays in sync.
-    // addLink sets embed_source on the DB node directly (no events),
-    // but the TUI reads from the in-memory store which needs the event.
+    // addLink sets embed_source on the DB node directly (no changes),
+    // but the TUI reads from the in-memory store which needs the change.
     if (link.embedded && link.target_id) {
       emitNodeUpdated(emitter, "fs-watch", sourceId, {
         embed_source: link.target_id,
@@ -221,8 +221,8 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
  * This enables bidirectional sync: editing an index file externally updates the folder's
  * children ordering and title in the DB.
  *
- * Circular sync is already prevented: events emitted here use actor "fs-watch",
- * and the event-handler skips fs-watch-origin events — so these changes won't
+ * Circular sync is already prevented: changes emitted here use actor "fs-watch",
+ * and the change-handler skips fs-watch-origin changes — so these won't
  * trigger the write path to regenerate the index file.
  */
 export function syncIndexFileToFolder(options: UpdateHandlerOptions): void {

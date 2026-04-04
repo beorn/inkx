@@ -100,10 +100,10 @@ export function createTestEnvRepo(options: CreateTestEnvRepoOptions): TestEnvRep
     db.run(SCHEMA)
   }
 
-  // Create emitter with db wired for event application
+  // Create emitter with db wired for change application
   const emitter = createEmitter({ kmDir, db, skipPersist })
 
-  // Create DataStore with emitter for mutation events
+  // Create DataStore with emitter for mutation changes
   const data = createDBDataStore(db, { emitter })
 
   // Create Repo with shared emitter
