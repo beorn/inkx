@@ -47,6 +47,10 @@ export {
   EMPTY_STATE,
 } from "./apply.ts"
 
+// Tree op transform (SlateJS pattern)
+export { transformSelection } from "./transform.ts"
+export type { SelectionTree, TreeOp } from "./transform.ts"
+
 // Pointer state machine
 export { applyPointerEvent } from "./pointer.ts"
 
@@ -58,3 +62,7 @@ export type { DragAccessor, NodeAccessor, RootAccessor, SelectionStore } from ".
 export type { TextAccessor } from "./sub-text.ts"
 export type { PathAccessor } from "./sub-path.ts"
 export type { CropAccessor } from "./sub-crop.ts"
+
+// op() proxy — operations as data
+export { op } from "./op-proxy.ts"
+export type { OpDescriptor, OpApply } from "./op-proxy.ts"
