@@ -214,16 +214,19 @@ export function executeBatchDelete(ctx: ActionCtx, nodeIds: string[]): void {
     const targetCol = nextCol ?? prevCol
     cursorTarget = targetCol?.cardNodes[0]?.id ?? targetCol?.node.id ?? null
   } else {
-    // For card delete, find adjacent card in same column not being deleted
-    const col = ctx.column
-    if (col) {
-      const cardIdx = col.cardNodes.findIndex((c) => deleteSet.has(c.id))
-      const nextCard = col.cardNodes.slice(cardIdx + 1).find((c) => !deleteSet.has(c.id))
-      const prevCard = col.cardNodes
-        .slice(0, cardIdx)
+    // For card/subitem delete, find adjacent sibling not being deleted.
+    // Use the node's parent children (not column cardNodes) so subitems
+    // find their siblings correctly instead of falling through to column header.
+    const firstParentId = firstNode?.parent_id
+    if (firstParentId) {
+      const siblings = repo.getChildren(firstParentId)
+      const idx = siblings.findIndex((c) => deleteSet.has(c.id))
+      const nextSib = siblings.slice(idx + 1).find((c) => !deleteSet.has(c.id))
+      const prevSib = siblings
+        .slice(0, idx)
         .reverse()
         .find((c) => !deleteSet.has(c.id))
-      cursorTarget = (nextCard ?? prevCard)?.id ?? col.node.id
+      cursorTarget = (nextSib ?? prevSib)?.id ?? firstParentId
     }
   }
 
