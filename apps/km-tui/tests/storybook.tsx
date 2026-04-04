@@ -164,7 +164,7 @@ const noopUndoHandle = {
 export function StorybookProviders({ children }: { children: React.ReactNode }): React.ReactElement {
   const treeConfig = deriveTreeConfig(mockUIState.viewMode, mockUIState.maxContentLines, mockUIState)
   return (
-    <StoreContext.Provider value={mockZustandStore}>
+    <StoreContext.Provider value={mockZustandStore as import("@silvery/create/signal-store").StoreApi<unknown>}>
       <ReactiveNodeStoreProvider value={storybookNodeStore}>
         <TreeRenderProvider
           treeConfig={treeConfig}

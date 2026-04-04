@@ -4,7 +4,7 @@
  * Provides a unified interface for driving the Board TUI programmatically,
  * enabling AI exploration, fuzz testing, and headless automation.
  *
- * Uses a local BoardAppStore (Zustand) for state management — the same store
+ * Uses a local BoardAppStore (signal store) for state management — the same store
  * type used in production via createBoardApp(). Board renders in L3 mode
  * (useStore=true), reading state from the store via useApp() selectors.
  *
@@ -324,13 +324,13 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   const originalPress = baseApp.press.bind(baseApp)
   const driverPress = async (key: string): Promise<App> => {
     // Parse the key and route through the board-app key handler.
-    // Must run inside act() so that Zustand → useApp → setState updates are
+    // Must run inside act() so that store → useApp → setState updates are
     // processed synchronously by React, triggering Board L3 re-render.
     const ansi = keyToAnsi(key)
     const [input, parsedKey] = parseKey(ansi)
     act(() => {
       handleKey({ input, key: parsedKey }, eventCtx, () => {})
-      // Trigger a no-op Zustand store update to ensure any pending
+      // Trigger a no-op signal store update to ensure any pending
       // alien-signals bridge updates get flushed during this act() cycle.
       // Without this, external store changes aren't reflected until the
       // next state-changing keypress.

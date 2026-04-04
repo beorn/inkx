@@ -1,7 +1,7 @@
 /**
  * UI Hooks for Board Components
  *
- * Provides UI state selectors via the Zustand store.
+ * Provides UI state selectors via the signal store.
  * TreeRenderContext provides global rendering config to TreeNode
  * without per-node store subscriptions.
  */
@@ -42,7 +42,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 
 /**
  * Select a slice of UI state with automatic memoization.
- * Only re-renders when the selected value changes (via Zustand + React useState).
+ * Only re-renders when the selected value changes (via store + React useState).
  *
  * @example
  * const showHelp = useUISelector(state => state.showHelp);

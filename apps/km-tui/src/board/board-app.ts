@@ -1,7 +1,7 @@
 /**
  * Board App — createApp() definition (Layer 3)
  *
- * Defines the board application with Zustand store + term:key/term:mouse event handlers.
+ * Defines the board application with signal store + term:key/term:mouse event handlers.
  * Key flow: stdin → TermProvider → term:key handler → command system → set()/setUI() → React re-renders
  * Mouse flow: stdin → TermProvider → term:mouse handler → scroll=viewport-scroll, click=hitTest→SELECT(node), ctrl-click=SELECT+TOGGLE, dblclick=ENTER_INLINE_EDIT
  */
@@ -313,7 +313,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const effectiveUI: PaneUI = board ? mergePaneUI(s.ui, board) : (s.ui as PaneUI)
 
     // textEditHints is mutated directly by action handlers (ctx.textEditHints = {...}).
-    // Use a local variable + setter that writes through to the Zustand store so
+    // Use a local variable + setter that writes through to the signal store so
     // React components and subsequent buildOpCtx() calls see the update.
     let _textEditHints = s.textEditHints
 

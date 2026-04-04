@@ -1,5 +1,5 @@
 /**
- * Board App Store — Zustand store for createApp() integration
+ * Board App Store — signal-backed store for createApp() integration
  *
  * Canonical state for the board TUI:
  * - Board.tsx reads via useApp(selector)
@@ -410,7 +410,7 @@ function computeDetailInitialCursor(repo: Repo, nodeId: string | null): string |
 
 /**
  * Create the initial store state for the board app.
- * Used as the Zustand StateCreator in createApp().
+ * Used as the store StateCreator in createApp().
  */
 export function createBoardAppStoreState(
   params: CreateBoardAppStoreParams,
@@ -483,19 +483,74 @@ export function createBoardAppStoreState(
       return createSelectionAdapter().source
     }
 
-    // Bridge: alien-signals → Zustand. Selection state lives in alien-signals
-    // (inside createSelection), but React components read it via Zustand selectors
+    // Create stable routing proxy for sel that delegates to the focused pane's sel.
+    // This survives Zustand's shallow merge (spread) because it's a concrete object,
+    // not a getter. Every method call delegates to getActiveSel() at call time.
+    const routingSel: SelectionStore = {
+      get node() {
+        return getActiveSel().node
+      },
+      get sub() {
+        return getActiveSel().sub
+      },
+      set sub(v) {
+        getActiveSel().sub = v
+      },
+      get subComputed() {
+        return getActiveSel().subComputed
+      },
+      get text() {
+        return getActiveSel().text
+      },
+      get path() {
+        return getActiveSel().path
+      },
+      get crop() {
+        return getActiveSel().crop
+      },
+      get drag() {
+        return getActiveSel().drag
+      },
+      get root() {
+        return getActiveSel().root
+      },
+      get kind() {
+        return getActiveSel().kind
+      },
+      deselect() {
+        getActiveSel().deselect()
+      },
+      selectAll(parent) {
+        getActiveSel().selectAll(parent)
+      },
+      get snapshot() {
+        return getActiveSel().snapshot
+      },
+      reconcile() {
+        getActiveSel().reconcile()
+      },
+    }
+
+    // Create stable routing proxy for selTreeSource.
+    const routingSelTreeSource: SelectionTreeSource = {
+      update(viewIndex, viewTree) {
+        getActiveSelTreeSource().update(viewIndex, viewTree)
+      },
+    }
+
+    // Bridge: alien-signals → store. Selection state lives in alien-signals
+    // (inside createSelection), but React components read it via store selectors
     // like useAppStore(s => s.sel.text()?.nodeId). When alien-signals updates,
-    // Zustand doesn't know — the sel reference is the same object. This effect
-    // tracks all selection computed signals and forces a Zustand notification
+    // the store doesn't know — the sel reference is the same object. This effect
+    // tracks all selection computed signals and forces a store notification
     // so useAppStore selectors re-evaluate.
     //
     // We set up a bridge for EACH board pane's sel so that changes to any pane's
-    // selection trigger Zustand notifications (e.g., detail pane sel changes).
+    // selection trigger store notifications (e.g., detail pane sel changes).
     let _selVersion = 0
     const bridgedSels = new Set<SelectionStore>()
 
-    /** Set up an alien-signals → Zustand bridge for a pane's sel store. Idempotent. */
+    /** Set up an alien-signals → store bridge for a pane's sel store. Idempotent. */
     function bridgePaneSel(paneSel: SelectionStore): void {
       if (bridgedSels.has(paneSel)) return
       bridgedSels.add(paneSel)
@@ -539,14 +594,11 @@ export function createBoardAppStoreState(
       // Dimensions
       dimensions: params.dimensions,
 
-      // Selection store — delegates to the focused pane's per-pane sel.
-      // Getter ensures React components and action handlers always see the active pane's selection.
-      get sel() {
-        return getActiveSel()
-      },
-      get selTreeSource() {
-        return getActiveSelTreeSource()
-      },
+      // Selection store — stable proxy that delegates to the focused pane's per-pane sel.
+      // Must be a concrete object (not a getter) because Zustand's shallow merge (spread)
+      // copies property values, not getter descriptors.
+      sel: routingSel,
+      selTreeSource: routingSelTreeSource,
       textEditHints: null,
 
       // Undo/redo
@@ -562,10 +614,10 @@ export function createBoardAppStoreState(
 
       // oxlint-disable-next-line complexity/complexity -- Exhaustive switch over BoardReducerOp union
       dispatchBoard(action: BoardReducerOp) {
-        // --- Fast path: SELECT bypasses Zustand set() entirely ---
+        // --- Fast path: SELECT bypasses store set() entirely ---
         if (action.type === "SELECT") {
           const s = _get()
-          // Silent mutation on focused board pane (no Zustand subscriber notification)
+          // Silent mutation on focused board pane (no store subscriber notification)
           const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
           if (focusedPane && isBoardPane(focusedPane)) {
             focusedPane.cursorNodeId = action.nodeId
@@ -632,7 +684,7 @@ export function createBoardAppStoreState(
           return
         }
 
-        // --- Fast path: SET_CURSWANT also bypasses Zustand set() entirely ---
+        // --- Fast path: SET_CURSWANT also bypasses store set() entirely ---
         if (action.type === "SET_CURSWANT") {
           const s = _get()
           // Silent mutation on focused board pane
@@ -928,6 +980,10 @@ export function createBoardAppStoreState(
           if (!detail) return state
           const newPanes = new Map(state.workspace.panes)
           newPanes.set(detail.id, { ...detail, cursorNodeId: id })
+          // Sync detail pane's sel
+          if (id) {
+            detail.sel.node.select([id as import("@silvery/selection").ID])
+          }
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
       },
@@ -985,7 +1041,7 @@ export function createBoardAppStoreState(
             },
           }
         })
-        // Bridge the new detail pane's sel for Zustand notifications
+        // Bridge the new detail pane's sel for store notifications
         const s = _get()
         const detailId = detailPaneIdFor(s.workspace.focusedPaneId)
         const detailPane = s.workspace.panes.get(detailId)
@@ -1322,7 +1378,7 @@ export function createBoardAppStoreState(
             workspace: { ...workspace, panes: newPanes },
           }
         })
-        // Bridge the newly activated pane's sel for Zustand notifications
+        // Bridge the newly activated pane's sel for store notifications
         const s = _get()
         const activatedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
         if (activatedPane && isBoardPane(activatedPane)) {
@@ -1364,7 +1420,19 @@ function updateBoardPane(
   update: Partial<BoardPaneState>,
 ): Map<string, PaneState> {
   const newPanes = new Map(workspace.panes)
-  newPanes.set(paneId, { ...pane, ...update })
+  const updatedPane = { ...pane, ...update }
+  newPanes.set(paneId, updatedPane)
+
+  // Keep per-pane sel in sync when cursorNodeId changes via pane state update.
+  // This ensures sel.node.cursor() reflects the same value as pane.cursorNodeId
+  // during the migration period where both coexist.
+  if (update.cursorNodeId !== undefined && update.cursorNodeId !== null) {
+    const ids = pane.sel.node.ids()
+    if (ids.length <= 1) {
+      pane.sel.node.select([update.cursorNodeId as import("@silvery/selection").ID])
+    }
+  }
+
   return newPanes
 }
 

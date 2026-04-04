@@ -1,12 +1,12 @@
 /**
  * Ink-based Board TUI Component
  *
- * Architecture (L3 — createApp + Zustand):
+ * Architecture (L3 — createApp + signal store):
  * 1. BoardCore - Pure rendering, no hooks (testable)
  * 2. Board - Connector: reads store via useApp(), computes derived layout, manages effects
  * 3. BoardApp - Production entry wrapper (gets dimensions/exit from context)
  *
- * State lives in the BoardAppStore (Zustand). Keys flow through term:key handler
+ * State lives in the BoardAppStore (signal store). Keys flow through term:key handler
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
@@ -541,7 +541,7 @@ export interface BoardProps {
 /**
  * Board connector component.
  *
- * Reads ui and board nav fields from Zustand store via useApp() selectors,
+ * Reads ui and board nav fields from signal store via useApp() selectors,
  * computes derived layout (useColumns, useCursorPosition),
  * pushes layout back to store, renders BoardCore.
  *
@@ -572,10 +572,10 @@ export function Board({ patchedConsole }: BoardProps) {
     return p?.rootId ?? null
   })
   // Cursor node ID: read from pane state. The SELECT fast path does a silent mutation
-  // to pane.cursorNodeId, then sel.node.select() triggers alien-signals → Zustand bridge
+  // to pane.cursorNodeId, then sel.node.select() triggers alien-signals → store bridge
   // (bumps _selVersion), which causes this selector to re-evaluate. Reading pane.cursorNodeId
   // gives the correct per-pane cursor regardless of which pane is focused.
-  // We also read _selVersion to ensure Zustand detects the change.
+  // We also read _selVersion to ensure store detects the change.
   const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
     void (s as Record<string, unknown>)._selVersion // depend on version bump from SELECT handler
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
@@ -776,7 +776,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Sync cursor state to ReactiveNodeStore after render.
   // The initial sync happens in the useMemo above (pre-render); subsequent syncs
-  // happen here via useEffect. This is safe because the Zustand selector triggers
+  // happen here via useEffect. This is safe because the store selector triggers
   // re-render, which triggers this effect, which syncs the new cursor state.
   useEffect(() => {
     nodeStore.syncCursor({

@@ -136,7 +136,7 @@ function DeleteConfirmDialogBox({
 // =============================================================================
 
 /**
- * CursorAwareNewItemDialog - reads cursor card from sel store via Zustand.
+ * CursorAwareNewItemDialog - reads cursor card from sel store.
  */
 function CursorAwareNewItemDialog({
   onCreate,

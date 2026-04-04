@@ -12,7 +12,7 @@ export interface SyncEvent {
  * UI State Types and Factory
  *
  * Defines the UIState interface and createInitialUIState factory.
- * State updates are done via setUI() on the Zustand store.
+ * State updates are done via setUI() on the signal store.
  */
 
 import type { ViewMode } from "../types.ts"

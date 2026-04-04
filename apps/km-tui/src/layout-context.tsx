@@ -1,7 +1,7 @@
 /**
  * Layout Hook
  *
- * Provides grid navigator via the Zustand store.
+ * Provides grid navigator via the signal store.
  * Components register their positions during useLayoutEffect,
  * which are then available for h/l navigation to find cards by Y position.
  */

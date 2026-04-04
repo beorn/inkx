@@ -1,7 +1,7 @@
 /**
  * Action Context
  *
- * Context object for action handlers. Built from the Zustand store
+ * Context object for action handlers. Built from the signal store
  * once per key event and passed to all handlers.
  *
  * Field names match BoardAppStore to eliminate the mapping layer.
@@ -24,7 +24,7 @@ import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
 /**
  * Context for all TUI action handlers.
  *
- * Built once per key event from the Zustand store, passed to all handlers.
+ * Built once per key event from the signal store, passed to all handlers.
  * Names align with BoardAppStore fields (no mapping layer).
  */
 export interface OpCtx {

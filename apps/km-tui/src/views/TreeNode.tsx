@@ -820,7 +820,7 @@ function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] 
 
 /**
  * Reads per-node fold override via reactive signal instead of subscribing to the
- * entire foldDepths Map from Zustand. When any fold changes, only the affected
+ * entire foldDepths Map from the store. When any fold changes, only the affected
  * node's FoldAwareChild re-renders — not every NodeChildren in the tree.
  */
 const FoldAwareChild = React.memo(function FoldAwareChild({
