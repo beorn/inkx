@@ -17,7 +17,7 @@ A `Path` is a `number[]` describing a node's position in the tree by sibling ind
 
 Path is the **structural** coordinate system — it describes tree position, not visual role. What a given depth means visually (column, card, block, etc.) depends entirely on the view mode. Path doesn't know or care about visual types.
 
-Derived lazily from `cursorNodeId` via cache lookups (no SQL after first access).
+Derived lazily from `sel.node.cursor` (was `cursorNodeId`) via cache lookups (no SQL after first access).
 
 Path helpers (pure arithmetic, no repo):
 - `Path.parent(path)` — `[2, 5, 0]` -> `[2, 5]`
@@ -100,15 +100,15 @@ The selectable set isn't static — a modifier or mode change can make deeper no
 
 ```
 keypress
-  → view.navigate(dir, cursorNodeId, curswantY)
+  → view.navigate(dir, sel.node.cursor, curswantY)
     → repo.getChildren (cache hits) to find next selectable node
-  → store.set({ cursorNodeId: newId })
+  → store.set({ sel.node.cursor: newId })
 ```
 
 ### Render
 
 ```
-cursorNodeId changed → Zustand notifies
+sel.node.cursor changed → Zustand notifies
   → Board re-renders
     → useChildren(repo, rootId)    — cache hit
     → Column: useChildren(repo, colId)  — cache hit
@@ -123,21 +123,21 @@ cursorNodeId changed → Zustand notifies
 ```
 action → repo.mutate(...)
   → cache: surgical invalidation (affected parents only)
-  → store.set({ cursorNodeId: targetId })
+  → store.set({ sel.node.cursor: targetId })
   → re-render
     → useChildren: cache miss for affected parents, hits for rest
 ```
 
 ### What's gone
 
-No `recomputeLayout()`. No `deriveCursorPosition()`. No `updateLayout()` effect. No `useColumns`. No `ColumnsLayout`/`ColumnState`/`CardState` types. No `colIndex`/`cardIndex`/`selectionLevel`. No store→React→store feedback loop.
+No `recomputeLayout()`. No `deriveCursorPosition()`. No `updateLayout()` effect. No `useColumns`. No `ColumnsLayout`/`ColumnState`/`CardState` types. No `colIndex`/`cardIndex`/`sel.kind` (was `selectionLevel`). No store→React→store feedback loop.
 
 ## Store
 
 Minimal — only primary state, no derived fields:
 
 ```ts
-cursorNodeId: string
+cursorNodeId: string  // → sel.node.cursor
 rootId: string | null
 foldDepths: Map<string, number>
 viewMode: ViewMode
@@ -147,7 +147,7 @@ UI state (isSelected, isFolded, etc.) consumed via store selectors in each compo
 
 ## Future: selection
 
-Current `cursorNodeId` is a degenerate case of:
+Current `sel.node.cursor` (was `cursorNodeId`) is a degenerate case of:
 
 ```ts
 interface Selection {

@@ -19,7 +19,7 @@ Key files:
 
 State passed to ViewNavigation for resolving movement. Defined in `view-navigation.ts`:
 
-- `cursorNodeId` — current cursor position
+- `cursorNodeId` (`sel.node.cursor`) — current cursor position
 - `rootId` — zoom root (navigation boundary)
 - `foldDepths` — Map of node ID to fold depth budget
 - `collapsedNodes` — Set of collapsed column IDs
@@ -40,7 +40,7 @@ Tracks screen-space positions of rendered items. Provides:
 
 ### CursorClassification
 
-Derived from ViewNode tree: `{ cursorCardNodeId, cursorColumnNodeId, selectionLevel }`. Tells the system whether the cursor is at board, column, or card level.
+Derived from ViewNode tree: `{ cursorCardNodeId, cursorColumnNodeId }` + `sel.kind` (selection level). Tells the system whether the cursor is at board, column, or card level. See [selection-model.md](selection-model.md).
 
 ### Board Reducer (TEA)
 
@@ -140,7 +140,7 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Data flow**:
   1. Resolves body block nodes to their parent heading (body blocks are traversed via `blockIndex` on the parent)
   2. Computes block count: 1 (title) + body.length
-  3. If next block is within same node: saves current block, changes `blockIndex` on `inlineEditBlock`
+  3. If next block is within same node: saves current block, changes `blockIndex` on `sel.text()` (inline edit block)
   4. If past node boundary going down: descends into first child's items (via `extractBody().items`)
   5. If past node boundary going up: enters previous sibling's deepest last descendant (via `findDeepestLast`)
   6. If no adjacent node found and `exitAtBoundary` is true (arrow key overflow): exits edit mode and falls through to `handleCursorMove`
@@ -167,7 +167,7 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Commands**: `nav_back` / `nav_forward`, `sibling_board_next` / `sibling_board_prev`
 - **Entry**: `handleNavAction` -> `handleNavBack` / `handleNavForward` / `handleNavSiblingBoard`
 - **Implementation**:
-  - History: walks `ui.navHistory` array by delta (-1 for back, +1 for forward), dispatches `ZOOM_IN` with saved rootId/cursorNodeId, restores multiSelected and foldDepths
+  - History: walks `ui.navHistory` array by delta (-1 for back, +1 for forward), dispatches `ZOOM_IN` with saved rootId/cursorNodeId, restores sel.node.ids (multi-selection) and foldDepths
   - Sibling board: finds siblings of current root via `repo.getChildren(parent)`, wraps around at boundaries, saves history before navigating, dispatches `ZOOM_IN` to sibling
 - **Source of truth**: `navHistory` array (history); Repo parent/sibling lookup (sibling boards)
 - **Output**: History restores full state; sibling board clears selection

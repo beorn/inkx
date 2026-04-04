@@ -154,13 +154,13 @@ Three levels of cursor tracking for efficient re-rendering:
 
 | Field | What | When set |
 |---|---|---|
-| `cursorNodeId` | The actual selected node (any level) | Always — the truth |
+| `sel.node.cursor` (was `cursorNodeId`) | The actual selected node (any level) | Always — the truth |
 | `cursorCardNodeId` | The card containing the cursor | When cursor is at card or sub-item level |
 | `cursorColumnNodeId` | The column containing the cursor | When cursor is in a column |
 
-`cursorNodeId` is the source of truth. The others are derived for render optimization (only re-render affected cards/columns on cursor move).
+`sel.node.cursor` is the source of truth. The others are derived for render optimization (only re-render affected cards/columns on cursor move). See [selection-model.md](selection-model.md) for the full selection API.
 
-**After spatial J/K navigation**, `cursorNodeId` can be any visible block — card title, sub-item, or column header.
+**After spatial J/K navigation**, `sel.node.cursor` can be any visible block — card title, sub-item, or column header.
 
 ## Selection
 
@@ -168,9 +168,9 @@ The cursor is a single node. **Selection** is a set of nodes — the cursor plus
 
 | Concept | What | How stored |
 |---|---|---|
-| **Cursor** | Single node — the "active" node | `cursorNodeId` |
-| **Selection** | Set of nodes including the cursor | `selectedNodeIds: Set<string>` |
-| **Anchor** | The node where shift-selection started | `selectionAnchorId` |
+| **Cursor** | Single node — the "active" node | `sel.node.cursor` (was `cursorNodeId`) |
+| **Selection** | Set of nodes including the cursor | `sel.node.ids` (was `selectedNodeIds`) |
+| **Anchor** | The node where shift-selection started | `sel.node.anchor` (was `selectionAnchorId`) |
 
 **Editing operations work with selection, not just cursor.** When multiple nodes are selected:
 - **Indent/outdent**: All-or-nothing — if any node fails the guard, none move

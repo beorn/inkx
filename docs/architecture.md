@@ -75,7 +75,7 @@ Pure data, no methods. Updated via reducer. Defined in `apps/km-tui/src/board-ty
 ```typescript
 interface BoardState {
   rootId: string | null           // current zoom root
-  cursorNodeId: string | null     // single source of truth for cursor
+  cursorNodeId: string | null     // single source of truth for cursor (→ sel.node.cursor)
   foldDepths: Map<string, number> // per-node fold depth overrides
   collapsedNodes: Set<string>     // collapsed column headers
   navHistory: NavHistoryEntry[]   // back/forward navigation
@@ -187,7 +187,7 @@ User presses j/k/h/l
 ViewNode navigation computes target nodeId
   | view-navigation.ts: traverses ViewNode tree (parent pointers, sibling arrays)
 Dispatch SELECT action with target nodeId + cached viewIndex
-  | board reducer updates cursorNodeId
+  | board reducer updates sel.node.cursor
 classifyCursorFromViewIndex derives cursorCardNodeId + cursorColumnNodeId
   | O(1) ViewNode lookup + parent pointer walk
 Components re-render via useSyncExternalStore (only 2 cards: old + new cursor)
@@ -202,7 +202,7 @@ Reconcile: parse file, diff KNodes against DB
   | emit node-added/node-changed/node-removed events
 SQLite state updated -> repo.touch() -> version bump
 useColumns re-derives -> re-render
-  | cursor validation: if cursorNodeId was deleted, fall back to parent/sibling
+  | cursor validation: if sel.node.cursor was deleted, fall back to parent/sibling
 ```
 
 ## Visual Roles
@@ -252,7 +252,7 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 |---------|-------------|-------------|
 | `Editor` | board-app-store + ActionCtx | `Board` — single state machine |
 | `Element` / `Text` | KNode (item/block) | KNode (unchanged) |
-| `Path` | cursorNodeId + classifyCursorFromViewIndex | `cursorPath: string[]` via ViewNode |
+| `Path` | sel.node.cursor + classifyCursorFromViewIndex | `cursorPath: string[]` via ViewNode |
 | `Operation` | BoardReducerOp + KmOp | `KmOp` — unified discriminated union (done) |
 | `Transform` | board-actions.ts (2600 lines) | Per-concern handlers, composed via pipeline |
 | `Plugin` | (hardcoded throughout) | Middleware: `(state, op, next) -> [state, effects]` |

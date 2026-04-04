@@ -23,10 +23,10 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 **Position/Cursor types (7, with duplication)**
 
 - `Position` — packages/km-core/src/interfaces/position.ts — tree slot {parentId, childIdx}
-- `CursorState` — apps/km-tui/src/cursor-store.ts — derived {cursorNodeId, cursorCardNodeId, cursorColumnNodeId, selectionLevel}
-- `CursorStore` — apps/km-tui/src/cursor-store.ts — custom pub/sub (avoids Zustand re-renders)
+- `CursorState` — apps/km-tui/src/cursor-store.ts — derived {cursorNodeId, cursorCardNodeId, cursorColumnNodeId, selectionLevel} *(legacy — see [selection-model.md](design/selection-model.md): `sel.node.cursor`, `sel.kind`)*
+- `CursorStore` — apps/km-tui/src/cursor-store.ts — custom pub/sub *(legacy — deleted in sel.* migration, see [selection-model.md](design/selection-model.md))*
 - `CursorPosition` — apps/km-tui/src/driver.ts — physical terminal {x, y} (different domain)
-- `cursorNodeId` on BoardState — **3 separate definitions**: packages/km-board/src/board-types.ts, apps/km-tui/src/board-types.ts, apps/km-repl/src/board-types.ts
+- `cursorNodeId` on BoardState — **3 separate definitions**: packages/km-board/src/board-types.ts, apps/km-tui/src/board-types.ts, apps/km-repl/src/board-types.ts *(migrating to `sel.node.cursor`)*
 - `deriveCursorAncestors()` — apps/km-tui/src/cursor-store.ts — legacy parent chain walk
 - `deriveCursorPath()` — packages/km-board/src/view-tree.ts — ViewNode parent pointer walk (new)
 
@@ -36,7 +36,7 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 
 | State | Owner | Derived By | Read By |
 |-------|-------|-----------|---------|
-| cursorNodeId | BoardState (3 defs) | CursorStore via deriveCursorAncestors (legacy) or deriveCursorPath (ViewNode) | ~100+ places |
+| cursorNodeId (→ `sel.node.cursor`) | BoardState (3 defs) | CursorStore *(legacy, deleted)* via deriveCursorAncestors (legacy) or deriveCursorPath (ViewNode) | ~100+ places |
 | foldDepths | BoardState | buildViewTree, countVisibleNodes, driver.ts | view-navigation, use-columns, board-reducer, persistence |
 | collapsedNodes | BoardState | board-reducer via TOGGLE_COLLAPSE | view-navigation, board-layout, board-app-store |
 | node data | Repo (SQLite) | deriveColumnsFromRepo, buildViewTree | every layer |
@@ -185,7 +185,7 @@ Top 3 files per concern:
 
 **2. Unify cursor classification — replace deriveCursorAncestors with ViewNode**
 - Now: deriveCursorAncestors (150 lines in cursor-store.ts), deriveCursorIndices (use-columns.ts), parallel validation (board-app-store.ts)
-- Target: viewIndex.get(cursorNodeId) + walk parent pointers (~20 lines)
+- Target: viewIndex.get(sel.node.cursor) + walk parent pointers (~20 lines)
 - Impact: ~180 lines removed, 3 files simplified, classification disagreement bug class eliminated
 - ViewNode status: parallel validation active, ready once equivalence proven
 

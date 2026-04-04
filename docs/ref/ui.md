@@ -472,7 +472,7 @@ interface BoardState {
   rootPath: string | null // File path for root
 
   // Cursor - single source of truth for position
-  cursorNodeId: string | null // Which node the cursor is on (stable across zoom)
+  cursorNodeId: string | null // Which node the cursor is on (stable across zoom) — migrating to sel.node.cursor
 
   // Tree state
   foldDepths: Map<string, number> // Depth budget per node (0 = fully folded)
@@ -497,7 +497,7 @@ interface BoardState {
 }
 ```
 
-**Key design:** `cursorNodeId` is the single source of truth. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `useCursorPosition()`. This eliminates sync bugs—the cursor ID is stable, indices are computed from current layout.
+**Key design:** `sel.node.cursor` (currently `cursorNodeId`) is the single source of truth. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `useCursorPosition()`. This eliminates sync bugs — the cursor ID is stable, indices are computed from current layout. See [selection-model.md](../design/selection-model.md) for the full selection API.
 
 **No tree data in state:** Repo provides tree queries directly. Columns are derived via `useColumns()` from repo data, not stored in state.
 
@@ -540,7 +540,7 @@ The `visualToStructural(depth, direction)` function translates visual directions
 | 1 (column)   | enter 1st card   | exit to board        | prev column | next column |
 | 2+ (card)    | next sibling     | prev sibling or exit | prev column | next column |
 
-This eliminates the need for a stored `selectionLevel` state - the behavior is purely determined by cursor path depth.
+This eliminates the need for a stored selection level state (`sel.kind`) — the behavior is purely determined by cursor path depth. See [selection-model.md](../design/selection-model.md).
 
 ### Sticky Cursor (curswant)
 

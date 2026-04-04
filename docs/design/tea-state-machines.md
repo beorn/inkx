@@ -907,7 +907,7 @@ The `ReactiveNodeStore` manages per-node signal lifecycle with delta-based sync 
                ▼
 ┌──────────────────────────────────────────────────────┐
 │  Per-Node Reactive<T> Signals                        │
-│  cursorNodeId, foldOverride(id), edit(id), etc.      │
+│  sel.node.cursor, foldOverride(id), edit(id), etc.   │
 │  useReactive() hook → useSyncExternalStore           │
 │  Only subscribed components re-render                │
 └──────────────────────────────────────────────────────┘
