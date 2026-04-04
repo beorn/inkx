@@ -43,15 +43,17 @@ export function saveNavHistoryFromPane(
   pane: {
     rootId: string | null
     cursorNodeId: string | null
+    sel?: { node: { cursor(): unknown } }
     foldDepths: Map<string, number>
   },
 ): void {
+  const cursorNodeId = (pane.sel?.node.cursor() as string | null) ?? pane.cursorNodeId
   pushNavHistoryEntry(
     setUI,
     pane.rootId,
     0, // colIndex — derived at render, not available imperatively; unused in restore
     0, // cardIndex — same
-    pane.cursorNodeId,
+    cursorNodeId,
     pane.foldDepths,
   )
 }

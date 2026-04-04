@@ -579,7 +579,8 @@ export function Board({ patchedConsole }: BoardProps) {
   const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
     void (s as Record<string, unknown>)._selVersion // depend on version bump from SELECT handler
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.cursorNodeId ?? null
+    // Read from per-pane sel store (authoritative), fall back to pane.cursorNodeId during migration
+    return (p?.sel.node.cursor() as string | null) ?? p?.cursorNodeId ?? null
   })
   const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined

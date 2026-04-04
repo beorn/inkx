@@ -231,7 +231,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const s = get()
     const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
-    const cursorNodeId = board?.cursorNodeId ?? null
+    // Read cursor from per-pane sel store (authoritative source)
+    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? board?.cursorNodeId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
     const repoVersion = s.repo.getSnapshot()
 

@@ -260,7 +260,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
     const cols = derive(s.repo, rootId, foldDepths)
     const ni = buildNodeIndex(cols)
-    const cursorNodeId = board?.cursorNodeId ?? null
+    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? board?.cursorNodeId ?? null
     const cursor = deriveCursorIndices(cols, cursorNodeId, ni, (id) => s.repo.getNode(id))
     const column = cols[cursor.colIndex]
     const card = column?.cardNodes[cursor.cardIndex]
@@ -358,7 +358,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
     const cols = derive(s.repo, rootId, foldDepths)
     const ni = buildNodeIndex(cols)
-    const cursorNodeId = board?.cursorNodeId ?? null
+    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? board?.cursorNodeId ?? null
     const cursor = deriveCursorIndices(cols, cursorNodeId, ni, (id) => s.repo.getNode(id))
     const col = cols[cursor.colIndex]
     const card = col?.cardNodes[cursor.cardIndex]

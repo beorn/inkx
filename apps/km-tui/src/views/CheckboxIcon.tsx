@@ -107,7 +107,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       // so undo restores the cursor to where it was before the click.
       const state = storeRef?.getState()
       const boardPane = state ? Workspace.getActiveBoardPane(state) : null
-      const cursorNodeId = boardPane?.cursorNodeId ?? null
+      const cursorNodeId = (boardPane?.sel.node.cursor() as string | null) ?? boardPane?.cursorNodeId ?? null
       if (cursorNodeId) undoHandle?.setCursor(cursorNodeId)
 
       // Mutate via repo — same call as the keyboard path (runRepoEffect).

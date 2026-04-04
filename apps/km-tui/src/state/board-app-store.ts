@@ -623,6 +623,10 @@ export function createBoardAppStoreState(
               const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: newFirstItemId }
               newPanes.set(detailPane.id, updatedDetail)
               set({ workspace: { ...s.workspace, panes: newPanes } })
+              // Sync the detail pane's sel with the new cursor
+              if (newFirstItemId) {
+                detailPane.sel.node.select([newFirstItemId as import("@silvery/selection").ID])
+              }
             }
           }
           return
@@ -705,7 +709,7 @@ export function createBoardAppStoreState(
                 {
                   rootId: pane.rootId,
                   rootPath: pane.rootPath,
-                  cursorNodeId: pane.cursorNodeId,
+                  cursorNodeId: (pane.sel.node.cursor() as string | null) ?? pane.cursorNodeId,
                 },
               ]
               const rootDepths = computeDefaultFoldDepths(action.rootId, new Map())
@@ -743,9 +747,10 @@ export function createBoardAppStoreState(
 
             case "CANCEL_MOVE": {
               const sourceCursor = pane.moveState.active ? pane.moveState.sourceCursorNodeId : null
+              const currentCursor = (pane.sel.node.cursor() as string | null) ?? pane.cursorNodeId
               paneUpdate = {
                 moveState: { active: false },
-                cursorNodeId: sourceCursor ?? pane.cursorNodeId,
+                cursorNodeId: sourceCursor ?? currentCursor,
                 curswantX: null,
                 curswantY: null,
               }
@@ -779,7 +784,7 @@ export function createBoardAppStoreState(
           // Cursor rescue: if cursor node is hidden by fold state, move it to the
           // nearest visible ancestor. Without this, folding a card while the cursor
           // is on one of its children leaves the cursor invisible.
-          let cursorNodeId = board.cursorNodeId
+          let cursorNodeId = (board.sel.node.cursor() as string | null) ?? board.cursorNodeId
           if (cursorNodeId) {
             const rescuedId = findVisibleAncestor(cursorNodeId, vIndex, board.foldDepths)
             if (rescuedId !== cursorNodeId) {
@@ -869,11 +874,12 @@ export function createBoardAppStoreState(
           // Cursor rescue: if cursor is on a node that will be hidden by the new
           // fold depths, move it to the nearest visible ancestor before applying.
           let paneUpdate: Partial<BoardPaneState> = { foldDepths: depths }
-          if (pane.cursorNodeId) {
+          const paneCursorId = (pane.sel.node.cursor() as string | null) ?? pane.cursorNodeId
+          if (paneCursorId) {
             const vTree = buildViewTree(state.repo, pane.rootId, depths)
             const vIndex = buildViewIndex(vTree)
-            const rescuedId = findVisibleAncestor(pane.cursorNodeId, vIndex, depths)
-            if (rescuedId !== null && rescuedId !== pane.cursorNodeId) {
+            const rescuedId = findVisibleAncestor(paneCursorId, vIndex, depths)
+            if (rescuedId !== null && rescuedId !== paneCursorId) {
               paneUpdate = { foldDepths: depths, cursorNodeId: rescuedId }
             }
           }
@@ -885,13 +891,14 @@ export function createBoardAppStoreState(
         // Sync sel store after fold depth changes (cursor may have been rescued)
         const s = _get()
         const boardPane = getActiveBoardPane(s)
-        if (boardPane?.cursorNodeId) {
-          const vTree = buildViewTree(s.repo, boardPane.rootId, boardPane.foldDepths)
+        const boardPaneCursorId = (boardPane?.sel.node.cursor() as string | null) ?? boardPane?.cursorNodeId ?? null
+        if (boardPaneCursorId) {
+          const vTree = buildViewTree(s.repo, boardPane!.rootId, boardPane!.foldDepths)
           const vIndex = buildViewIndex(vTree)
           s.selTreeSource.update(vIndex, vTree)
           const ids = s.sel.node.ids()
           if (ids.length <= 1) {
-            s.sel.node.select([boardPane.cursorNodeId as import("@silvery/selection").ID])
+            s.sel.node.select([boardPaneCursorId as import("@silvery/selection").ID])
           }
         }
       },
@@ -912,7 +919,7 @@ export function createBoardAppStoreState(
       getDetailCursorId(): string | null {
         const s = _get()
         const detail = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
-        return detail?.cursorNodeId ?? null
+        return (detail?.sel.node.cursor() as string | null) ?? detail?.cursorNodeId ?? null
       },
 
       setDetailCursor(id: string | null) {
@@ -1295,8 +1302,11 @@ export function createBoardAppStoreState(
 
           // Create a board pane from the active board's state (inherits root, folds, etc.)
           const activeBoard = getActiveBoardPane(state)
+          const activeBoardCursor = activeBoard
+            ? ((activeBoard.sel.node.cursor() as string | null) ?? activeBoard.cursorNodeId)
+            : null
           const boardState = activeBoard
-            ? createBoardState(activeBoard.rootId, activeBoard.rootPath, activeBoard.cursorNodeId)
+            ? createBoardState(activeBoard.rootId, activeBoard.rootPath, activeBoardCursor)
             : createBoardState()
           if (activeBoard) {
             boardState.foldDepths = activeBoard.foldDepths
