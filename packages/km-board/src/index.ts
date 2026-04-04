@@ -27,9 +27,9 @@ export type {
   NodeDirection,
 } from "./board-types.ts"
 
-// ===== Tree Actions (re-exported for convenience) =====
-export type { TAction } from "@km/tree"
-export { isTAction, TActionTypes } from "@km/tree"
+// ===== Tree Ops (re-exported for convenience) =====
+export type { TOp } from "@km/tree"
+export { isTOp, TOpTypes } from "@km/tree"
 
 // ===== Tree Helpers (re-exported from @km/tree) =====
 export { getNodeAtPath, getSiblingCount } from "@km/tree"

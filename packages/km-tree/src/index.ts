@@ -10,8 +10,8 @@ export type { TNode, TPath } from "./types.ts"
 export type { TaskStatus } from "./types.ts"
 
 // Actions
-export type { TAction } from "./ops/actions.ts"
-export { isTAction, TActionTypes } from "./ops/actions.ts"
+export type { TOp } from "./ops/actions.ts"
+export { isTOp, TOpTypes } from "./ops/actions.ts"
 
 // Queries
 export {
