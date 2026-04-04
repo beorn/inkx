@@ -268,7 +268,7 @@ describe("processKey", () => {
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("cursor_down")
-    expect(result.actions).not.toBeNull()
+    expect(result.ops).not.toBeNull()
   })
 
   it("returns handled=false for unknown keys", () => {
@@ -279,7 +279,7 @@ describe("processKey", () => {
 
     expect(result.handled).toBe(false)
     expect(result.commandId).toBeNull()
-    expect(result.actions).toBeNull()
+    expect(result.ops).toBeNull()
   })
 
   it("processes arrow keys", () => {
@@ -340,7 +340,7 @@ describe("processKey", () => {
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("text.insert")
-    expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "#" })
+    expect(result.ops).toEqual({ type: "TEXT_INSERT", char: "#" })
   })
 
   it("inserts correct char for ALL 21 shifted punctuation in text mode", () => {
@@ -375,7 +375,7 @@ describe("processKey", () => {
     for (const [base, shifted] of pairs) {
       const result = processKey(base, { shift: true, text: shifted }, cmdCtx, kbCtx)
       expect(result.commandId).toBe("text.insert")
-      expect(result.actions).toEqual({ type: "TEXT_INSERT", char: shifted })
+      expect(result.ops).toEqual({ type: "TEXT_INSERT", char: shifted })
     }
   })
 
@@ -388,7 +388,7 @@ describe("processKey", () => {
 
     expect(result.handled).toBe(true)
     expect(result.commandId).toBe("text.insert")
-    expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "a" })
+    expect(result.ops).toEqual({ type: "TEXT_INSERT", char: "a" })
   })
 
   it("v starts chord, then c resolves to toggle_collapse", () => {
@@ -511,7 +511,7 @@ describe("shifted key dual-path: keybinding resolution AND text insertion", () =
       const result = processKey(base, { shift: true, text: shifted }, cmdCtx, kbCtx)
 
       expect(result.commandId).toBe("text.insert")
-      expect(result.actions).toEqual({ type: "TEXT_INSERT", char: shifted })
+      expect(result.ops).toEqual({ type: "TEXT_INSERT", char: shifted })
     })
   })
 
@@ -538,7 +538,7 @@ describe("shifted key dual-path: keybinding resolution AND text insertion", () =
       const result = processKey("/", { shift: true, text: "?" }, cmdCtx, kbCtx)
 
       expect(result.commandId).toBe("text.insert")
-      expect(result.actions).toEqual({ type: "TEXT_INSERT", char: "?" })
+      expect(result.ops).toEqual({ type: "TEXT_INSERT", char: "?" })
     })
 
     it("Shift+[ resolves to nav_back (bound to 'shift-[')", () => {

@@ -505,16 +505,16 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     locals.chordTimeoutFiredAt = performance.now()
     const freshCtx = buildOpCtx(get, exitApp)
     const timeoutResult = processChordTimeout(freshCtx)
-    if (timeoutResult?.actions) {
-      const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
-      for (const action of actionList) {
-        const actionResult = handleKmOp(freshCtx, action)
-        if (isErr(actionResult) && actionResult.error.type === "boundary") {
+    if (timeoutResult?.ops) {
+      const opList = Array.isArray(timeoutResult.ops) ? timeoutResult.ops : [timeoutResult.ops]
+      for (const action of opList) {
+        const opResult = handleKmOp(freshCtx, action)
+        if (isErr(opResult) && opResult.error.type === "boundary") {
           freshCtx.setUI({
-            bellState: actionResult.error.direction,
+            bellState: opResult.error.direction,
             status: {
               level: "warning",
-              message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+              message: opResult.error.message ?? `Can't move ${opResult.error.direction}`,
             },
           })
           process.stdout.write("\x07")
@@ -569,18 +569,18 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       foldDepths: ctx.foldDepths,
     }
 
-    const actions = executeCommand(commandId, cmdCtx, targetId)
-    if (!actions) return
+    const ops = executeCommand(commandId, cmdCtx, targetId)
+    if (!ops) return
 
-    const actionList = Array.isArray(actions) ? actions : [actions]
-    for (const action of actionList) {
-      const actionResult = handleKmOp(ctx, action)
-      if (isErr(actionResult) && actionResult.error.type === "boundary") {
+    const opList = Array.isArray(ops) ? ops : [ops]
+    for (const action of opList) {
+      const opResult = handleKmOp(ctx, action)
+      if (isErr(opResult) && opResult.error.type === "boundary") {
         ctx.setUI({
-          bellState: actionResult.error.direction,
+          bellState: opResult.error.direction,
           status: {
             level: "warning",
-            message: actionResult.error.message ?? `Can't: ${commandId}`,
+            message: opResult.error.message ?? `Can't: ${commandId}`,
           },
         })
         process.stdout.write("\x07")
@@ -708,8 +708,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       return
     }
 
-    if (result.actions) {
-      const actionList = Array.isArray(result.actions) ? result.actions : [result.actions]
+    if (result.ops) {
+      const opList = Array.isArray(result.ops) ? result.ops : [result.ops]
 
       // When a dialog is open, only process dialog, filter, and text commands
       if (dialogOpen && result.commandId) {
@@ -726,32 +726,32 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
 
       // Inject pressed key into FAVORITES_SELECT_KEY (wildcard catches key, command doesn't have it)
-      for (const action of actionList) {
-        if (action.type === "FAVORITES_SELECT_KEY" && !(action as { key?: string }).key) {
-          ;(action as { key: string }).key = input
+      for (const op of opList) {
+        if (op.type === "FAVORITES_SELECT_KEY" && !(op as { key?: string }).key) {
+          ;(op as { key: string }).key = input
         }
       }
 
-      // Phase 2: Actions — execute state mutations
-      for (const action of actionList) {
-        using actionSpan = parentSpan.span("action", { type: action.type })
-        const actionResult = handleKmOp(ctx, action)
+      // Phase 2: Ops — execute state mutations
+      for (const op of opList) {
+        using opSpan = parentSpan.span("op", { type: op.type })
+        const opResult = handleKmOp(ctx, op)
 
         // Check for boundary errors - ring bell and show status message
-        if (isErr(actionResult) && actionResult.error.type === "boundary") {
-          actionSpan.spanData.boundary = actionResult.error.direction
+        if (isErr(opResult) && opResult.error.type === "boundary") {
+          opSpan.spanData.boundary = opResult.error.direction
           ctx.setUI({
-            bellState: actionResult.error.direction,
+            bellState: opResult.error.direction,
             status: {
               level: "warning",
-              message: actionResult.error.message ?? `Can't move ${actionResult.error.direction}`,
+              message: opResult.error.message ?? `Can't move ${opResult.error.direction}`,
             },
           })
           process.stdout.write("\x07")
         }
       }
       parentSpan.spanData.outcome = "handled"
-      parentSpan.spanData.actions = actionList.length
+      parentSpan.spanData.ops = opList.length
 
       // Phase 3: Invariant checks — verify state consistency after mutations
       {

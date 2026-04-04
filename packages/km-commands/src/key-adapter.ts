@@ -13,8 +13,8 @@ import { registerCommands, clearRegistry } from "./registry.ts"
 import { allCommands } from "./commands/index.ts"
 import { createChordState, type ChordState } from "./chord-state.ts"
 
-/** Resolve actions from a binding — prefer execute function over registry lookup */
-function resolveActions(
+/** Resolve ops from a binding — prefer execute function over registry lookup */
+function resolveOps(
   resolved: {
     commandId: string
     targetId?: string
@@ -29,8 +29,8 @@ function resolveActions(
   return executeCommand(resolved.commandId, ctx, resolved.targetId)
 }
 
-/** Flatten multiple nullable action results into a single array */
-function flattenActions(...results: (KmOp | KmOp[] | null)[]): KmOp[] {
+/** Flatten multiple nullable op results into a single array */
+function flattenOps(...results: (KmOp | KmOp[] | null)[]): KmOp[] {
   const out: KmOp[] = []
   for (const r of results) {
     if (r) {
@@ -107,8 +107,8 @@ let chordState: ChordState = createChordState()
 export interface KeyCommandResult {
   /** The command that was executed, or null if no command matched */
   commandId: string | null
-  /** The action(s) to dispatch, or null if command returned null */
-  actions: KmOp | KmOp[] | null
+  /** The op(s) to dispatch, or null if command returned null */
+  ops: KmOp | KmOp[] | null
   /** Whether a command was found (even if it returned null) */
   handled: boolean
   /** If set, a chord is pending (show in status bar, start timeout) */
@@ -131,7 +131,7 @@ function isBlockingModal(kbCtx: KeybindingContext): boolean {
  * @param key - The key event from useInput
  * @param ctx - CommandContext built from current state
  * @param kbCtx - KeybindingContext for mode-aware resolution
- * @returns Result with commandId and actions to dispatch
+ * @returns Result with commandId and ops to dispatch
  */
 // oxlint-disable-next-line complexity/complexity -- Sequential chord + keybinding resolution pipeline
 export function processKey(
@@ -165,7 +165,7 @@ export function processKey(
     chordState.cancel()
     return {
       commandId: "text.insert",
-      actions: { type: "TEXT_INSERT", char: textChar },
+      ops: { type: "TEXT_INSERT", char: textChar },
       handled: true,
     }
   }
@@ -185,33 +185,33 @@ export function processKey(
 
     switch (chordResult.type) {
       case "pending":
-        return { commandId: null, actions: null, handled: true, pending: chordResult.prefix }
+        return { commandId: null, ops: null, handled: true, pending: chordResult.prefix }
       case "resolved": {
-        const actions = resolveActions(chordResult, ctx)
-        return { commandId: chordResult.commandId, actions, handled: true, chordResolved: true }
+        const ops = resolveOps(chordResult, ctx)
+        return { commandId: chordResult.commandId, ops, handled: true, chordResolved: true }
       }
       case "replay": {
         // Execute the standalone command, then resolve the replayed key normally
-        const standaloneActions = executeCommand(chordResult.standaloneId, ctx, chordResult.standaloneTargetId)
+        const standaloneOps = executeCommand(chordResult.standaloneId, ctx, chordResult.standaloneTargetId)
         const resolved = resolveKeybinding(chordResult.replayKey, modifiers, kbCtx)
         if (resolved) {
-          const allActions = flattenActions(standaloneActions, resolveActions(resolved, ctx))
+          const allOps = flattenOps(standaloneOps, resolveOps(resolved, ctx))
           return {
             commandId: chordResult.standaloneId,
-            actions: allActions.length > 0 ? allActions : null,
+            ops: allOps.length > 0 ? allOps : null,
             handled: true,
           }
         }
         // Replay key didn't match — just return standalone
-        return { commandId: chordResult.standaloneId, actions: standaloneActions, handled: true }
+        return { commandId: chordResult.standaloneId, ops: standaloneOps, handled: true }
       }
       case "fallback": {
-        const actions = resolveActions(chordResult, ctx)
-        return { commandId: chordResult.commandId, actions, handled: true }
+        const ops = resolveOps(chordResult, ctx)
+        return { commandId: chordResult.commandId, ops, handled: true }
       }
       case "cancelled":
         // Invalid chord second key or Escape — consume key, signal bell
-        return { commandId: null, actions: null, handled: true, chordCancelled: true }
+        return { commandId: null, ops: null, handled: true, chordCancelled: true }
       // "passthrough" — continue to normal resolution below
     }
   }
@@ -219,14 +219,14 @@ export function processKey(
   const resolved = resolveKeybinding(keyStr, modifiers, kbCtx)
 
   if (!resolved) {
-    return { commandId: null, actions: null, handled: false }
+    return { commandId: null, ops: null, handled: false }
   }
 
-  const actions = resolveActions(resolved, ctx)
+  const ops = resolveOps(resolved, ctx)
 
   return {
     commandId: resolved.commandId,
-    actions,
+    ops,
     handled: true,
   }
 }
@@ -247,8 +247,8 @@ export function handleChordTimeout(ctx: CommandContext, kbCtx: KeybindingContext
   const resolved = resolveKeybinding(prefix, {}, kbCtx)
   if (!resolved) return null
 
-  const actions = resolveActions(resolved, ctx)
-  return { commandId: resolved.commandId, actions, handled: true }
+  const ops = resolveOps(resolved, ctx)
+  return { commandId: resolved.commandId, ops, handled: true }
 }
 
 /**
