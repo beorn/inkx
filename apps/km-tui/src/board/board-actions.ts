@@ -32,7 +32,7 @@ import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
 import { clearSelection, progressiveSelectAll, saveNavHistory } from "../keyboard/keyboard-helpers.ts"
-import { Selection } from "../state/selection.ts"
+import { getSelectedNodes, getSelectedNodeIds, moveSelectedTo } from "./board-selection-helpers.ts"
 import {
   getFavorite,
   setFavorite,
@@ -351,7 +351,7 @@ function applyFoldEffects(ctx: OpCtx, result: ApplyResult): void {
 
 /** Determine fold target node IDs from selection → card → column fallback. */
 function getFoldTargetRoots(ctx: OpCtx, card: KNode | null | undefined): string[] {
-  const selected = Selection.nodes(ctx)
+  const selected = getSelectedNodes(ctx)
   return selected.length > 0
     ? selected.map((c) => c.id)
     : card
@@ -2054,7 +2054,7 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
 
 /** Move node(s) to resolved Position: same-parent → reorder, cross-parent → reparent batch. */
 function handleReparentTo(ctx: OpCtx, to: Position): ActionResult {
-  const cards = Selection.nodes(ctx)
+  const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return boundary("move", "no selection")
 
   // Same-parent reorder (single node) — quick path
@@ -2068,7 +2068,7 @@ function handleReparentTo(ctx: OpCtx, to: Position): ActionResult {
   }
 
   // Cross-parent or multi-selection — batch move
-  const { moved } = Selection.moveTo(ctx, to)
+  const { moved } = moveSelectedTo(ctx, to)
   clearSelection(ctx)
   const targetNode = ctx.repo.getNode(to.parentId)
   ctx.toastQueue.success(`Moved ${moved} item(s) to ${targetNode?.name ?? to.parentId}`)
@@ -2344,7 +2344,7 @@ function handleOpenInTerminal(ctx: OpCtx, nodeId: string): void {
 
 /** Get node IDs from selected cards (batch-aware). */
 function getSelectedCardNodeIds(ctx: OpCtx): string[] {
-  return Selection.nodeIds(ctx)
+  return getSelectedNodeIds(ctx)
 }
 
 /** Open the date prompt dialog for a given field. */
@@ -2530,7 +2530,7 @@ function handleDatePromptConfirm(ctx: OpCtx): ActionResult {
 
 /** Copy or cut selected nodes to clipboard. */
 function handleClipboardCopy(ctx: OpCtx, mode: "copy" | "cut"): ActionResult {
-  const cards = Selection.nodes(ctx)
+  const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return boundary("clipboard", "No card to copy")
 
   const nodeIds = cards.map((c) => c.id)

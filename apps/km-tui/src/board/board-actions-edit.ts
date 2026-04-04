@@ -8,7 +8,7 @@
  * Every card operation is inherently batch-aware (single = batch of 1).
  * Each handler follows this structure:
  *
- * 1. GATHER — `Selection.nodes(ctx)` returns multi-selected or cursor card
+ * 1. GATHER — `getSelectedNodes(ctx)` returns multi-selected or cursor card
  * 2. VALIDATE — all-or-nothing: if ANY card fails, NONE execute
  * 3. CONFIRM (optional) — set UI state, re-enter via separate action
  * 4. EXECUTE — perform mutations on all cards
@@ -27,7 +27,7 @@ import { getNextOccurrence } from "@km/storage"
 import { Tree, midpoint } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
-import { Selection } from "../state/selection.ts"
+import { getSelectedNodes, forEachSelected } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
@@ -72,7 +72,7 @@ export function handleDeleteNode(ctx: OpCtx): void {
 
   if (!card) return // Board level — nothing to delete
 
-  const cards = Selection.nodes(ctx)
+  const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return
 
   // Aggregate impact across all cards
@@ -499,7 +499,7 @@ export function handleConfirmMove(ctx: OpCtx): void {
 export function handleTaskStatusCycle(ctx: OpCtx): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
-  const count = Selection.forEach(ctx, "Toggle status", (c) => {
+  const count = forEachSelected(ctx, "Toggle status", (c) => {
     const embedSource = c.embed_source
     const targetId = embedSource || c.id
     const targetNode = embedSource ? ctx.repo.getNode(embedSource) : c
@@ -571,7 +571,7 @@ export function handleTaskStatusCycle(ctx: OpCtx): void {
  * Batch-aware: when multi-selection is active, clears all selected cards.
  */
 export function handleClearTask(ctx: OpCtx): void {
-  const count = Selection.forEach(ctx, "Clear task", (c) => {
+  const count = forEachSelected(ctx, "Clear task", (c) => {
     const targetId = c.embed_source || c.id
     const targetNode = ctx.repo.getNode(targetId)
     runRepoEffect(ctx, {

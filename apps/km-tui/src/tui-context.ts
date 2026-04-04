@@ -33,7 +33,7 @@ export interface OpCtx {
 
   // === Selection (@silvery/selection store) ===
   sel: SelectionStore
-  /** Selected node IDs from sel.node.ids (for Selection.nodes() etc.)
+  /** Selected node IDs from sel.node.ids (for getSelectedNodes() etc.)
    * OrderedSet has .length (array) — we alias .size = .length for compatibility. */
   selectedIds: {
     readonly size: number

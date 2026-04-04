@@ -8,7 +8,7 @@ import { type ActionResult, boundary, ok } from "@km/commands"
 import { KNode } from "@km/core"
 import type { OpCtx } from "../tui-context.ts"
 import { clearSelection } from "./keyboard-helpers.ts"
-import { Selection } from "../state/selection.ts"
+import { getSelectedCardIndices } from "../board/board-selection-helpers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
 
 // =============================================================================
@@ -100,7 +100,7 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
   // Fix duplicate parent_idx before calculating new sort order
   normalizeSortOrders(ctx, col)
 
-  const selectedIndices = Selection.cardIndices(ctx)
+  const selectedIndices = getSelectedCardIndices(ctx)
   const cardsToMove =
     selectedIndices.length > 0
       ? selectedIndices.map((i: number) => ({ index: i, card: col.cardNodes[i] }))
@@ -161,7 +161,7 @@ export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "r
   const targetCol = ctx.columns[targetColIndex]
   if (!targetCol) return boundary(direction)
 
-  const selectedIndices = Selection.cardIndices(ctx)
+  const selectedIndices = getSelectedCardIndices(ctx)
   const cardsToMove =
     selectedIndices.length > 0
       ? selectedIndices.map((i: number) => col.cardNodes[i]).filter((c) => c !== undefined)
@@ -206,7 +206,7 @@ export function indentNode(ctx: OpCtx, card: KNode): boolean {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
-  const selectedIndices = Selection.cardIndices(ctx)
+  const selectedIndices = getSelectedCardIndices(ctx)
   if (selectedIndices.length > 1) {
     return indentNodesAtomically(ctx, col, selectedIndices)
   }
@@ -228,7 +228,7 @@ export function outdentNode(ctx: OpCtx, card: KNode): boolean {
   const col = ctx.columns[ctx.colIndex]
   if (!col) return false
 
-  const selectedIndices = Selection.cardIndices(ctx)
+  const selectedIndices = getSelectedCardIndices(ctx)
   if (selectedIndices.length > 1) {
     return outdentNodesAtomically(ctx, col, selectedIndices)
   }
