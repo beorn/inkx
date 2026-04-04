@@ -48,7 +48,9 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   const armed = hovered && cmdHeld
   useMouseCursor(armed ? "pointer" : null)
 
-  const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
+  const storeRef = React.useContext(StoreContext) as
+    | import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+    | null
   const popover = usePopover()
   const repo = useRepo()
 

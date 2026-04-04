@@ -33,7 +33,7 @@
 /* oxlint-disable complexity/complexity -- Test helper — fixture builder complexity is acceptable */
 
 import React, { act } from "react"
-import { createStore, type StoreApi } from "zustand"
+import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
 
 /** Helper: React.createElement with children as prop (avoids React 19 overload mismatch) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -550,7 +550,7 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion)
   const reactiveStore = withReactive(createStoreFromRepo(repo))
@@ -1918,7 +1918,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     viewMode: "cards",
   })
   const mockSel = createMockSel()
-  const store = createStore(() => ({
+  const store = createSignalStore(() => ({
     foldDepths: new Map<string, number>(),
     ui: initialUI,
     navigator: null,
@@ -2034,7 +2034,7 @@ export function renderBoardWithStore(
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
   const reactiveStore = withReactive(createStoreFromRepo(repo))
 
   // singlePassLayout matches production's create-app.tsx rendering pipeline

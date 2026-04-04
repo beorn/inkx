@@ -8,7 +8,7 @@
 import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
-import type { StoreApi } from "zustand"
+import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { dispatchCommandById } from "../src/board/board-app.ts"
 

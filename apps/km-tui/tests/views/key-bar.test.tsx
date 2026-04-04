@@ -9,7 +9,7 @@ import React from "react"
 import { createRenderer } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { StoreContext } from "@silvery/create/create-app"
-import { createStore, type StoreApi } from "zustand/vanilla"
+import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
 import { createSelection } from "@silvery/selection"
 import { KeyBar } from "../../src/views/key-bar.tsx"
 import type { PaneUI } from "../../src/state/ui-reducer.ts"
@@ -21,7 +21,7 @@ function createMinimalStore() {
   const sel = createSelection({
     tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
   })
-  return createStore(() => ({ sel }))
+  return createSignalStore(() => ({ sel }))
 }
 
 /** Render with StoreContext + FocusManagerContext */

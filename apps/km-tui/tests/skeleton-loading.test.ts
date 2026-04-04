@@ -16,7 +16,7 @@ import { describe, test, expect } from "vitest"
 import { act } from "react"
 import type { KNode } from "@km/core"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
-import type { StoreApi } from "zustand"
+import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 

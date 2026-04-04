@@ -14,7 +14,7 @@
 
 import { describe, test, expect } from "vitest"
 import React from "react"
-import { createStore, type StoreApi } from "zustand"
+import { createSignalStore, type SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { createRenderer } from "@silvery/test"
 import { createFocusManager, FocusManagerContext, ThemeProvider } from "@silvery/ag-react"
 import { StoreContext } from "@silvery/create/create-app"
@@ -79,7 +79,7 @@ function createTestStore() {
     initialViewMode: "cards",
     dimensions: { columns: 120, rows: 30 },
   }
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(params))
   return { store, repo }
 }
 
@@ -325,7 +325,7 @@ describe("windowing — visual rendering", () => {
       initialViewMode: "cards",
       dimensions: { columns: cols, rows },
     }
-    const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
+    const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(params))
 
     // Split the focused pane horizontally (50/50)
     store.getState().splitFocusedPane("h")
@@ -424,7 +424,7 @@ function createStoreWithSavedWorkspace(opts?: { focusedPaneId?: string }) {
     dimensions: { columns: 120, rows: 30 },
     savedWorkspace,
   }
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(params))
   return { store, repo }
 }
 

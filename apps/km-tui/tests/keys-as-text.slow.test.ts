@@ -18,7 +18,7 @@ import { dialogTargetRef } from "../src/dialog-target.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { dispatchCommandById } from "../src/board/board-app.ts"
-import type { StoreApi } from "zustand"
+import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 
 /**
  * Open the search dialog via the "search" command.

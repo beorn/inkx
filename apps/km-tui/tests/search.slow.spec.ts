@@ -21,7 +21,7 @@ import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
 import { navigateToNode } from "../src/navigation/navigate-to-node.ts"
 import type { KNode } from "@km/core"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
-import type { StoreApi } from "zustand"
+import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { dispatchCommandById } from "../src/board/board-app.ts"
 

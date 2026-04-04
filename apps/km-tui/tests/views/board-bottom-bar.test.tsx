@@ -12,7 +12,7 @@ import { createRenderer } from "@silvery/test"
 import { testEnv, item } from "../helpers/board-test.ts"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { StoreContext } from "@silvery/create/create-app"
-import { createStore, type StoreApi } from "zustand/vanilla"
+import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
 import { createSelection } from "@silvery/selection"
 import { CommandBox, StatusCounters } from "../../src/views/CommandBox.tsx"
 import type { UIState, PaneUI } from "../../src/state/ui-reducer.ts"
@@ -24,7 +24,7 @@ function createMinimalStore() {
   const sel = createSelection({
     tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
   })
-  return createStore(() => ({ sel }))
+  return createSignalStore(() => ({ sel }))
 }
 
 /** Render wrapped with FocusManagerContext + StoreContext (including rerender) */

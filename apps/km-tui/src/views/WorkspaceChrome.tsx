@@ -226,7 +226,7 @@ export function WorkspaceChrome({
         const node = repo.getNode(result.nodeId)
         if (node) baseDialogHandlers.handleSearchSelect(node)
       } else if (result.commandId && storeRef) {
-        const store = storeRef as import("zustand").StoreApi<BoardAppStore>
+        const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
         dispatchCommandById(result.commandId, store.getState.bind(store), () => {}, result.targetId)
       }
     },

@@ -68,7 +68,9 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
   useMouseCursor(armed ? "pointer" : null)
 
   const repo = useRepo()
-  const storeRef = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
+  const storeRef = React.useContext(StoreContext) as
+    | import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+    | null
 
   const handleMouseEnter = useCallback(() => {
     setHovered(true)

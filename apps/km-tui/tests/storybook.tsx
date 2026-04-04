@@ -82,7 +82,7 @@ interface TUIBoardState {
 }
 import { TreeRenderProvider, deriveTreeConfig } from "../src/state/ui-context.tsx"
 import { StoreContext } from "@silvery/create/create-app"
-import { createStore } from "zustand/vanilla"
+import { createSignalStore } from "../src/state/signal-store.ts"
 import { createSelection } from "@silvery/selection"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/state/reactive.ts"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/state/ui-reducer.ts"
@@ -135,7 +135,7 @@ const mockUIState = createInitialPaneUI("cards", [], { columns: 120, rows: 40 })
 const mockSel = createSelection({
   tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
 })
-const mockZustandStore = createStore(() => ({
+const mockZustandStore = createSignalStore(() => ({
   ui: {
     ...mockUIState,
     multiSelected: new Set<string>(),

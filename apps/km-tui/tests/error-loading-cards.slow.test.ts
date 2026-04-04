@@ -14,7 +14,7 @@ import { act } from "react"
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
-import type { StoreApi } from "zustand"
+import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 
 /** Dispatch a board action and flush React so DOM reflects the state change. */
 function dispatchAndFlush(store: StoreApi<BoardAppStore>, action: Parameters<BoardAppStore["dispatchBoard"]>[0]) {

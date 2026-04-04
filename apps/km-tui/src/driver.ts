@@ -41,7 +41,7 @@
  */
 
 import React, { act } from "react"
-import { createStore, type StoreApi } from "zustand"
+import { createSignalStore, type SignalStoreApi as StoreApi } from "./state/signal-store.ts"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
 import { pipe, withCommands, type AppWithCommands, type AppState } from "@silvery/create/plugins"
@@ -207,7 +207,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Create reactive store for signal-based subscriptions (useStore/useChildIdsSignal/useCommitVersion)
   const reactiveStore = withReactive(createStoreFromRepo(repo))

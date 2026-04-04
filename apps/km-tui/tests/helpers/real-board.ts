@@ -23,7 +23,7 @@
  */
 
 import React, { act } from "react"
-import { createStore, type StoreApi } from "zustand"
+import { createSignalStore, type SignalStoreApi as StoreApi } from "../../src/state/signal-store.ts"
 import { createRenderer, keyToAnsi, type App } from "@silvery/test"
 import { StoreContext } from "@silvery/create/create-app"
 import { parseKey } from "@silvery/ag-term/runtime"
@@ -145,7 +145,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     dimensions: { columns, rows },
   }
 
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(storeParams))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(storeParams))
 
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   const focusManager = createFocusManager()

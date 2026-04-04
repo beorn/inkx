@@ -9,7 +9,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createStore } from "zustand"
+import { createSignalStore } from "../src/state/signal-store.ts"
 import { hitTestSplitBorder, hitTestPaneId, setSplitRatioAbsolute } from "../src/layout-helpers.ts"
 import {
   createBoardAppStoreState,
@@ -54,7 +54,7 @@ function createTestStore() {
     initialViewMode: "cards",
     dimensions: { columns: 120, rows: 30 },
   }
-  const store = createStore<BoardAppStore>(createBoardAppStoreState(params))
+  const store = createSignalStore<BoardAppStore>(createBoardAppStoreState(params))
   return { store, repo }
 }
 

@@ -938,7 +938,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Register handlers in the store for workspace chrome to read
   useEffect(() => {
     if (!storeRef) return
-    const store = storeRef as import("zustand").StoreApi<BoardAppStore>
+    const store = storeRef as import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
     store.setState({
       _findQueryHandler: handleFindQueryChange,
       _searchReplaceSearchHandler: handleSearchReplaceSearchChange,
@@ -1077,7 +1077,9 @@ export interface BoardAppProps {
 export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, patchedConsole }: BoardAppProps) {
   const { exit } = useApp()
   const repo = useRepo()
-  const storeApi = React.useContext(StoreContext) as import("zustand").StoreApi<BoardAppStore> | null
+  const storeApi = React.useContext(StoreContext) as
+    | import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+    | null
 
   // Handle clicks on links — opens external URLs, dispatches internal km:// links.
   // Supported schemes: km://node/{id}, km://wiki/{name}, km://block/{id}, km://zoom/{id}
