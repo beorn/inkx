@@ -4,6 +4,7 @@
  * Utility functions for keyboard handling.
  */
 
+import type { ID } from "@silvery/selection"
 import type { ActionCtx } from "../tui-context.ts"
 
 // =============================================================================
@@ -16,7 +17,6 @@ function pushNavHistoryEntry(
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
-  multiSelected: Set<string>,
   cursorNodeId: string | null = null,
   foldDepths?: Map<string, number>,
 ): void {
@@ -25,7 +25,6 @@ function pushNavHistoryEntry(
     colIndex,
     cardIndex,
     cursorNodeId,
-    multiSelected: new Set(multiSelected),
     foldDepths: foldDepths ? new Map(foldDepths) : undefined,
   }
   setUI((prev) => {
@@ -41,7 +40,6 @@ export function saveNavHistory(ctx: ActionCtx): void {
     ctx.rootId,
     ctx.colIndex,
     ctx.cardIndex,
-    ctx.ui.multiSelected,
     ctx.cursorNodeId,
     ctx.foldDepths,
   )
@@ -53,7 +51,6 @@ export function saveNavHistoryFromPane(
   pane: {
     rootId: string | null
     cursorNodeId: string | null
-    multiSelected: Set<string>
     foldDepths: Map<string, number>
   },
 ): void {
@@ -62,7 +59,6 @@ export function saveNavHistoryFromPane(
     pane.rootId,
     0, // colIndex — derived at render, not available imperatively; unused in restore
     0, // cardIndex — same
-    pane.multiSelected,
     pane.cursorNodeId,
     pane.foldDepths,
   )
@@ -80,12 +76,12 @@ export function saveNavHistoryFromPane(
  * - Different cols: all cards in all columns between anchor.col and focus.col
  */
 export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: number): void {
-  if (!ctx.ui.selectionAnchor) return
-  const anchor = ctx.ui.selectionAnchor
-  const newSelected = new Set<string>()
+  const anchorId = ctx.sel.node.anchor()
+  if (!anchorId) return
+  const newSelected: string[] = []
 
   // Resolve anchor position from nodeId
-  const anchorPos = ctx.nodeIndex?.get(anchor.nodeId)
+  const anchorPos = ctx.nodeIndex?.get(anchorId)
   if (!anchorPos) return
   const anchorCol = anchorPos.colIndex
   const anchorCard = anchorPos.cardIndex
@@ -97,7 +93,7 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
     for (let c = minCard; c <= maxCard; c++) {
       const card = ctx.columns[toCol]?.cardNodes[c]
       if (card) {
-        newSelected.add(card.id)
+        newSelected.push(card.id)
       }
     }
   } else {
@@ -108,41 +104,33 @@ export function updateSelectionRange(ctx: ActionCtx, toCol: number, toCard: numb
       const col = ctx.columns[colIdx]
       if (col) {
         for (const card of col.cardNodes) {
-          newSelected.add(card.id)
+          newSelected.push(card.id)
         }
       }
     }
   }
 
+  ctx.sel.node.select(newSelected as ID[])
+
   // Show status feedback
-  const count = newSelected.size
+  const count = newSelected.length
   if (anchorCol !== toCol) {
     const colCount = Math.abs(toCol - anchorCol) + 1
     ctx.setUI({
-      multiSelected: newSelected,
       status: {
         level: "info",
         message: `${colCount} column${colCount > 1 ? "s" : ""} selected (${count} items)`,
       },
     })
   } else if (count > 1) {
-    ctx.setUI({
-      multiSelected: newSelected,
-      status: { level: "info", message: `${count} items selected` },
-    })
-  } else {
-    ctx.setUI({ multiSelected: newSelected })
+    ctx.setUI({ status: { level: "info", message: `${count} items selected` } })
   }
 }
 
 /** Clear all selection state */
 export function clearSelection(ctx: ActionCtx): void {
-  ctx.setUI({
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-    status: null,
-  })
+  ctx.sel.deselect()
+  ctx.setUI({ status: null })
 }
 
 // =============================================================================
@@ -152,25 +140,25 @@ export function clearSelection(ctx: ActionCtx): void {
 type SelectionScope = "card" | "column" | "board"
 
 /** Build a selection set for the given scope (card, column, or board) */
-function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<string> {
-  const selected = new Set<string>()
+function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): string[] {
+  const selected: string[] = []
 
   if (scope === "card") {
     const card = ctx.columns[ctx.colIndex]?.cardNodes[ctx.cardIndex]
     if (card) {
-      selected.add(card.id)
+      selected.push(card.id)
     }
   } else if (scope === "column") {
     const col = ctx.columns[ctx.colIndex]
     if (col) {
       for (const c of col.cardNodes) {
-        selected.add(c.id)
+        selected.push(c.id)
       }
     }
   } else {
     for (const column of ctx.columns) {
       for (const c of column.cardNodes) {
-        selected.add(c.id)
+        selected.push(c.id)
       }
     }
   }
@@ -178,35 +166,39 @@ function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): Set<string> {
   return selected
 }
 
-/** Progressive select all with Shift+A */
+/**
+ * Progressive select all with Shift+A.
+ *
+ * Uses the size of the current selection to determine the next scope
+ * (replaces the old selectAllLevel counter).
+ */
 export function progressiveSelectAll(ctx: ActionCtx): void {
   const col = ctx.columns[ctx.colIndex]
   const card = col?.cardNodes[ctx.cardIndex]
-  const currentLevel = ctx.ui.selectAllLevel
 
   // Derive outline mode: cursor is inside a card's sub-items
   const inOutlineMode = ctx.cursorNodeId !== null && card !== undefined && ctx.cursorNodeId !== card.id
+  const currentSize = ctx.selectedIds.size
 
+  // Determine next scope based on current selection size
   let scope: SelectionScope
-  let nextLevel: number
-  if (currentLevel === 0 && inOutlineMode && card) {
+  if (currentSize === 0 && inOutlineMode && card) {
     scope = "card"
-    nextLevel = 1
-  } else if (currentLevel <= 1 && col) {
+  } else if (col && currentSize <= (inOutlineMode ? 1 : 0)) {
     scope = "column"
-    nextLevel = 2
-  } else {
+  } else if (col && currentSize <= col.cardNodes.length) {
     scope = "board"
-    nextLevel = 0
+  } else {
+    // Already at board level, cycle back
+    scope = "board"
   }
 
   const newSelected = buildSelectAllSet(ctx, scope)
+  ctx.sel.node.select(newSelected as ID[])
   ctx.setUI({
-    multiSelected: newSelected,
-    selectAllLevel: nextLevel,
     status: {
       level: "info",
-      message: `All ${newSelected.size} items in ${scope} selected`,
+      message: `All ${newSelected.length} items in ${scope} selected`,
     },
   })
 }

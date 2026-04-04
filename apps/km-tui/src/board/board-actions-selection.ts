@@ -2,19 +2,14 @@
  * Board Action Handlers - Selection Operations
  *
  * Handles multi-selection, range selection, and selection clearing.
- *
- * Selection uses an anchor/focus model:
- * - Anchor: set on first shift-movement, stays fixed
- * - Focus: moves with each shift-movement (= current cursor position)
- * - Shift-J/K: card-range selection within a column (updateSelectionRange)
- * - Shift-H/L: column-level selection (selectColumnRange)
+ * Uses @silvery/selection store (sel.node) for all selection state.
  */
 
 import { Tree } from "@km/tree"
-import { updateSelectionRange } from "../keyboard/keyboard-helpers.ts"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { ActionCtx } from "../tui-context.ts"
 import { createSelectionEngine } from "../state/selection-engine.ts"
+import type { ID } from "@silvery/selection"
 
 /**
  * Extend selection vertically (up or down).
@@ -23,7 +18,7 @@ import { createSelectionEngine } from "../state/selection-engine.ts"
  * siblings at the same depth. When at card level, selects between cards.
  */
 export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "down"): void {
-  const { ui, dispatchBoard } = ctx
+  const { dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card
   const cursorId = ctx.cursorNodeId
@@ -37,25 +32,15 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
     return handleExtendSelectOutline(ctx, direction)
   }
 
-  // Card-level selection (original behavior)
-  const initAnchor = ui.selectionAnchor === null
-  if (initAnchor) {
-    const anchor = { nodeId: card.id }
-    ctx.setUI({ selectionAnchor: anchor })
-    ctx.ui.selectionAnchor = anchor
-  }
-
+  // Card-level selection: extend from anchor through cursor
   const targetIdx =
     direction === "up" ? Math.max(0, ctx.cardIndex - 1) : Math.min(col.cardNodes.length - 1, ctx.cardIndex + 1)
 
   if (targetIdx === ctx.cardIndex) {
-    if (initAnchor) {
-      const newSelected = new Set(ui.multiSelected)
-      newSelected.add(card.id)
-      ctx.setUI({
-        multiSelected: newSelected,
-        status: { level: "info", message: "1 item selected" },
-      })
+    // At boundary — if starting fresh, just select current card
+    if (ctx.sel.node.ids().length <= 1) {
+      ctx.sel.node.select([card.id as ID])
+      ctx.setUI({ status: { level: "info", message: "1 item selected" } })
     }
     return
   }
@@ -64,7 +49,9 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId) {
     dispatchBoard({ type: "SELECT", nodeId: targetId })
-    updateSelectionRange(ctx, ctx.colIndex, targetIdx)
+    ctx.sel.node.extend(targetId as ID)
+    const count = ctx.sel.node.ids().length
+    ctx.setUI({ status: { level: "info", message: `${count} item${count > 1 ? "s" : ""} selected` } })
   }
 }
 
@@ -73,7 +60,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
  * Uses Tree.siblings to navigate within the same parent.
  */
 function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): void {
-  const { ui, dispatchBoard, repo } = ctx
+  const { dispatchBoard, repo } = ctx
   const cursorId = ctx.cursorNodeId!
 
   // Get siblings at the same level
@@ -82,47 +69,26 @@ function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): vo
   const curIdx = siblings.findIndex((s) => s.id === cursorId)
   if (curIdx === -1) return
 
-  // Initialize anchor at current position
-  if (ui.selectionAnchor === null) {
-    const anchor = { nodeId: cursorId }
-    ctx.setUI({ selectionAnchor: anchor })
-    ctx.ui.selectionAnchor = anchor
-  }
-
   // Find target sibling
   const targetIdx = direction === "up" ? curIdx - 1 : curIdx + 1
   if (targetIdx < 0 || targetIdx >= siblings.length) {
     // At boundary: "pop out" to parent — select the entire card.
-    // This transitions from outline-mode (sub-item) to card-level selection.
-    // Subsequent shift-selects will use card-level logic since cursor is on the card.
     const parent = Tree.parent(repo, cursorId)
     if (parent) {
       dispatchBoard({ type: "SELECT", nodeId: parent.id })
-      ctx.setUI({
-        selectionAnchor: { nodeId: parent.id },
-        multiSelected: new Set([parent.id]),
-        status: { level: "info", message: "1 item selected" },
-      })
+      ctx.sel.node.select([parent.id as ID])
+      ctx.setUI({ status: { level: "info", message: "1 item selected" } })
     }
     return
   }
 
   const targetId = siblings[targetIdx]!.id
   dispatchBoard({ type: "SELECT", nodeId: targetId })
+  ctx.sel.node.extend(targetId as ID)
 
-  // Build selection range: all siblings between anchor and focus
-  const anchorId = ui.selectionAnchor?.nodeId ?? cursorId
-  const anchorIdx = siblings.findIndex((s) => s.id === anchorId)
-  const newSelected = new Set<string>()
-  const lo = Math.min(anchorIdx, targetIdx)
-  const hi = Math.max(anchorIdx, targetIdx)
-  for (let i = lo; i <= hi; i++) {
-    newSelected.add(siblings[i]!.id)
-  }
-
+  const count = ctx.sel.node.ids().length
   ctx.setUI({
-    multiSelected: newSelected,
-    status: { level: "info", message: `${newSelected.size} item${newSelected.size > 1 ? "s" : ""} selected` },
+    status: { level: "info", message: `${count} item${count > 1 ? "s" : ""} selected` },
   })
 }
 
@@ -131,30 +97,18 @@ function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): vo
  * Selects entire columns between anchor and focus.
  */
 export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" | "right"): void {
-  const { ui, dispatchBoard } = ctx
+  const { dispatchBoard } = ctx
   const columns = ctx.columns
 
   if (columns.length === 0) return
-
-  // Resolve anchor column from nodeId (or use current cursor column)
-  const anchorCol = resolveAnchorCol(ctx) ?? ctx.colIndex
 
   // Calculate target column (focus moves one step in direction)
   const targetColIdx =
     direction === "right" ? Math.min(columns.length - 1, ctx.colIndex + 1) : Math.max(0, ctx.colIndex - 1)
 
-  // At boundary with no selection: select current column
   // At boundary with existing selection: do nothing
   if (targetColIdx === ctx.colIndex) {
-    if (ui.multiSelected.size > 0) return
-  }
-
-  // Set anchor if starting fresh
-  const card = ctx.card
-  if (ui.selectionAnchor === null && card) {
-    ctx.setUI({
-      selectionAnchor: { nodeId: card.id },
-    })
+    if (ctx.selectedIds.size > 0) return
   }
 
   // Move cursor to first card in target column
@@ -166,12 +120,13 @@ export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" |
     }
   }
 
-  // Select all cards in columns between anchor and focus
-  const newSelected = selectColumnRange(ctx, anchorCol, targetColIdx)
-  const colCount = Math.abs(targetColIdx - anchorCol) + 1
+  // Select all cards in columns between anchor column and target column
+  const anchorColIdx = resolveAnchorCol(ctx) ?? ctx.colIndex
+  const newSelected = selectColumnRange(ctx, anchorColIdx, targetColIdx)
+  const colCount = Math.abs(targetColIdx - anchorColIdx) + 1
 
+  ctx.sel.node.select(Array.from(newSelected) as ID[])
   ctx.setUI({
-    multiSelected: newSelected,
     status: {
       level: "info",
       message: `${colCount} column${colCount > 1 ? "s" : ""} selected (${newSelected.size} items)`,
@@ -179,11 +134,11 @@ export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" |
   })
 }
 
-/** Resolve the anchor's column index from its nodeId via layout.nodeIndex. */
+/** Resolve the anchor's column index from sel.node.anchor via layout.nodeIndex. */
 function resolveAnchorCol(ctx: ActionCtx): number | null {
-  const anchor = ctx.ui.selectionAnchor
-  if (!anchor) return null
-  const pos = ctx.nodeIndex?.get(anchor.nodeId)
+  const anchorId = ctx.sel.node.anchor()
+  if (!anchorId) return null
+  const pos = ctx.nodeIndex?.get(anchorId)
   return pos?.colIndex ?? null
 }
 
