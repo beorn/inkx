@@ -2,18 +2,13 @@
  * Outliner Reducer — TEA state machine for outliner operations.
  *
  * Wraps the existing outliner operations (withOutliner) in a pure
- * `(state, action) -> [state, effects]` function. The outliner.ts
+ * `(state, op) -> [state, effects]` function. The outliner.ts
  * functions remain the implementation; this layer captures their
  * mutations as state snapshots and emits effects for side-channel
  * concerns (persistence, events).
  *
- * Terminology note: The TEA design doc (docs/design/tea-state-machines.md)
- * uses "operation" (op) and ".apply()". This module uses "action" per the
- * Phase 3 task spec. Both follow the same `(state, input) -> [state, effects]`
- * shape.
- *
  * Usage:
- *   const [newState, effects] = applyTreeAction(state, { type: "INDENT", nodeId: "abc" })
+ *   const [newState, effects] = applyTreeOp(state, { type: "INDENT", nodeId: "abc" })
  */
 
 import type { KNode } from "@km/core"
@@ -62,7 +57,7 @@ export interface TreeState {
 // Actions (discriminated union)
 // =============================================================================
 
-export type TreeAction =
+export type TreeOp =
   | { type: "INDENT"; nodeId: string }
   | { type: "OUTDENT"; nodeId: string }
   | { type: "MOVE_UP"; nodeId: string }
@@ -90,8 +85,8 @@ export type TreeEffect =
 // Result type
 // =============================================================================
 
-/** Result of applying a tree action: new state + effects. */
-export type TreeActionResult = [TreeState, TreeEffect[]]
+/** Result of applying a tree op: new state + effects. */
+export type TreeOpResult = [TreeState, TreeEffect[]]
 
 // =============================================================================
 // State Snapshot Helpers
@@ -153,7 +148,7 @@ export function captureTreeState(
 // =============================================================================
 
 /**
- * Apply a tree action to produce new state + effects.
+ * Apply a tree op to produce new state + effects.
  *
  * This is the core TEA state machine function. It delegates to the existing
  * outliner operations via withOutliner(), captures the resulting state, and
@@ -162,21 +157,21 @@ export function captureTreeState(
  * The TreeMutator is mutated in place by the outliner operations (it wraps
  * a Repo). The returned TreeState is a snapshot taken after mutation. This
  * design wraps the imperative core in a functional interface — the reducer
- * is "pure" in the sense that the same action on the same tree state always
+ * is "pure" in the sense that the same op on the same tree state always
  * produces the same result and effects.
  *
  * @param tree - The mutable tree (Repo). Mutated in place by outliner ops.
  * @param state - Current tree state snapshot (for cursor/focus tracking).
- * @param action - The action to apply.
+ * @param action - The op to apply.
  * @param policy - Optional outliner policy for indent/outdent guards.
  * @returns [newState, effects] tuple following TEA pattern.
  */
-export function applyTreeAction(
+export function applyTreeOp(
   tree: TreeMutator,
   state: TreeState,
-  action: TreeAction,
+  action: TreeOp,
   policy?: OutlinerPolicy,
-): TreeActionResult {
+): TreeOpResult {
   const outliner = withOutliner(tree, policy)
   const effects: TreeEffect[] = []
   let focusedNodeId = state.focusedNodeId

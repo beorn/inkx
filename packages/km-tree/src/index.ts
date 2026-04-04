@@ -122,11 +122,11 @@ export { Point, Range, transformPoint, transformRange, transformSelection } from
 
 // Outliner Reducer — TEA state machine for outliner operations
 export {
-  applyTreeAction,
+  applyTreeOp,
   captureTreeState,
-  type TreeAction,
+  type TreeOp,
   type TreeEffect,
   type TreeState,
   type TreeNodeSnapshot,
-  type TreeActionResult,
+  type TreeOpResult,
 } from "./outliner-reducer.ts"

@@ -9,9 +9,9 @@ import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
 import { KNode } from "@km/core"
 import {
-  applyTreeAction,
+  applyTreeOp,
   captureTreeState,
-  type TreeAction,
+  type TreeOp,
   type TreeEffect,
   type TreeState,
 } from "../src/outliner-reducer.ts"
@@ -116,9 +116,9 @@ function hasEffect(effects: TreeEffect[], type: TreeEffect["type"]): boolean {
 describe("INDENT action", () => {
   test("indents second child under first child", () => {
     const { repo, aId, bId, state } = setupFlatList()
-    const action: TreeAction = { type: "INDENT", nodeId: bId }
+    const action: TreeOp = { type: "INDENT", nodeId: bId }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     // B is now child of A
     const bNode = newState.nodes.get(bId)!
@@ -132,9 +132,9 @@ describe("INDENT action", () => {
 
   test("first child indent is no-op with bell", () => {
     const { repo, aId, parentId, state } = setupFlatList()
-    const action: TreeAction = { type: "INDENT", nodeId: aId }
+    const action: TreeOp = { type: "INDENT", nodeId: aId }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     // A unchanged
     const aNode = newState.nodes.get(aId)!
@@ -147,9 +147,9 @@ describe("INDENT action", () => {
 
   test("nonexistent node indent emits bell", () => {
     const { repo, state } = setupFlatList()
-    const action: TreeAction = { type: "INDENT", nodeId: "nonexistent" }
+    const action: TreeOp = { type: "INDENT", nodeId: "nonexistent" }
 
-    const [_, effects] = applyTreeAction(repo, state, action)
+    const [_, effects] = applyTreeOp(repo, state, action)
     expect(hasEffect(effects, "bell")).toBe(true)
   })
 })
@@ -161,9 +161,9 @@ describe("INDENT action", () => {
 describe("OUTDENT action", () => {
   test("nested child outdents to grandparent level", () => {
     const { repo, rootId, child1Id, state } = setupNestedTree()
-    const action: TreeAction = { type: "OUTDENT", nodeId: child1Id }
+    const action: TreeOp = { type: "OUTDENT", nodeId: child1Id }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     // child1 is now child of rootId
     const child1 = newState.nodes.get(child1Id)!
@@ -175,9 +175,9 @@ describe("OUTDENT action", () => {
 
   test("root-level node cannot outdent — bell", () => {
     const { repo, sectionAId, state } = setupNestedTree()
-    const action: TreeAction = { type: "OUTDENT", nodeId: sectionAId }
+    const action: TreeOp = { type: "OUTDENT", nodeId: sectionAId }
 
-    const [_, effects] = applyTreeAction(repo, state, action)
+    const [_, effects] = applyTreeOp(repo, state, action)
     expect(hasEffect(effects, "bell")).toBe(true)
     expect(hasEffect(effects, "persist")).toBe(false)
   })
@@ -192,11 +192,11 @@ describe("INDENT then OUTDENT = identity", () => {
     const { repo, parentId, bId, state } = setupFlatList()
 
     // Indent B under A
-    const [stateAfterIndent, _] = applyTreeAction(repo, state, { type: "INDENT", nodeId: bId })
+    const [stateAfterIndent, _] = applyTreeOp(repo, state, { type: "INDENT", nodeId: bId })
     expect(stateAfterIndent.nodes.get(bId)!.parent_id).not.toBe(parentId)
 
     // Outdent B back
-    const [stateAfterOutdent, __] = applyTreeAction(repo, stateAfterIndent, {
+    const [stateAfterOutdent, __] = applyTreeOp(repo, stateAfterIndent, {
       type: "OUTDENT",
       nodeId: bId,
     })
@@ -213,7 +213,7 @@ describe("MOVE_UP action", () => {
     const { repo, parentId, aId, bId, state } = setupFlatList()
 
     // B is at index 2, A is at index 1. Move B up.
-    const [newState, effects] = applyTreeAction(repo, state, { type: "MOVE_UP", nodeId: bId })
+    const [newState, effects] = applyTreeOp(repo, state, { type: "MOVE_UP", nodeId: bId })
 
     // B should now have a smaller parent_idx than A
     const bNode = newState.nodes.get(bId)!
@@ -226,7 +226,7 @@ describe("MOVE_UP action", () => {
 
   test("first child cannot move up — bell", () => {
     const { repo, aId, state } = setupFlatList()
-    const [_, effects] = applyTreeAction(repo, state, { type: "MOVE_UP", nodeId: aId })
+    const [_, effects] = applyTreeOp(repo, state, { type: "MOVE_UP", nodeId: aId })
     expect(hasEffect(effects, "bell")).toBe(true)
     expect(hasEffect(effects, "persist")).toBe(false)
   })
@@ -240,7 +240,7 @@ describe("MOVE_DOWN action", () => {
   test("moves node after its next sibling", () => {
     const { repo, bId, cId, state } = setupFlatList()
 
-    const [newState, effects] = applyTreeAction(repo, state, { type: "MOVE_DOWN", nodeId: bId })
+    const [newState, effects] = applyTreeOp(repo, state, { type: "MOVE_DOWN", nodeId: bId })
 
     // B should now have a larger parent_idx than C
     const bNode = newState.nodes.get(bId)!
@@ -253,7 +253,7 @@ describe("MOVE_DOWN action", () => {
 
   test("last child cannot move down — bell", () => {
     const { repo, cId, state } = setupFlatList()
-    const [_, effects] = applyTreeAction(repo, state, { type: "MOVE_DOWN", nodeId: cId })
+    const [_, effects] = applyTreeOp(repo, state, { type: "MOVE_DOWN", nodeId: cId })
     expect(hasEffect(effects, "bell")).toBe(true)
     expect(hasEffect(effects, "persist")).toBe(false)
   })
@@ -272,8 +272,8 @@ describe("MOVE_UP then MOVE_DOWN = identity", () => {
     const origParentIdx = origB.parent_idx
 
     // Move B up, then back down
-    const [midState, _] = applyTreeAction(repo, state, { type: "MOVE_UP", nodeId: bId })
-    const [finalState, __] = applyTreeAction(repo, midState, { type: "MOVE_DOWN", nodeId: bId })
+    const [midState, _] = applyTreeOp(repo, state, { type: "MOVE_UP", nodeId: bId })
+    const [finalState, __] = applyTreeOp(repo, midState, { type: "MOVE_DOWN", nodeId: bId })
 
     // B should be back at its original relative position
     // (parent_idx values may differ but ordering should be restored)
@@ -290,9 +290,9 @@ describe("MOVE_UP then MOVE_DOWN = identity", () => {
 describe("SPLIT_BLOCK action", () => {
   test("splits at cursor middle", () => {
     const { repo, bId, state } = setupFlatList()
-    const action: TreeAction = { type: "SPLIT_BLOCK", nodeId: bId, cursorOffset: 3 }
+    const action: TreeOp = { type: "SPLIT_BLOCK", nodeId: bId, cursorOffset: 3 }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     // Find the split effect
     const splitEffect = findEffect(effects, "node_split")
@@ -315,9 +315,9 @@ describe("SPLIT_BLOCK action", () => {
 
   test("split at end creates empty sibling after", () => {
     const { repo, bId, parentId, state } = setupFlatList()
-    const action: TreeAction = { type: "SPLIT_BLOCK", nodeId: bId, cursorOffset: 5 }
+    const action: TreeOp = { type: "SPLIT_BLOCK", nodeId: bId, cursorOffset: 5 }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     const splitEffect = findEffect(effects, "node_split")!
     expect(splitEffect.beforeId).toBe(bId)
@@ -329,7 +329,7 @@ describe("SPLIT_BLOCK action", () => {
 
   test("focus effect points to new node", () => {
     const { repo, bId, state } = setupFlatList()
-    const [_, effects] = applyTreeAction(repo, state, {
+    const [_, effects] = applyTreeOp(repo, state, {
       type: "SPLIT_BLOCK",
       nodeId: bId,
       cursorOffset: 3,
@@ -354,7 +354,7 @@ describe("MERGE_BLOCK backward", () => {
     // Recapture state after changes
     const freshState = captureTreeState(repo, [null], bId, 0)
 
-    const [newState, effects] = applyTreeAction(repo, freshState, {
+    const [newState, effects] = applyTreeOp(repo, freshState, {
       type: "MERGE_BLOCK",
       nodeId: bId,
       direction: "backward",
@@ -380,7 +380,7 @@ describe("MERGE_BLOCK backward", () => {
     })
     const state = captureTreeState(repo, [null], taskId, 0)
 
-    const [newState, effects] = applyTreeAction(repo, state, {
+    const [newState, effects] = applyTreeOp(repo, state, {
       type: "MERGE_BLOCK",
       nodeId: taskId,
       direction: "backward",
@@ -399,7 +399,7 @@ describe("MERGE_BLOCK backward", () => {
     const rootId = repo.addNode(null, { type: "p", content: "Root" })
     const state = captureTreeState(repo, [null], rootId, 0)
 
-    const [_, effects] = applyTreeAction(repo, state, {
+    const [_, effects] = applyTreeOp(repo, state, {
       type: "MERGE_BLOCK",
       nodeId: rootId,
       direction: "backward",
@@ -416,7 +416,7 @@ describe("MERGE_BLOCK forward", () => {
   test("merges with next sibling's text", () => {
     const { repo, bId, cId, state } = setupFlatList()
 
-    const [newState, effects] = applyTreeAction(repo, state, {
+    const [newState, effects] = applyTreeOp(repo, state, {
       type: "MERGE_BLOCK",
       nodeId: bId,
       direction: "forward",
@@ -441,7 +441,7 @@ describe("MERGE_BLOCK forward", () => {
   test("last child forward merge — bell (no next sibling)", () => {
     const { repo, cId, state } = setupFlatList()
 
-    const [_, effects] = applyTreeAction(repo, state, {
+    const [_, effects] = applyTreeOp(repo, state, {
       type: "MERGE_BLOCK",
       nodeId: cId,
       direction: "forward",
@@ -458,13 +458,13 @@ describe("MERGE_BLOCK forward", () => {
 describe("INSERT_NODE action", () => {
   test("creates a new node under the specified parent", () => {
     const { repo, parentId, state } = setupFlatList()
-    const action: TreeAction = {
+    const action: TreeOp = {
       type: "INSERT_NODE",
       parentId,
       props: { type: "p", item: { list: "-" }, content: "Delta", parent_idx: 4 },
     }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     // New node created
     const createdEffect = findEffect(effects, "node_created")
@@ -487,9 +487,9 @@ describe("INSERT_NODE action", () => {
 describe("DELETE_NODE action", () => {
   test("deletes a node and focuses next sibling", () => {
     const { repo, bId, cId, state } = setupFlatList()
-    const action: TreeAction = { type: "DELETE_NODE", nodeId: bId }
+    const action: TreeOp = { type: "DELETE_NODE", nodeId: bId }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     // B is gone
     expect(repo.getNode(bId)).toBeNull()
@@ -504,9 +504,9 @@ describe("DELETE_NODE action", () => {
 
   test("deletes last child and focuses previous sibling", () => {
     const { repo, bId, cId, state } = setupFlatList()
-    const action: TreeAction = { type: "DELETE_NODE", nodeId: cId }
+    const action: TreeOp = { type: "DELETE_NODE", nodeId: cId }
 
-    const [newState, effects] = applyTreeAction(repo, state, action)
+    const [newState, effects] = applyTreeOp(repo, state, action)
 
     expect(repo.getNode(cId)).toBeNull()
     // Focus should go to B (previous sibling, since C was last)
@@ -519,7 +519,7 @@ describe("DELETE_NODE action", () => {
     const childId = repo.addNode(parentId, { type: "p", item: {}, content: "Only" })
     const state = captureTreeState(repo, [null], childId, 0)
 
-    const [newState, effects] = applyTreeAction(repo, state, {
+    const [newState, effects] = applyTreeOp(repo, state, {
       type: "DELETE_NODE",
       nodeId: childId,
     })
@@ -530,7 +530,7 @@ describe("DELETE_NODE action", () => {
 
   test("deleting nonexistent node emits bell", () => {
     const { repo, state } = setupFlatList()
-    const [_, effects] = applyTreeAction(repo, state, {
+    const [_, effects] = applyTreeOp(repo, state, {
       type: "DELETE_NODE",
       nodeId: "nonexistent",
     })
@@ -577,26 +577,26 @@ describe("captureTreeState", () => {
 describe("effect correctness", () => {
   test("successful actions always emit persist", () => {
     const { repo, bId, state } = setupFlatList()
-    const actions: TreeAction[] = [
+    const actions: TreeOp[] = [
       { type: "INDENT", nodeId: bId },
       { type: "SPLIT_BLOCK", nodeId: bId, cursorOffset: 2 },
     ]
 
     // Test indent
-    const [_, indentEffects] = applyTreeAction(repo, state, actions[0]!)
+    const [_, indentEffects] = applyTreeOp(repo, state, actions[0]!)
     expect(hasEffect(indentEffects, "persist")).toBe(true)
   })
 
   test("failed actions never emit persist", () => {
     const { repo, aId, state } = setupFlatList()
     // First child can't indent
-    const [_, effects] = applyTreeAction(repo, state, { type: "INDENT", nodeId: aId })
+    const [_, effects] = applyTreeOp(repo, state, { type: "INDENT", nodeId: aId })
     expect(hasEffect(effects, "persist")).toBe(false)
   })
 
   test("node_moved effect carries correct from/to parent", () => {
     const { repo, parentId, aId, bId, state } = setupFlatList()
-    const [_, effects] = applyTreeAction(repo, state, { type: "INDENT", nodeId: bId })
+    const [_, effects] = applyTreeOp(repo, state, { type: "INDENT", nodeId: bId })
 
     const moveEffect = findEffect(effects, "node_moved")!
     expect(moveEffect.nodeId).toBe(bId)
