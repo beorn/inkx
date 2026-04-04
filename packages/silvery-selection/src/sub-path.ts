@@ -4,7 +4,7 @@
  * Same pattern as text but for path selections. Methods are no-ops if kind doesn't match.
  */
 
-import type { PathSelection, SubSelection } from "./types.ts"
+import type { DefaultSubSelection, PathSelection } from "./types.ts"
 
 export type PathAccessor = {
   /** Computed: current path selection, or null if not in path mode */
@@ -18,7 +18,7 @@ export type PathAccessor = {
 }
 
 export function createPathAccessor(
-  $sub: () => SubSelection | null,
+  $sub: () => DefaultSubSelection | null,
   _doEdit: () => void,
   _doSelect: () => void,
   doDeselect: () => void,

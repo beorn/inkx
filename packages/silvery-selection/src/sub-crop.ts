@@ -4,7 +4,7 @@
  * Same pattern as text but for crop selections. Methods are no-ops if kind doesn't match.
  */
 
-import type { CropSelection, SubSelection } from "./types.ts"
+import type { CropSelection, DefaultSubSelection } from "./types.ts"
 
 export type CropAccessor = {
   /** Computed: current crop selection, or null if not in crop mode */
@@ -18,7 +18,7 @@ export type CropAccessor = {
 }
 
 export function createCropAccessor(
-  $sub: () => SubSelection | null,
+  $sub: () => DefaultSubSelection | null,
   _doEdit: () => void,
   _doSelect: () => void,
   doDeselect: () => void,

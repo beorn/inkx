@@ -11,7 +11,7 @@ export type OrderedSet<T> = ReadonlyArray<T> & {
 
 /**
  * Create an OrderedSet from an array of items.
- * The array is used directly (not copied) — caller must not mutate it.
+ * The input array is shallow-copied — safe to mutate the original after calling.
  */
 export function createOrderedSet<T>(items: readonly T[]): OrderedSet<T> {
   let cachedSet: Set<T> | null = null

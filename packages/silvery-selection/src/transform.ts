@@ -9,7 +9,7 @@
  */
 
 import type { DefaultSubSelection, ID, SelectionSnapshot, SubSelectionBase } from "./types.ts"
-import { EMPTY_STATE } from "./apply.ts"
+import { arraysEqual, EMPTY_STATE } from "./apply.ts"
 
 // --- Tree op types ---
 
@@ -32,15 +32,6 @@ export type SelectionTree = {
 }
 
 // --- Helpers ---
-
-function arraysEqual(a: readonly ID[], b: readonly ID[]): boolean {
-  if (a === b) return true
-  if (a.length !== b.length) return false
-  for (let i = 0; i < a.length; i++) {
-    if (a[i] !== b[i]) return false
-  }
-  return true
-}
 
 /** Find nearest remaining node to `target` in nodeOrder. */
 function findNearest(target: ID, remaining: readonly ID[], prevOrder: readonly ID[]): ID | null {

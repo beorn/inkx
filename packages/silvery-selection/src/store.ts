@@ -133,13 +133,7 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
   // --- Helpers ---
 
   function getWalkOrder(): readonly ID[] {
-    return app.tree.walkOrder(effective().root)
-  }
-
-  /** Read the effective snapshot: drag preview or committed */
-  function effective(): SelectionSnapshot<Sub> {
-    const s = $state()
-    return s.drag !== null ? s.committed : s.committed
+    return app.tree.walkOrder($state().committed.root)
   }
 
   /** Apply a pure transition, write if changed */

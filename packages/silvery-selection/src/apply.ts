@@ -28,19 +28,13 @@ function normalizeToOrder(ids: readonly ID[], nodeOrder: readonly ID[]): ID[] {
 }
 
 /** Check if two readonly ID[] have the same contents in the same order. */
-function arraysEqual(a: readonly ID[], b: readonly ID[]): boolean {
+export function arraysEqual(a: readonly ID[], b: readonly ID[]): boolean {
   if (a === b) return true
   if (a.length !== b.length) return false
   for (let i = 0; i < a.length; i++) {
     if (a[i] !== b[i]) return false
   }
   return true
-}
-
-/** Quick membership check on a readonly ID[] via Set (cached per call site). */
-function includes(ids: readonly ID[], id: ID): boolean {
-  // For small arrays linear scan is fine; for larger, caller can use Set
-  return ids.indexOf(id) !== -1
 }
 
 /** Get range of IDs from anchor to cursor in nodeOrder (inclusive). */
@@ -226,7 +220,7 @@ export function applyRemove<Sub>(
   id: ID,
   nodeOrder?: readonly ID[],
 ): SelectionSnapshot<Sub> {
-  if (!includes(state.ids, id)) return state
+  if (state.ids.indexOf(id) === -1) return state
 
   const remaining = state.ids.filter((x) => x !== id)
   if (remaining.length === 0) {
@@ -249,7 +243,7 @@ export function applyRemove<Sub>(
     newAnchor = newCursor
   } else {
     newCursor = state.cursor
-    newAnchor = state.anchor !== null && includes(remaining, state.anchor) ? state.anchor : newCursor
+    newAnchor = state.anchor !== null && remaining.indexOf(state.anchor) !== -1 ? state.anchor : newCursor
   }
 
   if (

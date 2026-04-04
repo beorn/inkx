@@ -5,7 +5,7 @@
  * edit() ensures the parent node is selected via selectableAncestor.
  */
 
-import type { ID, SubSelection, TextSelection } from "./types.ts"
+import type { DefaultSubSelection, ID, TextSelection } from "./types.ts"
 
 export type TextAccessor = {
   /** Computed: current text selection, or null if not in text mode */
@@ -19,7 +19,7 @@ export type TextAccessor = {
 }
 
 export function createTextAccessor(
-  $sub: () => SubSelection | null,
+  $sub: () => DefaultSubSelection | null,
   doEdit: (nodeId: ID, offset: number) => void,
   doSelect: (cursor?: number, anchor?: number) => void,
   doDeselect: () => void,
