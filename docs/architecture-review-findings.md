@@ -110,7 +110,7 @@ Files: board-app.ts -> board-actions.ts -> view-navigation.ts -> cursor-store.ts
 2. **Cursor classified twice** — once in view-navigation.ts (isAtBoardLevel/isAtColumnLevel/etc.), again in cursor-store.ts (deriveCursorAncestors)
 3. **findAncestorAtDepth walks parent chain from scratch** — called multiple times per navigation, no caching
 4. **filterMeaningfulBody mirrors view layer** — comment says "Mirrors the view layer's meaningfulBody filter"
-5. **ViewNode tree built but partially used** — exists in ActionCtx but legacy navigation still primary
+5. **ViewNode tree built but partially used** — exists in OpCtx but legacy navigation still primary
 
 ### Sync Flow (external edit -> TUI)
 
@@ -202,7 +202,7 @@ Top 3 files per concern:
 - ViewNode status: not addressed (orthogonal)
 
 **5. Filter hidden nodes in ViewNode tree**
-- Now: hiddenNodeIds threaded through ActionCtx, NavState, view-navigation.ts (75 occurrences), board-actions.ts (13)
+- Now: hiddenNodeIds threaded through OpCtx, NavState, view-navigation.ts (75 occurrences), board-actions.ts (13)
 - Target: buildViewTree() excludes hidden nodes; navigation never sees them
 - Impact: ~50 lines of filtering removed from view-navigation.ts, 5+ files simplified
 - ViewNode status: natural Phase 3b extension

@@ -230,11 +230,11 @@ This is a **rendering rule, not data**. The same KNode renders as a column when 
 Keypress -> KmOp -> board-actions.ts (2600 lines) -> handler -> Repo mutation + state update
 ```
 
-Action handlers receive an `ActionCtx` — a large context object re-derived on each keypress with columns, cursor indices, node references, ViewNode tree, and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
+Action handlers receive an `OpCtx` — a large context object re-derived on each keypress with columns, cursor indices, node references, ViewNode tree, and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
 
 ### ViewNode as Single Authority
 
-The ViewNode tree (in ActionCtx as `viewTree` and `viewIndex`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Column derivation (`useColumns`) delegates to `buildViewTree + viewNodeToColumnViews`. Hidden nodes are filtered at tree construction time. Cursor classification uses `classifyCursorFromViewIndex` (O(1) lookup + parent walk). Navigation traverses ViewNode parent/children pointers directly.
+The ViewNode tree (in OpCtx as `viewTree` and `viewIndex`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Column derivation (`useColumns`) delegates to `buildViewTree + viewNodeToColumnViews`. Hidden nodes are filtered at tree construction time. Cursor classification uses `classifyCursorFromViewIndex` (O(1) lookup + parent walk). Navigation traverses ViewNode parent/children pointers directly.
 
 ### Target: TEA State Machines + Plugin Slices
 
@@ -250,7 +250,7 @@ Operations and effects are serializable data. The reducer is pure. Cross-cutting
 
 | SlateJS | km (current) | km (target) |
 |---------|-------------|-------------|
-| `Editor` | board-app-store + ActionCtx | `Board` — single state machine |
+| `Editor` | board-app-store + OpCtx | `Board` — single state machine |
 | `Element` / `Text` | KNode (item/block) | KNode (unchanged) |
 | `Path` | sel.node.cursor + classifyCursorFromViewIndex | `cursorPath: string[]` via ViewNode |
 | `Operation` | BoardReducerOp + KmOp | `KmOp` — unified discriminated union (done) |

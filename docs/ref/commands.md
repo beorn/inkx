@@ -35,7 +35,7 @@ packages/km-commands/src/
   executor.ts       -- executeCommand(), buildContext()
   keybindings.ts    -- Keybinding type, resolveKeybinding(), defaultKeybindings[]
   key-adapter.ts    -- processKey(), initCommandSystem(), key bridge
-  errors.ts         -- ActionError, ActionResult, helper constructors
+  errors.ts         -- OpError, OpResult, helper constructors
   commands/
     index.ts        -- allCommands aggregate export
     navigation.ts   -- Cursor, zoom, history, paging commands
@@ -101,17 +101,17 @@ The union of all action types a command can return:
 | `PaneOp`     | 16    | `SPLIT_PANE`, `CLOSE_PANE`, `RESIZE_PANE`   |
 | `ViewOp`     | 24    | `QUIT`, `SHOW_HELP`, `CYCLE_VIEW_MODE`      |
 
-### ActionError (Result type)
+### OpError (Result type)
 
 For command action handlers that can fail expectedly:
 
 ```typescript
-type ActionError =
+type OpError =
   | { type: "boundary"; direction: string; message?: string }
   | { type: "precondition"; missing: string }
   | { type: "unimplemented"; feature: string }
 
-type ActionResult = Result<void, ActionError>
+type OpResult = Result<void, OpError>
 ```
 
 Helper constructors: `boundary(dir, msg?)`, `precondition(field)`, `unimplemented(feature)`, `ok()`.
