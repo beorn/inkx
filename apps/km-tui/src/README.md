@@ -68,7 +68,7 @@ These are managed inside `Board.tsx`:
 | --------------- | ------------------------------------------------ |
 | `state`         | BoardState (columns, cursor, etc.)               |
 | `foldDepths`    | Map of node IDs to fold depth budget             |
-| `multiSelected` | Set of selected item keys                        |
+| `sel`           | @silvery/selection store (node + text selection)  |
 | `viewMode`      | "cards" / "columns" / "list" / "tabs" / "detail" |
 | `showHelp`      | Help overlay visibility                          |
 | `inOutlineMode` | Whether navigating within card                   |

@@ -225,7 +225,7 @@ const Card = React.memo(
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
     // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
-    const isMultiSelected = useReactive(nodeStore.getOrCreate(nodeId).multiSelected)
+    const isNodeSelected = useReactive(nodeStore.getOrCreate(nodeId).selected)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -306,7 +306,7 @@ const Card = React.memo(
       // When selected, they get a yellow border like other body blocks.
       const hrLayoutProps = isSelected
         ? { borderStyle: "round" as const, borderColor: "$selection-bg" }
-        : isMultiSelected || isColSelected
+        : isNodeSelected || isColSelected
           ? { borderStyle: "round" as const, borderColor: "$selection-bg" }
           : { paddingLeft: 1, paddingRight: 1, paddingTop: 1, paddingBottom: 1 }
       return (
@@ -332,8 +332,8 @@ const Card = React.memo(
             })}
           >
             <Text
-              color={isSelected || isMultiSelected ? "$selection-bg" : undefined}
-              dimColor={!isSelected && !isMultiSelected}
+              color={isSelected || isNodeSelected ? "$selection-bg" : undefined}
+              dimColor={!isSelected && !isNodeSelected}
               wrap="truncate"
             >
               {hrContent}
@@ -357,7 +357,7 @@ const Card = React.memo(
             bodyBorderColor,
             yieldTop,
             !!isLastBodyBlock,
-            isMultiSelected,
+            isNodeSelected,
             isColSelected,
             bodyDefaultBorder,
           )}
@@ -388,7 +388,7 @@ const Card = React.memo(
     if (isCardCollapsed) {
       const collapsedTitleText = getNodeDisplayName(repo, card) ?? card.content ?? ""
       const collapsedBorder =
-        isSelected || isMultiSelected || isColSelected ? "$selection-bg" : (hoverBorderColor ?? "$muted")
+        isSelected || isNodeSelected || isColSelected ? "$selection-bg" : (hoverBorderColor ?? "$muted")
       return (
         <Box
           data-view="card"
@@ -412,7 +412,7 @@ const Card = React.memo(
               "data-card-index": cardIndex,
             })}
           >
-            <Text dimColor={!isSelected && !isMultiSelected} wrap="truncate">
+            <Text dimColor={!isSelected && !isNodeSelected} wrap="truncate">
               <InlineText text={collapsedTitleText} />
               {childCount > 0 ? ` ··· ${childCount}` : " ···"}
             </Text>
@@ -427,7 +427,7 @@ const Card = React.memo(
     const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
     const borderColor = isEditing
       ? "$focusborder"
-      : isSelected || isMultiSelected || isColSelected
+      : isSelected || isNodeSelected || isColSelected
         ? "$selection-bg"
         : (hoverBorderColor ?? defaultBorder)
     // When overflow, suppress the bottom border and render a custom one with the count
@@ -534,7 +534,7 @@ function bodyBlockLayoutProps(
   borderColor: string,
   _yieldTop: boolean,
   _isLastBodyBlock: boolean,
-  isMultiSelected: boolean,
+  isNodeSelected: boolean,
   isColumnSelected = false,
   defaultBorderColor = "$muted",
   _cursorDim = false,
@@ -542,7 +542,7 @@ function bodyBlockLayoutProps(
   if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
     borderStyle: "round" as const,
-    borderColor: isMultiSelected || isColumnSelected ? "$selection-bg" : defaultBorderColor,
+    borderColor: isNodeSelected || isColumnSelected ? "$selection-bg" : defaultBorderColor,
   }
 }
 

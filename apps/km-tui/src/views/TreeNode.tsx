@@ -215,7 +215,7 @@ function TreeNodeImpl({
 
   // Per-node state via reactive signals — only this node re-renders when its state changes
   const nodeStore = useNodeStore()
-  const isMultiSelected = useReactive(nodeStore.getOrCreate(node.id).multiSelected)
+  const isNodeSelected = useReactive(nodeStore.getOrCreate(node.id).selected)
   const editState = useReactive(nodeStore.getOrCreate(node.id).edit)
   const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
@@ -279,7 +279,7 @@ function TreeNodeImpl({
   // Use displayNode for visual properties (task_status icon, strikethrough, etc.)
   // Include implicit task properties in deps so style recalculates when they change
   const style = useMemo(() => {
-    const s = getNodeStyle(displayNode, isSelected, isMultiSelected, dimInactiveChildren, depth, isInlineEditing)
+    const s = getNodeStyle(displayNode, isSelected, isNodeSelected, dimInactiveChildren, depth, isInlineEditing)
     if (dim || isBody) s.shouldDim = true
     return s
   }, [
@@ -291,7 +291,7 @@ function TreeNodeImpl({
     displayNode.assigned_to,
     displayNode.rrule,
     isSelected,
-    isMultiSelected,
+    isNodeSelected,
     dimInactiveChildren,
     depth,
     isInlineEditing,
@@ -303,19 +303,19 @@ function TreeNodeImpl({
   // show yellow text instead of inverse selection. Only applies at depth 0 (card title).
   // Per-node cursorInDescendant Reactive — only the active card's node fires.
   const cursorInDescendant = useReactive(nodeStore.getOrCreate(node.id).cursorInDescendant)
-  const titleHighlightOnly = depth === 0 && isSelected && !isMultiSelected && cursorInDescendant
+  const titleHighlightOnly = depth === 0 && isSelected && !isNodeSelected && cursorInDescendant
 
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
-  const searchHighlight = isSearchMatch && !isSelected && !isMultiSelected
+  const searchHighlight = isSearchMatch && !isSelected && !isNodeSelected
   const effectiveBg = titleHighlightOnly ? undefined : style.backgroundColor
   const tc = titleHighlightOnly ? "$selection-bg" : style.textColor
   const sd = style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
   const untitled = isNodeUntitled(repo, displayNode)
-  const dimUntitled = untitled && !isSelected && !isMultiSelected
+  const dimUntitled = untitled && !isSelected && !isNodeSelected
 
   // Compute the bullet icon based on icon style (body nodes get no bullet)
   const bulletIcon = useMemo(
@@ -379,7 +379,7 @@ function TreeNodeImpl({
   // When selected (yellow bg), strip ANSI color codes from styled content
   // so all text renders as black-on-yellow for readability.
   // Also strip colors for done/dropped tasks — colored dates/priorities aren't meaningful.
-  const isHighlighted = isSelected || isMultiSelected
+  const isHighlighted = isSelected || isNodeSelected
   const shouldStripColor = isHighlighted || style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
@@ -613,13 +613,13 @@ function TreeNodeImpl({
                   textColor={tc}
                   shouldDim={sd}
                   isSelected={isSelected}
-                  isMultiSelected={isMultiSelected}
+                  isNodeSelected={isNodeSelected}
                   isDoneOrDropped={style.isDoneOrDropped}
                   undoHandle={undoHandle}
                 />
               ) : (
                 <Text
-                  color={isSelected || isMultiSelected ? tc : style.isDoneOrDropped ? undefined : prefix.markerColor}
+                  color={isSelected || isNodeSelected ? tc : style.isDoneOrDropped ? undefined : prefix.markerColor}
                 >
                   {prefix.markerChar}
                 </Text>
@@ -936,11 +936,11 @@ const FoldedChildRow = React.memo(
 
     // Read multi-selection signal so grandchildren highlight when parent is selected
     const nodeStore = useNodeStore()
-    const isMultiSelected = useReactive(nodeStore.getOrCreate(node.id).multiSelected)
+    const isNodeSelected = useReactive(nodeStore.getOrCreate(node.id).selected)
 
     const nodeIsTask = KNode.isTask(node)
     const hasChildren = childCount > 0
-    const style = getNodeStyle(node, false, isMultiSelected, false, depth, false)
+    const style = getNodeStyle(node, false, isNodeSelected, false, depth, false)
     if (dim) style.shouldDim = true
 
     // Search match highlighting: white bg / black fg (current match brighter)
@@ -982,7 +982,7 @@ const FoldedChildRow = React.memo(
       >
         <Box width={prefix.length} flexShrink={0}>
           <Text color={foldTc} dimColor={foldSd}>
-            <Text color={isMultiSelected ? foldTc : style.isDoneOrDropped ? undefined : prefix.markerColor}>
+            <Text color={isNodeSelected ? foldTc : style.isDoneOrDropped ? undefined : prefix.markerColor}>
               {prefix.markerChar}
             </Text>
             {prefix.afterMarker}
@@ -990,7 +990,7 @@ const FoldedChildRow = React.memo(
         </Box>
         <Box flexGrow={1} flexShrink={1} overflow="hidden" paddingRight={2}>
           <Text
-            color={isBrokenEmbed && !isMultiSelected ? "$error" : (foldTc ?? style.ownColor)}
+            color={isBrokenEmbed && !isNodeSelected ? "$error" : (foldTc ?? style.ownColor)}
             dimColor={foldSd}
             strikethrough={style.shouldStrikethrough}
             wrap="truncate"
@@ -1002,7 +1002,7 @@ const FoldedChildRow = React.memo(
                 text={displayContent}
                 context={{
                   ...inlineContext,
-                  colorOverride: searchHighlight || isMultiSelected || style.isDoneOrDropped ? null : undefined,
+                  colorOverride: searchHighlight || isNodeSelected || style.isDoneOrDropped ? null : undefined,
                 }}
                 decorations={foldSearchDecorations}
               />

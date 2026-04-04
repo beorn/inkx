@@ -72,7 +72,7 @@ interface NodeReactiveState {
   ownSigils: string[]
 
   // Reactive (subscribed by components via useReactive)
-  multiSelected: Reactive<boolean>
+  selected: Reactive<boolean>
   foldOverride: Reactive<number | undefined>
   edit: Reactive<NodeEditState | null>
   excludedSigils: Reactive<string[]>
@@ -88,7 +88,7 @@ function createNodeState(): NodeReactiveState {
   return {
     parent: null,
     ownSigils: [],
-    multiSelected: new Reactive(false),
+    selected: new Reactive(false),
     foldOverride: new Reactive<number | undefined>(undefined),
     edit: new Reactive<NodeEditState | null>(null),
     excludedSigils: new Reactive<string[]>([]),
@@ -189,7 +189,7 @@ export class ReactiveNodeStore {
    * Sets parent links, own sigils, excluded sigils, fold depths, multi-selection.
    * Replaces hydrateNodeAtoms from node-atoms-hydrate.ts.
    */
-  hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, multiSelected: Set<string>): void {
+  hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, selected: Set<string>): void {
     // Clean up old nodes
     if (this.knownNodeIds.size > 0) {
       this.cleanup(this.knownNodeIds)
@@ -253,8 +253,8 @@ export class ReactiveNodeStore {
         }
 
         // Multi-selection — mark the card and all its descendants
-        if (multiSelected.has(card.id)) {
-          cardState.multiSelected.value = true
+        if (selected.has(card.id)) {
+          cardState.selected.value = true
           this.hydrateDescendantSelection(repo, card.id)
         }
 
@@ -282,7 +282,7 @@ export class ReactiveNodeStore {
 
   /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected.
    *  When a parent is selected, all children appear highlighted in the UI. */
-  syncMultiSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
+  syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
     // Expand both sets to include descendants so we diff the full visual selection
     const engine = repo ? createSelectionEngine(repo) : null
     const oldExpanded = engine ? engine.expandWithDescendants(oldSelected) : oldSelected
@@ -290,12 +290,12 @@ export class ReactiveNodeStore {
 
     for (const key of oldExpanded) {
       if (!newExpanded.has(key)) {
-        this.getOrCreate(key).multiSelected.value = false
+        this.getOrCreate(key).selected.value = false
       }
     }
     for (const key of newExpanded) {
       if (!oldExpanded.has(key)) {
-        this.getOrCreate(key).multiSelected.value = true
+        this.getOrCreate(key).selected.value = true
       }
     }
   }
@@ -333,7 +333,7 @@ export class ReactiveNodeStore {
     const expanded = engine.expandWithDescendants(new Set([parentId]))
     for (const id of expanded) {
       if (id !== parentId) {
-        this.getOrCreate(id).multiSelected.value = true
+        this.getOrCreate(id).selected.value = true
       }
     }
   }

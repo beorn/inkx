@@ -40,7 +40,7 @@ interface CheckboxIconProps {
   /** Whether this node is selected (affects color override) */
   isSelected: boolean
   /** Whether this node is multi-selected */
-  isMultiSelected: boolean
+  isNodeSelected: boolean
   /** Whether the task is done/dropped (affects color override) */
   isDoneOrDropped: boolean
   /** Optional undo handle — when provided, records cursor for undo tracking */
@@ -59,7 +59,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
   textColor,
   shouldDim,
   isSelected,
-  isMultiSelected,
+  isNodeSelected,
   isDoneOrDropped,
   undoHandle,
 }: CheckboxIconProps): React.ReactElement {
@@ -126,7 +126,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
   )
 
   // Determine the icon color
-  const isHighlighted = isSelected || isMultiSelected
+  const isHighlighted = isSelected || isNodeSelected
   const normalColor = isHighlighted ? textColor : isDoneOrDropped ? undefined : icon.color
   // Armed state: bold + primary color so icon character remains visible after toggle
   const armedColor = isHighlighted ? textColor : "$primary"

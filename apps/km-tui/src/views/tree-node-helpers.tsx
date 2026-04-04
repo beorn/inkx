@@ -94,7 +94,7 @@ export interface NodeStyleResult {
 export function getNodeStyle(
   node: KNode,
   isSelected: boolean,
-  isMultiSelected: boolean,
+  isNodeSelected: boolean,
   _dimInactiveChildren: boolean,
   _depth: number,
   isInlineEditing = false,
@@ -118,7 +118,7 @@ export function getNodeStyle(
     // Edit mode: no background fill — cyan border (CardColumn) + inverse cursor indicate editing
     backgroundColor = undefined
     textColor = undefined
-  } else if (isSelected || isMultiSelected) {
+  } else if (isSelected || isNodeSelected) {
     // Selected: gold bg, dark text. Per-pane theme dims $selected for unfocused panes.
     backgroundColor = "$selection-bg"
     textColor = "$selection"

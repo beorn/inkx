@@ -99,7 +99,7 @@ export function buildNodePopoverContent(
                     textColor: undefined,
                     shouldDim: false,
                     isSelected: false,
-                    isMultiSelected: false,
+                    isNodeSelected: false,
                     isDoneOrDropped,
                   }),
                   React.createElement(Text, null, " "),

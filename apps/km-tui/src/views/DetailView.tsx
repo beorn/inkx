@@ -113,7 +113,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
                       textColor={isTitleCursor ? "$selection" : undefined}
                       shouldDim={false}
                       isSelected={isTitleCursor}
-                      isMultiSelected={false}
+                      isNodeSelected={false}
                       isDoneOrDropped={
                         rootNode.item?.task?.status === "done" || rootNode.item?.task?.status === "dropped"
                       }
@@ -299,7 +299,7 @@ function DocNode({
                     textColor={isCursor ? "$selection" : undefined}
                     shouldDim={false}
                     isSelected={isCursor}
-                    isMultiSelected={false}
+                    isNodeSelected={false}
                     isDoneOrDropped={headingIsDoneOrDropped}
                     undoHandle={undoHandle}
                   />
@@ -318,7 +318,7 @@ function DocNode({
                     textColor={isCursor ? "$selection" : undefined}
                     shouldDim={false}
                     isSelected={isCursor}
-                    isMultiSelected={false}
+                    isNodeSelected={false}
                     isDoneOrDropped={headingIsDoneOrDropped}
                     undoHandle={undoHandle}
                   />
@@ -362,7 +362,7 @@ function DocNode({
             textColor={isCursor ? "$selection" : undefined}
             shouldDim={false}
             isSelected={isCursor}
-            isMultiSelected={false}
+            isNodeSelected={false}
             isDoneOrDropped={isDone}
             undoHandle={undoHandle}
           />

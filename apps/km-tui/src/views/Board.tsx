@@ -607,9 +607,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const selIds = useAppStore<import("../state/board-app-store.ts").BoardAppStore, ReadonlyArray<string>>(
     (s) => s.sel.node.ids() as unknown as ReadonlyArray<string>,
   )
-  const multiSelected = new Set(selIds) // compat bridge for hydrate
+  const selectedSet = new Set(selIds) // compat bridge for hydrate
   useEffect(() => {
-    nodeStore.hydrate(repo, rootId, foldDepths, multiSelected)
+    nodeStore.hydrate(repo, rootId, foldDepths, selectedSet)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
   }, [nodeStore, repo, rootId])
 
@@ -625,14 +625,14 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Incrementally sync multi-selection changes to reactive node state
   // Pass repo so descendants of selected nodes also appear visually selected
-  const prevMultiSelectedRef = useRef(multiSelected)
+  const prevMultiSelectedRef = useRef(selectedSet)
   useEffect(() => {
     const prev = prevMultiSelectedRef.current
-    if (prev !== multiSelected) {
-      nodeStore.syncMultiSelected(prev, multiSelected, repo)
-      prevMultiSelectedRef.current = multiSelected
+    if (prev !== selectedSet) {
+      nodeStore.syncSelected(prev, selectedSet, repo)
+      prevMultiSelectedRef.current = selectedSet
     }
-  }, [nodeStore, multiSelected, repo])
+  }, [nodeStore, selectedSet, repo])
 
   // Incrementally sync inline edit state to reactive node state
   const textEditState = useAppStore<
@@ -643,8 +643,8 @@ export function Board({ patchedConsole }: BoardProps) {
     if (!t) return null
     return { nodeId: t.nodeId as string, blockIndex: s.textEditHints?.blockIndex ?? 0 }
   })
-  const inlineEditBlock = textEditState
-  const prevInlineEditRef = useRef(inlineEditBlock)
+  const editState = textEditState
+  const prevInlineEditRef = useRef(editState)
 
   // Sync cursor state from CursorStore to Reactive fields (for Board-internal components)
   useEffect(() => {
@@ -708,11 +708,11 @@ export function Board({ patchedConsole }: BoardProps) {
   // never need to pass it — if the edit node is inside a card, the card expands.
   useEffect(() => {
     const prev = prevInlineEditRef.current
-    if (prev !== inlineEditBlock) {
+    if (prev !== editState) {
       let derivedCardNodeId: string | undefined
-      if (inlineEditBlock?.nodeId) {
+      if (editState?.nodeId) {
         // Walk up ancestors to find the containing card via O(1) nodeIndex lookup
-        for (const ancestor of Tree.ancestors(repo, inlineEditBlock.nodeId)) {
+        for (const ancestor of Tree.ancestors(repo, editState.nodeId)) {
           const entry = nodeIndex.get(ancestor.id)
           if (entry && entry.cardIndex >= 0) {
             derivedCardNodeId = ancestor.id
@@ -720,10 +720,10 @@ export function Board({ patchedConsole }: BoardProps) {
           }
         }
       }
-      nodeStore.syncEdit(prev?.nodeId ?? null, inlineEditBlock?.nodeId ?? null, inlineEditBlock, derivedCardNodeId)
-      prevInlineEditRef.current = inlineEditBlock
+      nodeStore.syncEdit(prev?.nodeId ?? null, editState?.nodeId ?? null, editState, derivedCardNodeId)
+      prevInlineEditRef.current = editState
     }
-  }, [nodeStore, inlineEditBlock, repo, nodeIndex])
+  }, [nodeStore, editState, repo, nodeIndex])
 
   // Subscribe to cursorNodeId from CursorStore.
   // Board re-renders on every cursor change — the cursor-context hooks

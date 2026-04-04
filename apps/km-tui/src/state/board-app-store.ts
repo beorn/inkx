@@ -197,7 +197,7 @@ export interface BoardAppActions {
   dispatchBoard(action: BoardReducerOp): void
 
   // UI state update — accepts both global and per-pane fields.
-  // Automatically routes per-pane fields (viewMode, multiSelected, etc.) to the focused BoardPaneState,
+  // Automatically routes per-pane fields (viewMode, etc.) to the focused BoardPaneState,
   // and global fields (showHelp, bellState, etc.) to the UIState.
   setUI(partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)): void
 

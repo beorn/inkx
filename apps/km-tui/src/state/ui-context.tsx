@@ -46,7 +46,7 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
  *
  * @example
  * const showHelp = useUISelector(state => state.showHelp);
- * const isSelected = useUISelector(state => state.multiSelected.has(myKey));
+ * const isSelected = useUISelector(state => state.showHelp);
  */
 export function useUISelector<T>(selector: (state: UIState) => T): T {
   return useAppStore<BoardAppStore, T>((s) => selector(s.ui))

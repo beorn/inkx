@@ -163,7 +163,7 @@ function buildSelectAllSet(ctx: ActionCtx, scope: SelectionScope): string[] {
  * Progressive select all with Shift+A.
  *
  * Uses the size of the current selection to determine the next scope
- * (replaces the old selectAllLevel counter).
+ * Derives scope from current selection size.
  */
 export function progressiveSelectAll(ctx: ActionCtx): void {
   const col = ctx.columns[ctx.colIndex]
