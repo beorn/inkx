@@ -17,8 +17,7 @@
     "@silvery/ag-react": "workspace:*",
     "@silvery/selection": "workspace:*",
     "@silvery/theme": "workspace:*",
-    "react": "catalog:",
-    "zustand": "^5.0.11"
+    "react": "catalog:"
   },
   "devDependencies": {
     "@types/react": "catalog:",
