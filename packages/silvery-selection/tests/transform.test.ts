@@ -413,7 +413,7 @@ describe("transformSelection — edge cases", () => {
       cursor: A,
       anchor: A,
       ids: [A],
-      sub: { kind: "path", shapeId: B, pointIds: [C] },
+      sub: { kind: "path", nodeId: B, pointIds: [C] },
     })
     const prevTree = makeTree([A, B, C])
     const nextTree = makeTree([A, C])
@@ -430,7 +430,7 @@ describe("transformSelection — edge cases", () => {
       cursor: A,
       anchor: A,
       ids: [A],
-      sub: { kind: "crop", objectId: B, rect: { x: 0, y: 0, w: 10, h: 10 } },
+      sub: { kind: "crop", nodeId: B, rect: { x: 0, y: 0, w: 10, h: 10 } },
     })
     const prevTree = makeTree([A, B, C])
     const nextTree = makeTree([A, C])

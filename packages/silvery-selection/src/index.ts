@@ -8,6 +8,7 @@
 // Types
 export type {
   CropSelection,
+  DefaultSubSelection,
   DragState,
   ID,
   Modifiers,
@@ -23,6 +24,7 @@ export type {
   SelectionKind,
   SelectionSnapshot,
   SubSelection,
+  SubSelectionBase,
   TextSelection,
 } from "./types.ts"
 
@@ -44,6 +46,8 @@ export {
   applySetRoot,
   applyTextEdit,
   applyTextSelect,
+  assertInvariants,
+  SelectionInvariantError,
   EMPTY_STATE,
 } from "./apply.ts"
 

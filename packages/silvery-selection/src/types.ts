@@ -9,17 +9,27 @@ export type ID = string & { readonly __brand: "ID" }
 
 // --- Selection state ---
 
-export type SelectionSnapshot = {
+export type SelectionSnapshot<Sub = DefaultSubSelection> = {
   readonly cursor: ID | null
   readonly anchor: ID | null
   readonly ids: readonly ID[] // plain array (serializable). OrderedSet is a computed view.
-  readonly sub: SubSelection | null
+  readonly sub: Sub | null
   readonly root: ID | null
 }
 
 // --- Sub-selection variants ---
 
-export type SubSelection = TextSelection | PathSelection | CropSelection
+/** Base constraint for all sub-selections: must have nodeId for reconciliation. */
+export type SubSelectionBase = {
+  readonly kind: string
+  readonly nodeId: ID
+}
+
+/** Built-in sub-selection union. Apps can define their own via the generic param. */
+export type DefaultSubSelection = TextSelection | PathSelection | CropSelection
+
+/** @deprecated Use DefaultSubSelection. Will be removed in a future version. */
+export type SubSelection = DefaultSubSelection
 
 export type TextSelection = {
   readonly kind: "text"
@@ -30,13 +40,13 @@ export type TextSelection = {
 
 export type PathSelection = {
   readonly kind: "path"
-  readonly shapeId: ID
+  readonly nodeId: ID
   readonly pointIds: readonly ID[]
 }
 
 export type CropSelection = {
   readonly kind: "crop"
-  readonly objectId: ID
+  readonly nodeId: ID
   readonly rect: Rect
 }
 
@@ -155,10 +165,10 @@ export type PointerHelpers = {
 
 // --- Drag state ---
 
-export type DragState = {
+export type DragState<Sub = DefaultSubSelection> = {
   readonly hit: PressHit
   readonly origin: PointerOrigin
-  readonly startState: SelectionSnapshot
+  readonly startState: SelectionSnapshot<Sub>
 }
 
 // --- Store types ---

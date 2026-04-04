@@ -160,7 +160,7 @@ describe("path accessor", () => {
     const sel = createSelection(flatApp())
     sel.node.select([A])
     // Manually set sub to path
-    sel.sub = { kind: "path", shapeId: A, pointIds: [B, C] }
+    sel.sub = { kind: "path", nodeId: A, pointIds: [B, C] }
     expect(sel.path()).not.toBeNull()
     expect(sel.path()!.kind).toBe("path")
     expect(sel.kind()).toBe("path")
@@ -169,7 +169,7 @@ describe("path accessor", () => {
   it("deselect exits path mode", () => {
     const sel = createSelection(flatApp())
     sel.node.select([A])
-    sel.sub = { kind: "path", shapeId: A, pointIds: [B] }
+    sel.sub = { kind: "path", nodeId: A, pointIds: [B] }
     expect(sel.kind()).toBe("path")
 
     sel.path.deselect()
@@ -203,7 +203,7 @@ describe("crop accessor", () => {
   it("returns CropSelection when sub is crop", () => {
     const sel = createSelection(flatApp())
     sel.node.select([A])
-    sel.sub = { kind: "crop", objectId: A, rect: { x: 0, y: 0, w: 100, h: 100 } }
+    sel.sub = { kind: "crop", nodeId: A, rect: { x: 0, y: 0, w: 100, h: 100 } }
     expect(sel.crop()).not.toBeNull()
     expect(sel.crop()!.kind).toBe("crop")
     expect(sel.kind()).toBe("crop")
@@ -212,7 +212,7 @@ describe("crop accessor", () => {
   it("deselect exits crop mode", () => {
     const sel = createSelection(flatApp())
     sel.node.select([A])
-    sel.sub = { kind: "crop", objectId: A, rect: { x: 0, y: 0, w: 50, h: 50 } }
+    sel.sub = { kind: "crop", nodeId: A, rect: { x: 0, y: 0, w: 50, h: 50 } }
     expect(sel.kind()).toBe("crop")
 
     sel.crop.deselect()

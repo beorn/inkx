@@ -8,12 +8,12 @@
  * Drag previews are baseline-based: previewReplace/previewToggle compute against startState, not iteratively.
  */
 
-import type { ID, SelectionSnapshot, SubSelection, TextSelection } from "./types.ts"
+import type { ID, SelectionSnapshot, SubSelectionBase, TextSelection } from "./types.ts"
 
 // --- Helpers ---
 
 /** The empty state. Reused singleton. */
-export const EMPTY_STATE: SelectionSnapshot = Object.freeze({
+export const EMPTY_STATE: SelectionSnapshot<never> = Object.freeze({
   cursor: null,
   anchor: null,
   ids: Object.freeze([]) as readonly ID[],
@@ -59,12 +59,12 @@ function getRange(anchor: ID, cursor: ID, nodeOrder: readonly ID[]): ID[] {
  * Replace or XOR-toggle selection.
  * IDs are normalized to nodeOrder. Cursor/anchor follow the rules table.
  */
-export function applySelect(
-  state: SelectionSnapshot,
+export function applySelect<Sub>(
+  state: SelectionSnapshot<Sub>,
   ids: readonly ID[],
   nodeOrder: readonly ID[],
   toggle?: boolean,
-): SelectionSnapshot {
+): SelectionSnapshot<Sub> {
   if (ids.length === 0 && !toggle) {
     return applyDeselect(state)
   }
@@ -101,7 +101,11 @@ export function applySelect(
   }
 }
 
-function applyToggle(state: SelectionSnapshot, ids: readonly ID[], nodeOrder: readonly ID[]): SelectionSnapshot {
+function applyToggle<Sub>(
+  state: SelectionSnapshot<Sub>,
+  ids: readonly ID[],
+  nodeOrder: readonly ID[],
+): SelectionSnapshot<Sub> {
   const toggleSet = new Set(ids)
   const currentSet = new Set(state.ids)
 
@@ -172,7 +176,11 @@ function applyToggle(state: SelectionSnapshot, ids: readonly ID[], nodeOrder: re
 /**
  * Extend range: anchor stays, cursor moves, fills between.
  */
-export function applyExtend(state: SelectionSnapshot, cursor: ID, nodeOrder: readonly ID[]): SelectionSnapshot {
+export function applyExtend<Sub>(
+  state: SelectionSnapshot<Sub>,
+  cursor: ID,
+  nodeOrder: readonly ID[],
+): SelectionSnapshot<Sub> {
   const anchor = state.anchor ?? cursor
   const range = getRange(anchor, cursor, nodeOrder)
   if (range.length === 0) return state
@@ -193,7 +201,7 @@ export function applyExtend(state: SelectionSnapshot, cursor: ID, nodeOrder: rea
 /**
  * Multi -> single. Keep cursor, reset anchor to cursor.
  */
-export function applyCollapse(state: SelectionSnapshot): SelectionSnapshot {
+export function applyCollapse<Sub>(state: SelectionSnapshot<Sub>): SelectionSnapshot<Sub> {
   if (state.cursor === null) return state
 
   // Already collapsed
@@ -213,7 +221,11 @@ export function applyCollapse(state: SelectionSnapshot): SelectionSnapshot {
 /**
  * Remove one ID from selection. Repairs cursor/anchor.
  */
-export function applyRemove(state: SelectionSnapshot, id: ID, nodeOrder?: readonly ID[]): SelectionSnapshot {
+export function applyRemove<Sub>(
+  state: SelectionSnapshot<Sub>,
+  id: ID,
+  nodeOrder?: readonly ID[],
+): SelectionSnapshot<Sub> {
   if (!includes(state.ids, id)) return state
 
   const remaining = state.ids.filter((x) => x !== id)
@@ -261,14 +273,14 @@ export function applyRemove(state: SelectionSnapshot, id: ID, nodeOrder?: readon
 /**
  * Clear everything. Returns EMPTY_STATE with preserved root.
  */
-export function applyDeselect(state?: SelectionSnapshot): SelectionSnapshot {
-  if (state === undefined) return EMPTY_STATE
+export function applyDeselect<Sub>(state?: SelectionSnapshot<Sub>): SelectionSnapshot<Sub> {
+  if (state === undefined) return EMPTY_STATE as SelectionSnapshot<Sub>
 
   if (state.cursor === null && state.anchor === null && state.ids.length === 0 && state.sub === null) {
     return state
   }
 
-  if (state.root === null) return EMPTY_STATE
+  if (state.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
 
   return {
     cursor: null,
@@ -285,11 +297,11 @@ export function applyDeselect(state?: SelectionSnapshot): SelectionSnapshot {
  * @param parent - ID of the parent in which to expand, or null for root-level
  * @param children - children of that parent, in tree-walk order
  */
-export function applySelectAll(
-  state: SelectionSnapshot,
+export function applySelectAll<Sub>(
+  state: SelectionSnapshot<Sub>,
   parent: ID | null,
   children: readonly ID[],
-): SelectionSnapshot {
+): SelectionSnapshot<Sub> {
   if (children.length === 0) return state
 
   // Check if all children are already selected
@@ -325,15 +337,16 @@ export function applySelectAll(
 /**
  * Enter text editing mode.
  */
-export function applyTextEdit(state: SelectionSnapshot, nodeId: ID, offset: number): SelectionSnapshot {
+export function applyTextEdit<Sub>(state: SelectionSnapshot<Sub>, nodeId: ID, offset: number): SelectionSnapshot<Sub> {
   const newSub: TextSelection = { kind: "text", nodeId, cursor: offset }
 
   // Check if already in identical text mode
+  const existing = state.sub as unknown as TextSelection | null
   if (
-    state.sub?.kind === "text" &&
-    state.sub.nodeId === nodeId &&
-    state.sub.cursor === offset &&
-    state.sub.anchor === undefined
+    existing?.kind === "text" &&
+    existing.nodeId === nodeId &&
+    existing.cursor === offset &&
+    existing.anchor === undefined
   ) {
     return state
   }
@@ -342,7 +355,7 @@ export function applyTextEdit(state: SelectionSnapshot, nodeId: ID, offset: numb
     cursor: state.cursor,
     anchor: state.anchor,
     ids: state.ids,
-    sub: newSub,
+    sub: newSub as unknown as Sub,
     root: state.root,
   }
 }
@@ -350,10 +363,15 @@ export function applyTextEdit(state: SelectionSnapshot, nodeId: ID, offset: numb
 /**
  * Move text caret or set text range. No-op if not in text mode.
  */
-export function applyTextSelect(state: SelectionSnapshot, cursor?: number, anchor?: number): SelectionSnapshot {
-  if (state.sub === null || state.sub.kind !== "text") return state
+export function applyTextSelect<Sub>(
+  state: SelectionSnapshot<Sub>,
+  cursor?: number,
+  anchor?: number,
+): SelectionSnapshot<Sub> {
+  if (state.sub === null) return state
+  const textSub = state.sub as unknown as TextSelection
+  if (textSub.kind !== "text") return state
 
-  const textSub = state.sub
   const newCursor = cursor ?? textSub.cursor
   const newAnchor = anchor
 
@@ -370,7 +388,7 @@ export function applyTextSelect(state: SelectionSnapshot, cursor?: number, ancho
       nodeId: textSub.nodeId,
       cursor: newCursor,
       anchor: newAnchor,
-    },
+    } as unknown as Sub,
     root: state.root,
   }
 }
@@ -378,7 +396,7 @@ export function applyTextSelect(state: SelectionSnapshot, cursor?: number, ancho
 /**
  * Exit sub-selection, preserve node selection.
  */
-export function applyExitSub(state: SelectionSnapshot): SelectionSnapshot {
+export function applyExitSub<Sub>(state: SelectionSnapshot<Sub>): SelectionSnapshot<Sub> {
   if (state.sub === null) return state
 
   return {
@@ -393,22 +411,18 @@ export function applyExitSub(state: SelectionSnapshot): SelectionSnapshot {
 /**
  * Prune deleted IDs, repair cursor/anchor. Drag-cancel is the caller's concern.
  */
-export function applyReconcile(
-  state: SelectionSnapshot,
+export function applyReconcile<Sub extends SubSelectionBase>(
+  state: SelectionSnapshot<Sub>,
   validIds: ReadonlySet<ID>,
   nodeOrder: readonly ID[],
-): SelectionSnapshot {
+): SelectionSnapshot<Sub> {
   // Filter to only valid IDs, in tree-walk order
   const currentSet = new Set(state.ids)
   const remaining = nodeOrder.filter((id) => currentSet.has(id) && validIds.has(id))
 
   if (remaining.length === state.ids.length) {
     // All still valid — check if order changed or sub needs pruning
-    const subValid =
-      state.sub === null ||
-      (state.sub.kind === "text" && validIds.has(state.sub.nodeId)) ||
-      (state.sub.kind === "path" && validIds.has(state.sub.shapeId)) ||
-      (state.sub.kind === "crop" && validIds.has(state.sub.objectId))
+    const subValid = state.sub === null || validIds.has(state.sub.nodeId)
 
     if (subValid) {
       // Check order preserved
@@ -418,7 +432,7 @@ export function applyReconcile(
 
   if (remaining.length === 0) {
     // All removed
-    if (state.root === null) return EMPTY_STATE
+    if (state.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
     return {
       cursor: null,
       anchor: null,
@@ -463,10 +477,9 @@ export function applyReconcile(
   }
 
   // Prune sub if referencing deleted node
-  let newSub: SubSelection | null = state.sub
+  let newSub: Sub | null = state.sub
   if (newSub !== null) {
-    const subNodeId = newSub.kind === "text" ? newSub.nodeId : newSub.kind === "path" ? newSub.shapeId : newSub.objectId
-    if (!validIds.has(subNodeId)) {
+    if (!validIds.has(newSub.nodeId)) {
       newSub = null
     }
   }
@@ -492,7 +505,7 @@ export function applyReconcile(
 /**
  * Set root ID.
  */
-export function applySetRoot(state: SelectionSnapshot, id: ID | null): SelectionSnapshot {
+export function applySetRoot<Sub>(state: SelectionSnapshot<Sub>, id: ID | null): SelectionSnapshot<Sub> {
   if (state.root === id) return state
 
   return {
@@ -507,7 +520,10 @@ export function applySetRoot(state: SelectionSnapshot, id: ID | null): Selection
 /**
  * Pop root to parent. Uses parentOf to walk up.
  */
-export function applyRootUp(state: SelectionSnapshot, parentOf: (id: ID) => ID | null): SelectionSnapshot {
+export function applyRootUp<Sub>(
+  state: SelectionSnapshot<Sub>,
+  parentOf: (id: ID) => ID | null,
+): SelectionSnapshot<Sub> {
   if (state.root === null) return state
 
   const parent = parentOf(state.root)
@@ -519,5 +535,55 @@ export function applyRootUp(state: SelectionSnapshot, parentOf: (id: ID) => ID |
     ids: state.ids,
     sub: state.sub,
     root: parent,
+  }
+}
+
+// --- Dev-mode invariant assertions ---
+
+export class SelectionInvariantError extends Error {
+  constructor(message: string) {
+    super(`SelectionInvariantError: ${message}`)
+    this.name = "SelectionInvariantError"
+  }
+}
+
+/**
+ * Assert selection state invariants. Throws SelectionInvariantError on violation.
+ *
+ * Checks:
+ * - cursor is in ids (if cursor is non-null)
+ * - anchor is in ids (if anchor is non-null)
+ * - ids has no duplicates
+ * - cursor === ids[0] when ids is non-empty
+ * - sub.nodeId is a valid ID when sub is non-null
+ */
+export function assertInvariants<Sub extends SubSelectionBase>(state: SelectionSnapshot<Sub>): void {
+  const { cursor, anchor, ids, sub } = state
+
+  // cursor is in ids
+  if (cursor !== null && ids.indexOf(cursor) === -1) {
+    throw new SelectionInvariantError(`cursor "${cursor}" is not in ids [${ids.join(", ")}]`)
+  }
+
+  // anchor is in ids
+  if (anchor !== null && ids.indexOf(anchor) === -1) {
+    throw new SelectionInvariantError(`anchor "${anchor}" is not in ids [${ids.join(", ")}]`)
+  }
+
+  // ids has no duplicates
+  if (new Set(ids).size !== ids.length) {
+    throw new SelectionInvariantError(`ids contains duplicates: [${ids.join(", ")}]`)
+  }
+
+  // cursor === ids[0] when ids is non-empty
+  if (ids.length > 0 && cursor !== ids[0]) {
+    throw new SelectionInvariantError(`cursor "${cursor}" !== ids[0] "${ids[0]}" (cursor must be first)`)
+  }
+
+  // sub.nodeId must be valid when sub is non-null
+  if (sub !== null) {
+    if (!sub.nodeId) {
+      throw new SelectionInvariantError(`sub-selection (kind="${sub.kind}") has no nodeId`)
+    }
   }
 }

@@ -13,6 +13,8 @@ import {
   applySetRoot,
   applyTextEdit,
   applyTextSelect,
+  assertInvariants,
+  SelectionInvariantError,
   EMPTY_STATE,
 } from "../src/apply.ts"
 
@@ -598,5 +600,68 @@ describe("applyRootUp", () => {
   it("no root: no-op", () => {
     const result = applyRootUp(EMPTY_STATE, () => null)
     expect(result).toBe(EMPTY_STATE)
+  })
+})
+
+// --- assertInvariants ---
+
+describe("assertInvariants", () => {
+  it("passes for EMPTY_STATE", () => {
+    expect(() => assertInvariants(EMPTY_STATE)).not.toThrow()
+  })
+
+  it("passes for valid single selection", () => {
+    const state = makeState({ cursor: A, anchor: A, ids: [A] })
+    expect(() => assertInvariants(state)).not.toThrow()
+  })
+
+  it("passes for valid multi-selection", () => {
+    const state = makeState({ cursor: A, anchor: C, ids: [A, B, C] })
+    expect(() => assertInvariants(state)).not.toThrow()
+  })
+
+  it("passes for valid text sub-selection", () => {
+    const state = makeState({
+      cursor: A,
+      anchor: A,
+      ids: [A],
+      sub: { kind: "text", nodeId: A, cursor: 5 },
+    })
+    expect(() => assertInvariants(state)).not.toThrow()
+  })
+
+  it("throws when cursor not in ids", () => {
+    const state = makeState({ cursor: A, anchor: A, ids: [B] })
+    expect(() => assertInvariants(state)).toThrow(SelectionInvariantError)
+    expect(() => assertInvariants(state)).toThrow('cursor "A" is not in ids')
+  })
+
+  it("throws when anchor not in ids", () => {
+    const state = makeState({ cursor: A, anchor: C, ids: [A, B] })
+    expect(() => assertInvariants(state)).toThrow(SelectionInvariantError)
+    expect(() => assertInvariants(state)).toThrow('anchor "C" is not in ids')
+  })
+
+  it("throws on duplicate ids", () => {
+    const state = makeState({ cursor: A, anchor: A, ids: [A, A] })
+    expect(() => assertInvariants(state)).toThrow(SelectionInvariantError)
+    expect(() => assertInvariants(state)).toThrow("duplicates")
+  })
+
+  it("throws when cursor !== ids[0]", () => {
+    const state = makeState({ cursor: B, anchor: B, ids: [A, B] })
+    expect(() => assertInvariants(state)).toThrow(SelectionInvariantError)
+    expect(() => assertInvariants(state)).toThrow('cursor "B" !== ids[0] "A"')
+  })
+
+  it("throws when sub has no nodeId", () => {
+    const state = makeState({
+      cursor: A,
+      anchor: A,
+      ids: [A],
+      sub: { kind: "custom" } as any,
+    })
+    expect(() => assertInvariants(state)).toThrow(SelectionInvariantError)
+    expect(() => assertInvariants(state)).toThrow("no nodeId")
   })
 })

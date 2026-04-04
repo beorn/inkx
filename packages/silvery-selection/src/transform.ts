@@ -8,7 +8,7 @@
  * "nearest surviving node" repair and identity-preserving moves.
  */
 
-import type { ID, SelectionSnapshot, SubSelection } from "./types.ts"
+import type { DefaultSubSelection, ID, SelectionSnapshot, SubSelectionBase } from "./types.ts"
 import { EMPTY_STATE } from "./apply.ts"
 
 // --- Tree op types ---
@@ -62,15 +62,8 @@ function findNearest(target: ID, remaining: readonly ID[], prevOrder: readonly I
 }
 
 /** Check if a sub-selection references a given node ID. */
-function subReferencesNode(sub: SubSelection, id: ID): boolean {
-  switch (sub.kind) {
-    case "text":
-      return sub.nodeId === id
-    case "path":
-      return sub.shapeId === id
-    case "crop":
-      return sub.objectId === id
-  }
+function subReferencesNode(sub: SubSelectionBase, id: ID): boolean {
+  return sub.nodeId === id
 }
 
 /** Whether a node is within the selection root scope in a given tree. */
@@ -91,12 +84,12 @@ function isInScope(tree: SelectionTree, root: ID | null, nodeId: ID): boolean {
  * - insertNode: no selection change (new nodes aren't selected)
  * - updateNode: no selection change (content change, not structural)
  */
-export function transformSelection(
-  sel: SelectionSnapshot,
+export function transformSelection<Sub extends SubSelectionBase = DefaultSubSelection>(
+  sel: SelectionSnapshot<Sub>,
   op: TreeOp,
   prevTree: SelectionTree,
   nextTree: SelectionTree,
-): SelectionSnapshot {
+): SelectionSnapshot<Sub> {
   switch (op.type) {
     case "insertNode":
     case "updateNode":
@@ -110,12 +103,12 @@ export function transformSelection(
   }
 }
 
-function transformDelete(
-  sel: SelectionSnapshot,
+function transformDelete<Sub extends SubSelectionBase>(
+  sel: SelectionSnapshot<Sub>,
   deletedId: ID,
   prevTree: SelectionTree,
   nextTree: SelectionTree,
-): SelectionSnapshot {
+): SelectionSnapshot<Sub> {
   const isSelected = sel.ids.indexOf(deletedId) !== -1
   const subAffected = sel.sub !== null && subReferencesNode(sel.sub, deletedId)
 
@@ -132,7 +125,7 @@ function transformDelete(
 
   if (ordered.length === 0) {
     // All selected nodes gone
-    if (sel.root === null) return EMPTY_STATE
+    if (sel.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
     return {
       cursor: null,
       anchor: null,
@@ -179,12 +172,12 @@ function transformDelete(
   }
 }
 
-function transformMove(
-  sel: SelectionSnapshot,
+function transformMove<Sub extends SubSelectionBase>(
+  sel: SelectionSnapshot<Sub>,
   movedId: ID,
   _prevTree: SelectionTree,
   nextTree: SelectionTree,
-): SelectionSnapshot {
+): SelectionSnapshot<Sub> {
   const isSelected = sel.ids.indexOf(movedId) !== -1
   const subAffected = sel.sub !== null && subReferencesNode(sel.sub, movedId)
 
@@ -215,7 +208,7 @@ function transformMove(
   const remaining = sel.ids.filter((id) => id !== movedId)
 
   if (remaining.length === 0) {
-    if (sel.root === null) return EMPTY_STATE
+    if (sel.root === null) return EMPTY_STATE as SelectionSnapshot<Sub>
     return {
       cursor: null,
       anchor: null,

@@ -31,6 +31,7 @@ import { createTextAccessor } from "./sub-text.ts"
 import { createPathAccessor } from "./sub-path.ts"
 import { createCropAccessor } from "./sub-crop.ts"
 import type {
+  DefaultSubSelection,
   DragState,
   ID,
   PressHit,
@@ -38,14 +39,14 @@ import type {
   SelectionApp,
   SelectionKind,
   SelectionSnapshot,
-  SubSelection,
+  SubSelectionBase,
 } from "./types.ts"
 
 // --- Internal state ---
 
-type StoreState = {
-  readonly committed: SelectionSnapshot
-  readonly drag: DragState | null
+type StoreState<Sub> = {
+  readonly committed: SelectionSnapshot<Sub>
+  readonly drag: DragState<Sub> | null
 }
 
 // --- Store interface ---
@@ -78,9 +79,9 @@ export type RootAccessor = {
   up(): void
 }
 
-export type DragAccessor = {
+export type DragAccessor<Sub = DefaultSubSelection> = {
   /** Computed: current drag state, or null */
-  (): DragState | null
+  (): DragState<Sub> | null
   /** Start a drag gesture */
   start(hit: PressHit, origin: PointerOrigin): void
   /** End drag — commit preview to committed state */
@@ -89,13 +90,13 @@ export type DragAccessor = {
   cancel(): void
 }
 
-export type SelectionStore = {
+export type SelectionStore<Sub = DefaultSubSelection> = {
   /** Node-level selection accessor */
   readonly node: NodeAccessor
   /** Sub-selection read/write (writable signal) */
-  sub: SubSelection | null
+  sub: Sub | null
   /** Sub-selection getter (for computed reads) */
-  readonly subComputed: () => SubSelection | null
+  readonly subComputed: () => Sub | null
   /** Text sub-selection accessor */
   readonly text: ReturnType<typeof createTextAccessor>
   /** Path sub-selection accessor (stub) */
@@ -103,7 +104,7 @@ export type SelectionStore = {
   /** Crop sub-selection accessor (stub) */
   readonly crop: ReturnType<typeof createCropAccessor>
   /** Drag accessor */
-  readonly drag: DragAccessor
+  readonly drag: DragAccessor<Sub>
   /** Root accessor */
   readonly root: RootAccessor
   /** Computed: current selection kind */
@@ -113,17 +114,19 @@ export type SelectionStore = {
   /** Select all nodes at a given level */
   selectAll(parent?: ID | null): void
   /** Read the full effective snapshot (committed or drag preview) */
-  readonly snapshot: () => SelectionSnapshot
+  readonly snapshot: () => SelectionSnapshot<Sub>
   /** Reconcile selection against current valid nodes */
   reconcile(): void
 }
 
 // --- Factory ---
 
-export function createSelection(app: SelectionApp): SelectionStore {
+export function createSelection<Sub extends SubSelectionBase = DefaultSubSelection>(
+  app: SelectionApp,
+): SelectionStore<Sub> {
   // ONE state atom
-  const $state = signal<StoreState>({
-    committed: EMPTY_STATE,
+  const $state = signal<StoreState<Sub>>({
+    committed: EMPTY_STATE as SelectionSnapshot<Sub>,
     drag: null,
   })
 
@@ -134,21 +137,23 @@ export function createSelection(app: SelectionApp): SelectionStore {
   }
 
   /** Read the effective snapshot: drag preview or committed */
-  function effective(): SelectionSnapshot {
+  function effective(): SelectionSnapshot<Sub> {
     const s = $state()
     return s.drag !== null ? s.committed : s.committed
   }
 
-  /** Write to committed, with no-op check */
-  function commitUpdate(next: SelectionSnapshot): void {
+  /** Apply a pure transition, write if changed */
+  function apply(fn: (snap: SelectionSnapshot<Sub>) => SelectionSnapshot<Sub>): void {
     const s = $state()
-    if (next === s.committed) return
-    $state({ committed: next, drag: s.drag })
+    const next = fn(s.committed)
+    if (next !== s.committed) {
+      $state({ committed: next, drag: s.drag })
+    }
   }
 
   // --- Computed signals ---
 
-  const $effective = computed<SelectionSnapshot>(() => {
+  const $effective = computed<SelectionSnapshot<Sub>>(() => {
     const s = $state()
     // During drag, the committed state IS the preview — drag operations
     // write directly to committed. startState is kept for cancel.
@@ -162,17 +167,17 @@ export function createSelection(app: SelectionApp): SelectionStore {
     if (ids.length === 0) return EMPTY_ORDERED_SET as OrderedSet<ID>
     return createOrderedSet(ids)
   })
-  const $sub = computed<SubSelection | null>(() => $effective().sub)
+  const $sub = computed<Sub | null>(() => $effective().sub)
   const $root = computed<ID | null>(() => $effective().root)
 
   const $kind = computed<SelectionKind>(() => {
     const snap = $effective()
     if (snap.cursor === null) return "idle"
-    if (snap.sub !== null) return snap.sub.kind
+    if (snap.sub !== null) return (snap.sub as SubSelectionBase).kind as SelectionKind
     return "node"
   })
 
-  const $drag = computed<DragState | null>(() => $state().drag)
+  const $drag = computed<DragState<Sub> | null>(() => $state().drag)
 
   // --- Node accessor ---
 
@@ -183,37 +188,21 @@ export function createSelection(app: SelectionApp): SelectionStore {
 
     select(ids: readonly ID[], toggle?: boolean): void {
       const order = getWalkOrder()
-      const s = $state()
-      const next = applySelect(s.committed, ids, order, toggle)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applySelect(snap, ids, order, toggle))
     },
 
     extend(cursor: ID): void {
       const order = getWalkOrder()
-      const s = $state()
-      const next = applyExtend(s.committed, cursor, order)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applyExtend(snap, cursor, order))
     },
 
     collapse(): void {
-      const s = $state()
-      const next = applyCollapse(s.committed)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applyCollapse(snap))
     },
 
     remove(id: ID): void {
       const order = getWalkOrder()
-      const s = $state()
-      const next = applyRemove(s.committed, id, order)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applyRemove(snap, id, order))
     },
 
     selectableAncestor(id: ID): ID | undefined {
@@ -234,25 +223,17 @@ export function createSelection(app: SelectionApp): SelectionStore {
     id: $root,
 
     set(id: ID | null): void {
-      const s = $state()
-      const next = applySetRoot(s.committed, id)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applySetRoot(snap, id))
     },
 
     up(): void {
-      const s = $state()
-      const next = applyRootUp(s.committed, (id) => app.tree.parent(id) ?? null)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applyRootUp(snap, (id) => app.tree.parent(id) ?? null))
     },
   }
 
   // --- Drag accessor ---
 
-  function dragRead(): DragState | null {
+  function dragRead(): DragState<Sub> | null {
     return $drag()
   }
 
@@ -278,17 +259,20 @@ export function createSelection(app: SelectionApp): SelectionStore {
     $state({ committed: s.drag.startState, drag: null })
   }
 
+  // --- Sub-selection helpers ---
+
+  function exitSub(): void {
+    apply((snap) => applyExitSub(snap))
+  }
+
   // --- Sub-selection r/w ---
 
-  function writeSub(value: SubSelection | null): void {
-    const s = $state()
+  function writeSub(value: Sub | null): void {
     if (value === null) {
-      const next = applyExitSub(s.committed)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      exitSub()
     } else {
       // Write sub directly
+      const s = $state()
       const snap = s.committed
       if (snap.sub === value) return
       $state({
@@ -306,8 +290,11 @@ export function createSelection(app: SelectionApp): SelectionStore {
 
   // --- Sub-selection accessors ---
 
+  // Cast $sub for built-in accessors — they filter by kind and are safe with any SubSelectionBase
+  const $subAny = $sub as () => DefaultSubSelection | null
+
   const textAccessor = createTextAccessor(
-    $sub,
+    $subAny,
     (nodeId, offset) => {
       startBatch()
       try {
@@ -320,33 +307,21 @@ export function createSelection(app: SelectionApp): SelectionStore {
           }
         }
         // Enter text mode
-        const s = $state()
-        const next = applyTextEdit(s.committed, nodeId, offset)
-        if (next !== s.committed) {
-          $state({ committed: next, drag: s.drag })
-        }
+        apply((snap) => applyTextEdit(snap, nodeId, offset))
       } finally {
         endBatch()
       }
     },
     (cursor, anchor) => {
-      const s = $state()
-      const next = applyTextSelect(s.committed, cursor, anchor)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applyTextSelect(snap, cursor, anchor))
     },
     () => {
-      const s = $state()
-      const next = applyExitSub(s.committed)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      exitSub()
     },
   )
 
   const pathAccessor = createPathAccessor(
-    $sub,
+    $subAny,
     () => {
       // stub — no-op
     },
@@ -354,16 +329,12 @@ export function createSelection(app: SelectionApp): SelectionStore {
       // stub — no-op
     },
     () => {
-      const s = $state()
-      const next = applyExitSub(s.committed)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      exitSub()
     },
   )
 
   const cropAccessor = createCropAccessor(
-    $sub,
+    $subAny,
     () => {
       // stub — no-op
     },
@@ -371,23 +342,19 @@ export function createSelection(app: SelectionApp): SelectionStore {
       // stub — no-op
     },
     () => {
-      const s = $state()
-      const next = applyExitSub(s.committed)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      exitSub()
     },
   )
 
   // --- Store object ---
 
-  const store: SelectionStore = {
+  const store: SelectionStore<Sub> = {
     node,
 
-    get sub(): SubSelection | null {
+    get sub(): Sub | null {
       return $sub()
     },
-    set sub(value: SubSelection | null) {
+    set sub(value: Sub | null) {
       writeSub(value)
     },
     subComputed: $sub,
@@ -395,26 +362,18 @@ export function createSelection(app: SelectionApp): SelectionStore {
     text: textAccessor,
     path: pathAccessor,
     crop: cropAccessor,
-    drag: dragRead as DragAccessor,
+    drag: dragRead as DragAccessor<Sub>,
     root: rootAccessor,
     kind: $kind,
 
     deselect(): void {
-      const s = $state()
-      const next = applyDeselect(s.committed)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applyDeselect(snap))
     },
 
     selectAll(parent?: ID | null): void {
       const parentId = parent ?? $root()
       const children = parentId !== null ? app.tree.children(parentId) : getWalkOrder()
-      const s = $state()
-      const next = applySelectAll(s.committed, parentId ?? null, children)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      apply((snap) => applySelectAll(snap, parentId ?? null, children))
     },
 
     snapshot: $effective,
@@ -422,11 +381,8 @@ export function createSelection(app: SelectionApp): SelectionStore {
     reconcile(): void {
       const order = getWalkOrder()
       const validSet = new Set(order)
-      const s = $state()
-      const next = applyReconcile(s.committed, validSet, order)
-      if (next !== s.committed) {
-        $state({ committed: next, drag: s.drag })
-      }
+      // applyReconcile needs Sub extends SubSelectionBase — safe since our constraint guarantees it
+      apply((snap) => applyReconcile(snap as SelectionSnapshot<Sub & SubSelectionBase>, validSet, order))
     },
   }
 
