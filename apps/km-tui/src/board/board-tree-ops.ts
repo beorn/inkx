@@ -26,7 +26,8 @@ export function boardSplit(ctx: ActionCtx, nodeId: string, offset: number): Spli
   const result = split(ctx.repo, nodeId, offset)
   ctx.undoHandle.endBatch()
   ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
-  ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+  ctx.sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   return result
 }
 
@@ -44,7 +45,7 @@ export function boardMergeBackward(ctx: ActionCtx, nodeId: string): MergeResult 
   const result = mergeBackward(ctx.repo, nodeId)
   ctx.undoHandle.endBatch()
   if (result) {
-    ctx.setUI({ inlineEditBlock: null })
+    ctx.sel.text.deselect()
     ctx.dispatchBoard({ type: "SELECT", nodeId: result.survivorId })
   }
   return result
@@ -64,7 +65,7 @@ export function boardMergeForward(ctx: ActionCtx, nodeId: string): MergeResult |
   const result = mergeForward(ctx.repo, nodeId)
   ctx.undoHandle.endBatch()
   if (result) {
-    ctx.setUI({ inlineEditBlock: null })
+    ctx.sel.text.deselect()
     ctx.dispatchBoard({ type: "SELECT", nodeId: result.survivorId })
   }
   return result

@@ -57,7 +57,7 @@ export function handleCursorMove(ctx: ActionCtx, dir: string): ActionResult {
 
   // Non-shift cursor moves clear multi-selection (Shift+movement extends it
   // via separate extend_select_* commands that don't go through handleCursorMove)
-  if (ui.multiSelected.size > 0) {
+  if (ctx.selectedIds.size > 0) {
     clearSelection(ctx)
   }
 
@@ -383,12 +383,8 @@ function navigateHistory(ctx: ActionCtx, delta: -1 | 1): ActionResult {
     cursorNodeId: entry.cursorNodeId || null,
   })
 
-  // Restore selection state
-  if (entry.multiSelected && entry.multiSelected.size > 0) {
-    ctx.setUI({ multiSelected: entry.multiSelected })
-  } else {
-    clearSelection(ctx)
-  }
+  // Clear selection on nav restore
+  clearSelection(ctx)
 
   if (entry.foldDepths) {
     ctx.setFoldDepths(entry.foldDepths)

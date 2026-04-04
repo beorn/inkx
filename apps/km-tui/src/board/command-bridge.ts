@@ -67,7 +67,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     inMoveMode: ctx.moveState.active,
     inSearchMode: ui.showSearchDialog,
     inInputMode: dialogInput || ui.showFilterDialog,
-    hasMultiSelection: ui.multiSelected.size > 0,
+    hasMultiSelection: ctx.selectedIds.size > 0,
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
     isInOutlineMode: SelectionLevel.isOutline(
       SelectionLevel.derive({
@@ -77,8 +77,8 @@ function buildCommandContexts(ctx: ActionCtx) {
       }),
     ),
     currentNode: nodeForCtx,
-    textInputFocused: PaneUI.isTextInputFocused(ui),
-    isInlineEditing: !!ui.inlineEditBlock,
+    textInputFocused: PaneUI.isTextInputFocused(ui, ctx.sel.text() !== null),
+    isInlineEditing: ctx.sel.text() !== null,
     searchDialogOpen: ui.showSearchDialog,
     itemPickerOpen: !!ui.activePicker,
     newItemDialogOpen: ui.showNewItemDialog,
@@ -89,15 +89,15 @@ function buildCommandContexts(ctx: ActionCtx) {
     consoleOpen: ui.showConsole,
     hasActiveToast: !!ctx.toastQueue.getLatest(),
     inputMode: getModeStack().current(),
-    visualMode: ui.visualMode,
+    visualMode: false, // visual mode removed — sel handles multi-selection
     localFindActive: !!ui.localSearch,
     omniboxOpen: ui.showOmnibox,
     searchReplaceOpen: !!ui.searchReplace,
     favoritesDialogOpen: ui.showFavoritesDialog,
     favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
-    inputType: ui.inlineEditBlock ? "textarea" : dialogInput ? "field" : undefined,
-    editBlockIndex: ui.inlineEditBlock?.blockIndex,
+    inputType: ctx.sel.text() ? "textarea" : dialogInput ? "field" : undefined,
+    editBlockIndex: ctx.textEditHints?.blockIndex,
     cursorAtStart() {
       const t = activeEditTargetRef.current
       return t ? t.getCursorOffset() === 0 && t.getContent().length > 0 : false
@@ -107,19 +107,17 @@ function buildCommandContexts(ctx: ActionCtx) {
       return t ? t.getCursorOffset() >= t.getContent().length : true
     },
     hasVisibleChildren() {
-      if (!ui.inlineEditBlock) return false
-      return ViewTree.hasVisibleItemChildren(ctx.repo, ui.inlineEditBlock.nodeId, ctx.viewIndex, ctx.foldDepths)
+      const textSel = ctx.sel.text()
+      if (!textSel) return false
+      return ViewTree.hasVisibleItemChildren(ctx.repo, textSel.nodeId, ctx.viewIndex, ctx.foldDepths)
     },
     editLevel() {
-      // When editing, the level is determined by where the EDITED NODE sits in the board.
-      // Uses the editing node's position in nodeIndex, not the cursor position, to avoid
-      // misclassification when cursor and editing node diverge (e.g., after creating a
-      // new node that hasn't been indexed yet).
-      if (!ui.inlineEditBlock) {
-        log.error?.("editLevel() called without inlineEditBlock")
+      const textSel = ctx.sel.text()
+      if (!textSel) {
+        log.error?.("editLevel() called without text editing active")
         return "card" as const
       }
-      const editNodeId = ui.inlineEditBlock.nodeId
+      const editNodeId = textSel.nodeId as string
 
       // Direct lookup in nodeIndex
       let entry = ctx.nodeIndex?.get(editNodeId)
@@ -147,7 +145,7 @@ function buildCommandContexts(ctx: ActionCtx) {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
     cursorNodeId: ctx.cursorNodeId,
-    selectedNodes: Array.from(ui.multiSelected),
+    selectedNodes: Array.from(ctx.selectedIds),
     siblingCount: column?.cardNodes.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,

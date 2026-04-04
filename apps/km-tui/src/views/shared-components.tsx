@@ -66,7 +66,7 @@ export const MemoizedTreeCard = React.memo(
     const cursorIsSelected = _cursorCardNodeId === card.id && _selLevel === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useAppStore<BoardAppStore, boolean>(
-      (s) => Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId === card.id,
+      (s) => s.sel.text()?.nodeId === card.id,
     )
 
     // Fold depth: per-card override or root's depth budget

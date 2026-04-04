@@ -285,7 +285,8 @@ function handleAddFirstChild(ctx: ActionCtx): void {
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(ctx.rootId, newNode)
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
-  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
 
@@ -338,7 +339,8 @@ function handleAddNode(ctx: ActionCtx, position: "before" | "after"): void {
   // Select the newly created node directly by ID
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
 
-  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
 
@@ -369,7 +371,8 @@ export function handleAddNodeChild(ctx: ActionCtx): void {
   const newId = repo.addNode(cursorId, newNode)
 
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
-  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
 
@@ -410,7 +413,8 @@ export function handleAddNodeAtParent(ctx: ActionCtx): void {
   const newId = repo.addNode(grandparentId, newNode)
 
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
-  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
 

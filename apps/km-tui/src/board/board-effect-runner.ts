@@ -66,7 +66,8 @@ function runEffect(ctx: ActionCtx, effect: BoardEffect): void {
       const newId = ctx.repo.addNode(effect.parentId, effect.node)
       if (effect.selectAfter) {
         ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
-        ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+        ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+        ctx.textEditHints = { blockIndex: 0 }
       }
       break
     }
@@ -79,7 +80,8 @@ function runEffect(ctx: ActionCtx, effect: BoardEffect): void {
 
     // UI effects
     case "INLINE_EDIT":
-      ctx.setUI({ inlineEditBlock: { nodeId: effect.nodeId, blockIndex: effect.blockIndex } })
+      ctx.sel.text.edit(effect.nodeId as import("@silvery/selection").ID, 0)
+      ctx.textEditHints = { blockIndex: effect.blockIndex }
       break
     case "RENDER_FLUSH":
       requestRenderFlush()
