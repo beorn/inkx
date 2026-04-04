@@ -107,7 +107,7 @@ export {
   dialogCommands,
   filterDialogCommands,
   favoritesDialogCommands,
-  type TaskAction,
+  type TaskOp,
 } from "./commands/index.ts"
 
 // When predicates

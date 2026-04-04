@@ -1,7 +1,7 @@
 import type { KmOp, CommandDef, TaskStatus, TaskSetStatusOp } from "../types.ts"
 
 // Re-export for consumers
-export type { TaskSetStatusOp as TaskAction } from "../types.ts"
+export type { TaskSetStatusOp as TaskOp } from "../types.ts"
 
 // Status cycle: todo -> wip -> done -> dropped -> todo
 function getNextStatus(current: TaskStatus | null | undefined): TaskStatus {
