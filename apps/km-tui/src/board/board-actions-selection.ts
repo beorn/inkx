@@ -8,7 +8,6 @@
 import { Tree } from "@km/tree"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import { createSelectionEngine } from "../state/selection-engine.ts"
 import type { ID } from "@silvery/selection"
 
 /**
@@ -70,8 +69,9 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
   const cursorId = ctx.cursorNodeId!
 
   // Get siblings at the same level
-  const engine = createSelectionEngine(repo)
-  const siblings = engine.getSiblings(cursorId)
+  const node = repo.getNode(cursorId)
+  if (!node?.parent_id) return
+  const siblings = repo.getChildren(node.parent_id)
   const curIdx = siblings.findIndex((s) => s.id === cursorId)
   if (curIdx === -1) return
 

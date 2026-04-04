@@ -11,7 +11,6 @@ import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { createLogger } from "loggily"
-import { createSelectionEngine } from "./selection-engine.ts"
 
 const log = createLogger("km:tui:hydrate")
 
@@ -284,9 +283,8 @@ export class ReactiveNodeStore {
    *  When a parent is selected, all children appear highlighted in the UI. */
   syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
     // Expand both sets to include descendants so we diff the full visual selection
-    const engine = repo ? createSelectionEngine(repo) : null
-    const oldExpanded = engine ? engine.expandWithDescendants(oldSelected) : oldSelected
-    const newExpanded = engine ? engine.expandWithDescendants(newSelected) : newSelected
+    const oldExpanded = repo ? expandWithDescendants(repo, oldSelected) : oldSelected
+    const newExpanded = repo ? expandWithDescendants(repo, newSelected) : newSelected
 
     for (const key of oldExpanded) {
       if (!newExpanded.has(key)) {
@@ -329,8 +327,7 @@ export class ReactiveNodeStore {
 
   /** Mark all descendants of a selected node as visually selected during hydration. */
   private hydrateDescendantSelection(repo: Repo, parentId: string): void {
-    const engine = createSelectionEngine(repo)
-    const expanded = engine.expandWithDescendants(new Set([parentId]))
+    const expanded = expandWithDescendants(repo, new Set([parentId]))
     for (const id of expanded) {
       if (id !== parentId) {
         this.getOrCreate(id).selected.value = true
@@ -343,6 +340,29 @@ export class ReactiveNodeStore {
     for (const id of nodeIds) {
       this.nodes.delete(id)
     }
+  }
+}
+
+// =============================================================================
+// Tree expansion helper
+// =============================================================================
+
+/** Expand a set of node IDs to include all descendants. */
+function expandWithDescendants(repo: Repo, ids: ReadonlySet<string>): Set<string> {
+  if (ids.size === 0) return new Set()
+  const expanded = new Set<string>(ids)
+  for (const id of ids) {
+    collectDescendants(repo, id, expanded)
+  }
+  return expanded
+}
+
+/** Recursively collect all descendants of a node into the target set. */
+function collectDescendants(repo: Repo, nodeId: string, target: Set<string>): void {
+  const children = repo.getChildren(nodeId)
+  for (const child of children) {
+    target.add(child.id)
+    collectDescendants(repo, child.id, target)
   }
 }
 

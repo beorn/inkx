@@ -8,7 +8,7 @@
  * concerns (persistence, events).
  *
  * Usage:
- *   const [newState, effects] = applyTreeOp(state, { type: "INDENT", nodeId: "abc" })
+ *   const [newState, effects] = applyOutlinerOp(state, { type: "INDENT", nodeId: "abc" })
  */
 
 import type { KNode } from "@km/core"
@@ -57,7 +57,7 @@ export interface TreeState {
 // Actions (discriminated union)
 // =============================================================================
 
-export type TreeOp =
+export type OutlinerOp =
   | { type: "INDENT"; nodeId: string }
   | { type: "OUTDENT"; nodeId: string }
   | { type: "MOVE_UP"; nodeId: string }
@@ -86,7 +86,7 @@ export type TreeEffect =
 // =============================================================================
 
 /** Result of applying a tree op: new state + effects. */
-export type TreeOpResult = [TreeState, TreeEffect[]]
+export type OutlinerOpResult = [TreeState, TreeEffect[]]
 
 // =============================================================================
 // State Snapshot Helpers
@@ -166,12 +166,12 @@ export function captureTreeState(
  * @param policy - Optional outliner policy for indent/outdent guards.
  * @returns [newState, effects] tuple following TEA pattern.
  */
-export function applyTreeOp(
+export function applyOutlinerOp(
   tree: TreeMutator,
   state: TreeState,
-  action: TreeOp,
+  action: OutlinerOp,
   policy?: OutlinerPolicy,
-): TreeOpResult {
+): OutlinerOpResult {
   const outliner = withOutliner(tree, policy)
   const effects: TreeEffect[] = []
   let focusedNodeId = state.focusedNodeId
