@@ -84,6 +84,19 @@ import type { ParsedMouse } from "@silvery/ag-react"
 import type { InitialBoardData } from "../../src/types.ts"
 import { createCursorStoreFromRepo } from "../../src/state/cursor-store.ts"
 
+import { createSelection, type SelectionStore, EMPTY_ORDERED_SET } from "@silvery/selection"
+
+/** Create a mock SelectionStore for test environments that don't use createApp. */
+function createMockSel(): SelectionStore {
+  return createSelection({
+    tree: {
+      walkOrder: () => [],
+      parent: () => undefined,
+      children: () => [],
+    },
+  })
+}
+
 // NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
 import {
@@ -1907,11 +1920,14 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     viewMode: "cards",
     cursorStore: createCursorStoreFromRepo(repo, state.rootId, state.columns[0]?.cardNodes[0]?.id ?? null),
   })
+  const mockSel = createMockSel()
   const store = createStore(() => ({
     foldDepths: new Map<string, number>(),
     ui: initialUI,
     navigator: null,
     setUI: () => {},
+    sel: mockSel,
+    textEditHints: null,
     workspace: {
       panes: new Map([["main", mockPane]]),
       focusedPaneId: "main",
@@ -1939,6 +1955,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     {
       treeConfig,
       setUI: () => {},
+      sel: mockSel as any,
       jobRunner: noopJobRunner as any,
       undoHandle: noopUndoHandle as any,
       taskStatusFilter: new Set<string>(),
