@@ -82,8 +82,6 @@ interface TUIBoardState {
 }
 import { TreeRenderProvider, deriveTreeConfig } from "../src/state/ui-context.tsx"
 import { StoreContext } from "@silvery/create/create-app"
-import { CursorStoreProvider } from "../src/cursor-context.tsx"
-import { createCursorStore } from "../src/state/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
 import { createSelection } from "@silvery/selection"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/state/reactive.ts"
@@ -150,12 +148,6 @@ const mockZustandStore = createStore(() => ({
   textEditHints: null,
 }))
 
-const defaultCursorStore = createCursorStore({
-  cursorNodeId: null,
-  cursorCardNodeId: null,
-  cursorColumnNodeId: null,
-  selectionLevel: "board",
-})
 
 // Wrap children with all providers TreeNode needs
 const storybookNodeStore = new ReactiveNodeStore()
@@ -175,7 +167,6 @@ export function StorybookProviders({ children }: { children: React.ReactNode }):
   return (
     <StoreContext.Provider value={mockZustandStore}>
       <ReactiveNodeStoreProvider value={storybookNodeStore}>
-        <CursorStoreProvider store={defaultCursorStore}>
           <TreeRenderProvider
             treeConfig={treeConfig}
             setUI={() => {}}
@@ -201,7 +192,6 @@ export function StorybookProviders({ children }: { children: React.ReactNode }):
           >
             {children}
           </TreeRenderProvider>
-        </CursorStoreProvider>
       </ReactiveNodeStoreProvider>
     </StoreContext.Provider>
   )

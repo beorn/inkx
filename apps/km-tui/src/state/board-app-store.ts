@@ -7,7 +7,7 @@
  * - driver reads via handle.store.getState()
  *
  * Board navigation state lives in workspace.panes (each BoardPaneState owns
- * its rootId, cursorNodeId, foldDepths, etc). Use Workspace.getActiveBoardPane()
+ * its rootId, foldDepths, etc). Use Workspace.getActiveBoardPane()
  * to access the currently-targeted board pane.
  *
  * UI fields are grouped under `ui`.
@@ -45,7 +45,6 @@ import type { UIState, PaneUI } from "./ui-reducer.ts"
 import { PANE_UI_FIELD_NAMES } from "../board/board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
-import { createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { createSelection, type SelectionStore } from "@silvery/selection"
 import { effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
@@ -75,7 +74,7 @@ import { resolveEmbed } from "../views/embed-display.ts"
 /**
  * The full board app store state.
  *
- * Board navigation state (rootId, cursorNodeId, foldDepths, etc.) lives in
+ * Board navigation state (rootId, foldDepths, etc.) lives in
  * workspace.panes — each BoardPaneState holds its own navigation state.
  * Use Workspace.getActiveBoardPane(state) to access the targeted board pane.
  *
@@ -100,9 +99,6 @@ export interface BoardAppState {
 
   // --- Dimensions ---
   dimensions: { columns: number; rows: number }
-
-  // --- Cursor store (lightweight pub/sub, bypasses Zustand for cursor moves) ---
-  cursorStore: CursorStore
 
   // --- Selection store (@silvery/selection — reactive selection state) ---
   sel: SelectionStore
@@ -258,7 +254,6 @@ export interface CreateBoardAppStoreParams {
   repo: Repo
   toastQueue: ToastQueue
   navigator: GridNavigator
-  cursorStore: CursorStore
   initialBoardState: BoardState
   initialUIState: UIState
   /** Initial view mode for the default pane (per-pane field, not stored in UIState) */
@@ -279,41 +274,25 @@ function restoreWorkspaceFromPersisted(
   saved: PersistedWorkspace,
   repo: Repo,
   fallbackBoardState: BoardState,
-  cursorStore: CursorStore,
 ): WorkspaceState | null {
   const panes = new Map<string, PaneState>()
 
-  // Give the real cursor store to the first board pane (not the focused pane,
-  // which might be a detail pane with no cursor).
   const firstBoardPaneId = saved.panes.find((p) => p.viewType === "board")?.id
-  let cursorStoreUsed = false
 
   for (const persisted of saved.panes) {
-    const paneCursorStore =
-      persisted.id === firstBoardPaneId && !cursorStoreUsed
-        ? ((cursorStoreUsed = true), cursorStore)
-        : createCursorStore({
-            cursorNodeId: null,
-            cursorCardNodeId: null,
-            cursorColumnNodeId: null,
-            selectionLevel: "board",
-          })
-
     let pane: PaneState
     if (persisted.viewType === "detail") {
       // Legacy detail panes are rehydrated as board panes with viewMode "detail"
       pane = createPaneState(persisted.id, createBoardState(), {
         viewMode: "detail",
-        cursorStore: paneCursorStore,
       })
       ;(pane as BoardPaneState).parentPaneId = ownerPaneId(persisted.id)
     } else if (persisted.viewType === "empty") {
-      pane = createEmptyPaneState(persisted.id, paneCursorStore)
+      pane = createEmptyPaneState(persisted.id)
     } else {
       const resolvedBoard = resolvePersistedPane(persisted, repo, fallbackBoardState)
       pane = createPaneState(persisted.id, resolvedBoard, {
         viewMode: persisted.viewMode as "cards" | "list" | "columns" | "tabs",
-        cursorStore: paneCursorStore,
       })
     }
     // Restore persisted filter properties (hide done, tag filters, etc.)
@@ -400,7 +379,6 @@ function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoar
   const defaultPaneId = "main"
   const initialPane = createPaneState(defaultPaneId, initialPaneBoard, {
     viewMode: params.initialViewMode ?? "columns",
-    cursorStore: params.cursorStore,
   })
   const panes = new Map<string, PaneState>([[defaultPaneId, initialPane]])
   const layout: LayoutNode = { type: "leaf", paneId: defaultPaneId }
@@ -463,29 +441,9 @@ export function createBoardAppStoreState(
         params.savedWorkspace,
         params.repo,
         initialPaneBoard,
-        params.cursorStore,
       )
       if (restored) {
         workspace = restored
-        // Sync cursor stores for all board panes. Each pane's cursor store was
-        // initialized generically — sync them to match their BoardState cursors
-        // so the Board component reads a valid cursor on first render.
-        for (const pane of restored.panes.values()) {
-          if (isBoardPane(pane)) {
-            const board = pane as BoardPaneState
-            if (board.cursorNodeId && board.cursorStore) {
-              // Derive cursor classification from ViewNode tree
-              const vTree = buildViewTree(params.repo, board.rootId, board.foldDepths)
-              const vIndex = buildViewIndex(vTree)
-              const ancestors = classifyCursorFromViewIndex(vIndex, board.cursorNodeId)
-
-              board.cursorStore.setState({
-                cursorNodeId: board.cursorNodeId,
-                ...ancestors,
-              })
-            }
-          }
-        }
       } else {
         workspace = createDefaultWorkspace(initialPaneBoard, params)
       }
@@ -497,6 +455,20 @@ export function createBoardAppStoreState(
     // The source is updated by buildActionCtx after each layout derivation.
     const { app: selApp, source: selTreeSource } = createSelectionAdapter()
     const sel = createSelection(selApp)
+
+    // Initialize sel store with the initial cursor from the active board pane.
+    // The selTreeSource hasn't been populated yet (happens in buildActionCtx),
+    // but we need a cursor so Board.tsx can read sel.node.cursor() on first render.
+    // Build a temporary view tree just for initial cursor selection.
+    const activePaneInit = Array.from(workspace.panes.values()).find(
+      (p) => isBoardPane(p) && p.cursorNodeId,
+    ) as BoardPaneState | undefined
+    if (activePaneInit?.cursorNodeId) {
+      const initVTree = buildViewTree(params.repo, activePaneInit.rootId, activePaneInit.foldDepths)
+      const initVIndex = buildViewIndex(initVTree)
+      selTreeSource.update(initVIndex, initVTree)
+      sel.node.select([activePaneInit.cursorNodeId as import("@silvery/selection").ID])
+    }
 
     // Bridge: alien-signals → Zustand. Selection state lives in alien-signals
     // (inside createSelection), but React components read it via Zustand selectors
@@ -542,9 +514,6 @@ export function createBoardAppStoreState(
       // Dimensions
       dimensions: params.dimensions,
 
-      // Cursor store
-      cursorStore: params.cursorStore,
-
       // Selection store
       sel,
       selTreeSource,
@@ -573,6 +542,16 @@ export function createBoardAppStoreState(
             focusedPane.curswantX = null
             focusedPane.curswantY = null
           }
+          // Update sel store cursor — this is the canonical cursor source
+          // for Board.tsx and all components reading sel.node.cursor().
+          if (action.nodeId) {
+            const ids = s.sel.node.ids()
+            // If multi-selection is active, preserve it and just move cursor.
+            // Otherwise, set cursor with a single-item selection.
+            if (ids.length <= 1) {
+              s.sel.node.select([action.nodeId as import("@silvery/selection").ID])
+            }
+          }
           // Derive cursor ancestors from tree structure.
           // When _viewIndex is provided (injected by buildActionCtx), use it directly
           // to avoid rebuilding the entire ViewTree on every cursor move.
@@ -600,38 +579,20 @@ export function createBoardAppStoreState(
               ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
             }
           }
-          // Capture previous card BEFORE updating cursor store (needed for detail pane sync).
-          const targetCursorStore =
-            focusedPane && isBoardPane(focusedPane) && focusedPane.cursorStore ? focusedPane.cursorStore : s.cursorStore
-          const prevCardId = targetCursorStore.getState().cursorCardNodeId
-
-          // Notify CursorStore FIRST — before any Zustand set() that could trigger
-          // a render with stale cursor state (prevents column scroll jump on embeds).
-          targetCursorStore.setState({
-            cursorNodeId: action.nodeId,
-            ...ancestors,
-          })
-
           // Sync detail pane when board cursor moves to a different card.
           // Detail pane's rootId = the cursor card, so update it and reset its cursor.
           // Must use set() (not silent mutation) so the detail Board re-renders with new rootId.
           const detailPane = getDetailPaneFor(s.workspace, s.workspace.focusedPaneId)
           if (detailPane) {
             const newCardId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId
+            // Derive previous card from the detail pane's current rootId (which tracks the card)
+            const prevCardId = detailPane.rootId
             if (!isDetailPaneId(s.workspace.focusedPaneId) && newCardId && newCardId !== prevCardId) {
               const newFirstItemId = computeDetailInitialCursor(s.repo, newCardId)
               const newPanes = new Map(s.workspace.panes)
               const updatedDetail = { ...detailPane, rootId: newCardId, cursorNodeId: newFirstItemId }
               newPanes.set(detailPane.id, updatedDetail)
               set({ workspace: { ...s.workspace, panes: newPanes } })
-              if (detailPane.cursorStore) {
-                detailPane.cursorStore.setState({
-                  cursorNodeId: newFirstItemId,
-                  cursorCardNodeId: newFirstItemId,
-                  cursorColumnNodeId: null,
-                  selectionLevel: newFirstItemId ? "card" : "board",
-                })
-              }
             }
           }
           return
@@ -802,12 +763,14 @@ export function createBoardAppStoreState(
             }
           }
 
-          const ancestors = classifyCursorFromViewIndex(vIndex, cursorNodeId)
-
-          s.cursorStore.setState({
-            cursorNodeId,
-            ...ancestors,
-          })
+          // Sync sel store cursor after structural changes (fold, zoom, etc.)
+          if (cursorNodeId) {
+            s.selTreeSource.update(vIndex, vTree)
+            const ids = s.sel.node.ids()
+            if (ids.length <= 1) {
+              s.sel.node.select([cursorNodeId as import("@silvery/selection").ID])
+            }
+          }
         }
       },
 
@@ -889,19 +852,17 @@ export function createBoardAppStoreState(
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
 
-        // If cursor was rescued, update the cursor store so React components
-        // see the new cursor position immediately (same pattern as dispatchBoard's
-        // post-fold cursor store sync).
+        // Sync sel store after fold depth changes (cursor may have been rescued)
         const s = _get()
         const boardPane = getActiveBoardPane(s)
-        if (boardPane) {
+        if (boardPane?.cursorNodeId) {
           const vTree = buildViewTree(s.repo, boardPane.rootId, boardPane.foldDepths)
           const vIndex = buildViewIndex(vTree)
-          const ancestors = classifyCursorFromViewIndex(vIndex, boardPane.cursorNodeId)
-          s.cursorStore.setState({
-            cursorNodeId: boardPane.cursorNodeId,
-            ...ancestors,
-          })
+          s.selTreeSource.update(vIndex, vTree)
+          const ids = s.sel.node.ids()
+          if (ids.length <= 1) {
+            s.sel.node.select([boardPane.cursorNodeId as import("@silvery/selection").ID])
+          }
         }
       },
 
@@ -949,21 +910,20 @@ export function createBoardAppStoreState(
           if (!parentPane || !isBoardPane(parentPane)) return state
 
           // Detail pane root = parent's cursor card (what we're showing details of)
-          const cursorState = state.cursorStore.getState()
-          const detailRootId = cursorState.cursorCardNodeId ?? cursorState.cursorColumnNodeId ?? parentPane.rootId
+          // Derive cursor card from sel store cursor + view tree classification
+          const cursorId = state.sel.node.cursor() as string | null
+          let detailRootId: string | null = parentPane.rootId
+          if (cursorId) {
+            const vTree = buildViewTree(state.repo, parentPane.rootId, parentPane.foldDepths)
+            const vIndex = buildViewIndex(vTree)
+            const ancestors = classifyCursorFromViewIndex(vIndex, cursorId)
+            detailRootId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId ?? parentPane.rootId
+          }
 
           const firstItemId = computeDetailInitialCursor(state.repo, detailRootId)
 
-          // Create a BoardPaneState with its OWN CursorStore (independent cursor)
-          const detailCursorStore = createCursorStore({
-            cursorNodeId: firstItemId,
-            cursorCardNodeId: firstItemId,
-            cursorColumnNodeId: null,
-            selectionLevel: firstItemId ? "card" : "board",
-          })
           const detailPane = createPaneState(detailId, createBoardState(detailRootId, null, firstItemId), {
             viewMode: "detail",
-            cursorStore: detailCursorStore,
           })
           detailPane.parentPaneId = focusedPaneId
           // Inherit filter state from parent board pane (e.g., hide-done toggle)
@@ -1044,16 +1004,8 @@ export function createBoardAppStoreState(
             newPaneId = `pane-${counter}`
           }
 
-          // Create a new CursorStore for the new pane (independent cursor state)
-          const newPaneCursorStore = createCursorStore({
-            cursorNodeId: null,
-            cursorCardNodeId: null,
-            cursorColumnNodeId: null,
-            selectionLevel: "board",
-          })
-
-          // Create an empty pane with its own cursor store
-          const emptyPane = createEmptyPaneState(newPaneId, newPaneCursorStore)
+          // Create an empty pane
+          const emptyPane = createEmptyPaneState(newPaneId)
 
           // Split the layout tree at the focused pane
           const newLayout = splitLayoutNode(workspace.layout, focusedId, direction, newPaneId)
@@ -1315,7 +1267,6 @@ export function createBoardAppStoreState(
           }
           const updatedPane = createPaneState(focusedPane.id, boardState, {
             viewMode: activeBoard?.viewMode ?? "columns",
-            cursorStore: focusedPane.cursorStore,
           })
           const newPanes = new Map(workspace.panes)
           newPanes.set(workspace.focusedPaneId, updatedPane)

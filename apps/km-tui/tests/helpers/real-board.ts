@@ -45,7 +45,6 @@ import {
 } from "../../src/state/board-app-store.ts"
 import { createInitialUIState } from "../../src/state/ui-reducer.ts"
 import { handleKey } from "../../src/board/board-app.ts"
-import { createCursorStoreFromRepo } from "../../src/state/cursor-store.ts"
 
 export interface TestBoardOptions {
   /** Terminal columns (default: 80) */
@@ -135,7 +134,6 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     repo,
     toastQueue,
     navigator: registry,
-    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,

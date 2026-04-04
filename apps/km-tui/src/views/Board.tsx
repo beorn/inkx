@@ -10,7 +10,7 @@
  * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   Box,
   Text,
@@ -39,14 +39,14 @@ import { TabsView } from "./TabsView.tsx"
 import { DetailView } from "./DetailView.tsx"
 import { renderPath } from "../layout/index.ts"
 import type { GridNavigator } from "@km/board"
+import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex } from "@km/board"
 import type { PaneUI, FilterProperties } from "../state/ui-reducer.ts"
 import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-// cursor-context.tsx retained for WorkspaceChrome (external to ReactiveNodeStoreProvider)
-import { SelectionLevel, type CursorStore } from "../state/cursor-store.ts"
+import { SelectionLevel } from "../state/selection-level.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board/board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
@@ -571,10 +571,15 @@ export function Board({ patchedConsole }: BoardProps) {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     return p?.rootId ?? null
   })
-  // CursorStore provides cursor state without triggering Board re-render on SELECT
-  const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => {
-    const p = s.workspace.panes.get(paneId)
-    return p?.cursorStore ?? s.cursorStore
+  // Cursor node ID: read from pane state. The SELECT fast path does a silent mutation
+  // to pane.cursorNodeId, then sel.node.select() triggers alien-signals → Zustand bridge
+  // (bumps _selVersion), which causes this selector to re-evaluate. Reading pane.cursorNodeId
+  // gives the correct per-pane cursor regardless of which pane is focused.
+  // We also read _selVersion to ensure Zustand detects the change.
+  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
+    void (s as Record<string, unknown>)._selVersion // depend on version bump from SELECT handler
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    return p?.cursorNodeId ?? null
   })
   const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
@@ -600,8 +605,25 @@ export function Board({ patchedConsole }: BoardProps) {
   const boardFocused = activeScopeId === null || activeScopeId === paneId
   const hasDetailPane = useAppStore<BoardAppStore, boolean>((s) => hasDetailPaneFor(s.workspace, paneId))
 
-  // Reactive node store — per-pane scope, stable across re-renders
-  const nodeStore = useMemo(() => new ReactiveNodeStore(), [])
+  // Reactive node store — per-pane scope, stable across re-renders.
+  // Pre-populate cursor state so child components have valid cursor on first render.
+  const nodeStore = useMemo(() => {
+    const store = new ReactiveNodeStore()
+    // Derive initial cursor classification for the pre-render sync
+    if (cursorNodeId && rootId) {
+      const vTree = buildViewTree(repo, rootId, foldDepths)
+      const vIndex = buildViewIndex(vTree)
+      const ancestors = classifyCursorFromViewIndex(vIndex, cursorNodeId)
+      store.syncCursor({
+        cursorNodeId,
+        cursorCardNodeId: ancestors.cursorCardNodeId,
+        cursorColumnNodeId: ancestors.cursorColumnNodeId,
+        selectionLevel: ancestors.selectionLevel,
+      })
+    }
+    return store
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount
+  }, [])
 
   // Hydrate reactive node state on initial load and root change (zoom)
   const selIds = useAppStore<import("../state/board-app-store.ts").BoardAppStore, ReadonlyArray<string>>(
@@ -646,12 +668,6 @@ export function Board({ patchedConsole }: BoardProps) {
   const editState = textEditState
   const prevInlineEditRef = useRef(editState)
 
-  // Sync cursor state from CursorStore to Reactive fields (for Board-internal components)
-  useEffect(() => {
-    const sync = () => nodeStore.syncCursor(cursorStore.getState())
-    sync() // Initial sync
-    return cursorStore.subscribe(sync)
-  }, [nodeStore, cursorStore])
 
   // Layout is derived on demand — no store sync needed
 
@@ -725,25 +741,10 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [nodeStore, editState, repo, nodeIndex])
 
-  // Subscribe to cursorNodeId from CursorStore.
-  // Board re-renders on every cursor change — the cursor-context hooks
-  // handle fine-grained subscriptions for individual components.
-  const cursorNodeIdRef = useRef<string | null>(null)
-  const cursorCardNodeIdRef = useRef<string | null>(null)
-  const cursorNodeId = useSyncExternalStore(cursorStore.subscribe, () => {
-    const state = cursorStore.getState()
-    cursorCardNodeIdRef.current = state.cursorCardNodeId
-    const id = state.cursorNodeId
-    if (id === cursorNodeIdRef.current) return cursorNodeIdRef.current
-    cursorNodeIdRef.current = id
-    return id
-  })
-
   // Derive cursor position from cursorNodeId + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index
-  // cursorCardNodeId hint prevents embeds from resolving to the wrong column
   const cursorPosition = useMemo(
-    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex, getNode, cursorCardNodeIdRef.current),
+    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex, getNode),
     [columns, cursorNodeId, nodeIndex, getNode],
   )
 
@@ -759,6 +760,32 @@ export function Board({ patchedConsole }: BoardProps) {
   )
 
   const derivedSelectionLevel = SelectionLevel.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
+
+  // Derive cursorCardNodeId and cursorColumnNodeId from layout indices
+  const cursorCardNodeId = useMemo(() => {
+    if (cursorPosition.colIndex < 0) return null
+    const col = columns[cursorPosition.colIndex]
+    if (!col) return null
+    if (cursorPosition.cardIndex < 0) return null
+    return col.cardNodes[cursorPosition.cardIndex]?.id ?? null
+  }, [columns, cursorPosition.colIndex, cursorPosition.cardIndex])
+  const cursorColumnNodeId = useMemo(() => {
+    if (cursorPosition.colIndex < 0) return null
+    return columns[cursorPosition.colIndex]?.node.id ?? null
+  }, [columns, cursorPosition.colIndex])
+
+  // Sync cursor state to ReactiveNodeStore after render.
+  // The initial sync happens in the useMemo above (pre-render); subsequent syncs
+  // happen here via useEffect. This is safe because the Zustand selector triggers
+  // re-render, which triggers this effect, which syncs the new cursor state.
+  useEffect(() => {
+    nodeStore.syncCursor({
+      cursorNodeId,
+      cursorCardNodeId,
+      cursorColumnNodeId,
+      selectionLevel: derivedSelectionLevel,
+    })
+  }, [nodeStore, cursorNodeId, cursorCardNodeId, cursorColumnNodeId, derivedSelectionLevel])
 
   // Read hidden paths for filtering (re-read only when hidden list actually changes)
   const hiddenPaths = useMemo(() => readBoardHidden(repo.path), [repo.path, ui.hiddenVersion])
@@ -1111,8 +1138,6 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
   const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
   const focusPaneById = useAppStore<BoardAppStore, (id: string) => void>((s) => s.focusPaneById)
-  // Cursor store — shared between board and detail pane so detail pane can track cursor position
-  const cursorStore = useAppStore<BoardAppStore, CursorStore>((s) => s.cursorStore)
 
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
@@ -1164,7 +1189,6 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       termHeight={storeDimensions.rows}
       consoleStats={consoleStats}
       toastQueue={toastQueue}
-      cursorStore={cursorStore}
     />
   )
 

@@ -63,16 +63,6 @@ function makePaneState(
     curswantY: null,
     viewMode: opts?.viewMode ?? "cards",
     filterProperties: opts?.filterProperties ?? createEmptyFilterProperties(),
-    cursorStore: {
-      getState: () => ({
-        cursorNodeId: null,
-        cursorCardNodeId: null,
-        cursorColumnNodeId: null,
-        selectionLevel: "board" as const,
-      }),
-      setState: () => {},
-      subscribe: () => () => {},
-    },
   } as unknown as BoardPaneState
 }
 

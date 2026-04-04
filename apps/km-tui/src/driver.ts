@@ -77,7 +77,6 @@ import {
 } from "./state/board-app-store.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
 import { handleKey } from "./board/board-app.ts"
-import { createCursorStoreFromRepo } from "./state/cursor-store.ts"
 
 // =============================================================================
 // Types
@@ -197,7 +196,6 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     repo,
     toastQueue,
     navigator,
-    cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialData.rootId,
       initialData.rootPath,
@@ -333,14 +331,13 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     act(() => {
       handleKey({ input, key: parsedKey }, eventCtx, () => {})
       // Trigger a no-op Zustand store update to ensure any pending
-      // useSyncExternalStore updates (from CursorStore mutations done by
-      // handleKey's SELECT fast path) get flushed during this act() cycle.
+      // alien-signals bridge updates get flushed during this act() cycle.
       // Without this, external store changes aren't reflected until the
       // next state-changing keypress.
       store.setState((s) => s)
     })
 
-    // Trigger a second act() to flush any remaining effects (e.g. CursorStore
+    // Trigger a second act() to flush any remaining effects (e.g. selection
     // sync → further useApp subscriptions → re-renders).
     // originalPress sends the raw key through stdin which Board L3 ignores,
     // but the act() boundary inside sendInput flushes pending React work.

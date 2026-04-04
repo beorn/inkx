@@ -8,7 +8,6 @@ import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.
 import { createBoardState } from "../src/board/board-types.ts"
 import { createBoardApp } from "../src/board/board-app.ts"
 import { createGridNavigator } from "@km/board"
-import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 import { createInitialUIState } from "../src/state/ui-reducer.ts"
 import { createToastQueue } from "@km/core"
 import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
@@ -93,7 +92,6 @@ async function profile() {
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: boardState,
     initialUIState: createInitialUIState({ columns: 200, rows: 70 }),
     initialViewMode: "cards",
@@ -190,7 +188,7 @@ async function profile() {
         panes: new Map(prev.workspace.panes).set(pane.id, { ...pane, cursorNodeId }),
       },
     }))
-    getState().cursorStore.setState({ cursorNodeId } as any)
+    // CursorStore removed — cursor state is derived from sel store + layout in Board.tsx
   }
 
   /** Update the active board pane's foldDepths via store.setState */

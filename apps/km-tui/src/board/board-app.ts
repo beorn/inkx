@@ -285,47 +285,32 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // use the freshest ViewTree for walkOrder/parent/children lookups.
       s.selTreeSource.update(viewIndex, viewTree)
     }
-    const cursorState = s.cursorStore.getState()
-    const cursorCardNodeId = cursorState.cursorCardNodeId
-
     // Use cached cursor indices when cursor+layout haven't changed
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     const cc = locals.cursorCache
     if (
       cc &&
       cc.cursorNodeId === cursorNodeId &&
-      cc.cursorCardNodeId === cursorCardNodeId &&
       cc.nodeIndexRef === nodeIndex
     ) {
       cursor = cc
     } else {
-      cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id), cursorCardNodeId)
+      cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
       locals.cursorCache = {
         cursorNodeId,
-        cursorCardNodeId,
+        cursorCardNodeId: null,
         nodeIndexRef: nodeIndex,
         colIndex: cursor.colIndex,
         cardIndex: cursor.cardIndex,
         isAtCardLevel: cursor.isAtCardLevel,
-      }
-      // Write indices back to CursorStore so subscribers can access them
-      if (
-        cursorState.colIndex !== cursor.colIndex ||
-        cursorState.cardIndex !== cursor.cardIndex ||
-        cursorState.isAtCardLevel !== cursor.isAtCardLevel
-      ) {
-        s.cursorStore.setState({
-          ...cursorState,
-          colIndex: cursor.colIndex,
-          cardIndex: cursor.cardIndex,
-          isAtCardLevel: cursor.isAtCardLevel,
-        })
       }
     }
 
     const column = columns[cursor.colIndex]
     const card = column?.cardNodes[cursor.cardIndex]
     const selectedNode = card ?? column?.node ?? null
+    // Derive cursorCardNodeId from layout (replaces CursorStore.cursorCardNodeId)
+    const cursorCardNodeId = card?.id ?? null
 
     // Merge per-pane UI fields into effective UI state for action handlers
     const effectiveUI: PaneUI = board ? mergePaneUI(s.ui, board) : (s.ui as PaneUI)

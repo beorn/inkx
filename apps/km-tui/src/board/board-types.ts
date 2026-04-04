@@ -7,7 +7,6 @@
  * Does NOT include app-specific UI state (modals, dialogs) — that belongs in ui-reducer.ts.
  */
 
-import type { CursorStore } from "../state/cursor-store.ts"
 import type { SelectionRange } from "../handlers/mouse-handler.ts"
 import {
   createEmptyFilterProperties,
@@ -108,7 +107,6 @@ export function mergePaneUI(ui: UIState, pane: BoardPaneState): PaneUI {
 /** Base fields shared by all pane types */
 interface PaneStateBase {
   id: string
-  cursorStore: CursorStore
 }
 
 /**
@@ -269,7 +267,6 @@ export function createPaneState(
   board: BoardState,
   opts: {
     viewMode: ViewMode
-    cursorStore: CursorStore
   },
 ): BoardPaneState {
   return {
@@ -286,7 +283,6 @@ export function createPaneState(
     curswantX: board.curswantX,
     curswantY: board.curswantY,
     viewMode: opts.viewMode,
-    cursorStore: opts.cursorStore,
     // Per-pane UI fields (defaults)
     maxContentLines: 3,
     collapsedColumns: new Set(),
@@ -308,10 +304,9 @@ export function createPaneState(
 /**
  * Create an EmptyPaneState placeholder.
  */
-export function createEmptyPaneState(id: string, cursorStore: CursorStore): EmptyPaneState {
+export function createEmptyPaneState(id: string): EmptyPaneState {
   return {
     id,
     viewType: "empty",
-    cursorStore,
   }
 }

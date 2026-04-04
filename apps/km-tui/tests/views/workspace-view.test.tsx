@@ -21,31 +21,16 @@ const render = createRenderer()
 // ---------------------------------------------------------------------------
 
 /** Minimal CursorStore stub — WorkspaceView doesn't use it, but PaneState requires it */
-function stubCursorStore() {
-  return {
-    getState: () => ({
-      cursorNodeId: null,
-      cursorCardNodeId: null,
-      cursorColumnNodeId: null,
-      selectionLevel: "board" as const,
-    }),
-    setState: () => {},
-    subscribe: () => () => {},
-    getSnapshot: () => 0,
-  }
-}
-
 /** Create a PaneState with sensible defaults */
 function makePaneState(id: string, viewType: PaneViewType = "board"): PaneState {
-  const cs = stubCursorStore()
   if (viewType === "detail") {
-    const pane = createPaneState(id, createBoardState(), { viewMode: "detail", cursorStore: cs })
+    const pane = createPaneState(id, createBoardState(), { viewMode: "detail" })
     return pane
   }
   if (viewType === "empty") {
-    return createEmptyPaneState(id, cs)
+    return createEmptyPaneState(id)
   }
-  return createPaneState(id, createBoardState(), { viewMode: "columns", cursorStore: cs })
+  return createPaneState(id, createBoardState(), { viewMode: "columns" })
 }
 
 /** Board content that reads pane label from context (like real Board does via BoardTopBar) */

@@ -33,7 +33,6 @@ import {
 } from "../src/board/board-types.ts"
 import type { PersistedWorkspace } from "../src/workspace-persist.ts"
 import { createInitialUIState } from "../src/state/ui-reducer.ts"
-import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
 import { createToastQueue } from "@km/core"
 import { createFakeRepo, createStoreFromRepo, withReactive } from "@km/storage"
@@ -71,12 +70,10 @@ function createTestStore() {
   const repo = createFakeRepo({ nodes })
   const initialState = buildBoardState(repo, "board")
   const toastQueue = createToastQueue()
-  const cursorStore = createCursorStoreFromRepo(repo, "board", "task-1")
   const params: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    cursorStore,
     initialBoardState: createBoardState("board", null, "task-1"),
     initialUIState: createInitialUIState({ columns: 120, rows: 30 }),
     initialViewMode: "cards",
@@ -116,8 +113,8 @@ describe("windowing — split creates independent panes", () => {
     const newPaneId = paneIds.find((id) => id !== "main")!
     const newPane = store.getState().workspace.panes.get(newPaneId)! as BoardPaneState
 
-    // Each pane should have a different cursor store instance
-    expect(mainPane.cursorStore).not.toBe(newPane.cursorStore)
+    // Each pane should be independent
+    expect(mainPane.id).not.toBe(newPane.id)
   })
 
   test("focused pane state is snapshotted on split", () => {
@@ -317,14 +314,12 @@ describe("windowing — visual rendering", () => {
     const repo = createFakeRepo({ nodes })
     const initialState = buildBoardState(repo, "board")
     const toastQueue = createToastQueue()
-    const cursorStore = createCursorStoreFromRepo(repo, "board", "task-1")
     const cols = 120
     const rows = 30
     const params: CreateBoardAppStoreParams = {
       repo,
       toastQueue,
       navigator: createGridNavigator(),
-      cursorStore,
       initialBoardState: createBoardState("board", null, "task-1"),
       initialUIState: createInitialUIState({ columns: cols, rows }),
       initialViewMode: "cards",
@@ -401,8 +396,6 @@ function createStoreWithSavedWorkspace(opts?: { focusedPaneId?: string }) {
   )
   const repo = createFakeRepo({ nodes })
   const toastQueue = createToastQueue()
-  const cursorStore = createCursorStoreFromRepo(repo, "board", "task-1")
-
   const savedWorkspace: PersistedWorkspace = {
     version: 1,
     name: "default",
@@ -425,7 +418,6 @@ function createStoreWithSavedWorkspace(opts?: { focusedPaneId?: string }) {
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    cursorStore,
     initialBoardState: createBoardState("board", null, "task-1"),
     initialUIState: createInitialUIState({ columns: 120, rows: 30 }),
     initialViewMode: "cards",
@@ -465,13 +457,11 @@ describe("windowing — workspace restoration with detail-focused save", () => {
     const boardPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     const detailPane = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
 
-    // The board pane's cursor store should have the initial cursor
-    const boardCursor = boardPane.cursorStore.getState()
-    expect(boardCursor.cursorNodeId).toBe("task-1")
+    // The board pane should have the initial cursor
+    expect(boardPane.cursorNodeId).toBe("task-1")
 
-    // The detail pane's cursor store should be empty
-    const detailCursor = detailPane.cursorStore.getState()
-    expect(detailCursor.cursorNodeId).toBeNull()
+    // The detail pane's cursor should be empty (detail panes start with null cursor)
+    expect(detailPane.cursorNodeId).toBeNull()
   })
 
   test("previousFocusedPaneId is set when focus was redirected from detail", () => {

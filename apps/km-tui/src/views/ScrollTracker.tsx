@@ -22,7 +22,7 @@ interface ScrollTrackingListViewProps<T> extends Omit<ListViewProps<T>, "scrollT
 }
 
 /**
- * ListView wrapper that subscribes to CursorStore for scroll position.
+ * ListView wrapper that subscribes to ReactiveNodeStore for scroll position.
  * Isolates j/k re-renders from Column — only this wrapper + ListView re-render.
  */
 export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtualList<T>({

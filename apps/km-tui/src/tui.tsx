@@ -29,7 +29,6 @@ import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./state/board-app-store.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
 import { createGridNavigator } from "@km/board"
-import { createCursorStoreFromRepo } from "./state/cursor-store.ts"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 
@@ -316,7 +315,6 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       repo: options.repo,
       toastQueue,
       navigator: createGridNavigator(),
-      cursorStore: createCursorStoreFromRepo(options.repo, state.rootId, initialCursorNodeId),
       initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
       initialUIState: createInitialUIState({ columns: cols, rows }, defaultIconStyle),
       initialViewMode: viewMode,

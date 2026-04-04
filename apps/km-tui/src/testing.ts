@@ -41,9 +41,8 @@ import { BoardCore } from "./views/index.ts"
 import { createInitialPaneUI } from "./state/ui-reducer.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
-import { CursorStoreProvider } from "./cursor-context.tsx"
-import { createCursorStoreFromRepo } from "./state/cursor-store.ts"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "./state/reactive.ts"
+import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
 
 /** No-op dialog handlers — constant to avoid per-render allocation */
 const _NOOP_DIALOG_HANDLERS = {
@@ -220,18 +219,24 @@ export async function createBoardTest(
   })
 
   const firstCardNodeId = state.columns[0]?.cardNodes[0]?.id ?? null
-  const cursorStore = createCursorStoreFromRepo(repo, state.rootId, firstCardNodeId)
 
-  // Create ReactiveNodeStore and sync cursor state
+  // Create ReactiveNodeStore and sync initial cursor state
   const nodeStore = new ReactiveNodeStore()
-  nodeStore.syncCursor(cursorStore.getState())
-  cursorStore.subscribe(() => nodeStore.syncCursor(cursorStore.getState()))
+  // Derive initial cursor ancestors for sync
+  const initVTree = buildViewTree(repo, state.rootId, new Map())
+  const initVIndex = buildViewIndex(initVTree)
+  const initAncestors = classifyCursorFromViewIndex(initVIndex, firstCardNodeId)
+  nodeStore.syncCursor({
+    cursorNodeId: firstCardNodeId,
+    cursorCardNodeId: initAncestors.cursorCardNodeId,
+    cursorColumnNodeId: initAncestors.cursorColumnNodeId,
+    selectionLevel: initAncestors.selectionLevel,
+  })
 
   const reactiveStore = withReactive(createStoreFromRepo(repo))
   const repoElement = React.createElement(RepoProvider, { repo, children: boardCoreElement })
   const storeElement = React.createElement(StoreProvider, { store: reactiveStore, children: repoElement })
-  const cursorElement = React.createElement(CursorStoreProvider, { store: cursorStore, children: storeElement })
-  const app = render(React.createElement(ReactiveNodeStoreProvider, { value: nodeStore, children: cursorElement }))
+  const app = render(React.createElement(ReactiveNodeStoreProvider, { value: nodeStore, children: storeElement }))
 
   // Current data - updated after each input
   const currentState = state as InitialBoardData

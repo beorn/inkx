@@ -82,7 +82,6 @@ import { handleKey, handleMouse, resetBoardAppState } from "../../src/board/boar
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "@silvery/ag-react"
 import type { InitialBoardData } from "../../src/types.ts"
-import { createCursorStoreFromRepo } from "../../src/state/cursor-store.ts"
 
 import { createSelection, type SelectionStore, EMPTY_ORDERED_SET } from "@silvery/selection"
 
@@ -540,7 +539,6 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
     repo,
     toastQueue,
     navigator: registry,
-    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,
@@ -1918,7 +1916,6 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
   const initialUI = createInitialPaneUI("cards", [], { columns, rows })
   const mockPane = createPaneState("main", createBoardState(state.rootId, state.rootPath), {
     viewMode: "cards",
-    cursorStore: createCursorStoreFromRepo(repo, state.rootId, state.columns[0]?.cardNodes[0]?.id ?? null),
   })
   const mockSel = createMockSel()
   const store = createStore(() => ({
@@ -2026,7 +2023,6 @@ export function renderBoardWithStore(
     repo,
     toastQueue,
     navigator: registry,
-    cursorStore: createCursorStoreFromRepo(repo, initialState.rootId, initialCursorNodeId),
     initialBoardState: createBoardState(
       initialState.rootId,
       initialState.rootPath,

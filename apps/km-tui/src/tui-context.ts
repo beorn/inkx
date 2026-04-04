@@ -27,7 +27,7 @@ import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
  * Built once per key event from the Zustand store, passed to all handlers.
  * Names align with BoardAppStore fields (no mapping layer).
  */
-export interface ActionCtx {
+export interface OpCtx {
   // === Storage ===
   repo: Repo
 
@@ -49,7 +49,7 @@ export interface ActionCtx {
   rootId: string | null
   rootPath: string | null
   cursorNodeId: string | null
-  /** Current card containing the cursor (from CursorStore). Used as embed-aware
+  /** Current card containing the cursor (from layout derivation). Used as embed-aware
    * hint — data model parent chain may lead to the wrong card for embeds. */
   cursorCardNodeId: string | null
   foldDepths: Map<string, number>
@@ -193,15 +193,15 @@ export const DELEGATED_ACTION_CTX_KEYS = [
   "closeAllButFocused",
   "swapPaneInDirection",
   "activateEmptyPane",
-] as const satisfies readonly (keyof ActionCtx)[]
+] as const satisfies readonly (keyof OpCtx)[]
 
 /** Union type of delegated ActionCtx keys. */
-export type DelegatedActionCtxKeys = (typeof DELEGATED_ACTION_CTX_KEYS)[number]
+export type DelegatedOpCtxKeys = (typeof DELEGATED_ACTION_CTX_KEYS)[number]
 
 // ===== Mode helpers =====
 
 /** Get the current editing mode */
-export function currentMode(ctx: ActionCtx): EditMode {
+export function currentMode(ctx: OpCtx): EditMode {
   return PaneUI.editMode(ctx.ui, ctx.sel.text() !== null)
 }
 
@@ -221,7 +221,7 @@ export interface TextEditHints {
 
 /** Enter text editing mode on a node */
 export function enterTextMode(
-  ctx: ActionCtx,
+  ctx: OpCtx,
   nodeId: string,
   blockIndex = 0,
   initialCursorPos?: "start" | "end" | number,
@@ -233,7 +233,7 @@ export function enterTextMode(
 }
 
 /** Exit text editing mode (save is handled by the EditContext cleanup) */
-export function exitTextMode(ctx: ActionCtx): void {
+export function exitTextMode(ctx: OpCtx): void {
   ctx.sel.text.deselect()
   ctx.textEditHints = null
 }

@@ -30,18 +30,13 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
   return repo.getChildren(parentId).map((n) => n.id)
 }
 
-// Helper: get cursor target node ID from the store's cursor store.
-// Returns cursorCardNodeId if at card level, cursorColumnNodeId if at column level, cursorNodeId otherwise.
+// Helper: get cursor target node ID from the sel store.
 function cursorTargetId(store: {
   getState(): {
-    cursorStore?: {
-      getState(): { cursorNodeId: string | null; cursorCardNodeId: string | null; cursorColumnNodeId: string | null }
-    }
+    sel: { node: { cursor(): string | null } }
   }
 }): string | null {
-  const cs = store.getState().cursorStore?.getState()
-  if (!cs) return null
-  return cs.cursorCardNodeId ?? cs.cursorColumnNodeId ?? cs.cursorNodeId
+  return store.getState().sel.node.cursor() as string | null
 }
 
 describe("Indent (Tab)", () => {

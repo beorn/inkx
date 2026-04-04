@@ -506,8 +506,8 @@ const Card = React.memo(
   (prev, next) => {
     // Reference equality on card — structural sharing in useColumns ensures
     // unchanged cards keep the same object reference across re-derivations.
-    // isSelected is driven by CursorStore self-subscription (not props),
-    // so it's not compared here — CursorStore triggers re-renders independently.
+    // isSelected is driven by ReactiveNodeStore self-subscription (not props),
+    // so it's not compared here — ReactiveNodeStore triggers re-renders independently.
     return (
       prev.card === next.card &&
       prev.width === next.width &&
@@ -598,7 +598,7 @@ interface ColumnProps {
  *
  * Column subscribes only to column selection state (stable on j/k).
  * ScrollTrackingVirtualList subscribes to cardIndex and passes scrollTo to ListView.
- * Cards get selection state from CursorStore self-subscription.
+ * Cards get selection state from ReactiveNodeStore self-subscription.
  * Result: j/k only re-renders ScrollTrackingVirtualList + ListView + 2 Cards.
  */
 // oxlint-disable-next-line complexity/complexity -- React component — JSX ternaries inflate score
@@ -724,7 +724,7 @@ export const Column = React.memo(function Column({
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
   // Stable renderItem callback — doesn't depend on cardIndex.
-  // Cards get selection state from CursorStore self-subscription.
+  // Cards get selection state from ReactiveNodeStore self-subscription.
   const cardNodes = column.cardNodes
   const renderItem = useCallback(
     (card: CardView, actualIndex: number) => {

@@ -6,7 +6,7 @@
  * restores from "default" if present.
  *
  * Persisted: layout tree, pane viewType/rootNodePath/viewMode/filterProperties, focusedPaneId.
- * NOT persisted: cursor position, fold state, scroll offsets, CursorStore,
+ * NOT persisted: cursor position, fold state, scroll offsets,
  * selection, nav history — these are session-specific.
  *
  * Key design: rootNodePath stores the node's fs_path (relative file path within

@@ -596,18 +596,9 @@ describe("detail pane empty state fallback", () => {
     // This happens when a new item is being created or a node was deleted.
     // The detail pane has its own rootId (set when opened), so it keeps
     // showing the original card even when the board cursor is invalid.
-    const cursorStore = store.getState().cursorStore
+    // Move cursor to a non-existent node via dispatchBoard
     act(() => {
-      cursorStore.setState({
-        cursorNodeId: "nonexistent-node",
-        cursorCardNodeId: "nonexistent-node",
-        cursorColumnNodeId: "col1",
-        selectionLevel: "card",
-      })
-      store.setState((s: any) => ({
-        ...s,
-        cursorNodeId: "nonexistent-node",
-      }))
+      store.getState().dispatchBoard({ type: "SELECT", nodeId: "nonexistent-node" })
     })
     // Flush render
     board.press("Ctrl+l")
@@ -627,21 +618,11 @@ describe("detail pane empty state fallback", () => {
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
-    // Simulate board-level selection (no card or column selected).
+    // Simulate board-level deselection via sel store.
     // The detail pane has its own rootId (set when opened), so it keeps
     // showing the original card even when the board cursor is cleared.
-    const cursorStore = store.getState().cursorStore
     act(() => {
-      cursorStore.setState({
-        cursorNodeId: null,
-        cursorCardNodeId: null,
-        cursorColumnNodeId: null,
-        selectionLevel: "board",
-      })
-      store.setState((s: any) => ({
-        ...s,
-        cursorNodeId: null,
-      }))
+      store.getState().sel.deselect()
     })
     board.press("Ctrl+l")
 
@@ -660,16 +641,9 @@ describe("detail pane empty state fallback", () => {
     board.press("D")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
 
-    // Make cursor invalid
-    const cursorStore = store.getState().cursorStore
+    // Make cursor invalid — deselect via sel store
     act(() => {
-      cursorStore.setState({
-        cursorNodeId: null,
-        cursorCardNodeId: null,
-        cursorColumnNodeId: null,
-        selectionLevel: "board",
-      })
-      store.setState((s: any) => ({ ...s, cursorNodeId: null }))
+      store.getState().sel.deselect()
     })
     board.press("Ctrl+l")
 
@@ -1314,10 +1288,16 @@ describe("detail pane j/k navigation", () => {
     const { board, store } = testEnv(() => nodes, { checkIncremental: false, incremental: false })
     board.press("D")
 
-    /** Get detail pane's CursorStore state */
+    /** Get detail pane's cursor state from pane state */
     const detailCursor = () => {
       const pane = store.getState().workspace.panes.get("main-detail") as any
-      return pane?.cursorStore?.getState()
+      const cursorNodeId = pane?.cursorNodeId ?? null
+      // In detail view mode, items are flat — cursorCardNodeId === cursorNodeId
+      return {
+        cursorNodeId,
+        cursorCardNodeId: cursorNodeId,
+        selectionLevel: cursorNodeId ? "card" : "board",
+      }
     }
 
     // Task nodes show metadata rows first; cursor starts on __meta__Status
@@ -1368,8 +1348,8 @@ describe("detail pane j/k navigation", () => {
 // =============================================================================
 
 describe("board h/l navigation with detail pane open", () => {
-  /** Get board cursor from main CursorStore */
-  const bc = (store: any): string | null => store.getState().cursorStore.getState().cursorNodeId ?? null
+  /** Get board cursor from sel store */
+  const bc = (store: any): string | null => store.getState().sel.node.cursor() ?? null
 
   test("D → navigate detail → h → l: board cursor preserved, l works", () => {
     const { board, store } = testEnv(

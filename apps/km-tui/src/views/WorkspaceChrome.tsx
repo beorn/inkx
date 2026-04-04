@@ -14,7 +14,6 @@ import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { usePaneUI } from "../state/ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
-import { useCursorNodePosition, CursorStoreProvider } from "../cursor-context.tsx"
 import { CommandBox, StatusCounters } from "./CommandBox.tsx"
 import { ToastStack } from "./ToastStack.tsx"
 import { SyncPane } from "./SyncPane.tsx"
@@ -33,7 +32,6 @@ import { popDialogMode } from "../dialog-guard.ts"
 import { dispatchCommandById } from "../board/board-app.ts"
 import { FILTER_PANEL_WIDTH } from "./board-layout.ts"
 import type { ToastQueue } from "@km/core"
-import type { CursorStore } from "../state/cursor-store.ts"
 import type { PickerLoadOptions } from "./ItemPicker.tsx"
 
 // =============================================================================
@@ -138,7 +136,7 @@ function DeleteConfirmDialogBox({
 // =============================================================================
 
 /**
- * CursorAwareNewItemDialog - subscribes to cursor position for cursorNode.
+ * CursorAwareNewItemDialog - reads cursor card from sel store via Zustand.
  */
 function CursorAwareNewItemDialog({
   onCreate,
@@ -151,9 +149,9 @@ function CursorAwareNewItemDialog({
   width: number
   height: number
 }): React.ReactElement {
-  const cursorPos = useCursorNodePosition()
   const repo = useRepo()
-  const cursorNode = cursorPos.cursorCardNodeId ? (repo.getNode(cursorPos.cursorCardNodeId) ?? null) : null
+  const cursorId = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
+  const cursorNode = cursorId ? (repo.getNode(cursorId) ?? null) : null
   return <NewItemDialog cursorNode={cursorNode} onCreate={onCreate} onCancel={onCancel} width={width} height={height} />
 }
 
@@ -166,7 +164,6 @@ export interface WorkspaceChromeProps {
   termHeight: number
   consoleStats?: { total: number; errors: number; warnings: number }
   toastQueue?: ToastQueue
-  cursorStore: CursorStore
 }
 
 export function WorkspaceChrome({
@@ -174,7 +171,6 @@ export function WorkspaceChrome({
   termHeight,
   consoleStats,
   toastQueue,
-  cursorStore,
 }: WorkspaceChromeProps): React.ReactElement {
   const repo = useRepo()
   const ui = usePaneUI()
@@ -191,10 +187,7 @@ export function WorkspaceChrome({
     const p = Workspace.getActiveBoardPane(s)
     return p?.rootId ?? null
   })
-  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = Workspace.getActiveBoardPane(s)
-    return p?.cursorNodeId ?? null
-  })
+  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
@@ -293,52 +286,50 @@ export function WorkspaceChrome({
       {/* Dialogs — all positioned using full terminal dimensions           */}
       {/* ================================================================= */}
 
-      <CursorStoreProvider store={cursorStore}>
-        {/* Generic picker modal (project / tag / assignee) */}
-        {ui.activePicker && (
-          <CenterDialog
-            termWidth={termWidth}
-            contentHeight={contentHeight}
-            maxWidth={80}
-            topFraction={1 / 2}
-            data-dialog="picker"
-          >
-            <ItemPicker
-              title={pickerConfig[ui.activePicker.type].title}
-              loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
-              onSelect={
-                ui.activePicker.type === "project"
-                  ? dialogHandlers.handlePickerSelect
-                  : ui.activePicker.type === "tag"
-                    ? dialogHandlers.handleTagSelect
-                    : dialogHandlers.handleAssigneeSelect
-              }
-              onCancel={dialogHandlers.handlePickerCancel}
-              width={Math.min(80, Math.floor(termWidth / 2))}
-              height={Math.floor(contentHeight / 2)}
-              recentIds={ui.recentProjectIds}
-              emptyLabel={pickerConfig[ui.activePicker.type].emptyLabel}
-            />
-          </CenterDialog>
-        )}
-        {/* New item dialog modal */}
-        {ui.showNewItemDialog && (
-          <CenterDialog
-            termWidth={termWidth}
-            contentHeight={contentHeight}
-            maxWidth={70}
-            topFraction={1 / 3}
-            data-dialog="new-item"
-          >
-            <CursorAwareNewItemDialog
-              onCreate={dialogHandlers.handleNewItemCreate}
-              onCancel={dialogHandlers.handleNewItemCancel}
-              width={Math.min(70, Math.floor(termWidth / 2))}
-              height={10}
-            />
-          </CenterDialog>
-        )}
-      </CursorStoreProvider>
+      {/* Generic picker modal (project / tag / assignee) */}
+      {ui.activePicker && (
+        <CenterDialog
+          termWidth={termWidth}
+          contentHeight={contentHeight}
+          maxWidth={80}
+          topFraction={1 / 2}
+          data-dialog="picker"
+        >
+          <ItemPicker
+            title={pickerConfig[ui.activePicker.type].title}
+            loadOptions={pickerConfig[ui.activePicker.type].loadOptions}
+            onSelect={
+              ui.activePicker.type === "project"
+                ? dialogHandlers.handlePickerSelect
+                : ui.activePicker.type === "tag"
+                  ? dialogHandlers.handleTagSelect
+                  : dialogHandlers.handleAssigneeSelect
+            }
+            onCancel={dialogHandlers.handlePickerCancel}
+            width={Math.min(80, Math.floor(termWidth / 2))}
+            height={Math.floor(contentHeight / 2)}
+            recentIds={ui.recentProjectIds}
+            emptyLabel={pickerConfig[ui.activePicker.type].emptyLabel}
+          />
+        </CenterDialog>
+      )}
+      {/* New item dialog modal */}
+      {ui.showNewItemDialog && (
+        <CenterDialog
+          termWidth={termWidth}
+          contentHeight={contentHeight}
+          maxWidth={70}
+          topFraction={1 / 3}
+          data-dialog="new-item"
+        >
+          <CursorAwareNewItemDialog
+            onCreate={dialogHandlers.handleNewItemCreate}
+            onCancel={dialogHandlers.handleNewItemCancel}
+            width={Math.min(70, Math.floor(termWidth / 2))}
+            height={10}
+          />
+        </CenterDialog>
+      )}
       {/* Search dialog modal */}
       {ui.showSearchDialog && (
         <CenterDialog

@@ -105,7 +105,7 @@ export class ReactiveNodeStore {
   private nodes = new Map<string, NodeReactiveState>()
   private knownNodeIds = new Set<string>()
 
-  // ── Cursor state (synced from CursorStore by Board.tsx) ──
+  // ── Cursor state (synced from Board.tsx via syncCursor) ──
   cursorNodeId = new Reactive<string | null>(null)
   cursorCardNodeId = new Reactive<string | null>(null)
   cursorColumnNodeId = new Reactive<string | null>(null)
@@ -143,7 +143,7 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync cursor state from CursorStore to Reactive fields */
+  /** Sync cursor state to Reactive fields (called by Board.tsx) */
   syncCursor(cursorState: {
     cursorNodeId: string | null
     cursorCardNodeId: string | null

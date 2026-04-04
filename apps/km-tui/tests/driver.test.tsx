@@ -670,23 +670,12 @@ describe("createBoardDriver", () => {
     const repo = createFakeRepo({ nodes })
     const driver = createBoardDriver(repo, "board")
 
-    // SELECT uses silent mutation (bypasses Zustand set()), so subscribe
-    // to CursorStore instead of Zustand store for cursor changes.
-    const cursorIds: (string | null)[] = []
-    const cursorStore = driver.store.getState().cursorStore
-    const unsubscribe = cursorStore.subscribe(() => {
-      cursorIds.push(cursorStore.getState().cursorNodeId)
-    })
-
-    // Navigate to trigger subscription
+    // Navigate to trigger cursor update via sel store
     await driver.press("j")
 
-    // Unsubscribe
-    unsubscribe()
-
-    // Should have received at least one update
-    expect(cursorIds.length).toBeGreaterThan(0)
-    expect(cursorIds).toContain("1b")
+    // The sel store should reflect the new cursor position
+    const cursorId = driver.store.getState().sel.node.cursor()
+    expect(cursorId).toBe("1b")
   })
 })
 

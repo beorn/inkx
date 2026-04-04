@@ -18,7 +18,6 @@ import {
 } from "../src/state/board-app-store.ts"
 import { createBoardState } from "../src/board/board-types.ts"
 import { createInitialUIState } from "../src/state/ui-reducer.ts"
-import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 import { createGridNavigator } from "@km/board"
 import { createToastQueue } from "@km/core"
 import { createFakeRepo } from "@km/storage"
@@ -46,12 +45,10 @@ function createTestStore() {
   )
   const repo = createFakeRepo({ nodes })
   const toastQueue = createToastQueue()
-  const cursorStore = createCursorStoreFromRepo(repo, "board", "task-1")
   const params: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    cursorStore,
     initialBoardState: createBoardState("board", null, "task-1"),
     initialUIState: createInitialUIState({ columns: 120, rows: 30 }),
     initialViewMode: "cards",

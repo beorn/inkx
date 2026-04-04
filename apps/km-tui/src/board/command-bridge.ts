@@ -19,9 +19,9 @@ import {
 import { Tree } from "@km/tree"
 import { ViewTree } from "@km/board"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
-import { SelectionLevel } from "../state/cursor-store.ts"
+import { SelectionLevel } from "../state/selection-level.ts"
 import { PaneUI } from "../state/ui-reducer.ts"
 import { createLogger } from "loggily"
 import { getModeStack } from "../dialog-guard.ts"
@@ -41,7 +41,7 @@ export function ensureCommandSystemInitialized(): void {
 }
 
 /** Build command and keybinding contexts from the current ActionCtx */
-function buildCommandContexts(ctx: ActionCtx) {
+function buildCommandContexts(ctx: OpCtx) {
   const { ui, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system.
@@ -157,14 +157,14 @@ function buildCommandContexts(ctx: ActionCtx) {
   return { cmdCtx, kbCtx }
 }
 
-export function processKeyWithContext(input: string, key: KeyEvent, ctx: ActionCtx): KeyCommandResult {
+export function processKeyWithContext(input: string, key: KeyEvent, ctx: OpCtx): KeyCommandResult {
   ensureCommandSystemInitialized()
   const { cmdCtx, kbCtx } = buildCommandContexts(ctx)
   return processKey(input, key, cmdCtx, kbCtx)
 }
 
 /** Handle chord timeout — resolves the pending prefix as its standalone command */
-export function processChordTimeout(ctx: ActionCtx): KeyCommandResult | null {
+export function processChordTimeout(ctx: OpCtx): KeyCommandResult | null {
   ensureCommandSystemInitialized()
   const { cmdCtx, kbCtx } = buildCommandContexts(ctx)
   return handleChordTimeout(cmdCtx, kbCtx)

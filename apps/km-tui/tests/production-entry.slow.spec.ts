@@ -20,7 +20,6 @@ import { createGridNavigator } from "@km/board"
 import { buildBoardState } from "../src/state.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
-import { createCursorStoreFromRepo } from "../src/state/cursor-store.ts"
 
 /** Helper: React.createElement with children as prop (avoids React 19 overload mismatch) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +62,6 @@ function buildStoreParams(
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    cursorStore: createCursorStoreFromRepo(repo, rootId, initialCursorNodeId),
     initialBoardState: createBoardState(rootId, null, initialCursorNodeId, initialState.collapsedNodeIds),
     initialUIState: createInitialUIState({ columns: cols, rows }),
     initialViewMode: viewMode,

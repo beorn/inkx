@@ -57,7 +57,7 @@ interface ColumnTreeProps {
  *
  * Column subscribes only to column selection state (stable on j/k).
  * ScrollTrackingVirtualList handles cardIndex subscription via ListView.
- * Cards use CursorStore self-subscription for selection state.
+ * Cards use ReactiveNodeStore self-subscription for selection state.
  */
 const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, height }: ColumnTreeProps) {
   const repo = useRepo()
@@ -94,7 +94,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
   // Stable renderCard callback — doesn't depend on cardIndex.
-  // MemoizedTreeCard gets selection state from CursorStore self-subscription.
+  // MemoizedTreeCard gets selection state from ReactiveNodeStore self-subscription.
   const renderCard = useCallback(
     (card: KNode, actualIndex: number) => {
       log.debug?.(`rendering card col=${colIndex} idx=${actualIndex} id=${card.id}`)
