@@ -65,19 +65,48 @@ When extracting packages from a monolith:
 
 8. **Audit the entire feature set, not just your session's changes.** `/complete` checks what YOU changed. A systematic feature-by-feature audit (bead promise vs actual code) catches what `/complete` misses: unimplemented promises, missing tests, stale docstrings.
 
-## Phase Completion Protocol
+## Phase Completion Protocol (MANDATORY — enforced, not advisory)
 
-Each phase must end with literal verification, not memory-based checkmarks. The pattern from Case Study 6 (@silvery/style): 8 items marked done that weren't — because nobody verified before checking the box.
+**Closing a bead without running its acceptance criteria is a bug.** The definition of done is not "I did a lot of work." It's "every acceptance grep returns the expected result."
 
-1. **Run every /complete criteria grep from the bead description.** If the bead says "grep X in A → 0 hits", run that grep. If it doesn't pass, the phase isn't done.
+### The gate: acceptance criteria MUST pass before `bd update -s closed`
 
-2. **For each checklist item: verify with grep/ls/read, not from memory.** "Move X from A to B" means: grep X in A (should be 0), grep X in B (should be >0). "Delete Y" means: ls Y (should not exist). "Re-export from Z" means: grep "from.*Z" in the barrel file.
+1. **Run every /complete criteria grep from the bead description.** Literally run the command. If it doesn't pass, the bead stays open. No exceptions.
 
-3. **If you deviated from the plan: update the bead description to match reality BEFORE marking done.** Bead says "delete chalk.ts" but you kept it for compat? Valid engineering — but update the bead to say "kept chalk.ts for compat (reason)" instead of marking "delete chalk.ts" as done.
+2. **Report actual numbers, not claims.** "0 hits" must come from a grep you just ran, not from your belief. Paste the command output.
 
-4. **If a checklist item is impossible or unnecessary: mark it as "SKIPPED: reason", not "done".** This prevents bead drift — where the bead describes a world that doesn't exist.
+3. **If criteria can't be met: update the bead, don't close it.**
+   - Discovered the scope is larger than expected? Update the bead description with the real scope. Keep it open.
+   - Got 80% done and ran out of time? Update notes with what's done, what's remaining, and exact counts. Keep it open.
+   - Decided some items are unnecessary? Mark them "SKIPPED: reason" in the bead. Don't silently close.
 
-The pattern is: bead says X, you did Y instead — that's fine engineering, but the bead must reflect Y, not X.
+4. **Never close a bead with known remaining work.** This is the #1 failure mode. "I'll track the rest in a follow-up" = the rest never happens. If there's remaining work, the bead stays open until it's either done or explicitly split into a tracked follow-up with its own acceptance criteria.
+
+5. **If you deviate from the plan: update the bead BEFORE closing.** Bead says "delete X" but you kept X? Update the bead to say "kept X (reason)" and adjust the acceptance criteria.
+
+### What "done" means for migrations
+
+A migration bead with grep acceptance criteria (e.g., `grep "oldPattern" → 0 hits`) is **not done** until:
+- The grep returns 0
+- Tests pass
+- No compat wrappers, re-exports, or bridges keeping the old pattern alive
+- No "deprecated" annotations standing in for actual deletion
+
+"Deprecated" is NOT "done." Deprecated fields with 299 references = 299 references, not done.
+
+### For agents closing beads
+
+When an agent claims a bead and tries to close it, it MUST:
+1. Run ALL acceptance criteria from the bead description
+2. Include the actual command output in its completion message
+3. If any criteria fails: report what passed and what didn't, leave bead open
+4. Never use words like "mostly done" or "remaining work is minor" as justification for closing
+
+### Case studies (why this matters)
+
+- **selection.4**: Agent closed bead claiming "per-pane sel done." Acceptance said `grep cursorNodeId → 0`. Reality: 299 hits. Bead had to be reopened.
+- **@silvery/style** (Case Study 6): 8 phase items marked done that weren't — nobody ran the greps before checking the box.
+- **ColumnState/CardState**: Each session found "still has consumers" and deferred to next phase. The old types survived indefinitely.
 
 ## Tribe Coordination
 
