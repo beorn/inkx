@@ -5,5 +5,5 @@
  * Supports batching for multi-mutation actions and cursor state tracking.
  */
 
-export { type Operation, type HistoryEntry, invertOperation, invertOperations } from "./operations.ts"
+export { type TreeOp, type HistoryEntry, invertOperation, invertOperations } from "./operations.ts"
 export { createUndoableRepo, type UndoableRepoHandle, type UndoResult } from "./undoable-repo.ts"

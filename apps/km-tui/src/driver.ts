@@ -52,7 +52,7 @@ import {
   allCommands,
   defaultKeybindings,
   type CommandContext,
-  type CommandAction,
+  type KmOp,
   type Keybinding,
   type ViewMode,
 } from "@km/commands"
@@ -284,7 +284,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   }
 
   // Handle actions - informational only (actual state changes happen via handleKey)
-  const handleAction = (_action: CommandAction): void => {}
+  const handleAction = (_action: KmOp): void => {}
 
   // Get keybindings for command metadata
   const getKeybindings = (): Keybinding[] => defaultKeybindings()

@@ -51,9 +51,9 @@ export function handleLocalFindOpen(ctx: ActionCtx): ActionResult {
       matchCount: 0,
       matchNodeIds: [],
     },
-    // Close other overlays
-    inlineEditBlock: null,
   })
+  // Close inline editing
+  ctx.sel.text.deselect()
   clearSelection(ctx)
   return ok()
 }

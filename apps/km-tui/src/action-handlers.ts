@@ -1,11 +1,11 @@
 /**
  * Action Handler Registry
  *
- * Provides compile-time exhaustive handling for all CommandAction types.
+ * Provides compile-time exhaustive handling for all KmOp types.
  * TypeScript will error if any action type is missing from the switch statement.
  *
  * This replaces the error-prone layered type guard approach (isTUIAction,
- * isUIAction, isBoardAction) that required manual synchronization between
+ * isUIOp, isBoardOp) that required manual synchronization between
  * type guards and switch statements.
  *
  * The key insight: using a single exhaustive switch with `assertNever` in the
@@ -14,7 +14,7 @@
  * @see issue km-y00m for the motivation behind this design
  */
 
-import type { CommandAction } from "@km/commands"
+import type { KmOp } from "@km/commands"
 
 /**
  * Helper to ensure exhaustiveness at compile time.
@@ -25,6 +25,6 @@ import type { CommandAction } from "@km/commands"
  * @returns never - Always throws
  */
 export function assertNever(action: never): never {
-  const unhandled = action as CommandAction
+  const unhandled = action as KmOp
   throw new Error(`Unhandled action type: ${unhandled.type}`)
 }

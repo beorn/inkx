@@ -18,7 +18,7 @@ import type { KNode } from "@km/core"
 // Operation Union
 // =============================================================================
 
-export type Operation = AddNodeOp | RemoveNodeOp | MoveNodeOp | UpdateNodeOp
+export type TreeOp = AddNodeOp | RemoveNodeOp | MoveNodeOp | UpdateNodeOp
 
 export interface AddNodeOp {
   type: "add_node"
@@ -66,9 +66,9 @@ export interface UpdateNodeOp {
  */
 export interface HistoryEntry {
   /** Forward operations (applied in order for redo) */
-  operations: Operation[]
+  operations: TreeOp[]
   /** Precomputed inverse operations (applied in reverse order for undo) */
-  inverseOperations: Operation[]
+  inverseOperations: TreeOp[]
   /** Cursor position before the operation (restored on undo) */
   cursorBefore?: string | null
   /** Cursor position after the operation (restored on redo) */
@@ -89,7 +89,7 @@ export interface HistoryEntry {
  * - move_node → move_node (from/to swapped)
  * - update_node → update_node (before/after swapped)
  */
-export function invertOperation(op: Operation): Operation {
+export function invertOperation(op: TreeOp): TreeOp {
   switch (op.type) {
     case "add_node":
       return {
@@ -132,6 +132,6 @@ export function invertOperation(op: Operation): Operation {
  * The inverse list is in reverse order so that applying it
  * in forward order undoes the original operations correctly.
  */
-export function invertOperations(ops: Operation[]): Operation[] {
+export function invertOperations(ops: TreeOp[]): TreeOp[] {
   return ops.map(invertOperation).reverse()
 }

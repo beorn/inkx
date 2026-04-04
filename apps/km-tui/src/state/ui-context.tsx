@@ -17,14 +17,8 @@ import { mergePaneUI, type PerPaneUIFields } from "../board/board-types.ts"
 const DEFAULT_PANE_UI: PerPaneUIFields = {
   viewMode: "columns",
   maxContentLines: 3,
-  multiSelected: new Set(),
-  selectionAnchor: null,
-  selectAllLevel: 0,
-  visualMode: false,
-  visualAnchor: null,
   collapsedColumns: new Set(),
   columnScrollAnchor: null,
-  inlineEditBlock: null,
   localSearch: null,
   searchReplace: null,
   showFilterDialog: false,
@@ -65,10 +59,22 @@ export function useUISelector<T>(selector: (state: UIState) => T): T {
  * @example
  * const setUI = useSetUI();
  * setUI({ showHelp: false });
- * setUI({ inlineEditBlock: null }); // Routes to pane
  */
 export function useSetUI(): BoardAppStore["setUI"] {
   return useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
+}
+
+/**
+ * Get the @silvery/selection store.
+ * Use for reading/writing selection state (node selection, text editing, etc.).
+ *
+ * @example
+ * const sel = useSel();
+ * sel.text.deselect(); // exit text editing
+ * sel.node.select([id as ID]); // select a node
+ */
+export function useSel(): import("@silvery/selection").SelectionStore {
+  return useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
 }
 
 /**

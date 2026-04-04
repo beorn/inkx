@@ -8,7 +8,7 @@ import { useCallback } from "react"
 import { type KNode, Position, resolveRelativeDate } from "@km/core"
 import { naturalToRRule } from "@km/storage"
 import { Tree } from "@km/tree"
-import type { BoardAction } from "../board/board-types.ts"
+import type { BoardReducerOp } from "../board/board-types.ts"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -41,7 +41,7 @@ type SetUI = (partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) =>
 interface UseBoardDialogsParams {
   repo: Repo
   setUI: SetUI
-  dispatchBoard: (action: BoardAction) => void
+  dispatchBoard: (action: BoardReducerOp) => void
   /** Open detail pane via workspace operations (Phase 2 windowing) */
   openDetailPane: () => void
   /** Current cursor node ID (from board state) */

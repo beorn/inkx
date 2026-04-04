@@ -21,7 +21,7 @@ import { createLogger } from "loggily"
 import type { KNode } from "@km/core"
 import type { Repo } from "../repo-context.tsx"
 import type { UndoStack, FoldState } from "../undo-stack.ts"
-import { type Operation, type HistoryEntry, invertOperations } from "./operations.ts"
+import { type TreeOp, type HistoryEntry, invertOperations } from "./operations.ts"
 
 const log = createLogger("km:tui:undo:repo")
 
@@ -89,7 +89,7 @@ export interface UndoResult {
  */
 export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo: Repo; handle: UndoableRepoHandle } {
   // --- Batch state ---
-  let batchOps: Operation[] | null = null
+  let batchOps: TreeOp[] | null = null
   let batchLabel: string | undefined
   let cursorBefore: string | null | undefined
   let cursorAfter: string | null | undefined
@@ -98,7 +98,7 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
   let replaying = false
 
   /** Push a single operation (or accumulate into batch) */
-  function recordOp(op: Operation): void {
+  function recordOp(op: TreeOp): void {
     if (replaying) return
 
     if (batchOps !== null) {
@@ -128,7 +128,7 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
   }
 
   /** Apply a list of operations to the raw repo (bypassing recording) */
-  function applyOps(ops: Operation[]): void {
+  function applyOps(ops: TreeOp[]): void {
     replaying = true
     try {
       for (const op of ops) {
@@ -323,7 +323,7 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
 // =============================================================================
 
 /** Apply a single operation to a repo (used during undo/redo replay) */
-function applyOp(repo: Repo, op: Operation): void {
+function applyOp(repo: Repo, op: TreeOp): void {
   switch (op.type) {
     case "add_node": {
       // Re-add the node with its original ID and properties

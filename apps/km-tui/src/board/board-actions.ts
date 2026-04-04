@@ -4,7 +4,7 @@
  * Main dispatcher for command actions.
  * Delegates to specialized handler modules for different operation categories.
  *
- * These handlers bridge CommandAction from @km/commands to actual state changes.
+ * These handlers bridge KmOp from @km/commands to actual state changes.
  * Eventually, commands will be directly executable (per km-mz2g design),
  * but this extraction is a first step to make Board.tsx manageable.
  *
@@ -15,7 +15,7 @@
 
 import { spawn } from "node:child_process"
 import { dirname, join } from "node:path"
-import type { CommandAction, VerbOp, NavOp, EditOp, TextOp, BoardOp, DialogOp, PaneOp, ViewOp } from "@km/commands"
+import type { KmOp, VerbOp, NavOp, EditOp, TextOp, BoardOp, DialogOp, PaneOp, ViewOp } from "@km/commands"
 import { type ActionResult, boundary, ok, unimplemented } from "@km/commands"
 import { createLogger } from "loggily"
 import * as chrono from "chrono-node"
@@ -327,7 +327,7 @@ namespace ActionType {
   const sets: Record<keyof CategoryMap, ReadonlySet<string>> = { verb, nav, edit, text, board, dialog, pane }
 
   /** O(1) type guard: `ActionType.is("verb", action)` narrows action to VerbOp. */
-  export function is<K extends keyof CategoryMap>(category: K, action: CommandAction): action is CategoryMap[K] {
+  export function is<K extends keyof CategoryMap>(category: K, action: KmOp): action is CategoryMap[K] {
     return sets[category].has(action.type)
   }
 }
@@ -440,12 +440,12 @@ export { updateSearchReplaceMatches } from "./board-actions-search-replace.ts"
  * Returns ActionResult: ok() on success, boundary/precondition/unimplemented on expected failure.
  * Callers should check result and provide feedback (e.g., ring bell for boundary).
  */
-export function handleCommandAction(ctx: ActionCtx, action: CommandAction): ActionResult {
+export function handleKmOp(ctx: ActionCtx, action: KmOp): ActionResult {
   if (ActionType.is("verb", action)) return handleVerbAction(ctx, action)
   if (ActionType.is("nav", action)) return handleNavAction(ctx, action)
   if (ActionType.is("edit", action)) return handleEditAction(ctx, action)
   if (ActionType.is("text", action)) return handleTextAction(ctx, action)
-  if (ActionType.is("board", action)) return handleBoardAction(ctx, action)
+  if (ActionType.is("board", action)) return handleBoardReducerOp(ctx, action)
   if (ActionType.is("dialog", action)) return handleDialogAction(ctx, action)
   if (ActionType.is("pane", action)) return handlePaneAction(ctx, action)
   // ViewOp is the fallback — no type guard needed
@@ -868,7 +868,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
 
 /** BoardOp: selection, fold, visual mode, move mode, content lines (25+ cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive board state switch with fold logic
-function handleBoardAction(ctx: ActionCtx, action: BoardOp): ActionResult {
+function handleBoardReducerOp(ctx: ActionCtx, action: BoardOp): ActionResult {
   const col = ctx.column
   const card = ctx.card
 

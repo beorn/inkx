@@ -1697,12 +1697,9 @@ function createFluentBoardApi(ctx: {
      */
     editNode(nodeId: string, opts?: { block?: number; card?: string }) {
       if (!store) throw new Error("editNode() requires testEnv() — not available in renderBoard()")
-      store.getState().setUI({
-        inlineEditBlock: {
-          nodeId,
-          blockIndex: opts?.block ?? 0,
-        },
-      })
+      const s = store.getState()
+      s.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
+      s.textEditHints = { blockIndex: opts?.block ?? 0 }
       pressKey("") // flush render
       return board
     },
@@ -1736,11 +1733,11 @@ function createFluentBoardApi(ctx: {
      */
     expectEditing(nodeId?: string) {
       if (!store) throw new Error("expectEditing() requires testEnv() — not available in renderBoard()")
-      const pane = getActiveBoardPane(store.getState())
+      const textSel = store.getState().sel.text()
       if (nodeId) {
-        expect(pane?.inlineEditBlock?.nodeId).toBe(nodeId)
+        expect(textSel?.nodeId).toBe(nodeId)
       } else {
-        expect(pane?.inlineEditBlock).not.toBeNull()
+        expect(textSel).not.toBeNull()
       }
       return board
     },
@@ -1755,7 +1752,7 @@ function createFluentBoardApi(ctx: {
      */
     expectNotEditing() {
       if (!store) throw new Error("expectNotEditing() requires testEnv() — not available in renderBoard()")
-      expect(getActiveBoardPane(store.getState())?.inlineEditBlock).toBeNull()
+      expect(store.getState().sel.text()).toBeNull()
       return board
     },
 
@@ -1777,14 +1774,16 @@ function createFluentBoardApi(ctx: {
       cursor?: string
     }) {
       if (!store) throw new Error("expectState() requires testEnv() — not available in renderBoard()")
-      const pane = getActiveBoardPane(store.getState())!
+      const s = store.getState()
+      const pane = getActiveBoardPane(s)!
+      const textSel = s.sel.text()
       if (expected.editing !== undefined) {
         if (expected.editing === null || expected.editing === false) {
-          expect(pane.inlineEditBlock).toBeNull()
+          expect(textSel).toBeNull()
         } else if (expected.editing === true) {
-          expect(pane.inlineEditBlock).not.toBeNull()
+          expect(textSel).not.toBeNull()
         } else {
-          expect(pane.inlineEditBlock?.nodeId).toBe(expected.editing)
+          expect(textSel?.nodeId).toBe(expected.editing)
         }
       }
       if (expected.viewMode !== undefined) expect(pane.viewMode).toBe(expected.viewMode)

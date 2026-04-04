@@ -24,10 +24,10 @@ export function handleSearchReplaceOpen(ctx: ActionCtx): ActionResult {
       matchNodeIds: [],
       focusedField: "search",
     },
-    // Close other overlays
-    inlineEditBlock: null,
     localSearch: null,
   })
+  // Close inline editing
+  ctx.sel.text.deselect()
   clearSelection(ctx)
   return ok()
 }
