@@ -482,7 +482,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
 describe("filesystem sync: emitter.apply() writes to disk (km-tui.save-rerender)", () => {
   test("mutation via emitter.apply triggers sync write", async () => {
     // Diagnostic test: verifies the production wiring where
-    // emitter.apply() → withSync decorator → EventHandlers.applyEventToFs()
+    // emitter.apply() → withSync decorator → ChangeHandlers.applyChangeToFs()
     // → writeQueue → file on disk.
     const { writeFileSync, readFileSync } = await import("fs")
     const { join } = await import("path")
