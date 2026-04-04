@@ -16,8 +16,8 @@ import { Tree } from "@km/tree"
 // =============================================================================
 
 export interface SelectionCtx {
-  /** Multi-selection set (node IDs). Empty = use cursor as single selection. */
-  ui: { readonly multiSelected: ReadonlySet<string> }
+  /** Selected node IDs from sel.node.ids (ReadonlyArray with .has()). Empty = use cursor. */
+  selectedIds: { readonly size: number; has(id: string): boolean; [Symbol.iterator](): Iterator<string> }
   /** Board column layout (needed only for multi-selection ordering) */
   columns: ReadonlyArray<{
     readonly cardNodes: readonly KNode[]
@@ -87,11 +87,11 @@ export const Selection = {
    * nodeIndex. For sub-items not in nodeIndex, walks the parent chain.
    */
   cardIndices(ctx: SelectionCtx): number[] {
-    if (ctx.ui.multiSelected.size === 0) return []
+    if (ctx.selectedIds.size === 0) return []
     const nodeIndex = ctx.nodeIndex
     if (!nodeIndex) return []
     const indices = new Set<number>()
-    for (const nodeId of ctx.ui.multiSelected) {
+    for (const nodeId of ctx.selectedIds) {
       const pos = nodeIndex.get(nodeId)
       if (pos && pos.colIndex === ctx.colIndex) {
         indices.add(pos.cardIndex)
@@ -116,14 +116,14 @@ export const Selection = {
    * True if no nodes are in the multi-selection (ignores cursor).
    */
   isEmpty(ctx: SelectionCtx): boolean {
-    return ctx.ui.multiSelected.size === 0
+    return ctx.selectedIds.size === 0
   },
 
   /**
    * True if a specific node is in the multi-selection.
    */
   contains(ctx: SelectionCtx, nodeId: string): boolean {
-    return ctx.ui.multiSelected.has(nodeId)
+    return ctx.selectedIds.has(nodeId)
   },
 
   /**

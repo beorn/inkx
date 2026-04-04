@@ -541,7 +541,7 @@ function handleNavAction(ctx: ActionCtx, action: NavOp): ActionResult {
   switch (action.type) {
     case "CURSOR_MOVE":
       // Navigate-away saves: confirm inline edit before moving cursor.
-      if (ctx.ui.inlineEditBlock && activeEditTargetRef.current) {
+      if (ctx.sel.text() && activeEditTargetRef.current) {
         activeEditTargetRef.current.confirm()
       }
       return handleCursorMove(ctx, action.dir)
@@ -597,12 +597,8 @@ function handleEditAction(ctx: ActionCtx, action: EditOp): ActionResult {
         log.debug?.("ENTER_INLINE_EDIT suppressed: virtual metadata row")
         return ok()
       }
-      ctx.setUI({
-        inlineEditBlock: {
-          nodeId: action.nodeId,
-          blockIndex: action.blockIndex ?? 0,
-        },
-      })
+      ctx.sel.text.edit(action.nodeId as import("@silvery/selection").ID, 0)
+      ctx.textEditHints = { blockIndex: action.blockIndex ?? 0 }
       return ok()
     }
     case "EDIT_BLOCK_NAVIGATE":
@@ -613,14 +609,14 @@ function handleEditAction(ctx: ActionCtx, action: EditOp): ActionResult {
       // Resolve actual target: inline edit node OR cursor node (spatial nav),
       // falling back to card. Ensures Tab operates on the selected sub-item
       // in both normal mode (J/K navigated to sub-item) and edit mode.
-      const indentTargetId = ctx.ui.inlineEditBlock?.nodeId ?? ctx.cursorNodeId
+      const indentTargetId = ctx.sel.text()?.nodeId ?? ctx.cursorNodeId
       const indentTarget = indentTargetId && indentTargetId !== card.id ? ctx.repo.getNode(indentTargetId) : null
       if (!indentNode(ctx, indentTarget ?? card)) return boundary("indent", "Can't indent further")
       return ok()
     }
     case "OUTDENT_NODE": {
       if (!card) return boundary("outdent", "No card to outdent")
-      const outdentTargetId = ctx.ui.inlineEditBlock?.nodeId ?? ctx.cursorNodeId
+      const outdentTargetId = ctx.sel.text()?.nodeId ?? ctx.cursorNodeId
       const outdentTarget = outdentTargetId && outdentTargetId !== card.id ? ctx.repo.getNode(outdentTargetId) : null
       if (!outdentNode(ctx, outdentTarget ?? card)) return boundary("outdent", "Can't outdent further")
       return ok()
@@ -691,11 +687,12 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
       const insertTarget = activeEditTargetRef.current
       insertTarget?.insertChar(action.char)
       // Prefix conversion: after typing space, check if content matches a markdown prefix
-      if (action.char === " " && insertTarget && ctx.ui.inlineEditBlock) {
+      const textEdit = ctx.sel.text()
+      if (action.char === " " && insertTarget && textEdit) {
         const content = insertTarget.getContent()
         const conversion = detectPrefixConversion(content)
         if (conversion) {
-          const nodeId = ctx.ui.inlineEditBlock.nodeId
+          const nodeId = textEdit.nodeId
           const node = ctx.repo.getNode(nodeId)
           if (node) {
             const remainingText = content.slice(conversion.prefixLength)
@@ -735,11 +732,12 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
     }
     case "TEXT_DELETE_BACKWARD": {
       const bsTarget = activeEditTargetRef.current
-      if (bsTarget && ctx.ui.inlineEditBlock && bsTarget.getCursorOffset() === 0) {
-        const nodeId = ctx.ui.inlineEditBlock.nodeId
+      const bsTextEdit = ctx.sel.text()
+      if (bsTarget && bsTextEdit && bsTarget.getCursorOffset() === 0) {
+        const nodeId = bsTextEdit.nodeId
         const content = bsTarget.getContent()
         if (content === "") {
-          ctx.setUI({ inlineEditBlock: null })
+          ctx.sel.text.deselect()
           executeDelete(ctx, nodeId)
           return ok()
         }
@@ -763,15 +761,16 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
     }
     case "TEXT_DELETE_FORWARD": {
       const fwdTarget = activeEditTargetRef.current
-      if (fwdTarget && ctx.ui.inlineEditBlock) {
+      const fwdTextEdit = ctx.sel.text()
+      if (fwdTarget && fwdTextEdit) {
         const content = fwdTarget.getContent()
         const cursor = fwdTarget.getCursorOffset()
         if (content === "" && cursor === 0) {
-          const nodeId = ctx.ui.inlineEditBlock.nodeId
-          ctx.setUI({ inlineEditBlock: null })
+          const nodeId = fwdTextEdit.nodeId
+          ctx.sel.text.deselect()
           executeDelete(ctx, nodeId)
         } else if (cursor >= content.length) {
-          const nodeId = ctx.ui.inlineEditBlock.nodeId
+          const nodeId = fwdTextEdit.nodeId
           const nextNode = KTree.next(ctx.repo, nodeId)
           if (nextNode) {
             const degradation = degrade(nextNode, ctx.repo, nextNode.id)
@@ -825,7 +824,7 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
     case "TEXT_CONFIRM": {
       const target = activeEditTargetRef.current
       if (target) target.save()
-      if (ctx.ui.inlineEditBlock) ctx.setUI({ inlineEditBlock: null })
+      if (ctx.sel.text()) ctx.sel.text.deselect()
       return ok()
     }
     case "TEXT_LINEBREAK_SPLIT":
@@ -848,9 +847,9 @@ function handleTextAction(ctx: ActionCtx, action: TextOp): ActionResult {
       return ok()
     case "TEXT_EXIT_EDIT": {
       const target = activeEditTargetRef.current
-      if (ctx.ui.inlineEditBlock) {
+      if (ctx.sel.text()) {
         target?.save()
-        ctx.setUI({ inlineEditBlock: null })
+        ctx.sel.text.deselect()
       } else {
         target?.cancel()
       }
@@ -994,22 +993,16 @@ function handleBoardReducerOp(ctx: ActionCtx, action: BoardOp): ActionResult {
       progressiveSelectAll(ctx)
       return ok()
     case "SELECT_NODE_TOGGLE": {
-      const selected = new Set(ctx.ui.multiSelected)
-      if (selected.has(action.nodeId)) selected.delete(action.nodeId)
-      else selected.add(action.nodeId)
-      ctx.setUI({ multiSelected: selected })
+      ctx.sel.node.select([action.nodeId as import("@silvery/selection").ID], true)
       return ok()
     }
     case "SELECT_NODE_ADD": {
-      const selected = new Set(ctx.ui.multiSelected)
-      selected.add(action.nodeId)
-      ctx.setUI({ multiSelected: selected })
+      const ids = [...ctx.selectedIds, action.nodeId] as import("@silvery/selection").ID[]
+      ctx.sel.node.select(ids)
       return ok()
     }
     case "SELECT_NODE_REMOVE": {
-      const selected = new Set(ctx.ui.multiSelected)
-      selected.delete(action.nodeId)
-      ctx.setUI({ multiSelected: selected })
+      ctx.sel.node.remove(action.nodeId as import("@silvery/selection").ID)
       return ok()
     }
     case "CLEAR_SELECTION":
@@ -1017,25 +1010,13 @@ function handleBoardReducerOp(ctx: ActionCtx, action: BoardOp): ActionResult {
       return ok()
     case "VISUAL_MODE_ENTER": {
       if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
-      const anchorKey = ctx.cursorNodeId
-      const selected = new Set(ctx.ui.multiSelected)
-      selected.add(anchorKey)
-      ctx.setUI({
-        visualMode: true,
-        visualAnchor: ctx.cursorNodeId,
-        selectionAnchor: { nodeId: ctx.cursorNodeId },
-        multiSelected: selected,
-        status: { level: "info", message: "-- VISUAL --" },
-      })
+      ctx.sel.node.select([ctx.cursorNodeId as import("@silvery/selection").ID])
+      ctx.setUI({ status: { level: "info", message: "-- VISUAL --" } })
       return ok()
     }
     case "VISUAL_MODE_EXIT":
       clearSelection(ctx)
-      ctx.setUI({
-        visualMode: false,
-        visualAnchor: null,
-        status: null,
-      })
+      ctx.setUI({ status: null })
       return ok()
     case "EXTEND_SELECT_UP":
       handleExtendSelectVertical(ctx, "up")
@@ -1053,8 +1034,8 @@ function handleBoardReducerOp(ctx: ActionCtx, action: BoardOp): ActionResult {
       return unimplemented("selection")
     case "ENTER_MOVE_MODE": {
       const nodeIds: string[] = []
-      if (ctx.ui.multiSelected.size > 0) {
-        for (const selKey of ctx.ui.multiSelected) {
+      if (ctx.selectedIds.size > 0) {
+        for (const selKey of ctx.selectedIds) {
           if (selKey && !nodeIds.includes(selKey)) {
             nodeIds.push(selKey)
           }
@@ -1143,10 +1124,8 @@ function handleDialogAction(ctx: ActionCtx, action: DialogOp): ActionResult {
         pushDialogMode("dialog:filter")
       }
       ctx.closeDetailPane()
-      ctx.setUI({
-        showFilterDialog: !ctx.ui.showFilterDialog,
-        inlineEditBlock: null,
-      })
+      ctx.setUI({ showFilterDialog: !ctx.ui.showFilterDialog })
+      ctx.sel.text.deselect()
       return ok()
     case "SET_FILTER":
       popDialogMode()
@@ -1643,7 +1622,7 @@ function deriveFsType(parent: KNode): KNode["fstype"] | undefined {
 /** Enter at start/end of title → insert sibling before/after using the node's actual parent. */
 function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): void {
   const { repo } = ctx
-  const edit = ctx.ui.inlineEditBlock
+  const edit = ctx.sel.text()
   if (!edit) return
 
   const nodeId = edit.nodeId
@@ -1673,7 +1652,8 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
   ctx.undoHandle.setCursor(nodeId)
   const newId = repo.addNode(parentId, newNode)
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
-  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
 
@@ -1681,7 +1661,7 @@ function handleLinebreakSibling(ctx: ActionCtx, position: "before" | "after"): v
  *  Title split with visible children: after-portion becomes first child (not sibling).
  *  Title split without children / body block split: after-portion becomes sibling after. */
 function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
-  const edit = ctx.ui.inlineEditBlock
+  const edit = ctx.sel.text()
   if (!edit) return ok()
 
   const editTarget = activeEditTargetRef.current
@@ -1692,10 +1672,11 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
 
   // Resolve to body child node if editing a body block
   let nodeId: string = edit.nodeId
-  const isBodyBlock = edit.blockIndex > 0
+  const editBlockIndex = ctx.textEditHints?.blockIndex ?? 0
+  const isBodyBlock = editBlockIndex > 0
   if (isBodyBlock) {
     const body = extractBody(ctx.repo.getChildren(edit.nodeId)).body
-    const child = body[edit.blockIndex - 1]
+    const child = body[editBlockIndex - 1]
     if (!child) return ok()
     nodeId = child.id
   }
@@ -1728,7 +1709,8 @@ function handleLinebreakSplit(ctx: ActionCtx): ActionResult {
       const result = splitAsChild(ctx.repo, nodeId, adjustedOffset)
       ctx.undoHandle.endBatch()
       ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
-      ctx.setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+      ctx.sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
+      ctx.textEditHints = { blockIndex: 0 }
     } else {
       boardSplit(ctx, nodeId, adjustedOffset)
     }
@@ -1791,7 +1773,8 @@ function handleAddNodeChildFirst(ctx: ActionCtx): void {
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
   ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
-  ctx.setUI({ inlineEditBlock: { nodeId: newId, blockIndex: 0 } })
+  ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
+  ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
 }
 
@@ -1834,7 +1817,7 @@ function findAdjacentEditNode(
 
 function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitAtBoundary = false): ActionResult {
   const { ui } = ctx
-  const edit = ui.inlineEditBlock
+  const edit = ctx.sel.text()
   if (!edit) return ok()
 
   // Capture the current cursor column before saving/unmounting the edit context.
@@ -1842,14 +1825,15 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   // If the TermEditContext already has a stickyX (from prior vertical movement),
   // use that; otherwise compute the current visual column.
   const editCtx = activeEditContextRef.current
-  const stickyX = editCtx ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col) : edit.stickyX
+  const hints = ctx.textEditHints
+  const stickyX = editCtx ? (editCtx.stickyX ?? editCtx.getCursorRowCol().col) : hints?.stickyX
 
   // Resolve body block nodes to their parent heading.
   // When a user clicks directly on a body block (paragraph, code, etc.), edit.nodeId
   // points to the body block itself. But body blocks are traversed via blockIndex on
   // the parent node. Detect this and remap so the existing blockIndex logic works.
-  let effectiveNodeId = edit.nodeId
-  let effectiveBlockIndex = edit.blockIndex
+  let effectiveNodeId = edit.nodeId as string
+  let effectiveBlockIndex = hints?.blockIndex ?? 0
   const editNode = ctx.repo.getNode(edit.nodeId)
   if (editNode?.parent_id && !KNode.isOutline(editNode) && !editNode.item && !exitAtBoundary) {
     const parentChildren = ctx.repo.getChildren(editNode.parent_id)
@@ -1867,15 +1851,12 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
   if (nextIndex >= 0 && nextIndex < blockCount) {
     // Moving between blocks within same node → save current block, change index
     activeEditTargetRef.current?.save()
-    ctx.setUI({
-      inlineEditBlock: {
-        ...edit,
-        nodeId: effectiveNodeId,
-        blockIndex: nextIndex,
-        initialCursorPos: direction === "down" ? "start" : "end",
-        stickyX,
-      },
-    })
+    ctx.sel.text.edit(effectiveNodeId as import("@silvery/selection").ID, 0)
+    ctx.textEditHints = {
+      blockIndex: nextIndex,
+      initialCursorPos: direction === "down" ? "start" : "end",
+      stickyX,
+    }
     return ok()
   }
 
@@ -1891,14 +1872,8 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
     if (items.length > 0) {
       const firstChild = items[0]!
       ctx.dispatchBoard({ type: "SELECT", nodeId: firstChild.id })
-      ctx.setUI({
-        inlineEditBlock: {
-          nodeId: firstChild.id,
-          blockIndex: 0,
-          initialCursorPos: "start",
-          stickyX,
-        },
-      })
+      ctx.sel.text.edit(firstChild.id as import("@silvery/selection").ID, 0)
+      ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start", stickyX }
       requestRenderFlush()
       return ok()
     }
@@ -1926,14 +1901,8 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
       if (deepest?.node && deepest.id !== adjacentNode.id) {
         const deepBodyCount = extractBody(ctx.repo.getChildren(deepest.id)).body.length
         ctx.dispatchBoard({ type: "SELECT", nodeId: deepest.id })
-        ctx.setUI({
-          inlineEditBlock: {
-            nodeId: deepest.id,
-            blockIndex: deepBodyCount,
-            initialCursorPos: "end",
-            stickyX,
-          },
-        })
+        ctx.sel.text.edit(deepest.id as import("@silvery/selection").ID, 0)
+        ctx.textEditHints = { blockIndex: deepBodyCount, initialCursorPos: "end", stickyX }
         requestRenderFlush()
         return ok()
       }
@@ -1941,21 +1910,19 @@ function handleEditBlockNavigate(ctx: ActionCtx, direction: "up" | "down", exitA
     const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentNode.id)).body.length
     const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
     ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentNode.id })
-    ctx.setUI({
-      inlineEditBlock: {
-        nodeId: adjacentNode.id,
-        blockIndex: adjBlockIndex,
-        initialCursorPos: direction === "down" ? "start" : "end",
-        stickyX,
-      },
-    })
+    ctx.sel.text.edit(adjacentNode.id as import("@silvery/selection").ID, 0)
+    ctx.textEditHints = {
+      blockIndex: adjBlockIndex,
+      initialCursorPos: direction === "down" ? "start" : "end",
+      stickyX,
+    }
     requestRenderFlush()
     return ok()
   }
 
   // No adjacent node — bell (ctrl-n/p) or exit edit mode (arrow keys)
   if (exitAtBoundary) {
-    ctx.setUI({ inlineEditBlock: null })
+    ctx.sel.text.deselect()
     return handleCursorMove(ctx, direction === "down" ? "down" : "up")
   }
   return boundary("edit_block_navigate", "no adjacent node")
@@ -2182,17 +2149,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   // 5. Selection active -> clear selection
   // 6. Nothing -> no-op (visual bell)
 
-  // --- Layer 0: Modal states (move mode, visual mode) ---
-  if (ui.visualMode) {
-    clearSelection(ctx)
-    ctx.setUI({
-      visualMode: false,
-      visualAnchor: null,
-      status: null,
-    })
-    return ok()
-  }
-
+  // --- Layer 0: Modal states (move mode) ---
   if (ctx.moveState.active) {
     dispatchBoard({ type: "CANCEL_MOVE" })
     return ok()
@@ -2201,9 +2158,9 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   // --- Layer 1: Text edit -> node mode ---
   // Note: normally Escape during editing routes to TEXT_EXIT_EDIT, not here.
   // This is a safety fallback.
-  if (ui.inlineEditBlock) {
+  if (ctx.sel.text()) {
     activeEditTargetRef.current?.save()
-    ctx.setUI({ inlineEditBlock: null })
+    ctx.sel.text.deselect()
     return ok()
   }
 
@@ -2275,7 +2232,7 @@ function handleCloseOrQuit(ctx: ActionCtx): ActionResult {
   }
 
   // --- Layer 4: Selection active -> clear selection ---
-  if (ui.multiSelected.size > 0) {
+  if (ctx.selectedIds.size > 0) {
     clearSelection(ctx)
     return ok()
   }
