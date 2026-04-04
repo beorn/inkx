@@ -69,11 +69,7 @@ describe("click flows (pointer down + up, no movement)", () => {
     expect(ptr1.phase).toBe("pointing-empty")
     expect(fx1).toEqual([])
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerUp", modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerUp", modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("idle")
     expect(effectTypes(fx2)).toEqual(["deselect"])
   })
@@ -93,11 +89,7 @@ describe("click flows (pointer down + up, no movement)", () => {
     )
     expect(ptr1.phase).toBe("pointing-node")
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerUp", modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerUp", modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("idle")
     expect(fx2).toEqual([{ type: "node.select", ids: [A] }])
   })
@@ -116,11 +108,7 @@ describe("click flows (pointer down + up, no movement)", () => {
       helpers,
     )
 
-    const [, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerUp", modifiers: CMD },
-      helpers,
-    )
+    const [, fx2] = applyPointerEvent(ptr1, { type: "pointerUp", modifiers: CMD }, helpers)
     expect(fx2).toEqual([{ type: "node.select", ids: [A], toggle: true }])
   })
 
@@ -138,11 +126,7 @@ describe("click flows (pointer down + up, no movement)", () => {
       helpers,
     )
 
-    const [, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerUp", modifiers: SHIFT },
-      helpers,
-    )
+    const [, fx2] = applyPointerEvent(ptr1, { type: "pointerUp", modifiers: SHIFT }, helpers)
     expect(fx2).toEqual([{ type: "node.extend", cursor: A }])
   })
 
@@ -161,11 +145,7 @@ describe("click flows (pointer down + up, no movement)", () => {
     )
     expect(ptr1.phase).toBe("pointing-selection")
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerUp", modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerUp", modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("idle")
     expect(fx2).toEqual([{ type: "node.select", ids: [B] }])
   })
@@ -185,11 +165,7 @@ describe("click flows (pointer down + up, no movement)", () => {
     )
     expect(ptr1.phase).toBe("pointing-text")
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerUp", modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerUp", modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("idle")
     expect(fx2).toEqual([{ type: "text.edit", nodeId: A, offset: 5 }])
   })
@@ -218,29 +194,17 @@ describe("drag flows", () => {
     )
 
     // Move past threshold
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("dragging-area")
     expect(effectTypes(fx2)).toEqual(["drag.start"])
 
     // Continue moving: area selects nodes
-    const [ptr3, fx3] = applyPointerEvent(
-      ptr2,
-      { type: "pointerMove", x: 150, y: 150, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr3, fx3] = applyPointerEvent(ptr2, { type: "pointerMove", x: 150, y: 150, modifiers: NO_MODS }, helpers)
     expect(ptr3.phase).toBe("dragging-area")
     expect(effectTypes(fx3)).toContain("node.select")
 
     // Pointer up: drag end
-    const [ptr4, fx4] = applyPointerEvent(
-      ptr3,
-      { type: "pointerUp", modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr4, fx4] = applyPointerEvent(ptr3, { type: "pointerUp", modifiers: NO_MODS }, helpers)
     expect(ptr4.phase).toBe("idle")
     expect(effectTypes(fx4)).toEqual(["drag.end"])
   })
@@ -262,18 +226,10 @@ describe("drag flows", () => {
       },
       helpers,
     )
-    const [ptr2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS }, helpers)
 
     // Move with cmd modifier
-    const [, fx3] = applyPointerEvent(
-      ptr2,
-      { type: "pointerMove", x: 150, y: 150, modifiers: CMD },
-      helpers,
-    )
+    const [, fx3] = applyPointerEvent(ptr2, { type: "pointerMove", x: 150, y: 150, modifiers: CMD }, helpers)
     const selectEffect = fx3.find((e) => e.type === "node.select") as
       | (SelectionEffect & { type: "node.select" })
       | undefined
@@ -300,21 +256,13 @@ describe("drag flows", () => {
     )
 
     // Move past threshold
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 80, y: 10, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 80, y: 10, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("dragging-text")
     expect(effectTypes(fx2)).toContain("text.edit")
     expect(effectTypes(fx2)).toContain("drag.start")
 
     // Continue text drag: extend text range
-    const [ptr3, fx3] = applyPointerEvent(
-      ptr2,
-      { type: "pointerMove", x: 100, y: 10, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr3, fx3] = applyPointerEvent(ptr2, { type: "pointerMove", x: 100, y: 10, modifiers: NO_MODS }, helpers)
     expect(ptr3.phase).toBe("dragging-text")
     expect(fx3).toEqual([{ type: "text.select", cursor: 10 }])
   })
@@ -335,11 +283,7 @@ describe("drag flows", () => {
     )
 
     // Move past threshold — triggers preselect + manipulation-drag
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 50, y: 50, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 50, y: 50, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("idle") // manipulation drag goes back to idle (app handles)
     expect(effectTypes(fx2)).toEqual(["node.select", "manipulation-drag"])
   })
@@ -359,11 +303,7 @@ describe("drag flows", () => {
       helpers,
     )
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 50, y: 50, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 50, y: 50, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("idle")
     expect(effectTypes(fx2)).toEqual(["manipulation-drag"])
   })
@@ -391,20 +331,12 @@ describe("morphing during drag", () => {
       },
       helpers,
     )
-    const [ptr2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("dragging-area")
 
     // Hit test now returns text
     hitResult = hitText(A, 7)
-    const [ptr3, fx3] = applyPointerEvent(
-      ptr2,
-      { type: "pointerMove", x: 120, y: 120, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr3, fx3] = applyPointerEvent(ptr2, { type: "pointerMove", x: 120, y: 120, modifiers: NO_MODS }, helpers)
     expect(ptr3.phase).toBe("dragging-text")
     expect(effectTypes(fx3)).toContain("text.edit")
   })
@@ -428,20 +360,12 @@ describe("morphing during drag", () => {
       },
       helpers,
     )
-    const [ptr2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 80, y: 10, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 80, y: 10, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("dragging-text")
 
     // Hit test now returns empty (left text region)
     hitResult = hitEmpty()
-    const [ptr3, fx3] = applyPointerEvent(
-      ptr2,
-      { type: "pointerMove", x: 200, y: 200, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr3, fx3] = applyPointerEvent(ptr2, { type: "pointerMove", x: 200, y: 200, modifiers: NO_MODS }, helpers)
     expect(ptr3.phase).toBe("dragging-area")
     expect(effectTypes(fx3)).toContain("sub.clear")
     expect(effectTypes(fx3)).toContain("node.select")
@@ -522,11 +446,7 @@ describe("escape", () => {
       },
       helpers,
     )
-    const [ptr2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 100, y: 100, modifiers: NO_MODS }, helpers)
 
     const [ptr3, fx3] = applyPointerEvent(ptr2, { type: "escape" }, helpers)
     expect(ptr3.phase).toBe("idle")
@@ -548,11 +468,7 @@ describe("escape", () => {
       },
       helpers,
     )
-    const [ptr2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 80, y: 10, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 80, y: 10, modifiers: NO_MODS }, helpers)
 
     const [ptr3, fx3] = applyPointerEvent(ptr2, { type: "escape" }, helpers)
     expect(ptr3.phase).toBe("idle")
@@ -565,33 +481,21 @@ describe("escape", () => {
 describe("doubleClick", () => {
   it("double-click on node => text.edit at offset 0", () => {
     const helpers = makeHelpers()
-    const [ptr, fx] = applyPointerEvent(
-      IDLE,
-      { type: "doubleClick", hit: hitNode(A) },
-      helpers,
-    )
+    const [ptr, fx] = applyPointerEvent(IDLE, { type: "doubleClick", hit: hitNode(A) }, helpers)
     expect(ptr.phase).toBe("idle")
     expect(fx).toEqual([{ type: "text.edit", nodeId: A, offset: 0 }])
   })
 
   it("double-click on text => text.edit at offset", () => {
     const helpers = makeHelpers()
-    const [ptr, fx] = applyPointerEvent(
-      IDLE,
-      { type: "doubleClick", hit: hitText(A, 7) },
-      helpers,
-    )
+    const [ptr, fx] = applyPointerEvent(IDLE, { type: "doubleClick", hit: hitText(A, 7) }, helpers)
     expect(ptr.phase).toBe("idle")
     expect(fx).toEqual([{ type: "text.edit", nodeId: A, offset: 7 }])
   })
 
   it("double-click on empty => no effects", () => {
     const helpers = makeHelpers()
-    const [ptr, fx] = applyPointerEvent(
-      IDLE,
-      { type: "doubleClick", hit: hitEmpty() },
-      helpers,
-    )
+    const [ptr, fx] = applyPointerEvent(IDLE, { type: "doubleClick", hit: hitEmpty() }, helpers)
     expect(ptr.phase).toBe("idle")
     expect(fx).toEqual([])
   })
@@ -614,11 +518,7 @@ describe("below threshold movement", () => {
       helpers,
     )
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("pointing-empty")
     expect(fx2).toEqual([])
   })
@@ -637,11 +537,7 @@ describe("below threshold movement", () => {
       helpers,
     )
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("pointing-text")
     expect(fx2).toEqual([])
   })
@@ -660,11 +556,7 @@ describe("below threshold movement", () => {
       helpers,
     )
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("pointing-node")
     expect(fx2).toEqual([])
   })
@@ -683,11 +575,7 @@ describe("below threshold movement", () => {
       helpers,
     )
 
-    const [ptr2, fx2] = applyPointerEvent(
-      ptr1,
-      { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr2, fx2] = applyPointerEvent(ptr1, { type: "pointerMove", x: 52, y: 52, modifiers: NO_MODS }, helpers)
     expect(ptr2.phase).toBe("pointing-selection")
     expect(fx2).toEqual([])
   })
@@ -698,33 +586,21 @@ describe("below threshold movement", () => {
 describe("no-op events", () => {
   it("pointerUp in idle => no-op", () => {
     const helpers = makeHelpers()
-    const [ptr, fx] = applyPointerEvent(
-      IDLE,
-      { type: "pointerUp", modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr, fx] = applyPointerEvent(IDLE, { type: "pointerUp", modifiers: NO_MODS }, helpers)
     expect(ptr.phase).toBe("idle")
     expect(fx).toEqual([])
   })
 
   it("pointerMove in idle => no-op", () => {
     const helpers = makeHelpers()
-    const [ptr, fx] = applyPointerEvent(
-      IDLE,
-      { type: "pointerMove", x: 50, y: 50, modifiers: NO_MODS },
-      helpers,
-    )
+    const [ptr, fx] = applyPointerEvent(IDLE, { type: "pointerMove", x: 50, y: 50, modifiers: NO_MODS }, helpers)
     expect(ptr.phase).toBe("idle")
     expect(fx).toEqual([])
   })
 
   it("escape in idle => no-op", () => {
     const helpers = makeHelpers()
-    const [ptr, fx] = applyPointerEvent(
-      IDLE,
-      { type: "escape" },
-      helpers,
-    )
+    const [ptr, fx] = applyPointerEvent(IDLE, { type: "escape" }, helpers)
     expect(ptr.phase).toBe("idle")
     expect(fx).toEqual([])
   })
