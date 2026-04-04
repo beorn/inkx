@@ -22,7 +22,7 @@ import {
 
 export type {
   BoardState,
-  BoardAction,
+  BoardReducerOp,
   MoveState,
   NavHistoryEntry,
   ViewMode,
@@ -49,19 +49,8 @@ export type PaneViewType = "board" | "detail" | "empty"
 export interface PerPaneUIFields {
   viewMode: ViewMode
   maxContentLines: number
-  multiSelected: Set<string>
-  selectionAnchor: { nodeId: string } | null
-  selectAllLevel: number
-  visualMode: boolean
-  visualAnchor: string | null
   collapsedColumns: Set<number>
   columnScrollAnchor: { colIdx: number; anchor: number } | null
-  inlineEditBlock: {
-    nodeId: string
-    blockIndex: number
-    initialCursorPos?: "start" | "end" | number
-    stickyX?: number
-  } | null
   localSearch: LocalSearchState | null
   searchReplace: SearchReplaceState | null
   showFilterDialog: boolean
@@ -79,14 +68,8 @@ export interface PerPaneUIFields {
 export const PANE_UI_FIELD_NAMES: ReadonlySet<string> = new Set([
   "viewMode",
   "maxContentLines",
-  "multiSelected",
-  "selectionAnchor",
-  "selectAllLevel",
-  "visualMode",
-  "visualAnchor",
   "collapsedColumns",
   "columnScrollAnchor",
-  "inlineEditBlock",
   "localSearch",
   "searchReplace",
   "showFilterDialog",
@@ -106,14 +89,8 @@ export function mergePaneUI(ui: UIState, pane: BoardPaneState): PaneUI {
     ...ui,
     viewMode: pane.viewMode,
     maxContentLines: pane.maxContentLines,
-    multiSelected: pane.multiSelected,
-    selectionAnchor: pane.selectionAnchor,
-    selectAllLevel: pane.selectAllLevel,
-    visualMode: pane.visualMode,
-    visualAnchor: pane.visualAnchor,
     collapsedColumns: pane.collapsedColumns,
     columnScrollAnchor: pane.columnScrollAnchor,
-    inlineEditBlock: pane.inlineEditBlock,
     localSearch: pane.localSearch,
     searchReplace: pane.searchReplace,
     showFilterDialog: pane.showFilterDialog,
@@ -160,24 +137,9 @@ export interface BoardPaneState extends PaneStateBase {
   viewMode: ViewMode
   maxContentLines: number
 
-  // Per-pane selection
-  multiSelected: Set<string>
-  selectionAnchor: { nodeId: string } | null
-  selectAllLevel: number
-  visualMode: boolean
-  visualAnchor: string | null
-
   // Per-pane column state
   collapsedColumns: Set<number>
   columnScrollAnchor: { colIdx: number; anchor: number } | null
-
-  // Per-pane edit state
-  inlineEditBlock: {
-    nodeId: string
-    blockIndex: number
-    initialCursorPos?: "start" | "end" | number
-    stickyX?: number
-  } | null
 
   // Per-pane search
   localSearch: LocalSearchState | null
@@ -327,14 +289,8 @@ export function createPaneState(
     cursorStore: opts.cursorStore,
     // Per-pane UI fields (defaults)
     maxContentLines: 3,
-    multiSelected: new Set(),
-    selectionAnchor: null,
-    selectAllLevel: 0,
-    visualMode: false,
-    visualAnchor: null,
     collapsedColumns: new Set(),
     columnScrollAnchor: null,
-    inlineEditBlock: null,
     localSearch: null,
     searchReplace: null,
     showFilterDialog: false,
