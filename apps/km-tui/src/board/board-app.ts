@@ -329,7 +329,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     return {
       repo: s.repo,
       sel: s.sel,
-      selectedIds: Object.assign(s.sel.node.ids(), { get size() { return this.length } }),
+      selectedIds: (() => { const ids = s.sel.node.ids(); return Object.assign(ids, { size: ids.length }); })(),
       textEditHints: s.textEditHints,
       rootId,
       rootPath: board?.rootPath ?? null,

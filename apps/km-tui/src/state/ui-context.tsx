@@ -232,6 +232,7 @@ export interface TreeRenderCtx {
   sigilColors: Map<string, string>
   resolveSigilColor: (sigil: string) => string | undefined
   setUI: BoardAppStore["setUI"]
+  sel: import("@silvery/selection").SelectionStore
   rootBoardId: string | null
   /** Node IDs matching the current local search query (empty set when no search) */
   searchMatchNodeIds: ReadonlySet<string>
@@ -312,6 +313,7 @@ const EMPTY_SET: ReadonlySet<string> = new Set()
 export function TreeRenderProvider({
   treeConfig,
   setUI,
+  sel,
   rootBoardId,
   searchMatchNodeIds,
   currentMatchNodeId,
@@ -324,6 +326,7 @@ export function TreeRenderProvider({
 }: {
   treeConfig: TreeConfig
   setUI: BoardAppStore["setUI"]
+  sel: import("@silvery/selection").SelectionStore
   rootBoardId: string | null
   searchMatchNodeIds?: ReadonlySet<string>
   currentMatchNodeId?: string | null
@@ -347,6 +350,7 @@ export function TreeRenderProvider({
       sigilColors: STATIC_SIGIL_COLORS,
       resolveSigilColor,
       setUI,
+      sel,
       rootBoardId,
       searchMatchNodeIds: matchIds,
       currentMatchNodeId: matchNode,
@@ -360,6 +364,7 @@ export function TreeRenderProvider({
       treeConfig,
       resolveSigilColor,
       setUI,
+      sel,
       rootBoardId,
       matchIds,
       matchNode,

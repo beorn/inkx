@@ -26,7 +26,7 @@ import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { composeRawEditContent } from "./tree-node-edit.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { usePaneId } from "../pane-context.tsx"
-import { useUISelector, useSetUI, deriveColumnExcludedSigils, useTreeRenderContext } from "../state/ui-context.tsx"
+import { useUISelector, useSetUI, useSel, deriveColumnExcludedSigils, useTreeRenderContext } from "../state/ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore, useReactive } from "../state/reactive.ts"
@@ -213,8 +213,7 @@ const Card = React.memo(
     // Also matches when a sub-item of this card is being edited (derived expandedEditCardId).
     const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
-      const edit = Workspace.getActiveBoardPane(s)?.inlineEditBlock
-      return edit?.nodeId === nodeId
+      return s.sel.text()?.nodeId === nodeId
     })
     const isEditing = isDirectlyEditing || expandedEditCardId === nodeId
 
@@ -607,6 +606,7 @@ export const Column = React.memo(function Column({
   const repo = useRepo()
   const repoUpdate = useRepoEffect(repo)
   const setUI = useSetUI()
+  const sel = useSel()
   const {
     treeConfig: { iconStyle, borderMode: _borderMode, maxContentLines: _maxContentLines },
   } = useTreeRenderContext()
@@ -627,7 +627,7 @@ export const Column = React.memo(function Column({
 
   // Check if this column header is being inline-edited
   const isInlineEditing = useAppStore<BoardAppStore, boolean>(
-    (s) => Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId === nodeId,
+    (s) => s.sel.text()?.nodeId === nodeId,
   )
 
   // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
@@ -665,7 +665,7 @@ export const Column = React.memo(function Column({
 
       // No-op: value didn't change
       if (newValue === (oldContent || oldName)) {
-        setUI({ inlineEditBlock: null })
+        sel.text.deselect()
         return
       }
 
@@ -692,13 +692,13 @@ export const Column = React.memo(function Column({
         repoUpdate(nodeId, { content: newValue })
       }
 
-      setUI({ inlineEditBlock: null })
+      sel.text.deselect()
     },
     [nodeId, repo, setUI, jobRunner, undoHandle],
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    setUI({ inlineEditBlock: null })
+    sel.text.deselect()
   }, [setUI])
 
   const isColumnSelected = isSelected && selectionLevel === "column"

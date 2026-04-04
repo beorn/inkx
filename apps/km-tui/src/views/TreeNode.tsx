@@ -202,6 +202,7 @@ function TreeNodeImpl({
     sigilColors,
     resolveSigilColor,
     setUI,
+    sel,
     rootBoardId,
     searchMatchNodeIds,
     currentMatchNodeId,
@@ -503,7 +504,7 @@ function TreeNodeImpl({
   // Uses per-node reactive signals where possible to avoid O(N) global re-renders.
   const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
   const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) =>
-    s.workspace ? Workspace.getActiveBoardPane(s)?.inlineEditBlock?.nodeId : undefined,
+    s.workspace ? (s.sel.text()?.nodeId as string | undefined) : undefined,
   )
   // Cursor expansion: when cursor is inside this node's subtree, bypass maxContentLines
   // so all siblings of the cursor target are visible.
@@ -643,6 +644,7 @@ function TreeNodeImpl({
                   nodeIsTask={nodeIsTask}
                   repo={repo}
                   setUI={setUI}
+                  sel={sel}
                   jobRunner={jobRunner}
                   undoHandle={undoHandle}
                 />
@@ -745,6 +747,7 @@ function TreeNodeImpl({
           depth={depth}
           repo={repo}
           setUI={setUI}
+          sel={sel}
           undoHandle={undoHandle}
         />
       )}

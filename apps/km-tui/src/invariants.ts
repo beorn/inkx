@@ -174,12 +174,12 @@ export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
 
   // 8. Inline edit node should be resolvable in columns (if editing)
   // Skip when edit node IS the root — board-level editing is an edge case from fuzz testing.
-  if (editBlock && ctx.columns.length > 0 && editBlock.nodeId !== ctx.rootId) {
-    const editInIndex = ctx.nodeIndex.has(editBlock.nodeId)
+  if (editText && ctx.columns.length > 0 && editText.nodeId !== ctx.rootId) {
+    const editInIndex = ctx.nodeIndex.has(editText.nodeId)
     // Walk parents if not directly in index
     let foundInColumns = editInIndex
     if (!foundInColumns) {
-      let current = ctx.repo.getNode(editBlock.nodeId)
+      let current = ctx.repo.getNode(editText.nodeId)
       while (current?.parent_id) {
         if (ctx.nodeIndex.has(current.parent_id)) {
           foundInColumns = true
@@ -192,7 +192,7 @@ export function checkInvariants(ctx: ActionCtx): InvariantViolation[] {
       violations.push({
         check: "edit-node-in-columns",
         message: `Inline edit node is not resolvable in any column`,
-        ids: { editNodeId: editBlock.nodeId, rootId: ctx.rootId },
+        ids: { editNodeId: editText.nodeId, rootId: ctx.rootId },
       })
     }
   }

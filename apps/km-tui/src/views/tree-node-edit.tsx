@@ -55,6 +55,7 @@ interface TitleEditorProps {
   nodeIsTask: boolean
   repo: Repo
   setUI: BoardAppStore["setUI"]
+  sel: import("@silvery/selection").SelectionStore
   jobRunner: JobRunner
   undoHandle: UndoableRepoHandle
 }
@@ -69,6 +70,7 @@ export function TitleEditor({
   nodeIsTask,
   repo,
   setUI,
+  sel,
   jobRunner,
   undoHandle,
 }: TitleEditorProps): React.ReactElement {
@@ -120,7 +122,7 @@ export function TitleEditor({
 
       // No-op: value didn't change and no metadata to update
       if (newContent === originalContent && !hasMetaUpdates) {
-        setUI({ inlineEditBlock: null })
+        sel.text.deselect()
         return
       }
 
@@ -164,13 +166,13 @@ export function TitleEditor({
         repo.updateNode(displayNode.id, { type: "p" })
       }
 
-      setUI({ inlineEditBlock: null })
+      sel.text.deselect()
     },
     [displayNode.id, displayNode.content, repo, setUI, jobRunner, undoHandle],
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    setUI({ inlineEditBlock: null })
+    sel.text.deselect()
   }, [setUI])
 
   // Split at boundary: Enter in title creates a new sibling node
@@ -182,7 +184,7 @@ export function TitleEditor({
         const result = split(repo, displayNode.id, offset)
         undoHandle.endBatch()
         // Focus the new node (text after cursor) in edit mode
-        setUI({ inlineEditBlock: { nodeId: result.afterId, blockIndex: 0 } })
+        sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
       } catch {
         undoHandle.endBatch()
         // Split failed (e.g., root node) — visual bell
@@ -201,7 +203,7 @@ export function TitleEditor({
       undoHandle.endBatch()
       if (result) {
         // Focus the survivor with cursor at the merge point
-        setUI({ inlineEditBlock: { nodeId: result.survivorId, blockIndex: 0, initialCursorPos: result.cursorOffset } })
+        sel.text.edit(result.survivorId as import("@silvery/selection").ID, typeof result.cursorOffset === "number" ? result.cursorOffset : 0)
       }
     } catch {
       undoHandle.endBatch()
@@ -236,6 +238,7 @@ interface BodyBlockEditorProps {
   depth: number
   repo: Repo
   setUI: BoardAppStore["setUI"]
+  sel: import("@silvery/selection").SelectionStore
   undoHandle: UndoableRepoHandle
 }
 
@@ -251,6 +254,7 @@ export function BodyBlockEditor({
   depth,
   repo,
   setUI,
+  sel,
   undoHandle,
 }: BodyBlockEditorProps): React.ReactElement | null {
   const repoUpdate = useRepoEffect(repo)
@@ -272,7 +276,7 @@ export function BodyBlockEditor({
   )
 
   const handleInlineEditCancel = useCallback(() => {
-    setUI({ inlineEditBlock: null })
+    sel.text.deselect()
   }, [setUI])
 
   // Cap visible body children to prevent cards with hundreds of items from
@@ -308,7 +312,7 @@ export function BodyBlockEditor({
                 initialValue={child.content ?? ""}
                 onConfirm={(v) => {
                   handleBlockSave(child.id, v)
-                  setUI({ inlineEditBlock: null })
+                  sel.text.deselect()
                 }}
                 onCancel={handleInlineEditCancel}
                 onSave={(v) => handleBlockSave(child.id, v)}
@@ -320,12 +324,7 @@ export function BodyBlockEditor({
                     undoHandle.startBatch("Split block")
                     const result = split(repo, child.id, offset)
                     undoHandle.endBatch()
-                    setUI({
-                      inlineEditBlock: {
-                        nodeId: result.afterId,
-                        blockIndex: 0,
-                      },
-                    })
+                    sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
                   } catch {
                     undoHandle.endBatch()
                     setUI({ bellState: "split-failed" })
@@ -338,13 +337,7 @@ export function BodyBlockEditor({
                     const result = mergeBackward(repo, child.id)
                     undoHandle.endBatch()
                     if (result) {
-                      setUI({
-                        inlineEditBlock: {
-                          nodeId: result.survivorId,
-                          blockIndex: 0,
-                          initialCursorPos: result.cursorOffset,
-                        },
-                      })
+                      sel.text.edit(result.survivorId as import("@silvery/selection").ID, typeof result.cursorOffset === "number" ? result.cursorOffset : 0)
                     }
                   } catch {
                     undoHandle.endBatch()
