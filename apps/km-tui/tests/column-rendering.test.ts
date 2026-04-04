@@ -1129,11 +1129,11 @@ describe("km-tui.title-as-card: column title interaction", () => {
     // Press Enter to start inline edit
     board.press("Enter")
 
-    // Inline edit should be active on the column node
+    // Inline edit should be active on the column node (via sel.text)
     const state = store.getState()
-    const pane = state.workspace.panes.values().next().value as { inlineEditBlock?: { nodeId: string } | null }
-    expect(pane?.inlineEditBlock).not.toBeNull()
-    expect(pane?.inlineEditBlock?.nodeId).toBe("col1")
+    const textSel = state.sel.text()
+    expect(textSel).not.toBeNull()
+    expect(textSel?.nodeId).toBe("col1")
   })
 
   test("click on column header selects the column", () => {
@@ -1184,10 +1184,10 @@ describe("km-tui.title-as-card: column title interaction", () => {
     // Double-click on column header
     board.doubleClick(colTextX, headerY)
 
-    // Inline edit should be active on the column node
+    // Inline edit should be active on the column node (via sel.text)
     const state = store.getState()
-    const pane = state.workspace.panes.values().next().value as { inlineEditBlock?: { nodeId: string } | null }
-    expect(pane?.inlineEditBlock).not.toBeNull()
-    expect(pane?.inlineEditBlock?.nodeId).toBe("col1")
+    const textSel = state.sel.text()
+    expect(textSel).not.toBeNull()
+    expect(textSel?.nodeId).toBe("col1")
   })
 })

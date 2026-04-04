@@ -47,6 +47,7 @@ import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { createSelection, type SelectionStore } from "@silvery/selection"
+import { effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
@@ -496,6 +497,31 @@ export function createBoardAppStoreState(
     // The source is updated by buildActionCtx after each layout derivation.
     const { app: selApp, source: selTreeSource } = createSelectionAdapter()
     const sel = createSelection(selApp)
+
+    // Bridge: alien-signals → Zustand. Selection state lives in alien-signals
+    // (inside createSelection), but React components read it via Zustand selectors
+    // like useAppStore(s => s.sel.text()?.nodeId). When alien-signals updates,
+    // Zustand doesn't know — the sel reference is the same object. This effect
+    // tracks all selection computed signals and forces a Zustand notification
+    // so useAppStore selectors re-evaluate.
+    let _selVersion = 0
+    effect(() => {
+      // Read all sel signals to establish alien-signals tracking
+      sel.node.cursor()
+      sel.node.ids()
+      sel.text()
+      sel.kind()
+      sel.root.id()
+      sel.drag()
+      sel.subComputed()
+      // Force Zustand notification by bumping a version counter.
+      // set({}) would be a no-op (same refs), so we use a changing value.
+      _selVersion++
+      if (_selVersion > 1) {
+        // Skip the initial effect run (during store creation) — only notify on changes
+        set({ _selVersion } as Partial<BoardAppStore>)
+      }
+    })
 
     return {
       // Workspace (canonical source of board navigation state)

@@ -85,6 +85,7 @@ import { StoreContext } from "@silvery/create/create-app"
 import { CursorStoreProvider } from "../src/cursor-context.tsx"
 import { createCursorStore } from "../src/state/cursor-store.ts"
 import { createStore } from "zustand/vanilla"
+import { createSelection } from "@silvery/selection"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/state/reactive.ts"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/state/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
@@ -133,6 +134,9 @@ function getBoardPillsFromStore(): [] {
 const mockUIState = createInitialPaneUI("cards", [], { columns: 120, rows: 40 })
 
 // Mock Zustand store satisfying TreeNode's useAppStore/useAppShallow requirements
+const mockSel = createSelection({
+  tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+})
 const mockZustandStore = createStore(() => ({
   ui: {
     ...mockUIState,
@@ -142,6 +146,8 @@ const mockZustandStore = createStore(() => ({
   foldDepths: new Map<string, number>(),
   jobRunner: { submit: () => ({ cancel() {} }) },
   setUI: () => {},
+  sel: mockSel,
+  textEditHints: null,
 }))
 
 const defaultCursorStore = createCursorStore({

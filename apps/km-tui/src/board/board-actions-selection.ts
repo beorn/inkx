@@ -7,7 +7,7 @@
 
 import { Tree } from "@km/tree"
 import { handleTreeNavigation, type TreeDirection } from "../handlers/navigation-handlers.ts"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import { createSelectionEngine } from "../state/selection-engine.ts"
 import type { ID } from "@silvery/selection"
 
@@ -17,7 +17,7 @@ import type { ID } from "@silvery/selection"
  * Level-aware: when cursor is on a sub-item (outline mode), selects among
  * siblings at the same depth. When at card level, selects between cards.
  */
-export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "down"): void {
+export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down"): void {
   const { dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card
@@ -45,6 +45,12 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
     return
   }
 
+  // Ensure anchor is established on current card before extending.
+  // Without this, extend() has no anchor to range from.
+  if (ctx.sel.node.ids().length === 0) {
+    ctx.sel.node.select([card.id as ID])
+  }
+
   const treeDir: TreeDirection = direction === "up" ? "prev" : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId) {
@@ -59,7 +65,7 @@ export function handleExtendSelectVertical(ctx: ActionCtx, direction: "up" | "do
  * Extend selection among siblings at the same depth (outline mode).
  * Uses Tree.siblings to navigate within the same parent.
  */
-function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): void {
+function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
   const { dispatchBoard, repo } = ctx
   const cursorId = ctx.cursorNodeId!
 
@@ -82,6 +88,11 @@ function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): vo
     return
   }
 
+  // Ensure anchor is established on current node before extending.
+  if (ctx.sel.node.ids().length === 0) {
+    ctx.sel.node.select([cursorId as ID])
+  }
+
   const targetId = siblings[targetIdx]!.id
   dispatchBoard({ type: "SELECT", nodeId: targetId })
   ctx.sel.node.extend(targetId as ID)
@@ -96,7 +107,7 @@ function handleExtendSelectOutline(ctx: ActionCtx, direction: "up" | "down"): vo
  * Extend selection horizontally (left or right).
  * Selects entire columns between anchor and focus.
  */
-export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" | "right"): void {
+export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "right"): void {
   const { dispatchBoard } = ctx
   const columns = ctx.columns
 
@@ -135,7 +146,7 @@ export function handleExtendSelectHorizontal(ctx: ActionCtx, direction: "left" |
 }
 
 /** Resolve the anchor's column index from sel.node.anchor via layout.nodeIndex. */
-function resolveAnchorCol(ctx: ActionCtx): number | null {
+function resolveAnchorCol(ctx: OpCtx): number | null {
   const anchorId = ctx.sel.node.anchor()
   if (!anchorId) return null
   const pos = ctx.nodeIndex?.get(anchorId)
@@ -143,7 +154,7 @@ function resolveAnchorCol(ctx: ActionCtx): number | null {
 }
 
 /** Select all cards in all columns between fromCol and toCol (inclusive). */
-function selectColumnRange(ctx: ActionCtx, fromCol: number, toCol: number): Set<string> {
+function selectColumnRange(ctx: OpCtx, fromCol: number, toCol: number): Set<string> {
   const selected = new Set<string>()
   const minCol = Math.min(fromCol, toCol)
   const maxCol = Math.max(fromCol, toCol)

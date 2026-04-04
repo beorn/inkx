@@ -8,21 +8,50 @@ import { describe, it, expect } from "vitest"
 import React from "react"
 import { createRenderer } from "@silvery/test"
 import { createFocusManager, FocusManagerContext } from "@silvery/ag-react"
+import { StoreContext } from "@silvery/create/create-app"
+import { createStore, type StoreApi } from "zustand/vanilla"
+import { createSelection } from "@silvery/selection"
 import { KeyBar } from "../../src/views/key-bar.tsx"
 import type { PaneUI } from "../../src/state/ui-reducer.ts"
 
-const render = createRenderer()
+const baseRender = createRenderer()
 
-/** Render KeyBar with a FocusManager that has the given scope active */
+/** Create a minimal Zustand store with `sel` for components that call useSel(). */
+function createMinimalStore() {
+  const sel = createSelection({
+    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+  })
+  return createStore(() => ({ sel }))
+}
+
+/** Render with StoreContext + FocusManagerContext */
+function render(element: React.ReactElement) {
+  const fm = createFocusManager()
+  const store = createMinimalStore()
+  return baseRender(
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(FocusManagerContext.Provider, { value: fm }, element),
+    ),
+  )
+}
+
+/** Render KeyBar with a FocusManager and StoreContext that has the given scope active */
 function renderWithFocus(ui: PaneUI, termWidth: number, scopeId?: string) {
   const fm = createFocusManager()
+  const store = createMinimalStore()
   // Activate scope BEFORE render so the component sees activeScopeId during initial render
   if (scopeId) {
     const scopeNode = { props: { testID: scopeId, focusScope: true }, children: [], parent: null } as any
     fm.activateScope(scopeId, scopeNode)
   }
-  return render(
-    React.createElement(FocusManagerContext.Provider, { value: fm }, React.createElement(KeyBar, { ui, termWidth })),
+  return baseRender(
+    React.createElement(
+      StoreContext.Provider,
+      { value: store as StoreApi<unknown> },
+      React.createElement(FocusManagerContext.Provider, { value: fm }, React.createElement(KeyBar, { ui, termWidth })),
+    ),
   )
 }
 

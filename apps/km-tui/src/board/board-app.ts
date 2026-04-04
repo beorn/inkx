@@ -25,7 +25,7 @@ import { handleKmOp } from "./board-actions.ts"
 import { clickToCursorOffset } from "./click-to-cursor.ts"
 import { needsRenderFlush } from "./board-actions-edit.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
-import type { ActionCtx } from "../tui-context.ts"
+import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_ACTION_CTX_KEYS } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { readBoardHidden, isHidden } from "../hidden.ts"
@@ -149,15 +149,15 @@ const DOUBLE_CLICK_MS = 400
 const DOUBLE_CLICK_DISTANCE = 2
 
 /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
-function resolveMouseToColumn(actionCtx: ActionCtx, mouseX: number): number {
-  const { navigator } = actionCtx
+function resolveMouseToColumn(opctx: OpCtx, mouseX: number): number {
+  const { navigator } = opctx
 
   // Primary: use registered column bounds (covers all columns including empty ones)
   const colIdx = navigator.findColumnAtX(mouseX)
   if (colIdx >= 0) return colIdx
 
   // Fallback: check card positions (for columns whose bounds haven't been registered yet)
-  const { columns } = actionCtx
+  const { columns } = opctx
   for (let ci = 0; ci < columns.length; ci++) {
     const itemCount = navigator.getItemCount(ci)
     if (itemCount === 0) continue
@@ -184,7 +184,7 @@ export interface BoardAppHandlers {
     exitApp: () => void,
   ) => void | "exit" | "flush"
   handleMouse: (mouse: ParsedMouse, ctx: EventHandlerContext<BoardAppStore>) => void
-  buildActionCtx: (get: () => BoardAppStore, exit: () => void) => ActionCtx
+  buildOpCtx: (get: () => BoardAppStore, exit: () => void) => OpCtx
   dispatchCommandById: (commandId: string, get: () => BoardAppStore, exitApp?: () => void, targetId?: string) => void
   triggerChordTimeout: (get: () => BoardAppStore, exitApp?: () => void) => void
 }
@@ -223,7 +223,11 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
    * Calls buildViewTree + viewNodeToColumnViews (via deriveColumnsFromRepo)
    * and caches columns/nodeIndex between calls when state is unchanged.
    */
-  function buildActionCtx(get: () => BoardAppStore, exit: () => void): ActionCtx {
+  function buildActionCtx(
+    get: () => BoardAppStore,
+    exit: () => void,
+    set?: (partial: Partial<BoardAppStore>) => void,
+  ): OpCtx {
     const s = get()
     const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
@@ -326,14 +330,25 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Merge per-pane UI fields into effective UI state for action handlers
     const effectiveUI: PaneUI = board ? mergePaneUI(s.ui, board) : (s.ui as PaneUI)
 
-    return {
+    // textEditHints is mutated directly by action handlers (ctx.textEditHints = {...}).
+    // Use a local variable + setter that writes through to the Zustand store so
+    // React components and subsequent buildActionCtx() calls see the update.
+    let _textEditHints = s.textEditHints
+
+    const ctx: OpCtx = {
       repo: s.repo,
       sel: s.sel,
       selectedIds: (() => {
         const ids = s.sel.node.ids()
         return Object.assign(ids, { size: ids.length })
       })(),
-      textEditHints: s.textEditHints,
+      get textEditHints() {
+        return _textEditHints
+      },
+      set textEditHints(v) {
+        _textEditHints = v
+        if (set) set({ textEditHints: v } as Partial<BoardAppStore>)
+      },
       rootId,
       rootPath: board?.rootPath ?? null,
       cursorNodeId,
@@ -398,6 +413,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       },
       hasDetailPane: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
     }
+    return ctx
   }
 
   const CHORD_TIMEOUT_MS = 1500
@@ -499,7 +515,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
     }
 
-    routeThroughCommandSystem(keySpan, input, key, get, exitApp)
+    routeThroughCommandSystem(keySpan, input, key, get, exitApp, ctx.set)
     if (needsRenderFlush()) return "flush"
   }
 
@@ -611,7 +627,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
    */
   function handleChordInput(
     result: ReturnType<typeof processKeyWithContext>,
-    ctx: ActionCtx,
+    ctx: OpCtx,
     get: () => BoardAppStore,
     exitApp: () => void,
     parentSpan: SpanLogger,
@@ -670,8 +686,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     key: Key,
     get: () => BoardAppStore,
     exitApp: () => void,
+    set?: (partial: Partial<BoardAppStore>) => void,
   ): void {
-    const ctx = buildActionCtx(get, exitApp)
+    const ctx = buildActionCtx(get, exitApp, set)
 
     // Phase 1: Dispatch — resolve keybinding to command
     let result: ReturnType<typeof processKeyWithContext>
@@ -838,30 +855,30 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     if (mouse.action === "wheel") {
       // Scroll wheel → scroll the column or detail pane under the mouse pointer
-      const actionCtx = buildActionCtx(get, () => {})
-      const colIdx = resolveMouseToColumn(actionCtx, mouse.x)
+      const opctx = buildActionCtx(get, () => {}, ctx.set)
+      const colIdx = resolveMouseToColumn(opctx, mouse.x)
 
       if (colIdx < 0) {
         // Not over a column — detail pane scrolling is handled by ListView internally
         return
       }
 
-      const col = actionCtx.columns[colIdx]
+      const col = opctx.columns[colIdx]
       if (!col || col.cardNodes.length === 0) return
 
-      const currentAnchor = actionCtx.ui.columnScrollAnchor
+      const currentAnchor = opctx.ui.columnScrollAnchor
       // If anchor exists for this column, continue from it; otherwise start from middle
       const baseIndex = currentAnchor?.colIdx === colIdx ? currentAnchor.anchor : Math.floor(col.cardNodes.length / 2)
       const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
       const maxIndex = col.cardNodes.length - 1
       const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
 
-      actionCtx.setUI({ columnScrollAnchor: { colIdx, anchor: newAnchor } })
+      opctx.setUI({ columnScrollAnchor: { colIdx, anchor: newAnchor } })
       return
     }
 
     if (mouse.action === "down" && mouse.button === 0) {
-      const actionCtx = buildActionCtx(get, () => {})
+      const opctx = buildActionCtx(get, () => {}, ctx.set)
 
       // DOM-style hit testing via silvery render tree
       const hitNode = ctx.hitTest(mouse.x, mouse.y)
@@ -908,22 +925,22 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         now - locals.lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
 
       // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
-      if (!mouse.ctrl && actionCtx.selectedIds.size > 0) {
-        clearSelection(actionCtx)
+      if (!mouse.ctrl && opctx.selectedIds.size > 0) {
+        clearSelection(opctx)
       }
 
       // When in inline edit mode, handle clicks differently:
       // - Inside same card → save + re-enter edit on clicked node
       // - Outside card → exit edit mode, proceed with normal click
-      const edit = actionCtx.sel.text()
+      const edit = opctx.sel.text()
       if (edit && selectId && !isColumnNode) {
-        const editCardId = actionCtx.card?.id
+        const editCardId = opctx.card?.id
         // Check if clicked node is inside the same card
         let inSameCard = selectId === editCardId
         if (!inSameCard && editCardId) {
           let walkId: string | null = selectId
           while (walkId && walkId !== editCardId) {
-            const n = actionCtx.repo.getNode(walkId)
+            const n = opctx.repo.getNode(walkId)
             walkId = n?.parent_id ?? null
           }
           inSameCard = walkId === editCardId
@@ -940,21 +957,21 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           } else if (nodeId) {
             // Different node in same card → save + re-enter edit on clicked node
             activeEditTargetRef.current?.save()
-            actionCtx.dispatchBoard({ type: "SELECT", nodeId })
-            actionCtx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
-            actionCtx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
+            opctx.dispatchBoard({ type: "SELECT", nodeId })
+            opctx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
+            opctx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
           }
           locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
           return
         }
         // Different card → exit edit mode, fall through to normal click
         activeEditTargetRef.current?.save()
-        actionCtx.sel.text.deselect()
+        opctx.sel.text.deselect()
       }
 
       if (!selectId) {
         // Empty space click → deselect all, cursor to board root
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId: actionCtx.rootId })
+        opctx.dispatchBoard({ type: "SELECT", nodeId: opctx.rootId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }
@@ -963,15 +980,15 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // double-clicking a column header enters inline edit (title-as-card behavior).
       if (isDoubleClick) {
         // Double-click → select and enter inline edit on the clicked node
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        handleKmOp(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
+        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        handleKmOp(opctx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
         return
       }
 
       if (isColumnNode) {
         // Column header single click → select the column (not board root)
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }
@@ -986,19 +1003,19 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
       if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        actionCtx.sel.node.select([selectId as import("@silvery/selection").ID], true)
+        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        opctx.sel.node.select([selectId as import("@silvery/selection").ID], true)
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       } else {
         // Single click → select the card (not sub-block)
-        actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       }
       return
     }
   }
 
-  return { handleKey, handleMouse, buildActionCtx, dispatchCommandById, triggerChordTimeout }
+  return { handleKey, handleMouse, buildOpCtx: buildActionCtx, dispatchCommandById, triggerChordTimeout }
 } // end createBoardAppHandlers
 
 // =============================================================================

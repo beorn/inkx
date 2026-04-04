@@ -12,6 +12,14 @@ import { createEmptyState } from "../src/state.ts"
 import { checkInvariants, InvariantViolationError } from "../src/invariants.ts"
 import { type BoardApp, board } from "./helpers/board-app.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createSelection } from "@silvery/selection"
+
+/** Create a mock SelectionStore for test contexts that don't use createApp. */
+function createMockSel() {
+  return createSelection({
+    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+  })
+}
 
 // =============================================================================
 // Empty State
@@ -143,8 +151,11 @@ describe("Runtime invariants", () => {
       nodes: item("board", item("col1", item("1a"), item("1b"))),
     })
 
+    const sel = createMockSel()
     const ctx = {
       repo,
+      sel,
+      selectedIds: sel.node.ids(),
       rootId: "board",
       cursorNodeId: "nonexistent-node", // <-- this doesn't exist
       ui: { inlineEditBlock: null, multiSelected: new Set<string>() },
@@ -168,12 +179,16 @@ describe("Runtime invariants", () => {
       nodes: item("board", item("col1", item("1a"))),
     })
 
+    const sel = createMockSel()
+    // Put sel into text editing mode targeting a deleted node
+    sel.text.edit("deleted-node" as any, 0)
     const ctx = {
       repo,
+      sel,
+      selectedIds: sel.node.ids(),
       rootId: "board",
       cursorNodeId: "1a",
       ui: {
-        inlineEditBlock: { nodeId: "deleted-node", blockIndex: 0 },
         multiSelected: new Set<string>(),
       },
       columns: [],
@@ -193,11 +208,14 @@ describe("Runtime invariants", () => {
       nodes: item("board", item("col1", item("1a"), item("1b"))),
     })
 
+    const sel = createMockSel()
     const ctx = {
       repo,
+      sel,
+      selectedIds: sel.node.ids(),
       rootId: "board",
       cursorNodeId: "1a",
-      ui: { inlineEditBlock: null, multiSelected: new Set<string>() },
+      ui: { multiSelected: new Set<string>() },
       columns: [],
       colIndex: -1,
       cardIndex: -1,

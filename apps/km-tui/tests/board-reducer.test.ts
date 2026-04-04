@@ -910,15 +910,21 @@ describe("Board.apply — combined dispatcher", () => {
 
 import { runBoardEffects } from "../src/board/board-effect-runner.ts"
 import type { ApplyResult, BoardEffect } from "../src/board/board-reducer.ts"
+import { createSelection } from "@silvery/selection"
 
 /** Minimal mock ActionCtx for testing effect runner. Tracks all calls. */
 function mockCtx() {
   const calls: { method: string; args: unknown[] }[] = []
+  const sel = createSelection({
+    tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
+  })
   return {
     calls,
     dispatchBoard: (...args: unknown[]) => calls.push({ method: "dispatchBoard", args }),
     setUI: (...args: unknown[]) => calls.push({ method: "setUI", args }),
     setFoldDepths: (...args: unknown[]) => calls.push({ method: "setFoldDepths", args }),
+    sel,
+    textEditHints: null as import("../src/tui-context.ts").TextEditHints | null,
     repo: {
       getNode: () => null,
       moveNode: (...args: unknown[]) => calls.push({ method: "repo.moveNode", args }),
@@ -989,10 +995,10 @@ describe("runBoardEffects — centralized effect interpreter", () => {
       method: "dispatchBoard",
       args: [{ type: "SELECT", nodeId: "new-node-id" }],
     })
-    expect(ctx.calls).toContainEqual({
-      method: "setUI",
-      args: [{ inlineEditBlock: { nodeId: "new-node-id", blockIndex: 0 } }],
-    })
+    // Selection migration: edit mode is now via sel.text.edit() + textEditHints
+    expect(ctx.sel.text()).not.toBeNull()
+    expect(ctx.sel.text()?.nodeId).toBe("new-node-id")
+    expect(ctx.textEditHints).toEqual({ blockIndex: 0 })
   })
 
   it("REPO_DELETE_NODE calls repo.deleteNode", () => {
