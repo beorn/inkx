@@ -24,10 +24,10 @@ export interface NavigateRepo {
   getChildren(id: string | null): KNode[]
 }
 
-export type NavigateAction = "SELECT" | "ZOOM_IN" | "DETAIL_VIEW"
+export type NavigateOp = "SELECT" | "ZOOM_IN" | "DETAIL_VIEW"
 
 export interface NavigateResult {
-  action: NavigateAction
+  action: NavigateOp
   /** Node ID to zoom into (only set when action is ZOOM_IN) */
   zoomTarget?: string
   /** Node ID to place cursor on */

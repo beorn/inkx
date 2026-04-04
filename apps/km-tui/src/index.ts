@@ -36,7 +36,7 @@ export {
   navigateToNode,
   resolveZoomTarget,
   type NavigateResult,
-  type NavigateAction,
+  type NavigateOp,
   type NavigateRepo,
 } from "./navigation/navigate-to-node.ts"
 
