@@ -28,6 +28,8 @@ Correctness > maintainability > simplicity > performance. Write the minimal corr
 
 **Ask first**: destructive operations (deleting files, dropping data); architectural changes touching 3+ packages; anything that changes public API surface; closing someone else's bead; posting issues/PRs to external repos (load [upstream skill](.claude/skills/pm/workflows/upstream.md) first).
 
+**Research first**: for foundational subsystems (selection, undo, collaboration, text editing), study 3-5 industry implementations before coding. Use `/llm --deep` or `/deep` to survey prior art (tldraw, ProseMirror, SlateJS, etc.) and synthesize into a design doc. Build for km first, extract to a library when the second consumer arrives. See [docs/principles.md](docs/principles.md#research-first-for-foundational-features).
+
 **Never**: commit secrets/credentials; use `git stash`, `git reset --hard`, `git checkout .`, `git restore`, `git clean -f`; use bare `bun test`; work around vendor bugs (fix them directly); skip tests; close a bead without evidence.
 
 ## When Stuck

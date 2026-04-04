@@ -123,9 +123,17 @@ For type restructurings, field renames, or interface changes touching 50+ files:
 | **Cross-cutting additive** — touches multiple packages but additive-only | New shared utility, package.json scripts | **Worktree** preferred, shared OK |
 | **Leaf** — isolated to one app/component, no downstream consumers | km-tui view component, CLI command handler, single test file | **Shared workspace** (default) — low risk of conflicts |
 
-**Worktree rules:**
+**Worktree commit rules (CRITICAL):**
 - Agents in worktrees **MUST commit** their changes (worktrees are cleaned up when no commits exist, losing all work)
-- Tell agents explicitly: "Commit your changes with conventional commits before finishing"
+- **Every worktree agent prompt MUST end with explicit commit instructions.** Append this block to the END of every `isolation: "worktree"` prompt:
+
+  > CRITICAL: You are in a worktree. You MUST commit before finishing.
+  > Uncommitted work is DESTROYED when the worktree is cleaned up.
+  > Commit early and often with conventional commits. Your final message
+  > MUST include the commit SHA as proof.
+
+  **Why this is mandatory**: In the @silvery/selection session, three agents lost ALL their work because they finished without committing. The worktree cleanup destroyed hours of work. General "commit incrementally" guidance is not enough — agents need the instruction at the END of the prompt (where it's freshest in context) with CRITICAL-level urgency.
+
 - Use `bun worktree merge <name>` from main to integrate after
 
 **If `isolation: "worktree"` fails** (e.g., WorktreeCreate hook error, uncommitted changes): fall back to shared workspace but sequence foundational agents — don't run two foundational agents on the same package concurrently.
@@ -143,6 +151,7 @@ For type restructurings, field renames, or interface changes touching 50+ files:
 - Trust agent "done" claims without evidence (actual command output)
 - Let agents batch all commits to the end — require incremental commits per step
 - Give agents 3,000-word prompts that bury the critical step among mechanical ones — lead with the interface/definition change, then consumer updates
+- Spawn worktree agents without the CRITICAL commit block at the end of their prompt
 
 ## Lead Agent Responsiveness (CRITICAL)
 

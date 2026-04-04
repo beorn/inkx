@@ -11,6 +11,18 @@ Claude Code 2.1.50+ supports `isolation: "worktree"` on the Task tool — agents
 Use **native isolation** for: parallel agent edits on the same files (automatic, temporary).
 Use **`bun worktree`** for: persistent development branches, merge workflow, manual parallel work.
 
+## Worktree Agents MUST Commit (CRITICAL)
+
+**Uncommitted work in worktrees is lost forever.** When a worktree is cleaned up (manually or by Claude Code's auto-cleanup), any uncommitted changes are destroyed with no way to recover them.
+
+In the @silvery/selection session, three agents lost ALL their implementation work because they completed their tasks without committing. The worktrees were cleaned up and hours of work vanished.
+
+**Rules for worktree agents:**
+1. Commit early and often — after each logical step, not just at the end
+2. Every worktree agent prompt must end with explicit commit instructions (see [max/SKILL.md](../max/SKILL.md#isolation-when-to-use-worktrees))
+3. Agent completion messages must include the commit SHA as proof of commit
+4. If an agent finishes without a commit SHA, assume its work was lost
+
 ## Why `bun worktree`?
 
 Bare `git worktree add` doesn't handle:

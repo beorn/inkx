@@ -58,6 +58,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Principles That Matter More with LLMs](#principles-that-matter-more-with-llms)
 - [Part 5: Runbook](#part-5-runbook)
   - [What We're NOT Doing](#what-were-not-doing)
+  - [Research First for Foundational Features](#research-first-for-foundational-features)
   - [Before You Add Something New](#before-you-add-something-new)
   - [How We Keep This Real](#how-we-keep-this-real)
 - [Quick Reference](#quick-reference)
@@ -1223,9 +1224,25 @@ What we're **not** optimizing for. These clarify tradeoffs and prevent endless d
 - **Not optimizing for**: Zero allocations / micro-optimizations — Clarity over micro-performance
 - **Not optimizing for**: Framework compatibility at all costs — Choose patterns that fit our needs
 - **Not optimizing for**: Backwards compatibility inside the codebase — Quarantine and Delete
-- **Not optimizing for**: Maximum generality — Solve today's problems, not hypothetical futures
+- **Not optimizing for**: Maximum generality — Build for one consumer, extract when the second arrives. Designing for hypothetical canvas/diagramming/browser consumers wastes rounds. km is the proving ground; generalization happens when a real second consumer needs it.
 - **Not optimizing for**: Minimal lines of code — Explicit and clear beats clever and terse
 - **Not optimizing for**: Maximum configurability — Sensible defaults and arguments beat config files
+
+---
+
+### Research First for Foundational Features
+
+For foundational subsystems (selection, undo, collaboration, text editing), **study industry prior art before coding**. Survey 3-5 established implementations (e.g., tldraw, ProseMirror, SlateJS, VS Code, Figma) to understand:
+
+1. What abstractions the industry converged on
+2. What edge cases they handle that you haven't considered
+3. What architectural decisions they made and why
+
+This is different from "/deep research" for debugging. This is deliberate design research — understanding the solution space before committing to an architecture. The @silvery/selection system benefited enormously from studying how tldraw, ProseMirror, and SlateJS handle selection before any code was written.
+
+**When**: Before implementing any subsystem that has well-established prior art in other editors/frameworks.
+**How**: Use `/llm --deep` or `/deep` to survey implementations, then synthesize findings into a design doc before coding.
+**Skip when**: The feature is novel (no prior art exists) or purely km-specific (no general solution to study).
 
 ---
 
@@ -1438,3 +1455,4 @@ Real stories from km development that shaped these principles:
 - [refactoring.md](lessons/refactoring.md) — **Refactoring Lessons**: Delete first, fix second. Backwards compatibility is a trap. Includes case studies from domain objects migration and silvery/ansi absorption.
 - [filetree-as-peer.md](lessons/filetree-as-peer.md) — **FileTree as Peer DataStore**: Treating FileTree and DataStore as interchangeable peers led to performance asymmetry, semantic mismatch, and overly generic sync logic. The lesson: identify representation vs peer.
 - [km-me0n.md](lessons/km-me0n.md) — **The km-me0n Incident**: `km sync --to-fs` corrupted source files by writing to real files instead of test fixtures. The lesson: tests use isolated directories, in-memory infrastructure.
+- [worktree-discipline.md](lessons/worktree-discipline.md) — **Worktree Creation Is a Prerequisite**: Agents must create worktrees before editing, not as a step they'll get to later. Process steps that create isolation gate all other work.
