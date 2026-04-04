@@ -447,23 +447,40 @@ export function createBoardAppStoreState(
       workspace = createDefaultWorkspace(initialPaneBoard, params)
     }
 
-    // Create @silvery/selection store with mutable view tree source.
-    // The source is updated by buildOpCtx after each layout derivation.
-    const { app: selApp, source: selTreeSource } = createSelectionAdapter()
-    const sel = createSelection(selApp)
-
-    // Initialize sel store with the initial cursor from the active board pane.
+    // Initialize each board pane's per-pane sel with its cursor.
     // The selTreeSource hasn't been populated yet (happens in buildOpCtx),
     // but we need a cursor so Board.tsx can read sel.node.cursor() on first render.
-    // Build a temporary view tree just for initial cursor selection.
-    const activePaneInit = Array.from(workspace.panes.values()).find((p) => isBoardPane(p) && p.cursorNodeId) as
-      | BoardPaneState
-      | undefined
-    if (activePaneInit?.cursorNodeId) {
-      const initVTree = buildViewTree(params.repo, activePaneInit.rootId, activePaneInit.foldDepths)
-      const initVIndex = buildViewIndex(initVTree)
-      selTreeSource.update(initVIndex, initVTree)
-      sel.node.select([activePaneInit.cursorNodeId as import("@silvery/selection").ID])
+    for (const pane of workspace.panes.values()) {
+      if (isBoardPane(pane) && pane.cursorNodeId) {
+        const initVTree = buildViewTree(params.repo, pane.rootId, pane.foldDepths)
+        const initVIndex = buildViewIndex(initVTree)
+        pane.selTreeSource.update(initVIndex, initVTree)
+        pane.sel.node.select([pane.cursorNodeId as import("@silvery/selection").ID])
+      }
+    }
+
+    // Helper: get the focused pane's sel (delegates global sel to per-pane sel).
+    function getActiveSel(): SelectionStore {
+      const s = _get()
+      const pane = s.workspace.panes.get(s.workspace.focusedPaneId)
+      if (pane && isBoardPane(pane)) return pane.sel
+      // Fallback: find any board pane
+      for (const p of s.workspace.panes.values()) {
+        if (isBoardPane(p)) return p.sel
+      }
+      // Should not happen — create a throwaway sel as last resort
+      const { app } = createSelectionAdapter()
+      return createSelection(app)
+    }
+
+    function getActiveSelTreeSource(): SelectionTreeSource {
+      const s = _get()
+      const pane = s.workspace.panes.get(s.workspace.focusedPaneId)
+      if (pane && isBoardPane(pane)) return pane.selTreeSource
+      for (const p of s.workspace.panes.values()) {
+        if (isBoardPane(p)) return p.selTreeSource
+      }
+      return createSelectionAdapter().source
     }
 
     // Bridge: alien-signals → Zustand. Selection state lives in alien-signals
@@ -472,24 +489,36 @@ export function createBoardAppStoreState(
     // Zustand doesn't know — the sel reference is the same object. This effect
     // tracks all selection computed signals and forces a Zustand notification
     // so useAppStore selectors re-evaluate.
+    //
+    // We set up a bridge for EACH board pane's sel so that changes to any pane's
+    // selection trigger Zustand notifications (e.g., detail pane sel changes).
     let _selVersion = 0
-    effect(() => {
-      // Read all sel signals to establish alien-signals tracking
-      sel.node.cursor()
-      sel.node.ids()
-      sel.text()
-      sel.kind()
-      sel.root.id()
-      sel.drag()
-      sel.subComputed()
-      // Force Zustand notification by bumping a version counter.
-      // set({}) would be a no-op (same refs), so we use a changing value.
-      _selVersion++
-      if (_selVersion > 1) {
-        // Skip the initial effect run (during store creation) — only notify on changes
-        set({ _selVersion } as Partial<BoardAppStore>)
+    const bridgedSels = new Set<SelectionStore>()
+
+    /** Set up an alien-signals → Zustand bridge for a pane's sel store. Idempotent. */
+    function bridgePaneSel(paneSel: SelectionStore): void {
+      if (bridgedSels.has(paneSel)) return
+      bridgedSels.add(paneSel)
+      effect(() => {
+        paneSel.node.cursor()
+        paneSel.node.ids()
+        paneSel.text()
+        paneSel.kind()
+        paneSel.root.id()
+        paneSel.drag()
+        paneSel.subComputed()
+        _selVersion++
+        if (_selVersion > 1) {
+          set({ _selVersion } as Partial<BoardAppStore>)
+        }
+      })
+    }
+
+    for (const pane of workspace.panes.values()) {
+      if (isBoardPane(pane)) {
+        bridgePaneSel(pane.sel)
       }
-    })
+    }
 
     return {
       // Workspace (canonical source of board navigation state)
@@ -510,9 +539,14 @@ export function createBoardAppStoreState(
       // Dimensions
       dimensions: params.dimensions,
 
-      // Selection store
-      sel,
-      selTreeSource,
+      // Selection store — delegates to the focused pane's per-pane sel.
+      // Getter ensures React components and action handlers always see the active pane's selection.
+      get sel() {
+        return getActiveSel()
+      },
+      get selTreeSource() {
+        return getActiveSelTreeSource()
+      },
       textEditHints: null,
 
       // Undo/redo
@@ -907,7 +941,7 @@ export function createBoardAppStoreState(
 
           // Detail pane root = parent's cursor card (what we're showing details of)
           // Derive cursor card from sel store cursor + view tree classification
-          const cursorId = state.sel.node.cursor() as string | null
+          const cursorId = parentPane.sel.node.cursor() as string | null
           let detailRootId: string | null = parentPane.rootId
           if (cursorId) {
             const vTree = buildViewTree(state.repo, parentPane.rootId, parentPane.foldDepths)
@@ -944,6 +978,13 @@ export function createBoardAppStoreState(
             },
           }
         })
+        // Bridge the new detail pane's sel for Zustand notifications
+        const s = _get()
+        const detailId = detailPaneIdFor(s.workspace.focusedPaneId)
+        const detailPane = s.workspace.panes.get(detailId)
+        if (detailPane && isBoardPane(detailPane)) {
+          bridgePaneSel(detailPane.sel)
+        }
       },
 
       closeDetailPane() {
@@ -1271,6 +1312,12 @@ export function createBoardAppStoreState(
             workspace: { ...workspace, panes: newPanes },
           }
         })
+        // Bridge the newly activated pane's sel for Zustand notifications
+        const s = _get()
+        const activatedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
+        if (activatedPane && isBoardPane(activatedPane)) {
+          bridgePaneSel(activatedPane.sel)
+        }
       },
     }
   }
