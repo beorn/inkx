@@ -668,7 +668,6 @@ export function Board({ patchedConsole }: BoardProps) {
   const editState = textEditState
   const prevInlineEditRef = useRef(editState)
 
-
   // Layout is derived on demand — no store sync needed
 
   // Screen switching for console

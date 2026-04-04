@@ -437,11 +437,7 @@ export function createBoardAppStoreState(
     let workspace: WorkspaceState
 
     if (params.savedWorkspace) {
-      const restored = restoreWorkspaceFromPersisted(
-        params.savedWorkspace,
-        params.repo,
-        initialPaneBoard,
-      )
+      const restored = restoreWorkspaceFromPersisted(params.savedWorkspace, params.repo, initialPaneBoard)
       if (restored) {
         workspace = restored
       } else {
@@ -460,9 +456,9 @@ export function createBoardAppStoreState(
     // The selTreeSource hasn't been populated yet (happens in buildActionCtx),
     // but we need a cursor so Board.tsx can read sel.node.cursor() on first render.
     // Build a temporary view tree just for initial cursor selection.
-    const activePaneInit = Array.from(workspace.panes.values()).find(
-      (p) => isBoardPane(p) && p.cursorNodeId,
-    ) as BoardPaneState | undefined
+    const activePaneInit = Array.from(workspace.panes.values()).find((p) => isBoardPane(p) && p.cursorNodeId) as
+      | BoardPaneState
+      | undefined
     if (activePaneInit?.cursorNodeId) {
       const initVTree = buildViewTree(params.repo, activePaneInit.rootId, activePaneInit.foldDepths)
       const initVIndex = buildViewIndex(initVTree)
