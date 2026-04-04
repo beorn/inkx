@@ -129,6 +129,7 @@ export interface BoardPaneState extends PaneStateBase {
   // Board navigation
   rootId: string | null
   rootPath: string | null
+  /** @deprecated Use sel.node.cursor() instead. Kept temporarily for backward compat in tests. */
   cursorNodeId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
