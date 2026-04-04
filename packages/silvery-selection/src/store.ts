@@ -28,8 +28,6 @@ import {
 import { createOrderedSet, EMPTY_ORDERED_SET } from "./ordered-set.ts"
 import type { OrderedSet } from "./ordered-set.ts"
 import { createTextAccessor } from "./sub-text.ts"
-import { createPathAccessor } from "./sub-path.ts"
-import { createCropAccessor } from "./sub-crop.ts"
 import type {
   DefaultSubSelection,
   DragState,
@@ -99,10 +97,6 @@ export type SelectionStore<Sub = DefaultSubSelection> = {
   readonly subComputed: () => Sub | null
   /** Text sub-selection accessor */
   readonly text: ReturnType<typeof createTextAccessor>
-  /** Path sub-selection accessor (stub) */
-  readonly path: ReturnType<typeof createPathAccessor>
-  /** Crop sub-selection accessor (stub) */
-  readonly crop: ReturnType<typeof createCropAccessor>
   /** Drag accessor */
   readonly drag: DragAccessor<Sub>
   /** Root accessor */
@@ -314,32 +308,6 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
     },
   )
 
-  const pathAccessor = createPathAccessor(
-    $subAny,
-    () => {
-      // stub — no-op
-    },
-    () => {
-      // stub — no-op
-    },
-    () => {
-      exitSub()
-    },
-  )
-
-  const cropAccessor = createCropAccessor(
-    $subAny,
-    () => {
-      // stub — no-op
-    },
-    () => {
-      // stub — no-op
-    },
-    () => {
-      exitSub()
-    },
-  )
-
   // --- Store object ---
 
   const store: SelectionStore<Sub> = {
@@ -354,8 +322,6 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
     subComputed: $sub,
 
     text: textAccessor,
-    path: pathAccessor,
-    crop: cropAccessor,
     drag: dragRead as DragAccessor<Sub>,
     root: rootAccessor,
     kind: $kind,

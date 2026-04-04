@@ -1,18 +1,16 @@
 /**
  * @silvery/selection — Pure selection state machine
  *
- * Node selection, sub-selection (text/path/crop), pointer gestures.
+ * Node selection, text sub-selection, pointer gestures.
  * Pure transitions + ordered sets. Reactive store via alien-signals.
  */
 
 // Types
 export type {
-  CropSelection,
   DefaultSubSelection,
   DragState,
   ID,
   Modifiers,
-  PathSelection,
   PointerEvent,
   PointerHelpers,
   PointerOrigin,
@@ -64,8 +62,6 @@ export type { DragAccessor, NodeAccessor, RootAccessor, SelectionStore } from ".
 
 // Sub-selection accessors
 export type { TextAccessor } from "./sub-text.ts"
-export type { PathAccessor } from "./sub-path.ts"
-export type { CropAccessor } from "./sub-crop.ts"
 
 // op() proxy — operations as data
 export { op } from "./op-proxy.ts"
