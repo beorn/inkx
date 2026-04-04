@@ -7,6 +7,7 @@
  * Does NOT include app-specific UI state (modals, dialogs) — that belongs in ui-reducer.ts.
  */
 
+import { createSelection, type SelectionStore } from "@silvery/selection"
 import type { SelectionRange } from "../handlers/mouse-handler.ts"
 import {
   createEmptyFilterProperties,
@@ -16,6 +17,7 @@ import {
   type UIState,
   type PaneUI,
 } from "../state/ui-reducer.ts"
+import { createSelectionAdapter, type SelectionTreeSource } from "../state/selection-adapter.ts"
 
 // ===== Re-export canonical board types from @km/board =====
 
@@ -118,6 +120,11 @@ export interface BoardPaneState extends PaneStateBase {
 
   /** When viewMode is "detail", this is the pane whose cursor we follow. */
   parentPaneId?: string
+
+  // Per-pane selection store (@silvery/selection — reactive selection state)
+  sel: SelectionStore
+  /** Mutable source that bridges ViewTree into the per-pane selection store */
+  selTreeSource: SelectionTreeSource
 
   // Board navigation
   rootId: string | null
@@ -267,11 +274,19 @@ export function createPaneState(
   board: BoardState,
   opts: {
     viewMode: ViewMode
+    /** Pre-created selection store + source (skips creating a new one) */
+    sel?: { sel: SelectionStore; selTreeSource: SelectionTreeSource }
   },
 ): BoardPaneState {
+  const { app, source } = opts.sel ? { app: null, source: opts.sel.selTreeSource } : createSelectionAdapter()
+  const sel = opts.sel ? opts.sel.sel : createSelection(app!)
+  const selTreeSource = source
+
   return {
     id,
     viewType: "board",
+    sel,
+    selTreeSource,
     rootId: board.rootId,
     rootPath: board.rootPath,
     cursorNodeId: board.cursorNodeId,
