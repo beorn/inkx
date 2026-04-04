@@ -15,7 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { createTestRepo } from "@km/storage"
-import { createOperationLog, replay, type OperationLog } from "../src/ops/operation-log.ts"
+import { createTreeOpLog, replay, type TreeOpLog } from "../src/ops/operation-log.ts"
 import { withHistory } from "../src/ops/history.ts"
 import type { TreeOp } from "../src/ops/operations.ts"
 
@@ -54,18 +54,18 @@ function makeOp(content: string): TreeOp {
 }
 
 // =============================================================================
-// createOperationLog — basic operations
+// createTreeOpLog — basic operations
 // =============================================================================
 
-describe("createOperationLog", () => {
+describe("createTreeOpLog", () => {
   test("starts empty with seq 0", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     expect(log.seq()).toBe(0)
     expect(log.getAll()).toEqual([])
   })
 
   test("append + getAll returns entries in order", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")], { source: "user" })
     log.append([makeOp("B")], { source: "sync" })
 
@@ -78,7 +78,7 @@ describe("createOperationLog", () => {
   })
 
   test("append copies ops array (mutation-safe)", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const ops = [makeOp("A")]
     log.append(ops)
     ops.push(makeOp("B"))
@@ -87,20 +87,20 @@ describe("createOperationLog", () => {
   })
 
   test("append with empty ops is no-op", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([])
     expect(log.getAll()).toHaveLength(0)
     expect(log.seq()).toBe(0)
   })
 
   test("append uses custom timestamp when provided", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")], { timestamp: 42 })
     expect(log.getAll()[0]!.timestamp).toBe(42)
   })
 
   test("append uses Date.now when no timestamp provided", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const before = Date.now()
     log.append([makeOp("A")])
     const after = Date.now()
@@ -117,7 +117,7 @@ describe("createOperationLog", () => {
 
 describe("seq", () => {
   test("increments with each append", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     expect(log.seq()).toBe(0)
 
     log.append([makeOp("A")])
@@ -137,7 +137,7 @@ describe("seq", () => {
 
 describe("getSince", () => {
   test("returns entries after given seq", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")])
     log.append([makeOp("B")])
     log.append([makeOp("C")])
@@ -149,7 +149,7 @@ describe("getSince", () => {
   })
 
   test("getSince(0) returns all entries", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")])
     log.append([makeOp("B")])
 
@@ -157,7 +157,7 @@ describe("getSince", () => {
   })
 
   test("getSince(current seq) returns empty", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")])
     log.append([makeOp("B")])
 
@@ -165,7 +165,7 @@ describe("getSince", () => {
   })
 
   test("getSince(future seq) returns empty", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")])
 
     expect(log.getSince(99)).toHaveLength(0)
@@ -178,7 +178,7 @@ describe("getSince", () => {
 
 describe("clear", () => {
   test("empties log and resets getAll", () => {
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     log.append([makeOp("A")])
     log.append([makeOp("B")])
     expect(log.getAll()).toHaveLength(2)
@@ -196,7 +196,7 @@ describe("clear", () => {
 describe("replay", () => {
   test("replays all entries onto a fresh tree", () => {
     const { repo, parentId, child1Id } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
 
     // Record some operations manually
     log.append(
@@ -234,7 +234,7 @@ describe("replay", () => {
 
   test("replays from a specific sequence number", () => {
     const { repo, child1Id } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
 
     log.append(
       [
@@ -273,7 +273,7 @@ describe("replay", () => {
 describe("withHistory + log", () => {
   test("mutations are recorded in the log", () => {
     const { repo, parentId } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const editor = withHistory(repo, { log })
 
     editor.addNode(parentId, { type: "p", content: "New", parent_idx: 3 })
@@ -287,7 +287,7 @@ describe("withHistory + log", () => {
 
   test("batch mutations are recorded as a single log entry", () => {
     const { repo, parentId } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const editor = withHistory(repo, { log })
 
     editor.batch(() => {
@@ -303,7 +303,7 @@ describe("withHistory + log", () => {
 
   test("undo appends inverse ops with source: undo", () => {
     const { repo, parentId } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const editor = withHistory(repo, { log })
 
     editor.addNode(parentId, { type: "p", content: "New", parent_idx: 3 })
@@ -319,7 +319,7 @@ describe("withHistory + log", () => {
 
   test("redo appends ops with source: redo", () => {
     const { repo, parentId } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const editor = withHistory(repo, { log })
 
     editor.addNode(parentId, { type: "p", content: "New", parent_idx: 3 })
@@ -347,7 +347,7 @@ describe("withHistory + log", () => {
 
   test("seq reflects total log entries including undo/redo", () => {
     const { repo, parentId } = setupTree()
-    const log = createOperationLog()
+    const log = createTreeOpLog()
     const editor = withHistory(repo, { log })
 
     editor.addNode(parentId, { type: "p", content: "A", parent_idx: 3 })

@@ -12,13 +12,13 @@ import { describe, test, expect } from "vitest"
 import { Point, Range, transformPoint, transformRange, transformSelection } from "../src/selection.ts"
 import type {
   TreeOp,
-  InsertNodeOperation,
-  RemoveNodeOperation,
-  SetNodeOperation,
-  MoveNodeOperation,
-  SplitNodeOperation,
-  MergeNodeOperation,
-  SetSelectionOperation,
+  InsertNodeTreeOp,
+  RemoveNodeTreeOp,
+  SetNodeTreeOp,
+  MoveNodeTreeOp,
+  SplitNodeTreeOp,
+  MergeNodeTreeOp,
+  SetSelectionTreeOp,
 } from "../src/ops/operations.ts"
 
 // =============================================================================
@@ -87,7 +87,7 @@ describe("Range", () => {
 describe("transformPoint — insert_node", () => {
   test("unrelated insert does not affect point", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: InsertNodeOperation = {
+    const op: InsertNodeTreeOp = {
       type: "insert_node",
       parentId: "p1",
       index: 0,
@@ -105,7 +105,7 @@ describe("transformPoint — insert_node", () => {
 describe("transformPoint — remove_node", () => {
   test("removes point when its node is deleted", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: "n1",
       snapshot: { type: "p", content: "old" },
@@ -117,7 +117,7 @@ describe("transformPoint — remove_node", () => {
 
   test("unrelated remove does not affect point", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: "n2",
       snapshot: { type: "p" },
@@ -135,7 +135,7 @@ describe("transformPoint — remove_node", () => {
 describe("transformPoint — set_node", () => {
   test("clamps offset when content is shortened", () => {
     const point: Point = { nodeId: "n1", offset: 10 }
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: "n1",
       properties: { content: "short" }, // length 5
@@ -147,7 +147,7 @@ describe("transformPoint — set_node", () => {
 
   test("does not change offset when content is longer", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: "n1",
       properties: { content: "longer content" },
@@ -158,7 +158,7 @@ describe("transformPoint — set_node", () => {
 
   test("unrelated set_node does not affect point", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: "n2",
       properties: { content: "x" },
@@ -169,7 +169,7 @@ describe("transformPoint — set_node", () => {
 
   test("non-content set does not affect offset", () => {
     const point: Point = { nodeId: "n1", offset: 10 }
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: "n1",
       properties: { type: "h" },
@@ -186,7 +186,7 @@ describe("transformPoint — set_node", () => {
 describe("transformPoint — move_node", () => {
   test("move does not affect point (ID-based)", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: MoveNodeOperation = {
+    const op: MoveNodeTreeOp = {
       type: "move_node",
       nodeId: "n1",
       oldParentId: "p1",
@@ -205,7 +205,7 @@ describe("transformPoint — move_node", () => {
 describe("transformPoint — split_node", () => {
   test("point before split stays in original node", () => {
     const point: Point = { nodeId: "n1", offset: 2 }
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: "n1",
       offset: 5,
@@ -217,7 +217,7 @@ describe("transformPoint — split_node", () => {
 
   test("point at split offset moves to new node at offset 0", () => {
     const point: Point = { nodeId: "n1", offset: 5 }
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: "n1",
       offset: 5,
@@ -229,7 +229,7 @@ describe("transformPoint — split_node", () => {
 
   test("point after split offset moves to new node with adjusted offset", () => {
     const point: Point = { nodeId: "n1", offset: 8 }
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: "n1",
       offset: 5,
@@ -241,7 +241,7 @@ describe("transformPoint — split_node", () => {
 
   test("point in unrelated node is unaffected", () => {
     const point: Point = { nodeId: "n3", offset: 8 }
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: "n1",
       offset: 5,
@@ -259,7 +259,7 @@ describe("transformPoint — split_node", () => {
 describe("transformPoint — merge_node", () => {
   test("point in source node shifts into target at offset + original", () => {
     const point: Point = { nodeId: "n2", offset: 3 }
-    const op: MergeNodeOperation = {
+    const op: MergeNodeTreeOp = {
       type: "merge_node",
       nodeId: "n2",
       targetId: "n1",
@@ -270,7 +270,7 @@ describe("transformPoint — merge_node", () => {
 
   test("point in target node is unaffected", () => {
     const point: Point = { nodeId: "n1", offset: 5 }
-    const op: MergeNodeOperation = {
+    const op: MergeNodeTreeOp = {
       type: "merge_node",
       nodeId: "n2",
       targetId: "n1",
@@ -281,7 +281,7 @@ describe("transformPoint — merge_node", () => {
 
   test("point in unrelated node is unaffected", () => {
     const point: Point = { nodeId: "n3", offset: 5 }
-    const op: MergeNodeOperation = {
+    const op: MergeNodeTreeOp = {
       type: "merge_node",
       nodeId: "n2",
       targetId: "n1",
@@ -298,7 +298,7 @@ describe("transformPoint — merge_node", () => {
 describe("transformPoint — set_selection", () => {
   test("set_selection does not affect points", () => {
     const point: Point = { nodeId: "n1", offset: 3 }
-    const op: SetSelectionOperation = {
+    const op: SetSelectionTreeOp = {
       type: "set_selection",
       oldSelection: null,
       newSelection: { nodeId: "n2", offset: 0 },
@@ -314,7 +314,7 @@ describe("transformPoint — set_selection", () => {
 describe("transformRange", () => {
   test("both points survive — range preserved", () => {
     const range = Range.create({ nodeId: "n1", offset: 0 }, { nodeId: "n1", offset: 5 })
-    const op: InsertNodeOperation = {
+    const op: InsertNodeTreeOp = {
       type: "insert_node",
       parentId: "p1",
       index: 0,
@@ -327,7 +327,7 @@ describe("transformRange", () => {
 
   test("anchor deleted — range collapses to focus", () => {
     const range = Range.create({ nodeId: "n1", offset: 0 }, { nodeId: "n2", offset: 5 })
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: "n1",
       snapshot: { type: "p" },
@@ -342,7 +342,7 @@ describe("transformRange", () => {
 
   test("focus deleted — range collapses to anchor", () => {
     const range = Range.create({ nodeId: "n1", offset: 0 }, { nodeId: "n2", offset: 5 })
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: "n2",
       snapshot: { type: "p" },
@@ -356,7 +356,7 @@ describe("transformRange", () => {
 
   test("both points deleted — range is null", () => {
     const range = Range.create({ nodeId: "n1", offset: 0 }, { nodeId: "n1", offset: 5 })
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: "n1",
       snapshot: { type: "p" },
@@ -368,7 +368,7 @@ describe("transformRange", () => {
 
   test("split adjusts both anchor and focus", () => {
     const range = Range.create({ nodeId: "n1", offset: 2 }, { nodeId: "n1", offset: 8 })
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: "n1",
       offset: 5,

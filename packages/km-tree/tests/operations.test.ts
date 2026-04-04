@@ -12,15 +12,15 @@ import { createTestRepo } from "@km/storage"
 import { KNode } from "@km/core"
 import {
   inverse,
-  applyOperation,
+  applyTreeOp,
   type TreeOp,
-  type InsertNodeOperation,
-  type RemoveNodeOperation,
-  type SetNodeOperation,
-  type MoveNodeOperation,
-  type SplitNodeOperation,
-  type MergeNodeOperation,
-  type SetSelectionOperation,
+  type InsertNodeTreeOp,
+  type RemoveNodeTreeOp,
+  type SetNodeTreeOp,
+  type MoveNodeTreeOp,
+  type SplitNodeTreeOp,
+  type MergeNodeTreeOp,
+  type SetSelectionTreeOp,
 } from "../src/ops/operations.ts"
 
 // =============================================================================
@@ -72,7 +72,7 @@ function snapshotTree(repo: ReturnType<typeof createTestRepo>, rootParentId: str
 describe("insert_node", () => {
   test("inserts a node under a parent", () => {
     const { repo, parentId } = setupTree()
-    const op: InsertNodeOperation = {
+    const op: InsertNodeTreeOp = {
       type: "insert_node",
       parentId,
       index: 3,
@@ -80,7 +80,7 @@ describe("insert_node", () => {
       newId: "new-node-1",
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
 
     const newNode = repo.getNode("new-node-1")
     expect(newNode).not.toBeNull()
@@ -89,7 +89,7 @@ describe("insert_node", () => {
   })
 
   test("inverse is remove_node", () => {
-    const op: InsertNodeOperation = {
+    const op: InsertNodeTreeOp = {
       type: "insert_node",
       parentId: "p1",
       index: 0,
@@ -98,15 +98,15 @@ describe("insert_node", () => {
     }
     const inv = inverse(op)
     expect(inv.type).toBe("remove_node")
-    expect((inv as RemoveNodeOperation).nodeId).toBe("n1")
-    expect((inv as RemoveNodeOperation).parentId).toBe("p1")
+    expect((inv as RemoveNodeTreeOp).nodeId).toBe("n1")
+    expect((inv as RemoveNodeTreeOp).parentId).toBe("p1")
   })
 
   test("round-trip: insert then remove restores state", () => {
     const { repo, parentId } = setupTree()
     const before = snapshotTree(repo, null)
 
-    const op: InsertNodeOperation = {
+    const op: InsertNodeTreeOp = {
       type: "insert_node",
       parentId,
       index: 3,
@@ -114,10 +114,10 @@ describe("insert_node", () => {
       newId: "temp-1",
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode("temp-1")).not.toBeNull()
 
-    applyOperation(repo, inverse(op))
+    applyTreeOp(repo, inverse(op))
     expect(repo.getNode("temp-1")).toBeNull()
 
     const after = snapshotTree(repo, null)
@@ -133,7 +133,7 @@ describe("remove_node", () => {
   test("removes a node from the tree", () => {
     const { repo, child1Id, parentId } = setupTree()
     const node = repo.getNode(child1Id)!
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: child1Id,
       snapshot: { type: node.type, content: node.content, parent_idx: node.parent_idx },
@@ -141,12 +141,12 @@ describe("remove_node", () => {
       index: node.parent_idx,
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode(child1Id)).toBeNull()
   })
 
   test("inverse is insert_node with snapshot", () => {
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: "n1",
       snapshot: { type: "p", content: "saved" },
@@ -155,8 +155,8 @@ describe("remove_node", () => {
     }
     const inv = inverse(op)
     expect(inv.type).toBe("insert_node")
-    expect((inv as InsertNodeOperation).newId).toBe("n1")
-    expect((inv as InsertNodeOperation).node).toEqual({ type: "p", content: "saved" })
+    expect((inv as InsertNodeTreeOp).newId).toBe("n1")
+    expect((inv as InsertNodeTreeOp).node).toEqual({ type: "p", content: "saved" })
   })
 
   test("round-trip: remove then insert restores node", () => {
@@ -164,7 +164,7 @@ describe("remove_node", () => {
     const node = repo.getNode(child1Id)!
     const before = snapshotTree(repo, null)
 
-    const op: RemoveNodeOperation = {
+    const op: RemoveNodeTreeOp = {
       type: "remove_node",
       nodeId: child1Id,
       snapshot: { type: node.type, content: node.content, parent_idx: node.parent_idx },
@@ -172,10 +172,10 @@ describe("remove_node", () => {
       index: node.parent_idx,
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode(child1Id)).toBeNull()
 
-    applyOperation(repo, inverse(op))
+    applyTreeOp(repo, inverse(op))
     const restored = repo.getNode(child1Id)
     expect(restored).not.toBeNull()
     expect(restored!.content).toBe("Alpha bravo")
@@ -189,42 +189,42 @@ describe("remove_node", () => {
 describe("set_node", () => {
   test("updates node properties", () => {
     const { repo, child1Id } = setupTree()
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: child1Id,
       properties: { content: "Updated content" },
       oldProperties: { content: "Alpha bravo" },
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode(child1Id)!.content).toBe("Updated content")
   })
 
   test("inverse swaps properties and oldProperties", () => {
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: "n1",
       properties: { content: "new" },
       oldProperties: { content: "old" },
     }
-    const inv = inverse(op) as SetNodeOperation
+    const inv = inverse(op) as SetNodeTreeOp
     expect(inv.properties).toEqual({ content: "old" })
     expect(inv.oldProperties).toEqual({ content: "new" })
   })
 
   test("round-trip: set then inverse restores original", () => {
     const { repo, child1Id } = setupTree()
-    const op: SetNodeOperation = {
+    const op: SetNodeTreeOp = {
       type: "set_node",
       nodeId: child1Id,
       properties: { content: "Changed" },
       oldProperties: { content: "Alpha bravo" },
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode(child1Id)!.content).toBe("Changed")
 
-    applyOperation(repo, inverse(op))
+    applyTreeOp(repo, inverse(op))
     expect(repo.getNode(child1Id)!.content).toBe("Alpha bravo")
   })
 })
@@ -246,7 +246,7 @@ describe("move_node", () => {
     })
 
     const node = repo.getNode(child1Id)!
-    const op: MoveNodeOperation = {
+    const op: MoveNodeTreeOp = {
       type: "move_node",
       nodeId: child1Id,
       oldParentId: parentId,
@@ -255,13 +255,13 @@ describe("move_node", () => {
       newIndex: 0,
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     const moved = repo.getNode(child1Id)!
     expect(moved.parent_id).toBe(parent2Id)
   })
 
   test("inverse swaps old/new parent and index", () => {
-    const op: MoveNodeOperation = {
+    const op: MoveNodeTreeOp = {
       type: "move_node",
       nodeId: "n1",
       oldParentId: "p1",
@@ -269,7 +269,7 @@ describe("move_node", () => {
       newParentId: "p2",
       newIndex: 3,
     }
-    const inv = inverse(op) as MoveNodeOperation
+    const inv = inverse(op) as MoveNodeTreeOp
     expect(inv.oldParentId).toBe("p2")
     expect(inv.oldIndex).toBe(3)
     expect(inv.newParentId).toBe("p1")
@@ -287,7 +287,7 @@ describe("move_node", () => {
     })
 
     const node = repo.getNode(child1Id)!
-    const op: MoveNodeOperation = {
+    const op: MoveNodeTreeOp = {
       type: "move_node",
       nodeId: child1Id,
       oldParentId: parentId,
@@ -296,10 +296,10 @@ describe("move_node", () => {
       newIndex: 0,
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode(child1Id)!.parent_id).toBe(parent2Id)
 
-    applyOperation(repo, inverse(op))
+    applyTreeOp(repo, inverse(op))
     expect(repo.getNode(child1Id)!.parent_id).toBe(parentId)
   })
 })
@@ -314,7 +314,7 @@ describe("split_node", () => {
     const node = repo.getNode(child1Id)!
     const text = KNode.string(node) // "Alpha bravo"
 
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: child1Id,
       offset: 5, // "Alpha" | " bravo"
@@ -322,7 +322,7 @@ describe("split_node", () => {
       properties: { type: "p" },
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
 
     const original = repo.getNode(child1Id)!
     expect(original.content).toBe("Alpha")
@@ -333,14 +333,14 @@ describe("split_node", () => {
   })
 
   test("inverse of split is merge", () => {
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: "n1",
       offset: 5,
       newId: "n2",
       properties: { type: "p" },
     }
-    const inv = inverse(op) as MergeNodeOperation
+    const inv = inverse(op) as MergeNodeTreeOp
     expect(inv.type).toBe("merge_node")
     expect(inv.nodeId).toBe("n2")
     expect(inv.targetId).toBe("n1")
@@ -351,7 +351,7 @@ describe("split_node", () => {
     const { repo, child1Id } = setupTree()
     const originalContent = repo.getNode(child1Id)!.content
 
-    const op: SplitNodeOperation = {
+    const op: SplitNodeTreeOp = {
       type: "split_node",
       nodeId: child1Id,
       offset: 5,
@@ -359,11 +359,11 @@ describe("split_node", () => {
       properties: { type: "p" },
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     expect(repo.getNode(child1Id)!.content).toBe("Alpha")
     expect(repo.getNode("split-rt-1")).not.toBeNull()
 
-    applyOperation(repo, inverse(op))
+    applyTreeOp(repo, inverse(op))
     expect(repo.getNode(child1Id)!.content).toBe(originalContent)
     expect(repo.getNode("split-rt-1")).toBeNull()
   })
@@ -380,14 +380,14 @@ describe("merge_node", () => {
     const target = repo.getNode(child1Id)!
     const targetText = KNode.string(target) // "Alpha bravo"
 
-    const op: MergeNodeOperation = {
+    const op: MergeNodeTreeOp = {
       type: "merge_node",
       nodeId: child2Id,
       targetId: child1Id,
       offset: targetText.length,
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
 
     const merged = repo.getNode(child1Id)!
     expect(merged.content).toBe("Alpha bravoCharlie delta")
@@ -395,13 +395,13 @@ describe("merge_node", () => {
   })
 
   test("inverse of merge is split", () => {
-    const op: MergeNodeOperation = {
+    const op: MergeNodeTreeOp = {
       type: "merge_node",
       nodeId: "n2",
       targetId: "n1",
       offset: 11,
     }
-    const inv = inverse(op) as SplitNodeOperation
+    const inv = inverse(op) as SplitNodeTreeOp
     expect(inv.type).toBe("split_node")
     expect(inv.nodeId).toBe("n1")
     expect(inv.offset).toBe(11)
@@ -418,24 +418,24 @@ describe("set_selection", () => {
     const { repo } = setupTree()
     const before = snapshotTree(repo, null)
 
-    const op: SetSelectionOperation = {
+    const op: SetSelectionTreeOp = {
       type: "set_selection",
       oldSelection: null,
       newSelection: { nodeId: "some-node", offset: 5 },
     }
 
-    applyOperation(repo, op)
+    applyTreeOp(repo, op)
     const after = snapshotTree(repo, null)
     expect(after).toEqual(before)
   })
 
   test("inverse swaps old and new selection", () => {
-    const op: SetSelectionOperation = {
+    const op: SetSelectionTreeOp = {
       type: "set_selection",
       oldSelection: { nodeId: "n1", offset: 0 },
       newSelection: { nodeId: "n2", offset: 5 },
     }
-    const inv = inverse(op) as SetSelectionOperation
+    const inv = inverse(op) as SetSelectionTreeOp
     expect(inv.oldSelection).toEqual({ nodeId: "n2", offset: 5 })
     expect(inv.newSelection).toEqual({ nodeId: "n1", offset: 0 })
   })
@@ -471,13 +471,13 @@ describe("operation capture from block-ops", () => {
     ]
 
     // Apply forward
-    for (const op of ops) applyOperation(repo, op)
+    for (const op of ops) applyTreeOp(repo, op)
 
     expect(repo.getNode(child1Id)!.content).toBe("Alpha")
     expect(repo.getNode("split-emit-1")!.content).toBe(" bravo")
 
     // Apply inverse in reverse order
-    for (const op of [...ops].reverse()) applyOperation(repo, inverse(op))
+    for (const op of [...ops].reverse()) applyTreeOp(repo, inverse(op))
 
     expect(repo.getNode(child1Id)!.content).toBe("Alpha bravo")
     expect(repo.getNode("split-emit-1")).toBeNull()
@@ -506,13 +506,13 @@ describe("operation capture from block-ops", () => {
     ]
 
     // Apply forward
-    for (const op of ops) applyOperation(repo, op)
+    for (const op of ops) applyTreeOp(repo, op)
 
     expect(repo.getNode(child1Id)!.content).toBe("Alpha bravoCharlie delta")
     expect(repo.getNode(child2Id)).toBeNull()
 
     // Apply inverse in reverse order
-    for (const op of [...ops].reverse()) applyOperation(repo, inverse(op))
+    for (const op of [...ops].reverse()) applyTreeOp(repo, inverse(op))
 
     expect(repo.getNode(child1Id)!.content).toBe("Alpha bravo")
     const restored = repo.getNode(child2Id)

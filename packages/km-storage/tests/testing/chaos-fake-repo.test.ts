@@ -11,7 +11,7 @@ describe("ChaosFakeRepo", () => {
 
       const log = repo.getTransactionLog()
       expect(log).toHaveLength(1)
-      expect(log[0]!.operation).toBe("add")
+      expect(log[0]!.treeop).toBe("add")
     })
 
     it("logs updateNode operations", () => {
@@ -23,7 +23,7 @@ describe("ChaosFakeRepo", () => {
 
       const log = repo.getTransactionLog()
       expect(log).toHaveLength(1)
-      expect(log[0]!.operation).toBe("update")
+      expect(log[0]!.treeop).toBe("update")
       expect(log[0]!.nodeId).toBe("1")
     })
 
@@ -36,7 +36,7 @@ describe("ChaosFakeRepo", () => {
 
       const log = repo.getTransactionLog()
       expect(log).toHaveLength(1)
-      expect(log[0]!.operation).toBe("delete")
+      expect(log[0]!.treeop).toBe("delete")
     })
 
     it("logs moveNode operations", () => {
@@ -48,7 +48,7 @@ describe("ChaosFakeRepo", () => {
 
       const log = repo.getTransactionLog()
       expect(log).toHaveLength(1)
-      expect(log[0]!.operation).toBe("move")
+      expect(log[0]!.treeop).toBe("move")
     })
 
     it("can disable logging", () => {
