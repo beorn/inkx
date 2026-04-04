@@ -21,7 +21,7 @@ import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
 import { getModeStack, resetModeStack } from "../dialog-guard.ts"
-import { handleCommandAction } from "./board-actions.ts"
+import { handleKmOp } from "./board-actions.ts"
 import { clickToCursorOffset } from "./click-to-cursor.ts"
 import { needsRenderFlush } from "./board-actions-edit.ts"
 import { clearSelection } from "../keyboard/keyboard-helpers.ts"
@@ -31,7 +31,12 @@ import type { ColumnView } from "../types.ts"
 import { readBoardHidden, isHidden } from "../hidden.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
-import { deriveColumnsWithTree, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
+import {
+  deriveColumnsWithTree,
+  deriveDetailColumns,
+  buildNodeIndex,
+  deriveCursorIndices,
+} from "../hooks/use-columns.ts"
 import { buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -272,6 +277,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         viewIndex,
         viewNodeCache,
       }
+      // Update the selection adapter's tree source so sel.node operations
+      // use the freshest ViewTree for walkOrder/parent/children lookups.
+      s.selTreeSource.update(viewIndex, viewTree)
     }
     const cursorState = s.cursorStore.getState()
     const cursorCardNodeId = cursorState.cursorCardNodeId
@@ -497,7 +505,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     if (timeoutResult?.actions) {
       const actionList = Array.isArray(timeoutResult.actions) ? timeoutResult.actions : [timeoutResult.actions]
       for (const action of actionList) {
-        const actionResult = handleCommandAction(freshCtx, action)
+        const actionResult = handleKmOp(freshCtx, action)
         if (isErr(actionResult) && actionResult.error.type === "boundary") {
           freshCtx.setUI({
             bellState: actionResult.error.direction,
@@ -563,7 +571,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     const actionList = Array.isArray(actions) ? actions : [actions]
     for (const action of actionList) {
-      const actionResult = handleCommandAction(ctx, action)
+      const actionResult = handleKmOp(ctx, action)
       if (isErr(actionResult) && actionResult.error.type === "boundary") {
         ctx.setUI({
           bellState: actionResult.error.direction,
@@ -723,7 +731,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Phase 2: Actions — execute state mutations
       for (const action of actionList) {
         using actionSpan = parentSpan.span("action", { type: action.type })
-        const actionResult = handleCommandAction(ctx, action)
+        const actionResult = handleKmOp(ctx, action)
 
         // Check for boundary errors - ring bell and show status message
         if (isErr(actionResult) && actionResult.error.type === "boundary") {
@@ -951,7 +959,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (isDoubleClick) {
         // Double-click → select and enter inline edit on the clicked node
         actionCtx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        handleCommandAction(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
+        handleKmOp(actionCtx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
         return
       }

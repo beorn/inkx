@@ -47,7 +47,7 @@ import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createCursorStore, type CursorStore } from "./cursor-store.ts"
 import { createSelection, type SelectionStore } from "@silvery/selection"
-import { createSelectionAppAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
+import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
@@ -491,18 +491,8 @@ export function createBoardAppStoreState(
     }
 
     // Create @silvery/selection store with mutable view tree source.
-    // The source callbacks are updated by buildActionCtx after each layout derivation.
-    const selTreeSource: SelectionTreeSource = {
-      _viewIndex: new Map(),
-      _viewTree: { id: "__root__", role: "board", node: null, parent: null, children: [], isBody: false },
-      getViewIndex() {
-        return this._viewIndex
-      },
-      getViewTree() {
-        return this._viewTree
-      },
-    } as SelectionTreeSource & { _viewIndex: Map<string, import("@km/board").ViewNode>; _viewTree: import("@km/board").ViewNode }
-    const selApp = createSelectionAppAdapter(selTreeSource)
+    // The source is updated by buildActionCtx after each layout derivation.
+    const { app: selApp, source: selTreeSource } = createSelectionAdapter()
     const sel = createSelection(selApp)
 
     return {

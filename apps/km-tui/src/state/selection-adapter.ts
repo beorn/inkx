@@ -14,12 +14,10 @@ import type { ViewNode } from "@km/board"
 // Types
 // =============================================================================
 
-/** Callbacks that return the current ViewTree state. Updated each layout derivation. */
+/** Mutable source that bridges the latest ViewTree into the selection store. */
 export interface SelectionTreeSource {
-  /** Current ViewIndex: nodeId → ViewNode */
-  getViewIndex(): Map<string, ViewNode>
-  /** Current ViewTree root */
-  getViewTree(): ViewNode
+  /** Update the underlying tree data (called after each layout derivation). */
+  update(viewIndex: Map<string, ViewNode>, viewTree: ViewNode): void
 }
 
 // =============================================================================
@@ -27,21 +25,40 @@ export interface SelectionTreeSource {
 // =============================================================================
 
 /**
- * Create a SelectionApp adapter from live ViewTree callbacks.
+ * Create a SelectionApp adapter with a mutable tree source.
  *
- * The returned object satisfies createSelection()'s SelectionApp interface.
+ * Returns both the SelectionApp (for createSelection()) and the
+ * SelectionTreeSource (to call .update() after each layout derivation).
+ *
  * walkOrder does a DFS of the current ViewTree, collecting IDs.
  * parent/children look up the ViewIndex.
  */
-export function createSelectionAppAdapter(source: SelectionTreeSource): SelectionApp {
-  return {
+export function createSelectionAdapter(): {
+  app: SelectionApp
+  source: SelectionTreeSource
+} {
+  let viewIndex: Map<string, ViewNode> = new Map()
+  let viewTree: ViewNode = {
+    id: "__root__",
+    role: "board",
+    node: null,
+    parent: null,
+    children: [],
+    isBody: false,
+  }
+
+  const source: SelectionTreeSource = {
+    update(newIndex, newTree) {
+      viewIndex = newIndex
+      viewTree = newTree
+    },
+  }
+
+  const app: SelectionApp = {
     tree: {
       walkOrder(root: ID | null): readonly ID[] {
-        const index = source.getViewIndex()
-        const tree = source.getViewTree()
-
         // Find the subtree root
-        const startNode = root ? index.get(root) : tree
+        const startNode = root ? viewIndex.get(root) : viewTree
         if (!startNode) return []
 
         // DFS collecting IDs (skip the board root itself — it's not selectable)
@@ -59,8 +76,7 @@ export function createSelectionAppAdapter(source: SelectionTreeSource): Selectio
       },
 
       parent(id: ID): ID | undefined {
-        const index = source.getViewIndex()
-        const vn = index.get(id)
+        const vn = viewIndex.get(id)
         if (!vn?.parent) return undefined
         // Don't return the board root as a parent (it's not selectable)
         if (vn.parent.role === "board") return undefined
@@ -68,11 +84,12 @@ export function createSelectionAppAdapter(source: SelectionTreeSource): Selectio
       },
 
       children(id: ID): readonly ID[] {
-        const index = source.getViewIndex()
-        const vn = index.get(id)
+        const vn = viewIndex.get(id)
         if (!vn) return []
         return vn.children.map((c) => c.id as ID)
       },
     },
   }
+
+  return { app, source }
 }
