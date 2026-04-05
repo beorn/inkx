@@ -13,6 +13,7 @@ import { createLogger } from "loggily"
 
 /** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
 type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
+import type { ID } from "@silvery/selection"
 import { isErr } from "@km/core"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { createBoardAppStoreState, Workspace, type CreateBoardAppStoreParams } from "../state/board-app-store.ts"
@@ -939,7 +940,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           } else if (nodeId) {
             // Different node in same card → save + re-enter edit on clicked node
             activeEditTargetRef.current?.save()
-            opctx.dispatchBoard({ type: "SELECT", nodeId })
+            opctx.sel.node.select([nodeId as ID])
             opctx.sel.text.edit(nodeId as import("@silvery/selection").ID, 0)
             opctx.textEditHints = { blockIndex: 0, initialCursorPos: "start" }
           }
@@ -953,7 +954,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
       if (!selectId) {
         // Empty space click → deselect all, cursor to board root
-        opctx.dispatchBoard({ type: "SELECT", nodeId: opctx.rootId })
+        opctx.sel.node.select([opctx.rootId as ID])
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }
@@ -962,7 +963,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // double-clicking a column header enters inline edit (title-as-card behavior).
       if (isDoubleClick) {
         // Double-click → select and enter inline edit on the clicked node
-        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        opctx.sel.node.select([selectId as ID])
         handleKmOp(opctx, { type: "ENTER_INLINE_EDIT", nodeId: nodeId ?? selectId, blockIndex: 0 })
         locals.lastClick = { time: 0, x: 0, y: 0 } // Reset to prevent triple-click triggering
         return
@@ -970,7 +971,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
       if (isColumnNode) {
         // Column header single click → select the column (not board root)
-        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        opctx.sel.node.select([selectId as ID])
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }
@@ -985,12 +986,11 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
       if (mouse.ctrl) {
         // Ctrl-click → move cursor to card and toggle its selection
-        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
-        opctx.sel.node.select([selectId as import("@silvery/selection").ID], true)
+        opctx.sel.node.select([selectId as ID], true)
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       } else {
         // Single click → select the card (not sub-block)
-        opctx.dispatchBoard({ type: "SELECT", nodeId: selectId })
+        opctx.sel.node.select([selectId as ID])
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
       }
       return
