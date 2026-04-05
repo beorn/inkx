@@ -6,6 +6,7 @@
  */
 
 import { type OpResult, boundary, ok } from "@km/commands"
+import type { ID } from "@silvery/selection"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
@@ -66,7 +67,7 @@ export function handleLocalFindNext(ctx: OpCtx): OpResult {
   const nextIndex = (ls.matchIndex + 1) % ls.matchCount
   const nodeId = ls.matchNodeIds[nextIndex]
   if (nodeId) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
+    ctx.sel.node.select([nodeId as ID])
   }
   ctx.setUI({
     localSearch: { ...ls, matchIndex: nextIndex },
@@ -82,7 +83,7 @@ export function handleLocalFindPrev(ctx: OpCtx): OpResult {
   const prevIndex = (ls.matchIndex - 1 + ls.matchCount) % ls.matchCount
   const nodeId = ls.matchNodeIds[prevIndex]
   if (nodeId) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
+    ctx.sel.node.select([nodeId as ID])
   }
   ctx.setUI({
     localSearch: { ...ls, matchIndex: prevIndex },
@@ -101,7 +102,7 @@ export function updateLocalSearchMatches(ctx: OpCtx, query: string): void {
   // Navigate to first match if available
   const matchIndex = 0
   if (matchCount > 0 && matchNodeIds[0]) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+    ctx.sel.node.select([matchNodeIds[0] as ID])
   }
 
   ctx.setUI({

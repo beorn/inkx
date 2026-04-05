@@ -5,6 +5,7 @@
  */
 
 import type { OpResult } from "@km/commands"
+import type { ID } from "@silvery/selection"
 import { boundary, ok, precondition } from "@km/commands"
 import { KNode, type ItemData } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
@@ -90,9 +91,9 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
     return ok()
   }
   // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
-  const inOutlineMode = ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id
+  const inOutlineMode = ctx.sel.node.cursor() !== null && ctx.card !== undefined && (ctx.sel.node.cursor() as string) !== ctx.card.id
   if (inOutlineMode && ctx.card) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.card.id })
+    ctx.sel.node.select([ctx.card.id as ID])
     clearSelection(ctx)
     return ok()
   }
@@ -116,7 +117,7 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
       // Visible nodes in zoomed-out view: children (columns) and grandchildren (cards) of parentNode.
       // Keep cursor on current node if it would be visible; otherwise use the column
       // the cursor was in (becomes a card); otherwise fall back to old root (becomes a column).
-      const cursorNode = ctx.cursorNodeId ? ctx.repo.getNode(ctx.cursorNodeId) : null
+      const cursorNode = ctx.sel.node.cursor() ? ctx.repo.getNode(ctx.sel.node.cursor() as string) : null
       const col = ctx.column
       let cursorTarget: string | null = ctx.rootId // fallback: old root (always a column)
 
@@ -125,11 +126,11 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
         const cursorGrandparent = cursorParent ? ctx.repo.getNode(cursorParent)?.parent_id : null
         // Cursor is a child of new root (will be a column) — visible
         if (cursorParent === parentNode.id) {
-          cursorTarget = ctx.cursorNodeId
+          cursorTarget = (ctx.sel.node.cursor() as string | null)
         }
         // Cursor is a grandchild of new root (will be a card) — visible
         else if (cursorGrandparent === parentNode.id) {
-          cursorTarget = ctx.cursorNodeId
+          cursorTarget = (ctx.sel.node.cursor() as string | null)
         }
         // Cursor not directly visible — try the column it was in (becomes a card under old root)
         else if (col) {
@@ -156,16 +157,16 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
  * Card → column header → board root → boundary.
  */
 function navigateToParent(ctx: OpCtx): OpResult {
-  if (!ctx.cursorNodeId) return boundary("up")
-  const cursorNode = ctx.repo.getNode(ctx.cursorNodeId)
+  if (!ctx.sel.node.cursor()) return boundary("up")
+  const cursorNode = ctx.repo.getNode(ctx.sel.node.cursor() as string | null)
   if (!cursorNode?.parent_id) return boundary("up")
 
   // If cursor IS the root, we're at the top — boundary
-  if (ctx.cursorNodeId === ctx.rootId) return boundary("up")
+  if ((ctx.sel.node.cursor() as string) === ctx.rootId) return boundary("up")
 
   // If cursor's parent is the root, navigate to board level
   if (cursorNode.parent_id === ctx.rootId) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.rootId })
+    ctx.sel.node.select([ctx.rootId as ID])
     return ok()
   }
 
@@ -173,7 +174,7 @@ function navigateToParent(ctx: OpCtx): OpResult {
   const parentNode = ctx.repo.getNode(cursorNode.parent_id)
   if (!parentNode) return boundary("up")
 
-  ctx.dispatchBoard({ type: "SELECT", nodeId: parentNode.id })
+  ctx.sel.node.select([parentNode.id as ID])
   return ok()
 }
 
@@ -298,9 +299,9 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
   }
 
   // If cursor is inside a card's sub-items, zoom to that node
-  const inOutlineMode = ctx.cursorNodeId !== null && ctx.cursorNodeId !== card.id
-  if (inOutlineMode && ctx.cursorNodeId) {
-    const targetNode = ctx.repo.getNode(ctx.cursorNodeId)
+  const inOutlineMode = ctx.sel.node.cursor() !== null && (ctx.sel.node.cursor() as string) !== card.id
+  if (inOutlineMode && ctx.sel.node.cursor()) {
+    const targetNode = ctx.repo.getNode(ctx.sel.node.cursor() as string | null)
     if (targetNode) {
       // Save state and zoom to the cursor node
       saveNavHistory(ctx)

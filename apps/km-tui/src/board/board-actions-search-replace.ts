@@ -6,6 +6,7 @@
  */
 
 import { type OpResult, boundary, ok } from "@km/commands"
+import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
@@ -40,7 +41,7 @@ export function handleSearchReplaceNext(ctx: OpCtx): OpResult {
   const nextIndex = (sr.matchIndex + 1) % sr.matchCount
   const nodeId = sr.matchNodeIds[nextIndex]
   if (nodeId) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
+    ctx.sel.node.select([nodeId as ID])
   }
   ctx.setUI({
     searchReplace: { ...sr, matchIndex: nextIndex },
@@ -56,7 +57,7 @@ export function handleSearchReplacePrev(ctx: OpCtx): OpResult {
   const prevIndex = (sr.matchIndex - 1 + sr.matchCount) % sr.matchCount
   const nodeId = sr.matchNodeIds[prevIndex]
   if (nodeId) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
+    ctx.sel.node.select([nodeId as ID])
   }
   ctx.setUI({
     searchReplace: { ...sr, matchIndex: prevIndex },
@@ -81,7 +82,7 @@ export function handleSearchReplaceDoReplace(ctx: OpCtx): OpResult {
 
   // Navigate to current match position
   if (updatedMatches.length > 0 && updatedMatches[newMatchIndex]) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: updatedMatches[newMatchIndex] })
+    ctx.sel.node.select([updatedMatches[newMatchIndex] as ID])
   }
 
   ctx.setUI({
@@ -135,7 +136,7 @@ export function handleSearchReplaceToggleRegex(ctx: OpCtx): OpResult {
 
   // Navigate to first match
   if (matches.length > 0 && matches[0]) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: matches[0] })
+    ctx.sel.node.select([matches[0] as ID])
   }
 
   ctx.setUI({
@@ -275,7 +276,7 @@ export function updateSearchReplaceMatches(ctx: OpCtx, searchQuery: string): voi
 
   // Navigate to first match if available
   if (matchCount > 0 && matchNodeIds[0]) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+    ctx.sel.node.select([matchNodeIds[0] as ID])
   }
 
   ctx.setUI({
