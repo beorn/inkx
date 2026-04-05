@@ -29,7 +29,6 @@ import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
-import { readBoardHidden, isHidden } from "../hidden.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import {
@@ -182,35 +181,12 @@ export interface BoardAppHandlers {
  * Create all board-app handler functions, closed over a single BoardAppLocals bag.
  * Each createBoardApp() call gets its own locals, eliminating module-level mutable state.
  */
-/**
- * Compute hidden node IDs from the .km/hidden file.
- * Walks children of the root (columns) and their children (cards) to find matches.
- * Called before buildViewTree so hidden nodes are excluded at construction time.
- */
-function computeHiddenNodeIds(
-  repo: { path: string; getNode: (id: string) => any; getChildren: (id: string | null) => any[] },
-  rootId: string | null,
-): Set<string> {
-  const hiddenPaths = readBoardHidden(repo.path)
-  if (hiddenPaths.size === 0) return new Set()
-  const ids = new Set<string>()
-  const topChildren = repo.getChildren(rootId)
-  for (const child of topChildren) {
-    if (isHidden(hiddenPaths, child, repo as any)) ids.add(child.id)
-    const grandChildren = repo.getChildren(child.id)
-    for (const gc of grandChildren) {
-      if (isHidden(hiddenPaths, gc, repo as any)) ids.add(gc.id)
-    }
-  }
-  return ids
-}
-
 export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers {
   /**
    * Build an OpCtx from store state.
    * Called on each key event to get fresh state.
-   * Calls buildViewTree + viewNodeToColumnViews (via deriveColumnsFromRepo)
-   * and caches columns/nodeIndex between calls when state is unchanged.
+   * Reads ViewSnapshot from PaneSignals computed — single build, auto-cached.
+   * Converts to ColumnView[] via viewNodeToColumnViews on demand.
    */
   function buildOpCtx(
     get: () => BoardAppStore,

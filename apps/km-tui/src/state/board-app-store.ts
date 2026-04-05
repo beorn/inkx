@@ -14,7 +14,7 @@
  *
  * Layout (columns, cursor position) is derived on demand — never stored.
  * The key handler derives layout fresh each keypress via buildOpCtx().
- * React derives layout via useColumns + useCursorPosition.
+ * React derives layout via useSignal(pane.signals.view) + viewNodeToColumnViews.
  */
 
 import type { ToastQueue, JobRunner } from "@km/core"
@@ -49,7 +49,7 @@ import { createSelection, type SelectionStore } from "@silvery/selection"
 import { signal, effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { createPaneSignals } from "./pane-signals.ts"
-import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
+import { classifyCursorFromViewIndex, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -80,7 +80,7 @@ import { resolveEmbed } from "../views/embed-display.ts"
  * Use Workspace.getActiveBoardPane(state) to access the targeted board pane.
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
- * demand by the key handler (buildOpCtx) and by React (useColumns hook).
+ * demand by the key handler (buildOpCtx) and by React (useSignal + ViewSnapshot).
  */
 export interface BoardAppState {
   // --- Workspace (canonical source of board navigation state) ---
@@ -1046,10 +1046,9 @@ export function createBoardAppStoreState(
           // Derive cursor card from sel store cursor + view tree classification
           const cursorId = parentPane.sel.node.cursor() as string | null
           let detailRootId: string | null = parentPane.rootId
-          if (cursorId) {
-            const vTree = buildViewTree(state.repo, parentPane.rootId, parentPane.foldDepths)
-            const vIndex = buildViewIndex(vTree)
-            const ancestors = classifyCursorFromViewIndex(vIndex, cursorId)
+          if (cursorId && parentPane.signals) {
+            const snap = parentPane.signals.view()
+            const ancestors = snap.classify(cursorId)
             detailRootId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId ?? parentPane.rootId
           }
 
@@ -1064,10 +1063,9 @@ export function createBoardAppStoreState(
           detailPane.filterProperties = { ...parentPane.filterProperties }
           initPaneSignals(detailPane)
           // Initialize the detail pane's sel with the initial cursor
-          if (firstItemId) {
-            const detailVTree = buildViewTree(state.repo, detailRootId, detailPane.foldDepths)
-            const detailVIndex = buildViewIndex(detailVTree)
-            detailPane.selTreeSource.update(detailVIndex, detailVTree)
+          if (firstItemId && detailPane.signals) {
+            const detailSnap = detailPane.signals.view()
+            detailPane.selTreeSource.update(detailSnap.index as Map<string, ViewNode>, detailSnap.tree)
             detailPane.sel.node.select([firstItemId as import("@silvery/selection").ID])
           }
 
@@ -1421,10 +1419,9 @@ export function createBoardAppStoreState(
           })
           initPaneSignals(updatedPane)
           // Initialize the new pane's sel with the cursor
-          if (activeBoardCursor) {
-            const initVTree = buildViewTree(state.repo, updatedPane.rootId, updatedPane.foldDepths)
-            const initVIndex = buildViewIndex(initVTree)
-            updatedPane.selTreeSource.update(initVIndex, initVTree)
+          if (activeBoardCursor && updatedPane.signals) {
+            const initSnap = updatedPane.signals.view()
+            updatedPane.selTreeSource.update(initSnap.index as Map<string, ViewNode>, initSnap.tree)
             updatedPane.sel.node.select([activeBoardCursor as import("@silvery/selection").ID])
           }
           const newPanes = new Map(workspace.panes)
