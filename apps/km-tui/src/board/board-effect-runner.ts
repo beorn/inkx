@@ -10,6 +10,7 @@
  * See docs/design/tea-state-machines.md for the TEA vision.
  */
 
+import type { ID } from "@silvery/selection"
 import type { OpCtx } from "../tui-context.ts"
 import { clearSelection } from "./board-selection-helpers.ts"
 import { requestRenderFlush } from "./board-actions-edit.ts"
@@ -49,7 +50,7 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
   switch (effect.type) {
     // Navigation effects
     case "SELECT":
-      ctx.dispatchBoard({ type: "SELECT", nodeId: effect.nodeId })
+      ctx.sel.node.select([effect.nodeId as ID])
       break
     case "FOLD_SET":
       ctx.setFoldDepths(effect.depths)
@@ -65,7 +66,7 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
     case "REPO_ADD_NODE": {
       const newId = ctx.repo.addNode(effect.parentId, effect.node)
       if (effect.selectAfter) {
-        ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+        ctx.sel.node.select([newId as ID])
         ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
         ctx.textEditHints = { blockIndex: 0 }
       }
