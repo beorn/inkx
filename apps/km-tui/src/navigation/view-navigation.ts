@@ -47,7 +47,7 @@ export interface NavState {
 export type CursorClassification = {
   cursorCardNodeId: string | null
   cursorColumnNodeId: string | null
-  selectionLevel: "board" | "column" | "card"
+  cursorDepth: "board" | "column" | "card"
 }
 
 export interface ViewNavigation {
@@ -98,8 +98,8 @@ export function createCardsViewNavigation(): ViewNavigation {
 export function createDetailViewNavigation(): ViewNavigation {
   return {
     classifyCursor(nodeId) {
-      if (!nodeId) return { cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" }
-      return { cursorCardNodeId: nodeId, cursorColumnNodeId: null, selectionLevel: "card" }
+      if (!nodeId) return { cursorCardNodeId: null, cursorColumnNodeId: null, cursorDepth: "board" }
+      return { cursorCardNodeId: nodeId, cursorColumnNodeId: null, cursorDepth: "card" }
     },
     navigate(dir, state, repo) {
       const { cursorNodeId, rootId } = state

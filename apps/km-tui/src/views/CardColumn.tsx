@@ -200,7 +200,7 @@ const Card = React.memo(
     // Only this card and the previously-selected card re-render on j/k.
     const nodeStore = useNodeStore()
     const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-    const selLevel = useReactive(nodeStore.selectionLevel)
+    const selLevel = useReactive(nodeStore.cursorDepth)
     const isSelected = cursorCardNodeId === nodeId && selLevel === "card"
 
     // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
@@ -232,7 +232,7 @@ const Card = React.memo(
     // Also accounts for title wrap lines (long titles that wrap to 2 lines).
     const repo = useRepo()
     // Per-card child ID signal — re-derive children only when THIS card's children change,
-    // not on every repo mutation. Replaces broad useSyncExternalStore(repo.subscribe).
+    // not on every repo mutation. Uses useChildIdsSignal for per-card granularity.
     const store = useStore()
     const childIdsState = useChildIdsSignal(store, card.id)
     const childIds = ResourceState.isLoaded(childIdsState) ? childIdsState.value : []
@@ -628,7 +628,7 @@ export const Column = React.memo(function Column({
   // ScrollTrackingVirtualList handles cardIndex subscription.
   const nodeStore = useNodeStore()
   const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const cursorDepth = useReactive(nodeStore.cursorDepth)
   const isSelected = cursorColumnNodeId === nodeId
 
   // Check if this column header is being inline-edited
@@ -705,7 +705,7 @@ export const Column = React.memo(function Column({
     sel.text.deselect()
   }, [setUI])
 
-  const isColumnSelected = isSelected && selectionLevel === "column"
+  const isColumnSelected = isSelected && cursorDepth === "column"
 
   // Derive column header presentation props (icon, colors, style)
   const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, column.node, {

@@ -592,6 +592,7 @@ export function Board({ patchedConsole }: BoardProps) {
   })
   const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
+  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const jobRunner = useAppStore<BoardAppStore, import("@km/core").JobRunner>((s) => s.jobRunner)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
@@ -869,7 +870,7 @@ export function Board({ patchedConsole }: BoardProps) {
       const computeMatches = () => {
         const matchNodeIds = findMatchingNodeIds(columnsRef.current, query)
         if (matchNodeIds.length > 0 && matchNodeIds[0]) {
-          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+          sel.node.select([matchNodeIds[0] as import("@silvery/selection").ID])
         }
         setUI({
           localSearch: {
@@ -888,7 +889,7 @@ export function Board({ patchedConsole }: BoardProps) {
         findTimerRef.current = setTimeout(computeMatches, 200)
       }
     },
-    [setUI, dispatchBoard],
+    [setUI, sel],
   )
 
   const searchReplaceRef = useRef(ui.searchReplace)
@@ -905,7 +906,7 @@ export function Board({ patchedConsole }: BoardProps) {
         if (!latestSr) return
         const matchNodeIds = searchReplaceMatchingNodeIds(columnsRef.current, repo, searchQuery, latestSr.useRegex)
         if (matchNodeIds.length > 0 && matchNodeIds[0]) {
-          dispatchBoard({ type: "SELECT", nodeId: matchNodeIds[0] })
+          sel.node.select([matchNodeIds[0] as import("@silvery/selection").ID])
         }
         setUI({
           searchReplace: {
@@ -924,7 +925,7 @@ export function Board({ patchedConsole }: BoardProps) {
         srTimerRef.current = setTimeout(computeMatches, 200)
       }
     },
-    [setUI, dispatchBoard, repo],
+    [setUI, sel, repo],
   )
 
   const handleSearchReplaceReplaceChange = useCallback(
@@ -1125,7 +1126,7 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       }
 
       if (nav.action === "SELECT") {
-        state.dispatchBoard({ type: "SELECT", nodeId: nav.cursorTarget })
+        state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget, cursorNodeId: nav.cursorTarget })
         state.openDetailPane()

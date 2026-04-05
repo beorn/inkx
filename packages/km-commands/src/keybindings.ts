@@ -165,7 +165,7 @@ export interface KeybindingContext {
   /** True when the edited node has visible (unfolded) structural children */
   hasVisibleChildren(): boolean
   /** Visual role of the edited node in the board layout */
-  editLevel(): "board" | "column" | "card"
+  editDepth(): "board" | "column" | "card"
 }
 
 // Internal binding with registration order and pre-parsed key data for fast matching
@@ -680,13 +680,13 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
           key: "Enter",
           commandId: "text.linebreak_child",
           when: (ctx) =>
-            editingTitle(ctx) && ctx.cursorAtEnd() && (ctx.hasVisibleChildren() || ctx.editLevel() !== "card"),
+            editingTitle(ctx) && ctx.cursorAtEnd() && (ctx.hasVisibleChildren() || ctx.editDepth() !== "card"),
         },
         {
           key: "Enter",
           commandId: "text.linebreak_after",
           when: (ctx) =>
-            editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren() && ctx.editLevel() === "card",
+            editingTitle(ctx) && ctx.cursorAtEnd() && !ctx.hasVisibleChildren() && ctx.editDepth() === "card",
         },
         // Body block → split paragraph
         { key: "Enter", commandId: "text.linebreak_split", when: editingBody },

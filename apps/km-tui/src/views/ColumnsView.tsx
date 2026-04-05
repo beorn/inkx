@@ -68,7 +68,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   // Subscribe to column selection only (stable on j/k within same column)
   const nodeStore = useNodeStore()
   const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const cursorDepth = useReactive(nodeStore.cursorDepth)
   const isSelected = cursorColumnNodeId === column.node.id
 
   // Track editing state for dynamic item height (border adds 2 rows)
@@ -77,7 +77,7 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
   const count = column.cardNodes.length
 
   // Column header is selected when at column level
-  const isColumnHeaderSelected = isSelected && selectionLevel === "column"
+  const isColumnHeaderSelected = isSelected && cursorDepth === "column"
 
   // Derive column header presentation props (icon, colors, style)
   const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, column.node, {

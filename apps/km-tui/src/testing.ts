@@ -212,7 +212,7 @@ export async function createBoardTest(
     colIndex: 0,
     cardIndex: 0,
     ui: createInitialPaneUI("cards", [], { columns: width, rows: height }),
-    derivedSelectionLevel: "card",
+    cursorDepth: "card",
     dimensions: { columns: width, rows: height },
     collapsedNodes: new Set<string>(),
     hasDetailPane: false,
@@ -230,7 +230,7 @@ export async function createBoardTest(
     cursorNodeId: firstCardNodeId,
     cursorCardNodeId: initAncestors.cursorCardNodeId,
     cursorColumnNodeId: initAncestors.cursorColumnNodeId,
-    selectionLevel: initAncestors.selectionLevel,
+    cursorDepth: initAncestors.cursorDepth,
   })
 
   const reactiveStore = withReactive(createStoreFromRepo(repo))

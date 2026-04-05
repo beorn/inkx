@@ -60,7 +60,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
   const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const cursorDepth = useReactive(nodeStore.cursorDepth)
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useAppStore<BoardAppStore, string | null>((s) => (s.sel.text()?.nodeId as string) ?? null)
@@ -119,15 +119,15 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     for (let i = 0; i < flatItems.length; i++) {
       const item = flatItems[i]
       if (!item) continue
-      if (selectionLevel === "column" && item.type === "header" && item.column.node.id === cursorColumnNodeId) {
+      if (cursorDepth === "column" && item.type === "header" && item.column.node.id === cursorColumnNodeId) {
         return i
       }
-      if (selectionLevel === "card" && item.type === "card" && item.card.id === cursorCardNodeId) {
+      if (cursorDepth === "card" && item.type === "card" && item.card.id === cursorCardNodeId) {
         return i
       }
     }
     return 0
-  }, [cursorColumnNodeId, cursorCardNodeId, selectionLevel, flatItems])
+  }, [cursorColumnNodeId, cursorCardNodeId, cursorDepth, flatItems])
 
   // Render item callback for ListView
   const renderItem = useCallback(
@@ -135,7 +135,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
       if (item.type === "header") {
         const cIdx = item.colIndex
         const colNodeId = item.column.node.id
-        const isColSelected = selectionLevel === "column" && cursorColumnNodeId === colNodeId
+        const isColSelected = cursorDepth === "column" && cursorColumnNodeId === colNodeId
         const isSelected = cursorColumnNodeId === colNodeId
 
         return (
@@ -156,7 +156,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
       const cIdx = item.colIndex
       const cardIdx = item.cardIndex
       const cardNodeId = item.card.id
-      const isCardSelected = selectionLevel === "card" && cursorCardNodeId === cardNodeId
+      const isCardSelected = cursorDepth === "card" && cursorCardNodeId === cardNodeId
 
       return (
         <MemoizedTreeCard
@@ -171,7 +171,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
         />
       )
     },
-    [cursorCardNodeId, cursorColumnNodeId, selectionLevel, width, getCachedBoardPills, columnExcludedSigilsByCol],
+    [cursorCardNodeId, cursorColumnNodeId, cursorDepth, width, getCachedBoardPills, columnExcludedSigilsByCol],
   )
 
   // Empty state

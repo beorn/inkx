@@ -41,6 +41,7 @@ type SetUI = (partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) =>
 interface UseBoardDialogsParams {
   repo: Repo
   setUI: SetUI
+  sel: import("@silvery/selection").SelectionStore
   dispatchBoard: (action: BoardReducerOp) => void
   /** Open detail pane via workspace operations (Phase 2 windowing) */
   openDetailPane: () => void
@@ -78,6 +79,7 @@ interface BoardDialogHandlers {
 export function useBoardDialogs({
   repo,
   setUI,
+  sel,
   dispatchBoard,
   openDetailPane,
   cursorNodeId,
@@ -223,7 +225,7 @@ export function useBoardDialogs({
 
       if (nav.action === "SELECT") {
         // Target is already visible (child/grandchild of root, or IS the root)
-        dispatchBoard({ type: "SELECT", nodeId: nav.cursorTarget })
+        sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
         // Zoom target would produce a flat list — zoom there but also open detail pane
         // so the user sees rich content instead of a single-column flat board.

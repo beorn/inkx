@@ -188,6 +188,7 @@ export function WorkspaceChrome({
     return p?.rootId ?? null
   })
   const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
+  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
@@ -209,6 +210,7 @@ export function WorkspaceChrome({
   const baseDialogHandlers = useBoardDialogs({
     repo,
     setUI,
+    sel,
     dispatchBoard,
     openDetailPane,
     cursorNodeId,

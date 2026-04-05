@@ -108,7 +108,7 @@ export class ReactiveNodeStore {
   cursorNodeId = new Reactive<string | null>(null)
   cursorCardNodeId = new Reactive<string | null>(null)
   cursorColumnNodeId = new Reactive<string | null>(null)
-  selectionLevel = new Reactive<"board" | "column" | "card">("board")
+  cursorDepth = new Reactive<"board" | "column" | "card">("board")
   /** Track which card had cursorInDescendant=true so we can clear it on change */
   private prevDescendantCardId: string | null = null
 
@@ -147,12 +147,12 @@ export class ReactiveNodeStore {
     cursorNodeId: string | null
     cursorCardNodeId: string | null
     cursorColumnNodeId: string | null
-    selectionLevel: "board" | "column" | "card"
+    cursorDepth: "board" | "column" | "card"
   }): void {
     this.cursorNodeId.value = cursorState.cursorNodeId
     this.cursorCardNodeId.value = cursorState.cursorCardNodeId
     this.cursorColumnNodeId.value = cursorState.cursorColumnNodeId
-    this.selectionLevel.value = cursorState.selectionLevel
+    this.cursorDepth.value = cursorState.cursorDepth
 
     // Update per-card cursorInDescendant: true when cursor is in this card
     // but on a sub-item (not the card title). Only the affected card's

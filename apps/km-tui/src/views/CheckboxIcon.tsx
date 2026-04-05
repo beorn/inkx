@@ -121,7 +121,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       // This mirrors handleTaskStatusCycle (board-actions-edit.ts) which
       // explicitly re-selects after toggling status.
       if (cursorNodeId && state) {
-        state.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
+        state.sel.node.select([cursorNodeId as import("@silvery/selection").ID])
       }
     },
     [nodeId, repo, undoHandle, storeRef],

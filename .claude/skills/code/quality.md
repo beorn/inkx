@@ -45,7 +45,7 @@ Check against all principles in [docs/principles.md](../../../docs/principles.md
 - Terminology matches [docs/glossary.md](../../../docs/glossary.md) — variable names, comments, docs, and tests use the same words for the same concepts (e.g., "operation" not "action" for TEA state changes, "domain interface" not "noun-singleton", "cursor" not "lead")
 
 **Domain Object Inventory:**
-- New operations go on existing namespaces (KTree, ViewTree, PaneUI, ActionType, Workspace, SelectionLevel)
+- New operations go on existing namespaces (KTree, ViewTree, PaneUI, ActionType, Workspace, CursorDepth)
 - If an operation doesn't exist in the inventory, it's probably missing — not a one-off helper
 
 **Centralized Core Flows:**

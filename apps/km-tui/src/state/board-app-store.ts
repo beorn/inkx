@@ -656,7 +656,7 @@ export function createBoardAppStoreState(
               : getViewNavigation(
                   focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards",
                 ).classifyCursor(action.cardNodeId, rootId, s.repo)
-            if (hintAncestors.selectionLevel === "card") {
+            if (hintAncestors.cursorDepth === "card") {
               ancestors.cursorCardNodeId = hintAncestors.cursorCardNodeId
               ancestors.cursorColumnNodeId = hintAncestors.cursorColumnNodeId
             }

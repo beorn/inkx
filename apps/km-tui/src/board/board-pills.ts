@@ -153,7 +153,7 @@ export function formatBoardPills(pills: BoardPill[], compact: boolean = false): 
  * - All headers are bold
  * - Default: white text on no background, with grey marker
  * - Cursor in column: yellow text, marker uses node's color (if defined)
- * - Column selected (selectionLevel=column): inverse yellow (yellow bg + black text)
+ * - Column selected (cursorDepth=column): inverse yellow (yellow bg + black text)
  *
  * Note: The colored marker is rendered separately by the column component
  */

@@ -77,7 +77,7 @@ function createContext(overrides?: Partial<KeybindingContext>): KeybindingContex
     cursorAtStart: () => false,
     cursorAtEnd: () => true,
     hasVisibleChildren: () => false,
-    editLevel: () => "card" as const,
+    editDepth: () => "card" as const,
     ...overrides,
   }
 }
@@ -1196,7 +1196,7 @@ describe("text mode keybinding separation", () => {
       const outlineCtx = createContext({
         isInlineEditing: true,
         textInputFocused: true,
-        editLevel: () => "column" as const,
+        editDepth: () => "column" as const,
       })
       expect(resolveKeybinding("Enter", {}, outlineCtx)).toEqual({ commandId: "text.linebreak_child" })
     })

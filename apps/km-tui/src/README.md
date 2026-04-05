@@ -123,7 +123,7 @@ External .md edits → withSync reconciles → repo.apply → TUI refreshes
 2. `repo.apply(event)` automatically saves changes to disk (withSync wraps apply)
 3. `repo.start()` watches for external filesystem changes
 4. On external change: reconcile → apply ops to DB → `repo.touch()`
-5. `repo.touch()` busts cache + bumps version → `useColumns` re-derives via `useSyncExternalStore`
+5. `repo.touch()` busts cache + bumps version → `useColumns` re-derives via `useCommitVersion`
 
 **Debounce timings:**
 

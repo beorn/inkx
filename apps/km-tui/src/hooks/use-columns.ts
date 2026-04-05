@@ -271,7 +271,7 @@ export function deriveCursorIndices(
 /**
  * Derive columns from Repo for rendering.
  *
- * Uses useSyncExternalStore to subscribe to repo mutations — columns
+ * Uses useCommitVersion (signal-store) to subscribe to repo mutations — columns
  * automatically recompute when any mutation (updateNode, moveNode, etc.)
  * occurs, without requiring manual dispatch at each call site.
  *

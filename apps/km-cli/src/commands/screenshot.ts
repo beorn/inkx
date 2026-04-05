@@ -81,7 +81,7 @@ export const screenshotCommand = new Command("screenshot")
       colIndex: 0,
       cardIndex: 0,
       ui: createInitialPaneUI("cards", [], { columns: width, rows: height }),
-      derivedSelectionLevel: "card" as const,
+      cursorDepth: "card" as const,
       dimensions: { columns: width, rows: height },
       collapsedNodes: new Set<string>(),
       hasDetailPane: false,

@@ -62,8 +62,8 @@ export const MemoizedTreeCard = React.memo(
     // Self-subscribe to ReactiveNodeStore for selection state (by nodeId)
     const nodeStore = useNodeStore()
     const _cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-    const _selLevel = useReactive(nodeStore.selectionLevel)
-    const cursorIsSelected = _cursorCardNodeId === card.id && _selLevel === "card"
+    const _cursorDepth = useReactive(nodeStore.cursorDepth)
+    const cursorIsSelected = _cursorCardNodeId === card.id && _cursorDepth === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useAppStore<BoardAppStore, boolean>((s) => s.sel.text()?.nodeId === card.id)
 

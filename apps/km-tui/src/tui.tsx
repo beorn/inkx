@@ -123,7 +123,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
         // Wire up filesystem changes → TUI refresh.
         // When sync finishes reconciling external file changes (DB updated),
         // bust the Repo's children cache and bump version so React re-renders
-        // via useSyncExternalStore in useColumns.
+        // via useCommitVersion (signal-store) in useColumns.
         onStateChange: (newState) => {
           if (newState === "idle") {
             options.repo?.touch()

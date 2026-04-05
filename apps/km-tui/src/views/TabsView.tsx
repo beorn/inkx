@@ -36,7 +36,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
   const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const cursorDepth = useReactive(nodeStore.cursorDepth)
 
   // Derive colIndex from cursorColumnNodeId for tab highlighting and column lookup
   const colIndex = useMemo(() => {
@@ -61,7 +61,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
   // Column header is selected when at column level
-  const isColumnHeaderSelected = selectionLevel === "column"
+  const isColumnHeaderSelected = cursorDepth === "column"
 
   return (
     <Box flexDirection="column" width={width} maxHeight={height} overflow="hidden">
@@ -76,7 +76,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
           const colName = getNodeDisplayName(repo, column.node)
           const untitled = isNodeUntitled(repo, column.node)
           const colCount = column.cardNodes.length
-          const showActiveHighlight = isActive && selectionLevel !== "board"
+          const showActiveHighlight = isActive && cursorDepth !== "board"
           const isTabSelected = isActive && isColumnHeaderSelected
 
           return (
@@ -96,7 +96,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
                   isSelected={isTabSelected}
                   untitled={untitled}
                   count={colCount}
-                  dimInactive={selectionLevel === "board"}
+                  dimInactive={cursorDepth === "board"}
                 />
               </Box>
               {/* Separator with space padding */}
@@ -130,7 +130,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
               maxRendered={MAX_RENDERED_ITEMS}
               getKey={(card) => card.id}
               renderItem={(card: KNode, actualCardIndex: number) => {
-                const isCardSelected = selectionLevel === "card" && card.id === cursorCardNodeId
+                const isCardSelected = cursorDepth === "card" && card.id === cursorCardNodeId
 
                 return (
                   <MemoizedTreeCard

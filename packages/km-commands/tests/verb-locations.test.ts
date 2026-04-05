@@ -71,7 +71,7 @@ function defaultKbCtx(): KeybindingContext {
     cursorAtStart: () => false,
     cursorAtEnd: () => true,
     hasVisibleChildren: () => false,
-    editLevel: () => "card" as const,
+    editDepth: () => "card" as const,
   }
 }
 

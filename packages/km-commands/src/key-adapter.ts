@@ -301,7 +301,7 @@ export function buildKeybindingContext(options: {
   /** True when the edited node has visible (unfolded) structural children */
   hasVisibleChildren?: () => boolean
   /** Visual role of the edited node in the board layout */
-  editLevel?: () => "board" | "column" | "card"
+  editDepth?: () => "board" | "column" | "card"
 }): KeybindingContext {
   let mode: "normal" | "move" | "search" | "input" = "normal"
   if (options.inMoveMode) mode = "move"
@@ -338,7 +338,7 @@ export function buildKeybindingContext(options: {
     cursorAtStart: options.cursorAtStart ?? (() => false),
     cursorAtEnd: options.cursorAtEnd ?? (() => true),
     hasVisibleChildren: options.hasVisibleChildren ?? (() => false),
-    editLevel: options.editLevel ?? (() => "card"),
+    editDepth: options.editDepth ?? (() => "card"),
   }
 }
 

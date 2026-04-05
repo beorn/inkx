@@ -33,8 +33,8 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
 }: ScrollTrackingListViewProps<T>): React.ReactElement {
   const nodeStore = useNodeStore()
   const _cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-  const _selectionLevel = useReactive(nodeStore.selectionLevel)
-  const cursorCardNodeId = _selectionLevel === "card" ? _cursorCardNodeId : null
+  const _cursorDepth = useReactive(nodeStore.cursorDepth)
+  const cursorCardNodeId = _cursorDepth === "card" ? _cursorCardNodeId : null
 
   // Find the card index by looking up cursorCardNodeId in the items array
   const cardIndex = useMemo(() => {

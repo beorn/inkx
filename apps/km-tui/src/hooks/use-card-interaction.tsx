@@ -100,7 +100,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
       } else {
-        state.dispatchBoard({ type: "SELECT", nodeId: targetId, cardNodeId: nodeId, cardHintSource: "click" })
+        state.sel.node.select([targetId as import("@silvery/selection").ID])
       }
 
       e.stopPropagation()
