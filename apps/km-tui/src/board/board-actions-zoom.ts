@@ -158,7 +158,7 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
  */
 function navigateToParent(ctx: OpCtx): OpResult {
   if (!ctx.sel.node.cursor()) return boundary("up")
-  const cursorNode = ctx.repo.getNode(ctx.sel.node.cursor() as string | null)
+  const cursorNode = ctx.repo.getNode(ctx.sel.node.cursor() as string)
   if (!cursorNode?.parent_id) return boundary("up")
 
   // If cursor IS the root, we're at the top — boundary
@@ -301,7 +301,7 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
   // If cursor is inside a card's sub-items, zoom to that node
   const inOutlineMode = ctx.sel.node.cursor() !== null && (ctx.sel.node.cursor() as string) !== card.id
   if (inOutlineMode && ctx.sel.node.cursor()) {
-    const targetNode = ctx.repo.getNode(ctx.sel.node.cursor() as string | null)
+    const targetNode = ctx.repo.getNode(ctx.sel.node.cursor() as string)
     if (targetNode) {
       // Save state and zoom to the cursor node
       saveNavHistory(ctx)
