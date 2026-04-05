@@ -293,8 +293,15 @@ function restoreWorkspaceFromPersisted(
       pane = createEmptyPaneState(persisted.id)
     } else {
       const resolvedBoard = resolvePersistedPane(persisted, repo, fallbackBoardState)
+      // Compute initial cursor from repo so the pane starts with a valid cursor.
+      // Without this, sel.node.cursor() is null after workspace restoration.
+      const rId = resolvedBoard.rootId
+      const initialCursor = rId
+        ? (computeInitialCursorFromRepo(repo, rId) as import("@silvery/selection").ID | null)
+        : null
       pane = createPaneState(persisted.id, resolvedBoard, {
         viewMode: persisted.viewMode as "cards" | "list" | "columns" | "tabs",
+        initialCursor: initialCursor ?? undefined,
       })
     }
     // Restore persisted filter properties (hide done, tag filters, etc.)
