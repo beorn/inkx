@@ -181,7 +181,9 @@ export function useNode(id: string): ProjectedViewNode | null {
     parentId: useSignal(proj.parentId),
     display: useSignal(proj.display),
     isBody: useSignal(proj.isBody),
-    isEmbed: useSignal(proj.isEmbed),
+    isSymlink: useSignal(proj.isSymlink),
+    isBrokenSymlink: useSignal(proj.isBrokenSymlink),
+    hasBody: useSignal(proj.hasBody),
     rules: useSignal(proj.rules),
     data: useSignal(proj.data),
   }

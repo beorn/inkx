@@ -35,7 +35,9 @@ export interface ViewNodeState {
   parentId: string | null
   display: KNode | undefined
   isBody: boolean
-  isEmbed: boolean
+  isSymlink: boolean
+  isBrokenSymlink: boolean
+  hasBody: boolean
   rules: SectionRules | undefined
   data: KNode | undefined
 }
@@ -48,7 +50,9 @@ export interface ViewNode {
   readonly parentId: string | null
   readonly display: KNode | undefined
   readonly isBody: boolean
-  readonly isEmbed: boolean
+  readonly isSymlink: boolean
+  readonly isBrokenSymlink: boolean
+  readonly hasBody: boolean
   readonly rules: SectionRules | undefined
   readonly data: KNode | undefined
 }
@@ -101,7 +105,9 @@ const VIEW_NODE_FIELDS: readonly (keyof ViewNodeState & string)[] = [
   "parentId",
   "display",
   "isBody",
-  "isEmbed",
+  "isSymlink",
+  "isBrokenSymlink",
+  "hasBody",
   "rules",
   "data",
 ]
@@ -128,13 +134,22 @@ export function createViewTree(): ViewTree {
     const role = lens.role(id)
     const embed = lens.resolvedEmbed(id)
 
+    const childIds = lens.children(id)
+    const displayNode = embed ?? knode
+    // hasBody: first child is non-outline (body content before first heading)
+    const firstChildId = childIds[0]
+    const firstChild = firstChildId ? lens.get(firstChildId) : undefined
+    const hasBody = firstChild != null && firstChild.type !== "h"
+
     return {
       viewType: role as ViewType | undefined,
-      childIds: lens.children(id),
+      childIds,
       parentId: lens.parent(id),
-      display: embed ?? knode,
+      display: displayNode,
       isBody: lens.isBody(id),
-      isEmbed: embed !== undefined,
+      isSymlink: embed !== undefined,
+      isBrokenSymlink: knode.embed_source != null && embed === undefined,
+      hasBody,
       rules: lens.rules(id),
       data: knode,
     }

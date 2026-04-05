@@ -201,6 +201,6 @@ describe("createViewTree", () => {
 
     const proj = tree.track("1a")!
     expect(proj.display()?.id).toBe("1a")
-    expect(proj.isEmbed()).toBe(false)
+    expect(proj.isSymlink()).toBe(false)
   })
 })
