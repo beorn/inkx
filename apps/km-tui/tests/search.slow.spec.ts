@@ -97,11 +97,11 @@ function derivedState(store: StoreApi<BoardAppStore>) {
   const pane = getActiveBoardPane(s)!
   const columns = deriveColumnsFromRepo(s.repo, pane.rootId, pane.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorIndices(columns, pane.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, (pane.sel.node.cursor() as string | null), nodeIndex)
   const col = columns[cursor.colIndex]
   const card = col?.cardNodes[cursor.cardIndex]
   const selectedNode = card ?? col?.node ?? null
-  const selectionLevel: "board" | "column" | "card" =
+  const cursorDepth: "board" | "column" | "card" =
     cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
   return {
     columns,
@@ -109,7 +109,7 @@ function derivedState(store: StoreApi<BoardAppStore>) {
     cardIndex: cursor.cardIndex,
     nodeIndex,
     selectedNode,
-    selectionLevel,
+    cursorDepth,
   }
 }
 
@@ -718,8 +718,8 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("flatNode")
-    expect(pane.cursorNodeId).toBe("task2")
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect((pane.sel.node.cursor() as string | null)).toBe("task2")
+    expect(derivedState(store).cursorDepth).toBe("card")
   })
 
   test("j/k navigation works after zoom to body-only board", () => {
@@ -850,7 +850,7 @@ describe("paragraph-only board: cursor + navigation", () => {
 
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("readme")
     board.expectState({ cursor: "setup" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
 
     board.command("cursor_down")
     board.expectState({ cursor: "usage" })
@@ -897,7 +897,7 @@ describe("full search flow integration", () => {
 
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects")
     board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
 
     board.expect("#taskA2[data-cursor]").toExist()
 
@@ -1240,7 +1240,7 @@ describe("search flow via key presses", () => {
 
     // Cursor should be on the matched card
     board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
     board.expect("#taskA2[data-cursor]").toExist()
   })
 
@@ -1288,16 +1288,16 @@ describe("search flow via key presses", () => {
     // The cursor should be on a visible card -- either the subtask itself
     // (if the board zoomed deep enough) or its nearest card ancestor.
     // Most importantly, j/k should work from here.
-    const cursorId = getActiveBoardPane(store.getState())!.cursorNodeId
+    const cursorId = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
     expect(cursorId).not.toBeNull()
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
 
     // The cursor should be navigable with j/k
-    const cursorBefore = getActiveBoardPane(store.getState())!.cursorNodeId
+    const cursorBefore = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
     board.command("cursor_down")
     // If j works, cursor moved (or hit boundary). Either way, it didn't break.
-    // The key assertion is that selectionLevel stayed at "card".
-    expect(derivedState(store).selectionLevel).toBe("card")
+    // The key assertion is that cursorDepth stayed at "card".
+    expect(derivedState(store).cursorDepth).toBe("card")
   })
 
   test("search for depth-3 node zooms and places cursor on exact card", () => {
@@ -1319,7 +1319,7 @@ describe("search flow via key presses", () => {
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("section")
     // Cursor should be on the exact matched card
     board.expectState({ cursor: "my-task" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
     board.expect("#my-task[data-cursor]").toExist()
   })
 
@@ -1350,7 +1350,7 @@ describe("search flow via key presses", () => {
     expect(store.getState().ui.showSearchDialog).toBe(false)
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects") // No zoom needed
     board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
     board.expect("#taskA2[data-cursor]").toExist()
   })
 
@@ -1367,10 +1367,10 @@ describe("search flow via key presses", () => {
 
     // First result should be selected (order depends on repo.search)
     expect(store.getState().ui.showSearchDialog).toBe(false)
-    const cursorId = getActiveBoardPane(store.getState())!.cursorNodeId
+    const cursorId = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
     // Either alpha-task or alpha-note -- both are valid first matches
     expect(cursorId === "alpha-task" || cursorId === "alpha-note").toBe(true)
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
   })
 
   test("search for oi file node (non-folder) selects it correctly", () => {
@@ -1486,7 +1486,7 @@ describe("search flow via key presses", () => {
 
     expect(store.getState().ui.showSearchDialog).toBe(false)
     board.expectState({ cursor: "task-beta" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
     board.expect("#task-beta[data-cursor]").toExist()
     // selectedNode should be the searched card, not the section/column
     expect(derivedState(store).selectedNode?.id).toBe("task-beta")
@@ -1512,7 +1512,7 @@ describe("search flow via key presses", () => {
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("section")
     // Cursor should be on the subtask itself
     board.expectState({ cursor: "my-subtask" })
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
     board.expect("#my-subtask[data-cursor]").toExist()
     // selectedNode should be the subtask, not the parent task
     expect(derivedState(store).selectedNode?.id).toBe("my-subtask")

@@ -1226,7 +1226,7 @@ function makeBoardCoreProps(
   colIndex: number,
   cardIndex: number,
   dims: { columns: number; rows: number },
-  selectionLevel: "board" | "column" | "card" = "card",
+  cursorDepth: "board" | "column" | "card" = "card",
 ): BoardCoreProps {
   const ui = createInitialPaneUI(viewMode, [], dims)
 
@@ -1236,7 +1236,7 @@ function makeBoardCoreProps(
     colIndex,
     cardIndex,
     ui,
-    derivedSelectionLevel: selectionLevel,
+    cursorDepth,
     dimensions: dims,
     collapsedNodes: new Set<string>(),
     hasDetailPane: false,

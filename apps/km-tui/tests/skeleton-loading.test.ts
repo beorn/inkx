@@ -26,18 +26,18 @@ function derivedState(store: StoreApi<BoardAppStore>) {
   const board = getActiveBoardPane(s)
   const rootId = board?.rootId ?? null
   const foldDepths = board?.foldDepths ?? new Map<string, number>()
-  const cursorNodeId = board?.cursorNodeId ?? null
+  const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? null
   const columns = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
   const nodeIndex = buildNodeIndex(columns)
   const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex)
-  const selectionLevel: "board" | "column" | "card" =
+  const cursorDepth: "board" | "column" | "card" =
     cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
   return {
     columns,
     colIndex: cursor.colIndex,
     cardIndex: cursor.cardIndex,
     nodeIndex,
-    selectionLevel,
+    cursorDepth,
   }
 }
 
@@ -382,7 +382,7 @@ describe("Skeleton loading", () => {
     // Confirm initial cursor is on col1's first card
     expect(derivedState(store).colIndex).toBe(0)
     expect(derivedState(store).cardIndex).toBe(0)
-    expect(derivedState(store).selectionLevel).toBe("card")
+    expect(derivedState(store).cursorDepth).toBe("card")
 
     // Set loading (simulates watcher-status "syncing" event from background parse)
     act(() => {
@@ -409,7 +409,7 @@ describe("Skeleton loading", () => {
 
     // Cursor should still be on col3, not reset
     const afterClear = derivedState(store)
-    expect(afterClear.selectionLevel).not.toBe("board")
+    expect(afterClear.cursorDepth).not.toBe("board")
     expect(afterClear.colIndex).toBe(2)
     expect(board.screenshot()).toContain("col3")
 
@@ -422,7 +422,7 @@ describe("Skeleton loading", () => {
 
     // Cursor should still be on col3 after repo data update
     const afterTouch = derivedState(store)
-    expect(afterTouch.selectionLevel).not.toBe("board")
+    expect(afterTouch.cursorDepth).not.toBe("board")
     expect(afterTouch.colIndex).toBe(2)
     // New cards visible after parse
     expect(board.screenshot()).toContain("Parsed Task C2")

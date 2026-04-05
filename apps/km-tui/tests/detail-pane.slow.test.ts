@@ -665,7 +665,7 @@ describe("detail pane cursor", () => {
     board.press("D") // open detail pane
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     // Detail pane cursor starts on first child of the focused card
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe("sub1")
   })
 
   test("cursor resets when board cursor moves to different node", { timeout: 5000 }, () => {
@@ -680,7 +680,7 @@ describe("detail pane cursor", () => {
     board.press("j") // move to card2 — detail pane root should update
     // Detail pane cursor should reset to the new card's first child
     const detailPane = store.getState().workspace.panes.get("main-detail") as any
-    expect(detailPane?.cursorNodeId).toBe("sub2")
+    expect((detailPane?.sel.node.cursor() as string | null)).toBe("sub2")
   })
 
   test("cursor resets when detail pane is toggled", { timeout: 5000 }, () => {
@@ -693,13 +693,13 @@ describe("detail pane cursor", () => {
 
     // Navigate to second child
     board.press("j")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub2")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe("sub2")
 
     board.press("D") // close detail pane — pane removed
     expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
 
     board.press("D") // reopen detail pane — fresh pane, cursor on first child
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe("sub1")
   })
 
   test("cursor state is independent of nav_back/nav_forward keys", { timeout: 5000 }, () => {
@@ -712,10 +712,10 @@ describe("detail pane cursor", () => {
 
     // {/} are nav_back/nav_forward in v2, not detail navigation
     board.press("}")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe(null)
 
     board.press("{")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe(null)
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe(null)
   })
 })
 
@@ -896,7 +896,7 @@ function getColIndex(store: StoreApi<BoardAppStore>): number {
   if (!pane) return -1
   const columns = deriveColumnsFromRepo(s.repo, pane.rootId, pane.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorIndices(columns, pane.cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, pane.sel.node.cursor() as string | null, nodeIndex)
   return cursor.colIndex
 }
 
@@ -926,7 +926,7 @@ describe("detail pane + column navigation (regression: infinite render loop)", (
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     // Detail cursor should be on first child
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe("sub1")
   })
 
   test("h in detail pane returns focus to board", { timeout: 5000 }, () => {
@@ -1032,11 +1032,11 @@ describe("detail pane focus + navigation", () => {
 
     board.press("D") // open + auto-focus detail pane
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub1")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe("sub1")
 
     // j → second child (sub2)
     board.press("j")
-    expect((store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null).toBe("sub2")
+    expect((store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null).toBe("sub2")
   })
 
   test("h from detail pane returns to board, keeps pane open", { timeout: 5000 }, () => {
@@ -1099,7 +1099,7 @@ describe("detail pane focus + navigation", () => {
 describe("detail pane j/k navigation", () => {
   /** Get detail pane cursor */
   const dc = (store: any): string | null =>
-    (store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null
+    (store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null
 
   test("folder children navigate sequentially", () => {
     const { board, store } = testEnv(
@@ -1202,7 +1202,7 @@ describe("detail pane j/k navigation", () => {
 
   test("cursor highlight works for all children (not just first)", () => {
     // Regression: cursor classification used to classify outline children as column-level
-    // (selectionLevel: "column"), breaking card highlight for all but the initial item.
+    // (cursorDepth: "column"), breaking card highlight for all but the initial item.
     const nodes: KNode[] = [
       {
         id: "board",
@@ -1291,18 +1291,18 @@ describe("detail pane j/k navigation", () => {
     /** Get detail pane's cursor state from pane state */
     const detailCursor = () => {
       const pane = store.getState().workspace.panes.get("main-detail") as any
-      const cursorNodeId = pane?.cursorNodeId ?? null
+      const cursorNodeId = (pane?.sel.node.cursor() as string | null) ?? null
       // In detail view mode, items are flat — cursorCardNodeId === cursorNodeId
       return {
         cursorNodeId,
         cursorCardNodeId: cursorNodeId,
-        selectionLevel: cursorNodeId ? "card" : "board",
+        cursorDepth: cursorNodeId ? "card" : "board",
       }
     }
 
     // Task nodes show metadata rows first; cursor starts on __meta__Status
     expect(detailCursor().cursorCardNodeId).toBe("__meta__Status")
-    expect(detailCursor().selectionLevel).toBe("card")
+    expect(detailCursor().cursorDepth).toBe("card")
 
     // Navigate past metadata rows (Status, Priority, Due, Start, Recurrence, Assigned)
     for (let i = 0; i < 6; i++) board.press("j")
@@ -1310,19 +1310,19 @@ describe("detail pane j/k navigation", () => {
     // First child: body paragraph — should highlight as card
     expect(dc(store)).toBe("body1")
     expect(detailCursor().cursorCardNodeId).toBe("body1")
-    expect(detailCursor().selectionLevel).toBe("card")
+    expect(detailCursor().cursorDepth).toBe("card")
 
     // Second child: heading (outline) — should ALSO highlight as card, not column
     board.press("j")
     expect(dc(store)).toBe("heading1")
     expect(detailCursor().cursorCardNodeId).toBe("heading1")
-    expect(detailCursor().selectionLevel).toBe("card")
+    expect(detailCursor().cursorDepth).toBe("card")
 
     // Third child: another heading — same
     board.press("j")
     expect(dc(store)).toBe("heading2")
     expect(detailCursor().cursorCardNodeId).toBe("heading2")
-    expect(detailCursor().selectionLevel).toBe("card")
+    expect(detailCursor().cursorDepth).toBe("card")
   })
 
   test("j then k round-trips correctly", () => {
@@ -1365,7 +1365,7 @@ describe("board h/l navigation with detail pane open", () => {
     // Open detail pane, navigate inside
     board.press("D")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
-    const dc = (store.getState().workspace.panes.get("main-detail") as any)?.cursorNodeId ?? null
+    const dc = (store.getState().workspace.panes.get("main-detail") as any)?.sel?.node?.cursor() as string | null ?? null
     expect(dc).toBe("sub-1")
 
     board.press("j") // navigate in detail

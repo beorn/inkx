@@ -1043,7 +1043,7 @@ describe("Enter after edit creates sibling, not board jump", () => {
     expect(output).toContain("1a")
   })
 
-  test("Enter chain: newly created sibling stays at card level (editLevel = card)", () => {
+  test("Enter chain: newly created sibling stays at card level (editDepth = card)", () => {
     const { board, repo, store } = testEnv(() => item("board", item("col1", item("1a"))))
 
     // Enter edit mode on 1a
@@ -1061,7 +1061,7 @@ describe("Enter after edit creates sibling, not board jump", () => {
     expect(newNodeId1).toBeDefined()
     expect(newNodeId1).not.toBe("1a")
 
-    // Verify the new node IS in nodeIndex (critical: this is what editLevel depends on)
+    // Verify the new node IS in nodeIndex (critical: this is what editDepth depends on)
     const rootId = pane2.rootId
     const foldDepths = pane2.foldDepths
     const cols = deriveColumnsFromRepo(repo, rootId, foldDepths)
@@ -1126,14 +1126,14 @@ describe("Enter after edit creates sibling, not board jump", () => {
     // Should still be in edit mode
     expect(store.getState().sel.text()).not.toBeNull()
     // Cursor should be on a real node (not null, not at board level)
-    expect(pane2.cursorNodeId).toBeDefined()
-    expect(pane2.cursorNodeId).not.toBeNull()
+    expect((pane2.sel.node.cursor() as string | null)).toBeDefined()
+    expect((pane2.sel.node.cursor() as string | null)).not.toBeNull()
   })
 
-  test("editLevel uses editing node position, not cursor (regression)", () => {
-    // Regression test: editLevel() must look up the EDITING node in nodeIndex,
+  test("editDepth uses editing node position, not cursor (regression)", () => {
+    // Regression test: editDepth() must look up the EDITING node in nodeIndex,
     // not the cursor. When cursor is at board level but editing a card,
-    // editLevel should return "card" (not "board").
+    // editDepth should return "card" (not "board").
     const { board, repo, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"))))
 
     // Enter edit on 1a

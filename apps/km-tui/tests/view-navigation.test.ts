@@ -409,31 +409,31 @@ describe("classifyCursorFromViewIndex", () => {
 
   it("column-level: oi child of root", () => {
     const result = classify("A")
-    expect(result).toEqual({ cursorCardNodeId: null, cursorColumnNodeId: "A", selectionLevel: "column" })
+    expect(result).toEqual({ cursorCardNodeId: null, cursorColumnNodeId: "A", cursorDepth: "column" })
   })
 
   it("card-level: grandchild of root", () => {
     const result = classify("B")
-    expect(result).toEqual({ cursorCardNodeId: "B", cursorColumnNodeId: "col1", selectionLevel: "card" })
+    expect(result).toEqual({ cursorCardNodeId: "B", cursorColumnNodeId: "col1", cursorDepth: "card" })
   })
 
   it("deep: cursor inside card", () => {
     const result = classify("deep")
-    expect(result).toEqual({ cursorCardNodeId: "B", cursorColumnNodeId: "col1", selectionLevel: "card" })
+    expect(result).toEqual({ cursorCardNodeId: "B", cursorColumnNodeId: "col1", cursorDepth: "card" })
   })
 
   it("body card: non-oi child of root", () => {
     const result = classify("para")
-    expect(result).toEqual({ cursorCardNodeId: "para", cursorColumnNodeId: "__body__board", selectionLevel: "card" })
+    expect(result).toEqual({ cursorCardNodeId: "para", cursorColumnNodeId: "__body__board", cursorDepth: "card" })
   })
 
   it("virtual body column header", () => {
     const result = classify("__body__board")
-    expect(result).toEqual({ cursorCardNodeId: null, cursorColumnNodeId: "__body__board", selectionLevel: "column" })
+    expect(result).toEqual({ cursorCardNodeId: null, cursorColumnNodeId: "__body__board", cursorDepth: "column" })
   })
 
   it("board level: null cursor", () => {
     const result = classify(null)
-    expect(result).toEqual({ cursorCardNodeId: null, cursorColumnNodeId: null, selectionLevel: "board" })
+    expect(result).toEqual({ cursorCardNodeId: null, cursorColumnNodeId: null, cursorDepth: "board" })
   })
 })

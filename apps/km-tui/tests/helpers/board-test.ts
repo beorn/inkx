@@ -255,9 +255,9 @@ function computeInitialCursor(initialState: InitialBoardData) {
   const selectedCol = initialState.columns[colIndex]
   const isCollapsed = selectedCol ? initialState.collapsedNodeIds.has(selectedCol.node.id) : false
   const hasCards = selectedCol && !isCollapsed && selectedCol.cardNodes.length > 0
-  const selectionLevel: "board" | "column" | "card" = cursorNodeId === null ? "board" : hasCards ? "card" : "column"
+  const cursorDepth: "board" | "column" | "card" = cursorNodeId === null ? "board" : hasCards ? "card" : "column"
 
-  return { cursorNodeId, colIndex, cardIndex: hasCards ? 0 : cardIndex, selectedCol, selectionLevel }
+  return { cursorNodeId, colIndex, cardIndex: hasCards ? 0 : cardIndex, selectedCol, cursorDepth }
 }
 
 // =============================================================================
@@ -1799,7 +1799,7 @@ function createFluentBoardApi(ctx: {
       }
       if (expected.viewMode !== undefined) expect(pane.viewMode).toBe(expected.viewMode)
       if (expected.filterText !== undefined) expect(pane.filterText).toBe(expected.filterText)
-      if (expected.cursor !== undefined) expect(pane.cursorNodeId).toBe(expected.cursor)
+      if (expected.cursor !== undefined) expect((pane.sel.node.cursor() as string | null)).toBe(expected.cursor)
       return board
     },
   }
@@ -1907,7 +1907,7 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     colIndex: 0,
     cardIndex: 0,
     ui: createInitialPaneUI("cards", [], { columns, rows }),
-    derivedSelectionLevel: "card",
+    cursorDepth: "card",
     dimensions: { columns, rows },
     collapsedNodes: new Set<string>(),
     hasDetailPane: false,
