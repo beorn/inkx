@@ -227,7 +227,7 @@ export async function createBoardTest(
   const initVIndex = buildViewIndex(initVTree)
   const initAncestors = classifyCursorFromViewIndex(initVIndex, firstCardNodeId)
   nodeStore.syncCursor({
-    cursorNodeId: firstCardNodeId,
+    cursor: firstCardNodeId,
     cursorCardNodeId: initAncestors.cursorCardNodeId,
     cursorColumnNodeId: initAncestors.cursorColumnNodeId,
     cursorDepth: initAncestors.cursorDepth,

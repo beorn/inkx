@@ -7,7 +7,7 @@
  * 3. BoardApp - Production entry wrapper (gets dimensions/exit from context)
  *
  * State lives in the BoardAppStore (signal store). Keys flow through term:key handler
- * in board-app.ts. Board reads data model fields (rootId, cursorNodeId, foldDepths)
+ * in board-app.ts. Board reads data model fields (rootId, cursor, foldDepths)
  * from store and derives view concerns (columns, cursor position) via hooks.
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
@@ -95,9 +95,9 @@ export interface BoardCoreProps {
   rootId: string | null
   /** Derived columns for rendering */
   columns: ColumnView[]
-  /** Current column index (derived from cursorNodeId) */
+  /** Current column index (derived from cursor) */
   colIndex: number
-  /** Current card index (derived from cursorNodeId) */
+  /** Current card index (derived from cursor) */
   cardIndex: number
   /** UI state (dialogs, view mode, etc.) */
   ui: PaneUI
@@ -576,7 +576,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // which causes this selector to re-evaluate. Reading sel.node.cursor() gives the
   // correct per-pane cursor regardless of which pane is focused.
   // We also read _selVersion to ensure store detects the change.
-  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
+  const cursor = useAppStore<BoardAppStore, string | null>((s) => {
     void (s as Record<string, unknown>)._selVersion // depend on version bump from SELECT handler
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     // Read from per-pane sel store (authoritative source of cursor)
@@ -612,12 +612,12 @@ export function Board({ patchedConsole }: BoardProps) {
   const nodeStore = useMemo(() => {
     const store = new ReactiveNodeStore()
     // Derive initial cursor classification for the pre-render sync
-    if (cursorNodeId && rootId) {
+    if (cursor && rootId) {
       const vTree = buildViewTree(repo, rootId, foldDepths)
       const vIndex = buildViewIndex(vTree)
-      const ancestors = classifyCursorFromViewIndex(vIndex, cursorNodeId)
+      const ancestors = classifyCursorFromViewIndex(vIndex, cursor)
       store.syncCursor({
-        cursorNodeId,
+        cursor,
         cursorCardNodeId: ancestors.cursorCardNodeId,
         cursorColumnNodeId: ancestors.cursorColumnNodeId,
         cursorDepth: ancestors.cursorDepth,
@@ -742,11 +742,11 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [nodeStore, editState, repo, nodeIndex])
 
-  // Derive cursor position from cursorNodeId + columns
+  // Derive cursor position from cursor + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index
   const cursorPosition = useMemo(
-    () => deriveCursorIndices(columns, cursorNodeId, nodeIndex, getNode),
-    [columns, cursorNodeId, nodeIndex, getNode],
+    () => deriveCursorIndices(columns, cursor, nodeIndex, getNode),
+    [columns, cursor, nodeIndex, getNode],
   )
 
   const columnsLayout = useMemo(
@@ -781,12 +781,12 @@ export function Board({ patchedConsole }: BoardProps) {
   // re-render, which triggers this effect, which syncs the new cursor state.
   useEffect(() => {
     nodeStore.syncCursor({
-      cursorNodeId,
+      cursor,
       cursorCardNodeId,
       cursorColumnNodeId,
       cursorDepth,
     })
-  }, [nodeStore, cursorNodeId, cursorCardNodeId, cursorColumnNodeId, cursorDepth])
+  }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth])
 
   // Read hidden paths for filtering (re-read only when hidden list actually changes)
   const hiddenPaths = useMemo(() => readBoardHidden(repo.path), [repo.path, ui.hiddenVersion])
@@ -979,8 +979,8 @@ export function Board({ patchedConsole }: BoardProps) {
   // Set terminal window title to breadcrumb path: "km — Projects > Sprint 1 > My Task"
   // Only the focused pane updates the title to avoid conflicts in multi-pane mode.
   useEffect(() => {
-    if (!boardFocused || !cursorNodeId) return
-    const segments = getPathSegments(repo, cursorNodeId, rootId)
+    if (!boardFocused || !cursor) return
+    const segments = getPathSegments(repo, cursor, rootId)
     // Skip the repo root segment (folder icon) and build a plain breadcrumb
     const breadcrumb = segments
       .slice(1)
@@ -990,7 +990,7 @@ export function Board({ patchedConsole }: BoardProps) {
     if (breadcrumb) {
       setWindowTitle(process.stdout, `km — ${breadcrumb}`)
     }
-  }, [boardFocused, cursorNodeId, repo, rootId])
+  }, [boardFocused, cursor, repo, rootId])
 
   // Subscribe to external events
   useEffect(() => createFileDropHandler(setUI), [setUI])

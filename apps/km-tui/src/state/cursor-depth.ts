@@ -22,17 +22,17 @@ export const CursorDepth = {
    *
    * - "board": no column (cursor is at the board root)
    * - "column": in a column, but not at card level
-   * - "card": at a card (cursorNodeId === cursorCardNodeId)
-   * - "subitem": inside a card's children (cursorNodeId !== cursorCardNodeId)
+   * - "card": at a card (cursor === cursorCardNodeId)
+   * - "subitem": inside a card's children (cursor !== cursorCardNodeId)
    */
   derive(opts: {
-    cursorNodeId: string | null
+    cursor: string | null
     cursorCardNodeId: string | null
     cursorColumnNodeId: string | null
   }): CursorDepth {
     if (!opts.cursorColumnNodeId) return "board"
     if (!opts.cursorCardNodeId) return "column"
-    if (opts.cursorNodeId != null && opts.cursorNodeId !== opts.cursorCardNodeId) return "subitem"
+    if (opts.cursor != null && opts.cursor !== opts.cursorCardNodeId) return "subitem"
     return "card"
   },
 

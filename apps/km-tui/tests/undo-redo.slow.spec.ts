@@ -520,7 +520,7 @@ describe("undo: cursor restoration", () => {
 
     const result = handle.undo()
     expect(result.ok).toBe(true)
-    expect(result.cursorNodeId).toBe("task-a")
+    expect(result.cursor).toBe("task-a")
   })
 
   test("auto-batch records cursor per mutation", () => {
@@ -536,11 +536,11 @@ describe("undo: cursor restoration", () => {
 
     // Undo second
     const result2 = handle.undo()
-    expect(result2.cursorNodeId).toBe("task-b")
+    expect(result2.cursor).toBe("task-b")
 
     // Undo first
     const result1 = handle.undo()
-    expect(result1.cursorNodeId).toBe("task-a")
+    expect(result1.cursor).toBe("task-a")
   })
 })
 

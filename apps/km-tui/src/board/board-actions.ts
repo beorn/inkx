@@ -939,7 +939,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       // Push undo entry with fold state
       ctx.undoStack.push({
         label: "Collapse",
-        cursorNodeId: ctx.cursor,
+        cursor: ctx.cursor,
         foldStateBefore,
         foldStateAfter,
         undo: () => {
@@ -1562,7 +1562,7 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
     case "HISTORY_UNDO": {
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
-      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursor
+      const cursorNodeId = result.ok && result.cursor != null ? result.cursor : ctx.cursor
       ctx.sel.node.select([cursorNodeId as ID])
       // Restore fold state if captured in the undo entry
       if (result.foldState) {
@@ -1978,7 +1978,7 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   // Push undo entry with fold state
   ctx.undoStack.push({
     label: "Fold",
-    cursorNodeId: ctx.cursor,
+    cursor: ctx.cursor,
     foldStateBefore,
     foldStateAfter,
     undo: () => {

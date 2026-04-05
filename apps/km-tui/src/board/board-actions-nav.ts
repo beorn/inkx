@@ -449,13 +449,13 @@ export function handlePageJump(ctx: OpCtx, direction: "up" | "down"): void {
   runBoardEffects(ctx, result)
 }
 
-/** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
+/** Build NavState from action context. Caller must guard that cursor is non-null. */
 export function navStateFrom(ctx: OpCtx): NavState {
   if (!ctx.cursor) {
-    throw new Error("[nav] navStateFrom: cursorNodeId is null")
+    throw new Error("[nav] navStateFrom: cursor is null")
   }
   return {
-    cursorNodeId: ctx.cursor,
+    cursor: ctx.cursor,
     rootId: ctx.rootId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,

@@ -22,7 +22,7 @@ import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } 
  * Navigation state passed to the view for resolving movement.
  */
 export interface NavState {
-  cursorNodeId: string
+  cursor: string
   rootId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
@@ -102,7 +102,7 @@ export function createDetailViewNavigation(): ViewNavigation {
       return { cursorCardNodeId: nodeId, cursorColumnNodeId: null, cursorDepth: "card" }
     },
     navigate(dir, state, repo) {
-      const { cursorNodeId, rootId } = state
+      const { cursor, rootId } = state
 
       if (dir === "left" || dir === "right") return null
 
@@ -120,13 +120,13 @@ export function createDetailViewNavigation(): ViewNavigation {
       // Use z/l to enter a heading's children (zoom in).
 
       // Cursor is the H1 (root)
-      if (cursorNodeId === rootId) {
+      if (cursor === rootId) {
         if (dir === "down") return metaIds[0] ?? allChildren[0]?.id ?? null
         return null // k on H1 = boundary
       }
 
       // Cursor is a meta row
-      const metaIdx = metaIds.indexOf(cursorNodeId)
+      const metaIdx = metaIds.indexOf(cursor)
       if (metaIdx >= 0) {
         if (dir === "down") {
           const next = metaIdx + 1
@@ -138,19 +138,19 @@ export function createDetailViewNavigation(): ViewNavigation {
       }
 
       // Cursor is a child node
-      const cursorNode = repo.getNode(cursorNodeId)
+      const cursorNode = repo.getNode(cursor)
       if (!cursorNode) return null
       const parentId = cursorNode.parent_id ?? rootId
 
       if (dir === "down") {
         // j on a heading/item with children → enter first child
         if (cursorNode.item) {
-          const nodeChildren = repo.getChildren(cursorNodeId)
+          const nodeChildren = repo.getChildren(cursor)
           if (nodeChildren.length > 0) return nodeChildren[0]!.id
         }
         // j on a leaf or item with no children → next sibling
         const siblings = repo.getChildren(parentId)
-        const sibIdx = siblings.findIndex((c) => c.id === cursorNodeId)
+        const sibIdx = siblings.findIndex((c) => c.id === cursor)
         if (sibIdx >= 0 && sibIdx + 1 < siblings.length) return siblings[sibIdx + 1]!.id
         // Past last sibling → go to parent's next sibling (bubble up)
         if (parentId === rootId || !parentId) return null
@@ -165,7 +165,7 @@ export function createDetailViewNavigation(): ViewNavigation {
 
       // k — go to previous sibling, or parent
       const siblings = repo.getChildren(parentId)
-      const sibIdx = siblings.findIndex((c) => c.id === cursorNodeId)
+      const sibIdx = siblings.findIndex((c) => c.id === cursor)
       if (sibIdx >= 0) {
         if (sibIdx - 1 >= 0) {
           // k → previous sibling. If that sibling has children, go to its LAST descendant.
@@ -303,9 +303,9 @@ function vnVisibleCards(col: ViewNode): ViewNode[] {
  * ad-hoc repo walks. The tree already encodes visual roles.
  */
 function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: GridNavigator): string | null {
-  const { cursorNodeId, viewTree, viewIndex } = state
+  const { cursor, viewTree, viewIndex } = state
 
-  const vn = viewIndex.get(cursorNodeId)
+  const vn = viewIndex.get(cursor)
   if (!vn) {
     // Node not in view tree (e.g., deleted during sync)
     return state.rootId
@@ -346,7 +346,7 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
   if (vn.role === "column") {
     if (dir === "down") {
       // Collapsed column → can't enter
-      if (state.collapsedNodes.has(cursorNodeId)) return null
+      if (state.collapsedNodes.has(cursor)) return null
       const visCards = vnVisibleCards(vn)
       return visCards[0]?.id ?? null
     }
@@ -436,9 +436,9 @@ function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: Grid
  * Cross-column movement using the ViewNode tree.
  */
 function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator: GridNavigator): string | null {
-  const { cursorNodeId, viewTree, viewIndex } = state
+  const { cursor, viewTree, viewIndex } = state
 
-  const vn = viewIndex.get(cursorNodeId)
+  const vn = viewIndex.get(cursor)
   if (!vn) {
     return state.rootId
   }

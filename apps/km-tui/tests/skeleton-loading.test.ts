@@ -26,10 +26,10 @@ function derivedState(store: StoreApi<BoardAppStore>) {
   const board = getActiveBoardPane(s)
   const rootId = board?.rootId ?? null
   const foldDepths = board?.foldDepths ?? new Map<string, number>()
-  const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? null
+  const cursorId = (board?.sel.node.cursor() as string | null) ?? null
   const columns = deriveColumnsFromRepo(s.repo, rootId, foldDepths)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex)
+  const cursor = deriveCursorIndices(columns, cursorId, nodeIndex)
   const cursorDepth: "board" | "column" | "card" =
     cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
   return {

@@ -29,10 +29,10 @@ import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
-function makeNavState(cursorNodeId: string, rootId: string, repo: Repo): NavState {
+function makeNavState(cursor: string, rootId: string, repo: Repo): NavState {
   const vTree = buildViewTree(repo, rootId, new Map())
   const vIndex = buildViewIndex(vTree)
-  return { cursorNodeId, rootId, foldDepths: new Map(), collapsedNodes: new Set(), viewTree: vTree, viewIndex: vIndex }
+  return { cursor, rootId, foldDepths: new Map(), collapsedNodes: new Set(), viewTree: vTree, viewIndex: vIndex }
 }
 
 function cursor(nodeId: string): string {

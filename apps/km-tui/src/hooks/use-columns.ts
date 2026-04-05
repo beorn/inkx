@@ -9,7 +9,7 @@
  * 1. useColumns() — React hook with repo subscription
  * 2. deriveColumnsFromRepo() — Delegates to buildViewTree + viewNodeToColumnViews
  * 3. buildNodeIndex() — O(1) cursor position lookup map
- * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursorNodeId
+ * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursor
  */
 
 import { useRef, useState } from "react"
@@ -218,32 +218,32 @@ export interface CursorIndices {
 }
 
 /**
- * Derive cursor indices from cursorNodeId using nodeIndex for O(1) lookup.
- * When getNode is provided and cursorNodeId is not in the index (e.g., a descendant
+ * Derive cursor indices from cursor using nodeIndex for O(1) lookup.
+ * When getNode is provided and cursor is not in the index (e.g., a descendant
  * of a card), walks up the parent chain to find the containing card's position.
  * This eliminates the need to index all descendants upfront (20k+ getChildren queries).
  */
 export function deriveCursorIndices(
   columns: ColumnView[],
-  cursorNodeId: string | null,
+  cursor: string | null,
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
   getNode?: (id: string) => { parent_id: string | null } | null,
   /** Hint from cursor store — for embeds where parent_id chain leads to wrong card */
   cursorCardNodeId?: string | null,
 ): CursorIndices {
-  if (!cursorNodeId || columns.length === 0) {
+  if (!cursor || columns.length === 0) {
     return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
   }
 
   // Direct lookup
-  let entry = nodeIndex.get(cursorNodeId)
+  let entry = nodeIndex.get(cursor)
 
   // On miss: try cursorCardNodeId hint first (embed-aware), then parent walk
   if (!entry && cursorCardNodeId) {
     entry = nodeIndex.get(cursorCardNodeId)
   }
   if (!entry && getNode) {
-    let current = getNode(cursorNodeId)
+    let current = getNode(cursor)
     while (current?.parent_id) {
       entry = nodeIndex.get(current.parent_id)
       if (entry) break
@@ -260,7 +260,7 @@ export function deriveCursorIndices(
   }
 
   // Cursor node not found in visible columns
-  perfLog.debug?.(`cursor node ${cursorNodeId?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`)
+  perfLog.debug?.(`cursor node ${cursor?.slice(-8)} not found in nodeIndex (${nodeIndex.size} entries)`)
   return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
 }
 

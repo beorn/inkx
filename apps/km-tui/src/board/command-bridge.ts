@@ -71,7 +71,7 @@ function buildCommandContexts(ctx: OpCtx) {
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
     isInOutlineMode: CursorDepth.isOutline(
       CursorDepth.derive({
-        cursorNodeId: ctx.cursor,
+        cursor: ctx.cursor,
         cursorCardNodeId: ctx.cursorCardNodeId,
         cursorColumnNodeId: ctx.column?.node.id ?? null,
       }),

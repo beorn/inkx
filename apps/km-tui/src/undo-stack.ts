@@ -44,7 +44,7 @@ export interface UndoEntry {
   /** Re-apply the mutation */
   redo: () => void
   /** Cursor node to restore on undo (position before the operation) */
-  cursorNodeId?: string | null
+  cursor?: string | null
   /** Optional fold state snapshot to restore on undo */
   foldStateBefore?: FoldState
   /** Optional fold state snapshot to restore on redo */
@@ -55,7 +55,7 @@ export interface UndoResult {
   /** Whether an operation was undone/redone */
   ok: boolean
   /** Cursor node to restore (null = no cursor preference) */
-  cursorNodeId?: string | null
+  cursor?: string | null
   /** Human-readable label of the operation (e.g., "Delete", "Move cards") */
   label?: string
   /** Fold state to restore (to be applied by the caller) */
@@ -111,7 +111,7 @@ export function createUndoStack(maxSize = 100): UndoStack {
       entry.undo()
       return {
         ok: true,
-        cursorNodeId: entry.cursorNodeId,
+        cursor: entry.cursor,
         label: entry.label,
         foldState: entry.foldStateBefore,
       }

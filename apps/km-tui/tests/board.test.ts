@@ -135,9 +135,9 @@ describe("Runtime invariants", () => {
   })
 
   test("InvariantViolationError has correct properties", () => {
-    const err = new InvariantViolationError("cursor-exists", "Cursor gone", { cursorNodeId: "abc" })
+    const err = new InvariantViolationError("cursor-exists", "Cursor gone", { cursor: "abc" })
     expect(err.check).toBe("cursor-exists")
-    expect(err.ids).toEqual({ cursorNodeId: "abc" })
+    expect(err.ids).toEqual({ cursor: "abc" })
     expect(err.message).toContain("cursor-exists")
     expect(err.message).toContain("Cursor gone")
     expect(err.name).toBe("InvariantViolationError")

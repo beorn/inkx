@@ -508,9 +508,9 @@ function TreeNodeImpl({
   )
   // Cursor expansion: when cursor is inside this node's subtree, bypass maxContentLines
   // so all siblings of the cursor target are visible.
-  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
+  const cursor = useReactive(nodeStore.cursor)
   const cursorIsChild =
-    cursorNodeId != null && cursorNodeId !== node.id && repo.getNode(cursorNodeId)?.parent_id === node.id
+    cursor != null && cursor !== node.id && repo.getNode(cursor)?.parent_id === node.id
   const shouldExpand =
     // Edit: card-level expansion
     (depth === 0 && expandedEditCardId === node.id) ||
@@ -1100,7 +1100,7 @@ function NodeChildren({
 
   // Get cursor position from ReactiveNodeStore to determine which child is selected.
   const nodeStore = useNodeStore()
-  const cursorNodeId = useReactive(nodeStore.cursorNodeId)
+  const cursor = useReactive(nodeStore.cursor)
 
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children
@@ -1117,7 +1117,7 @@ function NodeChildren({
           <FoldAwareChild
             key={item.node.id}
             node={item.node}
-            isSelected={cursorNodeId === item.node.id}
+            isSelected={cursor === item.node.id}
             depth={depth + 1}
             colIndex={colIndex}
             cardIndex={cardIndex}
@@ -1145,7 +1145,7 @@ function NodeChildren({
   return (
     <Box flexDirection="column">
       {orderedChildren.map((item, i) => {
-        const childSelected = cursorNodeId === item.node.id
+        const childSelected = cursor === item.node.id
 
         return (
           <TreeNode

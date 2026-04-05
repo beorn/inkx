@@ -260,21 +260,21 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
     const cols = derive(s.repo, rootId, foldDepths)
     const ni = buildNodeIndex(cols)
-    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? null
-    const cursor = deriveCursorIndices(cols, cursorNodeId, ni, (id) => s.repo.getNode(id))
-    const column = cols[cursor.colIndex]
-    const card = column?.cardNodes[cursor.cardIndex]
+    const cursor = (board?.sel.node.cursor() as string | null) ?? null
+    const cursorPos = deriveCursorIndices(cols, cursor, ni, (id) => s.repo.getNode(id))
+    const column = cols[cursorPos.colIndex]
+    const card = column?.cardNodes[cursorPos.cardIndex]
     const selectedNode = card ?? column?.node ?? null
 
     return {
       currentNode: selectedNode as CommandContext["currentNode"],
       currentNodeId: selectedNode?.id ?? null,
-      cursorNodeId,
+      cursorNodeId: cursor,
       selectedNodes: Array.from(s.sel.node.ids()),
       viewMode: board?.viewMode ?? "columns",
-      siblingIndex: cursor.cardIndex,
+      siblingIndex: cursorPos.cardIndex,
       siblingCount: column?.cardNodes.length ?? 0,
-      columnIndex: cursor.colIndex,
+      columnIndex: cursorPos.colIndex,
       columnCount: cols.length,
       moveMode: board?.moveState.active ?? false,
       foldDepths,
@@ -358,18 +358,18 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
     const cols = derive(s.repo, rootId, foldDepths)
     const ni = buildNodeIndex(cols)
-    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? null
-    const cursor = deriveCursorIndices(cols, cursorNodeId, ni, (id) => s.repo.getNode(id))
-    const col = cols[cursor.colIndex]
-    const card = col?.cardNodes[cursor.cardIndex]
+    const cursorId = (board?.sel.node.cursor() as string | null) ?? null
+    const cursorPos = deriveCursorIndices(cols, cursorId, ni, (id) => s.repo.getNode(id))
+    const col = cols[cursorPos.colIndex]
+    const card = col?.cardNodes[cursorPos.cardIndex]
     const selectedNode = card ?? col?.node ?? null
-    const level = cursor.colIndex === -1 ? "board" : cursor.cardIndex === -1 ? "column" : "card"
+    const level = cursorPos.colIndex === -1 ? "board" : cursorPos.cardIndex === -1 ? "column" : "card"
 
     return {
       ...baseState,
       cursor: {
-        col: cursor.colIndex,
-        card: cursor.cardIndex,
+        col: cursorPos.colIndex,
+        card: cursorPos.cardIndex,
         level,
       },
       selectedNodeId: selectedNode?.id ?? null,
@@ -383,9 +383,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       detailPaneOpen: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
       moveMode: board?.moveState.active ?? false,
       columns: cols,
-      colIndex: cursor.colIndex,
-      cardIndex: cursor.cardIndex,
-      isAtCardLevel: cursor.isAtCardLevel,
+      colIndex: cursorPos.colIndex,
+      cardIndex: cursorPos.cardIndex,
+      isAtCardLevel: cursorPos.isAtCardLevel,
       nodeIndex: ni,
       ui: s.ui,
     }

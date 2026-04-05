@@ -50,7 +50,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
       violations.push({
         check: "cursor-exists",
         message: `Cursor points to non-existent node`,
-        ids: { cursorNodeId: ctx.cursor },
+        ids: { cursor: ctx.cursor },
       })
     }
   }
@@ -63,7 +63,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
       violations.push({
         check: "cursor-under-root",
         message: `Cursor node is not a descendant of the board root`,
-        ids: { cursorNodeId: ctx.cursor, rootId: ctx.rootId },
+        ids: { cursor: ctx.cursor, rootId: ctx.rootId },
       })
     }
   }
@@ -131,7 +131,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
       violations.push({
         check: "colIndex-bounds",
         message: `colIndex ${ctx.colIndex} >= columns.length ${ctx.columns.length}`,
-        ids: { cursorNodeId: ctx.cursor },
+        ids: { cursor: ctx.cursor },
       })
     }
     if (ctx.isAtCardLevel && ctx.cardIndex >= 0) {
@@ -140,7 +140,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         violations.push({
           check: "cardIndex-bounds",
           message: `cardIndex ${ctx.cardIndex} >= column cardNodes.length ${col.cardNodes.length}`,
-          ids: { cursorNodeId: ctx.cursor, columnNodeId: col.node.id },
+          ids: { cursor: ctx.cursor, columnNodeId: col.node.id },
         })
       }
     }
@@ -164,7 +164,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         check: "cursor-in-columns",
         message: `Cursor node exists in repo but not found in any column (colIndex=${ctx.colIndex})`,
         ids: {
-          cursorNodeId: ctx.cursor,
+          cursor: ctx.cursor,
           parentId: cursorNode.parent_id,
           rootId: ctx.rootId,
         },

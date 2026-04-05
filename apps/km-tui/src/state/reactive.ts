@@ -105,7 +105,7 @@ export class ReactiveNodeStore {
   private knownNodeIds = new Set<string>()
 
   // ── Cursor state (synced from Board.tsx via syncCursor) ──
-  cursorNodeId = new Reactive<string | null>(null)
+  cursor = new Reactive<string | null>(null)
   cursorCardNodeId = new Reactive<string | null>(null)
   cursorColumnNodeId = new Reactive<string | null>(null)
   cursorDepth = new Reactive<"board" | "column" | "card">("board")
@@ -144,12 +144,12 @@ export class ReactiveNodeStore {
 
   /** Sync cursor state to Reactive fields (called by Board.tsx) */
   syncCursor(cursorState: {
-    cursorNodeId: string | null
+    cursor: string | null
     cursorCardNodeId: string | null
     cursorColumnNodeId: string | null
     cursorDepth: "board" | "column" | "card"
   }): void {
-    this.cursorNodeId.value = cursorState.cursorNodeId
+    this.cursor.value = cursorState.cursor
     this.cursorCardNodeId.value = cursorState.cursorCardNodeId
     this.cursorColumnNodeId.value = cursorState.cursorColumnNodeId
     this.cursorDepth.value = cursorState.cursorDepth
@@ -158,7 +158,7 @@ export class ReactiveNodeStore {
     // but on a sub-item (not the card title). Only the affected card's
     // TreeNode at depth 0 subscribes, so only 1-2 components re-render.
     const cardId = cursorState.cursorCardNodeId
-    const isInDescendant = cardId != null && cursorState.cursorNodeId !== cardId
+    const isInDescendant = cardId != null && cursorState.cursor !== cardId
 
     // Clear previous card's flag (if it changed)
     if (this.prevDescendantCardId && this.prevDescendantCardId !== cardId) {

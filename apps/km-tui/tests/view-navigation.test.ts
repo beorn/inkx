@@ -21,7 +21,7 @@ import {
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, createGridNavigator } from "@km/board"
 
 function makeState(
-  cursorNodeId: string,
+  cursor: string,
   repo: Repo,
   rootId: string | null = "board",
   opts?: { hiddenNodeIds?: Set<string> },
@@ -29,7 +29,7 @@ function makeState(
   const viewTree = buildViewTree(repo, rootId, new Map(), undefined, opts?.hiddenNodeIds)
   const viewIndex = buildViewIndex(viewTree)
   return {
-    cursorNodeId,
+    cursor,
     rootId,
     foldDepths: new Map(),
     collapsedNodes: new Set(),

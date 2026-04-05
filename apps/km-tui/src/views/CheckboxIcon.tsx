@@ -107,8 +107,8 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       // so undo restores the cursor to where it was before the click.
       const state = storeRef?.getState()
       const boardPane = state ? Workspace.getActiveBoardPane(state) : null
-      const cursorNodeId = (boardPane?.sel.node.cursor() as string | null) ?? null
-      if (cursorNodeId) undoHandle?.setCursor(cursorNodeId)
+      const cursor = (boardPane?.sel.node.cursor() as string | null) ?? null
+      if (cursor) undoHandle?.setCursor(cursor)
 
       // Mutate via repo — same call as the keyboard path (runRepoEffect).
       repo.updateNode(targetId, {
@@ -120,8 +120,8 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       // re-evaluate board state and move the cursor to the changed node.
       // This mirrors handleTaskStatusCycle (board-actions-edit.ts) which
       // explicitly re-selects after toggling status.
-      if (cursorNodeId && state) {
-        state.sel.node.select([cursorNodeId as import("@silvery/selection").ID])
+      if (cursor && state) {
+        state.sel.node.select([cursor as import("@silvery/selection").ID])
       }
     },
     [nodeId, repo, undoHandle, storeRef],

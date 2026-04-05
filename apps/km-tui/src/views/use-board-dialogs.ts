@@ -46,7 +46,7 @@ interface UseBoardDialogsParams {
   /** Open detail pane via workspace operations (Phase 2 windowing) */
   openDetailPane: () => void
   /** Current cursor node ID (from board state) */
-  cursorNodeId: string | null
+  cursor: string | null
   /** Current root node ID (from board state) */
   rootId: string | null
   /** Undo handle for cursor recording and batching */
@@ -82,7 +82,7 @@ export function useBoardDialogs({
   sel,
   dispatchBoard,
   openDetailPane,
-  cursorNodeId,
+  cursor,
   rootId,
   undoHandle,
 }: UseBoardDialogsParams): BoardDialogHandlers {
@@ -93,13 +93,13 @@ export function useBoardDialogs({
   const handlePickerSelect = useCallback(
     (option: PickerOption) => {
       const targetNode = option.node
-      if (!cursorNodeId) {
+      if (!cursor) {
         setUI({ activePicker: null })
         return
       }
 
       // Get the node at the cursor
-      const cursorNode = repo.getNode(cursorNodeId)
+      const cursorNode = repo.getNode(cursor)
       if (!cursorNode) {
         setUI({ activePicker: null })
         return
@@ -112,7 +112,7 @@ export function useBoardDialogs({
       const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(targetNode.id))
 
       // Record cursor for undo
-      undoHandle.setCursor(cursorNodeId)
+      undoHandle.setCursor(cursor)
 
       // Update database via repo (handles memory/disk mode)
       repo.moveNode(nodeToMove, targetNode.id, newSortOrder)
@@ -123,7 +123,7 @@ export function useBoardDialogs({
         activePicker: null,
       }))
     },
-    [repo, cursorNodeId, setUI, undoHandle],
+    [repo, cursor, setUI, undoHandle],
   )
 
   const handlePickerCancel = useCallback(() => {
@@ -133,12 +133,12 @@ export function useBoardDialogs({
   // Handle tag picker selection — append #tag to current node's content
   const handleTagSelect = useCallback(
     (option: PickerOption) => {
-      if (!cursorNodeId) {
+      if (!cursor) {
         setUI({ activePicker: null })
         return
       }
 
-      const node = repo.getNode(cursorNodeId)
+      const node = repo.getNode(cursor)
       if (!node) {
         setUI({ activePicker: null })
         return
@@ -150,20 +150,20 @@ export function useBoardDialogs({
 
       // Only append if not already present
       if (!currentContent.includes(tag)) {
-        undoHandle.setCursor(cursorNodeId)
+        undoHandle.setCursor(cursor)
         const newContent = currentContent ? `${currentContent} ${tag}` : tag
-        repoUpdate(cursorNodeId, { content: newContent })
+        repoUpdate(cursor, { content: newContent })
       }
 
       setUI({ activePicker: null })
     },
-    [repo, cursorNodeId, setUI, undoHandle],
+    [repo, cursor, setUI, undoHandle],
   )
 
   // Handle assignee picker selection — set assigned_to on current node
   const handleAssigneeSelect = useCallback(
     (option: PickerOption) => {
-      if (!cursorNodeId) {
+      if (!cursor) {
         setUI({ activePicker: null })
         return
       }
@@ -171,12 +171,12 @@ export function useBoardDialogs({
       // The option title is "@name" — strip the @ prefix for assigned_to
       const assignee = option.title.startsWith("@") ? option.title.slice(1) : option.title
 
-      undoHandle.setCursor(cursorNodeId)
-      repo.updateNode(cursorNodeId, { assigned_to: assignee })
+      undoHandle.setCursor(cursor)
+      repo.updateNode(cursor, { assigned_to: assignee })
 
       setUI({ activePicker: null })
     },
-    [repo, cursorNodeId, setUI, undoHandle],
+    [repo, cursor, setUI, undoHandle],
   )
 
   // Handler for new item creation
@@ -280,7 +280,7 @@ export function useBoardDialogs({
       const useBatch = nodeIds.length > 1
 
       // Record cursor and batch for multi-node operations
-      undoHandle.setCursor(cursorNodeId)
+      undoHandle.setCursor(cursor)
       if (useBatch) undoHandle.startBatch(`Set ${field}`)
 
       if (field === "rrule") {
@@ -315,7 +315,7 @@ export function useBoardDialogs({
       if (useBatch) undoHandle.endBatch()
       return { datePrompt: null }
     })
-  }, [repo, setUI, undoHandle, cursorNodeId])
+  }, [repo, setUI, undoHandle, cursor])
 
   const handleDatePromptCancel = useCallback(() => {
     setUI({ datePrompt: null })

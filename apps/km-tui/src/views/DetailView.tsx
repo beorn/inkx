@@ -163,7 +163,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
                 nodes={children}
                 depth={1}
                 repo={repo}
-                cursorNodeId={cursorCardNodeId}
+                cursor={cursorCardNodeId}
                 undoHandle={undoHandle}
               />
             </Box>
@@ -186,7 +186,7 @@ interface DocContentProps {
   nodes: KNodeType[]
   depth: number
   repo: { getChildren(parentId: string): KNodeType[]; getNode(id: string): KNodeType | null }
-  cursorNodeId?: string | null
+  cursor?: string | null
   maxExpandDepth?: number
   /** Optional undo handle for interactive checkboxes */
   undoHandle?: import("../undo/undoable-repo.ts").UndoableRepoHandle
@@ -201,7 +201,7 @@ export function DocContent({
   nodes,
   depth,
   repo,
-  cursorNodeId,
+  cursor,
   maxExpandDepth,
   undoHandle,
 }: DocContentProps): React.ReactElement {
@@ -216,7 +216,7 @@ export function DocContent({
           node={node}
           depth={depth}
           repo={repo}
-          cursorNodeId={cursorNodeId}
+          cursor={cursor}
           maxExpandDepth={effectiveMaxDepth}
           undoHandle={undoHandle}
         />
@@ -234,14 +234,14 @@ function DocNode({
   node,
   depth,
   repo,
-  cursorNodeId,
+  cursor,
   maxExpandDepth,
   undoHandle,
 }: {
   node: KNodeType
   depth: number
   repo: DocContentProps["repo"]
-  cursorNodeId?: string | null
+  cursor?: string | null
   maxExpandDepth?: number
   undoHandle?: import("../undo/undoable-repo.ts").UndoableRepoHandle
 }): React.ReactElement {
@@ -249,7 +249,7 @@ function DocNode({
   const isHeading = KNode.isOutline(node)
   const isTask = KNode.isTask(node)
   const isItem = KNode.isItem(node)
-  const isCursor = node.id === cursorNodeId
+  const isCursor = node.id === cursor
   const shouldExpand = depth < (maxExpandDepth ?? MAX_EXPAND_DEPTH)
 
   // Only fetch children if we'll render them (avoid N+1 queries on deep/large trees)
@@ -336,7 +336,7 @@ function DocNode({
               nodes={children}
               depth={depth}
               repo={repo}
-              cursorNodeId={cursorNodeId}
+              cursor={cursor}
               maxExpandDepth={maxExpandDepth}
               undoHandle={undoHandle}
             />
@@ -377,7 +377,7 @@ function DocNode({
               nodes={children}
               depth={depth + 1}
               repo={repo}
-              cursorNodeId={cursorNodeId}
+              cursor={cursor}
               maxExpandDepth={maxExpandDepth}
               undoHandle={undoHandle}
             />
@@ -405,7 +405,7 @@ function DocNode({
               nodes={children}
               depth={depth + 1}
               repo={repo}
-              cursorNodeId={cursorNodeId}
+              cursor={cursor}
               maxExpandDepth={maxExpandDepth}
               undoHandle={undoHandle}
             />

@@ -63,7 +63,7 @@ export interface UndoableRepoHandle {
 
 export interface UndoResult {
   ok: boolean
-  cursorNodeId?: string | null
+  cursor?: string | null
   /** Human-readable label of the operation (e.g., "Delete", "Move cards") */
   label?: string
   /** Fold state to restore (to be applied by the caller) */
@@ -117,7 +117,7 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
 
     undoStack.push({
       label: entry.label ?? readableOpLabel(op.type),
-      cursorNodeId: entry.cursorBefore,
+      cursor: entry.cursorBefore,
       undo: () => applyOps(entry.inverseTreeOps),
       redo: () => applyOps(entry.treeops),
     })
@@ -276,7 +276,7 @@ export function createUndoableRepo(rawRepo: Repo, undoStack: UndoStack): { repo:
 
       undoStack.push({
         label: entry.label ?? `batch(${ops.length})`,
-        cursorNodeId: entry.cursorBefore,
+        cursor: entry.cursorBefore,
         undo: () => applyOps(entry.inverseTreeOps),
         redo: () => applyOps(entry.treeops),
       })

@@ -187,7 +187,7 @@ export function WorkspaceChrome({
     const p = Workspace.getActiveBoardPane(s)
     return p?.rootId ?? null
   })
-  const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
+  const cursor = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
   const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
@@ -213,7 +213,7 @@ export function WorkspaceChrome({
     sel,
     dispatchBoard,
     openDetailPane,
-    cursorNodeId,
+    cursor,
     rootId,
     undoHandle,
   })
@@ -439,7 +439,7 @@ export function WorkspaceChrome({
           <FavoritesDialog
             selectedKey={ui.favoritesSelectedKey}
             width={Math.min(50, Math.floor(termWidth / 2))}
-            assignNodeId={cursorNodeId}
+            assignNodeId={cursor}
           />
         </CenterDialog>
       )}
