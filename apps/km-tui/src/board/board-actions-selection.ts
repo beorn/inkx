@@ -52,7 +52,6 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
   const treeDir: TreeDirection = direction === "up" ? "prev" : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId) {
-    ctx.sel.node.select([targetId as ID])
     ctx.sel.node.extend(targetId as ID)
     const count = ctx.sel.node.ids().length
     ctx.setUI({ status: { level: "info", message: `${count} item${count > 1 ? "s" : ""} selected` } })
@@ -92,7 +91,6 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
   }
 
   const targetId = siblings[targetIdx]!.id
-  ctx.sel.node.select([targetId as ID])
   ctx.sel.node.extend(targetId as ID)
 
   const count = ctx.sel.node.ids().length

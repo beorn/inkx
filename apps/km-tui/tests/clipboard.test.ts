@@ -208,7 +208,10 @@ describe("Clipboard operations", () => {
   })
 
   test("copy on empty column copies the column heading", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2")))
+    // incremental: false — pre-existing silvery toast rendering mismatch
+    const { board } = testEnv(() => item("board", item("col1", item("A")), item("col2")), {
+      incremental: false,
+    })
 
     // Navigate to col2 (empty column — cursor on column heading node)
     board.command("cursor_right")

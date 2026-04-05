@@ -7,7 +7,7 @@
 import { ViewTree, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import type { OpResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import { KNode, getStatusForMarker } from "@km/core"
+import { KNode, getStatusForMarker, isOk } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { extractBody } from "@km/tree"
 import { clearSelection } from "./board-selection-helpers.ts"
@@ -45,6 +45,7 @@ function taskStatusMatchFn(ctx: OpCtx): ((vn: ViewNode) => boolean) | undefined 
  */
 export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   const { ui } = ctx
+  const prevCursor = ctx.cursor
 
   // Outline mode sub-item navigation (when cursor is inside a card's descendants)
   const inOutlineMode = ctx.cursor !== null && ctx.card !== undefined && ctx.cursor !== ctx.card.id
@@ -63,30 +64,36 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
     clearSelection(ctx)
   }
 
+  let result: OpResult
+
   // Horizontal (h/l) — preserves stickyY across columns, clears stickyX
   if (dir === "left" || dir === "right") {
-    const result = handleHorizontalNav(ctx, dir)
+    result = handleHorizontalNav(ctx, dir)
     ctx.navigator.clearStickyX()
-    return result
-  }
-
-  // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
-  if (dir === "up" || dir === "down") {
-    const result = handleVerticalNav(ctx, dir)
+  } else if (dir === "up" || dir === "down") {
+    // Hierarchical vertical (up/down) — clears stickyY so h/l will lazy-capture
+    result = handleVerticalNav(ctx, dir)
     ctx.navigator.clearStickyY()
-    return result
-  }
-
-  // Spatial block navigation (in/out) — J/K move to next/prev visible block in column
-  if (dir === "in" || dir === "out") {
-    const result = handleBlockNav(ctx, dir)
+  } else if (dir === "in" || dir === "out") {
+    // Spatial block navigation (in/out) — J/K move to next/prev visible block in column
+    result = handleBlockNav(ctx, dir)
     ctx.navigator.clearStickyY()
-    return result
+  } else {
+    // Tree navigation (first, last, prev, next)
+    result = handleTreeNav(ctx, dir)
+    ctx.navigator.clearStickyY()
   }
 
-  // Tree navigation (first, last, prev, next)
-  const result = handleTreeNav(ctx, dir)
-  ctx.navigator.clearStickyY()
+  // Sync detail pane when cursor moved and a detail pane exists.
+  // Navigation handlers call sel.node.select() directly (bypassing dispatchBoard("SELECT")),
+  // so the detail pane sync in dispatchBoard never runs. Dispatch SELECT to trigger it.
+  if (isOk(result) && ctx.hasDetailPane) {
+    const newCursor = ctx.sel.node.cursor() as string | null
+    if (newCursor && newCursor !== prevCursor) {
+      ctx.dispatchBoard({ type: "SELECT", nodeId: newCursor })
+    }
+  }
+
   return result
 }
 

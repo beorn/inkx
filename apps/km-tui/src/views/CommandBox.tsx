@@ -233,7 +233,7 @@ export function CommandBox({
 
   // Multi-selection count
   const selIds = sel.node.ids()
-  const multiSuffix = selIds.length > 0 ? `[${selIds.length}]` : ""
+  const multiSuffix = selIds.length > 1 ? `[${selIds.length}]` : ""
 
   // Command bar is "active" when the user is typing into it (omnibox, find input, search-replace)
   const isCommandInput = !!(ui.showOmnibox || localSearch?.isInputActive || ui.searchReplace)
