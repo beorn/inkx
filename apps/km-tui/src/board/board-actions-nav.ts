@@ -8,6 +8,7 @@ import { ViewTree, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import type { OpResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { KNode, getStatusForMarker } from "@km/core"
+import type { ID } from "@silvery/selection"
 import { extractBody } from "@km/tree"
 import { clearSelection } from "./board-selection-helpers.ts"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
@@ -46,7 +47,8 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   const { ui } = ctx
 
   // Outline mode sub-item navigation (when cursor is inside a card's descendants)
-  const inOutlineMode = ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id
+  const inOutlineMode =
+    ctx.sel.node.cursor() !== null && ctx.card !== undefined && (ctx.sel.node.cursor() as string) !== ctx.card.id
   if (inOutlineMode && (dir === "prev" || dir === "next")) {
     return handleOutlineNav(ctx, dir, ctx.card)
   }
@@ -97,7 +99,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
  * at construction time — same approach as ViewTree.nodes() for spatial nav.
  */
 function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefined): OpResult {
-  if (!card || !ctx.cursorNodeId) return boundary(dir)
+  if (!card || !ctx.sel.node.cursor()) return boundary(dir)
 
   const cardView = ctx.viewIndex.get(card.id)
   const statusMatch = taskStatusMatchFn(ctx)
@@ -124,7 +126,7 @@ function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefi
 
 /** Horizontal (h/l) cross-column navigation with stickyY. */
 function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
-  const { ui, dispatchBoard, navigator, viewNavigation } = ctx
+  const { ui, navigator, viewNavigation } = ctx
   const isDetailPane = ctx.focusedPaneViewType() === "detail"
 
   // Detail pane boundary: h always exits to parent board, l at right edge enters detail.
@@ -142,7 +144,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
   // When at leftmost card pressing h, position at column header instead of moving columns
   if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.column) {
     const columnNode = ctx.column.node
-    dispatchBoard({ type: "SELECT", nodeId: columnNode.id })
+    ctx.sel.node.select([columnNode.id as ID])
     navigator.clearStickyY()
     return ok()
   }
@@ -160,14 +162,14 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
   }
 
   // Use ViewNavigation for the core navigation logic
-  if (ctx.cursorNodeId) {
+  if (ctx.sel.node.cursor() as string | null) {
     const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
 
     if (targetId !== null) {
       // Pass cursorCardNodeId hint for embed-aware card classification.
       // When navigating within an embed's children, the data model parent
       // chain leads to the wrong card — the hint ensures the visual card is used.
-      dispatchBoard({ type: "SELECT", nodeId: targetId })
+      ctx.sel.node.select([targetId as ID])
       // In cards view, attach deferred resolve for off-screen Y-correction.
       // register() will fire it during silvery's Phase 2.7.
       if (ui.viewMode === "cards") {
@@ -191,7 +193,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
             }
             const child = children[itemIndex]
             if (child) {
-              dispatchBoard({ type: "SELECT", nodeId: child.id })
+              ctx.sel.node.select([child.id as ID])
             }
           }
         })
@@ -230,16 +232,16 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
 
 /** Hierarchical vertical navigation (j/k up/down). */
 function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
-  const { dispatchBoard, navigator, viewNavigation } = ctx
+  const { navigator, viewNavigation } = ctx
 
-  if (!ctx.cursorNodeId) {
+  if (!ctx.sel.node.cursor()) {
     return boundary(dir, "no cursor")
   }
 
   const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
   if (targetId === null) return boundary(dir)
 
-  dispatchBoard({ type: "SELECT", nodeId: targetId })
+  ctx.sel.node.select([targetId as ID])
   return ok()
 }
 
@@ -255,7 +257,7 @@ function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
  * Key invariant: J and K are strict inverses.
  */
 function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
-  if (!ctx.cursorNodeId) {
+  if (!ctx.sel.node.cursor()) {
     return boundary(dir, "no cursor")
   }
 
@@ -287,7 +289,7 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
 
   if (result.effects.length === 0) {
     // Check if cursor wasn't found vs at boundary
-    if (blocks.indexOf(ctx.cursorNodeId) < 0) return boundary(dir, "cursor not in column blocks")
+    if (blocks.indexOf(ctx.sel.node.cursor() as string | null) < 0) return boundary(dir, "cursor not in column blocks")
     return boundary(dir)
   }
 
@@ -342,11 +344,10 @@ function ensureCursorVisible(ctx: OpCtx, targetId: string): void {
 
 /** Default tree navigation (first, last, prev, next). */
 function handleTreeNav(ctx: OpCtx, dir: string): OpResult {
-  const { dispatchBoard } = ctx
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
-  if (targetId && targetId !== ctx.cursorNodeId) {
-    dispatchBoard({ type: "SELECT", nodeId: targetId })
+  if (targetId && targetId !== (ctx.sel.node.cursor() as string | null)) {
+    ctx.sel.node.select([targetId as ID])
     return ok()
   }
   return boundary(dir)
@@ -451,11 +452,11 @@ export function handlePageJump(ctx: OpCtx, direction: "up" | "down"): void {
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
 export function navStateFrom(ctx: OpCtx): NavState {
-  if (!ctx.cursorNodeId) {
+  if (!ctx.sel.node.cursor()) {
     throw new Error("[nav] navStateFrom: cursorNodeId is null")
   }
   return {
-    cursorNodeId: ctx.cursorNodeId,
+    cursorNodeId: ctx.sel.node.cursor() as string | null,
     rootId: ctx.rootId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
@@ -468,7 +469,7 @@ export function navStateFrom(ctx: OpCtx): NavState {
 /** Extract BoardNavState from OpCtx for pure reducer functions. */
 function extractNavState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
-    cursorNodeId: ctx.cursorNodeId,
+    cursorNodeId: ctx.sel.node.cursor() as string | null,
     cursorCardNodeId: ctx.cursorCardNodeId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
