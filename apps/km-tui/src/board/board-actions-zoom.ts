@@ -82,7 +82,7 @@ export function handleZoomToRoot(ctx: OpCtx): OpResult {
     saveNavHistory(ctx)
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: boardRoot })
     clearSelection(ctx)
-    ctx.toastQueue.info("Zoomed out")
+    ctx.setUI({ status: { level: "info", message: "Zoomed out" } })
   }
   return ok()
 }
@@ -150,7 +150,7 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
       dispatchBoard({ type: "ZOOM_IN", nodeId: parentNode.id })
       if (cursorTarget) ctx.sel.node.select([cursorTarget as ID])
       clearSelection(ctx)
-      ctx.toastQueue.info("Zoomed out")
+      ctx.setUI({ status: { level: "info", message: "Zoomed out" } })
       return ok()
     }
   }
@@ -211,7 +211,7 @@ export function handleZoomIn(ctx: OpCtx): OpResult {
   if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
-  ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, nodeId)}`)
+  ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, nodeId)}` } })
   return ok()
 }
 
@@ -235,7 +235,7 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
   if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
-  ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, nodeId)}`)
+  ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, nodeId)}` } })
   return ok()
 }
 
@@ -317,7 +317,7 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
       if (firstChild) ctx.sel.node.select([firstChild as ID])
 
       clearSelection(ctx)
-      ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, targetNode.id)}`)
+      ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, targetNode.id)}` } })
       return ok()
     }
   }
@@ -360,6 +360,6 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
   ctx.sel.node.select([cursorId as ID])
 
   clearSelection(ctx)
-  ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, target)}`)
+  ctx.setUI({ status: { level: "info", message: `Zoomed into: ${shortName(ctx, target)}` } })
   return ok()
 }

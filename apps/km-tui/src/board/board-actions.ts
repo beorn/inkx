@@ -587,14 +587,14 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
-      ctx.toastQueue.info("All folded")
+      ctx.setUI({ status: { level: "info", message: "All folded" } })
       return ok()
     }
     case "UNFOLD_LEVEL": {
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyUnfoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
-      ctx.toastQueue.info("All unfolded")
+      ctx.setUI({ status: { level: "info", message: "All unfolded" } })
       return ok()
     }
     default:
@@ -965,7 +965,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
         ctx.sel.node.select([collapseNodeId as ID])
       }
       const colName = shortName(ctx, collapseNodeId)
-      ctx.toastQueue.info(wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}`)
+      ctx.setUI({ status: { level: "info", message: wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}` } })
       return ok()
     }
     case "ZOOM_IN":
@@ -982,7 +982,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
         ctx.sel.node.select([card.id as ID])
       }
       applyFoldEffects(ctx, result)
-      ctx.toastQueue.info(`Folded: ${shortName(ctx, roots[0])}`)
+      ctx.setUI({ status: { level: "info", message: `Folded: ${shortName(ctx, roots[0])}` } })
       return ok()
     }
     case "UNFOLD_NODE": {
@@ -993,7 +993,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const result = reducerApplyUnfoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "maximum depth reached")
       applyFoldEffects(ctx, result)
-      ctx.toastQueue.info(`Unfolded: ${shortName(ctx, roots[0])}`)
+      ctx.setUI({ status: { level: "info", message: `Unfolded: ${shortName(ctx, roots[0])}` } })
       return ok()
     }
     case "UNFOLD_RECURSIVE": {
@@ -1107,8 +1107,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
     case "TOGGLE_SHOW_HIDDEN":
       ctx.setUI((prev) => {
         const next = !prev.showHidden
-        ctx.toastQueue.info(next ? "Hidden: shown" : "Hidden: filtered")
-        return { showHidden: next }
+        return { showHidden: next, status: { level: "info" as const, message: next ? "Hidden: shown" : "Hidden: filtered" } }
       })
       return ok()
     default:
@@ -1620,7 +1619,9 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       } else {
         ctx.toastQueue.dismissAll()
       }
-      ctx.setUI({})
+      // Bump toastVersion to trigger React re-render — the toast queue is a mutable
+      // object outside React state, so mutating it alone doesn't cause re-renders.
+      ctx.setUI((prev) => ({ toastVersion: (prev.toastVersion ?? 0) + 1 }))
       return ok()
     }
     case "NOOP":
@@ -2007,7 +2008,7 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   })
 
   ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.id })
-  ctx.toastQueue.info(isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}`)
+  ctx.setUI({ status: { level: "info", message: isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}` } })
   return ok()
 }
 
@@ -2351,10 +2352,10 @@ function handleHideNode(ctx: OpCtx): OpResult {
   const hiddenPaths = readBoardHidden(repo.path)
   if (isHidden(hiddenPaths, node, repo)) {
     removeHidden(repo.path, hiddenPath)
-    ctx.toastQueue.info(`Un-hidden: ${hiddenPath}`)
+    ctx.setUI({ status: { level: "info", message: `Un-hidden: ${hiddenPath}` } })
   } else {
     addHidden(repo.path, hiddenPath)
-    ctx.toastQueue.info(`Hidden: ${hiddenPath}`)
+    ctx.setUI({ status: { level: "info", message: `Hidden: ${hiddenPath}` } })
 
     // Move cursor to adjacent column since this one is now hidden
     const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
