@@ -206,6 +206,7 @@ describe("Runtime invariants", () => {
       colIndex: -1,
       cardIndex: -1,
       isAtCardLevel: false,
+      viewIndex: new Map([["1a", {}]]), // cursor is visible
     } as any
 
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
@@ -231,11 +232,13 @@ describe("Runtime invariants", () => {
       colIndex: -1,
       cardIndex: -1,
       isAtCardLevel: false,
+      viewIndex: new Map([["1a", {}]]), // cursor is visible
     } as any
 
     const violations = checkInvariants(ctx)
     // cursor-exists: 1a exists ✓
     // cursor-under-root: 1a is descendant of board ✓
+    // cursor-visible: 1a in viewIndex ✓
     // edit-node-exists: no edit ✓
     // No column violations (empty columns)
     expect(violations).toEqual([])
