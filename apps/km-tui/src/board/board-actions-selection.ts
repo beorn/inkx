@@ -17,10 +17,9 @@ import type { ID } from "@silvery/selection"
  * siblings at the same depth. When at card level, selects between cards.
  */
 export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down"): void {
-  const { dispatchBoard } = ctx
   const col = ctx.column
   const card = ctx.card
-  const cursorId = ctx.cursorNodeId
+  const cursorId = ctx.sel.node.cursor() as string | null
 
   if (!card || !col || !cursorId) return
 
@@ -53,7 +52,7 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
   const treeDir: TreeDirection = direction === "up" ? "prev" : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
   if (targetId) {
-    dispatchBoard({ type: "SELECT", nodeId: targetId })
+    ctx.sel.node.select([targetId as ID])
     ctx.sel.node.extend(targetId as ID)
     const count = ctx.sel.node.ids().length
     ctx.setUI({ status: { level: "info", message: `${count} item${count > 1 ? "s" : ""} selected` } })
@@ -65,8 +64,8 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
  * Uses Tree.siblings to navigate within the same parent.
  */
 function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
-  const { dispatchBoard, repo } = ctx
-  const cursorId = ctx.cursorNodeId!
+  const { repo } = ctx
+  const cursorId = ctx.sel.node.cursor() as string
 
   // Get siblings at the same level
   const node = repo.getNode(cursorId)
@@ -81,7 +80,6 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
     // At boundary: "pop out" to parent — select the entire card.
     const parent = Tree.parent(repo, cursorId)
     if (parent) {
-      dispatchBoard({ type: "SELECT", nodeId: parent.id })
       ctx.sel.node.select([parent.id as ID])
       ctx.setUI({ status: { level: "info", message: "1 item selected" } })
     }
@@ -94,7 +92,7 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
   }
 
   const targetId = siblings[targetIdx]!.id
-  dispatchBoard({ type: "SELECT", nodeId: targetId })
+  ctx.sel.node.select([targetId as ID])
   ctx.sel.node.extend(targetId as ID)
 
   const count = ctx.sel.node.ids().length
@@ -108,7 +106,6 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
  * Selects entire columns between anchor and focus.
  */
 export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "right"): void {
-  const { dispatchBoard } = ctx
   const columns = ctx.columns
 
   if (columns.length === 0) return
@@ -127,7 +124,7 @@ export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "ri
   if (targetCol && targetCol.cardNodes.length > 0) {
     const targetCard = targetCol.cardNodes[0]
     if (targetCard) {
-      dispatchBoard({ type: "SELECT", nodeId: targetCard.id })
+      ctx.sel.node.select([targetCard.id as ID])
     }
   }
 
