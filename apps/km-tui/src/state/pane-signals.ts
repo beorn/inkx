@@ -21,8 +21,8 @@
 
 import { signal, computed } from "alien-signals"
 import type { SelectionStore } from "@silvery/selection"
-import type { ViewSnapshot, ViewTreeRepo, ViewNodeColumnCache } from "@km/board"
-import { createViewSnapshot } from "@km/board"
+import type { ViewSnapshot, ViewTreeRepo, ViewNodeColumnCache, TreeLens } from "@km/board"
+import { createViewSnapshot, createViewLens, createVisibleLens } from "@km/board"
 import type { SelectionTreeSource } from "./selection-adapter.ts"
 import type { MoveState, ViewMode } from "../board/board-types.ts"
 import { computeHiddenNodeIds } from "../hidden.ts"
@@ -63,6 +63,12 @@ export interface PaneSignals {
 
   // Derived: computed ViewSnapshot — auto-invalidates when rootId/foldDepths/repo change
   readonly view: Computed<ViewSnapshot>
+
+  // Tree Lenses — zero-object navigation interfaces
+  /** View lens: structural visibility (fold + hidden + body + embed + roles) */
+  readonly viewLens: Computed<TreeLens>
+  /** Visible lens: view lens + collapse + filter (what the user sees) */
+  readonly visibleLens: Computed<TreeLens>
 }
 
 // =============================================================================
@@ -120,11 +126,31 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     const _hiddenOverride = hiddenNodeIds()
 
     // Compute hidden IDs from .km/hidden file + any programmatic overrides
-    const _hidden = _hiddenOverride.size > 0
-      ? _hiddenOverride
-      : computeHiddenNodeIds(opts.repo as any, _rootId)
+    const _hidden = _hiddenOverride.size > 0 ? _hiddenOverride : computeHiddenNodeIds(opts.repo as any, _rootId)
 
     return createViewSnapshot(opts.repo, _rootId, _foldDepths, viewNodeCache, _hidden.size > 0 ? _hidden : undefined)
+  })
+
+  // Tree Lens computeds — zero-object navigation over the same KNodes
+  const viewLensComputed = computed((): TreeLens => {
+    opts.repoVersion()
+    const _rootId = rootId()
+    const _foldDepths = foldDepths()
+    const _hiddenOverride = hiddenNodeIds()
+    const _hidden = _hiddenOverride.size > 0 ? _hiddenOverride : computeHiddenNodeIds(opts.repo as any, _rootId)
+    return createViewLens(opts.repo, {
+      rootId: _rootId,
+      foldDepths: _foldDepths,
+      hiddenNodeIds: _hidden.size > 0 ? _hidden : undefined,
+    })
+  })
+
+  const visibleLensComputed = computed((): TreeLens => {
+    const vl = viewLensComputed()
+    const _collapsed = collapsedNodes()
+    return createVisibleLens(vl, {
+      collapsedNodes: _collapsed.size > 0 ? _collapsed : undefined,
+    })
   })
 
   return {
@@ -141,5 +167,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     curswantY,
     hiddenNodeIds,
     view,
+    viewLens: viewLensComputed,
+    visibleLens: visibleLensComputed,
   }
 }
