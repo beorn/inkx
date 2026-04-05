@@ -82,10 +82,20 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
     case "SET_ROOT": {
       // Navigate to a different file/root
       // Cursor is managed by sel.node.select() at the call site.
+      const newHistory = [
+        ...state.navHistory.slice(0, state.navHistoryIndex + 1),
+        {
+          rootId: state.rootId,
+          rootPath: state.rootPath,
+        },
+      ]
+
       return {
         ...state,
         rootId: action.rootId,
         rootPath: action.rootPath,
+        navHistory: newHistory,
+        navHistoryIndex: newHistory.length,
         curswantX: null,
         curswantY: null,
       }

@@ -1,4 +1,3 @@
-2 apps/km-tui/src/board/board-actions-zoom.ts
 3 apps/km-tui/src/state/board-app-store.ts
 2 apps/km-tui/src/undo/index.ts
 1 apps/km-tui/tests/undo-redo.slow.spec.ts

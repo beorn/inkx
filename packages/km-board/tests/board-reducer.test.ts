@@ -30,14 +30,12 @@ describe("createBoardState", () => {
     const state = createBoardState()
     expect(state.rootId).toBeNull()
     expect(state.rootPath).toBeNull()
-    expect(state).toBeNull()
   })
 
   it("creates state with provided values", () => {
     const state = createBoardState("root-123", "/path/to/file.md")
     expect(state.rootId).toBe("root-123")
     expect(state.rootPath).toBe("/path/to/file.md")
-    expect(state).toBe("node-456")
   })
 
   it("initializes empty collections", () => {
@@ -74,18 +72,6 @@ describe("createBoardState", () => {
 // ===== Cursor Selection =====
 
 describe("SELECT action", () => {
-  it("sets cursor to specified node", () => {
-    const state = createBoardState()
-    const newState = dispatch(state, { type: "SELECT", nodeId: "node-123" })
-    expect(newState).toBe("node-123")
-  })
-
-  it("allows null cursor", () => {
-    const state = createBoardState("root", "/path")
-    const newState = dispatch(state, { type: "SELECT", nodeId: null })
-    expect(newState).toBeNull()
-  })
-
   it("clears sticky cursor on selection", () => {
     const state = createBoardState()
     const selected = dispatchAll(state, [
@@ -101,17 +87,6 @@ describe("SELECT action", () => {
     const newState = dispatch(state, { type: "SELECT", nodeId: "node-2" })
     expect(newState.rootId).toBe("root-1")
     expect(newState.rootPath).toBe("/file.md")
-  })
-
-  it("ignores optional cardNodeId/cardHintSource fields", () => {
-    const state = createBoardState()
-    const newState = dispatch(state, {
-      type: "SELECT",
-      nodeId: "node-1",
-      cardNodeId: "card-1",
-      cardHintSource: "click",
-    })
-    expect(newState).toBe("node-1")
   })
 })
 
@@ -207,18 +182,6 @@ describe("ZOOM_IN action", () => {
     expect(newState.rootId).toBe("new-root")
   })
 
-  it("sets cursor to provided cursor", () => {
-    const state = createBoardState("root-1", "/file.md")
-    const newState = dispatch(state, { type: "ZOOM_IN", nodeId: "new-root" })
-    expect(newState).toBe("new-cursor")
-  })
-
-  it("sets cursor to null when cursor not provided", () => {
-    const state = createBoardState("root-1", "/file.md")
-    const newState = dispatch(state, { type: "ZOOM_IN", nodeId: "new-root" })
-    expect(newState).toBeNull()
-  })
-
   it("clears sticky cursor on zoom", () => {
     const state = createBoardState()
     const zoomed = dispatchAll(state, [
@@ -250,18 +213,14 @@ describe("SET_ROOT action", () => {
     const newState = dispatch(state, setRootAction("root-2", "/file2.md"))
     expect(newState.rootId).toBe("root-2")
     expect(newState.rootPath).toBe("/file2.md")
-    expect(newState).toBe("cursor-2")
   })
 
   it("adds current state to navigation history", () => {
     const state = createBoardState("root-1", "/file1.md")
     const newState = dispatch(state, setRootAction("root-2", "/file2.md"))
     expect(newState.navHistory).toHaveLength(1)
-    expect(newState.navHistory[0]).toEqual({
-      rootId: "root-1",
-      rootPath: "/file1.md",
-      cursor: "cursor-1",
-    })
+    expect(newState.navHistory[0]?.rootId).toBe("root-1")
+    expect(newState.navHistory[0]?.rootPath).toBe("/file1.md")
   })
 
   it("increments history index", () => {
@@ -301,7 +260,7 @@ describe("ENTER_MOVE_MODE action", () => {
     expect(newState.moveState).toEqual({
       active: true,
       sourceNodes: ["node-1", "node-2"],
-      sourceCursor: "cursor-1",
+      sourceCursor: null, // Cursor managed by sel.node.select() at call site
     })
   })
 
@@ -344,22 +303,6 @@ describe("CANCEL_MOVE action", () => {
     const state = createBoardState()
     const cancelled = dispatchAll(state, [{ type: "ENTER_MOVE_MODE", nodeIds: ["node-1"] }, { type: "CANCEL_MOVE" }])
     expect(cancelled.moveState).toEqual({ active: false })
-  })
-
-  it("restores original cursor position", () => {
-    const state = createBoardState("root", "/path")
-    const cancelled = dispatchAll(state, [
-      { type: "SELECT", nodeId: "new-cursor" },
-      { type: "ENTER_MOVE_MODE", nodeIds: ["node-1"] },
-      { type: "CANCEL_MOVE" },
-    ])
-    expect(cancelled).toBe("original-cursor")
-  })
-
-  it("keeps current cursor if no source cursor", () => {
-    const state = createBoardState("root", "/path")
-    const cancelled = dispatchAll(state, [{ type: "ENTER_MOVE_MODE", nodeIds: ["node-1"] }, { type: "CANCEL_MOVE" }])
-    expect(cancelled).toBe("current-cursor")
   })
 
   it("clears sticky cursor", () => {
@@ -445,14 +388,15 @@ describe("Edge cases", () => {
   it("handles rapid state transitions", () => {
     const state = createBoardState()
 
-    // Rapid sequence of operations
+    // Rapid sequence of operations — SELECT only clears curswant now
     const actions: BoardReducerOp[] = Array.from({ length: 100 }, (_, i) => ({
       type: "SELECT",
       nodeId: `node-${i}`,
     }))
     const current = dispatchAll(state, actions)
 
-    expect(current).toBe("node-99")
+    // Cursor is managed by sel, not reducer — just verify no crash
+    expect(current.curswantX).toBeNull()
   })
 
   it("handles complex state combinations", () => {
@@ -481,16 +425,14 @@ describe("Edge cases", () => {
     dispatch(state, { type: "TOGGLE_FOLD", nodeId: "node-1" })
 
     // Original state should be unchanged
-    expect(original).toBeNull()
     expect(original.foldDepths.size).toBe(0)
   })
 
   it("handles empty board state transitions", () => {
     const state = createBoardState()
 
-    // Operations on empty state should work
-    const selected = dispatch(state, { type: "SELECT", nodeId: null })
-    expect(selected).toBeNull()
+    // Operations on empty state should work without crash
+    dispatch(state, { type: "SELECT", nodeId: null })
 
     const cancelled = dispatch(state, { type: "CANCEL_MOVE" })
     expect(cancelled.moveState).toEqual({ active: false })
@@ -509,7 +451,6 @@ describe("Integration scenarios", () => {
 
     expect(state.foldDepths.has("node-1")).toBe(true)
     expect(state.rootId).toBe("node-2")
-    expect(state).toBe("node-2-child")
   })
 
   it("move workflow", () => {

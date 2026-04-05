@@ -12,7 +12,7 @@ import { createEmptyState } from "../src/state.ts"
 import { checkInvariants, InvariantViolationError } from "../src/invariants.ts"
 import { type BoardApp, board } from "./helpers/board-app.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
-import { createSelection } from "@silvery/selection"
+import { createSelection, type ID } from "@silvery/selection"
 
 /** Create a mock SelectionStore for test contexts that don't use createApp. */
 function createMockSel() {
@@ -155,12 +155,12 @@ describe("Runtime invariants", () => {
     // checkInvariants reads ctx.cursor (from sel.node.cursor()).
     const sel = createSelection({
       tree: {
-        walkOrder: () => ["nonexistent-node"],
+        walkOrder: () => ["nonexistent-node" as ID],
         parent: () => undefined,
         children: () => [],
       },
     })
-    sel.node.select(["nonexistent-node"])
+    sel.node.select(["nonexistent-node" as ID])
 
     const ctx = {
       repo,
