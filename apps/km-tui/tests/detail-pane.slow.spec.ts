@@ -66,12 +66,12 @@ describe("Detail Pane Journeys", () => {
     // Step 1: Open detail pane for folder card — auto-focuses detail, cursor on first child
     board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const detailPane = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((detailPane?.sel.node.cursor() as string | null)).toBe("subtask-a")
 
     // Step 2: Navigate down to second child
     board.command("cursor_down")
-    const detailPane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const detailPane2 = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((detailPane2?.sel.node.cursor() as string | null)).toBe("subtask-b")
   })
 
@@ -138,17 +138,17 @@ describe("Detail Pane Journeys", () => {
 
     // Step 1: Open detail — cursor starts on first child
     board.command("toggle_detail_pane")
-    const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const pane1 = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((pane1?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // Step 2: j moves to next child
     board.command("cursor_down")
-    const pane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const pane2 = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((pane2?.sel.node.cursor() as string | null)).toBe("child-b")
 
     // Step 3: k moves back
     board.command("cursor_up")
-    const pane3 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const pane3 = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((pane3?.sel.node.cursor() as string | null)).toBe("child-a")
   })
 
@@ -162,7 +162,7 @@ describe("Detail Pane Journeys", () => {
     board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
-    const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const detailPane = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((detailPane?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // Step 2: Enter = inline edit on child-a in detail pane, detail stays open
@@ -216,7 +216,7 @@ describe("Detail Pane Journeys", () => {
 
     // Open detail (cursor starts on child-a)
     board.command("toggle_detail_pane")
-    const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const detailPane = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((detailPane?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // i = inline edit on detail cursor node
@@ -239,7 +239,7 @@ describe("Detail Pane Journeys", () => {
     // Step 1: Open detail pane — cursor on child-a
     board.command("toggle_detail_pane")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
-    const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
+    const pane1 = store.getState().workspace.panes.get("main-detail") as import("../src/board/board-types.ts").BoardPaneState | undefined
     expect((pane1?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // gc-1 is visible at depth 1, but ggc-1/ggc-2 are folded (depth exceeded)
