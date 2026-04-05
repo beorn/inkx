@@ -615,7 +615,7 @@ describe("createBoardDriver", () => {
     const storeState = driver.store.getState()
     const pane = getActiveBoardPane(storeState)!
     expect(pane.rootId).toBe("board")
-    expect(pane.cursorNodeId).toBe("1a")
+    expect((pane.sel.node.cursor() as string | null)).toBe("1a")
     expect(pane.viewMode).toBe("cards")
   })
 
@@ -626,14 +626,14 @@ describe("createBoardDriver", () => {
 
     // Initial state
     let storeState = driver.store.getState()
-    expect(getActiveBoardPane(storeState)!.cursorNodeId).toBe("1a")
+    expect((getActiveBoardPane(storeState)!.sel.node.cursor() as string | null)).toBe("1a")
 
     // Navigate down
     await driver.press("j")
 
     // Store should reflect the new cursor position
     storeState = driver.store.getState()
-    expect(getActiveBoardPane(storeState)!.cursorNodeId).toBe("1b")
+    expect((getActiveBoardPane(storeState)!.sel.node.cursor() as string | null)).toBe("1b")
   })
 
   test("store provides cursor position", () => {

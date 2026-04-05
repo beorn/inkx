@@ -41,7 +41,7 @@ describe("mouse click targeting", () => {
     board.click(col2Box!.x + 2, col2Box!.y)
 
     // After clicking column header, cursor should be on the column (Projects)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("Projects")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("Projects")
   })
 
   test("clicking a card selects that card", () => {
@@ -111,7 +111,7 @@ describe("mouse click targeting", () => {
 
     // Navigate to task-2 first (so we know cursor is there)
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-2")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("task-2")
 
     // Find the inner element's bounding box (inside the card border)
     const task2 = board.q("[id='task-2'][data-view='item']")
@@ -121,7 +121,7 @@ describe("mouse click targeting", () => {
 
     // Navigate to task-1 (move cursor away from task-2)
     board.command("cursor_up")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("task-1")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("task-1")
 
     // Click on the card border (1 column left of the inner content area).
     // The card border is rendered by the Card wrapper Box, which has data-card-id
@@ -130,7 +130,7 @@ describe("mouse click targeting", () => {
     board.click(innerBox!.x - 1, innerBox!.y)
 
     // Cursor should land on task-2, not deselect to board root
-    const cursorId = getActiveBoardPane(store.getState())!.cursorNodeId
+    const cursorId = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
     expect(cursorId).toBe("task-2")
   })
 
@@ -172,7 +172,7 @@ describe("mouse click targeting", () => {
     board.click(bodyBox!.x + 1, bodyBox!.y)
 
     // Cursor should move to the body block
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("body text")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("body text")
   })
 
   test("clicking each child in a card selects the correct one", () => {
@@ -192,7 +192,7 @@ describe("mouse click targeting", () => {
       const box = el.boundingBox()!
       // Click at the center of the child element
       board.click(box.x + 1, box.y)
-      const actual = getActiveBoardPane(store.getState())!.cursorNodeId
+      const actual = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
       expect(actual, `click at y=${box.y} (card y=${cardBox!.y}) should select ${id}`).toBe(id)
     }
   })
@@ -207,27 +207,27 @@ describe("mouse click targeting", () => {
     const el = board.q("[id='child-1']")
     const box = el.boundingBox()!
     board.click(box.x + 1, box.y)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-1")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-1")
 
     // j → child-2
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-2")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-2")
 
     // j → child-3
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-3")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-3")
 
     // k → child-2
     board.command("cursor_up")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-2")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-2")
 
     // k → child-1
     board.command("cursor_up")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-1")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-1")
 
     // k from first child → parent (card title)
     board.command("cursor_up")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("card")
   })
 
   test("j from last sub-block jumps to next card", () => {
@@ -240,11 +240,11 @@ describe("mouse click targeting", () => {
     const el = board.q("[id='a-child-2']")
     const box = el.boundingBox()!
     board.click(box.x + 1, box.y)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("a-child-2")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("a-child-2")
 
     // j → next card (card-b), since there's no next sibling
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("card-b")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("card-b")
   })
 
   test("pressing Enter on a sub-block enters inline edit for that block", () => {
@@ -258,7 +258,7 @@ describe("mouse click targeting", () => {
     expect(el.count()).toBeGreaterThan(0)
     const box = el.boundingBox()!
     board.click(box.x + 1, box.y)
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("child-2")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-2")
 
     // Press Enter to enter inline edit
     board.command("enter_inline_edit")
@@ -298,7 +298,7 @@ describe("mouse click targeting", () => {
 
     // Navigate to second card
     board.command("cursor_down")
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).not.toBe(getActiveBoardPane(store.getState())!.rootId)
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).not.toBe(getActiveBoardPane(store.getState())!.rootId)
 
     // Find the first column's header area
     const col1 = board.q("[data-col-index='0'][data-column]")
@@ -310,6 +310,6 @@ describe("mouse click targeting", () => {
     board.click(col1Box!.x + 2, col1Box!.y)
 
     // Cursor should be on the column (Inbox), not board root
-    expect(getActiveBoardPane(store.getState())!.cursorNodeId).toBe("Inbox")
+    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("Inbox")
   })
 })

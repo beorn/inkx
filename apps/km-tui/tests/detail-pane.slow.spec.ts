@@ -67,12 +67,12 @@ describe("Detail Pane Journeys", () => {
     board.command("toggle_detail_pane")
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(detailPane?.cursorNodeId).toBe("subtask-a")
+    expect((detailPane?.sel.node.cursor() as string | null)).toBe("subtask-a")
 
     // Step 2: Navigate down to second child
     board.command("cursor_down")
     const detailPane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(detailPane2?.cursorNodeId).toBe("subtask-b")
+    expect((detailPane2?.sel.node.cursor() as string | null)).toBe("subtask-b")
   })
 
   test("l at rightmost column focuses detail, h returns to board", () => {
@@ -139,17 +139,17 @@ describe("Detail Pane Journeys", () => {
     // Step 1: Open detail — cursor starts on first child
     board.command("toggle_detail_pane")
     const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(pane1?.cursorNodeId).toBe("child-a")
+    expect((pane1?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // Step 2: j moves to next child
     board.command("cursor_down")
     const pane2 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(pane2?.cursorNodeId).toBe("child-b")
+    expect((pane2?.sel.node.cursor() as string | null)).toBe("child-b")
 
     // Step 3: k moves back
     board.command("cursor_up")
     const pane3 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(pane3?.cursorNodeId).toBe("child-a")
+    expect((pane3?.sel.node.cursor() as string | null)).toBe("child-a")
   })
 
   test("Enter on structural child triggers inline edit and typing saves", () => {
@@ -163,7 +163,7 @@ describe("Detail Pane Journeys", () => {
     expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(detailPane?.cursorNodeId).toBe("child-a")
+    expect((detailPane?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // Step 2: Enter = inline edit on child-a in detail pane, detail stays open
     board.press("Enter")
@@ -217,7 +217,7 @@ describe("Detail Pane Journeys", () => {
     // Open detail (cursor starts on child-a)
     board.command("toggle_detail_pane")
     const detailPane = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(detailPane?.cursorNodeId).toBe("child-a")
+    expect((detailPane?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // i = inline edit on detail cursor node
     board.press("i")
@@ -240,7 +240,7 @@ describe("Detail Pane Journeys", () => {
     board.command("toggle_detail_pane")
     expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
     const pane1 = store.getState().workspace.panes.get("main-detail") as { cursorNodeId?: string }
-    expect(pane1?.cursorNodeId).toBe("child-a")
+    expect((pane1?.sel.node.cursor() as string | null)).toBe("child-a")
 
     // gc-1 is visible at depth 1, but ggc-1/ggc-2 are folded (depth exceeded)
     // Note: they also exist in the board card, so check the detail pane foldDepths

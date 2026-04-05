@@ -747,7 +747,7 @@ describe("Search and Filter", () => {
     // and Section A a card with the cursor on it
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("Notes")
-    expect(pane.cursorNodeId).toBe("Section A")
+    expect((pane.sel.node.cursor() as string | null)).toBe("Section A")
 
     // Section A should be visible and have cursor
     const output = board.screenshot()
@@ -774,7 +774,7 @@ describe("Search and Filter", () => {
     // making card-parent a column and leaf-target a card
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("col")
-    expect(pane.cursorNodeId).toBe("leaf-target")
+    expect((pane.sel.node.cursor() as string | null)).toBe("leaf-target")
 
     // Cursor should be on the target node itself
     board.expect("#leaf-target[data-cursor]").toExist()
@@ -791,7 +791,7 @@ describe("Search and Filter", () => {
     // Should NOT zoom — just select the card in place
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("board")
-    expect(pane.cursorNodeId).toBe("another-card")
+    expect((pane.sel.node.cursor() as string | null)).toBe("another-card")
     board.expect("#another-card[data-cursor]").toExist()
   })
 
@@ -809,7 +809,7 @@ describe("Search and Filter", () => {
     // grandparent = B → zoom to B, making C a column and deep-target a card
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("B")
-    expect(pane.cursorNodeId).toBe("deep-target")
+    expect((pane.sel.node.cursor() as string | null)).toBe("deep-target")
     board.expect("#deep-target[data-cursor]").toExist()
   })
 
@@ -829,7 +829,7 @@ describe("Search and Filter", () => {
     // grandparent (index 2) = C → zoom to C, D becomes column, very-deep-target becomes card
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("C")
-    expect(pane.cursorNodeId).toBe("very-deep-target")
+    expect((pane.sel.node.cursor() as string | null)).toBe("very-deep-target")
     board.expect("#very-deep-target[data-cursor]").toExist()
   })
 
@@ -863,7 +863,7 @@ describe("Search and Filter", () => {
     // making Intro a column and China... a card
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("MyDoc")
-    expect(pane.cursorNodeId).toBe("China domicile information")
+    expect((pane.sel.node.cursor() as string | null)).toBe("China domicile information")
 
     // The section header "Intro" should be visible (it's a column)
     expect(output).toContain("Intro")
