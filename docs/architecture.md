@@ -206,7 +206,7 @@ KmOp dispatched to handler
 Handler calls Repo mutation (e.g., repo.updateNode(id, changes))
   | SQLite update + file write (bidirectional sync)
   | repo emits version bump
-useSyncExternalStore triggers -> useColumns re-derives -> re-render
+repoVersion$ signal bumps -> computed ViewSnapshot invalidates -> useSignal re-renders
 ```
 
 ### Navigate: Cursor Movement
@@ -220,7 +220,7 @@ Dispatch SELECT action with target nodeId + cached viewIndex
   | board reducer updates sel.node.cursor
 classifyCursorFromViewIndex derives cursorCardNodeId + cursorColumnNodeId
   | O(1) ViewNode lookup + parent pointer walk
-Components re-render via useSyncExternalStore (only 2 cards: old + new cursor)
+Components re-render via useSignal(sel.node.cursor) (only 2 cards: old + new cursor)
 ```
 
 ### Sync: External Edit -> TUI
@@ -230,8 +230,8 @@ User edits file in vim/nvim
   | file watcher (chokidar, 5s debounce)
 Reconcile: parse file, diff KNodes against DB
   | emit node-added/node-changed/node-removed events
-SQLite state updated -> repo.touch() -> version bump
-useColumns re-derives -> re-render
+SQLite state updated -> repo.touch() -> repoVersion$ signal bumps
+computed ViewSnapshot rebuilds -> useSignal re-renders
   | cursor validation: if sel.node.cursor was deleted, fall back to parent/sibling
 ```
 
@@ -264,7 +264,7 @@ Action handlers receive an `OpCtx` — a large context object re-derived on each
 
 ### ViewNode as Single Authority
 
-The ViewNode tree (in OpCtx as `viewTree` and `viewIndex`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Column derivation (`useColumns`) delegates to `buildViewTree + viewNodeToColumnViews`. Hidden nodes are filtered at tree construction time. Cursor classification uses `classifyCursorFromViewIndex` (O(1) lookup + parent walk). Navigation traverses ViewNode parent/children pointers directly.
+The ViewNode tree (in OpCtx as `viewTree` and `viewIndex`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Each pane's `PaneSignals.view` is a computed ViewSnapshot — one build, auto-cached. `buildOpCtx` reads from this computed (0ms on cache hit) and converts to ColumnView[] via `viewNodeToColumnViews`. Board.tsx reads via `useSignal(ps.view)`. Cursor classification uses `classifyCursorFromViewIndex` (O(1) lookup + parent walk). Navigation traverses ViewNode parent/children pointers directly.
 
 ### Target: TEA State Machines + Plugin Slices
 

@@ -69,10 +69,11 @@ function deriveColumnsAndTree(
 /**
  * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
  *
- * All runtime column derivation paths must delegate here:
- * - useColumns() hook (React render path)
- * - buildOpCtx() in board-app.ts (key handler path, via deriveColumnsWithTree)
+ * Runtime column derivation paths:
+ * - Board.tsx via ViewSnapshot + viewNodeToColumnViews (primary React path)
+ * - buildOpCtx() in board-app.ts via ViewSnapshot + viewNodeToColumnViews
  * - driver.ts getContext/getDriverState (test/AI automation path)
+ * - km-canvas.tsx via useColumns() hook (web target)
  *
  * Delegates to buildViewTree() for tree construction and viewNodeToColumnViews()
  * for ColumnView[] conversion. The ViewNode tree is the authoritative derivation;

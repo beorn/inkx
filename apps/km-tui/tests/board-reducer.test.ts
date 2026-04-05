@@ -946,7 +946,6 @@ function mockCtx() {
       startBatch: (...args: unknown[]) => calls.push({ method: "undoHandle.startBatch", args }),
       endBatch: (...args: unknown[]) => calls.push({ method: "undoHandle.endBatch", args }),
     },
-    refreshSelTree: () => calls.push({ method: "refreshSelTree", args: [] }),
     ui: { multiSelected: new Set<string>() },
   }
 }
