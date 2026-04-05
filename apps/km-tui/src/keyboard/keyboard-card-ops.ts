@@ -93,7 +93,7 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
   if (!col) return boundary(direction)
 
   // Batch all moves (normalize + card moves) into a single undo entry
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   ctx.undoHandle.startBatch("Move card")
 
   // Fix duplicate parent_idx before calculating new sort order
@@ -140,7 +140,7 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
   const movedCardIds = validCards.map((c) => c.card.id)
 
   // Cursor follows the moved card — its ID is unchanged, just its position shifted
-  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.sel.node.cursor() as string | null })
 
   if (movedCardIds.length > 1) {
     rebuildSelectionForMovedCards(ctx, ctx.colIndex, movedCardIds)
@@ -169,7 +169,7 @@ export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "r
   if (cardsToMove.length === 0) return boundary(direction)
 
   // Batch all moves into a single undo entry
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   ctx.undoHandle.startBatch("Move card to column")
 
   let newSortOrder =
@@ -212,7 +212,7 @@ export function indentNode(ctx: OpCtx, card: KNode): boolean {
 
   if (!canIndent(ctx, card)) return false
 
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   executeIndent(ctx, card)
   // Cursor follows the indented node. nodeIndex maps descendants to their
   // containing card, so visual cursor lands on the parent card. Navigation
@@ -234,7 +234,7 @@ export function outdentNode(ctx: OpCtx, card: KNode): boolean {
 
   if (!canOutdent(ctx, card)) return false
 
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   executeOutdent(ctx, card)
   ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
   return true
@@ -330,7 +330,7 @@ function indentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selected
   }
 
   // Batch all indent moves into a single undo entry
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   ctx.undoHandle.startBatch("Indent nodes")
 
   // Process bottom-up (highest column index first) to avoid invalidating sibling indices
@@ -364,7 +364,7 @@ function outdentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selecte
   }
 
   // Batch all outdent moves into a single undo entry
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   ctx.undoHandle.startBatch("Outdent nodes")
 
   // Process top-down (lowest column index first) to maintain relative order

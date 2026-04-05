@@ -21,7 +21,7 @@ import { ViewTree } from "@km/board"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { OpCtx } from "../tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"
-import { SelectionLevel } from "../state/selection-level.ts"
+import { CursorDepth } from "../state/cursor-depth.ts"
 import { PaneUI } from "../state/ui-reducer.ts"
 import { createLogger } from "loggily"
 import { getModeStack } from "../dialog-guard.ts"
@@ -69,8 +69,8 @@ function buildCommandContexts(ctx: OpCtx) {
     inInputMode: dialogInput || ui.showFilterDialog,
     hasMultiSelection: ctx.selectedIds.size > 0,
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
-    isInOutlineMode: SelectionLevel.isOutline(
-      SelectionLevel.derive({
+    isInOutlineMode: CursorDepth.isOutline(
+      CursorDepth.derive({
         cursorNodeId: ctx.cursorNodeId,
         cursorCardNodeId: ctx.cursorCardNodeId,
         cursorColumnNodeId: ctx.column?.node.id ?? null,
@@ -111,10 +111,10 @@ function buildCommandContexts(ctx: OpCtx) {
       if (!textSel) return false
       return ViewTree.hasVisibleItemChildren(ctx.repo, textSel.nodeId, ctx.viewIndex, ctx.foldDepths)
     },
-    editLevel() {
+    editDepth() {
       const textSel = ctx.sel.text()
       if (!textSel) {
-        log.error?.("editLevel() called without text editing active")
+        log.error?.("editDepth() called without text editing active")
         return "card" as const
       }
       const editNodeId = textSel.nodeId as string
@@ -131,7 +131,7 @@ function buildCommandContexts(ctx: OpCtx) {
       }
 
       if (!entry) {
-        log.error?.(`editLevel(): editing node ${editNodeId} not found in nodeIndex`)
+        log.error?.(`editDepth(): editing node ${editNodeId} not found in nodeIndex`)
         return "card" as const
       }
       return entry.cardIndex < 0 ? ("column" as const) : ("card" as const)

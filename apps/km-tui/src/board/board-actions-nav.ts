@@ -289,7 +289,7 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
 
   if (result.effects.length === 0) {
     // Check if cursor wasn't found vs at boundary
-    if (blocks.indexOf(ctx.sel.node.cursor() as string | null) < 0) return boundary(dir, "cursor not in column blocks")
+    if (blocks.indexOf(ctx.sel.node.cursor() as string) < 0) return boundary(dir, "cursor not in column blocks")
     return boundary(dir)
   }
 
@@ -456,7 +456,7 @@ export function navStateFrom(ctx: OpCtx): NavState {
     throw new Error("[nav] navStateFrom: cursorNodeId is null")
   }
   return {
-    cursorNodeId: ctx.sel.node.cursor() as string | null,
+    cursorNodeId: ctx.sel.node.cursor() as string,
     rootId: ctx.rootId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,

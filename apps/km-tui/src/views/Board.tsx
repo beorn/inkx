@@ -46,7 +46,7 @@ import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { SelectionLevel } from "../state/selection-level.ts"
+import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board/board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
@@ -102,7 +102,7 @@ export interface BoardCoreProps {
   /** UI state (dialogs, view mode, etc.) */
   ui: PaneUI
   /** Derived selection level from cursor depth */
-  derivedSelectionLevel: "board" | "column" | "card"
+  cursorDepth: "board" | "column" | "card"
   /** Terminal dimensions */
   dimensions: { columns: number; rows: number }
   /** Collapsed nodes (node IDs) */
@@ -274,13 +274,13 @@ function BoardTopBar({
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
   const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const selectionLevel = useReactive(nodeStore.selectionLevel)
+  const cursorDepth = useReactive(nodeStore.cursorDepth)
   const paneLabel = usePaneLabel()
 
   const pathNodeId =
-    selectionLevel === "board" || !cursorColumnNodeId
+    cursorDepth === "board" || !cursorColumnNodeId
       ? rootId
-      : selectionLevel === "column" || !cursorCardNodeId
+      : cursorDepth === "column" || !cursorCardNodeId
         ? cursorColumnNodeId
         : cursorCardNodeId
   // Let silvery's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
@@ -339,7 +339,7 @@ function BoardTopBar({
 
 /**
  * Pure rendering component - NO cursor subscription.
- * Uses derivedSelectionLevel prop (stable on j/k).
+ * Uses cursorDepth prop (stable on j/k).
  * TopBar, DetailPane, and NewItemDialog subscribe independently.
  */
 // oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
@@ -349,7 +349,7 @@ export function BoardCore({
   colIndex,
   cardIndex,
   ui,
-  derivedSelectionLevel,
+  cursorDepth,
   dimensions,
   collapsedNodes,
   hasDetailPane,
@@ -362,7 +362,7 @@ export function BoardCore({
   const termWidth = parentRect.width > 0 ? parentRect.width : dimensions.columns
   const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 
-  const isBoardSelected = derivedSelectionLevel === "board"
+  const isBoardSelected = cursorDepth === "board"
   const paneLabel = usePaneLabel()
 
   // Calculate content area height - space between top bar and bottom of pane.
@@ -571,10 +571,10 @@ export function Board({ patchedConsole }: BoardProps) {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     return p?.rootId ?? null
   })
-  // Cursor node ID: read from pane state. The SELECT fast path does a silent mutation
-  // to pane.cursorNodeId, then sel.node.select() triggers alien-signals → store bridge
-  // (bumps _selVersion), which causes this selector to re-evaluate. Reading pane.cursorNodeId
-  // gives the correct per-pane cursor regardless of which pane is focused.
+  // Cursor node ID: read from per-pane sel store. The SELECT handler calls
+  // sel.node.select() which triggers alien-signals → store bridge (bumps _selVersion),
+  // which causes this selector to re-evaluate. Reading sel.node.cursor() gives the
+  // correct per-pane cursor regardless of which pane is focused.
   // We also read _selVersion to ensure store detects the change.
   const cursorNodeId = useAppStore<BoardAppStore, string | null>((s) => {
     void (s as Record<string, unknown>)._selVersion // depend on version bump from SELECT handler
@@ -619,7 +619,7 @@ export function Board({ patchedConsole }: BoardProps) {
         cursorNodeId,
         cursorCardNodeId: ancestors.cursorCardNodeId,
         cursorColumnNodeId: ancestors.cursorColumnNodeId,
-        selectionLevel: ancestors.selectionLevel,
+        cursorDepth: ancestors.cursorDepth,
       })
     }
     return store
@@ -693,7 +693,7 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [ui.showConsole, runtimeCtx, patchedConsole])
 
-  // Derive columns from repo (reactive to repo mutations via useSyncExternalStore).
+  // Derive columns from repo (reactive to repo mutations via useCommitVersion).
   // Column derivation is <1ms with per-column memoization. Progressive reveal
   // (useColumnReveal in BoardCore) handles zoom transitions by showing column headers
   // with skeleton placeholders, then revealing one column per frame.
@@ -759,7 +759,7 @@ export function Board({ patchedConsole }: BoardProps) {
     [columns, cursorPosition, nodeIndex],
   )
 
-  const derivedSelectionLevel = SelectionLevel.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
+  const cursorDepth = CursorDepth.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
 
   // Derive cursorCardNodeId and cursorColumnNodeId from layout indices
   const cursorCardNodeId = useMemo(() => {
@@ -783,9 +783,9 @@ export function Board({ patchedConsole }: BoardProps) {
       cursorNodeId,
       cursorCardNodeId,
       cursorColumnNodeId,
-      selectionLevel: derivedSelectionLevel,
+      cursorDepth,
     })
-  }, [nodeStore, cursorNodeId, cursorCardNodeId, cursorColumnNodeId, derivedSelectionLevel])
+  }, [nodeStore, cursorNodeId, cursorCardNodeId, cursorColumnNodeId, cursorDepth])
 
   // Read hidden paths for filtering (re-read only when hidden list actually changes)
   const hiddenPaths = useMemo(() => readBoardHidden(repo.path), [repo.path, ui.hiddenVersion])
@@ -1046,7 +1046,7 @@ export function Board({ patchedConsole }: BoardProps) {
           colIndex={visibleColIndex}
           cardIndex={columnsLayout.cardIndex}
           ui={ui}
-          derivedSelectionLevel={derivedSelectionLevel}
+          cursorDepth={cursorDepth}
           dimensions={ui.dimensions}
           collapsedNodes={collapsedNodes}
           hasDetailPane={hasDetailPane}

@@ -559,7 +559,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           } as import("@km/commands").TNode)
         : null,
       currentNodeId: ctx.selectedNode?.id ?? null,
-      cursorNodeId: ctx.cursorNodeId,
+      cursorNodeId: ctx.sel.node.cursor() as string | null,
       selectedNodes: Array.from(ctx.selectedIds),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,

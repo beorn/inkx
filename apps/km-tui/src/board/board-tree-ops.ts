@@ -40,7 +40,7 @@ export function boardSplit(ctx: OpCtx, nodeId: string, offset: number): SplitRes
  * Returns null if no previous sibling exists.
  */
 export function boardMergeBackward(ctx: OpCtx, nodeId: string): MergeResult | null {
-  ctx.undoHandle.setCursor(ctx.cursorNodeId ?? nodeId)
+  ctx.undoHandle.setCursor((ctx.sel.node.cursor() as string | null) ?? nodeId)
   ctx.undoHandle.startBatch("Merge backward")
   const result = mergeBackward(ctx.repo, nodeId)
   ctx.undoHandle.endBatch()
@@ -60,7 +60,7 @@ export function boardMergeBackward(ctx: OpCtx, nodeId: string): MergeResult | nu
  * Returns null if no next sibling exists.
  */
 export function boardMergeForward(ctx: OpCtx, nodeId: string): MergeResult | null {
-  ctx.undoHandle.setCursor(ctx.cursorNodeId ?? nodeId)
+  ctx.undoHandle.setCursor((ctx.sel.node.cursor() as string | null) ?? nodeId)
   ctx.undoHandle.startBatch("Merge forward")
   const result = mergeForward(ctx.repo, nodeId)
   ctx.undoHandle.endBatch()

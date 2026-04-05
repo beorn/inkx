@@ -43,7 +43,9 @@ function mockRepo(
 }
 
 function cursor(nodeId: string | null): CursorContext {
-  return { cursorNodeId: nodeId }
+  return {
+    sel: { node: { cursor: () => nodeId } } as unknown as import("@silvery/selection").SelectionStore,
+  }
 }
 
 // --- Standard test tree ---

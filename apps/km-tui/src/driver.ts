@@ -31,7 +31,7 @@
  *
  * // Direct store access (for subscriptions)
  * driver.store.subscribe((state) => {
- *   console.log('Cursor moved:', state.cursorNodeId)
+ *   console.log('Cursor moved:', state.sel.node.cursor())
  * })
  *
  * // Drive via keybindings
