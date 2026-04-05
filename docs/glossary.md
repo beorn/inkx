@@ -138,6 +138,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **dirty flag** — A flag on AgNodes indicating they need re-rendering, enabling incremental rendering of only changed subtrees. In sync, marks files needing re-projection.
 
+**dynamic scrollback** — Silvery's three-zone inline rendering model. Splits terminal output into *terminal scrollback* (released to the terminal, Cmd+F works), *app scrollback* (app-managed, virtualized, redraws on resize), and *live screen* (active React rendering). Content flows upward: live → app scrollback (virtualized) → terminal scrollback (released). Implemented via `<Static>` component and `useScrollback` hook.
+
 **disk mode** — Storage mode active when `.km/` exists. SQLite persisted in `.km/state.db`, events logged to `changes.jsonl`, stable ULID node IDs, full history. Contrast with *memory mode*.
 
 **disposable** — An object implementing `Symbol.dispose` for automatic cleanup via the `using` keyword (TC39 Explicit Resource Management).
