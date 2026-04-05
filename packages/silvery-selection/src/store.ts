@@ -115,12 +115,32 @@ export type SelectionStore<Sub = DefaultSubSelection> = {
 
 // --- Factory ---
 
+export type SelectionOptions = {
+  /** Initial cursor node ID — set before first reconcile. */
+  initialCursor?: ID
+  /** Initial root ID — scopes walk order. */
+  initialRoot?: ID | null
+}
+
 export function createSelection<Sub extends SubSelectionBase = DefaultSubSelection>(
   app: SelectionApp,
+  options?: SelectionOptions,
 ): SelectionStore<Sub> {
-  // ONE state atom
+  // ONE state atom — seed with initial cursor/root if provided
+  const initialState: SelectionSnapshot<Sub> = options?.initialCursor
+    ? {
+        cursor: options.initialCursor,
+        anchor: options.initialCursor,
+        ids: [options.initialCursor],
+        sub: null,
+        root: options?.initialRoot ?? null,
+      }
+    : options?.initialRoot !== undefined
+      ? { ...EMPTY_STATE, root: options.initialRoot } as SelectionSnapshot<Sub>
+      : EMPTY_STATE as SelectionSnapshot<Sub>
+
   const $state = signal<StoreState<Sub>>({
-    committed: EMPTY_STATE as SelectionSnapshot<Sub>,
+    committed: initialState,
     drag: null,
   })
 

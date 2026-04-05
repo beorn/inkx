@@ -58,7 +58,7 @@ export { applyPointerEvent } from "./pointer.ts"
 
 // Reactive store
 export { createSelection } from "./store.ts"
-export type { DragAccessor, NodeAccessor, RootAccessor, SelectionStore } from "./store.ts"
+export type { DragAccessor, NodeAccessor, RootAccessor, SelectionOptions, SelectionStore } from "./store.ts"
 
 // Sub-selection accessors
 export type { TextAccessor } from "./sub-text.ts"

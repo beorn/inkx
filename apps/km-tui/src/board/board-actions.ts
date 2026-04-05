@@ -572,6 +572,10 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
     case "JUMP_TO_COLUMN":
       return handleJumpToColumn(ctx, action.columnNumber)
     case "FOLD_LEVEL": {
+      // Cursor-always-visible: if cursor is inside a sub-item, nudge to its card before folding
+      if (ctx.card && ctx.cursorNodeId && ctx.cursorNodeId !== ctx.card.id) {
+        ctx.sel.node.select([ctx.card.id as ID])
+      }
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
@@ -961,6 +965,10 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyFoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "already fully folded")
+      // Cursor-always-visible: if cursor is inside a card being folded deeper, nudge to card
+      if (card && ctx.cursorNodeId && ctx.cursorNodeId !== card.id) {
+        ctx.sel.node.select([card.id as ID])
+      }
       applyFoldEffects(ctx, result)
       return ok()
     }
@@ -1945,6 +1953,15 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   const children = repo.getChildren(card.id)
   if (children.length === 0) {
     return boundary("fold", "no children to fold")
+  }
+
+  // Determine if this toggle will FOLD (hide children) or UNFOLD (reveal them)
+  const isFolding = !ctx.foldDepths.has(card.id)
+
+  // Cursor-always-visible: if folding and cursor is inside the card's subtree,
+  // nudge cursor up to the card itself before folding hides it.
+  if (isFolding && ctx.cursorNodeId && ctx.cursorNodeId !== card.id) {
+    ctx.sel.node.select([card.id as ID])
   }
 
   // Use pure reducer to compute before/after fold state for undo

@@ -172,7 +172,27 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
-  // 8. Inline edit node should be resolvable in columns (if editing)
+  // 8. Cursor-always-visible: cursor must be in the view tree (not hidden by fold/filter)
+  // Skip virtual nodes and root-level cursor.
+  if (
+    ctx.cursorNodeId &&
+    !isVirtualNodeId(ctx.cursorNodeId as string) &&
+    (ctx.cursorNodeId as string) !== ctx.rootId
+  ) {
+    const viewNode = ctx.viewIndex.get(ctx.cursorNodeId as string)
+    if (!viewNode) {
+      violations.push({
+        check: "cursor-visible",
+        message: `Cursor is on a non-visible node (hidden by fold or filter)`,
+        ids: {
+          cursorNodeId: ctx.cursorNodeId,
+          rootId: ctx.rootId,
+        },
+      })
+    }
+  }
+
+  // 9. Inline edit node should be resolvable in columns (if editing)
   // Skip when edit node IS the root — board-level editing is an edge case from fuzz testing.
   if (editText && ctx.columns.length > 0 && editText.nodeId !== ctx.rootId) {
     const editInIndex = ctx.nodeIndex.has(editText.nodeId)

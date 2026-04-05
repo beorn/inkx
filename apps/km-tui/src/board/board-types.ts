@@ -280,7 +280,12 @@ export function createPaneState(
   },
 ): BoardPaneState {
   const { app, source } = opts.sel ? { app: null, source: opts.sel.selTreeSource } : createSelectionAdapter()
-  const sel = opts.sel ? opts.sel.sel : createSelection(app!)
+  const sel = opts.sel
+    ? opts.sel.sel
+    : createSelection(app!, {
+        initialCursor: (board.cursorNodeId as import("@silvery/selection").ID) ?? undefined,
+        initialRoot: (board.rootId as import("@silvery/selection").ID) ?? undefined,
+      })
   const selTreeSource = source
 
   return {
