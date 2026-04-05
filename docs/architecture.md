@@ -105,7 +105,7 @@ Pure data, no methods. Updated via reducer. Defined in `apps/km-tui/src/board-ty
 ```typescript
 interface BoardState {
   rootId: string | null           // current zoom root
-  cursorNodeId: string | null     // single source of truth for cursor (→ sel.node.cursor)
+  // cursor: sel.node.cursor() — sole authority, not stored in BoardState
   foldDepths: Map<string, number> // per-node fold depth overrides
   collapsedNodes: Set<string>     // collapsed column headers
   navHistory: NavHistoryEntry[]   // back/forward navigation

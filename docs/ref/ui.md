@@ -471,8 +471,8 @@ interface BoardState {
   rootId: string | null // Current view root (zoom level)
   rootPath: string | null // File path for root
 
-  // Cursor - single source of truth for position
-  cursorNodeId: string | null // Which node the cursor is on (stable across zoom) — migrating to sel.node.cursor
+  // Cursor: sel.node.cursor() is the sole authority (not stored in BoardState)
+  // Access via ctx.cursor in action handlers, sel.node.cursor() in components
 
   // Tree state
   foldDepths: Map<string, number> // Depth budget per node (0 = fully folded)
@@ -497,7 +497,7 @@ interface BoardState {
 }
 ```
 
-**Key design:** `sel.node.cursor` (currently `cursorNodeId`) is the single source of truth. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `useCursorPosition()`. This eliminates sync bugs — the cursor ID is stable, indices are computed from current layout. See [selection-model.md](../design/selection-model.md) for the full selection API.
+**Key design:** `sel.node.cursor()` is the sole cursor authority. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `deriveCursorIndices()`. Cursor is always visible — fold nudges cursor to card, navigation auto-unfolds. See [selection-model.md](../design/selection-model.md) for the full selection API.
 
 **No tree data in state:** Repo provides tree queries directly. Columns are derived via `useColumns()` from repo data, not stored in state.
 

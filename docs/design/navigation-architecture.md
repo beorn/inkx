@@ -19,7 +19,7 @@ Key files:
 
 State passed to ViewNavigation for resolving movement. Defined in `view-navigation.ts`:
 
-- `cursorNodeId` (`sel.node.cursor`) — current cursor position
+- `cursor` (`sel.node.cursor()`) — current cursor position
 - `rootId` — zoom root (navigation boundary)
 - `foldDepths` — Map of node ID to fold depth budget
 - `collapsedNodes` — Set of collapsed column IDs

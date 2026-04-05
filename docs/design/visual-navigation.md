@@ -137,7 +137,7 @@ No `recomputeLayout()`. No `deriveCursorPosition()`. No `updateLayout()` effect.
 Minimal — only primary state, no derived fields:
 
 ```ts
-cursorNodeId: string  // → sel.node.cursor
+cursor: string  // sel.node.cursor()
 rootId: string | null
 foldDepths: Map<string, number>
 viewMode: ViewMode
