@@ -300,18 +300,21 @@ function TreeNodeImpl({
     isBody,
   ])
 
-  // Card title highlight: when cursor is on a sub-item (not the card title),
-  // show yellow text instead of inverse selection. Only applies at depth 0 (card title).
-  // Per-node cursorInDescendant Reactive — only the active card's node fires.
+  // Card title highlight: only the title row gets inverse/selected bg.
+  // Body content and subitems keep their normal styling for readability.
+  // At depth 0 (card level), selected bg applies to title row only.
   const cursorInDescendant = useSignal(nodeStore.getOrCreate(node.id).cursorInDescendant)
-  const titleHighlightOnly = depth === 0 && isSelected && !isNodeSelected && cursorInDescendant
+  const titleHighlightOnly = depth === 0 && (isSelected || isNodeSelected)
 
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const searchHighlight = isSearchMatch && !isSelected && !isNodeSelected
+  // When titleHighlightOnly: bg on the title row only (not the card body/children).
+  // The title row gets the selected bg via headRowBg; the outer card Box gets no bg.
   const effectiveBg = titleHighlightOnly ? undefined : style.backgroundColor
-  const tc = titleHighlightOnly ? "$selection-bg" : style.textColor
+  const headRowBg = titleHighlightOnly ? style.backgroundColor : undefined
+  const tc = titleHighlightOnly ? style.textColor : style.textColor
   const sd = style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
@@ -590,8 +593,7 @@ function TreeNodeImpl({
         <Box
           id={node.id}
           data-view="item"
-          {...(isSelected &&
-            !titleHighlightOnly && {
+          {...(isSelected && {
               "data-cursor": true,
               "data-col-index": colIndex,
               "data-card-index": cardIndex,
@@ -600,7 +602,7 @@ function TreeNodeImpl({
           alignItems={isOneliner || isCardChild ? undefined : "flex-start"}
           overflow={isOneliner || isCardChild ? "hidden" : undefined}
           paddingLeft={Math.max(0, depth - 1)}
-          backgroundColor={effectiveBg}
+          backgroundColor={headRowBg ?? effectiveBg}
           height={isOneliner || isCardChild ? 1 : undefined}
         >
           {/* Fixed-width prefix box (bullet/checkbox) */}
