@@ -71,7 +71,7 @@ function buildCommandContexts(ctx: OpCtx) {
     isInDetailPane: ctx.focusManager.activeScopeId !== null && isDetailPaneId(ctx.focusManager.activeScopeId),
     isInOutlineMode: CursorDepth.isOutline(
       CursorDepth.derive({
-        cursorNodeId: ctx.cursorNodeId,
+        cursorNodeId: ctx.cursor,
         cursorCardNodeId: ctx.cursorCardNodeId,
         cursorColumnNodeId: ctx.column?.node.id ?? null,
       }),
@@ -144,7 +144,7 @@ function buildCommandContexts(ctx: OpCtx) {
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
-    cursorNodeId: ctx.cursorNodeId,
+    cursorNodeId: ctx.cursor,
     selectedNodes: Array.from(ctx.selectedIds),
     siblingCount: column?.cardNodes.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,

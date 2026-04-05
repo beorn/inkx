@@ -152,7 +152,7 @@ describe("Runtime invariants", () => {
     })
 
     // Create a sel that has "nonexistent-node" in its walk order so we can select it as cursor.
-    // checkInvariants reads ctx.sel.node.cursor() (not ctx.cursorNodeId).
+    // checkInvariants reads ctx.cursor (from sel.node.cursor()).
     const sel = createSelection({
       tree: {
         walkOrder: () => ["nonexistent-node"],

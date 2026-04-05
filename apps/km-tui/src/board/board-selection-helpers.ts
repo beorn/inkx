@@ -61,8 +61,8 @@ export function getSelectedNodes(ctx: OpCtx): KNode[] {
   }
 
   // Single selection: the cursor node (tree-level)
-  if (!ctx.cursorNodeId) return []
-  const node = ctx.repo.getNode(ctx.cursorNodeId as string)
+  if (!ctx.cursor) return []
+  const node = ctx.repo.getNode(ctx.cursor as string)
   return node ? [node] : []
 }
 
@@ -80,7 +80,7 @@ export function getSelectedNodeIds(ctx: OpCtx): string[] {
 export function moveSelectedTo(ctx: OpCtx, to: Position): { moved: number } {
   const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return { moved: 0 }
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Move")
   let moved = 0
   for (const card of cards) {
@@ -99,7 +99,7 @@ export function moveSelectedTo(ctx: OpCtx, to: Position): { moved: number } {
 export function forEachSelected(ctx: OpCtx, label: string, fn: (node: KNode) => void): number {
   const cards = getSelectedNodes(ctx)
   if (cards.length === 0) return 0
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.cursor)
   if (cards.length > 1) ctx.undoHandle.startBatch(label)
   for (const card of cards) fn(card)
   if (cards.length > 1) ctx.undoHandle.endBatch()
@@ -158,7 +158,7 @@ export function progressiveSelectAll(ctx: OpCtx): void {
   const card = col?.cardNodes[ctx.cardIndex]
 
   // Derive outline mode: cursor is inside a card's sub-items
-  const inOutlineMode = ctx.cursorNodeId !== null && card !== undefined && (ctx.cursorNodeId as string) !== card.id
+  const inOutlineMode = ctx.cursor !== null && card !== undefined && (ctx.cursor as string) !== card.id
   const currentSize = ctx.selectedIds.size
 
   // Determine next scope based on current selection size

@@ -41,7 +41,7 @@ export function isTreeDirection(dir: string): dir is TreeDirection {
  * Navigation state fields needed for tree navigation.
  */
 export interface TreeNavState {
-  cursorNodeId: string | null
+  cursor: string | null
   rootId: string | null
   foldDepths: Map<string, number>
 }
@@ -52,12 +52,12 @@ export interface TreeNavState {
  * Uses Repo for tree structure queries. No visual layout involved.
  *
  * @param direction - Navigation direction ("next"/"prev" for siblings, "child"/"parent" for tree traversal)
- * @param state - Navigation state (cursorNodeId, rootId, foldDepths)
+ * @param state - Navigation state (cursor, rootId, foldDepths)
  * @param repo - Repo for tree queries
- * @returns New cursorNodeId, or null if can't move
+ * @returns New cursor node ID, or null if can't move
  */
 export function handleTreeNavigation(direction: TreeDirection, state: TreeNavState, repo: Repo): string | null {
-  const { cursorNodeId, rootId, foldDepths } = state
+  const { cursor: cursorNodeId, rootId, foldDepths } = state
 
   // If no cursor, can't navigate
   if (!cursorNodeId) {

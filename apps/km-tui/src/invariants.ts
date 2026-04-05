@@ -44,26 +44,26 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 1. Cursor points to a valid, existing node (or is null for empty board)
   // Skip check for virtual/synthetic nodes (__meta__*, __body__*) which are not stored in repo
-  if (ctx.cursorNodeId && !isVirtualNodeId(ctx.cursorNodeId as string)) {
-    const cursorNode = ctx.repo.getNode(ctx.cursorNodeId as string)
+  if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
+    const cursorNode = ctx.repo.getNode(ctx.cursor as string)
     if (!cursorNode) {
       violations.push({
         check: "cursor-exists",
         message: `Cursor points to non-existent node`,
-        ids: { cursorNodeId: ctx.cursorNodeId },
+        ids: { cursorNodeId: ctx.cursor },
       })
     }
   }
 
   // 2. Cursor node is a descendant of the current root (or IS the root)
   // Skip check for virtual nodes
-  if (ctx.cursorNodeId && ctx.rootId && !isVirtualNodeId(ctx.cursorNodeId as string)) {
-    const isDescendant = isDescendantOf(ctx, ctx.cursorNodeId as string, ctx.rootId)
+  if (ctx.cursor && ctx.rootId && !isVirtualNodeId(ctx.cursor as string)) {
+    const isDescendant = isDescendantOf(ctx, ctx.cursor as string, ctx.rootId)
     if (!isDescendant) {
       violations.push({
         check: "cursor-under-root",
         message: `Cursor node is not a descendant of the board root`,
-        ids: { cursorNodeId: ctx.cursorNodeId, rootId: ctx.rootId },
+        ids: { cursorNodeId: ctx.cursor, rootId: ctx.rootId },
       })
     }
   }
@@ -126,12 +126,12 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 6. Cursor position indices are consistent with columns
-  if (ctx.cursorNodeId && ctx.columns.length > 0 && ctx.colIndex >= 0) {
+  if (ctx.cursor && ctx.columns.length > 0 && ctx.colIndex >= 0) {
     if (ctx.colIndex >= ctx.columns.length) {
       violations.push({
         check: "colIndex-bounds",
         message: `colIndex ${ctx.colIndex} >= columns.length ${ctx.columns.length}`,
-        ids: { cursorNodeId: ctx.cursorNodeId },
+        ids: { cursorNodeId: ctx.cursor },
       })
     }
     if (ctx.isAtCardLevel && ctx.cardIndex >= 0) {
@@ -140,7 +140,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         violations.push({
           check: "cardIndex-bounds",
           message: `cardIndex ${ctx.cardIndex} >= column cardNodes.length ${col.cardNodes.length}`,
-          ids: { cursorNodeId: ctx.cursorNodeId, columnNodeId: col.node.id },
+          ids: { cursorNodeId: ctx.cursor, columnNodeId: col.node.id },
         })
       }
     }
@@ -151,20 +151,20 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // Skip virtual nodes which may not be in standard columns.
   // Skip when cursor IS the root node — that's legitimate "board level" cursor.
   if (
-    ctx.cursorNodeId &&
+    ctx.cursor &&
     ctx.columns.length > 0 &&
     ctx.colIndex < 0 &&
-    !isVirtualNodeId(ctx.cursorNodeId as string) &&
-    (ctx.cursorNodeId as string) !== ctx.rootId
+    !isVirtualNodeId(ctx.cursor as string) &&
+    (ctx.cursor as string) !== ctx.rootId
   ) {
-    const cursorNode = ctx.repo.getNode(ctx.cursorNodeId as string)
+    const cursorNode = ctx.repo.getNode(ctx.cursor as string)
     if (cursorNode) {
       // Node exists in repo but not in columns — potential state corruption
       violations.push({
         check: "cursor-in-columns",
         message: `Cursor node exists in repo but not found in any column (colIndex=${ctx.colIndex})`,
         ids: {
-          cursorNodeId: ctx.cursorNodeId,
+          cursorNodeId: ctx.cursor,
           parentId: cursorNode.parent_id,
           rootId: ctx.rootId,
         },
@@ -175,17 +175,17 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // 8. Cursor-always-visible: cursor must be in the view tree (not hidden by fold/filter)
   // Skip virtual nodes and root-level cursor.
   if (
-    ctx.cursorNodeId &&
-    !isVirtualNodeId(ctx.cursorNodeId as string) &&
-    (ctx.cursorNodeId as string) !== ctx.rootId
+    ctx.cursor &&
+    !isVirtualNodeId(ctx.cursor as string) &&
+    (ctx.cursor as string) !== ctx.rootId
   ) {
-    const viewNode = ctx.viewIndex.get(ctx.cursorNodeId as string)
+    const viewNode = ctx.viewIndex.get(ctx.cursor as string)
     if (!viewNode) {
       violations.push({
         check: "cursor-visible",
         message: `Cursor is on a non-visible node (hidden by fold or filter)`,
         ids: {
-          cursorNodeId: ctx.cursorNodeId,
+          cursor: ctx.cursor,
           rootId: ctx.rootId,
         },
       })

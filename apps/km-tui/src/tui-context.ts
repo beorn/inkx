@@ -48,7 +48,8 @@ export interface OpCtx {
   // === Board navigation (flat fields from store) ===
   rootId: string | null
   rootPath: string | null
-  cursorNodeId: string | null
+  /** Cursor node ID — reads from sel.node.cursor(). */
+  cursor: string | null
   /** Current card containing the cursor (from layout derivation). Used as embed-aware
    * hint — data model parent chain may lead to the wrong card for embeds. */
   cursorCardNodeId: string | null

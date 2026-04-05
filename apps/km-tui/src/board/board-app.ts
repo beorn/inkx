@@ -232,9 +232,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const s = get()
     const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
-    // Read cursor from per-pane sel store, fall back to pane field
-    // (sel.node.select may not update cursor if the node isn't in the walk order yet)
-    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? board?.cursorNodeId ?? null
+    // Read cursor from sel.node.cursor() — canonical source
+    const cursor_ = (board?.sel.node.cursor() as string | null) ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
     const repoVersion = s.repo.getSnapshot()
 
@@ -291,12 +290,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Use cached cursor indices when cursor+layout haven't changed
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     const cc = locals.cursorCache
-    if (cc && cc.cursorNodeId === cursorNodeId && cc.nodeIndexRef === nodeIndex) {
+    if (cc && cc.cursorNodeId === cursor_ && cc.nodeIndexRef === nodeIndex) {
       cursor = cc
     } else {
-      cursor = deriveCursorIndices(columns, cursorNodeId, nodeIndex, (id) => s.repo.getNode(id))
+      cursor = deriveCursorIndices(columns, cursor_, nodeIndex, (id) => s.repo.getNode(id))
       locals.cursorCache = {
-        cursorNodeId,
+        cursorNodeId: cursor_,
         cursorCardNodeId: null,
         nodeIndexRef: nodeIndex,
         colIndex: cursor.colIndex,
@@ -335,7 +334,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       },
       rootId,
       rootPath: board?.rootPath ?? null,
-      cursorNodeId,
+      cursor: cursor_,
       cursorCardNodeId,
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),
@@ -561,7 +560,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           } as import("@km/commands").TNode)
         : null,
       currentNodeId: ctx.selectedNode?.id ?? null,
-      cursorNodeId: ctx.cursorNodeId,
+      cursorNodeId: ctx.cursor,
       selectedNodes: Array.from(ctx.selectedIds),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
