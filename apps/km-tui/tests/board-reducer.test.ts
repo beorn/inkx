@@ -918,6 +918,12 @@ function mockCtx() {
   const sel = createSelection({
     tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
   })
+  // Intercept sel.node.select to track calls
+  const origSelect = sel.node.select.bind(sel.node)
+  sel.node.select = (...args: unknown[]) => {
+    calls.push({ method: "sel.node.select", args })
+    origSelect(...(args as Parameters<typeof origSelect>))
+  }
   return {
     calls,
     dispatchBoard: (...args: unknown[]) => calls.push({ method: "dispatchBoard", args }),
@@ -945,12 +951,12 @@ function mockCtx() {
 }
 
 describe("runBoardEffects — centralized effect interpreter", () => {
-  it("SELECT effect dispatches to board", () => {
+  it("SELECT effect calls sel.node.select", () => {
     const ctx = mockCtx()
     const result: ApplyResult = { state: state(), effects: [{ type: "SELECT", nodeId: "n1" }] }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runBoardEffects(ctx as any, result)
-    expect(ctx.calls).toEqual([{ method: "dispatchBoard", args: [{ type: "SELECT", nodeId: "n1" }] }])
+    expect(ctx.calls).toEqual([{ method: "sel.node.select", args: [["n1"]] }])
   })
 
   it("FOLD_SET effect calls setFoldDepths", () => {
@@ -992,8 +998,8 @@ describe("runBoardEffects — centralized effect interpreter", () => {
     runBoardEffects(ctx as any, result)
     expect(ctx.calls).toContainEqual({ method: "repo.addNode", args: ["p1", nodeData] })
     expect(ctx.calls).toContainEqual({
-      method: "dispatchBoard",
-      args: [{ type: "SELECT", nodeId: "new-node-id" }],
+      method: "sel.node.select",
+      args: [["new-node-id"]],
     })
     // Selection migration: edit mode is now via sel.text.edit() + textEditHints
     expect(ctx.sel.text()).not.toBeNull()
@@ -1051,7 +1057,7 @@ describe("runBoardEffects — centralized effect interpreter", () => {
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     runBoardEffects(ctx as any, result)
-    expect(ctx.calls.map((c) => c.method)).toEqual(["setFoldDepths", "dispatchBoard", "setUI"])
+    expect(ctx.calls.map((c) => c.method)).toEqual(["setFoldDepths", "sel.node.select", "setUI"])
   })
 
   it("no effects is a no-op", () => {

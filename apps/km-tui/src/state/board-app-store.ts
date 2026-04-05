@@ -555,7 +555,7 @@ export function createBoardAppStoreState(
       if (bridgedSels.has(paneSel)) return
       bridgedSels.add(paneSel)
       effect(() => {
-        paneSel.node.cursor()
+        const newCursor = paneSel.node.cursor() as string | null
         paneSel.node.ids()
         paneSel.text()
         paneSel.kind()
@@ -564,6 +564,15 @@ export function createBoardAppStoreState(
         paneSel.subComputed()
         _selVersion++
         if (_selVersion > 1) {
+          // Sync focusedPane.cursorNodeId (silent mutation) so that code reading
+          // pane.cursorNodeId stays consistent with sel.node.cursor().
+          const s = _get()
+          const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
+          if (focusedPane && isBoardPane(focusedPane) && focusedPane.sel === paneSel && newCursor !== null) {
+            focusedPane.cursorNodeId = newCursor
+            focusedPane.curswantX = null
+            focusedPane.curswantY = null
+          }
           set({ _selVersion } as Partial<BoardAppStore>)
         }
       })
