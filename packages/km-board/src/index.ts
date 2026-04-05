@@ -70,3 +70,7 @@ export type {
 // ===== View Snapshot (computed ViewTree + lazy derivations) =====
 export { createViewSnapshot } from "./view-snapshot.ts"
 export type { ViewSnapshot, CursorAncestors } from "./view-snapshot.ts"
+
+// ===== Tree Lens (universal navigation interface) =====
+export type { TreeLens } from "./tree-lens.ts"
+export type { ViewRole as LensViewRole } from "./tree-lens.ts"
