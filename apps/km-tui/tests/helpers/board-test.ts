@@ -71,6 +71,7 @@ import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.t
 import { getChordState } from "@km/commands"
 import { resetModeStack } from "../../src/dialog-guard.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/state/ui-context.tsx"
+import { ServicesProvider } from "../../src/services-context.tsx"
 import {
   createBoardAppStoreState,
   getActiveBoardPane,
@@ -1932,6 +1933,18 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
   }))
   const treeConfig = deriveTreeConfig(initialUI.viewMode, initialUI.maxContentLines, initialUI)
   const nodeStore = new ReactiveNodeStore()
+  const noopToastQueue = {
+    push: () => "",
+    dismiss: () => {},
+    dismissAll: () => {},
+    getAll: () => [],
+    getLatest: () => null,
+    info: () => "",
+    success: () => "",
+    warning: () => "",
+    error: () => "",
+    [Symbol.dispose]: () => {},
+  }
   const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
   const noopUndoHandle = {
     startBatch: () => {},
@@ -1959,12 +1972,20 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
   const reactiveStore = withReactive(createStoreFromRepo(repo))
   const result = render(
     h(
-      StoreContext.Provider,
-      { value: store as StoreApi<unknown> },
+      ServicesProvider,
+      {
+        toastQueue: noopToastQueue as any,
+        jobRunner: noopJobRunner as any,
+        undoHandle: noopUndoHandle as any,
+      },
       h(
-        ReactiveNodeStoreProvider,
-        { value: nodeStore },
-        h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: wrappedElement })),
+        StoreContext.Provider,
+        { value: store as StoreApi<unknown> },
+        h(
+          ReactiveNodeStoreProvider,
+          { value: nodeStore },
+          h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: wrappedElement })),
+        ),
       ),
     ),
   )
@@ -2039,14 +2060,20 @@ export function renderBoardWithStore(
     navigator: registry,
   })
 
+  const undoHandle = store.getState().undoHandle
+  const jobRunner = store.getState().jobRunner
   return renderFn(
-    React.createElement(
-      StoreContext.Provider,
-      { value: store as StoreApi<unknown> },
-      React.createElement(StoreProvider, {
-        store: reactiveStore,
-        children: React.createElement(RepoProvider, { repo, children: boardElement }),
-      }),
+    h(
+      ServicesProvider,
+      { toastQueue, jobRunner, undoHandle },
+      React.createElement(
+        StoreContext.Provider,
+        { value: store as StoreApi<unknown> },
+        React.createElement(StoreProvider, {
+          store: reactiveStore,
+          children: React.createElement(RepoProvider, { repo, children: boardElement }),
+        }),
+      ),
     ),
   )
 }

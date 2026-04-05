@@ -5,11 +5,9 @@
  * Uses context from the cursor item for defaults.
  */
 import React from "react"
-import { useApp as useAppStore } from "@silvery/create/create-app"
 import { Box, Text, CursorLine, ModalDialog } from "@silvery/ag-react"
 import { KNode } from "@km/core"
-import type { BoardAppStore } from "../state/board-app-store.ts"
-import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
+import { useUndoHandle } from "../services-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
 import { useDialogInput } from "../hooks/use-dialog-input.ts"
@@ -95,7 +93,7 @@ export function NewItemDialog({
   height,
 }: NewItemDialogProps): React.ReactElement {
   const repo = useRepo()
-  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
+  const undoHandle = useUndoHandle()
 
   // Determine insert location
   const parentId = getInsertParentId(cursorNode)

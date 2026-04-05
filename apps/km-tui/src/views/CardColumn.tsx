@@ -12,8 +12,7 @@ import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 import { Box, Text, Small, useScreenRectCallback } from "@silvery/ag-react"
-import type { JobRunner } from "@km/core"
-import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
+import { useJobRunner, useUndoHandle } from "../services-context.tsx"
 import { isDetailViewPane } from "../board/board-types.ts"
 import type { CardView, ColumnView } from "../types.ts"
 import { type KNode, getStatusForMarker } from "@km/core"
@@ -617,8 +616,8 @@ export const Column = React.memo(function Column({
   const {
     treeConfig: { iconStyle, borderMode: _borderMode, maxContentLines: _maxContentLines },
   } = useTreeRenderContext()
-  const jobRunner = useAppStore<BoardAppStore, JobRunner>((s) => s.jobRunner)
-  const undoHandle = useAppStore<BoardAppStore, UndoableRepoHandle>((s) => s.undoHandle)
+  const jobRunner = useJobRunner()
+  const undoHandle = useUndoHandle()
   const nodeId = column.node.id
 
   // Per-column mount timing — measure render → commit duration

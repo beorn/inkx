@@ -31,6 +31,7 @@ import { useSignal } from "../hooks/use-signal.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
+import { ServicesProvider } from "../services-context.tsx"
 import { formatFilterIndicator } from "./FilterDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
@@ -1136,6 +1137,12 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   const storeDimensions = useAppStore<BoardAppStore, { columns: number; rows: number }>((s) => s.ui.dimensions)
   const workspace = useAppStore<BoardAppStore, BoardAppStore["workspace"]>((s) => s.workspace)
   const focusPaneById = useAppStore<BoardAppStore, (id: string) => void>((s) => s.focusPaneById)
+  const storeToastQueue = useAppStore<BoardAppStore, import("@km/core").ToastQueue>((s) => s.toastQueue)
+  const jobRunner = useAppStore<BoardAppStore, import("@km/core").JobRunner>((s) => s.jobRunner)
+  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
+    (s) => s.undoHandle,
+  )
+  const servicesProviderToastQueue = toastQueue ?? storeToastQueue
 
   // Resize is handled via "term:resize" event in board-app.ts → store.setDimensions().
   // createApp provides a mock stdout to StdoutContext, so stdout.on("resize") is a no-op.
@@ -1195,31 +1202,35 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
   // Single pane (common case) — render Board directly, no wrapper overhead
   if (workspace.panes.size <= 1) {
     return (
-      <PopoverProvider>
-        <Box flexDirection="column" height={storeDimensions.rows}>
-          {renderPane("main")}
-          {bottomBar}
-          {chrome}
-        </Box>
-      </PopoverProvider>
+      <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
+        <PopoverProvider>
+          <Box flexDirection="column" height={storeDimensions.rows}>
+            {renderPane("main")}
+            {bottomBar}
+            {chrome}
+          </Box>
+        </PopoverProvider>
+      </ServicesProvider>
     )
   }
 
   // Multiple panes — use WorkspaceView for split layout
   return (
-    <PopoverProvider>
-      <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
-        <WorkspaceView
-          layout={workspace.layout}
-          panes={workspace.panes}
-          focusedPaneId={workspace.focusedPaneId}
-          renderPane={renderPane}
-          onPaneClick={focusPaneById}
-        />
-        {bottomBar}
-        {chrome}
-      </Box>
-    </PopoverProvider>
+    <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
+      <PopoverProvider>
+        <Box flexDirection="column" width={storeDimensions.columns} height={storeDimensions.rows}>
+          <WorkspaceView
+            layout={workspace.layout}
+            panes={workspace.panes}
+            focusedPaneId={workspace.focusedPaneId}
+            renderPane={renderPane}
+            onPaneClick={focusPaneById}
+          />
+          {bottomBar}
+          {chrome}
+        </Box>
+      </PopoverProvider>
+    </ServicesProvider>
   )
 }
 

@@ -12,6 +12,7 @@ import { Box, Text } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { useSignal } from "../hooks/use-signal.ts"
+import { useUndoHandle, useToastQueue } from "../services-context.tsx"
 import { usePaneUI } from "../state/ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
@@ -193,10 +194,8 @@ export function WorkspaceChrome({
   const cursor = useSignal(sel.node.cursor) as string | null
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
-  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
-    (s) => s.undoHandle,
-  )
-  const storeToastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
+  const undoHandle = useUndoHandle()
+  const storeToastQueue = useToastQueue()
   const activeToastQueue = toastQueue ?? storeToastQueue
 
   // Registered handlers from the focused Board connector
