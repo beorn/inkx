@@ -496,6 +496,21 @@ export function createBoardAppStoreState(
       }
     }
 
+    /**
+     * Sync store pane fields → PaneSignals after a dispatchBoard set().
+     * This keeps signals in sync so the computed ViewSnapshot auto-invalidates.
+     * Called after every structural dispatch (TOGGLE_FOLD, ZOOM_IN, SET_ROOT, etc.).
+     */
+    function syncPaneSignals(pane: BoardPaneState): void {
+      if (!pane.signals) return
+      pane.signals.rootId(pane.rootId)
+      pane.signals.rootPath(pane.rootPath)
+      pane.signals.foldDepths(pane.foldDepths)
+      pane.signals.collapsedNodes(pane.collapsedNodes)
+      pane.signals.moveState(pane.moveState)
+      pane.signals.viewMode(pane.viewMode)
+    }
+
     // Helper: get the focused pane's sel (delegates global sel to per-pane sel).
     function getActiveSel(): SelectionStore {
       const s = _get()
@@ -707,6 +722,8 @@ export function createBoardAppStoreState(
               const updatedDetail = { ...detailPane, rootId: newCardId }
               newPanes.set(detailPane.id, updatedDetail)
               set({ workspace: { ...s.workspace, panes: newPanes } })
+              // Sync detail pane's PaneSignals with new rootId
+              if (detailPane.signals) detailPane.signals.rootId(newCardId)
               // Sync the detail pane's sel with the new cursor
               if (newFirstItemId) {
                 detailPane.sel.node.select([newFirstItemId as import("@silvery/selection").ID])
@@ -847,16 +864,19 @@ export function createBoardAppStoreState(
           }
         })
 
-        // Update cursor store synchronously after structural changes (TOGGLE_FOLD, ZOOM_IN,
-        // SET_ROOT, etc.). Unlike SELECT which can reuse a cached viewIndex, these actions
-        // change rootId/foldDepths so a fresh tree build is required. This is fine — these
-        // actions are infrequent compared to cursor moves (j/k). React components (Board.tsx)
-        // also dispatch these directly, so we can't defer to buildOpCtx in board-app.ts.
+        // Sync PaneSignals with updated store state so computed ViewSnapshot
+        // auto-invalidates. Must happen before cursor rescue (which reads view()).
         const s = _get()
         const board = getActiveBoardPane(s)
-        if (board) {
-          const vTree = buildViewTree(s.repo, board.rootId, board.foldDepths)
-          const vIndex = buildViewIndex(vTree)
+        if (board?.signals) {
+          syncPaneSignals(board)
+        }
+
+        // Cursor rescue via computed ViewSnapshot — no manual buildViewTree needed.
+        // The computed is fresh because we just synced signals above.
+        if (board?.signals) {
+          const snap = board.signals.view()
+          const vIndex = snap.index as Map<string, ViewNode>
 
           // Cursor rescue: if cursor node is hidden by fold state, move it to the
           // nearest visible ancestor. Without this, folding a card while the cursor
@@ -871,7 +891,7 @@ export function createBoardAppStoreState(
 
           // Sync sel store cursor after structural changes (fold, zoom, etc.)
           if (cursorId) {
-            s.selTreeSource.update(vIndex, vTree)
+            s.selTreeSource.update(vIndex, snap.tree)
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
               s.sel.node.select([cursorId as import("@silvery/selection").ID])
@@ -934,6 +954,12 @@ export function createBoardAppStoreState(
           }
           return result
         })
+        // Sync viewMode to PaneSignals if it changed (viewMode is a per-pane field)
+        if (typeof partial === "object" && "viewMode" in partial) {
+          const afterS = _get()
+          const afterPane = getActiveBoardPane(afterS)
+          if (afterPane?.signals) afterPane.signals.viewMode(afterPane.viewMode)
+        }
       },
 
       setFoldDepths(depths: Map<string, number>) {
@@ -942,36 +968,31 @@ export function createBoardAppStoreState(
           const pane = state.workspace.panes.get(focusedPaneId)
           if (!pane || !isBoardPane(pane)) return state
 
-          // Cursor rescue: if cursor is on a node that will be hidden by the new
-          // fold depths, move it to the nearest visible ancestor before applying.
-          let paneUpdate: Partial<BoardPaneState> = { foldDepths: depths }
-          const paneCursorId = pane.sel.node.cursor() as string | null
-          if (paneCursorId) {
-            const vTree = buildViewTree(state.repo, pane.rootId, depths)
-            const vIndex = buildViewIndex(vTree)
-            const rescuedId = findVisibleAncestor(paneCursorId, vIndex, depths)
-            if (rescuedId !== null && rescuedId !== paneCursorId) {
-              // Cursor rescue: update sel store directly
-              pane.sel.node.select([rescuedId as import("@silvery/selection").ID])
-              paneUpdate = { foldDepths: depths }
-            }
-          }
-
-          const newPanes = updateBoardPane(state.workspace, focusedPaneId, pane, paneUpdate)
+          const newPanes = updateBoardPane(state.workspace, focusedPaneId, pane, { foldDepths: depths })
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
 
-        // Sync sel store after fold depth changes (cursor may have been rescued)
+        // Sync PaneSignals + cursor rescue via computed ViewSnapshot
         const s = _get()
         const boardPane = getActiveBoardPane(s)
-        const boardPaneCursorId = (boardPane?.sel.node.cursor() as string | null) ?? null
-        if (boardPaneCursorId) {
-          const vTree = buildViewTree(s.repo, boardPane!.rootId, boardPane!.foldDepths)
-          const vIndex = buildViewIndex(vTree)
-          s.selTreeSource.update(vIndex, vTree)
-          const ids = s.sel.node.ids()
-          if (ids.length <= 1) {
-            s.sel.node.select([boardPaneCursorId as import("@silvery/selection").ID])
+        if (boardPane?.signals) {
+          syncPaneSignals(boardPane)
+          const snap = boardPane.signals.view()
+          const vIndex = snap.index as Map<string, ViewNode>
+
+          // Cursor rescue: if cursor is on a node that will be hidden by the new
+          // fold depths, move it to the nearest visible ancestor before applying.
+          const boardPaneCursorId = (boardPane.sel.node.cursor() as string | null) ?? null
+          if (boardPaneCursorId) {
+            const rescuedId = findVisibleAncestor(boardPaneCursorId, vIndex, boardPane.foldDepths)
+            if (rescuedId !== null && rescuedId !== boardPaneCursorId) {
+              boardPane.sel.node.select([rescuedId as import("@silvery/selection").ID])
+            }
+            s.selTreeSource.update(vIndex, snap.tree)
+            const ids = s.sel.node.ids()
+            if (ids.length <= 1) {
+              s.sel.node.select([(rescuedId ?? boardPaneCursorId) as import("@silvery/selection").ID])
+            }
           }
         }
       },

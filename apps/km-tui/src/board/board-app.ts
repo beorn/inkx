@@ -33,12 +33,11 @@ import { readBoardHidden, isHidden } from "../hidden.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import {
-  deriveColumnsWithTree,
   deriveDetailColumns,
   buildNodeIndex,
   deriveCursorIndices,
 } from "../hooks/use-columns.ts"
-import { buildViewIndex, type ViewNode, type ViewNodeColumnCache } from "@km/board"
+import { viewNodeToColumnViews, type ViewNode } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -90,16 +89,6 @@ export interface BoardAppLocals {
   cachedFocusManager: FocusManager | null
   cachedFocus: ((testID: string) => void) | null
   cachedActivateScope: ((scopeId: string) => void) | null
-  layoutCache: {
-    rootId: string | null
-    foldDepths: Map<string, number>
-    repoVersion: number
-    columns: ColumnView[]
-    nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
-    viewTree: ViewNode
-    viewIndex: Map<string, ViewNode>
-    viewNodeCache: ViewNodeColumnCache
-  } | null
   /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
   cursorCache: {
     cursorId: string | null
@@ -128,7 +117,6 @@ export function createBoardAppLocals(): BoardAppLocals {
     cachedFocusManager: null,
     cachedFocus: null,
     cachedActivateScope: null,
-    layoutCache: null,
     cursorCache: null,
     chordTimer: null,
     pendingChordShownAt: 0,
@@ -235,58 +223,24 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Read cursor from sel.node.cursor() — canonical source
     const cursor_ = (board?.sel.node.cursor() as string | null) ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
-    const repoVersion = s.repo.getSnapshot()
 
-    // Reuse cached layout if state inputs haven't changed
-    // foldDepths uses reference equality — each fold/unfold creates a new Map
+    // ViewSnapshot from PaneSignals computed — single build, auto-cached.
+    // The computed auto-invalidates when repoVersion/rootId/foldDepths signals change.
+    const snap = board?.signals?.view()
+    const viewTree: ViewNode = snap?.tree ?? ({ id: "", role: "board", children: [], node: null, parent: null } as unknown as ViewNode)
+    const viewIndex: Map<string, ViewNode> = (snap?.index as Map<string, ViewNode>) ?? new Map()
+
+    // Derive ColumnView[] from ViewSnapshot tree (thin conversion, not a rebuild)
     let columns: ColumnView[]
-    let nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
-    let viewTree: ViewNode
-    let viewIndex: Map<string, ViewNode>
-    if (
-      locals.layoutCache &&
-      locals.layoutCache.rootId === rootId &&
-      locals.layoutCache.foldDepths === foldDepths &&
-      locals.layoutCache.repoVersion === repoVersion
-    ) {
-      columns = locals.layoutCache.columns
-      nodeIndex = locals.layoutCache.nodeIndex
-      viewTree = locals.layoutCache.viewTree
-      viewIndex = locals.layoutCache.viewIndex
+    if (board?.viewMode === "detail") {
+      // Detail mode uses its own column derivation but shares the viewTree for navigation
+      columns = deriveDetailColumns(s.repo, rootId, foldDepths)
+    } else if (snap) {
+      columns = viewNodeToColumnViews(viewTree) as ColumnView[]
     } else {
-      // Adaptive preload: shallow for large boards (everything folded), deeper for small ones
-      const topChildren = s.repo.getChildren(rootId)
-      s.repo.preloadSubtree(rootId, topChildren.length > 20 ? 2 : 4)
-      // Compute hidden node IDs before building the view tree — they're filtered at construction time
-      const hiddenNodeIds = computeHiddenNodeIds(s.repo, rootId)
-      // Reuse viewNode cache if rootId hasn't changed (zoom); clear on zoom change
-      const viewNodeCache: ViewNodeColumnCache =
-        locals.layoutCache && locals.layoutCache.rootId === rootId ? locals.layoutCache.viewNodeCache : new Map()
-      // Single derivation path via deriveColumnsWithTree — shared ViewNodeColumnCache
-      const result = deriveColumnsWithTree(s.repo, rootId, foldDepths, viewNodeCache, hiddenNodeIds)
-      viewTree = result.viewTree
-      if (board?.viewMode === "detail") {
-        // Detail mode uses its own column derivation but shares the viewTree for navigation
-        columns = deriveDetailColumns(s.repo, rootId, foldDepths)
-      } else {
-        columns = result.columns
-      }
-      nodeIndex = buildNodeIndex(columns)
-      viewIndex = buildViewIndex(viewTree)
-      locals.layoutCache = {
-        rootId,
-        foldDepths,
-        repoVersion,
-        columns,
-        nodeIndex,
-        viewTree,
-        viewIndex,
-        viewNodeCache,
-      }
-      // Update the selection adapter's tree source so sel.node operations
-      // use the freshest ViewTree for walkOrder/parent/children lookups.
-      s.selTreeSource.update(viewIndex, viewTree)
+      columns = []
     }
+    const nodeIndex = buildNodeIndex(columns)
     // Use cached cursor indices when cursor+layout haven't changed
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     const cc = locals.cursorCache

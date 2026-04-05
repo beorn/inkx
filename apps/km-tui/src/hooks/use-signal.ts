@@ -12,6 +12,11 @@ import { useCallback, useRef, useSyncExternalStore } from "react"
 import { effect } from "alien-signals"
 import type { KNode } from "@km/core"
 import { ResourceState, type Observable, type Reactive, type ReadonlySignal } from "@km/storage"
+import { useApp as useAppStore } from "@silvery/create/create-app"
+import { usePaneId } from "../pane-context.tsx"
+import type { PaneSignals } from "../state/pane-signals.ts"
+import type { BoardAppStore } from "../state/board-app-store.ts"
+import { isBoardPane, type BoardPaneState } from "../board/board-types.ts"
 
 /**
  * Subscribe to an alien-signals signal in React.
@@ -85,4 +90,43 @@ export function useCommitVersion(store: Observable): number {
   const getSnapshot = useCallback(() => versionRef.current, [])
 
   return useSyncExternalStore(subscribe, getSnapshot)
+}
+
+// =============================================================================
+// PaneSignals hooks
+// =============================================================================
+
+/**
+ * Get the PaneSignals for the current pane (via PaneIdProvider context).
+ * Returns the signal bag for this pane — use with useSignal() for reactive reads:
+ *
+ * ```tsx
+ * const ps = usePaneSignals()
+ * const rootId = useSignal(ps.rootId)
+ * const view = useSignal(ps.view)
+ * ```
+ */
+export function usePaneSignals(): PaneSignals {
+  const paneId = usePaneId()
+  return useAppStore<BoardAppStore, PaneSignals>((s) => {
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    if (p && isBoardPane(p) && p.signals) return p.signals
+    // Fallback: find any board pane with signals (shouldn't happen in practice)
+    for (const pane of s.workspace.panes.values()) {
+      if (isBoardPane(pane) && pane.signals) return pane.signals
+    }
+    throw new Error(`usePaneSignals: no PaneSignals for pane ${paneId}`)
+  })
+}
+
+/**
+ * Get the PaneSignals for the currently focused pane.
+ * Used by workspace-level components (WorkspaceChrome) that track the active pane.
+ */
+export function useFocusedPaneSignals(): PaneSignals | null {
+  return useAppStore<BoardAppStore, PaneSignals | null>((s) => {
+    const p = s.workspace.panes.get(s.workspace.focusedPaneId) as BoardPaneState | undefined
+    if (p && isBoardPane(p) && p.signals) return p.signals
+    return null
+  })
 }
