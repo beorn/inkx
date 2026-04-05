@@ -1391,6 +1391,7 @@
 {"created_at":"2026-04-04T09:03:15Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.selection.3","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-04T10:37:32Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.selection.4","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-04T16:05:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.selection.5","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-04T21:29:41Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.selection.6","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T14:59:36Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.listview-compositions","issue_id":"km-silvery.selectlist-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T18:35:25Z","created_by":"claude:73d7a332","depends_on_id":"km-silvery","issue_id":"km-silvery.session-0312a","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T00:08:50Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.sgr-compat","metadata":"{}","type":"parent-child"}

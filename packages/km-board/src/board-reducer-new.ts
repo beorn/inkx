@@ -87,6 +87,7 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
         {
           rootId: state.rootId,
           rootPath: state.rootPath,
+          cursor: null, // Cursor is managed by sel — caller saves via saveNavHistory()
         },
       ]
 

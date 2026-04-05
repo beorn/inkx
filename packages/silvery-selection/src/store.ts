@@ -136,8 +136,8 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
         root: options?.initialRoot ?? null,
       }
     : options?.initialRoot !== undefined
-      ? { ...EMPTY_STATE, root: options.initialRoot } as SelectionSnapshot<Sub>
-      : EMPTY_STATE as SelectionSnapshot<Sub>
+      ? ({ ...EMPTY_STATE, root: options.initialRoot } as SelectionSnapshot<Sub>)
+      : (EMPTY_STATE as SelectionSnapshot<Sub>)
 
   const $state = signal<StoreState<Sub>>({
     committed: initialState,

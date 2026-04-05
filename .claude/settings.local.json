@@ -61,7 +61,11 @@
       "Skill(browse)",
       "Skill(refactor)",
       "Edit(.claude/skills/**)",
-      "Write(.claude/skills/**)"
+      "Write(.claude/skills/**)",
+      "mcp__figma__whoami",
+      "mcp__figma__create_new_file",
+      "mcp__figma__use_figma",
+      "mcp__figma__get_screenshot"
     ],
     "deny": [],
     "ask": []
