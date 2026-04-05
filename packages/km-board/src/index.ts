@@ -78,3 +78,7 @@ export type { ViewRole as LensViewRole } from "./tree-lens.ts"
 // ===== View Lens (TreeLens-based view over repo) =====
 export { createViewLens } from "./view-lens.ts"
 export type { ViewLensRepo, ViewLensOptions } from "./view-lens.ts"
+
+// ===== Visible Lens (collapse + filter over view lens) =====
+export { createVisibleLens } from "./visible-lens.ts"
+export type { VisibleLensOptions } from "./visible-lens.ts"
