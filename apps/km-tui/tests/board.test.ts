@@ -174,6 +174,8 @@ describe("Runtime invariants", () => {
       cardIndex: -1,
       isAtCardLevel: false,
       viewIndex: new Map(), // empty — cursor not visible
+      viewTree: { id: "board", role: "board", children: [] },
+      moveState: { active: false },
     } as any
 
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
@@ -207,6 +209,8 @@ describe("Runtime invariants", () => {
       cardIndex: -1,
       isAtCardLevel: false,
       viewIndex: new Map([["1a", {}]]), // cursor is visible
+      viewTree: { id: "board", role: "board", children: [] },
+      moveState: { active: false },
     } as any
 
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
@@ -233,6 +237,8 @@ describe("Runtime invariants", () => {
       cardIndex: -1,
       isAtCardLevel: false,
       viewIndex: new Map([["1a", {}]]), // cursor is visible
+      viewTree: { id: "board", role: "board", children: [] },
+      moveState: { active: false },
     } as any
 
     const violations = checkInvariants(ctx)

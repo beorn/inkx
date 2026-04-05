@@ -229,6 +229,77 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
+  // 10. Cursor in walkOrder: if cursor is set, it must be in the selection's walkOrder.
+  // This catches the "cursor fell off the tree" class of bugs from stale ViewSnapshots.
+  if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
+    const walkOrder = ctx.sel.node.ids()
+    // When multi-selection is active, ids() returns selected IDs.
+    // For single selection, ids() is [cursor]. Check cursor is findable.
+    const cursorInWalk = ctx.viewIndex.has(ctx.cursor as string)
+    if (!cursorInWalk && (ctx.cursor as string) !== ctx.rootId) {
+      violations.push({
+        check: "cursor-in-walkOrder",
+        message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in viewIndex (${ctx.viewIndex.size} nodes). The ViewSnapshot may not include this node.`,
+        ids: { cursor: ctx.cursor, rootId: ctx.rootId },
+      })
+    }
+  }
+
+  // 11. Selection root matches pane rootId.
+  // After zoom/SET_ROOT, the sel root must be synced. Mismatch → empty walkOrder → cursor null.
+  if (ctx.rootId) {
+    const selRoot = ctx.sel.root.id() as string | null
+    if (selRoot && selRoot !== ctx.rootId && !isVirtualNodeId(selRoot)) {
+      violations.push({
+        check: "sel-root-matches-rootId",
+        message: `Selection root "${selRoot}" does not match pane rootId "${ctx.rootId}". Did syncPaneSignals miss sel.root.set()?`,
+        ids: { selRoot, rootId: ctx.rootId },
+      })
+    }
+  }
+
+  // 12. viewTree root matches rootId.
+  // The ViewSnapshot should be built for the current rootId.
+  if (ctx.rootId && ctx.viewTree?.role === "board") {
+    const treeRootId = ctx.viewTree.id
+    if (treeRootId && treeRootId !== ctx.rootId) {
+      violations.push({
+        check: "viewTree-root-matches",
+        message: `ViewTree root "${treeRootId}" does not match pane rootId "${ctx.rootId}". ViewSnapshot may be stale.`,
+        ids: { viewTreeRoot: treeRootId, rootId: ctx.rootId },
+      })
+    }
+  }
+
+  // 13. No duplicate columns: each column node ID should appear at most once.
+  {
+    const colIds = new Set<string>()
+    for (const col of ctx.columns) {
+      if (col.isVirtual) continue
+      if (colIds.has(col.node.id)) {
+        violations.push({
+          check: "no-duplicate-columns",
+          message: `Column "${col.node.id}" appears more than once`,
+          ids: { columnNodeId: col.node.id },
+        })
+      }
+      colIds.add(col.node.id)
+    }
+  }
+
+  // 14. Move mode consistency: when move is active, source nodes must exist.
+  if (ctx.moveState.active && ctx.moveState.sourceNodes) {
+    for (const srcId of ctx.moveState.sourceNodes) {
+      if (!ctx.repo.getNode(srcId)) {
+        violations.push({
+          check: "move-source-exists",
+          message: `Move mode source node "${srcId}" does not exist in repo`,
+          ids: { sourceNodeId: srcId },
+        })
+      }
+    }
+  }
+
   // Invariant violations are programming errors — throw immediately
   if (violations.length > 0) {
     const first = violations[0]!

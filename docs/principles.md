@@ -627,12 +627,20 @@ function getNode(id: string) {
 
 **Invariant violations throw.** Only user-caused errors (bad input, network failures) are logged gracefully. Pre-release policy: fail fast, fail loud. Runtime invariant checks (e.g. `checkInvariants` in board-app) always throw `InvariantViolationError` — there is no log-only mode.
 
-**Why**: Bugs surface at the call site, not later as mysterious failures.
+**Why**: Bugs surface at the call site, not later as mysterious failures. A runtime invariant that throws immediately is worth more than 10 manual test sessions. The cursor-null bug (signals migration) survived 3 separate root causes for hours — 1 invariant caught them all in seconds.
+
+**Invariant-first development:**
+- When adding state, add the invariant FIRST. What must always be true?
+- When fixing a bug, add the invariant that would have caught it.
+- Runtime invariants > unit tests for state consistency. Tests check specific scenarios; invariants check ALL scenarios.
+- `checkInvariants` runs after EVERY action — it's the safety net that catches what tests miss.
+- Invariants are documentation: they describe what "correct" means for the system.
 
 **Guidelines:**
 - [ ] Throw internally — `if (!id) throw` / not `id ?? defaultId`
 - [ ] No ensure checks — let `db.get()` throw / not `ensureDbOpen()`
 - [ ] Required = throw — `throw new Error('db required')` / not `db ?? fallback`
+- [ ] Add invariants for every state container sync (store ↔ signals, sel ↔ pane, etc.)
 
 ---
 
