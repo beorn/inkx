@@ -126,6 +126,10 @@ export interface BoardPaneState extends PaneStateBase {
   /** Mutable source that bridges ViewTree into the per-pane selection store */
   selTreeSource: SelectionTreeSource
 
+  // Per-pane reactive signals (PaneSignals — alien-signals backed)
+  /** Optional: present when PaneSignals are wired. Provides computed ViewSnapshot. */
+  signals?: import("../state/pane-signals.ts").PaneSignals
+
   // Board navigation
   rootId: string | null
   rootPath: string | null

@@ -48,7 +48,8 @@ import type { EditTarget } from "@silvery/ag-react"
 import { createSelection, type SelectionStore } from "@silvery/selection"
 import { signal, effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
-import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH } from "@km/board"
+import { createPaneSignals } from "./pane-signals.ts"
+import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -460,32 +461,38 @@ export function createBoardAppStoreState(
       workspace = createDefaultWorkspace(initialPaneBoard, params)
     }
 
-    // Initialize each board pane's selTreeSource with the initial view tree
-    // and install auto-refresh so walkOrder/parent/children are always fresh.
-    // The sel store already has an initialCursor from createPaneState, but
-    // the tree source needs populating so walk order is available.
-    /** Install auto-refresh on a board pane's selTreeSource.
-     * Before each tree read, checks repo version; if stale, rebuilds the ViewTree.
-     * This eliminates the need for manual refreshSelTree() calls at mutation sites. */
-    function installAutoRefresh(pane: BoardPaneState): void {
-      let lastVersion = undoableRepo.getSnapshot()
-      pane.selTreeSource.setBeforeRead(() => {
-        const currentVersion = undoableRepo.getSnapshot()
-        if (currentVersion !== lastVersion) {
-          const vTree = buildViewTree(undoableRepo, pane.rootId, pane.foldDepths)
-          const vIndex = buildViewIndex(vTree)
-          pane.selTreeSource.update(vIndex, vTree)
-          lastVersion = currentVersion
-        }
+    // Initialize each board pane's PaneSignals + ViewSnapshot.
+    // The computed ViewSnapshot auto-invalidates when repo/rootId/foldDepths change.
+    // The sel adapter reads from the snapshot — no manual auto-refresh needed.
+    function initPaneSignals(pane: BoardPaneState): void {
+      pane.signals = createPaneSignals({
+        id: pane.id,
+        sel: pane.sel,
+        selTreeSource: pane.selTreeSource,
+        repo: undoableRepo,
+        repoVersion: repoVersion$,
+        rootId: pane.rootId,
+        rootPath: pane.rootPath ?? null,
+        foldDepths: pane.foldDepths,
+        collapsedNodes: pane.collapsedNodes,
+        viewMode: pane.viewMode,
+        moveState: pane.moveState,
       })
+      // Connect sel adapter: before each tree read, ensure ViewSnapshot is current.
+      // Reading pane.signals.view() triggers the computed — if stale, rebuilds.
+      // Then we update the adapter's mutable source from the snapshot.
+      pane.selTreeSource.setBeforeRead(() => {
+        const snap = pane.signals!.view()
+        pane.selTreeSource.update(snap.index as Map<string, ViewNode>, snap.tree)
+      })
+      // Initialize the adapter with the first snapshot
+      const initSnap = pane.signals.view()
+      pane.selTreeSource.update(initSnap.index as Map<string, ViewNode>, initSnap.tree)
     }
 
     for (const pane of workspace.panes.values()) {
       if (isBoardPane(pane)) {
-        const initVTree = buildViewTree(params.repo, pane.rootId, pane.foldDepths)
-        const initVIndex = buildViewIndex(initVTree)
-        pane.selTreeSource.update(initVIndex, initVTree)
-        installAutoRefresh(pane)
+        initPaneSignals(pane)
       }
     }
 
@@ -1034,7 +1041,7 @@ export function createBoardAppStoreState(
           detailPane.parentPaneId = focusedPaneId
           // Inherit filter state from parent board pane (e.g., hide-done toggle)
           detailPane.filterProperties = { ...parentPane.filterProperties }
-          installAutoRefresh(detailPane)
+          initPaneSignals(detailPane)
           // Initialize the detail pane's sel with the initial cursor
           if (firstItemId) {
             const detailVTree = buildViewTree(state.repo, detailRootId, detailPane.foldDepths)
@@ -1391,7 +1398,7 @@ export function createBoardAppStoreState(
             viewMode: activeBoard?.viewMode ?? "columns",
             initialCursor: (activeBoardCursor as import("@silvery/selection").ID) ?? undefined,
           })
-          installAutoRefresh(updatedPane)
+          initPaneSignals(updatedPane)
           // Initialize the new pane's sel with the cursor
           if (activeBoardCursor) {
             const initVTree = buildViewTree(state.repo, updatedPane.rootId, updatedPane.foldDepths)
