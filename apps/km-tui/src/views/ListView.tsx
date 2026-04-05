@@ -64,7 +64,9 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const cursorDepth = useSignal(nodeStore.cursorDepth)
 
   // Track editing state for dynamic item height (border adds 2 rows)
-  const editingNodeId = useAppStore<BoardAppStore, string | null>((s) => (s.sel.text()?.nodeId as string) ?? null)
+  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
+  const textEdit = useSignal(sel.text)
+  const editingNodeId = (textEdit?.nodeId as string) ?? null
 
   // Flatten all cards into a single list
   const flatItems = useMemo(() => {

@@ -565,30 +565,20 @@ export function createBoardAppStoreState(
       },
     }
 
-    // Sel→store bridge: clears curswant on cursor move AND notifies store
-    // subscribers when sel state changes. The notification is needed until all
-    // useAppStore(s => s.sel.*) calls are migrated to useSignal() (signals.3).
-    // Board.tsx's cursor/selIds/textEdit already use useSignal; 7 remaining
-    // sel readers in other views still need store notifications.
-    let _selBridge = 0
-    const bridgedSels = new Set<SelectionStore>()
-
-    /** Bridge a pane's sel to the store. Clears curswant + notifies store. Idempotent. */
-    function bridgePaneSel(paneSel: SelectionStore): void {
-      if (bridgedSels.has(paneSel)) return
-      bridgedSels.add(paneSel)
+    // Curswant-clearing effect: resets curswant when cursor moves in any pane.
+    // (The old _selBridge also notified store subscribers for useAppStore sel
+    // readers — no longer needed since all sel reads now use useSignal directly.)
+    const watchedSels = new Set<SelectionStore>()
+    function watchCurswant(paneSel: SelectionStore): void {
+      if (watchedSels.has(paneSel)) return
+      watchedSels.add(paneSel)
       let firstRun = true
       effect(() => {
-        paneSel.node.cursor() // track cursor changes
-        paneSel.node.ids()
-        paneSel.text()
-        paneSel.kind()
-        _selBridge++
+        paneSel.node.cursor()
         if (firstRun) {
           firstRun = false
           return
         }
-        // Clear curswant when cursor changes
         const s = _get()
         if (!s?.workspace) return
         const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
@@ -596,14 +586,12 @@ export function createBoardAppStoreState(
           focusedPane.curswantX = null
           focusedPane.curswantY = null
         }
-        // Notify store subscribers (for remaining useAppStore sel readers)
-        set({ _selBridge } as Partial<BoardAppStore>)
       })
     }
 
     for (const pane of workspace.panes.values()) {
       if (isBoardPane(pane)) {
-        bridgePaneSel(pane.sel)
+        watchCurswant(pane.sel)
       }
     }
 
@@ -1068,12 +1056,12 @@ export function createBoardAppStoreState(
             },
           }
         })
-        // Bridge the new detail pane's sel for store notifications
+        // Watch the new detail pane's sel for curswant clearing
         const s = _get()
         const detailId = detailPaneIdFor(s.workspace.focusedPaneId)
         const detailPane = s.workspace.panes.get(detailId)
         if (detailPane && isBoardPane(detailPane)) {
-          bridgePaneSel(detailPane.sel)
+          watchCurswant(detailPane.sel)
         }
       },
 
@@ -1412,11 +1400,11 @@ export function createBoardAppStoreState(
             workspace: { ...workspace, panes: newPanes },
           }
         })
-        // Bridge the newly activated pane's sel for store notifications
+        // Watch the newly activated pane's sel for curswant clearing
         const s = _get()
         const activatedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
         if (activatedPane && isBoardPane(activatedPane)) {
-          bridgePaneSel(activatedPane.sel)
+          watchCurswant(activatedPane.sel)
         }
       },
     }

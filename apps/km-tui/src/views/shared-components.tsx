@@ -66,7 +66,9 @@ export const MemoizedTreeCard = React.memo(
     const _cursorDepth = useSignal(nodeStore.cursorDepth)
     const cursorIsSelected = _cursorCardNodeId === card.id && _cursorDepth === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
-    const isEditing = useAppStore<BoardAppStore, boolean>((s) => s.sel.text()?.nodeId === card.id)
+    const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
+    const textEdit = useSignal(sel.text)
+    const isEditing = textEdit?.nodeId === card.id
 
     // Fold depth: per-card override or root's depth budget
     const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {

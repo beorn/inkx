@@ -11,6 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { usePaneUI } from "../state/ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useBoardDialogs } from "./use-board-dialogs.ts"
@@ -150,7 +151,8 @@ function CursorAwareNewItemDialog({
   height: number
 }): React.ReactElement {
   const repo = useRepo()
-  const cursorId = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
+  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
+  const cursorId = useSignal(sel.node.cursor) as string | null
   const cursorNode = cursorId ? (repo.getNode(cursorId) ?? null) : null
   return <NewItemDialog cursorNode={cursorNode} onCreate={onCreate} onCancel={onCancel} width={width} height={height} />
 }
@@ -187,8 +189,8 @@ export function WorkspaceChrome({
     const p = Workspace.getActiveBoardPane(s)
     return p?.rootId ?? null
   })
-  const cursor = useAppStore<BoardAppStore, string | null>((s) => s.sel.node.cursor() as string | null)
   const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
+  const cursor = useSignal(sel.node.cursor) as string | null
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
   const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(

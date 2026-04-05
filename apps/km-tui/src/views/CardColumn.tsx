@@ -633,7 +633,8 @@ export const Column = React.memo(function Column({
   const isSelected = cursorColumnNodeId === nodeId
 
   // Check if this column header is being inline-edited
-  const isInlineEditing = useAppStore<BoardAppStore, boolean>((s) => s.sel.text()?.nodeId === nodeId)
+  const textEdit = useSignal(sel.text)
+  const isInlineEditing = textEdit?.nodeId === nodeId
 
   // Scroll anchor for mouse wheel viewport scrolling (null = follow cursor)
   const columnScrollAnchor = useAppStore<BoardAppStore, number | null>((s) => {
