@@ -489,6 +489,11 @@ export function createBoardAppStoreState(
       // Initialize the adapter with the first snapshot
       const initSnap = pane.signals.view()
       pane.selTreeSource.update(initSnap.index as Map<string, ViewNode>, initSnap.tree)
+      // Sync ViewTree when visibleLens changes
+      effect(() => {
+        const lens = pane.signals!.visibleLens()
+        pane.signals!.viewTree.sync(lens)
+      })
     }
 
     for (const pane of workspace.panes.values()) {
@@ -967,7 +972,9 @@ export function createBoardAppStoreState(
             if ("viewMode" in partial) afterPane.signals.viewMode(afterPane.viewMode)
             // Hidden state change: recompute hiddenNodeIds so ViewSnapshot filters correctly
             if ("hiddenVersion" in partial || "showHidden" in partial) {
-              const hidden = afterPane.showHidden ? new Set<string>() : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
+              const hidden = afterPane.showHidden
+                ? new Set<string>()
+                : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
               afterPane.signals.hiddenNodeIds(hidden)
             }
           }

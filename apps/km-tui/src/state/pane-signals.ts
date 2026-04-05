@@ -21,8 +21,8 @@
 
 import { signal, computed } from "alien-signals"
 import type { SelectionStore } from "@silvery/selection"
-import type { ViewSnapshot, ViewTreeRepo, ViewNodeColumnCache, TreeLens } from "@km/board"
-import { createViewSnapshot, createViewLens, createVisibleLens } from "@km/board"
+import type { ViewSnapshot, ViewTreeRepo, ViewNodeColumnCache, TreeLens, ViewTreeProjection } from "@km/board"
+import { createViewSnapshot, createViewLens, createVisibleLens, createViewTree } from "@km/board"
 import type { SelectionTreeSource } from "./selection-adapter.ts"
 import type { MoveState, ViewMode } from "../board/board-types.ts"
 import { computeHiddenNodeIds } from "../hidden.ts"
@@ -69,6 +69,10 @@ export interface PaneSignals {
   readonly viewLens: Computed<TreeLens>
   /** Visible lens: view lens + collapse + filter (what the user sees) */
   readonly visibleLens: Computed<TreeLens>
+
+  // ViewTree — per-node projection with navigation
+  /** The projected ViewTree. Synced from visibleLens. Used by useNode(id). */
+  readonly viewTree: ViewTreeProjection
 }
 
 // =============================================================================
@@ -153,6 +157,13 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     })
   })
 
+  // ViewTree: per-node projection synced from visibleLens.
+  // The ViewTree is a persistent object — only its internal signals update.
+  const viewTreeInstance = createViewTree()
+  // Initial sync
+  const initialLens = visibleLensComputed()
+  viewTreeInstance.sync(initialLens)
+
   return {
     id: opts.id,
     sel: opts.sel,
@@ -169,5 +180,6 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     view,
     viewLens: viewLensComputed,
     visibleLens: visibleLensComputed,
+    viewTree: viewTreeInstance,
   }
 }

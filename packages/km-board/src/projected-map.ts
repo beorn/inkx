@@ -65,7 +65,7 @@ export interface ProjectedMap<K, V> {
  *
  * @param fields - Which fields of V to track as individual signals
  */
-export function createProjectedMap<K, V extends Record<string, unknown>>(
+export function createProjectedMap<K, V>(
   fields: readonly (keyof V & string)[],
 ): ProjectedMap<K, V> {
   const tracked = new Map<K, Projected<V>>()
@@ -102,7 +102,7 @@ export function createProjectedMap<K, V extends Record<string, unknown>>(
         // Diff each field — only write signal if value changed
         for (const field of fields) {
           const oldVal = (bag[field] as () => unknown)()
-          const newVal = newValue[field]
+          const newVal = (newValue as Record<string, unknown>)[field as string]
           if (oldVal !== newVal) {
             ;(bag[field] as (v: unknown) => void)(newVal)
           }

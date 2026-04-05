@@ -17,6 +17,7 @@ import { usePaneId } from "../pane-context.tsx"
 import type { PaneSignals } from "../state/pane-signals.ts"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { isBoardPane, type BoardPaneState } from "../board/board-types.ts"
+import type { ViewTreeProjection, ProjectedViewNode, ViewNodeState } from "@km/board"
 
 /**
  * Subscribe to an alien-signals signal in React.
@@ -129,4 +130,59 @@ export function useFocusedPaneSignals(): PaneSignals | null {
     if (p && isBoardPane(p) && p.signals) return p.signals
     return null
   })
+}
+
+// =============================================================================
+// ViewTree hooks
+// =============================================================================
+
+/**
+ * Get the ViewTree for the current pane.
+ *
+ * The ViewTree provides tree-wide navigation (next, prev, nodes, walkOrder)
+ * and per-node signal bags (via track/getProjected).
+ *
+ * For per-node reactive data, use useNode(id) instead.
+ */
+export function useViewTree(): ViewTreeProjection | null {
+  const ps = usePaneSignals()
+  return ps?.viewTree ?? null
+}
+
+/**
+ * Subscribe to a single node's projected view state.
+ *
+ * Re-renders ONLY when this specific node's view state changes.
+ * Returns a ViewNode with viewType, childIds, display, etc.
+ *
+ * @example
+ * ```tsx
+ * function Card({ id }: { id: string }) {
+ *   const node = useNode(id)
+ *   if (!node) return null
+ *   return <Box>{node.display?.content}</Box>
+ * }
+ * ```
+ */
+export function useNode(id: string): ProjectedViewNode | null {
+  const ps = usePaneSignals()
+  const tree = ps?.viewTree
+  if (!tree) return null
+
+  // Track this node — creates signal bag on first access
+  const proj = tree.track(id)
+  if (!proj) return null
+
+  // Subscribe to each signal via useSignal — React re-renders when any changes
+  return {
+    id,
+    viewType: useSignal(proj.viewType),
+    childIds: useSignal(proj.childIds),
+    parentId: useSignal(proj.parentId),
+    display: useSignal(proj.display),
+    isBody: useSignal(proj.isBody),
+    isEmbed: useSignal(proj.isEmbed),
+    rules: useSignal(proj.rules),
+    data: useSignal(proj.data),
+  }
 }
