@@ -60,10 +60,12 @@ function mockCtx(opts: {
 
   // Cast to any — these tests only exercise the selection helpers which
   // only read the fields we provide here.
+  const cursorNodeId = opts.cursorNodeId ?? cards[cardIndex]?.id ?? null
   return {
     selectedIds: opts.multiSelected ?? new Set(),
     columns: [{ cardNodes: cards }],
-    cursorNodeId: opts.cursorNodeId ?? cards[cardIndex]?.id ?? null,
+    cursorNodeId,
+    sel: { node: { cursor: () => cursorNodeId, ids: () => [], select: () => {} } },
     colIndex: opts.colIndex ?? 0,
     cardIndex,
     nodeIndex,
