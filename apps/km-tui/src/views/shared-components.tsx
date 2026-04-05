@@ -6,13 +6,12 @@
  */
 import React, { useCallback } from "react"
 import { Box, Text, Muted, Small, CursorLine, ModalDialog, useContentRectCallback } from "@silvery/ag-react"
-import { useApp as useAppStore } from "@silvery/create/create-app"
+import { usePaneSignals } from "../hooks/use-signal.ts"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:layout")
 import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
-import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board/board-pills.ts"
 import { getNodeIcon, InlineText } from "../text/index.ts"
@@ -66,18 +65,15 @@ export const MemoizedTreeCard = React.memo(
     const _cursorDepth = useSignal(nodeStore.cursorDepth)
     const cursorIsSelected = _cursorCardNodeId === card.id && _cursorDepth === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
-    const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
-    const textEdit = useSignal(sel.text)
+    const ps = usePaneSignals()
+    const textEdit = useSignal(ps.sel.text)
     const isEditing = textEdit?.nodeId === card.id
 
     // Fold depth: per-card override or root's depth budget
-    const rootFoldDepth = useAppStore<BoardAppStore, number>((s) => {
-      const board = Workspace.getActiveBoardPane(s)
-      if (!board) return 1
-      const cardOverride = board.foldDepths.get(card.id)
-      if (cardOverride !== undefined) return cardOverride
-      return board.foldDepths.get(board.rootId ?? "") ?? 1
-    })
+    const foldDepths = useSignal(ps.foldDepths)
+    const paneRootId = useSignal(ps.rootId)
+    const cardOverride = foldDepths.get(card.id)
+    const rootFoldDepth = cardOverride !== undefined ? cardOverride : (foldDepths.get(paneRootId ?? "") ?? 1)
 
     const content = (
       <CardLayoutTracker nodeId={card.id} colIndex={colIndex} cardIndex={cardIndex} isSelected={isSelected}>

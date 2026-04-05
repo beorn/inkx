@@ -27,11 +27,11 @@ import {
 } from "@silvery/ag-react"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/create/create-app"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
-import { useSignal } from "../hooks/use-signal.ts"
+import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
-import { ServicesProvider } from "../services-context.tsx"
+import { ServicesProvider, useToastQueue, useJobRunner, useUndoHandle } from "../services-context.tsx"
 import { formatFilterIndicator } from "./FilterDialog.tsx"
 import { Column } from "./CardColumn.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
@@ -40,14 +40,13 @@ import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { DetailView } from "./DetailView.tsx"
 import { renderPath } from "../layout/index.ts"
-import type { GridNavigator } from "@km/board"
-import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex } from "@km/board"
+import { viewNodeToColumnViews, type GridNavigator } from "@km/board"
 import type { PaneUI, FilterProperties } from "../state/ui-reducer.ts"
 import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
-import { useColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
+import { buildNodeIndex, deriveCursorIndices, deriveDetailColumns } from "../hooks/use-columns.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board/board-types.ts"
@@ -560,6 +559,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const runtimeCtx = useRuntime()
   const repo = useRepo()
   const paneId = usePaneId()
+  const ps = usePaneSignals()
 
   // Read state from pane-specific state in workspace.
   // Each BoardPaneState owns its navigation state (rootId, foldDepths, etc).
@@ -569,33 +569,19 @@ export function Board({ patchedConsole }: BoardProps) {
     if (!p || !isBoardPane(p)) return s.ui as unknown as PaneUI
     return mergePaneUI(s.ui, p)
   })
-  const rootId = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.rootId ?? null
-  })
+  const rootId = useSignal(ps.rootId)
   // Cursor: subscribe directly to per-pane sel's cursor computed signal.
   // No bridge needed — useSignal tracks the alien-signals computed directly.
-  const paneSel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => {
-    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.sel ?? s.sel
-  })
+  const paneSel = ps.sel
   const cursor = useSignal(paneSel.node.cursor) as string | null
-  const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => {
-    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.foldDepths ?? new Map()
-  })
-  const storeCollapsedNodes = useAppStore<BoardAppStore, Set<string>>((s) => {
-    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    return p?.collapsedNodes ?? new Set()
-  })
-  const toastQueue = useAppStore<BoardAppStore, ToastQueue>((s) => s.toastQueue)
+  const foldDepths = useSignal(ps.foldDepths)
+  const storeCollapsedNodes = useSignal(ps.collapsedNodes)
+  const toastQueue = useToastQueue()
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
-  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
+  const sel = ps.sel
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
-  const jobRunner = useAppStore<BoardAppStore, import("@km/core").JobRunner>((s) => s.jobRunner)
-  const undoHandle = useAppStore<BoardAppStore, import("../undo/undoable-repo.ts").UndoableRepoHandle>(
-    (s) => s.undoHandle,
-  )
+  const jobRunner = useJobRunner()
+  const undoHandle = useUndoHandle()
   const taskStatusFilter = ui.filterProperties.taskStatus
 
   // Board focus state — derived from silvery focus scope system.
@@ -609,11 +595,10 @@ export function Board({ patchedConsole }: BoardProps) {
   // Pre-populate cursor state so child components have valid cursor on first render.
   const nodeStore = useMemo(() => {
     const store = new ReactiveNodeStore()
-    // Derive initial cursor classification for the pre-render sync
+    // Derive initial cursor classification from ViewSnapshot (single computed)
     if (cursor && rootId) {
-      const vTree = buildViewTree(repo, rootId, foldDepths)
-      const vIndex = buildViewIndex(vTree)
-      const ancestors = classifyCursorFromViewIndex(vIndex, cursor)
+      const snap = ps.view() // read computed ViewSnapshot directly (mount-time only)
+      const ancestors = snap.classify(cursor)
       store.syncCursor({
         cursor,
         cursorCardNodeId: ancestors.cursorCardNodeId,
@@ -686,11 +671,15 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [ui.showConsole, runtimeCtx, patchedConsole])
 
-  // Derive columns from repo (reactive to repo mutations via useCommitVersion).
+  // Derive columns from ViewSnapshot (reactive via alien-signals computed).
   // Column derivation is <1ms with per-column memoization. Progressive reveal
   // (useColumnReveal in BoardCore) handles zoom transitions by showing column headers
   // with skeleton placeholders, then revealing one column per frame.
-  const columns = useColumns(repo, rootId, foldDepths, ui.viewMode)
+  const view = useSignal(ps.view)
+  const columns = useMemo(() => {
+    if (ui.viewMode === "detail") return deriveDetailColumns(repo, rootId, foldDepths)
+    return viewNodeToColumnViews(view.tree) as ColumnView[]
+  }, [view, ui.viewMode, repo, rootId, foldDepths])
 
   // Sync rule-based collapse (km.collapse:: true) into the store's collapsedNodes.
   // On root change (zoom), columns with rules.collapse should start collapsed.
@@ -1020,10 +1009,7 @@ export function Board({ patchedConsole }: BoardProps) {
       <TreeRenderProvider
         treeConfig={treeConfig}
         setUI={setUI}
-        sel={useAppStore<
-          import("../state/board-app-store.ts").BoardAppStore,
-          import("@silvery/selection").SelectionStore
-        >((s) => s.sel)}
+        sel={sel}
         rootBoardId={findBoardRootId(repo, rootId)}
         searchMatchNodeIds={searchMatchNodeIds}
         currentMatchNodeId={currentMatchNodeId}

@@ -10,8 +10,8 @@
 import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
-import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
-import { useSignal } from "../hooks/use-signal.ts"
+import type { BoardAppStore } from "../state/board-app-store.ts"
+import { useFocusedPaneSignals, useSignal } from "../hooks/use-signal.ts"
 import { useUndoHandle, useToastQueue } from "../services-context.tsx"
 import { usePaneUI } from "../state/ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -152,8 +152,8 @@ function CursorAwareNewItemDialog({
   height: number
 }): React.ReactElement {
   const repo = useRepo()
-  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
-  const cursorId = useSignal(sel.node.cursor) as string | null
+  const ps = useFocusedPaneSignals()!
+  const cursorId = useSignal(ps.sel.node.cursor) as string | null
   const cursorNode = cursorId ? (repo.getNode(cursorId) ?? null) : null
   return <NewItemDialog cursorNode={cursorNode} onCreate={onCreate} onCancel={onCancel} width={width} height={height} />
 }
@@ -178,19 +178,12 @@ export function WorkspaceChrome({
   const repo = useRepo()
   const ui = usePaneUI()
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
-  const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = Workspace.getActiveBoardPane(s)
-    return p?.rootPath ?? null
-  })
-  const moveMode = useAppStore<BoardAppStore, boolean>((s) => {
-    const p = Workspace.getActiveBoardPane(s)
-    return p?.moveState.active ?? false
-  })
-  const rootId = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = Workspace.getActiveBoardPane(s)
-    return p?.rootId ?? null
-  })
-  const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
+  const ps = useFocusedPaneSignals()!
+  const rootPath = useSignal(ps.rootPath)
+  const moveState = useSignal(ps.moveState)
+  const moveMode = moveState.active
+  const rootId = useSignal(ps.rootId)
+  const sel = ps.sel
   const cursor = useSignal(sel.node.cursor) as string | null
   const dispatchBoard = useAppStore<BoardAppStore, BoardAppStore["dispatchBoard"]>((s) => s.dispatchBoard)
   const openDetailPane = useAppStore<BoardAppStore, BoardAppStore["openDetailPane"]>((s) => s.openDetailPane)
@@ -461,10 +454,8 @@ export interface WorkspaceBottomBarProps {
 
 export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): React.ReactElement {
   const ui = usePaneUI()
-  const rootPath = useAppStore<BoardAppStore, string | null>((s) => {
-    const p = Workspace.getActiveBoardPane(s)
-    return p?.rootPath ?? null
-  })
+  const ps = useFocusedPaneSignals()!
+  const rootPath = useSignal(ps.rootPath)
   const repo = useRepo()
 
   return (
