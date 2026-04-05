@@ -114,6 +114,30 @@ An `effect(() => { otherStore.set() })` is a design smell. It means two stores b
 
 ---
 
+## Industry Validation
+
+Researched: Solid.js, Preact Signals, MobX, Zustand, Signia (tldraw), Jotai, Vue, Elm/TEA. Every successful reactive system converges on the same principle.
+
+**The universal rule:** one writer per signal, derive everything else.
+
+| System | How they enforce it |
+|---|---|
+| MobX | `enforceActions: "always"` — runtime throws on mutation outside action |
+| Elm/TEA | Language-level — `update` is the ONLY way to produce new state |
+| Signia (tldraw) | `transact(fn)` — groups writes, rollback on throw |
+| Jotai | Derived writable atoms hide the primitive, export controlled API |
+| Solid.js | `batch()` defers notifications; `createMemo` for derivations |
+| Vue | `computed` preferred over `watchEffect` for derived state |
+
+**Three glitch prevention strategies:**
+1. **No graph** (Elm) — state transitions are atomic. No reactive propagation to glitch.
+2. **Topological scheduling** (MobX) — stale/ready two-phase ensures each derivation runs once per transaction.
+3. **Lazy pull with clock** (Signia, Solid, Vue) — writes mark dirty, recomputation is lazy on read. Can't observe half-updated graph.
+
+Our TEA `apply()` boundary = strategy #1 (no graph inside the pure function). Our alien-signals = strategy #3 (lazy pull). The combination gives us atomic transitions + efficient reactive propagation.
+
+**Key insight from Signia:** transact-with-rollback. If `applySelect` throws an invariant error, the signal write should be reverted. Consider wrapping sel store writes in a transaction.
+
 ## See Also
 
 - [Selection System Lessons](selection-system.md) — the full history of the selection design, including the bridge problem
