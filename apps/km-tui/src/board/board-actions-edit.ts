@@ -22,6 +22,7 @@
  */
 
 import { getMarkerForStatus, extractTaskDates, Position, type KNode, type TaskStatus } from "@km/core"
+import type { ID } from "@silvery/selection"
 import { type OpResult, boundary, ok } from "@km/commands"
 import { getNextOccurrence } from "@km/storage"
 import { Tree, midpoint } from "@km/tree"
@@ -244,10 +245,10 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
 
   // Select the pre-computed cursor target
   if (cursorTarget) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: cursorTarget })
+    ctx.sel.node.select([cursorTarget as ID])
   } else {
     // Fallback: re-select current cursor (may land on column header)
-    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+    ctx.sel.node.select([ctx.cursorNodeId as ID])
   }
 }
 
@@ -283,7 +284,7 @@ function handleAddFirstChild(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(ctx.rootId, newNode)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
@@ -336,7 +337,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   const newId = repo.addNode(col.node.id, newNode)
 
   // Select the newly created node directly by ID
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
 
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
@@ -369,7 +370,7 @@ export function handleAddNodeChild(ctx: OpCtx): void {
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
 
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
@@ -411,7 +412,7 @@ export function handleAddNodeAtParent(ctx: OpCtx): void {
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(grandparentId, newNode)
 
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
@@ -456,14 +457,14 @@ export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
   const newId = repo.addNode(parentId, newNode)
 
   // Select the duplicated node directly by ID
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
 }
 
 /**
  * Confirm move operation - move selected nodes to target column.
  */
 export function handleConfirmMove(ctx: OpCtx): void {
-  const { repo, dispatchBoard } = ctx
+  const { repo } = ctx
   const sourceNodeIds = ctx.moveState.active ? ctx.moveState.sourceNodes : []
   if (sourceNodeIds.length === 0) return
   const targetCol = ctx.column
@@ -480,11 +481,11 @@ export function handleConfirmMove(ctx: OpCtx): void {
   }
 
   ctx.undoHandle.endBatch()
-  dispatchBoard({ type: "CONFIRM_MOVE" })
+  ctx.dispatchBoard({ type: "CONFIRM_MOVE" })
   // Select the last moved node by ID
   const lastMovedId = sourceNodeIds[sourceNodeIds.length - 1]
   if (lastMovedId) {
-    dispatchBoard({ type: "SELECT", nodeId: lastMovedId })
+    ctx.sel.node.select([lastMovedId as ID])
   }
 }
 
@@ -562,7 +563,7 @@ export function handleTaskStatusCycle(ctx: OpCtx): void {
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
   // Re-select current node to trigger UI update
-  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+  ctx.sel.node.select([ctx.cursorNodeId as ID])
 }
 
 /**
@@ -589,7 +590,7 @@ export function handleClearTask(ctx: OpCtx): void {
   })
 
   if (count === 0) return
-  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+  ctx.sel.node.select([ctx.cursorNodeId as ID])
 }
 
 /**
@@ -659,7 +660,7 @@ function moveColumn(
   ctx.undoHandle.endBatch()
 
   // Column moved — re-select by node ID (column header)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: col.node.id })
+  ctx.sel.node.select([col.node.id as ID])
   return ok()
 }
 
@@ -720,7 +721,7 @@ export function handleIndentColumn(ctx: OpCtx, col: ColumnView): OpResult {
   repo.moveNode(col.node.id, prevCol.node.id, newSortOrder)
 
   // The indented column is now a card under prevCol — select it by node ID
-  ctx.dispatchBoard({ type: "SELECT", nodeId: col.node.id })
+  ctx.sel.node.select([col.node.id as ID])
 
   return ok()
 }
