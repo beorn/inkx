@@ -173,6 +173,7 @@ describe("Runtime invariants", () => {
       colIndex: -1,
       cardIndex: -1,
       isAtCardLevel: false,
+      viewIndex: new Map(), // empty — cursor not visible
     } as any
 
     expect(() => checkInvariants(ctx)).toThrow(InvariantViolationError)
