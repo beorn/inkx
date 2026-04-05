@@ -82,3 +82,7 @@ export type { ViewLensRepo, ViewLensOptions } from "./view-lens.ts"
 // ===== Visible Lens (collapse + filter over view lens) =====
 export { createVisibleLens } from "./visible-lens.ts"
 export type { VisibleLensOptions } from "./visible-lens.ts"
+
+// ===== Projected Map (reusable reactive per-key signal bags) =====
+export { createProjectedMap } from "./projected-map.ts"
+export type { ProjectedMap, Projected } from "./projected-map.ts"
