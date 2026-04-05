@@ -69,7 +69,7 @@ const enterInlineEdit = {
   description: "Edit node title inline (or create first item on empty board)",
   category: "Edit",
   execute: (ctx) => {
-    const nodeId = ctx.cursorNodeId ?? ctx.currentNodeId
+    const nodeId = ctx.cursor ?? ctx.currentNodeId
     if (nodeId) return { type: "ENTER_INLINE_EDIT", nodeId }
     // Empty board — fall back to insert below (creates first child)
     return { type: "INSERT_BELOW" }

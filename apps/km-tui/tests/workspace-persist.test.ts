@@ -53,7 +53,7 @@ function makePaneState(
     viewType: (opts?.viewType ?? "board") as "board",
     rootId: opts?.rootId ?? null,
     rootPath: opts?.rootPath ?? null,
-    cursorNodeId: null,
+    // cursorNodeId removed — cursor is managed by sel.node.cursor()
     foldDepths: new Map(),
     collapsedNodes: new Set(),
     navHistory: [],
@@ -173,12 +173,12 @@ describe("serializeWorkspace", () => {
 
   it("does not include session-specific state", () => {
     const pane = makePaneState("main", { rootId: "node-tasks" })
-    pane.cursorNodeId = "cursor-123"
+    // Cursor is managed by sel store — no pane.cursorNodeId anymore
     pane.foldDepths = new Map([
       ["fold-1", 0],
       ["fold-2", 0],
     ])
-    pane.navHistory = [{ rootId: "old", rootPath: "old.md", cursorNodeId: "old-cursor" }]
+    pane.navHistory = [{ rootId: "old", rootPath: "old.md", cursor: "old-cursor" }]
 
     const ws = makeWorkspace({ panes: [pane] })
     const result = serializeWorkspace(ws, "test", defaultRepo)

@@ -29,9 +29,9 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
 
     case "SELECT": {
       // Navigation handler computed the target nodeId
+      // Cursor is now managed by sel.node.select() — just clear curswant.
       return {
         ...state,
-        cursorNodeId: action.nodeId,
         curswantX: null, // Clear curswant on explicit selection
         curswantY: null,
       }
@@ -68,11 +68,10 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
     case "ZOOM_IN": {
       // Zoom is now just a root change - no stack needed
       // Parent can be derived from tree via parent_id
+      // Cursor is managed by sel.node.select() at the call site.
       return {
         ...state,
         rootId: action.nodeId,
-        // Set cursor to provided cursorNodeId, or null if not provided (UI will initialize to first child)
-        cursorNodeId: action.cursorNodeId ?? null,
         curswantX: null,
         curswantY: null,
       }
@@ -82,22 +81,11 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
 
     case "SET_ROOT": {
       // Navigate to a different file/root
-      const newHistory = [
-        ...state.navHistory.slice(0, state.navHistoryIndex + 1),
-        {
-          rootId: state.rootId,
-          rootPath: state.rootPath,
-          cursorNodeId: state.cursorNodeId,
-        },
-      ]
-
+      // Cursor is managed by sel.node.select() at the call site.
       return {
         ...state,
         rootId: action.rootId,
         rootPath: action.rootPath,
-        cursorNodeId: action.cursorNodeId,
-        navHistory: newHistory,
-        navHistoryIndex: newHistory.length,
         curswantX: null,
         curswantY: null,
       }
@@ -113,7 +101,7 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
         moveState: {
           active: true,
           sourceNodes: action.nodeIds,
-          sourceCursorNodeId: action.cursorNodeId,
+          sourceCursor: null, // Caller manages cursor via sel.node.select()
         },
       }
     }
@@ -126,11 +114,10 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
     }
 
     case "CANCEL_MOVE": {
-      const sourceCursor = state.moveState.active ? state.moveState.sourceCursorNodeId : null
+      // Cursor restore is handled by the caller via sel.node.select()
       return {
         ...state,
         moveState: { active: false },
-        cursorNodeId: sourceCursor ?? state.cursorNodeId,
         curswantX: null,
         curswantY: null,
       }
@@ -159,13 +146,11 @@ export function simplifiedBoardReducer(state: BoardState, action: BoardReducerOp
 export function createBoardState(
   rootId: string | null = null,
   rootPath: string | null = null,
-  cursorNodeId: string | null = null,
   collapsedNodeIds?: Set<string>,
 ): BoardState {
   return {
     rootId,
     rootPath,
-    cursorNodeId,
     foldDepths: new Map(),
     collapsedNodes: collapsedNodeIds ?? new Set(),
     navHistory: [],

@@ -138,11 +138,8 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
         }
       }
 
-      dispatchBoard({
-        type: "ZOOM_IN",
-        nodeId: parentNode.id,
-        cursorNodeId: cursorTarget,
-      })
+      dispatchBoard({ type: "ZOOM_IN", nodeId: parentNode.id })
+      if (cursorTarget) ctx.sel.node.select([cursorTarget as ID])
       clearSelection(ctx)
       return ok()
     }
@@ -199,11 +196,9 @@ export function handleZoomIn(ctx: OpCtx): OpResult {
   // Save current state to history
   saveNavHistory(ctx)
 
-  dispatchBoard({
-    type: "ZOOM_IN",
-    nodeId,
-    cursorNodeId: firstCardId(children, ctx.repo),
-  })
+  dispatchBoard({ type: "ZOOM_IN", nodeId })
+  const firstCard = firstCardId(children, ctx.repo)
+  if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
   return ok()
@@ -224,11 +219,9 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
   // Save current state to history
   saveNavHistory(ctx)
 
-  dispatchBoard({
-    type: "ZOOM_IN",
-    nodeId,
-    cursorNodeId: firstCardId(children, ctx.repo),
-  })
+  dispatchBoard({ type: "ZOOM_IN", nodeId })
+  const firstCard = firstCardId(children, ctx.repo)
+  if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
   return ok()
@@ -271,15 +264,15 @@ export function handleFollowLink(ctx: OpCtx): OpResult {
   dispatchBoard({
     type: "ZOOM_IN",
     nodeId: rootId,
-    cursorNodeId: target.id,
   })
+  ctx.sel.node.select([target.id as ID])
 
   clearSelection(ctx)
 
-  // cursorNodeId is already set to target.id by ZOOM_IN above.
+  // Cursor is set to target.id via sel.node.select() above.
   // Board.tsx will derive cursorCardNodeId and cursorColumnNodeId from layout.
   // If the target is a sub-item, the cursor will naturally be "in outline mode"
-  // because cursorNodeId !== cursorCardNodeId.
+  // because cursor !== cursorCardNodeId.
 
   return ok()
 }
@@ -307,11 +300,9 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
       saveNavHistory(ctx)
 
       const targetChildren = ctx.repo.getChildren(targetNode.id)
-      dispatchBoard({
-        type: "ZOOM_IN",
-        nodeId: targetNode.id,
-        cursorNodeId: firstCardId(targetChildren, ctx.repo),
-      })
+      dispatchBoard({ type: "ZOOM_IN", nodeId: targetNode.id })
+      const firstChild = firstCardId(targetChildren, ctx.repo)
+      if (firstChild) ctx.sel.node.select([firstChild as ID])
 
       clearSelection(ctx)
       return ok()
@@ -352,11 +343,8 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
   // Keep the cursor on the current card (cursorId) instead of jumping
   // to firstCardId. The user pressed 'i' while looking at a specific
   // card — zooming closer should preserve that focus.
-  dispatchBoard({
-    type: "ZOOM_IN",
-    nodeId: target,
-    cursorNodeId: cursorId,
-  })
+  dispatchBoard({ type: "ZOOM_IN", nodeId: target })
+  ctx.sel.node.select([cursorId as ID])
 
   clearSelection(ctx)
   return ok()

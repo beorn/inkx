@@ -280,7 +280,7 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     log.debug?.(`Starting TUI isInteractive=${isInteractive}`)
 
     // Build store parameters from initial board state
-    const initialCursorNodeId = computeInitialCursor(state)
+    const initialCursor = computeInitialCursor(state)
     // term.cols/rows are undefined when not a TTY; fall back to stdout then defaults
     const cols = term.cols ?? process.stdout.columns ?? 80
     const rows = term.rows ?? process.stdout.rows ?? 24
@@ -315,7 +315,8 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
       repo: options.repo,
       toastQueue,
       navigator: createGridNavigator(),
-      initialBoardState: createBoardState(state.rootId, state.rootPath, initialCursorNodeId, state.collapsedNodeIds),
+      initialBoardState: createBoardState(state.rootId, state.rootPath, state.collapsedNodeIds),
+      initialCursor: initialCursor,
       initialUIState: createInitialUIState({ columns: cols, rows }, defaultIconStyle),
       initialViewMode: viewMode,
       dimensions: { columns: cols, rows },

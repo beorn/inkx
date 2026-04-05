@@ -198,7 +198,7 @@ describe("Runtime invariants", () => {
       sel,
       selectedIds: sel.node.ids(),
       rootId: "board",
-      cursorNodeId: "1a",
+      cursor: "1a",
       ui: {
         multiSelected: new Set<string>(),
       },
@@ -225,7 +225,7 @@ describe("Runtime invariants", () => {
       sel,
       selectedIds: sel.node.ids(),
       rootId: "board",
-      cursorNodeId: "1a",
+      cursor: "1a",
       ui: { multiSelected: new Set<string>() },
       columns: [],
       colIndex: -1,

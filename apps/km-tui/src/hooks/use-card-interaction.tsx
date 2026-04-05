@@ -98,7 +98,8 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
       if (e.metaKey || cmdHeld) {
         const boardPane = Workspace.getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
-        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
+        state.sel.node.select([targetId as import("@silvery/selection").ID])
       } else {
         state.sel.node.select([targetId as import("@silvery/selection").ID])
       }

@@ -45,10 +45,10 @@ function state(overrides: Partial<BoardNavState> = {}): BoardNavState {
 // =============================================================================
 
 describe("Board.apply — SELECT", () => {
-  it("sets cursorNodeId to the given node", () => {
-    const s = state({ cursorNodeId: "a" })
+  it("sets cursor to the given node", () => {
+    const s = state({ cursor: "a" })
     const result = applySelect(s, "b")
-    expect(result.state.cursorNodeId).toBe("b")
+    expect(result.state.cursor).toBe("b")
   })
 
   it("emits a SELECT effect", () => {
@@ -59,7 +59,7 @@ describe("Board.apply — SELECT", () => {
 
   it("preserves other state fields", () => {
     const foldDepths = new Map([["root", 2]])
-    const s = state({ cursorNodeId: "a", foldDepths, rootId: "root" })
+    const s = state({ cursor: "a", foldDepths, rootId: "root" })
     const result = applySelect(s, "b")
     expect(result.state.foldDepths).toBe(foldDepths)
     expect(result.state.rootId).toBe("root")
@@ -74,63 +74,63 @@ describe("Board.apply — BLOCK_NAV", () => {
   const blocks = ["col-header", "card-a", "child-a1", "child-a2", "card-b"]
 
   it("J moves to next visible block", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBlockNav(s, "down", blocks)
-    expect(result.state.cursorNodeId).toBe("child-a1")
+    expect(result.state.cursor).toBe("child-a1")
   })
 
   it("K moves to previous visible block", () => {
-    const s = state({ cursorNodeId: "child-a1" })
+    const s = state({ cursor: "child-a1" })
     const result = applyBlockNav(s, "up", blocks)
-    expect(result.state.cursorNodeId).toBe("card-a")
+    expect(result.state.cursor).toBe("card-a")
   })
 
   it("J at bottom of column is no-op", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const result = applyBlockNav(s, "down", blocks)
-    expect(result.state.cursorNodeId).toBe("card-b")
+    expect(result.state.cursor).toBe("card-b")
     expect(result.effects).toEqual([])
   })
 
   it("K at top of column is no-op", () => {
-    const s = state({ cursorNodeId: "col-header" })
+    const s = state({ cursor: "col-header" })
     const result = applyBlockNav(s, "up", blocks)
-    expect(result.state.cursorNodeId).toBe("col-header")
+    expect(result.state.cursor).toBe("col-header")
     expect(result.effects).toEqual([])
   })
 
   it("J from column header moves to first card", () => {
-    const s = state({ cursorNodeId: "col-header" })
+    const s = state({ cursor: "col-header" })
     const result = applyBlockNav(s, "down", blocks)
-    expect(result.state.cursorNodeId).toBe("card-a")
+    expect(result.state.cursor).toBe("card-a")
   })
 
   it("K from first card moves to column header", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBlockNav(s, "up", blocks)
-    expect(result.state.cursorNodeId).toBe("col-header")
+    expect(result.state.cursor).toBe("col-header")
   })
 
   it("no-op when cursor not in visible blocks", () => {
-    const s = state({ cursorNodeId: "unknown" })
+    const s = state({ cursor: "unknown" })
     const result = applyBlockNav(s, "down", blocks)
     expect(result.effects).toEqual([])
   })
 
   it("no-op when no cursor", () => {
-    const s = state({ cursorNodeId: null })
+    const s = state({ cursor: null })
     const result = applyBlockNav(s, "down", blocks)
     expect(result.effects).toEqual([])
   })
 
   it("no-op with empty block list", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBlockNav(s, "down", [])
     expect(result.effects).toEqual([])
   })
 
   it("single block: both directions are no-op", () => {
-    const s = state({ cursorNodeId: "only" })
+    const s = state({ cursor: "only" })
     expect(applyBlockNav(s, "down", ["only"]).effects).toEqual([])
     expect(applyBlockNav(s, "up", ["only"]).effects).toEqual([])
   })
@@ -144,37 +144,37 @@ describe("Board.apply — OUTLINE_NAV", () => {
   const descendants = ["card", "sub-1", "sub-2", "sub-3"]
 
   it("next moves to next descendant", () => {
-    const s = state({ cursorNodeId: "sub-1" })
+    const s = state({ cursor: "sub-1" })
     const result = applyOutlineNav(s, "next", descendants)
-    expect(result.state.cursorNodeId).toBe("sub-2")
+    expect(result.state.cursor).toBe("sub-2")
   })
 
   it("prev moves to previous descendant", () => {
-    const s = state({ cursorNodeId: "sub-2" })
+    const s = state({ cursor: "sub-2" })
     const result = applyOutlineNav(s, "prev", descendants)
-    expect(result.state.cursorNodeId).toBe("sub-1")
+    expect(result.state.cursor).toBe("sub-1")
   })
 
   it("next at last descendant is no-op", () => {
-    const s = state({ cursorNodeId: "sub-3" })
+    const s = state({ cursor: "sub-3" })
     const result = applyOutlineNav(s, "next", descendants)
     expect(result.effects).toEqual([])
   })
 
   it("prev at first descendant is no-op (card itself)", () => {
-    const s = state({ cursorNodeId: "card" })
+    const s = state({ cursor: "card" })
     const result = applyOutlineNav(s, "prev", descendants)
     expect(result.effects).toEqual([])
   })
 
   it("no-op when cursor not in descendants", () => {
-    const s = state({ cursorNodeId: "unknown" })
+    const s = state({ cursor: "unknown" })
     const result = applyOutlineNav(s, "next", descendants)
     expect(result.effects).toEqual([])
   })
 
   it("no-op when no cursor", () => {
-    const s = state({ cursorNodeId: null })
+    const s = state({ cursor: null })
     const result = applyOutlineNav(s, "next", descendants)
     expect(result.effects).toEqual([])
   })
@@ -188,50 +188,50 @@ describe("Board.apply — PAGE_JUMP", () => {
   const cards = ["c0", "c1", "c2", "c3", "c4", "c5", "c6", "c7", "c8", "c9"]
 
   it("page down jumps by pageSize", () => {
-    const s = state({ cursorNodeId: "c2" })
+    const s = state({ cursor: "c2" })
     const result = applyPageJump(s, "down", cards, 2, 5)
-    expect(result.state.cursorNodeId).toBe("c7")
+    expect(result.state.cursor).toBe("c7")
   })
 
   it("page up jumps by pageSize", () => {
-    const s = state({ cursorNodeId: "c7" })
+    const s = state({ cursor: "c7" })
     const result = applyPageJump(s, "up", cards, 7, 5)
-    expect(result.state.cursorNodeId).toBe("c2")
+    expect(result.state.cursor).toBe("c2")
   })
 
   it("page down clamps to last card", () => {
-    const s = state({ cursorNodeId: "c8" })
+    const s = state({ cursor: "c8" })
     const result = applyPageJump(s, "down", cards, 8, 5)
-    expect(result.state.cursorNodeId).toBe("c9")
+    expect(result.state.cursor).toBe("c9")
   })
 
   it("page up clamps to first card", () => {
-    const s = state({ cursorNodeId: "c1" })
+    const s = state({ cursor: "c1" })
     const result = applyPageJump(s, "up", cards, 1, 5)
-    expect(result.state.cursorNodeId).toBe("c0")
+    expect(result.state.cursor).toBe("c0")
   })
 
   it("clears scroll anchor on page jump", () => {
-    const s = state({ cursorNodeId: "c2", columnScrollAnchor: { colIdx: 0, anchor: 0 } })
+    const s = state({ cursor: "c2", columnScrollAnchor: { colIdx: 0, anchor: 0 } })
     const result = applyPageJump(s, "down", cards, 2, 5)
     expect(result.state.columnScrollAnchor).toBeNull()
     expect(result.effects).toContainEqual({ type: "SCROLL_ANCHOR_CLEAR" })
   })
 
   it("no-op when already at boundary (page down at last)", () => {
-    const s = state({ cursorNodeId: "c9" })
+    const s = state({ cursor: "c9" })
     const result = applyPageJump(s, "down", cards, 9, 5)
     expect(result.effects).toEqual([])
   })
 
   it("no-op when already at boundary (page up at first)", () => {
-    const s = state({ cursorNodeId: "c0" })
+    const s = state({ cursor: "c0" })
     const result = applyPageJump(s, "up", cards, 0, 5)
     expect(result.effects).toEqual([])
   })
 
   it("no-op with empty card list", () => {
-    const s = state({ cursorNodeId: "c0" })
+    const s = state({ cursor: "c0" })
     const result = applyPageJump(s, "down", [], 0, 5)
     expect(result.effects).toEqual([])
   })
@@ -489,15 +489,15 @@ describe("Board.apply — UNFOLD_RECURSIVE", () => {
 
 describe("Board.apply — dispatcher", () => {
   it("routes SELECT to applySelect", () => {
-    const s = state({ cursorNodeId: "a" })
+    const s = state({ cursor: "a" })
     const result = applyNavigation(s, { type: "SELECT", nodeId: "b" })
-    expect(result.state.cursorNodeId).toBe("b")
+    expect(result.state.cursor).toBe("b")
   })
 
   it("routes BLOCK_NAV to applyBlockNav", () => {
-    const s = state({ cursorNodeId: "a" })
+    const s = state({ cursor: "a" })
     const result = applyNavigation(s, { type: "BLOCK_NAV", direction: "down", visibleBlocks: ["a", "b"] })
-    expect(result.state.cursorNodeId).toBe("b")
+    expect(result.state.cursor).toBe("b")
   })
 
   it("routes TOGGLE_FOLD to applyToggleFold", () => {
@@ -536,10 +536,10 @@ describe("Board.apply — dispatcher", () => {
 
 describe("Board.apply — immutability", () => {
   it("does not mutate original state on SELECT", () => {
-    const s = state({ cursorNodeId: "a" })
+    const s = state({ cursor: "a" })
     const result = applySelect(s, "b")
-    expect(s.cursorNodeId).toBe("a")
-    expect(result.state.cursorNodeId).toBe("b")
+    expect(s.cursor).toBe("a")
+    expect(result.state.cursor).toBe("b")
   })
 
   it("does not mutate original foldDepths on FOLD_LEVEL", () => {
@@ -564,7 +564,7 @@ describe("Board.apply — immutability", () => {
 
 describe("Board.apply — INDENT_NODE", () => {
   it("emits REPO_MOVE_NODE effect for single node", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const nodes: IndentContext[] = [{ nodeId: "card-b", newParentId: "card-a", sortOrder: 0 }]
     const result = applyBoard(s, { type: "INDENT_NODE", nodes })
 
@@ -579,17 +579,17 @@ describe("Board.apply — INDENT_NODE", () => {
   })
 
   it("moves cursor to first indented node", () => {
-    const s = state({ cursorNodeId: "card-c" })
+    const s = state({ cursor: "card-c" })
     const nodes: IndentContext[] = [
       { nodeId: "card-b", newParentId: "card-a", sortOrder: 0 },
       { nodeId: "card-c", newParentId: "card-a", sortOrder: 1 },
     ]
     const result = applyBoard(s, { type: "INDENT_NODE", nodes })
-    expect(result.state.cursorNodeId).toBe("card-b")
+    expect(result.state.cursor).toBe("card-b")
   })
 
   it("emits CLEAR_SELECTION for batch indent", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const nodes: IndentContext[] = [
       { nodeId: "card-b", newParentId: "card-a", sortOrder: 0 },
       { nodeId: "card-c", newParentId: "card-a", sortOrder: 1 },
@@ -599,7 +599,7 @@ describe("Board.apply — INDENT_NODE", () => {
   })
 
   it("emits UNDO_START_BATCH/UNDO_END_BATCH for multiple nodes", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const nodes: IndentContext[] = [
       { nodeId: "card-b", newParentId: "card-a", sortOrder: 0 },
       { nodeId: "card-c", newParentId: "card-a", sortOrder: 1 },
@@ -610,13 +610,13 @@ describe("Board.apply — INDENT_NODE", () => {
   })
 
   it("no-op for empty nodes list", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBoard(s, { type: "INDENT_NODE", nodes: [] })
     expect(result.effects).toEqual([])
   })
 
   it("does not emit batch markers for single node", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const nodes: IndentContext[] = [{ nodeId: "card-b", newParentId: "card-a", sortOrder: 0 }]
     const result = applyBoard(s, { type: "INDENT_NODE", nodes })
     expect(result.effects.some((e) => e.type === "UNDO_START_BATCH")).toBe(false)
@@ -625,7 +625,7 @@ describe("Board.apply — INDENT_NODE", () => {
 
 describe("Board.apply — OUTDENT_NODE", () => {
   it("emits REPO_MOVE_NODE effect for single node", () => {
-    const s = state({ cursorNodeId: "sub-item" })
+    const s = state({ cursor: "sub-item" })
     const nodes: OutdentContext[] = [{ nodeId: "sub-item", newParentId: "col-1", sortOrder: 5 }]
     const result = applyBoard(s, { type: "OUTDENT_NODE", nodes })
 
@@ -640,17 +640,17 @@ describe("Board.apply — OUTDENT_NODE", () => {
   })
 
   it("moves cursor to first outdented node", () => {
-    const s = state({ cursorNodeId: "sub-b" })
+    const s = state({ cursor: "sub-b" })
     const nodes: OutdentContext[] = [
       { nodeId: "sub-a", newParentId: "col-1", sortOrder: 1 },
       { nodeId: "sub-b", newParentId: "col-1", sortOrder: 2 },
     ]
     const result = applyBoard(s, { type: "OUTDENT_NODE", nodes })
-    expect(result.state.cursorNodeId).toBe("sub-a")
+    expect(result.state.cursor).toBe("sub-a")
   })
 
   it("no-op for empty nodes list", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBoard(s, { type: "OUTDENT_NODE", nodes: [] })
     expect(result.effects).toEqual([])
   })
@@ -658,7 +658,7 @@ describe("Board.apply — OUTDENT_NODE", () => {
 
 describe("Board.apply — INSERT_NODE", () => {
   it("emits REPO_ADD_NODE effect", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: InsertNodeContext = {
       parentId: "col-1",
       node: { type: "p", content: "", parent_idx: 1.5 },
@@ -677,7 +677,7 @@ describe("Board.apply — INSERT_NODE", () => {
   })
 
   it("emits RENDER_FLUSH when enterEdit is true", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: InsertNodeContext = {
       parentId: "col-1",
       node: { type: "p", content: "" },
@@ -688,7 +688,7 @@ describe("Board.apply — INSERT_NODE", () => {
   })
 
   it("does not emit RENDER_FLUSH when enterEdit is false", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: InsertNodeContext = {
       parentId: "col-1",
       node: { type: "h", content: "New section" },
@@ -699,7 +699,7 @@ describe("Board.apply — INSERT_NODE", () => {
   })
 
   it("emits UNDO_SET_CURSOR for undo tracking", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: InsertNodeContext = {
       parentId: "col-1",
       node: { type: "p", content: "" },
@@ -712,7 +712,7 @@ describe("Board.apply — INSERT_NODE", () => {
 
 describe("Board.apply — DELETE_NODE", () => {
   it("emits REPO_DELETE_NODE effects in reverse order", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: DeleteNodeContext = {
       nodeIds: ["card-a", "card-b"],
       cursorTarget: "card-c",
@@ -727,27 +727,27 @@ describe("Board.apply — DELETE_NODE", () => {
   })
 
   it("moves cursor to pre-computed target", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: DeleteNodeContext = {
       nodeIds: ["card-a"],
       cursorTarget: "card-b",
     }
     const result = applyBoard(s, { type: "DELETE_NODE", context })
-    expect(result.state.cursorNodeId).toBe("card-b")
+    expect(result.state.cursor).toBe("card-b")
   })
 
   it("falls back to current cursor when no target", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: DeleteNodeContext = {
       nodeIds: ["card-b"],
       cursorTarget: null,
     }
     const result = applyBoard(s, { type: "DELETE_NODE", context })
-    expect(result.state.cursorNodeId).toBe("card-a")
+    expect(result.state.cursor).toBe("card-a")
   })
 
   it("emits undo batch markers", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: DeleteNodeContext = {
       nodeIds: ["card-a"],
       cursorTarget: "card-b",
@@ -758,7 +758,7 @@ describe("Board.apply — DELETE_NODE", () => {
   })
 
   it("emits CLEAR_SELECTION", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: DeleteNodeContext = {
       nodeIds: ["card-a"],
       cursorTarget: "card-b",
@@ -768,7 +768,7 @@ describe("Board.apply — DELETE_NODE", () => {
   })
 
   it("no-op for empty nodeIds", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const context: DeleteNodeContext = {
       nodeIds: [],
       cursorTarget: null,
@@ -780,7 +780,7 @@ describe("Board.apply — DELETE_NODE", () => {
 
 describe("Board.apply — TOGGLE_TASK_STATUS", () => {
   it("emits REPO_UPDATE_NODE effects for each node", () => {
-    const s = state({ cursorNodeId: "task-1" })
+    const s = state({ cursor: "task-1" })
     const nodes: ToggleStatusContext[] = [
       {
         nodeId: "task-1",
@@ -802,7 +802,7 @@ describe("Board.apply — TOGGLE_TASK_STATUS", () => {
   })
 
   it("preserves cursor position (in-place modification)", () => {
-    const s = state({ cursorNodeId: "task-1" })
+    const s = state({ cursor: "task-1" })
     const nodes: ToggleStatusContext[] = [
       {
         nodeId: "task-1",
@@ -812,11 +812,11 @@ describe("Board.apply — TOGGLE_TASK_STATUS", () => {
       },
     ]
     const result = applyBoard(s, { type: "TOGGLE_TASK_STATUS", nodes })
-    expect(result.state.cursorNodeId).toBe("task-1")
+    expect(result.state.cursor).toBe("task-1")
   })
 
   it("emits SELECT to trigger UI update", () => {
-    const s = state({ cursorNodeId: "task-1" })
+    const s = state({ cursor: "task-1" })
     const nodes: ToggleStatusContext[] = [
       {
         nodeId: "task-1",
@@ -830,7 +830,7 @@ describe("Board.apply — TOGGLE_TASK_STATUS", () => {
   })
 
   it("no-op for empty nodes", () => {
-    const s = state({ cursorNodeId: "task-1" })
+    const s = state({ cursor: "task-1" })
     const result = applyBoard(s, { type: "TOGGLE_TASK_STATUS", nodes: [] })
     expect(result.effects).toEqual([])
   })
@@ -838,7 +838,7 @@ describe("Board.apply — TOGGLE_TASK_STATUS", () => {
 
 describe("Board.apply — MOVE_NODE_UP / MOVE_NODE_DOWN", () => {
   it("emits REPO_MOVE_NODE effects for move up", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const nodes: MoveNodeContext[] = [{ nodeId: "card-b", parentId: "col-1", sortOrder: -0.5 }]
     const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes })
 
@@ -853,7 +853,7 @@ describe("Board.apply — MOVE_NODE_UP / MOVE_NODE_DOWN", () => {
   })
 
   it("emits REPO_MOVE_NODE effects for move down", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const nodes: MoveNodeContext[] = [{ nodeId: "card-a", parentId: "col-1", sortOrder: 1.5 }]
     const result = applyBoard(s, { type: "MOVE_NODE_DOWN", nodes })
 
@@ -862,7 +862,7 @@ describe("Board.apply — MOVE_NODE_UP / MOVE_NODE_DOWN", () => {
   })
 
   it("emits undo batch markers", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const nodes: MoveNodeContext[] = [{ nodeId: "card-a", parentId: "col-1", sortOrder: 1.5 }]
     const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes })
     expect(result.effects.some((e) => e.type === "UNDO_START_BATCH")).toBe(true)
@@ -870,14 +870,14 @@ describe("Board.apply — MOVE_NODE_UP / MOVE_NODE_DOWN", () => {
   })
 
   it("preserves cursor after move", () => {
-    const s = state({ cursorNodeId: "card-b" })
+    const s = state({ cursor: "card-b" })
     const nodes: MoveNodeContext[] = [{ nodeId: "card-b", parentId: "col-1", sortOrder: -0.5 }]
     const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes })
-    expect(result.state.cursorNodeId).toBe("card-b")
+    expect(result.state.cursor).toBe("card-b")
   })
 
   it("no-op for empty nodes", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBoard(s, { type: "MOVE_NODE_UP", nodes: [] })
     expect(result.effects).toEqual([])
   })
@@ -889,13 +889,13 @@ describe("Board.apply — MOVE_NODE_UP / MOVE_NODE_DOWN", () => {
 
 describe("Board.apply — combined dispatcher", () => {
   it("routes navigation ops to applyNavigation", () => {
-    const s = state({ cursorNodeId: "a" })
+    const s = state({ cursor: "a" })
     const result = applyBoard(s, { type: "SELECT", nodeId: "b" })
-    expect(result.state.cursorNodeId).toBe("b")
+    expect(result.state.cursor).toBe("b")
   })
 
   it("routes edit ops to applyEdit", () => {
-    const s = state({ cursorNodeId: "card-a" })
+    const s = state({ cursor: "card-a" })
     const result = applyBoard(s, {
       type: "INDENT_NODE",
       nodes: [{ nodeId: "card-a", newParentId: "prev-sibling", sortOrder: 0 }],

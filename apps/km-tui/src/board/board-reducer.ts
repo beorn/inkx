@@ -27,7 +27,7 @@ import type { KNode, TaskStatus } from "@km/core"
  * (possibly modified) in the result.
  */
 export interface BoardNavState {
-  cursorNodeId: string | null
+  cursor: string | null
   cursorCardNodeId: string | null
   cursorColumnNodeId: string | null
 
@@ -329,7 +329,7 @@ function applyEdit(state: BoardNavState, op: BoardEditOp): ApplyResult {
 function applyIndentNode(state: BoardNavState, nodes: IndentContext[]): ApplyResult {
   if (nodes.length === 0) return noChange(state)
 
-  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursor }]
 
   if (nodes.length > 1) {
     effects.push({ type: "UNDO_START_BATCH", label: "Indent nodes" })
@@ -354,7 +354,7 @@ function applyIndentNode(state: BoardNavState, nodes: IndentContext[]): ApplyRes
   effects.push({ type: "CLEAR_SELECTION" })
 
   return {
-    state: { ...state, cursorNodeId: firstNodeId },
+    state: { ...state, cursor: firstNodeId },
     effects,
   }
 }
@@ -367,7 +367,7 @@ function applyIndentNode(state: BoardNavState, nodes: IndentContext[]): ApplyRes
 function applyOutdentNode(state: BoardNavState, nodes: OutdentContext[]): ApplyResult {
   if (nodes.length === 0) return noChange(state)
 
-  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursor }]
 
   if (nodes.length > 1) {
     effects.push({ type: "UNDO_START_BATCH", label: "Outdent nodes" })
@@ -391,7 +391,7 @@ function applyOutdentNode(state: BoardNavState, nodes: OutdentContext[]): ApplyR
   effects.push({ type: "CLEAR_SELECTION" })
 
   return {
-    state: { ...state, cursorNodeId: firstNodeId },
+    state: { ...state, cursor: firstNodeId },
     effects,
   }
 }
@@ -403,7 +403,7 @@ function applyOutdentNode(state: BoardNavState, nodes: OutdentContext[]): ApplyR
  */
 function applyInsertNode(state: BoardNavState, context: InsertNodeContext): ApplyResult {
   const effects: BoardEffect[] = [
-    { type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId },
+    { type: "UNDO_SET_CURSOR", nodeId: state.cursor },
     { type: "REPO_ADD_NODE", parentId: context.parentId, node: context.node, selectAfter: true },
   ]
 
@@ -428,7 +428,7 @@ function applyInsertNode(state: BoardNavState, context: InsertNodeContext): Appl
 function applyDeleteNode(state: BoardNavState, context: DeleteNodeContext): ApplyResult {
   if (context.nodeIds.length === 0) return noChange(state)
 
-  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursor }]
 
   effects.push({ type: "UNDO_START_BATCH", label: "Delete" })
 
@@ -441,13 +441,13 @@ function applyDeleteNode(state: BoardNavState, context: DeleteNodeContext): Appl
   effects.push({ type: "CLEAR_SELECTION" })
 
   // Move cursor to pre-computed target
-  const cursorTarget = context.cursorTarget ?? state.cursorNodeId
+  const cursorTarget = context.cursorTarget ?? state.cursor
   if (cursorTarget) {
     effects.push({ type: "SELECT", nodeId: cursorTarget })
   }
 
   return {
-    state: { ...state, cursorNodeId: cursorTarget },
+    state: { ...state, cursor: cursorTarget },
     effects,
   }
 }
@@ -461,7 +461,7 @@ function applyDeleteNode(state: BoardNavState, context: DeleteNodeContext): Appl
 function applyToggleTaskStatus(state: BoardNavState, nodes: ToggleStatusContext[]): ApplyResult {
   if (nodes.length === 0) return noChange(state)
 
-  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursor }]
 
   if (nodes.length > 1) {
     effects.push({ type: "UNDO_START_BATCH", label: "Toggle status" })
@@ -480,8 +480,8 @@ function applyToggleTaskStatus(state: BoardNavState, nodes: ToggleStatusContext[
   }
 
   // Re-select to trigger UI update (selection preserved)
-  if (state.cursorNodeId) {
-    effects.push({ type: "SELECT", nodeId: state.cursorNodeId })
+  if (state.cursor) {
+    effects.push({ type: "SELECT", nodeId: state.cursor })
   }
 
   return { state, effects }
@@ -496,7 +496,7 @@ function applyToggleTaskStatus(state: BoardNavState, nodes: ToggleStatusContext[
 function applyMoveNode(state: BoardNavState, nodes: MoveNodeContext[], batchLabel: string): ApplyResult {
   if (nodes.length === 0) return noChange(state)
 
-  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursorNodeId }]
+  const effects: BoardEffect[] = [{ type: "UNDO_SET_CURSOR", nodeId: state.cursor }]
 
   effects.push({ type: "UNDO_START_BATCH", label: batchLabel })
 
@@ -512,8 +512,8 @@ function applyMoveNode(state: BoardNavState, nodes: MoveNodeContext[], batchLabe
   effects.push({ type: "UNDO_END_BATCH" })
 
   // Cursor follows the moved node
-  if (state.cursorNodeId) {
-    effects.push({ type: "SELECT", nodeId: state.cursorNodeId })
+  if (state.cursor) {
+    effects.push({ type: "SELECT", nodeId: state.cursor })
   }
 
   return { state, effects }
@@ -526,7 +526,7 @@ function applyMoveNode(state: BoardNavState, nodes: MoveNodeContext[], batchLabe
 /** Basic cursor move — the fast-path SELECT. */
 export function applySelect(state: BoardNavState, nodeId: string): ApplyResult {
   return {
-    state: { ...state, cursorNodeId: nodeId },
+    state: { ...state, cursor: nodeId },
     effects: [{ type: "SELECT", nodeId }],
   }
 }
@@ -540,7 +540,7 @@ export function applySelect(state: BoardNavState, nodeId: string): ApplyResult {
  * @param items - Ordered list of navigable IDs (blocks, descendants, cards)
  * @param direction - "forward" (+1) or "backward" (-1)
  * @param opts.step - How many items to jump (default: 1)
- * @param opts.currentIndex - Override index lookup (default: indexOf cursorNodeId)
+ * @param opts.currentIndex - Override index lookup (default: indexOf cursor)
  * @param opts.clearScrollAnchor - Also clear columnScrollAnchor (for page jump)
  */
 export function applyListNav(
@@ -552,7 +552,7 @@ export function applyListNav(
   if (items.length === 0) return noChange(state)
 
   const step = opts?.step ?? 1
-  const currentIdx = opts?.currentIndex ?? (state.cursorNodeId ? items.indexOf(state.cursorNodeId) : -1)
+  const currentIdx = opts?.currentIndex ?? (state.cursor ? items.indexOf(state.cursor) : -1)
   if (currentIdx < 0) return noChange(state)
 
   const targetIdx =
@@ -566,7 +566,7 @@ export function applyListNav(
   if (opts?.clearScrollAnchor) {
     const newState: BoardNavState = {
       ...state,
-      cursorNodeId: targetId,
+      cursor: targetId,
       columnScrollAnchor: null,
     }
     return {
@@ -587,7 +587,7 @@ export function applyListNav(
  * Delegates to applyListNav.
  */
 export function applyBlockNav(state: BoardNavState, direction: "up" | "down", visibleBlocks: string[]): ApplyResult {
-  if (!state.cursorNodeId) return noChange(state)
+  if (!state.cursor) return noChange(state)
   return applyListNav(state, visibleBlocks, direction === "down" ? "forward" : "backward")
 }
 
@@ -600,7 +600,7 @@ export function applyOutlineNav(
   direction: "prev" | "next",
   descendantIds: string[],
 ): ApplyResult {
-  if (!state.cursorNodeId) return noChange(state)
+  if (!state.cursor) return noChange(state)
   return applyListNav(state, descendantIds, direction === "next" ? "forward" : "backward")
 }
 
@@ -805,7 +805,7 @@ function noChange(state: BoardNavState): ApplyResult {
  */
 export function createBoardNavState(overrides: Partial<BoardNavState> = {}): BoardNavState {
   return {
-    cursorNodeId: null,
+    cursor: null,
     cursorCardNodeId: null,
     cursorColumnNodeId: null,
     foldDepths: new Map(),

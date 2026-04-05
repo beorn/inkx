@@ -16,14 +16,14 @@ function pushNavHistoryEntry(
   rootId: string | null,
   colIndex: number,
   cardIndex: number,
-  cursorNodeId: string | null = null,
+  cursor: string | null = null,
   foldDepths?: Map<string, number>,
 ): void {
   const entry = {
     rootId,
     colIndex,
     cardIndex,
-    cursorNodeId,
+    cursor,
     foldDepths: foldDepths ? new Map(foldDepths) : undefined,
   }
   setUI((prev) => {
@@ -42,18 +42,17 @@ export function saveNavHistoryFromPane(
   setUI: OpCtx["setUI"],
   pane: {
     rootId: string | null
-    cursorNodeId: string | null
     sel?: { node: { cursor(): unknown } }
     foldDepths: Map<string, number>
   },
 ): void {
-  const cursorNodeId = (pane.sel?.node.cursor() as string | null) ?? null
+  const cursor = (pane.sel?.node.cursor() as string | null) ?? null
   pushNavHistoryEntry(
     setUI,
     pane.rootId,
     0, // colIndex — derived at render, not available imperatively; unused in restore
     0, // cardIndex — same
-    cursorNodeId,
+    cursor,
     pane.foldDepths,
   )
 }

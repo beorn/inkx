@@ -7,7 +7,7 @@
  *
  * After radical simplification (km-refactor-audit):
  * - No tree data in state (use Repo instead)
- * - No path-based cursor (use cursorNodeId)
+ * - No path-based cursor (use sel.node.cursor())
  * - No selectors/helpers (use Repo queries)
  */
 

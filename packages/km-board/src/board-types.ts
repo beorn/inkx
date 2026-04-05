@@ -23,7 +23,7 @@ export type ViewMode = "cards" | "list" | "columns" | "tabs" | "detail"
  * Move mode state machine.
  * Either inactive (no move in progress) or active with source nodes and original cursor.
  */
-export type MoveState = { active: false } | { active: true; sourceNodes: string[]; sourceCursorNodeId: string | null }
+export type MoveState = { active: false } | { active: true; sourceNodes: string[]; sourceCursor: string | null }
 
 // ===== Board State (NEW - simplified architecture) =====
 
@@ -34,14 +34,14 @@ export type MoveState = { active: false } | { active: true; sourceNodes: string[
 export interface NavHistoryEntry {
   rootId: string | null
   rootPath: string | null
-  cursorNodeId: string | null
+  cursor: string | null
 }
 
 /**
  * Board navigation state.
  *
  * KEY DESIGN: No tree data (nodes) in state!
- * - cursorNodeId is the single source of truth for cursor position
+ * - Cursor is managed by @silvery/selection (sel.node.cursor())
  * - Visual indices (colIndex, cardIndex) are derived at render time
  * - Navigation uses Repo for tree queries, not state
  *
@@ -54,15 +54,10 @@ export interface BoardState {
   rootId: string | null
   rootPath: string | null
 
-  // Cursor node - the ACTUAL selected node (stable across zoom)
-  // This is the single source of truth for which node the cursor is on
-  // "cursor" = single focused node; "selection" is reserved for multi-select
-  cursorNodeId: string | null
-
   foldDepths: Map<string, number>
   collapsedNodes: Set<string> // Top-level nodes that are collapsed
 
-  // Navigation history (stores cursorNodeId, NOT paths)
+  // Navigation history (stores cursor IDs, NOT paths)
   navHistory: NavHistoryEntry[]
   navHistoryIndex: number
 
@@ -102,18 +97,17 @@ export type BoardReducerOp =
   | { type: "SET_COLLAPSED_NODES"; nodeIds: string[] }
 
   // Zoom
-  | { type: "ZOOM_IN"; nodeId: string | null; cursorNodeId?: string | null }
+  | { type: "ZOOM_IN"; nodeId: string | null }
 
   // Root change (e.g., navigating to different file)
   | {
       type: "SET_ROOT"
       rootId: string | null
       rootPath: string | null
-      cursorNodeId: string | null
     }
 
   // Move mode (caller provides node IDs)
-  | { type: "ENTER_MOVE_MODE"; nodeIds: string[]; cursorNodeId: string | null }
+  | { type: "ENTER_MOVE_MODE"; nodeIds: string[] }
   | { type: "CONFIRM_MOVE" }
   | { type: "CANCEL_MOVE" }
 

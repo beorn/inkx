@@ -218,13 +218,13 @@ describe("Terminal Sizes", () => {
     // ARCHITECTURE VERIFICATION TEST
     //
     // This test verifies the cursor position preservation architecture.
-    // The system stores cursorNodeId (node ID string) rather than visual indices.
+    // The system stores cursorId (node ID string) rather than visual indices.
     //
     // When terminal resizes, BoardApp's resize handler calls store.setDimensions().
     // The Board component then:
     // 1. Updates ui.dimensions state
     // 2. useColumns re-derives columns from repo (triggered by dimension change)
-    // 3. useCursorPosition re-derives visual position from cursorNodeId
+    // 3. useCursorPosition re-derives visual position from cursorId
     // 4. Cursor stays on the same node automatically
     //
     // We verify this by checking that cursor elements have stable node IDs.
@@ -236,15 +236,15 @@ describe("Terminal Sizes", () => {
     // Navigate to a card
     board.command("cursor_right") // Move to col2's first card
     const cursorEl = board.q("[data-cursor]")
-    const cursorNodeId = cursorEl.getAttribute("id")
+    const cursorId = cursorEl.getAttribute("id")
 
     // Verify cursor is tracked by node ID, not visual indices
-    expect(cursorNodeId).toBeTruthy()
-    expect(cursorNodeId).toBe("2a")
+    expect(cursorId).toBeTruthy()
+    expect(cursorId).toBe("2a")
 
     // The presence of stable node IDs in cursor tracking proves
     // the architecture correctly preserves cursor position during resize.
-    // Visual positions (colIndex, cardIndex) are derived from cursorNodeId,
+    // Visual positions (colIndex, cardIndex) are derived from cursorId,
     // so they automatically update when terminal dimensions change.
   })
 

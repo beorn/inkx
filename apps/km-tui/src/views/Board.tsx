@@ -1096,7 +1096,8 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
         const state = storeApi.getState()
         const boardPane = Workspace.getActiveBoardPane(state)
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
-        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
+        state.sel.node.select([targetId as import("@silvery/selection").ID])
         return
       }
 
@@ -1113,7 +1114,8 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       // In detail view: clicking a link zooms the detail view to that node
       if (boardPane?.viewMode === "detail") {
         if (boardPane) saveNavHistoryFromPane(state.setUI, boardPane)
-        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId, cursorNodeId: targetId })
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
+        state.sel.node.select([targetId as import("@silvery/selection").ID])
         return
       }
 
@@ -1128,10 +1130,12 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       if (nav.action === "SELECT") {
         state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
-        state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget, cursorNodeId: nav.cursorTarget })
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+        if (nav.cursorTarget) state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
         state.openDetailPane()
       } else if (nav.zoomTarget) {
-        state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget, cursorNodeId: nav.cursorTarget })
+        state.dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+        if (nav.cursorTarget) state.sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
       }
     },
     [repo, storeApi],

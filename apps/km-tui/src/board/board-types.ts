@@ -129,8 +129,6 @@ export interface BoardPaneState extends PaneStateBase {
   // Board navigation
   rootId: string | null
   rootPath: string | null
-  /** @deprecated Use sel.node.cursor() instead. Kept temporarily for backward compat in tests. */
-  cursorNodeId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
   navHistory: NavHistoryEntry[]
@@ -275,6 +273,8 @@ export function createPaneState(
   board: BoardState,
   opts: {
     viewMode: ViewMode
+    /** Initial cursor for the selection store (ignored if sel is provided) */
+    initialCursor?: import("@silvery/selection").ID
     /** Pre-created selection store + source (skips creating a new one) */
     sel?: { sel: SelectionStore; selTreeSource: SelectionTreeSource }
   },
@@ -283,7 +283,7 @@ export function createPaneState(
   const sel = opts.sel
     ? opts.sel.sel
     : createSelection(app!, {
-        initialCursor: (board.cursorNodeId as import("@silvery/selection").ID) ?? undefined,
+        initialCursor: opts.initialCursor ?? undefined,
         initialRoot: (board.rootId as import("@silvery/selection").ID) ?? undefined,
       })
   const selTreeSource = source
@@ -295,7 +295,6 @@ export function createPaneState(
     selTreeSource,
     rootId: board.rootId,
     rootPath: board.rootPath,
-    cursorNodeId: board.cursorNodeId,
     foldDepths: board.foldDepths,
     collapsedNodes: board.collapsedNodes,
     navHistory: board.navHistory,

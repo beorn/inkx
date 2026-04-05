@@ -54,7 +54,7 @@ export interface UIState {
     rootId: string | null
     colIndex: number
     cardIndex: number
-    cursorNodeId: string | null
+    cursor: string | null
     foldDepths?: Map<string, number>
   }>
   navHistoryIndex: number

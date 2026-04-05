@@ -113,7 +113,7 @@ export interface OpCtx {
   hasDetailPane: boolean
 
   // === Detail pane cursor ===
-  /** Get the detail pane cursor ID (from detail view pane's cursorNodeId) */
+  /** Get the detail pane cursor ID (from detail view pane's sel.node.cursor()) */
   getDetailCursorId: () => string | null
   /** Set the detail pane cursor ID */
   setDetailCursor: (id: string | null) => void

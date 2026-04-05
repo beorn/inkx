@@ -5,7 +5,7 @@
  * Tree navigation uses Repo for tree structure.
  * Visual navigation uses GridNavigator for screen positions.
  *
- * These handlers return the new cursorNodeId or null if movement not possible.
+ * These handlers return the new cursor or null if movement not possible.
  * The caller dispatches SELECT actions with the returned nodeId.
  *
  * See plan hazy-forging-crayon.md for design rationale.
@@ -57,14 +57,14 @@ export interface TreeNavState {
  * @returns New cursor node ID, or null if can't move
  */
 export function handleTreeNavigation(direction: TreeDirection, state: TreeNavState, repo: Repo): string | null {
-  const { cursor: cursorNodeId, rootId, foldDepths } = state
+  const { cursor, rootId, foldDepths } = state
 
   // If no cursor, can't navigate
-  if (!cursorNodeId) {
+  if (!cursor) {
     return null
   }
 
-  const currentNode = repo.getNode(cursorNodeId)
+  const currentNode = repo.getNode(cursor)
   if (!currentNode) {
     log.debug?.("tree nav: current node not found")
     return null
@@ -74,7 +74,7 @@ export function handleTreeNavigation(direction: TreeDirection, state: TreeNavSta
     case "next": {
       // Move to next sibling
       const siblings = repo.getChildren(currentNode.parent_id)
-      const currentIndex = indexOfChild(siblings, cursorNodeId)
+      const currentIndex = indexOfChild(siblings, cursor)
       if (currentIndex < 0 || currentIndex >= siblings.length - 1) {
         log.debug?.("tree nav: at last sibling, can't move next")
         return null // At last sibling
@@ -87,7 +87,7 @@ export function handleTreeNavigation(direction: TreeDirection, state: TreeNavSta
     case "prev": {
       // Move to previous sibling
       const siblings = repo.getChildren(currentNode.parent_id)
-      const currentIndex = indexOfChild(siblings, cursorNodeId)
+      const currentIndex = indexOfChild(siblings, cursor)
       if (currentIndex <= 0) {
         log.debug?.("tree nav: at first sibling, can't move prev")
         return null // At first sibling
@@ -123,11 +123,11 @@ export function handleTreeNavigation(direction: TreeDirection, state: TreeNavSta
 
     case "child": {
       // Move to first child (if not folded and has children)
-      if (foldDepths.get(cursorNodeId) === 0) {
+      if (foldDepths.get(cursor) === 0) {
         log.debug?.("tree nav: node is folded, can't enter child")
         return null
       }
-      const children = repo.getChildren(cursorNodeId)
+      const children = repo.getChildren(cursor)
       if (children.length === 0) {
         log.debug?.("tree nav: no children, can't enter child")
         return null

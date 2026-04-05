@@ -67,7 +67,7 @@ async function profile() {
 
   // Phase 3: createBoardState (board-types.ts)
   const t3 = timer("createBoardState")
-  const boardState = createBoardState(rootId, state.rootPath, null, state.collapsedNodeIds)
+  const boardState = createBoardState(rootId, state.rootPath, state.collapsedNodeIds)
   t3.end()
 
   // Phase 4: deriveColumnsFromRepo (initial sync — what useState initializer calls)
@@ -178,17 +178,11 @@ async function profile() {
   const store = handle.store
   const getState = () => store.getState()
 
-  /** Update the active board pane's cursorNodeId via store.setState */
-  function setPaneCursor(cursorNodeId: string) {
+  /** Update the active board pane's cursor via sel store */
+  function setPaneCursor(cursor: string) {
     const s = store.getState()
     const pane = getActiveBoardPane(s)!
-    store.setState((prev) => ({
-      workspace: {
-        ...prev.workspace,
-        panes: new Map(prev.workspace.panes).set(pane.id, { ...pane, cursorNodeId }),
-      },
-    }))
-    // CursorStore removed — cursor state is derived from sel store + layout in Board.tsx
+    pane.sel.node.select([cursor as import("@silvery/selection").ID])
   }
 
   /** Update the active board pane's foldDepths via store.setState */

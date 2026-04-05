@@ -144,7 +144,7 @@ function buildCommandContexts(ctx: OpCtx) {
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
-    cursorNodeId: ctx.cursor,
+    cursor: ctx.cursor,
     selectedNodes: Array.from(ctx.selectedIds),
     siblingCount: column?.cardNodes.length ?? 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,

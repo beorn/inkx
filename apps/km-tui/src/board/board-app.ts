@@ -102,7 +102,7 @@ export interface BoardAppLocals {
   } | null
   /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
   cursorCache: {
-    cursorNodeId: string | null
+    cursorId: string | null
     cursorCardNodeId: string | null
     /** Reference identity of the nodeIndex used for this derivation */
     nodeIndexRef: Map<string, { colIndex: number; cardIndex: number }>
@@ -290,12 +290,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Use cached cursor indices when cursor+layout haven't changed
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     const cc = locals.cursorCache
-    if (cc && cc.cursorNodeId === cursor_ && cc.nodeIndexRef === nodeIndex) {
+    if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
       cursor = cc
     } else {
       cursor = deriveCursorIndices(columns, cursor_, nodeIndex, (id) => s.repo.getNode(id))
       locals.cursorCache = {
-        cursorNodeId: cursor_,
+        cursorId: cursor_,
         cursorCardNodeId: null,
         nodeIndexRef: nodeIndex,
         colIndex: cursor.colIndex,
@@ -560,7 +560,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           } as import("@km/commands").TNode)
         : null,
       currentNodeId: ctx.selectedNode?.id ?? null,
-      cursorNodeId: ctx.cursor,
+      cursor: ctx.cursor,
       selectedNodes: Array.from(ctx.selectedIds),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,

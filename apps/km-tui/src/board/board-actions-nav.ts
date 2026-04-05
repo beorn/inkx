@@ -115,7 +115,7 @@ function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefi
   runBoardEffects(ctx, result)
 
   // Auto-unfold if cursor landed beyond the card's render depth
-  const targetId = result.state.cursorNodeId
+  const targetId = result.state.cursor
   if (targetId) {
     ensureCursorVisible(ctx, targetId)
   }
@@ -296,7 +296,7 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
 
   // Auto-unfold: if cursor landed on a node beyond the card's render depth,
   // increase the card's fold depth so the cursor target becomes visible.
-  const targetId = result.state.cursorNodeId
+  const targetId = result.state.cursor
   if (targetId) {
     ensureCursorVisible(ctx, targetId)
   }
@@ -378,11 +378,9 @@ function navigateHistory(ctx: OpCtx, delta: -1 | 1): OpResult {
 
   ctx.setUI({ navHistoryIndex: newIndex })
 
-  dispatchBoard({
-    type: "ZOOM_IN",
-    nodeId: entry.rootId || null,
-    cursorNodeId: entry.cursorNodeId || null,
-  })
+  dispatchBoard({ type: "ZOOM_IN", nodeId: entry.rootId || null })
+  const entryCursor = entry.cursor || null
+  if (entryCursor) ctx.sel.node.select([entryCursor as ID])
 
   // Clear selection on nav restore
   clearSelection(ctx)
@@ -468,7 +466,7 @@ export function navStateFrom(ctx: OpCtx): NavState {
 /** Extract BoardNavState from OpCtx for pure reducer functions. */
 function extractNavState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
-    cursorNodeId: ctx.cursor,
+    cursor: ctx.cursor,
     cursorCardNodeId: ctx.cursorCardNodeId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,

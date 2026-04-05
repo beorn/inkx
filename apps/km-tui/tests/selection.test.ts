@@ -41,7 +41,7 @@ function mockCtx(opts: {
   cards?: KNode[]
   colIndex?: number
   cardIndex?: number
-  cursorNodeId?: string | null
+  cursor?: string | null
   multiSelected?: Set<string>
   nodeIndex?: Map<string, { colIndex: number; cardIndex: number }>
   extraNodes?: Map<string, KNode>
@@ -60,7 +60,7 @@ function mockCtx(opts: {
 
   // Cast to any — these tests only exercise the selection helpers which
   // only read the fields we provide here.
-  const cursor = opts.cursorNodeId ?? cards[cardIndex]?.id ?? null
+  const cursor = opts.cursor ?? cards[cardIndex]?.id ?? null
   return {
     selectedIds: opts.multiSelected ?? new Set(),
     columns: [{ cardNodes: cards }],
@@ -108,7 +108,7 @@ describe("getSelectedNodes", () => {
   })
 
   test("returns empty array when no cursor node", () => {
-    const ctx = mockCtx({ cards: [], cardIndex: 0, cursorNodeId: null })
+    const ctx = mockCtx({ cards: [], cardIndex: 0, cursor: null })
     expect(getSelectedNodes(ctx)).toEqual([])
   })
 
@@ -117,7 +117,7 @@ describe("getSelectedNodes", () => {
     const ctx = mockCtx({
       cards: [],
       cardIndex: -1,
-      cursorNodeId: "col-heading",
+      cursor: "col-heading",
       extraNodes: new Map([["col-heading", col]]),
     })
     expect(getSelectedNodes(ctx)).toEqual([col])
@@ -240,7 +240,7 @@ describe("moveSelectedTo", () => {
     const ctx = mockCtx({
       cards: [a],
       cardIndex: 0,
-      cursorNodeId: "a",
+      cursor: "a",
       children: new Map([["target", []]]),
       withMoveNode: true,
     })

@@ -159,13 +159,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
           {/* Doc-style content tree — headings start at depth 1 (H2) since title is H1 */}
           {children.length > 0 ? (
             <Box paddingLeft={1} flexDirection="column">
-              <DocContent
-                nodes={children}
-                depth={1}
-                repo={repo}
-                cursor={cursorCardNodeId}
-                undoHandle={undoHandle}
-              />
+              <DocContent nodes={children} depth={1} repo={repo} cursor={cursorCardNodeId} undoHandle={undoHandle} />
             </Box>
           ) : metaKeys.length === 0 ? (
             <Box paddingX={1}>

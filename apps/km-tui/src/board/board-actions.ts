@@ -344,7 +344,7 @@ namespace ActionType {
 /** Extract BoardNavState from OpCtx for fold reducer functions. */
 function extractFoldState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
-    cursorNodeId: ctx.cursor,
+    cursor: ctx.cursor,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
     rootId: ctx.rootId,
@@ -1059,8 +1059,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       if (nodeIds.length === 0 && ctx.cursor) {
         nodeIds.push(ctx.cursor as string)
       }
-      const cursorNodeId = ctx.cursor
-      ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
+      ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds })
       return ok()
     }
     case "CONFIRM_MOVE":
@@ -1562,8 +1561,8 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
     case "HISTORY_UNDO": {
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
-      const cursorNodeId = result.ok && result.cursor != null ? result.cursor : ctx.cursor
-      ctx.sel.node.select([cursorNodeId as ID])
+      const undoCursor = result.ok && result.cursor != null ? result.cursor : ctx.cursor
+      ctx.sel.node.select([undoCursor as ID])
       // Restore fold state if captured in the undo entry
       if (result.foldState) {
         ctx.setFoldDepths(result.foldState.foldDepths)
@@ -2072,7 +2071,9 @@ function handleCursorTo(ctx: OpCtx, to: Position): void {
   // Cross-parent — navigate to that board
   saveNavHistory(ctx)
   const children = ctx.repo.getChildren(to.parentId)
-  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId, cursorNodeId: children[0]?.id ?? null })
+  ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: to.parentId })
+  const firstChild = children[0]?.id ?? null
+  if (firstChild) ctx.sel.node.select([firstChild as ID])
   clearSelection(ctx)
 }
 

@@ -116,13 +116,13 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
   ensureCommandSystemInitialized()
 
   // Compute initial cursor
-  let initialCursorNodeId: string | null = null
+  let initialCursor: string | null = null
   if (initialState.columns.length > 0) {
     const firstCol = initialState.columns[0]
     if (firstCol && firstCol.cardNodes.length > 0) {
-      initialCursorNodeId = firstCol.cardNodes[0]?.id ?? firstCol.node.id
+      initialCursor = firstCol.cardNodes[0]?.id ?? firstCol.node.id
     } else if (firstCol) {
-      initialCursorNodeId = firstCol.node.id
+      initialCursor = firstCol.node.id
     }
   }
 
@@ -134,12 +134,8 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     repo,
     toastQueue,
     navigator: registry,
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-      initialState.collapsedNodeIds,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialState.collapsedNodeIds),
+    initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },

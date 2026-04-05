@@ -509,8 +509,7 @@ function TreeNodeImpl({
   // Cursor expansion: when cursor is inside this node's subtree, bypass maxContentLines
   // so all siblings of the cursor target are visible.
   const cursor = useReactive(nodeStore.cursor)
-  const cursorIsChild =
-    cursor != null && cursor !== node.id && repo.getNode(cursor)?.parent_id === node.id
+  const cursorIsChild = cursor != null && cursor !== node.id && repo.getNode(cursor)?.parent_id === node.id
   const shouldExpand =
     // Edit: card-level expansion
     (depth === 0 && expandedEditCardId === node.id) ||

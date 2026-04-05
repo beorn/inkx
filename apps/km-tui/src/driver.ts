@@ -185,7 +185,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
 
   // Compute initial cursor node from columns
   const firstCol = initialData.columns[0]
-  const initialCursorNodeId = firstCol?.cardNodes[0]?.id ?? firstCol?.node.id ?? null
+  const initialCursor = firstCol?.cardNodes[0]?.id ?? firstCol?.node.id ?? null
 
   // Create layout registry for position tracking
   const navigator = createGridNavigator()
@@ -196,12 +196,8 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     repo,
     toastQueue,
     navigator,
-    initialBoardState: createBoardState(
-      initialData.rootId,
-      initialData.rootPath,
-      initialCursorNodeId,
-      initialData.collapsedNodeIds,
-    ),
+    initialBoardState: createBoardState(initialData.rootId, initialData.rootPath, initialData.collapsedNodeIds),
+    initialCursor: initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },
@@ -269,7 +265,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     return {
       currentNode: selectedNode as CommandContext["currentNode"],
       currentNodeId: selectedNode?.id ?? null,
-      cursorNodeId: cursor,
+      cursor,
       selectedNodes: Array.from(s.sel.node.ids()),
       viewMode: board?.viewMode ?? "columns",
       siblingIndex: cursorPos.cardIndex,

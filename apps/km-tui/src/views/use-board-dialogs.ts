@@ -229,22 +229,16 @@ export function useBoardDialogs({
       } else if (nav.action === "DETAIL_VIEW" && nav.zoomTarget) {
         // Zoom target would produce a flat list — zoom there but also open detail pane
         // so the user sees rich content instead of a single-column flat board.
-        dispatchBoard({
-          type: "ZOOM_IN",
-          nodeId: nav.zoomTarget,
-          cursorNodeId: nav.cursorTarget,
-        })
+        dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+        if (nav.cursorTarget) sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
         openDetailPane()
       } else {
         // Target is deeper — zoom to make it a visible card.
         // Dispatch zoom synchronously with dialog close so both state changes
         // batch into a single render (avoids the freeze from two separate renders).
         if (nav.zoomTarget) {
-          dispatchBoard({
-            type: "ZOOM_IN",
-            nodeId: nav.zoomTarget,
-            cursorNodeId: nav.cursorTarget,
-          })
+          dispatchBoard({ type: "ZOOM_IN", nodeId: nav.zoomTarget })
+          if (nav.cursorTarget) sel.node.select([nav.cursorTarget as import("@silvery/selection").ID])
         }
       }
     },

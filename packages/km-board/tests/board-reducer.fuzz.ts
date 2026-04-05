@@ -93,24 +93,21 @@ function randomOp(pick: (arr: readonly string[]) => string, pickFloat: () => num
   // ZOOM_IN (8%)
   if (r < 0.63) {
     const nodeId = pickFloat() < 0.1 ? null : pick(NODE_IDS)
-    const cursorNodeId = pickFloat() < 0.3 ? pick(NODE_IDS) : undefined
-    return { type: "ZOOM_IN", nodeId, cursorNodeId }
+    return { type: "ZOOM_IN", nodeId }
   }
 
   // SET_ROOT (7%)
   if (r < 0.7) {
     const rootId = pickFloat() < 0.1 ? null : pick(NODE_IDS)
     const rootPath = PATHS[Math.floor(pickFloat() * PATHS.length)] ?? null
-    const cursorNodeId = pickFloat() < 0.1 ? null : pick(NODE_IDS)
-    return { type: "SET_ROOT", rootId, rootPath, cursorNodeId }
+    return { type: "SET_ROOT", rootId, rootPath }
   }
 
   // ENTER_MOVE_MODE (8%)
   if (r < 0.78) {
     const count = Math.floor(pickFloat() * 4) // 0-3 nodes
     const nodeIds = Array.from({ length: count }, () => pick(NODE_IDS))
-    const cursorNodeId = pickFloat() < 0.2 ? null : pick(NODE_IDS)
-    return { type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId }
+    return { type: "ENTER_MOVE_MODE", nodeIds }
   }
 
   // CONFIRM_MOVE (5%)
@@ -164,7 +161,7 @@ function checkInvariants(state: BoardState, action: BoardReducerOp, before: Boar
   for (const entry of state.navHistory) {
     expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("rootId")
     expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("rootPath")
-    expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("cursorNodeId")
+    expect(entry, `navHistory entry has required fields ${label}`).toHaveProperty("cursor")
   }
 
   // 5. moveState has valid shape
@@ -230,7 +227,7 @@ describe("Board Reducer Fuzz Tests", () => {
    * Checks all invariants hold after every transition.
    */
   test.fuzz("random actions maintain state invariants", async () => {
-    let state = createBoardState("root", "/board.md", "node-1")
+    let state = createBoardState("root", "/board.md")
 
     for await (const _ of take(
       gen(({ random }) => {
@@ -255,11 +252,11 @@ describe("Board Reducer Fuzz Tests", () => {
 
   /**
    * Fuzz from null/empty initial state.
-   * Many actions reference node IDs that don't match rootId or cursorNodeId.
+   * Many actions reference node IDs that don't match rootId or cursor.
    * The reducer should still never throw or violate invariants.
    */
   test.fuzz("random actions from empty state", async () => {
-    let state = createBoardState() // null rootId, null cursorNodeId
+    let state = createBoardState()
 
     for await (const _ of take(
       gen(({ random }) => {
@@ -285,12 +282,12 @@ describe("Board Reducer Fuzz Tests", () => {
    * with cursor — a common source of invariant violations.
    */
   test.fuzz("move mode transitions maintain invariants", async () => {
-    let state = createBoardState("root", "/board.md", "node-1")
+    let state = createBoardState("root", "/board.md")
 
     const moveActions: BoardReducerOp[] = [
-      { type: "ENTER_MOVE_MODE", nodeIds: ["node-1", "node-2"], cursorNodeId: "node-1" },
-      { type: "ENTER_MOVE_MODE", nodeIds: ["node-3"], cursorNodeId: null },
-      { type: "ENTER_MOVE_MODE", nodeIds: [], cursorNodeId: "node-1" }, // empty — should no-op
+      { type: "ENTER_MOVE_MODE", nodeIds: ["node-1", "node-2"] },
+      { type: "ENTER_MOVE_MODE", nodeIds: ["node-3"] },
+      { type: "ENTER_MOVE_MODE", nodeIds: [] }, // empty — should no-op
       { type: "CONFIRM_MOVE" },
       { type: "CANCEL_MOVE" },
       { type: "SELECT", nodeId: "node-2" },
@@ -310,13 +307,13 @@ describe("Board Reducer Fuzz Tests", () => {
    * Check that index stays valid as history grows and gets truncated.
    */
   test.fuzz("navigation history stays consistent", async () => {
-    let state = createBoardState("root", "/board.md", "node-1")
+    let state = createBoardState("root", "/board.md")
 
     const navActions: BoardReducerOp[] = [
-      { type: "SET_ROOT", rootId: "root-2", rootPath: "/file2.md", cursorNodeId: "node-2" },
-      { type: "SET_ROOT", rootId: "root-3", rootPath: "/file3.md", cursorNodeId: "node-3" },
-      { type: "SET_ROOT", rootId: "root-4", rootPath: "/file4.md", cursorNodeId: "node-4" },
-      { type: "SET_ROOT", rootId: null, rootPath: null, cursorNodeId: null },
+      { type: "SET_ROOT", rootId: "root-2", rootPath: "/file2.md" },
+      { type: "SET_ROOT", rootId: "root-3", rootPath: "/file3.md" },
+      { type: "SET_ROOT", rootId: "root-4", rootPath: "/file4.md" },
+      { type: "SET_ROOT", rootId: null, rootPath: null },
       { type: "SELECT", nodeId: "node-1" },
       { type: "ZOOM_IN", nodeId: "node-2" },
       { type: "ZOOM_IN", nodeId: null },
@@ -340,7 +337,7 @@ describe("Board Reducer Fuzz Tests", () => {
    * Toggle twice should return to original state (idempotent round-trip).
    */
   test.fuzz("fold/collapse toggle is idempotent", async () => {
-    let state = createBoardState("root", "/board.md", "node-1")
+    let state = createBoardState("root", "/board.md")
 
     for await (const nodeId of take(gen(NODE_IDS), 100)) {
       // Toggle fold twice
@@ -365,7 +362,7 @@ describe("Board Reducer Fuzz Tests", () => {
    * SELECT, ZOOM_IN, SET_ROOT, CANCEL_MOVE should all clear curswant.
    */
   test.fuzz("curswant cleared by cursor-resetting actions", async () => {
-    let state = createBoardState("root", "/board.md", "node-1")
+    let state = createBoardState("root", "/board.md")
 
     const curswantSetters: BoardReducerOp[] = [
       { type: "SET_CURSWANT", x: 5, y: 10 },
@@ -377,7 +374,7 @@ describe("Board Reducer Fuzz Tests", () => {
     const curswantClearers: BoardReducerOp[] = [
       { type: "SELECT", nodeId: "node-1" },
       { type: "ZOOM_IN", nodeId: "node-2" },
-      { type: "SET_ROOT", rootId: "root-2", rootPath: "/f.md", cursorNodeId: "c" },
+      { type: "SET_ROOT", rootId: "root-2", rootPath: "/f.md" },
     ]
 
     for await (const _ of take(
@@ -405,7 +402,7 @@ describe("Board Reducer Fuzz Tests", () => {
    * 1000 random actions from a single initial state.
    */
   test.fuzz("long sequence stress test", async () => {
-    let state = createBoardState("root", "/board.md", "node-1")
+    let state = createBoardState("root", "/board.md")
 
     for await (const _ of take(
       gen(({ random }) => {

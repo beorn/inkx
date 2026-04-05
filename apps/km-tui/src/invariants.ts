@@ -174,11 +174,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 8. Cursor-always-visible: cursor must be in the view tree (not hidden by fold/filter)
   // Skip virtual nodes and root-level cursor.
-  if (
-    ctx.cursor &&
-    !isVirtualNodeId(ctx.cursor as string) &&
-    (ctx.cursor as string) !== ctx.rootId
-  ) {
+  if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string) && (ctx.cursor as string) !== ctx.rootId) {
     const viewNode = ctx.viewIndex.get(ctx.cursor as string)
     if (!viewNode) {
       violations.push({

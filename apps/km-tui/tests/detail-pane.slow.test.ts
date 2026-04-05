@@ -1307,12 +1307,12 @@ describe("detail pane j/k navigation", () => {
     /** Get detail pane's cursor state from pane state */
     const detailCursor = () => {
       const pane = store.getState().workspace.panes.get("main-detail") as any
-      const cursorNodeId = (pane?.sel.node.cursor() as string | null) ?? null
-      // In detail view mode, items are flat — cursorCardNodeId === cursorNodeId
+      const cursor = (pane?.sel.node.cursor() as string | null) ?? null
+      // In detail view mode, items are flat — cursorCardNodeId === cursor
       return {
-        cursorNodeId,
-        cursorCardNodeId: cursorNodeId,
-        cursorDepth: cursorNodeId ? "card" : "board",
+        cursor,
+        cursorCardNodeId: cursor,
+        cursorDepth: cursor ? "card" : "board",
       }
     }
 

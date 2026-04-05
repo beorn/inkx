@@ -91,6 +91,15 @@ function dispatchAndFlush(store: StoreApi<BoardAppStore>, action: Parameters<Boa
   })
 }
 
+function zoomAndFlush(store: StoreApi<BoardAppStore>, nodeId: string, cursor?: string) {
+  act(() => {
+    const s = store.getState()
+    s.dispatchBoard({ type: "ZOOM_IN", nodeId })
+    if (cursor) s.sel.node.select([cursor as import("@silvery/selection").ID])
+    store.setState((ss) => ss)
+  })
+}
+
 /** Derive layout from store state on demand (layout is no longer stored). */
 function derivedState(store: StoreApi<BoardAppStore>) {
   const s = store.getState()
@@ -710,11 +719,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
       { checkIncremental: false },
     )
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "flatNode",
-      cursorNodeId: "task2",
-    })
+    zoomAndFlush(store, "flatNode", "task2")
 
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("flatNode")
@@ -728,11 +733,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
       { checkIncremental: false },
     )
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "flatNode",
-      cursorNodeId: "task1",
-    })
+    zoomAndFlush(store, "flatNode", "task1")
 
     board.expectState({ cursor: "task1" })
 
@@ -752,11 +753,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
       { checkIncremental: false },
     )
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "flatNode",
-      cursorNodeId: "task2",
-    })
+    zoomAndFlush(store, "flatNode", "task2")
 
     board.expect("#task2[data-cursor]").toExist()
     board.expectScreen("task2")
@@ -768,11 +765,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
       { checkIncremental: false },
     )
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "flatNode",
-      cursorNodeId: "task1",
-    })
+    zoomAndFlush(store, "flatNode", "task1")
 
     board.expect("#task1[data-cursor]").toExist()
 
@@ -806,11 +799,7 @@ describe("BUG: j/k broken when cursor is on body-card descendant", () => {
     const { board, store } = testEnv(() => allNodes, { checkIncremental: false })
 
     // ZOOM_IN to flatList with cursor on subtask1 (a descendant of body card task1)
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "flatList",
-      cursorNodeId: "subtask1",
-    })
+    zoomAndFlush(store, "flatList", "subtask1")
 
     const paneAfterZoom = getActiveBoardPane(store.getState())!
     expect(paneAfterZoom.rootId).toBe("flatList")
@@ -842,11 +831,7 @@ describe("paragraph-only board: cursor + navigation", () => {
       { checkIncremental: false },
     )
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "readme",
-      cursorNodeId: "setup",
-    })
+    zoomAndFlush(store, "readme", "setup")
 
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("readme")
     board.expectState({ cursor: "setup" })
@@ -889,11 +874,7 @@ describe("full search flow integration", () => {
     expect(zoomTarget.id).toBe("projects")
     expect(cursorTarget.id).toBe("taskA2")
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: zoomTarget.id,
-      cursorNodeId: cursorTarget.id,
-    })
+    zoomAndFlush(store, zoomTarget.id, cursorTarget.id)
 
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects")
     board.expectState({ cursor: "taskA2" })
@@ -937,11 +918,7 @@ describe("scroll to selection after zoom", () => {
     })
 
     // Zoom to root with cursor on task12 (deep in the list, off-screen)
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "root",
-      cursorNodeId: "task12",
-    })
+    zoomAndFlush(store, "root", "task12")
 
     board.expectState({ cursor: "task12" })
 
@@ -967,11 +944,7 @@ describe("scroll to selection after zoom", () => {
     const deep15 = repo.getNode("deep15")!
     const { zoomTarget, cursorTarget } = findZoomTarget(deep15, repo)
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: zoomTarget.id,
-      cursorNodeId: cursorTarget.id,
-    })
+    zoomAndFlush(store, zoomTarget.id, cursorTarget.id)
 
     // Press j to trigger render and move cursor
     board.command("cursor_down")
@@ -1010,11 +983,7 @@ describe("scroll to selection after zoom", () => {
     })
 
     // Zoom with cursor on ctask25 (far off-screen in columns view)
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "root",
-      cursorNodeId: "ctask25",
-    })
+    zoomAndFlush(store, "root", "ctask25")
 
     board.expectState({ cursor: "ctask25" })
 
@@ -1031,11 +1000,7 @@ describe("scroll to selection after zoom", () => {
     const tasks = Array.from({ length: 15 }, (_, i) => item(`dtask${i}`))
     const { board, store } = testEnv(() => item("root", item("col", ...tasks)), { rows: 15, checkIncremental: false })
 
-    dispatchAndFlush(store, {
-      type: "ZOOM_IN",
-      nodeId: "root",
-      cursorNodeId: "dtask12",
-    })
+    zoomAndFlush(store, "root", "dtask12")
 
     // DOM should have cursor on dtask12
     board.expect("#dtask12[data-cursor]").toExist()
@@ -1518,10 +1483,10 @@ describe("search flow via key presses", () => {
     expect(derivedState(store).selectedNode?.id).toBe("my-subtask")
   })
 
-  test("search selectedNode matches cursorNodeId after same-column SELECT", () => {
+  test("search selectedNode matches cursor after same-column SELECT", () => {
     // Regression: when search SELECTs a card in the same column,
     // selectedNode should update to the new card (not stay on the old one).
-    // This verifies the store's selectedNode is consistent with cursorNodeId.
+    // This verifies the store's selectedNode is consistent with cursor.
     const { board, store } = testEnv(() => item("root", item("col", item("first"), item("second"), item("third"))), {
       checkIncremental: false,
     })
@@ -1536,7 +1501,7 @@ describe("search flow via key presses", () => {
     board.press("Enter")
 
     board.expectState({ cursor: "third" })
-    // Key assertion: selectedNode must match cursorNodeId
+    // Key assertion: selectedNode must match cursor
     expect(derivedState(store).selectedNode?.id).toBe("third")
     board.expect("#third[data-cursor]").toExist()
   })

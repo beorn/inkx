@@ -6,7 +6,7 @@
  *
  * Navigation model in cards view:
  * - j/k moves between sibling cards within a column (NOT into card children)
- * - Cursor follows the moved node (invariant): after indent/outdent, cursorNodeId
+ * - Cursor follows the moved node (invariant): after indent/outdent, cursor
  *   tracks the moved card. For indent, this resolves to the parent card (the previous
  *   sibling the node was indented under). For outdent, cursor follows to new position.
  * - Indent/outdent always operate on the currently cursored card (column child)

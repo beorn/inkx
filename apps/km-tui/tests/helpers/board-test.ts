@@ -223,7 +223,7 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
  * Skips collapsed columns to avoid placing cursor on invisible cards.
  */
 function computeInitialCursor(initialState: InitialBoardData) {
-  let cursorNodeId: string | null = null
+  let initialCursor: string | null = null
   let colIndex = 0
   let cardIndex = -1
 
@@ -235,18 +235,18 @@ function computeInitialCursor(initialState: InitialBoardData) {
       if (initialState.collapsedNodeIds.has(col.node.id)) continue
       colIndex = i
       if (col.cardNodes.length > 0) {
-        cursorNodeId = col.cardNodes[0]?.id ?? col.node.id
+        initialCursor = col.cardNodes[0]?.id ?? col.node.id
         cardIndex = 0
       } else {
-        cursorNodeId = col.node.id
+        initialCursor = col.node.id
         cardIndex = -1
       }
       break
     }
     // If all columns collapsed, use first column header
-    if (cursorNodeId === null && initialState.columns.length > 0) {
+    if (initialCursor === null && initialState.columns.length > 0) {
       const firstCol = initialState.columns[0]!
-      cursorNodeId = firstCol.node.id
+      initialCursor = firstCol.node.id
       colIndex = 0
       cardIndex = -1
     }
@@ -255,9 +255,9 @@ function computeInitialCursor(initialState: InitialBoardData) {
   const selectedCol = initialState.columns[colIndex]
   const isCollapsed = selectedCol ? initialState.collapsedNodeIds.has(selectedCol.node.id) : false
   const hasCards = selectedCol && !isCollapsed && selectedCol.cardNodes.length > 0
-  const cursorDepth: "board" | "column" | "card" = cursorNodeId === null ? "board" : hasCards ? "card" : "column"
+  const cursorDepth: "board" | "column" | "card" = initialCursor === null ? "board" : hasCards ? "card" : "column"
 
-  return { cursorNodeId, colIndex, cardIndex: hasCards ? 0 : cardIndex, selectedCol, cursorDepth }
+  return { initialCursor, colIndex, cardIndex: hasCards ? 0 : cardIndex, selectedCol, cursorDepth }
 }
 
 // =============================================================================
@@ -533,18 +533,14 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
+  const { initialCursor } = computeInitialCursor(initialState)
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: registry,
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-      initialState.collapsedNodeIds,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialState.collapsedNodeIds),
+    initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },
@@ -2017,18 +2013,14 @@ export function renderBoardWithStore(
   resetModeStack()
   resetBoardAppState()
 
-  const { cursorNodeId: initialCursorNodeId } = computeInitialCursor(initialState)
+  const { initialCursor } = computeInitialCursor(initialState)
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: registry,
-    initialBoardState: createBoardState(
-      initialState.rootId,
-      initialState.rootPath,
-      initialCursorNodeId,
-      initialState.collapsedNodeIds,
-    ),
+    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialState.collapsedNodeIds),
+    initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
     dimensions: { columns, rows },

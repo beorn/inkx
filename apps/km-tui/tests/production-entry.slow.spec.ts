@@ -48,13 +48,13 @@ function buildStoreParams(
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
 
-  let initialCursorNodeId: string | null = null
+  let initialCursor: string | null = null
   if (initialState.columns.length > 0) {
     const firstCol = initialState.columns[0]
     if (firstCol && firstCol.cardNodes.length > 0) {
-      initialCursorNodeId = firstCol.cardNodes[0]?.id ?? firstCol.node.id
+      initialCursor = firstCol.cardNodes[0]?.id ?? firstCol.node.id
     } else if (firstCol) {
-      initialCursorNodeId = firstCol.node.id
+      initialCursor = firstCol.node.id
     }
   }
 
@@ -62,7 +62,8 @@ function buildStoreParams(
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    initialBoardState: createBoardState(rootId, null, initialCursorNodeId, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(rootId, null, initialState.collapsedNodeIds),
+    initialCursor,
     initialUIState: createInitialUIState({ columns: cols, rows }),
     initialViewMode: viewMode,
     dimensions: { columns: cols, rows },
