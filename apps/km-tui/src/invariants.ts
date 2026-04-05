@@ -42,6 +42,22 @@ export interface InvariantViolation {
 export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   const violations: InvariantViolation[] = []
 
+  // 0. Cursor must not be null on a non-empty board.
+  // Legitimate null-cursor cases: empty board, detail pane (virtual nodes), move mode.
+  // This invariant catches "cursor fell off the walkOrder" bugs from stale ViewSnapshots.
+  if (!ctx.cursor && ctx.columns.length > 0 && !ctx.moveState.active) {
+    const hasRealCards = ctx.columns.some(
+      (col) => !col.isVirtual && col.cardNodes.some((card) => !isVirtualNodeId(card.id)),
+    )
+    if (hasRealCards) {
+      violations.push({
+        check: "cursor-not-null",
+        message: `Cursor is null but board has ${ctx.columns.length} columns with real cards. Selection state may be stale.`,
+        ids: { rootId: ctx.rootId },
+      })
+    }
+  }
+
   // 1. Cursor points to a valid, existing node (or is null for empty board)
   // Skip check for virtual/synthetic nodes (__meta__*, __body__*) which are not stored in repo
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {

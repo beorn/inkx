@@ -31,11 +31,7 @@ import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
-import {
-  deriveDetailColumns,
-  buildNodeIndex,
-  deriveCursorIndices,
-} from "../hooks/use-columns.ts"
+import { deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { viewNodeToColumnViews, type ViewNode } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -203,7 +199,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // ViewSnapshot from PaneSignals computed — single build, auto-cached.
     // The computed auto-invalidates when repoVersion/rootId/foldDepths signals change.
     const snap = board?.signals?.view()
-    const viewTree: ViewNode = snap?.tree ?? ({ id: "", role: "board", children: [], node: null, parent: null } as unknown as ViewNode)
+    const viewTree: ViewNode =
+      snap?.tree ?? ({ id: "", role: "board", children: [], node: null, parent: null } as unknown as ViewNode)
     const viewIndex: Map<string, ViewNode> = (snap?.index as Map<string, ViewNode>) ?? new Map()
 
     // Derive ColumnView[] from ViewSnapshot tree (thin conversion, not a rebuild)
@@ -217,6 +214,16 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       columns = []
     }
     const nodeIndex = buildNodeIndex(columns)
+
+    // Pin the sel adapter to THIS ViewSnapshot for the duration of this key event.
+    // Without this, a repo mutation (e.g., file watcher) between buildOpCtx and
+    // sel.node.select() could invalidate the computed, producing a different
+    // ViewSnapshot with a walkOrder that doesn't contain the navigation target.
+    // This race condition causes cursor → null (the "no cursor" bug).
+    if (snap) {
+      s.selTreeSource.update(viewIndex, viewTree)
+    }
+
     // Use cached cursor indices when cursor+layout haven't changed
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
     const cc = locals.cursorCache

@@ -509,6 +509,10 @@ export function createBoardAppStoreState(
       pane.signals.collapsedNodes(pane.collapsedNodes)
       pane.signals.moveState(pane.moveState)
       pane.signals.viewMode(pane.viewMode)
+      // Sync sel root when rootId changes (zoom/SET_ROOT). Without this,
+      // getWalkOrder() uses the old root to scope the walk → empty walkOrder
+      // when the old root doesn't exist in the new ViewSnapshot → cursor null.
+      pane.sel.root.set((pane.rootId as import("@silvery/selection").ID) ?? null)
     }
 
     // Helper: get the focused pane's sel (delegates global sel to per-pane sel).

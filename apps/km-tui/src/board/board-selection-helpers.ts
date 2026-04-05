@@ -107,10 +107,17 @@ export function forEachSelected(ctx: OpCtx, label: string, fn: (node: KNode) => 
 }
 
 /**
- * Clear all selection state and dismiss status bar message.
+ * Clear multi-selection state, collapsing to single cursor node.
+ *
+ * Uses sel.node.collapse() to go from multi-selection → single-item selection
+ * (cursor preserved). This matches the original pre-@silvery/selection behavior
+ * where clearSelection only cleared the multiSelected set without touching cursor.
+ *
+ * IMPORTANT: Do NOT use sel.deselect() here — that clears cursor to null, which
+ * breaks any subsequent boundary-case navigation (cursor null → no recovery).
  */
 export function clearSelection(ctx: OpCtx): void {
-  ctx.sel.deselect()
+  ctx.sel.node.collapse()
   ctx.setUI({ status: null })
 }
 

@@ -78,8 +78,13 @@ export function createSelectionAdapter(): {
         const startNode = root ? viewIndex.get(root) : viewTree
         if (!startNode) return []
 
-        // DFS collecting IDs (skip the board root itself — it's not selectable)
+        // Include the board root itself — navigation can place cursor there
+        // (e.g., pressing k from first column). Without this, sel.node.select()
+        // on the root ID normalizes to [] → deselect → cursor null.
         const ids: ID[] = []
+        if (startNode === viewTree && startNode.id) {
+          ids.push(startNode.id as ID)
+        }
         const stack: ViewNode[] = [...startNode.children].reverse()
         while (stack.length > 0) {
           const node = stack.pop()!
@@ -96,8 +101,7 @@ export function createSelectionAdapter(): {
         beforeRead?.()
         const vn = viewIndex.get(id)
         if (!vn?.parent) return undefined
-        // Don't return the board root as a parent (it's not selectable)
-        if (vn.parent.role === "board") return undefined
+        // Board root is a valid parent — cursor can be at root level
         return vn.parent.id as ID
       },
 

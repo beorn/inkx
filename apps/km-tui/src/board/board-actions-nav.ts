@@ -59,8 +59,11 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   }
 
   // Non-shift cursor moves clear multi-selection (Shift+movement extends it
-  // via separate extend_select_* commands that don't go through handleCursorMove)
-  if (ctx.selectedIds.size > 0) {
+  // via separate extend_select_* commands that don't go through handleCursorMove).
+  // size > 1: only clear when multiple nodes are selected. Single selection (size 1)
+  // is just the cursor — clearing it would leave cursor null if navigation returns
+  // boundary. Before @silvery/selection this was `ui.multiSelected.size > 0`.
+  if (ctx.selectedIds.size > 1) {
     clearSelection(ctx)
   }
 
