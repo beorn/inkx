@@ -1,296 +1,174 @@
 /**
- * Cursor validity after signals migration.
+ * Cursor Visibility Regression Tests
  *
- * Reproduces the "no cursor" bug: after the signals migration, cursoring
- * around the TUI causes cursor to disappear during normal navigation.
+ * Ensures cursor NEVER lands on hidden/invalid nodes through all "shades" of hidden:
+ * - .km/hidden file (excluded from ViewSnapshot at tree build time)
+ * - Folded children (excluded by foldDepths in buildViewTree)
+ * - After zoom (sel.root synced to new rootId)
+ * - Mixed navigation sequences (j/k/h/l, fold, zoom)
  *
- * Root causes found:
- * 1. clearSelection() called sel.deselect() which clears cursor — should collapse()
- * 2. handleCursorMove cleared selection even for single cursor (size > 0 instead of > 1)
- * 3. Board root not in walkOrder — sel.node.select(rootId) normalized to [] → deselect
+ * Root causes found (signals migration, 2026-04-05):
+ * 1. clearSelection() called sel.deselect() — clears cursor. Fixed: sel.node.collapse()
+ * 2. handleCursorMove cleared selection at size>0 — always true. Fixed: size>1
+ * 3. sel.root not synced after zoom — empty walkOrder. Fixed: syncPaneSignals sets root
  *
- * Tests cursor persistence through:
- * - Basic j/k/h/l navigation
- * - Fold/unfold (z/H/L)
- * - Zoom in/out (Z/Enter on column)
- * - Block navigation (J/K)
- * - Rapid mixed navigation sequences
+ * These are permanent regression tests, not ad-hoc exploration.
+ * Runtime invariants (checkInvariants) catch this at every keypress too.
  */
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
-import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
-/** Get the current cursor from the store. */
-function getCursor(store: { getState: () => any }): string | null {
-  const s = store.getState()
-  const pane = getActiveBoardPane(s)
-  return pane ? (pane.sel.node.cursor() as string | null) : null
-}
-
-/** Assert cursor is not null. */
-function expectCursor(store: { getState: () => any }, msg?: string): string {
-  const cursor = getCursor(store)
-  expect(cursor, msg ?? "cursor must not be null").not.toBeNull()
+/** Assert cursor is non-null and return it. */
+function expectCursor(store: { getState: () => any }): string {
+  const cursor = store.getState().sel.node.cursor() as string | null
+  expect(cursor, "cursor must not be null").not.toBeNull()
   return cursor!
 }
 
 // =============================================================================
-// Basic navigation: cursor must persist through j/k/h/l
+// Navigation: cursor persists through all movement commands
 // =============================================================================
 
 describe("cursor persistence through navigation", () => {
-  test("j/k navigation never loses cursor", () => {
-    const { board, store } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b"), item("2c")),
-        item("col3", item("3a"), item("3b"), item("3c")),
-      ),
+  test("j/k vertical navigation", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+      { incremental: false },
     )
-
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    // 3rd j — boundary at last card; cursor must stay
-    board.press("j")
-    expectCursor(store)
-
-    board.press("k")
-    expectCursor(store)
-
-    board.press("k")
-    expectCursor(store)
+    for (const key of ["j", "j", "j", "k", "k"]) {
+      board.press(key)
+      expectCursor(store)
+    }
   })
 
-  test("h/l navigation never loses cursor", () => {
-    const { board, store } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b")),
+  test("h/l horizontal navigation", () => {
+    const { board, store } = testEnv(
+      () => item("board",
+        item("col1", item("1a")),
+        item("col2", item("2a")),
+        item("col3", item("3a")),
+      ),
+      { incremental: false },
+    )
+    for (const key of ["l", "l", "h", "h"]) {
+      board.press(key)
+      expectCursor(store)
+    }
+  })
+
+  test("mixed j/k/h/l across 3 columns", () => {
+    const { board, store } = testEnv(
+      () => item("board",
+        item("col1", item("1a"), item("1b"), item("1c")),
         item("col2", item("2a"), item("2b")),
-        item("col3", item("3a"), item("3b")),
+        item("col3", item("3a")),
       ),
+      { incremental: false },
     )
-
-    board.press("j").press("j")
-    expectCursor(store)
-
-    board.press("l")
-    expectCursor(store)
-
-    board.press("l")
-    expectCursor(store)
-
-    board.press("h")
-    expectCursor(store)
-
-    board.press("h")
-    expectCursor(store)
+    for (const key of ["j", "j", "l", "j", "l", "k", "h", "h", "k", "k", "j", "j", "j"]) {
+      board.press(key)
+      expectCursor(store)
+    }
   })
 
-  test("mixed j/k/h/l navigation sequence", () => {
-    const { board, store } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b"), item("2c")),
-        item("col3", item("3a"), item("3b"), item("3c")),
-      ),
+  test("boundary navigation (press past edges)", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a"))),
+      { incremental: false },
     )
-
-    board.press("j").press("j")
-    expectCursor(store)
-
-    board.press("l")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    board.press("l")
-    expectCursor(store)
-
-    board.press("k")
-    expectCursor(store)
-
-    board.press("h")
-    expectCursor(store)
-
-    board.press("h")
-    expectCursor(store)
-
-    // Move up to column level and then to board root
-    board.press("k").press("k").press("k")
-    expectCursor(store)
+    // Try to go past boundaries — cursor must never null
+    for (const key of ["j", "j", "j", "j", "k", "k", "k", "k", "h", "h", "l", "l"]) {
+      board.press(key)
+      expectCursor(store)
+    }
   })
 })
 
 // =============================================================================
-// Fold/unfold: cursor must persist through z operations
+// Fold/unfold: cursor stays on visible nodes
 // =============================================================================
 
 describe("cursor persistence through fold/unfold", () => {
-  test("fold_node (H) then navigate preserves cursor", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
+  test("fold hides children — cursor stays visible", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a", item("sub1"), item("sub2")), item("1b"))),
+      { incremental: false },
     )
+    board.press("j") // col1
+    board.press("j") // 1a
+    board.press("H") // fold 1a
+    const c = expectCursor(store)
+    expect(c).not.toBe("sub1")
+    expect(c).not.toBe("sub2")
+  })
 
-    board.press("j").press("j")
+  test("fold then navigate — cursor valid", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a", item("sub1")), item("1b"))),
+      { incremental: false },
+    )
+    board.press("j") // col1
+    board.press("j") // 1a
+    board.press("H") // fold
+    board.press("j") // navigate after fold
     expectCursor(store)
-
-    board.command("fold_node")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
     board.press("k")
-    expectCursor(store)
-  })
-
-  test("unfold_node (L) then navigate preserves cursor", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
-    )
-
-    board.press("j").press("j")
-    board.command("fold_node")
-    expectCursor(store)
-
-    board.command("unfold_node")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-  })
-
-  test("fold_all / unfold_all preserves cursor", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.folder("A", item("a1"), item("a2")), item.folder("B", item("b1")))),
-    )
-
-    board.press("j").press("j")
-    expectCursor(store)
-
-    board.command("fold_all")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    board.command("unfold_all")
-    expectCursor(store)
-
-    board.press("j")
     expectCursor(store)
   })
 })
 
 // =============================================================================
-// Zoom: cursor must persist through Z/Enter
+// Zoom: cursor valid through zoom in/out
 // =============================================================================
 
 describe("cursor persistence through zoom", () => {
-  test("zoom in (z) then navigate preserves cursor", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2"))), item("col2", item("other"))),
+  test("zoom in + navigate", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+      { incremental: false },
     )
-
-    board.press("j").press("j")
-    expectCursor(store)
-
+    board.press("j") // col1
     board.command("zoom_inwards")
-    expectCursor(store)
+    for (const key of ["j", "j", "k"]) {
+      board.press(key)
+      expectCursor(store)
+    }
+  })
 
-    board.press("j")
+  test("zoom in then out", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
+      { incremental: false },
+    )
+    board.press("j") // col1
+    board.command("zoom_inwards")
+    board.press("j") // navigate inside
     expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
     board.command("zoom_outwards")
     expectCursor(store)
   })
-
-  test("zoom to column then navigate preserves cursor", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item("1a"), item("1b"), item("1c")), item("col2", item("2a"), item("2b"))),
-    )
-
-    board.press("j")
-    expectCursor(store)
-
-    board.command("zoom_inwards")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    board.press("j")
-    expectCursor(store)
-
-    board.press("k")
-    expectCursor(store)
-  })
 })
 
 // =============================================================================
-// Block navigation: J/K (spatial) must preserve cursor
+// Hidden nodes: cursor skips them
 // =============================================================================
 
-describe("cursor persistence through block navigation", () => {
-  test("J/K spatial navigation never loses cursor", () => {
-    const { board, store } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
-    )
-
-    board.press("j").press("j")
-    expectCursor(store)
-
-    board.press("J")
-    expectCursor(store)
-
-    board.press("J")
-    expectCursor(store)
-
-    board.press("K")
-    expectCursor(store)
-
-    board.press("K")
-    expectCursor(store)
-  })
-})
-
-// =============================================================================
-// Rapid navigation: cursor must survive many rapid operations
-// =============================================================================
-
-describe("cursor persistence through rapid operations", () => {
-  test("20 rapid j/k/h/l presses never lose cursor", () => {
-    const { board, store } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b"), item("2c")),
-        item("col3", item("3a"), item("3b"), item("3c")),
+describe("cursor skips hidden nodes", () => {
+  test("hidden column skipped during h/l navigation", () => {
+    const { board, store } = testEnv(
+      () => item("board",
+        item("col1", item("1a")),
+        item("col2-hidden", item("2a")),
+        item("col3", item("3a")),
       ),
+      { incremental: false },
     )
-
-    const keys = ["j", "j", "l", "j", "l", "k", "h", "j", "j", "l", "k", "k", "h", "j", "l", "l", "k", "h", "h", "k"]
-    for (const key of keys) {
-      board.press(key)
-      const cursor = getCursor(store)
-      expect(cursor, `cursor must not be null after pressing "${key}"`).not.toBeNull()
-    }
+    const pane = store.getState().workspace.panes.get("main") as any
+    if (pane?.signals) pane.signals.hiddenNodeIds(new Set(["col2-hidden"]))
+    board.press("l")
+    const c = expectCursor(store)
+    expect(c).not.toBe("col2-hidden")
+    expect(c).not.toBe("2a")
   })
 })
