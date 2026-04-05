@@ -1084,6 +1084,7 @@
 {"created_at":"2026-03-09T14:00:19Z","created_by":"claude:55df8ef1","depends_on_id":"km-silvery","issue_id":"km-silvery.beorn-codes","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:39Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.bg-segment-offsets","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:46Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.blink-hidden-style","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-05T01:50:22Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.blog-diagrams","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T14:50:05Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.border-overflow","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-14T08:21:20Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.boundary-height-tests","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:51:27Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.box-in-text-warn","metadata":"{}","type":"parent-child"}
