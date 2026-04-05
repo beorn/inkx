@@ -22,6 +22,16 @@ km's architecture borrows deliberately from systems that solved hard problems we
 
 See [docs/design/selection-landscape.md](design/selection-landscape.md) for detailed comparisons with tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM Selection API, and AppKit/UIKit.
 
+## Reactive Model
+
+alien-signals provides the reactive primitives (signals, computed, effect). The codebase targets two patterns and restricts a third:
+
+1. **DIRECT** (preferred) — a store method reads signals, calls a pure function, writes the result to its own signals. The method is the pure→reactive boundary. External code calls the method; it never writes signals directly.
+2. **DERIVED** (clean) — a `computed` signal reads from other signals and transforms the value. No writes, no side effects, always consistent.
+3. **EFFECT** (restricted) — an effect watches one signal and writes another. This pattern is reserved for cross-system boundaries where two stores genuinely can't merge (e.g., the selection store writing `agNode.selected` on silvery's render tree). Every bridge, init race, and double-write bug in km's history originated from pattern 3.
+
+The rule: one writer per signal. If two stores need to stay in sync, one derives from the other via `computed` — not via an effect that writes back. See [lessons/op-signal-boundary.md](lessons/op-signal-boundary.md) for the full case study and decision framework.
+
 ## Building Blocks
 
 Every piece of the system is built from a small set of domain objects. Like [SlateJS](https://docs.slatejs.org/concepts), each is a clean interface with a namespace of static helpers.

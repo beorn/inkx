@@ -47,6 +47,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [No Prop Drilling](#no-prop-drilling)
   - [No Hidden Side Effects](#no-hidden-side-effects)
   - [Local Reasoning](#local-reasoning)
+  - [Signal Ownership](#signal-ownership)
   - [API Boundaries](#api-boundaries)
   - [Type Safety](#type-safety)
   - [Error Handling](#error-handling)
@@ -955,6 +956,40 @@ function processNode(db: Database, node: KNode) {
 **Guidelines:**
 - [ ] No globals — `fn(db, node)` / not `fn(node)` + `getCurrentDb()`
 - [ ] Deps as params — `process(db, x)` / not `process(x)` reading module state
+
+---
+
+### Signal Ownership
+
+**The rule**: Signals are written only by their owning store's methods. No external writes, no effect cascades between stores.
+
+If two stores need to stay in sync, one is derived from the other (`computed`), not synced via `effect`. The store method is the pure→reactive boundary: read signals, call pure function, write result.
+
+Three patterns, ranked by preference:
+
+1. **DIRECT** — store method → pure function → write own signal. One owner, one write, no cascades.
+2. **DERIVED** — signal A changes → `computed` B recomputes. No writes, just derivation.
+3. **EFFECT** — signal A changes → effect → writes signal B. Two owners. Use only at cross-system boundaries (e.g., sel store → ag tree), and document why patterns 1–2 don't apply.
+
+```typescript
+// ✅ Pattern 1 — store method owns the write
+sel.node.setCursor(targetId)
+
+// ✅ Pattern 2 — computed derivation, no writes
+const cursorNode = computed(() => repo.getNode(sel.node.cursor()))
+
+// ⚠️ Pattern 3 — effect bridge, use sparingly
+effect(() => { agNode.selected = sel.selection().has(agNode.id) })
+```
+
+**Litmus test**: If you're writing `effect(() => { otherStore.set(...) })`, something is wrong. Either merge the stores, derive via `computed`, or move the write into the source store's method.
+
+**Why**: Effect cascades between stores cause double writes, init races, and stale gaps. The selection bridge mess (two stores owning cursor state, synced via effect) is the canonical example — see [lessons/op-signal-boundary.md](lessons/op-signal-boundary.md).
+
+**Guidelines:**
+- [ ] One writer per signal — only the owning store's methods write it / not external `effect()` calls
+- [ ] `computed` over `effect` for cross-store reads — derive, don't sync
+- [ ] Store methods are the boundary — pure logic inside, signal write at the end / not scattered writes
 
 ---
 
