@@ -213,8 +213,81 @@ For technical docs, add boundary markers:
 - [ ] No red+green as status indicators (use as ownership colors only)
 - [ ] Language is simple — avoid jargon in annotation cards (no "immutable", "re-emit", "persists")
 - [ ] Terminal content uses monospace, annotations use Inter
-- [ ] Total width ~920px, reasonable height
+- [ ] Width fits container (max-width + width:100%, no fixed px)
 - [ ] `prefers-reduced-motion` for any animations (blinking cursor)
+- [ ] **Playwright visual verification passes** (see below)
+
+## Playwright Visual Verification (REQUIRED)
+
+After embedding diagrams in VitePress, **verify with Playwright before marking done**. This catches CSS leaks, overflow, sizing issues that are invisible in the source HTML.
+
+```bash
+# Build docs, start preview, screenshot all diagrams
+cd vendor/silvery && bun run docs:build && cd docs && bunx vitepress preview --port 4173 &
+```
+
+```js
+// Verify all diagrams — run with: node -e '...'
+const { chromium } = require("playwright")
+const browser = await chromium.launch()
+const page = await browser.newPage({ viewport: { width: 1200, height: 900 } })
+await page.goto("http://localhost:4173/<page-path>", { waitUntil: "networkidle" })
+await page.waitForTimeout(1500) // shadow DOM mount
+
+const diagrams = await page.locator(".html-diagram").all()
+for (let i = 0; i < diagrams.length; i++) {
+  const box = await diagrams[i].boundingBox()
+  console.log(`Diagram ${i}: w=${Math.round(box.width)} h=${Math.round(box.height)}`)
+  await diagrams[i].screenshot({ path: `/tmp/diagram-verify-${i}.png` })
+}
+
+// Check overflow (MUST be false for all)
+const overflows = await page.evaluate(() => {
+  return Array.from(document.querySelectorAll(".html-diagram")).map((d, i) => {
+    const s = d.shadowRoot
+    const diagram = s?.querySelector("[class*=diagram]")
+    return { i, scrollW: diagram?.scrollWidth, clientW: diagram?.clientWidth,
+             overflows: diagram?.scrollWidth > diagram?.clientWidth }
+  })
+})
+
+// Check CSS isolation (shadow DOM active, no VitePress leaks)
+const isolation = await page.evaluate(() => {
+  return Array.from(document.querySelectorAll(".html-diagram")).map((d, i) => {
+    const s = d.shadowRoot
+    const ul = s?.querySelector("ul")
+    const tt = s?.querySelector(".term-text")
+    return { i, hasShadow: !!s,
+             ulPadLeft: ul ? getComputedStyle(ul).paddingLeft : "no-ul",
+             termFontSize: tt ? getComputedStyle(tt).fontSize : "no-tt" }
+  })
+})
+
+// Check terminal text indentation (must be <=10px from body edge)
+const indents = await page.evaluate(() => {
+  return Array.from(document.querySelectorAll(".html-diagram")).map((d, i) => {
+    const s = d.shadowRoot
+    const tb = s?.querySelector(".terminal-body, .zone-live, .exchange-row, .buffer-body")
+    if (!tb) return { i, indent: "no-terminal" }
+    return { i, paddingLeft: getComputedStyle(tb).paddingLeft }
+  })
+})
+
+await browser.close()
+```
+
+### What to verify
+
+| Check | Pass criteria | Catches |
+|---|---|---|
+| `box.width <= 688` | All diagrams fit container | Width overflow |
+| `scrollWidth == clientWidth` | No horizontal overflow | Clipped content |
+| `hasShadow == true` | Shadow DOM active | CSS leak from VitePress |
+| `ulPadLeft == "0px"` | No VitePress list padding | `.vp-doc ul` leak |
+| `termFontSize != "16px"` | Diagram font, not browser default | Style isolation failure |
+| `paddingLeft <= "10px"` | Terminal text not over-indented | Margin/padding leak |
+
+**Read each screenshot** with the Read tool to visually confirm the diagrams render correctly. Automated checks catch structural issues; visual inspection catches aesthetic ones.
 
 ## Output Location
 
@@ -228,15 +301,41 @@ For design docs, create a separate copy with implementation-specific details (st
 
 ## Embedding
 
-In VitePress markdown:
+Diagrams are embedded as **HTML fragments** (not full documents) via the `HtmlDiagram` Vue component, which renders them in a **Shadow DOM** for full CSS isolation from VitePress styles.
+
+### Writing embeddable diagrams
+
+Diagrams must be scoped HTML fragments — no `<!DOCTYPE>`, `<html>`, `<head>`, or `<body>`. Just `<style>` + `<div>`:
+
 ```html
-<iframe src="/blog/diagrams/<name>.html" style="width:100%;height:550px;border:none;border-radius:12px;"></iframe>
+<style>
+  .diagram-XX-name { /* scoped wrapper */ }
+  .diagram-XX-name .terminal-body { padding: 8px; }
+</style>
+<div class="diagram-XX-name">
+  <!-- diagram content -->
+</div>
 ```
 
-Or as an image reference (if converted to PNG/SVG):
-```markdown
-![Description](/blog/diagrams/<name>.svg)
+**Scope all CSS** with a unique class prefix (e.g. `.diagram-01-buffers`) to prevent collision between diagrams on the same page.
+
+**Use responsive widths**: `max-width: 660px; width: 100%` on `.page` and `.diagram`. Never fixed `width: Npx`.
+
+### In VitePress markdown
+
+```vue
+<script setup>
+import myDiagram from '../public/blog/diagrams/my-diagram.html?raw'
+</script>
+
+<HtmlDiagram :html="myDiagram" />
 ```
+
+The `?raw` Vite import loads the HTML as a string. `HtmlDiagram` injects it into a Shadow DOM — VitePress `.vp-doc` styles cannot leak in.
+
+### Why Shadow DOM, not v-html
+
+VitePress applies `.vp-doc p { margin: 16px 0; line-height: 28px }`, `.vp-doc ul { padding-left: 1.25rem }`, and dozens of other rules to all content inside doc pages. These leak into `v-html` content because it's in the same DOM. Shadow DOM provides a hard isolation boundary — no CSS crosses it.
 
 ## Workflow: Getting to a Good Result
 
@@ -263,10 +362,7 @@ Each round, check:
 
 ### Verification
 
-Open the HTML in a browser and screenshot with Playwright:
-```bash
-bunx playwright screenshot --browser chromium --viewport-size=1200,800 file.html /tmp/diagram-check.png
-```
+Build docs, embed in VitePress, and run the Playwright verification suite (see "Playwright Visual Verification" section above). **Never mark diagrams done based on standalone HTML checks alone** — VitePress CSS leaks are only visible when embedded.
 
 ## External Tools
 
