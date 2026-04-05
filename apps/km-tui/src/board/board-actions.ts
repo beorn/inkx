@@ -31,6 +31,7 @@ import { dialogTargetRef } from "../dialog-target.ts"
 import { extractBody, detectPrefixConversion, degrade, KTree } from "@km/tree"
 import { boardSplit, boardMergeBackward, boardMergeForward } from "./board-tree-ops.ts"
 import { KNode, Position, extractTitleTaskMarker, type ItemData } from "@km/core"
+import type { ID } from "@silvery/selection"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import {
   clearSelection,
@@ -343,7 +344,7 @@ namespace ActionType {
 /** Extract BoardNavState from OpCtx for fold reducer functions. */
 function extractFoldState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
-    cursorNodeId: ctx.cursorNodeId,
+    cursorNodeId: ctx.sel.node.cursor() as string | null,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
     rootId: ctx.rootId,
@@ -500,7 +501,7 @@ function handleVerbAction(ctx: OpCtx, action: VerbOp): OpResult {
     case "REPARENT_TO": {
       // "{parent}" is special: structural outdent (tree-level, not positional)
       if (action.locationKey === "{parent}" || action.locationKey === "parent") {
-        const nodeId = ctx.cursorNodeId
+        const nodeId = ctx.sel.node.cursor() as string | null
         if (!nodeId) return boundary("outdent", "no cursor")
         const node = ctx.repo.getNode(nodeId)
         if (!node) return boundary("outdent", "node not found")
@@ -615,14 +616,14 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
       // Resolve actual target: inline edit node OR cursor node (spatial nav),
       // falling back to card. Ensures Tab operates on the selected sub-item
       // in both normal mode (J/K navigated to sub-item) and edit mode.
-      const indentTargetId = ctx.sel.text()?.nodeId ?? ctx.cursorNodeId
+      const indentTargetId = ctx.sel.text()?.nodeId ?? (ctx.sel.node.cursor() as string | null)
       const indentTarget = indentTargetId && indentTargetId !== card.id ? ctx.repo.getNode(indentTargetId) : null
       if (!indentNode(ctx, indentTarget ?? card)) return boundary("indent", "Can't indent further")
       return ok()
     }
     case "OUTDENT_NODE": {
       if (!card) return boundary("outdent", "No card to outdent")
-      const outdentTargetId = ctx.sel.text()?.nodeId ?? ctx.cursorNodeId
+      const outdentTargetId = ctx.sel.text()?.nodeId ?? (ctx.sel.node.cursor() as string | null)
       const outdentTarget = outdentTargetId && outdentTargetId !== card.id ? ctx.repo.getNode(outdentTargetId) : null
       if (!outdentNode(ctx, outdentTarget ?? card)) return boundary("outdent", "Can't outdent further")
       return ok()
@@ -702,7 +703,7 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
           const node = ctx.repo.getNode(nodeId)
           if (node) {
             const remainingText = content.slice(conversion.prefixLength)
-            ctx.undoHandle.setCursor(ctx.cursorNodeId)
+            ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
             const changes: Partial<typeof node> = { ...conversion.nodeChanges }
             if (KNode.isOutline({ type: changes.type ?? node.type, item: changes.item ?? node.item })) {
               changes.name = remainingText
@@ -751,10 +752,10 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
         if (node) {
           const degradation = degrade(node, ctx.repo, nodeId)
           if (degradation) {
-            ctx.undoHandle.setCursor(ctx.cursorNodeId)
+            ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
             applyDegradation(node, degradation, content)
             runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: degradation })
-            ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+            ctx.sel.node.select([ctx.sel.node.cursor()!])
             return ok()
           }
           bsTarget.save()
@@ -781,10 +782,10 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
           if (nextNode) {
             const degradation = degrade(nextNode, ctx.repo, nextNode.id)
             if (degradation) {
-              ctx.undoHandle.setCursor(ctx.cursorNodeId)
+              ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
               applyDegradation(nextNode, degradation, KNode.string(nextNode))
               runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId: nextNode.id, updates: degradation })
-              ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+              ctx.sel.node.select([ctx.sel.node.cursor()!])
               return ok()
             }
           }
@@ -882,7 +883,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       if (ctx.ui.columnScrollAnchor !== null) {
         ctx.setUI({ columnScrollAnchor: null })
       }
-      ctx.dispatchBoard(action)
+      ctx.sel.node.select([action.nodeId as ID])
       return ok()
     case "SET_ROOT":
     case "SET_CURSWANT":
@@ -896,7 +897,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       if (!collapseNodeId) return boundary("collapse", "No column to collapse")
       if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
       const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
-      ctx.undoHandle.setCursor(ctx.cursorNodeId)
+      ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
 
       // Snapshot fold state before toggle (for undo)
       const foldStateBefore = {
@@ -934,7 +935,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       // Push undo entry with fold state
       ctx.undoStack.push({
         label: "Collapse",
-        cursorNodeId: ctx.cursorNodeId,
+        cursorNodeId: ctx.sel.node.cursor() as string | null,
         foldStateBefore,
         foldStateAfter,
         undo: () => {
@@ -946,8 +947,8 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       })
 
       ctx.dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: collapseNodeId })
-      if (!wasCollapsed && ctx.cursorNodeId !== collapseNodeId) {
-        ctx.dispatchBoard({ type: "SELECT", nodeId: collapseNodeId })
+      if (!wasCollapsed && (ctx.sel.node.cursor() as string) !== collapseNodeId) {
+        ctx.sel.node.select([collapseNodeId as ID])
       }
       return ok()
     }
@@ -1015,8 +1016,8 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       clearSelection(ctx)
       return ok()
     case "VISUAL_MODE_ENTER": {
-      if (!ctx.cursorNodeId) return boundary("visual", "no cursor")
-      ctx.sel.node.select([ctx.cursorNodeId as import("@silvery/selection").ID])
+      if (!ctx.sel.node.cursor()) return boundary("visual", "no cursor")
+      ctx.sel.node.select([ctx.sel.node.cursor()!])
       ctx.setUI({ status: { level: "info", message: "-- VISUAL --" } })
       return ok()
     }
@@ -1047,10 +1048,10 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
           }
         }
       }
-      if (nodeIds.length === 0 && ctx.cursorNodeId) {
-        nodeIds.push(ctx.cursorNodeId)
+      if (nodeIds.length === 0 && ctx.sel.node.cursor()) {
+        nodeIds.push(ctx.sel.node.cursor() as string)
       }
-      const cursorNodeId = ctx.cursorNodeId
+      const cursorNodeId = ctx.sel.node.cursor() as string | null
       ctx.dispatchBoard({ type: "ENTER_MOVE_MODE", nodeIds, cursorNodeId })
       return ok()
     }
@@ -1119,7 +1120,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
         showSearchDialog: true,
         searchDialogInitialInput: "",
         searchScope: "all",
-        searchScopeNodeIds: ctx.cursorNodeId ? [ctx.cursorNodeId] : [],
+        searchScopeNodeIds: ctx.sel.node.cursor() ? [ctx.sel.node.cursor() as string] : [],
       })
       clearSelection(ctx)
       return ok()
@@ -1553,8 +1554,8 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
     case "HISTORY_UNDO": {
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
-      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.cursorNodeId
-      ctx.dispatchBoard({ type: "SELECT", nodeId: cursorNodeId })
+      const cursorNodeId = result.ok && result.cursorNodeId != null ? result.cursorNodeId : ctx.sel.node.cursor() as string | null
+      ctx.sel.node.select([cursorNodeId as ID])
       // Restore fold state if captured in the undo entry
       if (result.foldState) {
         ctx.setFoldDepths(result.foldState.foldDepths)
@@ -1566,7 +1567,7 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
     case "HISTORY_REDO": {
       if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
       const result = ctx.undoHandle.redo()
-      ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+      ctx.sel.node.select([ctx.sel.node.cursor()!])
       // Restore fold state if captured in the redo entry
       if (result.foldState) {
         ctx.setFoldDepths(result.foldState.foldDepths)
@@ -1657,7 +1658,7 @@ function handleLinebreakSibling(ctx: OpCtx, position: "before" | "after"): void 
 
   ctx.undoHandle.setCursor(nodeId)
   const newId = repo.addNode(parentId, newNode)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
@@ -1714,7 +1715,7 @@ function handleLinebreakSplit(ctx: OpCtx): OpResult {
       ctx.undoHandle.startBatch("Split node")
       const result = splitAsChild(ctx.repo, nodeId, adjustedOffset)
       ctx.undoHandle.endBatch()
-      ctx.dispatchBoard({ type: "SELECT", nodeId: result.afterId })
+      ctx.sel.node.select([result.afterId as ID])
       ctx.sel.text.edit(result.afterId as import("@silvery/selection").ID, 0)
       ctx.textEditHints = { blockIndex: 0 }
     } else {
@@ -1759,7 +1760,7 @@ function splitAsChild(repo: OpCtx["repo"], nodeId: string, offset: number): { be
  *  Inherits all non-system properties from the parent node via extractProps()
  *  so that pressing Enter on a task creates another task (not a plain list item). */
 function handleAddNodeChildFirst(ctx: OpCtx): void {
-  const cursorId = ctx.cursorNodeId
+  const cursorId = ctx.sel.node.cursor() as string | null
   if (!cursorId) return
 
   const { repo } = ctx
@@ -1778,7 +1779,7 @@ function handleAddNodeChildFirst(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: newId })
+  ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
   requestRenderFlush()
@@ -1877,7 +1878,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
     const { items } = extractBody(children)
     if (items.length > 0) {
       const firstChild = items[0]!
-      ctx.dispatchBoard({ type: "SELECT", nodeId: firstChild.id })
+      ctx.sel.node.select([firstChild.id as ID])
       ctx.sel.text.edit(firstChild.id as import("@silvery/selection").ID, 0)
       ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start", stickyX }
       requestRenderFlush()
@@ -1906,7 +1907,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
       }
       if (deepest?.node && deepest.id !== adjacentNode.id) {
         const deepBodyCount = extractBody(ctx.repo.getChildren(deepest.id)).body.length
-        ctx.dispatchBoard({ type: "SELECT", nodeId: deepest.id })
+        ctx.sel.node.select([deepest.id as ID])
         ctx.sel.text.edit(deepest.id as import("@silvery/selection").ID, 0)
         ctx.textEditHints = { blockIndex: deepBodyCount, initialCursorPos: "end", stickyX }
         requestRenderFlush()
@@ -1915,7 +1916,7 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
     }
     const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentNode.id)).body.length
     const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
-    ctx.dispatchBoard({ type: "SELECT", nodeId: adjacentNode.id })
+    ctx.sel.node.select([adjacentNode.id as ID])
     ctx.sel.text.edit(adjacentNode.id as import("@silvery/selection").ID, 0)
     ctx.textEditHints = {
       blockIndex: adjBlockIndex,
@@ -1960,7 +1961,7 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   // Push undo entry with fold state
   ctx.undoStack.push({
     label: "Fold",
-    cursorNodeId: ctx.cursorNodeId,
+    cursorNodeId: ctx.sel.node.cursor() as string | null,
     foldStateBefore,
     foldStateAfter,
     undo: () => {
@@ -1990,7 +1991,7 @@ function handleFavoritesAssign(ctx: OpCtx): OpResult {
   const key = ctx.ui.favoritesSelectedKey
   if (!key) return ok()
 
-  const nodeId = ctx.cursorNodeId
+  const nodeId = ctx.sel.node.cursor() as string | null
   if (!nodeId) {
     ctx.toastQueue.warning("No node selected")
     return ok()
@@ -2026,13 +2027,13 @@ function handleFavoritesClear(ctx: OpCtx): OpResult {
 
 /** Cursor to resolved Position: same-parent → SELECT sibling, cross-parent → ZOOM_IN to board. */
 function handleCursorTo(ctx: OpCtx, to: Position): void {
-  const cursorNode = ctx.cursorNodeId ? ctx.repo.getNode(ctx.cursorNodeId) : null
+  const cursorNode = ctx.sel.node.cursor() ? ctx.repo.getNode(ctx.sel.node.cursor() as string) : null
 
   // Same parent — cursor to sibling at position
   if (cursorNode?.parent_id === to.parentId) {
     const target = Tree.nodeAt(ctx.repo, to)
     if (target) {
-      ctx.dispatchBoard({ type: "SELECT", nodeId: target.id })
+      ctx.sel.node.select([target.id as ID])
       clearSelection(ctx)
     }
     return
@@ -2069,7 +2070,7 @@ function handleReparentTo(ctx: OpCtx, to: Position): OpResult {
     if (Tree.isAtPosition(ctx.repo, nodeId, to)) return ok()
     ctx.undoHandle.setCursor(nodeId)
     Tree.moveTo(ctx.repo, nodeId, to)
-    ctx.dispatchBoard({ type: "SELECT", nodeId })
+    ctx.sel.node.select([nodeId as ID])
     return ok()
   }
 
@@ -2125,7 +2126,6 @@ function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): OpResult {
 
 function handleJumpToColumn(ctx: OpCtx, columnNumber: number): OpResult {
   const columns = ctx.columns
-  const { dispatchBoard } = ctx
 
   // Column numbers are 1-indexed for user, 0-indexed internally
   const targetColIdx = columnNumber - 1
@@ -2138,7 +2138,7 @@ function handleJumpToColumn(ctx: OpCtx, columnNumber: number): OpResult {
   if (targetCol && targetCol.cardNodes.length > 0) {
     const firstCard = targetCol.cardNodes[0]
     if (firstCard) {
-      dispatchBoard({ type: "SELECT", nodeId: firstCard.id })
+      ctx.sel.node.select([firstCard.id as ID])
     }
   }
   return ok()
@@ -2232,8 +2232,8 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
   }
 
   // If cursor is inside a card's sub-items, exit outline mode (move cursor back to card)
-  if (ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.card.id })
+  if (ctx.sel.node.cursor() !== null && ctx.card !== undefined && (ctx.sel.node.cursor() as string) !== ctx.card.id) {
+    ctx.sel.node.select([ctx.card.id as ID])
     return ok()
   }
 
@@ -2394,7 +2394,7 @@ function handleSetPriority(ctx: OpCtx, value?: string): OpResult {
   }
 
   // Auto-recorded by undoable repo — batch multiple updates into one undo entry
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   if (nodeIds.length > 1) ctx.undoHandle.startBatch("Set priority")
   for (const nodeId of nodeIds) {
     runRepoEffect(ctx, { type: "REPO_UPDATE_NODE", nodeId, updates: { priority: next } })
@@ -2403,7 +2403,7 @@ function handleSetPriority(ctx: OpCtx, value?: string): OpResult {
 
   const label = next ?? "None"
   ctx.toastQueue.info(`Priority: ${label}`)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+  ctx.sel.node.select([(ctx.sel.node.cursor() as string | null) as ID])
   return ok()
 }
 
@@ -2468,7 +2468,7 @@ function handleDatePromptConfirm(ctx: OpCtx): OpResult {
   const { field, nodeIds } = prompt
 
   // Auto-recorded by undoable repo — batch multiple updates into one undo entry
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   const useBatch = nodeIds.length > 1
   if (useBatch) ctx.undoHandle.startBatch(`Set ${field}`)
 
@@ -2526,7 +2526,7 @@ function handleDatePromptConfirm(ctx: OpCtx): OpResult {
 
   popDialogMode()
   ctx.setUI({ datePrompt: null })
-  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.cursorNodeId })
+  ctx.sel.node.select([(ctx.sel.node.cursor() as string | null) as ID])
   return ok()
 }
 
@@ -2564,7 +2564,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
 
   // Find current position in siblings
   const siblings = repo.getChildren(col.node.id)
-  const currentSibIdx = siblings.findIndex((s) => s.id === ctx.cursorNodeId)
+  const currentSibIdx = siblings.findIndex((s) => s.id === (ctx.sel.node.cursor() as string))
   const currentNode = siblings[currentSibIdx]
 
   // Calculate sort order: after current node
@@ -2582,7 +2582,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
     baseSortOrder = (lastSibling?.parent_idx ?? 0) + 1
   }
 
-  ctx.undoHandle.setCursor(ctx.cursorNodeId)
+  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   ctx.undoHandle.startBatch(clipboard.mode === "cut" ? "Cut & Paste" : "Paste")
 
   let pastedCount = 0
@@ -2627,7 +2627,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
 
   // Select the last pasted node by ID
   if (lastPastedId) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: lastPastedId })
+    ctx.sel.node.select([lastPastedId as ID])
   }
 
   return ok()
