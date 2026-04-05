@@ -236,7 +236,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **km-ast** — The abstract syntax tree produced by km's markdown parser. Uses types like `oi` (outline item), `li` (list item), `p`, `h`, `code`, `quote`. Parse-time types that map to `KNode` in storage.
 
-**KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `embed_source`, `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
+**KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `symlink_to` (formerly `embed_source`), `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
 
 **KTree** — A namespace of pure tree traversal functions operating on flat node stores. The primary method is `KTree.nodes(tree, rootId, opts?)` — DFS pre-order with orthogonal `match` (what to yield) and `into` (what to descend into) predicates.
 
@@ -358,6 +358,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **Repo** — The data store factory. `createRepo(path)` creates a disposable store backed by SQLite with queries, mutations, subscription, and filesystem watch.
 
+**RepoTree** — The data-level tree: all KNodes in SQLite. Accessed via `repo.node(id)`, `repo.children(id)`, `repo.parent(id)`. Contains all nodes regardless of visibility. The ViewTree is a filtered, enriched projection of the RepoTree. Hooks: `useRepoTree()`.
+
 **roundtrip** — The property that parsing markdown to KNode and serializing back produces identical markdown. km strives for roundtrip fidelity to avoid data loss during bidirectional sync.
 
 **rules** — Per-section directives parsed from `km.*` frontmatter or inline directives. Controls collapse state, content line limits, color, and other visual behavior. Stored as `SectionRules` on KNode.
@@ -405,6 +407,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 **split pane** — Dividing the terminal into multiple independently-scrollable board views. Each pane has its own cursor, selection, and zoom state.
 
 **SQLite** — The embedded relational database used by km for node storage. Runs in WAL mode for concurrent access. In disk mode, persisted as `.km/state.db`; in memory mode, rebuilt from files each run.
+
+**symlink** — A node that displays another node's content at its position in the tree. `KNode.symlink_to` points to the target node ID. The ViewTree resolves it: `viewNode.display` = the target KNode, `viewNode.isSymlink` = true, `viewNode.childIds` = target's children. Like a Unix symlink — follows the target for content and children. Contrast with *link* (inline `[[wikilink]]` in content, navigates on click) and *embed* (future: `![[page]]`, displays content inline within a node's body).
 
 **sticky** — A layout feature in flexily where a node sticks to the top or bottom of its scroll container as the user scrolls.
 
@@ -463,13 +467,17 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **vendor** — The `vendor/` directory containing git submodule packages. Each is a standalone repo with its own npm scope and release cycle. Packages must not reference `vendor/` paths in their source.
 
-**ViewNode** — The authoritative visual tree node. Every navigation, cursor classification, and column derivation goes through ViewNode. Carries `id`, `role`, `node`, `parent`, `children`, `isBody`, `resolvedEmbed`, `rules`.
+**ViewNode** — An enriched view of a KNode within the ViewTree. Carries `viewType` (visual role), `childIds` (visible children), `parentId` (visual parent), `display` (the KNode to render — self or symlink target), `isBody`, `isSymlink`, `rules`. The raw repo node is accessible via `.data`. React components subscribe to individual ViewNodes via `useNode(id)` — re-renders only when that specific node's view state changes.
 
-**ViewRole** — One of `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"`. Assigned by tree position, not node type.
+**ViewType** — One of `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"`. Assigned by tree position, not node type. (Replaces `ViewRole`.)
 
-**ViewTree** — A namespace of functions for traversing the ViewNode tree: `nodes()`, `next()`, `prev()`, `ancestors()`, `get()`. The single source of truth for both rendering and navigation.
+**ViewTree** — The visible tree: a computed projection from RepoTree + navigation signals (rootId, foldDepths, collapsedNodes, hiddenNodeIds). Provides per-node signal-backed ViewNodes and tree navigation (`next()`, `prev()`, `nodes()`). React components read via `useNode(id)`. Navigation reads via `view.next(id)`. The single source of truth for both rendering and navigation. Mirrors the RepoTree API: `node(id)`, `children(id)`, `parent(id)`.
 
-**visibility model** — The systems controlling which nodes are visible during ViewTree construction: (1) structural exclusion of metadata and `detailOnly` nodes, (2) fold-depth-limited traversal, (3) column-level visual collapse. Filters are applied separately at the board level after construction.
+**visibility model** — Two levels of visibility, both handled inside the ViewTree:
+- **Structural** (fold, hidden file, body extraction): nodes excluded from the tree entirely
+- **Render** (collapsed columns, property/text filters): nodes excluded from visible children and walkOrder
+
+All visibility is centralized in the ViewTree. Components never check `isHidden` or `isFiltered` — they just read the ViewTree which already has it applied.
 
 **visual lasso** — During area-select gestures, a rectangular overlay (inverse video + dim background) showing the drag selection region.
 

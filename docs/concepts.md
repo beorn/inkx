@@ -36,7 +36,7 @@ Repo      KNode tree in SQLite                queryable, subscribable
             ↕ build / mutate
 Tree      operations, history, normalize      atomic ops, undo, invariants
             ↕ derive
-View      ViewNode tree, Selection, Board     what you see and interact with
+View      ViewTree, Selection, Board          what you see and interact with
 ```
 
 Each layer has a primary abstraction (domain interface, domain object, or external system):
@@ -125,12 +125,24 @@ Item (2)   — tree structure
   li       — list item (bullets, numbered, tasks via markers)
 
 Link (1)   — references
-  link     — wiki links, embeds, sigil links
+  link     — wiki links, sigil links (inline in content)
 ````
 
 - **`oi`** (outline item) creates hierarchy. `fstype` distinguishes: `folder`, `file`, `mdfile`, `mdsection`.
 - **`li`** (list item) holds content. `item.list` for bullet style, `item.task` for task status.
 - **Blocks** are leaf content that doesn't create hierarchy.
+
+### References: Symlinks, Links, Embeds
+
+Three ways a node can reference another:
+
+| Type | Where | What it does | Example |
+|---|---|---|---|
+| **Symlink** | `KNode.symlink_to` (structural) | Node IS the target — displays target's content and children at this position | A task card that mirrors a node from another file |
+| **Link** | `[[wikilink]]` in content (inline) | Clickable text that navigates to the target | `See [[project-alpha]]` |
+| **Embed** | `![[page]]` in content (inline, future) | Displays target's content inline within the node's body | `![[meeting-notes]]` renders notes inline |
+
+Symlinks are structural (node-level `symlink_to` field). Links and embeds are inline content (parsed from markdown). The ViewTree resolves symlinks: `viewNode.display` is always the renderable node.
 
 ---
 
