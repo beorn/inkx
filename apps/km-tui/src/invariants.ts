@@ -44,26 +44,26 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 1. Cursor points to a valid, existing node (or is null for empty board)
   // Skip check for virtual/synthetic nodes (__meta__*, __body__*) which are not stored in repo
-  if (ctx.sel.node.cursor() && !isVirtualNodeId(ctx.sel.node.cursor() as string)) {
-    const cursorNode = ctx.repo.getNode(ctx.sel.node.cursor() as string)
+  if (ctx.cursorNodeId && !isVirtualNodeId(ctx.cursorNodeId as string)) {
+    const cursorNode = ctx.repo.getNode(ctx.cursorNodeId as string)
     if (!cursorNode) {
       violations.push({
         check: "cursor-exists",
         message: `Cursor points to non-existent node`,
-        ids: { cursorNodeId: ctx.sel.node.cursor() as string | null },
+        ids: { cursorNodeId: ctx.cursorNodeId },
       })
     }
   }
 
   // 2. Cursor node is a descendant of the current root (or IS the root)
   // Skip check for virtual nodes
-  if (ctx.sel.node.cursor() && ctx.rootId && !isVirtualNodeId(ctx.sel.node.cursor() as string)) {
-    const isDescendant = isDescendantOf(ctx, ctx.sel.node.cursor() as string, ctx.rootId)
+  if (ctx.cursorNodeId && ctx.rootId && !isVirtualNodeId(ctx.cursorNodeId as string)) {
+    const isDescendant = isDescendantOf(ctx, ctx.cursorNodeId as string, ctx.rootId)
     if (!isDescendant) {
       violations.push({
         check: "cursor-under-root",
         message: `Cursor node is not a descendant of the board root`,
-        ids: { cursorNodeId: ctx.sel.node.cursor() as string | null, rootId: ctx.rootId },
+        ids: { cursorNodeId: ctx.cursorNodeId, rootId: ctx.rootId },
       })
     }
   }
@@ -126,12 +126,12 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 6. Cursor position indices are consistent with columns
-  if (ctx.sel.node.cursor() && ctx.columns.length > 0 && ctx.colIndex >= 0) {
+  if (ctx.cursorNodeId && ctx.columns.length > 0 && ctx.colIndex >= 0) {
     if (ctx.colIndex >= ctx.columns.length) {
       violations.push({
         check: "colIndex-bounds",
         message: `colIndex ${ctx.colIndex} >= columns.length ${ctx.columns.length}`,
-        ids: { cursorNodeId: ctx.sel.node.cursor() as string | null },
+        ids: { cursorNodeId: ctx.cursorNodeId },
       })
     }
     if (ctx.isAtCardLevel && ctx.cardIndex >= 0) {
@@ -140,7 +140,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
         violations.push({
           check: "cardIndex-bounds",
           message: `cardIndex ${ctx.cardIndex} >= column cardNodes.length ${col.cardNodes.length}`,
-          ids: { cursorNodeId: ctx.sel.node.cursor() as string | null, columnNodeId: col.node.id },
+          ids: { cursorNodeId: ctx.cursorNodeId, columnNodeId: col.node.id },
         })
       }
     }
@@ -151,20 +151,20 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // Skip virtual nodes which may not be in standard columns.
   // Skip when cursor IS the root node — that's legitimate "board level" cursor.
   if (
-    ctx.sel.node.cursor() &&
+    ctx.cursorNodeId &&
     ctx.columns.length > 0 &&
     ctx.colIndex < 0 &&
-    !isVirtualNodeId(ctx.sel.node.cursor() as string) &&
-    (ctx.sel.node.cursor() as string) !== ctx.rootId
+    !isVirtualNodeId(ctx.cursorNodeId as string) &&
+    (ctx.cursorNodeId as string) !== ctx.rootId
   ) {
-    const cursorNode = ctx.repo.getNode(ctx.sel.node.cursor() as string)
+    const cursorNode = ctx.repo.getNode(ctx.cursorNodeId as string)
     if (cursorNode) {
       // Node exists in repo but not in columns — potential state corruption
       violations.push({
         check: "cursor-in-columns",
         message: `Cursor node exists in repo but not found in any column (colIndex=${ctx.colIndex})`,
         ids: {
-          cursorNodeId: ctx.sel.node.cursor() as string | null,
+          cursorNodeId: ctx.cursorNodeId,
           parentId: cursorNode.parent_id,
           rootId: ctx.rootId,
         },

@@ -231,7 +231,7 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
   }
 
   // Batch all deletions into a single undo entry
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Delete")
 
   // Delete bottom-up to avoid index invalidation
@@ -248,7 +248,7 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
     ctx.sel.node.select([cursorTarget as ID])
   } else {
     // Fallback: re-select current cursor (may land on column header)
-    ctx.sel.node.select([ctx.sel.node.cursor()!])
+    ctx.sel.node.select([ctx.cursorNodeId as ID])
   }
 }
 
@@ -282,7 +282,7 @@ function handleAddFirstChild(ctx: OpCtx): void {
     ? { type: "p", item: {}, content: "", parent_idx: 0 }
     : { type: "h", item: {}, content: "", parent_idx: 0, fstype: "mdsection" }
 
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(ctx.rootId, newNode)
   ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
@@ -309,7 +309,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
 
   // Query repo for fresh children (columns may be stale after prior addNode)
   const siblings = repo.getChildren(col.node.id)
-  const currentSibIdx = siblings.findIndex((s) => s.id === (ctx.sel.node.cursor() as string))
+  const currentSibIdx = siblings.findIndex((s) => s.id === (ctx.cursorNodeId as string))
   const currentNode = siblings[currentSibIdx]
   if (!currentNode) return
 
@@ -333,7 +333,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   }
   // No need to store depth in data — it's derived from tree position during serialization
 
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(col.node.id, newNode)
 
   // Select the newly created node directly by ID
@@ -350,7 +350,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
  */
 export function handleAddNodeChild(ctx: OpCtx): void {
   const { repo } = ctx
-  const cursorId = ctx.sel.node.cursor() as string | null
+  const cursorId = ctx.cursorNodeId
   if (!cursorId) return
 
   const currentNode = repo.getNode(cursorId)
@@ -382,7 +382,7 @@ export function handleAddNodeChild(ctx: OpCtx): void {
  */
 export function handleAddNodeAtParent(ctx: OpCtx): void {
   const { repo } = ctx
-  const cursorId = ctx.sel.node.cursor() as string | null
+  const cursorId = ctx.cursorNodeId
   if (!cursorId) return
 
   const currentNode = repo.getNode(cursorId)
@@ -453,7 +453,7 @@ export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
 
   const parentId = col.node.id
   // Auto-recorded by undoable repo — no manual undo entry needed
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   const newId = repo.addNode(parentId, newNode)
 
   // Select the duplicated node directly by ID
@@ -471,7 +471,7 @@ export function handleConfirmMove(ctx: OpCtx): void {
   if (!targetCol) return
 
   // Batch all moves into a single undo entry
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Move cards")
 
   let newSortOrder = Tree.toSortOrder(repo, Position.last(targetCol.node.id)).sortOrder
@@ -563,7 +563,7 @@ export function handleTaskStatusCycle(ctx: OpCtx): void {
   // Selection preserved: status toggle is in-place modification.
   // User can press x again to cycle all selected cards further.
   // Re-select current node to trigger UI update
-  ctx.sel.node.select([ctx.sel.node.cursor()!])
+  ctx.sel.node.select([ctx.cursorNodeId as ID])
 }
 
 /**
@@ -590,7 +590,7 @@ export function handleClearTask(ctx: OpCtx): void {
   })
 
   if (count === 0) return
-  ctx.sel.node.select([ctx.sel.node.cursor()!])
+  ctx.sel.node.select([ctx.cursorNodeId as ID])
 }
 
 /**
@@ -641,7 +641,7 @@ function moveColumn(
   if (targetCol.isVirtual) return boundary(direction)
 
   // Batch all moves (normalize + swap) into a single undo entry
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
   ctx.undoHandle.startBatch("Move column")
 
   // Normalize sort orders for just the two columns being swapped (not all columns)
@@ -715,7 +715,7 @@ export function handleIndentColumn(ctx: OpCtx, col: ColumnView): OpResult {
   const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(prevCol.node.id))
 
   // Record cursor for undo
-  ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
+  ctx.undoHandle.setCursor(ctx.cursorNodeId)
 
   // Move the column node under the previous column
   repo.moveNode(col.node.id, prevCol.node.id, newSortOrder)

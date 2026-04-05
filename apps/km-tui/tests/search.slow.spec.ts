@@ -97,7 +97,7 @@ function derivedState(store: StoreApi<BoardAppStore>) {
   const pane = getActiveBoardPane(s)!
   const columns = deriveColumnsFromRepo(s.repo, pane.rootId, pane.foldDepths)
   const nodeIndex = buildNodeIndex(columns)
-  const cursor = deriveCursorIndices(columns, (pane.sel.node.cursor() as string | null), nodeIndex)
+  const cursor = deriveCursorIndices(columns, pane.sel.node.cursor() as string | null, nodeIndex)
   const col = columns[cursor.colIndex]
   const card = col?.cardNodes[cursor.cardIndex]
   const selectedNode = card ?? col?.node ?? null
@@ -718,7 +718,7 @@ describe("ZOOM_IN to body-only board: cursor + navigation", () => {
 
     const pane = getActiveBoardPane(store.getState())!
     expect(pane.rootId).toBe("flatNode")
-    expect((pane.sel.node.cursor() as string | null)).toBe("task2")
+    expect(pane.sel.node.cursor() as string | null).toBe("task2")
     expect(derivedState(store).cursorDepth).toBe("card")
   })
 
@@ -1288,12 +1288,12 @@ describe("search flow via key presses", () => {
     // The cursor should be on a visible card -- either the subtask itself
     // (if the board zoomed deep enough) or its nearest card ancestor.
     // Most importantly, j/k should work from here.
-    const cursorId = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
+    const cursorId = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
     expect(cursorId).not.toBeNull()
     expect(derivedState(store).cursorDepth).toBe("card")
 
     // The cursor should be navigable with j/k
-    const cursorBefore = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
+    const cursorBefore = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
     board.command("cursor_down")
     // If j works, cursor moved (or hit boundary). Either way, it didn't break.
     // The key assertion is that cursorDepth stayed at "card".
@@ -1367,7 +1367,7 @@ describe("search flow via key presses", () => {
 
     // First result should be selected (order depends on repo.search)
     expect(store.getState().ui.showSearchDialog).toBe(false)
-    const cursorId = (getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)
+    const cursorId = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
     // Either alpha-task or alpha-note -- both are valid first matches
     expect(cursorId === "alpha-task" || cursorId === "alpha-note").toBe(true)
     expect(derivedState(store).cursorDepth).toBe("card")

@@ -497,3 +497,5 @@
 {"id":"int-651b21b3","kind":"field_change","created_at":"2026-04-04T20:55:35.575909Z","actor":"Bjørn Stabell","issue_id":"km-silvery.selection.2","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
 {"id":"int-d7a76ac5","kind":"field_change","created_at":"2026-04-04T21:07:24.202358Z","actor":"Bjørn Stabell","issue_id":"km-silvery.selection.1","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
 {"id":"int-2e8e9e72","kind":"field_change","created_at":"2026-04-04T21:20:34.087545Z","actor":"Bjørn Stabell","issue_id":"km-silvery.selection.4","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
+{"id":"int-00947e2e","kind":"field_change","created_at":"2026-04-04T23:05:19.196519Z","actor":"Bjørn Stabell","issue_id":"km-silvery.selection.4","extra":{"field":"status","new_value":"open","old_value":"closed"}}
+{"id":"int-e6b3352e","kind":"field_change","created_at":"2026-04-04T23:05:19.617521Z","actor":"Bjørn Stabell","issue_id":"km-silvery.selection.5","extra":{"field":"status","new_value":"closed","old_value":"open"}}

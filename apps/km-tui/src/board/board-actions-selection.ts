@@ -19,7 +19,7 @@ import type { ID } from "@silvery/selection"
 export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down"): void {
   const col = ctx.column
   const card = ctx.card
-  const cursorId = ctx.sel.node.cursor() as string | null
+  const cursorId = ctx.cursorNodeId
 
   if (!card || !col || !cursorId) return
 
@@ -65,7 +65,7 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
  */
 function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
   const { repo } = ctx
-  const cursorId = ctx.sel.node.cursor() as string
+  const cursorId = ctx.cursorNodeId as string
 
   // Get siblings at the same level
   const node = repo.getNode(cursorId)

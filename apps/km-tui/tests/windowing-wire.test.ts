@@ -127,7 +127,7 @@ describe("windowing — split creates independent panes", () => {
 
     // The main pane should have the cursor position saved
     const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
-    expect((mainPane.sel.node.cursor() as string | null)).toBe("task-2")
+    expect(mainPane.sel.node.cursor() as string | null).toBe("task-2")
     expect(mainPane.rootId).toBe("board")
   })
 })
@@ -147,7 +147,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // Navigate cursor on main pane
     store.getState().dispatchBoard({ type: "SELECT", nodeId: "proj-a" })
-    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("proj-a")
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("proj-a")
 
     // Switch focus to new pane
     store.getState().cyclePaneFocus("next")
@@ -157,7 +157,7 @@ describe("windowing — focus switch saves/restores state", () => {
 
     // Verify: old pane saved cursor position
     const savedMainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
-    expect((savedMainPane.sel.node.cursor() as string | null)).toBe("proj-a")
+    expect(savedMainPane.sel.node.cursor() as string | null).toBe("proj-a")
 
     // Empty pane doesn't have a cursor
     const newPane = store.getState().workspace.panes.get(newPaneId)! as BoardPaneState
@@ -178,7 +178,7 @@ describe("windowing — focus switch saves/restores state", () => {
     store.getState().cyclePaneFocus("next")
 
     expect(store.getState().workspace.focusedPaneId).toBe("main")
-    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("task-2")
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("task-2")
   })
 
   test("folded nodes are per-pane independent", () => {
@@ -238,7 +238,7 @@ describe("windowing — close pane", () => {
     // Close the new pane — should go back to main with proj-a cursor
     store.getState().closeFocusedPane()
 
-    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("proj-a")
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("proj-a")
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("board")
   })
 
@@ -262,7 +262,7 @@ describe("windowing — dispatch syncs to focused pane", () => {
     store.getState().dispatchBoard({ type: "SELECT", nodeId: "proj-b" })
 
     const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
-    expect((mainPane.sel.node.cursor() as string | null)).toBe("proj-b")
+    expect(mainPane.sel.node.cursor() as string | null).toBe("proj-b")
     expect(mainPane.curswantX).toBeNull()
   })
 
@@ -448,7 +448,7 @@ describe("windowing — workspace restoration with detail-focused save", () => {
     const boardPane = store.getState().workspace.panes.get("main")! as BoardPaneState
     expect(isBoardPane(boardPane)).toBe(true)
     // The cursor should come from the fallback (task-1), not be null
-    expect((boardPane.sel.node.cursor() as string | null)).toBe("task-1")
+    expect(boardPane.sel.node.cursor() as string | null).toBe("task-1")
   })
 
   test("cursor store is assigned to the board pane, not the detail pane", () => {
@@ -458,10 +458,10 @@ describe("windowing — workspace restoration with detail-focused save", () => {
     const detailPane = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
 
     // The board pane should have the initial cursor
-    expect((boardPane.sel.node.cursor() as string | null)).toBe("task-1")
+    expect(boardPane.sel.node.cursor() as string | null).toBe("task-1")
 
     // The detail pane's cursor should be empty (detail panes start with null cursor)
-    expect((detailPane.sel.node.cursor() as string | null)).toBeNull()
+    expect(detailPane.sel.node.cursor() as string | null).toBeNull()
   })
 
   test("previousFocusedPaneId is set when focus was redirected from detail", () => {
@@ -483,13 +483,13 @@ describe("windowing — workspace restoration with detail-focused save", () => {
 
     // Verify cursor starts at task-1
     const activePaneBefore = getActiveBoardPane(store.getState())!
-    expect((activePaneBefore.sel.node.cursor() as string | null)).toBe("task-1")
+    expect(activePaneBefore.sel.node.cursor() as string | null).toBe("task-1")
 
     // Move cursor down — SELECT simulates what j/k navigation does
     store.getState().dispatchBoard({ type: "SELECT", nodeId: "task-2" })
 
     const activePaneAfter = getActiveBoardPane(store.getState())!
-    expect((activePaneAfter.sel.node.cursor() as string | null)).toBe("task-2")
+    expect(activePaneAfter.sel.node.cursor() as string | null).toBe("task-2")
   })
 })
 
@@ -605,7 +605,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
 
     // Detail cursor starts on first child (no topbar)
     const detailPane = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
-    expect((detailPane.sel.node.cursor() as string | null)).toBe("sub-a")
+    expect(detailPane.sel.node.cursor() as string | null).toBe("sub-a")
 
     // Capture screen before j
     const beforeJ = board.screen.ansi
@@ -613,7 +613,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
     // j moves detail cursor to second child
     board.command("cursor_down")
     const detailPaneAfter = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
-    expect((detailPaneAfter.sel.node.cursor() as string | null)).toBe("sub-b")
+    expect(detailPaneAfter.sel.node.cursor() as string | null).toBe("sub-b")
 
     // Screen MUST change (cursor moved = different visual state)
     const afterJ = board.screen.ansi
@@ -621,7 +621,7 @@ describe("pane focus scopes — cursor movement after pane focus change", () => 
 
     // Board cursor should NOT have changed (it's in the other pane)
     const mainPane = store.getState().workspace.panes.get("main")! as BoardPaneState
-    expect((mainPane.sel.node.cursor() as string | null)).toBe("task-1")
+    expect(mainPane.sel.node.cursor() as string | null).toBe("task-1")
   })
 
   test("cursor is preserved when switching back to board", () => {
@@ -791,7 +791,7 @@ describe("detail pane cursor styling", () => {
 
     // Verify state: cursor starts on first child
     const detail = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
-    expect((detail.sel.node.cursor() as string | null)).toBe("sub-a")
+    expect(detail.sel.node.cursor() as string | null).toBe("sub-a")
 
     // The text "sub-a" should have gold background ($selected=yellow=3)
     // Use "last" to find the detail pane's rendering (right), not board card content (left)
@@ -810,7 +810,7 @@ describe("detail pane cursor styling", () => {
 
     // Cursor starts on first child
     const detail = store.getState().workspace.panes.get("main-detail")! as BoardPaneState
-    expect((detail.sel.node.cursor() as string | null)).toBe("sub-a")
+    expect(detail.sel.node.cursor() as string | null).toBe("sub-a")
 
     // The cursored item "sub-a" should have gold background (last occurrence = detail pane)
     const colors = findTextColors(board, "sub-a", "rightmost")

@@ -344,7 +344,7 @@ describe("zoom into node with body content: cursor placement", () => {
     expect(getActiveBoardPane(driver.store.getState())!.rootId).toBe("target-card")
 
     // Cursor should be on first body card (intro-text), not stuck on board level
-    const cursorId = (getActiveBoardPane(driver.store.getState())!.sel.node.cursor() as string | null)
+    const cursorId = getActiveBoardPane(driver.store.getState())!.sel.node.cursor() as string | null
     // intro-text is a body paragraph — it becomes a card in the virtual body column
     expect(cursorId).toBe("intro-text")
   })
@@ -369,8 +369,8 @@ describe("zoom into node with body content: cursor placement", () => {
     const pane = getActiveBoardPane(driver.store.getState())!
     // HR has no content so it's filtered from virtual body column.
     // after-hr-text should be in the body column, or cursor should be on subsection.
-    expect((pane.sel.node.cursor() as string | null)).not.toBe("section-with-hr")
-    expect((pane.sel.node.cursor() as string | null)).not.toBeNull()
+    expect(pane.sel.node.cursor() as string | null).not.toBe("section-with-hr")
+    expect(pane.sel.node.cursor() as string | null).not.toBeNull()
   })
 
   it("j/k works after zoom into node with body content", () => {
@@ -428,7 +428,7 @@ describe("zoom into node with body content: cursor placement", () => {
     driver.press("j")
     const afterJ = getActiveBoardPane(driver.store.getState())!
     // Should NOT be on the root (board level) — should have moved somewhere
-    expect((afterJ.sel.node.cursor() as string | null)).not.toBe("section")
+    expect(afterJ.sel.node.cursor() as string | null).not.toBe("section")
   })
 })
 
@@ -473,8 +473,8 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     driver.press("j")
     const afterJ = getActiveBoardPane(driver.store.getState())!
     // Should be on sec1 (first structural column), not stuck at board level
-    expect((afterJ.sel.node.cursor() as string | null)).not.toBe("root-section")
-    expect((afterJ.sel.node.cursor() as string | null)).not.toBe("hr-empty")
+    expect(afterJ.sel.node.cursor() as string | null).not.toBe("root-section")
+    expect(afterJ.sel.node.cursor() as string | null).not.toBe("hr-empty")
   })
 
   it("zoom into node with empty first body child should not get stuck", () => {
@@ -502,8 +502,8 @@ describe("BUG: empty body node blocks j/k navigation", () => {
     // Cursor should NOT be on the HR (it's filtered from columns)
     // It should be on the first structural column's first card
     const paneState = getActiveBoardPane(driver.store.getState())!
-    expect((paneState.sel.node.cursor() as string | null)).not.toBe("hr-first")
-    expect((paneState.sel.node.cursor() as string | null)).not.toBe("target") // not stuck at board level
+    expect(paneState.sel.node.cursor() as string | null).not.toBe("hr-first")
+    expect(paneState.sel.node.cursor() as string | null).not.toBe("target") // not stuck at board level
   })
 })
 

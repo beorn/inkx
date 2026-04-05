@@ -234,12 +234,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const rootId = board?.rootId ?? null
     // Read cursor from per-pane sel store, fall back to pane field
     // (sel.node.select may not update cursor if the node isn't in the walk order yet)
-    const selCursor = board?.sel.node.cursor() as string | null
-    const cursorNodeId = selCursor ?? board?.cursorNodeId ?? null
-    // TEMP DEBUG
-    if (typeof globalThis.__km_debug_buildOpCtx === "function") {
-      globalThis.__km_debug_buildOpCtx({ selCursor, paneCursorNodeId: board?.cursorNodeId, cursorNodeId, rootId })
-    }
+    const cursorNodeId = (board?.sel.node.cursor() as string | null) ?? board?.cursorNodeId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
     const repoVersion = s.repo.getSnapshot()
 
@@ -566,7 +561,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
           } as import("@km/commands").TNode)
         : null,
       currentNodeId: ctx.selectedNode?.id ?? null,
-      cursorNodeId: ctx.sel.node.cursor() as string | null,
+      cursorNodeId: ctx.cursorNodeId,
       selectedNodes: Array.from(ctx.selectedIds),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,

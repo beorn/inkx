@@ -47,8 +47,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   const { ui } = ctx
 
   // Outline mode sub-item navigation (when cursor is inside a card's descendants)
-  const inOutlineMode =
-    ctx.sel.node.cursor() !== null && ctx.card !== undefined && (ctx.sel.node.cursor() as string) !== ctx.card.id
+  const inOutlineMode = ctx.cursorNodeId !== null && ctx.card !== undefined && ctx.cursorNodeId !== ctx.card.id
   if (inOutlineMode && (dir === "prev" || dir === "next")) {
     return handleOutlineNav(ctx, dir, ctx.card)
   }
@@ -99,7 +98,7 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
  * at construction time — same approach as ViewTree.nodes() for spatial nav.
  */
 function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefined): OpResult {
-  if (!card || !ctx.sel.node.cursor()) return boundary(dir)
+  if (!card || !ctx.cursorNodeId) return boundary(dir)
 
   const cardView = ctx.viewIndex.get(card.id)
   const statusMatch = taskStatusMatchFn(ctx)
@@ -162,7 +161,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
   }
 
   // Use ViewNavigation for the core navigation logic
-  if (ctx.sel.node.cursor() as string | null) {
+  if (ctx.cursorNodeId) {
     const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
 
     if (targetId !== null) {
@@ -257,7 +256,7 @@ function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
  * Key invariant: J and K are strict inverses.
  */
 function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
-  if (!ctx.sel.node.cursor()) {
+  if (!ctx.cursorNodeId) {
     return boundary(dir, "no cursor")
   }
 
@@ -289,7 +288,7 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
 
   if (result.effects.length === 0) {
     // Check if cursor wasn't found vs at boundary
-    if (blocks.indexOf(ctx.sel.node.cursor() as string) < 0) return boundary(dir, "cursor not in column blocks")
+    if (blocks.indexOf(ctx.cursorNodeId as string) < 0) return boundary(dir, "cursor not in column blocks")
     return boundary(dir)
   }
 
@@ -346,7 +345,7 @@ function ensureCursorVisible(ctx: OpCtx, targetId: string): void {
 function handleTreeNav(ctx: OpCtx, dir: string): OpResult {
   const treeDir: TreeDirection = isTreeDirection(dir) ? dir : "next"
   const targetId = handleTreeNavigation(treeDir, ctx, ctx.repo)
-  if (targetId && targetId !== (ctx.sel.node.cursor() as string | null)) {
+  if (targetId && targetId !== ctx.cursorNodeId) {
     ctx.sel.node.select([targetId as ID])
     return ok()
   }
@@ -469,7 +468,7 @@ export function navStateFrom(ctx: OpCtx): NavState {
 /** Extract BoardNavState from OpCtx for pure reducer functions. */
 function extractNavState(ctx: OpCtx): BoardNavState {
   return createBoardNavState({
-    cursorNodeId: ctx.sel.node.cursor() as string | null,
+    cursorNodeId: ctx.cursorNodeId,
     cursorCardNodeId: ctx.cursorCardNodeId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,

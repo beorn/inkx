@@ -96,7 +96,7 @@ export function resolveLocationKey(locationKey: string, cursor: CursorContext, r
 
 /** Resolve "parent" — the parent's slot in its grandparent. */
 function resolveParent(cursor: CursorContext, repo: ResolverRepo): Position | null {
-  const nodeId = (cursor.sel.node.cursor() as string | null)
+  const nodeId = cursor.sel.node.cursor() as string | null
   if (!nodeId) return null
   const node = repo.getNode(nodeId)
   if (!node?.parent_id) return null
@@ -109,7 +109,7 @@ function resolveParent(cursor: CursorContext, repo: ResolverRepo): Position | nu
 
 /** Resolve "first" or "last" — first/last sibling slot relative to cursor. */
 function resolveFirstLast(cursor: CursorContext, repo: ResolverRepo, which: "first" | "last"): Position | null {
-  const nodeId = (cursor.sel.node.cursor() as string | null)
+  const nodeId = cursor.sel.node.cursor() as string | null
   if (!nodeId) return null
   const node = repo.getNode(nodeId)
   if (!node?.parent_id) return null

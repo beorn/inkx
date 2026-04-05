@@ -401,6 +401,8 @@
         "vimonkey": "^0.2.0",
         "vitepress": "^1.5.0",
         "vitepress-enrich": "^0.4.0",
+        "vitepress-plugin-d2": "^1.1.0",
+        "vitepress-plugin-diagrams": "^1.2.2",
         "vitepress-plugin-llms": "^1.0.0",
         "vitepress-plugin-mermaid": "^2.0.17",
         "vitest": "^4.0.18",
@@ -2625,6 +2627,10 @@
     "vitepress": ["vitepress@1.6.4", "", { "dependencies": { "@docsearch/css": "3.8.2", "@docsearch/js": "3.8.2", "@iconify-json/simple-icons": "^1.2.21", "@shikijs/core": "^2.1.0", "@shikijs/transformers": "^2.1.0", "@shikijs/types": "^2.1.0", "@types/markdown-it": "^14.1.2", "@vitejs/plugin-vue": "^5.2.1", "@vue/devtools-api": "^7.7.0", "@vue/shared": "^3.5.13", "@vueuse/core": "^12.4.0", "@vueuse/integrations": "^12.4.0", "focus-trap": "^7.6.4", "mark.js": "8.11.1", "minisearch": "^7.1.1", "shiki": "^2.1.0", "vite": "^5.4.14", "vue": "^3.5.13" }, "peerDependencies": { "markdown-it-mathjax3": "^4", "postcss": "^8" }, "optionalPeers": ["markdown-it-mathjax3", "postcss"], "bin": { "vitepress": "bin/vitepress.js" } }, "sha512-+2ym1/+0VVrbhNyRoFFesVvBvHAVMZMK0rw60E3X/5349M1GuVdKeazuksqopEdvkKwKGs21Q729jX81/bkBJg=="],
 
     "vitepress-enrich": ["vitepress-enrich@0.4.0", "", { "peerDependencies": { "markdown-it": ">=14", "vitepress": ">=1" }, "optionalPeers": ["markdown-it", "vitepress"] }, "sha512-PvISQZwC36F3eRysr0Mc2TRFChXQYFNpdQu3yVfF5ok/x6VGJw0Z3tY7WMAZiUyE66lImx7rLfqYM2aVPja1Ng=="],
+
+    "vitepress-plugin-d2": ["vitepress-plugin-d2@1.1.0", "", {}, "sha512-xZlA/Z06GZ8vPS9dxEfMjjoLCiofCvin/QC/fWoUGD+uh8nqI+FQBArV3ooHTi+8R9HErcQy0HbTz7+Mg/gSsg=="],
+
+    "vitepress-plugin-diagrams": ["vitepress-plugin-diagrams@1.2.2", "", { "dependencies": { "commander": "^14.0.0", "markdown-it": "^14.1.0" }, "peerDependencies": { "vite": ">= 4.0.0", "vitepress": ">= 1.0.0" }, "bin": { "vitepress-plugin-diagrams": "bin/cli.js" } }, "sha512-Ke1xvunKue38ZWixBLrumD+rC6F9y6idnLryD6fGZ6dmEDtihQYVLoS3bSSu9rIWXLgUFGvLQ9CHRntuLfRoxQ=="],
 
     "vitepress-plugin-llms": ["vitepress-plugin-llms@1.12.0", "", { "dependencies": { "gray-matter": "^4.0.3", "markdown-it": "^14.1.0", "markdown-title": "^1.0.2", "mdast-util-from-markdown": "^2.0.3", "millify": "^6.1.0", "minimatch": "^10.2.4", "path-to-regexp": "^6.3.0", "picocolors": "^1.1.1", "pretty-bytes": "^7.1.0", "remark": "^15.0.1", "remark-frontmatter": "^5.0.0", "tokenx": "^1.3.0", "unist-util-remove": "^4.0.0", "unist-util-visit": "^5.1.0" } }, "sha512-zuzL7a8UJuGl46le5cAy/QxKMGlpSylcsLjDDn6BYPc1u+eP3nzoQk9ne9XFBqrE7exoJlIYJELVN8HMgYlFKQ=="],
 

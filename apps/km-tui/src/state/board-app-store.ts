@@ -567,6 +567,10 @@ export function createBoardAppStoreState(
           // Sync focusedPane.cursorNodeId (silent mutation) so that code reading
           // pane.cursorNodeId stays consistent with sel.node.cursor().
           const s = _get()
+          if (!s?.workspace) {
+            set({ _selVersion } as Partial<BoardAppStore>)
+            return
+          }
           const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
           if (focusedPane && isBoardPane(focusedPane) && focusedPane.sel === paneSel && newCursor !== null) {
             focusedPane.cursorNodeId = newCursor

@@ -151,7 +151,17 @@ describe("Runtime invariants", () => {
       nodes: item("board", item("col1", item("1a"), item("1b"))),
     })
 
-    const sel = createMockSel()
+    // Create a sel that has "nonexistent-node" in its walk order so we can select it as cursor.
+    // checkInvariants reads ctx.sel.node.cursor() (not ctx.cursorNodeId).
+    const sel = createSelection({
+      tree: {
+        walkOrder: () => ["nonexistent-node"],
+        parent: () => undefined,
+        children: () => [],
+      },
+    })
+    sel.node.select(["nonexistent-node"])
+
     const ctx = {
       repo,
       sel,

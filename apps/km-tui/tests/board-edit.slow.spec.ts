@@ -1126,8 +1126,8 @@ describe("Enter after edit creates sibling, not board jump", () => {
     // Should still be in edit mode
     expect(store.getState().sel.text()).not.toBeNull()
     // Cursor should be on a real node (not null, not at board level)
-    expect((pane2.sel.node.cursor() as string | null)).toBeDefined()
-    expect((pane2.sel.node.cursor() as string | null)).not.toBeNull()
+    expect(pane2.sel.node.cursor() as string | null).toBeDefined()
+    expect(pane2.sel.node.cursor() as string | null).not.toBeNull()
   })
 
   test("editDepth uses editing node position, not cursor (regression)", () => {

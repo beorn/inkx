@@ -1799,7 +1799,7 @@ function createFluentBoardApi(ctx: {
       }
       if (expected.viewMode !== undefined) expect(pane.viewMode).toBe(expected.viewMode)
       if (expected.filterText !== undefined) expect(pane.filterText).toBe(expected.filterText)
-      if (expected.cursor !== undefined) expect((pane.sel.node.cursor() as string | null)).toBe(expected.cursor)
+      if (expected.cursor !== undefined) expect(pane.sel.node.cursor() as string | null).toBe(expected.cursor)
       return board
     },
   }

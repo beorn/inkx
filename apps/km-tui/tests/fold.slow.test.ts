@@ -1461,7 +1461,7 @@ describe("cursor-reveals-hidden", () => {
 
     // Navigate to child-1 using J (block nav down)
     board.command("block_nav_down")
-    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-1")
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("child-1")
 
     // Fold all — hides all children
     board.command("fold_all")
@@ -1471,7 +1471,7 @@ describe("cursor-reveals-hidden", () => {
 
     // BUG: cursor stays on hidden child-1 instead of moving to visible ancestor
     const paneAfterFold = getActiveBoardPane(store.getState())!
-    expect((paneAfterFold.sel.node.cursor() as string | null)).not.toBe("child-1")
+    expect(paneAfterFold.sel.node.cursor() as string | null).not.toBe("child-1")
     // Cursor should be on a visible node (data-cursor attribute rendered on screen)
     expect(board.q(`[data-cursor]`).count()).toBeGreaterThan(0)
   })
@@ -1483,7 +1483,7 @@ describe("cursor-reveals-hidden", () => {
 
     // Navigate to child-1 using J (block nav down)
     board.command("block_nav_down")
-    expect((getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null)).toBe("child-1")
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("child-1")
 
     // Toggle fold on the parent card via the board reducer directly
     // (fold_node/H may not fold when cursor is on subitem — TOGGLE_FOLD is the direct path)
@@ -1496,7 +1496,7 @@ describe("cursor-reveals-hidden", () => {
 
     // Cursor should have moved to the card (not stuck on hidden child)
     const paneAfterFold = getActiveBoardPane(store.getState())!
-    expect((paneAfterFold.sel.node.cursor() as string | null)).not.toBe("child-1")
+    expect(paneAfterFold.sel.node.cursor() as string | null).not.toBe("child-1")
     expect(board.q(`[data-cursor]`).count()).toBeGreaterThan(0)
   })
 
@@ -1570,7 +1570,7 @@ describe("cursor-reveals-hidden", () => {
     // Navigate: Card → should skip done-task, land on todo-task
     board.command("block_nav_down")
     const pane = getActiveBoardPane(store.getState())!
-    expect((pane.sel.node.cursor() as string | null)).toBe("todo-task")
+    expect(pane.sel.node.cursor() as string | null).toBe("todo-task")
     expect(board.screenshot()).toContain("todo-task")
   })
 
@@ -1600,10 +1600,10 @@ describe("cursor-reveals-hidden", () => {
     // ctrl-n from Card should skip done-parent AND its todo-grandchild, land on todo-sibling
     board.command("block_nav_down")
     const pane = getActiveBoardPane(store.getState())!
-    expect((pane.sel.node.cursor() as string | null)).toBe("todo-sibling")
+    expect(pane.sel.node.cursor() as string | null).toBe("todo-sibling")
     expect(board.screenshot()).toContain("todo-sibling")
     // Must NOT land on the invisible grandchild
-    expect((pane.sel.node.cursor() as string | null)).not.toBe("todo-grandchild")
+    expect(pane.sel.node.cursor() as string | null).not.toBe("todo-grandchild")
   })
 
   test("block_nav_down auto-unfolds deeply nested nodes", () => {
@@ -1617,7 +1617,7 @@ describe("cursor-reveals-hidden", () => {
     board.command("block_nav_down") // section-a → task-a
     board.command("block_nav_down") // task-a → subtask-x (depth 3)
     const pane = getActiveBoardPane(store.getState())!
-    expect((pane.sel.node.cursor() as string | null)).toBe("subtask-x")
+    expect(pane.sel.node.cursor() as string | null).toBe("subtask-x")
     expect(board.screenshot()).toContain("subtask-x")
   })
 })
