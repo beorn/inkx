@@ -8,7 +8,8 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useNodeStore, useReactive, type NodeEditState } from "../state/reactive.ts"
+import { useNodeStore, type NodeEditState } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Text, useScreenRectCallback } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
@@ -215,9 +216,9 @@ function TreeNodeImpl({
 
   // Per-node state via reactive signals — only this node re-renders when its state changes
   const nodeStore = useNodeStore()
-  const isNodeSelected = useReactive(nodeStore.getOrCreate(node.id).selected)
-  const editState = useReactive(nodeStore.getOrCreate(node.id).edit)
-  const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
+  const isNodeSelected = useSignal(nodeStore.getOrCreate(node.id).selected)
+  const editState = useSignal(nodeStore.getOrCreate(node.id).edit)
+  const foldOverride = useSignal(nodeStore.getOrCreate(node.id).foldOverride)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
   const resolvedDepth = foldOverride ?? remainingDepth ?? Infinity
   const isFolded = resolvedDepth <= 0
@@ -228,7 +229,7 @@ function TreeNodeImpl({
 
   const repo = useRepo()
   // Excluded sigils: use reactive store if hydrated, fallback for compatibility
-  const reactiveExcludedSigils = useReactive(nodeStore.getOrCreate(node.id).excludedSigils)
+  const reactiveExcludedSigils = useSignal(nodeStore.getOrCreate(node.id).excludedSigils)
   const excludedSigils = useMemo(() => {
     // If reactive store is hydrated, use it directly
     if (reactiveExcludedSigils.length > 0) return reactiveExcludedSigils
@@ -302,7 +303,7 @@ function TreeNodeImpl({
   // Card title highlight: when cursor is on a sub-item (not the card title),
   // show yellow text instead of inverse selection. Only applies at depth 0 (card title).
   // Per-node cursorInDescendant Reactive — only the active card's node fires.
-  const cursorInDescendant = useReactive(nodeStore.getOrCreate(node.id).cursorInDescendant)
+  const cursorInDescendant = useSignal(nodeStore.getOrCreate(node.id).cursorInDescendant)
   const titleHighlightOnly = depth === 0 && isSelected && !isNodeSelected && cursorInDescendant
 
   // Search match highlighting: white bg / black fg (current match brighter)
@@ -502,13 +503,13 @@ function TreeNodeImpl({
 
   // Check if a descendant is being edited or has cursor — expand to show all children.
   // Uses per-node reactive signals where possible to avoid O(N) global re-renders.
-  const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
+  const expandedEditCardId = useSignal(nodeStore.expandedEditCardId)
   const editNodeId = useAppStore<BoardAppStore, string | null | undefined>((s) =>
     s.workspace ? (s.sel.text()?.nodeId as string | undefined) : undefined,
   )
   // Cursor expansion: when cursor is inside this node's subtree, bypass maxContentLines
   // so all siblings of the cursor target are visible.
-  const cursor = useReactive(nodeStore.cursor)
+  const cursor = useSignal(nodeStore.cursor)
   const cursorIsChild = cursor != null && cursor !== node.id && repo.getNode(cursor)?.parent_id === node.id
   const shouldExpand =
     // Edit: card-level expansion
@@ -852,7 +853,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   isBody?: boolean
 }): React.ReactElement {
   const nodeStore = useNodeStore()
-  const foldOverride = useReactive(nodeStore.getOrCreate(node.id).foldOverride)
+  const foldOverride = useSignal(nodeStore.getOrCreate(node.id).foldOverride)
 
   // If this child has an explicit unfold override or is the cursor target,
   // use full TreeNode (cursor can land here via J/K block navigation)
@@ -935,7 +936,7 @@ const FoldedChildRow = React.memo(
 
     // Read multi-selection signal so grandchildren highlight when parent is selected
     const nodeStore = useNodeStore()
-    const isNodeSelected = useReactive(nodeStore.getOrCreate(node.id).selected)
+    const isNodeSelected = useSignal(nodeStore.getOrCreate(node.id).selected)
 
     const nodeIsTask = KNode.isTask(node)
     const hasChildren = childCount > 0
@@ -1099,7 +1100,7 @@ function NodeChildren({
 
   // Get cursor position from ReactiveNodeStore to determine which child is selected.
   const nodeStore = useNodeStore()
-  const cursor = useReactive(nodeStore.cursor)
+  const cursor = useSignal(nodeStore.cursor)
 
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children

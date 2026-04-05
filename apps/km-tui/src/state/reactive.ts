@@ -1,12 +1,13 @@
 /**
- * Reactive<T> — Signal primitive replacing Jotai atoms.
+ * Per-Node Reactive State — alien-signals backed.
  *
- * A lightweight value holder with change notification via subscribers.
- * Writing .value notifies subscribers only if value changed (Object.is).
- * useReactive(r) hook integrates with React via useSyncExternalStore.
+ * Each node gets a stable set of signals (selected, edit, foldOverride, etc.).
+ * React components subscribe via useSignal() from hooks/use-signal.ts.
+ * Global cursor state (cursor, cursorCardNodeId, etc.) lives on ReactiveNodeStore.
  */
 
-import { createContext, useContext, useSyncExternalStore } from "react"
+import { signal } from "alien-signals"
+import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
 import { getNodeDisplayName } from "../state.ts"
@@ -14,42 +15,8 @@ import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:hydrate")
 
-// =============================================================================
-// Core Reactive<T>
-// =============================================================================
-
-export class Reactive<T> {
-  private _value: T
-  private _listeners = new Set<() => void>()
-
-  constructor(initial: T) {
-    this._value = initial
-  }
-
-  get value(): T {
-    return this._value
-  }
-
-  set value(next: T) {
-    if (!Object.is(this._value, next)) {
-      this._value = next
-      for (const listener of this._listeners) listener()
-    }
-  }
-
-  subscribe(listener: () => void): () => void {
-    this._listeners.add(listener)
-    return () => this._listeners.delete(listener)
-  }
-}
-
-/** React hook: subscribe to a Reactive<T> value */
-export function useReactive<T>(reactive: Reactive<T>): T {
-  return useSyncExternalStore(
-    (cb) => reactive.subscribe(cb),
-    () => reactive.value,
-  )
-}
+/** Writable alien-signal — call with no args to read, with arg to write. */
+type Signal<T> = ReturnType<typeof signal<T>>
 
 // =============================================================================
 // Types
@@ -70,29 +37,29 @@ interface NodeReactiveState {
   parent: string | null
   ownSigils: string[]
 
-  // Reactive (subscribed by components via useReactive)
-  selected: Reactive<boolean>
-  foldOverride: Reactive<number | undefined>
-  edit: Reactive<NodeEditState | null>
-  excludedSigils: Reactive<string[]>
+  // Reactive (subscribed by components via useSignal)
+  selected: Signal<boolean>
+  foldOverride: Signal<number | undefined>
+  edit: Signal<NodeEditState | null>
+  excludedSigils: Signal<string[]>
   /** True when cursor is in this card but on a descendant (not this node).
    * Used by card title TreeNode to show yellow fg instead of inverse bg. */
-  cursorInDescendant: Reactive<boolean>
+  cursorInDescendant: Signal<boolean>
   /** True when mouse is hovering over this node's card. Per-node signal so
    * only the entering/leaving card re-renders (not all cards). */
-  hovered: Reactive<boolean>
+  hovered: Signal<boolean>
 }
 
 function createNodeState(): NodeReactiveState {
   return {
     parent: null,
     ownSigils: [],
-    selected: new Reactive(false),
-    foldOverride: new Reactive<number | undefined>(undefined),
-    edit: new Reactive<NodeEditState | null>(null),
-    excludedSigils: new Reactive<string[]>([]),
-    cursorInDescendant: new Reactive(false),
-    hovered: new Reactive(false),
+    selected: signal(false),
+    foldOverride: signal<number | undefined>(undefined),
+    edit: signal<NodeEditState | null>(null),
+    excludedSigils: signal<string[]>([]),
+    cursorInDescendant: signal(false),
+    hovered: signal(false),
   }
 }
 
@@ -105,16 +72,16 @@ export class ReactiveNodeStore {
   private knownNodeIds = new Set<string>()
 
   // ── Cursor state (synced from Board.tsx via syncCursor) ──
-  cursor = new Reactive<string | null>(null)
-  cursorCardNodeId = new Reactive<string | null>(null)
-  cursorColumnNodeId = new Reactive<string | null>(null)
-  cursorDepth = new Reactive<"board" | "column" | "card">("board")
+  cursor = signal<string | null>(null)
+  cursorCardNodeId = signal<string | null>(null)
+  cursorColumnNodeId = signal<string | null>(null)
+  cursorDepth = signal<"board" | "column" | "card">("board")
   /** Track which card had cursorInDescendant=true so we can clear it on change */
   private prevDescendantCardId: string | null = null
 
   // ── Edit expansion state ──
   /** Card node ID that should expand because a descendant is being edited */
-  expandedEditCardId = new Reactive<string | null>(null)
+  expandedEditCardId = signal<string | null>(null)
 
   // ── Hover state (centralized, coalesced across I/O events) ──
   private hoveredNodeId: string | null = null
@@ -135,24 +102,24 @@ export class ReactiveNodeStore {
         if (target === undefined) return
         const prev = this.hoveredNodeId
         if (prev === target) return
-        if (prev) this.getOrCreate(prev).hovered.value = false
-        if (target) this.getOrCreate(target).hovered.value = true
+        if (prev) this.getOrCreate(prev).hovered(false)
+        if (target) this.getOrCreate(target).hovered(true)
         this.hoveredNodeId = target
       }, 0)
     }
   }
 
-  /** Sync cursor state to Reactive fields (called by Board.tsx) */
+  /** Sync cursor state to signals (called by Board.tsx) */
   syncCursor(cursorState: {
     cursor: string | null
     cursorCardNodeId: string | null
     cursorColumnNodeId: string | null
     cursorDepth: "board" | "column" | "card"
   }): void {
-    this.cursor.value = cursorState.cursor
-    this.cursorCardNodeId.value = cursorState.cursorCardNodeId
-    this.cursorColumnNodeId.value = cursorState.cursorColumnNodeId
-    this.cursorDepth.value = cursorState.cursorDepth
+    this.cursor(cursorState.cursor)
+    this.cursorCardNodeId(cursorState.cursorCardNodeId)
+    this.cursorColumnNodeId(cursorState.cursorColumnNodeId)
+    this.cursorDepth(cursorState.cursorDepth)
 
     // Update per-card cursorInDescendant: true when cursor is in this card
     // but on a sub-item (not the card title). Only the affected card's
@@ -162,12 +129,12 @@ export class ReactiveNodeStore {
 
     // Clear previous card's flag (if it changed)
     if (this.prevDescendantCardId && this.prevDescendantCardId !== cardId) {
-      this.getOrCreate(this.prevDescendantCardId).cursorInDescendant.value = false
+      this.getOrCreate(this.prevDescendantCardId).cursorInDescendant(false)
     }
 
     // Set current card's flag
     if (cardId) {
-      this.getOrCreate(cardId).cursorInDescendant.value = isInDescendant
+      this.getOrCreate(cardId).cursorInDescendant(isInDescendant)
     }
 
     this.prevDescendantCardId = isInDescendant ? cardId : null
@@ -186,7 +153,6 @@ export class ReactiveNodeStore {
   /**
    * Hydrate node state for the current board view.
    * Sets parent links, own sigils, excluded sigils, fold depths, multi-selection.
-   * Replaces hydrateNodeAtoms from node-atoms-hydrate.ts.
    */
   hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, selected: Set<string>): void {
     // Clean up old nodes
@@ -202,10 +168,10 @@ export class ReactiveNodeStore {
     const rootSigils = deriveExcludedSigils(repo, rootId)
     rootState.parent = null
     rootState.ownSigils = rootSigils
-    rootState.excludedSigils.value = rootSigils
+    rootState.excludedSigils(rootSigils)
     const rootFold = foldDepths.get(rootId)
     if (rootFold !== undefined) {
-      rootState.foldOverride.value = rootFold
+      rootState.foldOverride(rootFold)
     }
     this.knownNodeIds.add(rootId)
 
@@ -220,17 +186,18 @@ export class ReactiveNodeStore {
       colState.ownSigils = colSigils
 
       // Excluded sigils = parent's excluded + own
-      const parentExcluded = rootState.excludedSigils.value
-      colState.excludedSigils.value =
+      const parentExcluded = rootState.excludedSigils()
+      colState.excludedSigils(
         colSigils.length === 0
           ? parentExcluded
           : parentExcluded.length === 0
             ? colSigils
-            : [...parentExcluded, ...colSigils]
+            : [...parentExcluded, ...colSigils],
+      )
 
       const colFold = foldDepths.get(col.id)
       if (colFold !== undefined) {
-        colState.foldOverride.value = colFold
+        colState.foldOverride(colFold)
       }
       this.knownNodeIds.add(col.id)
 
@@ -248,59 +215,56 @@ export class ReactiveNodeStore {
         // Card fold depth
         const cardFold = foldDepths.get(card.id)
         if (cardFold !== undefined) {
-          cardState.foldOverride.value = cardFold
+          cardState.foldOverride(cardFold)
         }
 
         // Multi-selection — mark the card and all its descendants
         if (selected.has(card.id)) {
-          cardState.selected.value = true
+          cardState.selected(true)
           this.hydrateDescendantSelection(repo, card.id)
         }
 
         // Excluded sigils — inherit from column (cards don't add own sigils)
-        cardState.excludedSigils.value = colState.excludedSigils.value
+        cardState.excludedSigils(colState.excludedSigils())
 
         this.knownNodeIds.add(card.id)
       }
     }
   }
 
-  /** Sync fold depth changes incrementally. Replaces syncFoldDepthsToAtoms. */
+  /** Sync fold depth changes incrementally. */
   syncFoldDepths(oldDepths: Map<string, number>, newDepths: Map<string, number>): void {
     for (const [id] of oldDepths) {
       if (!newDepths.has(id)) {
-        this.getOrCreate(id).foldOverride.value = undefined
+        this.getOrCreate(id).foldOverride(undefined)
       }
     }
     for (const [id, depth] of newDepths) {
       if (oldDepths.get(id) !== depth) {
-        this.getOrCreate(id).foldOverride.value = depth
+        this.getOrCreate(id).foldOverride(depth)
       }
     }
   }
 
-  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected.
-   *  When a parent is selected, all children appear highlighted in the UI. */
+  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected. */
   syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
-    // Expand both sets to include descendants so we diff the full visual selection
     const oldExpanded = repo ? expandWithDescendants(repo, oldSelected) : oldSelected
     const newExpanded = repo ? expandWithDescendants(repo, newSelected) : newSelected
 
     for (const key of oldExpanded) {
       if (!newExpanded.has(key)) {
-        this.getOrCreate(key).selected.value = false
+        this.getOrCreate(key).selected(false)
       }
     }
     for (const key of newExpanded) {
       if (!oldExpanded.has(key)) {
-        this.getOrCreate(key).selected.value = true
+        this.getOrCreate(key).selected(true)
       }
     }
   }
 
-  /** Sync inline edit state. Replaces syncEditToAtoms.
-   *  When cardNodeId is present (sub-item editing), sets expandedEditCardId
-   *  so the parent card can expand to show all children. */
+  /** Sync inline edit state. When cardNodeId is present (sub-item editing),
+   *  sets expandedEditCardId so the parent card can expand to show all children. */
   syncEdit(
     oldNodeId: string | null,
     newNodeId: string | null,
@@ -312,17 +276,17 @@ export class ReactiveNodeStore {
     cardNodeId?: string,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
-      this.getOrCreate(oldNodeId).edit.value = null
+      this.getOrCreate(oldNodeId).edit(null)
     }
     if (newNodeId && newState) {
-      this.getOrCreate(newNodeId).edit.value = {
+      this.getOrCreate(newNodeId).edit({
         blockIndex: newState.blockIndex,
         initialCursorPos: newState.initialCursorPos,
         stickyX: newState.stickyX,
-      }
+      })
     }
     // Update expandedEditCardId for parent card expansion
-    this.expandedEditCardId.value = cardNodeId ?? null
+    this.expandedEditCardId(cardNodeId ?? null)
   }
 
   /** Mark all descendants of a selected node as visually selected during hydration. */
@@ -330,7 +294,7 @@ export class ReactiveNodeStore {
     const expanded = expandWithDescendants(repo, new Set([parentId]))
     for (const id of expanded) {
       if (id !== parentId) {
-        this.getOrCreate(id).selected.value = true
+        this.getOrCreate(id).selected(true)
       }
     }
   }

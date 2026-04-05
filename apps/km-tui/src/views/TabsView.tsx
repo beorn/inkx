@@ -16,7 +16,8 @@ import { useRepo } from "../repo-context.tsx"
 import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 
@@ -34,9 +35,9 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   const repo = useRepo()
 
   const nodeStore = useNodeStore()
-  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useReactive(nodeStore.cursorDepth)
+  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepth = useSignal(nodeStore.cursorDepth)
 
   // Derive colIndex from cursorColumnNodeId for tab highlighting and column lookup
   const colIndex = useMemo(() => {

@@ -1,12 +1,11 @@
 /**
  * Bridge between alien-signals and React.
  *
- * useSignal(sig) subscribes to an alien-signals signal and triggers
+ * useSignal(sig) subscribes to an alien-signals signal/computed and triggers
  * React re-renders when the signal value changes. Built on useSyncExternalStore.
  *
- * Usage:
- *   const store = withReactive(createStoreFromRepo(repo))
- *   const node = useNodeSignal(store, nodeId)  // ResourceState<KNode>
+ * Handles both writable signals `{ (): T; (value: T): void }` and
+ * read-only computed `() => T` via TypeScript overloads.
  */
 
 import { useCallback, useRef, useSyncExternalStore } from "react"
@@ -17,16 +16,35 @@ import { ResourceState, type Observable, type Reactive, type ReadonlySignal } fr
 /**
  * Subscribe to an alien-signals signal in React.
  * Re-renders only when this specific signal changes.
+ *
+ * Overloads ensure correct type inference for both writable signals
+ * (which have `(): T` and `(value: T): void` overloads) and computed signals.
  */
-export function useSignal<T>(sig: ReadonlySignal<T>): T {
-  return useSyncExternalStore(
-    (onStoreChange) =>
-      effect(() => {
-        sig()
-        onStoreChange()
-      }),
-    () => sig(),
-  )
+// Overload: writable alien-signals signal
+export function useSignal<T>(sig: { (): T; (value: T): void }): T
+// Overload: read-only signal (computed, or any () => T)
+export function useSignal<T>(sig: () => T): T
+// Implementation
+export function useSignal<T>(sig: () => T): T {
+  // Keep a ref to the signal so the subscribe callback is stable (never changes).
+  // This prevents useSyncExternalStore from re-subscribing on every render.
+  const sigRef = useRef(sig)
+  sigRef.current = sig
+
+  // Stable subscribe: creates an alien-signals effect that notifies React on change.
+  // The effect fires immediately on creation (alien-signals standard behavior),
+  // so we guard with `mounted` to skip the initial invocation.
+  const subscribe = useCallback((onStoreChange: () => void) => {
+    let mounted = false
+    const cleanup = effect(() => {
+      sigRef.current() // track signal dependency
+      if (mounted) onStoreChange()
+    })
+    mounted = true
+    return cleanup
+  }, [])
+
+  return useSyncExternalStore(subscribe, () => sig())
 }
 
 /**

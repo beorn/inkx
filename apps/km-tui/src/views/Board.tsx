@@ -26,7 +26,8 @@ import {
   type PatchedConsole,
 } from "@silvery/ag-react"
 import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/create/create-app"
-import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore, useReactive } from "../state/reactive.ts"
+import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
@@ -272,9 +273,9 @@ function BoardTopBar({
 }: TopBarProps): React.ReactElement {
   const repo = useRepo()
   const nodeStore = useNodeStore()
-  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useReactive(nodeStore.cursorDepth)
+  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepth = useSignal(nodeStore.cursorDepth)
   const paneLabel = usePaneLabel()
 
   const pathNodeId =
@@ -571,17 +572,13 @@ export function Board({ patchedConsole }: BoardProps) {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     return p?.rootId ?? null
   })
-  // Cursor node ID: read from per-pane sel store. The SELECT handler calls
-  // sel.node.select() which triggers alien-signals → store bridge (bumps _selVersion),
-  // which causes this selector to re-evaluate. Reading sel.node.cursor() gives the
-  // correct per-pane cursor regardless of which pane is focused.
-  // We also read _selVersion to ensure store detects the change.
-  const cursor = useAppStore<BoardAppStore, string | null>((s) => {
-    void (s as Record<string, unknown>)._selVersion // depend on version bump from SELECT handler
+  // Cursor: subscribe directly to per-pane sel's cursor computed signal.
+  // No bridge needed — useSignal tracks the alien-signals computed directly.
+  const paneSel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    // Read from per-pane sel store (authoritative source of cursor)
-    return (p?.sel.node.cursor() as string | null) ?? null
+    return p?.sel ?? s.sel
   })
+  const cursor = useSignal(paneSel.node.cursor) as string | null
   const foldDepths = useAppStore<BoardAppStore, Map<string, number>>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
     return p?.foldDepths ?? new Map()
@@ -628,9 +625,7 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [])
 
   // Hydrate reactive node state on initial load and root change (zoom)
-  const selIds = useAppStore<import("../state/board-app-store.ts").BoardAppStore, ReadonlyArray<string>>(
-    (s) => s.sel.node.ids() as unknown as ReadonlyArray<string>,
-  )
+  const selIds = useSignal(paneSel.node.ids) as unknown as ReadonlyArray<string>
   const selectedSet = new Set(selIds) // compat bridge for hydrate
   useEffect(() => {
     nodeStore.hydrate(repo, rootId, foldDepths, selectedSet)
@@ -659,15 +654,11 @@ export function Board({ patchedConsole }: BoardProps) {
   }, [nodeStore, selectedSet, repo])
 
   // Incrementally sync inline edit state to reactive node state
-  const textEditState = useAppStore<
-    import("../state/board-app-store.ts").BoardAppStore,
-    { nodeId: string; blockIndex: number } | null
-  >((s) => {
-    const t = s.sel.text()
-    if (!t) return null
-    return { nodeId: t.nodeId as string, blockIndex: s.textEditHints?.blockIndex ?? 0 }
-  })
-  const editState = textEditState
+  const textEdit = useSignal(paneSel.text) as { nodeId: string; offset: number } | null
+  const textEditHints = useAppStore<BoardAppStore, import("../tui-context.ts").TextEditHints | null>(
+    (s) => s.textEditHints,
+  )
+  const editState = textEdit ? { nodeId: textEdit.nodeId as string, blockIndex: textEditHints?.blockIndex ?? 0 } : null
   const prevInlineEditRef = useRef(editState)
 
   // Layout is derived on demand — no store sync needed

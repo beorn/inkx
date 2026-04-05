@@ -35,7 +35,8 @@ import {
 } from "../state/ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
@@ -199,8 +200,8 @@ const Card = React.memo(
     // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
     // Only this card and the previously-selected card re-render on j/k.
     const nodeStore = useNodeStore()
-    const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-    const selLevel = useReactive(nodeStore.cursorDepth)
+    const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+    const selLevel = useSignal(nodeStore.cursorDepth)
     const isSelected = cursorCardNodeId === nodeId && selLevel === "card"
 
     // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
@@ -217,7 +218,7 @@ const Card = React.memo(
 
     // Check if this card is in inline edit mode (for border color).
     // Also matches when a sub-item of this card is being edited (derived expandedEditCardId).
-    const expandedEditCardId = useReactive(nodeStore.expandedEditCardId)
+    const expandedEditCardId = useSignal(nodeStore.expandedEditCardId)
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
       return s.sel.text()?.nodeId === nodeId
     })
@@ -225,7 +226,7 @@ const Card = React.memo(
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
     // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
-    const isNodeSelected = useReactive(nodeStore.getOrCreate(nodeId).selected)
+    const isNodeSelected = useSignal(nodeStore.getOrCreate(nodeId).selected)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -254,7 +255,7 @@ const Card = React.memo(
     // When cursor is inside this card (on a descendant), expand to show all children.
     // Must match TreeNode's shouldExpand logic — only expand when cursor is on a
     // descendant, not when cursor is on the card title itself.
-    const cursorInDescendant = useReactive(nodeStore.getOrCreate(nodeId).cursorInDescendant)
+    const cursorInDescendant = useSignal(nodeStore.getOrCreate(nodeId).cursorInDescendant)
     const isExpanded = cursorInDescendant || isEditing
 
     const childCount = childCountProp ?? children.length
@@ -627,8 +628,8 @@ export const Column = React.memo(function Column({
   // NODE MODEL V2: Self-select by nodeId instead of positional index.
   // ScrollTrackingVirtualList handles cardIndex subscription.
   const nodeStore = useNodeStore()
-  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useReactive(nodeStore.cursorDepth)
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepth = useSignal(nodeStore.cursorDepth)
   const isSelected = cursorColumnNodeId === nodeId
 
   // Check if this column header is being inline-edited

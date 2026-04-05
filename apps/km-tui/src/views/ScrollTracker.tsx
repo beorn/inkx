@@ -10,7 +10,8 @@
  */
 import React, { useMemo } from "react"
 import { ListView, type ListViewProps } from "@silvery/ag-react"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { getScrollToIndex } from "./scroll-helpers.ts"
 
 interface ScrollTrackingListViewProps<T> extends Omit<ListViewProps<T>, "scrollTo"> {
@@ -32,8 +33,8 @@ export const ScrollTrackingVirtualList = React.memo(function ScrollTrackingVirtu
   ...listViewProps
 }: ScrollTrackingListViewProps<T>): React.ReactElement {
   const nodeStore = useNodeStore()
-  const _cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-  const _cursorDepth = useReactive(nodeStore.cursorDepth)
+  const _cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+  const _cursorDepth = useSignal(nodeStore.cursorDepth)
   const cursorCardNodeId = _cursorDepth === "card" ? _cursorCardNodeId : null
 
   // Find the card index by looking up cursorCardNodeId in the items array

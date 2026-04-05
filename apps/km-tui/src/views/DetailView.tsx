@@ -21,7 +21,8 @@ import { useRepo } from "../repo-context.tsx"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { getNodeDisplayName, nodeBadgeLabel } from "../state.ts"
 import { DETAIL_META_PREFIX, computeMetadataKeys } from "./detail-pane-items.ts"
 import { getStatusDisplay, formatDate, resolveProjectDisplayNames } from "./detail-pane-helpers.ts"
@@ -59,7 +60,7 @@ export interface DetailViewProps {
 export function DetailView({ rootId, width, height }: DetailViewProps): React.ReactElement {
   const repo = useRepo()
   const nodeStore = useNodeStore()
-  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
+  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
   const { undoHandle } = useTreeRenderContext()
 
   const rawNode = rootId ? repo.getNode(rootId) : null

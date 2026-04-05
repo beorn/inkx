@@ -19,7 +19,8 @@ import { getNodeDisplayName } from "../state.ts"
 import { parseToPlainText } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 
@@ -58,9 +59,9 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const repo = useRepo()
 
   const nodeStore = useNodeStore()
-  const cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useReactive(nodeStore.cursorDepth)
+  const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepth = useSignal(nodeStore.cursorDepth)
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const editingNodeId = useAppStore<BoardAppStore, string | null>((s) => (s.sel.text()?.nodeId as string) ?? null)

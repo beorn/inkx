@@ -21,7 +21,8 @@ import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../state/ui-context.tsx"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 
 // =============================================================================
 // Memoized Tree Card Component
@@ -61,8 +62,8 @@ export const MemoizedTreeCard = React.memo(
   }: MemoizedTreeCardProps): React.ReactElement {
     // Self-subscribe to ReactiveNodeStore for selection state (by nodeId)
     const nodeStore = useNodeStore()
-    const _cursorCardNodeId = useReactive(nodeStore.cursorCardNodeId)
-    const _cursorDepth = useReactive(nodeStore.cursorDepth)
+    const _cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
+    const _cursorDepth = useSignal(nodeStore.cursorDepth)
     const cursorIsSelected = _cursorCardNodeId === card.id && _cursorDepth === "card"
     const isSelected = isSelectedProp ?? cursorIsSelected
     const isEditing = useAppStore<BoardAppStore, boolean>((s) => s.sel.text()?.nodeId === card.id)

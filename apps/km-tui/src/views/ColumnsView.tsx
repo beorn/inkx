@@ -21,7 +21,8 @@ import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useNodeStore, useReactive } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 
 // =============================================================================
@@ -67,8 +68,8 @@ const ColumnTree = React.memo(function ColumnTree({ column, colIndex, width, hei
 
   // Subscribe to column selection only (stable on j/k within same column)
   const nodeStore = useNodeStore()
-  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useReactive(nodeStore.cursorDepth)
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepth = useSignal(nodeStore.cursorDepth)
   const isSelected = cursorColumnNodeId === column.node.id
 
   // Track editing state for dynamic item height (border adds 2 rows)
@@ -181,7 +182,7 @@ const COLUMNS_VIEW_MAX_WIDTH = 50
 
 export function ColumnsView({ columns, width, height }: ColumnsViewProps): React.ReactElement {
   const nodeStore = useNodeStore()
-  const cursorColumnNodeId = useReactive(nodeStore.cursorColumnNodeId)
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
   const colIndex = useMemo(() => {
     if (!cursorColumnNodeId) return 0
     const idx = columns.findIndex((c) => c.node.id === cursorColumnNodeId)

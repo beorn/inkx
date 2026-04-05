@@ -565,45 +565,39 @@ export function createBoardAppStoreState(
       },
     }
 
-    // Bridge: alien-signals → store. Selection state lives in alien-signals
-    // (inside createSelection), but React components read it via store selectors
-    // like useAppStore(s => s.sel.text()?.nodeId). When alien-signals updates,
-    // the store doesn't know — the sel reference is the same object. This effect
-    // tracks all selection computed signals and forces a store notification
-    // so useAppStore selectors re-evaluate.
-    //
-    // We set up a bridge for EACH board pane's sel so that changes to any pane's
-    // selection trigger store notifications (e.g., detail pane sel changes).
-    let _selVersion = 0
+    // Sel→store bridge: clears curswant on cursor move AND notifies store
+    // subscribers when sel state changes. The notification is needed until all
+    // useAppStore(s => s.sel.*) calls are migrated to useSignal() (signals.3).
+    // Board.tsx's cursor/selIds/textEdit already use useSignal; 7 remaining
+    // sel readers in other views still need store notifications.
+    let _selBridge = 0
     const bridgedSels = new Set<SelectionStore>()
 
-    /** Set up an alien-signals → store bridge for a pane's sel store. Idempotent. */
+    /** Bridge a pane's sel to the store. Clears curswant + notifies store. Idempotent. */
     function bridgePaneSel(paneSel: SelectionStore): void {
       if (bridgedSels.has(paneSel)) return
       bridgedSels.add(paneSel)
+      let firstRun = true
       effect(() => {
-        const newCursor = paneSel.node.cursor() as string | null
+        paneSel.node.cursor() // track cursor changes
         paneSel.node.ids()
         paneSel.text()
         paneSel.kind()
-        paneSel.root.id()
-        paneSel.drag()
-        paneSel.subComputed()
-        _selVersion++
-        if (_selVersion > 1) {
-          // Clear curswant when cursor changes via sel store
-          const s = _get()
-          if (!s?.workspace) {
-            set({ _selVersion } as Partial<BoardAppStore>)
-            return
-          }
-          const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
-          if (focusedPane && isBoardPane(focusedPane) && focusedPane.sel === paneSel && newCursor !== null) {
-            focusedPane.curswantX = null
-            focusedPane.curswantY = null
-          }
-          set({ _selVersion } as Partial<BoardAppStore>)
+        _selBridge++
+        if (firstRun) {
+          firstRun = false
+          return
         }
+        // Clear curswant when cursor changes
+        const s = _get()
+        if (!s?.workspace) return
+        const focusedPane = s.workspace.panes.get(s.workspace.focusedPaneId)
+        if (focusedPane && isBoardPane(focusedPane) && focusedPane.sel === paneSel) {
+          focusedPane.curswantX = null
+          focusedPane.curswantY = null
+        }
+        // Notify store subscribers (for remaining useAppStore sel readers)
+        set({ _selBridge } as Partial<BoardAppStore>)
       })
     }
 
