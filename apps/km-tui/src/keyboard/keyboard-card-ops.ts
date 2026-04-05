@@ -5,6 +5,7 @@
  */
 
 import { type OpResult, boundary, ok } from "@km/commands"
+import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
 import type { OpCtx } from "../tui-context.ts"
 import { clearSelection, getSelectedCardIndices } from "../board/board-selection-helpers.ts"
@@ -140,7 +141,7 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
   const movedCardIds = validCards.map((c) => c.card.id)
 
   // Cursor follows the moved card — its ID is unchanged, just its position shifted
-  ctx.dispatchBoard({ type: "SELECT", nodeId: ctx.sel.node.cursor() as string | null })
+  ctx.sel.node.select([(ctx.sel.node.cursor() as string | null) as ID])
 
   if (movedCardIds.length > 1) {
     rebuildSelectionForMovedCards(ctx, ctx.colIndex, movedCardIds)
@@ -187,7 +188,7 @@ export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "r
   // Cursor follows the first moved card to its new column
   const firstMoved = cardsToMove[0]
   if (firstMoved) {
-    ctx.dispatchBoard({ type: "SELECT", nodeId: firstMoved.id })
+    ctx.sel.node.select([firstMoved.id as ID])
   }
 
   rebuildSelectionForMovedCards(ctx, targetColIndex, movedCardIds)
@@ -217,7 +218,7 @@ export function indentNode(ctx: OpCtx, card: KNode): boolean {
   // Cursor follows the indented node. nodeIndex maps descendants to their
   // containing card, so visual cursor lands on the parent card. Navigation
   // resolves sub-card nodes to card level (see navigateVertical).
-  ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
+  ctx.sel.node.select([card.id as ID])
   return true
 }
 
@@ -236,7 +237,7 @@ export function outdentNode(ctx: OpCtx, card: KNode): boolean {
 
   ctx.undoHandle.setCursor(ctx.sel.node.cursor() as string | null)
   executeOutdent(ctx, card)
-  ctx.dispatchBoard({ type: "SELECT", nodeId: card.id })
+  ctx.sel.node.select([card.id as ID])
   return true
 }
 
@@ -344,7 +345,7 @@ function indentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selected
 
   // Cursor follows first indented card (resolves to parent card via nodeIndex)
   const firstCard = cards[0]
-  if (firstCard) ctx.dispatchBoard({ type: "SELECT", nodeId: firstCard.id })
+  if (firstCard) ctx.sel.node.select([firstCard.id as ID])
   clearSelection(ctx)
   return true
 }
@@ -378,7 +379,7 @@ function outdentNodesAtomically(ctx: OpCtx, col: { cardNodes: KNode[] }, selecte
 
   // Cursor follows first card in batch
   const firstOutdented = cards[0]
-  if (firstOutdented) ctx.dispatchBoard({ type: "SELECT", nodeId: firstOutdented.id })
+  if (firstOutdented) ctx.sel.node.select([firstOutdented.id as ID])
   clearSelection(ctx)
   return true
 }
