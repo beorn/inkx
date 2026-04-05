@@ -66,3 +66,7 @@ export type {
   ViewNodeCacheEntry,
   ViewNodeColumnCache,
 } from "./view-tree.ts"
+
+// ===== View Snapshot (computed ViewTree + lazy derivations) =====
+export { createViewSnapshot } from "./view-snapshot.ts"
+export type { ViewSnapshot, CursorAncestors } from "./view-snapshot.ts"
