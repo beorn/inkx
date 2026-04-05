@@ -167,7 +167,7 @@ describe("Runtime invariants", () => {
       sel,
       selectedIds: sel.node.ids(),
       rootId: "board",
-      cursorNodeId: "nonexistent-node", // <-- this doesn't exist
+      cursor: "nonexistent-node", // <-- this doesn't exist
       ui: { inlineEditBlock: null, multiSelected: new Set<string>() },
       columns: [],
       colIndex: -1,
