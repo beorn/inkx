@@ -119,7 +119,9 @@ Key design: **no tree data in state**. Navigation and rendering query Repo on de
 
 `BoardReducerOp` — discriminated union dispatched to the reducer (`SELECT`, `TOGGLE_FOLD`, `ZOOM_IN`, etc.). `KmOp` — higher-level user intent (verbs, nav, edits, text ops, dialog ops) dispatched through the command system. Defined in `@km/commands`.
 
-### ColumnView / CardView — Derived View Models
+### ColumnView / CardView — Derived View Models (legacy, being replaced)
+
+> **Migration in progress**: ColumnView/CardView/ViewNode are being replaced by the **TreeLens + Projection** architecture. See `bd show km-tui.tree-lenses` for the design. The new architecture uses one node type (KNode) through all layers, with enrichments as computed lens methods and per-node projection signals for React. Components will use `useProjection(id)` instead of reading from ColumnView/ViewNode.
 
 Derived (not stored) representations for rendering. `ColumnView` = a section heading with its cards. `CardView` = a KNode enriched with resolved embed data and body classification.
 
@@ -128,7 +130,7 @@ interface ColumnView { node: KNode; cardNodes: CardView[]; rules?: SectionRules;
 interface CardView extends KNode { resolvedNode?: KNode; isBody: boolean; hasBodyChildren: boolean }
 ```
 
-### ViewNode — Explicit Visual Tree
+### ViewNode — Explicit Visual Tree (legacy, being replaced by TreeLens)
 
 The authoritative visual tree. Every navigation, cursor classification, and column derivation goes through ViewNode. Defined in `@km/board` ([packages/km-board/src/view-tree.ts](../packages/km-board/src/view-tree.ts)). Each node carries its visual role, parent pointer, and resolved embed data. Hidden nodes are filtered at tree construction time.
 
