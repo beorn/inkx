@@ -356,6 +356,14 @@ function applyFoldEffects(ctx: OpCtx, result: ApplyResult): void {
   runBoardEffects(ctx, result)
 }
 
+/** Short display name for a node (≤25 chars), suitable for toast messages. */
+function shortName(ctx: OpCtx, nodeId: string | null | undefined): string {
+  if (!nodeId) return "?"
+  const node = ctx.repo.getNode(nodeId)
+  const raw = node?.title ?? node?.name ?? nodeId.slice(-8)
+  return raw.length > 25 ? raw.slice(0, 22) + "…" : raw
+}
+
 /** Determine fold target node IDs from selection → card → column fallback. */
 function getFoldTargetRoots(ctx: OpCtx, card: KNode | null | undefined): string[] {
   const selected = getSelectedNodes(ctx)
@@ -579,12 +587,14 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
+      ctx.toastQueue.info("All folded")
       return ok()
     }
     case "UNFOLD_LEVEL": {
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyUnfoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
+      ctx.toastQueue.info("All unfolded")
       return ok()
     }
     default:
@@ -954,6 +964,8 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       if (!wasCollapsed && (ctx.cursor as string) !== collapseNodeId) {
         ctx.sel.node.select([collapseNodeId as ID])
       }
+      const colName = shortName(ctx, collapseNodeId)
+      ctx.toastQueue.info(wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}`)
       return ok()
     }
     case "ZOOM_IN":
@@ -970,6 +982,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
         ctx.sel.node.select([card.id as ID])
       }
       applyFoldEffects(ctx, result)
+      ctx.toastQueue.info(`Folded: ${shortName(ctx, roots[0])}`)
       return ok()
     }
     case "UNFOLD_NODE": {
@@ -980,6 +993,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const result = reducerApplyUnfoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "maximum depth reached")
       applyFoldEffects(ctx, result)
+      ctx.toastQueue.info(`Unfolded: ${shortName(ctx, roots[0])}`)
       return ok()
     }
     case "UNFOLD_RECURSIVE": {
@@ -1091,7 +1105,11 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
     case "HIDE_NODE":
       return handleHideNode(ctx)
     case "TOGGLE_SHOW_HIDDEN":
-      ctx.setUI((prev) => ({ showHidden: !prev.showHidden }))
+      ctx.setUI((prev) => {
+        const next = !prev.showHidden
+        ctx.toastQueue.info(next ? "Hidden: shown" : "Hidden: filtered")
+        return { showHidden: next }
+      })
       return ok()
     default:
       assertNever(action)
@@ -1989,6 +2007,7 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   })
 
   ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.id })
+  ctx.toastQueue.info(isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}`)
   return ok()
 }
 

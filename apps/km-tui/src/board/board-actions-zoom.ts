@@ -12,6 +12,14 @@ import { clearSelection } from "./board-selection-helpers.ts"
 import { saveNavHistory } from "../keyboard/keyboard-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 
+/** Short display name for a node (≤25 chars), suitable for toast messages. */
+function shortName(ctx: OpCtx, nodeId: string | null | undefined): string {
+  if (!nodeId) return "?"
+  const node = ctx.repo.getNode(nodeId)
+  const raw = node?.title ?? node?.name ?? nodeId.slice(-8)
+  return raw.length > 25 ? raw.slice(0, 22) + "…" : raw
+}
+
 /**
  * After zoom, children become columns. Place cursor on the first card
  * in the first column, or the first meaningful body card.
@@ -74,6 +82,7 @@ export function handleZoomToRoot(ctx: OpCtx): OpResult {
     saveNavHistory(ctx)
     ctx.dispatchBoard({ type: "ZOOM_IN", nodeId: boardRoot })
     clearSelection(ctx)
+    ctx.toastQueue.info("Zoomed out")
   }
   return ok()
 }
@@ -141,6 +150,7 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
       dispatchBoard({ type: "ZOOM_IN", nodeId: parentNode.id })
       if (cursorTarget) ctx.sel.node.select([cursorTarget as ID])
       clearSelection(ctx)
+      ctx.toastQueue.info("Zoomed out")
       return ok()
     }
   }
@@ -201,6 +211,7 @@ export function handleZoomIn(ctx: OpCtx): OpResult {
   if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
+  ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, nodeId)}`)
   return ok()
 }
 
@@ -224,6 +235,7 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
   if (firstCard) ctx.sel.node.select([firstCard as ID])
 
   clearSelection(ctx)
+  ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, nodeId)}`)
   return ok()
 }
 
@@ -305,6 +317,7 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
       if (firstChild) ctx.sel.node.select([firstChild as ID])
 
       clearSelection(ctx)
+      ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, targetNode.id)}`)
       return ok()
     }
   }
@@ -347,5 +360,6 @@ export function handleZoomInwards(ctx: OpCtx): OpResult {
   ctx.sel.node.select([cursorId as ID])
 
   clearSelection(ctx)
+  ctx.toastQueue.info(`Zoomed into: ${shortName(ctx, target)}`)
   return ok()
 }
