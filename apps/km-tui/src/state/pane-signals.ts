@@ -25,6 +25,7 @@ import type { ViewSnapshot, ViewTreeRepo, ViewNodeColumnCache } from "@km/board"
 import { createViewSnapshot } from "@km/board"
 import type { SelectionTreeSource } from "./selection-adapter.ts"
 import type { MoveState, ViewMode } from "../board/board-types.ts"
+import { computeHiddenNodeIds } from "../hidden.ts"
 
 /** Writable alien-signal — call with no args to read, with arg to write. */
 type Signal<T> = ReturnType<typeof signal<T>>
@@ -57,6 +58,9 @@ export interface PaneSignals {
   readonly curswantX: Signal<number | null>
   readonly curswantY: Signal<number | null>
 
+  // Hidden state — nodes excluded from ViewSnapshot tree
+  readonly hiddenNodeIds: Signal<Set<string>>
+
   // Derived: computed ViewSnapshot — auto-invalidates when rootId/foldDepths/repo change
   readonly view: Computed<ViewSnapshot>
 }
@@ -69,8 +73,8 @@ export interface CreatePaneSignalsOptions {
   id: string
   sel: SelectionStore
   selTreeSource: SelectionTreeSource
-  /** The repo — used by the computed ViewSnapshot. */
-  repo: ViewTreeRepo
+  /** The repo — used by the computed ViewSnapshot and hidden node computation. */
+  repo: ViewTreeRepo & { path: string }
   /** alien-signals signal tracking repo version — bumped by bridge on repo.subscribe(). */
   repoVersion: Signal<number>
   rootId: string | null
@@ -79,6 +83,8 @@ export interface CreatePaneSignalsOptions {
   collapsedNodes: Set<string>
   viewMode: ViewMode
   moveState: MoveState
+  /** Initial hidden node IDs (from .km/hidden file). Excluded from ViewSnapshot tree. */
+  hiddenNodeIds?: Set<string>
 }
 
 /**
@@ -97,18 +103,28 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const moveState = signal(opts.moveState)
   const curswantX = signal<number | null>(null)
   const curswantY = signal<number | null>(null)
+  const hiddenNodeIds = signal(opts.hiddenNodeIds ?? new Set<string>())
 
   // Per-column ViewNode cache — reused across rebuilds for incremental updates
   const viewNodeCache: ViewNodeColumnCache = new Map()
 
-  // Computed ViewSnapshot — the core derivation
+  // Computed ViewSnapshot — the core derivation.
+  // Hidden nodes (from .km/hidden) are excluded at tree build time.
+  // This is the SINGLE place where visibility is determined — cursor navigation,
+  // sel walkOrder, and rendering all see the same filtered tree.
   const view = computed((): ViewSnapshot => {
-    // Track dependencies: repoVersion (alien-signal) + rootId + foldDepths
+    // Track dependencies: repoVersion (alien-signal) + rootId + foldDepths + hiddenVersion
     opts.repoVersion() // dependency on repo mutations
     const _rootId = rootId()
     const _foldDepths = foldDepths()
+    const _hiddenOverride = hiddenNodeIds()
 
-    return createViewSnapshot(opts.repo, _rootId, _foldDepths, viewNodeCache)
+    // Compute hidden IDs from .km/hidden file + any programmatic overrides
+    const _hidden = _hiddenOverride.size > 0
+      ? _hiddenOverride
+      : computeHiddenNodeIds(opts.repo as any, _rootId)
+
+    return createViewSnapshot(opts.repo, _rootId, _foldDepths, viewNodeCache, _hidden.size > 0 ? _hidden : undefined)
   })
 
   return {
@@ -123,6 +139,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     moveState,
     curswantX,
     curswantY,
+    hiddenNodeIds,
     view,
   }
 }

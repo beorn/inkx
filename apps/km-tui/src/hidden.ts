@@ -181,6 +181,38 @@ export function isHidden(hiddenPaths: Set<string>, node: KNode, repo: Repo): boo
 }
 
 // =============================================================================
+// Centralized Hidden Node Computation
+// =============================================================================
+
+/**
+ * Compute the set of hidden node IDs for a board root.
+ *
+ * Walks columns (children of root) and their children (cards) to find matches
+ * against the .km/hidden file. Returns a Set of node IDs to exclude from the
+ * ViewSnapshot tree — once excluded, they can't be navigated to, rendered, or
+ * selected. This is the SINGLE place that computes hidden node IDs.
+ *
+ * Called by PaneSignals when computing the ViewSnapshot.
+ */
+export function computeHiddenNodeIds(
+  repo: { path: string; getNode: (id: string) => KNode | null; getChildren: (id: string | null) => KNode[] },
+  rootId: string | null,
+): Set<string> {
+  const hiddenPaths = readBoardHidden(repo.path)
+  if (hiddenPaths.size === 0) return new Set()
+  const ids = new Set<string>()
+  const topChildren = repo.getChildren(rootId)
+  for (const child of topChildren) {
+    if (isHidden(hiddenPaths, child, repo as Repo)) ids.add(child.id)
+    const grandChildren = repo.getChildren(child.id)
+    for (const gc of grandChildren) {
+      if (isHidden(hiddenPaths, gc, repo as Repo)) ids.add(gc.id)
+    }
+  }
+  return ids
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
 

@@ -49,6 +49,7 @@ import { createSelection, type SelectionStore } from "@silvery/selection"
 import { signal, effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { createPaneSignals } from "./pane-signals.ts"
+import { computeHiddenNodeIds } from "../hidden.ts"
 import { classifyCursorFromViewIndex, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
@@ -958,11 +959,18 @@ export function createBoardAppStoreState(
           }
           return result
         })
-        // Sync viewMode to PaneSignals if it changed (viewMode is a per-pane field)
-        if (typeof partial === "object" && "viewMode" in partial) {
+        // Sync per-pane fields to PaneSignals when they change
+        if (typeof partial === "object") {
           const afterS = _get()
           const afterPane = getActiveBoardPane(afterS)
-          if (afterPane?.signals) afterPane.signals.viewMode(afterPane.viewMode)
+          if (afterPane?.signals) {
+            if ("viewMode" in partial) afterPane.signals.viewMode(afterPane.viewMode)
+            // Hidden state change: recompute hiddenNodeIds so ViewSnapshot filters correctly
+            if ("hiddenVersion" in partial || "showHidden" in partial) {
+              const hidden = afterPane.showHidden ? new Set<string>() : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
+              afterPane.signals.hiddenNodeIds(hidden)
+            }
+          }
         }
       },
 

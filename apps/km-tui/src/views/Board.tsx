@@ -58,7 +58,13 @@ const _log = createLogger("km:tui:board")
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
 import { Tree } from "@km/tree"
-import { usePaneUI, TreeRenderProvider, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../state/ui-context.tsx"
+import {
+  usePaneUI,
+  TreeRenderProvider,
+  deriveTreeConfig,
+  findBoardRootId,
+  type TreeConfig,
+} from "../state/ui-context.tsx"
 import { getPathSegments } from "./board-top-bar.ts"
 import type { PathSegment } from "../layout/path.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
@@ -79,7 +85,6 @@ import { getStatusForMarker } from "@km/core"
 import { getOwnColor } from "../board/board-pills.ts"
 import { getBoardColorByName, normalizeBoardName } from "../text/index.ts"
 import { getNodeDisplayName } from "../state.ts"
-import { readBoardHidden, isHidden } from "../hidden.ts"
 import { findMatchingNodeIds } from "../board/board-actions-find.ts"
 import { searchReplaceMatchingNodeIds } from "../board/board-actions-search-replace.ts"
 import { navigateToNode } from "../navigation/navigate-to-node.ts"
@@ -763,28 +768,12 @@ export function Board({ patchedConsole }: BoardProps) {
     })
   }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth])
 
-  // Read hidden paths for filtering (re-read only when hidden list actually changes)
-  const hiddenPaths = useMemo(() => readBoardHidden(repo.path), [repo.path, ui.hiddenVersion])
-
-  // Filter hidden columns for rendering (keep all columns in layout for cursor positioning)
-  const visibleColumns = useMemo(() => {
-    if (hiddenPaths.size === 0 || ui.showHidden) return columnsLayout.columns
-    return columnsLayout.columns.filter((col) => !isHidden(hiddenPaths, col.node, repo))
-  }, [columnsLayout.columns, hiddenPaths, ui.showHidden, repo])
-
-  // When hidden filtering removes columns, remap the cursor's colIndex from the
-  // full columns array to the visible columns array. Without this, colIndex can
-  // be out-of-bounds, causing blank board after hiding.
-  const visibleColIndex = useMemo(() => {
-    if (visibleColumns === columnsLayout.columns) return columnsLayout.colIndex
-    // Find the cursor's column in the visible list by node ID
-    const cursorCol = columnsLayout.columns[columnsLayout.colIndex]
-    if (!cursorCol) return Math.min(columnsLayout.colIndex, Math.max(0, visibleColumns.length - 1))
-    const idx = visibleColumns.findIndex((c) => c.node.id === cursorCol.node.id)
-    if (idx >= 0) return idx
-    // Cursor's column was filtered — clamp to valid range
-    return Math.min(columnsLayout.colIndex, Math.max(0, visibleColumns.length - 1))
-  }, [visibleColumns, columnsLayout])
+  // Hidden column filtering is now centralized in ViewSnapshot — the computed
+  // ViewSnapshot excludes hidden nodes at tree build time. When showHidden is
+  // toggled, PaneSignals.hiddenNodeIds updates → computed rebuilds.
+  // No need for separate column filtering here.
+  const visibleColumns = columnsLayout.columns
+  const visibleColIndex = columnsLayout.colIndex
 
   // Apply text + property filters to cards within columns
   const filteredColumns = useMemo(() => {
