@@ -2323,10 +2323,7 @@ function handleHideNode(ctx: OpCtx): OpResult {
     const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
     const targetCol = ctx.columns[colIndex + 1] ?? (colIndex > 0 ? ctx.columns[colIndex - 1] : undefined)
     if (targetCol) {
-      ctx.dispatchBoard({
-        type: "SELECT",
-        nodeId: targetCol.cardNodes[0]?.id ?? targetCol.node.id,
-      })
+      ctx.sel.node.select([(targetCol.cardNodes[0]?.id ?? targetCol.node.id) as ID])
     }
   }
 
