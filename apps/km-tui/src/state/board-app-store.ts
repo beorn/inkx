@@ -46,7 +46,7 @@ import { PANE_UI_FIELD_NAMES } from "../board/board-types.ts"
 import type { GridNavigator } from "@km/board"
 import type { EditTarget } from "@silvery/ag-react"
 import { createSelection, type SelectionStore } from "@silvery/selection"
-import { effect } from "alien-signals"
+import { signal, effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, CARD_REMAINING_DEPTH } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
@@ -434,6 +434,12 @@ export function createBoardAppStoreState(
     // Create undo system: wrap repo so mutations are auto-recorded
     const undoStack = createUndoStack()
     const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
+
+    // Bridge repo's subscribe/getSnapshot to alien-signals.
+    // The repoVersion signal is a dependency for computed ViewSnapshots —
+    // when repo mutates, this signal bumps, which invalidates the computed.
+    const repoVersion$ = signal(undoableRepo.getSnapshot())
+    undoableRepo.subscribe(() => repoVersion$(undoableRepo.getSnapshot()))
 
     // Try to restore workspace from saved state, otherwise create default single-pane workspace.
     const initialPaneBoard: BoardState = {

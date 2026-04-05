@@ -69,7 +69,10 @@ export interface CreatePaneSignalsOptions {
   id: string
   sel: SelectionStore
   selTreeSource: SelectionTreeSource
-  repo: ViewTreeRepo & { getSnapshot(): number }
+  /** The repo — used by the computed ViewSnapshot. */
+  repo: ViewTreeRepo
+  /** alien-signals signal tracking repo version — bumped by bridge on repo.subscribe(). */
+  repoVersion: Signal<number>
   rootId: string | null
   rootPath: string | null
   foldDepths: Map<string, number>
@@ -81,9 +84,9 @@ export interface CreatePaneSignalsOptions {
 /**
  * Create a PaneSignals bag for a board pane.
  *
- * The `view` computed chains: repo.getSnapshot() → rootId → foldDepths → createViewSnapshot.
+ * The `view` computed chains: repoVersion → rootId → foldDepths → createViewSnapshot.
  * Any input change invalidates the computed; next read rebuilds the ViewSnapshot.
- * The ViewNodeColumnCache enables incremental column-level rebuilds.
+ * The ViewNodeColumnCache enables incremental column-level rebuilds within buildViewTree.
  */
 export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const rootId = signal(opts.rootId)
@@ -100,11 +103,10 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
 
   // Computed ViewSnapshot — the core derivation
   const view = computed((): ViewSnapshot => {
-    // Track dependencies: repo version + rootId + foldDepths
-    const _version = opts.repo.getSnapshot()
+    // Track dependencies: repoVersion (alien-signal) + rootId + foldDepths
+    opts.repoVersion() // dependency on repo mutations
     const _rootId = rootId()
     const _foldDepths = foldDepths()
-    void _version // ensure dependency tracking
 
     return createViewSnapshot(opts.repo, _rootId, _foldDepths, viewNodeCache)
   })

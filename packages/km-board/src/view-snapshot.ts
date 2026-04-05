@@ -47,6 +47,10 @@ export interface ViewSnapshot {
   classify(nodeId: string | null): CursorAncestors
   /** Get a node by ID (shorthand for index.get). */
   get(id: string): ViewNode | undefined
+  /** Next node in DFS walk order (O(1) tree traversal, no array). */
+  nextInWalk(id: string): string | null
+  /** Previous node in DFS walk order (O(1) tree traversal, no array). */
+  prevInWalk(id: string): string | null
 }
 
 // =============================================================================
@@ -101,6 +105,47 @@ export function createViewSnapshot(
 
     get(id: string): ViewNode | undefined {
       return index.get(id)
+    },
+
+    nextInWalk(id: string): string | null {
+      const node = index.get(id)
+      if (!node) return null
+      // DFS next: first child, or next sibling, or ancestor's next sibling
+      if (node.children.length > 0) return node.children[0]!.id
+      let current: ViewNode | null = node
+      while (current) {
+        if (!current.parent || current.parent.role === "board") {
+          // At top level — check siblings
+          const siblings = current.parent?.children ?? tree.children
+          const idx = siblings.indexOf(current)
+          if (idx >= 0 && idx < siblings.length - 1) return siblings[idx + 1]!.id
+          return null // last top-level node
+        }
+        const siblings = current.parent.children
+        const idx = siblings.indexOf(current)
+        if (idx >= 0 && idx < siblings.length - 1) return siblings[idx + 1]!.id
+        current = current.parent // backtrack up
+      }
+      return null
+    },
+
+    prevInWalk(id: string): string | null {
+      const node = index.get(id)
+      if (!node) return null
+      // DFS prev: previous sibling's deepest descendant, or parent
+      const parent = node.parent
+      if (!parent) return null
+      const siblings = parent.children
+      const idx = siblings.indexOf(node)
+      if (idx > 0) {
+        // Previous sibling's deepest last descendant
+        let prev = siblings[idx - 1]!
+        while (prev.children.length > 0) prev = prev.children[prev.children.length - 1]!
+        return prev.id
+      }
+      // No previous sibling — parent (unless parent is board root)
+      if (parent.role === "board") return null
+      return parent.id
     },
   }
 }
