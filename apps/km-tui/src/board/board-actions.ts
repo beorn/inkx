@@ -1083,23 +1083,17 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       ctx.dispatchBoard(action)
       return ok()
     case "INCREASE_CONTENT_LINES": {
-      ctx.setUI((prev) => {
-        const next = Math.min(10, prev.maxContentLines + 1)
-        return {
-          maxContentLines: next,
-          status: { level: "info" as const, message: `Content lines: ${next}` },
-        }
-      })
+      const prev = ctx.ui.maxContentLines
+      if (prev >= 10) return boundary("content", "max content lines")
+      const next = prev + 1
+      ctx.setUI({ maxContentLines: next, status: { level: "info" as const, message: `Content lines: ${next}` } })
       return ok()
     }
     case "DECREASE_CONTENT_LINES": {
-      ctx.setUI((prev) => {
-        const next = Math.max(1, prev.maxContentLines - 1)
-        return {
-          maxContentLines: next,
-          status: { level: "info" as const, message: `Content lines: ${next}` },
-        }
-      })
+      const prev = ctx.ui.maxContentLines
+      if (prev <= 1) return boundary("content", "min content lines")
+      const next = prev - 1
+      ctx.setUI({ maxContentLines: next, status: { level: "info" as const, message: `Content lines: ${next}` } })
       return ok()
     }
     case "HIDE_NODE":
