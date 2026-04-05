@@ -234,7 +234,7 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
 function handleVerticalNav(ctx: OpCtx, dir: "up" | "down"): OpResult {
   const { navigator, viewNavigation } = ctx
 
-  if (!ctx.sel.node.cursor()) {
+  if (!ctx.cursorNodeId) {
     return boundary(dir, "no cursor")
   }
 
@@ -452,11 +452,11 @@ export function handlePageJump(ctx: OpCtx, direction: "up" | "down"): void {
 
 /** Build NavState from action context. Caller must guard that cursorNodeId is non-null. */
 export function navStateFrom(ctx: OpCtx): NavState {
-  if (!ctx.sel.node.cursor()) {
+  if (!ctx.cursorNodeId) {
     throw new Error("[nav] navStateFrom: cursorNodeId is null")
   }
   return {
-    cursorNodeId: ctx.sel.node.cursor() as string,
+    cursorNodeId: ctx.cursorNodeId,
     rootId: ctx.rootId,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
