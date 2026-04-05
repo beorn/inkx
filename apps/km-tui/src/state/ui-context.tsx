@@ -11,7 +11,8 @@ import { useApp as useAppStore, useAppShallow } from "@silvery/create/create-app
 import type { UIState, PaneUI, IconStyle, BorderMode } from "./ui-reducer.ts"
 import { createEmptyFilterProperties } from "./ui-reducer.ts"
 import { Workspace, type BoardAppStore } from "./board-app-store.ts"
-import { mergePaneUI, type PerPaneUIFields } from "../board/board-types.ts"
+import { mergePaneUI, isBoardPane, type PerPaneUIFields } from "../board/board-types.ts"
+import { usePaneId } from "../pane-context.tsx"
 
 /** Default per-pane UI field values (used when no board pane is focused) */
 const DEFAULT_PANE_UI: PerPaneUIFields = {
@@ -78,15 +79,17 @@ export function useSel(): import("@silvery/selection").SelectionStore {
 }
 
 /**
- * Get the effective UI state — global UIState merged with per-pane fields from the focused BoardPaneState.
+ * Get the effective UI state — global UIState merged with per-pane fields.
  * Uses shallow comparison so components only re-render when a field actually changes.
  *
- * Use this when a component needs both global UI fields (showHelp, etc.) and per-pane fields (viewMode, etc.).
+ * When called without arguments, reads from the CURRENT pane (via PaneIdContext).
+ * This ensures multi-pane setups render each pane's own UI state correctly.
  */
 export function usePaneUI(): PaneUI {
+  const paneId = usePaneId()
   return useAppShallow<BoardAppStore, PaneUI>((s) => {
-    const pane = Workspace.getActiveBoardPane(s)
-    if (!pane) return { ...s.ui, ...DEFAULT_PANE_UI } as PaneUI
+    const pane = s.workspace.panes.get(paneId) as import("../board/board-types.ts").BoardPaneState | undefined
+    if (!pane || !isBoardPane(pane)) return { ...s.ui, ...DEFAULT_PANE_UI } as PaneUI
     return mergePaneUI(s.ui, pane)
   })
 }

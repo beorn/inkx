@@ -25,7 +25,7 @@ import {
   Link,
   type PatchedConsole,
 } from "@silvery/ag-react"
-import { useApp as useAppStore, useAppShallow, StoreContext } from "@silvery/create/create-app"
+import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { ColumnView, ViewMode } from "../types.ts"
@@ -49,7 +49,7 @@ import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import { buildNodeIndex, deriveCursorIndices, deriveDetailColumns } from "../hooks/use-columns.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
-import { hasDetailPaneFor, isBoardPane, mergePaneUI, type BoardPaneState } from "../board/board-types.ts"
+import { hasDetailPaneFor } from "../board/board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
@@ -58,7 +58,7 @@ const _log = createLogger("km:tui:board")
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
 import { Tree } from "@km/tree"
-import { TreeRenderProvider, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../state/ui-context.tsx"
+import { usePaneUI, TreeRenderProvider, deriveTreeConfig, findBoardRootId, type TreeConfig } from "../state/ui-context.tsx"
 import { getPathSegments } from "./board-top-bar.ts"
 import type { PathSegment } from "../layout/path.ts"
 import { WorkspaceView } from "./WorkspaceView.tsx"
@@ -561,14 +561,8 @@ export function Board({ patchedConsole }: BoardProps) {
   const paneId = usePaneId()
   const ps = usePaneSignals()
 
-  // Read state from pane-specific state in workspace.
-  // Each BoardPaneState owns its navigation state (rootId, foldDepths, etc).
-  // Read UI from THIS pane (not the focused pane) so both board and detail render correctly.
-  const ui = useAppShallow<BoardAppStore, PaneUI>((s) => {
-    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    if (!p || !isBoardPane(p)) return s.ui as unknown as PaneUI
-    return mergePaneUI(s.ui, p)
-  })
+  // Read effective UI state — global UIState merged with this pane's per-pane fields.
+  const ui = usePaneUI()
   const rootId = useSignal(ps.rootId)
   // Cursor: subscribe directly to per-pane sel's cursor computed signal.
   // No bridge needed — useSignal tracks the alien-signals computed directly.
