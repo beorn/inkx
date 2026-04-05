@@ -203,6 +203,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       snap?.tree ?? ({ id: "", role: "board", children: [], node: null, parent: null } as unknown as ViewNode)
     const viewIndex: Map<string, ViewNode> = (snap?.index as Map<string, ViewNode>) ?? new Map()
 
+    // ViewTreeProjection — per-node projection with navigation (next/prev/parent/children/node).
+    // Wraps the same lens as ViewSnapshot; available to action handlers via ctx.tree.
+    const tree = board?.signals?.viewTree
+
     // Derive ColumnView[] from ViewSnapshot tree (thin conversion, not a rebuild)
     let columns: ColumnView[]
     if (board?.viewMode === "detail") {
@@ -284,6 +288,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       nodeIndex,
       viewTree,
       viewIndex,
+      tree,
       navigator: s.navigator,
       viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
       toastQueue: s.toastQueue,

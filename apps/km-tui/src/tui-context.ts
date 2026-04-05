@@ -16,7 +16,7 @@ import type { BoardReducerOp } from "./board/board-types.ts"
 import type { ColumnView } from "./types.ts"
 import { PaneUI } from "./state/ui-reducer.ts"
 import type { EditMode } from "./state/ui-reducer.ts"
-import type { GridNavigator, ViewNode } from "@km/board"
+import type { GridNavigator, ViewNode, ViewTreeProjection } from "@km/board"
 import type { ViewNavigation } from "./navigation/view-navigation.ts"
 import type { UndoStack } from "./undo-stack.ts"
 import type { UndoableRepoHandle } from "./undo/undoable-repo.ts"
@@ -73,6 +73,9 @@ export interface OpCtx {
   viewTree: ViewNode
   /** ViewNode index — O(1) lookup by node ID */
   viewIndex: Map<string, ViewNode>
+  /** ViewTreeProjection — per-node navigation (next/prev/parent/children/node).
+   * Optional during migration; will replace viewTree+viewIndex once all handlers migrate. */
+  tree?: ViewTreeProjection
 
   // === Derived (computed once per key event) ===
   /** Currently selected node (null if none) */
