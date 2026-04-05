@@ -129,6 +129,7 @@ describe("CommandBox", () => {
     favoritesSelectedKey: null,
     iconStyle: "nerdfont",
     borderMode: "normal",
+    toastVersion: 0,
   }
 
   const mockRootPath = "/tmp/test-repo"
@@ -287,6 +288,7 @@ describe("StatusCounters", () => {
     showFavoritesDialog: false,
     favoritesSelectedKey: null,
     terminalFocused: true,
+    toastVersion: 0,
   }
 
   const mockRootPath = "/tmp/test-repo"

@@ -120,6 +120,10 @@ export interface UIState {
   // Favorites dialog state (global)
   showFavoritesDialog: boolean
   favoritesSelectedKey: string | null
+
+  // Toast version counter — incremented by TOAST_DISMISS to trigger React re-renders
+  // (toast queue is a mutable object outside React state; this counter bridges the gap)
+  toastVersion: number
 }
 
 /**
@@ -400,6 +404,8 @@ export function createInitialUIState(
 
     showFavoritesDialog: false,
     favoritesSelectedKey: null,
+
+    toastVersion: 0,
   }
 }
 
