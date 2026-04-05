@@ -2,6 +2,26 @@
 
 km turns markdown files into a structured, queryable knowledge system. This doc covers the full system: building blocks, layers, data flows, and composition model. For silvery (the TUI framework), see [vendor/silvery/docs/architecture.md](../vendor/silvery/docs/architecture.md).
 
+## Heritage
+
+km's architecture borrows deliberately from systems that solved hard problems well. Each influence shapes a specific part of the stack:
+
+**SlateJS** — tree operations and selection. km's tree layer is a direct descendant: atomic operations with `inverse()`, stable node IDs (not fragile index paths), `TreeMutator` interface, normalize-after-mutation via plugins. The selection system follows Slate's `Editor.apply(op)` pattern: tree ops transform selection inline, one transaction, atomic undo. Key difference: Slate mutates in place; km's transitions are pure `(state, op) → [state, effects]`.
+
+**ProseMirror** — document model rigor. Polymorphic selection types (TextSelection, NodeSelection, CellSelection as plugin). Bookmarks for mapping selection through document changes. Transaction-based state updates. The `Selection.transform(sel, op)` concept directly inspired our `transformSelection(sel, op, prevTree, nextTree)`.
+
+**tldraw** — pointer interaction architecture. Hierarchical state machine with 18 states in the SelectTool. Pointing states (before drag threshold) resolve to action states (after threshold). Signals for reactive state (`@tldraw/state`), state machine for decisions. Our improvement: pure function state machine (testable without a full Editor) instead of OOP StateNode classes with side effects.
+
+**Decker** (our own) — lessons from what went wrong. State in three places (DOM + Zustand + closures), browser-inconsistent HTML5 drag events, imperative handlers impossible to debug. Motivated: one state atom, pure state machine, no HTML5 DnD, own pointer pipeline from primitives.
+
+**The Elm Architecture (TEA)** — the universal pattern. Every interactive subsystem is `(state, op) → [state, effects]`. Operations and effects are serializable data. Machines compose via effects. Enables testing, replay, undo, portability (terminal + browser), AI automation.
+
+**alien-signals** — reactive primitives. Thin, fast, exact dependency tracking. Used everywhere: selection store, per-node reactive state (withReactive in km-storage), signal-store (Zustand replacement). One reactive system instead of three.
+
+**React** — rendering. silvery's custom reconciler produces an ag node tree (not DOM). Same component model, same hooks, same mental model. But layout (flexily) and output (ANSI terminal buffer) are fully owned.
+
+See [docs/design/selection-landscape.md](design/selection-landscape.md) for detailed comparisons with tldraw, ProseMirror, Excalidraw, Figma, VS Code, DOM Selection API, and AppKit/UIKit.
+
 ## Building Blocks
 
 Every piece of the system is built from a small set of domain objects. Like [SlateJS](https://docs.slatejs.org/concepts), each is a clean interface with a namespace of static helpers.
