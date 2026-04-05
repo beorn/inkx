@@ -243,8 +243,6 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
 
   clearSelection(ctx)
 
-  // Select the pre-computed cursor target (tree changed, refresh walk order first)
-  ctx.refreshSelTree()
   if (cursorTarget) {
     ctx.sel.node.select([cursorTarget as ID])
   } else {
@@ -285,7 +283,6 @@ function handleAddFirstChild(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(ctx.cursor)
   const newId = repo.addNode(ctx.rootId, newNode)
-  ctx.refreshSelTree()
   ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
@@ -338,8 +335,6 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   ctx.undoHandle.setCursor(ctx.cursor)
   const newId = repo.addNode(col.node.id, newNode)
 
-  // Select the newly created node directly by ID
-  ctx.refreshSelTree()
   ctx.sel.node.select([newId as ID])
 
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
@@ -372,7 +367,6 @@ export function handleAddNodeChild(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(cursorId, newNode)
-  ctx.refreshSelTree()
   ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
@@ -414,7 +408,6 @@ export function handleAddNodeAtParent(ctx: OpCtx): void {
 
   ctx.undoHandle.setCursor(cursorId)
   const newId = repo.addNode(grandparentId, newNode)
-  ctx.refreshSelTree()
   ctx.sel.node.select([newId as ID])
   ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
   ctx.textEditHints = { blockIndex: 0 }
@@ -459,8 +452,6 @@ export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
   ctx.undoHandle.setCursor(ctx.cursor)
   const newId = repo.addNode(parentId, newNode)
 
-  // Select the duplicated node directly by ID
-  ctx.refreshSelTree()
   ctx.sel.node.select([newId as ID])
 }
 

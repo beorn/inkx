@@ -5,6 +5,11 @@
  * km's visual hierarchy lives in the ViewIndex (Map<string, ViewNode>) which is
  * rebuilt each frame. This adapter provides a live bridge via getter callbacks,
  * so the selection store always reads the freshest tree.
+ *
+ * Auto-refresh: if a beforeRead callback is installed, the adapter calls it
+ * before every tree operation (walkOrder, parent, children). The callback
+ * checks repo version and rebuilds the ViewTree if stale. This eliminates
+ * the need for manual refreshSelTree() calls at every mutation site.
  */
 
 import type { SelectionApp, ID } from "@silvery/selection"
@@ -18,6 +23,8 @@ import type { ViewNode } from "@km/board"
 export interface SelectionTreeSource {
   /** Update the underlying tree data (called after each layout derivation). */
   update(viewIndex: Map<string, ViewNode>, viewTree: ViewNode): void
+  /** Install a callback invoked before each tree read. Use to auto-refresh stale data. */
+  setBeforeRead(cb: () => void): void
 }
 
 // =============================================================================
@@ -32,6 +39,10 @@ export interface SelectionTreeSource {
  *
  * walkOrder does a DFS of the current ViewTree, collecting IDs.
  * parent/children look up the ViewIndex.
+ *
+ * If a beforeRead callback is installed via source.setBeforeRead(),
+ * it fires before every tree operation — use it to check freshness
+ * and rebuild the ViewTree if the repo has mutated since the last update.
  */
 export function createSelectionAdapter(): {
   app: SelectionApp
@@ -46,17 +57,23 @@ export function createSelectionAdapter(): {
     children: [],
     isBody: false,
   }
+  let beforeRead: (() => void) | null = null
 
   const source: SelectionTreeSource = {
     update(newIndex, newTree) {
       viewIndex = newIndex
       viewTree = newTree
     },
+    setBeforeRead(cb) {
+      beforeRead = cb
+    },
   }
 
   const app: SelectionApp = {
     tree: {
       walkOrder(root: ID | null): readonly ID[] {
+        beforeRead?.()
+
         // Find the subtree root
         const startNode = root ? viewIndex.get(root) : viewTree
         if (!startNode) return []
@@ -76,6 +93,7 @@ export function createSelectionAdapter(): {
       },
 
       parent(id: ID): ID | undefined {
+        beforeRead?.()
         const vn = viewIndex.get(id)
         if (!vn?.parent) return undefined
         // Don't return the board root as a parent (it's not selectable)
@@ -84,6 +102,7 @@ export function createSelectionAdapter(): {
       },
 
       children(id: ID): readonly ID[] {
+        beforeRead?.()
         const vn = viewIndex.get(id)
         if (!vn) return []
         return vn.children.map((c) => c.id as ID)

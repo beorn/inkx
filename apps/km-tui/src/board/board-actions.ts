@@ -2641,10 +2641,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
   ctx.toastQueue.info(`Pasted ${pastedCount} node${pastedCount > 1 ? "s" : ""}`)
 
   // Select the last pasted node by ID.
-  // refreshSelTree is needed because the repo mutation (addNode/moveNode) created
-  // new nodes that aren't in the sel walk order yet.
   if (lastPastedId) {
-    ctx.refreshSelTree()
     ctx.sel.node.select([lastPastedId as ID])
   }
 

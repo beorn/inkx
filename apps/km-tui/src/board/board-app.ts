@@ -318,15 +318,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // React components and subsequent buildOpCtx() calls see the update.
     let _textEditHints = s.textEditHints
 
-    /** Rebuild the sel tree source from current repo state. Invalidates layout cache. */
-    function refreshSelTree(): void {
-      const hiddenNodeIds = computeHiddenNodeIds(s.repo, rootId)
-      const result = deriveColumnsWithTree(s.repo, rootId, foldDepths, new Map(), hiddenNodeIds)
-      s.selTreeSource.update(buildViewIndex(result.viewTree), result.viewTree)
-      // Invalidate layout cache so next buildOpCtx rebuilds
-      locals.layoutCache = null
-    }
-
     const ctx: OpCtx = {
       repo: s.repo,
       sel: s.sel,
@@ -357,7 +348,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       viewTree,
       viewIndex,
       navigator: s.navigator,
-      refreshSelTree,
       viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
       toastQueue: s.toastQueue,
       undoStack: s.undoStack,

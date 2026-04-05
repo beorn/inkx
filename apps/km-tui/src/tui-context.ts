@@ -82,11 +82,6 @@ export interface OpCtx {
   /** Current card from layout (CardView at top level) */
   card: KNode | undefined
 
-  // === Selection tree refresh ===
-  /** Rebuild the sel tree source from current repo state. Call after repo mutations
-   * (addNode, moveNode, deleteNode) and before sel.node.select() in the same handler. */
-  refreshSelTree: () => void
-
   // === Dispatchers ===
   /** Dispatch to board state (for SELECT, ZOOM_IN, MOVE, etc.) */
   dispatchBoard: (action: BoardReducerOp) => void

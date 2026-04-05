@@ -66,7 +66,6 @@ function runEffect(ctx: OpCtx, effect: BoardEffect): void {
     case "REPO_ADD_NODE": {
       const newId = ctx.repo.addNode(effect.parentId, effect.node)
       if (effect.selectAfter) {
-        ctx.refreshSelTree() // new node not in walk order yet
         ctx.sel.node.select([newId as ID])
         ctx.sel.text.edit(newId as import("@silvery/selection").ID, 0)
         ctx.textEditHints = { blockIndex: 0 }

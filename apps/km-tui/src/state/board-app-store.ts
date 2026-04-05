@@ -454,14 +454,32 @@ export function createBoardAppStoreState(
       workspace = createDefaultWorkspace(initialPaneBoard, params)
     }
 
-    // Initialize each board pane's selTreeSource with the initial view tree.
+    // Initialize each board pane's selTreeSource with the initial view tree
+    // and install auto-refresh so walkOrder/parent/children are always fresh.
     // The sel store already has an initialCursor from createPaneState, but
     // the tree source needs populating so walk order is available.
+    /** Install auto-refresh on a board pane's selTreeSource.
+     * Before each tree read, checks repo version; if stale, rebuilds the ViewTree.
+     * This eliminates the need for manual refreshSelTree() calls at mutation sites. */
+    function installAutoRefresh(pane: BoardPaneState): void {
+      let lastVersion = undoableRepo.getSnapshot()
+      pane.selTreeSource.setBeforeRead(() => {
+        const currentVersion = undoableRepo.getSnapshot()
+        if (currentVersion !== lastVersion) {
+          const vTree = buildViewTree(undoableRepo, pane.rootId, pane.foldDepths)
+          const vIndex = buildViewIndex(vTree)
+          pane.selTreeSource.update(vIndex, vTree)
+          lastVersion = currentVersion
+        }
+      })
+    }
+
     for (const pane of workspace.panes.values()) {
       if (isBoardPane(pane)) {
         const initVTree = buildViewTree(params.repo, pane.rootId, pane.foldDepths)
         const initVIndex = buildViewIndex(initVTree)
         pane.selTreeSource.update(initVIndex, initVTree)
+        installAutoRefresh(pane)
       }
     }
 
@@ -541,6 +559,9 @@ export function createBoardAppStoreState(
     const routingSelTreeSource: SelectionTreeSource = {
       update(viewIndex, viewTree) {
         getActiveSelTreeSource().update(viewIndex, viewTree)
+      },
+      setBeforeRead(cb) {
+        getActiveSelTreeSource().setBeforeRead(cb)
       },
     }
 
@@ -1025,6 +1046,7 @@ export function createBoardAppStoreState(
           detailPane.parentPaneId = focusedPaneId
           // Inherit filter state from parent board pane (e.g., hide-done toggle)
           detailPane.filterProperties = { ...parentPane.filterProperties }
+          installAutoRefresh(detailPane)
           // Initialize the detail pane's sel with the initial cursor
           if (firstItemId) {
             const detailVTree = buildViewTree(state.repo, detailRootId, detailPane.foldDepths)
@@ -1381,6 +1403,7 @@ export function createBoardAppStoreState(
             viewMode: activeBoard?.viewMode ?? "columns",
             initialCursor: (activeBoardCursor as import("@silvery/selection").ID) ?? undefined,
           })
+          installAutoRefresh(updatedPane)
           // Initialize the new pane's sel with the cursor
           if (activeBoardCursor) {
             const initVTree = buildViewTree(state.repo, updatedPane.rootId, updatedPane.foldDepths)
