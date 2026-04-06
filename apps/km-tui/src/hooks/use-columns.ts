@@ -1,24 +1,14 @@
 /**
- * useColumns Hook — VIEW MODEL DERIVATION
+ * Column Utilities — VIEW MODEL DERIVATION
  *
- * Thin wrapper over the TreeLens (km-board). Delegates column derivation to
- * createViewLens() + deriveColumnsFromLens(), keeping only React hook plumbing
- * and cursor index utilities.
- *
- * Structure:
- * 1. useColumns() — React hook with repo subscription
- * 2. deriveColumnsFromRepo() — Builds a lens internally, then deriveColumnsFromLens
- * 3. deriveColumnsFromLens() — Lens → ColumnView[] conversion
- * 4. buildNodeIndex() — O(1) cursor position lookup map
- * 5. deriveCursorIndices() — Derives colIndex/cardIndex from cursor
+ * Column derivation, node index, and cursor position utilities.
+ * The ColumnView type is retained for test fixtures and detail-mode cursor derivation.
+ * Live rendering uses the tree lens directly (useNode + useSignal).
  */
 
-import { useRef, useState } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
 import type { SectionRules } from "@km/markdown"
-import { useStore } from "../state/store-context.tsx"
-import { useCommitVersion } from "./use-signal.ts"
 import { createLogger } from "loggily"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { createViewLens, extractWipLimits, type TreeLens, type ViewLensRepo } from "@km/board"
@@ -268,55 +258,6 @@ export function deriveCursorIndices(
   return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
 }
 
-// =============================================================================
-// Hook
-// =============================================================================
-
-/**
- * Derive columns from Repo for rendering.
- *
- * Uses useCommitVersion (signal-store) to subscribe to repo mutations — columns
- * automatically recompute when any mutation (updateNode, moveNode, etc.)
- * occurs, without requiring manual dispatch at each call site.
- *
- * @param repo - Repo instance
- * @param rootId - Current zoom root (null for repo root)
- * @param foldDepths - Map of node ID → depth budget (0 = folded, no entry = inherit)
- * @returns ColumnView[] for rendering
- */
-export function useColumns(
-  repo: Repo,
-  rootId: string | null,
-  foldDepths: Map<string, number>,
-  viewMode?: string,
-): ColumnView[] {
-  // Subscribe to all store commits — triggers re-render on any structural change.
-  // Uses broad subscription because column layout can be affected by any mutation.
-  const store = useStore()
-  const repoVersion = useCommitVersion(store)
-
-  // Batch-preload children cache before column derivation + Card mount.
-  const derive = viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
-  const [columns, setColumns] = useState<ColumnView[]>(() => {
-    repo.preloadSubtree(rootId, 3)
-    return derive(repo, rootId, foldDepths)
-  })
-
-  // Track deps to detect changes.
-  const depsRef = useRef({ rootId, version: repoVersion })
-  const foldDepthsRef = useRef(foldDepths)
-  foldDepthsRef.current = foldDepths
-
-  // Synchronous column derivation on rootId or version change.
-  if (depsRef.current.rootId !== rootId || depsRef.current.version !== repoVersion) {
-    repo.preloadSubtree(rootId, 3)
-    const newColumns = derive(repo, rootId, foldDepthsRef.current)
-    depsRef.current = { rootId, version: repoVersion }
-    setColumns(newColumns)
-  }
-
-  return columns
-}
 
 // =============================================================================
 // Node Index

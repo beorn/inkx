@@ -27,7 +27,7 @@ import type {
 } from "../../../vendor/silvery/packages/ag-react/src/ui/canvas/index.js"
 import { useInput } from "../../../vendor/silvery/packages/ag-react/src/hooks/useInput.ts"
 import type { Key } from "../../../vendor/silvery/packages/ag/src/keys.ts"
-import { useColumns } from "../src/hooks/use-columns.ts"
+import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import type { ColumnView as RealColumnView } from "../src/hooks/use-columns.ts"
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
@@ -591,7 +591,7 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
   const [rootId, setRootId] = useState<string | null>(null)
   const [rootHistory, setRootHistory] = useState<(string | null)[]>([])
 
-  const realColumns = useColumns(repo as Parameters<typeof useColumns>[0], rootId, emptyFoldDepths)
+  const realColumns = deriveColumnsFromRepo(repo as Parameters<typeof deriveColumnsFromRepo>[0], rootId, emptyFoldDepths)
   const columns = toColumns(realColumns, repo)
 
   // Auto-zoom-out if we landed on a leaf node with no columns
