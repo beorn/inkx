@@ -599,15 +599,27 @@ export function Board({ patchedConsole }: BoardProps) {
   // Pre-populate cursor state so child components have valid cursor on first render.
   const nodeStore = useMemo(() => {
     const store = new ReactiveNodeStore()
-    // Derive initial cursor classification from ViewSnapshot (single computed)
+    // Derive initial cursor classification from the visible lens
     if (cursor && rootId) {
-      const snap = ps.view() // read computed ViewSnapshot directly (mount-time only)
-      const ancestors = snap.classify(cursor)
+      const lens = ps.visibleLens()
+      // Walk up from cursor to find the containing card and column
+      let cursorCardNodeId: string | null = null
+      let cursorColumnNodeId: string | null = null
+      let cursorDepth: "board" | "column" | "card" = "board"
+      let current: string | null = cursor
+      while (current && current !== rootId) {
+        const role = lens.role(current)
+        if (role === "card" && !cursorCardNodeId) cursorCardNodeId = current
+        if ((role === "column" || role === "body-column") && !cursorColumnNodeId) cursorColumnNodeId = current
+        current = lens.parent(current)
+      }
+      if (cursorCardNodeId) cursorDepth = "card"
+      else if (cursorColumnNodeId) cursorDepth = "column"
       store.syncCursor({
         cursor,
-        cursorCardNodeId: ancestors.cursorCardNodeId,
-        cursorColumnNodeId: ancestors.cursorColumnNodeId,
-        cursorDepth: ancestors.cursorDepth,
+        cursorCardNodeId,
+        cursorColumnNodeId,
+        cursorDepth,
       })
     }
     return store
