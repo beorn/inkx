@@ -35,7 +35,7 @@ import {
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore } from "../state/reactive.ts"
-import { useSignal } from "../hooks/use-signal.ts"
+import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
@@ -190,10 +190,13 @@ const Card = React.memo(
     extraExcludedSigils,
     isColumnSelected: isColSelected = false,
     prevCardNodeId,
-    isBodyCard = false,
+    isBodyCard: isBodyCardProp = false,
     childCount: childCountProp,
   }: CardProps): React.ReactElement {
     const nodeId = card.id
+    // Derive isBody from ViewTree signal when available, fallback to prop
+    const viewNode = useNode(nodeId)
+    const isBodyCard = viewNode?.isBody ?? isBodyCardProp
 
     // Get selection state from ReactiveNodeStore (self-subscription via nodeId).
     // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
