@@ -24,12 +24,7 @@ import {
 // =============================================================================
 
 /** Flat node builder — creates a node with given properties */
-function n(
-  id: string,
-  parentId: string | null,
-  type: "h" | "p" = "h",
-  extra: Record<string, unknown> = {},
-): KNode {
+function n(id: string, parentId: string | null, type: "h" | "p" = "h", extra: Record<string, unknown> = {}): KNode {
   return {
     id,
     type,
@@ -177,9 +172,7 @@ function compare(nodes: KNode[], rootId: string) {
         diffs.push(`Column[${i}].card[${j}] hasBody: legacy=${lc.hasBodyChildren}, lens=${rc.hasBodyChildren}`)
       }
       if (lc.resolvedNodeId !== rc.resolvedNodeId) {
-        diffs.push(
-          `Column[${i}].card[${j}] resolvedNode: legacy=${lc.resolvedNodeId}, lens=${rc.resolvedNodeId}`,
-        )
+        diffs.push(`Column[${i}].card[${j}] resolvedNode: legacy=${lc.resolvedNodeId}, lens=${rc.resolvedNodeId}`)
       }
     }
   }

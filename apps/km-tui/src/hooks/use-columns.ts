@@ -23,6 +23,7 @@ import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-it
 import {
   buildViewTree,
   viewNodeToColumnViews,
+  extractWipLimits,
   type ViewNode,
   type ViewNodeColumnCache,
   type ViewTreeRepo,
@@ -102,6 +103,51 @@ export function deriveColumnsWithTree(
   hiddenNodeIds?: Set<string>,
 ): { columns: ColumnView[]; viewTree: ViewNode } {
   return deriveColumnsAndTree(repo, rootId, foldDepths, cache, hiddenNodeIds)
+}
+
+/**
+ * Derive ColumnView[] from a TreeLens — the modern, lens-based path.
+ * No ViewNode tree, no buildViewTree, no cache.
+ * Used by Board.tsx, buildOpCtx, and driver.ts.
+ */
+export function deriveColumnsFromLens(
+  lens: import("@km/board").TreeLens,
+  repo: { getNode: (id: string) => KNode | null | undefined },
+): ColumnView[] {
+  const rootId = lens.rootId
+  if (!rootId) return []
+
+  const colIds = lens.children(rootId)
+
+  // Collect structural column nodes for WIP limit extraction (excludes body-column)
+  const structuralNodes: KNode[] = []
+  for (const colId of colIds) {
+    if (lens.role(colId) !== "body-column") {
+      const node = lens.get(colId)
+      if (node) structuralNodes.push(node)
+    }
+  }
+  const wipLimits = extractWipLimits(structuralNodes)
+
+  return colIds
+    .map((colId): ColumnView | null => {
+      const node = lens.get(colId)
+      if (!node) return null
+      const role = lens.role(colId)
+      const rules = lens.rules(colId)
+      const cardIds = lens.children(colId)
+      const cardNodes = cardIds.map((id) => lens.get(id) ?? repo.getNode(id)).filter((n): n is KNode => n != null)
+      const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
+      const wipLimit = rules?.limit ?? wipLimits.get(normalizedName)
+      return {
+        node,
+        cardNodes,
+        rules,
+        wipLimit,
+        isVirtual: role === "body-column" ? true : undefined,
+      }
+    })
+    .filter((c): c is ColumnView => c != null)
 }
 
 // =============================================================================
@@ -355,7 +401,7 @@ function mapDescendants(
  * Uses tree.children(rootId) for columns, tree.children(colId) for cards.
  */
 export function buildNodeIndexFromTree(
-  tree: import("@km/board").ViewTreeProjection,
+  tree: Pick<import("@km/board").TreeLens, "rootId" | "children">,
 ): Map<string, { colIndex: number; cardIndex: number }> {
   const index = new Map<string, { colIndex: number; cardIndex: number }>()
   const rootId = tree.rootId

@@ -692,9 +692,7 @@ export function createBoardAppStoreState(
           // Derive cursor ancestors from the visible lens (O(depth) parent walk).
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
           const lens =
-            focusedPane && isBoardPane(focusedPane) && focusedPane.signals
-              ? focusedPane.signals.visibleLens()
-              : null
+            focusedPane && isBoardPane(focusedPane) && focusedPane.signals ? focusedPane.signals.visibleLens() : null
           const ancestors = lens
             ? classifyCursorFromLens(lens, action.nodeId)
             : getViewNavigation(

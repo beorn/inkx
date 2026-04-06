@@ -14,7 +14,7 @@ import { createLogger } from "loggily"
 /** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
 type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 import type { ID } from "@silvery/selection"
-import { isErr, type KNode } from "@km/core"
+import { isErr } from "@km/core"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { createBoardAppStoreState, Workspace, type CreateBoardAppStoreParams } from "../state/board-app-store.ts"
 import { isBoardPane, isDetailViewPane } from "./board-types.ts"
@@ -31,8 +31,13 @@ import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
 import type { ColumnView } from "../types.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
-import { deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { extractWipLimits, createViewTree } from "@km/board"
+import {
+  deriveDetailColumns,
+  buildNodeIndexFromTree,
+  deriveColumnsFromLens,
+  deriveCursorIndices,
+} from "../hooks/use-columns.ts"
+import { createViewTree } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -203,52 +208,16 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
     // Derive ColumnView[] from the lens (cards mode) or deriveDetailColumns (detail mode)
-    let columns: ColumnView[]
-    if (board?.viewMode === "detail") {
-      // Detail mode uses its own column derivation but shares the viewTree for navigation
-      columns = deriveDetailColumns(s.repo, rootId, foldDepths)
-    } else if (board?.signals) {
-      const lens = board.signals.visibleLens()
-      const effectiveRootId = lens.rootId ?? rootId
-      if (effectiveRootId) {
-        const colIds = lens.children(effectiveRootId)
-        const structural: KNode[] = []
-        for (const cid of colIds) {
-          if (lens.role(cid) !== "body-column") {
-            const n = lens.get(cid)
-            if (n) structural.push(n)
-          }
-        }
-        const wipLimits = extractWipLimits(structural)
-
-        columns = colIds
-          .map((colId): ColumnView | null => {
-            const node = lens.get(colId)
-            if (!node) return null
-            const role = lens.role(colId)
-            const rules = lens.rules(colId)
-            const cardIds = lens.children(colId)
-            const cardNodes = cardIds
-              .map((id) => lens.get(id))
-              .filter((n): n is KNode => n != null)
-            const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
-            const wipLimit = rules?.limit ?? wipLimits.get(normalizedName)
-            return {
-              node,
-              cardNodes,
-              rules,
-              wipLimit,
-              isVirtual: role === "body-column" ? true : undefined,
-            }
-          })
-          .filter((c): c is ColumnView => c != null)
-      } else {
-        columns = []
-      }
-    } else {
-      columns = []
-    }
-    const nodeIndex = buildNodeIndex(columns)
+    const columns: ColumnView[] =
+      board?.viewMode === "detail"
+        ? deriveDetailColumns(s.repo, rootId, foldDepths)
+        : board?.signals
+          ? deriveColumnsFromLens(board.signals.visibleLens(), s.repo)
+          : []
+    // Use tree-based index when lens is available (no ColumnView dependency).
+    const nodeIndex = board?.signals
+      ? buildNodeIndexFromTree(board.signals.visibleLens())
+      : new Map<string, { colIndex: number; cardIndex: number }>()
 
     // Pin the sel adapter to THIS ViewSnapshot for the duration of this key event.
     // Without this, a repo mutation (e.g., file watcher) between buildOpCtx and

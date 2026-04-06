@@ -40,15 +40,15 @@ import { ListView } from "./ListView.tsx"
 import { TabsView } from "./TabsView.tsx"
 import { DetailView } from "./DetailView.tsx"
 import { renderPath } from "../layout/index.ts"
-import { extractWipLimits, type GridNavigator } from "@km/board"
+import type { GridNavigator } from "@km/board"
 import type { PaneUI, FilterProperties } from "../state/ui-reducer.ts"
 import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
 import {
-  buildNodeIndex,
   buildNodeIndexFromTree,
+  deriveColumnsFromLens,
   deriveCursorIndices,
   deriveDetailColumns,
 } from "../hooks/use-columns.ts"
@@ -692,45 +692,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const visibleLensValue = useSignal(ps.visibleLens)
   const columns = useMemo((): ColumnView[] => {
     if (ui.viewMode === "detail") return deriveDetailColumns(repo, rootId, foldDepths)
-    if (!visibleLensValue) return []
-    const lens = visibleLensValue
-    const effectiveRootId = lens.rootId ?? rootId
-    if (!effectiveRootId) return []
-
-    const colIds = lens.children(effectiveRootId)
-
-    // Collect structural column nodes for WIP limit extraction (excludes body-column)
-    const structuralColumnNodes: KNode[] = []
-    for (const colId of colIds) {
-      if (lens.role(colId) !== "body-column") {
-        const node = lens.get(colId)
-        if (node) structuralColumnNodes.push(node)
-      }
-    }
-    const wipLimits = extractWipLimits(structuralColumnNodes)
-
-    return colIds.map((colId): ColumnView | null => {
-      const node = lens.get(colId)
-      if (!node) return null
-      const role = lens.role(colId)
-      const rules = lens.rules(colId)
-      const cardIds = lens.children(colId)
-      const cardNodes = cardIds
-        .map((id) => lens.get(id))
-        .filter((n): n is NonNullable<ReturnType<typeof lens.get>> => n != null)
-
-      // WIP limit from rules or parent frontmatter (matches viewNodeToColumnViews logic)
-      const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
-      const wipLimit = rules?.limit ?? wipLimits.get(normalizedName)
-
-      return {
-        node,
-        cardNodes,
-        rules,
-        wipLimit,
-        isVirtual: role === "body-column" ? true : undefined,
-      }
-    }).filter((c): c is ColumnView => c != null)
+    return deriveColumnsFromLens(visibleLensValue, repo)
   }, [visibleLensValue, ui.viewMode, repo, rootId, foldDepths])
 
   // Sync rule-based collapse (km.collapse:: true) into the store's collapsedNodes.
@@ -751,12 +713,8 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
-  // Prefer ViewTree-based index when available (no ColumnView dependency).
-  const paneViewTree = ps.viewTree
-  const nodeIndex = useMemo(
-    () => (paneViewTree ? buildNodeIndexFromTree(paneViewTree) : buildNodeIndex(columns)),
-    [paneViewTree, columns],
-  )
+  // Derived from the visible lens (no ColumnView dependency).
+  const nodeIndex = useMemo(() => buildNodeIndexFromTree(visibleLensValue), [visibleLensValue])
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
 
   // Sync inline edit state. Derives cardNodeId from parent_id so callers

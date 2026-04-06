@@ -61,7 +61,15 @@ export function FindBar({ localSearch, width, onQueryChange }: FindBarProps): Re
   }
 
   return (
-    <Box id="find-bar" flexShrink={0} width={width} height={1} flexDirection="row" backgroundColor={"$muted"} userSelect="none">
+    <Box
+      id="find-bar"
+      flexShrink={0}
+      width={width}
+      height={1}
+      flexDirection="row"
+      backgroundColor={"$muted"}
+      userSelect="none"
+    >
       <Text color={"$fg"} backgroundColor={"$muted"}>
         {" / "}
       </Text>

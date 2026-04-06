@@ -684,11 +684,7 @@ export function classifyCursorFromLens(
     current = lens.parent(current)
   }
 
-  const cursorDepth: "board" | "column" | "card" = cursorCardNodeId
-    ? "card"
-    : cursorColumnNodeId
-      ? "column"
-      : "board"
+  const cursorDepth: "board" | "column" | "card" = cursorCardNodeId ? "card" : cursorColumnNodeId ? "column" : "board"
 
   return { cursorCardNodeId, cursorColumnNodeId, cursorDepth }
 }

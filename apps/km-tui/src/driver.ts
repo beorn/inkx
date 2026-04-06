@@ -66,7 +66,12 @@ import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
 import { buildBoardState } from "./state.ts"
 import { createGridNavigator, type GridNavigator } from "@km/board"
-import { deriveColumnsFromRepo, deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "./hooks/use-columns.ts"
+import {
+  deriveDetailColumns,
+  buildNodeIndexFromTree,
+  deriveColumnsFromLens,
+  deriveCursorIndices,
+} from "./hooks/use-columns.ts"
 import { ensureCommandSystemInitialized } from "./board/command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
 import {
@@ -253,9 +258,15 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
-    const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
-    const cols = derive(s.repo, rootId, foldDepths)
-    const ni = buildNodeIndex(cols)
+    const cols =
+      board?.viewMode === "detail"
+        ? deriveDetailColumns(s.repo, rootId, foldDepths)
+        : board?.signals
+          ? deriveColumnsFromLens(board.signals.visibleLens(), s.repo)
+          : []
+    const ni = board?.signals
+      ? buildNodeIndexFromTree(board.signals.visibleLens())
+      : new Map<string, { colIndex: number; cardIndex: number }>()
     const cursor = (board?.sel.node.cursor() as string | null) ?? null
     const cursorPos = deriveCursorIndices(cols, cursor, ni, (id) => s.repo.getNode(id))
     const column = cols[cursorPos.colIndex]
@@ -351,9 +362,15 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
     // Derive layout on demand
-    const derive = board?.viewMode === "detail" ? deriveDetailColumns : deriveColumnsFromRepo
-    const cols = derive(s.repo, rootId, foldDepths)
-    const ni = buildNodeIndex(cols)
+    const cols =
+      board?.viewMode === "detail"
+        ? deriveDetailColumns(s.repo, rootId, foldDepths)
+        : board?.signals
+          ? deriveColumnsFromLens(board.signals.visibleLens(), s.repo)
+          : []
+    const ni = board?.signals
+      ? buildNodeIndexFromTree(board.signals.visibleLens())
+      : new Map<string, { colIndex: number; cardIndex: number }>()
     const cursorId = (board?.sel.node.cursor() as string | null) ?? null
     const cursorPos = deriveCursorIndices(cols, cursorId, ni, (id) => s.repo.getNode(id))
     const col = cols[cursorPos.colIndex]
