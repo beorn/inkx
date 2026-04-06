@@ -36,6 +36,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Principle: Organize Objects Into Layers](#principle-organize-objects-into-layers)
   - [Principle: Structural, Not Physical](#principle-structural-not-physical)
   - [Principle: Compose Flows using Generators](#principle-compose-flows-using-generators)
+  - [Principle: Scoped Operations, Not Flags](#principle-scoped-operations-not-flags)
 - [Part 2: The Fast Feedback Loop](#part-2-the-fast-feedback-loop)
   - [Principle: Fail Loud, Fail Now](#principle-fail-loud-fail-now)
   - [Principle: 5-Second Test Loops](#principle-5-second-test-loops)
@@ -47,6 +48,9 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [No Prop Drilling](#no-prop-drilling)
   - [No Hidden Side Effects](#no-hidden-side-effects)
   - [Local Reasoning](#local-reasoning)
+  - [Style Modifiers as Colors, Not Booleans](#style-modifiers-as-colors-not-booleans)
+  - [Match State Lifetime to Component Lifetime](#match-state-lifetime-to-component-lifetime)
+  - [Atomic Updates to Coupled State](#atomic-updates-to-coupled-state)
   - [Signal Ownership](#signal-ownership)
   - [API Boundaries](#api-boundaries)
   - [Type Safety](#type-safety)
@@ -591,6 +595,37 @@ async *respond(s) {
 
 ---
 
+### Principle: Scoped Operations, Not Flags
+
+**The insight**: When an operation temporarily changes behavior (drag, select mode, batch edit), scope it as a machine with its own lifetime — don't set a flag on global state and rely on everyone to check it.
+
+**The pattern**: A scoped operation owns its state from start to end. Components that participate enter/exit the scope; code outside the scope sees no change. This is the TEA machine shape: `(action, state) → [state, effects]` where the machine *is* the operation.
+
+```typescript
+// ❌ BAD — global flag, everyone must remember to check
+store.isDragging = true
+store.dragSource = nodeId
+// ... many handlers now branch on `isDragging`
+// (forget one → zombie drag state bugs)
+
+// ✅ GOOD — scoped machine owns the operation
+using drag = beginDrag(nodeId)
+drag.update({ x, y })
+drag.commit()
+// lifetime-bound: scope exit guarantees cleanup
+```
+
+**Why**: Flags leak. If even one handler forgets to clear `isDragging`, you have a zombie mode that breaks unrelated interactions. Scoped operations can't leak — the machine's lifetime is the operation's lifetime.
+
+Serializable actions (`dragStart`, `dragMove`, `dragEnd`) also enable replay, undo, and AI automation — see [docs/design/tea-state-machines.md](design/tea-state-machines.md).
+
+**Guidelines:**
+- [ ] Scope temporary state — `using op = beginX()` / not `store.xMode = true`
+- [ ] Operations are machines — `(action, state) → [state, effects]` / not imperative flag flips
+- [ ] Lifetime-bound cleanup — `Symbol.dispose` or commit/cancel / not manual flag reset
+
+---
+
 ## Part 2: The Fast Feedback Loop
 
 Fast feedback enables extreme quality: tests run in ~11s, programming errors throw loudly, and failures happen at the call site—not in production.
@@ -967,6 +1002,103 @@ function processNode(db: Database, node: KNode) {
 
 ---
 
+### Style Modifiers as Colors, Not Booleans
+
+**The rule**: Visual state (selected, disabled, focused, muted) cascades via theme colors — not boolean props that every component must branch on.
+
+```tsx
+// ❌ BAD - every descendant needs `selected?: boolean`
+<Card selected={isSelected}>
+  <Title selected={isSelected} />
+  <Body selected={isSelected}>
+    <Tag selected={isSelected} />  // prop drilling through the visual tree
+  </Body>
+</Card>
+
+// ✅ GOOD - set the color once; children inherit via context/theme
+<Card color={isSelected ? "$selected" : "$fg"}>
+  <Title />  {/* inherits $selected from parent */}
+  <Body>
+    <Tag />
+  </Body>
+</Card>
+```
+
+**Why**: Booleans don't compose. Each new visual state (hover, focus, drag-over) doubles the prop matrix. Colors compose through inheritance — set `$selected` at the container and every child renders in the selection treatment automatically. It's also how designers actually think: "the selected column is blue," not "every element has selected=true."
+
+This applies to any visual modifier: focus, disabled, error, warning, muted. Express it as a semantic color token (`$focused`, `$muted`) on the parent, not a boolean branched on by every child.
+
+**Guidelines:**
+- [ ] Semantic colors for visual state — `color="$selected"` / not `selected={true}` prop drilling
+- [ ] Set once, inherit down — parent owns the color / not every child branches
+- [ ] One token per state — `$selected`, `$focused`, `$muted` / not ad-hoc boolean combos
+
+---
+
+### Match State Lifetime to Component Lifetime
+
+**The rule**: A piece of state must be owned by something whose lifetime matches the state's validity. Orphan state — living longer than its owner or shorter than its consumers — produces zombie data and stale reads.
+
+```tsx
+// ❌ BAD - cursor stored on parent, but cursor semantics belong to the pane
+function Board({ cursor, setCursor }: Props) {
+  return panes.map(p => <Pane cursor={cursor} />)
+  // which pane owns cursor? when pane unmounts, who clears it?
+}
+
+// ✅ GOOD - each pane owns its own cursor; unmount clears it
+function Pane() {
+  const pane = usePane()  // pane-scoped store, dies with the pane
+  return <Column cursor={pane.cursor} />
+}
+```
+
+**Symptoms of mismatched lifetimes:**
+- A store outlives the component that created it → reopening shows stale state
+- A component reads state that was cleaned up when its parent unmounted → undefined crash
+- Two components share state with no clear owner → effect cascades and double writes
+- Global state mirrors local state → they drift out of sync
+
+**Fix**: Move the state to something whose lifetime *is* the state's validity. Pane state on the pane. Drag state on the drag operation. Session state on the session. If there's no natural owner, create one — a factory object with `Symbol.dispose` that cleans up on scope exit.
+
+This is the dual of [Scoped Operations, Not Flags](#principle-scoped-operations-not-flags): state is scoped to its lifetime, not smeared across the global store.
+
+**Guidelines:**
+- [ ] State has one owner — component, store, or machine / not "shared" with no owner
+- [ ] Lifetime match — state dies when its owner dies / not leaks beyond unmount
+- [ ] No orphan globals — if state exists only during X, it lives on X / not on the app store
+
+---
+
+### Atomic Updates to Coupled State
+
+**The rule**: When two pieces of state must stay consistent (cursor position and the tree it points into, selection and the nodes it selects, scroll offset and the content it scrolls), update them **together in one action** — never in sequence.
+
+```typescript
+// ❌ BAD - two writes, cursor briefly points at a deleted node
+tree.removeNode(id)
+cursor.set(findNearestSibling(id))  // window where cursor is stale
+
+// ✅ GOOD - one action updates both atomically
+store.removeNode(id)  // internally: compute new cursor, then apply both
+```
+
+**Why**: Coupled state that updates sequentially has a window where the invariant is violated. Any code that runs between the two writes (rerender, effect, observer) sees the inconsistent state. This is how "cursor points at a deleted node" bugs are born.
+
+**How to enforce:**
+1. Put coupled state under the same owner (one store method, one reducer action).
+2. Compute the new values from the old ones *first*, then write them together.
+3. Add an [invariant](#principle-fail-loud-fail-now) that fires if the coupling is ever broken.
+
+If the invariant throws, the bug surfaces at the offending action — not three renders later when something tries to read the dead cursor.
+
+**Guidelines:**
+- [ ] One action per coupled update — `store.removeNode()` / not `tree.remove(); cursor.fix()`
+- [ ] Compute before write — derive new state, then apply in one step / not write then fix
+- [ ] Invariant guards coupling — `checkInvariants()` asserts the relationship holds
+
+---
+
 ### Signal Ownership
 
 **The rule**: Signals are written only by their owning store's methods. No external writes, no effect cascades between stores.
@@ -1075,11 +1207,26 @@ const node = nodes.find(n => n.id === id)
 if (!node) throw new Error(`Node ${id} not found`)
 ```
 
+**Check for absence, not falsiness.** Use `!= null` (or `=== undefined`) when you mean "is it missing?" — `!x` also fires on empty string, 0, and false, all of which are valid values.
+
+```typescript
+// ❌ BAD - treats "", 0, false as absence
+if (!content) renderPlaceholder()        // empty string is valid content!
+if (!task.status) task.status = "todo"   // "" is a real status
+
+// ✅ GOOD - checks for actual absence
+if (content == null) renderPlaceholder()
+if (task.status == null) task.status = "todo"
+```
+
+This is one of the few places `== null` is correct — it covers both `null` and `undefined` with intent.
+
 **Guidelines:**
 - [ ] No any — `unknown` + narrowing / not `any`
 - [ ] No bang — `if (!x) throw` / not `x!`
 - [ ] Explicit returns — `fn(): Result` / not inferred on exports
 - [ ] Use satisfies — `x satisfies T` / not `x as T`
+- [ ] Absence checks use `!= null` — `if (x == null)` / not `if (!x)` (breaks on `""`, `0`, `false`)
 
 ---
 

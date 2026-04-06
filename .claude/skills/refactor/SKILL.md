@@ -65,6 +65,40 @@ When extracting packages from a monolith:
 
 8. **Audit the entire feature set, not just your session's changes.** `/complete` checks what YOU changed. A systematic feature-by-feature audit (bead promise vs actual code) catches what `/complete` misses: unimplemented promises, missing tests, stale docstrings.
 
+## Rename Checklist
+
+Renames look trivial and are not. A "simple rename" session usually leaves half the old name scattered across the codebase because the agent stopped after fixing the compiler. The compiler only checks types — it won't catch a rename that lives in a comment, a test fixture, a file path, or a doc heading.
+
+**For every rename, sweep all seven layers in order:**
+
+| # | Layer | What to grep | Why it's missed |
+|---|-------|-------------|-----------------|
+| 1 | **Data** | DB schema, migrations, JSON/YAML fixtures, stored enums | TypeScript doesn't check runtime data shape |
+| 2 | **Types** | `interface`, `type`, `enum`, discriminated union tags | Usually the easy part — tsc catches these |
+| 3 | **Functions** | `function foo`, `const foo =`, method names, factory names | tsc catches call sites but not string-based lookups |
+| 4 | **Files** | file names, directory names, `import from '...'` paths | Git tracks content, not names — easy to forget |
+| 5 | **Comments** | `// foo`, JSDoc `@param foo`, TODO/FIXME references | Invisible to tsc and tests |
+| 6 | **Docs** | `docs/**/*.md`, `README.md`, `CLAUDE.md`, bead descriptions | The biggest source of drift |
+| 7 | **Tests** | test names, `describe("foo")`, fixture data, snapshot files | Test name is a string, not checked |
+
+**The sweep command**:
+
+```bash
+# Find every mention, any layer. Review before editing.
+rg -i "old_name" --glob '!node_modules' --glob '!dist' --glob '!*.lock'
+```
+
+Run this **before** you think you're done, not after. If the count is non-zero, you're not done.
+
+**Common misses** (the ones that keep coming back):
+- DB column names when renaming a field (data layer outlives code)
+- String literals in `switch (type)` branches or lookup tables
+- File basenames that encode the old name (`old-name.test.ts`, `old-name.md`)
+- Heading anchors in markdown (`#old-name` links break silently)
+- Comment blocks that explain the old mental model
+
+**Don't trust `bun fix`**: lint catches unused imports, not stale names. `tsc --noEmit` catches type errors, not stale strings. Only the grep sweep is authoritative.
+
 ## Phase Completion Protocol (MANDATORY — enforced, not advisory)
 
 **Closing a bead without running its acceptance criteria is a bug.** The definition of done is not "I did a lot of work." It's "every acceptance grep returns the expected result."

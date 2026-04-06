@@ -6,6 +6,40 @@
 
 **Exploration means using AI intelligence to observe, hypothesize, and investigate.** The interactive explorer launches the real TUI, looks at it, navigates, takes screenshots, and notices what feels off. Tests are a safety net (health check), not the main event.
 
+## Lessons From Prior Sessions
+
+These aren't optional — they're the patterns that made the difference between a session that found real bugs and one that produced noise.
+
+### Invariant Checks > Manual Inspection
+
+A runtime invariant that fires on every action finds bugs that manual screenshot review misses. The interactive explorer's step-6 invariant list (breadcrumb updated, no internal IDs visible, no `[object Object]`, vault unchanged after navigation, cursor on a visible node) **is the exploration**, not a checklist you skim. Each invariant caught a real bug — that's why it's there. When adding new invariants, bias toward "check on every action" instead of "check in a specific scenario."
+
+### Real Vault > Synthetic Fixtures (But Test ON Synthetic)
+
+**Reproduce on the real vault; write tests against synthetic fixtures.** Real data has the shapes that trigger bugs (long content, mixed node types, weird nesting); synthetic data is reproducible, small, and doesn't change between runs. The interactive explorer starts on real data (`/tmp/vt` or `--path`) to *find* the bug; the reproducer converts it into a synthetic fixture in the TUI test so the repro is stable.
+
+Never promote a real-vault path into a test fixture — the vault will change and the test will rot. Always translate the bug shape into `item("board", ...)` form before landing it.
+
+### Parallel Agents = Parallel Files
+
+Background agents (explorers, reproducer, fixer) parallelize cleanly **only when they don't share files**. The pipeline below works because:
+- Explorers write to `/tmp/km-explore-tests/` (scratch) and `/tmp/explore-screenshots/` (outputs)
+- Reproducer writes new test files in `/tmp/km-explore-tests/`
+- Fixer edits source files (one bead at a time — no two fixers on the same file)
+- Only the lead touches the session bead
+
+If two agents would edit the same file, serialize them or split the work. File-level contention is the #1 cause of "parallel agents" that actually run sequentially with extra merge pain.
+
+### Update Beads Aggressively — They Survive Context
+
+The session bead is the **only** thing that survives a `/compact`. Update it after every significant event:
+- Bug found → append to notes, update dashboard in description
+- Fix committed → append to notes with commit SHA
+- User verifies → update status, update dashboard
+- Blocked → append blocker and what would unblock
+
+The dashboard is the user's only reliable window into the session — context compression can hide everything else. If the bead description isn't current, the session effectively loses memory.
+
 ## Smart Routing
 
 The lead interprets `/explore` args to decide what to emphasize:
