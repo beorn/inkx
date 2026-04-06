@@ -1900,7 +1900,8 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
   const boardCoreElement = React.createElement(BoardCore, {
     rootId: state.rootId,
-    columns: state.columns,
+    columnIds: state.columns.map((c: any) => c.node.id),
+    columnFilters: new Map<string, import("../../src/views/Board.tsx").ColumnFilterState>(),
     colIndex: 0,
     cardIndex: 0,
     ui: createInitialPaneUI("cards", [], { columns, rows }),

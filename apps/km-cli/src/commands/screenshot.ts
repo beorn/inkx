@@ -77,7 +77,8 @@ export const screenshotCommand = new Command("screenshot")
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {
       rootId: state.rootId,
-      columns: state.columns,
+      columnIds: state.columns.map((c: any) => c.node.id),
+      columnFilters: new Map<string, import("../../../km-tui/src/views/Board.tsx").ColumnFilterState>(),
       colIndex: 0,
       cardIndex: 0,
       ui: createInitialPaneUI("cards", [], { columns: width, rows: height }),

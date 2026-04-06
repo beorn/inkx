@@ -28,7 +28,8 @@ import type {
 import { useInput } from "../../../vendor/silvery/packages/ag-react/src/hooks/useInput.ts"
 import type { Key } from "../../../vendor/silvery/packages/ag/src/keys.ts"
 import { useColumns } from "../src/hooks/use-columns.ts"
-import type { ColumnView as RealColumnView } from "../src/types.ts"
+import type { KNode } from "@km/core"
+import type { ColumnView as RealColumnView } from "../src/hooks/use-columns.ts"
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
 
 // ============================================================================
@@ -573,7 +574,7 @@ function toColumns(columns: RealColumnView[], repo: RepoLike): Column[] {
   return columns.map((col) => ({
     id: col.node.id,
     name: nodeName(col.node),
-    cards: col.cardNodes.map((card) => {
+    cards: col.cardNodes.map((card: KNode) => {
       const children = repo.getChildren(card.id)
       return {
         id: card.id,
