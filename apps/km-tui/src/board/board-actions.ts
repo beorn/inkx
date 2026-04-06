@@ -156,6 +156,7 @@ const EDIT_TYPE_LIST = [
   "REPARENT_PICKER",
   "ARCHIVE_NODE",
   "TASK_SET_STATUS",
+  "TASK_CYCLE_STATUS",
   "CLEAR_TASK",
   "SHIFT_UP",
   "SHIFT_DOWN",
@@ -688,6 +689,12 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
     case "ARCHIVE_NODE":
       return unimplemented("ui")
     case "TASK_SET_STATUS":
+      // Pass op.status through so `x`/toggle_task_done and explicit set_status_*
+      // commands apply the requested status instead of cycling.
+      handleTaskStatusCycle(ctx, action.status)
+      return ok()
+    case "TASK_CYCLE_STATUS":
+      // No explicit status → per-card cycle (batch-aware).
       handleTaskStatusCycle(ctx)
       return ok()
     case "CLEAR_TASK":

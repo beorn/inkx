@@ -100,6 +100,18 @@ export interface TaskSetStatusOp {
   status: TaskStatus
 }
 
+/**
+ * Cycle task status per-card through todo → wip → blocked → done → dropped.
+ *
+ * Distinct from TASK_SET_STATUS so that batch cycling can advance each selected
+ * card from its own current status independently, rather than all snapping to a
+ * single pre-computed status based on the cursor node.
+ */
+export interface TaskCycleStatusOp {
+  type: "TASK_CYCLE_STATUS"
+  nodeId: string
+}
+
 export interface ClearTaskOp {
   type: "CLEAR_TASK"
   nodeId: string
@@ -803,6 +815,7 @@ export type EditOp =
   | ReparentPickerOp
   | ArchiveNodeOp
   | TaskSetStatusOp
+  | TaskCycleStatusOp
   | ClearTaskOp
   | ShiftUpOp
   | ShiftDownOp

@@ -47,6 +47,7 @@ const EDIT_TYPES = [
   "REPARENT_PICKER",
   "ARCHIVE_NODE",
   "TASK_SET_STATUS",
+  "TASK_CYCLE_STATUS",
   "CLEAR_TASK",
   "SHIFT_UP",
   "SHIFT_DOWN",
@@ -259,8 +260,8 @@ describe("sub-union categorization", () => {
     expect(NAV_TYPES).toHaveLength(12)
   })
 
-  test("EditOp has 24 types", () => {
-    expect(EDIT_TYPES).toHaveLength(24)
+  test("EditOp has 25 types", () => {
+    expect(EDIT_TYPES).toHaveLength(25)
   })
 
   test("TextOp has 22 types", () => {

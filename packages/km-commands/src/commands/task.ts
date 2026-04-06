@@ -1,23 +1,7 @@
-import type { KmOp, CommandDef, TaskStatus, TaskSetStatusOp } from "../types.ts"
+import type { KmOp, CommandDef, TaskStatus, TaskSetStatusOp, TaskCycleStatusOp } from "../types.ts"
 
 // Re-export for consumers
 export type { TaskSetStatusOp as TaskOp } from "../types.ts"
-
-// Status cycle: todo -> wip -> done -> dropped -> todo
-function getNextStatus(current: TaskStatus | null | undefined): TaskStatus {
-  switch (current) {
-    case "todo":
-      return "wip"
-    case "wip":
-      return "done"
-    case "done":
-      return "dropped"
-    case "dropped":
-      return "todo"
-    default:
-      return "todo"
-  }
-}
 
 // Note: Task commands need special handling as they modify storage
 // They return a marker action that the dispatcher will convert to storage mutations
@@ -33,12 +17,12 @@ const cycleTaskStatus = {
     const node = ctx.currentNode
     // Check if node is a task
     if (!node.isTask) return null
-    const newStatus = getNextStatus(node.item?.task?.status)
+    // Emit TASK_CYCLE_STATUS (not TASK_SET_STATUS) so the handler can advance
+    // each selected card from its own current status when multi-selected.
     return {
-      type: "TASK_SET_STATUS",
+      type: "TASK_CYCLE_STATUS",
       nodeId: ctx.currentNodeId,
-      status: newStatus,
-    } satisfies TaskSetStatusOp
+    } satisfies TaskCycleStatusOp
   },
 } satisfies CommandDef
 

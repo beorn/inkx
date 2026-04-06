@@ -299,21 +299,20 @@ describe("taskCommands", () => {
       expectAction(taskCommands, "cycle_task_status", null, ctx)
     })
 
-    it.each([
-      ["todo", "wip"],
-      ["wip", "done"],
-      ["done", "dropped"],
-      ["dropped", "todo"],
-    ] as const)("cycles %s -> %s", (from, to) => {
-      const result = executeCommand(taskCommands, "cycle_task_status", createTaskContext(from)) as KmOp
-      expect(result).toEqual({
-        type: "TASK_SET_STATUS",
-        nodeId: "task-node",
-        status: to,
-      })
+    it("emits TASK_CYCLE_STATUS for any task status (handler cycles per-card)", () => {
+      // km-tui.task-toggle-cycles: cycle_task_status must emit TASK_CYCLE_STATUS
+      // (no pre-computed status) so the dispatcher can advance each selected
+      // card from its own current status when multi-selected.
+      for (const from of ["todo", "wip", "blocked", "done", "dropped"] as const) {
+        const result = executeCommand(taskCommands, "cycle_task_status", createTaskContext(from)) as KmOp
+        expect(result).toEqual({
+          type: "TASK_CYCLE_STATUS",
+          nodeId: "task-node",
+        })
+      }
     })
 
-    it("treats undefined status as starting at todo", () => {
+    it("emits TASK_CYCLE_STATUS even when task has no status yet", () => {
       const ctx = createContext({
         currentNode: createNode("task-node", [], {
           isTask: true,
@@ -322,7 +321,7 @@ describe("taskCommands", () => {
         currentNodeId: "task-node",
       })
       const result = executeCommand(taskCommands, "cycle_task_status", ctx) as KmOp
-      expect((result as { status: string }).status).toBe("todo")
+      expect(result).toEqual({ type: "TASK_CYCLE_STATUS", nodeId: "task-node" })
     })
   })
 

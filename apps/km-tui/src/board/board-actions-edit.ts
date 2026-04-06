@@ -483,13 +483,18 @@ export function handleConfirmMove(ctx: OpCtx): void {
 }
 
 /**
- * Cycle task status (todo → wip → blocked → done → dropped).
+ * Set task status.
  *
- * Batch-aware: when multi-selection is active, cycles all selected cards.
- * Each card advances from its own current status independently.
+ * If `explicitStatus` is provided (from the op), applies it directly — this is
+ * the path used by `toggle_task_done` (binary todo↔done flip) and the explicit
+ * `set_status_*` commands. If omitted, cycles todo → wip → blocked → done →
+ * dropped — used by `cycle_task_status`.
+ *
+ * Batch-aware: when multi-selection is active, applies to all selected cards.
+ * In cycle mode, each card advances from its own current status independently.
  * Selection is preserved — status is an in-place modification.
  */
-export function handleTaskStatusCycle(ctx: OpCtx): void {
+export function handleTaskStatusCycle(ctx: OpCtx, explicitStatus?: TaskStatus): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
   const count = forEachSelected(ctx, "Toggle status", (c) => {
@@ -497,9 +502,14 @@ export function handleTaskStatusCycle(ctx: OpCtx): void {
     const targetId = symlinkTarget || c.id
     const targetNode = symlinkTarget ? ctx.repo.getNode(symlinkTarget) : c
     const currentStatus = targetNode?.item?.task?.status || "todo"
-    const currentIndex = statusCycle.indexOf(currentStatus)
-    const nextIndex = (currentIndex + 1) % statusCycle.length
-    const nextStatus = statusCycle[nextIndex] ?? "todo"
+    let nextStatus: TaskStatus
+    if (explicitStatus !== undefined) {
+      nextStatus = explicitStatus
+    } else {
+      const currentIndex = statusCycle.indexOf(currentStatus)
+      const nextIndex = (currentIndex + 1) % statusCycle.length
+      nextStatus = statusCycle[nextIndex] ?? "todo"
+    }
 
     // Recurrence: when a recurring task transitions to "done", clone it with next due date
     const dueParts = targetNode ? extractTaskDates(targetNode).due : undefined

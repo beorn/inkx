@@ -44,25 +44,40 @@ describe("checkbox interaction", () => {
   // Keyboard toggle
   // =========================================================================
 
-  test("keyboard toggle_task_done cycles task status", () => {
+  test("keyboard toggle_task_done toggles between todo and done (does not cycle)", () => {
+    // Regression: km-tui.task-toggle-cycles — x used to cycle todo→wip→blocked→done
+    // because handleTaskStatusCycle ignored op.status. toggle_task_done should flip
+    // between todo and done, nothing else.
     const { board, repo } = testEnv(() => item.root("board", item("Column", item.task("Buy milk", "todo"))), {
       columns: 80,
       rows: 24,
     })
 
-    // Verify initial state
     expect(repo.getNode("Buy milk")?.item?.task?.status).toBe("todo")
 
-    // The toggle_task_done key (x) goes through handleTaskStatusCycle,
-    // which cycles: todo -> wip -> blocked -> done -> dropped -> todo
-    board.command("toggle_task_done")
-    expect(repo.getNode("Buy milk")?.item?.task?.status).toBe("wip")
-
-    board.command("toggle_task_done")
-    expect(repo.getNode("Buy milk")?.item?.task?.status).toBe("blocked")
-
+    // First toggle: todo -> done
     board.command("toggle_task_done")
     expect(repo.getNode("Buy milk")?.item?.task?.status).toBe("done")
+
+    // Second toggle: done -> todo
+    board.command("toggle_task_done")
+    expect(repo.getNode("Buy milk")?.item?.task?.status).toBe("todo")
+
+    // Third toggle: todo -> done (stable two-state toggle)
+    board.command("toggle_task_done")
+    expect(repo.getNode("Buy milk")?.item?.task?.status).toBe("done")
+  })
+
+  test("toggle_task_done on wip task flips to done (not next in cycle)", () => {
+    // Regression: km-tui.task-toggle-cycles — x on a wip task used to go to blocked.
+    const { board, repo } = testEnv(() => item.root("board", item("Column", item.task("Do work", "wip"))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    expect(repo.getNode("Do work")?.item?.task?.status).toBe("wip")
+    board.command("toggle_task_done")
+    expect(repo.getNode("Do work")?.item?.task?.status).toBe("done")
   })
 
   // =========================================================================
@@ -119,12 +134,12 @@ describe("checkbox interaction", () => {
       { columns: 80, rows: 24 },
     )
 
-    // Navigate to task-2 and toggle (cycles done -> dropped)
+    // Navigate to task-2 and toggle (done -> todo, because toggle_task_done flips)
     board.navigateTo("task-2")
     board.command("toggle_task_done")
 
-    // task-2 cycles from done -> dropped (handleTaskStatusCycle cycles through all)
-    expect(repo.getNode("task-2")?.item?.task?.status).toBe("dropped")
+    // task-2 toggles from done -> todo (binary toggle, not cycle)
+    expect(repo.getNode("task-2")?.item?.task?.status).toBe("todo")
     // Others unchanged
     expect(repo.getNode("task-1")?.item?.task?.status).toBe("todo")
     expect(repo.getNode("task-3")?.item?.task?.status).toBe("wip")
@@ -148,21 +163,21 @@ describe("checkbox interaction", () => {
     board.expectState({ cursor: "task-1" })
     board.command("toggle_task_done")
 
-    // Cursor stays on task-1 after toggle
+    // Cursor stays on task-1 after toggle (todo -> done)
     board.expectState({ cursor: "task-1" })
-    expect(repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+    expect(repo.getNode("task-1")?.item?.task?.status).toBe("done")
 
     // Navigate to task-2, toggle task-2
     board.navigateTo("task-2")
     board.expectState({ cursor: "task-2" })
     board.command("toggle_task_done")
 
-    // Cursor stays on task-2
+    // Cursor stays on task-2 (todo -> done)
     board.expectState({ cursor: "task-2" })
-    expect(repo.getNode("task-2")?.item?.task?.status).toBe("wip")
+    expect(repo.getNode("task-2")?.item?.task?.status).toBe("done")
 
-    // task-1 and task-3 unchanged
-    expect(repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+    // task-1 unchanged (still done), task-3 unchanged (still todo)
+    expect(repo.getNode("task-1")?.item?.task?.status).toBe("done")
     expect(repo.getNode("task-3")?.item?.task?.status).toBe("todo")
   })
 })
