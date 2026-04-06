@@ -75,7 +75,7 @@ export interface TreeLens {
   /** True if this node is body content (non-outline before first heading) */
   isBody(id: string): boolean
 
-  /** Pre-resolved embed target, if this node has embed_source */
+  /** Pre-resolved embed target, if this node has symlink_to */
   resolvedEmbed(id: string): KNode | undefined
 
   /** Section rules (WIP limit, color, collapse) parsed from frontmatter */

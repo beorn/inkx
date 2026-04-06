@@ -126,7 +126,7 @@ export const TreeNode = React.memo(TreeNodeImpl, (prev, next) => {
   // Node content that affects display (includes implicit task properties)
   if (
     prev.node.content !== next.node.content ||
-    prev.node.embed_source !== next.node.embed_source ||
+    prev.node.symlink_to !== next.node.symlink_to ||
     prev.node.item?.task?.status !== next.node.item?.task?.status ||
     prev.node.due_at !== next.node.due_at ||
     prev.node.start_at !== next.node.start_at ||
@@ -561,7 +561,7 @@ function TreeNodeImpl({
     let totalPassing = 0
     for (const child of children) {
       // For embed children, resolve to source node to get task_status
-      const filterNode = child.embed_source ? (repo.getNode(child.embed_source) ?? child) : child
+      const filterNode = child.symlink_to ? (repo.getNode(child.symlink_to) ?? child) : child
       const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
       if (!status || taskStatusFilter.has(status)) {
         totalPassing++

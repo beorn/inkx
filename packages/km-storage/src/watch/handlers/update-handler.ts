@@ -192,12 +192,12 @@ export function handleUpdate(options: UpdateHandlerOptions): void {
       source_id: sourceId,
     })
 
-    // Emit embed_source update so the in-memory store stays in sync.
-    // addLink sets embed_source on the DB node directly (no changes),
+    // Emit symlink_to update so the in-memory store stays in sync.
+    // addLink sets symlink_to on the DB node directly (no changes),
     // but the TUI reads from the in-memory store which needs the change.
     if (link.embedded && link.target_id) {
       emitNodeUpdated(emitter, "fs-watch", sourceId, {
-        embed_source: link.target_id,
+        symlink_to: link.target_id,
         name: link.alias ?? undefined,
       })
     }

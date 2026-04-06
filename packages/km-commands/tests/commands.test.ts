@@ -32,7 +32,7 @@ function createNode(id: string, children: TNode[] = [], opts?: Partial<TNode>): 
     item: opts?.item?.task ? { task: { status: opts.item.task.status ?? "todo", marker: "[ ]" } } : {},
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     name: id,
     title: id,
     children,

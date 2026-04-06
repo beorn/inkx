@@ -173,11 +173,11 @@ describe("buildViewTree", () => {
     expect(col1.id).toBe("col1")
   })
 
-  test("embeds: card with embed_source has resolvedEmbed, children from target", () => {
+  test("embeds: card with symlink_to has resolvedEmbed, children from target", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "Column"),
-      { ...paragraph("embed-card", "col1", 0, "Embed"), embed_source: "target" },
+      { ...paragraph("embed-card", "col1", 0, "Embed"), symlink_to: "target" },
       heading("target", null, 0, "Target Node"),
       paragraph("target-child1", "target", 0, "Target Child 1"),
       paragraph("target-child2", "target", 1, "Target Child 2"),

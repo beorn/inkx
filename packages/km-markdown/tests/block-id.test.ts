@@ -305,7 +305,7 @@ describe("On-demand block ID generation", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Buy groceries",
     })
 
@@ -355,7 +355,7 @@ describe("On-demand block ID generation", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Buy groceries",
     })
 
@@ -401,7 +401,7 @@ describe("On-demand block ID generation", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Buy groceries",
     })
 
@@ -451,7 +451,7 @@ describe("On-demand block ID generation", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Task one",
     })
     const embed2 = makeTestNode({
@@ -459,7 +459,7 @@ describe("On-demand block ID generation", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 2,
-      embed_source: "task-2",
+      symlink_to: "task-2",
       content: "Task two",
       item: { task: { status: "todo", marker: "[ ]" } },
     })
@@ -640,7 +640,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Buy groceries",
     })
 
@@ -683,7 +683,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "section-1",
+      symlink_to: "section-1",
       content: "![[notes#My Section]]",
     })
 
@@ -720,7 +720,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "ul-1",
+      symlink_to: "ul-1",
       content: "Important item",
     })
 
@@ -758,7 +758,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Buy groceries",
     })
 
@@ -799,7 +799,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Buy groceries",
     })
 
@@ -845,7 +845,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 1,
-      embed_source: "task-1",
+      symlink_to: "task-1",
       content: "Task with ID",
     })
     const embed2 = makeTestNode({
@@ -853,7 +853,7 @@ describe("Embed references with block_id", () => {
       type: "p",
       parent_id: "file-1",
       parent_idx: 2,
-      embed_source: "task-2",
+      symlink_to: "task-2",
       content: "Task without ID",
       item: { task: { status: "todo", marker: "[ ]" } },
     })

@@ -33,7 +33,7 @@ export interface EmbedResolution {
 
 /** Resolve embed source to target node and display node. */
 export function resolveEmbed(repo: EmbedRepo, node: KNode): EmbedResolution {
-  const embedSource = node.embed_source
+  const embedSource = node.symlink_to
   const isEmbedded = embedSource != null
   const resolvedNode = isEmbedded && embedSource ? (repo.getNode(embedSource) ?? null) : null
   const displayNode = resolvedNode ?? node
@@ -142,9 +142,9 @@ export function getDisplayContent(
       }
       return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
     }
-    // Broken embed: embed_source is set but target node doesn't exist.
-    // Try to resolve via embed_source (may contain file#^blockId format).
-    const src = node.embed_source ?? ""
+    // Broken embed: symlink_to is set but target node doesn't exist.
+    // Try to resolve via symlink_to (may contain file#^blockId format).
+    const src = node.symlink_to ?? ""
     const resolved = tryResolveEmbedRef(repo, src)
     if (resolved) return resolved
     // Clean block-ID references (^blockid) so they don't show raw IDs
@@ -165,8 +165,8 @@ export function getDisplayContent(
   // Show a human-readable label instead of the raw ID.
   const stripped = cleanContentForDisplay(displayNode.content)
   if (/^\^[\d]+$/.test(stripped.trim())) {
-    // If the node has an embed_source, resolve to target's display name
-    const nodeEmbedSource = node.embed_source
+    // If the node has an symlink_to, resolve to target's display name
+    const nodeEmbedSource = node.symlink_to
     if (nodeEmbedSource) {
       const target = repo.getNode(nodeEmbedSource)
       if (target) return getNodeDisplayName(repo, target)

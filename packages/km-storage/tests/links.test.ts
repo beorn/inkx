@@ -129,8 +129,8 @@ describe("Links and Backlinks", () => {
       const targetTask = nodes.find((n) => n.item?.task?.status != null && n.content?.includes("Review PR @work"))
       expect(targetTask).toBeDefined()
 
-      // The embedding should have embed_source pointing to the specific task, not the file
-      expect(embedNode?.embed_source).toBe(targetTask?.id)
+      // The embedding should have symlink_to pointing to the specific task, not the file
+      expect(embedNode?.symlink_to).toBe(targetTask?.id)
     })
 
     test("should resolve embedding to file when no section match", () => {
@@ -153,7 +153,7 @@ describe("Links and Backlinks", () => {
       expect(sourceFile).toBeDefined()
 
       // The embedding should fall back to the file since section doesn't exist
-      expect(embedNode?.embed_source).toBe(sourceFile?.id)
+      expect(embedNode?.symlink_to).toBe(sourceFile?.id)
     })
 
     test("should resolve embedding to section by title", () => {
@@ -179,7 +179,7 @@ describe("Links and Backlinks", () => {
       expect(conclusionSection).toBeDefined()
 
       // The embedding should point to the specific section
-      expect(embedNode?.embed_source).toBe(conclusionSection?.id)
+      expect(embedNode?.symlink_to).toBe(conclusionSection?.id)
     })
   })
 
@@ -207,15 +207,15 @@ describe("Links and Backlinks", () => {
       expect(inboxFolder).toBeDefined()
 
       // The embedding should point to the folder
-      expect(embedNode?.embed_source).toBe(inboxFolder?.id)
+      expect(embedNode?.symlink_to).toBe(inboxFolder?.id)
     })
 
-    test("should resolve embedded folder embed_source", () => {
+    test("should resolve embedded folder symlink_to", () => {
       const testDir = createTestDir()
       mkdirSync(join(testDir, "projects"), { recursive: true })
       writeFileSync(join(testDir, "projects", "proj1.md"), "# Project 1\n\nContent")
 
-      // Use embedding syntax to test embed_source resolution
+      // Use embedding syntax to test symlink_to resolution
       writeFileSync(join(testDir, "index.md"), "# Index\n\n![[projects]]")
 
       using store = new MemoryStore(testDir)
@@ -231,8 +231,8 @@ describe("Links and Backlinks", () => {
       )
       expect(projectsFolder).toBeDefined()
 
-      // The embedding's embed_source should point to the folder
-      expect(embedNode?.embed_source).toBe(projectsFolder?.id)
+      // The embedding's symlink_to should point to the folder
+      expect(embedNode?.symlink_to).toBe(projectsFolder?.id)
     })
 
     test("folders should have name field populated", () => {
@@ -313,7 +313,7 @@ describe("Links and Backlinks", () => {
       expect(resolved).toBeNull()
     })
 
-    test("![[ULID]] embed resolves embed_source within same DB", () => {
+    test("![[ULID]] embed resolves symlink_to within same DB", () => {
       const testDir = createTestDir()
       // Create the task file
       writeFileSync(join(testDir, "tasks.md"), "# Tasks\n\n- [ ] Buy groceries")
@@ -408,8 +408,8 @@ describe("Links and Backlinks", () => {
       const targetTask = nodes.find((n) => n.item?.task?.status != null && n.content?.includes("Buy groceries"))
       expect(targetTask).toBeDefined()
 
-      // The embed should have embed_source pointing to the Buy groceries task
-      expect(embedNode?.embed_source).toBe(targetTask?.id)
+      // The embed should have symlink_to pointing to the Buy groceries task
+      expect(embedNode?.symlink_to).toBe(targetTask?.id)
     })
 
     test("should resolve embed with block_id to target section", () => {
@@ -430,8 +430,8 @@ describe("Links and Backlinks", () => {
       )
       expect(introSection).toBeDefined()
 
-      // The embed's embed_source should point to the Introduction section
-      expect(embedNode?.embed_source).toBe(introSection?.id)
+      // The embed's symlink_to should point to the Introduction section
+      expect(embedNode?.symlink_to).toBe(introSection?.id)
     })
   })
 
@@ -480,7 +480,7 @@ describe("Links and Backlinks", () => {
       expect(targetTask).toBeDefined()
 
       // Verify the embed resolves to the correct task by block_id
-      expect(embedNode?.embed_source).toBe(targetTask?.id)
+      expect(embedNode?.symlink_to).toBe(targetTask?.id)
     })
   })
 })

@@ -76,7 +76,7 @@ function applyNodeCreated(db: Database, change: Change): void {
   const result = db.run(
     `
     INSERT OR IGNORE INTO nodes (
-      id, type, fstype, parent_id, item, embed_source, parent_idx,
+      id, type, fstype, parent_id, item, symlink_to, parent_idx,
       fs_path, fs_ino, fs_mtime, name, title, md_pos, md_line,
       list_marker, task_marker,
       task_status, assigned_to, due_at, start_at, priority,
@@ -97,7 +97,7 @@ function applyNodeCreated(db: Database, change: Change): void {
       (data.fstype as string) ?? null,
       (data.parent_id as string) ?? null,
       data.item ? 1 : 0,
-      (data.embed_source as string) ?? null,
+      (data.symlink_to as string) ?? null,
       (data.parent_idx as number) ?? 0,
       (data.fs_path as string) ?? null,
       (data.fs_ino as number) ?? null,

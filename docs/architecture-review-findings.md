@@ -54,7 +54,7 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 - **Key redundancy**: `splitBodyAndColumns()` in view-navigation.ts reimplements `extractBody()` from @km/tree
 
 **Embed-related** (41 files, ~200+ occurrences)
-- `embed_source`: 40 files, ~150 occurrences
+- `symlink_to`: 40 files, ~150 occurrences
 - `resolvedEmbed` (ViewNode): 2 files, ~10
 - `resolvedNode` (CardView): 5 files, ~22
 - **Key redundancy**: 3 independent embed resolution paths (CardView.resolvedNode, ViewNode.resolvedEmbed, embed-display.ts resolveEmbed())

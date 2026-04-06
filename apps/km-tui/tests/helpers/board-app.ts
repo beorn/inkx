@@ -139,10 +139,10 @@ export const parentLinks: Invariant = (app) => {
   }
 }
 
-/** All embed_source references are valid */
+/** All symlink_to references are valid */
 export const nodeLinks: Invariant = (app) => {
   for (const node of app.repo.data.getAllNodes()) {
-    const embedSrc = node.embed_source
+    const embedSrc = node.symlink_to
     if (embedSrc) {
       expect(app.repo.getNode(embedSrc), `Embed source "${embedSrc}" missing for "${node.id}"`).toBeDefined()
     }

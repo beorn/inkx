@@ -26,7 +26,7 @@ function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
     fstype: "mdsection",
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -707,9 +707,9 @@ describe("getParentContext", () => {
     expect(getParentContext(taskNode, "column1", getNode)).toBe("Board")
   })
 
-  it("follows embed_source for transclusion nodes", () => {
+  it("follows symlink_to for transclusion nodes", () => {
     const linkedNode = createNode("linked1", {
-      embed_source: "original1",
+      symlink_to: "original1",
       parent_id: "board-column",
     })
     const originalNode = createNode("original1", {
@@ -737,7 +737,7 @@ describe("getParentContext", () => {
       return null
     }
 
-    // Should follow embed_source and return original file's context
+    // Should follow symlink_to and return original file's context
     expect(getParentContext(linkedNode, null, getNode)).toBe("Original File")
   })
 

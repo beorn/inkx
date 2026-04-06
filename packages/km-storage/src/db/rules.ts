@@ -109,9 +109,9 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
 }
 
 /**
- * Evaluate km.add:: rule(s) and materialize results as outline items with embed_source.
+ * Evaluate km.add:: rule(s) and materialize results as outline items with symlink_to.
  * Creates outline items (type: "h", item: {}) as children of the section.
- * embed_source on each item enables transclusion (resolveEmbed renders the target's content).
+ * symlink_to on each item enables transclusion (resolveEmbed renders the target's content).
  * Removes items that no longer match any query (e.g., after status change).
  * Multiple queries are unioned — a node matching any query is included.
  */
@@ -166,7 +166,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   const sectionChildren = getChildren(db, sectionId)
 
   // Remove rule-created items that no longer match any query
-  // Identify by embed_source (set on all rule-materialized nodes)
+  // Identify by symlink_to (set on all rule-materialized nodes)
   const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db, matchFileAncestorCache)))
   const existingEmbedNodes = sectionChildren.filter((n) => KNode.isEmbed(n))
   let removedCount = 0
@@ -217,9 +217,9 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
       continue
     }
 
-    // Create outline item with embed_source pointing to the matched node.
+    // Create outline item with symlink_to pointing to the matched node.
     // type: "h", item: {} makes it a structural sub-item (card) on the board,
-    // not body content. embed_source enables transclusion (resolveEmbed).
+    // not body content. symlink_to enables transclusion (resolveEmbed).
     const embedNode = buildEmbedChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath: candidatePath })
     ops.addNode(sectionId, embedNode)
 

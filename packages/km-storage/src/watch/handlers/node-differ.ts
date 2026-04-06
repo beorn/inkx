@@ -62,7 +62,7 @@ function computeOrdinals(nodes: KNode[]): Map<string, number> {
  */
 function makeStructuralKey(parentId: string | null, ordinal: number, type: string): string {
   // Legacy: normalize "embed" → "p" for matching old databases that still have type="embed" nodes.
-  // In current model, embed_source is orthogonal to type — nodes stay as their parsed type.
+  // In current model, symlink_to is orthogonal to type — nodes stay as their parsed type.
   const normalizedType = type === "embed" ? "p" : type
   return `${parentId ?? "root"}:${ordinal}:${normalizedType}`
 }
@@ -228,10 +228,10 @@ export function diffNodes(existing: KNode[], newNodes: KNode[]): DiffResult {
       const existingNode = existing.find((n) => n.id === existingId)!
       const nodeChanges = diffNodeFields(existingNode, node, CHILD_DIFF_FIELDS)
 
-      // Preserve embed_source from existing node — parser can't resolve
-      // ![[...]] to embed_source, so re-parsing would clear programmatic embeddings
-      if (existingNode.embed_source && !node.embed_source) {
-        delete nodeChanges.embed_source
+      // Preserve symlink_to from existing node — parser can't resolve
+      // ![[...]] to symlink_to, so re-parsing would clear programmatic embeddings
+      if (existingNode.symlink_to && !node.symlink_to) {
+        delete nodeChanges.symlink_to
       }
 
       if (Object.keys(nodeChanges).length > 0) {
@@ -288,7 +288,7 @@ const CHILD_DIFF_FIELDS = [
   "due_at",
   "start_at",
   "priority",
-  "embed_source",
+  "symlink_to",
   "name",
   "title",
 ] as const

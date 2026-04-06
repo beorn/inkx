@@ -96,8 +96,8 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       // Resolve target node (follow embed source if applicable)
       const node = repo.getNode(nodeId)
       if (!node) return
-      const targetId = node.embed_source || nodeId
-      const targetNode = node.embed_source ? repo.getNode(node.embed_source) : node
+      const targetId = node.symlink_to || nodeId
+      const targetNode = node.symlink_to ? repo.getNode(node.symlink_to) : node
       if (!targetNode) return
 
       const currentStatus = targetNode.item?.task?.status ?? "todo"

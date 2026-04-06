@@ -148,7 +148,7 @@ export function createViewTree(): ViewTree {
       display: displayNode,
       isBody: lens.isBody(id),
       isSymlink: embed !== undefined,
-      isBrokenSymlink: knode.embed_source != null && embed === undefined,
+      isBrokenSymlink: knode.symlink_to != null && embed === undefined,
       hasBody,
       rules: lens.rules(id),
       data: knode,

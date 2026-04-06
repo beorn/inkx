@@ -49,7 +49,7 @@ interface KNode {
   parent_idx: number      // sibling order
   content: string         // text content
   title: string           // display title (materialized)
-  embed_source?: string   // points to another node (embeds)
+  symlink_to?: string   // points to another node (embeds)
   fstype?: string         // "repo" | "folder" | "file" | "mdsection"
   rules?: SectionRules    // parsed km.* directives (collapse, color, limit)
 }
@@ -60,7 +60,7 @@ const KNode = {
   isOutline(node): boolean  // type === "h" && item != null — creates hierarchy
   isListItem(node): boolean // type !== "h" && item != null — bullet/task
   isTask(node): boolean     // node.item?.task != null
-  isEmbed(node): boolean    // has embed_source
+  isEmbed(node): boolean    // has symlink_to
 }
 ```
 
@@ -252,7 +252,7 @@ This is a **rendering rule, not data**. The same KNode renders as a column when 
 
 **Body content**: Non-outline direct children of root (paragraphs, tasks, embeds before the first heading) render in a virtual "Description" column. Determined by `extractBody()` at derivation time.
 
-**Embeds**: A node with `embed_source` displays the referenced node's content in its visual position. The visual parent (embed slot) differs from the data parent (source file). ViewNode resolves this by storing `resolvedEmbed` and using the visual parent for its `parent` pointer.
+**Embeds**: A node with `symlink_to` displays the referenced node's content in its visual position. The visual parent (embed slot) differs from the data parent (source file). ViewNode resolves this by storing `resolvedEmbed` and using the visual parent for its `parent` pointer.
 
 ## Composition Model
 

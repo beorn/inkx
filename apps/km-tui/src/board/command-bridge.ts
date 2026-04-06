@@ -45,9 +45,9 @@ function buildCommandContexts(ctx: OpCtx) {
   const { ui, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system.
-  // For embed nodes, resolve through embed_source to check if the target is a task,
+  // For embed nodes, resolve through symlink_to to check if the target is a task,
   // so that task commands (x, Space) work on embeds pointing to tasks.
-  const embedSource = selectedNode?.embed_source
+  const embedSource = selectedNode?.symlink_to
   const nodeForCtx: TNode | null = selectedNode
     ? ({
         ...selectedNode,

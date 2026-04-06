@@ -40,7 +40,7 @@ function createNode(id: string, overrides: Partial<ParsedFile["nodes"][0]> = {})
     fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),
@@ -439,7 +439,7 @@ describe("applyLinks()", () => {
     expect(dbLinks).toHaveLength(1)
   })
 
-  test("updates node embed_source for embedded links", async () => {
+  test("updates node symlink_to for embedded links", async () => {
     const db = createTestDb()
 
     // Insert source node
@@ -458,12 +458,12 @@ describe("applyLinks()", () => {
 
     await runPipeline(applyLinks(fromArray(links), db))
 
-    // Verify embed_source was updated on node
-    const node = db.query("SELECT embed_source, name FROM nodes WHERE id = ?").get("src1") as {
-      embed_source: string
+    // Verify symlink_to was updated on node
+    const node = db.query("SELECT symlink_to, name FROM nodes WHERE id = ?").get("src1") as {
+      symlink_to: string
       name: string
     }
-    expect(node.embed_source).toBe("tgt1")
+    expect(node.symlink_to).toBe("tgt1")
     expect(node.name).toBe("My Alias")
   })
 

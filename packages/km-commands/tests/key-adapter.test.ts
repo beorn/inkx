@@ -26,7 +26,7 @@ function createNode(id: string, opts?: Partial<TNode>): TNode {
     item: {},
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     name: id,
     title: id,
     children: [],

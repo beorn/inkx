@@ -252,10 +252,10 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
 export function handleFollowLink(ctx: OpCtx): OpResult {
   const { dispatchBoard } = ctx
   const card = ctx.card
-  // Read embed_source fresh from the repo — the cached layout may have stale null
+  // Read symlink_to fresh from the repo — the cached layout may have stale null
   // values if background link resolution completed after layout was derived.
   const freshNode = card ? ctx.repo.getNode(card.id) : null
-  const linkTo = freshNode?.embed_source ?? card?.embed_source
+  const linkTo = freshNode?.symlink_to ?? card?.symlink_to
   if (!linkTo) return boundary("follow_link", "not an embed")
 
   const target = ctx.repo.getNode(linkTo)

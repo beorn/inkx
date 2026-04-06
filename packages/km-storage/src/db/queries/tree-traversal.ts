@@ -135,9 +135,9 @@ export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null)
       SELECT n.id FROM nodes n
       JOIN descendants d ON n.parent_id = d.id
     )
-    SELECT embed_source AS target FROM nodes
+    SELECT symlink_to AS target FROM nodes
     WHERE id IN (SELECT id FROM descendants)
-    AND embed_source IS NOT NULL
+    AND symlink_to IS NOT NULL
   `,
     )
     .all(boardRootId) as { target: string }[]
@@ -164,7 +164,7 @@ export function getEmbedPathsOnBoard(
       `
     SELECT data, content FROM nodes
     WHERE parent_id IN (SELECT id FROM nodes WHERE parent_id = ?)
-    AND embed_source IS NOT NULL
+    AND symlink_to IS NOT NULL
   `,
     )
     .all(boardRootId) as Array<{ data: string | null; content: string | null }>

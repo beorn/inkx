@@ -188,12 +188,12 @@ function createVirtualBodyNode(parentId: string | null): KNode {
  * Used only by deriveDetailColumns (which doesn't go through ViewNode).
  */
 function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView[] {
-  const embedSourceIds = nodes.filter((n) => n.embed_source).map((n) => n.embed_source!)
+  const embedSourceIds = nodes.filter((n) => n.symlink_to).map((n) => n.symlink_to!)
   const resolvedMap = embedSourceIds.length > 0 ? repo.getNodesBatch(embedSourceIds) : new Map<string, KNode>()
 
   return nodes.map((node) => {
     const isBody = bodyIds.has(node.id)
-    const resolvedNode = node.embed_source ? resolvedMap.get(node.embed_source) : undefined
+    const resolvedNode = node.symlink_to ? resolvedMap.get(node.symlink_to) : undefined
     const sourceId = resolvedNode?.id ?? node.id
     const firstChild = isBody ? undefined : repo.getChildren(sourceId)[0]
     const hasBodyChildren = firstChild != null && !KNode.isOutline(firstChild)
@@ -202,7 +202,7 @@ function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView
       __cardView: true as const,
       resolvedNode,
       isBody,
-      isBrokenEmbed: node.embed_source != null && resolvedNode === undefined,
+      isBrokenEmbed: node.symlink_to != null && resolvedNode === undefined,
       hasBodyChildren,
     } as CardView
   })

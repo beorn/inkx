@@ -549,7 +549,7 @@ function makeNode(partial: Partial<KNode> & { id: string; type: KNode["type"] })
     ...(partial.item?.list ? { list_marker: partial.item?.list } : {}),
     parent_id: partial.parent_id ?? null,
     parent_idx: partial.parent_idx ?? 0,
-    embed_source: partial.embed_source ?? null,
+    symlink_to: partial.symlink_to ?? null,
     title: partial.title,
     content: partial.content ?? partial.title ?? "",
     data: {},
@@ -585,7 +585,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         content: "Embed 1",
         parent_id: sectionId,
         parent_idx: 0,
-        embed_source: targetId,
+        symlink_to: targetId,
       }),
       makeNode({
         id: embed2Id,
@@ -593,7 +593,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         content: "Embed 2",
         parent_id: sectionId,
         parent_idx: 1,
-        embed_source: targetId,
+        symlink_to: targetId,
       }),
       // Target node for embeds
       makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Some task", parent_id: null }),
@@ -679,7 +679,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
         content: "Embed ref",
         parent_id: sectionId,
         parent_idx: 1,
-        embed_source: targetId,
+        symlink_to: targetId,
       }),
       makeNode({ id: targetId, type: "p", item: { list: "-" }, title: "Target", parent_id: null }),
     ]
@@ -697,7 +697,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
     const paraCard = col.cardNodes.find((c) => c.id === paraId)
     const embedCard = col.cardNodes.find((c) => c.id === embedId)
 
-    // Embed should not be body (embed_source nodes get isBody: false)
+    // Embed should not be body (symlink_to nodes get isBody: false)
     expect(embedCard?.isBody).toBeFalsy()
   })
 })
@@ -772,7 +772,7 @@ describe("Zoom View Diff - deriveColumnsFromRepo matches buildBoardState", () =>
         content: "Leading embed",
         parent_id: rootId,
         parent_idx: 0,
-        embed_source: targetId,
+        symlink_to: targetId,
       }),
       makeNode({
         id: sectionId,

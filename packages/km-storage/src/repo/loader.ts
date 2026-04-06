@@ -822,7 +822,7 @@ function* applyChanges(
             (data.fstype as string) ?? null,
             parentId,
             data.item ? 1 : 0,
-            (data.embed_source as string) ?? null,
+            (data.symlink_to as string) ?? null,
             (data.parent_idx as number) ?? 0,
             fsPath,
             (data.fs_ino as number) ?? null,

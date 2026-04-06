@@ -1986,7 +1986,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(item.body).toContain("\\_italic\\_")
   })
 
-  test("convert resolves parentTaskGid to embed_source when target exists", () => {
+  test("convert resolves parentTaskGid to symlink_to when target exists", () => {
     const data: ImportData = {
       source: "asana",
       fetchedAt: "2026-02-19T00:00:00Z",
@@ -2012,7 +2012,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
     expect(md).not.toContain("→ ^688222992104100")
   })
 
-  test("convert sets embed_source on node when parentTaskGid target exists", () => {
+  test("convert sets symlink_to on node when parentTaskGid target exists", () => {
     const nodes: KNode[] = []
     const counter = { value: 0 }
     const primaryMap = new Map([["99999", "test.md"]])
@@ -2029,10 +2029,10 @@ describe("Block reference stripping (→ ^numericId)", () => {
       primaryMap,
     )
     const taskNode = nodes.find((n) => n.id === "child-1")!
-    expect(taskNode.embed_source).toBe("^99999")
+    expect(taskNode.symlink_to).toBe("^99999")
   })
 
-  test("convert omits embed_source when parentTaskGid target does not exist", () => {
+  test("convert omits symlink_to when parentTaskGid target does not exist", () => {
     const nodes: KNode[] = []
     const counter = { value: 0 }
     const primaryMap = new Map<string, string>()
@@ -2049,7 +2049,7 @@ describe("Block reference stripping (→ ^numericId)", () => {
       primaryMap,
     )
     const taskNode = nodes.find((n) => n.id === "child-1")!
-    expect(taskNode.embed_source).toBeUndefined()
+    expect(taskNode.symlink_to).toBeUndefined()
   })
 
   test("handles multiple spaces around arrow in → ^numericId", () => {
@@ -2762,9 +2762,9 @@ describe("Embed nodes use actual task title", () => {
     )
     const refNode = nodes.find((n) => n.id === "ref-shared-1")!
     expect(refNode).toBeDefined()
-    // Content is clean title, embed reference is in embed_source
+    // Content is clean title, embed reference is in symlink_to
     expect(refNode.content).toBe("Actual Task Title")
-    expect(refNode.embed_source).toBe("^shared-1")
+    expect(refNode.symlink_to).toBe("^shared-1")
     // Only one node emitted (no child paragraph)
     expect(nodes).toHaveLength(1)
   })

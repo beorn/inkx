@@ -361,7 +361,7 @@ describe("Links table migration deduplicates existing data", () => {
         fstype TEXT,
         due_at TEXT,
         start_at TEXT,
-        embed_source TEXT,
+        symlink_to TEXT,
         parsed INTEGER DEFAULT 0,
         block_id TEXT,
         title TEXT,

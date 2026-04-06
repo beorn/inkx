@@ -99,7 +99,7 @@ export function createLinkResolver(db: Database): LinkResolver {
       if (byName) return byName
 
       // Fallback: check if target is a node ID directly.
-      // Handles ![[ULID]] embeds serialized from embed_source task targets.
+      // Handles ![[ULID]] embeds serialized from symlink_to task targets.
       const byId = nodeIdStmt.get(targetName) as { id: string } | null
       return byId?.id ?? null
     },

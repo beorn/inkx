@@ -23,7 +23,7 @@ function makeNode(id: string, overrides: Partial<KNode> = {}): KNode {
     data: {},
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",

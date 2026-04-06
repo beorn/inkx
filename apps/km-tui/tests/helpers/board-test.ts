@@ -315,7 +315,7 @@ export function item(content: string, ...childArrays: KNode[][]): KNode[] {
     data: hasChildren ? { name: cleanContent } : {},
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -361,7 +361,7 @@ function makeNodeWithType(
     },
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -406,7 +406,7 @@ item.hr = (id?: string): KNode[] => {
     data: {},
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     created_at: Date.now(),
     updated_at: Date.now(),
     version: "v1",
@@ -425,7 +425,7 @@ item.task = (content: string, status?: string): KNode[] => {
 item.link = (content: string, linkTo: string): KNode[] => {
   const nodes = makeNodeWithType(content, "p", {})
   if (nodes[0]) {
-    nodes[0].embed_source = linkTo
+    nodes[0].symlink_to = linkTo
   }
   return nodes
 }
@@ -2099,7 +2099,7 @@ export function column(title: string, cards: (string | { title: string; children
       parent_idx: childIdx,
       content: childContent,
       data: {},
-      embed_source: null,
+      symlink_to: null,
       created_at: Date.now(),
       updated_at: Date.now(),
       version: "v1",

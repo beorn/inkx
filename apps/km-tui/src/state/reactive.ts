@@ -208,8 +208,8 @@ export class ReactiveNodeStore {
         cardState.parent = col.id
 
         // Log broken embed links
-        if (card.embed_source && !repo.getNode(card.embed_source)) {
-          log.debug?.(`Broken embed: node ${card.id} → missing target ${card.embed_source}`)
+        if (card.symlink_to && !repo.getNode(card.symlink_to)) {
+          log.debug?.(`Broken embed: node ${card.id} → missing target ${card.symlink_to}`)
         }
 
         // Card fold depth
