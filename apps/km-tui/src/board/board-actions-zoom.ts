@@ -14,9 +14,10 @@ import type { OpCtx } from "../tui-context.ts"
 
 /** Short display name for a node (≤25 chars), suitable for toast messages. */
 function shortName(ctx: OpCtx, nodeId: string | null | undefined): string {
-  if (!nodeId) return "?"
+  if (!nodeId) return "this item"
   const node = ctx.repo.getNode(nodeId)
-  const raw = node?.title ?? node?.name ?? nodeId.slice(-8)
+  // Try title, name, content, or fall back to a generic label — never show internal IDs.
+  const raw = node?.title ?? node?.name ?? node?.content ?? "this item"
   return raw.length > 25 ? raw.slice(0, 22) + "…" : raw
 }
 
