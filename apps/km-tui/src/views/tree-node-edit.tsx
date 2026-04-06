@@ -18,7 +18,6 @@ import type { UndoableRepoHandle } from "../undo/undoable-repo.ts"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { BodyEditField } from "./BodyEditField.tsx"
 import { isHRContent, stripTaskMark, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
-import { InlineText } from "../text/index.ts"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 
 // =============================================================================
@@ -149,12 +148,22 @@ export function TitleEditor({
             undoHandle.startBatch("Rename")
             repo.renameNode(displayNode.id, newContent, (info) => onProgress(info.updated, info.total))
             undoHandle.endBatch()
+            // Re-anchor the cursor to the renamed node. The view lens recomputes
+            // after renameNode (parent children cache busts, walkOrder shifts),
+            // so any prior selection that referenced the now-stale walkOrder
+            // snapshot would normalize to empty → cursor null → invariant
+            // violation. Re-selecting after the mutation forces normalization
+            // against the fresh walkOrder.
+            // See bead km-tui.rename-column-cursor-null.
+            sel.node.select([displayNode.id as import("@silvery/selection").ID])
           },
         })
       } else if (newContent !== originalContent) {
         // Name and content diverged — just update content, don't rename
         undoHandle.setCursor(displayNode.id)
         repoUpdate(displayNode.id, { content: newContent })
+        // Same defensive re-anchor as the rename branch above.
+        sel.node.select([displayNode.id as import("@silvery/selection").ID])
       }
 
       // HR type conversion: p/li with HR content → hr, hr with non-HR content → p
@@ -233,21 +242,44 @@ export function TitleEditor({
 // BodyBlockEditor — editing for body children (paragraphs, code blocks, etc.)
 // =============================================================================
 
+/**
+ * Component interface for the TreeNode renderer used by non-active body blocks.
+ * Passed in as a prop to break the circular import (TreeNode.tsx imports
+ * this file, so this file cannot statically import TreeNode).
+ */
+type TreeNodeRenderer = React.ComponentType<{
+  node: KNode
+  depth: number
+  isSelected: boolean
+  colIndex: number
+  cardIndex: number
+  getChildren?: (id: string) => KNode[]
+  isBody?: boolean
+}>
+
 interface BodyBlockEditorProps {
   displayNode: KNode
   editState: NodeEditState
   childrenSourceId: string
   resolvedGetChildren: (id: string) => KNode[]
   depth: number
+  colIndex: number
+  cardIndex: number
   repo: Repo
   setUI: BoardAppStore["setUI"]
   sel: import("@silvery/selection").SelectionStore
   undoHandle: UndoableRepoHandle
+  /** TreeNode component injected from the call site to break the circular import. */
+  TreeNode: TreeNodeRenderer
 }
 
 /**
  * Renders body children as editable blocks when the node is being edited.
  * Only mounted when isInlineEditing is true.
+ *
+ * Non-active body blocks render via TreeNode (display mode, isBody=true) so
+ * they preserve bullets, checkboxes, indentation, and width constraints.
+ * The active block uses BodyEditField for inline editing.
  */
 export function BodyBlockEditor({
   displayNode,
@@ -255,10 +287,13 @@ export function BodyBlockEditor({
   childrenSourceId,
   resolvedGetChildren,
   depth,
+  colIndex,
+  cardIndex,
   repo,
   setUI,
   sel,
   undoHandle,
+  TreeNode,
 }: BodyBlockEditorProps): React.ReactElement | null {
   const repoUpdate = useRepoEffect(repo)
   const editBlockIndex = editState.blockIndex
@@ -352,9 +387,19 @@ export function BodyBlockEditor({
                 }}
               />
             ) : (
-              <Text dimColor>
-                <InlineText text={child.content ?? ""} />
-              </Text>
+              // Render non-active body blocks via TreeNode (display mode, isBody=true)
+              // so they keep their bullets, checkboxes, indentation, and width
+              // constraints. Without this, they flatten into raw text and overflow
+              // past the card border (km-tui.body-edit-structure).
+              <TreeNode
+                node={child}
+                depth={depth + 1}
+                isSelected={false}
+                colIndex={colIndex}
+                cardIndex={cardIndex}
+                getChildren={resolvedGetChildren}
+                isBody
+              />
             )}
           </Box>
         )

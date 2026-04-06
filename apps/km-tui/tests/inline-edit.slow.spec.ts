@@ -1174,7 +1174,11 @@ describe("edit focus ring", () => {
     expect(foundBlueBg, "title should NOT have blueBright background during edit").toBe(false)
   })
 
-  test("non-active body blocks show cardBorderEditing color during inline edit mode", () => {
+  test("non-active body blocks render via TreeNode (preserves structure) during inline edit mode", () => {
+    // After km-tui.body-edit-structure (P1): non-active body blocks render via
+    // TreeNode in display mode so they keep their bullets, checkboxes, and
+    // indentation. They no longer use the cardBorderEditing color override —
+    // the cyan card border + inverse cursor are sufficient edit indicators.
     const { board } = testEnv(() =>
       item("board", item("col", item("task1", item.p("body line 1"), item.p("body line 2")))),
     )
@@ -1182,14 +1186,10 @@ describe("edit focus ring", () => {
     // Enter inline edit mode
     board.press("Enter")
 
-    // Find the body text in the card content area (skip breadcrumb header)
+    // Body text remains visible in the card content area while editing the title
     const bodyRow = findContentRow(board, "body line 1")
     expect(bodyRow, "body line 1 should be visible in card content area").toBeGreaterThanOrEqual(0)
-
-    // Non-active body text should have blueBright fg (12) — $focusborder = "blueBright"
-    const boCell = findBoCell(board, bodyRow)
-    expect(boCell, "should find 'body' text on the row").not.toBeNull()
-    expect(boCell!.fg, "non-active body text should have blueBright fg (12)").toBe(12)
+    expect(board.screenshot()).toContain("body line 2")
   })
 
   test("navigating to body block does not add blue background", () => {
@@ -1845,6 +1845,71 @@ describe("Inline Edit — Folder/Section Nodes", () => {
     expect(node?.name).toBe("New")
     expect(board.screenshot()).toContain("New")
   })
+
+  // ===========================================================================
+  // Regression: km-tui.rename-column-cursor-null
+  //
+  // Renaming a column to a sigil-prefixed name (e.g. "name" → "+name") used to
+  // produce two related failures:
+  //   (1) the post-rename invariant pass threw InvariantViolationError
+  //       ("cursor-not-null") because the cursor was not re-anchored,
+  //   (2) the rendered column header still showed the stale name because
+  //       getNodeDisplayName prefers `data.name`, which renameNode never
+  //       updated.
+  //
+  // The fix re-anchors the cursor after the rename completes and keeps
+  // `data.name` in sync with `name`/`content`.
+  // ===========================================================================
+  test("renaming column to sigil-prefixed name keeps cursor valid and updates display", () => {
+    const { board, repo } = testEnv(() => item("board", item("name", item("task1"))))
+
+    // Move to column header so the inline edit targets the column (folder) node
+    board.command("cursor_up")
+    board.expect("#name[data-cursor]").toExist()
+
+    // Enter inline edit on the column header
+    board.press("Enter")
+
+    // Clear existing text and type the new sigil-prefixed name.
+    // "+" must be sent as Shift+= because keyToAnsi splits on "+" for combos.
+    board.press("ctrl+u")
+    board.press("Shift+=")
+    for (const c of "name") board.press(c)
+
+    // Save and exit — used to throw InvariantViolationError("cursor-not-null")
+    board.press("Escape")
+
+    // Repo reflects the rename — content, name, and data.name must all update
+    // so that getNodeDisplayName (which prefers data.name) renders the new label.
+    const node = repo.getNode("name")
+    expect(node?.content).toBe("+name")
+    expect(node?.name).toBe("+name")
+    expect((node?.data as { name?: string } | undefined)?.name).toBe("+name")
+
+    // Cursor should still resolve to the renamed column header
+    board.expect("#name[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("+name")
+  })
+
+  test("renaming column (no sigil) keeps cursor valid and updates display", () => {
+    // Sanity check: a plain rename of a column header should also leave the
+    // cursor selection and the rendered display name consistent.
+    const { board, repo } = testEnv(() => item("board", item("Old", item("task1"))))
+
+    board.command("cursor_up")
+    board.expect("#Old[data-cursor]").toExist()
+
+    board.press("Enter")
+    board.press("ctrl+u")
+    for (const c of "New") board.press(c)
+    board.press("Escape")
+
+    const node = repo.getNode("Old")
+    expect(node?.name).toBe("New")
+    expect((node?.data as { name?: string } | undefined)?.name).toBe("New")
+    board.expect("#Old[data-cursor]").toExist()
+    expect(board.screenshot()).toContain("New")
+  })
 })
 
 // =============================================================================
@@ -2130,7 +2195,7 @@ describe("Inline Edit — Card Expansion", () => {
 describe("edit indentation parity", () => {
   test("body content indentation matches between display and edit mode", () => {
     // Card with body content (paragraph-like items before a heading)
-    const nodes = item("board", item("col1", item("parent", item("body child"), item.h("heading"))))
+    const nodes = item("board", item("col1", item("parent", item.p("body child"), item.section("heading"))))
     const { board } = testEnv(() => nodes, { columns: 60, rows: 20 })
 
     // Navigate to the "parent" card
@@ -2157,6 +2222,48 @@ describe("edit indentation parity", () => {
       Math.abs(editX - displayX),
       `edit indent (${editX}) should be close to display indent (${displayX})`,
     ).toBeLessThanOrEqual(2)
+  })
+
+  // =============================================================================
+  // BUG: BodyBlockEditor flattens tree structure (km-tui.body-edit-structure)
+  // =============================================================================
+  // When editing a card title, body sub-items (tasks/list items) lost their
+  // bullets/checkboxes/indentation because BodyBlockEditor rendered them as
+  // raw <Text dimColor>{InlineText}</Text> instead of via TreeNode.
+  //
+  // Fix: render non-active body blocks via TreeNode (display mode) so they
+  // preserve bullets, checkboxes, indentation, and width constraints.
+  // =============================================================================
+
+  test("editing card title preserves checkbox icons on non-active body sub-items", () => {
+    // Card with body sub-items that are tasks (have checkboxes)
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item("parent-card", item.task("subtask one", "todo"), item.task("subtask two", "todo"))),
+        ),
+      { columns: 60, rows: 20 },
+    )
+
+    // Verify checkboxes are present in display mode (sanity check)
+    const displayShot = board.screenshot()
+    expect(displayShot, "display mode should contain checkbox glyph for sub-tasks").toContain("\u25A1")
+    expect(displayShot).toContain("subtask one")
+    expect(displayShot).toContain("subtask two")
+
+    // Enter edit mode on the parent-card title (block 0)
+    board.expect("#parent-card[data-cursor]").toExist()
+    board.press("Enter")
+
+    // While editing the TITLE, non-active body sub-items must still render
+    // with their checkbox glyph — they should look like display mode, not flat text.
+    const editShot = board.screenshot()
+    expect(editShot, "edit mode must still show subtask one").toContain("subtask one")
+    expect(editShot, "edit mode must still show subtask two").toContain("subtask two")
+    expect(editShot, "edit mode must preserve the checkbox glyph (\u25A1) on non-active body sub-items").toContain(
+      "\u25A1",
+    )
   })
 })
 
@@ -2315,9 +2422,7 @@ describe("Enter on heading card with children zooms instead of editing (km-tui.e
   test("i on heading card with children still enters inline edit (rename)", () => {
     // 'i' is the explicit edit key — it should always enter edit mode,
     // even on heading cards. Only Enter changes behavior.
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("Tasks", item("task1"), item("task2")))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("Tasks", item("task1"), item("task2")))))
 
     board.press("j")
     board.expect("#Tasks[data-cursor]").toExist()
