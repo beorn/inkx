@@ -28,6 +28,13 @@ export function selectedBg(theme: Theme): string | undefined {
   return undefined
 }
 
+/** Subtle focusborder-tinted bg for editing containers.
+ * Replaces selection highlight during inline editing. */
+export function editingBg(theme: Theme): string | undefined {
+  if (theme.bg && theme.focusborder) return blend(theme.bg, theme.focusborder, 0.08)
+  return undefined
+}
+
 /** Dim a single color value — same hue, reduced brightness.
  * Truecolor (#RRGGBB): multiply RGB by factor.
  * ANSI 16: map bright variants to normal (redBright->red). */

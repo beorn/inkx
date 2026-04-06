@@ -115,7 +115,7 @@ export function getNodeStyle(
   let textColor: string | undefined
 
   if (isInlineEditing) {
-    // Edit mode: no background fill — cyan border (CardColumn) + inverse cursor indicate editing
+    // Edit mode: no selection highlight — editing indicated by focusborder tint + border
     backgroundColor = undefined
     textColor = undefined
   } else if (isSelected) {

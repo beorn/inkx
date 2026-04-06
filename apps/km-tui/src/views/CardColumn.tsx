@@ -46,7 +46,7 @@ import { isHRContent, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 import { useTheme } from "@silvery/ag-react"
-import { selectedBg } from "../theme.ts"
+import { selectedBg, editingBg } from "../theme.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -431,12 +431,15 @@ const Card = React.memo(
       )
     }
 
-    // Card selection: subtle primary bg tint ONLY when cursor is directly on the card
-    // (not on a sub-item within it). Multi-selection also gets the tint.
+    // Card bg: selection tint when directly selected, editing tint when editing.
     const theme = useTheme()
     const cursor = useSignal(nodeStore.cursor)
     const isCardDirectlySelected = cursor === nodeId && selLevel === "card"
-    const cardBg = (isCardDirectlySelected || isNodeSelected) ? selectedBg(theme) : undefined
+    const cardBg = isEditing
+      ? editingBg(theme)
+      : (isCardDirectlySelected || isNodeSelected)
+        ? selectedBg(theme)
+        : undefined
 
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
