@@ -219,6 +219,73 @@ describe("Zooming", () => {
     board.expect("#board").not.toExist()
   })
 
+  describe("zoom in deeper then zoom out (regression: duplicate descendant cards)", () => {
+    // Bug km-tui.zoom-duplicate-nodes — user reports that zooming in twice and
+    // back out causes a descendant node (e.g. "Design phase") to appear both
+    // as a sub-item of its parent card AND as a standalone card. Could not
+    // reproduce on synthetic fixtures: the lens (children + role assignment)
+    // produces unique IDs at every level. These tests act as guards — if the
+    // bug ever manifests via either fixture, the data-view="item" id check
+    // will catch it.
+
+    function expectUniqueItemIds(board: { q: (s: string) => { resolveAll: () => Array<{ props?: Record<string, unknown> }> } }): void {
+      const itemEls = board.q('[data-view="item"]').resolveAll()
+      const itemIds = itemEls.map((el) => el.props?.id as string | undefined).filter(Boolean) as string[]
+      const seen = new Map<string, number>()
+      for (const id of itemIds) seen.set(id, (seen.get(id) ?? 0) + 1)
+      const dupes = [...seen.entries()].filter(([, n]) => n > 1)
+      expect(dupes).toEqual([])
+    }
+
+    test("paragraph fixture — descendant ids are unique after zoom in/in/out", () => {
+      const { board } = testEnv(() =>
+        item(
+          "board",
+          item(
+            "projects",
+            item("alpha", item("designphase", item("d1"), item("d2")), item("buildphase", item("b1"))),
+            item("beta", item("plan")),
+          ),
+        ),
+      )
+      board.expect("#alpha[data-cursor]").toExist()
+      board.press("z") // root=projects, cursor stays on alpha
+      board.expect("#designphase").toExist()
+      board.press("z") // root=alpha, designphase + buildphase as columns
+      board.expect("#designphase").toExist()
+      board.expect("#d1").toExist()
+      board.press("Z") // back to projects
+      board.expect("#alpha").toExist()
+      expectUniqueItemIds(board)
+    })
+
+    test("folder fixture — descendant ids are unique after zoom in/in/out", () => {
+      const { board } = testEnv(() =>
+        item.folder(
+          "vault",
+          item.folder(
+            "Projects",
+            item.folder(
+              "alpha",
+              item.folder("design", item("d1"), item("d2")),
+              item.folder("build", item("b1")),
+            ),
+            item.folder("beta", item("plan")),
+          ),
+        ),
+      )
+      board.expect("#alpha[data-cursor]").toExist()
+      board.press("z") // root=Projects, cursor on alpha
+      board.expect("#design").toExist()
+      board.press("z") // root=alpha, design + build as columns
+      board.expect("#design").toExist()
+      board.expect("#d1").toExist()
+      board.press("Z") // back to Projects
+      board.expect("#alpha").toExist()
+      expectUniqueItemIds(board)
+    })
+  })
+
   describe("cursor position after zooming", () => {
     test("zoom in preserves cursor on first child", () => {
       const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
