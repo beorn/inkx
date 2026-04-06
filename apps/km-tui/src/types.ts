@@ -25,29 +25,6 @@ export interface InitialBoardData {
 }
 
 /**
- * VIEW MODEL: A card is a KNode enriched with pre-resolved display data.
- * Extends KNode via structural typing — all 50+ consumers that read card.id,
- * card.content, etc. work unchanged.
- */
-export interface CardView extends KNode {
-  /** Discriminator — distinguishes CardView from plain KNode at runtime */
-  readonly __cardView: true
-  /** Pre-resolved embed target (undefined = not an embed) */
-  resolvedNode?: KNode
-  /** True if this is a body block (before first outline item in parent) */
-  isBody: boolean
-  /** True if symlink_to points to a missing node */
-  isBrokenEmbed: boolean
-  /** True if this card has body children (for ··· indicator) */
-  hasBodyChildren: boolean
-}
-
-/** Runtime type guard for CardView (checks discriminator, not property sniffing) */
-export function isCardView(node: KNode): node is CardView {
-  return "__cardView" in node
-}
-
-/**
  * VIEW MODEL: A column is a parent KNode whose children render as KNode[].
  * CardView enrichment is no longer needed — embed/body data comes from ViewTree signals.
  */

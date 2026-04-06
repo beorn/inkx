@@ -8,7 +8,7 @@ import { KNode, findIndexFile } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { InitialBoardData, CardView, ColumnView } from "./types.ts"
+import type { InitialBoardData, ColumnView } from "./types.ts"
 import { deduplicateByFsPath, isCollapsedChild } from "@km/board"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
@@ -26,30 +26,15 @@ import {
  * Each body node is its own navigable card (body for styling).
  * Structural (oi) nodes are regular cards.
  *
- * This is a simplified version of toCardViews() from hooks/use-columns.ts,
- * used only during initial load (buildBoardStateGenerator). It skips:
- * - Embed resolution (resolvedNode is always undefined)
- * - hasBodyChildren detection (always false)
- * The canonical runtime path uses toCardViews() which resolves these.
+ * Build card list from body + structural nodes.
+ * Returns plain KNode[] — CardView enrichment no longer needed (useNode provides view data).
  */
-function buildColumnCards(bodyNodes: KNode[], structuralNodes: KNode[]): CardView[] {
-  const cards: CardView[] = []
-
-  for (const node of bodyNodes) {
-    cards.push({
-      ...node,
-      __cardView: true as const,
-      isBody: !KNode.isEmbed(node),
-      isBrokenEmbed: false,
-      hasBodyChildren: false,
-    })
-  }
-
+function buildColumnCards(bodyNodes: KNode[], structuralNodes: KNode[]): KNode[] {
+  const cards: KNode[] = [...bodyNodes]
   for (const node of structuralNodes) {
     if (isCollapsedChild(node)) continue
-    cards.push({ ...node, __cardView: true as const, isBody: false, isBrokenEmbed: false, hasBodyChildren: false })
+    cards.push(node)
   }
-
   return cards
 }
 
@@ -143,11 +128,11 @@ export function* initBoardStateGenerator(
  * that is deriveColumnsFromRepo() in hooks/use-columns.ts. This path exists for:
  * - Fast startup with progress yielding (loading screen)
  * - Collecting collapsedColumns/collapsedNodeIds for initial board state
- * - Simplified CardView construction (no embed resolution, no hasBodyChildren)
+ * - Simplified card list (plain KNode[], no embed resolution)
  *
  * Differences from deriveColumnsFromRepo:
  * - No folder-index file expansion (index files handled at column level only)
- * - No embed resolution (CardView.resolvedNode is always undefined)
+ * - No embed resolution (useNode handles this at render time)
  * - No per-column memoization cache
  * - WIP limits extracted from root node frontmatter (not column nodes)
  * - Yields progress between columns for loading UI

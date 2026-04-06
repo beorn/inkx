@@ -18,7 +18,7 @@ import { KNode } from "@km/core"
 import { useStore } from "../state/store-context.tsx"
 import { useCommitVersion } from "./use-signal.ts"
 import { createLogger } from "loggily"
-import type { CardView, ColumnView } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import {
   buildViewTree,
@@ -136,7 +136,7 @@ export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDept
   return [
     {
       node: createVirtualBodyNode(rootId),
-      cardNodes: toCardViews(repo, allNodes, bodyIds),
+      cardNodes: toCards(repo, allNodes, bodyIds),
       isVirtual: true,
     },
   ]
@@ -183,29 +183,9 @@ function createVirtualBodyNode(parentId: string | null): KNode {
   }
 }
 
-/**
- * Convert KNode[] to CardView[] with batch-resolved embeds.
- * Used only by deriveDetailColumns (which doesn't go through ViewNode).
- */
-function toCardViews(repo: Repo, nodes: KNode[], bodyIds: Set<string>): CardView[] {
-  const embedSourceIds = nodes.filter((n) => n.symlink_to).map((n) => n.symlink_to!)
-  const resolvedMap = embedSourceIds.length > 0 ? repo.getNodesBatch(embedSourceIds) : new Map<string, KNode>()
-
-  return nodes.map((node) => {
-    const isBody = bodyIds.has(node.id)
-    const resolvedNode = node.symlink_to ? resolvedMap.get(node.symlink_to) : undefined
-    const sourceId = resolvedNode?.id ?? node.id
-    const firstChild = isBody ? undefined : repo.getChildren(sourceId)[0]
-    const hasBodyChildren = firstChild != null && !KNode.isOutline(firstChild)
-    return {
-      ...node,
-      __cardView: true as const,
-      resolvedNode,
-      isBody,
-      isBrokenEmbed: node.symlink_to != null && resolvedNode === undefined,
-      hasBodyChildren,
-    } as CardView
-  })
+/** Convert KNode[] to plain KNode[] (identity — CardView enrichment no longer needed). */
+function toCards(_repo: Repo, nodes: KNode[], _bodyIds: Set<string>): KNode[] {
+  return nodes
 }
 
 // =============================================================================
