@@ -2156,3 +2156,97 @@ describe("edit indentation parity", () => {
     expect(Math.abs(editX - displayX), `edit indent (${editX}) should be close to display indent (${displayX})`).toBeLessThanOrEqual(2)
   })
 })
+
+// =============================================================================
+// BUG: Ctrl+N from last card jumps to column header (km-tui.edit-nav-column-jump)
+// =============================================================================
+
+describe("edit block navigate: Ctrl+N from last card should not jump to column header", () => {
+  test("Ctrl+N from last card in col1 navigates to first card of col2, not col2 header", () => {
+    const { board } = testEnv(() =>
+      item(
+        "board",
+        item("col1", item("card-a"), item("card-b")),
+        item("col2", item("card-c"), item("card-d")),
+      ),
+    )
+
+    // Navigate to last card in col1
+    board.navigateTo("card-b")
+    board.press("Enter") // enter edit mode
+
+    // Ctrl+N past last card should go to first card of next column, not the column header
+    board.press("ctrl+n")
+    board.expectEditing("card-c") // should be first card of col2, NOT "col2"
+  })
+})
+
+// =============================================================================
+// BUG: Ctrl+Z in edit mode crashes TUI (km-tui.edit-undo-crash)
+// =============================================================================
+
+describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
+  test("Ctrl+Z in edit mode exits edit and undoes without crash", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("card-a"), item("card-b"))),
+    )
+
+    board.expect("#card-a[data-cursor]").toExist()
+
+    // Make a change, then enter edit mode and undo
+    board.press("Enter") // enter edit
+    for (const c of "-mod") board.press(c) // type something
+    board.press("Escape") // save and exit edit
+
+    expect(repo.getNode("card-a")?.content).toBe("card-a-mod")
+
+    // Enter edit mode again
+    board.press("Enter")
+
+    // Undo during edit should not crash — it should exit edit and undo the change
+    board.press("Control-z")
+
+    // Should no longer be editing (edit mode exited before undo)
+    board.expectNotEditing()
+
+    // The undo should have reverted the content
+    expect(repo.getNode("card-a")?.content).toBe("card-a")
+  })
+})
+
+// =============================================================================
+// BUG: Shift+Tab outdent promotes subitem to column level (km-tui.edit-outdent-promote)
+// =============================================================================
+
+describe("edit outdent: Shift+Tab should not promote subitem beyond card", () => {
+  test("Shift+Tab on card subitem during edit does not promote to column level", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("card", item("sub1", item("gc1")), item("sub2")))),
+    )
+
+    // Navigate to the card, then block-nav into sub1, then into gc1
+    board.expect("#card[data-cursor]").toExist()
+    board.command("block_nav_down") // → sub1
+    board.expect("#sub1[data-cursor]").toExist()
+    board.command("block_nav_down") // → gc1
+    board.expect("#gc1[data-cursor]").toExist()
+
+    board.press("Enter") // enter edit mode on gc1
+    board.expectEditing("gc1")
+
+    // Shift+Tab should outdent gc1 from sub1 to card (one level), not beyond
+    board.press("shift+Tab")
+
+    // gc1 should now be a child of card (outdented from sub1)
+    const gc1 = repo.getNode("gc1")
+    expect(gc1?.parent_id).toBe("card")
+
+    // Second Shift+Tab should NOT promote gc1 from card to column level
+    // (gc1 is now a direct child of card — outdenting further would break card boundary)
+    board.press("shift+Tab")
+
+    // gc1 should still be a child of card, NOT promoted to col1
+    const gc1After = repo.getNode("gc1")
+    expect(gc1After?.parent_id).toBe("card")
+  })
+})

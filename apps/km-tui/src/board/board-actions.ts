@@ -1955,6 +1955,21 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
         return ok()
       }
     }
+    // For "down" direction: if adjacent node has children (e.g. a column), drill into
+    // its first child instead of editing the container header. Mirrors the "up" path above.
+    if (direction === "down") {
+      const firstChildId = ctx.tree.children(adjacentNode.id)[0]
+      if (firstChildId) {
+        const firstChild = ctx.tree.node(firstChildId)
+        if (firstChild) {
+          ctx.sel.node.select([firstChildId as ID])
+          ctx.sel.text.edit(firstChildId as import("@silvery/selection").ID, 0)
+          ctx.textEditHints = { blockIndex: 0, initialCursorPos: "start", stickyX }
+          requestRenderFlush()
+          return ok()
+        }
+      }
+    }
     const adjBodyCount = extractBody(ctx.repo.getChildren(adjacentNode.id)).body.length
     const adjBlockIndex = direction === "down" ? 0 : adjBodyCount
     ctx.sel.node.select([adjacentNode.id as ID])
