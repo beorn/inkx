@@ -118,11 +118,13 @@ export function getNodeStyle(
     // Edit mode: no background fill — cyan border (CardColumn) + inverse cursor indicate editing
     backgroundColor = undefined
     textColor = undefined
-  } else if (isSelected || isNodeSelected) {
-    // Selected: gold bg, dark text. Per-pane theme dims $selected for unfocused panes.
+  } else if (isSelected) {
+    // Cursor node: inverse yellow on the title row (heavy bg, dark text).
+    // CardColumn applies a subtle blended bg to the entire card area.
     backgroundColor = "$selection-bg"
     textColor = "$selection"
   }
+  // isNodeSelected (multi-selection): no inverse — CardColumn handles bg tint.
   // Default (no assignment): inherits $fg from WorkspaceView wrapper via silvery fg inheritance
   // No colored background for nodes with ownColor - color only applies to fold marker
 

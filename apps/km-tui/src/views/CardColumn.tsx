@@ -45,6 +45,8 @@ import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { isHRContent, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
+import { useTheme } from "@silvery/ag-react"
+import { selectedBg } from "../theme.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -429,6 +431,11 @@ const Card = React.memo(
       )
     }
 
+    // Card selection: subtle primary bg tint on the entire card (including "+N more").
+    const theme = useTheme()
+    const isCardHighlighted = isSelected || isNodeSelected
+    const cardBg = isCardHighlighted ? selectedBg(theme) : undefined
+
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
@@ -457,7 +464,14 @@ const Card = React.memo(
           userSelect="none"
           {...hoverHandlers}
         >
-          <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
+          <Box
+            flexDirection="column"
+            width={width}
+            borderStyle="round"
+            borderBottom={false}
+            borderColor={borderColor}
+            backgroundColor={cardBg}
+          >
             <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
             <PopoverRectRegistrar rectRef={cardRectRef} />
             <TreeNode
@@ -473,10 +487,10 @@ const Card = React.memo(
               hideChildCount
             />
           </Box>
-          <Box width={width} height={1} flexShrink={0}>
+          <Box width={width} height={1} flexShrink={0} backgroundColor={cardBg}>
             <Text wrap="truncate">
               <Text color={borderColor}>╰{"─".repeat(leftPad)}</Text>
-              <Text color="$text"> +{hiddenCount} more </Text>
+              <Text dimColor> +{hiddenCount} more </Text>
               <Text color={borderColor}>{"─".repeat(rightPad)}╯</Text>
             </Text>
           </Box>
@@ -494,6 +508,7 @@ const Card = React.memo(
         userSelect="none"
         borderStyle="round"
         borderColor={borderColor}
+        backgroundColor={cardBg}
         {...hoverHandlers}
       >
         <CardLayoutRegistrar colIndex={colIndex} cardIndex={cardIndex} nodeId={nodeId} />
@@ -772,6 +787,10 @@ export const Column = React.memo(function Column({
 
   const isColumnSelected = isSelected && cursorDepth === "column"
 
+  // Column selection: subtle primary bg tint when cursor is anywhere in this column.
+  const colTheme = useTheme()
+  const columnBg = isSelected ? selectedBg(colTheme) : undefined
+
   // Derive column header presentation props (icon, colors, style).
   // When the lens/repo lookup fails (rare), fall back to a minimal stub so
   // the header still renders without crashing.
@@ -922,6 +941,7 @@ export const Column = React.memo(function Column({
       width={width}
       height={height}
       overflow="hidden"
+      backgroundColor={columnBg}
     >
       {/* Column header — unified NodeView component */}
       <ColumnHeader

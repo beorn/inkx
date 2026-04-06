@@ -1060,7 +1060,7 @@
 {"created_at":"2026-04-05T00:42:12Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.signals","issue_id":"km-silvery.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-04T02:05:51Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.1","issue_id":"km-silvery.1.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:47Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.absolute-child-scan","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-29T23:20:51Z","created_by":"claude:db326126","depends_on_id":"km-silvery","issue_id":"km-silvery.absolute-mouse-events","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.absolute-mouse-events","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T07:48:03Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.adapter-absolute-order","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:36:34Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.adapter-divergent","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-13T00:13:22Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.adapter-text-divergence","metadata":"{}","type":"parent-child"}
@@ -1127,7 +1127,7 @@
 {"created_at":"2026-03-26T20:34:05Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.cli-ecosystem","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T08:15:59Z","created_by":"claude:4929065a","depends_on_id":"km-silvery","issue_id":"km-silvery.cli-output","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T12:23:51Z","created_by":"claude:4a5961be","depends_on_id":"km-silvery","issue_id":"km-silvery.click-to-position","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-06T00:39:51Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.clipboard-paste-cleanup","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.clipboard-paste-cleanup","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T00:32:09Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.collab-terminals","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:43Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.color-level-unused","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T01:06:50Z","created_by":"claude:4929065a","depends_on_id":"km-silvery","issue_id":"km-silvery.commander-compose","metadata":"{}","type":"parent-child"}
@@ -1148,7 +1148,7 @@
 {"created_at":"2026-04-02T14:59:37Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.listview-compositions","issue_id":"km-silvery.console-v2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T09:51:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.content-search","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T14:39:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.local-find","issue_id":"km-silvery.content-search","metadata":"{}","type":"supersedes"}
-{"created_at":"2026-04-02T22:59:30Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.virtualinline-parity","issue_id":"km-silvery.copy-on-select","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.copy-on-select","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:45Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.cursor-compat","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-06T01:33:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-termless","issue_id":"km-silvery.cursor-visibility","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-29T16:18:45Z","created_by":"claude:db326126","depends_on_id":"km-silvery.demos","issue_id":"km-silvery.dashboard-snapshot-test","metadata":"{}","type":"parent-child"}
@@ -1258,9 +1258,10 @@
 {"created_at":"2026-03-13T00:13:15Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery","issue_id":"km-silvery.focus-unmount","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:50Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.grid-layout","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:35Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.hidden-dirty-flags","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T10:31:10Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.highlight-prop","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T00:32:06Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.hmr","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T21:06:15Z","created_by":"claude:656602a3","depends_on_id":"km-silvery","issue_id":"km-silvery.hover-broken","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-03-23T07:37:07Z","created_by":"claude:c0da815b","depends_on_id":"km-silvery","issue_id":"km-silvery.hover-visual","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:01Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.hover-visual","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T23:46:08Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery","issue_id":"km-silvery.hvl-ceil-overflow","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T23:46:19Z","created_by":"claude:65d845d9","depends_on_id":"km-silvery","issue_id":"km-silvery.hvl-test-coverage","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T15:17:41Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.ink-codemod","metadata":"{}","type":"parent-child"}
@@ -1374,7 +1375,7 @@
 {"created_at":"2026-03-11T00:33:09Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.plugin-registry","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-10T12:04:36Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.plugin-root","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T00:32:36Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.plugin-safety","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-06T01:24:06Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.pointer-interaction","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.pointer-interaction","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T23:55:22Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.virtualinline-parity","issue_id":"km-silvery.popover","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-03T00:18:45Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.popover","issue_id":"km-silvery.popover-overlap","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:40Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.position-offsets","metadata":"{}","type":"parent-child"}
@@ -1445,12 +1446,12 @@
 {"created_at":"2026-04-03T14:39:10Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.sel-p1-core","issue_id":"km-silvery.sel-p8-legacy","metadata":"{}","type":"blocks"}
 {"created_at":"2026-04-03T14:39:10Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.sel-p8-legacy","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-03T14:46:41Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.sel-testing","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-03T13:22:31Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.selection","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.selection","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T09:58:13Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.trilemma-demo","issue_id":"km-silvery.selection-clipboard","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T14:47:54Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.vt-naming","issue_id":"km-silvery.selection-clipboard","metadata":"{}","type":"blocks"}
-{"created_at":"2026-04-06T03:22:56Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.selection-consolidation","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-06T02:41:38Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.selection-contain-bug","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-06T03:23:24Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.selection-quality","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:01Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.selection-consolidation","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.selection-contain-bug","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.selection-quality","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-03T17:01:12Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.selection","issue_id":"km-silvery.selection.1","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T01:00:51Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.signals","issue_id":"km-silvery.selection.10","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T00:42:10Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.signals","issue_id":"km-silvery.selection.11","metadata":"{}","type":"parent-child"}
@@ -1555,7 +1556,7 @@
 {"created_at":"2026-03-09T20:43:54Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.use-cursor","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-25T15:17:22Z","created_by":"claude:19080504","depends_on_id":"km-silvery","issue_id":"km-silvery.use-term","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:47Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.use-textarea-hook","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-06T01:24:07Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.user-select","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.user-select","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T17:01:18Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.value-prop","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:40Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.verify-output-shrink","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T15:07:48Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.viewport-fill","metadata":"{}","type":"parent-child"}
@@ -1591,7 +1592,7 @@
 {"created_at":"2026-04-02T11:24:47Z","created_by":"claude:4929065a","depends_on_id":"km-silvery","issue_id":"km-silvery.web-target","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-17T00:24:14Z","created_by":"claude:656602a3","depends_on_id":"km-silvery","issue_id":"km-silvery.with-links","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-06T02:40:33Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.withfocus-press-crash","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-02T09:51:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.word-line-select","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.word-line-select","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:39Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.wrap-transform-classify","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-19T17:06:29Z","created_by":"claude:21c57d63","depends_on_id":"km-silvery","issue_id":"km-silvery.zero-alloc","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-refactor1","issue_id":"km-sl3a","metadata":"{}","type":"parent"}
@@ -2444,7 +2445,10 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.props-styling","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.pty-testing","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.q-close","metadata":"{}","type":"parent-child"}
-{"created_at":"2026-04-05T10:48:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.signals","issue_id":"km-tui.quality-plateau","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:40:17Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.quality-plateau","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:39Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.quality-plateau","issue_id":"km-tui.quality-plateau.pipe-composition","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:35Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.quality-plateau","issue_id":"km-tui.quality-plateau.test-gaps","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T09:42:32Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.quality-plateau","issue_id":"km-tui.quality-plateau.type-safety","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.query-dsl-leaked","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.raw-edit-content","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.raw-embed-ids","metadata":"{}","type":"parent-child"}

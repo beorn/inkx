@@ -311,21 +311,20 @@ function TreeNodeImpl({
     isBody,
   ])
 
-  // Card title highlight: only the title row gets inverse/selected bg.
-  // Body content and subitems keep their normal styling for readability.
-  // At depth 0 (card level), selected bg applies to title row only.
+  // Cursor node (isSelected): inverse yellow on its title row only.
+  // Multi-selected (isNodeSelected): no inverse — CardColumn handles bg tint.
+  // Subitems keep regular fg colors, inheriting the card bg.
   const cursorInDescendant = useSignal(nodeStore.getOrCreate(node.id).cursorInDescendant)
-  const titleHighlightOnly = depth === 0 && (isSelected || isNodeSelected)
 
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const searchHighlight = isSearchMatch && !isSelected && !isNodeSelected
-  // When titleHighlightOnly: bg on the title row only (not the card body/children).
-  // The title row gets the selected bg via headRowBg; the outer card Box gets no bg.
-  const effectiveBg = titleHighlightOnly ? undefined : style.backgroundColor
-  const headRowBg = titleHighlightOnly ? style.backgroundColor : undefined
-  const tc = titleHighlightOnly ? style.textColor : style.textColor
+  // Only the cursor node gets inverse bg on its head row.
+  // Card-level subtle bg comes from CardColumn, not TreeNode.
+  const effectiveBg = isSelected ? undefined : style.backgroundColor
+  const headRowBg = isSelected ? style.backgroundColor : undefined
+  const tc = style.textColor
   const sd = style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed
@@ -391,11 +390,11 @@ function TreeNodeImpl({
     return extractBody(allChildren).items
   }, [isInlineEditing, childrenSourceId, resolvedGetChildren, children])
 
-  // When selected (yellow bg), strip ANSI color codes from styled content
-  // so all text renders as black-on-yellow for readability.
-  // Also strip colors for done/dropped tasks — colored dates/priorities aren't meaningful.
+  // Strip inline colors when a text color override is active (cursor inverse)
+  // or for done/dropped tasks (colored dates/priorities aren't meaningful).
+  // When textColor is set, competing inline colors would clash with the forced fg.
   const isHighlighted = isSelected || isNodeSelected
-  const shouldStripColor = isHighlighted || style.isDoneOrDropped
+  const shouldStripColor = (isSelected && tc != null) || style.isDoneOrDropped
 
   // HR detection: node type "hr" from parser, or content matching markdown HR pattern
   const isHR = node.type === "hr" || (cleanContent != null && isHRContent(cleanContent))
@@ -670,7 +669,7 @@ function TreeNodeImpl({
             ) : (
               <Text
                 bold={depth === 0}
-                color={isBrokenEmbed && !isHighlighted ? "$error" : dimUntitled ? "$warning" : (tc ?? style.ownColor)}
+                color={isBrokenEmbed && !isSelected ? "$error" : dimUntitled ? "$warning" : (tc ?? style.ownColor)}
                 dimColor={sd}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
@@ -720,20 +719,20 @@ function TreeNodeImpl({
           {/* Placed before date badge so layout is: Title ... COUNT ... dates */}
           {hasChildren && !hideChildCount && isOneliner && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$disabled-fg"}>{` ${childCount}`}</Text>
+              <Text color={isSelected ? tc : "$disabled-fg"}>{` ${childCount}`}</Text>
             </Box>
           )}
           {/* Right-aligned: blocked indicator — shown when task has unresolved deps */}
           {isBlocked && !isInlineEditing && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$error"}>{" blocked"}</Text>
+              <Text color={isSelected ? tc : "$error"}>{" blocked"}</Text>
             </Box>
           )}
           {/* Right-aligned: subtask progress badge — "3/7" done/total */}
           {/* Hidden in cards view — overflow indicators are enough */}
           {subtaskBadge && !isInlineEditing && isOneliner && (
             <Box flexShrink={0}>
-              <Text color={isHighlighted ? tc : "$disabled-fg"}>{` ${subtaskBadge}`}</Text>
+              <Text color={isSelected ? tc : "$disabled-fg"}>{` ${subtaskBadge}`}</Text>
             </Box>
           )}
           {/* Right-aligned: date badge (priority, recurrence, scheduled, due) */}
@@ -1147,7 +1146,7 @@ function NodeChildren({
         ))}
         {totalHiddenCount > 0 && showOverflowIndicator && (
           <Box paddingLeft={Math.max(0, depth) + 2}>
-            <Text color="$muted" wrap="truncate">
+            <Text dimColor wrap="truncate">
               +{totalHiddenCount} more
             </Text>
           </Box>
@@ -1182,7 +1181,7 @@ function NodeChildren({
       })}
       {hiddenCount > 0 && showOverflowIndicator && (
         <Box paddingLeft={Math.max(0, depth) + 2}>
-          <Text color="$muted" wrap="truncate">
+          <Text dimColor wrap="truncate">
             +{hiddenCount} more
           </Text>
         </Box>

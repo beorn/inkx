@@ -24,8 +24,10 @@ import {
   useFocusManager,
   Link,
   type PatchedConsole,
+  useTheme,
 } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
+import { selectedBg } from "../theme.ts"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { ViewMode } from "../types.ts"
@@ -391,6 +393,10 @@ export function BoardCore({
   const isBoardSelected = cursorDepth === "board"
   const paneLabel = usePaneLabel()
 
+  // Board selection: subtle primary bg tint at board level.
+  const boardTheme = useTheme()
+  const boardBg = isBoardSelected ? selectedBg(boardTheme) : undefined
+
   // Calculate content area height - space between top bar and bottom of pane.
   // Bottom bar, sync pane, toasts, and dialogs are now rendered at workspace level.
   const topBarHeight = paneLabel ? 1 : TOP_BAR_HEIGHT
@@ -449,6 +455,7 @@ export function BoardCore({
         height={termHeight}
         minHeight={3}
         overflow="hidden"
+        backgroundColor={boardBg}
         {...(ui.bellState && { "data-bell-flash": true })}
       >
         {/* Top bar — subscribes to cursor position independently */}
