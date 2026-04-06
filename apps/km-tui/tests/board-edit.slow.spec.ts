@@ -213,6 +213,69 @@ describe("Edit Operations", () => {
     board.expect("#1a[data-cursor]").toExist()
   })
 
+  test("opt+l moves only the cursor column past one neighbor (no jumping with shared parent_idx)", () => {
+    // Bug: when columns share parent_idx (e.g. all 0 from folder import), swapping
+    // col2's parent_idx with col3's leaves col4 untouched. SQL ORDER BY parent_idx,
+    // created_at then sorts col4 between them, making col3 "jump" to the end.
+    const nodes = item(
+      "board",
+      item("col1", item("1a")),
+      item("col2", item("2a")),
+      item("col3", item("3a")),
+      item("col4", item("4a")),
+    )
+    // Simulate folder import where all columns share parent_idx=0
+    for (const n of nodes) {
+      if (n.type === "h" && n.parent_id === "board") n.parent_idx = 0
+    }
+    const { board, repo } = testEnv(() => nodes, { columns: 160 })
+
+    // Navigate to col2 header
+    board.command("cursor_right")
+    board.command("cursor_up")
+    board.expect("#col2[data-cursor]").toExist()
+
+    // Move col2 right by one position. Expected order: col1, col3, col2, col4
+    board.press("opt+l")
+    board.expect("#col2[data-cursor]").toExist()
+
+    const colOrder = repo.getChildren("board").map((n) => n.id)
+    expect(colOrder).toEqual(["col1", "col3", "col2", "col4"])
+  })
+
+  test("opt+l multiple times produces a stable ordered shift (regression: jumping)", () => {
+    // Regression for "Column move jumps around": pressing opt+l three times on
+    // the same column should walk it from position 0 → 1 → 2 → 3, NOT teleport
+    // it past multiple neighbors per press.
+    const nodes = item(
+      "board",
+      item("colA", item("a1")),
+      item("colB", item("b1")),
+      item("colC", item("c1")),
+      item("colD", item("d1")),
+    )
+    for (const n of nodes) {
+      if (n.type === "h" && n.parent_id === "board") n.parent_idx = 0
+    }
+    const { board, repo } = testEnv(() => nodes, { columns: 200 })
+
+    // Cursor on colA header (leftmost)
+    board.command("cursor_up")
+    board.expect("#colA[data-cursor]").toExist()
+
+    // Step 1
+    board.press("opt+l")
+    expect(repo.getChildren("board").map((n) => n.id)).toEqual(["colB", "colA", "colC", "colD"])
+
+    // Step 2
+    board.press("opt+l")
+    expect(repo.getChildren("board").map((n) => n.id)).toEqual(["colB", "colC", "colA", "colD"])
+
+    // Step 3
+    board.press("opt+l")
+    expect(repo.getChildren("board").map((n) => n.id)).toEqual(["colB", "colC", "colD", "colA"])
+  })
+
   test("opt+l at column header shifts column right", () => {
     const { board } = testEnv(item.multiColBoard)
     // Navigate to column header level

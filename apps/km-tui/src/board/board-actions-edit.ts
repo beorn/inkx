@@ -493,9 +493,9 @@ export function handleTaskStatusCycle(ctx: OpCtx): void {
   const statusCycle: TaskStatus[] = ["todo", "wip", "blocked", "done", "dropped"]
 
   const count = forEachSelected(ctx, "Toggle status", (c) => {
-    const embedSource = c.symlink_to
-    const targetId = embedSource || c.id
-    const targetNode = embedSource ? ctx.repo.getNode(embedSource) : c
+    const symlinkTarget = c.symlink_to
+    const targetId = symlinkTarget || c.id
+    const targetNode = symlinkTarget ? ctx.repo.getNode(symlinkTarget) : c
     const currentStatus = targetNode?.item?.task?.status || "todo"
     const currentIndex = statusCycle.indexOf(currentStatus)
     const nextIndex = (currentIndex + 1) % statusCycle.length
@@ -615,7 +615,18 @@ export function handleShiftCard(ctx: OpCtx, direction: "up" | "down" | "left" | 
 }
 
 /**
- * Reorder a column by swapping its sort order with the adjacent column.
+ * Reorder a column by swapping its position with the adjacent column.
+ *
+ * Performs the move by computing the desired final visible order and assigning
+ * each column a unique parent_idx that matches that order. Only writes columns
+ * whose parent_idx actually changes — keeps the common case (cleanly-numbered
+ * columns) cheap while still handling the messy case (folder-imported columns
+ * with all parent_idx=0) correctly.
+ *
+ * Why naive swap doesn't work: when sibling columns share parent_idx (e.g.,
+ * all 0 from a fresh folder import), the SQL `ORDER BY parent_idx, created_at`
+ * tiebreaker means swapping just two columns' indices can shove the moved
+ * column past additional siblings that also share that parent_idx value.
  */
 function moveColumn(
   ctx: OpCtx,
@@ -623,36 +634,27 @@ function moveColumn(
   direction: "left" | "right",
 ): OpResult {
   if (!ctx.rootId) return boundary("move", "no root")
-  const { repo } = ctx
   const colIds = ctx.tree.children(ctx.rootId)
   const colIndex = colIds.indexOf(col.node.id)
   const targetIndex = direction === "left" ? colIndex - 1 : colIndex + 1
   if (targetIndex < 0 || targetIndex >= colIds.length) return boundary(direction)
 
   const targetColId = colIds[targetIndex]!
-  const targetColNode = repo.getNode(targetColId)
-  if (!targetColNode) return boundary(direction)
 
   // Virtual columns (e.g., __body__) are synthetic — can't be moved in the repo
   const targetViewType = ctx.tree.track(targetColId)?.viewType()
   if (targetViewType === "body-column") return boundary(direction)
 
-  // Batch all moves (normalize + swap) into a single undo entry
+  // Build the desired final order: swap col with target in the visible array.
+  const desiredOrder = [...colIds]
+  desiredOrder[colIndex] = targetColId
+  desiredOrder[targetIndex] = col.node.id
+
+  // Batch the renumber writes into a single undo entry.
   ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Move column")
 
-  // Normalize sort orders for just the two columns being swapped (not all columns)
-  normalizeColumnSortOrders(ctx, colIndex, targetIndex)
-
-  // Swap sort orders by moving each column to the other's position
-  const parentId = ctx.rootId
-  // Read parent_idx from repo (not layout) to avoid stale references
-  const curNode = repo.getNode(col.node.id)
-  const targetNode = repo.getNode(targetColId)
-  const curOrder = curNode?.parent_idx ?? col.node.parent_idx
-  const targetOrder = targetNode?.parent_idx ?? 0
-  repo.moveNode(col.node.id, parentId, targetOrder)
-  repo.moveNode(targetColId, parentId, curOrder)
+  renumberColumns(ctx, desiredOrder)
 
   ctx.undoHandle.endBatch()
 
@@ -662,36 +664,51 @@ function moveColumn(
 }
 
 /**
- * Ensure the two columns involved in a swap have distinct parent_idx values.
- * When siblings share parent_idx (e.g., all 0 from import), swapping equal
- * values is a no-op. Instead of normalizing ALL columns (which triggers N
- * disk writes and watcher events), only assign distinct indices to the two
- * columns being swapped.
+ * Assign each column a parent_idx matching its position in `desiredOrder`,
+ * but only for columns whose current parent_idx is incompatible with the
+ * desired order. Skips virtual columns (body-column) — they have no repo node.
+ *
+ * Strategy:
+ * - Walk `desiredOrder` left→right, tracking the running maximum of parent_idx
+ *   values that already place columns correctly.
+ * - When a column's current parent_idx is strictly greater than the running
+ *   max AND it's not equal to the previous column's value, keep it as-is and
+ *   bump the running max.
+ * - Otherwise, assign it `runningMax + 1` and write to the repo.
+ *
+ * In the happy case (already-distinct ascending parent_idx), nothing is
+ * written. In the messy case (all parent_idx=0), every column except the
+ * first gets a fresh ascending value.
+ *
+ * Note: WriteQueue coalesces multiple writes to the same destination file
+ * within the debounce window, so even N rewrites of an mdsection-backed board
+ * collapse to one disk write.
  */
-function normalizeColumnSortOrders(ctx: OpCtx, colIndexA: number, colIndexB: number): void {
+function renumberColumns(ctx: OpCtx, desiredOrder: readonly string[]): void {
   const { repo } = ctx
   const rootId = ctx.tree.rootId
   if (!rootId) return
-  const colIds = ctx.tree.children(rootId)
-  const colIdA = colIds[colIndexA]
-  const colIdB = colIds[colIndexB]
-  if (!colIdA || !colIdB) return
 
-  const nodeA = repo.getNode(colIdA)
-  const nodeB = repo.getNode(colIdB)
-  if (!nodeA || !nodeB) return
+  let runningMax = -Infinity
 
-  // Only normalize if the two columns share the same parent_idx
-  if (nodeA.parent_idx !== nodeB.parent_idx) return
+  for (const colId of desiredOrder) {
+    const isVirtual = ctx.tree.track(colId)?.viewType() === "body-column"
+    if (isVirtual) continue
 
-  // Assign distinct indices based on the shared parent_idx value, not array position.
-  const parentId = rootId
-  const base = nodeA.parent_idx
-  // Both columns share `base` — only the right one needs to change to `base + 1`.
-  const rightColId = colIndexA < colIndexB ? colIdB : colIdA
-  const rightIsVirtual = ctx.tree.track(rightColId)?.viewType() === "body-column"
-  if (!rightIsVirtual) {
-    repo.moveNode(rightColId, parentId, base + 1)
+    const node = repo.getNode(colId)
+    if (!node) continue
+
+    const current = node.parent_idx
+    if (current > runningMax) {
+      // Already in a position that produces correct visible order — keep it.
+      runningMax = current
+      continue
+    }
+
+    // Needs a fresh value strictly greater than the running max.
+    const next = Number.isFinite(runningMax) ? runningMax + 1 : 0
+    repo.moveNode(colId, rootId, next)
+    runningMax = next
   }
 }
 
