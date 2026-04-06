@@ -700,9 +700,7 @@ export const Column = React.memo(function Column({
   const lensCardIds = lens.children(nodeId)
   const effectiveCardIds = filteredCardIds ?? lensCardIds
   const count = effectiveCardIds.length
-  const isVirtual = colViewNode
-    ? colViewNode.viewType === "body-column"
-    : lens.role(nodeId) === "body-column"
+  const isVirtual = colViewNode ? colViewNode.viewType === "body-column" : lens.role(nodeId) === "body-column"
 
   // WIP limit: from section rules (km.limit::) or extracted from structural column names.
   const rules = colViewNode?.rules ?? lens.rules(nodeId)

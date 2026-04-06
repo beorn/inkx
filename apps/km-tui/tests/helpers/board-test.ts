@@ -85,6 +85,10 @@ import type { ParsedMouse } from "@silvery/ag-react"
 import type { InitialBoardData } from "../../src/types.ts"
 
 import { createSelection, type SelectionStore, EMPTY_ORDERED_SET } from "@silvery/selection"
+import { signal as alienSignal } from "alien-signals"
+import { createPaneSignals } from "../../src/state/pane-signals.ts"
+import { createSelectionAdapter } from "../../src/state/selection-adapter.ts"
+import { PaneIdProvider } from "../../src/pane-context.tsx"
 
 /** Create a mock SelectionStore for test environments that don't use createApp. */
 function createMockSel(): SelectionStore {
@@ -1893,8 +1897,19 @@ expect.extend({
 export function renderBoard(state: InitialBoardData, options: { columns?: number; rows?: number } = {}) {
   const { columns = 80, rows = 24 } = options
 
-  // Create a fake repo for static rendering tests
-  const repo = createFakeRepo()
+  // Create a fake repo populated with nodes from the state
+  const allNodes: import("@km/core").KNode[] = []
+  if (state.rootId) {
+    const rootNode = { id: state.rootId, type: "h" as const, parent_id: null, content: state.rootId, data: {}, item: {}, name: state.rootId, title: state.rootId, fstype: "mdsection" as const, parent_idx: 0 } as any
+    allNodes.push(rootNode)
+  }
+  for (const col of state.columns) {
+    allNodes.push(col.node)
+    for (const card of col.cardNodes) {
+      allNodes.push(card)
+    }
+  }
+  const repo = createFakeRepo({ nodes: allNodes })
 
   // singlePassLayout matches production's create-app.tsx rendering pipeline
   const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
@@ -1912,16 +1927,20 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
   })
   // Wrap in StoreContext + ReactiveNodeStoreProvider + TreeRenderProvider so TreeNode's hooks work
   const initialUI = createInitialPaneUI("cards", [], { columns, rows })
+  // Set up PaneSignals early so sel is available for the store factory
+  const repoVersion = alienSignal(0)
+  const { app: selApp, source: selTreeSource } = createSelectionAdapter()
+  const sel = createSelection(selApp)
+
   const mockPane = createPaneState("main", createBoardState(state.rootId, state.rootPath), {
     viewMode: "cards",
   })
-  const mockSel = createMockSel()
   const store = createSignalStore(() => ({
     foldDepths: new Map<string, number>(),
     ui: initialUI,
     navigator: null,
     setUI: () => {},
-    sel: mockSel,
+    sel: sel as any,
     textEditHints: null,
     workspace: {
       panes: new Map([["main", mockPane]]),
@@ -1957,18 +1976,40 @@ export function renderBoard(state: InitialBoardData, options: { columns?: number
     canUndo: () => false,
     canRedo: () => false,
   }
+  const paneSignals = createPaneSignals({
+    id: "main",
+    sel,
+    selTreeSource,
+    repo: Object.assign(repo, { path: "/test" }),
+    repoVersion,
+    rootId: state.rootId,
+    rootPath: null,
+    foldDepths: new Map(),
+    collapsedNodes: new Set(),
+    viewMode: "cards" as const,
+    moveState: { active: false } as any,
+  })
+  // Wire PaneSignals into the mock pane so usePaneSignals() works
+  ;(mockPane as any).signals = paneSignals
+  // Initialize sel tree from lens
+  selTreeSource.update(paneSignals.visibleLens())
+
   const wrappedElement = h(
-    TreeRenderProvider,
-    {
-      treeConfig,
-      setUI: () => {},
-      sel: mockSel as any,
-      jobRunner: noopJobRunner as any,
-      undoHandle: noopUndoHandle as any,
-      taskStatusFilter: new Set<string>(),
-      boardFocused: true,
-    },
-    boardCoreElement,
+    PaneIdProvider,
+    { value: "main" },
+    h(
+      TreeRenderProvider,
+      {
+        treeConfig,
+        setUI: () => {},
+        sel: sel as any,
+        jobRunner: noopJobRunner as any,
+        undoHandle: noopUndoHandle as any,
+        taskStatusFilter: new Set<string>(),
+        boardFocused: true,
+      },
+      boardCoreElement,
+    ),
   )
   const reactiveStore = withReactive(createStoreFromRepo(repo))
   const result = render(

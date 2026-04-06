@@ -144,9 +144,7 @@ export function TabsView({ columnIds, width, height }: TabsViewProps): React.Rea
               items={currentCardNodes}
               height={height - 3}
               estimateHeight={(index: number) => (currentCardNodes[index]?.id === editingNodeId ? 3 : 1)}
-              scrollTo={
-                cursorCardNodeId ? currentCardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined
-              }
+              scrollTo={cursorCardNodeId ? currentCardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined}
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}
               getKey={(card) => card.id}
