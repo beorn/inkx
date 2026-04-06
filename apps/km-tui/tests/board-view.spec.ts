@@ -13,7 +13,7 @@ import { item, testEnv } from "./helpers/board-test.ts"
 // =============================================================================
 
 describe("Column Fold/Collapse", () => {
-  test("z folds all cards in current column", () => {
+  test("< progressively folds tree (multiple presses reach depth 0)", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -22,16 +22,18 @@ describe("Column Fold/Collapse", () => {
       ),
     )
     board.expect("#sub1").toExist()
-    board.expect("#sub2").toExist()
-    board.expect("#sub3").toExist()
 
-    board.command("fold_all")
+    // Progressive fold: each press reduces depth by 1 (starts at 3)
+    // After enough presses, sub-items are hidden (depth reaches 0)
+    board.command("fold_all") // 3→2
+    board.command("fold_all") // 2→1
+    board.command("fold_all") // 1→0
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist()
     board.expect("#sub3").not.toExist()
   })
 
-  test("Z unfolds all cards in current column", () => {
+  test("> progressively unfolds tree after fold", () => {
     const { board } = testEnv(() =>
       item(
         "board",
@@ -39,26 +41,29 @@ describe("Column Fold/Collapse", () => {
         item("col2", item("2a")),
       ),
     )
-    // Fold all first
+    // Fold all to depth 0
+    board.command("fold_all")
+    board.command("fold_all")
     board.command("fold_all")
     board.expect("#sub1").not.toExist()
-    board.expect("#sub3").not.toExist()
 
-    // Z unfolds all cards in current column
-    board.command("unfold_all")
+    // > unfolds one level at a time
+    board.command("unfold_all") // 0→1
     board.expect("#sub1").toExist()
     board.expect("#sub2").toExist()
     board.expect("#sub3").toExist()
   })
 
-  test("< folds all columns board-wide", () => {
+  test("< folds all columns board-wide (progressive)", () => {
     const { board } = testEnv(() =>
       item("board", item("col1", item("1a", item("sub1"))), item("col2", item("2a", item("sub2")))),
     )
     board.expect("#sub1").toExist()
     board.expect("#sub2").toExist()
 
-    // < folds all columns across the entire board
+    // < folds all columns across the entire board progressively
+    board.command("fold_all")
+    board.command("fold_all")
     board.command("fold_all")
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist() // col2 also folded
@@ -144,7 +149,8 @@ describe("Outline Depth and Content Lines", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1", item("deep1"))))))
     board.expect("#sub1").toExist()
 
-    // Decrease depth twice to reach 0 (from default 2)
+    // Progressive fold: 3 presses to reach depth 0 (from default start of 3)
+    board.command("fold_all")
     board.command("fold_all")
     board.command("fold_all")
 
@@ -157,10 +163,10 @@ describe("Outline Depth and Content Lines", () => {
     // Decrease to 0 first
     board.command("fold_all")
     board.command("fold_all")
+    board.command("fold_all")
     board.expect("#sub1").not.toExist()
 
-    // Increase back
-    board.command("unfold_all")
+    // Increase back — one press should reveal depth 1 children
     board.command("unfold_all")
     board.expect("#sub1").toExist()
   })

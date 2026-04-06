@@ -175,6 +175,7 @@ describe("Runtime invariants", () => {
       isAtCardLevel: false,
       viewIndex: new Map(), // empty — cursor not visible
       viewTree: { id: "board", role: "board", children: [] },
+      tree: { rootId: "board", walkOrder: [], node: () => undefined, children: () => [], parent: () => null },
       moveState: { active: false },
     } as any
 
@@ -210,6 +211,7 @@ describe("Runtime invariants", () => {
       isAtCardLevel: false,
       viewIndex: new Map([["1a", {}]]), // cursor is visible
       viewTree: { id: "board", role: "board", children: [] },
+      tree: { rootId: "board", walkOrder: ["1a"], node: (id: string) => id === "1a" ? {} : undefined, children: () => [], parent: () => null },
       moveState: { active: false },
     } as any
 
@@ -238,6 +240,7 @@ describe("Runtime invariants", () => {
       isAtCardLevel: false,
       viewIndex: new Map([["1a", {}]]), // cursor is visible
       viewTree: { id: "board", role: "board", children: [] },
+      tree: { rootId: "board", walkOrder: ["1a"], node: (id: string) => id === "1a" ? {} : undefined, children: () => [], parent: () => null },
       moveState: { active: false },
     } as any
 

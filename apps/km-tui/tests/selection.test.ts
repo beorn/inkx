@@ -75,6 +75,22 @@ function mockCtx(opts: {
       ...(opts.children ? { getChildren: (parentId: string | null) => children.get(parentId) ?? [] } : {}),
     },
     undoHandle: mockUndoHandle(),
+    tree: {
+      rootId: "root",
+      children: (id: string) => id === "root" ? ["col"] : id === "col" ? cards.map((c) => c.id) : [],
+      node: (id: string) => allNodes.get(id) ?? undefined,
+      parent: (id: string) => {
+        if (cards.some((c) => c.id === id)) return "col"
+        return null
+      },
+      next: () => null,
+      prev: () => null,
+      walkOrder: cards.map((c) => c.id),
+      nodes: function* () { for (const c of cards) yield c.id },
+      track: () => undefined,
+      getProjected: () => undefined,
+      sync: () => {},
+    },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any
 }
