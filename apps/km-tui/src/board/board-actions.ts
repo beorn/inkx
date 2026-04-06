@@ -587,14 +587,16 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
-      ctx.setUI({ status: { level: "info", message: "All folded" } })
+      const msg = result.depth === 0 ? "Folded to titles" : `Fold depth ${result.depth}`
+      ctx.setUI({ status: { level: "info", message: msg } })
       return ok()
     }
     case "UNFOLD_LEVEL": {
       const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
       const result = reducerApplyUnfoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
-      ctx.setUI({ status: { level: "info", message: "All unfolded" } })
+      const msg = result.depth === null ? "All unfolded" : `Fold depth ${result.depth}`
+      ctx.setUI({ status: { level: "info", message: msg } })
       return ok()
     }
     default:

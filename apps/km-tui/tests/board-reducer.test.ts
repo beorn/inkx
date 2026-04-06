@@ -242,15 +242,27 @@ describe("Board.apply — PAGE_JUMP", () => {
 // =============================================================================
 
 describe("Board.apply — FOLD_LEVEL / UNFOLD_LEVEL", () => {
-  it("FOLD_LEVEL sets all card depths to 0", () => {
+  it("FOLD_LEVEL progressively decreases depth (first fold: 3→2)", () => {
     const s = state()
     const result = applyFoldLevel(s, ["card-a", "card-b", "card-c"])
-    expect(result.state.foldDepths.get("card-a")).toBe(0)
-    expect(result.state.foldDepths.get("card-b")).toBe(0)
-    expect(result.state.foldDepths.get("card-c")).toBe(0)
+    // Progressive: starts at 3 (default for unfolded), decrements to 2
+    expect(result.state.foldDepths.get("card-a")).toBe(2)
+    expect(result.state.foldDepths.get("card-b")).toBe(2)
+    expect(result.state.foldDepths.get("card-c")).toBe(2)
+    expect(result.depth).toBe(2)
   })
 
-  it("UNFOLD_LEVEL removes all card depths", () => {
+  it("FOLD_LEVEL reaches 0 after repeated presses", () => {
+    let s = state()
+    let result = applyFoldLevel(s, ["card-a"])
+    result = applyFoldLevel(result.state, ["card-a"])
+    result = applyFoldLevel(result.state, ["card-a"])
+    // 3→2→1→0
+    expect(result.state.foldDepths.get("card-a")).toBe(0)
+    expect(result.depth).toBe(0)
+  })
+
+  it("UNFOLD_LEVEL increases depth by 1 (progressive)", () => {
     const depths = new Map([
       ["card-a", 0],
       ["card-b", 0],
@@ -258,9 +270,11 @@ describe("Board.apply — FOLD_LEVEL / UNFOLD_LEVEL", () => {
     ])
     const s = state({ foldDepths: depths })
     const result = applyUnfoldLevel(s, ["card-a", "card-b", "card-c"])
-    expect(result.state.foldDepths.has("card-a")).toBe(false)
-    expect(result.state.foldDepths.has("card-b")).toBe(false)
-    expect(result.state.foldDepths.has("card-c")).toBe(false)
+    // Progressive: depth 0 → 1
+    expect(result.state.foldDepths.get("card-a")).toBe(1)
+    expect(result.state.foldDepths.get("card-b")).toBe(1)
+    expect(result.state.foldDepths.get("card-c")).toBe(1)
+    expect(result.depth).toBe(1)
   })
 
   it("UNFOLD_LEVEL preserves non-card fold depths", () => {
@@ -271,7 +285,8 @@ describe("Board.apply — FOLD_LEVEL / UNFOLD_LEVEL", () => {
     const s = state({ foldDepths: depths })
     const result = applyUnfoldLevel(s, ["card-a"])
     expect(result.state.foldDepths.get("root")).toBe(2)
-    expect(result.state.foldDepths.has("card-a")).toBe(false)
+    // Progressive: depth 0 → 1
+    expect(result.state.foldDepths.get("card-a")).toBe(1)
   })
 
   it("FOLD_LEVEL emits FOLD_SET effect", () => {
@@ -547,7 +562,7 @@ describe("Board.apply — immutability", () => {
     const s = state({ foldDepths: depths })
     const result = applyFoldLevel(s, ["card-a"])
     expect(depths.size).toBe(0) // original unchanged
-    expect(result.state.foldDepths.get("card-a")).toBe(0) // new map has entry
+    expect(result.state.foldDepths.get("card-a")).toBe(2) // progressive: starts at 3, decrements to 2
   })
 
   it("does not mutate original foldDepths on UNFOLD_LEVEL", () => {

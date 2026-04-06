@@ -43,6 +43,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["{ / }", "⌘[/]"], command: "nav_back", description: "back / forward" },
       { keys: ["⌃j/k"], command: "sibling_board_next", description: "next / prev board" },
       { keys: ["0-9"], command: "_favorites", description: "jump to favorites" },
+      { keys: ["⌃⏎"], command: "follow_link", description: "follow link" },
     ],
   },
   {
@@ -83,18 +84,17 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "View",
     items: [
-      { keys: ["v v"], command: "visual_mode_enter", description: "visual mode" },
+      { keys: [", / ."], command: "increase_content_lines", description: "fewer / more lines" },
+      { keys: ["< / >"], command: "fold_all", description: "fold / unfold tree" },
+      { keys: ["H / L"], command: "fold_node", description: "fold / unfold item" },
+      { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },
+      { keys: ["v ,", "V"], command: "filter", description: "view settings" },
+      { keys: ["v x"], command: "hide_node", description: "hide item" },
+      { keys: ["v X"], command: "toggle_show_hidden", description: "show hidden items" },
       { keys: ["v d"], command: "toggle_hide_done", description: "hide done" },
       { keys: ["v -"], command: "clear_filters", description: "reset view" },
-      { keys: ["V", "v ,"], command: "filter", description: "view settings" },
       { keys: ["v m/i"], command: "cycle_view_mode", description: "cycle view / icons" },
-      { keys: ["v X"], command: "toggle_show_hidden", description: "show hidden" },
-      { keys: ["H / L"], command: "fold_node", description: "fold / unfold" },
-      { keys: ["< / >"], command: "fold_all", description: "fold / unfold all" },
-      { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },
       { keys: ["⌘h/l"], command: "focus_board", description: "focus board / detail" },
-      { keys: ["⌃⏎"], command: "follow_link", description: "follow link" },
-      { keys: ["= / -", ". / ,"], command: "increase_content_lines", description: "more / less lines" },
     ],
   },
   {

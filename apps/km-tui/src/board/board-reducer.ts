@@ -626,27 +626,81 @@ export function applyPageJump(
 // Fold operations — pure foldDepths map manipulation
 // =============================================================================
 
-/** Fold all cards in all columns to depth 0 (collapse everything). */
-export function applyFoldLevel(state: BoardNavState, cardIds: string[]): ApplyResult {
+/**
+ * Progressive fold: decrease visible depth by 1 for all cards.
+ * Each press of '<' folds one more level. At depth 0, cards show title only.
+ * Returns the new depth level for status messages.
+ */
+export function applyFoldLevel(state: BoardNavState, cardIds: string[]): ApplyResult & { depth: number } {
+  // Find the current minimum depth across all cards (undefined = fully unfolded = Infinity)
+  let minDepth = Infinity
+  for (const id of cardIds) {
+    const d = state.foldDepths.get(id)
+    if (d !== undefined && d < minDepth) minDepth = d
+  }
+  // If no cards are folded, start from a reasonable depth (e.g., 3)
+  const currentDepth = minDepth === Infinity ? 3 : minDepth
+  const newDepth = Math.max(0, currentDepth - 1)
+
   const newDepths = new Map(state.foldDepths)
   for (const id of cardIds) {
-    newDepths.set(id, 0)
+    newDepths.set(id, newDepth)
   }
   return {
     state: { ...state, foldDepths: newDepths },
     effects: [{ type: "FOLD_SET", depths: newDepths }],
+    depth: newDepth,
   }
 }
 
-/** Unfold all cards in all columns (remove fold depths). */
-export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): ApplyResult {
-  const newDepths = new Map(state.foldDepths)
+/**
+ * Progressive unfold: increase visible depth by 1 for all cards.
+ * Each press of '>' unfolds one more level. Removes fold entirely when depth is high enough.
+ */
+export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): ApplyResult & { depth: number | null } {
+  // Find the current maximum depth across folded cards
+  let maxDepth = -1
+  let anyFolded = false
   for (const id of cardIds) {
-    newDepths.delete(id)
+    const d = state.foldDepths.get(id)
+    if (d !== undefined) {
+      anyFolded = true
+      if (d > maxDepth) maxDepth = d
+    }
+  }
+  if (!anyFolded) {
+    // Already fully unfolded
+    return {
+      state,
+      effects: [],
+      depth: null,
+    }
+  }
+
+  const newDepth = maxDepth + 1
+  const newDepths = new Map(state.foldDepths)
+
+  // If new depth is high enough (>= 10), just remove all folds
+  if (newDepth >= 10) {
+    for (const id of cardIds) {
+      newDepths.delete(id)
+    }
+    return {
+      state: { ...state, foldDepths: newDepths },
+      effects: [{ type: "FOLD_SET", depths: newDepths }],
+      depth: null,
+    }
+  }
+
+  for (const id of cardIds) {
+    if (newDepths.has(id)) {
+      newDepths.set(id, newDepth)
+    }
   }
   return {
     state: { ...state, foldDepths: newDepths },
     effects: [{ type: "FOLD_SET", depths: newDepths }],
+    depth: newDepth,
   }
 }
 
