@@ -60,24 +60,21 @@ export const screenshotCommand = new Command("screenshot")
       rootNodeId = repoRootNode?.id
     }
 
-    // Initialize board state
-    const state = coreModule.runGenerator(tuiModule.initBoardStateGenerator(repo, rootNodeId))
-
-    if (!state) {
-      console.error("Failed to initialize board state")
-      process.exit(1)
-    }
-
-    state.rootPath = resolved.repoRoot
-
     // Import React and Board components
     const React = await import("react")
     const { BoardCore, RepoProvider, createInitialPaneUI } = await import("@km/tui")
+    const boardModule = await import("@km/board")
+
+    // Derive column IDs from lens (no InitialBoardData needed)
+    const lens = boardModule.createVisibleLens(
+      boardModule.createViewLens(repo, { rootId: rootNodeId ?? null, foldDepths: new Map() }),
+    )
+    const columnIds = rootNodeId ? [...lens.children(rootNodeId)] : []
 
     // Create the BoardCore element with all required props
     const boardCoreElement = React.createElement(BoardCore, {
-      rootId: state.rootId,
-      columnIds: state.columns.map((c: any) => c.node.id),
+      rootId: rootNodeId ?? null,
+      columnIds,
       columnFilters: new Map<string, import("../../../km-tui/src/views/Board.tsx").ColumnFilterState>(),
       colIndex: 0,
       cardIndex: 0,

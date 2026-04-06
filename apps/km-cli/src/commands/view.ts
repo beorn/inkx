@@ -95,7 +95,6 @@ export const viewCommand = new Command("view")
 
       let createdRepo: import("@km/storage").Repo | undefined
       let rootNodeId: string | undefined
-      let state: Parameters<typeof tuiModule.runBoard>[0] = null
 
       await steps({
         loadRepo: function* () {
@@ -140,12 +139,8 @@ export const viewCommand = new Command("view")
             process.stderr.write(`⚠ ${prefix}${err.message}\n`)
           }
 
-          const result = yield* tuiModule.initBoardStateGenerator(createdRepo, rootNodeId)
-          if (result) {
-            result.rootPath = resolved.repoRoot
-          }
-          state = result
-          return result
+          yield "Ready"
+          return rootNodeId
         },
         buildNameIndex() {
           // Pre-build in-memory name index for O(1) wikilink/sigil resolution during rendering.
@@ -264,7 +259,7 @@ export const viewCommand = new Command("view")
       // End startup span before runBoard (TUI takes over interactively)
       startup.end()
 
-      await tuiModule.runBoard(state, {
+      await tuiModule.runBoard(rootNodeId ?? null, {
         interactive,
         initialViewMode: viewMode as ViewMode,
         watch: watchEnabled,

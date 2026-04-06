@@ -19,7 +19,7 @@ import { createLogger, createToastQueue, kmEvents } from "@km/core"
 import { InvariantViolationError } from "./invariants.ts"
 import { restoreTerminal } from "./state/raw-signals.ts"
 import { createBoardState } from "./board/board-types.ts"
-import type { InitialBoardData, TuiOptions } from "./types.ts"
+import type { TuiOptions } from "./types.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
 import { BoardApp } from "./views/index.ts"
@@ -28,7 +28,7 @@ import { createBoardApp } from "./board/board-app.ts"
 import { detectTheme } from "./theme.ts"
 import { type CreateBoardAppStoreParams } from "./state/board-app-store.ts"
 import { createInitialUIState } from "./state/ui-reducer.ts"
-import { createGridNavigator } from "@km/board"
+import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 
@@ -48,37 +48,22 @@ tuiEvents.setMaxListeners(200)
 // Ctrl+C and Ctrl+Z are handled by silvery's terminal lifecycle system)
 
 /**
- * Compute initial cursor node from board data.
- * First card of first column, or first column if no cards.
- */
-function computeInitialCursor(state: InitialBoardData): string | null {
-  if (state.columns.length === 0) return null
-  const firstCol = state.columns[0]
-  if (!firstCol) return null
-  if (firstCol.cardNodes.length > 0) {
-    return firstCol.cardNodes[0]?.id ?? firstCol.node.id
-  }
-  return firstCol.node.id
-}
-
-/**
- * Entry point for the board command
+ * Entry point for the board command.
  *
- * State must already be loaded (via loadRepo) and board state built
- * (via initBoardState) before calling this. The CLI handles both with
- * a progress indicator.
+ * Takes a repo + rootId directly. The store creates PaneSignals → lens → tree.
+ * Initial cursor and collapsed nodes are derived from the lens — no pre-computed state needed.
  *
  * Uses term.hasInput() to detect TTY capability:
  * - hasInput() = true → interactive mode with keyboard
  * - hasInput() = false → static mode, render once and exit
  */
-// oxlint-disable-next-line complexity/complexity -- 31/30: async setup with nested callbacks, not worth extracting
-export async function runBoard(state: InitialBoardData | null, options?: TuiOptions): Promise<void> {
+// oxlint-disable-next-line complexity/complexity -- async setup with nested callbacks, not worth extracting
+export async function runBoard(rootId: string | null, options: TuiOptions & { repo: import("@km/storage").Repo }): Promise<void> {
   using run = log.span("run-board")
   log.debug?.("runBoard start")
 
-  if (!state || !options?.repo) {
-    log.error?.("No board found or repo missing.")
+  if (!options.repo) {
+    log.error?.("No repo provided.")
     process.exit(1)
   }
 
@@ -109,10 +94,11 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
   let syncManager: Sync | null = null
   let heartbeatInterval: ReturnType<typeof setInterval> | null = null
 
-  if (isInteractive && state.rootPath && options?.watch !== false) {
+  const rootPath = options.repo.path
+  if (isInteractive && rootPath && options?.watch !== false) {
     using _ = run.span("sync-manager-init")
     const useWorker = options?.watchWorker !== false
-    log.debug?.(`Creating sync rootPath=${state.rootPath} watch=true worker=${useWorker}`)
+    log.debug?.(`Creating sync rootPath=${rootPath} watch=true worker=${useWorker}`)
     // withSync decorates the repo, wrapping apply() to add FS sync
     const syncedRepo = withSync({
       debounceFs: 2000, // Debounce external changes (2s)
@@ -279,8 +265,16 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     options?.spinner?.stop()
     log.debug?.(`Starting TUI isInteractive=${isInteractive}`)
 
-    // Build store parameters from initial board state
-    const initialCursor = computeInitialCursor(state)
+    // Derive initial collapsed nodes from repo data (rules.collapse + data.collapsed)
+    const collapsedNodeIds = new Set<string>()
+    if (rootId) {
+      for (const child of options.repo.getChildren(rootId)) {
+        if (child.rules?.collapse || child.data?.collapsed === true) {
+          collapsedNodeIds.add(child.id)
+        }
+      }
+    }
+
     // term.cols/rows are undefined when not a TTY; fall back to stdout then defaults
     const cols = term.cols ?? process.stdout.columns ?? 80
     const rows = term.rows ?? process.stdout.rows ?? 24
@@ -311,12 +305,22 @@ export async function runBoard(state: InitialBoardData | null, options?: TuiOpti
     log.debug?.(`Theme: ${theme.name}`)
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 
+    // Derive initial cursor from lens — first card of first column, or first column
+    const initLens = createVisibleLens(
+      createViewLens(options.repo, { rootId, foldDepths: new Map() }),
+      { collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined },
+    )
+    const initColIds = rootId ? initLens.children(rootId) : []
+    const firstColId = initColIds[0]
+    const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
+    const initialCursor = firstCardId ?? firstColId ?? null
+
     const storeParams: CreateBoardAppStoreParams = {
       repo: options.repo,
       toastQueue,
       navigator: createGridNavigator(),
-      initialBoardState: createBoardState(state.rootId, state.rootPath, state.collapsedNodeIds),
-      initialCursor: initialCursor,
+      initialBoardState: createBoardState(rootId, rootPath, collapsedNodeIds),
+      initialCursor,
       initialUIState: createInitialUIState({ columns: cols, rows }, defaultIconStyle),
       initialViewMode: viewMode,
       dimensions: { columns: cols, rows },
