@@ -9,11 +9,10 @@
 
 import React, { useCallback, useMemo } from "react"
 import { useNodeStore, type NodeEditState } from "../state/reactive.ts"
-import { useSignal } from "../hooks/use-signal.ts"
+import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Text, useScreenRectCallback } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
-import { isCardView } from "../types.ts"
 import { useRepo } from "../repo-context.tsx"
 import {
   isNodeUntitled,
@@ -228,6 +227,10 @@ function TreeNodeImpl({
   const excludeBoardIds = rootBoardId ? new Set([rootBoardId]) : new Set<string>()
 
   const repo = useRepo()
+
+  // Per-node projected view state via ViewTree signals
+  const viewNode = useNode(node.id)
+
   // Excluded sigils: use reactive store if hydrated, fallback for compatibility
   const reactiveExcludedSigils = useSignal(nodeStore.getOrCreate(node.id).excludedSigils)
   const excludedSigils = useMemo(() => {
@@ -241,18 +244,17 @@ function TreeNodeImpl({
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
   const isCardChild = variant === "multiline" && depth > 0
-  // At depth 0 (card level), use pre-resolved data from CardView.
-  // At depth > 0 (nested children), resolve per-node.
-  const cardView = depth === 0 && isCardView(node) ? node : undefined
-  const embedRes = cardView
+  // Embed resolution via ViewTree projection when available, resolveEmbed() fallback.
+  // viewNode.isSymlink = embed resolved successfully. isBrokenSymlink = embed target missing.
+  // isEmbedded = either case (isSymlink OR isBrokenSymlink).
+  const { displayNode, isEmbedded, resolvedNode, isBrokenEmbed } = viewNode
     ? {
-        isEmbedded: cardView.resolvedNode !== undefined || cardView.isBrokenEmbed,
-        resolvedNode: cardView.resolvedNode ?? null,
-        displayNode: cardView.resolvedNode ?? node,
-        isBrokenEmbed: cardView.isBrokenEmbed,
+        displayNode: viewNode.display ?? node,
+        isEmbedded: viewNode.isSymlink || viewNode.isBrokenSymlink,
+        resolvedNode: viewNode.isSymlink && viewNode.display !== node ? (viewNode.display ?? null) : null,
+        isBrokenEmbed: viewNode.isBrokenSymlink,
       }
     : resolveEmbed(repo, node)
-  const { isEmbedded, resolvedNode, displayNode, isBrokenEmbed } = embedRes
 
   // Use provided children or fetch from repo
   // For embeds, get children from the TARGET node (transclusion shows target's children)
@@ -421,11 +423,12 @@ function TreeNodeImpl({
 
   // Body content indicator: show ··· on card titles when node has body children
   // (paragraphs, quotes, code blocks, etc. — not just structural oi items)
-  const hasBody = useMemo(() => {
+  // Uses ViewTree projection when available, falls back to manual extraction.
+  const hasBodyFallback = useMemo(() => {
     if (depth !== 0 || isOneliner) return false
-    if (cardView) return cardView.hasBodyChildren
     return extractBody(children).body.length > 0
-  }, [depth, isOneliner, children, cardView])
+  }, [depth, isOneliner, children])
+  const hasBody = viewNode ? viewNode.hasBody && depth === 0 && !isOneliner : hasBodyFallback
 
   // Subtask progress badge: "3/7" showing done/total task children (cards only)
   const subtaskBadge = useMemo(() => {
@@ -594,10 +597,10 @@ function TreeNodeImpl({
           id={node.id}
           data-view="item"
           {...(isSelected && {
-              "data-cursor": true,
-              "data-col-index": colIndex,
-              "data-card-index": cardIndex,
-            })}
+            "data-cursor": true,
+            "data-col-index": colIndex,
+            "data-card-index": cardIndex,
+          })}
           flexDirection="row"
           alignItems={isOneliner || isCardChild ? undefined : "flex-start"}
           overflow={isOneliner || isCardChild ? "hidden" : undefined}
