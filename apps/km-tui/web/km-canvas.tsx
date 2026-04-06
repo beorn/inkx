@@ -591,7 +591,11 @@ function RemoteBoard({ width, repo }: { width: number; repo: RepoLike }) {
   const [rootId, setRootId] = useState<string | null>(null)
   const [rootHistory, setRootHistory] = useState<(string | null)[]>([])
 
-  const realColumns = deriveColumnsFromRepo(repo as Parameters<typeof deriveColumnsFromRepo>[0], rootId, emptyFoldDepths)
+  const realColumns = deriveColumnsFromRepo(
+    repo as Parameters<typeof deriveColumnsFromRepo>[0],
+    rootId,
+    emptyFoldDepths,
+  )
   const columns = toColumns(realColumns, repo)
 
   // Auto-zoom-out if we landed on a leaf node with no columns

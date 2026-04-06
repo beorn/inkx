@@ -53,6 +53,7 @@ import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor } from "../board/board-types.ts"
 import { usePaneId, usePaneLabel } from "../pane-context.tsx"
+import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
 const _log = createLogger("km:tui:board")
@@ -1229,13 +1230,18 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
 
   const bottomBar = <WorkspaceBottomBar consoleStats={consoleStats} />
 
-  // Single pane (common case) — render Board directly, no wrapper overhead
+  // Single pane (common case) — render Board directly, no wrapper overhead.
+  // Use workspace.focusedPaneId instead of hardcoded "main" — after closing
+  // the main pane via vw, the remaining pane may have a different ID.
   if (workspace.panes.size <= 1) {
+    const singlePaneId = workspace.focusedPaneId
+    const singlePane = workspace.panes.get(singlePaneId)
+    const isSinglePaneBoard = singlePane?.viewType === "board"
     return (
       <ServicesProvider toastQueue={servicesProviderToastQueue} jobRunner={jobRunner} undoHandle={undoHandle}>
         <PopoverProvider>
           <Box flexDirection="column" height={storeDimensions.rows}>
-            {renderPane("main")}
+            {isSinglePaneBoard ? renderPane(singlePaneId) : <EmptyPaneWelcome />}
             {bottomBar}
             {chrome}
           </Box>

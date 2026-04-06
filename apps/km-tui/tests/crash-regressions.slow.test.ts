@@ -232,3 +232,50 @@ describe("stale-cursor-after-delete-all", () => {
     expect(text).toContain("C")
   })
 })
+
+// ---------------------------------------------------------------------------
+// km-tui.pane-close-crash: closing a pane via vw crashes the app
+// ---------------------------------------------------------------------------
+
+describe("Pane close crash (km-tui.pane-close-crash)", () => {
+  test("split then close last board pane is prevented (bells instead of crash)", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
+      { columns: 120, rows: 24, ...FAST },
+    )
+
+    // Verify board renders
+    const before = board.screenshot()
+    expect(before).toContain("Task A")
+
+    // Split pane: vs (creates empty pane, focus stays on board pane)
+    expect(() => board.command("pane_split_vertical")).not.toThrow()
+
+    // Try to close last board pane: vw — should be prevented (bell)
+    expect(() => board.command("pane_close")).not.toThrow()
+
+    // Board should still be usable — close was prevented since it's the last board pane
+    const after = board.screenshot()
+    expect(after).toContain("Task A")
+  })
+
+  test("split, focus empty pane, close empty pane works", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("Task A"), item("Task B")), item("col2", item("Task C"))),
+      { columns: 120, rows: 24, ...FAST },
+    )
+
+    // Split pane: vs (creates empty pane)
+    board.command("pane_split_vertical")
+
+    // Focus the empty pane: vl (focus right) — should not crash
+    expect(() => board.command("pane_focus_right")).not.toThrow()
+
+    // Close the empty pane: vw
+    expect(() => board.command("pane_close")).not.toThrow()
+
+    // Board should return to single-pane mode with content
+    const after = board.screenshot()
+    expect(after).toContain("Task A")
+  })
+})

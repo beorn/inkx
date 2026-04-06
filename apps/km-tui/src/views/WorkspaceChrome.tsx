@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { Box, Text } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import type { BoardAppStore } from "../state/board-app-store.ts"
-import { useFocusedPaneSignals, useSignal } from "../hooks/use-signal.ts"
+import { useFocusedPaneSignals, useSignal, type PaneSignals } from "../hooks/use-signal.ts"
 import { useUndoHandle, useToastQueue } from "../services-context.tsx"
 import { usePaneUI } from "../state/ui-context.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -453,8 +453,23 @@ export interface WorkspaceBottomBarProps {
 }
 
 export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): React.ReactElement {
+  const ps = useFocusedPaneSignals()
+
+  // When focused pane has no signals (e.g. empty pane), render minimal bottom bar
+  if (!ps) {
+    return (
+      <Box flexDirection="row" flexShrink={0} height={1} justifyContent="flex-end" paddingX={1} id="bottom-bar" />
+    )
+  }
+
+  return <WorkspaceBottomBarInner consoleStats={consoleStats} ps={ps} />
+}
+
+function WorkspaceBottomBarInner({
+  consoleStats,
+  ps,
+}: WorkspaceBottomBarProps & { ps: PaneSignals }): React.ReactElement {
   const ui = usePaneUI()
-  const ps = useFocusedPaneSignals()!
   const rootPath = useSignal(ps.rootPath)
   const repo = useRepo()
 

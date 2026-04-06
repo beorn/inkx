@@ -1216,6 +1216,25 @@ export function createBoardAppStoreState(
           }
 
           const focusedId = workspace.focusedPaneId
+          const focusedPane = workspace.panes.get(focusedId)
+
+          // Don't close the last board pane — the app requires at least one
+          // board pane for rendering (WorkspaceChrome, key handlers, etc.).
+          // Closing the last board pane would leave only empty panes, which
+          // crashes because components like Board/WorkspaceChrome assume a
+          // board pane with signals always exists.
+          if (focusedPane && isBoardPane(focusedPane)) {
+            let otherBoardPaneExists = false
+            for (const [id, pane] of workspace.panes) {
+              if (id !== focusedId && isBoardPane(pane)) {
+                otherBoardPaneExists = true
+                break
+              }
+            }
+            if (!otherBoardPaneExists) {
+              return { ui: { ...state.ui, bellState: "visual" } }
+            }
+          }
 
           // Remove from layout tree
           const newLayout = removeLayoutNode(workspace.layout, focusedId)

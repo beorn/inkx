@@ -8,7 +8,7 @@
  * read-only computed `() => T` via TypeScript overloads.
  */
 
-import { useCallback, useRef, useSyncExternalStore } from "react"
+import { useCallback, useMemo, useRef, useSyncExternalStore } from "react"
 import { effect } from "alien-signals"
 import type { KNode } from "@km/core"
 import { ResourceState, type Observable, type Reactive, type ReadonlySignal } from "@km/storage"
@@ -106,16 +106,30 @@ export function useCommitVersion(store: Observable): number {
  * const rootId = useSignal(ps.rootId)
  * const view = useSignal(ps.view)
  * ```
+ *
+ * When a pane is closed, Zustand selectors may fire for the now-removed pane
+ * before React unmounts the component (zombie child problem). In that case,
+ * returns the last valid PaneSignals from cache — the component will unmount
+ * on the next reconciliation tick.
  */
 export function usePaneSignals(): PaneSignals {
   const paneId = usePaneId()
+  const lastValidRef = useRef<PaneSignals | null>(null)
   return useAppStore<BoardAppStore, PaneSignals>((s) => {
     const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
-    if (p && isBoardPane(p) && p.signals) return p.signals
+    if (p && isBoardPane(p) && p.signals) {
+      lastValidRef.current = p.signals
+      return p.signals
+    }
     // Fallback: find any board pane with signals (shouldn't happen in practice)
     for (const pane of s.workspace.panes.values()) {
-      if (isBoardPane(pane) && pane.signals) return pane.signals
+      if (isBoardPane(pane) && pane.signals) {
+        lastValidRef.current = pane.signals
+        return pane.signals
+      }
     }
+    // Pane was removed — return cached signals (zombie child, will unmount shortly)
+    if (lastValidRef.current) return lastValidRef.current
     throw new Error(`usePaneSignals: no PaneSignals for pane ${paneId}`)
   })
 }
