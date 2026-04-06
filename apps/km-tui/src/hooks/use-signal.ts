@@ -121,6 +121,23 @@ export function usePaneSignals(): PaneSignals {
 }
 
 /**
+ * Safe variant of usePaneSignals — returns null instead of throwing when
+ * workspace/pane context is missing (storybook, unit tests, pre-init).
+ */
+export function useMaybePaneSignals(): PaneSignals | null {
+  const paneId = usePaneId()
+  return useAppStore<BoardAppStore, PaneSignals | null>((s) => {
+    if (!s.workspace?.panes) return null
+    const p = s.workspace.panes.get(paneId) as BoardPaneState | undefined
+    if (p && isBoardPane(p) && p.signals) return p.signals
+    for (const pane of s.workspace.panes.values()) {
+      if (isBoardPane(pane) && pane.signals) return pane.signals
+    }
+    return null
+  })
+}
+
+/**
  * Get the PaneSignals for the currently focused pane.
  * Used by workspace-level components (WorkspaceChrome) that track the active pane.
  */
@@ -165,7 +182,9 @@ export function useViewTree(): ViewTreeProjection | null {
  * ```
  */
 export function useNode(id: string): ProjectedViewNode | null {
-  const ps = usePaneSignals()
+  // Safe pane signals access — returns null when workspace/pane context is missing
+  // (e.g., storybook, unit tests without full board setup).
+  const ps = useMaybePaneSignals()
   const tree = ps?.viewTree
   if (!tree) return null
 
