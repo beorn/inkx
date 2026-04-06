@@ -36,8 +36,7 @@ import type { AgNode } from "@silvery/ag-react"
 import { type KNode, runGenerator } from "@km/core"
 import type { Repo } from "@km/storage"
 import { createStoreFromRepo, withReactive } from "@km/storage"
-import type { InitialBoardData } from "./types.ts"
-import type { ColumnView } from "./hooks/use-columns.ts"
+import { createVisibleLens } from "@km/board"
 import { BoardCore } from "./views/index.ts"
 import { createInitialPaneUI } from "./state/ui-reducer.ts"
 import { RepoProvider } from "./repo-context.tsx"
@@ -120,7 +119,7 @@ export interface BoardTestHarness extends AutoLocator {
 
   // State access
   /** Get the current board state */
-  getState(): { rootId: string | null; columns: ColumnView[] }
+  getState(): { rootId: string | null }
   /** Get the current cursor position [colIndex, cardIndex] */
   getCursor(): [number, number]
   /** Get the currently selected node, if any */
@@ -191,25 +190,22 @@ export async function createBoardTest(
     }
   }
 
-  // Import TUI module for state initialization
-  const tuiModule = await import("./index.ts")
+  const rootId = rootNodeId ?? null
 
-  // Initialize board state
-  const state = runGenerator(tuiModule.initBoardStateGenerator(repo, rootNodeId))
-
-  if (!state) {
-    throw new Error(`Failed to initialize board state for ${repoPath}`)
-  }
-
-  state.rootPath = repoPath
+  // Derive column IDs and initial cursor from lens (no InitialBoardData needed)
+  const initViewLens = createViewLens(repo, { rootId, foldDepths: new Map() })
+  const initLensForCols = createVisibleLens(initViewLens)
+  const columnIds = rootId ? [...initLensForCols.children(rootId)] : []
+  const firstColId = columnIds[0]
+  const firstCardNodeId = firstColId ? initLensForCols.children(firstColId)[0] ?? null : null
 
   // Create test renderer
   const render = createRenderer({ cols: width, rows: height })
 
   // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {
-    rootId: state.rootId,
-    columnIds: state.columns.map((c: any) => c.node.id),
+    rootId,
+    columnIds,
     columnFilters: new Map<string, import("./views/Board.tsx").ColumnFilterState>(),
     colIndex: 0,
     cardIndex: 0,
@@ -220,13 +216,10 @@ export async function createBoardTest(
     hasDetailPane: false,
   })
 
-  const firstCardNodeId = state.columns[0]?.cardNodes[0]?.id ?? null
-
   // Create ReactiveNodeStore and sync initial cursor state
   const nodeStore = new ReactiveNodeStore()
   // Derive initial cursor ancestors for sync via lens
-  const initLens = createViewLens(repo, { rootId: state.rootId, foldDepths: new Map() })
-  const initAncestors = classifyCursorFromLens(initLens, firstCardNodeId)
+  const initAncestors = classifyCursorFromLens(initViewLens, firstCardNodeId)
   nodeStore.syncCursor({
     cursor: firstCardNodeId,
     cursorCardNodeId: initAncestors.cursorCardNodeId,
@@ -239,8 +232,7 @@ export async function createBoardTest(
   const storeElement = React.createElement(StoreProvider, { store: reactiveStore, children: repoElement })
   const app = render(React.createElement(ReactiveNodeStoreProvider, { value: nodeStore, children: storeElement }))
 
-  // Current data - updated after each input
-  const currentState = state as InitialBoardData
+  // Current root ID for getState()
 
   // Build harness object that extends InkxLocator
   const harness: BoardTestHarness = {
@@ -282,8 +274,7 @@ export async function createBoardTest(
 
     // State access
     getState() {
-      // Returns initial state — this harness doesn't track state changes
-      return { rootId: currentState.rootId, columns: currentState.columns }
+      return { rootId }
     },
 
     getCursor() {
@@ -292,11 +283,8 @@ export async function createBoardTest(
     },
 
     getSelectedNode() {
-      const s = this.getState()
-      // Static harness always at position (0, 0)
-      const col = s.columns[0]
-      if (!col) return null
-      return col.cardNodes[0] ?? null
+      // Static harness always at first card
+      return firstCardNodeId ? repo.getNode(firstCardNodeId) ?? null : null
     },
 
     // Lifecycle

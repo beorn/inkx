@@ -152,13 +152,13 @@ export const nodeLinks: Invariant = (app) => {
 /** Layout indices are within bounds */
 export const layout: Invariant = (app) => {
   const state = app.state
-  if (!state.columns || state.columns.length === 0) return
+  if (!state.columnIds || state.columnIds.length === 0) return
 
   // Skip board-level checks
   if (state.cursor?.level === "board") return
 
   expect(state.colIndex, "Column index negative").toBeGreaterThanOrEqual(0)
-  expect(state.colIndex, "Column index out of bounds").toBeLessThan(state.columns.length)
+  expect(state.colIndex, "Column index out of bounds").toBeLessThan(state.columnIds.length)
 }
 
 /** Default invariants - call manually with board.check() */
@@ -272,16 +272,22 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
 
     columns() {
       const state = driver.getState()
-      if (!state.columns || state.columns.length === 0) return []
-      return state.columns.map((col, index) => {
-        const loc = driver.app.locator(`#${col.node.id}`)
-        const title = col.node.name ?? (col.node.data?.name as string | undefined) ?? col.node.id
+      if (!state.columnIds || state.columnIds.length === 0) return []
+      return state.columnIds.map((colId, index) => {
+        const loc = driver.app.locator(`#${colId}`)
+        const colNode = repo.getNode(colId)
+        const title = colNode?.name ?? (colNode?.data?.name as string | undefined) ?? colId
+        // Count cards in this column from nodeIndex
+        let cardCount = 0
+        for (const entry of state.nodeIndex.values()) {
+          if (entry.colIndex === index && entry.cardIndex >= 0) cardCount++
+        }
         return {
           index,
-          id: col.node.id,
+          id: colId,
           title,
           box: loc.count() > 0 ? loc.boundingBox() : null,
-          cardCount: col.cardNodes.length,
+          cardCount,
           hasCursor: state.cursor?.col === index,
         }
       })
@@ -289,15 +295,24 @@ function createBoardApp(driver: BoardDriver, repo: Repo, invariants: Invariant[]
 
     cards() {
       const state = driver.getState()
-      if (!state.columns || state.columns.length === 0) return []
+      if (!state.columnIds || state.columnIds.length === 0) return []
       const result: CardInfo[] = []
-      state.columns.forEach((col, colIndex) => {
-        col.cardNodes.forEach((card, cardIndex) => {
-          const loc = driver.app.locator(`#${card.id}`)
-          const text = card.content ?? card.name ?? (card.data?.name as string | undefined) ?? card.id
+      state.columnIds.forEach((colId, colIndex) => {
+        // Get card IDs from nodeIndex entries for this column
+        const cardIds: string[] = []
+        for (const [id, entry] of state.nodeIndex) {
+          if (entry.colIndex === colIndex && entry.cardIndex >= 0) {
+            cardIds.push(id)
+          }
+        }
+        cardIds.sort((a, b) => (state.nodeIndex.get(a)?.cardIndex ?? 0) - (state.nodeIndex.get(b)?.cardIndex ?? 0))
+        cardIds.forEach((cardId, cardIndex) => {
+          const card = repo.getNode(cardId)
+          const loc = driver.app.locator(`#${cardId}`)
+          const text = card?.content ?? card?.name ?? (card?.data?.name as string | undefined) ?? cardId
           result.push({
             index: cardIndex,
-            id: card.id,
+            id: cardId,
             text,
             column: colIndex,
             box: loc.count() > 0 ? loc.boundingBox() : null,

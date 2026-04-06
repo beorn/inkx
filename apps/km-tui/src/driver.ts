@@ -64,14 +64,8 @@ import { createBoardState, hasDetailPaneFor } from "./board/board-types.ts"
 import { BoardApp } from "./views/Board.tsx"
 import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
-import { buildBoardState } from "./state.ts"
-import { createGridNavigator, type GridNavigator } from "@km/board"
-import {
-  deriveDetailColumns,
-  buildNodeIndexFromTree,
-  deriveColumnsFromLens,
-  deriveCursorIndices,
-} from "./hooks/use-columns.ts"
+import { createGridNavigator, createViewLens, createVisibleLens, type GridNavigator } from "@km/board"
+import { buildNodeIndexFromTree, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { ensureCommandSystemInitialized } from "./board/command-bridge.ts"
 import { resetModeStack } from "./dialog-guard.ts"
 import {
@@ -122,8 +116,8 @@ export interface TUIDriverState extends AppState {
   detailPaneOpen: boolean
   /** Move mode active */
   moveMode: boolean // derived from moveState.active
-  /** Layout data (columns, colIndex, cardIndex) */
-  columns: import("./hooks/use-columns.ts").ColumnView[]
+  /** Layout data (columnIds, colIndex, cardIndex) */
+  columnIds: string[]
   colIndex: number
   cardIndex: number
   isAtCardLevel: boolean
@@ -185,12 +179,21 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   ensureCommandSystemInitialized()
   resetModeStack()
 
-  // Build initial board data for computing initial store params
-  const initialData = buildBoardState(repo, rootId)
+  // Derive initial cursor and collapsed nodes from lens (no buildBoardState needed)
+  const initLens = createVisibleLens(createViewLens(repo, { rootId, foldDepths: new Map() }))
+  const initColIds = rootId ? initLens.children(rootId) : []
+  const firstColId = initColIds[0]
+  const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
+  const initialCursor = firstCardId ?? firstColId ?? null
 
-  // Compute initial cursor node from columns
-  const firstCol = initialData.columns[0]
-  const initialCursor = firstCol?.cardNodes[0]?.id ?? firstCol?.node.id ?? null
+  const collapsedNodeIds = new Set<string>()
+  if (rootId) {
+    for (const child of repo.getChildren(rootId)) {
+      if (child.rules?.collapse || child.data?.collapsed === true) {
+        collapsedNodeIds.add(child.id)
+      }
+    }
+  }
 
   // Create layout registry for position tracking
   const navigator = createGridNavigator()
@@ -201,7 +204,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     repo,
     toastQueue,
     navigator,
-    initialBoardState: createBoardState(initialData.rootId, initialData.rootPath, initialData.collapsedNodeIds),
+    initialBoardState: createBoardState(rootId, repo.path, collapsedNodeIds),
     initialCursor: initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
@@ -258,20 +261,17 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const board = Workspace.getActiveBoardPane(s)
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
-    const cols =
-      board?.viewMode === "detail"
-        ? deriveDetailColumns(s.repo, rootId, foldDepths)
-        : board?.signals
-          ? deriveColumnsFromLens(board.signals.visibleLens(), s.repo)
-          : []
     const ni = board?.signals
       ? buildNodeIndexFromTree(board.signals.visibleLens())
       : new Map<string, { colIndex: number; cardIndex: number }>()
+    const ctxColIds = rootId && board?.signals ? [...board.signals.visibleLens().children(rootId)] : []
     const cursor = (board?.sel.node.cursor() as string | null) ?? null
-    const cursorPos = deriveCursorIndices(cols, cursor, ni, (id) => s.repo.getNode(id))
-    const column = cols[cursorPos.colIndex]
-    const card = column?.cardNodes[cursorPos.cardIndex]
-    const selectedNode = card ?? column?.node ?? null
+    const cursorPos = deriveCursorIndices({ length: ctxColIds.length }, cursor, ni, (id) => s.repo.getNode(id))
+    const ctxColumnId = ctxColIds[cursorPos.colIndex] ?? null
+    const ctxCardIds = ctxColumnId && board?.signals ? board.signals.visibleLens().children(ctxColumnId) : []
+    const ctxCardId = ctxCardIds[cursorPos.cardIndex]
+    const card = ctxCardId ? s.repo.getNode(ctxCardId) : null
+    const selectedNode = card ?? (ctxColumnId ? s.repo.getNode(ctxColumnId) : null) ?? null
 
     return {
       currentNode: selectedNode as CommandContext["currentNode"],
@@ -280,9 +280,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       selectedNodes: Array.from(s.sel.node.ids()),
       viewMode: board?.viewMode ?? "columns",
       siblingIndex: cursorPos.cardIndex,
-      siblingCount: column?.cardNodes.length ?? 0,
+      siblingCount: ctxColumnId ? ctxCardIds.length : 0,
       columnIndex: cursorPos.colIndex,
-      columnCount: cols.length,
+      columnCount: ctxColIds.length,
       moveMode: board?.moveState.active ?? false,
       foldDepths,
     }
@@ -361,21 +361,18 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
-    // Derive layout on demand
-    const cols =
-      board?.viewMode === "detail"
-        ? deriveDetailColumns(s.repo, rootId, foldDepths)
-        : board?.signals
-          ? deriveColumnsFromLens(board.signals.visibleLens(), s.repo)
-          : []
+    // Derive layout from tree on demand (no ColumnView dependency)
     const ni = board?.signals
       ? buildNodeIndexFromTree(board.signals.visibleLens())
       : new Map<string, { colIndex: number; cardIndex: number }>()
+    const treeColIds = rootId && board?.signals ? [...board.signals.visibleLens().children(rootId)] : []
     const cursorId = (board?.sel.node.cursor() as string | null) ?? null
-    const cursorPos = deriveCursorIndices(cols, cursorId, ni, (id) => s.repo.getNode(id))
-    const col = cols[cursorPos.colIndex]
-    const card = col?.cardNodes[cursorPos.cardIndex]
-    const selectedNode = card ?? col?.node ?? null
+    const cursorPos = deriveCursorIndices({ length: treeColIds.length }, cursorId, ni, (id) => s.repo.getNode(id))
+    const columnId = treeColIds[cursorPos.colIndex] ?? null
+    const treeCardIds = columnId && board?.signals ? board.signals.visibleLens().children(columnId) : []
+    const cardNodeId = treeCardIds[cursorPos.cardIndex]
+    const card = cardNodeId ? s.repo.getNode(cardNodeId) : null
+    const selectedNode = card ?? (columnId ? s.repo.getNode(columnId) : null) ?? null
     const level = cursorPos.colIndex === -1 ? "board" : cursorPos.cardIndex === -1 ? "column" : "card"
 
     return {
@@ -395,7 +392,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
       },
       detailPaneOpen: hasDetailPaneFor(s.workspace, s.workspace.focusedPaneId),
       moveMode: board?.moveState.active ?? false,
-      columns: cols,
+      columnIds: treeColIds,
       colIndex: cursorPos.colIndex,
       cardIndex: cursorPos.cardIndex,
       isAtCardLevel: cursorPos.isAtCardLevel,
