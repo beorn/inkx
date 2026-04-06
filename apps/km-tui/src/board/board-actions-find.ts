@@ -26,16 +26,31 @@ export function collectVisibleNodeIds(columns: ColumnView[]): string[] {
  * Search visible nodes for a query string (case-insensitive substring).
  * Pure function — usable from both action handlers and React callbacks.
  */
-export function findMatchingNodeIds(columns: ColumnView[], query: string): string[] {
+export function findMatchingNodeIds(columns: ColumnView[], query: string): string[]
+export function findMatchingNodeIds(tree: import("@km/board").ViewTreeProjection, query: string): string[]
+export function findMatchingNodeIds(source: ColumnView[] | import("@km/board").ViewTreeProjection, query: string): string[] {
   if (!query) return []
   const lowerQuery = query.toLowerCase()
   const matches: string[] = []
 
-  for (const col of columns) {
-    for (const card of col.cardNodes) {
-      const text = (card.content ?? card.name ?? "").toLowerCase()
-      if (text.includes(lowerQuery)) {
-        matches.push(card.id)
+  if (Array.isArray(source)) {
+    // ColumnView[] path (Board.tsx React component)
+    for (const col of source) {
+      for (const card of col.cardNodes) {
+        const text = (card.content ?? card.name ?? "").toLowerCase()
+        if (text.includes(lowerQuery)) matches.push(card.id)
+      }
+    }
+  } else {
+    // ViewTreeProjection path (action handlers via ctx.tree)
+    const rootId = source.rootId
+    if (!rootId) return matches
+    for (const colId of source.children(rootId)) {
+      for (const cardId of source.children(colId)) {
+        const node = source.node(cardId)
+        if (!node) continue
+        const text = (node.content ?? node.name ?? "").toLowerCase()
+        if (text.includes(lowerQuery)) matches.push(cardId)
       }
     }
   }
@@ -96,7 +111,7 @@ export function handleLocalFindPrev(ctx: OpCtx): OpResult {
  * Called from Board.tsx when the FindBar input changes.
  */
 export function updateLocalSearchMatches(ctx: OpCtx, query: string): void {
-  const matchNodeIds = findMatchingNodeIds(ctx.columns, query)
+  const matchNodeIds = findMatchingNodeIds(ctx.tree, query)
   const matchCount = matchNodeIds.length
 
   // Navigate to first match if available
