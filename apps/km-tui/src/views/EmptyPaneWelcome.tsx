@@ -17,7 +17,7 @@ export function EmptyPaneWelcome(): React.ReactElement {
       <Small> gh go to home</Small>
       <Small> gN go to next actions</Small>
       <Small> </Small>
-      <Small> Ctrl+W q close this pane</Small>
+      <Small> v w close this pane</Small>
     </Box>
   )
 }
