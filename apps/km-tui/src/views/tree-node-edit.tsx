@@ -306,9 +306,9 @@ export function BodyBlockEditor({
         const blockIndex = realIndex + 1 // 0 is title
         const isActiveBlock = editBlockIndex === blockIndex
         return (
-          <Box key={`${child.id}-${i}`} paddingLeft={depth + 1}>
+          <Box key={`${child.id}-${i}`} paddingLeft={depth}>
             <Text dimColor={!isActiveBlock} color={"$focusborder"}>
-              {"  "}
+              {" "}
             </Text>
             {isActiveBlock ? (
               <BodyEditField
@@ -352,7 +352,7 @@ export function BodyBlockEditor({
                 }}
               />
             ) : (
-              <Text color={"$focusborder"} dimColor>
+              <Text dimColor>
                 <InlineText text={child.content ?? ""} />
               </Text>
             )}
