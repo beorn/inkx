@@ -66,7 +66,7 @@ export function renderBoard(
   if (state.columns.length === 0) {
     lines.push(style.dim("\n  Empty board - no columns found"))
     lines.push(style.dim("  Add child nodes to create columns\n"))
-    lines.push(renderStatusBar(state, width))
+    lines.push(renderStatusBar(width))
     return lines.join("\n")
   }
 
@@ -123,7 +123,7 @@ export function renderBoard(
   lines.push(moreIndicators.join(" "))
 
   // Status bar
-  lines.push(renderStatusBar(state, width))
+  lines.push(renderStatusBar(width))
 
   return lines.join("\n")
 }
@@ -199,7 +199,7 @@ export function renderCard(
 /**
  * Render status bar
  */
-export function renderStatusBar(_state: InitialBoardData, width: number): string {
+export function renderStatusBar(width: number): string {
   const style = createTermStyle()
 
   const left = ""

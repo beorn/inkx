@@ -31,8 +31,7 @@ function createMockRepo(childrenMap?: Map<string, KNode[]>): Repo {
 
 describe("Board Pure Rendering", () => {
   test("renderStatusBar shows keybinding hints", () => {
-    const state = createEmptyState()
-    const output = renderStatusBar(state, 80)
+    const output = renderStatusBar(80)
     expect(output).toContain("h/l:cols")
     expect(output).toContain("j/k:cards")
   })
