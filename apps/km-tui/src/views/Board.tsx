@@ -46,7 +46,7 @@ import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
-import { buildNodeIndex, deriveCursorIndices, deriveDetailColumns } from "../hooks/use-columns.ts"
+import { buildNodeIndex, buildNodeIndexFromTree, deriveCursorIndices, deriveDetailColumns } from "../hooks/use-columns.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor } from "../board/board-types.ts"
@@ -698,7 +698,12 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
-  const nodeIndex = useMemo(() => buildNodeIndex(columns), [columns])
+  // Prefer ViewTree-based index when available (no ColumnView dependency).
+  const paneViewTree = ps.viewTree
+  const nodeIndex = useMemo(
+    () => (paneViewTree ? buildNodeIndexFromTree(paneViewTree) : buildNodeIndex(columns)),
+    [paneViewTree, columns],
+  )
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
 
   // Sync inline edit state. Derives cardNodeId from parent_id so callers

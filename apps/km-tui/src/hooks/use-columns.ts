@@ -369,3 +369,25 @@ function mapDescendants(
     }
   }
 }
+
+/**
+ * Build nodeIndex from ViewTreeProjection — no ColumnView dependency.
+ * Uses tree.children(rootId) for columns, tree.children(colId) for cards.
+ */
+export function buildNodeIndexFromTree(
+  tree: import("@km/board").ViewTreeProjection,
+): Map<string, { colIndex: number; cardIndex: number }> {
+  const index = new Map<string, { colIndex: number; cardIndex: number }>()
+  const rootId = tree.rootId
+  if (!rootId) return index
+  const colIds = tree.children(rootId)
+  for (let colIdx = 0; colIdx < colIds.length; colIdx++) {
+    const colId = colIds[colIdx]!
+    index.set(colId, { colIndex: colIdx, cardIndex: -1 })
+    const cardIds = tree.children(colId)
+    for (let cardIdx = 0; cardIdx < cardIds.length; cardIdx++) {
+      index.set(cardIds[cardIdx]!, { colIndex: colIdx, cardIndex: cardIdx })
+    }
+  }
+  return index
+}
