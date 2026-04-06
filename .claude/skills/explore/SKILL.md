@@ -21,6 +21,7 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 | `/explore km view <path>` or `/explore --path <path>` | Test real vault with diagnostics | `TEST_VAULT=<path> bun vitest run apps/km-tui/tests/real-vault.test.ts` |
 | `/explore --compare` | Asana vs km TUI comparison | See [compare.md](compare.md) |
 | `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
+| `/explore end` or `/explore finish` | **End session** — summary, retrospective, bead cleanup | See [end.md](end.md) |
 
 **Session tracking**: Team and solo modes create a session bead (`km-session.<MMDD><seq>`) for persistent tracking. Quick modes (`--fuzz`, `--path`) skip this. See [reporting.md](reporting.md) for conventions.
 
