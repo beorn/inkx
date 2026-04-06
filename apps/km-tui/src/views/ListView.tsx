@@ -11,7 +11,7 @@
  */
 import React, { useMemo, useCallback } from "react"
 import { Box, Text, Small, ListView as SilveryListView } from "@silvery/ag-react"
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board/board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../state/ui-context.tsx"

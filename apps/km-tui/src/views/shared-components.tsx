@@ -10,7 +10,7 @@ import { usePaneSignals } from "../hooks/use-signal.ts"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:layout")
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board/board-pills.ts"

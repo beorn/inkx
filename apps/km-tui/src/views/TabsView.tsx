@@ -8,7 +8,7 @@
  */
 import React, { useMemo } from "react"
 import { Box, Text, Small, ListView } from "@silvery/ag-react"
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { deriveColumnExcludedSigils } from "../state/ui-context.tsx"

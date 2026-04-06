@@ -13,7 +13,7 @@ import { Box, Small, HorizontalVirtualList } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:columns")
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../state/ui-context.tsx"
 import { useApp as useAppStore } from "@silvery/create/create-app"

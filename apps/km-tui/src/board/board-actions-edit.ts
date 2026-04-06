@@ -29,7 +29,7 @@ import { Tree, midpoint } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection, getSelectedNodes, forEachSelected } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField

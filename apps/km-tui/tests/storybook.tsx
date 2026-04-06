@@ -65,7 +65,7 @@ import { BoardCore, type BoardCoreProps } from "../src/views/Board.tsx"
 import { CommandBox } from "../src/views/CommandBox.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode, TaskStatus, TaskMarker } from "@km/core"
-import type { ColumnView } from "../src/types.ts"
+import type { ColumnView } from "../src/hooks/use-columns.ts"
 
 /** Local type for storybook mock board state (TUIBoardState was removed from types.ts) */
 interface TUIBoardState {

@@ -8,7 +8,8 @@ import { KNode, findIndexFile } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { InitialBoardData, ColumnView } from "./types.ts"
+import type { InitialBoardData } from "./types.ts"
+import type { ColumnView } from "./hooks/use-columns.ts"
 import { deduplicateByFsPath, isCollapsedChild } from "@km/board"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"

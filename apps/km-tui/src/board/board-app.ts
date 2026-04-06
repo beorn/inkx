@@ -28,7 +28,7 @@ import { needsRenderFlush } from "./board-actions-edit.ts"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import {

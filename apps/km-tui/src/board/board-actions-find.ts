@@ -9,7 +9,7 @@ import { type OpResult, boundary, ok } from "@km/commands"
 import type { ID } from "@silvery/selection"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 
 /** Collect visible node IDs from columns in visual order */
 export function collectVisibleNodeIds(columns: ColumnView[]): string[] {
