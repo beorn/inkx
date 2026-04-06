@@ -2044,6 +2044,7 @@
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-flexx.scroll-height-equalization","issue_id":"km-tui.body-block-spacing","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-block-spacing","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-collapse","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T12:01:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.body-edit-structure","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T23:24:59Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.body-extraction-position","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-hr-index","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:47Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-indicator-redundant","metadata":"{}","type":"parent-child"}
