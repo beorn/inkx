@@ -45,14 +45,16 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // 0. Cursor must not be null on a non-empty board.
   // Legitimate null-cursor cases: empty board, detail pane (virtual nodes), move mode.
   // This invariant catches "cursor fell off the walkOrder" bugs from stale ViewSnapshots.
-  if (!ctx.cursor && ctx.columns.length > 0 && !ctx.moveState.active) {
-    const hasRealCards = ctx.columns.some(
-      (col) => !col.isVirtual && col.cardNodes.some((card) => !isVirtualNodeId(card.id)),
-    )
+  const treeColIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+  if (!ctx.cursor && treeColIds.length > 0 && !ctx.moveState.active) {
+    const hasRealCards = treeColIds.some((colId) => {
+      if (isVirtualNodeId(colId)) return false
+      return ctx.tree.children(colId).some((cardId) => !isVirtualNodeId(cardId))
+    })
     if (hasRealCards) {
       violations.push({
         check: "cursor-not-null",
-        message: `Cursor is null but board has ${ctx.columns.length} columns with real cards. Selection state may be stale.`,
+        message: `Cursor is null but board has ${treeColIds.length} columns with real cards. Selection state may be stale.`,
         ids: { rootId: ctx.rootId },
       })
     }
@@ -97,33 +99,32 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
-  // 4. Column derivation consistency: every card in columns exists in repo
+  // 4. Column derivation consistency: every card in tree exists in repo
   // Skip virtual columns (__body__*) and virtual card nodes (__meta__*)
-  for (let ci = 0; ci < ctx.columns.length; ci++) {
-    const col = ctx.columns[ci]
-    if (!col) continue
+  for (let ci = 0; ci < treeColIds.length; ci++) {
+    const colId = treeColIds[ci]!
     // Column header node exists (skip virtual columns)
-    if (!col.isVirtual && !isVirtualNodeId(col.node.id)) {
-      const colNode = ctx.repo.getNode(col.node.id)
+    if (!isVirtualNodeId(colId)) {
+      const colNode = ctx.repo.getNode(colId)
       if (!colNode) {
         violations.push({
           check: "column-node-exists",
           message: `Column ${ci} header references non-existent node`,
-          ids: { columnNodeId: col.node.id },
+          ids: { columnNodeId: colId },
         })
       }
     }
     // Card nodes exist (skip virtual card nodes like __meta__*)
-    for (let cdi = 0; cdi < col.cardNodes.length; cdi++) {
-      const card = col.cardNodes[cdi]
-      if (!card) continue
-      if (isVirtualNodeId(card.id)) continue
-      const cardNode = ctx.repo.getNode(card.id)
+    const cardIds = ctx.tree.children(colId)
+    for (let cdi = 0; cdi < cardIds.length; cdi++) {
+      const cardId = cardIds[cdi]!
+      if (isVirtualNodeId(cardId)) continue
+      const cardNode = ctx.repo.getNode(cardId)
       if (!cardNode) {
         violations.push({
           check: "card-node-exists",
           message: `Card ${ci}:${cdi} references non-existent node`,
-          ids: { cardNodeId: card.id, columnNodeId: col.node.id },
+          ids: { cardNodeId: cardId, columnNodeId: colId },
         })
       }
     }
@@ -142,21 +143,22 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 6. Cursor position indices are consistent with columns
-  if (ctx.cursor && ctx.columns.length > 0 && ctx.colIndex >= 0) {
-    if (ctx.colIndex >= ctx.columns.length) {
+  if (ctx.cursor && treeColIds.length > 0 && ctx.colIndex >= 0) {
+    if (ctx.colIndex >= treeColIds.length) {
       violations.push({
         check: "colIndex-bounds",
-        message: `colIndex ${ctx.colIndex} >= columns.length ${ctx.columns.length}`,
+        message: `colIndex ${ctx.colIndex} >= columns.length ${treeColIds.length}`,
         ids: { cursor: ctx.cursor },
       })
     }
     if (ctx.isAtCardLevel && ctx.cardIndex >= 0) {
-      const col = ctx.columns[ctx.colIndex]
-      if (col && ctx.cardIndex >= col.cardNodes.length) {
+      const colId = treeColIds[ctx.colIndex]
+      const colCardIds = colId ? ctx.tree.children(colId) : []
+      if (colId && ctx.cardIndex >= colCardIds.length) {
         violations.push({
           check: "cardIndex-bounds",
-          message: `cardIndex ${ctx.cardIndex} >= column cardNodes.length ${col.cardNodes.length}`,
-          ids: { cursor: ctx.cursor, columnNodeId: col.node.id },
+          message: `cardIndex ${ctx.cardIndex} >= column cards ${colCardIds.length}`,
+          ids: { cursor: ctx.cursor, columnNodeId: colId },
         })
       }
     }
@@ -168,7 +170,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // Skip when cursor IS the root node — that's legitimate "board level" cursor.
   if (
     ctx.cursor &&
-    ctx.columns.length > 0 &&
+    treeColIds.length > 0 &&
     ctx.colIndex < 0 &&
     !isVirtualNodeId(ctx.cursor as string) &&
     (ctx.cursor as string) !== ctx.rootId
@@ -206,7 +208,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 9. Inline edit node should be resolvable in columns (if editing)
   // Skip when edit node IS the root — board-level editing is an edge case from fuzz testing.
-  if (editText && ctx.columns.length > 0 && editText.nodeId !== ctx.rootId) {
+  if (editText && treeColIds.length > 0 && editText.nodeId !== ctx.rootId) {
     const editInIndex = ctx.nodeIndex.has(editText.nodeId)
     // Walk parents if not directly in index
     let foundInColumns = editInIndex
@@ -271,17 +273,17 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 13. No duplicate columns: each column node ID should appear at most once.
   {
-    const colIds = new Set<string>()
-    for (const col of ctx.columns) {
-      if (col.isVirtual) continue
-      if (colIds.has(col.node.id)) {
+    const seenColIds = new Set<string>()
+    for (const colId of treeColIds) {
+      if (isVirtualNodeId(colId)) continue
+      if (seenColIds.has(colId)) {
         violations.push({
           check: "no-duplicate-columns",
-          message: `Column "${col.node.id}" appears more than once`,
-          ids: { columnNodeId: col.node.id },
+          message: `Column "${colId}" appears more than once`,
+          ids: { columnNodeId: colId },
         })
       }
-      colIds.add(col.node.id)
+      seenColIds.add(colId)
     }
   }
 
