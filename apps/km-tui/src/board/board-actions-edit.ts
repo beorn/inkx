@@ -627,16 +627,18 @@ function moveColumn(
 ): OpResult {
   if (!ctx.rootId) return boundary("move", "no root")
   const { repo } = ctx
-  const columns = ctx.columns
-  const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
+  const colIds = ctx.tree.children(ctx.rootId)
+  const colIndex = colIds.indexOf(col.node.id)
   const targetIndex = direction === "left" ? colIndex - 1 : colIndex + 1
-  if (targetIndex < 0 || targetIndex >= columns.length) return boundary(direction)
+  if (targetIndex < 0 || targetIndex >= colIds.length) return boundary(direction)
 
-  const targetCol = columns[targetIndex]
-  if (!targetCol) return boundary(direction)
+  const targetColId = colIds[targetIndex]!
+  const targetColNode = repo.getNode(targetColId)
+  if (!targetColNode) return boundary(direction)
 
   // Virtual columns (e.g., __body__) are synthetic — can't be moved in the repo
-  if (targetCol.isVirtual) return boundary(direction)
+  const targetViewType = ctx.tree.track(targetColId)?.viewType()
+  if (targetViewType === "body-column") return boundary(direction)
 
   // Batch all moves (normalize + swap) into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
@@ -649,11 +651,11 @@ function moveColumn(
   const parentId = ctx.rootId
   // Read parent_idx from repo (not layout) to avoid stale references
   const curNode = repo.getNode(col.node.id)
-  const targetNode = repo.getNode(targetCol.node.id)
+  const targetNode = repo.getNode(targetColId)
   const curOrder = curNode?.parent_idx ?? col.node.parent_idx
-  const targetOrder = targetNode?.parent_idx ?? targetCol.node.parent_idx
+  const targetOrder = targetNode?.parent_idx ?? 0
   repo.moveNode(col.node.id, parentId, targetOrder)
-  repo.moveNode(targetCol.node.id, parentId, curOrder)
+  repo.moveNode(targetColId, parentId, curOrder)
 
   ctx.undoHandle.endBatch()
 
@@ -671,24 +673,28 @@ function moveColumn(
  */
 function normalizeColumnSortOrders(ctx: OpCtx, colIndexA: number, colIndexB: number): void {
   const { repo } = ctx
-  const colA = ctx.columns[colIndexA]
-  const colB = ctx.columns[colIndexB]
-  if (!colA || !colB) return
+  const rootId = ctx.tree.rootId
+  if (!rootId) return
+  const colIds = ctx.tree.children(rootId)
+  const colIdA = colIds[colIndexA]
+  const colIdB = colIds[colIndexB]
+  if (!colIdA || !colIdB) return
+
+  const nodeA = repo.getNode(colIdA)
+  const nodeB = repo.getNode(colIdB)
+  if (!nodeA || !nodeB) return
 
   // Only normalize if the two columns share the same parent_idx
-  if (colA.node.parent_idx !== colB.node.parent_idx) return
+  if (nodeA.parent_idx !== nodeB.parent_idx) return
 
   // Assign distinct indices based on the shared parent_idx value, not array position.
-  // Array indices include virtual columns (e.g., __body__ at index 0), so using them
-  // as parent_idx values would produce wrong offsets.
-  const parentId = ctx.rootId
-  if (!parentId) return
-  const base = colA.node.parent_idx
+  const parentId = rootId
+  const base = nodeA.parent_idx
   // Both columns share `base` — only the right one needs to change to `base + 1`.
-  const rightCol = colIndexA < colIndexB ? colB : colA
-  if (!rightCol.isVirtual) {
-    repo.moveNode(rightCol.node.id, parentId, base + 1)
-    rightCol.node.parent_idx = base + 1
+  const rightColId = colIndexA < colIndexB ? colIdB : colIdA
+  const rightIsVirtual = ctx.tree.track(rightColId)?.viewType() === "body-column"
+  if (!rightIsVirtual) {
+    repo.moveNode(rightColId, parentId, base + 1)
   }
 }
 
