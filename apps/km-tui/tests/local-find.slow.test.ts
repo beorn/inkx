@@ -239,4 +239,59 @@ describe("Local Find", () => {
     expect(getActiveBoardPane(store.getState())!.localSearch?.matchCount).toBe(0)
     expect(getActiveBoardPane(store.getState())!.localSearch?.query).toBe("")
   })
+
+  // ---------------------------------------------------------------------------
+  // Deep projection coverage (regression: km-tui.search-misses-cards)
+  // ---------------------------------------------------------------------------
+
+  test("finds sub-items nested below cards (3+ levels deep)", () => {
+    // Bug: findMatchingNodeIds only walked 2 levels (root → col → card),
+    // missing sub-items projected as "subitem" view type under cards.
+    // Fix: walk the full visible projection via tree.walkOrder.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("parent-card", item("deeply-nested-subitem"), item("another-subitem"))),
+        ),
+      { columns: 120 },
+    )
+    board.command("local_find")
+    // Type "nested" — should match "deeply-nested-subitem"
+    board.press("n")
+    board.press("e")
+    board.press("s")
+    board.press("t")
+    board.press("e")
+    board.press("d")
+
+    const ls = getActiveBoardPane(store.getState())!.localSearch
+    expect(ls).not.toBeNull()
+    expect(ls!.matchCount).toBe(1)
+    expect(ls!.matchNodeIds).toContain("deeply-nested-subitem")
+  })
+
+  test("finds parent cards AND their sub-items for a matching query", () => {
+    // Both a card title and its sub-items should be searchable.
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("todo", item("buy milk", item("buy eggs"), item("buy bread")), item("walk dog")),
+        ),
+      { columns: 120 },
+    )
+    board.command("local_find")
+    // "buy" matches: buy milk, buy eggs, buy bread
+    board.press("b")
+    board.press("u")
+    board.press("y")
+
+    const ls = getActiveBoardPane(store.getState())!.localSearch
+    expect(ls).not.toBeNull()
+    expect(ls!.matchCount).toBe(3)
+    expect(ls!.matchNodeIds).toContain("buy milk")
+    expect(ls!.matchNodeIds).toContain("buy eggs")
+    expect(ls!.matchNodeIds).toContain("buy bread")
+  })
 })

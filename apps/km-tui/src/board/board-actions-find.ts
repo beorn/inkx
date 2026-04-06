@@ -7,27 +7,42 @@
 
 import { type OpResult, boundary, ok } from "@km/commands"
 import type { ID } from "@silvery/selection"
+import { getNodeDisplayName } from "@km/tree"
+import type { KNode } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 
 /**
  * Search visible nodes for a query string (case-insensitive substring).
  * Pure function — usable from both action handlers and React callbacks.
+ *
+ * Walks the full visible projection (tree.walkOrder) so cards, sub-items,
+ * and anything else the user can see is searchable. Matches against the
+ * canonical user-visible display name (getNodeDisplayName) so what you see
+ * is what you can search for.
  */
 export function findMatchingNodeIds(tree: import("@km/board").ViewTreeProjection, query: string): string[] {
   if (!query) return []
   const lowerQuery = query.toLowerCase()
   const matches: string[] = []
 
-  const rootId = tree.rootId
-  if (!rootId) return matches
-  for (const colId of tree.children(rootId)) {
-    for (const cardId of tree.children(colId)) {
-      const node = tree.node(cardId)
-      if (!node) continue
-      const text = (node.content ?? node.name ?? "").toLowerCase()
-      if (text.includes(lowerQuery)) matches.push(cardId)
+  if (!tree.rootId) return matches
+
+  const getChildren = (id: string): KNode[] => {
+    const childIds = tree.children(id)
+    const children: KNode[] = []
+    for (const cid of childIds) {
+      const child = tree.node(cid)
+      if (child) children.push(child)
     }
+    return children
+  }
+
+  for (const id of tree.walkOrder) {
+    const node = tree.node(id)
+    if (!node) continue
+    const display = getNodeDisplayName(node, getChildren)
+    if (display.toLowerCase().includes(lowerQuery)) matches.push(id)
   }
   return matches
 }
