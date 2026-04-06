@@ -12,7 +12,6 @@ import type { KNode, Position } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { Tree } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
-import type { CardView } from "../types.ts"
 
 /**
  * Get unique selected card indices from multi-selection, sorted ascending.
@@ -55,9 +54,16 @@ export function getSelectedCardIndices(ctx: OpCtx): number[] {
 export function getSelectedNodes(ctx: OpCtx): KNode[] {
   const indices = getSelectedCardIndices(ctx)
   if (indices.length > 1) {
-    const col = ctx.columns[ctx.colIndex]
-    if (!col) return []
-    return indices.map((i) => col.cardNodes[i]).filter((c): c is CardView => c !== undefined)
+    const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+    const colId = columnIds[ctx.colIndex]
+    if (!colId) return []
+    const cardIds = ctx.tree.children(colId)
+    return indices
+      .map((i) => {
+        const cardId = cardIds[i]
+        return cardId ? ctx.tree.node(cardId) : undefined
+      })
+      .filter((c): c is KNode => c !== undefined)
   }
 
   // Single selection: the cursor node (tree-level)
@@ -129,29 +135,20 @@ type SelectionScope = "card" | "column" | "board"
 
 /** Build a selection set for the given scope (card, column, or board) */
 function buildSelectAllSet(ctx: OpCtx, scope: SelectionScope): string[] {
-  const selected: string[] = []
+  const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
 
   if (scope === "card") {
-    const card = ctx.columns[ctx.colIndex]?.cardNodes[ctx.cardIndex]
-    if (card) {
-      selected.push(card.id)
-    }
+    // Select the current card (from ctx.card which is pre-computed)
+    const card = ctx.card
+    if (card) return [card.id]
+    return []
   } else if (scope === "column") {
-    const col = ctx.columns[ctx.colIndex]
-    if (col) {
-      for (const c of col.cardNodes) {
-        selected.push(c.id)
-      }
-    }
+    const colId = columnIds[ctx.colIndex]
+    return colId ? [...ctx.tree.children(colId)] : []
   } else {
-    for (const column of ctx.columns) {
-      for (const c of column.cardNodes) {
-        selected.push(c.id)
-      }
-    }
+    // board: all cards across all columns
+    return columnIds.flatMap((colId) => [...ctx.tree.children(colId)])
   }
-
-  return selected
 }
 
 /**
@@ -161,20 +158,22 @@ function buildSelectAllSet(ctx: OpCtx, scope: SelectionScope): string[] {
  * Derives scope from current selection size.
  */
 export function progressiveSelectAll(ctx: OpCtx): void {
-  const col = ctx.columns[ctx.colIndex]
-  const card = col?.cardNodes[ctx.cardIndex]
+  const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+  const colId = columnIds[ctx.colIndex]
+  const card = ctx.card
 
   // Derive outline mode: cursor is inside a card's sub-items
   const inOutlineMode = ctx.cursor !== null && card !== undefined && (ctx.cursor as string) !== card.id
   const currentSize = ctx.selectedIds.size
+  const colCardCount = colId ? ctx.tree.children(colId).length : 0
 
   // Determine next scope based on current selection size
   let scope: SelectionScope
   if (currentSize === 0 && inOutlineMode && card) {
     scope = "card"
-  } else if (col && currentSize <= (inOutlineMode ? 1 : 0)) {
+  } else if (colId && currentSize <= (inOutlineMode ? 1 : 0)) {
     scope = "column"
-  } else if (col && currentSize <= col.cardNodes.length) {
+  } else if (colId && currentSize <= colCardCount) {
     scope = "board"
   } else {
     // Already at board level, cycle back
