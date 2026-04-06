@@ -219,7 +219,51 @@ Every bead should have a human-readable scoped ID (`km-<scope>.<topic>`). During
 6. **Search codebase**: `Grep pattern="km-<random>" glob="*.{ts,md,json}"` — update any references in code, docs, or config
 7. **Parent**: `bd update km-<scope>.<suffix> --parent km-<scope>`
 
-#### E. Clarify (ask user)
+#### E. Organization Review (scope health)
+
+Review the overall km-* scope structure for maximum organization:
+
+**1. Scope size audit** — count open children per epic:
+```bash
+bd epic status  # Shows completion % and child counts
+```
+
+| Finding | Action |
+|---|---|
+| Epic has >40 open children | Split into sub-epics by theme (e.g., km-silvery → km-silvery.demos, km-silvery.infra) |
+| Epic has 0 open children (all closed) | Close the epic if it's a project epic. Scope epics stay open. |
+| Beads without a parent epic | Assign to the correct scope epic |
+| Catch-all scopes (km-all) with unrelated children | Dissolve — move children to specific scopes |
+
+**2. Orphan detection** — beads not under any epic:
+```bash
+bd list --status open --limit 0 | grep -v "│\|├\|└"  # Top-level beads without tree indentation
+```
+Every non-epic bead should have a parent. Assign orphans to the correct scope.
+
+**3. Opaque ID cleanup** — find auto-generated IDs:
+```bash
+bd list --status open --limit 0 2>&1 | grep -oP 'km-[a-z0-9]{5}\b' | sort -u
+```
+Rename any that aren't legitimate scope names (km-board, km-tribe etc. are fine).
+
+**4. Priority alignment** — children shouldn't outrank their parent:
+- If an epic is P2 but has P1 children that aren't started, demote children to match
+- Exception: specific blocking bugs can be P1 under a P2 epic
+
+**5. Cross-scope consistency** — check for beads in the wrong scope:
+- Beads mentioning "termless" under km-silvery → should be km-termless
+- Beads mentioning "test" infrastructure → km-vitestx or km-termless, not km-tui
+- Board-specific beads under km-all → should be km-tui
+- Marketing beads under km-silvery → should be km-market
+
+**6. Sub-epic grouping** — when 5+ beads in a scope share a prefix or theme:
+- Group under a sub-epic: `bd create --id km-scope.theme --type epic`
+- Example: 9 `examples-*` beads → parent under `km-silvery.demos`
+
+Run this review as part of every groom. Output findings in the Phase 3 report under a "### F. Organization" section.
+
+#### F. Clarify (ask user)
 
 - Description too vague to act on
 - Acceptance criteria unclear
@@ -298,7 +342,15 @@ Output structured report:
 | km-xxxx | Issue title | Add parent km-epic | Related to epic theme    |
 | km-yyyy | Other title | Depends on km-zzzz | Must complete zzzz first |
 
-### E. Clarify (N issues)
+### E. Organization (N changes)
+
+| Scope | Issue | Action |
+|---|---|---|
+| km-silvery | 65 open children | Split: examples → km-silvery.demos, infra → sub-epic |
+| km-all | Catch-all with unrelated children | Dissolve: move to km-tui, km-infra, km-market |
+| km-foo.bar | Orphan — no parent | Assign to km-foo |
+
+### F. Clarify (N issues)
 
 | ID      | Title       | Question for user                          |
 | ------- | ----------- | ------------------------------------------ |
