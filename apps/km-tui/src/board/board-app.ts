@@ -32,7 +32,7 @@ import type { ColumnView } from "../types.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { viewNodeToColumnViews, type ViewNode } from "@km/board"
+import { viewNodeToColumnViews, createViewTree, type ViewNode } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -104,6 +104,8 @@ export interface BoardAppLocals {
     containerStart: number
     containerSize: number
   } | null
+  /** Lazy-created empty ViewTreeProjection fallback for when no board/signals exist */
+  emptyTree: import("@km/board").ViewTreeProjection | null
 }
 
 export function createBoardAppLocals(): BoardAppLocals {
@@ -119,6 +121,7 @@ export function createBoardAppLocals(): BoardAppLocals {
     chordTimeoutFiredAt: 0,
     lastClick: { time: 0, x: 0, y: 0 },
     dragState: null,
+    emptyTree: null,
   }
 }
 
@@ -205,7 +208,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     // ViewTreeProjection — per-node projection with navigation (next/prev/parent/children/node).
     // Wraps the same lens as ViewSnapshot; available to action handlers via ctx.tree.
-    const tree = board?.signals?.viewTree
+    // Always provide a tree (empty fallback when no board/signals exist).
+    const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
     // Derive ColumnView[] from ViewSnapshot tree (thin conversion, not a rebuild)
     let columns: ColumnView[]

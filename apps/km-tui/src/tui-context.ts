@@ -74,8 +74,8 @@ export interface OpCtx {
   /** ViewNode index — O(1) lookup by node ID */
   viewIndex: Map<string, ViewNode>
   /** ViewTreeProjection — per-node navigation (next/prev/parent/children/node).
-   * Optional during migration; will replace viewTree+viewIndex once all handlers migrate. */
-  tree?: ViewTreeProjection
+   * Primary tree API for action handlers. Wraps the same lens as ViewSnapshot. */
+  tree: ViewTreeProjection
 
   // === Derived (computed once per key event) ===
   /** Currently selected node (null if none) */

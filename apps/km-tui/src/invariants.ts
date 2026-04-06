@@ -191,8 +191,8 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   // 8. Cursor-always-visible: cursor must be in the view tree (not hidden by fold/filter)
   // Skip virtual nodes and root-level cursor.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string) && (ctx.cursor as string) !== ctx.rootId) {
-    const viewNode = ctx.viewIndex.get(ctx.cursor as string)
-    if (!viewNode) {
+    const inTree = ctx.tree.node(ctx.cursor as string)
+    if (!inTree) {
       violations.push({
         check: "cursor-visible",
         message: `Cursor is on a non-visible node (hidden by fold or filter)`,
@@ -229,17 +229,15 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     }
   }
 
-  // 10. Cursor in walkOrder: if cursor is set, it must be in the selection's walkOrder.
+  // 10. Cursor in walkOrder: if cursor is set, it must be in the view tree.
   // This catches the "cursor fell off the tree" class of bugs from stale ViewSnapshots.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
-    const walkOrder = ctx.sel.node.ids()
-    // When multi-selection is active, ids() returns selected IDs.
-    // For single selection, ids() is [cursor]. Check cursor is findable.
-    const cursorInWalk = ctx.viewIndex.has(ctx.cursor as string)
-    if (!cursorInWalk && (ctx.cursor as string) !== ctx.rootId) {
+    // Check cursor is findable in the ViewTreeProjection
+    const cursorInTree = ctx.tree.node(ctx.cursor as string) !== undefined
+    if (!cursorInTree && (ctx.cursor as string) !== ctx.rootId) {
       violations.push({
         check: "cursor-in-walkOrder",
-        message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in viewIndex (${ctx.viewIndex.size} nodes). The ViewSnapshot may not include this node.`,
+        message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in view tree (walkOrder: ${ctx.tree.walkOrder.length} nodes). The ViewSnapshot may not include this node.`,
         ids: { cursor: ctx.cursor, rootId: ctx.rootId },
       })
     }
@@ -259,10 +257,10 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 12. viewTree root matches rootId.
-  // The ViewSnapshot should be built for the current rootId.
-  if (ctx.rootId && ctx.viewTree?.role === "board") {
-    const treeRootId = ctx.viewTree.id
-    if (treeRootId && treeRootId !== ctx.rootId) {
+  // The ViewTreeProjection should be built for the current rootId.
+  if (ctx.rootId && ctx.tree.rootId) {
+    const treeRootId = ctx.tree.rootId
+    if (treeRootId !== ctx.rootId) {
       violations.push({
         check: "viewTree-root-matches",
         message: `ViewTree root "${treeRootId}" does not match pane rootId "${ctx.rootId}". ViewSnapshot may be stale.`,
