@@ -59,6 +59,8 @@ bd update km-session.<date><seq> --claim
 
 The session bead is the **persistent record** of this exploration session. Its `description` is the live status dashboard (updated periodically), and `notes` is the event log (appended after each significant action).
 
+**All agents in the session share this ONE bead.** Pass the bead ID to every agent prompt. Fixer agents update the bead notes when they fix a bug. Explorer agents update when they find a bug. This ensures a single source of truth for the session.
+
 ## Team Setup
 
 ```
@@ -159,6 +161,14 @@ You are an interactive TUI explorer for km. Your job is to LAUNCH the real TUI, 
    - Use mcp__tty__text to cross-check what's rendered
    - THINK: Does this look right? Is the layout balanced? Any visual artifacts?
    - Pay attention to: alignment, colors, blank areas, truncation, cursor position
+
+6. INVARIANT CHECKS after every action:
+   - Breadcrumb updated? (text output should show new cursor target)
+   - No internal IDs visible? (no 8-char hex strings like "XWJE24KP")
+   - No "[object Object]" or "TypeError" or "NaN" in output?
+   - After NAVIGATION keys (j/k/h/l): vault files unchanged? (md5sum the vault dir)
+   - After EDIT operations: content saved correctly? (check file)
+   - Cursor on a visible node? (data-cursor attribute exists in output)
 
 6. Try these interactions:
    - Fold/unfold (z/Z) — does the layout reflow cleanly?
@@ -312,19 +322,39 @@ When idle, message the lead asking for more work.
 ```
 You are a bug fixer for km TUI. You handle multiple fixes — work on the next bug as soon as you finish the current one.
 
-When the reproducer sends a failing test:
+When the reproducer sends a failing test, follow the FULL bug lifecycle:
 
-1. Read the test to understand the bug
-2. Investigate root cause in source
-3. Implement minimal fix
-4. Confirm test passes: bun vitest run <test-file>
-5. Check regressions:
+### Step 1: /tdd — Reproduce First
+1. Read the failing test to understand the bug
+2. Run it — confirm it fails for the right reason
+3. If no failing test from reproducer: write one yourself BEFORE reading source code
+
+### Step 2: Fix
+4. Investigate root cause in source
+5. Implement minimal fix
+6. Confirm test passes: bun vitest run <test-file>
+7. Check regressions:
    bun vitest run apps/km-tui/tests/ --reporter=verbose 2>&1 | head -300
-6. **For rendering/visual bugs**: **You MUST follow** the [three-layer verification protocol](../tui/fix.md#three-layer-verification) —
+
+### Step 3: /why — Root Cause Analysis
+8. After fixing, ask: WHY did this bug exist? Trace the causal chain (2-3 levels):
+   - Why 1: What directly caused it?
+   - Why 2: What design allowed it?
+   - Why 3: What's missing that would prevent the whole class?
+   Add the /why analysis to the bead notes: bd update <id> --append-notes "Why: ..."
+
+### Step 4: /big — Is There a Simpler Way? (conditional)
+9. If the /why reveals a PATTERN (same class of bug appeared before, or the fix feels like duct tape):
+   - Check bun recall for similar past bugs
+   - If 3+ bugs share a root cause: note the structural fix in the bead
+   - Don't implement the structural fix — just document it for future planning
+
+### Step 5: Verify + Close
+10. **For rendering/visual bugs**: **You MUST follow** the [three-layer verification protocol](../tui/fix.md#three-layer-verification) —
    use mcp_tty tools (ToolSearch "tty" first) for GUI/TTY verification + calibrate the regression test.
    Pure logic bugs can skip GUI/TTY — state "Verified: TUI tests only" in close reason.
-7. Close bead using the [structured close reason format](../pm/workflows/bugs.md#close-reason-template) — **read it for the mandatory format**.
-8. Notify lead that fix is done, then immediately pick up next bug
+11. Close bead using the [structured close reason format](../pm/workflows/bugs.md#close-reason-template) — **read it for the mandatory format**.
+12. Notify lead that fix is done, then immediately pick up next bug
 
 HARD GATE: Never call `bd close` on a visual/rendering bug.
 After TUI test passes + GUI/TTY verification:
