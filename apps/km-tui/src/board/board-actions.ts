@@ -1577,6 +1577,12 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       return ok()
     }
     case "HISTORY_UNDO": {
+      // Exit edit mode before undoing — discard any in-progress edits (cancel, not confirm)
+      // so that the undo operates on the last committed change, not a freshly-saved one.
+      if (ctx.sel.text() && activeEditTargetRef.current) {
+        activeEditTargetRef.current.cancel()
+      }
+      ctx.sel.text.deselect()
       if (!ctx.undoHandle.canUndo()) return boundary("undo", "Nothing to undo")
       const result = ctx.undoHandle.undo()
       const undoCursor = result.ok && result.cursor != null ? result.cursor : ctx.cursor
@@ -1590,6 +1596,11 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
       return ok()
     }
     case "HISTORY_REDO": {
+      // Exit edit mode before redoing (same rationale as undo above).
+      if (ctx.sel.text() && activeEditTargetRef.current) {
+        activeEditTargetRef.current.cancel()
+      }
+      ctx.sel.text.deselect()
       if (!ctx.undoHandle.canRedo()) return boundary("redo", "Nothing to redo")
       const result = ctx.undoHandle.redo()
       ctx.sel.node.select([ctx.cursor as ID])

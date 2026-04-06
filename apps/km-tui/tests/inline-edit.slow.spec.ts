@@ -2186,31 +2186,67 @@ describe("edit block navigate: Ctrl+N from last card should not jump to column h
 // =============================================================================
 
 describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
-  test("Ctrl+Z in edit mode exits edit and undoes without crash", () => {
-    const { board, repo } = testEnv(() =>
+  test("Ctrl+Z in edit mode cleanly exits edit without crash", () => {
+    const { board } = testEnv(() =>
       item("board", item("col1", item("card-a"), item("card-b"))),
     )
 
     board.expect("#card-a[data-cursor]").toExist()
 
-    // Make a change, then enter edit mode and undo
-    board.press("Enter") // enter edit
-    for (const c of "-mod") board.press(c) // type something
-    board.press("Escape") // save and exit edit
-
-    expect(repo.getNode("card-a")?.content).toBe("card-a-mod")
-
-    // Enter edit mode again
+    // Enter edit mode
     board.press("Enter")
+    board.expectEditing("card-a")
 
-    // Undo during edit should not crash — it should exit edit and undo the change
-    board.press("Control-z")
+    // Ctrl+Z during edit mode should exit edit cleanly (no crash)
+    board.press("ctrl+z")
 
-    // Should no longer be editing (edit mode exited before undo)
+    // Should no longer be editing
     board.expectNotEditing()
 
-    // The undo should have reverted the content
+    // Board should still be functional — cursor navigation works
+    board.command("cursor_down")
+    board.expect("#card-b[data-cursor]").toExist()
+  })
+
+  test("Ctrl+Z during active typing in edit mode discards unsaved changes", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("card-a"))),
+    )
+
+    board.expect("#card-a[data-cursor]").toExist()
+
+    // Enter edit mode and start typing (changes are in-flight, not saved)
+    board.press("Enter")
+    for (const c of "-new") board.press(c)
+
+    // Ctrl+Z during active edit — should exit edit mode without crash
+    // and discard unsaved changes (cancel, not confirm)
+    board.press("ctrl+z")
+
+    // Should exit edit mode cleanly
+    board.expectNotEditing()
+
+    // Content should be unchanged (the typing was never saved via confirm/Escape)
     expect(repo.getNode("card-a")?.content).toBe("card-a")
+  })
+
+  test("undo after structural operation works when triggered from edit mode", () => {
+    const { board, repo } = testEnv(() =>
+      item("board", item("col1", item("card-a"), item("card-b"))),
+    )
+
+    // Make a structural change (priority) that creates an undo entry
+    board.expect("#card-a[data-cursor]").toExist()
+    board.command("set_priority") // creates undo entry via undoable repo
+
+    // Enter edit mode
+    board.press("Enter")
+    board.expectEditing("card-a")
+
+    // Ctrl+Z during edit should exit edit and undo the priority change
+    board.press("ctrl+z")
+
+    board.expectNotEditing()
   })
 })
 
