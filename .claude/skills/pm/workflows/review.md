@@ -117,29 +117,6 @@ Then run:
 bd list --status closed --limit 20 --sort updated  # Recent completions for context
 ```
 
-#### Tribe Sync
-
-Before categorizing, do a full tribe sync to get ground truth on what's actually happening:
-
-1. **Check health**: `mcp__tribe__tribe_health()` — shows active members, unread messages, warnings
-2. **List sessions**: `mcp__tribe__tribe_sessions()` — shows who's alive, their domains, uptime
-3. **Broadcast sync query**: Ask ALL members (not just questionable ones) to report:
-
-```
-mcp__tribe__tribe_broadcast(type="notify",
-  message="Backlog grooming sync — please reply with:
-  1. Your session name and domain
-  2. Active beads: each in_progress bead with current status (still active? blocked? done but not closed?)
-  3. Beads you claimed but are no longer working on (so we can release them)
-  4. Bugs/issues found but not tracked yet
-  Reply via tribe_send to <this-session-name>.")
-```
-
-4. **Wait for responses** before proceeding to Phase 2. Members typically respond within 1-2 minutes.
-5. **Cross-reference** responses against `bd list --status in_progress` — close beads members say are done, release claims on abandoned work, create beads for untracked issues.
-
-If a member doesn't respond within the grooming session, flag their in_progress beads as "Clarify" with note "No tribe response — check next groom."
-
 ### Phase 2: Analyze & Categorize
 
 Review survey data. For each open issue, assign to exactly one category:
@@ -320,11 +297,38 @@ Output structured report:
 [Output of bd ready --limit 10]
 ```
 
-**Stop here if `--dry-run`**. Otherwise, use AskUserQuestion with options for which categories to execute.
+**Stop here if `--dry-run`**. Otherwise, proceed to Phase 3½.
+
+### Phase 3½: Tribe Review (MANDATORY)
+
+**Never execute grooming changes without tribe feedback.** Tribe members have ground truth about what's actively worked on, what's blocked, and what's about to change.
+
+1. **Check who's online**: `mcp__tribe__tribe_sessions()` — know who can respond
+2. **Broadcast the full plan**: Send the entire Phase 3 report to tribe, asking for:
+
+```
+mcp__tribe__tribe_broadcast(type="notify",
+  message="Backlog grooming — proposed changes below. Please reply with:
+  1. Objections to any close/merge/reprioritize/restructure
+  2. Status update for ALL beads you know about (in_progress, claimed, or related to your work)
+  3. Beads you claimed but are no longer working on
+  4. Bugs/issues found but not yet tracked
+  Will execute in ~5 min if no objections.
+
+  [paste proposed changes summary here]")
+```
+
+3. **Wait for responses** — tribe members typically respond within 1-2 minutes. Wait for at least 2 responses or 5 minutes, whichever comes first.
+4. **Incorporate feedback**: Adjust the plan based on objections. Common adjustments:
+   - Member says a bead is actively worked → keep in_progress
+   - Member objects to merge → keep separate
+   - Member reports untracked work → create new beads
+   - Member confirms bead is done → safe to close
+5. **If a member doesn't respond**, flag their in_progress beads as "Clarify" with note "No tribe response during groom — verify next session."
 
 ### Phase 4: Execute
 
-After user confirms, execute changes in this order:
+After tribe review (and user confirmation if needed), execute changes in this order:
 
 1. **Closes and merges first** (reduces noise)
 2. **Restructure** (dependencies, parents)
