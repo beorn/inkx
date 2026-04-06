@@ -10,7 +10,6 @@ import { usePaneSignals } from "../hooks/use-signal.ts"
 import { createLogger } from "loggily"
 
 const log = createLogger("km:tui:layout")
-import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { TreeNode } from "./TreeNode.tsx"
 import type { BoardPill } from "../board/board-pills.ts"
@@ -182,7 +181,8 @@ function CardLayoutTracker({
 // =============================================================================
 
 interface MemoizedColumnHeaderProps {
-  column: ColumnView
+  /** Column node id — self-resolves data via lens */
+  colId: string
   colIdx: number
   isSelected: boolean
   isColSelected: boolean
@@ -196,24 +196,36 @@ interface MemoizedColumnHeaderProps {
 /**
  * Memoized column header - used by ListView.
  * Wraps ColumnHeader with data attributes for cursor tracking.
+ *
+ * Self-resolves its KNode + card count via the pane's visible lens.
  */
 export const MemoizedColumnHeader = React.memo(
   function MemoizedColumnHeader({
-    column,
+    colId,
     colIdx,
     isSelected,
     isColSelected,
     width,
     showTopSpacer = false,
     showSeparator = true,
-  }: MemoizedColumnHeaderProps): React.ReactElement {
+  }: MemoizedColumnHeaderProps): React.ReactElement | null {
     const repo = useRepo()
     const {
       treeConfig: { iconStyle },
     } = useTreeRenderContext()
 
+    // Reactive lens — derive node + card count
+    const ps = usePaneSignals()
+    const lens = useSignal(ps.visibleLens)
+    const colNode = lens.get(colId) ?? repo.getNode(colId)
+    const cardCount = lens.children(colId).length
+    const rules = lens.rules(colId)
+    const wipLimit = rules?.limit
+
+    if (!colNode) return null
+
     // Derive column header presentation props (icon, colors, style)
-    const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, column.node, {
+    const { displayName, untitled, ownColor, headerStyle, icon } = deriveColumnHeaderProps(repo, colNode, {
       iconStyle,
       isSelected,
       isColumnSelected: isColSelected,
@@ -223,7 +235,7 @@ export const MemoizedColumnHeader = React.memo(
       <Box
         flexDirection="column"
         width={width}
-        id={column.node.id}
+        id={colId}
         {...(isColSelected && {
           "data-cursor": true,
           "data-col-index": colIdx,
@@ -231,17 +243,17 @@ export const MemoizedColumnHeader = React.memo(
         })}
       >
         <ColumnHeader
-          node={column.node}
+          node={colNode}
           displayName={displayName}
           untitled={untitled}
           ownColor={ownColor}
           headerStyle={headerStyle}
           icon={icon}
-          cardCount={column.cardNodes.length}
+          cardCount={cardCount}
           width={width}
           isColumnSelected={isColSelected}
           isSelected={isSelected}
-          wipLimit={column.wipLimit}
+          wipLimit={wipLimit}
           showTopSpacer={showTopSpacer}
           showSeparator={showSeparator}
         />
@@ -250,8 +262,7 @@ export const MemoizedColumnHeader = React.memo(
   },
   (prev, next) => {
     return (
-      prev.column.node.id === next.column.node.id &&
-      prev.column.cardNodes.length === next.column.cardNodes.length &&
+      prev.colId === next.colId &&
       prev.colIdx === next.colIdx &&
       prev.isSelected === next.isSelected &&
       prev.isColSelected === next.isColSelected &&

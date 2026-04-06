@@ -8,10 +8,12 @@
  *
  * Performance optimization: Pre-caches board pills for all visible nodes
  * to avoid O(n) database queries during render.
+ *
+ * NODE MODEL V3: Receives `columnIds: string[]` and self-resolves all
+ * column + card data reactively via `useSignal(ps.visibleLens)`.
  */
 import React, { useMemo, useCallback } from "react"
 import { Box, Text, Small, ListView as SilveryListView } from "@silvery/ag-react"
-import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { getBoardPills, type BoardPill } from "../board/board-pills.ts"
 import { useTreeRenderContext, deriveColumnExcludedSigils } from "../state/ui-context.tsx"
@@ -20,9 +22,9 @@ import { parseToPlainText } from "../text/index.ts"
 import { useRepo } from "../repo-context.tsx"
 import { MemoizedTreeCard, MemoizedColumnHeader } from "./shared-components.tsx"
 import { useNodeStore } from "../state/reactive.ts"
-import { useSignal } from "../hooks/use-signal.ts"
+import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
+import { type BoardAppStore } from "../state/board-app-store.ts"
 
 // Virtualization constants
 const OVERSCAN = 10
@@ -34,14 +36,14 @@ type FlatItem =
       type: "header"
       colIndex: number
       cardIndex: -1
-      column: ColumnView
+      colId: string
       card?: undefined
     }
   | {
       type: "card"
       colIndex: number
       cardIndex: number
-      column: ColumnView
+      colId: string
       card: KNode
     }
 
@@ -49,14 +51,19 @@ type FlatItem =
 const EMPTY_CHILDREN: KNode[] = []
 
 interface ListViewProps {
-  columns: ColumnView[]
+  /** Column node ids in render order */
+  columnIds: readonly string[]
   width: number
   height: number
 }
 
-export function ListView({ columns: columnsProp, width, height }: ListViewProps): React.ReactElement {
+export function ListView({ columnIds, width, height }: ListViewProps): React.ReactElement {
   const { rootBoardId } = useTreeRenderContext()
   const repo = useRepo()
+
+  // Reactive lens — subscribe once and derive column/card data below
+  const ps = usePaneSignals()
+  const lens = useSignal(ps.visibleLens)
 
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
@@ -72,26 +79,31 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   const flatItems = useMemo(() => {
     const items: FlatItem[] = []
 
-    columnsProp.forEach((column, cIdx) => {
-      items.push({ type: "header", colIndex: cIdx, cardIndex: -1, column })
-      column.cardNodes.forEach((card, idx) => {
-        items.push({ type: "card", colIndex: cIdx, cardIndex: idx, column, card })
+    columnIds.forEach((colId, cIdx) => {
+      items.push({ type: "header", colIndex: cIdx, cardIndex: -1, colId })
+      const cardIds = lens.children(colId)
+      cardIds.forEach((cardId, idx) => {
+        const card = repo.getNode(cardId)
+        if (!card) return
+        items.push({ type: "card", colIndex: cIdx, cardIndex: idx, colId, card })
       })
     })
 
     return items
-  }, [columnsProp])
+  }, [columnIds, lens, repo])
 
   // Pre-cache column-level excluded sigils per column index
   const columnExcludedSigilsByCol = useMemo(() => {
     const map = new Map<number, string[] | undefined>()
-    columnsProp.forEach((col, cIdx) => {
-      const name = parseToPlainText(getNodeDisplayName(repo, col.node))
-      const sigils = deriveColumnExcludedSigils(name, col.node.id, col.node.fs_path)
+    columnIds.forEach((colId, cIdx) => {
+      const colNode = lens.get(colId) ?? repo.getNode(colId)
+      if (!colNode) return
+      const name = parseToPlainText(getNodeDisplayName(repo, colNode))
+      const sigils = deriveColumnExcludedSigils(name, colId, colNode.fs_path)
       map.set(cIdx, sigils.length > 0 ? sigils : undefined)
     })
     return map
-  }, [columnsProp, repo])
+  }, [columnIds, lens, repo])
 
   // Pre-cache board pills for ALL cards to avoid O(n) DB queries during render
   // This batches the lookups into a single pass through all cards
@@ -122,7 +134,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     for (let i = 0; i < flatItems.length; i++) {
       const item = flatItems[i]
       if (!item) continue
-      if (cursorDepth === "column" && item.type === "header" && item.column.node.id === cursorColumnNodeId) {
+      if (cursorDepth === "column" && item.type === "header" && item.colId === cursorColumnNodeId) {
         return i
       }
       if (cursorDepth === "card" && item.type === "card" && item.card.id === cursorCardNodeId) {
@@ -137,14 +149,14 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
     (item: FlatItem, flatIndex: number) => {
       if (item.type === "header") {
         const cIdx = item.colIndex
-        const colNodeId = item.column.node.id
+        const colNodeId = item.colId
         const isColSelected = cursorDepth === "column" && cursorColumnNodeId === colNodeId
         const isSelected = cursorColumnNodeId === colNodeId
 
         return (
           <Box key={`header-${colNodeId}-${flatIndex}`} position="sticky" stickyTop={0}>
             <MemoizedColumnHeader
-              column={item.column}
+              colId={colNodeId}
               colIdx={cIdx}
               isSelected={isSelected}
               isColSelected={isColSelected}
@@ -178,7 +190,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
   )
 
   // Empty state
-  if (columnsProp.length === 0) {
+  if (columnIds.length === 0) {
     return (
       <Box flexDirection="column" width={width} height={height}>
         <Text> </Text>
@@ -205,7 +217,7 @@ export function ListView({ columns: columnsProp, width, height }: ListViewProps)
         scrollTo={selectedFlatIndex}
         overscan={OVERSCAN}
         maxRendered={MAX_RENDERED_ITEMS}
-        getKey={(item) => (item.type === "header" ? `header-${item.column.node.id}` : item.card.id)}
+        getKey={(item) => (item.type === "header" ? `header-${item.colId}` : item.card.id)}
         renderItem={renderItem}
         width={width}
       />

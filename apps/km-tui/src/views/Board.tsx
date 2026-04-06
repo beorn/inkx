@@ -105,8 +105,14 @@ import { parseKmUrl, resolveKmLink } from "../internal-link.ts"
 export interface BoardCoreProps {
   /** Root node ID */
   rootId: string | null
-  /** Derived columns for rendering */
+  /**
+   * Derived columns for rendering (cards view; still ColumnView[] because
+   * the cards path carries Board-level filter overlays — text / property
+   * filters — as per-column fields). Other views take `columnIds` directly.
+   */
   columns: ColumnView[]
+  /** Column node ids in render order — passed to ColumnsView/ListView/TabsView */
+  columnIds: readonly string[]
   /** Current column index (derived from cursor) */
   colIndex: number
   /** Current card index (derived from cursor) */
@@ -358,6 +364,7 @@ function BoardTopBar({
 export function BoardCore({
   rootId,
   columns,
+  columnIds,
   colIndex,
   cardIndex,
   ui,
@@ -508,7 +515,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ColumnsView columns={columns} width={termWidth} height={contentHeight} />
+                <ColumnsView columnIds={columnIds} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             ) : ui.viewMode === "list" ? (
               <ErrorBoundary
@@ -516,7 +523,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ListView columns={columns} width={termWidth} height={contentHeight} />
+                <ListView columnIds={columnIds} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             ) : (
               <ErrorBoundary
@@ -524,7 +531,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <TabsView columns={columns} width={termWidth} height={contentHeight} />
+                <TabsView columnIds={columnIds} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             )}
           </Box>
@@ -833,6 +840,10 @@ export function Board({ patchedConsole }: BoardProps) {
     })
   }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
 
+  // String-ID projection for ColumnsView / ListView / TabsView.
+  // Mirrors the order of `filteredColumns` so cursor indices remain aligned.
+  const boardColumnIds = useMemo(() => filteredColumns.map((c) => c.node.id), [filteredColumns])
+
   // Register find/search-replace handlers for workspace chrome.
   // These run in the focused Board connector which has access to filtered columns.
   const storeRef = React.useContext(StoreContext)
@@ -1025,6 +1036,7 @@ export function Board({ patchedConsole }: BoardProps) {
         <BoardCore
           rootId={rootId}
           columns={filteredColumns}
+          columnIds={boardColumnIds}
           colIndex={visibleColIndex}
           cardIndex={columnsLayout.cardIndex}
           ui={ui}
