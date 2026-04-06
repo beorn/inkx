@@ -17,8 +17,8 @@ import type { ColumnView } from "./hooks/use-columns.ts"
  * Initial board data returned by buildBoardState/initBoardState.
  * Contains the minimum data needed to initialize the TUI.
  *
- * `columns` is the legacy initial-load shape; the live view derives columns
- * reactively from the pane's visible lens. Prefer string IDs at the view layer.
+ * `columns` provides the initial column/card structure for first render (runs once).
+ * The live view derives columns reactively from the pane's visible lens (no ColumnView).
  */
 export interface InitialBoardData {
   rootId: string | null
