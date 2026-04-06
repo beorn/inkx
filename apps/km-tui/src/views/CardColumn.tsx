@@ -3,8 +3,9 @@
  *
  * Uses silvery ListView for React-level virtualization of large card lists.
  *
- * NODE MODEL V2: Receives ColumnView with CardView cards.
- * "column" is a parent KNode wrapped in ColumnView, "card" is a CardView (KNode + resolved embed data).
+ * NODE MODEL V2: Receives ColumnView with KNode cards.
+ * "column" is a parent KNode wrapped in ColumnView, "card" is a KNode.
+ * Embed data and body status are derived from ViewTree signals (useNode/useViewTree).
  */
 import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
@@ -14,7 +15,7 @@ import { useComponentTiming } from "../hooks/use-component-timing.ts"
 import { Box, Text, Small, useScreenRectCallback } from "@silvery/ag-react"
 import { useJobRunner, useUndoHandle } from "../services-context.tsx"
 import { isDetailViewPane } from "../board/board-types.ts"
-import type { CardView, ColumnView } from "../types.ts"
+import type { ColumnView } from "../types.ts"
 import { type KNode, getStatusForMarker } from "@km/core"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
@@ -35,7 +36,7 @@ import {
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore } from "../state/reactive.ts"
-import { useSignal, useNode } from "../hooks/use-signal.ts"
+import { useSignal, useNode, useViewTree } from "../hooks/use-signal.ts"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
@@ -727,22 +728,36 @@ export const Column = React.memo(function Column({
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
+  // Pre-compute body card IDs from ViewTree (eliminates CardView.isBody dependency).
+  // Body cards are non-heading content before the first heading child.
+  const viewTree = useViewTree()
+  const cardNodes = column.cardNodes
+  const bodyCardIds = useMemo(() => {
+    if (!viewTree) return new Set<string>()
+    const ids = new Set<string>()
+    for (const card of cardNodes) {
+      const proj = viewTree.getProjected(card.id) ?? viewTree.track(card.id)
+      if (proj?.isBody()) ids.add(card.id)
+    }
+    return ids
+  }, [viewTree, cardNodes])
+
   // Stable renderItem callback — doesn't depend on cardIndex.
   // Cards get selection state from ReactiveNodeStore self-subscription.
-  const cardNodes = column.cardNodes
   const renderItem = useCallback(
-    (card: CardView, actualIndex: number) => {
+    (card: KNode, actualIndex: number) => {
       layoutLog.trace?.(
         `CardColumn card: col=${colIndex} idx=${actualIndex} node=${sid(card.id)} content=${card.content?.slice(0, 30) ?? "(empty)"}`,
       )
       // For body blocks: compute neighbor info for layout stability.
       // Only yield paddingTop when prev is also a body block (not structural).
       // Last body block before a structural card gets paddingBottom=1.
-      const isBody = isVirtual || card.isBody
+      const cardIsBody = bodyCardIds.has(card.id)
+      const isBody = isVirtual || cardIsBody
       const prevCard = actualIndex > 0 ? cardNodes[actualIndex - 1] : undefined
       const nextCard = actualIndex < cardNodes.length - 1 ? cardNodes[actualIndex + 1] : undefined
-      const isPrevBody = isVirtual || (prevCard ? prevCard.isBody : false)
-      const isLastBody = isBody && (!nextCard || !(isVirtual || nextCard.isBody))
+      const isPrevBody = isVirtual || (prevCard ? bodyCardIds.has(prevCard.id) : false)
+      const isLastBody = isBody && (!nextCard || !(isVirtual || bodyCardIds.has(nextCard.id)))
       return (
         <Card
           key={`${card.id}-${actualIndex}`}
@@ -751,7 +766,7 @@ export const Column = React.memo(function Column({
           colIndex={colIndex}
           cardIndex={actualIndex}
           isBodyColumn={isVirtual}
-          isBodyCard={card.isBody}
+          isBodyCard={cardIsBody}
           isPrevBodyBlock={isPrevBody}
           isLastBodyBlock={isLastBody}
           extraExcludedSigils={extraExcludedSigils}
@@ -760,7 +775,7 @@ export const Column = React.memo(function Column({
         />
       )
     },
-    [colIndex, width, isVirtual, cardNodes, extraExcludedSigils, isColumnSelected],
+    [colIndex, width, isVirtual, cardNodes, bodyCardIds, extraExcludedSigils, isColumnSelected],
   )
 
   const getKey = useCallback((card: KNode) => card.id, [])

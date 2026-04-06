@@ -162,7 +162,7 @@ export function useFocusedPaneSignals(): PaneSignals | null {
  * For per-node reactive data, use useNode(id) instead.
  */
 export function useViewTree(): ViewTreeProjection | null {
-  const ps = usePaneSignals()
+  const ps = useMaybePaneSignals()
   return ps?.viewTree ?? null
 }
 
