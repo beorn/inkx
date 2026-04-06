@@ -262,11 +262,11 @@ This is a **rendering rule, not data**. The same KNode renders as a column when 
 Keypress -> KmOp -> board-actions.ts (2600 lines) -> handler -> Repo mutation + state update
 ```
 
-Action handlers receive an `OpCtx` — a large context object re-derived on each keypress with columns, cursor indices, node references, ViewNode tree, and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
+Action handlers receive an `OpCtx` — a context object re-derived on each keypress with `columnId`, cursor indices, `card`, `tree` (ViewTreeProjection), and 30+ methods. Cross-cutting concerns (undo, embeds, body detection, hidden nodes, fold) are woven throughout the handlers.
 
-### ViewNode as Single Authority
+### ViewTreeProjection as Single Authority
 
-The ViewNode tree (in OpCtx as `viewTree` and `viewIndex`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Each pane's `PaneSignals.view` is a computed ViewSnapshot — one build, auto-cached. `buildOpCtx` reads from this computed (0ms on cache hit) and converts to ColumnView[] via `viewNodeToColumnViews`. Board.tsx reads via `useSignal(ps.view)`. Cursor classification uses `classifyCursorFromViewIndex` (O(1) lookup + parent walk). Navigation traverses ViewNode parent/children pointers directly.
+The ViewTreeProjection (in OpCtx as `tree`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Each pane's `PaneSignals.visibleLens` is a computed alien-signal — one build, auto-cached. `buildOpCtx` derives `columnId` and `card` from the tree directly (board mode) or via `deriveDetailColumns` (detail mode). Board.tsx reads column IDs via `useSignal(ps.visibleLens)`. Components take string IDs and self-resolve via `useNode(id)`. Cursor classification uses `classifyCursorFromLens` (O(1) lookup + parent walk). Navigation traverses the tree's `next/prev/parent/children` methods.
 
 ### Target: TEA State Machines + Plugin Slices
 
