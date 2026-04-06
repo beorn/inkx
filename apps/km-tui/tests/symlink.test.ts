@@ -1,31 +1,32 @@
 /**
- * Embed node tests
+ * Symlink node tests
  *
  * Covers:
- * - Embed create: node creation among embeds (depth derived from tree position)
- * - Embed display: stripping ![[...]] syntax, showing target name/content
- * - Embed task status cycling: 'x' toggles task status on embedded link targets
+ * - Symlink create: node creation among symlinks (depth derived from tree position)
+ * - Symlink display: stripping ![[...]] syntax, showing target name/content
+ * - Symlink task status cycling: 'x' toggles task status on symlinked link targets
  */
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 import { stripAnsi } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 
 // =============================================================================
-// Embed create depth
+// Symlink create depth
 // =============================================================================
 
 const colItems = (col: string) => `#${col} [data-view='item']`
 
-describe("embed create depth", () => {
-  test("new node after embed is created correctly", () => {
-    // Simulate: a column containing embeds.
-    // When creating a new node among the embeds, it should be created successfully.
+describe("symlink create depth", () => {
+  test("new node after symlink is created correctly", () => {
+    // Simulate: a column containing symlinks.
+    // When creating a new node among the symlinks, it should be created successfully.
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
-        // Simulate embed nodes by setting symlink_to
+        // Simulate symlink nodes by setting symlink_to
         if (n.id === "embed-a" || n.id === "embed-b") {
           n.symlink_to = "some-target"
           n.type = "h"
@@ -36,7 +37,7 @@ describe("embed create depth", () => {
       return nodes
     })
 
-    // Navigate to first embed, press o to create new node after it
+    // Navigate to first symlink, press o to create new node after it
     board.command("insert_below")
     board.press("Escape") // exit inline edit
 
@@ -109,7 +110,7 @@ describe("embed create depth", () => {
     expect(newNode).toBeTruthy()
   })
 
-  test("new node before embed is created correctly", () => {
+  test("new node before symlink is created correctly", () => {
     // Same insert logic with `O` (insert above) — verify node is created.
     // Depth is derived from tree position during serialization, not stored in data.
     const { board, repo } = testEnv(() => {
@@ -144,16 +145,136 @@ describe("embed create depth", () => {
 })
 
 // =============================================================================
-// Embed display
+// Embed click — sub-item routing (km-tui.embed-click-jump)
 // =============================================================================
 
-describe("embed display", () => {
-  test("unresolved embed with symlink_to=null does not show ! prefix", () => {
+describe("clicking an embed sub-item", () => {
+  test("dispatchBoard SELECT with click hint routes cursor to the embed's column, not the target's column", () => {
+    // Bug: when a card embeds another node (![[target]]), clicking a sub-item
+    // rendered inside the embed used to put the cursor in the TARGET node's
+    // column. The repo parent_id chain walks back to the target's column,
+    // not the embed's column. The click handler must pass cardNodeId (the
+    // visual card it dispatched from) so dispatchBoard can route correctly
+    // via the lens.
+    const { board, store } = testEnv(
+      () => {
+        // col1 has an embed pointing to target-x in col2.
+        // col2 has target-x as a card with sub-items sub-a, sub-b.
+        const nodes = item("board", item("col1", item("anchor")), item("col2"))
+
+        nodes.push({
+          id: "target-x",
+          type: "h" as const,
+          item: {},
+          parent_id: "col2",
+          parent_idx: 0,
+          symlink_to: null,
+          content: "Target X",
+          data: { name: "Target X" },
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as unknown as KNode)
+        nodes.push({
+          id: "sub-a",
+          type: "p" as const,
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
+          parent_id: "target-x",
+          parent_idx: 0,
+          symlink_to: null,
+          content: "sub-a",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as unknown as KNode)
+        nodes.push({
+          id: "sub-b",
+          type: "p" as const,
+          item: { list: "-", task: { status: "todo", marker: "[ ]" } },
+          parent_id: "target-x",
+          parent_idx: 1,
+          symlink_to: null,
+          content: "sub-b",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as unknown as KNode)
+
+        // Embed in col1 pointing to target-x
+        nodes.push({
+          id: "embed-x",
+          type: "h" as const,
+          item: {},
+          parent_id: "col1",
+          parent_idx: 1,
+          symlink_to: "target-x",
+          content: "![[target-x]]",
+          data: {},
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          version: "v1",
+        } as unknown as KNode)
+
+        return nodes
+      },
+      { columns: 100, rows: 30 },
+    )
+
+    // Sanity: both columns rendered.
+    board.expect("#col1").toExist()
+    board.expect("#col2").toExist()
+    board.expect("#embed-x").toExist()
+
+    // Simulate the click handler dispatch: clicking sub-a inside the embed-x card.
+    // The click handler computes targetId = "sub-a" (the sub-item) and
+    // cardNodeId = "embed-x" (the containing card).
+    const state = store.getState()
+    state.dispatchBoard({
+      type: "SELECT",
+      nodeId: "sub-a",
+      cardNodeId: "embed-x",
+      cardHintSource: "click",
+    })
+
+    // After dispatch, cursor is sub-a. The visual card highlight (rendered as
+    // the parent card with cursorInDescendant=true) should be embed-x in col1,
+    // not target-x in col2.
+    const pane = getActiveBoardPane(store.getState())!
+    expect(pane.sel.node.cursor() as string | null).toBe("sub-a")
+
+    // eslint-disable-next-line no-console
+    console.log("---POST-CLICK---\n" + board.screenshot() + "\n---END---")
+    // Find the cursor element in the rendered DOM and assert its x-coordinate
+    // falls within col1's bounds, not col2's.
+    const col1Box = board.q("[data-col-index='0'][data-column]").boundingBox()!
+    const col2Box = board.q("[data-col-index='1'][data-column]").boundingBox()!
+    const cursorEls = board.q("[data-cursor]").resolveAll()
+    // eslint-disable-next-line no-console
+    console.log("cursor count:", cursorEls.length, "rects:", cursorEls.map((e) => e.screenRect))
+    const cursorEl = cursorEls[0]
+    expect(cursorEl).toBeTruthy()
+    const cursorRect = cursorEl!.screenRect
+    expect(cursorRect).toBeTruthy()
+    // Cursor should be inside col1's x range, not col2's.
+    expect(cursorRect!.x).toBeGreaterThanOrEqual(col1Box.x)
+    expect(cursorRect!.x).toBeLessThan(col2Box.x)
+  })
+
+})
+
+// =============================================================================
+// Symlink display
+// =============================================================================
+
+describe("symlink display", () => {
+  test("unresolved symlink with symlink_to=null does not show ! prefix", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Paragraph embed where link resolver didn't find target (symlink_to=null)
+        // Paragraph symlink where link resolver didn't find target (symlink_to=null)
         // This happens for file references like ![[some-file.pdf]]
         nodes.push({
           id: "unresolved-embed",
@@ -181,12 +302,12 @@ describe("embed display", () => {
     expect(text).not.toContain("![[")
   })
 
-  test("unresolved embed with block reference does not show ! prefix", () => {
+  test("unresolved symlink with block reference does not show ! prefix", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Block reference embed: symlink_to = file#^blockId
+        // Block reference symlink: symlink_to = file#^blockId
         nodes.push({
           id: "block-embed",
           type: "p" as const,
@@ -214,12 +335,12 @@ describe("embed display", () => {
     expect(text).not.toContain("^abc123")
   })
 
-  test("unresolved embed with bare ^blockid shows short ID, not raw ref", () => {
+  test("unresolved symlink with bare ^blockid shows short ID, not raw ref", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Bare block reference embed ![[^1203128650780856]] with symlink_to=null
+        // Bare block reference symlink ![[^1203128650780856]] with symlink_to=null
         nodes.push({
           id: "bare-block-embed",
           type: "p" as const,
@@ -241,11 +362,11 @@ describe("embed display", () => {
     const text = stripAnsi(board.screenshot())
     // Should NOT show the raw block reference with caret
     expect(text).not.toMatch(/\^1203128650780856/)
-    // Should NOT show the embed syntax
+    // Should NOT show the wiki-embed syntax
     expect(text).not.toContain("![[")
   })
 
-  test("resolved embed shows target content without ! prefix", () => {
+  test("resolved symlink shows target content without ! prefix", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
@@ -265,7 +386,7 @@ describe("embed display", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed pointing to existing target
+        // Symlink pointing to existing target
         nodes.push({
           id: "resolved-embed",
           type: "p" as const,
@@ -287,21 +408,21 @@ describe("embed display", () => {
     const text = stripAnsi(board.screenshot())
     // Should show target's content
     expect(text).toContain("Buy groceries")
-    // Should NOT show ! prefix or embed syntax
+    // Should NOT show ! prefix or wiki-embed syntax
     expect(text).not.toContain("![[")
     expect(text).not.toContain("!Buy")
   })
 
-  test("multiple unresolved embeds in same column strip ! prefix", () => {
+  test("multiple unresolved symlinks in same column strip ! prefix", () => {
     const { board } = testEnv(
       () => {
-        // Column has a regular task plus unresolved embeds
+        // Column has a regular task plus unresolved symlinks
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Multiple unresolved embeds (simulating real-world @next.md with PDFs)
-        const embeds = ["![[2025 Tax Return.pdf]]", "![[Insurance Card.pdf]]", "![[Bank Statement.pdf]]"]
+        // Multiple unresolved symlinks (simulating real-world @next.md with PDFs)
+        const symlinks = ["![[2025 Tax Return.pdf]]", "![[Insurance Card.pdf]]", "![[Bank Statement.pdf]]"]
 
-        embeds.forEach((content, idx) => {
+        symlinks.forEach((content, idx) => {
           nodes.push({
             id: `embed-${idx}`,
             type: "p" as const,
@@ -336,14 +457,14 @@ describe("embed display", () => {
     }
   })
 
-  // ── Mixed text + inline embed wikilinks (km-tui.embed-syntax-leak) ─────────
+  // ── Mixed text + inline wiki-embed wikilinks (km-tui.embed-syntax-leak) ─────────
 
-  test("mixed text + embed wikilink does not show raw ![[ in card", () => {
+  test("mixed text + wiki-embed wikilink does not show raw ![[ in card", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("other-task")))
 
-        // A regular task (not an embed) whose content contains inline embed wikilink syntax
+        // A regular task (not a symlink) whose content contains inline wiki-embed wikilink syntax
         nodes.push({
           id: "mixed-content",
           type: "p" as const,
@@ -400,7 +521,7 @@ describe("embed display", () => {
     expect(text).toContain("Organize into boxes")
   })
 
-  test("multiple inline embeds in mixed content do not leak syntax", () => {
+  test("multiple inline wiki-embeds in mixed content do not leak syntax", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("placeholder")))
@@ -432,10 +553,10 @@ describe("embed display", () => {
 })
 
 // =============================================================================
-// Folded embed display (FoldedChildRow)
+// Folded symlink display (FoldedChildRow)
 // =============================================================================
 
-describe("folded embed display (FoldedChildRow)", () => {
+describe("folded symlink display (FoldedChildRow)", () => {
   test("FoldedChildRow resolves symlink_to directly, not just via resolveNode fallback", () => {
     // Default fold depth = 1: card children render as FoldedChildRow (remainingDepth=0).
     // Bug: FoldedChildRow passed null for resolvedNode to getDisplayContent,
@@ -478,7 +599,7 @@ describe("folded embed display (FoldedChildRow)", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Patch embed children: block-ref format with resolved symlink_to.
+        // Patch symlink children: block-ref format with resolved symlink_to.
         // symlink_to points directly to the target node ID.
         // Content uses ![[^blockid]] which resolveNode can't resolve for short IDs.
         for (const n of nodes) {
@@ -503,7 +624,7 @@ describe("folded embed display (FoldedChildRow)", () => {
 
     // With default rootFoldDepth=1, card children render as FoldedChildRow initially
     const text = stripAnsi(board.screenshot())
-    // FoldedChildRow should resolve embed targets via symlink_to and show content
+    // FoldedChildRow should resolve symlink targets via symlink_to and show content
     expect(text).toContain("Buy milk")
     expect(text).toContain("Walk the dog")
     // Should NOT show raw block references or short ID fallback
@@ -518,7 +639,7 @@ describe("folded embed display (FoldedChildRow)", () => {
 // =============================================================================
 
 describe("link title resolution", () => {
-  test("resolved embed with block reference content shows target title, not ^blockid", () => {
+  test("resolved symlink with block reference content shows target title, not ^blockid", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
@@ -539,7 +660,7 @@ describe("link title resolution", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed node: symlink_to is set, content has block reference format
+        // Symlink node: symlink_to is set, content has block reference format
         // This simulates what the rules engine creates + markdown serialization round-trip
         nodes.push({
           id: "embed-1",
@@ -567,7 +688,7 @@ describe("link title resolution", () => {
     expect(text).not.toMatch(/\^1203128650780856/)
   })
 
-  test("resolved embed with file#^blockid content shows target title", () => {
+  test("resolved symlink with file#^blockid content shows target title", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
@@ -588,7 +709,7 @@ describe("link title resolution", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed with file#^blockid path format
+        // Symlink with file#^blockid path format
         nodes.push({
           id: "embed-2",
           type: "p" as const,
@@ -611,18 +732,18 @@ describe("link title resolution", () => {
     const text = stripAnsi(board.screenshot())
     // Should show target content
     expect(text).toContain("Buy groceries")
-    // Should NOT show raw embed path
+    // Should NOT show raw symlink path
     expect(text).not.toContain("shopping#^abc123")
   })
 
-  test("unresolved embed with ^blockid content shows blockid without caret", () => {
+  test("unresolved symlink with ^blockid content shows blockid without caret", () => {
     // When symlink_to is set but target doesn't exist (stale reference),
     // at minimum strip the ^ prefix from the display
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Embed with symlink_to pointing to nonexistent target
+        // Symlink with symlink_to pointing to nonexistent target
         nodes.push({
           id: "stale-embed",
           type: "p" as const,
@@ -649,16 +770,16 @@ describe("link title resolution", () => {
 })
 
 // =============================================================================
-// Unresolved Asana embed display (P1 — raw embed IDs in card titles)
+// Unresolved Asana symlink display (P1 — raw symlink IDs in card titles)
 // =============================================================================
 
-describe("unresolved Asana embed display", () => {
+describe("unresolved Asana symlink display", () => {
   test("Failure Mode A: file#^blockId resolves to target title, not raw workspace slug", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Target node that the embed should resolve to
+        // Target node that the symlink should resolve to
         // Use block_id value as the node ID so fakeRepo.resolveNode finds it
         nodes.push({
           id: "1209600947800994",
@@ -675,7 +796,7 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed ref: symlink_to points to target via file#^blockId
+        // Symlink ref: symlink_to points to target via file#^blockId
         nodes.push({
           id: "asana-embed-a",
           type: "p" as const,
@@ -724,7 +845,7 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed ref: symlink_to points to target via ^blockId
+        // Symlink ref: symlink_to points to target via ^blockId
         nodes.push({
           id: "bare-embed",
           type: "p" as const,
@@ -752,12 +873,12 @@ describe("unresolved Asana embed display", () => {
     expect(text).not.toContain("^1k4a")
   })
 
-  test("unresolvable embed falls back gracefully to cleaned ref", () => {
+  test("unresolvable symlink falls back gracefully to cleaned ref", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Embed ref: symlink_to points to non-existent target
+        // Symlink ref: symlink_to points to non-existent target
         nodes.push({
           id: "orphan-embed",
           type: "p" as const,
@@ -789,7 +910,7 @@ describe("unresolved Asana embed display", () => {
 // =============================================================================
 
 describe("context-dependent rendering", () => {
-  test("embed link to li task in column renders as bordered card with task icon", () => {
+  test("symlink to li task in column renders as bordered card with task icon", () => {
     // Model rule: li at column position → card (takes on host style)
     const { board } = testEnv(
       () => {
@@ -810,7 +931,7 @@ describe("context-dependent rendering", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed link pointing to the li task, placed in a column
+        // Symlink pointing to the li task, placed in a column
         nodes.push({
           id: "embed-link",
           type: "p" as const,
@@ -833,15 +954,15 @@ describe("context-dependent rendering", () => {
     const text = stripAnsi(board.screenshot())
     // Should show the target's content
     expect(text).toContain("Embedded todo task")
-    // Should NOT show embed syntax
+    // Should NOT show wiki-embed syntax
     expect(text).not.toContain("![[")
   })
 
-  test("embed link to oi section in body renders content without borders", () => {
+  test("symlink to oi section in body renders content without borders", () => {
     // Model rule: oi in body → body content
     const { board } = testEnv(
       () => {
-        // Body embed (before first oi column) should render as virtual/borderless
+        // Body symlink (before first oi column) should render as virtual/borderless
         const nodes = item("board", item("col1", item("task-1")))
 
         // Target oi section
@@ -861,7 +982,7 @@ describe("context-dependent rendering", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed link in body position (before the oi column)
+        // Symlink in body position (before the oi column)
         // Add as a p-type body node before col1
         nodes.push({
           id: "body-embed",
@@ -886,8 +1007,8 @@ describe("context-dependent rendering", () => {
     expect(text).toContain("Architecture Notes")
   })
 
-  test("embed link to done task shows dimmed style in card", () => {
-    // Embedded done tasks should render with the done/dimmed style of the target
+  test("symlink to done task shows dimmed style in card", () => {
+    // Symlinked done tasks should render with the done/dimmed style of the target
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("card-a")))
@@ -907,7 +1028,7 @@ describe("context-dependent rendering", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed in column
+        // Symlink in column
         nodes.push({
           id: "embed-done",
           type: "p" as const,
@@ -932,8 +1053,8 @@ describe("context-dependent rendering", () => {
     expect(text).toContain("Completed task")
   })
 
-  test("embed link shows target children (transclusion)", () => {
-    // When an embed resolves, its children should come from the TARGET node
+  test("symlink shows target children (transclusion)", () => {
+    // When a symlink resolves, its children should come from the TARGET node
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1"))
@@ -970,7 +1091,7 @@ describe("context-dependent rendering", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed in column pointing to the parent
+        // Symlink in column pointing to the parent
         nodes.push({
           id: "embed-parent",
           type: "p" as const,
@@ -997,19 +1118,19 @@ describe("context-dependent rendering", () => {
 })
 
 // =============================================================================
-// Embed task status cycling (km-79kld)
+// Symlink task status cycling (km-79kld)
 // =============================================================================
 
-describe("embed task status cycling (km-79kld)", () => {
-  /** Build a board where embeds link to task nodes */
-  function embedTaskBoard() {
+describe("symlink task status cycling (km-79kld)", () => {
+  /** Build a board where symlinks point to task nodes */
+  function symlinkTaskBoard() {
     const env = testEnv(() => {
       const nodes = item(
         "board",
         item("col1", item("embed-a"), item("embed-b"), item("regular-task")),
         item("col2", item("task-x")),
       )
-      // Set up embed-a and embed-b as embed nodes pointing to task targets
+      // Set up embed-a and embed-b as symlink nodes pointing to task targets
       for (const n of nodes) {
         if (n.id === "embed-a") {
           n.type = "p"
@@ -1034,7 +1155,7 @@ describe("embed task status cycling (km-79kld)", () => {
         }
       }
 
-      // Add the target nodes (tasks that the embeds point to)
+      // Add the target nodes (tasks that the symlinks point to)
       nodes.push({
         id: "target-a",
         type: "p",
@@ -1067,8 +1188,8 @@ describe("embed task status cycling (km-79kld)", () => {
     return env
   }
 
-  test("x toggles task status on embed link targeting a task", () => {
-    const { board, repo } = embedTaskBoard()
+  test("x toggles task status on symlink targeting a task", () => {
+    const { board, repo } = symlinkTaskBoard()
 
     // Cursor starts on embed-a (first card in col1)
     // embed-a links to target-a which has item.task.status: "todo"
@@ -1084,7 +1205,7 @@ describe("embed task status cycling (km-79kld)", () => {
   })
 
   test("x on regular task node still works", () => {
-    const { board, repo } = embedTaskBoard()
+    const { board, repo } = symlinkTaskBoard()
 
     // Navigate to regular-task (3rd card in col1)
     board.press("j") // embed-b
@@ -1099,8 +1220,8 @@ describe("embed task status cycling (km-79kld)", () => {
     expect(after?.item?.task?.status).not.toBe("todo")
   })
 
-  test("x on embed link targeting done task toggles to todo", () => {
-    const { board, repo } = embedTaskBoard()
+  test("x on symlink targeting done task toggles to todo", () => {
+    const { board, repo } = symlinkTaskBoard()
 
     // Navigate to embed-b (2nd card in col1)
     board.press("j")
@@ -1117,7 +1238,7 @@ describe("embed task status cycling (km-79kld)", () => {
 })
 
 // =============================================================================
-// Tag file sections with ![[^GID]] embed references (km-tui.tag-block-ids)
+// Tag file sections with ![[^GID]] wiki-embed references (km-tui.tag-block-ids)
 // =============================================================================
 
 describe("tag file section display", () => {
@@ -1211,12 +1332,12 @@ describe("tag file section display", () => {
 })
 
 // =============================================================================
-// Embed alias override (km-wk17l)
+// Symlink alias override (km-wk17l)
 // =============================================================================
 
-describe("embed alias override (km-wk17l)", () => {
-  test("resolved embed with non-empty content shows alias, not target title", () => {
-    // When node.content is non-empty and is NOT embed syntax, it acts as
+describe("symlink alias override (km-wk17l)", () => {
+  test("resolved symlink with non-empty content shows alias, not target title", () => {
+    // When node.content is non-empty and is NOT wiki-embed syntax, it acts as
     // an alias override — like ![[^GID|My custom title]] semantics.
     const { board } = testEnv(
       () => {
@@ -1237,7 +1358,7 @@ describe("embed alias override (km-wk17l)", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed with alias override — content is plain text, not ![[...]]
+        // Symlink with alias override — content is plain text, not ![[...]]
         nodes.push({
           id: "alias-embed",
           type: "p" as const,
@@ -1262,8 +1383,8 @@ describe("embed alias override (km-wk17l)", () => {
     expect(text).not.toContain("Original target title")
   })
 
-  test("resolved embed with embed syntax content shows target title, not alias", () => {
-    // When node.content IS embed syntax (![[...]]), it is NOT an alias — fall through
+  test("resolved symlink with wiki-embed syntax content shows target title, not alias", () => {
+    // When node.content IS wiki-embed syntax (![[...]]), it is NOT an alias — fall through
     // to resolvedNode content display.
     const { board } = testEnv(
       () => {
@@ -1284,7 +1405,7 @@ describe("embed alias override (km-wk17l)", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed whose content is embed syntax (not an alias)
+        // Symlink whose content is wiki-embed syntax (not an alias)
         nodes.push({
           id: "syntax-embed",
           type: "p" as const,
@@ -1304,18 +1425,18 @@ describe("embed alias override (km-wk17l)", () => {
     )
 
     const text = stripAnsi(board.screenshot())
-    // Should show the target's content, not the embed syntax
+    // Should show the target's content, not the wiki-embed syntax
     expect(text).toContain("Target content here")
     expect(text).not.toContain("![[")
   })
 })
 
 // =============================================================================
-// Broken embed rendering (km-wk17l)
+// Broken symlink rendering (km-wk17l)
 // =============================================================================
 
-describe("broken embed rendering (km-wk17l)", () => {
-  test("broken embed with content shows content in error color", () => {
+describe("broken symlink rendering (km-wk17l)", () => {
+  test("broken symlink with content shows content in error color", () => {
     // symlink_to set but target doesn't exist — broken link.
     // Content available: show it, but in error color.
     const { board } = testEnv(
@@ -1345,7 +1466,7 @@ describe("broken embed rendering (km-wk17l)", () => {
     expect(text).toContain("Some alias text")
   })
 
-  test("broken embed without content shows cleaned symlink_to as fallback", () => {
+  test("broken symlink without content shows cleaned symlink_to as fallback", () => {
     // symlink_to set, target missing, no content — broken link.
     // symlink_to looks like a filename → show it directly.
     const { board } = testEnv(
@@ -1371,13 +1492,13 @@ describe("broken embed rendering (km-wk17l)", () => {
     )
 
     const text = stripAnsi(board.screenshot())
-    // Should NOT show embed syntax
+    // Should NOT show wiki-embed syntax
     expect(text).not.toContain("![[")
     // Should show the symlink_to as cleaned display text
     expect(text).toContain("deadbeef-missing")
   })
 
-  test("broken embed with bare block ref shows broken fallback", () => {
+  test("broken symlink with bare block ref shows broken fallback", () => {
     // symlink_to is a bare ^blockId, target missing — show (broken: ^shortId).
     const { board } = testEnv(
       () => {
@@ -1409,11 +1530,11 @@ describe("broken embed rendering (km-wk17l)", () => {
 })
 
 // =============================================================================
-// Strip parent sigil from embedded node titles
+// Strip parent sigil from symlinked node titles
 // =============================================================================
 
 /**
- * When viewing embedded nodes (transclusions with symlink_to), the sigil badge
+ * When viewing symlinked nodes (transclusions with symlink_to), the sigil badge
  * after the title should be suppressed if it matches the board or column context.
  * E.g., a task with name "@next" displayed on the @next board should not show
  * the redundant "@next" sigil badge.
@@ -1421,12 +1542,12 @@ describe("broken embed rendering (km-wk17l)", () => {
  * Similarly, parent context (the "< source" line) should be suppressed if it
  * matches an excluded sigil.
  */
-describe("strip embed sigil", () => {
+describe("strip symlink sigil", () => {
   /**
-   * Build a board with a @next column containing embedded tasks.
+   * Build a board with a @next column containing symlinked tasks.
    * The target tasks have name: "@next" (simulating nodes from @next.md).
    */
-  function boardWithEmbeddedSigils() {
+  function boardWithSymlinkedSigils() {
     return testEnv(
       () => {
         const nodes = item(
@@ -1510,7 +1631,7 @@ describe("strip embed sigil", () => {
   }
 
   test("sigil badge is suppressed when it matches the column's excluded sigil", () => {
-    const { board } = boardWithEmbeddedSigils()
+    const { board } = boardWithSymlinkedSigils()
     const text = stripAnsi(board.screenshot())
 
     // "@next" sigil badge should NOT appear after "Buy groceries" in the @next column
@@ -1520,7 +1641,7 @@ describe("strip embed sigil", () => {
   })
 
   test("sigil badge is shown when it does NOT match the column's excluded sigil", () => {
-    const { board } = boardWithEmbeddedSigils()
+    const { board } = boardWithSymlinkedSigils()
     const text = stripAnsi(board.screenshot())
 
     // "@waiting" sigil badge SHOULD still appear after "Wait for reply"
@@ -1576,7 +1697,7 @@ describe("strip embed sigil", () => {
   })
 
   test("parent context is suppressed when it matches an excluded sigil", () => {
-    // Build a board where embedded tasks come from a file named "@next"
+    // Build a board where symlinked tasks come from a file named "@next"
     // The parent context would normally show "@next" but should be suppressed
     const { board } = testEnv(
       () => {
@@ -1655,18 +1776,18 @@ describe("strip embed sigil", () => {
 })
 
 // =============================================================================
-// Hide redundant parent sigil on embedded links (absorbed from hide-parent-sigil.test.ts)
+// Hide redundant parent sigil on symlinks (absorbed from hide-parent-sigil.test.ts)
 // =============================================================================
 
-describe("hide redundant parent sigil on embedded links", () => {
+describe("hide redundant parent sigil on symlinks", () => {
   /**
    * Build a board where:
    * - Board root is "board"
-   * - Column "@next" contains embedded links (symlink_to) to tasks
+   * - Column "@next" contains symlinks (symlink_to) to tasks
    * - Tasks' original parent is a file called "@next.md"
    *   with display name "Next Actions" (via data.name)
    */
-  function buildEmbedBoard(options?: { parentDisplayName?: string }) {
+  function buildSymlinkBoard(options?: { parentDisplayName?: string }) {
     const parentName = options?.parentDisplayName ?? "@next"
     return testEnv(() => {
       const nodes = item("board", item("@next", item("embed-a"), item("embed-b")), item("other-col", item("task-x")))
@@ -1677,7 +1798,7 @@ describe("hide redundant parent sigil on embedded links", () => {
           n.name = "@next"
           n.fs_path = "/fake/repo/@next.md"
         }
-        // Set up embed nodes as links pointing to target tasks
+        // Set up symlink nodes as links pointing to target tasks
         if (n.id === "embed-a") {
           n.type = "p"
           n.symlink_to = "target-a"
@@ -1712,7 +1833,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         version: "v1",
       } as unknown as KNode)
 
-      // Add the target task nodes (what the embeds point to)
+      // Add the target task nodes (what the symlinks point to)
       nodes.push({
         id: "target-a",
         type: "p",
@@ -1744,9 +1865,9 @@ describe("hide redundant parent sigil on embedded links", () => {
     })
   }
 
-  test("embedded node does not show @next parent context inside @next column (sigil name match)", () => {
+  test("symlinked node does not show @next parent context inside @next column (sigil name match)", () => {
     // Parent file name matches column sigil exactly
-    const { board } = buildEmbedBoard({ parentDisplayName: "@next" })
+    const { board } = buildSymlinkBoard({ parentDisplayName: "@next" })
     const screenshot = board.screenshot()
 
     // The task content should be visible
@@ -1763,7 +1884,7 @@ describe("hide redundant parent sigil on embedded links", () => {
   test("parent context with display name 'Next Actions' is suppressed inside @next column", () => {
     // Parent file has display name "Next Actions" (not the sigil "@next")
     // The parent context should still be suppressed because it refers to the same column
-    const { board } = buildEmbedBoard({ parentDisplayName: "Next Actions" })
+    const { board } = buildSymlinkBoard({ parentDisplayName: "Next Actions" })
     const screenshot = board.screenshot()
 
     // "Next Actions" should NOT appear as parent context on cards
@@ -1772,7 +1893,7 @@ describe("hide redundant parent sigil on embedded links", () => {
   })
 
   test("sigil in task content is filtered out when inside matching column", () => {
-    const { board } = buildEmbedBoard()
+    const { board } = buildSymlinkBoard()
     const screenshot = board.screenshot()
 
     // "Write report @next" has @next in content — it should be stripped
@@ -1784,7 +1905,7 @@ describe("hide redundant parent sigil on embedded links", () => {
   })
 
   test("@next column header still shows the sigil", () => {
-    const { board } = buildEmbedBoard()
+    const { board } = buildSymlinkBoard()
     const screenshot = board.screenshot()
 
     // The column header should still show @next
@@ -1795,12 +1916,12 @@ describe("hide redundant parent sigil on embedded links", () => {
 })
 
 // =============================================================================
-// Embed transparency — detail pane shows target's metadata + children
+// Symlink transparency — detail pane shows target's metadata + children
 // =============================================================================
 
-describe("embed transparency in detail pane", () => {
-  /** Build a board where an embed card points to a target node with children */
-  function buildEmbedDetailBoard() {
+describe("symlink transparency in detail pane", () => {
+  /** Build a board where a symlink card points to a target node with children */
+  function buildSymlinkDetailBoard() {
     const nodes = item("board", item("col1", item("regular-card"), item("embed-card")))
     // Target node (lives outside the board — e.g., in another file)
     const targetNode: KNode = {
@@ -1854,13 +1975,13 @@ describe("embed transparency in detail pane", () => {
     return nodes
   }
 
-  test("detail pane for embed card shows target's children", () => {
-    const { board, store } = testEnv(buildEmbedDetailBoard, {
+  test("detail pane for symlink card shows target's children", () => {
+    const { board, store } = testEnv(buildSymlinkDetailBoard, {
       columns: 120,
       rows: 24,
     })
 
-    // Navigate to the embed card (second card in col1)
+    // Navigate to the symlink card (second card in col1)
     board.command("cursor_down")
 
     // Open detail pane
@@ -1870,7 +1991,7 @@ describe("embed transparency in detail pane", () => {
     const ws = store.getState().workspace
     expect(ws.panes.has("main-detail")).toBe(true)
 
-    // The detail pane's rootId should be the embed card's ID
+    // The detail pane's rootId should be the symlink card's ID
     const detailPane = ws.panes.get("main-detail")!
     expect((detailPane as any).rootId).toBe("embed-card")
 
@@ -1880,13 +2001,13 @@ describe("embed transparency in detail pane", () => {
     expect(screenshot).toContain("Target Child Beta")
   })
 
-  test("detail pane metadata shows target properties for embed card", () => {
-    const { board, store } = testEnv(buildEmbedDetailBoard, {
+  test("detail pane metadata shows target properties for symlink card", () => {
+    const { board, store } = testEnv(buildSymlinkDetailBoard, {
       columns: 120,
       rows: 24,
     })
 
-    // Navigate to the embed card
+    // Navigate to the symlink card
     board.command("cursor_down")
 
     // Open detail pane
@@ -1895,6 +2016,6 @@ describe("embed transparency in detail pane", () => {
     // The rendered detail should show the target's metadata (task status, due date)
     const screenshot = board.screenshot()
     expect(screenshot).toContain("wip")
-    // The embed card itself has no item.task — this proves the target's metadata is shown
+    // The symlink card itself has no item.task — this proves the target's metadata is shown
   })
 })

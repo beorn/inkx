@@ -843,10 +843,10 @@ export function Board({ patchedConsole }: BoardProps) {
       const filteredCardIds = [...cardIds].filter((cardId) => {
         const card = repo.getNode(cardId)
         if (!card) return false
-        // For embeds, resolve to source node for filtering
-        const embedSource = card.symlink_to
-        const filterNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
-        // Text filter: match card content (use source node content for embeds)
+        // For symlinks, resolve to target node for filtering
+        const symlinkTarget = card.symlink_to
+        const filterNode = symlinkTarget ? (repo.getNode(symlinkTarget) ?? card) : card
+        // Text filter: match card content (use target node content for symlinks)
         if (hasTextFilter) {
           const name = (filterNode.content ?? "").toLowerCase()
           if (!name.includes(lowerFilter)) return false
@@ -1286,8 +1286,8 @@ function countHiddenDescendants(
   const children = repo.getChildren(parentId)
   let count = 0
   for (const child of children) {
-    const embedSource = child.symlink_to
-    const filterNode = embedSource ? (repo.getNode(embedSource) ?? child) : child
+    const symlinkTarget = child.symlink_to
+    const filterNode = symlinkTarget ? (repo.getNode(symlinkTarget) ?? child) : child
     if (!matchesPropertyFilters(filterNode, filters)) {
       count++
     } else {

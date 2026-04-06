@@ -20,8 +20,8 @@ import { createLogger } from "loggily"
 import type { Database } from "bun:sqlite"
 import { queryNodes } from "../query.ts"
 import { removeLinksFromSourceByRelationship } from "./links.ts"
-import { rowToNode, getChildren, getNode, getEmbedPathsOnBoard } from "./queries/index.ts"
-import { createDbOps, buildEmbedChild } from "./ops.ts"
+import { rowToNode, getChildren, getNode, getSymlinkPathsOnBoard } from "./queries/index.ts"
+import { createDbOps, buildSymlinkChild } from "./ops.ts"
 import { parseQuery, KNode, type NodeRules } from "@km/core"
 
 const log = createLogger("km:storage:db:rules")
@@ -111,7 +111,7 @@ function evaluateRulesForNode(db: Database, node: KNode, ctx: RuleContext): void
 /**
  * Evaluate km.add:: rule(s) and materialize results as outline items with symlink_to.
  * Creates outline items (type: "h", item: {}) as children of the section.
- * symlink_to on each item enables transclusion (resolveEmbed renders the target's content).
+ * symlink_to on each item enables transclusion (resolveSymlink renders the target's content).
  * Removes items that no longer match any query (e.g., after status change).
  * Multiple queries are unioned — a node matching any query is included.
  */
@@ -162,40 +162,41 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   // Pre-build file ancestor cache for all matching nodes to avoid O(matches * depth) tree walks
   const matchFileAncestorCache = buildFileAncestorCacheForNodes(db, matchingNodes)
 
-  // Fetch section children once — used for stale embed removal and next parent_idx
+  // Fetch section children once — used for stale symlink removal and next parent_idx
   const sectionChildren = getChildren(db, sectionId)
 
   // Remove rule-created items that no longer match any query
   // Identify by symlink_to (set on all rule-materialized nodes)
-  const matchingEmbedPaths = new Set(matchingNodes.map((n) => getEmbedPath(n, db, matchFileAncestorCache)))
-  const existingEmbedNodes = sectionChildren.filter((n) => KNode.isEmbed(n))
+  const matchingSymlinkPaths = new Set(matchingNodes.map((n) => getSymlinkPath(n, db, matchFileAncestorCache)))
+  const existingSymlinkNodes = sectionChildren.filter((n) => KNode.isSymlink(n))
   let removedCount = 0
-  for (const embed of existingEmbedNodes) {
-    const embedData = typeof embed.data === "object" && embed.data ? (embed.data as Record<string, unknown>) : {}
-    const embedPath = (embedData.targetPath as string) ?? embed.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
-    if (embedPath && !matchingEmbedPaths.has(embedPath)) {
-      db.run("DELETE FROM nodes WHERE id = ?", [embed.id])
+  for (const symlink of existingSymlinkNodes) {
+    const symlinkData =
+      typeof symlink.data === "object" && symlink.data ? (symlink.data as Record<string, unknown>) : {}
+    const symlinkPath = (symlinkData.targetPath as string) ?? symlink.content?.match(/!\[\[([^\]]+)\]\]/)?.[1]
+    if (symlinkPath && !matchingSymlinkPaths.has(symlinkPath)) {
+      db.run("DELETE FROM nodes WHERE id = ?", [symlink.id])
       removedCount++
     }
   }
   if (removedCount > 0) {
-    log.debug?.(`evaluateAddRule: removed ${removedCount} stale embeds`)
+    log.debug?.(`evaluateAddRule: removed ${removedCount} stale symlinks`)
   }
 
   // Get the board root (parent of section) to check board-wide deduplication
-  // Dedup by embed target path (stable across re-parses) instead of node ID (ULID, changes every parse)
-  // Embed paths: "filename" for file nodes, "filename#^block_id" for intra-file nodes
+  // Dedup by symlink target path (stable across re-parses) instead of node ID (ULID, changes every parse)
+  // Symlink paths: "filename" for file nodes, "filename#^block_id" for intra-file nodes
   const boardRootId = section.parent_id
   // Single SQL query replaces N+1 getChildren loop (was: 1 query per section on the board)
-  const { exactPaths: existingEmbedPathsOnBoard, filePaths: existingEmbedFilesOnBoard } = getEmbedPathsOnBoard(
+  const { exactPaths: existingSymlinkPathsOnBoard, filePaths: existingSymlinkFilesOnBoard } = getSymlinkPathsOnBoard(
     db,
     boardRootId,
   )
   log.debug?.(
-    `evaluateAddRule: existing embed paths on board: ${existingEmbedPathsOnBoard.size} (${existingEmbedFilesOnBoard.size} files)`,
+    `evaluateAddRule: existing symlink paths on board: ${existingSymlinkPathsOnBoard.size} (${existingSymlinkFilesOnBoard.size} files)`,
   )
 
-  // Get next parent_idx for new embeds (reuse sectionChildren from above)
+  // Get next parent_idx for new symlinks (reuse sectionChildren from above)
   let nextIdx = sectionChildren.length
 
   const ops = createDbOps(db)
@@ -207,25 +208,25 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
       continue
     }
 
-    // Compute the embed path for this match (stable identifier, uses pre-built cache)
-    const candidatePath = getEmbedPath(match, db, matchFileAncestorCache)
+    // Compute the symlink path for this match (stable identifier, uses pre-built cache)
+    const candidatePath = getSymlinkPath(match, db, matchFileAncestorCache)
 
-    // Skip if this embed path already exists anywhere on the board (exact or file-level match)
+    // Skip if this symlink path already exists anywhere on the board (exact or file-level match)
     const candidateFile = candidatePath.split("#")[0]!
-    if (existingEmbedPathsOnBoard.has(candidatePath) || existingEmbedFilesOnBoard.has(candidateFile)) {
+    if (existingSymlinkPathsOnBoard.has(candidatePath) || existingSymlinkFilesOnBoard.has(candidateFile)) {
       skippedCount++
       continue
     }
 
     // Create outline item with symlink_to pointing to the matched node.
     // type: "h", item: {} makes it a structural sub-item (card) on the board,
-    // not body content. symlink_to enables transclusion (resolveEmbed).
-    const embedNode = buildEmbedChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath: candidatePath })
-    ops.addNode(sectionId, embedNode)
+    // not body content. symlink_to enables transclusion (resolveSymlink).
+    const symlinkNode = buildSymlinkChild({ source: match, parentIdx: nextIdx++, type: "h", targetPath: candidatePath })
+    ops.addNode(sectionId, symlinkNode)
 
     addedCount++
-    existingEmbedPathsOnBoard.add(candidatePath)
-    existingEmbedFilesOnBoard.add(candidatePath.split("#")[0]!)
+    existingSymlinkPathsOnBoard.add(candidatePath)
+    existingSymlinkFilesOnBoard.add(candidatePath.split("#")[0]!)
   }
 
   ruleSpan.spanData.added = addedCount
@@ -233,7 +234,7 @@ function evaluateAddRule(db: Database, sectionId: string, queries: string[], ctx
   ruleSpan.spanData.skipped = skippedCount
   ruleSpan.spanData.matches = matchingNodes.length
 
-  // Mark the file for write-back if we added or removed any embeds
+  // Mark the file for write-back if we added or removed any symlinks
   if (addedCount > 0 || removedCount > 0) {
     const fileNode = findFileAncestor(db, sectionId, ctx)
     if (fileNode?.fs_path) {
@@ -268,14 +269,14 @@ function findFileAncestor(db: Database, nodeId: string, ctx: RuleContext): KNode
 }
 
 /**
- * Get the embed path for a node.
+ * Get the symlink path for a node.
  * - File nodes: filename without .md extension (stable across re-parses)
  * - Intra-file nodes with block_id: filename#^block_id (stable)
  * - Intra-file nodes without block_id: filename#^short_id (unstable — last resort)
  *
  * @param fileAncestorCache - Optional pre-built cache to avoid per-node tree walks
  */
-function getEmbedPath(node: KNode, db?: Database, fileAncestorCache?: Map<string, KNode | null>): string {
+function getSymlinkPath(node: KNode, db?: Database, fileAncestorCache?: Map<string, KNode | null>): string {
   // For file nodes, extract the relative path (filename without .md)
   if (node.fs_path) {
     const parts = node.fs_path.split("/")

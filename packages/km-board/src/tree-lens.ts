@@ -8,7 +8,7 @@
  *   visible(view) — collapsed/filtered for rendering
  *
  * All three implement TreeLens. Same KNode identity flows through all layers.
- * Enrichments (role, isBody, resolvedEmbed) are lens METHODS, not node properties.
+ * Enrichments (role, isBody, resolvedSymlink) are lens METHODS, not node properties.
  * Zero object allocation — pure query interface over the underlying repo.
  *
  * Cursor lives in visible.walkOrder. Navigation uses visible.nextInWalk().
@@ -55,7 +55,7 @@ export interface TreeLens {
   /** Get visible child IDs of a node. Order matches visual layout. */
   children(id: string): readonly string[]
 
-  /** Get the visual parent ID. May differ from node.parent_id for embeds. */
+  /** Get the visual parent ID. May differ from node.parent_id for symlinks. */
   parent(id: string): string | null
 
   /** Next node in DFS walk order (O(1) for tree-backed lenses). */
@@ -75,8 +75,8 @@ export interface TreeLens {
   /** True if this node is body content (non-outline before first heading) */
   isBody(id: string): boolean
 
-  /** Pre-resolved embed target, if this node has symlink_to */
-  resolvedEmbed(id: string): KNode | undefined
+  /** Pre-resolved symlink target, if this node has symlink_to */
+  resolvedSymlink(id: string): KNode | undefined
 
   /** Section rules (WIP limit, color, collapse) parsed from frontmatter */
   rules(id: string): SectionRules | undefined

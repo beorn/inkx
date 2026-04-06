@@ -105,7 +105,7 @@ export function useBoardDialogs({
         return
       }
 
-      // Resolve embed target: if this is an embed, operate on the target
+      // Resolve symlink target: if this is a symlink, operate on the target
       const nodeToMove = cursorNode.symlink_to ?? cursorNode.id
 
       // Calculate sort order (add at end of target)

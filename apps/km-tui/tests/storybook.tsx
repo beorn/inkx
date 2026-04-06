@@ -980,7 +980,7 @@ function mockColumn(name: string, cardNodes: KNode[]): ColumnView {
       ...c,
       __cardView: true as const,
       isBody: false,
-      isBrokenEmbed: false,
+      isBrokenSymlink: false,
       hasBodyChildren: false,
     })),
   }

@@ -184,7 +184,7 @@ export interface MoveNodeContext {
  * Context for toggling task status — pre-computed by the caller.
  */
 export interface ToggleStatusContext {
-  /** Node ID to update (resolved through embeds if needed) */
+  /** Node ID to update (resolved through symlinks if needed) */
   nodeId: string
   /** The next status to apply */
   nextStatus: TaskStatus

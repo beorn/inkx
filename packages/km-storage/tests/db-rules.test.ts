@@ -134,7 +134,7 @@ describe("Database Rules", () => {
   })
 
   describe("evaluateNodeRules - add= rule", () => {
-    test("should create embed children for matching nodes", () =>
+    test("should create symlink children for matching nodes", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -166,14 +166,14 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => KNode.isEmbed(c))
+          const symlinks = children.filter((c) => KNode.isSymlink(c))
 
-          expect(embeds.length).toBe(2)
-          expect(embeds.every((e) => e.symlink_to)).toBe(true)
+          expect(symlinks.length).toBe(2)
+          expect(symlinks.every((e) => e.symlink_to)).toBe(true)
         },
       ))
 
-    test("should not create embeds for direct children", () =>
+    test("should not create symlinks for direct children", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -203,10 +203,10 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), openSection!.id, createRuleContext())
 
           const children = getChildren(store.getDatabase(), openSection!.id)
-          const embeds = children.filter((c) => KNode.isEmbed(c))
+          const symlinks = children.filter((c) => KNode.isSymlink(c))
           const directTasks = children.filter((c) => c.item?.task?.status != null)
 
-          expect(embeds.length).toBe(1)
+          expect(symlinks.length).toBe(1)
           expect(directTasks.length).toBe(1)
         },
       ))
@@ -254,17 +254,17 @@ describe("Database Rules", () => {
           expect(todoSection).toBeDefined()
           expect(doneSection).toBeDefined()
 
-          const todoEmbeds = getChildren(store.getDatabase(), todoSection!.id).filter((c) => KNode.isEmbed(c))
-          const doneEmbeds = getChildren(store.getDatabase(), doneSection!.id).filter((c) => KNode.isEmbed(c))
+          const todoSymlinks = getChildren(store.getDatabase(), todoSection!.id).filter((c) => KNode.isSymlink(c))
+          const doneSymlinks = getChildren(store.getDatabase(), doneSection!.id).filter((c) => KNode.isSymlink(c))
 
-          expect(todoEmbeds.length).toBe(2)
-          expect(doneEmbeds.length).toBe(1)
+          expect(todoSymlinks.length).toBe(2)
+          expect(doneSymlinks.length).toBe(1)
         },
       ))
   })
 
   describe("getChildren with computed links", () => {
-    test("should include embed children from km.add:: rule", () =>
+    test("should include symlink children from km.add:: rule", () =>
       withMemoryStore(
         (repoDir) => {
           writeFileSync(
@@ -297,7 +297,7 @@ describe("Database Rules", () => {
           const children = getChildren(store.getDatabase(), openSection!.id)
 
           expect(children.length).toBe(2)
-          expect(children.every((c) => KNode.isEmbed(c))).toBe(true)
+          expect(children.every((c) => KNode.isSymlink(c))).toBe(true)
           expect(children.every((c) => c.symlink_to)).toBe(true)
         },
       ))
@@ -329,7 +329,7 @@ describe("Database Rules", () => {
         },
       ))
 
-    test("should not duplicate embeds already present in markdown", () =>
+    test("should not duplicate symlinks already present in markdown", () =>
       withMemoryStore(
         (repoDir) => {
           mkdirSync(join(repoDir, "inbox"), { recursive: true })
@@ -340,7 +340,7 @@ describe("Database Rules", () => {
 - [ ] Buy groceries ^buy1
 `,
           )
-          // Board has an km.add:: rule AND an existing embed reference to the same task
+          // Board has a km.add:: rule AND an existing symlink reference to the same task
           writeFileSync(
             join(repoDir, "board.md"),
             `# Board
@@ -362,10 +362,10 @@ describe("Database Rules", () => {
           evaluateNodeRules(store.getDatabase(), inboxSection!.id, ctx)
 
           const children = getChildren(store.getDatabase(), inboxSection!.id)
-          // The embed from markdown + rule should not create a duplicate
-          const embedTargets = children.filter((c) => c.symlink_to).map((c) => c.symlink_to)
-          const uniqueTargets = new Set(embedTargets)
-          expect(embedTargets.length).toBe(uniqueTargets.size)
+          // The symlink from markdown + rule should not create a duplicate
+          const symlinkTargets = children.filter((c) => c.symlink_to).map((c) => c.symlink_to)
+          const uniqueTargets = new Set(symlinkTargets)
+          expect(symlinkTargets.length).toBe(uniqueTargets.size)
         },
       ))
   })

@@ -222,7 +222,7 @@ export function deriveCursorIndices(
   cursor: string | null,
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
   getNode?: (id: string) => { parent_id: string | null } | null,
-  /** Hint from cursor store — for embeds where parent_id chain leads to wrong card */
+  /** Hint from cursor store — for symlinks where parent_id chain leads to wrong card */
   cursorCardNodeId?: string | null,
 ): CursorIndices {
   if (!cursor || columns.length === 0) {
@@ -232,7 +232,7 @@ export function deriveCursorIndices(
   // Direct lookup
   let entry = nodeIndex.get(cursor)
 
-  // On miss: try cursorCardNodeId hint first (embed-aware), then parent walk
+  // On miss: try cursorCardNodeId hint first (symlink-aware), then parent walk
   if (!entry && cursorCardNodeId) {
     entry = nodeIndex.get(cursorCardNodeId)
   }

@@ -49,8 +49,8 @@ export interface OpCtx {
   rootPath: string | null
   /** Cursor node ID — reads from sel.node.cursor(). */
   cursor: string | null
-  /** Current card containing the cursor (from layout derivation). Used as embed-aware
-   * hint — data model parent chain may lead to the wrong card for embeds. */
+  /** Current card containing the cursor (from layout derivation). Used as symlink-aware
+   * hint — data model parent chain may lead to the wrong card for symlinks. */
   cursorCardNodeId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>

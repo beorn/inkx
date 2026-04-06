@@ -137,11 +137,11 @@ export function* initBoardStateGenerator(
  * that is deriveColumnsFromRepo() in hooks/use-columns.ts. This path exists for:
  * - Fast startup with progress yielding (loading screen)
  * - Collecting collapsedColumns/collapsedNodeIds for initial board state
- * - Simplified card list (plain KNode[], no embed resolution)
+ * - Simplified card list (plain KNode[], no symlink resolution)
  *
  * Differences from deriveColumnsFromRepo:
  * - No folder-index file expansion (index files handled at column level only)
- * - No embed resolution (useNode handles this at render time)
+ * - No symlink resolution (useNode handles this at render time)
  * - No per-column memoization cache
  * - WIP limits extracted from root node frontmatter (not column nodes)
  * - Yields progress between columns for loading UI
@@ -212,8 +212,8 @@ export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator
       cardNodes: meaningfulBody.map((n) => ({
         ...n,
         __cardView: true as const,
-        isBody: !KNode.isEmbed(n),
-        isBrokenEmbed: false,
+        isBody: !KNode.isSymlink(n),
+        isBrokenSymlink: false,
         hasBodyChildren: false,
       })),
       isVirtual: true,

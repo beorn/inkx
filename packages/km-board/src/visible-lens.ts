@@ -41,7 +41,7 @@ export interface VisibleLensOptions {
 /**
  * Create a VisibleLens that wraps a parent lens with collapse + filter.
  *
- * The visible lens delegates all get/role/isBody/resolvedEmbed/rules to
+ * The visible lens delegates all get/role/isBody/resolvedSymlink/rules to
  * the parent lens. It only modifies children() and walkOrder to exclude
  * collapsed cards and filtered cards.
  */
@@ -58,7 +58,7 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
     if (!hasTaskFilter) return true
     const node = parent.get(childId)
     if (!node) return false
-    // For embeds, resolve to source node for status check
+    // For symlinks, resolve to target node for status check
     const filterNode = node.symlink_to ? (parent.get(node.symlink_to) ?? node) : node
     const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
     // Non-task nodes (no status) always pass — only tasks are filtered
@@ -200,8 +200,8 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
       return parent.isBody(id)
     },
 
-    resolvedEmbed(id: string): KNode | undefined {
-      return parent.resolvedEmbed(id)
+    resolvedSymlink(id: string): KNode | undefined {
+      return parent.resolvedSymlink(id)
     },
 
     rules(id: string): SectionRules | undefined {

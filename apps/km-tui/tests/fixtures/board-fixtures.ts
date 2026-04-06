@@ -58,7 +58,7 @@ export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: 
       ...c,
       __cardView: true as const,
       isBody: false,
-      isBrokenEmbed: false,
+      isBrokenSymlink: false,
       hasBodyChildren: false,
     })),
   }

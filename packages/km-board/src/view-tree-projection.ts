@@ -132,10 +132,10 @@ export function createViewTree(): ViewTree {
     if (!knode) return undefined
 
     const role = lens.role(id)
-    const embed = lens.resolvedEmbed(id)
+    const symlink = lens.resolvedSymlink(id)
 
     const childIds = lens.children(id)
-    const displayNode = embed ?? knode
+    const displayNode = symlink ?? knode
     // hasBody: first child is non-outline (body content before first heading)
     const firstChildId = childIds[0]
     const firstChild = firstChildId ? lens.get(firstChildId) : undefined
@@ -147,8 +147,8 @@ export function createViewTree(): ViewTree {
       parentId: lens.parent(id),
       display: displayNode,
       isBody: lens.isBody(id),
-      isSymlink: embed !== undefined,
-      isBrokenSymlink: knode.symlink_to != null && embed === undefined,
+      isSymlink: symlink !== undefined,
+      isBrokenSymlink: knode.symlink_to != null && symlink === undefined,
       hasBody,
       rules: lens.rules(id),
       data: knode,

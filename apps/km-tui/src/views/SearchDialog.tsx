@@ -57,7 +57,7 @@ function searchNodes(repo: Repo, query: string, scopeNodeIds?: string[]): Search
     // Skip folders (not meaningful for search)
     if (KNode.isOutline(node) && node.fstype === "folder") continue
     // Skip transclusions (search target instead)
-    if (KNode.isEmbed(node)) continue
+    if (KNode.isSymlink(node)) continue
     // Skip nodes outside scope
     if (scopeSet && !scopeSet.has(node.id)) continue
 

@@ -81,7 +81,7 @@ export interface BoardState {
 export type BoardReducerOp =
   // Cursor selection (navigation handler calls this with computed nodeId)
   // cardNodeId + cardHintSource: click handler passes the visual card as a definitive hint.
-  // Used for embeds where the data model parent chain leads to the wrong card.
+  // Used for symlinks where the data model parent chain leads to the wrong card.
   | {
       type: "SELECT"
       nodeId: string | null

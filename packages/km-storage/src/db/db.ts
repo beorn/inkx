@@ -63,7 +63,7 @@ export {
 export type { Link } from "./links.ts"
 
 // Re-export db-accepting mutation operations
-export { createDbOps, type DbOps, buildEmbedChild, type EmbedChildOpts } from "./ops.ts"
+export { createDbOps, type DbOps, buildSymlinkChild, type SymlinkChildOpts } from "./ops.ts"
 
 // Re-export db-accepting change application (internal use)
 export { applyChangeWithDb } from "./changes.ts"

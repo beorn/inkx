@@ -167,8 +167,8 @@ describe("createViewLens", () => {
     const repo = createMockRepo(nodes)
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
 
-    expect(lens.resolvedEmbed("embed-card")).toBeDefined()
-    expect(lens.resolvedEmbed("embed-card")!.id).toBe("target")
+    expect(lens.resolvedSymlink("embed-card")).toBeDefined()
+    expect(lens.resolvedSymlink("embed-card")!.id).toBe("target")
     // Children come from the resolved target
     expect(lens.children("embed-card")).toEqual(["target-child1", "target-child2"])
   })

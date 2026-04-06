@@ -239,7 +239,7 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
 }
 
 /**
- * Follow an embedded link: zoom to the link target in context.
+ * Follow a symlink: zoom to the link target in context.
  *
  * Walks up from the target to find the best board root for maximum context:
  * - Great-grandparent (3 up): grandparent is a column, parent is a card, target is a sub-item
@@ -255,7 +255,7 @@ export function handleFollowLink(ctx: OpCtx): OpResult {
   // values if background link resolution completed after layout was derived.
   const freshNode = card ? ctx.repo.getNode(card.id) : null
   const linkTo = freshNode?.symlink_to ?? card?.symlink_to
-  if (!linkTo) return boundary("follow_link", "not an embed")
+  if (!linkTo) return boundary("follow_link", "not a symlink")
 
   const target = ctx.repo.getNode(linkTo)
   if (!target) return boundary("follow_link", "target not found")

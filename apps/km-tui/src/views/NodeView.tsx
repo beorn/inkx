@@ -302,7 +302,7 @@ export interface NodeCardViewProps {
   width?: number
   /** Whether the node has unresolved dependencies (shows "blocked" indicator) */
   isBlocked?: boolean
-  /** Parent context string for embedded tasks (shown above title, dimmed italic) */
+  /** Parent context string for symlinked tasks (shown above title, dimmed italic) */
   parentContext?: string | null
   /** Parent node ID for navigation links (enables Cmd+click on parent context) */
   parentNodeId?: string | null
@@ -359,7 +359,7 @@ export function NodeCardView({
 
   return (
     <Box flexDirection="column" width={width}>
-      {/* Parent context for embedded tasks — Cmd+click navigable when parentNodeId is set */}
+      {/* Parent context for symlinked tasks — Cmd+click navigable when parentNodeId is set */}
       {parentContext && parentNodeId && (
         <Link href={`km://node/${parentNodeId}`} color="$muted" underline={false}>
           <Text italic wrap="truncate">

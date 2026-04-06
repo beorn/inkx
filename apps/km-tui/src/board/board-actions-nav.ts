@@ -168,8 +168,8 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
     const targetId = viewNavigation.navigate(dir, navStateFrom(ctx), ctx.repo, navigator)
 
     if (targetId !== null) {
-      // Pass cursorCardNodeId hint for embed-aware card classification.
-      // When navigating within an embed's children, the data model parent
+      // Pass cursorCardNodeId hint for symlink-aware card classification.
+      // When navigating within a symlink's children, the data model parent
       // chain leads to the wrong card — the hint ensures the visual card is used.
       ctx.sel.node.select([targetId as ID])
       // In cards view, attach deferred resolve for off-screen Y-correction.

@@ -120,10 +120,10 @@ export function getSubtree(db: Database, rootId: string): KNode[] {
 }
 
 /**
- * Get all embed targets that exist anywhere on a board (for deduplication).
- * Returns a Set of node IDs that are already embedded somewhere on the board.
+ * Get all symlink targets that exist anywhere on a board (for deduplication).
+ * Returns a Set of node IDs that are already symlinked somewhere on the board.
  */
-export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null): Set<string> {
+export function getSymlinkTargetsOnBoard(db: Database, boardRootId: string | null): Set<string> {
   if (!boardRootId) return new Set()
 
   const result = db
@@ -146,11 +146,11 @@ export function getEmbedTargetsOnBoard(db: Database, boardRootId: string | null)
 }
 
 /**
- * Get all embed paths on a board in a single query (for deduplication).
+ * Get all symlink paths on a board in a single query (for deduplication).
  * Returns both exact paths and file-level paths.
  * Replaces the N+1 pattern of getChildren(boardRoot) + getChildren(section) loops.
  */
-export function getEmbedPathsOnBoard(
+export function getSymlinkPathsOnBoard(
   db: Database,
   boardRootId: string | null,
 ): { exactPaths: Set<string>; filePaths: Set<string> } {
@@ -158,7 +158,7 @@ export function getEmbedPathsOnBoard(
   const filePaths = new Set<string>()
   if (!boardRootId) return { exactPaths, filePaths }
 
-  // Single CTE query: get all embed nodes under the board root (depth 2: sections + their children)
+  // Single CTE query: get all symlink nodes under the board root (depth 2: sections + their children)
   const rows = db
     .query(
       `

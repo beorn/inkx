@@ -113,13 +113,13 @@ describe("visibleLens", () => {
     expect(v.prevInWalk("col2")).toBe("col1")
   })
 
-  test("role/isBody/resolvedEmbed delegate to parent lens", () => {
+  test("role/isBody/resolvedSymlink delegate to parent lens", () => {
     const v = lens(BASIC_NODES, "board")
     expect(v.role("col1")).toBe("column")
     expect(v.role("1a")).toBe("card")
     // 1a is type "p" (non-outline) — body extraction marks it as body content
     expect(v.isBody("1a")).toBe(true)
-    expect(v.resolvedEmbed("1a")).toBeUndefined()
+    expect(v.resolvedSymlink("1a")).toBeUndefined()
   })
 
   test("get returns KNode even for filtered-out cards", () => {

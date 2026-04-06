@@ -60,25 +60,25 @@ export function createDbOps(db: Database, emitter?: Emitter): DbOps {
 }
 
 // =============================================================================
-// Embed Child Builder
+// Symlink Child Builder
 // =============================================================================
 
 /**
- * Options for building an embedded child node.
+ * Options for building a symlink child node.
  */
-export interface EmbedChildOpts {
-  /** Source node being embedded — its id becomes symlink_to */
+export interface SymlinkChildOpts {
+  /** Source node being symlinked — its id becomes symlink_to */
   source: KNode
   /** Sort order within parent */
   parentIdx: number
   /** Block type: "h" for outline items (boards), "p" for list items (CLI). Default: "h" */
   type?: "h" | "p"
-  /** Stable embed path for deduplication (stored in data.targetPath) */
+  /** Stable symlink path for deduplication (stored in data.targetPath) */
   targetPath?: string
 }
 
 /**
- * Build a Partial<KNode> for an embedded child. Pure function — caller chooses
+ * Build a Partial<KNode> for a symlink child. Pure function — caller chooses
  * write mechanism: createDbOps(db).addNode() (direct SQL) or repo.addNode() (with events).
  *
  * Content is left empty — the display layer resolves it from symlink_to
@@ -86,7 +86,7 @@ export interface EmbedChildOpts {
  * at creation time and be treated as an alias override.
  * Task traits (marker, status) are carried from the source with marker derivation.
  */
-export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
+export function buildSymlinkChild(opts: SymlinkChildOpts): Partial<KNode> {
   const { source, parentIdx, type = "h", targetPath } = opts
 
   const node: Partial<KNode> = {

@@ -1,5 +1,5 @@
 /**
- * Embed display resolution — pure functions for resolving embed nodes to
+ * Symlink display resolution — pure functions for resolving symlink nodes to
  * human-readable display text. Extracted from TreeNode.tsx for reuse
  * across search, CLI, detail pane, and tests.
  */
@@ -7,8 +7,8 @@
 import { KNode } from "@km/core"
 import { getNodeDisplayName as getNodeDisplayNameBase } from "@km/tree"
 
-/** Minimal repo interface for embed resolution (subset of full Repo). */
-export interface EmbedRepo {
+/** Minimal repo interface for symlink resolution (subset of full Repo). */
+export interface SymlinkRepo {
   getNode(id: string): KNode | null | undefined
   getChildren(parentId: string | null): KNode[]
   resolveByName?(name: string): KNode | null
@@ -16,38 +16,38 @@ export interface EmbedRepo {
 }
 
 /** Bound version of getNodeDisplayNameBase that injects repo.getChildren */
-function getNodeDisplayName(repo: EmbedRepo, node: KNode): string {
+function getNodeDisplayName(repo: SymlinkRepo, node: KNode): string {
   return getNodeDisplayNameBase(node, (id) => repo.getChildren(id))
 }
 
-/** Regex to extract target name from ![[target]] or ![[target|alias]] embed syntax. */
-export const EMBED_EXTRACT_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
+/** Regex to extract target name from ![[target]] or ![[target|alias]] markdown embed syntax. */
+export const WIKI_EMBED_RE = /^!\[\[([^\]|]+)(?:\|[^\]]+)?\]\]$/
 
-/** Result of resolving an embed node to its target. */
-export interface EmbedResolution {
-  isEmbedded: boolean
+/** Result of resolving a symlink node to its target. */
+export interface SymlinkResolution {
+  isSymlinked: boolean
   resolvedNode: KNode | null
   displayNode: KNode
-  isBrokenEmbed: boolean
+  isBrokenSymlink: boolean
 }
 
-/** Resolve embed source to target node and display node. */
-export function resolveEmbed(repo: EmbedRepo, node: KNode): EmbedResolution {
-  const embedSource = node.symlink_to
-  const isEmbedded = embedSource != null
-  const resolvedNode = isEmbedded && embedSource ? (repo.getNode(embedSource) ?? null) : null
+/** Resolve symlink_to to target node and display node. */
+export function resolveSymlink(repo: SymlinkRepo, node: KNode): SymlinkResolution {
+  const symlinkTarget = node.symlink_to
+  const isSymlinked = symlinkTarget != null
+  const resolvedNode = isSymlinked && symlinkTarget ? (repo.getNode(symlinkTarget) ?? null) : null
   const displayNode = resolvedNode ?? node
-  const isBrokenEmbed = isEmbedded && !resolvedNode
-  return { isEmbedded, resolvedNode, displayNode, isBrokenEmbed }
+  const isBrokenSymlink = isSymlinked && !resolvedNode
+  return { isSymlinked, resolvedNode, displayNode, isBrokenSymlink }
 }
 
 /**
- * Clean an embed reference path for display.
+ * Clean a symlink reference path for display.
  * Strips block-ID syntax (^blockid) and file#fragment separators to produce
  * a human-readable label. For bare block references (^12345), returns empty
  * string so the caller can fall through to getNodeDisplayName.
  */
-export function cleanEmbedRef(ref: string): string {
+export function cleanSymlinkRef(ref: string): string {
   // Bare block reference: "^1203128650780856" → empty (use display name fallback)
   if (/^\^[\w-]+$/.test(ref)) return ""
   // File#^blockid: "shopping#^abc123" → "shopping"
@@ -75,7 +75,7 @@ export function cleanContentForDisplay(content: string | undefined): string {
       // that doesn't form a valid sigil with the following "@". Strip it before
       // further processing so it doesn't leave trailing "#" characters.
       .replace(/#@/g, "@")
-      // Strip inline embed wikilinks ![[target]] and ![[target|alias]] —
+      // Strip inline markdown embed wikilinks ![[target]] and ![[target|alias]] —
       // replace with alias or target name so raw ![[  never leaks to display.
       // The inline parser (InlineText) also handles this, but stripping here
       // provides defense-in-depth for any code path that uses the returned
@@ -84,9 +84,9 @@ export function cleanContentForDisplay(content: string | undefined): string {
   )
 }
 
-/** Try to resolve an embed reference (block_id or filename) to a human-readable title.
- * Only returns a result if the resolved node has real content (not itself an embed). */
-export function tryResolveEmbedRef(repo: EmbedRepo, ref: string): string | null {
+/** Try to resolve a symlink reference (block_id or filename) to a human-readable title.
+ * Only returns a result if the resolved node has real content (not itself a symlink). */
+export function tryResolveSymlinkRef(repo: SymlinkRepo, ref: string): string | null {
   if (!repo.resolveByName && !repo.resolveNode) return null
 
   const resolveAndFormat = (query: string): string | null => {
@@ -94,8 +94,8 @@ export function tryResolveEmbedRef(repo: EmbedRepo, ref: string): string | null 
     const target = repo.resolveByName?.(query) ?? repo.getNode(query) ?? null
     if (!target) return null
     const content = cleanContentForDisplay(target.content)
-    // Guard: don't return content that's itself an embed reference
-    if (!content || EMBED_EXTRACT_RE.test(content)) return null
+    // Guard: don't return content that's itself a wiki-embed reference
+    if (!content || WIKI_EMBED_RE.test(content)) return null
     return content
   }
 
@@ -114,26 +114,26 @@ export function tryResolveEmbedRef(repo: EmbedRepo, ref: string): string | null 
   return resolveAndFormat(ref)
 }
 
-/** Resolve what text to display for a node, handling embeds and section types. */
+/** Resolve what text to display for a node, handling symlinks and section types. */
 export function getDisplayContent(
-  repo: EmbedRepo,
+  repo: SymlinkRepo,
   node: KNode,
   displayNode: KNode,
   resolvedNode: KNode | null,
-  isEmbedded: boolean,
+  isSymlinked: boolean,
 ): string {
-  // Embed display resolution (see docs/design/km-ast/model.md):
-  //   1. node.content non-empty & not embed syntax → alias override (show instead of target title)
+  // Symlink display resolution (see docs/design/km-ast/model.md):
+  //   1. node.content non-empty & not wiki-embed syntax → alias override (show instead of target title)
   //   2. resolvedNode exists → show target's content/display name
-  //   3. Neither → broken link (rendered red via isBrokenEmbed flag in TreeNode)
-  if (isEmbedded) {
-    // Alias override: non-empty content on the embed node overrides the target's title.
+  //   3. Neither → broken link (rendered red via isBrokenSymlink flag in TreeNode)
+  if (isSymlinked) {
+    // Alias override: non-empty content on the symlink node overrides the target's title.
     // This is the ![[^GID|My overridden title]] semantic — content IS the alias.
     // Alias survives even if the target link is broken.
     const alias = node.content ? cleanContentForDisplay(node.content) : ""
-    if (alias && node.content && !EMBED_EXTRACT_RE.test(node.content)) return alias
+    if (alias && node.content && !WIKI_EMBED_RE.test(node.content)) return alias
     if (resolvedNode) {
-      // Resolved embed — show target's display name/content
+      // Resolved symlink — show target's display name/content
       if (KNode.isOutline(resolvedNode) && resolvedNode.fstype === "folder") {
         return getNodeDisplayName(repo, resolvedNode) + "/"
       }
@@ -142,13 +142,13 @@ export function getDisplayContent(
       }
       return cleanContentForDisplay(resolvedNode.content) || getNodeDisplayName(repo, resolvedNode)
     }
-    // Broken embed: symlink_to is set but target node doesn't exist.
+    // Broken symlink: symlink_to is set but target node doesn't exist.
     // Try to resolve via symlink_to (may contain file#^blockId format).
     const src = node.symlink_to ?? ""
-    const resolved = tryResolveEmbedRef(repo, src)
+    const resolved = tryResolveSymlinkRef(repo, src)
     if (resolved) return resolved
     // Clean block-ID references (^blockid) so they don't show raw IDs
-    const cleaned = cleanEmbedRef(src)
+    const cleaned = cleanSymlinkRef(src)
     if (cleaned) return cleaned
     // Bare block ref (^id) or empty — show broken link fallback with short ID
     return `(broken: ^${src.slice(-8) || node.id.slice(-8)})`
@@ -165,10 +165,10 @@ export function getDisplayContent(
   // Show a human-readable label instead of the raw ID.
   const stripped = cleanContentForDisplay(displayNode.content)
   if (/^\^[\d]+$/.test(stripped.trim())) {
-    // If the node has an symlink_to, resolve to target's display name
-    const nodeEmbedSource = node.symlink_to
-    if (nodeEmbedSource) {
-      const target = repo.getNode(nodeEmbedSource)
+    // If the node has a symlink_to, resolve to target's display name
+    const nodeSymlinkTarget = node.symlink_to
+    if (nodeSymlinkTarget) {
+      const target = repo.getNode(nodeSymlinkTarget)
       if (target) return getNodeDisplayName(repo, target)
     }
     // If Asana parent name is available in data, show that

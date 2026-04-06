@@ -17,7 +17,7 @@ import { createTerm } from "@silvery/ag-react"
 const term = createTerm(process)
 import { realpathSync } from "fs"
 import { resolve } from "path"
-import { resolvePathArg, buildEmbedChild } from "@km/storage"
+import { resolvePathArg, buildSymlinkChild } from "@km/storage"
 import { KNode, type KNode as KNodeType } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
@@ -304,7 +304,7 @@ export const addCommand = new Command("add")
     repo.withDeferredFs(() => {
       // Create link nodes
       for (const task of tasksToLink) {
-        repo.addNode(actualTarget.id, buildEmbedChild({ source: task, parentIdx: nextIdx++, type: "p" }))
+        repo.addNode(actualTarget.id, buildSymlinkChild({ source: task, parentIdx: nextIdx++, type: "p" }))
       }
 
       // Append sigil to source task content (dedup: skip if already present)
@@ -312,7 +312,7 @@ export const addCommand = new Command("add")
         const dataKey = SIGIL_DATA_KEY[sigilPrefix] ?? "mentions"
         for (const task of tasksToSigil) {
           // Skip transclusion nodes — they mirror the source, don't tag them
-          if (KNode.isEmbed(task)) continue
+          if (KNode.isSymlink(task)) continue
 
           // Re-check dedup (content may have changed since we checked)
           if (!opts.force && contentHasSigil(task, sigilPrefix, sigilName)) {
@@ -350,7 +350,7 @@ export const addCommand = new Command("add")
       phaseOk("Sync to disk", `${syncCount} file${syncCount !== 1 ? "s" : ""}`, t0)
     }
 
-    const sigilCount = tasksToSigil.filter((t) => !KNode.isEmbed(t)).length
+    const sigilCount = tasksToSigil.filter((t) => !KNode.isSymlink(t)).length
 
     if (opts.json) {
       console.log(

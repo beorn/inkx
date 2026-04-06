@@ -302,7 +302,7 @@ export function collapseAncestorsWithTypes(ancestors: KNode[]): CollapsedAncesto
  * Get parent context for a node (for board card display)
  *
  * Walks up the parent chain to find meaningful context:
- * - For embed nodes (transclusions), follows symlink_to to get original context
+ * - For symlink nodes (transclusions), follows symlink_to to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file's display name
  *
@@ -357,14 +357,14 @@ export function getParentContextEx(
  * Shared traversal logic for getParentContext and getParentContextEx.
  *
  * Walks up the parent chain to find meaningful context:
- * - For embed nodes (transclusions), follows symlink_to to get original context
+ * - For symlink nodes (transclusions), follows symlink_to to get original context
  * - Skips board columns/sections (immediate parent in board view)
  * - Returns the containing file/section node
  */
 function findParentContextNode(node: KNode, skipParentId?: string | null, getNode?: GetNodeFn): KNode | null {
   if (!getNode) return null
 
-  // For embed nodes (transclusions), follow symlink_to to get original context
+  // For symlink nodes (transclusions), follow symlink_to to get original context
   let targetNode = node
   if (node.symlink_to) {
     const originalNode = getNode(node.symlink_to)

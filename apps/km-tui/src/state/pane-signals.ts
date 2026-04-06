@@ -64,7 +64,7 @@ export interface PaneSignals {
   readonly taskStatusFilter: Signal<ReadonlySet<string>>
 
   // Tree Lenses — zero-object navigation interfaces
-  /** View lens: structural visibility (fold + hidden + body + embed + roles) */
+  /** View lens: structural visibility (fold + hidden + body + symlink + roles) */
   readonly viewLens: Computed<TreeLens>
   /** Visible lens: view lens + collapse + filter (what the user sees) */
   readonly visibleLens: Computed<TreeLens>

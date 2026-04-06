@@ -26,7 +26,7 @@ export interface NavState {
   rootId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
-  /** Current card containing the cursor (from layout derivation). Used as embed-aware
+  /** Current card containing the cursor (from layout derivation). Used as symlink-aware
    * card boundary hint for ViewNode navigation. */
   cursorCardNodeId?: string | null
   /** ViewTreeProjection — per-node navigation tree. Primary API for view navigation. */

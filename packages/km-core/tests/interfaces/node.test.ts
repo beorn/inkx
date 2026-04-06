@@ -52,14 +52,14 @@ describe("KNode namespace", () => {
     })
   })
 
-  describe("KNode.isEmbed", () => {
+  describe("KNode.isSymlink", () => {
     it("true when symlink_to is set", () => {
-      expect(KNode.isEmbed({ symlink_to: "some-id" })).toBe(true)
+      expect(KNode.isSymlink({ symlink_to: "some-id" })).toBe(true)
     })
 
     it("false when symlink_to is null or undefined", () => {
-      expect(KNode.isEmbed({ symlink_to: null })).toBe(false)
-      expect(KNode.isEmbed({})).toBe(false)
+      expect(KNode.isSymlink({ symlink_to: null })).toBe(false)
+      expect(KNode.isSymlink({})).toBe(false)
     })
   })
 

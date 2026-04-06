@@ -93,7 +93,7 @@ export const CheckboxIcon = React.memo(function CheckboxIcon({
       e.preventDefault()
       e.stopPropagation()
 
-      // Resolve target node (follow embed source if applicable)
+      // Resolve target node (follow symlink_to if applicable)
       const node = repo.getNode(nodeId)
       if (!node) return
       const targetId = node.symlink_to || nodeId
