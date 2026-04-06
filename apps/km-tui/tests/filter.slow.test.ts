@@ -698,6 +698,161 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     // The "Done" column should still be visible
     expect(after).toContain("§ Done")
   })
+
+  // -------------------------------------------------------------------------
+  // km-tui.hide-column-broken: vX (hide_node) doesn't actually hide the column
+  // -------------------------------------------------------------------------
+  test("vx (hide_node command) hides the column via the user-facing path", () => {
+    tmpDir = mkdtempSync(join(tmpdir(), "km-hidden-test-"))
+    const nodes = createRealisticNodes(tmpDir)
+    const repo = createFakeRepo({ path: tmpDir, nodes })
+
+    const { board } = testEnvWithRepo(repo, "file-1", {
+      columns: 80,
+      rows: 24,
+    })
+
+    // Verify initial state: both columns visible, cursor on first card
+    const before = board.screenshot()
+    expect(before).toContain("§ Todo")
+    expect(before).toContain("§ Done")
+
+    // Press vx to hide the current column via the user-facing keybinding path.
+    // This is what the user does — handleHideNode writes .km/hidden then bumps
+    // hiddenVersion. The view lens should re-evaluate hidden node IDs and the
+    // column should disappear.
+    board.command("hide_node")
+
+    // The "Todo" column header should be hidden after vx
+    const after = board.screenshot()
+    expect(after).not.toContain("§ Todo")
+    expect(after).toContain("§ Done")
+  })
+})
+
+// =============================================================================
+// km-tui.filter-undoes-fold: filter toggle silently undoes user's fold state
+// =============================================================================
+
+describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", () => {
+  test("toggle_hide_done preserves manually-folded card state", () => {
+    // Build a board where we can fold a card and observe its children disappear,
+    // then toggle the done filter and verify the fold state survives.
+    const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")), item("sibling-todo")))
+    // Mark sibling-todo with task status so the filter has something to toggle
+    const sibling = nodes.find((n) => n.id === "sibling-todo")!
+    sibling.item = { ...sibling.item, task: { status: "todo", marker: "[ ]" } }
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    // Initially: parent1's children visible
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).toContain("child-a")
+    expect(board.screenshot()).toContain("child-b")
+
+    // Fold parent1 — children disappear
+    board.command("fold_more")
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).not.toContain("child-a")
+    expect(board.screenshot()).not.toContain("child-b")
+
+    // Toggle done filter via vd — this should NOT silently undo the fold
+    board.command("toggle_hide_done")
+
+    // The fold state should be preserved — children should still be hidden
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).not.toContain("child-a")
+    expect(board.screenshot()).not.toContain("child-b")
+  })
+
+  test("opening filter dialog preserves fold state", () => {
+    const { board } = testEnv(() => item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")))))
+
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).toContain("child-a")
+
+    // Fold parent1
+    board.command("fold_more")
+    expect(board.screenshot()).not.toContain("child-a")
+
+    // Open filter dialog (V)
+    board.command("filter")
+    // Close filter dialog
+    board.press("Escape")
+
+    // Fold should be preserved
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).not.toContain("child-a")
+  })
+
+  test("repro: fold (H) → open filter (V) → toggle done value preserves fold", () => {
+    // Exact repro from bead km-tui.filter-undoes-fold:
+    // "Fold a card with H → open filter (V) → toggle done. The fold is silently undone."
+    const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")), item("done-task")))
+    const doneNode = nodes.find((n) => n.id === "done-task")!
+    doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).toContain("child-a")
+
+    // Fold parent1 with H (fold_more)
+    board.command("fold_more")
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).not.toContain("child-a")
+    expect(board.screenshot()).not.toContain("child-b")
+
+    // Open filter dialog with V
+    board.command("filter")
+
+    // Toggle the "done" value via DIALOG_CONFIRM. Status row is row 0,
+    // value index 3 = "done" (todo, wip, blocked, done). Move right 3 times,
+    // then Space to toggle.
+    board.command("cursor_right")
+    board.command("cursor_right")
+    board.command("cursor_right")
+    board.command("select_toggle")
+
+    // Close the dialog
+    board.press("Escape")
+
+    // The fold state should be preserved — child-a should still be hidden
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).not.toContain("child-a")
+    expect(board.screenshot()).not.toContain("child-b")
+  })
+
+  test("repro2: setUI({filterProperties: ...}) preserves manually-folded state", () => {
+    // Reproduce the bug via the setUI() path (what the dialog ultimately does)
+    const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b"))))
+
+    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).toContain("child-a")
+
+    // Fold parent1
+    board.command("fold_more")
+    expect(board.screenshot()).not.toContain("child-a")
+
+    // Trigger a filter change by setting filterProperties via setUI
+    // (mimics what the filter dialog ultimately does)
+    board.setUI({
+      filterProperties: {
+        taskStatus: new Set(["todo", "wip", "blocked"]),
+        priority: new Set(),
+        dueDate: new Set(),
+        assignedTo: new Set(),
+        nodeType: new Set(),
+      },
+    })
+
+    // Fold should be preserved
+    expect(board.screenshot()).toContain("parent1")
+    expect(board.screenshot()).not.toContain("child-a")
+    expect(board.screenshot()).not.toContain("child-b")
+  })
 })
 
 // =============================================================================

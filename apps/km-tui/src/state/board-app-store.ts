@@ -67,7 +67,7 @@ import {
 import type { PersistedWorkspace, PersistedPane, PersistedLayoutNode } from "../workspace-persist.ts"
 import { deserializeFilterProperties } from "../workspace-persist.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
-import { resolveEmbed } from "../views/embed-display.ts"
+import { resolveSymlink } from "../views/symlink-display.ts"
 
 // =============================================================================
 // Store Types
@@ -404,12 +404,12 @@ function createDefaultWorkspace(initialPaneBoard: BoardState, params: CreateBoar
 
 /**
  * Compute the initial cursor ID for a detail pane showing the given node.
- * Resolves embeds to their target, then picks first metadata key or first child.
+ * Resolves symlinks to their target, then picks first metadata key or first child.
  */
 function computeDetailInitialCursor(repo: Repo, nodeId: string | null): string | null {
   if (!nodeId) return null
   const rawNode = repo.getNode(nodeId)
-  const { displayNode } = rawNode ? resolveEmbed(repo, rawNode) : { displayNode: null }
+  const { displayNode } = rawNode ? resolveSymlink(repo, rawNode) : { displayNode: null }
   const effectiveId = displayNode?.id ?? nodeId
   const metaKeys = displayNode ? computeMetadataKeys(displayNode) : []
   if (metaKeys.length > 0) return `${DETAIL_META_PREFIX}${metaKeys[0]}`
@@ -699,7 +699,7 @@ export function createBoardAppStoreState(
                 focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards",
               ).classifyCursor(action.nodeId, rootId, s.repo)
           // Click hint: the click handler always knows the exact visual card. When
-          // clicking inside an embed, the data model parent chain leads to the source
+          // clicking inside a symlink, the data model parent chain leads to the source
           // card, not the visual card. The click hint overrides unconditionally.
           if (
             action.cardNodeId &&
@@ -908,6 +908,12 @@ export function createBoardAppStoreState(
       // --- Direct setters ---
 
       setUI(partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) {
+        // Capture which keys actually got resolved so the post-set sync covers
+        // both the object and function variants. Without this, function-variant
+        // setUI calls (e.g., HIDE_NODE bumping hiddenVersion via a callback)
+        // skip the signal sync entirely and the view lens never updates — see
+        // km-tui.hide-column-broken.
+        let resolvedKeys: Set<string> = new Set()
         set((state) => {
           // Resolve function variant
           let resolved: Partial<PaneUI>
@@ -918,6 +924,7 @@ export function createBoardAppStoreState(
           } else {
             resolved = partial
           }
+          resolvedKeys = new Set(Object.keys(resolved))
 
           // Route fields: per-pane → focused BoardPaneState, global → UIState
           const globalUpdates: Record<string, unknown> = {}
@@ -959,30 +966,32 @@ export function createBoardAppStoreState(
           }
           return result
         })
-        // Sync per-pane fields to PaneSignals when they change
-        if (typeof partial === "object") {
-          const afterS = _get()
-          const afterPane = getActiveBoardPane(afterS)
-          if (afterPane?.signals) {
-            if ("viewMode" in partial) afterPane.signals.viewMode(afterPane.viewMode)
-            // Hidden state change: recompute hiddenNodeIds so the view lens filters correctly
-            if ("hiddenVersion" in partial || "showHidden" in partial) {
-              const hidden = afterPane.showHidden
-                ? new Set<string>()
-                : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
-              afterPane.signals.hiddenNodeIds(hidden)
-            }
-            // Sync taskStatusFilter signal when filterProperties change
-            if ("filterProperties" in partial) {
-              const taskFilter = afterPane.filterProperties?.taskStatus ?? new Set<string>()
-              afterPane.signals.taskStatusFilter(taskFilter)
-              // Also sync detail pane's signal (filterProperties propagate to detail pane in zustand)
-              if (!isDetailPaneId(afterPane.id)) {
-                const detailId = detailPaneIdFor(afterPane.id)
-                const detailPane = afterS.workspace.panes.get(detailId)
-                if (detailPane && isBoardPane(detailPane) && detailPane.signals) {
-                  detailPane.signals.taskStatusFilter(taskFilter)
-                }
+        // Sync per-pane fields to PaneSignals when they change.
+        // Use resolvedKeys (captured inside set()) so this works for BOTH the
+        // object variant and the function variant of setUI — function-variant
+        // updates (e.g., HIDE_NODE bumping hiddenVersion via a callback) must
+        // trigger signal sync the same way object-variant updates do.
+        const afterS = _get()
+        const afterPane = getActiveBoardPane(afterS)
+        if (afterPane?.signals) {
+          if (resolvedKeys.has("viewMode")) afterPane.signals.viewMode(afterPane.viewMode)
+          // Hidden state change: recompute hiddenNodeIds so the view lens filters correctly
+          if (resolvedKeys.has("hiddenVersion") || resolvedKeys.has("showHidden")) {
+            const hidden = afterPane.showHidden
+              ? new Set<string>()
+              : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
+            afterPane.signals.hiddenNodeIds(hidden)
+          }
+          // Sync taskStatusFilter signal when filterProperties change
+          if (resolvedKeys.has("filterProperties")) {
+            const taskFilter = afterPane.filterProperties?.taskStatus ?? new Set<string>()
+            afterPane.signals.taskStatusFilter(taskFilter)
+            // Also sync detail pane's signal (filterProperties propagate to detail pane in zustand)
+            if (!isDetailPaneId(afterPane.id)) {
+              const detailId = detailPaneIdFor(afterPane.id)
+              const detailPane = afterS.workspace.panes.get(detailId)
+              if (detailPane && isBoardPane(detailPane) && detailPane.signals) {
+                detailPane.signals.taskStatusFilter(taskFilter)
               }
             }
           }
