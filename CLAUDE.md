@@ -95,6 +95,14 @@ UI never touches filesystem; all edits bidirectional. See [docs/README.md](docs/
 
 **State machine principle**: Every interactive subsystem is a pure `(action, state) → [state, effects]` function. Actions and effects are serializable data. Machines compose via effects. This enables testing, replay, undo, portability (terminal + browser), and AI automation. See [docs/design/tea-state-machines.md](docs/design/tea-state-machines.md) and [docs/future/universal-editor.md](docs/future/universal-editor.md) for the full vision.
 
+## Quick Reference
+
+**Keybindings**: `D` (detail pane), `z`/`Z` (zoom in/out), `H`/`L` (fold/unfold), `vm` (cycle view mode: cards→columns→tabs), `Enter` (edit), `Escape` (exit edit), `/` (search), `?` (help)
+
+**UI modes**: cards (default kanban), columns (outline), tabs (tabbed per-column)
+
+**Selection styling**: cursor node gets inverse title; parent card/column get yellow fg + faint bg. See `apps/km-tui/src/views/selection-style.ts`
+
 ## Vendor Packages (Git Submodules)
 
 Packages in `vendor/` (silvery, ansi, mdspec, flexily, etc.) are **git submodules** that are part of km.
@@ -133,6 +141,13 @@ See [.claude/skills/git/worktree.md] for details.
 
 Factory functions, `using` cleanup, async generators, explicit DI. No classes, no globals, no `require`.
 Three domain building blocks: *domain objects* (stateful, factory-created), *domain interfaces* (type + pure functions), *domain types* (plain data shapes). See [docs/principles.md](docs/principles.md) for patterns and [docs/glossary.md](docs/glossary.md) for terminology.
+
+## Gotchas
+
+- `Box theme={{}}` re-resolves ALL `$tokens` — don't use for bg-only changes, use `backgroundColor` directly
+- `isSelected` in CardColumn = cursor anywhere in card, not direct cursor match — use `cursor === nodeId` for direct
+- `extractBody` classifies list items as body when a heading sibling exists — body items get dimmed
+- `dimColor` doesn't cascade to children — must pass `dim` prop explicitly (or use `isBody` cascade)
 
 ## Problem Solving
 
