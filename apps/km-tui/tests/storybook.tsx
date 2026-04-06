@@ -1232,8 +1232,8 @@ function makeBoardCoreProps(
 
   return {
     rootId: state.rootId,
-    columns: state.columns,
     columnIds: state.columns.map((c) => c.node.id),
+    columnFilters: new Map(),
     colIndex,
     cardIndex,
     ui,

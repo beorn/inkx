@@ -228,7 +228,7 @@ export interface CursorIndices {
  * This eliminates the need to index all descendants upfront (20k+ getChildren queries).
  */
 export function deriveCursorIndices(
-  columns: ColumnView[],
+  columns: { length: number },
   cursor: string | null,
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
   getNode?: (id: string) => { parent_id: string | null } | null,
