@@ -256,14 +256,23 @@ function TreeNodeImpl({
       }
     : resolveEmbed(repo, node)
 
-  // Use provided children or fetch from repo
-  // For embeds, get children from the TARGET node (transclusion shows target's children)
+  // Children: use ViewTree childIds when available (already fold/hidden/embed resolved).
+  // Fallback to manual fetch for contexts without ViewTree (storybook, tests).
   const resolvedGetChildren = getChildrenProp ?? repo.getChildren.bind(repo)
   const childrenSourceId = isEmbedded && resolvedNode ? resolvedNode.id : node.id
-  const rawChildren = childrenProp ?? resolvedGetChildren(childrenSourceId)
-  // Filter out collapsed children (km.collapse:: true, detailOnly) — these are only
-  // shown in the detail pane, never as sub-items inside cards.
-  const children = useMemo(() => rawChildren.filter((c) => !isCollapsedChild(c)), [rawChildren])
+  const children = useMemo(() => {
+    if (viewNode && !childrenProp) {
+      // ViewTree provides visible child IDs — map to KNode objects.
+      // Still need isCollapsedChild filter: detail-only nodes (km.collapse:: true)
+      // are tree-visible but shouldn't render inside cards.
+      return viewNode.childIds
+        .map((id) => repo.getNode(id))
+        .filter((n): n is KNode => n != null && !isCollapsedChild(n))
+    }
+    // Fallback: manual fetch + collapsed child filter
+    const raw = childrenProp ?? resolvedGetChildren(childrenSourceId)
+    return raw.filter((c) => !isCollapsedChild(c))
+  }, [viewNode?.childIds, childrenProp, childrenSourceId, resolvedGetChildren, repo])
   // Use childCountProp if provided (for folded nodes where children array is empty)
   const childCount = childCountProp ?? children.length
   const hasChildren = childCount > 0
