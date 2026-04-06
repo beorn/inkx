@@ -23,9 +23,7 @@ function n(id: string, parentId: string | null, type: "h" | "p" = "h", extra: Re
 function makeLens(nodes: any[], rootId: string, opts?: { collapsed?: Set<string> }) {
   const repo = createFakeRepo({ nodes })
   const view = createViewLens(repo, { rootId, foldDepths: new Map() })
-  return opts?.collapsed
-    ? createVisibleLens(view, { collapsedNodes: opts.collapsed })
-    : view
+  return opts?.collapsed ? createVisibleLens(view, { collapsedNodes: opts.collapsed }) : view
 }
 
 const BASIC = [
@@ -85,10 +83,9 @@ describe("createViewTree", () => {
     const childIdsBefore = proj.childIds()
 
     // Create lens with collapsed col1 → children change
-    const lens2 = createVisibleLens(
-      createViewLens(repo, { rootId: "board", foldDepths: new Map() }),
-      { collapsedNodes: new Set(["col1"]) },
-    )
+    const lens2 = createVisibleLens(createViewLens(repo, { rootId: "board", foldDepths: new Map() }), {
+      collapsedNodes: new Set(["col1"]),
+    })
     tree.sync(lens2)
 
     // childIds should have changed (collapsed = empty)

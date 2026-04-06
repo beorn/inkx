@@ -65,9 +65,7 @@ export interface ProjectedMap<K, V> {
  *
  * @param fields - Which fields of V to track as individual signals
  */
-export function createProjectedMap<K, V>(
-  fields: readonly (keyof V & string)[],
-): ProjectedMap<K, V> {
+export function createProjectedMap<K, V>(fields: readonly (keyof V & string)[]): ProjectedMap<K, V> {
   const tracked = new Map<K, Projected<V>>()
 
   function createSignalBag(initial: V): Projected<V> {

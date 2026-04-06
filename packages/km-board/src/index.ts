@@ -89,4 +89,9 @@ export type { ProjectedMap, Projected } from "./projected-map.ts"
 
 // ===== ViewTree (per-node projection + navigation) =====
 export { createViewTree } from "./view-tree-projection.ts"
-export type { ViewTree as ViewTreeProjection, ViewNode as ProjectedViewNode, ViewNodeState, ViewType } from "./view-tree-projection.ts"
+export type {
+  ViewTree as ViewTreeProjection,
+  ViewNode as ProjectedViewNode,
+  ViewNodeState,
+  ViewType,
+} from "./view-tree-projection.ts"

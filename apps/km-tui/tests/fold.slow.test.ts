@@ -193,8 +193,8 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
     const { board } = nestedBoard()
 
     // Decrease then increase
-    board.command("fold_all").command("fold_all") // depth 2 → 0
-    board.command("unfold_all").command("unfold_all") // depth 0 → 2
+    board.command("fold_all").command("fold_all").command("fold_all") // progressive: 3→2→1→0
+    board.command("unfold_all").command("unfold_all").command("unfold_all") // progressive: 0→1→2→3 (fully unfolded)
 
     const text = board.screenshot()
     expect(text).toContain("a-child1")
@@ -391,7 +391,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
         ),
       { columns: 50, rows: 30, incremental: true },
     )
-    incBoard.command("fold_all").command("fold_all")
+    incBoard.command("fold_all").command("fold_all").command("fold_all")
     const incText = incBoard.screenshot()
 
     // Run with incremental=false
@@ -408,7 +408,7 @@ describe("fold border blank (km-tui.fold-border-blank)", () => {
         ),
       { columns: 50, rows: 30, incremental: false },
     )
-    freshBoard.command("fold_all").command("fold_all")
+    freshBoard.command("fold_all").command("fold_all").command("fold_all")
     const freshText = freshBoard.screenshot()
 
     // Compare line by line — collect all differences
@@ -1405,10 +1405,10 @@ describe("fold boundary feedback (km-tui.fold-boundary)", () => {
     const { board } = testEnv(() => item("board", item("col1", item.folder("Parent", item("child-1")))))
 
     // Fold first, then unfold all
-    board.command("fold_all") // fold all cards to depth 0
+    board.command("fold_all").command("fold_all").command("fold_all") // progressive: 3→2→1→0
     expect(board.screenshot()).not.toContain("child-1")
 
-    // Unfold all — removes per-card overrides, cards inherit board depth
+    // Unfold all — progressive unfold back
     board.command("unfold_all")
     expect(board.screenshot()).toContain("child-1")
 

@@ -32,10 +32,9 @@ function expectCursor(store: { getState: () => any }): string {
 
 describe("cursor persistence through navigation", () => {
   test("j/k vertical navigation", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      { incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+      incremental: false,
+    })
     for (const key of ["j", "j", "j", "k", "k"]) {
       board.press(key)
       expectCursor(store)
@@ -44,11 +43,7 @@ describe("cursor persistence through navigation", () => {
 
   test("h/l horizontal navigation", () => {
     const { board, store } = testEnv(
-      () => item("board",
-        item("col1", item("1a")),
-        item("col2", item("2a")),
-        item("col3", item("3a")),
-      ),
+      () => item("board", item("col1", item("1a")), item("col2", item("2a")), item("col3", item("3a"))),
       { incremental: false },
     )
     for (const key of ["l", "l", "h", "h"]) {
@@ -59,11 +54,13 @@ describe("cursor persistence through navigation", () => {
 
   test("mixed j/k/h/l across 3 columns", () => {
     const { board, store } = testEnv(
-      () => item("board",
-        item("col1", item("1a"), item("1b"), item("1c")),
-        item("col2", item("2a"), item("2b")),
-        item("col3", item("3a")),
-      ),
+      () =>
+        item(
+          "board",
+          item("col1", item("1a"), item("1b"), item("1c")),
+          item("col2", item("2a"), item("2b")),
+          item("col3", item("3a")),
+        ),
       { incremental: false },
     )
     for (const key of ["j", "j", "l", "j", "l", "k", "h", "h", "k", "k", "j", "j", "j"]) {
@@ -73,10 +70,7 @@ describe("cursor persistence through navigation", () => {
   })
 
   test("boundary navigation (press past edges)", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a"))),
-      { incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a"))), { incremental: false })
     // Try to go past boundaries — cursor must never null
     for (const key of ["j", "j", "j", "j", "k", "k", "k", "k", "h", "h", "l", "l"]) {
       board.press(key)
@@ -104,10 +98,9 @@ describe("cursor persistence through fold/unfold", () => {
   })
 
   test("fold then navigate — cursor valid", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a", item("sub1")), item("1b"))),
-      { incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a", item("sub1")), item("1b"))), {
+      incremental: false,
+    })
     board.press("j") // col1
     board.press("j") // 1a
     board.press("H") // fold
@@ -124,10 +117,9 @@ describe("cursor persistence through fold/unfold", () => {
 
 describe("cursor persistence through zoom", () => {
   test("zoom in + navigate", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
-      { incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a"), item("1b"), item("1c"))), {
+      incremental: false,
+    })
     board.press("j") // col1
     board.command("zoom_inwards")
     for (const key of ["j", "j", "k"]) {
@@ -137,10 +129,9 @@ describe("cursor persistence through zoom", () => {
   })
 
   test("zoom in then out", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("1a")), item("col2", item("2a"))),
-      { incremental: false },
-    )
+    const { board, store } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      incremental: false,
+    })
     board.press("j") // col1
     board.command("zoom_inwards")
     board.press("j") // navigate inside
@@ -157,11 +148,7 @@ describe("cursor persistence through zoom", () => {
 describe("cursor skips hidden nodes", () => {
   test("hidden column skipped during h/l navigation", () => {
     const { board, store } = testEnv(
-      () => item("board",
-        item("col1", item("1a")),
-        item("col2-hidden", item("2a")),
-        item("col3", item("3a")),
-      ),
+      () => item("board", item("col1", item("1a")), item("col2-hidden", item("2a")), item("col3", item("3a"))),
       { incremental: false },
     )
     const pane = store.getState().workspace.panes.get("main") as any

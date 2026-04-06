@@ -253,7 +253,7 @@ describe("Board.apply — FOLD_LEVEL / UNFOLD_LEVEL", () => {
   })
 
   it("FOLD_LEVEL reaches 0 after repeated presses", () => {
-    let s = state()
+    const s = state()
     let result = applyFoldLevel(s, ["card-a"])
     result = applyFoldLevel(result.state, ["card-a"])
     result = applyFoldLevel(result.state, ["card-a"])
