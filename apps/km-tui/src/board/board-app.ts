@@ -331,14 +331,9 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       card,
       // Delegated store methods (pure pass-throughs, dispatchBoard overridden below)
       ...pick(s, DELEGATED_OP_CTX_KEYS),
-      // Override dispatchBoard to inject cached viewIndex into SELECT actions,
-      // avoiding a redundant buildViewTree+buildViewIndex on every cursor move.
+      // Dispatch board actions — reducer reads lens directly via pane.signals.visibleLens()
       dispatchBoard: (action) => {
-        if (action.type === "SELECT" && !action._viewIndex && snap) {
-          s.dispatchBoard({ ...action, _viewIndex: snap.index as Map<string, ViewNode> })
-        } else {
-          s.dispatchBoard(action)
-        }
+        s.dispatchBoard(action)
       },
       focusedPaneViewType: () => {
         const ws = get().workspace

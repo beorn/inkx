@@ -50,7 +50,7 @@ import { signal, effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { createPaneSignals } from "./pane-signals.ts"
 import { computeHiddenNodeIds } from "../hidden.ts"
-import { classifyCursorFromViewIndex, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
+import { classifyCursorFromLens, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
 import { createUndoableRepo, type UndoableRepoHandle } from "../undo/undoable-repo.ts"
@@ -689,12 +689,14 @@ export function createBoardAppStoreState(
               s.sel.node.select([action.nodeId as import("@silvery/selection").ID])
             }
           }
-          // Derive cursor ancestors from tree structure.
-          // When _viewIndex is provided (injected by buildOpCtx), use it directly
-          // to avoid rebuilding the entire ViewTree on every cursor move.
+          // Derive cursor ancestors from the visible lens (O(depth) parent walk).
           const rootId = focusedPane && isBoardPane(focusedPane) ? focusedPane.rootId : null
-          const ancestors = action._viewIndex
-            ? classifyCursorFromViewIndex(action._viewIndex, action.nodeId)
+          const lens =
+            focusedPane && isBoardPane(focusedPane) && focusedPane.signals
+              ? focusedPane.signals.visibleLens()
+              : null
+          const ancestors = lens
+            ? classifyCursorFromLens(lens, action.nodeId)
             : getViewNavigation(
                 focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards",
               ).classifyCursor(action.nodeId, rootId, s.repo)
@@ -706,8 +708,8 @@ export function createBoardAppStoreState(
             action.cardHintSource === "click" &&
             ancestors.cursorCardNodeId !== action.cardNodeId
           ) {
-            const hintAncestors = action._viewIndex
-              ? classifyCursorFromViewIndex(action._viewIndex, action.cardNodeId)
+            const hintAncestors = lens
+              ? classifyCursorFromLens(lens, action.cardNodeId)
               : getViewNavigation(
                   focusedPane && isBoardPane(focusedPane) ? focusedPane.viewMode : "cards",
                 ).classifyCursor(action.cardNodeId, rootId, s.repo)

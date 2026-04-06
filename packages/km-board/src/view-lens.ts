@@ -657,3 +657,38 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
     rules,
   }
 }
+
+/**
+ * Classify a cursor node's containing card + column by walking up the lens parents.
+ * Lens-based replacement for classifyCursorFromViewIndex.
+ */
+export function classifyCursorFromLens(
+  lens: TreeLens,
+  nodeId: string | null,
+): { cursorCardNodeId: string | null; cursorColumnNodeId: string | null; cursorDepth: "board" | "column" | "card" } {
+  if (!nodeId) {
+    return { cursorCardNodeId: null, cursorColumnNodeId: null, cursorDepth: "board" }
+  }
+
+  // Walk up from cursor, recording the first card and column we pass through
+  let cursorCardNodeId: string | null = null
+  let cursorColumnNodeId: string | null = null
+  let current: string | null = nodeId
+  while (current) {
+    const role = lens.role(current)
+    if (role === "card" && !cursorCardNodeId) cursorCardNodeId = current
+    if ((role === "column" || role === "body-column") && !cursorColumnNodeId) {
+      cursorColumnNodeId = current
+      break // Column is the topmost ancestor we care about
+    }
+    current = lens.parent(current)
+  }
+
+  const cursorDepth: "board" | "column" | "card" = cursorCardNodeId
+    ? "card"
+    : cursorColumnNodeId
+      ? "column"
+      : "board"
+
+  return { cursorCardNodeId, cursorColumnNodeId, cursorDepth }
+}
