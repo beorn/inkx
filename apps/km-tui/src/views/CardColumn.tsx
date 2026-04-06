@@ -431,10 +431,12 @@ const Card = React.memo(
       )
     }
 
-    // Card selection: subtle primary bg tint on the entire card (including "+N more").
+    // Card selection: subtle primary bg tint ONLY when cursor is directly on the card
+    // (not on a sub-item within it). Multi-selection also gets the tint.
     const theme = useTheme()
-    const isCardHighlighted = isSelected || isNodeSelected
-    const cardBg = isCardHighlighted ? selectedBg(theme) : undefined
+    const cursor = useSignal(nodeStore.cursor)
+    const isCardDirectlySelected = cursor === nodeId && selLevel === "card"
+    const cardBg = (isCardDirectlySelected || isNodeSelected) ? selectedBg(theme) : undefined
 
     // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
     // Done/dropped tasks get a darker border to visually de-emphasize them
@@ -787,9 +789,9 @@ export const Column = React.memo(function Column({
 
   const isColumnSelected = isSelected && cursorDepth === "column"
 
-  // Column selection: subtle primary bg tint when cursor is anywhere in this column.
+  // Column selection: subtle primary bg tint only when cursor is at column level.
   const colTheme = useTheme()
-  const columnBg = isSelected ? selectedBg(colTheme) : undefined
+  const columnBg = isColumnSelected ? selectedBg(colTheme) : undefined
 
   // Derive column header presentation props (icon, colors, style).
   // When the lens/repo lookup fails (rare), fall back to a minimal stub so

@@ -29300,3 +29300,9 @@ time="2026-04-06T11:07:36-07:00" level=warning msg="error running query" connect
 time="2026-04-06T11:07:36-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=357
 time="2026-04-06T11:07:36-07:00" level=info msg=ConnectionClosed connectionID=357
 time="2026-04-06T11:07:36-07:00" level=info msg=ConnectionClosed connectionID=356
+time="2026-04-06T11:08:04-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=358
+time="2026-04-06T11:08:04-07:00" level=info msg=ConnectionClosed connectionID=358
+time="2026-04-06T11:08:04-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=359
+time="2026-04-06T11:08:04-07:00" level=info msg=NewConnection DisableClientMultiStatements=false connectionID=360
+time="2026-04-06T11:08:04-07:00" level=info msg=ConnectionClosed connectionID=359
+time="2026-04-06T11:08:04-07:00" level=info msg=ConnectionClosed connectionID=360

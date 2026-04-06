@@ -43,10 +43,12 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   const violations: InvariantViolation[] = []
 
   // 0. Cursor must not be null on a non-empty board.
-  // Legitimate null-cursor cases: empty board, detail pane (virtual nodes), move mode.
-  // This invariant catches "cursor fell off the walkOrder" bugs from stale lenses.
+  // Legitimate null-cursor cases: empty board, detail pane, move mode.
+  // Detail pane has virtual metadata columns — cursor can legitimately be null
+  // when navigating between metadata items and the pane's sel state resets.
   const treeColIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
-  if (!ctx.cursor && treeColIds.length > 0 && !ctx.moveState.active) {
+  const isDetailMode = ctx.ui.viewMode === "detail"
+  if (!ctx.cursor && treeColIds.length > 0 && !ctx.moveState.active && !isDetailMode) {
     const hasRealCards = treeColIds.some((colId) => {
       if (isVirtualNodeId(colId)) return false
       return ctx.tree.children(colId).some((cardId) => !isVirtualNodeId(cardId))
