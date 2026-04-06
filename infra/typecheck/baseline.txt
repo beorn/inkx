@@ -3,3 +3,4 @@
 1 apps/km-tui/tests/undo-redo.slow.spec.ts
 1 packages/km-storage/src/watch/writequeue.ts
 2 packages/km-storage/tests/watch/writequeue.test.ts
+2 vendor/terminfo.dev/docs/[id].paths.ts

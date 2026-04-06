@@ -624,6 +624,9 @@ export const Column = React.memo(function Column({
   const undoHandle = useUndoHandle()
   const nodeId = column.node.id
 
+  // Per-node reactive state: derive column properties from ViewTree when available
+  const colViewNode = useNode(nodeId)
+
   // Per-column mount timing — measure render → commit duration
   useComponentTiming(`Column ${colIndex} "${column.node.title ?? column.node.name}" (${column.cardNodes.length} cards)`)
 
@@ -658,11 +661,12 @@ export const Column = React.memo(function Column({
   )
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const name = parseToPlainText(getNodeDisplayName(repo, column.node))
-  const untitled = isNodeUntitled(repo, column.node)
+  const colNode = colViewNode?.data ?? column.node
+  const name = parseToPlainText(getNodeDisplayName(repo, colNode))
+  const untitled = isNodeUntitled(repo, colNode)
   const count = column.cardNodes.length
   const wipLimit = column.wipLimit
-  const isVirtual = column.isVirtual ?? false
+  const isVirtual = colViewNode ? colViewNode.viewType === "body-column" : (column.isVirtual ?? false)
   const hiddenCount = (column.totalCardCount ?? column.cardNodes.length) - column.cardNodes.length
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
@@ -713,7 +717,7 @@ export const Column = React.memo(function Column({
   const isColumnSelected = isSelected && cursorDepth === "column"
 
   // Derive column header presentation props (icon, colors, style)
-  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, column.node, {
+  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, colNode, {
     iconStyle,
     isSelected,
     isColumnSelected,
@@ -723,8 +727,8 @@ export const Column = React.memo(function Column({
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const columnExcludedSigils = useMemo(
-    () => deriveColumnExcludedSigils(name, column.node.id, column.node.fs_path),
-    [name, column.node.id, column.node.fs_path],
+    () => deriveColumnExcludedSigils(name, nodeId, colNode.fs_path),
+    [name, nodeId, colNode.fs_path],
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
