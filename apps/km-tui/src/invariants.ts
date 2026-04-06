@@ -44,7 +44,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
 
   // 0. Cursor must not be null on a non-empty board.
   // Legitimate null-cursor cases: empty board, detail pane (virtual nodes), move mode.
-  // This invariant catches "cursor fell off the walkOrder" bugs from stale ViewSnapshots.
+  // This invariant catches "cursor fell off the walkOrder" bugs from stale lenses.
   const treeColIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
   if (!ctx.cursor && treeColIds.length > 0 && !ctx.moveState.active) {
     const hasRealCards = treeColIds.some((colId) => {
@@ -232,14 +232,14 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 10. Cursor in walkOrder: if cursor is set, it must be in the view tree.
-  // This catches the "cursor fell off the tree" class of bugs from stale ViewSnapshots.
+  // This catches the "cursor fell off the tree" class of bugs from stale lenses.
   if (ctx.cursor && !isVirtualNodeId(ctx.cursor as string)) {
     // Check cursor is findable in the ViewTreeProjection
     const cursorInTree = ctx.tree.node(ctx.cursor as string) !== undefined
     if (!cursorInTree && (ctx.cursor as string) !== ctx.rootId) {
       violations.push({
         check: "cursor-in-walkOrder",
-        message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in view tree (walkOrder: ${ctx.tree.walkOrder.length} nodes). The ViewSnapshot may not include this node.`,
+        message: `Cursor "${(ctx.cursor as string).slice(-12)}" is not in view tree (walkOrder: ${ctx.tree.walkOrder.length} nodes). The view lens may not include this node.`,
         ids: { cursor: ctx.cursor, rootId: ctx.rootId },
       })
     }
@@ -265,7 +265,7 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
     if (treeRootId !== ctx.rootId) {
       violations.push({
         check: "viewTree-root-matches",
-        message: `ViewTree root "${treeRootId}" does not match pane rootId "${ctx.rootId}". ViewSnapshot may be stale.`,
+        message: `ViewTree root "${treeRootId}" does not match pane rootId "${ctx.rootId}". View lens may be stale.`,
         ids: { viewTreeRoot: treeRootId, rootId: ctx.rootId },
       })
     }

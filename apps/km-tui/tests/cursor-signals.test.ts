@@ -2,8 +2,8 @@
  * Cursor Visibility Regression Tests
  *
  * Ensures cursor NEVER lands on hidden/invalid nodes through all "shades" of hidden:
- * - .km/hidden file (excluded from ViewSnapshot at tree build time)
- * - Folded children (excluded by foldDepths in buildViewTree)
+ * - .km/hidden file (excluded from the view lens at build time)
+ * - Folded children (excluded by foldDepths in the view lens)
  * - After zoom (sel.root synced to new rootId)
  * - Mixed navigation sequences (j/k/h/l, fold, zoom)
  *

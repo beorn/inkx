@@ -92,7 +92,7 @@ export interface CreatePaneSignalsOptions {
   collapsedNodes: Set<string>
   viewMode: ViewMode
   moveState: MoveState
-  /** Initial hidden node IDs (from .km/hidden file). Excluded from ViewSnapshot tree. */
+  /** Initial hidden node IDs (from .km/hidden file). Excluded from the view lens. */
   hiddenNodeIds?: Set<string>
   /** Initial task status filter (set of statuses to SHOW; empty = show all). */
   taskStatusFilter?: ReadonlySet<string>

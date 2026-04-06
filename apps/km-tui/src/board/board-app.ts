@@ -219,10 +219,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       ? buildNodeIndexFromTree(board.signals.visibleLens())
       : new Map<string, { colIndex: number; cardIndex: number }>()
 
-    // Pin the sel adapter to THIS ViewSnapshot for the duration of this key event.
+    // Pin the sel adapter to THIS visible lens for the duration of this key event.
     // Without this, a repo mutation (e.g., file watcher) between buildOpCtx and
     // sel.node.select() could invalidate the computed, producing a different
-    // ViewSnapshot with a walkOrder that doesn't contain the navigation target.
+    // lens with a walkOrder that doesn't contain the navigation target.
     // This race condition causes cursor → null (the "no cursor" bug).
     if (board?.signals) {
       s.selTreeSource.update(board.signals.visibleLens())

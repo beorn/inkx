@@ -57,8 +57,8 @@ export function deriveColumnsFromRepo(
 }
 
 /**
- * Derive ColumnView[] from a TreeLens — the modern, lens-based path.
- * No ViewNode tree, no ViewNodeColumnCache — the lens caches internally.
+ * Derive ColumnView[] from a TreeLens — the canonical lens-based path.
+ * The lens caches children per node internally, so repeat calls are cheap.
  * Used by Board.tsx, buildOpCtx, driver.ts, and deriveColumnsFromRepo.
  */
 export function deriveColumnsFromLens(

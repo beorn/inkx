@@ -81,7 +81,7 @@ import { resolveEmbed } from "../views/embed-display.ts"
  * Use Workspace.getActiveBoardPane(state) to access the targeted board pane.
  *
  * Layout (columns, cursor position) is NOT stored here — it's derived on
- * demand by the key handler (buildOpCtx) and by React (useSignal + ViewSnapshot).
+ * demand by the key handler (buildOpCtx) and by React (useSignal + visible lens).
  */
 export interface BoardAppState {
   // --- Workspace (canonical source of board navigation state) ---
@@ -438,7 +438,7 @@ export function createBoardAppStoreState(
     const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
 
     // Bridge repo's subscribe/getSnapshot to alien-signals.
-    // The repoVersion signal is a dependency for computed ViewSnapshots —
+    // The repoVersion signal is a dependency for the computed view lens —
     // when repo mutates, this signal bumps, which invalidates the computed.
     const repoVersion$ = signal(undoableRepo.getSnapshot())
     undoableRepo.subscribe(() => repoVersion$(undoableRepo.getSnapshot()))
@@ -462,9 +462,9 @@ export function createBoardAppStoreState(
       workspace = createDefaultWorkspace(initialPaneBoard, params)
     }
 
-    // Initialize each board pane's PaneSignals + ViewSnapshot.
-    // The computed ViewSnapshot auto-invalidates when repo/rootId/foldDepths change.
-    // The sel adapter reads from the snapshot — no manual auto-refresh needed.
+    // Initialize each board pane's PaneSignals + lens computeds.
+    // The computed view lens auto-invalidates when repo/rootId/foldDepths change.
+    // The sel adapter reads from the lens — no manual auto-refresh needed.
     function initPaneSignals(pane: BoardPaneState): void {
       pane.signals = createPaneSignals({
         id: pane.id,
@@ -480,7 +480,7 @@ export function createBoardAppStoreState(
         moveState: pane.moveState,
         taskStatusFilter: pane.filterProperties?.taskStatus,
       })
-      // Connect sel adapter: before each tree read, ensure ViewSnapshot is current.
+      // Connect sel adapter: before each tree read, ensure visible lens is current.
       // Reading pane.signals.visibleLens() triggers the computed — if stale, rebuilds.
       pane.selTreeSource.setBeforeRead(() => {
         pane.selTreeSource.update(pane.signals!.visibleLens())
@@ -502,7 +502,7 @@ export function createBoardAppStoreState(
 
     /**
      * Sync store pane fields → PaneSignals after a dispatchBoard set().
-     * This keeps signals in sync so the computed ViewSnapshot auto-invalidates.
+     * This keeps signals in sync so the computed view lens auto-invalidates.
      * Called after every structural dispatch (TOGGLE_FOLD, ZOOM_IN, SET_ROOT, etc.).
      */
     function syncPaneSignals(pane: BoardPaneState): void {
@@ -515,7 +515,7 @@ export function createBoardAppStoreState(
       pane.signals.viewMode(pane.viewMode)
       // Sync sel root when rootId changes (zoom/SET_ROOT). Without this,
       // getWalkOrder() uses the old root to scope the walk → empty walkOrder
-      // when the old root doesn't exist in the new ViewSnapshot → cursor null.
+      // when the old root doesn't exist in the new view lens → cursor null.
       pane.sel.root.set((pane.rootId as import("@silvery/selection").ID) ?? null)
     }
 
@@ -872,15 +872,15 @@ export function createBoardAppStoreState(
           }
         })
 
-        // Sync PaneSignals with updated store state so computed ViewSnapshot
-        // auto-invalidates. Must happen before cursor rescue (which reads view()).
+        // Sync PaneSignals with updated store state so the computed view lens
+        // auto-invalidates. Must happen before cursor rescue (which reads the lens).
         const s = _get()
         const board = getActiveBoardPane(s)
         if (board?.signals) {
           syncPaneSignals(board)
         }
 
-        // Cursor rescue via visible lens — no manual buildViewTree needed.
+        // Cursor rescue via visible lens — the lens handles fold + hidden filtering.
         if (board?.signals) {
           const lens = board.signals.visibleLens()
 
@@ -965,7 +965,7 @@ export function createBoardAppStoreState(
           const afterPane = getActiveBoardPane(afterS)
           if (afterPane?.signals) {
             if ("viewMode" in partial) afterPane.signals.viewMode(afterPane.viewMode)
-            // Hidden state change: recompute hiddenNodeIds so ViewSnapshot filters correctly
+            // Hidden state change: recompute hiddenNodeIds so the view lens filters correctly
             if ("hiddenVersion" in partial || "showHidden" in partial) {
               const hidden = afterPane.showHidden
                 ? new Set<string>()

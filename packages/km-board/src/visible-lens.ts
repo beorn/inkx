@@ -110,7 +110,7 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
     return parentChildren
   }
 
-  // DFS walk helper — same as ViewSnapshot
+  // DFS walk helper — delegates filtered children to parent lens
   function computeNextInWalk(id: string): string | null {
     const ch = getFilteredChildren(id)
     if (ch.length > 0) return ch[0]!
