@@ -265,7 +265,9 @@ const Card = React.memo(
     const isExpanded = cursorInDescendant || isEditing
 
     const childCount = childCountProp ?? children.length
-    const effectiveMax = isExpanded ? MAX_EXPANDED_CHILDREN : maxChildren
+    // Match TreeNode's "+1 more" elimination: if exactly 1 would be hidden, show it instead.
+    const baseMax = isExpanded ? MAX_EXPANDED_CHILDREN : maxChildren
+    const effectiveMax = childCount === baseMax + 1 ? baseMax + 1 : baseMax
     const directHidden = Math.max(0, childCount - effectiveMax)
     const { hasOverflow, hiddenCount } = useMemo(() => {
       let total = directHidden
