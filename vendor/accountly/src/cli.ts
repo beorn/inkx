@@ -110,12 +110,13 @@ program
 
 // ── switch ──────────────────────────────────────────────────────────────
 program
-  .command("switch <name>")
+  .command("switch")
+  .argument("<name>", "Account name to switch to")
   .description("Switch active Claude Code account")
-  .action(async (name: string) => {
-    const result = await switchAccount(name)
+  .action(async (opts: { name: string }) => {
+    const result = await switchAccount(opts.name)
     if (result.success) {
-      console.log(pc.green(`Switched to "${name}". New Claude Code sessions will use this account.`))
+      console.log(pc.green(`Switched to "${opts.name}". New Claude Code sessions will use this account.`))
     } else {
       console.error(pc.red(`Failed to switch: ${result.error}`))
       process.exit(1)
@@ -166,7 +167,8 @@ program
 
 // ── add ─────────────────────────────────────────────────────────────────
 program
-  .command("add <name>")
+  .command("add")
+  .argument("<name>", "Account name")
   .description("Add an account manually")
   .requiredOption(
     "-p, --provider <provider>",
@@ -174,9 +176,9 @@ program
   )
   .option("--key", "Prompt for API key")
   .option("--env <var>", "Environment variable containing the API key")
-  .action((name: string, opts: { provider: string; key?: boolean; env?: string }) => {
+  .action((opts: { name: string; provider: string; key?: boolean; env?: string }) => {
     const provider = opts.provider as AccountProvider
-    upsertAccount({ name, provider })
+    upsertAccount({ name: opts.name, provider })
 
     if (opts.env) {
       const apiKey = process.env[opts.env]
@@ -184,52 +186,55 @@ program
         console.error(pc.red(`Environment variable ${opts.env} is not set`))
         process.exit(1)
       }
-      writeCredential(name, { apiKey })
+      writeCredential(opts.name, { apiKey })
     } else if (opts.key) {
       console.log("Enter API key (paste, then press Enter):")
       const key = readlineSync()
       if (key) {
-        writeCredential(name, { apiKey: key })
+        writeCredential(opts.name, { apiKey: key })
       }
     }
 
-    console.log(pc.green(`Added account "${name}" (${provider})`))
+    console.log(pc.green(`Added account "${opts.name}" (${provider})`))
   })
 
 // ── rename ──────────────────────────────────────────────────────────────
 program
-  .command("rename <old-name> <new-name>")
+  .command("rename")
+  .argument("<old-name>", "Current account name")
+  .argument("<new-name>", "New account name")
   .description("Rename an account")
-  .action((oldName: string, newName: string) => {
-    const account = getAccount(oldName)
+  .action((opts: { oldName: string; newName: string }) => {
+    const account = getAccount(opts.oldName)
     if (!account) {
-      console.error(pc.red(`Account "${oldName}" not found`))
+      console.error(pc.red(`Account "${opts.oldName}" not found`))
       process.exit(1)
     }
-    if (getAccount(newName)) {
-      console.error(pc.red(`Account "${newName}" already exists`))
+    if (getAccount(opts.newName)) {
+      console.error(pc.red(`Account "${opts.newName}" already exists`))
       process.exit(1)
     }
 
-    renameCredential(oldName, newName)
-    renameAccount(oldName, newName)
-    console.log(pc.green(`Renamed "${oldName}" → "${newName}"`))
+    renameCredential(opts.oldName, opts.newName)
+    renameAccount(opts.oldName, opts.newName)
+    console.log(pc.green(`Renamed "${opts.oldName}" → "${opts.newName}"`))
   })
 
 // ── remove ──────────────────────────────────────────────────────────────
 program
-  .command("remove <name>")
+  .command("remove")
+  .argument("<name>", "Account name to remove")
   .description("Remove an account")
-  .action((name: string) => {
-    const account = getAccount(name)
+  .action((opts: { name: string }) => {
+    const account = getAccount(opts.name)
     if (!account) {
-      console.error(pc.red(`Account "${name}" not found`))
+      console.error(pc.red(`Account "${opts.name}" not found`))
       process.exit(1)
     }
 
-    removeAccount(name)
-    deleteCredential(name)
-    console.log(pc.green(`Removed account "${name}"`))
+    removeAccount(opts.name)
+    deleteCredential(opts.name)
+    console.log(pc.green(`Removed account "${opts.name}"`))
   })
 
 // ── get-token ───────────────────────────────────────────────────────────
