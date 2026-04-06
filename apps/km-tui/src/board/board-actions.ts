@@ -1735,8 +1735,7 @@ function handleLinebreakSplit(ctx: OpCtx): OpResult {
   const adjustedOffset = marker && !isBodyBlock ? editOffset + marker.length + 1 : editOffset
 
   // Title split with visible children → after-portion becomes first child
-  const hasVisibleChildren =
-    !isBodyBlock && ViewTree.hasVisibleItemChildren(ctx.repo, edit.nodeId, ctx.viewIndex, ctx.foldDepths)
+  const hasVisibleChildren = !isBodyBlock && ctx.tree.children(edit.nodeId).length > 0
 
   try {
     if (hasVisibleChildren) {

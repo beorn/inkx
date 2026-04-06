@@ -109,7 +109,7 @@ function buildCommandContexts(ctx: OpCtx) {
     hasVisibleChildren() {
       const textSel = ctx.sel.text()
       if (!textSel) return false
-      return ViewTree.hasVisibleItemChildren(ctx.repo, textSel.nodeId, ctx.viewIndex, ctx.foldDepths)
+      return ctx.tree.children(textSel.nodeId).length > 0
     },
     editDepth() {
       const textSel = ctx.sel.text()
