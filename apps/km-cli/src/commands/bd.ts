@@ -41,26 +41,6 @@ function formatScopeMessage(scopePath?: string, boardTag?: string): string {
   return scopePath ? ` in ${scopePath}` : boardTag ? ` on @${boardTag}` : ""
 }
 
-// Commander option interfaces
-interface ReadyOptions {
-  type?: string
-  assignee?: string
-  priority?: string
-  all?: boolean
-  json?: boolean
-}
-
-interface ListOptions {
-  status?: string
-  type?: string
-  assignee?: string
-  priority?: string
-  blocked?: boolean
-  unblocked?: boolean
-  all?: boolean
-  json?: boolean
-}
-
 export const bdCommand = new Command("bd")
   .description("Issue tracking (beads-compatible)")
   .addHelpSection(
@@ -71,7 +51,8 @@ export const bdCommand = new Command("bd")
 
 // bd ready [scope] - Find available work
 bdCommand
-  .command("ready [scope]")
+  .command("ready")
+  .argument("[scope]", "Path scope to filter issues")
   .description("List ready issues (unblocked, todo status)")
   .option("-t, --type <type>", "Filter by issue type (bug, feature, etc.)")
   .option("-a, --assignee <name>", "Filter by assignee")
@@ -79,8 +60,8 @@ bdCommand
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
   // oxlint-disable-next-line complexity/complexity -- CLI info display with config/stats sections
-  .action(async (scope: string | undefined, opts: ReadyOptions) => {
-    const resolved = resolvePathArg(scope)
+  .action(async (opts) => {
+    const resolved = resolvePathArg(opts.scope)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
 
@@ -92,7 +73,7 @@ bdCommand
     if (opts.priority !== undefined) filter.priority = opts.priority
 
     // Use board filter from config unless --all or explicit scope given
-    const boardTag = (opts.all ?? scope) ? undefined : configObj.beads.board || undefined
+    const boardTag = (opts.all ?? opts.scope) ? undefined : configObj.beads.board || undefined
     const issues = queryReady(filter, scopePath, boardTag, { repo })
 
     if (opts.json) {
@@ -114,7 +95,8 @@ bdCommand
 
 // bd list [query...] - List issues with filters
 bdCommand
-  .command("list [query...]")
+  .command("list")
+  .argument("[query...]", "DSL query or path scope")
   .description("List issues with optional filters or raw DSL query")
   .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
   .option("-t, --type <type>", "Filter by issue type")
@@ -124,7 +106,8 @@ bdCommand
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action(async (queryParts: string[], opts: ListOptions) => {
+  .action(async (opts) => {
+    const queryParts: string[] = opts.query ?? []
     const positionalQuery = queryParts.length > 0 ? queryParts.join(" ") : undefined
 
     // Detect if positional arg looks like a path (backward compat with old [scope])
@@ -209,21 +192,22 @@ bdCommand
 
 // bd show [id] - Show issue details
 const showCmd = bdCommand
-  .command("show [id]")
+  .command("show")
+  .argument("[id]", "Issue ID")
   .description("Show issue details")
   .option("--json", "Output as JSON")
-  .action(async (id, opts) => {
-    if (!id) {
+  .action(async (opts) => {
+    if (!opts.id) {
       showCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
 
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -238,7 +222,8 @@ const showCmd = bdCommand
 
 // bd create <title> - Create a new issue
 bdCommand
-  .command("create <title>")
+  .command("create")
+  .argument("<title>", "Issue title")
   .description("Create a new issue")
   .option("-t, --type <type>", "Issue type (bug, feature, epic, task, docs)")
   .option("-p, --priority <value>", "Priority (e.g. P0-P4 or 0-4, default: P2)")
@@ -249,16 +234,16 @@ bdCommand
   .option("--id <custom>", "Custom short ID")
   .option("--parent <id>", "Parent issue for sub-issues")
   .option("--json", "Output as JSON")
-  .action(async (title, opts) => {
+  .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
 
-    const { node, shortId, children } = createIssueNode(title, {
+    const { node, shortId, children } = createIssueNode(opts.title, {
       type: opts.type,
       priority: opts.priority,
       assignee: opts.assignee,
-      labels: opts.label,
+      labels: opts.label as string[] | undefined,
       customId: opts.id,
       parentId: opts.parent,
       description: opts.description,
@@ -293,7 +278,7 @@ bdCommand
     }
 
     console.log(term.green(`Created issue: ${shortId}`))
-    console.log(`Title: ${title}`)
+    console.log(`Title: ${opts.title}`)
     if (opts.type) console.log(`Type: ${opts.type}`)
     console.log(`Priority: ${opts.priority ?? "P2"}`)
     if (opts.description) {
@@ -303,7 +288,8 @@ bdCommand
 
 // bd update [id] - Update issue fields
 const updateCmd = bdCommand
-  .command("update [id]")
+  .command("update")
+  .argument("[id]", "Issue ID")
   .description("Update issue fields")
   .option("-s, --status <status>", "Set status (todo, wip, blocked, done, dropped)")
   .option("-p, --priority <value>", "Set priority (e.g. P0-P4 or 0-4)")
@@ -313,17 +299,17 @@ const updateCmd = bdCommand
   .option("-n, --notes <text>", "Append notes (adds child paragraph)")
   .option("--type <type>", "Set issue type")
   .option("--claim", "Claim issue (set status=wip + assignee to you)")
-  .action(async (id, opts) => {
-    if (!id) {
+  .action(async (opts) => {
+    if (!opts.id) {
       updateCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -386,20 +372,21 @@ const updateCmd = bdCommand
 
 // bd close [id] - Close an issue
 const closeCmd = bdCommand
-  .command("close [id]")
+  .command("close")
+  .argument("[id]", "Issue ID")
   .description("Close an issue (mark as done)")
   .option("-r, --reason <reason>", "Close reason")
-  .action(async (id, opts) => {
-    if (!id) {
+  .action(async (opts) => {
+    if (!opts.id) {
       closeCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -413,20 +400,21 @@ const closeCmd = bdCommand
 
 // bd drop [id] - Drop an issue
 const dropCmd = bdCommand
-  .command("drop [id]")
+  .command("drop")
+  .argument("[id]", "Issue ID")
   .description("Drop an issue (mark as won't do)")
   .option("-r, --reason <reason>", "Drop reason")
-  .action(async (id, opts) => {
-    if (!id) {
+  .action(async (opts) => {
+    if (!opts.id) {
       dropCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -442,74 +430,79 @@ const dropCmd = bdCommand
 const depCommand = new Command("dep").description("Manage issue dependencies")
 
 const depAddCmd = depCommand
-  .command("add [id] [depends-on]")
+  .command("add")
+  .argument("[id]", "Issue ID")
+  .argument("[depends-on]", "Blocking issue ID")
   .description("Add a dependency (issue is blocked by depends-on)")
-  .action(async (id, dependsOn) => {
-    if (!id || !dependsOn) {
+  .action(async (opts) => {
+    if (!opts.id || !opts.dependsOn) {
       depAddCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
 
-    const props = addDependency(issue, dependsOn)
+    const props = addDependency(issue, opts.dependsOn)
     const node = repo.getNode(issue.id)
     repo.updateNode(issue.id, { data: mergeDepProps(node?.data as Record<string, unknown> | undefined, props) })
 
-    console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${dependsOn}`))
+    console.log(term.green(`Added dependency: ${issue.shortId} blocked-by ${opts.dependsOn}`))
   })
 
 const depRemoveCmd = depCommand
-  .command("remove [id] [depends-on]")
+  .command("remove")
+  .argument("[id]", "Issue ID")
+  .argument("[depends-on]", "Blocking issue ID")
   .description("Remove a dependency")
-  .action(async (id, dependsOn) => {
-    if (!id || !dependsOn) {
+  .action(async (opts) => {
+    if (!opts.id || !opts.dependsOn) {
       depRemoveCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
 
-    const result = removeDependency(issue, dependsOn)
+    const result = removeDependency(issue, opts.dependsOn)
     if (!result) {
-      console.error(term.yellow(`${issue.shortId} does not depend on ${dependsOn}`))
+      console.error(term.yellow(`${issue.shortId} does not depend on ${opts.dependsOn}`))
       return
     }
 
     const node = repo.getNode(issue.id)
     repo.updateNode(issue.id, { data: mergeDepProps(node?.data as Record<string, unknown> | undefined, result) })
 
-    console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${dependsOn}`))
+    console.log(term.green(`Removed dependency: ${issue.shortId} no longer blocked-by ${opts.dependsOn}`))
   })
 
 const depListCmd = depCommand
-  .command("list [id]")
+  .command("list")
+  .argument("[id]", "Issue ID")
   .description("List dependencies for an issue")
-  .action(async (id) => {
-    if (!id) {
+  .action(async (opts) => {
+    if (!opts.id) {
       depListCmd.outputHelp()
       return
     }
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -541,7 +534,7 @@ bdCommand
 
     const boardTag = configObj.beads.board || undefined
     const issues = queryIssues({}, undefined, boardTag, { repo })
-    const threshold = Date.now() - opts.days * 86400000
+    const threshold = Date.now() - opts.days! * 86400000
     const stale = issues.filter((i) => i.updatedAt < threshold && i.status !== "done" && i.status !== "dropped")
 
     if (opts.json) {
@@ -562,14 +555,15 @@ bdCommand
 
 // bd claim <id> - Claim an issue (set status=wip + assignee)
 bdCommand
-  .command("claim <id>")
+  .command("claim")
+  .argument("<id>", "Issue ID")
   .description("Claim an issue (set status to wip and assign to you)")
-  .action(async (id) => {
+  .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -592,15 +586,16 @@ bdCommand
 
 // bd children <id> - List children of an epic
 bdCommand
-  .command("children <id>")
+  .command("children")
+  .argument("<id>", "Issue ID")
   .description("List children of an issue (e.g., sub-tasks of an epic)")
   .option("--json", "Output as JSON")
-  .action(async (id, opts) => {
+  .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, id)
+    const issue = resolveIssueArg(repo, opts.id)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${id}`))
+      console.error(term.red(`Issue not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -664,11 +659,12 @@ bdCommand.addCommand(bdAgentCommand)
 
 // bd info [scope] - Show database information
 bdCommand
-  .command("info [scope]")
+  .command("info")
+  .argument("[scope]", "Path scope")
   .description("Show beads configuration and statistics")
   // oxlint-disable-next-line complexity/complexity -- CLI action with sequential reporting steps
-  .action(async (scope) => {
-    const resolved = resolvePathArg(scope)
+  .action(async (opts) => {
+    const resolved = resolvePathArg(opts.scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo for database access and mode
@@ -758,10 +754,11 @@ bdCommand
 
 // bd where [scope] - Show paths
 bdCommand
-  .command("where [scope]")
+  .command("where")
+  .argument("[scope]", "Path scope")
   .description("Show beads paths and configuration")
-  .action(async (scope) => {
-    const resolved = resolvePathArg(scope)
+  .action(async (opts) => {
+    const resolved = resolvePathArg(opts.scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
     // Load repo (unused but kept for consistency - may use in future)
@@ -787,11 +784,12 @@ bdCommand
 
 // bd query <expression...> - Raw DSL query (no default board filter)
 bdCommand
-  .command("query <expression...>")
+  .command("query")
+  .argument("<expression...>", "DSL query expression")
   .description("Query issues with raw DSL expression (no default board filter)")
   .option("--json", "Output as JSON")
-  .action(async (expressionParts: string[], opts: { json?: boolean }) => {
-    const expression = expressionParts.join(" ")
+  .action(async (opts) => {
+    const expression = opts.expression.join(" ")
 
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
@@ -817,14 +815,16 @@ bdCommand
 
 // bd rename <old-id> <new-id> - Rename an issue
 bdCommand
-  .command("rename <old-id> <new-id>")
+  .command("rename")
+  .argument("<old-id>", "Current issue ID")
+  .argument("<new-id>", "New issue ID")
   .description("Rename an issue ID (updates all references)")
-  .action(async (oldId: string, newId: string) => {
+  .action(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
-    const issue = resolveIssueArg(repo, oldId)
+    const issue = resolveIssueArg(repo, opts.oldId)
     if (!issue) {
-      console.error(term.red(`Issue not found: ${oldId}`))
+      console.error(term.red(`Issue not found: ${opts.oldId}`))
       process.exitCode = 1
       return
     }
@@ -833,7 +833,7 @@ bdCommand
     const node = repo.getNode(issue.id)
     const data = (node?.data as Record<string, unknown>) ?? {}
     repo.updateNode(issue.id, {
-      data: { ...data, short_id: newId },
+      data: { ...data, short_id: opts.newId },
       updated_at: Date.now(),
     })
 
@@ -841,17 +841,17 @@ bdCommand
     const allIssues = queryIssues({}, undefined, undefined, { repo })
     let refCount = 0
     for (const other of allIssues) {
-      if (other.blockedBy?.includes(oldId)) {
+      if (other.blockedBy?.includes(opts.oldId)) {
         const otherNode = repo.getNode(other.id)
         const otherData = (otherNode?.data as Record<string, unknown>) ?? {}
         const props = otherData.props as Record<string, any> | undefined
         if (props?.["blocked-by"]) {
           const bp = props["blocked-by"]
-          if (bp.type === "link" && bp.target === oldId) {
-            bp.target = newId
+          if (bp.type === "link" && bp.target === opts.oldId) {
+            bp.target = opts.newId
           } else if (bp.type === "list" && bp.values) {
             for (const v of bp.values) {
-              if (v.target === oldId) v.target = newId
+              if (v.target === opts.oldId) v.target = opts.newId
             }
           }
           repo.updateNode(other.id, { data: { ...otherData, props }, updated_at: Date.now() })
@@ -860,7 +860,7 @@ bdCommand
       }
     }
 
-    console.log(term.green(`Renamed ${oldId} → ${newId}`))
+    console.log(term.green(`Renamed ${opts.oldId} → ${opts.newId}`))
     if (refCount > 0) console.log(`Updated ${refCount} dependency reference${refCount > 1 ? "s" : ""}`)
   })
 

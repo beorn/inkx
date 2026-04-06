@@ -61,20 +61,21 @@ bdAgentCommand
 
 // bd agent queue <agent-id> - Show agent's assigned issues
 bdAgentCommand
-  .command("queue <agent-id>")
+  .command("queue")
+  .argument("<agent-id>", "Agent ID")
   .description("Show agent's assigned issues")
   .option("--json", "Output as JSON")
-  .action(async (agentId, opts) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, agentId)
+    const agent = getAgent(repo, opts.agentId)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${opts.agentId}`))
       process.exitCode = 1
       return
     }
 
-    const queue = getAgentQueue(repo, agentId)
+    const queue = getAgentQueue(repo, opts.agentId)
 
     if (opts.json) {
       console.log(
@@ -112,21 +113,23 @@ bdAgentCommand
 
 // bd agent assign <agent-id> <issue-id> - Assign issue to agent
 bdAgentCommand
-  .command("assign <agent-id> <issue-id>")
+  .command("assign")
+  .argument("<agent-id>", "Agent ID")
+  .argument("<issue-id>", "Issue ID")
   .description("Assign an issue to an agent's queue")
-  .action(async (agentId, issueId) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, agentId)
+    const agent = getAgent(repo, opts.agentId)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${opts.agentId}`))
       process.exitCode = 1
       return
     }
 
-    const issue = getIssue(issueId, { repo })
+    const issue = getIssue(opts.issueId, { repo })
     if (!issue) {
-      console.error(term.red(`Issue not found: ${issueId}`))
+      console.error(term.red(`Issue not found: ${opts.issueId}`))
       process.exitCode = 1
       return
     }
@@ -142,21 +145,23 @@ bdAgentCommand
 
 // bd agent unassign <agent-id> <issue-id> - Remove assignment
 bdAgentCommand
-  .command("unassign <agent-id> <issue-id>")
+  .command("unassign")
+  .argument("<agent-id>", "Agent ID")
+  .argument("<issue-id>", "Issue ID")
   .description("Remove an issue from agent's queue")
-  .action(async (agentId, issueId) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, agentId)
+    const agent = getAgent(repo, opts.agentId)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${opts.agentId}`))
       process.exitCode = 1
       return
     }
 
-    const issue = getIssue(issueId, { repo })
+    const issue = getIssue(opts.issueId, { repo })
     if (!issue) {
-      console.error(term.red(`Issue not found: ${issueId}`))
+      console.error(term.red(`Issue not found: ${opts.issueId}`))
       process.exitCode = 1
       return
     }
@@ -171,15 +176,16 @@ bdAgentCommand
 
 // bd agent claim <agent-id> - Agent claims next ready issue
 bdAgentCommand
-  .command("claim <agent-id>")
+  .command("claim")
+  .argument("<agent-id>", "Agent ID")
   .description("Agent claims the next ready issue from the backlog")
   .option("--json", "Output as JSON")
-  .action(async (agentId, opts) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, agentId)
+    const agent = getAgent(repo, opts.agentId)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${opts.agentId}`))
       process.exitCode = 1
       return
     }
@@ -215,16 +221,17 @@ bdAgentCommand
 
 // bd agent run <agent-id> - Run agent on its queue (continuous)
 bdAgentCommand
-  .command("run <agent-id>")
+  .command("run")
+  .argument("<agent-id>", "Agent ID")
   .description("Run agent on its work queue (continuous mode)")
   .option("--max-tasks <n>", "Maximum tasks to process", int)
   .option("--dry-run", "Show what would be done")
-  .action(async (agentId, opts) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, agentId)
+    const agent = getAgent(repo, opts.agentId)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${agentId}`))
+      console.error(term.red(`Agent not found: ${opts.agentId}`))
       process.exitCode = 1
       return
     }

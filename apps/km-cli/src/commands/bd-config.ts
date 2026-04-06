@@ -34,13 +34,14 @@ configCommand
   })
 
 configCommand
-  .command("get <key>")
+  .command("get")
+  .argument("<key>", "Config key (board, parent, prefix)")
   .description("Get a configuration value")
-  .action((key) => {
+  .action((opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
 
-    switch (key) {
+    switch (opts.key) {
       case "board":
         console.log(configObj.beads.board || "")
         break
@@ -51,19 +52,21 @@ configCommand
         console.log(configObj.beads.prefix)
         break
       default:
-        console.error(term.red(`Unknown config key: ${key}`))
+        console.error(term.red(`Unknown config key: ${opts.key}`))
         console.log(term.dim("Valid keys: board, parent, prefix"))
         process.exitCode = 1
     }
   })
 
 configCommand
-  .command("set <key> <value>")
+  .command("set")
+  .argument("<key>", "Config key (board, parent, prefix)")
+  .argument("<value>", "Config value")
   .description("Set a configuration value (edits .km/config.yaml)")
-  .action((key, value) => {
+  .action((opts) => {
     // Validate key
-    if (!["board", "parent", "prefix"].includes(key)) {
-      console.error(term.red(`Unknown config key: ${key}`))
+    if (!["board", "parent", "prefix"].includes(opts.key)) {
+      console.error(term.red(`Unknown config key: ${opts.key}`))
       console.log(term.dim("Valid keys: board, parent, prefix"))
       process.exitCode = 1
       return
@@ -72,10 +75,10 @@ configCommand
     const resolved = resolvePathArg(undefined)
     const configPath = `${resolved.repoRoot}/.km/config.yaml`
 
-    console.log(term.yellow(`To set ${key}=${value}, edit ${configPath}:`))
+    console.log(term.yellow(`To set ${opts.key}=${opts.value}, edit ${configPath}:`))
     console.log()
     console.log(term.dim("beads:"))
-    console.log(term.dim(`  ${key}: "${value}"`))
+    console.log(term.dim(`  ${opts.key}: "${opts.value}"`))
     console.log()
     console.log(term.dim("(Programmatic config editing coming soon)"))
   })

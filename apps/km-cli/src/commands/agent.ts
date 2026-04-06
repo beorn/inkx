@@ -31,36 +31,8 @@ interface LsOptions {
   json?: boolean
 }
 
-interface SpawnOptions {
-  model?: string
-  harness?: string
-  id?: string
-  workdir?: string
-  json?: boolean
-}
-
-interface ShowOptions {
-  json?: boolean
-}
-
 interface HarnessesOptions {
   json?: boolean
-}
-
-interface SessionsOptions {
-  limit?: number
-  json?: boolean
-}
-
-interface SessionOptions {
-  json?: boolean
-}
-
-interface RunOptions {
-  target?: string
-  continuous?: boolean
-  maxTasks?: number
-  dryRun?: boolean
 }
 
 export const agentCommand = new Command("agent")
@@ -123,14 +95,15 @@ agentCommand
 
 // km agent spawn <name> - Create a new agent
 agentCommand
-  .command("spawn <name>")
+  .command("spawn")
+  .argument("<name>", "Agent name")
   .description("Create a new agent")
   .option("-m, --model <model>", "LLM model (default: claude-sonnet-4)")
   .option("-h, --harness <name>", "Harness name (default: general)")
   .option("--id <custom>", "Custom short ID")
   .option("--workdir <path>", "Working directory")
   .option("--json", "Output as JSON")
-  .action((name: string, opts: SpawnOptions) => {
+  .action((opts) => {
     // Validate harness exists
     if (opts.harness) {
       const harness = loadHarness(opts.harness)
@@ -142,7 +115,7 @@ agentCommand
       }
     }
 
-    const { node, shortId } = createAgentNode(name, {
+    const { node, shortId } = createAgentNode(opts.name, {
       model: opts.model,
       harness: opts.harness,
       customId: opts.id,
@@ -155,7 +128,7 @@ agentCommand
     }
 
     console.log(term.green(`Created agent: ${shortId}`))
-    console.log(term.dim(`  Name: ${name}`))
+    console.log(term.dim(`  Name: ${opts.name}`))
     console.log(term.dim(`  Model: ${opts.model ?? "claude-sonnet-4"}`))
     console.log(term.dim(`  Harness: ${opts.harness ?? "general"}`))
 
@@ -165,14 +138,15 @@ agentCommand
 
 // km agent stop <id> - Stop an agent
 agentCommand
-  .command("stop <id>")
+  .command("stop")
+  .argument("<id>", "Agent ID")
   .description("Stop an agent gracefully")
-  .action(async (id) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, id)
+    const agent = getAgent(repo, opts.id)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -186,14 +160,15 @@ agentCommand
 
 // km agent kill <id> - Force kill an agent
 agentCommand
-  .command("kill <id>")
+  .command("kill")
+  .argument("<id>", "Agent ID")
   .description("Force kill an agent")
-  .action(async (id) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, id)
+    const agent = getAgent(repo, opts.id)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -212,15 +187,16 @@ agentCommand
 
 // km agent show <id> - Show agent details
 agentCommand
-  .command("show <id>")
+  .command("show")
+  .argument("<id>", "Agent ID")
   .description("Show agent details")
   .option("--json", "Output as JSON")
-  .action(async (id: string, opts: ShowOptions) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, id)
+    const agent = getAgent(repo, opts.id)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -262,18 +238,19 @@ agentCommand
 
 // km agent sessions [agent-id] - List sessions
 agentCommand
-  .command("sessions [agent-id]")
+  .command("sessions")
+  .argument("[agent-id]", "Agent ID to filter by")
   .description("List sessions (optionally for a specific agent)")
   .option("-n, --limit <n>", "Limit results", int)
   .option("--json", "Output as JSON")
-  .action((agentId: string | undefined, opts: SessionsOptions) => {
+  .action((opts) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
       console.error(term.red("No .km directory found"))
       process.exitCode = 1
       return
     }
-    const sessions = agentId ? getAgentSessions(kmDir, agentId, opts.limit) : []
+    const sessions = opts.agentId ? getAgentSessions(kmDir, opts.agentId, opts.limit) : []
 
     if (opts.json) {
       console.log(JSON.stringify(sessions, null, 2))
@@ -294,20 +271,21 @@ agentCommand
 
 // km agent session <session-id> - View session transcript
 agentCommand
-  .command("session <session-id>")
+  .command("session")
+  .argument("<session-id>", "Session ID")
   .description("View session transcript")
   .option("--json", "Output as JSON")
-  .action((sessionId: string, opts: SessionOptions) => {
+  .action((opts) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
       console.error(term.red("No .km directory found"))
       process.exitCode = 1
       return
     }
-    const session = getSession(kmDir, sessionId)
+    const session = getSession(kmDir, opts.sessionId)
 
     if (!session) {
-      console.error(term.red(`Session not found: ${sessionId}`))
+      console.error(term.red(`Session not found: ${opts.sessionId}`))
       console.log(term.dim("(Session querying not yet implemented)"))
       process.exitCode = 1
       return
@@ -326,18 +304,20 @@ agentCommand
 
 // km agent run <id> [prompt] - Run an agent
 agentCommand
-  .command("run <id> [prompt]")
+  .command("run")
+  .argument("<id>", "Agent ID")
+  .argument("[prompt]", "Prompt for one-shot execution")
   .description("Run an agent (one-shot with prompt, or continuous)")
   .option("--target <path|id|@ref>", "Work on a specific task (path, ID, or @ref)")
   .option("--continuous", "Process work queue continuously")
   .option("--max-tasks <n>", "Max tasks in continuous mode", int)
   .option("--dry-run", "Show plan without executing")
-  .action(async (id: string, prompt: string | undefined, opts: RunOptions) => {
+  .action(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
-    const agent = getAgent(repo, id)
+    const agent = getAgent(repo, opts.id)
     if (!agent) {
-      console.error(term.red(`Agent not found: ${id}`))
+      console.error(term.red(`Agent not found: ${opts.id}`))
       process.exitCode = 1
       return
     }
@@ -364,7 +344,7 @@ agentCommand
       console.log(`  Agent: ${agent.shortId} (${agent.name})`)
       console.log(`  Model: ${agent.model}`)
       console.log(`  Harness: ${agent.harness}`)
-      if (prompt) console.log(`  Prompt: "${prompt}"`)
+      if (opts.prompt) console.log(`  Prompt: "${opts.prompt}"`)
       if (targetTask) {
         console.log(`  Target: ${targetTask.id}`)
         if (targetTask.name) {

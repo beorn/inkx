@@ -22,13 +22,6 @@ import { KNode, type KNode as KNodeType } from "@km/core"
 import { getRootPath } from "../program.ts"
 import { loadRepo } from "../load-repo.ts"
 
-interface AddOptions {
-  dryRun?: boolean
-  json?: boolean
-  force?: boolean
-  quiet?: boolean
-}
-
 /** Show phase completion with timing */
 function phaseOk(label: string, detail?: string, startMs?: number): void {
   const timing = startMs != null ? ` ${term.dim(`${Date.now() - startMs}ms`)}` : ""
@@ -98,19 +91,19 @@ export const addCommand = new Command("add")
   .option("--quiet", "Suppress progress output")
   .showHelpAfterError(true)
   // oxlint-disable-next-line complexity/complexity -- CLI add with query matching, sigil tagging, and four-way dedup
-  .action(async (target: string, sources: string[], options: AddOptions) => {
+  .action(async (opts) => {
     // Detect sigil target (@next, +project, #tag)
     // Match bare sigil (e.g., @next) or extract from path basename (e.g., /tmp/vt/@next)
-    const basename = target.replace(/\/$/, "").split("/").pop() ?? target
+    const basename = opts.target.replace(/\/$/, "").split("/").pop() ?? opts.target
     const sigilMatch = basename.match(/^([@+#])([a-zA-Z0-9_-]+)$/)
     const sigilPrefix = sigilMatch?.[1] ?? null
     const sigilName = sigilMatch?.[2] ?? null
     const sigilStr = sigilMatch?.[0] ?? null
 
-    const verbose = !options.json && !options.quiet && process.stdout.isTTY
+    const verbose = !opts.json && !opts.quiet && process.stdout.isTTY
 
     // Resolve target path argument - may detect repo root
-    const resolvedTarget = resolvePathArg(target, getRootPath())
+    const resolvedTarget = resolvePathArg(opts.target, getRootPath())
     using repo = await loadRepo(resolvedTarget.repoRoot)
 
     if (!resolvedTarget.nodeRef) {
@@ -122,17 +115,17 @@ export const addCommand = new Command("add")
     let t0 = Date.now()
     const targetNode = repo.resolveNode(resolvedTarget.nodeRef)
     if (!targetNode) {
-      console.error(term.red(`Target not found: ${target}`))
+      console.error(term.red(`Target not found: ${opts.target}`))
       console.error(term.dim("Use ID, path, or filename (e.g., @next, @someday)"))
       process.exit(1)
     }
-    if (verbose) phaseOk("Resolve target", targetNode.content?.slice(0, 40) || target, t0)
+    if (verbose) phaseOk("Resolve target", targetNode.content?.slice(0, 40) || opts.target, t0)
 
     // Collect candidate tasks
     t0 = Date.now()
     const candidates: KNodeType[] = []
 
-    for (const source of sources) {
+    for (const source of opts.source) {
       // Glob patterns (e.g., ./inbox/**, /tmp/vt/projects/**) — query directly
       if (source.includes("**")) {
         let querySource: string
@@ -224,7 +217,7 @@ export const addCommand = new Command("add")
     // | Yes       | No         | Add sigil only (sync up)  |
     // | Yes       | Yes        | Skip entirely             |
     // With --force: always create link + always add sigil
-    const existingLinkTargets = options.force
+    const existingLinkTargets = opts.force
       ? new Set<string>()
       : new Set(
           repo
@@ -240,9 +233,9 @@ export const addCommand = new Command("add")
     for (const task of candidates) {
       const hasLink = existingLinkTargets.has(task.id)
       const hasSigil =
-        sigilStr && !options.force && sigilPrefix && sigilName ? contentHasSigil(task, sigilPrefix, sigilName) : false
+        sigilStr && !opts.force && sigilPrefix && sigilName ? contentHasSigil(task, sigilPrefix, sigilName) : false
 
-      if (options.force) {
+      if (opts.force) {
         tasksToLink.push(task)
         if (sigilStr) tasksToSigil.push(task)
       } else if (!hasLink && !hasSigil) {
@@ -274,7 +267,7 @@ export const addCommand = new Command("add")
     // Use timestamp-based ordering for new items
     let nextIdx = Date.now()
 
-    if (options.dryRun) {
+    if (opts.dryRun) {
       if (tasksToLink.length > 0) {
         console.log(term.cyan("Dry run - would link:"))
         for (const task of tasksToLink) {
@@ -299,7 +292,7 @@ export const addCommand = new Command("add")
           console.log(`  ${term.dim(task.id.slice(-8))} ${(task.content || "").slice(0, 50)}`)
         }
       }
-      console.log(term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || target}`))
+      console.log(term.dim(`\nTo: ${targetNode.content || targetNode.fs_path || opts.target}`))
       return
     }
 
@@ -322,7 +315,7 @@ export const addCommand = new Command("add")
           if (KNode.isEmbed(task)) continue
 
           // Re-check dedup (content may have changed since we checked)
-          if (!options.force && contentHasSigil(task, sigilPrefix, sigilName)) {
+          if (!opts.force && contentHasSigil(task, sigilPrefix, sigilName)) {
             continue
           }
 
@@ -359,7 +352,7 @@ export const addCommand = new Command("add")
 
     const sigilCount = tasksToSigil.filter((t) => !KNode.isEmbed(t)).length
 
-    if (options.json) {
+    if (opts.json) {
       console.log(
         JSON.stringify({
           target: targetNode.id,
@@ -374,7 +367,7 @@ export const addCommand = new Command("add")
     }
 
     if (tasksToLink.length > 0) {
-      console.log(term.green("✓"), `Linked ${tasksToLink.length} task(s) to ${targetNode.content || target}`)
+      console.log(term.green("✓"), `Linked ${tasksToLink.length} task(s) to ${targetNode.content || opts.target}`)
       for (const task of tasksToLink.slice(0, 5)) {
         console.log(term.dim(`  ${task.id.slice(-8)} ${(task.content || "").slice(0, 40)}`))
       }
