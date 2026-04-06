@@ -481,15 +481,12 @@ export function createBoardAppStoreState(
         taskStatusFilter: pane.filterProperties?.taskStatus,
       })
       // Connect sel adapter: before each tree read, ensure ViewSnapshot is current.
-      // Reading pane.signals.view() triggers the computed — if stale, rebuilds.
-      // Then we update the adapter's mutable source from the snapshot.
+      // Reading pane.signals.visibleLens() triggers the computed — if stale, rebuilds.
       pane.selTreeSource.setBeforeRead(() => {
-        const snap = pane.signals!.view()
-        pane.selTreeSource.update(snap.index as Map<string, ViewNode>, snap.tree)
+        pane.selTreeSource.update(pane.signals!.visibleLens())
       })
-      // Initialize the adapter with the first snapshot
-      const initSnap = pane.signals.view()
-      pane.selTreeSource.update(initSnap.index as Map<string, ViewNode>, initSnap.tree)
+      // Initialize the adapter with the first lens
+      pane.selTreeSource.update(pane.signals.visibleLens())
       // Sync ViewTree when visibleLens changes
       effect(() => {
         const lens = pane.signals!.visibleLens()
@@ -596,8 +593,8 @@ export function createBoardAppStoreState(
 
     // Create stable routing proxy for selTreeSource.
     const routingSelTreeSource: SelectionTreeSource = {
-      update(viewIndex, viewTree) {
-        getActiveSelTreeSource().update(viewIndex, viewTree)
+      update(lens) {
+        getActiveSelTreeSource().update(lens)
       },
       setBeforeRead(cb) {
         getActiveSelTreeSource().setBeforeRead(cb)
@@ -902,7 +899,7 @@ export function createBoardAppStoreState(
 
           // Sync sel store cursor after structural changes (fold, zoom, etc.)
           if (cursorId) {
-            s.selTreeSource.update(vIndex, snap.tree)
+            s.selTreeSource.update(board.signals.visibleLens())
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
               s.sel.node.select([cursorId as import("@silvery/selection").ID])
@@ -1021,7 +1018,7 @@ export function createBoardAppStoreState(
             if (rescuedId !== null && rescuedId !== boardPaneCursorId) {
               boardPane.sel.node.select([rescuedId as import("@silvery/selection").ID])
             }
-            s.selTreeSource.update(vIndex, snap.tree)
+            s.selTreeSource.update(boardPane.signals!.visibleLens())
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
               s.sel.node.select([(rescuedId ?? boardPaneCursorId) as import("@silvery/selection").ID])
@@ -1097,8 +1094,7 @@ export function createBoardAppStoreState(
           initPaneSignals(detailPane)
           // Initialize the detail pane's sel with the initial cursor
           if (firstItemId && detailPane.signals) {
-            const detailSnap = detailPane.signals.view()
-            detailPane.selTreeSource.update(detailSnap.index as Map<string, ViewNode>, detailSnap.tree)
+            detailPane.selTreeSource.update(detailPane.signals.visibleLens())
             detailPane.sel.node.select([firstItemId as import("@silvery/selection").ID])
           }
 
@@ -1453,8 +1449,7 @@ export function createBoardAppStoreState(
           initPaneSignals(updatedPane)
           // Initialize the new pane's sel with the cursor
           if (activeBoardCursor && updatedPane.signals) {
-            const initSnap = updatedPane.signals.view()
-            updatedPane.selTreeSource.update(initSnap.index as Map<string, ViewNode>, initSnap.tree)
+            updatedPane.selTreeSource.update(updatedPane.signals.visibleLens())
             updatedPane.sel.node.select([activeBoardCursor as import("@silvery/selection").ID])
           }
           const newPanes = new Map(workspace.panes)

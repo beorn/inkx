@@ -1,28 +1,26 @@
 /**
- * Selection Adapter — Bridges km's ViewTree to @silvery/selection's SelectionApp.
+ * Selection Adapter — Bridges km's ViewTree lens to @silvery/selection's SelectionApp.
  *
  * createSelection() needs a SelectionApp with tree.{walkOrder, parent, children}.
- * km's visual hierarchy lives in the ViewIndex (Map<string, ViewNode>) which is
- * rebuilt each frame. This adapter provides a live bridge via getter callbacks,
- * so the selection store always reads the freshest tree.
+ * The adapter wraps a TreeLens (from createVisibleLens) and provides a live bridge
+ * via getter callbacks, so the selection store always reads the freshest tree.
  *
  * Auto-refresh: if a beforeRead callback is installed, the adapter calls it
  * before every tree operation (walkOrder, parent, children). The callback
- * checks repo version and rebuilds the ViewTree if stale. This eliminates
- * the need for manual refreshSelTree() calls at every mutation site.
+ * checks repo version and triggers lens refresh if stale.
  */
 
 import type { SelectionApp, ID } from "@silvery/selection"
-import type { ViewNode } from "@km/board"
+import type { TreeLens } from "@km/board"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-/** Mutable source that bridges the latest ViewTree into the selection store. */
+/** Mutable source that bridges the latest lens into the selection store. */
 export interface SelectionTreeSource {
-  /** Update the underlying tree data (called after each layout derivation). */
-  update(viewIndex: Map<string, ViewNode>, viewTree: ViewNode): void
+  /** Update the underlying lens (called after each layout derivation). */
+  update(lens: TreeLens): void
   /** Install a callback invoked before each tree read. Use to auto-refresh stale data. */
   setBeforeRead(cb: () => void): void
 }
@@ -32,37 +30,25 @@ export interface SelectionTreeSource {
 // =============================================================================
 
 /**
- * Create a SelectionApp adapter with a mutable tree source.
+ * Create a SelectionApp adapter with a mutable TreeLens source.
  *
- * Returns both the SelectionApp (for createSelection()) and the
- * SelectionTreeSource (to call .update() after each layout derivation).
- *
- * walkOrder does a DFS of the current ViewTree, collecting IDs.
- * parent/children look up the ViewIndex.
+ * walkOrder delegates to lens.walkOrder (already includes the root).
+ * parent/children delegate to lens.parent/lens.children.
  *
  * If a beforeRead callback is installed via source.setBeforeRead(),
  * it fires before every tree operation — use it to check freshness
- * and rebuild the ViewTree if the repo has mutated since the last update.
+ * and refresh the lens if the repo has mutated since the last update.
  */
 export function createSelectionAdapter(): {
   app: SelectionApp
   source: SelectionTreeSource
 } {
-  let viewIndex: Map<string, ViewNode> = new Map()
-  let viewTree: ViewNode = {
-    id: "__root__",
-    role: "board",
-    node: null,
-    parent: null,
-    children: [],
-    isBody: false,
-  }
+  let currentLens: TreeLens | null = null
   let beforeRead: (() => void) | null = null
 
   const source: SelectionTreeSource = {
-    update(newIndex, newTree) {
-      viewIndex = newIndex
-      viewTree = newTree
+    update(newLens) {
+      currentLens = newLens
     },
     setBeforeRead(cb) {
       beforeRead = cb
@@ -73,25 +59,23 @@ export function createSelectionAdapter(): {
     tree: {
       walkOrder(root: ID | null): readonly ID[] {
         beforeRead?.()
+        if (!currentLens) return []
 
-        // Find the subtree root
-        const startNode = root ? viewIndex.get(root) : viewTree
-        if (!startNode) return []
-
-        // Include the board root itself — navigation can place cursor there
-        // (e.g., pressing k from first column). Without this, sel.node.select()
-        // on the root ID normalizes to [] → deselect → cursor null.
-        const ids: ID[] = []
-        if (startNode === viewTree && startNode.id) {
-          ids.push(startNode.id as ID)
+        if (root === null) {
+          // Full tree walk — lens.walkOrder already includes the root
+          return currentLens.walkOrder as readonly ID[]
         }
-        const stack: ViewNode[] = [...startNode.children].reverse()
+
+        // Subtree walk from a specific root
+        if (!currentLens.get(root)) return []
+        const ids: ID[] = [root]
+        const stack = [...currentLens.children(root)].reverse()
         while (stack.length > 0) {
-          const node = stack.pop()!
-          ids.push(node.id as ID)
-          // Push children in reverse so first child is popped first
-          for (let i = node.children.length - 1; i >= 0; i--) {
-            stack.push(node.children[i]!)
+          const id = stack.pop()!
+          ids.push(id as ID)
+          const children = currentLens.children(id)
+          for (let i = children.length - 1; i >= 0; i--) {
+            stack.push(children[i]!)
           }
         }
         return ids
@@ -99,17 +83,15 @@ export function createSelectionAdapter(): {
 
       parent(id: ID): ID | undefined {
         beforeRead?.()
-        const vn = viewIndex.get(id)
-        if (!vn?.parent) return undefined
-        // Board root is a valid parent — cursor can be at root level
-        return vn.parent.id as ID
+        if (!currentLens) return undefined
+        const p = currentLens.parent(id)
+        return p == null ? undefined : (p as ID)
       },
 
       children(id: ID): readonly ID[] {
         beforeRead?.()
-        const vn = viewIndex.get(id)
-        if (!vn) return []
-        return vn.children.map((c) => c.id as ID)
+        if (!currentLens) return []
+        return currentLens.children(id) as readonly ID[]
       },
     },
   }

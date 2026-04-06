@@ -258,8 +258,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // sel.node.select() could invalidate the computed, producing a different
     // ViewSnapshot with a walkOrder that doesn't contain the navigation target.
     // This race condition causes cursor → null (the "no cursor" bug).
-    if (snap) {
-      s.selTreeSource.update(snap.index as Map<string, ViewNode>, snap.tree)
+    if (board?.signals) {
+      s.selTreeSource.update(board.signals.visibleLens())
     }
 
     // Use cached cursor indices when cursor+layout haven't changed
