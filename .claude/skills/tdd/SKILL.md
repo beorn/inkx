@@ -45,7 +45,15 @@ Match the bug to the cheapest tool that can reproduce it:
 
 Write it in `/tmp/` first. Keep it minimal — reproduce the exact user scenario.
 
-### Pattern A: State bug (testEnv)
+**Prefer high-level assertions** that verify what the user SEES, not internal state:
+- `board.screenshot()` — check rendered text content
+- `board.expect("#nodeId").toExist()` — verify element is visible
+- `board.screen.row(y)` — check a specific rendered line
+- `board.expectNodeColor("id", { bg, fg })` — verify styling
+
+Only drop to state assertions (`repo.getNode()`, store selectors) when the rendered output can't distinguish the bug. A test that checks `repo.getNode("x")?.parent_id` passes even if the screen shows the wrong thing.
+
+### Pattern A: User-visible bug (testEnv — screen assertions)
 ```typescript
 // /tmp/repro-indent-edit.test.ts
 import { item, testEnvWithRepo } from "apps/km-tui/tests/helpers/board-test.ts"
@@ -57,7 +65,16 @@ test("repro: Tab indents during inline edit", () => {
   board.navigateTo("task2")
   board.press("Enter") // enter edit mode
   board.press("Tab")   // should indent
-  // Assert the expected outcome
+
+  // HIGH-LEVEL: verify what the user sees — task2 is now a child of task1
+  const shot = board.screenshot()
+  expect(shot).toContain("task1")
+  // task2 should be indented under task1 (visible as sub-item)
+  const task1Box = board.screen.nodeBox("task1")
+  const task2Box = board.screen.nodeBox("task2")
+  expect(task2Box!.x, "task2 should be indented further than task1").toBeGreaterThan(task1Box!.x)
+
+  // LOW-LEVEL: also verify state (belt + suspenders)
   expect(repo.getNode("task2")?.parent_id).toBe(repo.getNode("task1")?.id)
 })
 ```
