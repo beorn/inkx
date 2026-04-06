@@ -584,7 +584,7 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       if (ctx.card && ctx.cursor && ctx.cursor !== ctx.card.id) {
         ctx.sel.node.select([ctx.card.id as ID])
       }
-      const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const cardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
       const msg = result.depth === 0 ? "Folded to titles" : `Fold depth ${result.depth}`
@@ -592,7 +592,7 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       return ok()
     }
     case "UNFOLD_LEVEL": {
-      const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const cardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyUnfoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
       const msg = result.depth === null ? "All unfolded" : `Fold depth ${result.depth}`
@@ -967,7 +967,12 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
         ctx.sel.node.select([collapseNodeId as ID])
       }
       const colName = shortName(ctx, collapseNodeId)
-      ctx.setUI({ status: { level: "info", message: wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}` } })
+      ctx.setUI({
+        status: {
+          level: "info",
+          message: wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}`,
+        },
+      })
       return ok()
     }
     case "ZOOM_IN":
@@ -976,7 +981,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const roots = getFoldTargetRoots(ctx, card)
       const scope = action.scope ?? "card"
       if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
-      const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const columnCardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyFoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "already fully folded")
       // Cursor-always-visible: if cursor is inside a card being folded deeper, nudge to card
@@ -991,7 +996,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const roots = getFoldTargetRoots(ctx, card)
       const scope = action.scope ?? "card"
       if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
-      const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const columnCardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyUnfoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "maximum depth reached")
       applyFoldEffects(ctx, result)
@@ -1103,7 +1108,10 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
     case "TOGGLE_SHOW_HIDDEN":
       ctx.setUI((prev) => {
         const next = !prev.showHidden
-        return { showHidden: next, status: { level: "info" as const, message: next ? "Hidden: shown" : "Hidden: filtered" } }
+        return {
+          showHidden: next,
+          status: { level: "info" as const, message: next ? "Hidden: shown" : "Hidden: filtered" },
+        }
       })
       return ok()
     default:
@@ -1807,41 +1815,63 @@ function handleAddNodeChildFirst(ctx: OpCtx): void {
   requestRenderFlush()
 }
 
-/** Find next/prev editable sibling node via ViewTree.
+/** Get all card-level node IDs from the ViewTreeProjection.
+ *  Equivalent to ctx.columns.flatMap(col => col.cardNodes.map(c => c.id)). */
+function getAllCardIds(tree: import("@km/board").ViewTreeProjection): string[] {
+  const rootId = tree.rootId
+  if (!rootId) return []
+  const columnIds = tree.children(rootId)
+  return columnIds.flatMap((colId) => [...tree.children(colId)])
+}
+
+/** Find the deepest last visible descendant of a node by recursively following last children.
+ *  Returns the node ID, or the input ID if it has no visible children. */
+function findDeepestLastDescendant(tree: import("@km/board").ViewTreeProjection, nodeId: string): string {
+  const children = tree.children(nodeId)
+  if (children.length === 0) return nodeId
+  const lastChild = children[children.length - 1]!
+  return findDeepestLastDescendant(tree, lastChild)
+}
+
+/** Find next/prev editable sibling node via ViewTreeProjection.
  *  Walks the parent's children array (which is already pruned for visibility).
  *  Skips body-block children (before the first outline child) since those are
  *  navigated via blockIndex, not as separate edit targets.
  *  If no sibling in the given direction, recurses up to the parent level. */
 function findAdjacentEditNode(
-  viewIndex: Map<string, ViewNode>,
+  tree: import("@km/board").ViewTreeProjection,
   nodeId: string,
   direction: "up" | "down",
   depth = 0,
 ): KNode | null {
   if (depth > 20) return null // defensive guard against cycles
-  const vn = viewIndex.get(nodeId)
-  if (!vn?.parent) return null
+  const parentId = tree.parent(nodeId)
+  if (!parentId) return null
 
   // Get navigable siblings. At card/subitem level, skip body blocks (non-outline
   // children before the first outline child) since those are navigated via blockIndex.
   // At column level, all children (cards) are navigable — no filtering needed.
-  const allSiblings = vn.parent.children
-  const needsBodyFilter = vn.parent.role === "card" || vn.parent.role === "subitem"
-  let siblings = allSiblings
+  const allSiblingIds = tree.children(parentId)
+  const parentViewType = tree.getProjected(parentId)?.viewType()
+  const needsBodyFilter = parentViewType === "card" || parentViewType === "subitem"
+  let siblingIds = allSiblingIds
   if (needsBodyFilter) {
-    const firstOutlineIdx = allSiblings.findIndex((s) => s.node && KNode.isOutline(s.node))
-    if (firstOutlineIdx > 0) siblings = allSiblings.slice(firstOutlineIdx)
+    const firstOutlineIdx = allSiblingIds.findIndex((id) => {
+      const n = tree.node(id)
+      return n && KNode.isOutline(n)
+    })
+    if (firstOutlineIdx > 0) siblingIds = allSiblingIds.slice(firstOutlineIdx)
   }
 
-  const idx = siblings.indexOf(vn)
+  const idx = siblingIds.indexOf(nodeId)
   if (idx !== -1) {
     const nextIdx = idx + (direction === "down" ? 1 : -1)
-    const adjacent = siblings[nextIdx]
-    if (nextIdx >= 0 && adjacent) return adjacent.node
+    const adjacentId = siblingIds[nextIdx]
+    if (nextIdx >= 0 && adjacentId) return tree.node(adjacentId) ?? null
   }
 
   // No sibling in that direction — recurse up to parent level
-  return vn.parent.id ? findAdjacentEditNode(viewIndex, vn.parent.id, direction, depth + 1) : null
+  return findAdjacentEditNode(tree, parentId, direction, depth + 1)
 }
 
 function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBoundary = false): OpResult {
@@ -1912,25 +1942,19 @@ function handleEditBlockNavigate(ctx: OpCtx, direction: "up" | "down", exitAtBou
   // enter that sibling's LAST child (or last body block) instead of its title.
   // This gives proper "bottom-up" traversal matching the "top-down" descent above.
 
-  // Find next/prev editable node via ViewTree — all nav now uses single source of truth.
-  const adjacentNode = findAdjacentEditNode(ctx.viewIndex, effectiveNodeId, direction)
+  // Find next/prev editable node via ViewTreeProjection — all nav now uses single source of truth.
+  const adjacentNode = findAdjacentEditNode(ctx.tree, effectiveNodeId, direction)
 
   if (adjacentNode) {
     // For "up" direction: navigate to the deepest last visible descendant (bottom of card).
     if (direction === "up") {
-      const adjView = ctx.viewIndex.get(adjacentNode.id)
-      let deepest: ViewNode | undefined
-      if (adjView) {
-        // Find deepest-last visible descendant by iterating all nodes.
-        // DFS order visits root first; the last node visited is the deepest-last leaf.
-        for (const vn of ViewTree.nodes(adjView)) {
-          deepest = vn
-        }
-      }
-      if (deepest?.node && deepest.id !== adjacentNode.id) {
-        const deepBodyCount = extractBody(ctx.repo.getChildren(deepest.id)).body.length
-        ctx.sel.node.select([deepest.id as ID])
-        ctx.sel.text.edit(deepest.id as import("@silvery/selection").ID, 0)
+      // Find deepest-last visible descendant by recursively following last children.
+      const deepestId = findDeepestLastDescendant(ctx.tree, adjacentNode.id)
+      const deepestNode = deepestId ? ctx.tree.node(deepestId) : null
+      if (deepestNode && deepestId !== adjacentNode.id) {
+        const deepBodyCount = extractBody(ctx.repo.getChildren(deepestId)).body.length
+        ctx.sel.node.select([deepestId as ID])
+        ctx.sel.text.edit(deepestId as import("@silvery/selection").ID, 0)
         ctx.textEditHints = { blockIndex: deepBodyCount, initialCursorPos: "end", stickyX }
         requestRenderFlush()
         return ok()
@@ -2004,7 +2028,12 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   })
 
   ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.id })
-  ctx.setUI({ status: { level: "info", message: isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}` } })
+  ctx.setUI({
+    status: {
+      level: "info",
+      message: isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}`,
+    },
+  })
   return ok()
 }
 
@@ -2159,20 +2188,21 @@ function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): OpResult {
 }
 
 function handleJumpToColumn(ctx: OpCtx, columnNumber: number): OpResult {
-  const columns = ctx.columns
+  const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
 
   // Column numbers are 1-indexed for user, 0-indexed internally
   const targetColIdx = columnNumber - 1
 
-  if (targetColIdx < 0 || targetColIdx >= columns.length) {
+  if (targetColIdx < 0 || targetColIdx >= columnIds.length) {
     return boundary("column", `column ${columnNumber} does not exist`)
   }
 
-  const targetCol = columns[targetColIdx]
-  if (targetCol && targetCol.cardNodes.length > 0) {
-    const firstCard = targetCol.cardNodes[0]
-    if (firstCard) {
-      ctx.sel.node.select([firstCard.id as ID])
+  const targetColId = columnIds[targetColIdx]
+  if (targetColId) {
+    const cardIds = ctx.tree.children(targetColId)
+    const firstCardId = cardIds[0]
+    if (firstCardId) {
+      ctx.sel.node.select([firstCardId as ID])
     }
   }
   return ok()
@@ -2354,10 +2384,12 @@ function handleHideNode(ctx: OpCtx): OpResult {
     ctx.setUI({ status: { level: "info", message: `Hidden: ${hiddenPath}` } })
 
     // Move cursor to adjacent column since this one is now hidden
-    const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
-    const targetCol = ctx.columns[colIndex + 1] ?? (colIndex > 0 ? ctx.columns[colIndex - 1] : undefined)
-    if (targetCol) {
-      ctx.sel.node.select([(targetCol.cardNodes[0]?.id ?? targetCol.node.id) as ID])
+    const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+    const colIndex = columnIds.indexOf(node.id)
+    const targetColId = columnIds[colIndex + 1] ?? (colIndex > 0 ? columnIds[colIndex - 1] : undefined)
+    if (targetColId) {
+      const targetCardIds = ctx.tree.children(targetColId)
+      ctx.sel.node.select([(targetCardIds[0] ?? targetColId) as ID])
     }
   }
 

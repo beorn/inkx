@@ -323,31 +323,31 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
  * reveal the target.
  */
 function ensureCursorVisible(ctx: OpCtx, targetId: string): void {
-  const vn = ctx.viewIndex.get(targetId)
-  if (!vn) return
+  if (!ctx.tree.node(targetId)) return
 
-  // Walk up to find the card ancestor and measure depth
+  // Walk up via ViewTreeProjection to find the card ancestor and measure depth
   let depth = 0
-  let current: ViewNode | null = vn
-  let cardNode: ViewNode | null = null
-  while (current) {
-    if (current.role === "card") {
-      cardNode = current
+  let currentId: string | null = targetId
+  let cardNodeId: string | null = null
+  while (currentId) {
+    const projected = ctx.tree.getProjected(currentId)
+    if (projected?.viewType() === "card") {
+      cardNodeId = currentId
       break
     }
     depth++
-    current = current.parent
+    currentId = ctx.tree.parent(currentId)
   }
-  if (!cardNode || depth === 0) return
+  if (!cardNodeId || depth === 0) return
 
   // Check if the target is beyond the effective render depth for this card
-  const cardFoldOverride = ctx.foldDepths.get(cardNode.id)
+  const cardFoldOverride = ctx.foldDepths.get(cardNodeId)
   const effectiveDepth = cardFoldOverride ?? CARD_REMAINING_DEPTH
   if (depth <= effectiveDepth) return
 
   // Set fold depth on the card to reveal the target
   const newDepths = new Map(ctx.foldDepths)
-  newDepths.set(cardNode.id, depth)
+  newDepths.set(cardNodeId, depth)
   ctx.setFoldDepths(newDepths)
 }
 

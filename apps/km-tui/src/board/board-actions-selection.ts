@@ -104,13 +104,13 @@ function handleExtendSelectOutline(ctx: OpCtx, direction: "up" | "down"): void {
  * Selects entire columns between anchor and focus.
  */
 export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "right"): void {
-  const columns = ctx.columns
+  const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
 
-  if (columns.length === 0) return
+  if (columnIds.length === 0) return
 
   // Calculate target column (focus moves one step in direction)
   const targetColIdx =
-    direction === "right" ? Math.min(columns.length - 1, ctx.colIndex + 1) : Math.max(0, ctx.colIndex - 1)
+    direction === "right" ? Math.min(columnIds.length - 1, ctx.colIndex + 1) : Math.max(0, ctx.colIndex - 1)
 
   // At boundary with existing selection: do nothing
   if (targetColIdx === ctx.colIndex) {
@@ -118,17 +118,18 @@ export function handleExtendSelectHorizontal(ctx: OpCtx, direction: "left" | "ri
   }
 
   // Move cursor to first card in target column
-  const targetCol = columns[targetColIdx]
-  if (targetCol && targetCol.cardNodes.length > 0) {
-    const targetCard = targetCol.cardNodes[0]
-    if (targetCard) {
-      ctx.sel.node.select([targetCard.id as ID])
+  const targetColId = columnIds[targetColIdx]
+  if (targetColId) {
+    const cardIds = ctx.tree.children(targetColId)
+    const firstCardId = cardIds[0]
+    if (firstCardId) {
+      ctx.sel.node.select([firstCardId as ID])
     }
   }
 
   // Select all cards in columns between anchor column and target column
   const anchorColIdx = resolveAnchorCol(ctx) ?? ctx.colIndex
-  const newSelected = selectColumnRange(ctx, anchorColIdx, targetColIdx)
+  const newSelected = selectColumnRange(ctx, anchorColIdx, targetColIdx, columnIds)
   const colCount = Math.abs(targetColIdx - anchorColIdx) + 1
 
   ctx.sel.node.select(Array.from(newSelected) as ID[])
@@ -149,16 +150,16 @@ function resolveAnchorCol(ctx: OpCtx): number | null {
 }
 
 /** Select all cards in all columns between fromCol and toCol (inclusive). */
-function selectColumnRange(ctx: OpCtx, fromCol: number, toCol: number): Set<string> {
+function selectColumnRange(ctx: OpCtx, fromCol: number, toCol: number, columnIds: readonly string[]): Set<string> {
   const selected = new Set<string>()
   const minCol = Math.min(fromCol, toCol)
   const maxCol = Math.max(fromCol, toCol)
 
   for (let colIdx = minCol; colIdx <= maxCol; colIdx++) {
-    const col = ctx.columns[colIdx]
-    if (col) {
-      for (const card of col.cardNodes) {
-        selected.add(card.id)
+    const colId = columnIds[colIdx]
+    if (colId) {
+      for (const cardId of ctx.tree.children(colId)) {
+        selected.add(cardId)
       }
     }
   }
