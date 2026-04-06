@@ -115,10 +115,9 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
       collapsedNodeIds.add(child.id)
     }
   }
-  const initLens = createVisibleLens(
-    createViewLens(repo, { rootId: rootNode.id, foldDepths: new Map() }),
-    { collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined },
-  )
+  const initLens = createVisibleLens(createViewLens(repo, { rootId: rootNode.id, foldDepths: new Map() }), {
+    collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
+  })
   const colIds = rootNode.id ? initLens.children(rootNode.id) : []
   const firstColId = colIds[0]
   const firstCardId = firstColId ? initLens.children(firstColId)[0] : null

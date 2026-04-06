@@ -315,7 +315,7 @@ describe("windowing — visual rendering", () => {
     const nodes = item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a")))
     const repo = createFakeRepo({ nodes })
     // Derive initial cursor from lens (no buildBoardState)
-  const _lens = createVisibleLens(createViewLens(repo, { rootId: "board", foldDepths: new Map() }))
+    const _lens = createVisibleLens(createViewLens(repo, { rootId: "board", foldDepths: new Map() }))
     const toastQueue = createToastQueue()
     const cols = 120
     const rows = 30

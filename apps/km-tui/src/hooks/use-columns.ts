@@ -258,7 +258,6 @@ export function deriveCursorIndices(
   return { colIndex: -1, cardIndex: -1, isAtCardLevel: false }
 }
 
-
 // =============================================================================
 // Node Index
 // =============================================================================

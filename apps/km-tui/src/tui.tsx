@@ -58,7 +58,10 @@ tuiEvents.setMaxListeners(200)
  * - hasInput() = false → static mode, render once and exit
  */
 // oxlint-disable-next-line complexity/complexity -- async setup with nested callbacks, not worth extracting
-export async function runBoard(rootId: string | null, options: TuiOptions & { repo: import("@km/storage").Repo }): Promise<void> {
+export async function runBoard(
+  rootId: string | null,
+  options: TuiOptions & { repo: import("@km/storage").Repo },
+): Promise<void> {
   using run = log.span("run-board")
   log.debug?.("runBoard start")
 
@@ -306,10 +309,9 @@ export async function runBoard(rootId: string | null, options: TuiOptions & { re
     const defaultIconStyle = caps.nerdfont ? "nerdfont" : "workflowy"
 
     // Derive initial cursor from lens — first card of first column, or first column
-    const initLens = createVisibleLens(
-      createViewLens(options.repo, { rootId, foldDepths: new Map() }),
-      { collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined },
-    )
+    const initLens = createVisibleLens(createViewLens(options.repo, { rootId, foldDepths: new Map() }), {
+      collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
+    })
     const initColIds = rootId ? initLens.children(rootId) : []
     const firstColId = initColIds[0]
     const firstCardId = firstColId ? initLens.children(firstColId)[0] : null

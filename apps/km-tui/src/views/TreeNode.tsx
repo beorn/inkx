@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { useNodeStore, type NodeEditState } from "../state/reactive.ts"
 import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Link, Text, useScreenRectCallback } from "@silvery/ag-react"
+import { Box, ErrorBoundary, Link, Text, useScreenRectCallback, useTheme } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -42,6 +42,7 @@ import { stripKnownMentions } from "./detail-pane-helpers.ts"
 import { resolveEmbed, getDisplayContent } from "./embed-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
+import { selectedBg } from "../theme.ts"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
@@ -313,19 +314,30 @@ function TreeNodeImpl({
   ])
 
   // Cursor node (isSelected): inverse yellow on its title row only.
+  // Parent card (cursorInDescendant): yellow fg + faint highlight bg on title row.
   // Multi-selected (isNodeSelected): no inverse — CardColumn handles bg tint.
-  // Subitems keep regular fg colors, inheriting the card bg.
   const cursorInDescendant = useSignal(nodeStore.getOrCreate(node.id).cursorInDescendant)
+  const isParentOfCursor = depth === 0 && cursorInDescendant
 
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const searchHighlight = isSearchMatch && !isSelected && !isNodeSelected
-  // Only the cursor node gets inverse bg on its head row.
+  // Cursor node: inverse bg on head row.
+  // Parent of cursor: yellow fg + faint highlight bg on head row.
   // Card-level subtle bg comes from CardColumn, not TreeNode.
-  const effectiveBg = isSelected ? undefined : style.backgroundColor
-  const headRowBg = isSelected ? style.backgroundColor : undefined
-  const tc = style.textColor
+  const theme = useTheme()
+  const effectiveBg = isSelected || isParentOfCursor ? undefined : style.backgroundColor
+  const headRowBg = isSelected
+    ? style.backgroundColor // inverse ($selection-bg)
+    : isParentOfCursor
+      ? selectedBg(theme) // faint highlight
+      : undefined
+  const tc = isSelected
+    ? style.textColor // $selection (black) for inverse
+    : isParentOfCursor
+      ? "$primary" // yellow fg for parent card title
+      : style.textColor
   const sd = style.shouldDim
 
   // Untitled nodes (showing (shortId) fallback) render very dimmed

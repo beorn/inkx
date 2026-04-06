@@ -87,7 +87,7 @@ describe("col-scroll-indicator", () => {
 // =============================================================================
 
 describe("km-tui.col-selected-style: column selected style at column level", () => {
-  it("column header has yellow bg when cursor is at column level", () => {
+  it("column header has yellow fg when cursor is at column level", () => {
     const { board } = testEnv(
       () => item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3"))),
       { columns: 100, rows: 20 },
@@ -116,11 +116,9 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     const colTextX = row.indexOf("col1")
     expect(colTextX, "'col1' should be visible in header row").toBeGreaterThan(-1)
 
-    // When cursor is at column level, header text should have
-    // $selected bg and $selectedfg fg -- the "inverse selected" style
+    // When cursor is at column level, header text should have yellow fg (not inverse)
     const cell = board.screen.cell(colTextX, headerY)
-    expect(cell.bg, "column header bg should be $selected when at column level").toEqual(TC.$selected)
-    expect(cell.fg, "column header fg should be $selectedfg when at column level").toEqual(TC.$selectedfg)
+    expect(cell.fg, "column header fg should be $primary (yellow) when at column level").toEqual(TC.$primary)
   })
 
   it("separator line is yellow when cursor is at column level", () => {

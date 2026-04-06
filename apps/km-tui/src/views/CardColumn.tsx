@@ -441,15 +441,17 @@ const Card = React.memo(
         ? selectedBg(theme)
         : undefined
 
-    // Border: cyan when editing, yellow when selected/multi-selected/column-selected, default otherwise
+    // Border: cyan when editing, yellow when card selected, hidden when column selected
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
     const borderColor = isEditing
       ? "$focusborder"
-      : isSelected || isNodeSelected || isColSelected
-        ? "$selection-bg"
-        : (hoverBorderColor ?? defaultBorder)
+      : isColSelected
+        ? "$surface-bg" // hide borders when column is selected
+        : isSelected || isNodeSelected
+          ? "$selection-bg"
+          : (hoverBorderColor ?? defaultBorder)
     // When overflow, suppress the bottom border and render a custom one with the count
     if (hasOverflow) {
       // Inner width excludes the 2 border columns (left + right)

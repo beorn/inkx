@@ -24,14 +24,14 @@ export { detectTheme }
  * Returns a hex color blending theme.bg with theme.primary at 12%.
  * For ANSI-16 themes (no hex bg), returns undefined (border-only selection). */
 export function selectedBg(theme: Theme): string | undefined {
-  if (theme.bg && theme.primary) return blend(theme.bg, theme.primary, 0.12)
+  if (theme.bg && theme.primary) return blend(theme.bg, theme.primary, 0.06)
   return undefined
 }
 
 /** Subtle focusborder-tinted bg for editing containers.
  * Replaces selection highlight during inline editing. */
 export function editingBg(theme: Theme): string | undefined {
-  if (theme.bg && theme.focusborder) return blend(theme.bg, theme.focusborder, 0.08)
+  if (theme.bg && theme.focusborder) return blend(theme.bg, theme.focusborder, 0.04)
   return undefined
 }
 

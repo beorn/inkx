@@ -30,11 +30,7 @@ import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
-import {
-  deriveDetailColumns,
-  buildNodeIndexFromTree,
-  deriveCursorIndices,
-} from "../hooks/use-columns.ts"
+import { deriveDetailColumns, buildNodeIndexFromTree, deriveCursorIndices } from "../hooks/use-columns.ts"
 import { createViewTree } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
@@ -251,7 +247,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       columnId = treeColIds[cursor.colIndex] ?? null
       const treeCardIds = columnId ? tree.children(columnId) : []
       const cardNodeId = treeCardIds[cursor.cardIndex]
-      card = cardNodeId ? s.repo.getNode(cardNodeId) ?? undefined : undefined
+      card = cardNodeId ? (s.repo.getNode(cardNodeId) ?? undefined) : undefined
       selectedNode = card ?? (columnId ? s.repo.getNode(columnId) : null) ?? null
     }
 

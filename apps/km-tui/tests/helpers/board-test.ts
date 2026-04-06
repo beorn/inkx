@@ -236,10 +236,9 @@ function deriveBoardInit(repo: Repo, rootId: string) {
   }
 
   // Derive initial cursor from lens — first card of first non-collapsed column
-  const lens = createVisibleLens(
-    createViewLens(repo, { rootId, foldDepths: new Map() }),
-    { collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined },
-  )
+  const lens = createVisibleLens(createViewLens(repo, { rootId, foldDepths: new Map() }), {
+    collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined,
+  })
   const colIds = lens.children(rootId)
   let initialCursor: string | null = null
   let colIndex = 0

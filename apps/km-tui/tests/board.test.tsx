@@ -109,7 +109,6 @@ describe("Render", () => {
     const text = board.screenshot()
     expect(text).toContain("Empty board")
   })
-
 })
 
 // =============================================================================

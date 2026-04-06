@@ -162,24 +162,19 @@ export function getHeaderStyle(
   isSelected: boolean,
   isActiveSelection: boolean,
 ): { color: string | undefined; backgroundColor: string | undefined; dimColor: boolean } {
-  // When actively selected (column is the selection cursor), use inverse yellow
-  // Per-pane theme dims $selected for unfocused panes automatically
+  // Column selected (cursor at column level): yellow fg + faint highlight bg
+  // Cursor in child card: yellow fg only (no bg)
+  // Cursor elsewhere: default fg
   if (isActiveSelection) {
     return {
-      color: "$selection",
-      backgroundColor: "$selection-bg",
+      color: "$primary",
+      backgroundColor: undefined, // faint bg applied by Column component via selectedBg()
       dimColor: false,
     }
   }
 
-  // Default styling:
-  // - Yellow when cursor is in this column (isSelected)
-  // - undefined (terminal default foreground) when cursor is elsewhere
-  //   Explicit "white" renders as grey on some terminals; undefined uses
-  //   the terminal's bright-white default, matching card text.
-  // Note: headers are always bold (handled by component)
   return {
-    color: isSelected ? "$selection-bg" : undefined,
+    color: isSelected ? "$primary" : undefined,
     backgroundColor: undefined,
     dimColor: false,
   }

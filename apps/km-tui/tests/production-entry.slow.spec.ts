@@ -81,7 +81,6 @@ describe("production entry point (createBoardApp)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -113,7 +112,6 @@ describe("production entry point (createBoardApp)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -152,7 +150,6 @@ describe("production smoke: console toggle", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -193,7 +190,6 @@ describe("production smoke: console toggle", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -244,7 +240,6 @@ describe("console toggle: resume re-entrancy (km-tui.console)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -290,7 +285,6 @@ describe("production smoke: inline edit + re-render", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -334,7 +328,6 @@ describe("production smoke: inline edit + re-render", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -374,7 +367,6 @@ describe("perf regression: unnecessary setUI on keypress (km-tui.perf-regr)", ()
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -436,7 +428,6 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -618,7 +609,6 @@ describe("production smoke: store dimensions", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -658,7 +648,6 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -701,7 +690,6 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -745,7 +733,6 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -790,7 +777,6 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -832,7 +818,6 @@ describe("production smoke: date dialog (km-qaco9)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -883,7 +868,6 @@ describe("production smoke: date dialog (km-qaco9)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -931,7 +915,6 @@ describe("production smoke: date dialog (km-qaco9)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
