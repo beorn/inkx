@@ -82,7 +82,7 @@ import {
 import { handleKey, handleMouse, resetBoardAppState } from "../../src/board/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "@silvery/ag-react"
-import type { InitialBoardData } from "../../src/types.ts"
+import type { BoardStateResult } from "../../src/state.ts"
 
 import { createSelection, type SelectionStore, EMPTY_ORDERED_SET } from "@silvery/selection"
 import { signal as alienSignal } from "alien-signals"
@@ -227,7 +227,7 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
  * Compute initial cursor placement for a board state.
  * Skips collapsed columns to avoid placing cursor on invisible cards.
  */
-function computeInitialCursor(initialState: InitialBoardData) {
+function computeInitialCursor(initialState: BoardStateResult) {
   let initialCursor: string | null = null
   let colIndex = 0
   let cardIndex = -1
@@ -1894,13 +1894,24 @@ expect.extend({
 /**
  * Render a board with the given state and return a test helper
  */
-export function renderBoard(state: InitialBoardData, options: { columns?: number; rows?: number } = {}) {
+export function renderBoard(state: BoardStateResult, options: { columns?: number; rows?: number } = {}) {
   const { columns = 80, rows = 24 } = options
 
   // Create a fake repo populated with nodes from the state
   const allNodes: import("@km/core").KNode[] = []
   if (state.rootId) {
-    const rootNode = { id: state.rootId, type: "h" as const, parent_id: null, content: state.rootId, data: {}, item: {}, name: state.rootId, title: state.rootId, fstype: "mdsection" as const, parent_idx: 0 } as any
+    const rootNode = {
+      id: state.rootId,
+      type: "h" as const,
+      parent_id: null,
+      content: state.rootId,
+      data: {},
+      item: {},
+      name: state.rootId,
+      title: state.rootId,
+      fstype: "mdsection" as const,
+      parent_idx: 0,
+    } as any
     allNodes.push(rootNode)
   }
   for (const col of state.columns) {
@@ -2165,7 +2176,7 @@ export function column(title: string, cards: (string | { title: string; children
  * });
  * ```
  */
-export function board(config: { columns: ReturnType<typeof column>[] }): InitialBoardData {
+export function board(config: { columns: ReturnType<typeof column>[] }): BoardStateResult {
   return createBoardStateFixture(config.columns)
 }
 

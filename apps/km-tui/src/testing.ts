@@ -192,12 +192,12 @@ export async function createBoardTest(
 
   const rootId = rootNodeId ?? null
 
-  // Derive column IDs and initial cursor from lens (no InitialBoardData needed)
+  // Derive column IDs and initial cursor from lens
   const initViewLens = createViewLens(repo, { rootId, foldDepths: new Map() })
   const initLensForCols = createVisibleLens(initViewLens)
   const columnIds = rootId ? [...initLensForCols.children(rootId)] : []
   const firstColId = columnIds[0]
-  const firstCardNodeId = firstColId ? initLensForCols.children(firstColId)[0] ?? null : null
+  const firstCardNodeId = firstColId ? (initLensForCols.children(firstColId)[0] ?? null) : null
 
   // Create test renderer
   const render = createRenderer({ cols: width, rows: height })
@@ -284,7 +284,7 @@ export async function createBoardTest(
 
     getSelectedNode() {
       // Static harness always at first card
-      return firstCardNodeId ? repo.getNode(firstCardNodeId) ?? null : null
+      return firstCardNodeId ? (repo.getNode(firstCardNodeId) ?? null) : null
     },
 
     // Lifecycle

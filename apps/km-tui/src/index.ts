@@ -9,7 +9,6 @@
 export * from "./theme.ts"
 export * from "./types.ts"
 export * from "./state.ts"
-export * from "./render.ts"
 export * from "./tui.tsx"
 
 // Export views

@@ -5,28 +5,11 @@
  * The data model is KNode (from @km/core) — a single tree of nodes.
  *
  * The canonical view model is the tree lens (`@km/board`). React view components
- * self-resolve their data via `useNode(id)` + `useSignal(ps.visibleLens)` —
- * there is no `ColumnView` wrapper at the view layer. The legacy `ColumnView`
- * shape still exists for the initial-load path (see `hooks/use-columns.ts`).
+ * self-resolve their data via `useNode(id)` + `useSignal(ps.visibleLens)`.
+ * The live pipeline: Repo → ViewLens → VisibleLens → ViewTreeProjection → useNode(id).
  */
 
 import type { Repo } from "./repo-context.tsx"
-import type { ColumnView } from "./hooks/use-columns.ts"
-
-/**
- * Initial board data returned by buildBoardState/initBoardState.
- * Contains the minimum data needed to initialize the TUI.
- *
- * `columns` provides the initial column/card structure for first render (runs once).
- * The live view derives columns reactively from the pane's visible lens (no ColumnView).
- */
-export interface InitialBoardData {
-  rootId: string | null
-  rootPath: string | null
-  columns: ColumnView[]
-  collapsedColumns: Set<number>
-  collapsedNodeIds: Set<string>
-}
 
 /**
  * View mode for the TUI

@@ -7,7 +7,7 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import type { InitialBoardData } from "../../src/types.ts"
+import type { BoardStateResult } from "../../src/state.ts"
 import type { ColumnView } from "../../src/hooks/use-columns.ts"
 import { createEmptyState } from "../../src/state.ts"
 
@@ -65,12 +65,12 @@ export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: 
 }
 
 /**
- * Create a InitialBoardData with columns
+ * Create a BoardStateResult with columns
  */
 export function createBoardState(
   columns: ColumnView[] = [],
-  overrides: Partial<InitialBoardData> = {},
-): InitialBoardData {
+  overrides: Partial<BoardStateResult> = {},
+): BoardStateResult {
   const base = createEmptyState()
   return {
     ...base,
@@ -85,7 +85,7 @@ export function createBoardState(
  * Useful for testing navigation, rendering, etc.
  */
 function createSimpleTestBoard(): {
-  state: InitialBoardData
+  state: BoardStateResult
   nodeIds: {
     root: string
     col1: string
@@ -150,7 +150,7 @@ function createSimpleTestBoard(): {
  * Create a nested board for zoom testing
  */
 function createNestedTestBoard(): {
-  state: InitialBoardData
+  state: BoardStateResult
   nodeIds: {
     root: string
     col: string
@@ -211,7 +211,7 @@ function createNestedTestBoard(): {
 /**
  * Create a board state with task statuses for status icon testing
  */
-function createStatusTestBoard(): InitialBoardData {
+function createStatusTestBoard(): BoardStateResult {
   const col = createColumnView({ content: "Tasks" }, [
     createCardNode({
       content: "Todo task",

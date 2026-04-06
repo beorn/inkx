@@ -8,8 +8,16 @@ import { KNode, findIndexFile } from "@km/core"
 
 /** Progress yield type for step generators */
 type StepYield = string | { current?: number; total?: number }
-import type { InitialBoardData } from "./types.ts"
 import type { ColumnView } from "./hooks/use-columns.ts"
+
+/** Board state result — used by test fixtures only. Live code uses the lens pipeline. */
+export interface BoardStateResult {
+  rootId: string | null
+  rootPath: string | null
+  columns: ColumnView[]
+  collapsedColumns: Set<number>
+  collapsedNodeIds: Set<string>
+}
 import { deduplicateByFsPath, isCollapsedChild } from "@km/board"
 import { parseHeadingRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
@@ -70,7 +78,7 @@ export const getParentContextEx = (
 /**
  * Create an empty board data result.
  */
-export function createEmptyState(): InitialBoardData {
+export function createEmptyState(): BoardStateResult {
   return {
     rootId: null,
     rootPath: null,
@@ -84,7 +92,7 @@ export function createEmptyState(): InitialBoardData {
  * Initialize board state from a root node ID, path, or filename
  * Returns null if no suitable board found
  */
-export function initBoardState(repo: Repo, rootId?: string): InitialBoardData | null {
+export function initBoardState(repo: Repo, rootId?: string): BoardStateResult | null {
   // rootId is required - no longer support root-level view
   // Callers should resolve repo root folder node if needed
   if (!rootId) {
@@ -106,7 +114,7 @@ export function initBoardState(repo: Repo, rootId?: string): InitialBoardData | 
 export function* initBoardStateGenerator(
   repo: Repo,
   rootId?: string,
-): Generator<StepYield, InitialBoardData | null, unknown> {
+): Generator<StepYield, BoardStateResult | null, unknown> {
   // rootId is required - no longer support root-level view
   // Callers should resolve repo root folder node if needed
   if (!rootId) {
@@ -142,7 +150,7 @@ export function* initBoardStateGenerator(
  * board-zoom.slow.spec.ts ("Zoom View Diff" describe block).
  */
 // oxlint-disable-next-line complexity/complexity -- Async generator with batched queries
-export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator<StepYield, InitialBoardData, unknown> {
+export function* buildBoardStateGenerator(repo: Repo, rootId: string): Generator<StepYield, BoardStateResult, unknown> {
   const rootNode = repo.getNode(rootId)
   const wipLimits = extractWipLimits(rootNode)
   const collapsedColumns = new Set<number>()
@@ -309,7 +317,7 @@ function normalizeColumnName(name: string): string {
  * Used for initial board setup (driver.ts, test helpers). For runtime column
  * derivation after the board is live, use deriveColumnsFromRepo() instead.
  */
-export function buildBoardState(repo: Repo, rootId: string): InitialBoardData {
+export function buildBoardState(repo: Repo, rootId: string): BoardStateResult {
   const gen = buildBoardStateGenerator(repo, rootId)
   let result = gen.next()
   while (!result.done) result = gen.next()

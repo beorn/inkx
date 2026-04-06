@@ -7,7 +7,6 @@ import { describe, test, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createEmptyState, initBoardState, buildBoardState, getNodeDisplayName } from "../src/state.ts"
-import { renderCard } from "../src/render.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
 
 describe("State", () => {
@@ -113,116 +112,6 @@ describe("Render", () => {
     expect(text).toContain("Empty board")
   })
 
-  test("renderCard includes content", () => {
-    const repo = createFakeRepo()
-    const card: KNode = {
-      id: "test-card",
-      type: "p",
-      item: {},
-      list_marker: "-",
-      parent_id: null,
-      parent_idx: 0,
-      symlink_to: null,
-      content: "My Test Task",
-      data: {},
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      version: "v1",
-    }
-    const output = renderCard(repo, card, 40, false, false, false)
-    expect(output).toContain("My Test Task")
-  })
-
-  test("renderCard shows children when not folded", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "test-card",
-          type: "p",
-          item: {},
-          list_marker: "-",
-          parent_id: null,
-          parent_idx: 0,
-          symlink_to: null,
-          content: "Parent Task",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-        {
-          id: "child-1",
-          type: "p",
-          item: {},
-          list_marker: "-",
-          parent_id: "test-card",
-          parent_idx: 0,
-          symlink_to: null,
-          content: "Child Task 1",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-      ],
-    })
-    const card = repo.getNode("test-card")!
-    const output = renderCard(repo, card, 40, false, false, false)
-    expect(output).toContain("Child Task 1")
-  })
-
-  test("renderCard shows item count when folded", () => {
-    const repo = createFakeRepo({
-      nodes: [
-        {
-          id: "test-card",
-          type: "p",
-          item: {},
-          list_marker: "-",
-          parent_id: null,
-          parent_idx: 0,
-          symlink_to: null,
-          content: "Parent Task",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-        {
-          id: "child-1",
-          type: "p",
-          item: {},
-          list_marker: "-",
-          parent_id: "test-card",
-          parent_idx: 0,
-          symlink_to: null,
-          content: "Child 1",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-        {
-          id: "child-2",
-          type: "p",
-          item: {},
-          list_marker: "-",
-          parent_id: "test-card",
-          parent_idx: 1,
-          symlink_to: null,
-          content: "Child 2",
-          data: {},
-          created_at: Date.now(),
-          updated_at: Date.now(),
-          version: "v1",
-        },
-      ],
-    })
-    const card = repo.getNode("test-card")!
-    const output = renderCard(repo, card, 40, false, false, true)
-    expect(output).toContain("\u25b8 2")
-    expect(output).not.toContain("Child 1")
-  })
 })
 
 // =============================================================================
