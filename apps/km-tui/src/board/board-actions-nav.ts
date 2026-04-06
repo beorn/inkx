@@ -25,6 +25,16 @@ import {
   type BoardNavState,
 } from "./board-reducer.ts"
 import { runBoardEffects } from "./board-effect-runner.ts"
+import type { ViewTreeProjection } from "@km/board"
+
+/** Collect all visible descendant IDs from ViewTree (lens handles fold + status filter). */
+function collectTreeDescendants(tree: ViewTreeProjection, rootId: string): string[] {
+  const result: string[] = [rootId]
+  for (const childId of tree.children(rootId)) {
+    result.push(...collectTreeDescendants(tree, childId))
+  }
+  return result
+}
 
 /** Build a ViewTree match predicate that skips nodes hidden by task status filter. */
 function taskStatusMatchFn(ctx: OpCtx): ((vn: ViewNode) => boolean) | undefined {
@@ -110,13 +120,8 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
 function handleOutlineNav(ctx: OpCtx, dir: "prev" | "next", card: KNode | undefined): OpResult {
   if (!card || !ctx.cursor) return boundary(dir)
 
-  const cardView = ctx.viewIndex.get(card.id)
-  const statusMatch = taskStatusMatchFn(ctx)
-  const descendantIds = cardView
-    ? [
-        ...ViewTree.nodes(cardView, { into: statusMatch ? (vn) => statusMatch(vn) : undefined, match: statusMatch }),
-      ].map((vn) => vn.id)
-    : [card.id]
+  // Walk visible descendants via ViewTree (lens already filters by task status)
+  const descendantIds = collectTreeDescendants(ctx.tree, card.id)
   const navState = extractNavState(ctx)
   const result = applyOutlineNav(navState, dir, descendantIds)
 
@@ -275,21 +280,9 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
   //   A done parent's children are invisible even if they're todo — don't descend.
   // `match`: exclude the filtered node itself from the navigable list.
   const col = ctx.column
-  const colView = col ? ctx.viewIndex.get(col.node.id) : undefined
-  const { foldDepths } = ctx
-  const statusMatch = taskStatusMatchFn(ctx)
-  const blocks = colView
-    ? [
-        ...ViewTree.nodes(colView, {
-          into: (vn) => {
-            if (foldDepths.get(vn.id) === 0) return false
-            if (statusMatch && !statusMatch(vn)) return false
-            return true
-          },
-          match: statusMatch,
-        }),
-      ].map((vn) => vn.id)
-    : []
+  const colId = col?.node.id
+  // Walk visible descendants via ViewTree (lens filters by task status + fold depth)
+  const blocks = colId ? collectTreeDescendants(ctx.tree, colId) : []
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
   const navState = extractNavState(ctx)
