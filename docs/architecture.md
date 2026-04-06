@@ -165,7 +165,7 @@ Each layer calls only the layer below. UI never touches filesystem. All mutation
 - `@km/markdown` — Parser: markdown <-> KNode (stateless, no DB)
 - `@km/storage` — Repo: SQLite CRUD, file sync, watch, events. Depends on core + markdown.
 - `@km/tree` — Tree mutations via TreeMutator interface (split, merge, indent, outdent)
-- `@km/board` — BoardState + reducer, ViewNode tree. ID-based, no tree traversal.
+- `@km/board` — BoardState + reducer, TreeLens pipeline (ViewLens → VisibleLens → ViewTreeProjection). ID-based.
 - `@km/commands` — Command registry, keybindings, context-aware dispatch
 
 **Apps**: `@km/tui` (TUI), `@km/cli-app` (CLI commands), `@km/repl` (interactive REPL), `@km/web` (web API server)
@@ -191,9 +191,9 @@ file.md on disk
   | repo-loader.ts, pipeline.ts
 Repo.getChildren(rootId) -> KNode[]
   | cached, O(1) per call
-buildViewTree -> viewNodeToColumnViews -> ColumnView[]
-  | @km/board (ViewNode tree), apps/km-tui/src/hooks/use-columns.ts (React hook)
-React render: Board -> CardColumn -> TreeNode -> silvery Box/Text
+PaneSignals.visibleLens (computed): createViewLens -> createVisibleLens -> ViewTreeProjection
+  | @km/board lens pipeline, auto-cached by alien-signals
+Board.tsx: columnIds from lens.children(rootId), components self-resolve via useNode(id)
   | silvery pipeline
 ANSI output: incremental buffer diff -> terminal
 ```
@@ -208,7 +208,7 @@ KmOp dispatched to handler
 Handler calls Repo mutation (e.g., repo.updateNode(id, changes))
   | SQLite update + file write (bidirectional sync)
   | repo emits version bump
-repoVersion$ signal bumps -> computed ViewSnapshot invalidates -> useSignal re-renders
+repoVersion$ signal bumps -> computed visibleLens invalidates -> useSignal re-renders
 ```
 
 ### Navigate: Cursor Movement
@@ -216,12 +216,12 @@ repoVersion$ signal bumps -> computed ViewSnapshot invalidates -> useSignal re-r
 ```
 User presses j/k/h/l
   | binding resolves to cursorMove command
-ViewNode navigation computes target nodeId
-  | view-navigation.ts: traverses ViewNode tree (parent pointers, sibling arrays)
-Dispatch SELECT action with target nodeId + cached viewIndex
-  | board reducer updates sel.node.cursor
-classifyCursorFromViewIndex derives cursorCardNodeId + cursorColumnNodeId
-  | O(1) ViewNode lookup + parent pointer walk
+ViewTreeProjection navigation computes target nodeId
+  | view-navigation.ts: tree.next(id) / tree.prev(id) / tree.children(id)
+Dispatch SELECT action with target nodeId
+  | sel.node.select([targetId])
+classifyCursorFromLens derives cursorCardNodeId + cursorColumnNodeId
+  | O(1) lens parent walk
 Components re-render via useSignal(sel.node.cursor) (only 2 cards: old + new cursor)
 ```
 
@@ -233,7 +233,7 @@ User edits file in vim/nvim
 Reconcile: parse file, diff KNodes against DB
   | emit node-added/node-changed/node-removed events
 SQLite state updated -> repo.touch() -> repoVersion$ signal bumps
-computed ViewSnapshot rebuilds -> useSignal re-renders
+computed visibleLens rebuilds -> useSignal re-renders
   | cursor validation: if sel.node.cursor was deleted, fall back to parent/sibling
 ```
 

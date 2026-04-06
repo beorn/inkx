@@ -499,7 +499,7 @@ interface BoardState {
 
 **Key design:** `sel.node.cursor()` is the sole cursor authority. Visual indices (`colIndex`, `cardIndex`) are **derived at render time** via `deriveCursorIndices()`. Cursor is always visible — fold nudges cursor to card, navigation auto-unfolds. See [selection-model.md](../design/selection-model.md) for the full selection API.
 
-**No tree data in state:** Repo provides tree queries directly. Columns are derived from `PaneSignals.view` (computed ViewSnapshot) via `viewNodeToColumnViews`, not stored in state.
+**No tree data in state:** Repo provides tree queries directly. Column IDs are derived from `PaneSignals.visibleLens` (computed TreeLens). Components take string IDs and self-resolve via `useNode(id)`.
 
 **Terminology:** "cursor" = single focused node. "selection" = multi-select via visual mode ('v').
 
