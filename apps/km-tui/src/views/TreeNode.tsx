@@ -562,11 +562,13 @@ function TreeNodeImpl({
 
   // Combined filter + slice with early exit: stop after collecting maxChildren matches.
   // For a card with 2,628 children and maxChildren=3, this scans ~3-10 items (not 2,628).
+  // "+1 more" takes the same space as showing the item — so show it instead.
+  const effectiveMax = children.length === maxChildren + 1 ? maxChildren + 1 : maxChildren
   const { visibleChildren, hiddenCount } = useMemo(() => {
     if (taskStatusFilter.size === 0) {
       return {
-        visibleChildren: children.length <= maxChildren ? children : children.slice(0, maxChildren),
-        hiddenCount: Math.max(0, children.length - maxChildren),
+        visibleChildren: children.length <= effectiveMax ? children : children.slice(0, effectiveMax),
+        hiddenCount: Math.max(0, children.length - effectiveMax),
       }
     }
     const visible: typeof children = []
@@ -577,11 +579,11 @@ function TreeNodeImpl({
       const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
       if (!status || taskStatusFilter.has(status)) {
         totalPassing++
-        if (visible.length < maxChildren) visible.push(child)
+        if (visible.length < effectiveMax) visible.push(child)
       }
     }
     return { visibleChildren: visible, hiddenCount: totalPassing - visible.length }
-  }, [children, taskStatusFilter, maxChildren, repo])
+  }, [children, taskStatusFilter, effectiveMax, repo])
 
   // Children are hidden when individually folded
   const childrenVisible = hasChildren && !isFolded
@@ -801,7 +803,7 @@ function TreeNodeImpl({
             getParentContext={resolvedGetParentContext}
             getBoardPills={getBoardPills}
             extraExcludedSigils={extraExcludedSigils}
-            showOverflowIndicator
+            showOverflowIndicator={depth > 0}
             remainingDepth={resolvedDepth - 1}
           />
         </ErrorBoundary>
