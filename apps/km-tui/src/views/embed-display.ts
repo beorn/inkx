@@ -155,9 +155,9 @@ export function getDisplayContent(
   }
   if (KNode.isOutline(displayNode) && displayNode.fstype === "mdsection") {
     const name = getNodeDisplayName(repo, displayNode)
-    // Untitled sections (empty Asana sections) show "(shortId)" fallback from getNodeDisplayName.
-    // Replace with a human-readable label instead of a raw GID like "(01KHW5W9)".
-    if (/^\([0-9A-Za-z]{8}\)$/.test(name)) return "(untitled section)"
+    // Untitled sections (empty Asana sections) get empty string from getNodeDisplayName.
+    // Replace with a human-readable label so the section is visually identifiable.
+    if (!name) return "(untitled section)"
     return name
   }
   // Bare block references (e.g., "^1153379636232754" — Asana recurring task instances).

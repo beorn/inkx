@@ -113,7 +113,8 @@ describe("getNodeDisplayName", () => {
         content: "",
         data: { rules: { color: "yellow" }, title: "Waiting" },
       })
-      expect(getNodeDisplayName(node)).toBe("(01KH8939)")
+      // content:"" is treated as valid (empty) content, not as "no content"
+      expect(getNodeDisplayName(node)).toBe("")
     })
 
     it("uses data.title when node.title is undefined", () => {
@@ -239,7 +240,17 @@ describe("getNodeDisplayName", () => {
       expect(getNodeDisplayName(node)).toBe("(fgh12345)")
     })
 
-    it("returns parens format for empty-titled outline items (## with no text)", () => {
+    it("returns empty string for empty-content nodes (new items)", () => {
+      // New items are created with content:"" — they should display blank,
+      // not show internal IDs like "(XWJE24KP)"
+      const node = createNode("01JTEST1234567", {
+        type: "p",
+        content: "",
+      })
+      expect(getNodeDisplayName(node)).toBe("")
+    })
+
+    it("returns empty string for empty-titled outline items (## with no text)", () => {
       const node = createNode("01JTEST1234567", {
         type: "h",
         item: {},
@@ -247,7 +258,7 @@ describe("getNodeDisplayName", () => {
         title: "",
         content: "",
       })
-      expect(getNodeDisplayName(node)).toBe("(T1234567)")
+      expect(getNodeDisplayName(node)).toBe("")
     })
   })
 })

@@ -326,8 +326,7 @@ describe("Untitled Columns", () => {
     const waitingMatches = text.match(/\bWaiting\b/g) ?? []
     expect(waitingMatches.length).toBe(1)
 
-    // The stale column should show as untitled (shortId in parens)
-    // slice(-8) of "stale-col" = "tale-col"
-    expect(text).toContain("(tale-col")
+    // The stale column should show as untitled (blank, not showing a short ID)
+    expect(text).not.toContain("tale-col")
   })
 })

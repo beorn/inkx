@@ -113,7 +113,10 @@ export function getNodeDisplayName(node: KNode, getChildren?: GetChildrenFn): st
   }
 
   // 4. Use node content (for tasks, etc.) — strip inline metadata and block IDs
-  if (node.content) {
+  // Check != null (not truthiness) so that content:"" returns "" instead of
+  // falling through to the short-ID fallback.  New items start with content:""
+  // and should display as blank, not as "(XWJE24KP)".
+  if (node.content != null) {
     return stripForDisplay(node.content.split("\n")[0] ?? "")
   }
 
