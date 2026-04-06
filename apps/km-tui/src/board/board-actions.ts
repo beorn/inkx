@@ -584,14 +584,14 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       if (ctx.card && ctx.cursor && ctx.cursor !== ctx.card.id) {
         ctx.sel.node.select([ctx.card.id as ID])
       }
-      const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const cardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyFoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
       ctx.setUI({ status: { level: "info", message: "All folded" } })
       return ok()
     }
     case "UNFOLD_LEVEL": {
-      const cardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const cardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyUnfoldLevel(extractFoldState(ctx), cardIds)
       applyFoldEffects(ctx, result)
       ctx.setUI({ status: { level: "info", message: "All unfolded" } })
@@ -974,7 +974,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const roots = getFoldTargetRoots(ctx, card)
       const scope = action.scope ?? "card"
       if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
-      const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const columnCardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyFoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "already fully folded")
       // Cursor-always-visible: if cursor is inside a card being folded deeper, nudge to card
@@ -989,7 +989,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
       const roots = getFoldTargetRoots(ctx, card)
       const scope = action.scope ?? "card"
       if (scope !== "root" && roots.length === 0) return boundary("fold", "no card or column selected")
-      const columnCardIds = ctx.columns.flatMap((col) => col.cardNodes.map((c) => c.id))
+      const columnCardIds = getAllCardIds(ctx.tree)
       const result = reducerApplyUnfoldNode(extractFoldState(ctx), scope, ctx.rootId ?? "", roots, columnCardIds)
       if (result.effects.length === 0) return boundary("fold", "maximum depth reached")
       applyFoldEffects(ctx, result)
@@ -1805,6 +1805,15 @@ function handleAddNodeChildFirst(ctx: OpCtx): void {
   requestRenderFlush()
 }
 
+/** Get all card-level node IDs from the ViewTreeProjection.
+ *  Equivalent to ctx.columns.flatMap(col => col.cardNodes.map(c => c.id)). */
+function getAllCardIds(tree: import("@km/board").ViewTreeProjection): string[] {
+  const rootId = tree.rootId
+  if (!rootId) return []
+  const columnIds = tree.children(rootId)
+  return columnIds.flatMap((colId) => [...tree.children(colId)])
+}
+
 /** Find the deepest last visible descendant of a node by recursively following last children.
  *  Returns the node ID, or the input ID if it has no visible children. */
 function findDeepestLastDescendant(tree: import("@km/board").ViewTreeProjection, nodeId: string): string {
@@ -2164,20 +2173,21 @@ function handleCreateAt(ctx: OpCtx, to: Position | PickTarget): OpResult {
 }
 
 function handleJumpToColumn(ctx: OpCtx, columnNumber: number): OpResult {
-  const columns = ctx.columns
+  const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
 
   // Column numbers are 1-indexed for user, 0-indexed internally
   const targetColIdx = columnNumber - 1
 
-  if (targetColIdx < 0 || targetColIdx >= columns.length) {
+  if (targetColIdx < 0 || targetColIdx >= columnIds.length) {
     return boundary("column", `column ${columnNumber} does not exist`)
   }
 
-  const targetCol = columns[targetColIdx]
-  if (targetCol && targetCol.cardNodes.length > 0) {
-    const firstCard = targetCol.cardNodes[0]
-    if (firstCard) {
-      ctx.sel.node.select([firstCard.id as ID])
+  const targetColId = columnIds[targetColIdx]
+  if (targetColId) {
+    const cardIds = ctx.tree.children(targetColId)
+    const firstCardId = cardIds[0]
+    if (firstCardId) {
+      ctx.sel.node.select([firstCardId as ID])
     }
   }
   return ok()
@@ -2359,10 +2369,12 @@ function handleHideNode(ctx: OpCtx): OpResult {
     ctx.setUI({ status: { level: "info", message: `Hidden: ${hiddenPath}` } })
 
     // Move cursor to adjacent column since this one is now hidden
-    const colIndex = ctx.columns.findIndex((c) => c.node.id === node.id)
-    const targetCol = ctx.columns[colIndex + 1] ?? (colIndex > 0 ? ctx.columns[colIndex - 1] : undefined)
-    if (targetCol) {
-      ctx.sel.node.select([(targetCol.cardNodes[0]?.id ?? targetCol.node.id) as ID])
+    const columnIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+    const colIndex = columnIds.indexOf(node.id)
+    const targetColId = columnIds[colIndex + 1] ?? (colIndex > 0 ? columnIds[colIndex - 1] : undefined)
+    if (targetColId) {
+      const targetCardIds = ctx.tree.children(targetColId)
+      ctx.sel.node.select([(targetCardIds[0] ?? targetColId) as ID])
     }
   }
 
