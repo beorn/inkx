@@ -580,7 +580,7 @@ function toColumns(columns: RealColumnView[], repo: RepoLike): Column[] {
         title: nodeName(card),
         status: card.item?.task?.status as string | undefined,
         childCount: children.length || undefined,
-        hasBody: card.hasBodyChildren || undefined,
+        hasBody: (card as any).hasBodyChildren || undefined,
       }
     }),
   }))

@@ -48,11 +48,12 @@ export function isCardView(node: KNode): node is CardView {
 }
 
 /**
- * VIEW MODEL: A column is a parent KNode whose children render as CardView[].
+ * VIEW MODEL: A column is a parent KNode whose children render as KNode[].
+ * CardView enrichment is no longer needed — embed/body data comes from ViewTree signals.
  */
 export interface ColumnView {
   node: KNode
-  cardNodes: CardView[]
+  cardNodes: KNode[]
   wipLimit?: number
   rules?: SectionRules
   /** True for virtual body column (displays leading non-section content) */
