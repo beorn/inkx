@@ -228,8 +228,9 @@ describe("Zooming", () => {
     // bug ever manifests via either fixture, the data-view="item" id check
     // will catch it.
 
-    function expectUniqueItemIds(board: { q: (s: string) => { resolveAll: () => Array<{ props?: Record<string, unknown> }> } }): void {
-      const itemEls = board.q('[data-view="item"]').resolveAll()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function expectUniqueItemIds(board: any): void {
+      const itemEls = board.q('[data-view="item"]').resolveAll() as Array<{ props?: Record<string, unknown> }>
       const itemIds = itemEls.map((el) => el.props?.id as string | undefined).filter(Boolean) as string[]
       const seen = new Map<string, number>()
       for (const id of itemIds) seen.set(id, (seen.get(id) ?? 0) + 1)
@@ -265,11 +266,7 @@ describe("Zooming", () => {
           "vault",
           item.folder(
             "Projects",
-            item.folder(
-              "alpha",
-              item.folder("design", item("d1"), item("d2")),
-              item.folder("build", item("b1")),
-            ),
+            item.folder("alpha", item.folder("design", item("d1"), item("d2")), item.folder("build", item("b1"))),
             item.folder("beta", item("plan")),
           ),
         ),
