@@ -30,7 +30,7 @@ export function VerticalScrollIndicator({
   const active = hiddenCount > 0
 
   return (
-    <Box data-scroll-indicator={direction} width={1} flexShrink={0} flexGrow={0} overflow="hidden">
+    <Box data-scroll-indicator={direction} width={1} flexShrink={0} flexGrow={0} overflow="hidden" userSelect="none">
       {active && (
         <Text dimColor color="$muted">
           {direction === "left" ? ARROW_FILL_LEFT : ARROW_FILL_RIGHT}

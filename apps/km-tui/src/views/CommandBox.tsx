@@ -252,6 +252,7 @@ export function CommandBox({
     <Box
       flexDirection="column"
       width={CMD_BOX_WIDTH + 2} // +2 for border
+      userSelect="none"
       id="bottom-bar"
       data-status={ui.status?.level}
     >

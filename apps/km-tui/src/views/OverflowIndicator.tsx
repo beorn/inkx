@@ -32,7 +32,7 @@ export function OverflowIndicator({ direction, count, width }: OverflowIndicator
     const leftPad = Math.floor((width - text.length) / 2)
     const rightPad = width - text.length - leftPad
     return (
-      <Box width={width} flexShrink={0}>
+      <Box width={width} flexShrink={0} userSelect="none">
         <Text backgroundColor="$muted" color="$fg">
           {" ".repeat(leftPad)}
           {text}
