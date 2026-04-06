@@ -14,7 +14,7 @@ import { createLogger } from "loggily"
 /** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
 type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 import type { ID } from "@silvery/selection"
-import { isErr } from "@km/core"
+import { isErr, type KNode } from "@km/core"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { createBoardAppStoreState, Workspace, type CreateBoardAppStoreParams } from "../state/board-app-store.ts"
 import { isBoardPane, isDetailViewPane } from "./board-types.ts"
@@ -32,7 +32,7 @@ import type { ColumnView } from "../types.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import { deriveDetailColumns, buildNodeIndex, deriveCursorIndices } from "../hooks/use-columns.ts"
-import { viewNodeToColumnViews, createViewTree, type ViewNode } from "@km/board"
+import { extractWipLimits, createViewTree, type ViewNode } from "@km/board"
 import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
@@ -199,25 +199,56 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const cursor_ = (board?.sel.node.cursor() as string | null) ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
-    // ViewSnapshot from PaneSignals computed — single build, auto-cached.
-    // The computed auto-invalidates when repoVersion/rootId/foldDepths signals change.
+    // ViewSnapshot still needed for selTreeSource update (sel adapter uses old ViewNode).
     const snap = board?.signals?.view()
-    const viewTree: ViewNode =
-      snap?.tree ?? ({ id: "", role: "board", children: [], node: null, parent: null } as unknown as ViewNode)
-    const viewIndex: Map<string, ViewNode> = (snap?.index as Map<string, ViewNode>) ?? new Map()
 
     // ViewTreeProjection — per-node projection with navigation (next/prev/parent/children/node).
-    // Wraps the same lens as ViewSnapshot; available to action handlers via ctx.tree.
     // Always provide a tree (empty fallback when no board/signals exist).
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
-    // Derive ColumnView[] from ViewSnapshot tree (thin conversion, not a rebuild)
+    // Derive ColumnView[] from the lens (cards mode) or deriveDetailColumns (detail mode)
     let columns: ColumnView[]
     if (board?.viewMode === "detail") {
       // Detail mode uses its own column derivation but shares the viewTree for navigation
       columns = deriveDetailColumns(s.repo, rootId, foldDepths)
-    } else if (snap) {
-      columns = viewNodeToColumnViews(viewTree) as ColumnView[]
+    } else if (board?.signals) {
+      const lens = board.signals.visibleLens()
+      const effectiveRootId = lens.rootId ?? rootId
+      if (effectiveRootId) {
+        const colIds = lens.children(effectiveRootId)
+        const structural: KNode[] = []
+        for (const cid of colIds) {
+          if (lens.role(cid) !== "body-column") {
+            const n = lens.get(cid)
+            if (n) structural.push(n)
+          }
+        }
+        const wipLimits = extractWipLimits(structural)
+
+        columns = colIds
+          .map((colId): ColumnView | null => {
+            const node = lens.get(colId)
+            if (!node) return null
+            const role = lens.role(colId)
+            const rules = lens.rules(colId)
+            const cardIds = lens.children(colId)
+            const cardNodes = cardIds
+              .map((id) => lens.get(id))
+              .filter((n): n is KNode => n != null)
+            const normalizedName = (node.name || node.title || "").toLowerCase().replace(/\s+/g, "_")
+            const wipLimit = rules?.limit ?? wipLimits.get(normalizedName)
+            return {
+              node,
+              cardNodes,
+              rules,
+              wipLimit,
+              isVirtual: role === "body-column" ? true : undefined,
+            }
+          })
+          .filter((c): c is ColumnView => c != null)
+      } else {
+        columns = []
+      }
     } else {
       columns = []
     }
@@ -229,7 +260,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // ViewSnapshot with a walkOrder that doesn't contain the navigation target.
     // This race condition causes cursor → null (the "no cursor" bug).
     if (snap) {
-      s.selTreeSource.update(viewIndex, viewTree)
+      s.selTreeSource.update(snap.index as Map<string, ViewNode>, snap.tree)
     }
 
     // Use cached cursor indices when cursor+layout haven't changed
@@ -304,8 +335,8 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // Override dispatchBoard to inject cached viewIndex into SELECT actions,
       // avoiding a redundant buildViewTree+buildViewIndex on every cursor move.
       dispatchBoard: (action) => {
-        if (action.type === "SELECT" && !action._viewIndex) {
-          s.dispatchBoard({ ...action, _viewIndex: viewIndex })
+        if (action.type === "SELECT" && !action._viewIndex && snap) {
+          s.dispatchBoard({ ...action, _viewIndex: snap.index as Map<string, ViewNode> })
         } else {
           s.dispatchBoard(action)
         }
