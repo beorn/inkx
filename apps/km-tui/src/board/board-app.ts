@@ -198,9 +198,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const cursor_ = (board?.sel.node.cursor() as string | null) ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
-    // ViewSnapshot still needed for selTreeSource update (sel adapter uses old ViewNode).
-    const snap = board?.signals?.view()
-
     // ViewTreeProjection — per-node projection with navigation (next/prev/parent/children/node).
     // Always provide a tree (empty fallback when no board/signals exist).
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
