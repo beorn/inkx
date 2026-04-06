@@ -11,6 +11,21 @@ import type { OpCtx } from "../tui-context.ts"
 import { clearSelection, getSelectedCardIndices } from "../board/board-selection-helpers.ts"
 import { indexOfChild } from "../navigation/sibling-index.ts"
 
+/** Get column info from ViewTree by index. Returns colId + card IDs + KNode[] for the column. */
+function treeColumn(ctx: OpCtx, colIndex: number) {
+  const rootId = ctx.tree.rootId
+  if (!rootId) return null
+  const colIds = ctx.tree.children(rootId)
+  const colId = colIds[colIndex]
+  if (!colId) return null
+  const cardIds = ctx.tree.children(colId)
+  return {
+    node: { id: colId } as { id: string; parent_idx: number },
+    cardNodes: cardIds.map((id) => ctx.repo.getNode(id)).filter((n): n is KNode => n != null),
+    cardIds,
+  }
+}
+
 // =============================================================================
 // Card Movement - Helpers
 // =============================================================================
@@ -90,7 +105,7 @@ function rebuildSelectionForMovedCards(ctx: OpCtx, colIndex: number, movedCardId
 
 /** Move card within column (up/down) */
 export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "down"): OpResult {
-  const col = ctx.columns[ctx.colIndex]
+  const col = treeColumn(ctx, ctx.colIndex)
   if (!col) return boundary(direction)
 
   // Batch all moves (normalize + card moves) into a single undo entry
@@ -152,13 +167,15 @@ export function moveCardInColumn(ctx: OpCtx, card: KNode, direction: "up" | "dow
 
 /** Move card to different column (left/right) */
 export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "right"): OpResult {
-  const col = ctx.columns[ctx.colIndex]
+  const col = treeColumn(ctx, ctx.colIndex)
   if (!col) return boundary(direction)
 
+  const rootId = ctx.tree.rootId
+  const colCount = rootId ? ctx.tree.children(rootId).length : 0
   const targetColIndex = direction === "left" ? ctx.colIndex - 1 : ctx.colIndex + 1
-  if (targetColIndex < 0 || targetColIndex >= ctx.columns.length) return boundary(direction)
+  if (targetColIndex < 0 || targetColIndex >= colCount) return boundary(direction)
 
-  const targetCol = ctx.columns[targetColIndex]
+  const targetCol = treeColumn(ctx, targetColIndex)
   if (!targetCol) return boundary(direction)
 
   const selectedIndices = getSelectedCardIndices(ctx)
@@ -203,7 +220,7 @@ export function moveCardToColumn(ctx: OpCtx, card: KNode, direction: "left" | "r
 /** Indent node: reparent under previous sibling (make it last child).
  * Returns true if indent succeeded, false if blocked (caller should bell). */
 export function indentNode(ctx: OpCtx, card: KNode): boolean {
-  const col = ctx.columns[ctx.colIndex]
+  const col = treeColumn(ctx, ctx.colIndex)
   if (!col) return false
 
   const selectedIndices = getSelectedCardIndices(ctx)
@@ -225,7 +242,7 @@ export function indentNode(ctx: OpCtx, card: KNode): boolean {
 /** Outdent node: make it a sibling of its parent.
  * Returns true if outdent succeeded, false if blocked (caller should bell). */
 export function outdentNode(ctx: OpCtx, card: KNode): boolean {
-  const col = ctx.columns[ctx.colIndex]
+  const col = treeColumn(ctx, ctx.colIndex)
   if (!col) return false
 
   const selectedIndices = getSelectedCardIndices(ctx)
