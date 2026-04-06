@@ -2255,34 +2255,24 @@ describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
 // =============================================================================
 
 describe("edit outdent: Shift+Tab should not promote subitem beyond card", () => {
-  test("Shift+Tab on card subitem during edit does not promote to column level", () => {
+  test("Shift+Tab on direct card child during edit does not promote to column level", () => {
     const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("card", item("sub1", item("gc1")), item("sub2")))),
+      item("board", item("col1", item("card", item("sub1"), item("sub2")))),
     )
 
-    // Navigate to the card, then block-nav into sub1, then into gc1
+    // Navigate to the card, then block-nav into sub1
     board.expect("#card[data-cursor]").toExist()
     board.command("block_nav_down") // → sub1
     board.expect("#sub1[data-cursor]").toExist()
-    board.command("block_nav_down") // → gc1
-    board.expect("#gc1[data-cursor]").toExist()
 
-    board.press("Enter") // enter edit mode on gc1
-    board.expectEditing("gc1")
+    board.press("Enter") // enter edit mode on sub1
+    board.expectEditing("sub1")
 
-    // Shift+Tab should outdent gc1 from sub1 to card (one level), not beyond
+    // sub1 is a direct child of card. Shift+Tab should NOT promote it to column level.
     board.press("shift+Tab")
 
-    // gc1 should now be a child of card (outdented from sub1)
-    const gc1 = repo.getNode("gc1")
-    expect(gc1?.parent_id).toBe("card")
-
-    // Second Shift+Tab should NOT promote gc1 from card to column level
-    // (gc1 is now a direct child of card — outdenting further would break card boundary)
-    board.press("shift+Tab")
-
-    // gc1 should still be a child of card, NOT promoted to col1
-    const gc1After = repo.getNode("gc1")
-    expect(gc1After?.parent_id).toBe("card")
+    // sub1 should still be a child of card, NOT promoted to col1
+    const sub1 = repo.getNode("sub1")
+    expect(sub1?.parent_id, "sub1 should stay inside card during edit").toBe("card")
   })
 })

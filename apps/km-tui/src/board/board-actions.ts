@@ -639,6 +639,12 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
       if (!card) return boundary("outdent", "No card to outdent")
       const outdentTargetId = ctx.sel.text()?.nodeId ?? ctx.cursor
       const outdentTarget = outdentTargetId && outdentTargetId !== card.id ? ctx.repo.getNode(outdentTargetId) : null
+      // During edit mode, prevent outdenting a subitem beyond the card boundary.
+      // If the target's parent is the card itself, outdenting would promote it to column
+      // level, which breaks the card structure.
+      if (outdentTarget && ctx.sel.text() && outdentTarget.parent_id === card.id) {
+        return boundary("outdent", "Can't outdent beyond card boundary during edit")
+      }
       if (!outdentNode(ctx, outdentTarget ?? card)) return boundary("outdent", "Can't outdent further")
       return ok()
     }
