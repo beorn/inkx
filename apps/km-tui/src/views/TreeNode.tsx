@@ -243,7 +243,8 @@ function TreeNodeImpl({
   }, [reactiveExcludedSigils, repo, rootBoardId, extraExcludedSigils])
   const isOneliner = variant === "oneliner"
   // Children inside cards (depth > 0, multiline) should be single-line truncated
-  const isCardChild = variant === "multiline" && depth > 0
+  // Exception: when editing, show full content so cursor isn't hidden in truncated area
+  const isCardChild = variant === "multiline" && depth > 0 && !isInlineEditing
   // Embed resolution via ViewTree projection when available, resolveEmbed() fallback.
   // viewNode.isSymlink = embed resolved successfully. isBrokenSymlink = embed target missing.
   // isEmbedded = either case (isSymlink OR isBrokenSymlink).
