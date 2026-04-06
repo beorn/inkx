@@ -202,17 +202,20 @@ export function executeBatchDelete(ctx: OpCtx, nodeIds: string[]): void {
   // Pre-compute the cursor target: find next surviving sibling BEFORE deletion
   let cursorTarget: string | null = null
   if (isDeletingColumn) {
-    // For column delete, find adjacent column not being deleted
-    const columns = ctx.columns
-    const colIdx = columns.findIndex((c) => deleteSet.has(c.node.id))
+    // For column delete, find adjacent column not being deleted (via ViewTreeProjection)
+    const columnIds = ctx.tree.rootId ? [...ctx.tree.children(ctx.tree.rootId)] : []
+    const colIdx = columnIds.findIndex((id) => deleteSet.has(id))
     // Try next column, then previous
-    const nextCol = columns.slice(colIdx + 1).find((c) => !deleteSet.has(c.node.id))
-    const prevCol = columns
+    const nextColId = columnIds.slice(colIdx + 1).find((id) => !deleteSet.has(id))
+    const prevColId = columnIds
       .slice(0, colIdx)
       .reverse()
-      .find((c) => !deleteSet.has(c.node.id))
-    const targetCol = nextCol ?? prevCol
-    cursorTarget = targetCol?.cardNodes[0]?.id ?? targetCol?.node.id ?? null
+      .find((id) => !deleteSet.has(id))
+    const targetColId = nextColId ?? prevColId
+    if (targetColId) {
+      const targetCardIds = ctx.tree.children(targetColId)
+      cursorTarget = targetCardIds[0] ?? targetColId
+    }
   } else {
     // For card/subitem delete, find adjacent sibling not being deleted.
     // Use the node's parent children (not column cardNodes) so subitems
@@ -697,23 +700,23 @@ function normalizeColumnSortOrders(ctx: OpCtx, colIndexA: number, colIndexB: num
  */
 export function handleIndentColumn(ctx: OpCtx, col: ColumnView): OpResult {
   const { repo } = ctx
-  const columns = ctx.columns
-  const colIndex = columns.findIndex((c) => c.node.id === col.node.id)
+  const columnIds = ctx.tree.rootId ? [...ctx.tree.children(ctx.tree.rootId)] : []
+  const colIndex = columnIds.indexOf(col.node.id)
 
   // Need a previous column to indent into
   if (colIndex <= 0) return boundary("indent", "First column can't be indented")
 
-  const prevCol = columns[colIndex - 1]
-  if (!prevCol) return boundary("indent", "No previous column")
+  const prevColId = columnIds[colIndex - 1]
+  if (!prevColId) return boundary("indent", "No previous column")
 
   // Calculate sort order: after last card in target column
-  const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(prevCol.node.id))
+  const { sortOrder: newSortOrder } = Tree.toSortOrder(repo, Position.last(prevColId))
 
   // Record cursor for undo
   ctx.undoHandle.setCursor(ctx.cursor)
 
   // Move the column node under the previous column
-  repo.moveNode(col.node.id, prevCol.node.id, newSortOrder)
+  repo.moveNode(col.node.id, prevColId, newSortOrder)
 
   // The indented column is now a card under prevCol — select it by node ID
   ctx.sel.node.select([col.node.id as ID])
