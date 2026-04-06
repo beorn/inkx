@@ -61,6 +61,9 @@ export interface PaneSignals {
   // Hidden state — nodes excluded from ViewSnapshot tree
   readonly hiddenNodeIds: Signal<Set<string>>
 
+  // Filter state — task status filter (set of statuses to SHOW; empty = show all)
+  readonly taskStatusFilter: Signal<ReadonlySet<string>>
+
   // Derived: computed ViewSnapshot — auto-invalidates when rootId/foldDepths/repo change
   readonly view: Computed<ViewSnapshot>
 
@@ -95,6 +98,8 @@ export interface CreatePaneSignalsOptions {
   moveState: MoveState
   /** Initial hidden node IDs (from .km/hidden file). Excluded from ViewSnapshot tree. */
   hiddenNodeIds?: Set<string>
+  /** Initial task status filter (set of statuses to SHOW; empty = show all). */
+  taskStatusFilter?: ReadonlySet<string>
 }
 
 /**
@@ -114,6 +119,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const curswantX = signal<number | null>(null)
   const curswantY = signal<number | null>(null)
   const hiddenNodeIds = signal(opts.hiddenNodeIds ?? new Set<string>())
+  const taskStatusFilter = signal<ReadonlySet<string>>(opts.taskStatusFilter ?? new Set<string>())
 
   // Per-column ViewNode cache — reused across rebuilds for incremental updates
   const viewNodeCache: ViewNodeColumnCache = new Map()
@@ -152,8 +158,10 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const visibleLensComputed = computed((): TreeLens => {
     const vl = viewLensComputed()
     const _collapsed = collapsedNodes()
+    const _taskStatusFilter = taskStatusFilter()
     return createVisibleLens(vl, {
       collapsedNodes: _collapsed.size > 0 ? _collapsed : undefined,
+      taskStatusFilter: _taskStatusFilter.size > 0 ? _taskStatusFilter : undefined,
     })
   })
 
@@ -177,6 +185,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     curswantX,
     curswantY,
     hiddenNodeIds,
+    taskStatusFilter,
     view,
     viewLens: viewLensComputed,
     visibleLens: visibleLensComputed,

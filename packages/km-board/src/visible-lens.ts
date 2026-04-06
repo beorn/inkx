@@ -17,6 +17,7 @@
  */
 
 import type { KNode } from "@km/core"
+import { getStatusForMarker } from "@km/core"
 import type { SectionRules } from "@km/markdown"
 import type { TreeLens, ViewRole } from "./tree-lens.ts"
 
@@ -29,6 +30,8 @@ export interface VisibleLensOptions {
   collapsedNodes?: Set<string>
   /** Predicate: return false to hide a card from the visible tree */
   cardFilter?: (node: KNode) => boolean
+  /** Set of task statuses to SHOW. When non-empty, cards with a task status NOT in this set are hidden. */
+  taskStatusFilter?: ReadonlySet<string>
 }
 
 // =============================================================================
@@ -43,11 +46,24 @@ export interface VisibleLensOptions {
  * collapsed cards and filtered cards.
  */
 export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions = {}): TreeLens {
-  const { collapsedNodes, cardFilter } = options
+  const { collapsedNodes, cardFilter, taskStatusFilter } = options
+  const hasTaskFilter = taskStatusFilter != null && taskStatusFilter.size > 0
 
   // Cache filtered children
   const childrenCache = new Map<string, readonly string[]>()
   let _walkOrder: readonly string[] | null = null
+
+  /** Check if a node passes the task status filter. */
+  function passesTaskStatusFilter(childId: string): boolean {
+    if (!hasTaskFilter) return true
+    const node = parent.get(childId)
+    if (!node) return false
+    // For embeds, resolve to source node for status check
+    const filterNode = node.symlink_to ? (parent.get(node.symlink_to) ?? node) : node
+    const status = filterNode.item?.task?.status ?? getStatusForMarker(filterNode.item?.task?.marker)
+    // Non-task nodes (no status) always pass — only tasks are filtered
+    return !status || taskStatusFilter!.has(status)
+  }
 
   function getFilteredChildren(id: string): readonly string[] {
     const cached = childrenCache.get(id)
@@ -56,7 +72,7 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
     const parentChildren = parent.children(id)
 
     // If no filters active, pass through
-    if (!collapsedNodes?.size && !cardFilter) {
+    if (!collapsedNodes?.size && !cardFilter && !hasTaskFilter) {
       childrenCache.set(id, parentChildren)
       return parentChildren
     }
@@ -70,12 +86,21 @@ export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions 
       return filtered
     }
 
-    // Card filter: for columns, filter their card children
-    if (cardFilter && (parentRole === "column" || parentRole === "body-column")) {
+    // Determine which filters apply at this level
+    const applyCardFilter = cardFilter && (parentRole === "column" || parentRole === "body-column")
+    const needsFiltering = applyCardFilter || hasTaskFilter
+
+    if (needsFiltering) {
       const filtered = parentChildren.filter((childId) => {
-        const node = parent.get(childId)
-        if (!node) return false
-        return cardFilter(node)
+        // Card filter: applies only to column children
+        if (applyCardFilter) {
+          const node = parent.get(childId)
+          if (!node) return false
+          if (!cardFilter(node)) return false
+        }
+        // Task status filter: applies at ALL depths
+        if (hasTaskFilter && !passesTaskStatusFilter(childId)) return false
+        return true
       })
       childrenCache.set(id, filtered)
       return filtered

@@ -20,12 +20,17 @@ function n(id: string, parentId: string | null, type: "h" | "p" = "h", extra: Re
   }
 }
 
-function lens(nodes: any[], rootId: string, options?: { collapsed?: Set<string>; filter?: (n: any) => boolean }) {
+function lens(
+  nodes: any[],
+  rootId: string,
+  options?: { collapsed?: Set<string>; filter?: (n: any) => boolean; taskStatusFilter?: ReadonlySet<string> },
+) {
   const repo = createFakeRepo({ nodes })
   const view = createViewLens(repo, { rootId, foldDepths: new Map() })
   return createVisibleLens(view, {
     collapsedNodes: options?.collapsed,
     cardFilter: options?.filter,
+    taskStatusFilter: options?.taskStatusFilter,
   })
 }
 
@@ -122,5 +127,125 @@ describe("visibleLens", () => {
     // Filtered cards aren't in children/walkOrder but get() still returns them
     expect(v.get("1a")).toBeDefined()
     expect(v.get("1a")?.id).toBe("1a")
+  })
+
+  // =========================================================================
+  // Task status filter tests
+  // =========================================================================
+
+  const TASK_NODES = [
+    n("board", null),
+    n("col1", "board"),
+    n("todo-1", "col1", "p", { item: { task: { marker: "[ ]", status: "todo" } } }),
+    n("done-1", "col1", "p", { item: { task: { marker: "[x]", status: "done" } } }),
+    n("wip-1", "col1", "p", { item: { task: { marker: "[/]", status: "wip" } } }),
+    n("col2", "board"),
+    n("dropped-1", "col2", "p", { item: { task: { marker: "[-]", status: "dropped" } } }),
+    n("heading-1", "col2", "p"), // non-task node — always passes filter
+  ]
+
+  test("taskStatusFilter hides done cards from children", () => {
+    const v = lens(TASK_NODES, "board", {
+      taskStatusFilter: new Set(["todo", "wip", "blocked"]),
+    })
+    const col1Children = v.children("col1")
+    expect(col1Children).toContain("todo-1")
+    expect(col1Children).toContain("wip-1")
+    expect(col1Children).not.toContain("done-1")
+  })
+
+  test("taskStatusFilter empty set shows all cards", () => {
+    const v = lens(TASK_NODES, "board", {
+      taskStatusFilter: new Set<string>(),
+    })
+    // Empty set = no filtering
+    expect(v.children("col1")).toContain("todo-1")
+    expect(v.children("col1")).toContain("done-1")
+    expect(v.children("col1")).toContain("wip-1")
+    expect(v.children("col2")).toContain("dropped-1")
+    expect(v.children("col2")).toContain("heading-1")
+  })
+
+  test("taskStatusFilter removes hidden cards from walkOrder", () => {
+    const v = lens(TASK_NODES, "board", {
+      taskStatusFilter: new Set(["todo"]),
+    })
+    const walk = v.walkOrder
+    expect(walk).toContain("todo-1")
+    expect(walk).not.toContain("done-1")
+    expect(walk).not.toContain("wip-1")
+    expect(walk).not.toContain("dropped-1")
+    // Non-task heading always visible
+    expect(walk).toContain("heading-1")
+  })
+
+  test("taskStatusFilter non-task nodes always pass through", () => {
+    const v = lens(TASK_NODES, "board", {
+      taskStatusFilter: new Set(["todo"]),
+    })
+    // heading-1 has no task status — should always be visible
+    expect(v.children("col2")).toContain("heading-1")
+  })
+
+  test("taskStatusFilter filters at sub-item depth too", () => {
+    const nodes = [
+      n("board", null),
+      n("col1", "board"),
+      n("card-1", "col1", "p"),
+      n("sub-todo", "card-1", "p", { item: { task: { marker: "[ ]", status: "todo" } } }),
+      n("sub-done", "card-1", "p", { item: { task: { marker: "[x]", status: "done" } } }),
+    ]
+    const v = lens(nodes, "board", {
+      taskStatusFilter: new Set(["todo"]),
+    })
+    const cardChildren = v.children("card-1")
+    expect(cardChildren).toContain("sub-todo")
+    expect(cardChildren).not.toContain("sub-done")
+  })
+
+  test("embed card filtered by source node's task status", () => {
+    const nodes = [
+      n("board", null),
+      n("col1", "board"),
+      // Embed card pointing to a done task in another column
+      n("embed-1", "col1", "p", { symlink_to: "source-done" }),
+      n("col2", "board"),
+      // Source node — in the tree (under col2), accessible via get()
+      n("source-done", "col2", "p", { item: { task: { marker: "[x]", status: "done" } } }),
+    ]
+    const v = lens(nodes, "board", {
+      taskStatusFilter: new Set(["todo", "wip"]),
+    })
+    // embed-1 should be hidden because its source (source-done) is "done"
+    expect(v.children("col1")).not.toContain("embed-1")
+    // source-done itself should also be hidden
+    expect(v.children("col2")).not.toContain("source-done")
+  })
+
+  test("taskStatusFilter derives status from marker when status field is missing", () => {
+    const nodes = [
+      n("board", null),
+      n("col1", "board"),
+      // Node with marker but no explicit status field
+      n("marker-done", "col1", "p", { item: { task: { marker: "[x]" } } }),
+      n("marker-todo", "col1", "p", { item: { task: { marker: "[ ]" } } }),
+    ]
+    const v = lens(nodes, "board", {
+      taskStatusFilter: new Set(["todo"]),
+    })
+    expect(v.children("col1")).toContain("marker-todo")
+    expect(v.children("col1")).not.toContain("marker-done")
+  })
+
+  test("taskStatusFilter + collapsed combined", () => {
+    const v = lens(TASK_NODES, "board", {
+      collapsed: new Set(["col1"]),
+      taskStatusFilter: new Set(["todo"]),
+    })
+    // col1 is collapsed — no children regardless of taskStatus
+    expect(v.children("col1")).toEqual([])
+    // col2 applies task filter: dropped-1 hidden, heading-1 visible
+    expect(v.children("col2")).not.toContain("dropped-1")
+    expect(v.children("col2")).toContain("heading-1")
   })
 })

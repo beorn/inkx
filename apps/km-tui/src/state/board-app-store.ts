@@ -478,6 +478,7 @@ export function createBoardAppStoreState(
         collapsedNodes: pane.collapsedNodes,
         viewMode: pane.viewMode,
         moveState: pane.moveState,
+        taskStatusFilter: pane.filterProperties?.taskStatus,
       })
       // Connect sel adapter: before each tree read, ensure ViewSnapshot is current.
       // Reading pane.signals.view() triggers the computed — if stale, rebuilds.
@@ -976,6 +977,19 @@ export function createBoardAppStoreState(
                 ? new Set<string>()
                 : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
               afterPane.signals.hiddenNodeIds(hidden)
+            }
+            // Sync taskStatusFilter signal when filterProperties change
+            if ("filterProperties" in partial) {
+              const taskFilter = afterPane.filterProperties?.taskStatus ?? new Set<string>()
+              afterPane.signals.taskStatusFilter(taskFilter)
+              // Also sync detail pane's signal (filterProperties propagate to detail pane in zustand)
+              if (!isDetailPaneId(afterPane.id)) {
+                const detailId = detailPaneIdFor(afterPane.id)
+                const detailPane = afterS.workspace.panes.get(detailId)
+                if (detailPane && isBoardPane(detailPane) && detailPane.signals) {
+                  detailPane.signals.taskStatusFilter(taskFilter)
+                }
+              }
             }
           }
         }
