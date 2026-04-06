@@ -22,6 +22,9 @@ argument-hint: [scenario | --gui | --fuzz | --peekaboo | --path <vault> | km vie
 | `/explore --compare` | Asana vs km TUI comparison | See [compare.md](compare.md) |
 | `/explore --peekaboo ...` | Live Ghostty inspection | See [peekaboo.md](peekaboo.md) |
 | `/explore end` or `/explore finish` | **End session** — summary, retrospective, bead cleanup | See [end.md](end.md) |
+| `/explore --chaos` | Chaos testing — rapid keys, resize storms, concurrent file edits | See [random.md](random.md) |
+| `/explore --soak` | Long-run soak — 1000+ actions, check for leaks/degradation | See [random.md](random.md) |
+| `/explore --unicode` | Unicode edge cases — emoji, CJK, combining chars, RTL | Create unicode-heavy fixture |
 
 **Session tracking**: Team and solo modes create a session bead (`km-session.<MMDD><seq>`) for persistent tracking. Quick modes (`--fuzz`, `--path`) skip this. See [reporting.md](reporting.md) for conventions.
 
