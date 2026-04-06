@@ -510,9 +510,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       selectedNodes: Array.from(ctx.selectedIds),
       viewMode: ctx.ui.viewMode,
       siblingIndex: ctx.cardIndex >= 0 ? ctx.cardIndex : 0,
-      siblingCount: ctx.columns[ctx.colIndex]?.cardNodes.length ?? 0,
+      siblingCount: (() => {
+        const colIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+        const colId = colIds[ctx.colIndex]
+        return colId ? ctx.tree.children(colId).length : 0
+      })(),
       columnIndex: ctx.colIndex >= 0 ? ctx.colIndex : 0,
-      columnCount: ctx.columns.length,
+      columnCount: ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId).length : 0,
       moveMode: ctx.moveState.active,
       foldDepths: ctx.foldDepths,
     }
@@ -792,14 +796,17 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         return
       }
 
-      const col = opctx.columns[colIdx]
-      if (!col || col.cardNodes.length === 0) return
+      const colIds = opctx.tree.rootId ? opctx.tree.children(opctx.tree.rootId) : []
+      const colId = colIds[colIdx]
+      if (!colId) return
+      const colCardCount = opctx.tree.children(colId).length
+      if (colCardCount === 0) return
 
       const currentAnchor = opctx.ui.columnScrollAnchor
       // If anchor exists for this column, continue from it; otherwise start from middle
-      const baseIndex = currentAnchor?.colIdx === colIdx ? currentAnchor.anchor : Math.floor(col.cardNodes.length / 2)
+      const baseIndex = currentAnchor?.colIdx === colIdx ? currentAnchor.anchor : Math.floor(colCardCount / 2)
       const delta = mouse.delta === -1 ? -SCROLL_STEP : SCROLL_STEP
-      const maxIndex = col.cardNodes.length - 1
+      const maxIndex = colCardCount - 1
       const newAnchor = Math.max(0, Math.min(maxIndex, baseIndex + delta))
 
       opctx.setUI({ columnScrollAnchor: { colIdx, anchor: newAnchor } })
