@@ -85,8 +85,8 @@ const HELP_SECTIONS: HelpSection[] = [
     category: "View",
     items: [
       { keys: [", / ."], command: "increase_content_lines", description: "fewer / more lines" },
-      { keys: ["< / >"], command: "fold_all", description: "fold / unfold tree" },
-      { keys: ["H / L"], command: "fold_node", description: "fold / unfold item" },
+      { keys: ["H / L"], command: "fold_more", description: "fold / unfold more" },
+      { keys: ["< / >"], command: "fold_board_more", description: "fold / unfold board" },
       { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },
       { keys: ["v ,", "V"], command: "filter", description: "view settings" },
       { keys: ["v x"], command: "hide_node", description: "hide item" },
