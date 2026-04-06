@@ -2126,3 +2126,33 @@ describe("Inline Edit — Card Expansion", () => {
     expect(afterShot).toContain("deep-e")
   })
 })
+
+describe("edit indentation parity", () => {
+  test("body content indentation matches between display and edit mode", () => {
+    // Card with body content (paragraph-like items before a heading)
+    const nodes = item("board", item("col1", item("parent", item("body child"), item.h("heading"))))
+    const { board } = testEnv(() => nodes, { columns: 60, rows: 20 })
+
+    // Navigate to the "parent" card
+    board.expect("#parent[data-cursor]").toExist()
+
+    // Find "body child" position in display mode
+    const displayBox = board.screen.nodeBox("body child")
+    expect(displayBox, "body child should be visible in display mode").not.toBeNull()
+    const displayX = displayBox!.x
+
+    // Enter edit mode on "body child" (cursor down into body, then Enter)
+    board.command("cursor_down") // move to body child
+    board.press("Enter") // enter edit
+
+    // Find "body child" position in edit mode
+    const editRow = board.screen.findRow("body child")
+    expect(editRow, "body child should be visible in edit mode").not.toBeNull()
+    if (!editRow) return
+    const editLine = board.screen.row(editRow)
+    const editX = editLine.indexOf("body child")
+
+    // Indentation should be the same (±1 char for cursor/gutter)
+    expect(Math.abs(editX - displayX), `edit indent (${editX}) should be close to display indent (${displayX})`).toBeLessThanOrEqual(2)
+  })
+})
