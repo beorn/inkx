@@ -123,10 +123,10 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
   block_nav_up: ["K"],
 
   // Fold
-  fold_node: ["H"],
-  unfold_node: ["L"],
-  fold_all: ["\x1b[44;2u"], // shift+, (Kitty CSI: codepoint 44=comma, modifier 2=shift)
-  unfold_all: ["\x1b[46;2u"], // shift+. (Kitty CSI: codepoint 46=period, modifier 2=shift)
+  fold_more: ["H"],
+  unfold_more: ["L"],
+  fold_all_more: ["\x1b[44;2u"], // shift+, (Kitty CSI: codepoint 44=comma, modifier 2=shift)
+  unfold_all_more: ["\x1b[46;2u"], // shift+. (Kitty CSI: codepoint 46=period, modifier 2=shift)
 
   // Zoom
   zoom_inwards: ["z"],
