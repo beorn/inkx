@@ -14,7 +14,7 @@ import { createLogger } from "loggily"
 /** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
 type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
 import type { ID } from "@silvery/selection"
-import { isErr } from "@km/core"
+import { isErr, type KNode } from "@km/core"
 import type { BoardAppStore } from "../state/board-app-store.ts"
 import { createBoardAppStoreState, Workspace, type CreateBoardAppStoreParams } from "../state/board-app-store.ts"
 import { isBoardPane, isDetailViewPane } from "./board-types.ts"
@@ -28,13 +28,11 @@ import { needsRenderFlush } from "./board-actions-edit.ts"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 import { DELEGATED_OP_CTX_KEYS } from "../tui-context.ts"
-import type { ColumnView } from "../hooks/use-columns.ts"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { checkInvariants } from "../invariants.ts"
 import {
   deriveDetailColumns,
   buildNodeIndexFromTree,
-  deriveColumnsFromLens,
   deriveCursorIndices,
 } from "../hooks/use-columns.ts"
 import { createViewTree } from "@km/board"
@@ -207,13 +205,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Always provide a tree (empty fallback when no board/signals exist).
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
-    // Derive ColumnView[] from the lens (cards mode) or deriveDetailColumns (detail mode)
-    const columns: ColumnView[] =
-      board?.viewMode === "detail"
-        ? deriveDetailColumns(s.repo, rootId, foldDepths)
-        : board?.signals
-          ? deriveColumnsFromLens(board.signals.visibleLens(), s.repo)
-          : []
     // Use tree-based index when lens is available (no ColumnView dependency).
     const nodeIndex = board?.signals
       ? buildNodeIndexFromTree(board.signals.visibleLens())
@@ -228,13 +219,43 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       s.selTreeSource.update(board.signals.visibleLens())
     }
 
-    // Use cached cursor indices when cursor+layout haven't changed
+    // Derive cursor indices, columnId, card from tree (board mode) or ColumnView (detail mode).
+    // Detail mode uses deriveDetailColumns because it creates virtual metadata columns
+    // that don't exist in the tree. Board mode uses the tree directly.
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
+    let columnId: string | null
+    let card: KNode | undefined
+    let selectedNode: KNode | null
+
     const cc = locals.cursorCache
-    if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
-      cursor = cc
+    if (board?.viewMode === "detail") {
+      // Detail mode: derive via ColumnView (virtual metadata columns not in tree)
+      const columns = deriveDetailColumns(s.repo, rootId, foldDepths)
+      if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
+        cursor = cc
+      } else {
+        cursor = deriveCursorIndices(columns, cursor_, nodeIndex, (id) => s.repo.getNode(id))
+      }
+      const _column = columns[cursor.colIndex]
+      columnId = _column?.node.id ?? null
+      card = _column?.cardNodes[cursor.cardIndex]
+      selectedNode = card ?? _column?.node ?? null
     } else {
-      cursor = deriveCursorIndices(columns, cursor_, nodeIndex, (id) => s.repo.getNode(id))
+      // Board mode: derive entirely from tree (no ColumnView needed)
+      const treeColIds = rootId ? tree.children(rootId) : []
+      if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
+        cursor = cc
+      } else {
+        cursor = deriveCursorIndices({ length: treeColIds.length }, cursor_, nodeIndex, (id) => s.repo.getNode(id))
+      }
+      columnId = treeColIds[cursor.colIndex] ?? null
+      const treeCardIds = columnId ? tree.children(columnId) : []
+      const cardNodeId = treeCardIds[cursor.cardIndex]
+      card = cardNodeId ? s.repo.getNode(cardNodeId) ?? undefined : undefined
+      selectedNode = card ?? (columnId ? s.repo.getNode(columnId) : null) ?? null
+    }
+
+    if (!cc || cc.cursorId !== cursor_ || cc.nodeIndexRef !== nodeIndex) {
       locals.cursorCache = {
         cursorId: cursor_,
         cursorCardNodeId: null,
@@ -245,10 +266,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
     }
 
-    const _column = columns[cursor.colIndex]
-    const columnId = _column?.node.id ?? null
-    const card = _column?.cardNodes[cursor.cardIndex]
-    const selectedNode = card ?? _column?.node ?? null
     // Derive cursorCardNodeId from layout (replaces CursorStore.cursorCardNodeId)
     const cursorCardNodeId = card?.id ?? null
 
