@@ -29,7 +29,6 @@ import { Tree, midpoint } from "@km/tree"
 import { moveCardInColumn, moveCardToColumn } from "../keyboard/keyboard-card-ops.ts"
 import { clearSelection, getSelectedNodes, forEachSelected } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import type { ColumnView } from "../hooks/use-columns.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 
 // Render flush flag — set by handleAddNodeAfter when a new InlineEditField
@@ -61,12 +60,12 @@ export function requestRenderFlush(): void {
  */
 export function handleDeleteNode(ctx: OpCtx): void {
   const { repo } = ctx
-  const col = ctx.column
   const card = ctx.card
 
-  if (!card && col) {
+  if (!card && ctx.columnId) {
     // Column-level delete — confirmation only if non-empty
-    handleDeleteColumn(ctx, col)
+    const colNode = repo.getNode(ctx.columnId)
+    if (colNode) handleDeleteColumn(ctx, { node: colNode })
     return
   }
 
@@ -300,8 +299,7 @@ function handleAddFirstChild(ctx: OpCtx): void {
  */
 function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   const { repo } = ctx
-  const col = ctx.column
-  if (!col) {
+  if (!ctx.columnId) {
     // Empty board — create first child (heading) under root
     if (ctx.rootId) {
       handleAddFirstChild(ctx)
@@ -310,7 +308,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   }
 
   // Query repo for fresh children (columns may be stale after prior addNode)
-  const siblings = repo.getChildren(col.node.id)
+  const siblings = repo.getChildren(ctx.columnId)
   const currentSibIdx = siblings.findIndex((s) => s.id === (ctx.cursor as string))
   const currentNode = siblings[currentSibIdx]
   if (!currentNode) return
@@ -336,7 +334,7 @@ function handleAddNode(ctx: OpCtx, position: "before" | "after"): void {
   // No need to store depth in data — it's derived from tree position during serialization
 
   ctx.undoHandle.setCursor(ctx.cursor)
-  const newId = repo.addNode(col.node.id, newNode)
+  const newId = repo.addNode(ctx.columnId!, newNode)
 
   ctx.sel.node.select([newId as ID])
 
@@ -423,14 +421,13 @@ export function handleAddNodeAtParent(ctx: OpCtx): void {
  */
 export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
   const { repo } = ctx
-  const col = ctx.column
-  if (!col) return
+  if (!ctx.columnId) return
 
   const sourceNode = repo.getNode(nodeId)
   if (!sourceNode) return
 
   // Find position in siblings
-  const siblings = repo.getChildren(col.node.id)
+  const siblings = repo.getChildren(ctx.columnId)
   const currentSibIdx = siblings.findIndex((s) => s.id === nodeId)
   if (currentSibIdx === -1) return
 
@@ -450,10 +447,9 @@ export function handleDuplicateNode(ctx: OpCtx, nodeId: string): void {
     newNode.fstype = sourceNode.fstype
   }
 
-  const parentId = col.node.id
   // Auto-recorded by undoable repo — no manual undo entry needed
   ctx.undoHandle.setCursor(ctx.cursor)
-  const newId = repo.addNode(parentId, newNode)
+  const newId = repo.addNode(ctx.columnId, newNode)
 
   ctx.sel.node.select([newId as ID])
 }
@@ -465,16 +461,15 @@ export function handleConfirmMove(ctx: OpCtx): void {
   const { repo } = ctx
   const sourceNodeIds = ctx.moveState.active ? ctx.moveState.sourceNodes : []
   if (sourceNodeIds.length === 0) return
-  const targetCol = ctx.column
-  if (!targetCol) return
+  if (!ctx.columnId) return
 
   // Batch all moves into a single undo entry
   ctx.undoHandle.setCursor(ctx.cursor)
   ctx.undoHandle.startBatch("Move cards")
 
-  let newSortOrder = Tree.toSortOrder(repo, Position.last(targetCol.node.id)).sortOrder
+  let newSortOrder = Tree.toSortOrder(repo, Position.last(ctx.columnId)).sortOrder
   for (const nodeId of sourceNodeIds) {
-    repo.moveNode(nodeId, targetCol.node.id, newSortOrder)
+    repo.moveNode(nodeId, ctx.columnId, newSortOrder)
     newSortOrder++
   }
 
@@ -598,14 +593,16 @@ export function handleClearTask(ctx: OpCtx): void {
  * When cursor is on a column header: left/right reorders columns.
  */
 export function handleShiftCard(ctx: OpCtx, direction: "up" | "down" | "left" | "right"): OpResult {
-  const col = ctx.column
   const card = ctx.card
 
   if (!card) {
     // At column header level — reorder columns left/right
     // Virtual columns (body column) can't be moved
-    if (col && !col.isVirtual && (direction === "left" || direction === "right")) {
-      return moveColumn(ctx, col, direction)
+    if (ctx.columnId && (direction === "left" || direction === "right")) {
+      const colViewType = ctx.tree.track(ctx.columnId)?.viewType()
+      if (colViewType === "body-column") return boundary(direction)
+      const colNode = ctx.repo.getNode(ctx.columnId)
+      if (colNode) return moveColumn(ctx, { node: colNode }, direction)
     }
     return boundary(direction)
   }
@@ -704,10 +701,10 @@ function normalizeColumnSortOrders(ctx: OpCtx, colIndexA: number, colIndexB: num
  * The column becomes a child of the previous column. Cursor moves to
  * the previous column to follow the indented content.
  */
-export function handleIndentColumn(ctx: OpCtx, col: ColumnView): OpResult {
+export function handleIndentColumn(ctx: OpCtx, colId: string): OpResult {
   const { repo } = ctx
   const columnIds = ctx.tree.rootId ? [...ctx.tree.children(ctx.tree.rootId)] : []
-  const colIndex = columnIds.indexOf(col.node.id)
+  const colIndex = columnIds.indexOf(colId)
 
   // Need a previous column to indent into
   if (colIndex <= 0) return boundary("indent", "First column can't be indented")
@@ -722,10 +719,10 @@ export function handleIndentColumn(ctx: OpCtx, col: ColumnView): OpResult {
   ctx.undoHandle.setCursor(ctx.cursor)
 
   // Move the column node under the previous column
-  repo.moveNode(col.node.id, prevColId, newSortOrder)
+  repo.moveNode(colId, prevColId, newSortOrder)
 
   // The indented column is now a card under prevCol — select it by node ID
-  ctx.sel.node.select([col.node.id as ID])
+  ctx.sel.node.select([colId as ID])
 
   return ok()
 }

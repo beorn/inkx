@@ -13,7 +13,6 @@ import type { FocusManager } from "@silvery/ag-react"
 import type { SelectionStore } from "@silvery/selection"
 import type { Repo } from "./repo-context.tsx"
 import type { BoardReducerOp } from "./board/board-types.ts"
-import type { ColumnView } from "./hooks/use-columns.ts"
 import { PaneUI } from "./state/ui-reducer.ts"
 import type { EditMode } from "./state/ui-reducer.ts"
 import type { GridNavigator, ViewTreeProjection } from "@km/board"
@@ -64,7 +63,8 @@ export interface OpCtx {
   toastQueue: ToastQueue
 
   // === Layout (derived fresh each key event) ===
-  columns: ColumnView[]
+  /** Current column node ID (null when no column exists) */
+  columnId: string | null
   colIndex: number
   cardIndex: number
   isAtCardLevel: boolean
@@ -76,9 +76,7 @@ export interface OpCtx {
   // === Derived (computed once per key event) ===
   /** Currently selected node (null if none) */
   selectedNode: KNode | null
-  /** Current column from layout */
-  column: ColumnView | undefined
-  /** Current card from layout */
+  /** Current card from layout (null when cursor is at column level or no card exists) */
   card: KNode | undefined
 
   // === Dispatchers ===

@@ -149,8 +149,8 @@ function resolveMouseToColumn(opctx: OpCtx, mouseX: number): number {
   if (colIdx >= 0) return colIdx
 
   // Fallback: check card positions (for columns whose bounds haven't been registered yet)
-  const { columns } = opctx
-  for (let ci = 0; ci < columns.length; ci++) {
+  const columnCount = opctx.rootId ? opctx.tree.children(opctx.rootId).length : 0
+  for (let ci = 0; ci < columnCount; ci++) {
     const itemCount = navigator.getItemCount(ci)
     if (itemCount === 0) continue
     for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
@@ -245,9 +245,10 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       }
     }
 
-    const column = columns[cursor.colIndex]
-    const card = column?.cardNodes[cursor.cardIndex]
-    const selectedNode = card ?? column?.node ?? null
+    const _column = columns[cursor.colIndex]
+    const columnId = _column?.node.id ?? null
+    const card = _column?.cardNodes[cursor.cardIndex]
+    const selectedNode = card ?? _column?.node ?? null
     // Derive cursorCardNodeId from layout (replaces CursorStore.cursorCardNodeId)
     const cursorCardNodeId = card?.id ?? null
 
@@ -281,7 +282,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       collapsedNodes: board?.collapsedNodes ?? new Set(),
       moveState: board?.moveState ?? { active: false },
       ui: effectiveUI,
-      columns,
+      columnId,
       colIndex: cursor.colIndex,
       cardIndex: cursor.cardIndex,
       isAtCardLevel: cursor.isAtCardLevel,
@@ -293,7 +294,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       undoStack: s.undoStack,
       undoHandle: s.undoHandle,
       selectedNode,
-      column,
       card,
       // Delegated store methods (pure pass-throughs, dispatchBoard overridden below)
       ...pick(s, DELEGATED_OP_CTX_KEYS),
@@ -859,7 +859,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       // - Outside card → exit edit mode, proceed with normal click
       const edit = opctx.sel.text()
       if (edit && selectId && !isColumnNode) {
-        const editCardId = opctx.card?.id
+        const editCardId = opctx.cursorCardNodeId
         // Check if clicked node is inside the same card
         let inSameCard = selectId === editCardId
         if (!inSameCard && editCardId) {

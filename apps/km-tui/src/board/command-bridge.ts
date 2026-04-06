@@ -72,7 +72,7 @@ function buildCommandContexts(ctx: OpCtx) {
       CursorDepth.derive({
         cursor: ctx.cursor,
         cursorCardNodeId: ctx.cursorCardNodeId,
-        cursorColumnNodeId: ctx.column?.node.id ?? null,
+        cursorColumnNodeId: ctx.columnId,
       }),
     ),
     currentNode: nodeForCtx,
@@ -137,18 +137,17 @@ function buildCommandContexts(ctx: OpCtx) {
     },
   })
 
-  const { colIndex, cardIndex, columns } = ctx
-  const column = columns[colIndex]
+  const { colIndex, cardIndex, columnId } = ctx
 
   const cmdCtx = buildContext(ui.viewMode, {
     currentNode: nodeForCtx,
     currentNodeId: selectedNode?.id ?? null,
     cursor: ctx.cursor,
     selectedNodes: Array.from(ctx.selectedIds),
-    siblingCount: column?.cardNodes.length ?? 0,
+    siblingCount: columnId ? ctx.tree.children(columnId).length : 0,
     siblingIndex: cardIndex >= 0 ? cardIndex : 0,
     columnIndex: colIndex >= 0 ? colIndex : 0,
-    columnCount: columns.length,
+    columnCount: ctx.rootId ? ctx.tree.children(ctx.rootId).length : 0,
     moveMode: ctx.moveState.active,
     foldDepths: ctx.foldDepths,
   })

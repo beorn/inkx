@@ -370,8 +370,8 @@ function getFoldTargetRoots(ctx: OpCtx, card: KNode | null | undefined): string[
     ? selected.map((c) => c.id)
     : card
       ? [card.id]
-      : ctx.column
-        ? ctx.column.cardNodes.map((n) => n.id)
+      : ctx.columnId
+        ? [...ctx.tree.children(ctx.columnId)]
         : []
 }
 
@@ -606,7 +606,6 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
 /** EditOp: structural editing — insert, delete, move, indent, clipboard (24 cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive edit action switch
 function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
-  const col = ctx.column
   const card = ctx.card
 
   switch (action.type) {
@@ -626,7 +625,7 @@ function handleEditAction(ctx: OpCtx, action: EditOp): OpResult {
     case "EDIT_BLOCK_NAVIGATE":
       return handleEditBlockNavigate(ctx, action.direction)
     case "INDENT_NODE": {
-      if (!card && col) return handleIndentColumn(ctx, col)
+      if (!card && ctx.columnId) return handleIndentColumn(ctx, ctx.columnId)
       if (!card) return boundary("indent", "No card to indent")
       // Resolve actual target: inline edit node OR cursor node (spatial nav),
       // falling back to card. Ensures Tab operates on the selected sub-item
@@ -890,7 +889,6 @@ function handleTextAction(ctx: OpCtx, action: TextOp): OpResult {
 /** BoardOp: selection, fold, visual mode, move mode, content lines (25+ cases). */
 // oxlint-disable-next-line complexity/complexity -- Exhaustive board state switch with fold logic
 function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
-  const col = ctx.column
   const card = ctx.card
 
   switch (action.type) {
@@ -908,7 +906,7 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
     case "TOGGLE_FOLD":
       return handleToggleFold(ctx)
     case "TOGGLE_COLLAPSE": {
-      const collapseNodeId = col?.node.id
+      const collapseNodeId = ctx.columnId
       if (!collapseNodeId) return boundary("collapse", "No column to collapse")
       if (collapseNodeId.startsWith("__body__")) return boundary("collapse", "Body column cannot be collapsed")
       const wasCollapsed = ctx.collapsedNodes?.has(collapseNodeId) ?? false
@@ -2366,7 +2364,8 @@ function handleOpenInSystem(ctx: OpCtx, nodeId: string): void {
 function handleHideNode(ctx: OpCtx): OpResult {
   const { repo } = ctx
   // Always hide at column level — Board.tsx filters columns, not individual cards.
-  const node = ctx.column?.node
+  if (!ctx.columnId) return boundary("hide", "No node to hide")
+  const node = repo.getNode(ctx.columnId)
   if (!node) return boundary("hide", "No node to hide")
 
   const hiddenPath = computeHiddenPath(node, repo)
@@ -2619,11 +2618,10 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
   if (!clipboard) return boundary("clipboard", "Nothing to paste")
 
   const { repo } = ctx
-  const col = ctx.column
-  if (!col) return boundary("clipboard", "No column")
+  if (!ctx.columnId) return boundary("clipboard", "No column")
 
   // Find current position in siblings
-  const siblings = repo.getChildren(col.node.id)
+  const siblings = repo.getChildren(ctx.columnId)
   const currentSibIdx = siblings.findIndex((s) => s.id === (ctx.cursor as string))
   const currentNode = siblings[currentSibIdx]
 
@@ -2656,7 +2654,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
     if (clipboard.mode === "cut") {
       // Move the node to the new position
       const sortOrder = baseSortOrder + i * 0.001
-      repo.moveNode(sourceId, col.node.id, sortOrder)
+      repo.moveNode(sourceId, ctx.columnId, sortOrder)
       lastPastedId = sourceId
     } else {
       // Copy: duplicate node — extractProps strips system fields, restore source-specific fields
@@ -2669,7 +2667,7 @@ function handleClipboardPaste(ctx: OpCtx): OpResult {
         data: sourceNode.data ? { ...sourceNode.data } : undefined,
         parent_idx: baseSortOrder + i * 0.001,
       }
-      lastPastedId = repo.addNode(col.node.id, newNode)
+      lastPastedId = repo.addNode(ctx.columnId, newNode)
     }
     pastedCount++
   }

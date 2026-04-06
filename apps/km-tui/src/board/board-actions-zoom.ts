@@ -127,7 +127,6 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
       // Keep cursor on current node if it would be visible; otherwise use the column
       // the cursor was in (becomes a card); otherwise fall back to old root (becomes a column).
       const cursorNode = ctx.cursor ? ctx.repo.getNode(ctx.cursor) : null
-      const col = ctx.column
       let cursorTarget: string | null = ctx.rootId // fallback: old root (always a column)
 
       if (cursorNode) {
@@ -142,8 +141,8 @@ export function handleZoomOutwards(ctx: OpCtx): OpResult {
           cursorTarget = ctx.cursor
         }
         // Cursor not directly visible — try the column it was in (becomes a card under old root)
-        else if (col) {
-          cursorTarget = col.node.id
+        else if (ctx.columnId) {
+          cursorTarget = ctx.columnId
         }
       }
 
@@ -190,11 +189,10 @@ function navigateToParent(ctx: OpCtx): OpResult {
  */
 export function handleZoomIn(ctx: OpCtx): OpResult {
   const { dispatchBoard } = ctx
-  const col = ctx.column
   const card = ctx.card
 
   // Support zoom at both card and column level
-  const nodeId = card?.id ?? col?.node.id
+  const nodeId = card?.id ?? ctx.columnId
   if (!nodeId) return precondition("card")
 
   // If node has no children, return boundary.
@@ -294,13 +292,12 @@ export function handleFollowLink(ctx: OpCtx): OpResult {
  */
 export function handleZoomInwards(ctx: OpCtx): OpResult {
   const { ui: _ui, dispatchBoard } = ctx
-  const col = ctx.column
   const card = ctx.card
 
   // If at column level (no card selected), zoom into the column directly
   if (!card) {
-    if (!col) return precondition("card")
-    return handleZoomInNode(ctx, col.node.id)
+    if (!ctx.columnId) return precondition("card")
+    return handleZoomInNode(ctx, ctx.columnId)
   }
 
   // If cursor is inside a card's sub-items, zoom to that node

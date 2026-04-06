@@ -17,11 +17,10 @@ import type { ID } from "@silvery/selection"
  * siblings at the same depth. When at card level, selects between cards.
  */
 export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down"): void {
-  const col = ctx.column
   const card = ctx.card
   const cursorId = ctx.cursor
 
-  if (!card || !col || !cursorId) return
+  if (!card || !ctx.columnId || !cursorId) return
 
   // Outline mode: cursor is on a sub-item within a card
   const inOutlineMode = cursorId !== card.id
@@ -31,8 +30,8 @@ export function handleExtendSelectVertical(ctx: OpCtx, direction: "up" | "down")
   }
 
   // Card-level selection: extend from anchor through cursor
-  const targetIdx =
-    direction === "up" ? Math.max(0, ctx.cardIndex - 1) : Math.min(col.cardNodes.length - 1, ctx.cardIndex + 1)
+  const cardCount = ctx.tree.children(ctx.columnId).length
+  const targetIdx = direction === "up" ? Math.max(0, ctx.cardIndex - 1) : Math.min(cardCount - 1, ctx.cardIndex + 1)
 
   if (targetIdx === ctx.cardIndex) {
     // At boundary — if starting fresh, just select current card

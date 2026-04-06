@@ -145,9 +145,8 @@ function handleHorizontalNav(ctx: OpCtx, dir: "left" | "right"): OpResult {
   }
 
   // When at leftmost card pressing h, position at column header instead of moving columns
-  if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.column) {
-    const columnNode = ctx.column.node
-    ctx.sel.node.select([columnNode.id as ID])
+  if (dir === "left" && ctx.colIndex === 0 && ctx.isAtCardLevel && ctx.columnId) {
+    ctx.sel.node.select([ctx.columnId as ID])
     navigator.clearStickyY()
     return ok()
   }
@@ -268,10 +267,8 @@ function handleBlockNav(ctx: OpCtx, dir: "in" | "out"): OpResult {
   // `into`: skip folded subtrees (foldDepths === 0) AND task-filtered subtrees.
   //   A done parent's children are invisible even if they're todo — don't descend.
   // `match`: exclude the filtered node itself from the navigable list.
-  const col = ctx.column
-  const colId = col?.node.id
   // Walk visible descendants via ViewTree (lens filters by task status + fold depth)
-  const blocks = colId ? collectTreeDescendants(ctx.tree, colId) : []
+  const blocks = ctx.columnId ? collectTreeDescendants(ctx.tree, ctx.columnId) : []
   if (blocks.length === 0) return boundary(dir, "no visible blocks")
 
   const navState = extractNavState(ctx)
@@ -427,12 +424,10 @@ export function handleNavSiblingBoard(ctx: OpCtx, direction: "next" | "prev"): O
  */
 export function handlePageJump(ctx: OpCtx, direction: "up" | "down"): void {
   const { ui } = ctx
-  const col = ctx.column
-
-  if (!col) return
+  if (!ctx.columnId) return
 
   const pageSize = Math.max(5, Math.floor((ui.dimensions.rows - 4) / 2))
-  const cardIds = col.cardNodes.map((c) => c.id)
+  const cardIds = [...ctx.tree.children(ctx.columnId)]
   const navState = extractNavState(ctx)
   const result = applyPageJump(navState, direction, cardIds, ctx.cardIndex, pageSize)
 
