@@ -467,6 +467,7 @@ export function WorkspaceBottomBar({ consoleStats }: WorkspaceBottomBarProps): R
       paddingX={1}
       id="bottom-bar"
       data-status={ui.status?.level}
+      userSelect="none"
     >
       <StatusCounters
         ui={ui}

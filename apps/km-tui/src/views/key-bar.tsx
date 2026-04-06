@@ -99,7 +99,7 @@ export function KeyBar({ ui, termWidth }: KeyBarProps): React.ReactElement {
   const hints = getHints(mode, sel.node.ids().length > 0)
 
   return (
-    <Box flexDirection="row" flexShrink={0} width={termWidth} id="key-bar">
+    <Box flexDirection="row" flexShrink={0} width={termWidth} id="key-bar" userSelect="none">
       {/* Mode indicator */}
       <Text dimColor>{"\u2500\u2500 "}</Text>
       <Strong id="key-bar-mode">{mode}</Strong>

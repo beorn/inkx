@@ -17,7 +17,7 @@ interface TopBarProps {
 
 export function TopBar({ segments, width, isBoardSelected = true }: TopBarProps): React.ReactElement {
   return (
-    <Box width={width} paddingLeft={1} paddingRight={1} flexShrink={0}>
+    <Box width={width} paddingLeft={1} paddingRight={1} flexShrink={0} userSelect="none">
       <Text>{renderTopBarContent(segments, isBoardSelected)}</Text>
     </Box>
   )
