@@ -450,12 +450,10 @@ const Card = React.memo(
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
     const isBoardLevel = selLevel === "board"
-    // When column/board selected, card borders match the tinted bg (blend into it)
-    const tintedBorder = selectedBg(theme)
     const borderColor = isEditing
       ? "$focusborder"
       : isColSelected || isBoardLevel
-        ? (tintedBorder ?? "$surface-bg")
+        ? "$surface-bg" // hide borders when column/board selected (same space, invisible)
         : isSelected || isNodeSelected
           ? "$selection-bg"
           : (hoverBorderColor ?? defaultBorder)
