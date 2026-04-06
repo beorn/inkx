@@ -147,7 +147,7 @@ export function ColumnHeader({
   const collapsedIndicator = isCollapsed ? " \u25B8" : ""
 
   return (
-    <Box flexDirection="column" width={width}>
+    <Box flexDirection="column" width={width} userSelect="none">
       {/* Blank line above (for list view, not first header) */}
       {showTopSpacer && (
         <Box height={1}>
