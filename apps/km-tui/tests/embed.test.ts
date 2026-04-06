@@ -25,9 +25,9 @@ describe("embed create depth", () => {
     const { board, repo } = testEnv(() => {
       const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
-        // Simulate embed nodes by setting embed_source
+        // Simulate embed nodes by setting symlink_to
         if (n.id === "embed-a" || n.id === "embed-b") {
-          n.embed_source = "some-target"
+          n.symlink_to = "some-target"
           n.type = "h"
           n.item = {}
           n.data = {}
@@ -116,7 +116,7 @@ describe("embed create depth", () => {
       const nodes = item("board", item("col1", item("embed-a"), item("embed-b")))
       for (const n of nodes) {
         if (n.id === "embed-a" || n.id === "embed-b") {
-          n.embed_source = "some-target"
+          n.symlink_to = "some-target"
           n.type = "h"
           n.item = {}
           n.data = {}
@@ -148,18 +148,18 @@ describe("embed create depth", () => {
 // =============================================================================
 
 describe("embed display", () => {
-  test("unresolved embed with embed_source=null does not show ! prefix", () => {
+  test("unresolved embed with symlink_to=null does not show ! prefix", () => {
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Paragraph embed where link resolver didn't find target (embed_source=null)
+        // Paragraph embed where link resolver didn't find target (symlink_to=null)
         // This happens for file references like ![[some-file.pdf]]
         nodes.push({
           id: "unresolved-embed",
           type: "p" as const,
           content: "![[Target File.pdf]]",
-          embed_source: null,
+          symlink_to: null,
           parent_id: "col1",
           parent_idx: 1,
           data: { embeddingTarget: "Target File.pdf" },
@@ -186,12 +186,12 @@ describe("embed display", () => {
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Block reference embed: embed_source = file#^blockId
+        // Block reference embed: symlink_to = file#^blockId
         nodes.push({
           id: "block-embed",
           type: "p" as const,
           content: null,
-          embed_source: "SomeFile#^abc123",
+          symlink_to: "SomeFile#^abc123",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -219,12 +219,12 @@ describe("embed display", () => {
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Bare block reference embed ![[^1203128650780856]] with embed_source=null
+        // Bare block reference embed ![[^1203128650780856]] with symlink_to=null
         nodes.push({
           id: "bare-block-embed",
           type: "p" as const,
           content: "![[^1203128650780856]]",
-          embed_source: null,
+          symlink_to: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -257,7 +257,7 @@ describe("embed display", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Buy groceries",
           data: {},
           created_at: Date.now(),
@@ -270,7 +270,7 @@ describe("embed display", () => {
           id: "resolved-embed",
           type: "p" as const,
           content: "![[target-node]]",
-          embed_source: "target-node",
+          symlink_to: "target-node",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -306,7 +306,7 @@ describe("embed display", () => {
             id: `embed-${idx}`,
             type: "p" as const,
             content,
-            embed_source: null,
+            symlink_to: null,
             parent_id: "col1",
             parent_idx: idx + 1,
             data: {},
@@ -349,7 +349,7 @@ describe("embed display", () => {
           type: "p" as const,
           item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
           content: "Organize into boxes ![[file.jpg]]",
-          embed_source: null,
+          symlink_to: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -379,7 +379,7 @@ describe("embed display", () => {
           type: "p" as const,
           item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
           content: "Organize into boxes ![[file.jpg]]",
-          embed_source: null,
+          symlink_to: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -410,7 +410,7 @@ describe("embed display", () => {
           type: "p" as const,
           item: { list: "-", task: { status: "todo" as const, marker: "[ ]" } },
           content: "See ![[photo.png]] and ![[doc.pdf]]",
-          embed_source: null,
+          symlink_to: null,
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -436,7 +436,7 @@ describe("embed display", () => {
 // =============================================================================
 
 describe("folded embed display (FoldedChildRow)", () => {
-  test("FoldedChildRow resolves embed_source directly, not just via resolveNode fallback", () => {
+  test("FoldedChildRow resolves symlink_to directly, not just via resolveNode fallback", () => {
     // Default fold depth = 1: card children render as FoldedChildRow (remainingDepth=0).
     // Bug: FoldedChildRow passed null for resolvedNode to getDisplayContent,
     // so it relied on the resolveNode fallback which doesn't always work
@@ -455,7 +455,7 @@ describe("folded embed display (FoldedChildRow)", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Buy milk from store",
           block_id: "abc",
           data: {},
@@ -469,7 +469,7 @@ describe("folded embed display (FoldedChildRow)", () => {
           type: "p" as const,
           parent_id: "some-file",
           parent_idx: 1,
-          embed_source: null,
+          symlink_to: null,
           content: "Walk the dog outside",
           block_id: "xyz",
           data: {},
@@ -478,19 +478,19 @@ describe("folded embed display (FoldedChildRow)", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Patch embed children: block-ref format with resolved embed_source.
-        // embed_source points directly to the target node ID.
+        // Patch embed children: block-ref format with resolved symlink_to.
+        // symlink_to points directly to the target node ID.
         // Content uses ![[^blockid]] which resolveNode can't resolve for short IDs.
         for (const n of nodes) {
           if (n.id === "embed-child-1") {
             n.type = "p"
-            n.embed_source = "target-task-abc"
+            n.symlink_to = "target-task-abc"
             n.content = "![[^abc]]"
             n.data = {}
           }
           if (n.id === "embed-child-2") {
             n.type = "p"
-            n.embed_source = "target-task-xyz"
+            n.symlink_to = "target-task-xyz"
             n.content = "![[^xyz]]"
             n.data = {}
           }
@@ -503,7 +503,7 @@ describe("folded embed display (FoldedChildRow)", () => {
 
     // With default rootFoldDepth=1, card children render as FoldedChildRow initially
     const text = stripAnsi(board.screenshot())
-    // FoldedChildRow should resolve embed targets via embed_source and show content
+    // FoldedChildRow should resolve embed targets via symlink_to and show content
     expect(text).toContain("Buy milk")
     expect(text).toContain("Walk the dog")
     // Should NOT show raw block references or short ID fallback
@@ -530,7 +530,7 @@ describe("link title resolution", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Tax projects",
           block_id: "1203128650780856",
           data: {},
@@ -539,13 +539,13 @@ describe("link title resolution", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed node: embed_source is set, content has block reference format
+        // Embed node: symlink_to is set, content has block reference format
         // This simulates what the rules engine creates + markdown serialization round-trip
         nodes.push({
           id: "embed-1",
           type: "p" as const,
           content: "![[^1203128650780856]]",
-          embed_source: "target-task-1",
+          symlink_to: "target-task-1",
 
           parent_id: "col1",
           parent_idx: 1,
@@ -579,7 +579,7 @@ describe("link title resolution", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Buy groceries",
           block_id: "abc123",
           data: {},
@@ -593,7 +593,7 @@ describe("link title resolution", () => {
           id: "embed-2",
           type: "p" as const,
           content: "![[shopping#^abc123]]",
-          embed_source: "target-task-2",
+          symlink_to: "target-task-2",
 
           parent_id: "col1",
           parent_idx: 1,
@@ -616,18 +616,18 @@ describe("link title resolution", () => {
   })
 
   test("unresolved embed with ^blockid content shows blockid without caret", () => {
-    // When embed_source is set but target doesn't exist (stale reference),
+    // When symlink_to is set but target doesn't exist (stale reference),
     // at minimum strip the ^ prefix from the display
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Embed with embed_source pointing to nonexistent target
+        // Embed with symlink_to pointing to nonexistent target
         nodes.push({
           id: "stale-embed",
           type: "p" as const,
           content: "![[^9999999999999999]]",
-          embed_source: "nonexistent-target",
+          symlink_to: "nonexistent-target",
 
           parent_id: "col1",
           parent_idx: 1,
@@ -666,7 +666,7 @@ describe("unresolved Asana embed display", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Review quarterly report",
           block_id: "1209600947800994",
           data: {},
@@ -675,12 +675,12 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed ref: embed_source points to target via file#^blockId
+        // Embed ref: symlink_to points to target via file#^blockId
         nodes.push({
           id: "asana-embed-a",
           type: "p" as const,
           content: null,
-          embed_source: "688309546998762-pers-prod#^1209600947800994",
+          symlink_to: "688309546998762-pers-prod#^1209600947800994",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -715,7 +715,7 @@ describe("unresolved Asana embed display", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Weekly standup notes",
           block_id: "1k4a",
           data: {},
@@ -724,12 +724,12 @@ describe("unresolved Asana embed display", () => {
           version: "v1",
         } as unknown as KNode)
 
-        // Embed ref: embed_source points to target via ^blockId
+        // Embed ref: symlink_to points to target via ^blockId
         nodes.push({
           id: "bare-embed",
           type: "p" as const,
           content: null,
-          embed_source: "^1k4a",
+          symlink_to: "^1k4a",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -757,12 +757,12 @@ describe("unresolved Asana embed display", () => {
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
 
-        // Embed ref: embed_source points to non-existent target
+        // Embed ref: symlink_to points to non-existent target
         nodes.push({
           id: "orphan-embed",
           type: "p" as const,
           content: null,
-          embed_source: "my-notes#^nonexistent",
+          symlink_to: "my-notes#^nonexistent",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -802,7 +802,7 @@ describe("context-dependent rendering", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Embedded todo task",
           data: {},
           created_at: Date.now(),
@@ -815,7 +815,7 @@ describe("context-dependent rendering", () => {
           id: "embed-link",
           type: "p" as const,
           content: "![[target-li]]",
-          embed_source: "target-li",
+          symlink_to: "target-li",
 
           parent_id: "col1",
           parent_idx: 1,
@@ -852,7 +852,7 @@ describe("context-dependent rendering", () => {
           fstype: "mdsection",
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Architecture Notes",
           name: "architecture-notes",
           data: {},
@@ -867,7 +867,7 @@ describe("context-dependent rendering", () => {
           id: "body-embed",
           type: "p" as const,
           content: "![[target-section]]",
-          embed_source: "target-section",
+          symlink_to: "target-section",
           parent_id: "board",
           parent_idx: -1, // before col1 (parent_idx=0)
           data: {},
@@ -899,7 +899,7 @@ describe("context-dependent rendering", () => {
           item: { list: "-", task: { status: "done", marker: "[x]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Completed task",
           data: {},
           created_at: Date.now(),
@@ -912,7 +912,7 @@ describe("context-dependent rendering", () => {
           id: "embed-done",
           type: "p" as const,
           content: "![[done-target]]",
-          embed_source: "done-target",
+          symlink_to: "done-target",
 
           parent_id: "col1",
           parent_idx: 1,
@@ -946,7 +946,7 @@ describe("context-dependent rendering", () => {
           fstype: "mdsection",
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Parent Section",
           name: "parent-section",
           data: {},
@@ -962,7 +962,7 @@ describe("context-dependent rendering", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "target-parent",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Child subtask",
           data: {},
           created_at: Date.now(),
@@ -975,7 +975,7 @@ describe("context-dependent rendering", () => {
           id: "embed-parent",
           type: "p" as const,
           content: "![[target-parent]]",
-          embed_source: "target-parent",
+          symlink_to: "target-parent",
 
           parent_id: "col1",
           parent_idx: 0,
@@ -1013,13 +1013,13 @@ describe("embed task status cycling (km-79kld)", () => {
       for (const n of nodes) {
         if (n.id === "embed-a") {
           n.type = "p"
-          n.embed_source = "target-a"
+          n.symlink_to = "target-a"
           n.item = { ...n.item, task: undefined }
           n.data = {}
         }
         if (n.id === "embed-b") {
           n.type = "p"
-          n.embed_source = "target-b"
+          n.symlink_to = "target-b"
           n.item = { ...n.item, task: undefined }
           n.data = {}
         }
@@ -1041,7 +1041,7 @@ describe("embed task status cycling (km-79kld)", () => {
         item: { list: "-", task: { status: "todo", marker: "[ ]" } },
         parent_id: "some-other-parent",
         parent_idx: 0,
-        embed_source: null,
+        symlink_to: null,
         content: "Target task A",
         data: {},
         created_at: Date.now(),
@@ -1054,7 +1054,7 @@ describe("embed task status cycling (km-79kld)", () => {
         item: { list: "-", task: { status: "done", marker: "[x]" } },
         parent_id: "some-other-parent",
         parent_idx: 1,
-        embed_source: null,
+        symlink_to: null,
         content: "Target task B",
         data: {},
         created_at: Date.now(),
@@ -1229,7 +1229,7 @@ describe("embed alias override (km-wk17l)", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Original target title",
           data: {},
           created_at: Date.now(),
@@ -1242,7 +1242,7 @@ describe("embed alias override (km-wk17l)", () => {
           id: "alias-embed",
           type: "p" as const,
           content: "My custom alias",
-          embed_source: "target-aliased",
+          symlink_to: "target-aliased",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -1276,7 +1276,7 @@ describe("embed alias override (km-wk17l)", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Target content here",
           data: {},
           created_at: Date.now(),
@@ -1289,7 +1289,7 @@ describe("embed alias override (km-wk17l)", () => {
           id: "syntax-embed",
           type: "p" as const,
           content: "![[target-no-alias]]",
-          embed_source: "target-no-alias",
+          symlink_to: "target-no-alias",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -1316,7 +1316,7 @@ describe("embed alias override (km-wk17l)", () => {
 
 describe("broken embed rendering (km-wk17l)", () => {
   test("broken embed with content shows content in error color", () => {
-    // embed_source set but target doesn't exist — broken link.
+    // symlink_to set but target doesn't exist — broken link.
     // Content available: show it, but in error color.
     const { board } = testEnv(
       () => {
@@ -1326,7 +1326,7 @@ describe("broken embed rendering (km-wk17l)", () => {
           id: "broken-embed-with-content",
           type: "p" as const,
           content: "Some alias text",
-          embed_source: "nonexistent-node",
+          symlink_to: "nonexistent-node",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -1345,9 +1345,9 @@ describe("broken embed rendering (km-wk17l)", () => {
     expect(text).toContain("Some alias text")
   })
 
-  test("broken embed without content shows cleaned embed_source as fallback", () => {
-    // embed_source set, target missing, no content — broken link.
-    // embed_source looks like a filename → show it directly.
+  test("broken embed without content shows cleaned symlink_to as fallback", () => {
+    // symlink_to set, target missing, no content — broken link.
+    // symlink_to looks like a filename → show it directly.
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
@@ -1356,7 +1356,7 @@ describe("broken embed rendering (km-wk17l)", () => {
           id: "broken-no-content",
           type: "p" as const,
           content: null,
-          embed_source: "deadbeef-missing",
+          symlink_to: "deadbeef-missing",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -1373,12 +1373,12 @@ describe("broken embed rendering (km-wk17l)", () => {
     const text = stripAnsi(board.screenshot())
     // Should NOT show embed syntax
     expect(text).not.toContain("![[")
-    // Should show the embed_source as cleaned display text
+    // Should show the symlink_to as cleaned display text
     expect(text).toContain("deadbeef-missing")
   })
 
   test("broken embed with bare block ref shows broken fallback", () => {
-    // embed_source is a bare ^blockId, target missing — show (broken: ^shortId).
+    // symlink_to is a bare ^blockId, target missing — show (broken: ^shortId).
     const { board } = testEnv(
       () => {
         const nodes = item("board", item("col1", item("regular-task")))
@@ -1387,7 +1387,7 @@ describe("broken embed rendering (km-wk17l)", () => {
           id: "broken-bare-ref",
           type: "p" as const,
           content: null,
-          embed_source: "^deadbeef12345678",
+          symlink_to: "^deadbeef12345678",
           parent_id: "col1",
           parent_idx: 1,
           data: {},
@@ -1413,7 +1413,7 @@ describe("broken embed rendering (km-wk17l)", () => {
 // =============================================================================
 
 /**
- * When viewing embedded nodes (transclusions with embed_source), the sigil badge
+ * When viewing embedded nodes (transclusions with symlink_to), the sigil badge
  * after the title should be suppressed if it matches the board or column context.
  * E.g., a task with name "@next" displayed on the @next board should not show
  * the redundant "@next" sigil badge.
@@ -1448,7 +1448,7 @@ describe("strip embed sigil", () => {
           // Make embed-a link to a target with name "@next"
           if (n.id === "embed-a") {
             n.type = "p"
-            n.embed_source = "target-a"
+            n.symlink_to = "target-a"
             n.content = "![[target-a]]"
             n.item = { ...n.item, task: undefined }
             n.data = {}
@@ -1457,7 +1457,7 @@ describe("strip embed sigil", () => {
           // Make embed-b link to a target with a different sigil
           if (n.id === "embed-b") {
             n.type = "p"
-            n.embed_source = "target-b"
+            n.symlink_to = "target-b"
             n.content = "![[target-b]]"
             n.item = { ...n.item, task: undefined }
             n.data = {}
@@ -1479,7 +1479,7 @@ describe("strip embed sigil", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "some-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Buy groceries",
           name: "@next",
           data: {},
@@ -1494,7 +1494,7 @@ describe("strip embed sigil", () => {
           type: "p",
           parent_id: "some-file",
           parent_idx: 1,
-          embed_source: null,
+          symlink_to: null,
           content: "Wait for reply",
           name: "@waiting",
           data: {},
@@ -1593,7 +1593,7 @@ describe("strip embed sigil", () => {
 
           if (n.id === "embed-c") {
             n.type = "p"
-            n.embed_source = "target-c"
+            n.symlink_to = "target-c"
             n.content = "![[target-c]]"
             n.item = { ...n.item, task: undefined }
             n.data = {}
@@ -1608,7 +1608,7 @@ describe("strip embed sigil", () => {
           fstype: "mdfile",
           parent_id: null,
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "",
           name: "@next",
           fs_path: "/vault/@next.md",
@@ -1625,7 +1625,7 @@ describe("strip embed sigil", () => {
           item: { list: "-", task: { status: "todo", marker: "[ ]" } },
           parent_id: "next-file",
           parent_idx: 0,
-          embed_source: null,
+          symlink_to: null,
           content: "Call dentist",
           data: {},
           created_at: Date.now(),
@@ -1662,7 +1662,7 @@ describe("hide redundant parent sigil on embedded links", () => {
   /**
    * Build a board where:
    * - Board root is "board"
-   * - Column "@next" contains embedded links (embed_source) to tasks
+   * - Column "@next" contains embedded links (symlink_to) to tasks
    * - Tasks' original parent is a file called "@next.md"
    *   with display name "Next Actions" (via data.name)
    */
@@ -1680,14 +1680,14 @@ describe("hide redundant parent sigil on embedded links", () => {
         // Set up embed nodes as links pointing to target tasks
         if (n.id === "embed-a") {
           n.type = "p"
-          n.embed_source = "target-a"
+          n.symlink_to = "target-a"
           n.item = { ...n.item, task: undefined }
           n.content = "![[target-a]]"
           n.data = {}
         }
         if (n.id === "embed-b") {
           n.type = "p"
-          n.embed_source = "target-b"
+          n.symlink_to = "target-b"
           n.item = { ...n.item, task: undefined }
           n.content = "![[target-b]]"
           n.data = {}
@@ -1702,7 +1702,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         fstype: "mdfile",
         parent_id: null,
         parent_idx: 0,
-        embed_source: null,
+        symlink_to: null,
         content: undefined,
         data: { name: parentName },
         name: "@next",
@@ -1719,7 +1719,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         item: { list: "-", task: { status: "wip", marker: "[-]" } },
         parent_id: "next-file",
         parent_idx: 0,
-        embed_source: null,
+        symlink_to: null,
         content: "Buy groceries",
         data: {},
         created_at: Date.now(),
@@ -1732,7 +1732,7 @@ describe("hide redundant parent sigil on embedded links", () => {
         type: "p",
         parent_id: "next-file",
         parent_idx: 1,
-        embed_source: null,
+        symlink_to: null,
         content: "Write report @next",
         data: {},
         created_at: Date.now(),
@@ -1811,7 +1811,7 @@ describe("embed transparency in detail pane", () => {
       content: "Target Section",
       parent_id: null,
       parent_idx: 0,
-      embed_source: null,
+      symlink_to: null,
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -1825,7 +1825,7 @@ describe("embed transparency in detail pane", () => {
       content: "Target Child Alpha",
       parent_id: "target-node",
       parent_idx: 0,
-      embed_source: null,
+      symlink_to: null,
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -1837,7 +1837,7 @@ describe("embed transparency in detail pane", () => {
       content: "Target Child Beta",
       parent_id: "target-node",
       parent_idx: 1,
-      embed_source: null,
+      symlink_to: null,
       data: {},
       created_at: Date.now(),
       updated_at: Date.now(),
@@ -1846,7 +1846,7 @@ describe("embed transparency in detail pane", () => {
     // Make embed-card point to target-node
     for (const n of nodes) {
       if (n.id === "embed-card") {
-        n.embed_source = "target-node"
+        n.symlink_to = "target-node"
         n.content = ""
       }
     }

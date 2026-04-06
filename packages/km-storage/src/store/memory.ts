@@ -387,7 +387,7 @@ export class MemoryStore extends BaseStore {
     const ic = decomposeItem(node.item)
     this.db.run(
       `INSERT INTO nodes (
-        id, type, fstype, parent_id, parent_idx, item, embed_source,
+        id, type, fstype, parent_id, parent_idx, item, symlink_to,
         fs_path, md_pos, md_line, name, block_id,
         content, content_hash, title, list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
@@ -400,7 +400,7 @@ export class MemoryStore extends BaseStore {
         node.parent_id ?? null,
         node.parent_idx ?? 0,
         ic.item,
-        node.embed_source ?? null,
+        node.symlink_to ?? null,
         node.fs_path ?? null,
         node.md_pos ?? null,
         node.md_line ?? null,

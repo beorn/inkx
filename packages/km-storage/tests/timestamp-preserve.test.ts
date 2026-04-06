@@ -30,7 +30,7 @@ function createNode(id: string, overrides: Partial<KNode> = {}): KNode {
     fstype: "mdfile",
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),

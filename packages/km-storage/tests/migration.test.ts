@@ -141,7 +141,7 @@ describe("SQLite performance optimizations", () => {
         parent_idx REAL DEFAULT 0,
         fstype TEXT,
         item INTEGER DEFAULT 0,
-        embed_source TEXT,
+        symlink_to TEXT,
         fs_path TEXT,
         fs_ino INTEGER,
         fs_mtime INTEGER,

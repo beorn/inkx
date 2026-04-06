@@ -785,7 +785,7 @@ export function Board({ patchedConsole }: BoardProps) {
       let hiddenDescendantCount = 0
       const filteredCards = col.cardNodes.filter((card) => {
         // For embeds, resolve to source node for filtering
-        const embedSource = card.embed_source
+        const embedSource = card.symlink_to
         const filterNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
         // Text filter: match card content (use source node content for embeds)
         if (hasTextFilter) {
@@ -1219,7 +1219,7 @@ function countHiddenDescendants(
   const children = repo.getChildren(parentId)
   let count = 0
   for (const child of children) {
-    const embedSource = child.embed_source
+    const embedSource = child.symlink_to
     const filterNode = embedSource ? (repo.getNode(embedSource) ?? child) : child
     if (!matchesPropertyFilters(filterNode, filters)) {
       count++

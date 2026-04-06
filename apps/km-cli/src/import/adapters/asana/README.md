@@ -159,7 +159,7 @@ Each instance has `→ ^{templateGID}` appended to its name. The importer:
 
 1. **Strips** the `→ ^GID` suffix from the instance title
 2. **Stores** the template GID in `metadata.parentTaskGid`
-3. **Creates** an `embed_source` link on the node pointing to the template
+3. **Creates** an `symlink_to` link on the node pointing to the template
 4. **Maps** the `recurrence` field to an RRULE string on the kmast node
 
 See [docs/design/recurrence.md](/docs/design/recurrence.md) for the full

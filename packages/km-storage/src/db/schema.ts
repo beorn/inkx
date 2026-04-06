@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS nodes (
   fstype TEXT,
   parent_id TEXT,
   item INTEGER DEFAULT 0,
-  embed_source TEXT,
+  symlink_to TEXT,
   parent_idx REAL DEFAULT 0,
 
   -- Filesystem
@@ -153,20 +153,26 @@ export function migrateSchema(db: import("bun:sqlite").Database): void {
   missing("due_at")
   missing("start_at")
   missing("item", "INTEGER DEFAULT 0")
-  missing("embed_source")
+  missing("symlink_to")
   missing("parsed", "INTEGER DEFAULT 0")
 
+  // Rename embed_source → symlink_to (column rename migration)
+  if (columnNames.has("embed_source") && !columnNames.has("symlink_to")) {
+    db.run("ALTER TABLE nodes ADD COLUMN symlink_to TEXT")
+    db.run("UPDATE nodes SET symlink_to = embed_source WHERE embed_source IS NOT NULL")
+  }
+
   // kmast v2: convert old type values to trait-based model
-  // oi → h + item:true, li → p + item:true, link → embed + embed_source from link_to
+  // oi → h + item:true, li → p + item:true, link → embed + symlink_to from link_to
   const hasOldTypes = (
     db.query("SELECT COUNT(*) as cnt FROM nodes WHERE type IN ('oi', 'li', 'link')").get() as { cnt: number }
   ).cnt
   if (hasOldTypes > 0) {
     db.run("UPDATE nodes SET type = 'h', item = 1 WHERE type = 'oi'")
     db.run("UPDATE nodes SET type = 'p', item = 1 WHERE type = 'li'")
-    // Copy link_to → embed_source. Old "link" type becomes "p" with embed_source.
+    // Copy link_to → symlink_to. Old "link" type becomes "p" with symlink_to.
     if (columnNames.has("link_to")) {
-      db.run("UPDATE nodes SET type = 'p', embed_source = link_to WHERE type = 'link'")
+      db.run("UPDATE nodes SET type = 'p', symlink_to = link_to WHERE type = 'link'")
     } else {
       db.run("UPDATE nodes SET type = 'p' WHERE type = 'link'")
     }
@@ -260,7 +266,7 @@ export const NODE_COLUMNS = new Set([
   "fstype",
   "parent_id",
   "item",
-  "embed_source",
+  "symlink_to",
   "parent_idx",
   "fs_path",
   "fs_ino",

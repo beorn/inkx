@@ -74,7 +74,7 @@ function createVirtualBodyNode(parentId: string | null): KNode {
  * - Body extraction: non-outline children before first heading → body column
  * - Fold filtering: collapsed columns have no children
  * - Hidden filtering: nodes in hiddenNodeIds are excluded
- * - Embed resolution: nodes with embed_source get target's children
+ * - Embed resolution: nodes with symlink_to get target's children
  * - Role assignment: depth-based (board/column/card/subitem/body-column)
  * - Index file expansion: folders with index files expand
  * - Detail-only exclusion: detailOnly / well-known metadata sections hidden
@@ -179,8 +179,8 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   }
 
   function resolveEmbed(node: KNode): void {
-    if (node.embed_source) {
-      const target = repo.getNode(node.embed_source) ?? undefined
+    if (node.symlink_to) {
+      const target = repo.getNode(node.symlink_to) ?? undefined
       embedCache.set(node.id, target)
     }
   }

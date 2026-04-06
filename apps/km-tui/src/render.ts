@@ -146,7 +146,7 @@ export function renderCard(
 
   // Status icon and content - compact format: "○ Content"
   // For embedded nodes, resolve the target node and show its content
-  const embedSource = card.embed_source
+  const embedSource = card.symlink_to
   const displayNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
   const statusIcon = renderStatusIcon(displayNode.item?.task?.status)
   const contentFirstLine = displayNode.content?.split("\n")[0] ?? ""

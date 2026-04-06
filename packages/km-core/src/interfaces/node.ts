@@ -25,7 +25,7 @@ export interface KNode extends _KNodeInterface {}
 type NodeLike = { type: string; item?: ItemData }
 
 /** Extended node shape for embed detection. */
-type EmbedLike = { embed_source?: string | null }
+type EmbedLike = { symlink_to?: string | null }
 
 /** System/structural fields — never inherited on split/copy */
 const SYSTEM_KEYS: ReadonlySet<string> = new Set([
@@ -68,9 +68,9 @@ export const KNode = {
     return node.item == null
   },
 
-  /** Embed — node that displays content from another node via embed_source. */
+  /** Embed — node that displays content from another node via symlink_to. */
   isEmbed(node: EmbedLike): boolean {
-    return node.embed_source != null
+    return node.symlink_to != null
   },
 
   /** Task — item with task data. */

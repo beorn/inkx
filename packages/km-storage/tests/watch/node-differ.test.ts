@@ -14,7 +14,7 @@ function makeNode(overrides: Partial<KNode> & { id: string; type: string }): KNo
   return {
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     data: {},
     created_at: Date.now(),
     updated_at: Date.now(),

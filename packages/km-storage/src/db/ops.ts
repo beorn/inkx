@@ -67,7 +67,7 @@ export function createDbOps(db: Database, emitter?: Emitter): DbOps {
  * Options for building an embedded child node.
  */
 export interface EmbedChildOpts {
-  /** Source node being embedded — its id becomes embed_source */
+  /** Source node being embedded — its id becomes symlink_to */
   source: KNode
   /** Sort order within parent */
   parentIdx: number
@@ -81,7 +81,7 @@ export interface EmbedChildOpts {
  * Build a Partial<KNode> for an embedded child. Pure function — caller chooses
  * write mechanism: createDbOps(db).addNode() (direct SQL) or repo.addNode() (with events).
  *
- * Content is left empty — the display layer resolves it from embed_source
+ * Content is left empty — the display layer resolves it from symlink_to
  * at render time via getDisplayContent(). Setting content would freeze it
  * at creation time and be treated as an alias override.
  * Task traits (marker, status) are carried from the source with marker derivation.
@@ -92,7 +92,7 @@ export function buildEmbedChild(opts: EmbedChildOpts): Partial<KNode> {
   const node: Partial<KNode> = {
     type,
     item: type === "p" ? { list: "-", ...(source.item?.task ? { task: source.item.task } : {}) } : {},
-    embed_source: source.id,
+    symlink_to: source.id,
     parent_idx: parentIdx,
   }
 
@@ -296,7 +296,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
     parent_id: parentId ?? ".",
     parent_idx: node.parent_idx ?? now,
     item: ic.item,
-    embed_source: node.embed_source ?? null,
+    symlink_to: node.symlink_to ?? null,
     fs_path: node.fs_path ?? null,
     fs_ino: node.fs_ino ?? null,
     name: node.name ?? null,
@@ -329,7 +329,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
   } else {
     db.run(
       `INSERT INTO nodes (
-        id, type, fstype, parent_id, parent_idx, item, embed_source,
+        id, type, fstype, parent_id, parent_idx, item, symlink_to,
         fs_path, fs_ino, name, title, md_pos, md_line,
         list_marker, task_marker,
         task_status, assigned_to, due_at, start_at, priority,
@@ -348,7 +348,7 @@ function addNodeImpl(db: Database, parentId: string | null, node: Partial<KNode>
         nodeData.parent_id,
         nodeData.parent_idx,
         nodeData.item,
-        nodeData.embed_source,
+        nodeData.symlink_to,
         nodeData.fs_path,
         nodeData.fs_ino,
         nodeData.name,

@@ -541,7 +541,7 @@ function createMinimalNode(partial: Partial<KNode> & { id: string; parent_id: st
     type: "h",
     item: {},
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     content: "",
     data: {},
     created_at: now,

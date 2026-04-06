@@ -229,8 +229,8 @@ export const addCommand = new Command("add")
       : new Set(
           repo
             .getSubtree(targetNode.id)
-            .filter((n): n is typeof n & { embed_source: string } => n.embed_source != null)
-            .map((n) => n.embed_source),
+            .filter((n): n is typeof n & { symlink_to: string } => n.symlink_to != null)
+            .map((n) => n.symlink_to),
         )
 
     const tasksToLink: KNodeType[] = []

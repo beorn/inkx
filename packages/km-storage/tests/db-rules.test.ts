@@ -169,7 +169,7 @@ describe("Database Rules", () => {
           const embeds = children.filter((c) => KNode.isEmbed(c))
 
           expect(embeds.length).toBe(2)
-          expect(embeds.every((e) => e.embed_source)).toBe(true)
+          expect(embeds.every((e) => e.symlink_to)).toBe(true)
         },
       ))
 
@@ -298,7 +298,7 @@ describe("Database Rules", () => {
 
           expect(children.length).toBe(2)
           expect(children.every((c) => KNode.isEmbed(c))).toBe(true)
-          expect(children.every((c) => c.embed_source)).toBe(true)
+          expect(children.every((c) => c.symlink_to)).toBe(true)
         },
       ))
 
@@ -363,7 +363,7 @@ describe("Database Rules", () => {
 
           const children = getChildren(store.getDatabase(), inboxSection!.id)
           // The embed from markdown + rule should not create a duplicate
-          const embedTargets = children.filter((c) => c.embed_source).map((c) => c.embed_source)
+          const embedTargets = children.filter((c) => c.symlink_to).map((c) => c.symlink_to)
           const uniqueTargets = new Set(embedTargets)
           expect(embedTargets.length).toBe(uniqueTargets.size)
         },

@@ -27,7 +27,7 @@ function createNode(id: string, children: TNode[] = []): TNode {
     fstype: "mdsection",
     parent_id: null,
     parent_idx: 0,
-    embed_source: null,
+    symlink_to: null,
     title: id,
     children,
     childCount: children.length,

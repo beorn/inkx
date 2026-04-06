@@ -1166,7 +1166,7 @@ function expandUnexploredDirectory(
             (data.fstype as string) ?? null,
             (data.parent_id as string) ?? ".",
             data.item ? 1 : 0,
-            (data.embed_source as string) ?? null,
+            (data.symlink_to as string) ?? null,
             (data.parent_idx as number) ?? 0,
             (data.fs_path as string) ?? null,
             (data.fs_ino as number) ?? null,

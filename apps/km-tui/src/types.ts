@@ -36,7 +36,7 @@ export interface CardView extends KNode {
   resolvedNode?: KNode
   /** True if this is a body block (before first outline item in parent) */
   isBody: boolean
-  /** True if embed_source points to a missing node */
+  /** True if symlink_to points to a missing node */
   isBrokenEmbed: boolean
   /** True if this card has body children (for ··· indicator) */
   hasBodyChildren: boolean

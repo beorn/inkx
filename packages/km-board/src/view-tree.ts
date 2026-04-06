@@ -344,7 +344,7 @@ function buildCardNode(
   hiddenNodeIds?: Set<string>,
 ): ViewNode {
   const isBody = bodyIds.has(node.id)
-  const resolvedEmbed = node.embed_source ? (repo.getNode(node.embed_source) ?? undefined) : undefined
+  const resolvedEmbed = node.symlink_to ? (repo.getNode(node.symlink_to) ?? undefined) : undefined
 
   const card: ViewNode = {
     id: node.id,
@@ -369,7 +369,7 @@ function buildCardNode(
 }
 
 function buildSubitemNode(repo: ViewTreeRepo, node: KNode, parent: ViewNode, hiddenNodeIds?: Set<string>): ViewNode {
-  const resolvedEmbed = node.embed_source ? (repo.getNode(node.embed_source) ?? undefined) : undefined
+  const resolvedEmbed = node.symlink_to ? (repo.getNode(node.symlink_to) ?? undefined) : undefined
 
   const sub: ViewNode = {
     id: node.id,
@@ -813,7 +813,7 @@ interface FullColumnView {
  * Each card ViewNode is enriched with:
  * - resolvedNode: pre-resolved embed target (from ViewNode.resolvedEmbed)
  * - isBody: body content flag (from ViewNode.isBody)
- * - isBrokenEmbed: true if embed_source set but target not found
+ * - isBrokenEmbed: true if symlink_to set but target not found
  * - hasBodyChildren: true if first child is non-outline (for ··· indicator)
  *
  * @param tree - ViewNode tree from buildViewTree()
@@ -845,7 +845,7 @@ export function viewNodeToColumnViews(tree: ViewNode): FullColumnView[] {
         __cardView: true as const,
         resolvedNode,
         isBody: cardVN.isBody,
-        isBrokenEmbed: cardNode.embed_source != null && resolvedNode === undefined,
+        isBrokenEmbed: cardNode.symlink_to != null && resolvedNode === undefined,
         hasBodyChildren,
       }
     })

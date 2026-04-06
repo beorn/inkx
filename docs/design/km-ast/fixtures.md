@@ -210,14 +210,14 @@ Some commentary on the report.
 
 ```
 h item(fstype:mdsection, name:"dashboard", content:"Dashboard")
-  embed(embed_source:"weekly-report")                  ← children[0]
+  embed(symlink_to:"weekly-report")                  ← children[0]
   p(content:"Some commentary on the report.")
-  embed(embed_source:"monthly-metrics", name:"Q4 Metrics")
+  embed(symlink_to:"monthly-metrics", name:"Q4 Metrics")
 ```
 
 **Key points:**
 
-- Embeds are `embed` nodes with `embed_source` specifying the target
+- Embeds are `embed` nodes with `symlink_to` specifying the target
 - No alias → display falls back to target's title
 - With alias → name field holds the alias text
 - `[[references]]` (without !) stay inline in content strings, not nodes
@@ -236,7 +236,7 @@ The project is going well.
 
 ```
 h item(fstype:mdsection, name:"project-overview")
-  embed(embed_source:"project-overview")               ← children[0] = title position
+  embed(symlink_to:"project-overview")               ← children[0] = title position
   p(content:"The project is going well.")
 ```
 
@@ -525,9 +525,9 @@ h item(fstype:repo, name:"my-vault")
 ```
 h item(fstype:mdsection, name:"references", content:"References")
   p item(list:"-")
-    embed(embed_source:"design-doc")                     ← children[0]
+    embed(symlink_to:"design-doc")                     ← children[0]
   p item(list:"-")
-    embed(embed_source:"api-spec", name:"API Specification")
+    embed(symlink_to:"api-spec", name:"API Specification")
   p item(list:"-", content:"Regular item")
 ```
 
@@ -676,9 +676,9 @@ h item(fstype:mdsection, name:"research", content:"Research")
 ```
 h item(fstype:mdsection, name:"see-also", content:"See Also")
   p item(list:"-")
-    embed(embed_source:"related-project")                ← reference, not transclusion
+    embed(symlink_to:"related-project")                ← reference, not transclusion
   p item(list:"-")
-    embed(embed_source:"other-doc", name:"See this doc")
+    embed(symlink_to:"other-doc", name:"See this doc")
 ```
 
 **Key points:**

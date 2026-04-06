@@ -305,10 +305,10 @@ export async function* applyLinks(
       yield // Progress indication
     }
 
-    // Batch UPDATE for embedded links (update source node's embed_source)
+    // Batch UPDATE for embedded links (update source node's symlink_to)
     if (embeddedUpdates.length > 0) {
       const updateStmt = db.prepare(`
-        UPDATE nodes SET embed_source = ?, name = ?, updated_at = ? WHERE id = ?
+        UPDATE nodes SET symlink_to = ?, name = ?, updated_at = ? WHERE id = ?
       `)
       for (const update of embeddedUpdates) {
         updateStmt.run(update.target_id, update.alias, now, update.source_id)

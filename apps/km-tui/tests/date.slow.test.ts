@@ -1058,7 +1058,7 @@ describe("due date queries for @next board", () => {
 
         // Should have embeds for the 3 non-done/dropped overdue tasks
         const children = getChildren(db, inbox!.id)
-        const embeds = children.filter((c) => c.embed_source != null)
+        const embeds = children.filter((c) => c.symlink_to != null)
         expect(embeds.length).toBe(3)
       },
     )
@@ -1100,7 +1100,7 @@ describe("due date queries for @next board", () => {
 
         // No embeds yet (task has no due date)
         const childrenBefore = getChildren(db, inbox!.id)
-        const embedsBefore = childrenBefore.filter((c) => c.embed_source != null)
+        const embedsBefore = childrenBefore.filter((c) => c.symlink_to != null)
         expect(embedsBefore.length).toBe(0)
 
         // Find the task node
@@ -1119,9 +1119,9 @@ describe("due date queries for @next board", () => {
 
         // Verify embeds were created in DB
         const childrenAfter = getChildren(db, inbox!.id)
-        const embedsAfter = childrenAfter.filter((c) => c.embed_source != null)
+        const embedsAfter = childrenAfter.filter((c) => c.symlink_to != null)
         expect(embedsAfter.length).toBe(1)
-        expect(embedsAfter[0]!.embed_source).toBe(taskNode!.id)
+        expect(embedsAfter[0]!.symlink_to).toBe(taskNode!.id)
       },
     )
   })
@@ -1160,7 +1160,7 @@ describe("due date queries for @next board", () => {
         expect(inbox).toBeDefined()
 
         const childrenBefore = getChildren(db, inbox!.id)
-        const embedsBefore = childrenBefore.filter((c) => c.embed_source != null)
+        const embedsBefore = childrenBefore.filter((c) => c.symlink_to != null)
         expect(embedsBefore.length).toBe(0)
 
         // After evaluateAllRules: inbox should have 3 embeds
@@ -1170,7 +1170,7 @@ describe("due date queries for @next board", () => {
         }
 
         const childrenAfter = getChildren(db, inbox!.id)
-        const embedsAfter = childrenAfter.filter((c) => c.embed_source != null)
+        const embedsAfter = childrenAfter.filter((c) => c.symlink_to != null)
         expect(embedsAfter.length).toBe(3)
       },
     )
