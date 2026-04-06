@@ -63,9 +63,8 @@ import { createToastQueue, type KNode, type NodeRules, type NodeType, type ItemD
 import { parseHeadingRules } from "@km/markdown"
 
 import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
-import { buildBoardState } from "../../src/state.ts"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../../src/state/ui-reducer.ts"
-import { createGridNavigator } from "@km/board"
+import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { getChordState } from "@km/commands"
@@ -224,45 +223,54 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
 // =============================================================================
 
 /**
- * Compute initial cursor placement for a board state.
- * Skips collapsed columns to avoid placing cursor on invisible cards.
+ * Derive initial board params from repo + rootId via lens (no buildBoardState needed).
+ * Returns collapsedNodeIds + initialCursor — same data the store needs.
  */
-function computeInitialCursor(initialState: BoardStateResult) {
+function deriveBoardInit(repo: Repo, rootId: string) {
+  // Derive collapsed nodes from repo data (rules.collapse + data.collapsed)
+  const collapsedNodeIds = new Set<string>()
+  for (const child of repo.getChildren(rootId)) {
+    if (child.rules?.collapse || child.data?.collapsed === true) {
+      collapsedNodeIds.add(child.id)
+    }
+  }
+
+  // Derive initial cursor from lens — first card of first non-collapsed column
+  const lens = createVisibleLens(
+    createViewLens(repo, { rootId, foldDepths: new Map() }),
+    { collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined },
+  )
+  const colIds = lens.children(rootId)
   let initialCursor: string | null = null
   let colIndex = 0
   let cardIndex = -1
 
-  if (initialState.columns.length > 0) {
-    // Find first non-collapsed column
-    for (let i = 0; i < initialState.columns.length; i++) {
-      const col = initialState.columns[i]
-      if (!col) continue
-      if (initialState.collapsedNodeIds.has(col.node.id)) continue
-      colIndex = i
-      if (col.cardNodes.length > 0) {
-        initialCursor = col.cardNodes[0]?.id ?? col.node.id
-        cardIndex = 0
-      } else {
-        initialCursor = col.node.id
-        cardIndex = -1
-      }
-      break
-    }
-    // If all columns collapsed, use first column header
-    if (initialCursor === null && initialState.columns.length > 0) {
-      const firstCol = initialState.columns[0]!
-      initialCursor = firstCol.node.id
-      colIndex = 0
+  for (let i = 0; i < colIds.length; i++) {
+    const colId = colIds[i]!
+    if (collapsedNodeIds.has(colId)) continue
+    colIndex = i
+    const cardIds = lens.children(colId)
+    if (cardIds.length > 0) {
+      initialCursor = cardIds[0]!
+      cardIndex = 0
+    } else {
+      initialCursor = colId
       cardIndex = -1
     }
+    break
+  }
+  if (initialCursor === null && colIds.length > 0) {
+    initialCursor = colIds[0]!
+    colIndex = 0
+    cardIndex = -1
   }
 
-  const selectedCol = initialState.columns[colIndex]
-  const isCollapsed = selectedCol ? initialState.collapsedNodeIds.has(selectedCol.node.id) : false
-  const hasCards = selectedCol && !isCollapsed && selectedCol.cardNodes.length > 0
+  const selectedColId = colIds[colIndex] ?? null
+  const isCollapsed = selectedColId ? collapsedNodeIds.has(selectedColId) : false
+  const hasCards = selectedColId && !isCollapsed && lens.children(selectedColId).length > 0
   const cursorDepth: "board" | "column" | "card" = initialCursor === null ? "board" : hasCards ? "card" : "column"
 
-  return { initialCursor, colIndex, cardIndex: hasCards ? 0 : cardIndex, selectedCol, cursorDepth }
+  return { initialCursor, colIndex, cardIndex: hasCards ? 0 : cardIndex, cursorDepth, collapsedNodeIds }
 }
 
 // =============================================================================
@@ -521,30 +529,26 @@ interface TestEnvOptions {
  * and the full fluent board API with all assertion methods.
  */
 function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOptions) {
-  // Build initial board state from repo
-  const initialState = buildBoardState(repo, rootId)
+  // Derive initial board params from lens (no buildBoardState needed)
+  const { initialCursor, collapsedNodeIds } = deriveBoardInit(repo, rootId)
 
   // Reset all module-level state for isolate:false compatibility.
-  // Without this, timers/caches/state from previous test files leak through.
   ensureCommandSystemInitialized()
   getChordState().cancel()
   resetModeStack()
   resetBoardAppState()
 
-  // Set up store (same pattern as driver)
   const columns = options?.columns ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
-  const { initialCursor } = computeInitialCursor(initialState)
-
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: registry,
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(rootId, repo.path, collapsedNodeIds),
     initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,
@@ -2080,20 +2084,18 @@ export function renderBoardWithStore(
   const viewMode = options.viewMode ?? "cards"
   const registry = options.navigator ?? createGridNavigator()
   const toastQueue = createToastQueue()
-  const initialState = buildBoardState(repo, rootId)
+  const { initialCursor, collapsedNodeIds } = deriveBoardInit(repo, rootId)
 
   ensureCommandSystemInitialized()
   getChordState().cancel()
   resetModeStack()
   resetBoardAppState()
 
-  const { initialCursor } = computeInitialCursor(initialState)
-
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: registry,
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(rootId, repo.path, collapsedNodeIds),
     initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,

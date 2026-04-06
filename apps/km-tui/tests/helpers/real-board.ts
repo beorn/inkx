@@ -34,8 +34,7 @@ import { createBoardState } from "../../src/board/board-types.ts"
 import { runGenerator, createToastQueue } from "@km/core"
 
 import { Board } from "../../src/views/Board.tsx"
-import { buildBoardState } from "../../src/state.ts"
-import { createGridNavigator } from "@km/board"
+import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import {
@@ -109,24 +108,24 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     throw new Error(`No board found in vault: ${vaultPath}`)
   }
 
-  // Build state
-  const initialState = buildBoardState(repo, rootNode.id)
-
-  // Ensure command system is initialized before rendering
-  ensureCommandSystemInitialized()
-
-  // Compute initial cursor
-  let initialCursor: string | null = null
-  if (initialState.columns.length > 0) {
-    const firstCol = initialState.columns[0]
-    if (firstCol && firstCol.cardNodes.length > 0) {
-      initialCursor = firstCol.cardNodes[0]?.id ?? firstCol.node.id
-    } else if (firstCol) {
-      initialCursor = firstCol.node.id
+  // Derive initial cursor from lens (no buildBoardState)
+  const collapsedNodeIds = new Set<string>()
+  for (const child of repo.getChildren(rootNode.id)) {
+    if (child.rules?.collapse || child.data?.collapsed === true) {
+      collapsedNodeIds.add(child.id)
     }
   }
+  const initLens = createVisibleLens(
+    createViewLens(repo, { rootId: rootNode.id, foldDepths: new Map() }),
+    { collapsedNodes: collapsedNodeIds.size > 0 ? collapsedNodeIds : undefined },
+  )
+  const colIds = rootNode.id ? initLens.children(rootNode.id) : []
+  const firstColId = colIds[0]
+  const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
+  const initialCursor = firstCardId ?? firstColId ?? null
 
-  // Set up store (same pattern as driver/testEnv)
+  ensureCommandSystemInitialized()
+
   const registry = createGridNavigator()
   const toastQueue = createToastQueue()
 
@@ -134,7 +133,7 @@ export async function testBoard(vaultPath: string, options?: TestBoardOptions): 
     repo,
     toastQueue,
     navigator: registry,
-    initialBoardState: createBoardState(initialState.rootId, initialState.rootPath, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(rootNode.id, repo.path, collapsedNodeIds),
     initialCursor,
     initialUIState: createInitialUIState({ columns, rows }),
     initialViewMode: viewMode,

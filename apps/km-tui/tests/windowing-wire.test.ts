@@ -40,7 +40,7 @@ import { StoreProvider } from "../src/state/store-context.tsx"
 import { defaultKmTheme } from "../src/theme.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { TC } from "./helpers/theme.ts"
-import { buildBoardState } from "../src/state.ts"
+import { createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
 
@@ -68,7 +68,8 @@ function createTestStore() {
     item("Archive", item("old-task")),
   )
   const repo = createFakeRepo({ nodes })
-  const initialState = buildBoardState(repo, "board")
+  // Derive initial cursor from lens (no buildBoardState)
+  const _lens = createVisibleLens(createViewLens(repo, { rootId: "board", foldDepths: new Map() }))
   const toastQueue = createToastQueue()
   const params: CreateBoardAppStoreParams = {
     repo,
@@ -313,7 +314,8 @@ describe("windowing — visual rendering", () => {
     // Set up store with a 3-column board
     const nodes = item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a")))
     const repo = createFakeRepo({ nodes })
-    const initialState = buildBoardState(repo, "board")
+    // Derive initial cursor from lens (no buildBoardState)
+  const _lens = createVisibleLens(createViewLens(repo, { rootId: "board", foldDepths: new Map() }))
     const toastQueue = createToastQueue()
     const cols = 120
     const rows = 30
