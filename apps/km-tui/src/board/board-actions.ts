@@ -1814,8 +1814,7 @@ function handleAddNodeChildFirst(ctx: OpCtx): void {
   requestRenderFlush()
 }
 
-/** Get all card-level node IDs from the ViewTreeProjection.
- *  Equivalent to ctx.columns.flatMap(col => col.cardNodes.map(c => c.id)). */
+/** Get all card-level node IDs from the ViewTreeProjection. */
 function getAllCardIds(tree: import("@km/board").ViewTreeProjection): string[] {
   const rootId = tree.rootId
   if (!rootId) return []
