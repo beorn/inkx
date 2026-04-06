@@ -16,8 +16,7 @@ import { item } from "./helpers/board-test.ts"
 import { createBoardApp, handleKey } from "../src/board/board-app.ts"
 import { getActiveBoardPane, type CreateBoardAppStoreParams } from "../src/state/board-app-store.ts"
 import { createInitialUIState } from "../src/state/ui-reducer.ts"
-import { createGridNavigator } from "@km/board"
-import { buildBoardState } from "../src/state.ts"
+import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { BoardApp } from "../src/views/index.ts"
 
@@ -42,40 +41,36 @@ function buildStoreParams(
 ) {
   const repo = createFakeRepo({ nodes })
   const rootId = nodes[0]!.id
-  const initialState = buildBoardState(repo, rootId)
   const toastQueue = createToastQueue()
   const cols = options?.cols ?? 80
   const rows = options?.rows ?? 24
   const viewMode = options?.viewMode ?? "cards"
 
-  let initialCursor: string | null = null
-  if (initialState.columns.length > 0) {
-    const firstCol = initialState.columns[0]
-    if (firstCol && firstCol.cardNodes.length > 0) {
-      initialCursor = firstCol.cardNodes[0]?.id ?? firstCol.node.id
-    } else if (firstCol) {
-      initialCursor = firstCol.node.id
-    }
-  }
+  // Derive initial cursor from lens (no buildBoardState)
+  const initLens = createVisibleLens(createViewLens(repo, { rootId, foldDepths: new Map() }))
+  const colIds = initLens.children(rootId)
+  const firstColId = colIds[0]
+  const firstCardId = firstColId ? initLens.children(firstColId)[0] : null
+  const initialCursor = firstCardId ?? firstColId ?? null
 
   const storeParams: CreateBoardAppStoreParams = {
     repo,
     toastQueue,
     navigator: createGridNavigator(),
-    initialBoardState: createBoardState(rootId, null, initialState.collapsedNodeIds),
+    initialBoardState: createBoardState(rootId, null),
     initialCursor,
     initialUIState: createInitialUIState({ columns: cols, rows }),
     initialViewMode: viewMode,
     dimensions: { columns: cols, rows },
   }
 
-  return { storeParams, repo, initialState }
+  return { storeParams, repo }
 }
 
 describe("production entry point (createBoardApp)", () => {
   test("createBoardApp().run() renders BoardApp without crashing", async () => {
     const nodes = item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     // Build the same element tree as production tui.tsx
@@ -86,7 +81,7 @@ describe("production entry point (createBoardApp)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -108,7 +103,7 @@ describe("production entry point (createBoardApp)", () => {
 
   test("createBoardApp().run() handles keyboard input via store", async () => {
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -118,7 +113,7 @@ describe("production entry point (createBoardApp)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -147,7 +142,7 @@ describe("production smoke: console toggle", () => {
     // useApp() to switch between alternate and normal screen. If pause/resume
     // are undefined (L3 createApp bug), the screen-switch effect is skipped.
     const nodes = item("board", item("col1", item("task1")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -157,7 +152,7 @@ describe("production smoke: console toggle", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -188,7 +183,7 @@ describe("production smoke: console toggle", () => {
 
   test("keys are blocked while console is active (only backtick/Esc dismiss)", async () => {
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -198,7 +193,7 @@ describe("production smoke: console toggle", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -239,7 +234,7 @@ describe("console toggle: resume re-entrancy (km-tui.console)", () => {
     // pause/resume are undefined so the Board effect skips screen switching.
     // This test verifies the state machine works correctly after toggle.
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -249,7 +244,7 @@ describe("console toggle: resume re-entrancy (km-tui.console)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -285,7 +280,7 @@ describe("production smoke: inline edit + re-render", () => {
     // with useSyncExternalStore (commit 27302791) but may regress during
     // store refactoring.
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -295,7 +290,7 @@ describe("production smoke: inline edit + re-render", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -329,7 +324,7 @@ describe("production smoke: inline edit + re-render", () => {
     // Verifies the board is still interactive after an inline edit.
     // Catches broken re-render pipelines that leave the board frozen.
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -339,7 +334,7 @@ describe("production smoke: inline edit + re-render", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -369,7 +364,7 @@ describe("perf regression: unnecessary setUI on keypress (km-tui.perf-regr)", ()
     // on every keypress, even when both are already null. This creates a new ui object
     // reference, triggering ALL store subscribers (7+ useAppStore calls in Board.tsx).
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -379,7 +374,7 @@ describe("perf regression: unnecessary setUI on keypress (km-tui.perf-regr)", ()
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -431,7 +426,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
     // and that microtask's render also triggers set(), press() might return
     // with stale screen content. The fix is to loop until stable.
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -441,7 +436,7 @@ describe("save re-render: press() flushes all pending re-renders (km-tui.save-re
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -613,7 +608,7 @@ describe("production smoke: store dimensions", () => {
     // visible text when dimensions are valid. Catches wiring issues where
     // the store gets the right data but components don't read it.
     const nodes = item("board", item("col1", item("task1"), item("task2")), item("col2", item("task3")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -623,7 +618,7 @@ describe("production smoke: store dimensions", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -653,7 +648,7 @@ describe("perf: processEvent render count", () => {
     // doRender() again. With the fix, isRendering guard defers the
     // subscription render and processEvent does a single doRender().
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -663,7 +658,7 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -696,7 +691,7 @@ describe("perf: processEvent render count", () => {
     // Create a board with enough items for 10 cursor moves
     const items = Array.from({ length: 12 }, (_, i) => item(`task${i + 1}`))
     const nodes = item("board", item("col1", ...items))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -706,7 +701,7 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -740,7 +735,7 @@ describe("perf: processEvent render count", () => {
     // keypress should trigger 1-2 renders (not 3+) and complete quickly.
     const items = Array.from({ length: 200 }, (_, i) => item(`task${i + 1}`))
     const nodes = item("board", item("col1", ...items))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -750,7 +745,7 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -785,7 +780,7 @@ describe("perf: processEvent render count", () => {
     // Bell is set when cursor hits boundary, and should clear at the
     // start of the next keypress (board-app.ts line 104), not via timeout.
     const nodes = item("board", item("col1", item("task1"), item("task2")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -795,7 +790,7 @@ describe("perf: processEvent render count", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -827,7 +822,7 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     // This test exercises the production code path (createBoardApp + handle.press)
     // to check if the issue is in event batching/timing.
     const nodes = item("board", item("col1", item.task("Buy groceries")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -837,7 +832,7 @@ describe("production smoke: date dialog (km-qaco9)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -878,7 +873,7 @@ describe("production smoke: date dialog (km-qaco9)", () => {
 
   test("td chord opens date dialog, Escape cancels and closes it", async () => {
     const nodes = item("board", item("col1", item.task("Buy groceries")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -888,7 +883,7 @@ describe("production smoke: date dialog (km-qaco9)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
@@ -926,7 +921,7 @@ describe("production smoke: date dialog (km-qaco9)", () => {
     // Edge case: what if inline edit is active when td chord fires?
     // The chord should close the inline edit and open the dialog.
     const nodes = item("board", item("col1", item.task("Buy groceries"), item.task("Write report")))
-    const { storeParams, repo, initialState } = buildStoreParams(nodes)
+    const { storeParams, repo } = buildStoreParams(nodes)
     const app = createBoardApp(storeParams)
 
     const element = h(
@@ -936,7 +931,7 @@ describe("production smoke: date dialog (km-qaco9)", () => {
         InputLayerProvider,
         null,
         h(BoardApp, {
-          initialState,
+
           initialViewMode: "cards",
           toastQueue: storeParams.toastQueue,
         }),
