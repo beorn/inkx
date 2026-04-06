@@ -23,16 +23,22 @@ import { testEnv, item } from "./helpers/board-test.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { createBoardDriver } from "../src/driver.ts"
 import { createCardsViewNavigation, type NavState } from "../src/navigation/view-navigation.ts"
-import { createGridNavigator, buildViewTree, buildViewIndex } from "@km/board"
+import { createGridNavigator, createViewTree, createViewLens, type ViewTreeProjection } from "@km/board"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import { createBoardTest, type BoardTestHarness } from "../src/testing.ts"
 import { BODY_CONTENT_BOARD } from "./fixtures/body-content-fixture.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
+function makeViewTree(repo: Repo, rootId: string): ViewTreeProjection {
+  const lens = createViewLens(repo, { rootId, foldDepths: new Map() })
+  const tree = createViewTree()
+  tree.sync(lens)
+  return tree
+}
+
 function makeNavState(cursor: string, rootId: string, repo: Repo): NavState {
-  const vTree = buildViewTree(repo, rootId, new Map())
-  const vIndex = buildViewIndex(vTree)
-  return { cursor, rootId, foldDepths: new Map(), collapsedNodes: new Set(), viewTree: vTree, viewIndex: vIndex }
+  const tree = makeViewTree(repo, rootId)
+  return { cursor, rootId, foldDepths: new Map(), collapsedNodes: new Set(), tree }
 }
 
 function cursor(nodeId: string): string {

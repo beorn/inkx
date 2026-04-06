@@ -461,8 +461,6 @@ export function navStateFrom(ctx: OpCtx): NavState {
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
     cursorCardNodeId: ctx.cursorCardNodeId,
-    viewTree: ctx.viewTree,
-    viewIndex: ctx.viewIndex,
     tree: ctx.tree,
   }
 }
