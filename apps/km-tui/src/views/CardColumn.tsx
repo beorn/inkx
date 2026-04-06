@@ -732,10 +732,18 @@ export const Column = React.memo(function Column({
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
-  // Card list comes from ColumnView (pre-filtered by Board.tsx — hide-done, text filter, etc.).
-  // ViewTree childIds are unfiltered, so we can't use them directly here.
+  // Card list: prefer ViewTree childIds (already filtered by lens — task status, hidden nodes).
+  // Falls back to ColumnView.cardNodes when ViewTree unavailable or when Board applies
+  // additional transient filters (text search, property filters) that aren't in the lens.
   const viewTree = useViewTree()
-  const cardNodes = column.cardNodes
+  const cardNodes = useMemo(() => {
+    if (!colViewNode) return column.cardNodes
+    // ViewTree childIds are filtered by the lens (taskStatusFilter, hiddenNodeIds).
+    // But Board may apply additional text/property filters that reduce column.cardNodes further.
+    // Use the SHORTER list to respect both filter sources.
+    const treeCards = colViewNode.childIds.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null)
+    return treeCards.length <= column.cardNodes.length ? treeCards : column.cardNodes
+  }, [colViewNode?.childIds, column.cardNodes, repo])
   const bodyCardIds = useMemo(() => {
     if (!viewTree) return new Set<string>()
     const ids = new Set<string>()
