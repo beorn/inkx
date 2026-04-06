@@ -162,13 +162,13 @@ export function getHeaderStyle(
   isSelected: boolean,
   isActiveSelection: boolean,
 ): { color: string | undefined; backgroundColor: string | undefined; dimColor: boolean } {
-  // Column selected (cursor at column level): yellow fg + faint highlight bg
+  // Column selected (cursor at column level): inverse yellow (like selected card title)
   // Cursor in child card: yellow fg only (no bg)
   // Cursor elsewhere: default fg
   if (isActiveSelection) {
     return {
-      color: "$primary",
-      backgroundColor: undefined, // faint bg applied by Column component via selectedBg()
+      color: "$selection",
+      backgroundColor: "$selection-bg",
       dimColor: false,
     }
   }

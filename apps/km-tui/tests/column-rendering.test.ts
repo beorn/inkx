@@ -116,9 +116,10 @@ describe("km-tui.col-selected-style: column selected style at column level", () 
     const colTextX = row.indexOf("col1")
     expect(colTextX, "'col1' should be visible in header row").toBeGreaterThan(-1)
 
-    // When cursor is at column level, header text should have yellow fg (not inverse)
+    // When cursor is at column level, header has inverse yellow (like selected card title)
     const cell = board.screen.cell(colTextX, headerY)
-    expect(cell.fg, "column header fg should be $primary (yellow) when at column level").toEqual(TC.$primary)
+    expect(cell.fg, "column header fg should be $selectedfg when at column level").toEqual(TC.$selectedfg)
+    expect(cell.bg, "column header bg should be $selected when at column level").toEqual(TC.$selected)
   })
 
   it("separator line is yellow when cursor is at column level", () => {

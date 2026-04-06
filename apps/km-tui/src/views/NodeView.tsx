@@ -138,7 +138,7 @@ export function ColumnHeader({
   hasBody = false,
   children,
 }: ColumnHeaderProps): React.ReactElement {
-  const iconColor = isColumnSelected ? "$primary" : icon.color
+  const iconColor = isColumnSelected ? "$selection" : icon.color
   const wipExceeded = wipLimit !== undefined && cardCount > wipLimit
 
   // Build count display
