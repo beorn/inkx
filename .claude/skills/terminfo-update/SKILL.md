@@ -155,6 +155,7 @@ Use `/max` to run all 6 explore queries in parallel if the user wants speed.
 
 Run Step 4 (re-probe all terminals). Report results summary.
 If new unannotated failures appear, present them for annotation.
+After re-probing, if vterm has new failures, run the vterm upgrade bead generator (see "Auto-generate vterm Upgrade Beads" below).
 
 ### `validate`
 
@@ -167,6 +168,56 @@ Run Step 8 (deploy). Commit and push.
 ### `full`
 
 Run all steps sequentially, pausing for human review at Step 2 (triage).
+
+## Auto-generate vterm Upgrade Beads
+
+After re-probing (Step 4), check vterm results for new failures and create beads for features
+that vterm should implement. The probe definition IS the spec — vterm must actually implement
+the feature (produce correct cell contents, mode state, or query responses), not just
+return `pass: true`.
+
+### Workflow
+
+1. **Parse probe results** from `content/probes-libs/vterm-*.json` — collect all features
+   where vterm fails.
+
+2. **Filter: can vterm implement this?** For each failure, decide if it's in scope:
+
+   | Category | In scope? | Examples |
+   |---|---|---|
+   | VT420 rectangular ops (DECCRA, DECRARA, etc.) | YES | Copy rect, change attrs in rect |
+   | Column editing (SL, SR, DECIC, DECDC) | YES | Scroll left/right, insert/delete column |
+   | Mode queries (DECRPM) | YES | Report mode setting via CSI ? Ps $ p |
+   | DEC protected areas (DECSCA, DECSED, DECSEL) | YES | Selective erase |
+   | Cursor save/restore variants | YES | DECSC/DECRC, SCO variants |
+   | Sixel / ReGIS / image protocols | NO | Graphics are out of scope for vterm |
+   | Platform-specific env vars | NO | Not a terminal feature |
+   | Hardware-specific queries (DA3 serial number) | NO | No real hardware to report |
+
+   When unsure, lean toward YES — vterm aims for VT420+ completeness.
+
+3. **Create a bead** for each in-scope failure:
+   ```bash
+   bd create \
+     --id km-termless.vterm-<feature-slug> \
+     --type task \
+     --priority 3 \
+     --title "vterm: implement <feature-name>"
+   ```
+
+4. **Bead description** should include:
+   - Which probe(s) fail and their definition file path (e.g., `packages/probe-defs/src/vt420.ts`)
+   - The expected behavior from the probe definition — this is the acceptance test
+   - Brief note on what the implementation requires (e.g., "handle CSI Ps ; Ps ; Ps ; Ps $ v")
+
+5. **Parent all beads under `km-termless`** — they are vterm implementation tasks.
+
+### Key Constraint
+
+vterm must ACTUALLY IMPLEMENT the feature. The probe verifies actual cell contents, mode
+state, or query responses — not just that a sequence was accepted without error. The probe
+definition is both the spec and the acceptance test. A bead is only closeable when the
+probe passes with correct output verification.
 
 ## Cadence
 
