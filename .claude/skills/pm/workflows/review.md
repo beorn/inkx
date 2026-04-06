@@ -117,6 +117,20 @@ Then run:
 bd list --status closed --limit 20 --sort updated  # Recent completions for context
 ```
 
+#### Tribe Status Sync
+
+Before analyzing, get ground truth from tribe so you don't propose closing actively-worked beads:
+
+1. **List sessions**: `mcp__tribe__tribe_sessions()` — who's alive
+2. **Ask for status**:
+
+```
+mcp__tribe__tribe_broadcast(type="notify",
+  message="Backlog grooming starting. Quick status check — what beads are you actively working on right now? Just bead IDs + one-line status.")
+```
+
+3. **Wait ~2 min** for responses, then incorporate into Phase 2 analysis. Don't block on this — if no responses, proceed with the data you have (the full plan gets tribe review in Phase 3½ anyway).
+
 ### Phase 2: Analyze & Categorize
 
 Review survey data. For each open issue, assign to exactly one category:
