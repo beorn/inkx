@@ -732,8 +732,8 @@ export const Column = React.memo(function Column({
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
-  // Pre-compute body card IDs from ViewTree (eliminates CardView.isBody dependency).
-  // Body cards are non-heading content before the first heading child.
+  // Card list comes from ColumnView (pre-filtered by Board.tsx — hide-done, text filter, etc.).
+  // ViewTree childIds are unfiltered, so we can't use them directly here.
   const viewTree = useViewTree()
   const cardNodes = column.cardNodes
   const bodyCardIds = useMemo(() => {
@@ -793,7 +793,7 @@ export const Column = React.memo(function Column({
     const borderColor = isColumnSelected ? "$selection-bg" : "$surface-bg"
     return (
       <Box
-        id={column.node.id}
+        id={nodeId}
         data-view="column"
         data-column={true}
         data-col-index={colIndex}
@@ -840,7 +840,7 @@ export const Column = React.memo(function Column({
 
   return (
     <Box
-      id={column.node.id}
+      id={nodeId}
       data-view="column"
       data-column={true}
       data-col-index={colIndex}
@@ -853,7 +853,7 @@ export const Column = React.memo(function Column({
     >
       {/* Column header — unified NodeView component */}
       <ColumnHeader
-        node={column.node}
+        node={colNode}
         displayName={name}
         untitled={untitled}
         ownColor={ownColor}
@@ -870,17 +870,17 @@ export const Column = React.memo(function Column({
       >
         {isInlineEditing ? (
           <InlineEditField
-            initialValue={composeRawEditContent(column.node)}
+            initialValue={composeRawEditContent(colNode)}
             onConfirm={handleInlineEditConfirm}
             onCancel={handleInlineEditCancel}
           />
         ) : undefined}
       </ColumnHeader>
 
-      {column.cardNodes.length > 0 ? (
+      {cardNodes.length > 0 ? (
         <ScrollTrackingVirtualList
           isSelected={isSelected}
-          items={column.cardNodes}
+          items={cardNodes}
           width={width - 1}
           height={height - 2}
           estimateHeight={ESTIMATED_CARD_HEIGHT}
