@@ -34,10 +34,6 @@
 {"issue_id":"km-deprecations","label":"refactor"}
 {"issue_id":"km-dew1v","label":"refactor"}
 {"issue_id":"km-dew1v","label":"testing"}
-{"issue_id":"km-dfrtr","label":"architecture"}
-{"issue_id":"km-dfrtr","label":"drag-drop"}
-{"issue_id":"km-dfrtr","label":"selection"}
-{"issue_id":"km-dfrtr","label":"silvery"}
 {"issue_id":"km-flexily.absolute-alignment-axis","label":"pro"}
 {"issue_id":"km-flexily.absolute-percent-box","label":"pro"}
 {"issue_id":"km-flexily.align-content-negative","label":"pro"}
@@ -251,6 +247,10 @@
 {"issue_id":"km-silvery.nested-scroll","label":"horizon:undecided"}
 {"issue_id":"km-silvery.non-tty","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.output-cache-unbounded","label":"pro"}
+{"issue_id":"km-silvery.pointer-interaction","label":"architecture"}
+{"issue_id":"km-silvery.pointer-interaction","label":"drag-drop"}
+{"issue_id":"km-silvery.pointer-interaction","label":"selection"}
+{"issue_id":"km-silvery.pointer-interaction","label":"silvery"}
 {"issue_id":"km-silvery.prompt-bridge","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.publish-1.0","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.re-review-post-fixes","label":"pro"}
@@ -266,6 +266,9 @@
 {"issue_id":"km-silvery.test-theme-change","label":"pro"}
 {"issue_id":"km-silvery.text-flatten-dry","label":"pro"}
 {"issue_id":"km-silvery.use-term","label":"horizon:v1.0"}
+{"issue_id":"km-silvery.user-select","label":"selection"}
+{"issue_id":"km-silvery.user-select","label":"silvery"}
+{"issue_id":"km-silvery.user-select","label":"tui"}
 {"issue_id":"km-silvery.verify-output-shrink","label":"pro"}
 {"issue_id":"km-silvery.viewport-fill","label":"horizon:undecided"}
 {"issue_id":"km-silvery.virtual-terminal","label":"horizon:v1.5"}
@@ -298,9 +301,6 @@
 {"issue_id":"km-virtuallist-review","label":"inkx"}
 {"issue_id":"km-virtuallist-review","label":"refactor"}
 {"issue_id":"km-virtuallist-review","label":"tui"}
-{"issue_id":"km-y9zs4","label":"selection"}
-{"issue_id":"km-y9zs4","label":"silvery"}
-{"issue_id":"km-y9zs4","label":"tui"}
 {"issue_id":"km-yl79g","label":"inkx web"}
 {"issue_id":"km-zz3j7","label":"perf"}
 {"issue_id":"km-zz3j7","label":"vitestx"}
