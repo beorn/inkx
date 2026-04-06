@@ -41,39 +41,19 @@ export { boardReducer, createBoardState } from "./board-reducer.ts"
 export { createGridNavigator } from "./grid-navigator.ts"
 export type { GridNavigator, CrossAxisResult } from "./grid-navigator.ts"
 
-// ===== View Tree =====
+// ===== View Helpers (shared pure helpers used by the lens and consumers) =====
 export {
-  ViewTree,
-  buildViewTree,
-  buildViewIndex,
-  deriveCursorPath,
-  classifyCursorFromViewIndex,
-  toColumnViews,
-  viewNodeToColumnViews,
   CARD_REMAINING_DEPTH,
-  // Canonical helpers — shared by view-tree, use-columns, state.ts, etc.
   isCollapsedChild,
   isDetailOnly,
   deduplicateByFsPath,
   extractWipLimits,
-} from "./view-tree.ts"
-export type {
-  ViewNode,
-  ViewRole,
-  ViewTreeRepo,
-  ViewTreeNodesOptions,
-  CompatColumnView,
-  ViewNodeCacheEntry,
-  ViewNodeColumnCache,
-} from "./view-tree.ts"
-
-// ===== View Snapshot (computed ViewTree + lazy derivations) =====
-export { createViewSnapshot } from "./view-snapshot.ts"
-export type { ViewSnapshot, CursorAncestors } from "./view-snapshot.ts"
+  createVirtualBodyNode,
+  getCollapseRules,
+} from "./view-lens-helpers.ts"
 
 // ===== Tree Lens (universal navigation interface) =====
-export type { TreeLens } from "./tree-lens.ts"
-export type { ViewRole as LensViewRole } from "./tree-lens.ts"
+export type { TreeLens, ViewRole } from "./tree-lens.ts"
 
 // ===== View Lens (TreeLens-based view over repo) =====
 export { createViewLens, classifyCursorFromLens } from "./view-lens.ts"

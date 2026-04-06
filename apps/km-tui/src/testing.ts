@@ -42,7 +42,7 @@ import { createInitialPaneUI } from "./state/ui-reducer.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "./state/reactive.ts"
-import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
+import { classifyCursorFromLens, createViewLens } from "@km/board"
 
 /** No-op dialog handlers — constant to avoid per-render allocation */
 const _NOOP_DIALOG_HANDLERS = {
@@ -222,10 +222,9 @@ export async function createBoardTest(
 
   // Create ReactiveNodeStore and sync initial cursor state
   const nodeStore = new ReactiveNodeStore()
-  // Derive initial cursor ancestors for sync
-  const initVTree = buildViewTree(repo, state.rootId, new Map())
-  const initVIndex = buildViewIndex(initVTree)
-  const initAncestors = classifyCursorFromViewIndex(initVIndex, firstCardNodeId)
+  // Derive initial cursor ancestors for sync via lens
+  const initLens = createViewLens(repo, { rootId: state.rootId, foldDepths: new Map() })
+  const initAncestors = classifyCursorFromLens(initLens, firstCardNodeId)
   nodeStore.syncCursor({
     cursor: firstCardNodeId,
     cursorCardNodeId: initAncestors.cursorCardNodeId,

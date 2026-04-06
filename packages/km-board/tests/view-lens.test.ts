@@ -1,22 +1,20 @@
 /**
  * ViewLens — Unit Tests
  *
- * Verifies that createViewLens produces equivalent results to buildViewTree
- * for the same inputs. Tests role assignment, body detection, embeds,
- * collapse, dedup, walkOrder, and O(1) navigation.
+ * Tests createViewLens behavior directly: role assignment, body detection,
+ * embeds, collapse, dedup, walkOrder, and O(1) navigation.
  */
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
 import type { SectionRules } from "@km/markdown"
-import { buildViewTree, buildViewIndex, ViewTree, type ViewTreeRepo } from "../src/view-tree.ts"
 import { createViewLens, type ViewLensRepo } from "../src/view-lens.ts"
 
 // =============================================================================
 // Mock Repo
 // =============================================================================
 
-function createMockRepo(nodes: KNode[]): ViewTreeRepo & ViewLensRepo {
+function createMockRepo(nodes: KNode[]): ViewLensRepo {
   const nodeMap = new Map<string, KNode>()
   for (const n of nodes) nodeMap.set(n.id, n)
 
@@ -88,54 +86,7 @@ function block(id: string, parentId: string | null, idx: number, content?: strin
 }
 
 // =============================================================================
-// Helpers: extract walk order and roles from buildViewTree for comparison
-// =============================================================================
-
-function viewTreeWalkOrder(tree: ReturnType<typeof buildViewTree>): string[] {
-  const ids: string[] = []
-  for (const node of ViewTree.nodes(tree)) {
-    if (node.role !== "board") ids.push(node.id)
-  }
-  return ids
-}
-
-function viewTreeRoles(tree: ReturnType<typeof buildViewTree>): Map<string, string> {
-  const map = new Map<string, string>()
-  for (const node of ViewTree.nodes(tree)) {
-    map.set(node.id, node.role)
-  }
-  return map
-}
-
-function viewTreeBodyFlags(tree: ReturnType<typeof buildViewTree>): Map<string, boolean> {
-  const map = new Map<string, boolean>()
-  for (const node of ViewTree.nodes(tree)) {
-    if (node.isBody) map.set(node.id, true)
-  }
-  return map
-}
-
-function viewTreeParents(tree: ReturnType<typeof buildViewTree>): Map<string, string | null> {
-  const map = new Map<string, string | null>()
-  for (const node of ViewTree.nodes(tree)) {
-    map.set(node.id, node.parent?.id ?? null)
-  }
-  return map
-}
-
-function viewTreeChildren(tree: ReturnType<typeof buildViewTree>): Map<string, string[]> {
-  const map = new Map<string, string[]>()
-  for (const node of ViewTree.nodes(tree)) {
-    map.set(
-      node.id,
-      node.children.map((c) => c.id),
-    )
-  }
-  return map
-}
-
-// =============================================================================
-// Tests: equivalence with buildViewTree
+// Tests: ViewLens core behavior
 // =============================================================================
 
 describe("createViewLens", () => {
@@ -362,7 +313,7 @@ describe("createViewLens", () => {
 describe("createViewLens walkOrder", () => {
   const emptyFoldDepths = new Map<string, number>()
 
-  test("walkOrder matches buildViewTree DFS order", () => {
+  test("walkOrder is DFS order", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "First"),
@@ -373,12 +324,9 @@ describe("createViewLens walkOrder", () => {
       paragraph("sub1", "c1a", 0, "Sub under 1A"),
     ]
     const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const expectedWalkOrder = viewTreeWalkOrder(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
-    expect([...lens.walkOrder]).toEqual(expectedWalkOrder)
+
+    expect([...lens.walkOrder]).toEqual(["col1", "c1a", "sub1", "c1b", "col2", "c2a"])
   })
 
   test("walkOrder with body column", () => {
@@ -389,12 +337,10 @@ describe("createViewLens walkOrder", () => {
       paragraph("c1", "col1", 0, "Task 1"),
     ]
     const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const expectedWalkOrder = viewTreeWalkOrder(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
-    expect([...lens.walkOrder]).toEqual(expectedWalkOrder)
+
+    // Body column comes before structural column; body card p1 is inside it
+    expect([...lens.walkOrder]).toEqual(["__body__root", "p1", "col1", "c1"])
   })
 
   test("walkOrder is lazy and cached", () => {
@@ -463,7 +409,7 @@ describe("createViewLens navigation", () => {
     expect(walked).toEqual([...wo].reverse())
   })
 
-  test("nextInWalk/prevInWalk match ViewSnapshot behavior", () => {
+  test("nextInWalk/prevInWalk cover DFS traversal edges", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "First"),
@@ -506,13 +452,13 @@ describe("createViewLens navigation", () => {
 })
 
 // =============================================================================
-// Tests: equivalence with buildViewTree across complex scenarios
+// Tests: complex scenarios
 // =============================================================================
 
-describe("createViewLens equivalence with buildViewTree", () => {
+describe("createViewLens complex scenarios", () => {
   const emptyFoldDepths = new Map<string, number>()
 
-  test("roles match buildViewTree for all nodes", () => {
+  test("role assignment across all depths", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       block("p1", "root", 0, "Description"),
@@ -522,20 +468,22 @@ describe("createViewLens equivalence with buildViewTree", () => {
       paragraph("sub2", "sub1", 0, "Deep Sub"),
     ]
     const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const treeRoles = viewTreeRoles(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
+
     // Force full traversal
-    for (const id of lens.walkOrder) {
-      const expectedRole = treeRoles.get(id)
-      expect(lens.role(id)).toBe(expectedRole)
+    for (const _id of lens.walkOrder) {
+      /* populate caches */
     }
     expect(lens.role("root")).toBe("board")
+    expect(lens.role("__body__root")).toBe("body-column")
+    expect(lens.role("p1")).toBe("card")
+    expect(lens.role("col1")).toBe("column")
+    expect(lens.role("c1")).toBe("card")
+    expect(lens.role("sub1")).toBe("subitem")
+    expect(lens.role("sub2")).toBe("subitem")
   })
 
-  test("body flags match buildViewTree", () => {
+  test("body flags: only paragraphs before first heading are body", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       block("p1", "root", 0, "Body text"),
@@ -544,19 +492,20 @@ describe("createViewLens equivalence with buildViewTree", () => {
       paragraph("c1", "col1", 0, "Not body"),
     ]
     const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const treeBodyFlags = viewTreeBodyFlags(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
 
-    expect(lens.isBody("p1")).toBe(treeBodyFlags.has("p1"))
-    expect(lens.isBody("p2")).toBe(treeBodyFlags.has("p2"))
-    // c1 is a paragraph node within col1 — it IS body content per extractBody
-    expect(lens.isBody("c1")).toBe(treeBodyFlags.has("c1"))
+    // Force traversal to populate body sets
+    for (const _id of lens.walkOrder) {
+      /* populate */
+    }
+
+    expect(lens.isBody("p1")).toBe(true)
+    expect(lens.isBody("p2")).toBe(true)
+    // c1 is a paragraph node within col1 — still body content per extractBody
+    expect(lens.isBody("c1")).toBe(true)
   })
 
-  test("parent pointers match buildViewTree", () => {
+  test("parent pointers are consistent across walks", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "Col"),
@@ -564,48 +513,18 @@ describe("createViewLens equivalence with buildViewTree", () => {
       paragraph("sub1", "c1", 0, "Sub"),
     ]
     const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const treeParents = viewTreeParents(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
 
-    // Walk and check parents match
-    for (const id of lens.walkOrder) {
-      const expectedParent = treeParents.get(id)
-      expect(lens.parent(id)).toBe(expectedParent)
+    // Walk and check parents
+    for (const _id of lens.walkOrder) {
+      /* populate */
     }
+    expect(lens.parent("col1")).toBe("root")
+    expect(lens.parent("c1")).toBe("col1")
+    expect(lens.parent("sub1")).toBe("c1")
   })
 
-  test("children match buildViewTree at every level", () => {
-    const nodes: KNode[] = [
-      heading("root", null, 0),
-      block("p1", "root", 0, "Body"),
-      heading("col1", "root", 1, "Tasks"),
-      heading("col2", "root", 2, "Done"),
-      paragraph("c1a", "col1", 0, "Task 1"),
-      paragraph("c1b", "col1", 1, "Task 2"),
-      paragraph("c2a", "col2", 0, "Task 3"),
-      paragraph("s1", "c1a", 0, "Sub"),
-    ]
-    const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const treeChildren = viewTreeChildren(tree)
-
-    const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
-
-    // Check root children
-    expect([...lens.children("root")]).toEqual(treeChildren.get("root"))
-
-    // Check all nodes' children
-    for (const id of lens.walkOrder) {
-      const expectedChildren = treeChildren.get(id) ?? []
-      expect([...lens.children(id)]).toEqual(expectedChildren)
-    }
-  })
-
-  test("body cards within columns treated correctly", () => {
+  test("body cards within columns treated as body", () => {
     // Column with body content (paragraphs before first heading within a column)
     const nodes: KNode[] = [
       heading("root", null, 0),
@@ -614,22 +533,14 @@ describe("createViewLens equivalence with buildViewTree", () => {
       paragraph("card1", "col1", 1, "Structural card"),
     ]
     const repo = createMockRepo(nodes)
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths)
-    const treeChildren = viewTreeChildren(tree)
-    const treeBodyFlags = viewTreeBodyFlags(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths })
 
-    // Verify children match
-    const expectedColChildren = treeChildren.get("col1") ?? []
-    expect([...lens.children("col1")]).toEqual(expectedColChildren)
-
-    // Verify body flag on the body card
-    expect(lens.isBody("body-in-col")).toBe(treeBodyFlags.has("body-in-col"))
+    expect([...lens.children("col1")]).toContain("body-in-col")
+    expect([...lens.children("col1")]).toContain("card1")
+    expect(lens.isBody("body-in-col")).toBe(true)
   })
 
-  test("hidden nodes within columns", () => {
+  test("hidden nodes within columns are excluded", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col1", "root", 0, "Column"),
@@ -639,16 +550,12 @@ describe("createViewLens equivalence with buildViewTree", () => {
     ]
     const repo = createMockRepo(nodes)
     const hidden = new Set(["c2"])
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths, undefined, hidden)
-    const treeChildren = viewTreeChildren(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths, hiddenNodeIds: hidden })
 
-    expect([...lens.children("col1")]).toEqual(treeChildren.get("col1"))
+    expect([...lens.children("col1")]).toEqual(["c1", "c3"])
   })
 
-  test("hidden subitems", () => {
+  test("hidden subitems are excluded", () => {
     const nodes: KNode[] = [
       heading("root", null, 0),
       heading("col", "root", 0),
@@ -659,13 +566,9 @@ describe("createViewLens equivalence with buildViewTree", () => {
     ]
     const repo = createMockRepo(nodes)
     const hidden = new Set(["sub2"])
-
-    const tree = buildViewTree(repo, "root", emptyFoldDepths, undefined, hidden)
-    const treeChildren = viewTreeChildren(tree)
-
     const lens = createViewLens(repo, { rootId: "root", foldDepths: emptyFoldDepths, hiddenNodeIds: hidden })
 
-    expect([...lens.children("card")]).toEqual(treeChildren.get("card"))
+    expect([...lens.children("card")]).toEqual(["sub1", "sub3"])
   })
 })
 

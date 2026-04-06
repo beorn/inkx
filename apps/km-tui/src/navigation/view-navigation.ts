@@ -10,7 +10,7 @@
 
 import type { Repo } from "@km/storage"
 import type { GridNavigator, ViewTreeProjection, ViewType } from "@km/board"
-import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
+import { classifyCursorFromLens, createViewLens } from "@km/board"
 import type { ViewMode } from "../types.ts"
 import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 
@@ -73,9 +73,8 @@ export function createCardsViewNavigation(): ViewNavigation {
         : vnNavigateHorizontal(dir, state, navigator)
     },
     classifyCursor(nodeId, rootId, repo) {
-      const vTree = buildViewTree(repo, rootId, new Map())
-      const vIndex = buildViewIndex(vTree)
-      return classifyCursorFromViewIndex(vIndex, nodeId)
+      const lens = createViewLens(repo, { rootId, foldDepths: new Map() })
+      return classifyCursorFromLens(lens, nodeId)
     },
   }
 }

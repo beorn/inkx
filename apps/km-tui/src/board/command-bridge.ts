@@ -17,7 +17,6 @@ import {
   type TNode,
 } from "@km/commands"
 import { Tree } from "@km/tree"
-import { ViewTree } from "@km/board"
 import { detectTerminalCaps, activeEditTargetRef } from "@silvery/ag-react"
 import type { OpCtx } from "../tui-context.ts"
 import { isDetailPaneId } from "./board-types.ts"

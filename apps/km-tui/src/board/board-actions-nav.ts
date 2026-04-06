@@ -4,7 +4,7 @@
  * Handles cursor movement, history navigation, and sibling board navigation.
  */
 
-import { ViewTree, CARD_REMAINING_DEPTH } from "@km/board"
+import { CARD_REMAINING_DEPTH } from "@km/board"
 import type { OpResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
 import { KNode, isOk } from "@km/core"

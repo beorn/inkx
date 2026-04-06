@@ -784,10 +784,10 @@ export function Board({ patchedConsole }: BoardProps) {
     })
   }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth])
 
-  // Hidden column filtering is now centralized in ViewSnapshot — the computed
-  // ViewSnapshot excludes hidden nodes at tree build time. When showHidden is
-  // toggled, PaneSignals.hiddenNodeIds updates → computed rebuilds.
-  // No need for separate column filtering here.
+  // Hidden column filtering is centralized in the view lens — the computed
+  // lens excludes hidden nodes at build time. When showHidden is toggled,
+  // PaneSignals.hiddenNodeIds updates → computed rebuilds. No need for
+  // separate column filtering here.
   const visibleColumns = columnsLayout.columns
   const visibleColIndex = columnsLayout.colIndex
 

@@ -14,7 +14,7 @@
  *
  * Layout (columns, cursor position) is derived on demand — never stored.
  * The key handler derives layout fresh each keypress via buildOpCtx().
- * React derives layout via useSignal(pane.signals.view) + viewNodeToColumnViews.
+ * React derives layout via useSignal(pane.signals.visibleLens) + deriveColumnsFromLens.
  */
 
 import type { ToastQueue, JobRunner } from "@km/core"

@@ -19,9 +19,7 @@ import {
   type NavState,
 } from "../src/navigation/view-navigation.ts"
 import {
-  buildViewTree,
-  buildViewIndex,
-  classifyCursorFromViewIndex,
+  classifyCursorFromLens,
   createGridNavigator,
   createViewTree,
   createViewLens,
@@ -397,7 +395,7 @@ describe("DetailViewNavigation", () => {
   })
 })
 
-describe("classifyCursorFromViewIndex", () => {
+describe("classifyCursorFromLens", () => {
   const baseNodes = item("board", item("col1", item("B", item("deep"))), item("A", item("A-child")))
   const now = Date.now()
   const bodyPara: KNode = {
@@ -416,9 +414,8 @@ describe("classifyCursorFromViewIndex", () => {
   const repo = createFakeRepo({ nodes: [bodyPara, ...baseNodes] })
 
   function classify(nodeId: string | null) {
-    const vTree = buildViewTree(repo, "board", new Map())
-    const vIndex = buildViewIndex(vTree)
-    return classifyCursorFromViewIndex(vIndex, nodeId)
+    const lens = createViewLens(repo, { rootId: "board", foldDepths: new Map() })
+    return classifyCursorFromLens(lens, nodeId)
   }
 
   it("column-level: oi child of root", () => {

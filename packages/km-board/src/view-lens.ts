@@ -1,9 +1,9 @@
 /**
  * ViewLens — TreeLens-based view over the repo.
  *
- * Provides the same structural transformations as buildViewTree (body extraction,
+ * Provides the structural transformations that the view tree needs (body extraction,
  * embed resolution, role computation, fold/hidden filtering, collapse, detail-only
- * exclusion, dedup, index file expansion) but as a lazy query interface rather than
+ * exclusion, dedup, index file expansion) as a lazy query interface rather than
  * an eagerly built object tree.
  *
  * Zero upfront allocation — each method computes on demand and caches results.
@@ -16,13 +16,19 @@ import { extractBody } from "@km/tree"
 import { parseHeadingRules } from "@km/markdown"
 import type { SectionRules } from "@km/markdown"
 import type { TreeLens, ViewRole } from "./tree-lens.ts"
-import { isCollapsedChild, isDetailOnly, deduplicateByFsPath } from "./view-tree.ts"
+import {
+  isCollapsedChild,
+  isDetailOnly,
+  deduplicateByFsPath,
+  getCollapseRules,
+  createVirtualBodyNode,
+} from "./view-lens-helpers.ts"
 
 // =============================================================================
 // Types
 // =============================================================================
 
-/** Minimal repo interface — same as ViewTreeRepo in view-tree.ts */
+/** Minimal repo interface needed by the view lens. */
 export interface ViewLensRepo {
   getNode(id: string): KNode | null
   getChildren(parentId: string | null): KNode[]
@@ -36,40 +42,13 @@ export interface ViewLensOptions {
 }
 
 // =============================================================================
-// Internal helpers
-// =============================================================================
-
-function getCollapseRules(node: KNode): { collapse?: boolean } {
-  if (node.rules) return node.rules
-  return parseHeadingRules(node.content || node.title || "").rules
-}
-
-function createVirtualBodyNode(parentId: string | null): KNode {
-  const now = Date.now()
-  return {
-    id: `__body__${parentId ?? "root"}`,
-    type: "h",
-    item: {},
-    fstype: "mdsection",
-    parent_id: parentId,
-    parent_idx: 0,
-    title: "Description",
-    content: "",
-    data: {},
-    created_at: now,
-    updated_at: now,
-    version: "",
-  }
-}
-
-// =============================================================================
 // Factory
 // =============================================================================
 
 /**
  * Create a TreeLens that provides a view over the repo's node tree.
  *
- * Applies the same transformations as buildViewTree:
+ * Applies the canonical view transformations:
  * - Root selection: only nodes under rootId are visible
  * - Body extraction: non-outline children before first heading → body column
  * - Fold filtering: collapsed columns have no children
@@ -105,7 +84,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
 
   /**
    * Compute the root's children (columns + optional body column).
-   * This is the heart of the lens — mirrors buildViewTree's top-level logic.
+   * This is the heart of the lens — the top-level structural derivation.
    */
   function getRootChildIds(): readonly string[] {
     if (_rootChildIds !== null) return _rootChildIds
@@ -283,7 +262,7 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
   }
 
   // =========================================================================
-  // Index file expansion (mirrors view-tree.ts expandIndexFileViewNodes)
+  // Index file expansion — folder with an index.md expands slot children first
   // =========================================================================
 
   function expandIndexFile(indexFile: KNode, deduped: KNode[], resultIds: string[]): void {
@@ -660,7 +639,6 @@ export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): Tr
 
 /**
  * Classify a cursor node's containing card + column by walking up the lens parents.
- * Lens-based replacement for classifyCursorFromViewIndex.
  */
 export function classifyCursorFromLens(
   lens: TreeLens,

@@ -374,8 +374,8 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         const parentId = node?.parent_id ?? null
         dataStore.updateNode(ctx.nodeId, ctx.changes ?? {})
         childrenCache.bust(parentId)
-        // Bust ancestor chain so ViewNodeColumnCache invalidates on deep edits.
-        // The cache is keyed on column-level childrenRef — without busting ancestors,
+        // Bust ancestor chain so the lens invalidates on deep edits.
+        // Children caches are keyed on childrenRef — without busting ancestors,
         // edits to deeply nested nodes (sub-sub-items) would show stale content.
         let bustId = parentId
         for (let i = 0; i < 4 && bustId; i++) {

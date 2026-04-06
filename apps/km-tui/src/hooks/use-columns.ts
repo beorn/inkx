@@ -1,15 +1,16 @@
 /**
  * useColumns Hook — VIEW MODEL DERIVATION
  *
- * Thin wrapper over ViewNode tree (km-board). Delegates column derivation to
- * buildViewTree() + viewNodeToColumnViews(), keeping only React hook plumbing
+ * Thin wrapper over the TreeLens (km-board). Delegates column derivation to
+ * createViewLens() + deriveColumnsFromLens(), keeping only React hook plumbing
  * and cursor index utilities.
  *
  * Structure:
  * 1. useColumns() — React hook with repo subscription
- * 2. deriveColumnsFromRepo() — Delegates to buildViewTree + viewNodeToColumnViews
- * 3. buildNodeIndex() — O(1) cursor position lookup map
- * 4. deriveCursorIndices() — Derives colIndex/cardIndex from cursor
+ * 2. deriveColumnsFromRepo() — Builds a lens internally, then deriveColumnsFromLens
+ * 3. deriveColumnsFromLens() — Lens → ColumnView[] conversion
+ * 4. buildNodeIndex() — O(1) cursor position lookup map
+ * 5. deriveCursorIndices() — Derives colIndex/cardIndex from cursor
  */
 
 import { useRef, useState } from "react"
@@ -20,14 +21,7 @@ import { useCommitVersion } from "./use-signal.ts"
 import { createLogger } from "loggily"
 import type { ColumnView } from "../types.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
-import {
-  buildViewTree,
-  viewNodeToColumnViews,
-  extractWipLimits,
-  type ViewNode,
-  type ViewNodeColumnCache,
-  type ViewTreeRepo,
-} from "@km/board"
+import { createViewLens, extractWipLimits, type TreeLens, type ViewLensRepo } from "@km/board"
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:columns") as any
@@ -35,83 +29,40 @@ const log = createLogger("km:tui:columns") as any
 const perfLog = createLogger("km:perf") as any
 
 // =============================================================================
-// Column derivation — delegates to ViewNode tree
+// Column derivation — delegates to the TreeLens
 // =============================================================================
-
-/** Default per-column memoization cache — used when no external cache is provided (tests, driver) */
-const defaultViewNodeCache: ViewNodeColumnCache = new Map()
-
-/**
- * Internal derivation — builds ViewNode tree and converts to ColumnView[].
- * Returns both for callers that need the tree (buildOpCtx).
- *
- * @param cache - External ViewNodeColumnCache (per-pane in board-app, default singleton elsewhere)
- * @param hiddenNodeIds - Node IDs to exclude from the tree (board-level hidden filtering)
- */
-function deriveColumnsAndTree(
-  repo: Repo,
-  rootId: string | null,
-  foldDepths: Map<string, number>,
-  cache: ViewNodeColumnCache,
-  hiddenNodeIds?: Set<string>,
-): { columns: ColumnView[]; viewTree: ViewNode } {
-  using span = log.span("derive-columns")
-
-  // Build the ViewNode tree — WIP limits are extracted from column nodes inside the tree
-  const viewTree = buildViewTree(repo as ViewTreeRepo, rootId, foldDepths, cache, hiddenNodeIds)
-
-  // Convert ViewNode tree to ColumnView[] with full CardView[]
-  const columns = viewNodeToColumnViews(viewTree) as ColumnView[]
-
-  span.spanData.columns = columns.length
-  return { columns, viewTree }
-}
 
 /**
  * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
  *
  * Runtime column derivation paths:
- * - Board.tsx via ViewSnapshot + viewNodeToColumnViews (primary React path)
- * - buildOpCtx() in board-app.ts via ViewSnapshot + viewNodeToColumnViews
+ * - Board.tsx via deriveColumnsFromLens (primary React path)
+ * - buildOpCtx() in board-app.ts via deriveColumnsFromLens
  * - driver.ts getContext/getDriverState (test/AI automation path)
  * - km-canvas.tsx via useColumns() hook (web target)
  *
- * Delegates to buildViewTree() for tree construction and viewNodeToColumnViews()
- * for ColumnView[] conversion. The ViewNode tree is the authoritative derivation;
- * this function is a thin bridge to the km-tui ColumnView shape.
+ * Builds an ephemeral ViewLens over the repo and delegates to deriveColumnsFromLens.
+ * Used by tests, the web target, and any caller that doesn't already have a lens.
  */
 export function deriveColumnsFromRepo(
   repo: Repo,
   rootId: string | null,
   foldDepths: Map<string, number>,
 ): ColumnView[] {
-  return deriveColumnsAndTree(repo, rootId, foldDepths, defaultViewNodeCache).columns
-}
-
-/**
- * Extended column derivation that also returns the ViewNode tree.
- * Used by buildOpCtx which needs both columns and the tree for navigation/indexing.
- *
- * @param cache - External ViewNodeColumnCache (per-pane cache for cross-call memoization)
- * @param hiddenNodeIds - Node IDs to exclude from the tree (board-level hidden filtering)
- */
-export function deriveColumnsWithTree(
-  repo: Repo,
-  rootId: string | null,
-  foldDepths: Map<string, number>,
-  cache: ViewNodeColumnCache,
-  hiddenNodeIds?: Set<string>,
-): { columns: ColumnView[]; viewTree: ViewNode } {
-  return deriveColumnsAndTree(repo, rootId, foldDepths, cache, hiddenNodeIds)
+  using span = log.span("derive-columns")
+  const lens = createViewLens(repo as unknown as ViewLensRepo, { rootId, foldDepths })
+  const columns = deriveColumnsFromLens(lens, repo)
+  span.spanData.columns = columns.length
+  return columns
 }
 
 /**
  * Derive ColumnView[] from a TreeLens — the modern, lens-based path.
- * No ViewNode tree, no buildViewTree, no cache.
- * Used by Board.tsx, buildOpCtx, and driver.ts.
+ * No ViewNode tree, no ViewNodeColumnCache — the lens caches internally.
+ * Used by Board.tsx, buildOpCtx, driver.ts, and deriveColumnsFromRepo.
  */
 export function deriveColumnsFromLens(
-  lens: import("@km/board").TreeLens,
+  lens: TreeLens,
   repo: { getNode: (id: string) => KNode | null | undefined },
 ): ColumnView[] {
   const rootId = lens.rootId

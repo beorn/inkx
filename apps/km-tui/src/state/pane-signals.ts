@@ -1,27 +1,26 @@
 /**
  * PaneSignals — Per-pane reactive state backed by alien-signals.
  *
- * Each pane gets its own signal bag. The `view` computed derives the
- * ViewSnapshot from (repo, rootId, foldDepths) — single build, auto-cached.
+ * Each pane gets its own signal bag. The `viewLens` computed derives the
+ * TreeLens from (repo, rootId, foldDepths, hiddenNodeIds) — single build, auto-cached.
  *
  * This replaces:
  * - useAppStore selectors for nav state (rootId, foldDepths, collapsedNodes)
  * - Layout cache in buildOpCtx (computed() handles caching)
  * - Selection adapter auto-refresh (computed walkOrder is always fresh)
- * - 14 separate buildViewTree call sites → 1 computed
  *
  * React components subscribe via useSignal():
  * ```tsx
  * const pane = usePaneSignals()
  * const rootId = useSignal(pane.rootId)
- * const view = useSignal(pane.view)
+ * const lens = useSignal(pane.visibleLens)
  * const cursor = useSignal(pane.sel.node.cursor)
  * ```
  */
 
 import { signal, computed } from "alien-signals"
 import type { SelectionStore } from "@silvery/selection"
-import type { ViewTreeRepo, TreeLens, ViewTreeProjection } from "@km/board"
+import type { ViewLensRepo, TreeLens, ViewTreeProjection } from "@km/board"
 import { createViewLens, createVisibleLens, createViewTree } from "@km/board"
 import type { SelectionTreeSource } from "./selection-adapter.ts"
 import type { MoveState, ViewMode } from "../board/board-types.ts"
@@ -58,7 +57,7 @@ export interface PaneSignals {
   readonly curswantX: Signal<number | null>
   readonly curswantY: Signal<number | null>
 
-  // Hidden state — nodes excluded from ViewSnapshot tree
+  // Hidden state — nodes excluded from the view lens
   readonly hiddenNodeIds: Signal<Set<string>>
 
   // Filter state — task status filter (set of statuses to SHOW; empty = show all)
@@ -83,8 +82,8 @@ export interface CreatePaneSignalsOptions {
   id: string
   sel: SelectionStore
   selTreeSource: SelectionTreeSource
-  /** The repo — used by the computed ViewSnapshot and hidden node computation. */
-  repo: ViewTreeRepo & { path: string }
+  /** The repo — used by the computed view lens and hidden node computation. */
+  repo: ViewLensRepo & { path: string }
   /** alien-signals signal tracking repo version — bumped by bridge on repo.subscribe(). */
   repoVersion: Signal<number>
   rootId: string | null
@@ -102,9 +101,9 @@ export interface CreatePaneSignalsOptions {
 /**
  * Create a PaneSignals bag for a board pane.
  *
- * The `view` computed chains: repoVersion → rootId → foldDepths → createViewSnapshot.
- * Any input change invalidates the computed; next read rebuilds the ViewSnapshot.
- * The ViewNodeColumnCache enables incremental column-level rebuilds within buildViewTree.
+ * The `viewLens` computed chains: repoVersion → rootId → foldDepths → createViewLens.
+ * Any input change invalidates the computed; next read rebuilds the lens.
+ * The lens is lazy and caches per-node children on demand.
  */
 export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const rootId = signal(opts.rootId)
@@ -118,7 +117,6 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const hiddenNodeIds = signal(opts.hiddenNodeIds ?? new Set<string>())
   const taskStatusFilter = signal<ReadonlySet<string>>(opts.taskStatusFilter ?? new Set<string>())
 
-  // Per-column ViewNode cache — reused across rebuilds for incremental updates
   // Tree Lens computeds — zero-object navigation over the same KNodes
   const viewLensComputed = computed((): TreeLens => {
     opts.repoVersion()

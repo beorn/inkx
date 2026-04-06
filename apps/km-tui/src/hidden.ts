@@ -189,10 +189,10 @@ export function isHidden(hiddenPaths: Set<string>, node: KNode, repo: Repo): boo
  *
  * Walks columns (children of root) and their children (cards) to find matches
  * against the .km/hidden file. Returns a Set of node IDs to exclude from the
- * ViewSnapshot tree — once excluded, they can't be navigated to, rendered, or
+ * view lens — once excluded, they can't be navigated to, rendered, or
  * selected. This is the SINGLE place that computes hidden node IDs.
  *
- * Called by PaneSignals when computing the ViewSnapshot.
+ * Called by PaneSignals when computing the view lens.
  */
 export function computeHiddenNodeIds(
   repo: { path: string; getNode: (id: string) => KNode | null; getChildren: (id: string | null) => KNode[] },
