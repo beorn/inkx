@@ -4,17 +4,21 @@
  * These types describe how nodes are presented in the TUI, not how they're stored.
  * The data model is KNode (from @km/core) — a single tree of nodes.
  *
- * ColumnView wraps a column KNode with its children as KNode[].
- * View data (embed resolution, body classification) comes from ViewTree signals.
+ * The canonical view model is the tree lens (`@km/board`). React view components
+ * self-resolve their data via `useNode(id)` + `useSignal(ps.visibleLens)` —
+ * there is no `ColumnView` wrapper at the view layer. The legacy `ColumnView`
+ * shape still exists for the initial-load path (see `hooks/use-columns.ts`).
  */
 
-import type { KNode } from "@km/core"
-import type { SectionRules } from "@km/markdown"
 import type { Repo } from "./repo-context.tsx"
+import type { ColumnView } from "./hooks/use-columns.ts"
 
 /**
  * Initial board data returned by buildBoardState/initBoardState.
  * Contains the minimum data needed to initialize the TUI.
+ *
+ * `columns` is the legacy initial-load shape; the live view derives columns
+ * reactively from the pane's visible lens. Prefer string IDs at the view layer.
  */
 export interface InitialBoardData {
   rootId: string | null
@@ -22,23 +26,6 @@ export interface InitialBoardData {
   columns: ColumnView[]
   collapsedColumns: Set<number>
   collapsedNodeIds: Set<string>
-}
-
-/**
- * VIEW MODEL: A column is a parent KNode whose children render as KNode[].
- * Embed/body data comes from ViewTree signals via useNode.
- */
-export interface ColumnView {
-  node: KNode
-  cardNodes: KNode[]
-  wipLimit?: number
-  rules?: SectionRules
-  /** True for virtual body column (displays leading non-section content) */
-  isVirtual?: boolean
-  /** Total card count before filtering (undefined = no filter active) */
-  totalCardCount?: number
-  /** Count of descendant nodes hidden by filters within cards (e.g., done children) */
-  hiddenDescendantCount?: number
 }
 
 /**

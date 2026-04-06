@@ -5,10 +5,12 @@
  * Only shows one column at a time with tabs at the top for switching.
  *
  * Uses silvery ListView for React-level virtualization.
+ *
+ * NODE MODEL V3: Receives `columnIds: string[]` and self-resolves column +
+ * card data reactively via `useNode(id)` + `useSignal(ps.visibleLens)`.
  */
 import React, { useMemo } from "react"
 import { Box, Text, Small, ListView } from "@silvery/ag-react"
-import type { ColumnView } from "../types.ts"
 import type { KNode } from "@km/core"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { deriveColumnExcludedSigils } from "../state/ui-context.tsx"
@@ -17,22 +19,27 @@ import { parseToPlainText } from "../text/index.ts"
 import { MemoizedTreeCard } from "./shared-components.tsx"
 import { NodeTabView } from "./NodeView.tsx"
 import { useNodeStore } from "../state/reactive.ts"
-import { useSignal } from "../hooks/use-signal.ts"
+import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
-import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
+import { type BoardAppStore } from "../state/board-app-store.ts"
 
 // Virtualization constants
 const OVERSCAN = 10
 const MAX_RENDERED_ITEMS = 100
 
 interface TabsViewProps {
-  columns: ColumnView[]
+  /** Column node ids in render order */
+  columnIds: readonly string[]
   width: number
   height: number
 }
 
-export function TabsView({ columns: columnsProp, width, height }: TabsViewProps): React.ReactElement {
+export function TabsView({ columnIds, width, height }: TabsViewProps): React.ReactElement {
   const repo = useRepo()
+
+  // Reactive lens — subscribe once and derive column/card data below
+  const ps = usePaneSignals()
+  const lens = useSignal(ps.visibleLens)
 
   const nodeStore = useNodeStore()
   const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
@@ -42,24 +49,32 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
   // Derive colIndex from cursorColumnNodeId for tab highlighting and column lookup
   const colIndex = useMemo(() => {
     if (!cursorColumnNodeId) return 0
-    const idx = columnsProp.findIndex((c) => c.node.id === cursorColumnNodeId)
+    const idx = columnIds.indexOf(cursorColumnNodeId)
     return idx >= 0 ? idx : 0
-  }, [cursorColumnNodeId, columnsProp])
+  }, [cursorColumnNodeId, columnIds])
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
   const textEdit = useSignal(sel.text)
   const editingNodeId = (textEdit?.nodeId as string) ?? null
 
-  // Get current column
-  const currentColumn = columnsProp[colIndex]
-  const count = currentColumn?.cardNodes.length ?? 0
+  // Resolve current column (node + card nodes) via the lens
+  const currentColId = columnIds[colIndex]
+  const currentColNode = currentColId ? (lens.get(currentColId) ?? repo.getNode(currentColId)) : null
+  const currentCardNodes = useMemo(() => {
+    if (!currentColId) return [] as KNode[]
+    return lens
+      .children(currentColId)
+      .map((id) => repo.getNode(id))
+      .filter((n): n is KNode => n != null)
+  }, [currentColId, lens, repo])
+  const count = currentCardNodes.length
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
-  const colName = currentColumn ? parseToPlainText(getNodeDisplayName(repo, currentColumn.node)) : ""
+  const colName = currentColNode ? parseToPlainText(getNodeDisplayName(repo, currentColNode)) : ""
   const columnExcludedSigils = useMemo(
-    () => deriveColumnExcludedSigils(colName, currentColumn?.node.id, currentColumn?.node.fs_path),
-    [colName, currentColumn?.node.id, currentColumn?.node.fs_path],
+    () => deriveColumnExcludedSigils(colName, currentColNode?.id, currentColNode?.fs_path),
+    [colName, currentColNode?.id, currentColNode?.fs_path],
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
@@ -74,18 +89,21 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
       {/* Tab bar - horizontal tabs with content-based widths */}
       {/* Each tab width = max(10, content length) + padding, extra space goes to right */}
       <Box flexDirection="row" width={width} height={1} flexShrink={0}>
-        {columnsProp.map((column, cIdx) => {
+        {columnIds.map((id, cIdx) => {
+          const tabNode = lens.get(id) ?? repo.getNode(id)
+          if (!tabNode) return null
           const isActive = cIdx === colIndex
-          const colName = getNodeDisplayName(repo, column.node)
-          const untitled = isNodeUntitled(repo, column.node)
-          const colCount = column.cardNodes.length
+          const tabName = getNodeDisplayName(repo, tabNode)
+          const untitled = isNodeUntitled(repo, tabNode)
+          const tabChildIds = lens.children(id)
+          const colCount = tabChildIds.length
           const showActiveHighlight = isActive && cursorDepth !== "board"
           const isTabSelected = isActive && isColumnHeaderSelected
 
           return (
-            <React.Fragment key={`${column.node.id}-${cIdx}`}>
+            <React.Fragment key={`${id}-${cIdx}`}>
               <Box
-                id={column.node.id}
+                id={id}
                 {...(isTabSelected && {
                   "data-cursor": true,
                   "data-col-index": cIdx,
@@ -93,8 +111,8 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
                 })}
               >
                 <NodeTabView
-                  node={column.node}
-                  displayName={colName}
+                  node={tabNode}
+                  displayName={tabName}
                   isActive={showActiveHighlight}
                   isSelected={isTabSelected}
                   untitled={untitled}
@@ -103,7 +121,7 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
                 />
               </Box>
               {/* Separator with space padding */}
-              {cIdx < columnsProp.length - 1 && <Text dimColor> │ </Text>}
+              {cIdx < columnIds.length - 1 && <Text dimColor> │ </Text>}
             </React.Fragment>
           )
         })}
@@ -120,14 +138,14 @@ export function TabsView({ columns: columnsProp, width, height }: TabsViewProps)
           flexGrow + parent overflow="hidden" layout bug where the child only
           gets minHeight instead of remaining space */}
       <Box flexDirection="column" width={width} height={height - 3}>
-        {currentColumn ? (
+        {currentColNode ? (
           count > 0 ? (
             <ListView
-              items={currentColumn.cardNodes}
+              items={currentCardNodes}
               height={height - 3}
-              estimateHeight={(index: number) => (currentColumn.cardNodes[index]?.id === editingNodeId ? 3 : 1)}
+              estimateHeight={(index: number) => (currentCardNodes[index]?.id === editingNodeId ? 3 : 1)}
               scrollTo={
-                cursorCardNodeId ? currentColumn.cardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined
+                cursorCardNodeId ? currentCardNodes.findIndex((c) => c.id === cursorCardNodeId) : undefined
               }
               overscan={OVERSCAN}
               maxRendered={MAX_RENDERED_ITEMS}

@@ -123,7 +123,7 @@ export interface TUIDriverState extends AppState {
   /** Move mode active */
   moveMode: boolean // derived from moveState.active
   /** Layout data (columns, colIndex, cardIndex) */
-  columns: import("./types.ts").ColumnView[]
+  columns: import("./hooks/use-columns.ts").ColumnView[]
   colIndex: number
   cardIndex: number
   isAtCardLevel: boolean

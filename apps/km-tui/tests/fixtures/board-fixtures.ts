@@ -7,7 +7,8 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import type { InitialBoardData, ColumnView } from "../../src/types.ts"
+import type { InitialBoardData } from "../../src/types.ts"
+import type { ColumnView } from "../../src/hooks/use-columns.ts"
 import { createEmptyState } from "../../src/state.ts"
 
 /**

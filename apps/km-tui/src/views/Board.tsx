@@ -28,7 +28,7 @@ import {
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
-import type { ColumnView, ViewMode } from "../types.ts"
+import type { ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { ServicesProvider, useToastQueue, useJobRunner, useUndoHandle } from "../services-context.tsx"
@@ -51,6 +51,7 @@ import {
   deriveColumnsFromLens,
   deriveCursorIndices,
   deriveDetailColumns,
+  type ColumnView,
 } from "../hooks/use-columns.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
@@ -100,12 +101,31 @@ import { parseKmUrl, resolveKmLink } from "../internal-link.ts"
 // BoardCore - Pure Rendering (No Hooks)
 // =============================================================================
 
+/**
+ * Per-column filter overlay — carries Board-level text/property filter state
+ * that isn't in the lens. Card components use this to render only the filtered
+ * subset and to display the "+N filtered" footer.
+ */
+export interface ColumnFilterState {
+  /** Card IDs that survive the filter (in order) */
+  filteredCardIds: readonly string[]
+  /** Total card count before filtering (for "+N filtered" footer math) */
+  totalCardCount: number
+  /** Descendant nodes hidden inside surviving cards (property filters) */
+  hiddenDescendantCount?: number
+}
+
 /** Layout indices derived from cursor position */
 export interface BoardCoreProps {
   /** Root node ID */
   rootId: string | null
-  /** Derived columns for rendering */
-  columns: ColumnView[]
+  /** Column node ids in render order (post-lens, post-filter) */
+  columnIds: readonly string[]
+  /**
+   * Per-column filter overlay. Empty map = no active filters; Card/Column
+   * components fall back to the lens children. Keyed by column nodeId.
+   */
+  columnFilters: ReadonlyMap<string, ColumnFilterState>
   /** Current column index (derived from cursor) */
   colIndex: number
   /** Current card index (derived from cursor) */
@@ -356,7 +376,8 @@ function BoardTopBar({
 // oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
 export function BoardCore({
   rootId,
-  columns,
+  columnIds,
+  columnFilters,
   colIndex,
   cardIndex,
   ui,
@@ -365,7 +386,7 @@ export function BoardCore({
   collapsedNodes,
   hasDetailPane,
 }: BoardCoreProps): React.ReactElement {
-  useComponentTiming(`BoardCore (${columns.length} columns)`)
+  useComponentTiming(`BoardCore (${columnIds.length} columns)`)
 
   // Use actual pane dimensions from parent container (critical for multi-pane splits).
   // Falls back to store dimensions on first render when contentRect is still zero.
@@ -386,7 +407,7 @@ export function BoardCore({
   // (e.g., during zoom transitions or detail pane open/close).
   // Includes rootId (zoom), viewMode, detailPane, colIndex (h/l nav),
   // and column count (structural changes) to maximize recovery opportunities.
-  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${hasDetailPane}-${colIndex}-${columns.length}`
+  const errorBoundaryResetKey = `${rootId ?? "null"}-${ui.viewMode}-${hasDetailPane}-${colIndex}-${columnIds.length}`
 
   // Silent error handler — ErrorBoundary resetKey auto-recovers on next state change (km-tui.error-loading-cards)
   const handleRenderError = useCallback((_error: Error, _errorInfo: React.ErrorInfo) => {
@@ -400,14 +421,14 @@ export function BoardCore({
   // columns so that column widths sum exactly to the viewport (no trailing gap).
   const COLLAPSED_WIDTH = COLLAPSED_COL_WIDTH
   const INDICATOR_RESERVED = 2
-  const { expandedWidth, remainder } = computeColumnWidths(termWidth - INDICATOR_RESERVED, columns, collapsedNodes)
+  const { expandedWidth, remainder } = computeColumnWidths(termWidth - INDICATOR_RESERVED, columnIds, collapsedNodes)
 
   // Build per-column width lookup: first `remainder` expanded columns get +1
   const columnWidths = useMemo(() => {
     const widths: number[] = []
     let bonusLeft = remainder
-    for (const col of columns) {
-      if (collapsedNodes.has(col.node.id)) {
+    for (const id of columnIds) {
+      if (collapsedNodes.has(id)) {
         widths.push(COLLAPSED_WIDTH)
       } else {
         widths.push(expandedWidth + (bonusLeft > 0 ? 1 : 0))
@@ -415,7 +436,10 @@ export function BoardCore({
       }
     }
     return widths
-  }, [columns, collapsedNodes, expandedWidth, remainder])
+  }, [columnIds, collapsedNodes, expandedWidth, remainder])
+
+  // HorizontalVirtualList expects a mutable array; stabilize via useMemo
+  const columnIdsArr = useMemo(() => [...columnIds], [columnIds])
 
   return (
     <ConstraintRoot>
@@ -463,27 +487,31 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                {columns.length === 0 ? (
+                {columnIds.length === 0 ? (
                   <Box flexDirection="column" padding={1} width={termWidth} height={contentHeight}>
                     <Small>Empty board</Small>
                   </Box>
                 ) : (
                   <HorizontalVirtualList
                     key={rootId ?? "root"}
-                    items={columns}
+                    items={columnIdsArr}
                     width={termWidth}
                     height={contentHeight}
-                    itemWidth={(_col: ColumnView, index: number) => columnWidths[index] ?? expandedWidth}
+                    itemWidth={(_id: string, index: number) => columnWidths[index] ?? expandedWidth}
                     scrollTo={isBoardSelected ? undefined : colIndex}
-                    renderItem={(col, index) => {
+                    renderItem={(id, index) => {
                       const colWidth = columnWidths[index] ?? expandedWidth
+                      const filter = columnFilters.get(id)
                       return (
                         <Column
-                          column={col}
+                          colId={id}
                           colIndex={index}
-                          isCollapsed={collapsedNodes.has(col.node.id)}
+                          isCollapsed={collapsedNodes.has(id)}
                           width={colWidth}
                           height={contentHeight}
+                          filteredCardIds={filter?.filteredCardIds}
+                          totalCardCount={filter?.totalCardCount}
+                          hiddenDescendantCount={filter?.hiddenDescendantCount}
                         />
                       )
                     }}
@@ -494,7 +522,7 @@ export function BoardCore({
                       />
                     )}
                     overflowIndicatorWidth={1}
-                    getKey={(col) => `${col.node.id}${collapsedNodes.has(col.node.id) ? "-c" : ""}`}
+                    getKey={(id) => `${id}${collapsedNodes.has(id) ? "-c" : ""}`}
                   />
                 )}
               </ErrorBoundary>
@@ -504,7 +532,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ColumnsView columns={columns} width={termWidth} height={contentHeight} />
+                <ColumnsView columnIds={columnIds} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             ) : ui.viewMode === "list" ? (
               <ErrorBoundary
@@ -512,7 +540,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <ListView columns={columns} width={termWidth} height={contentHeight} />
+                <ListView columnIds={columnIds} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             ) : (
               <ErrorBoundary
@@ -520,7 +548,7 @@ export function BoardCore({
                 resetKey={errorBoundaryResetKey}
                 onError={handleRenderError}
               >
-                <TabsView columns={columns} width={termWidth} height={contentHeight} />
+                <TabsView columnIds={columnIds} width={termWidth} height={contentHeight} />
               </ErrorBoundary>
             )}
           </Box>
@@ -747,29 +775,33 @@ export function Board({ patchedConsole }: BoardProps) {
 
   const columnsLayout = useMemo(
     () => ({
-      columns,
       colIndex: cursorPosition.colIndex,
       cardIndex: cursorPosition.cardIndex,
       isAtCardLevel: cursorPosition.isAtCardLevel,
       nodeIndex,
     }),
-    [columns, cursorPosition, nodeIndex],
+    [cursorPosition, nodeIndex],
   )
 
   const cursorDepth = CursorDepth.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
 
-  // Derive cursorCardNodeId and cursorColumnNodeId from layout indices
+  // Derive cursorCardNodeId and cursorColumnNodeId from layout indices via lens.
+  // Uses the lens column/card lists instead of ColumnView[] for identity resolution.
   const cursorCardNodeId = useMemo(() => {
-    if (cursorPosition.colIndex < 0) return null
-    const col = columns[cursorPosition.colIndex]
-    if (!col) return null
-    if (cursorPosition.cardIndex < 0) return null
-    return col.cardNodes[cursorPosition.cardIndex]?.id ?? null
-  }, [columns, cursorPosition.colIndex, cursorPosition.cardIndex])
+    const rootLensId = visibleLensValue.rootId
+    if (!rootLensId || cursorPosition.colIndex < 0) return null
+    const colIds = visibleLensValue.children(rootLensId)
+    const colId = colIds[cursorPosition.colIndex]
+    if (!colId || cursorPosition.cardIndex < 0) return null
+    const cardIds = visibleLensValue.children(colId)
+    return cardIds[cursorPosition.cardIndex] ?? null
+  }, [visibleLensValue, cursorPosition.colIndex, cursorPosition.cardIndex])
   const cursorColumnNodeId = useMemo(() => {
-    if (cursorPosition.colIndex < 0) return null
-    return columns[cursorPosition.colIndex]?.node.id ?? null
-  }, [columns, cursorPosition.colIndex])
+    const rootLensId = visibleLensValue.rootId
+    if (!rootLensId || cursorPosition.colIndex < 0) return null
+    const colIds = visibleLensValue.children(rootLensId)
+    return colIds[cursorPosition.colIndex] ?? null
+  }, [visibleLensValue, cursorPosition.colIndex])
 
   // Sync cursor state to ReactiveNodeStore after render.
   // The initial sync happens in the useMemo above (pre-render); subsequent syncs
@@ -788,7 +820,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // lens excludes hidden nodes at build time. When showHidden is toggled,
   // PaneSignals.hiddenNodeIds updates → computed rebuilds. No need for
   // separate column filtering here.
-  const visibleColumns = columnsLayout.columns
+  const visibleColumns = columns
   const visibleColIndex = columnsLayout.colIndex
 
   // Apply text + property filters to cards within columns
@@ -828,6 +860,27 @@ export function Board({ patchedConsole }: BoardProps) {
       }
     })
   }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
+
+  // String-ID projection for BoardCore + non-cards views.
+  // Mirrors the order of `filteredColumns` so cursor indices remain aligned.
+  const boardColumnIds = useMemo(() => filteredColumns.map((c) => c.node.id), [filteredColumns])
+
+  // Per-column filter overlay — BoardCore forwards this to the Column components
+  // so they can render only the filtered subset and show the "+N filtered" footer.
+  // Empty map (no text/property filters active) is cheap to build.
+  const columnFilters = useMemo(() => {
+    const map = new Map<string, ColumnFilterState>()
+    const hasFilter = !!ui.filterText || hasActivePropertyFilters(ui.filterProperties)
+    if (!hasFilter) return map
+    for (const col of filteredColumns) {
+      map.set(col.node.id, {
+        filteredCardIds: col.cardNodes.map((c) => c.id),
+        totalCardCount: col.totalCardCount ?? col.cardNodes.length,
+        hiddenDescendantCount: col.hiddenDescendantCount,
+      })
+    }
+    return map
+  }, [filteredColumns, ui.filterText, ui.filterProperties])
 
   // Register find/search-replace handlers for workspace chrome.
   // These run in the focused Board connector which has access to filtered columns.
@@ -986,9 +1039,9 @@ export function Board({ patchedConsole }: BoardProps) {
   const paneRect = useContentRect()
   const cardInnerWidth = useMemo(() => {
     const termWidth = paneRect.width > 0 ? paneRect.width : ui.dimensions.columns
-    const { expandedWidth } = computeColumnWidths(termWidth - 2, filteredColumns, collapsedNodes)
+    const { expandedWidth } = computeColumnWidths(termWidth - 2, boardColumnIds, collapsedNodes)
     return expandedWidth - 3 // card width is expandedWidth - 1 (CardColumn renderItem), minus 2 for padding left + right
-  }, [paneRect.width, ui.dimensions.columns, filteredColumns, collapsedNodes])
+  }, [paneRect.width, ui.dimensions.columns, boardColumnIds, collapsedNodes])
 
   // Memoize treeConfig — stable across cursor moves (only changes on view mode / outline changes)
   const treeConfig: TreeConfig = useMemo(
@@ -1020,7 +1073,8 @@ export function Board({ patchedConsole }: BoardProps) {
       >
         <BoardCore
           rootId={rootId}
-          columns={filteredColumns}
+          columnIds={boardColumnIds}
+          columnFilters={columnFilters}
           colIndex={visibleColIndex}
           cardIndex={columnsLayout.cardIndex}
           ui={ui}

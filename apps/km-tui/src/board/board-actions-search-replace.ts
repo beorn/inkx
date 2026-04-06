@@ -10,7 +10,7 @@ import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import type { ColumnView } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 
 /** Open the search & replace dialog */

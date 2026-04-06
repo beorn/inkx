@@ -3,9 +3,10 @@
  *
  * Uses silvery ListView for React-level virtualization of large card lists.
  *
- * NODE MODEL V2: Receives ColumnView with KNode cards.
- * "column" is a parent KNode wrapped in ColumnView, "card" is a KNode.
- * Embed data and body status are derived from ViewTree signals (useNode/useViewTree).
+ * NODE MODEL V3: Column receives `colId: string` and self-resolves node data
+ * reactively via `useNode(id)` + `useSignal(ps.visibleLens)`. "column" is a
+ * parent KNode identified by id, "card" is a KNode. Embed data and body status
+ * are derived from ViewTree signals (useNode/useViewTree).
  */
 import React, { useCallback, useEffect, useMemo } from "react"
 import { useApp as useAppStore } from "@silvery/create/create-app"
@@ -15,8 +16,8 @@ import { useComponentTiming } from "../hooks/use-component-timing.ts"
 import { Box, Text, Small, useScreenRectCallback } from "@silvery/ag-react"
 import { useJobRunner, useUndoHandle } from "../services-context.tsx"
 import { isDetailViewPane } from "../board/board-types.ts"
-import type { ColumnView } from "../types.ts"
 import { type KNode, getStatusForMarker } from "@km/core"
+import { extractWipLimits } from "@km/board"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { getNodeDisplayName, isNodeUntitled } from "../state.ts"
 import { TreeNode } from "./TreeNode.tsx"
@@ -36,7 +37,7 @@ import {
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
 import { useNodeStore } from "../state/reactive.ts"
-import { useSignal, useNode, useViewTree } from "../hooks/use-signal.ts"
+import { useSignal, useNode, useViewTree, usePaneSignals } from "../hooks/use-signal.ts"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
 import { ResourceState } from "@km/storage"
@@ -595,11 +596,22 @@ function SkeletonCards({
 // =============================================================================
 
 interface ColumnProps {
-  column: ColumnView
+  /** Column node id — the Column self-resolves data via useNode + lens */
+  colId: string
   colIndex: number
   isCollapsed: boolean
   width: number
   height: number
+  /**
+   * Optional filter overlay: when set, only these card IDs are rendered
+   * (Board.tsx applies text / property filters beyond the lens).
+   * When undefined, the column renders all lens children.
+   */
+  filteredCardIds?: readonly string[]
+  /** Total card count before filter (for the "+N filtered" footer) */
+  totalCardCount?: number
+  /** Count of descendants hidden by property filters (rendered in footer) */
+  hiddenDescendantCount?: number
 }
 
 /**
@@ -612,11 +624,14 @@ interface ColumnProps {
  */
 // oxlint-disable-next-line complexity/complexity -- React component — JSX ternaries inflate score
 export const Column = React.memo(function Column({
-  column,
+  colId,
   colIndex,
   isCollapsed,
   width,
   height,
+  filteredCardIds,
+  totalCardCount,
+  hiddenDescendantCount: _hiddenDescendantCount,
 }: ColumnProps): React.ReactElement {
   const repo = useRepo()
   const repoUpdate = useRepoEffect(repo)
@@ -627,13 +642,24 @@ export const Column = React.memo(function Column({
   } = useTreeRenderContext()
   const jobRunner = useJobRunner()
   const undoHandle = useUndoHandle()
-  const nodeId = column.node.id
+  const nodeId = colId
 
-  // Per-node reactive state: derive column properties from ViewTree when available
+  // Per-node reactive state: derive column properties from ViewTree
   const colViewNode = useNode(nodeId)
 
+  // Reactive lens — subscribing here ensures re-derivation on any tree change
+  const ps = usePaneSignals()
+  const lens = useSignal(ps.visibleLens)
+
+  // Fallback node from repo for the rare case where useNode has no data yet.
+  const colNodeFromLens = lens.get(nodeId) ?? repo.getNode(nodeId)
+
   // Per-column mount timing — measure render → commit duration
-  useComponentTiming(`Column ${colIndex} "${column.node.title ?? column.node.name}" (${column.cardNodes.length} cards)`)
+  useComponentTiming(
+    `Column ${colIndex} "${colNodeFromLens?.title ?? colNodeFromLens?.name ?? nodeId}" (${
+      (filteredCardIds ?? lens.children(nodeId)).length
+    } cards)`,
+  )
 
   // Subscribe to column selection only (stable on j/k within same column).
   // NODE MODEL V2: Self-select by nodeId instead of positional index.
@@ -666,13 +692,40 @@ export const Column = React.memo(function Column({
   )
 
   // Render name with wiki links stripped: [[target|alias]] → "alias"
-  const colNode = colViewNode?.data ?? column.node
-  const name = parseToPlainText(getNodeDisplayName(repo, colNode))
-  const untitled = isNodeUntitled(repo, colNode)
-  const count = column.cardNodes.length
-  const wipLimit = column.wipLimit
-  const isVirtual = colViewNode ? colViewNode.viewType === "body-column" : (column.isVirtual ?? false)
-  const hiddenCount = (column.totalCardCount ?? column.cardNodes.length) - column.cardNodes.length
+  // colNode is the reactive node if available, otherwise the lens fallback.
+  const colNode = colViewNode?.data ?? colNodeFromLens ?? null
+  const name = colNode ? parseToPlainText(getNodeDisplayName(repo, colNode)) : ""
+  const untitled = colNode ? isNodeUntitled(repo, colNode) : false
+  // Card count: filtered list when Board applied filters, otherwise lens children.
+  const lensCardIds = lens.children(nodeId)
+  const effectiveCardIds = filteredCardIds ?? lensCardIds
+  const count = effectiveCardIds.length
+  const isVirtual = colViewNode
+    ? colViewNode.viewType === "body-column"
+    : lens.role(nodeId) === "body-column"
+
+  // WIP limit: from section rules (km.limit::) or extracted from structural column names.
+  const rules = colViewNode?.rules ?? lens.rules(nodeId)
+  const wipLimit = useMemo(() => {
+    if (rules?.limit !== undefined) return rules.limit
+    if (!colNode || isVirtual) return undefined
+    // Build structural-column name map at render time (cheap — root.children only)
+    const rootId = lens.rootId
+    if (!rootId) return undefined
+    const structural: KNode[] = []
+    for (const siblingId of lens.children(rootId)) {
+      if (lens.role(siblingId) !== "body-column") {
+        const n = lens.get(siblingId)
+        if (n) structural.push(n)
+      }
+    }
+    const limits = extractWipLimits(structural)
+    const normalizedName = (colNode.name || colNode.title || "").toLowerCase().replace(/\s+/g, "_")
+    return limits.get(normalizedName)
+  }, [rules, colNode, isVirtual, lens, nodeId])
+
+  // "+N filtered" footer count: difference between unfiltered total and what's shown.
+  const hiddenCount = (totalCardCount ?? lensCardIds.length) - count
 
   // Inline edit callbacks — uses renameNode for backlink-safe renames
   const handleInlineEditConfirm = useCallback(
@@ -721,8 +774,11 @@ export const Column = React.memo(function Column({
 
   const isColumnSelected = isSelected && cursorDepth === "column"
 
-  // Derive column header presentation props (icon, colors, style)
-  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, colNode, {
+  // Derive column header presentation props (icon, colors, style).
+  // When the lens/repo lookup fails (rare), fall back to a minimal stub so
+  // the header still renders without crashing.
+  const headerNode: KNode = colNode ?? ({ id: nodeId, type: "h", content: "" } as unknown as KNode)
+  const { ownColor, headerStyle, icon, typeSuffix } = deriveColumnHeaderProps(repo, headerNode, {
     iconStyle,
     isSelected,
     isColumnSelected,
@@ -732,23 +788,28 @@ export const Column = React.memo(function Column({
 
   // Derive column-level excluded sigils (e.g., hide @next inside @next column)
   const columnExcludedSigils = useMemo(
-    () => deriveColumnExcludedSigils(name, nodeId, colNode.fs_path),
-    [name, nodeId, colNode.fs_path],
+    () => deriveColumnExcludedSigils(name, nodeId, colNode?.fs_path),
+    [name, nodeId, colNode?.fs_path],
   )
   const extraExcludedSigils = columnExcludedSigils.length > 0 ? columnExcludedSigils : undefined
 
-  // Card list: prefer ViewTree childIds (already filtered by lens — task status, hidden nodes).
-  // Falls back to ColumnView.cardNodes when ViewTree unavailable or when Board applies
-  // additional transient filters (text search, property filters) that aren't in the lens.
+  // Card list: prefer Board-supplied filtered IDs (text/property filters).
+  // Otherwise use ViewTree childIds (filtered by lens for task status, hidden nodes).
+  // Final fallback: direct lens children (when ViewTree is not yet populated).
   const viewTree = useViewTree()
   const cardNodes = useMemo(() => {
-    if (!colViewNode) return column.cardNodes
-    // ViewTree childIds are filtered by the lens (taskStatusFilter, hiddenNodeIds).
-    // But Board may apply additional text/property filters that reduce column.cardNodes further.
-    // Use the SHORTER list to respect both filter sources.
-    const treeCards = colViewNode.childIds.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null)
-    return treeCards.length <= column.cardNodes.length ? treeCards : column.cardNodes
-  }, [colViewNode?.childIds, column.cardNodes, repo])
+    // Explicit filter overlay wins — Board.tsx computed this for us.
+    if (filteredCardIds !== undefined) {
+      return filteredCardIds.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null)
+    }
+    // Prefer reactive ViewTree childIds (filtered by lens).
+    if (colViewNode) {
+      return colViewNode.childIds.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null)
+    }
+    // Fallback: direct lens children.
+    return lensCardIds.map((id) => repo.getNode(id)).filter((n): n is KNode => n != null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lensCardIds tracked via lens signal
+  }, [filteredCardIds, colViewNode?.childIds, lensCardIds, repo])
   const bodyCardIds = useMemo(() => {
     if (!viewTree) return new Set<string>()
     const ids = new Set<string>()
@@ -866,7 +927,7 @@ export const Column = React.memo(function Column({
     >
       {/* Column header — unified NodeView component */}
       <ColumnHeader
-        node={colNode}
+        node={headerNode}
         displayName={name}
         untitled={untitled}
         ownColor={ownColor}
@@ -881,7 +942,7 @@ export const Column = React.memo(function Column({
         typeSuffix={typeSuffix}
         showSeparator
       >
-        {isInlineEditing ? (
+        {isInlineEditing && colNode ? (
           <InlineEditField
             initialValue={composeRawEditContent(colNode)}
             onConfirm={handleInlineEditConfirm}

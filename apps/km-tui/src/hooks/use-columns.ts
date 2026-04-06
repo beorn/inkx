@@ -16,12 +16,38 @@
 import { useRef, useState } from "react"
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
+import type { SectionRules } from "@km/markdown"
 import { useStore } from "../state/store-context.tsx"
 import { useCommitVersion } from "./use-signal.ts"
 import { createLogger } from "loggily"
-import type { ColumnView } from "../types.ts"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
 import { createViewLens, extractWipLimits, type TreeLens, type ViewLensRepo } from "@km/board"
+
+// =============================================================================
+// ColumnView — legacy view model wrapper
+// =============================================================================
+
+/**
+ * @deprecated Legacy view model — new code should use `colId: string` + `useNode(id)`
+ * + `useSignal(ps.visibleLens)` to self-resolve data reactively. This type is
+ * only retained for the lower-priority code paths (state.ts initial load,
+ * buildOpCtx, driver, tests). React view components take string IDs.
+ *
+ * A column is a parent KNode whose children render as KNode[].
+ * Embed/body data comes from ViewTree signals via useNode.
+ */
+export interface ColumnView {
+  node: KNode
+  cardNodes: KNode[]
+  wipLimit?: number
+  rules?: SectionRules
+  /** True for virtual body column (displays leading non-section content) */
+  isVirtual?: boolean
+  /** Total card count before filtering (undefined = no filter active) */
+  totalCardCount?: number
+  /** Count of descendant nodes hidden by filters within cards (e.g., done children) */
+  hiddenDescendantCount?: number
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
 const log = createLogger("km:tui:columns") as any
@@ -202,7 +228,7 @@ export interface CursorIndices {
  * This eliminates the need to index all descendants upfront (20k+ getChildren queries).
  */
 export function deriveCursorIndices(
-  columns: ColumnView[],
+  columns: { length: number },
   cursor: string | null,
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>,
   getNode?: (id: string) => { parent_id: string | null } | null,
