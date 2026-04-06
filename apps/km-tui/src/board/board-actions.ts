@@ -965,7 +965,12 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
         ctx.sel.node.select([collapseNodeId as ID])
       }
       const colName = shortName(ctx, collapseNodeId)
-      ctx.setUI({ status: { level: "info", message: wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}` } })
+      ctx.setUI({
+        status: {
+          level: "info",
+          message: wasCollapsed ? `Column expanded: ${colName}` : `Column collapsed: ${colName}`,
+        },
+      })
       return ok()
     }
     case "ZOOM_IN":
@@ -1101,7 +1106,10 @@ function handleBoardReducerOp(ctx: OpCtx, action: BoardOp): OpResult {
     case "TOGGLE_SHOW_HIDDEN":
       ctx.setUI((prev) => {
         const next = !prev.showHidden
-        return { showHidden: next, status: { level: "info" as const, message: next ? "Hidden: shown" : "Hidden: filtered" } }
+        return {
+          showHidden: next,
+          status: { level: "info" as const, message: next ? "Hidden: shown" : "Hidden: filtered" },
+        }
       })
       return ok()
     default:
@@ -2018,7 +2026,12 @@ function handleToggleFold(ctx: OpCtx): OpResult {
   })
 
   ctx.dispatchBoard({ type: "TOGGLE_FOLD", nodeId: card.id })
-  ctx.setUI({ status: { level: "info", message: isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}` } })
+  ctx.setUI({
+    status: {
+      level: "info",
+      message: isFolding ? `Folded: ${shortName(ctx, card.id)}` : `Unfolded: ${shortName(ctx, card.id)}`,
+    },
+  })
   return ok()
 }
 

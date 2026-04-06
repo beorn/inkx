@@ -150,12 +150,7 @@ function resolveAnchorCol(ctx: OpCtx): number | null {
 }
 
 /** Select all cards in all columns between fromCol and toCol (inclusive). */
-function selectColumnRange(
-  ctx: OpCtx,
-  fromCol: number,
-  toCol: number,
-  columnIds: readonly string[],
-): Set<string> {
+function selectColumnRange(ctx: OpCtx, fromCol: number, toCol: number, columnIds: readonly string[]): Set<string> {
   const selected = new Set<string>()
   const minCol = Math.min(fromCol, toCol)
   const maxCol = Math.max(fromCol, toCol)
