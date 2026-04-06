@@ -53,7 +53,6 @@ import {
 import { resolveLocationKey, isPickTarget, type PickTarget } from "./position-resolver.ts"
 import { Tree, midpoint } from "@km/tree"
 import type { OpCtx } from "../tui-context.ts"
-import { ViewTree, type ViewNode } from "@km/board"
 import type { ViewMode } from "../types.ts"
 import { createEmptyFilterProperties, VIEW_DIALOG_ROWS, type IconStyle } from "../state/ui-reducer.ts"
 
