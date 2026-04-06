@@ -46,13 +46,7 @@ import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
 import { createLogger } from "loggily"
 import { ensureCommandSystemInitialized } from "../board/command-bridge.ts"
-import {
-  buildNodeIndexFromTree,
-  deriveColumnsFromLens,
-  deriveCursorIndices,
-  deriveDetailColumns,
-  type ColumnView,
-} from "../hooks/use-columns.ts"
+import { buildNodeIndexFromTree, deriveCursorIndices, deriveDetailColumns } from "../hooks/use-columns.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { hasDetailPaneFor } from "../board/board-types.ts"
@@ -715,12 +709,16 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [ui.showConsole, runtimeCtx, patchedConsole])
 
-  // Derive columns from ViewTree (per-node signals via lens).
+  // Derive column IDs from ViewTree (per-node signals via lens).
   // useSignal(ps.visibleLens) ensures re-derivation on tree changes.
   const visibleLensValue = useSignal(ps.visibleLens)
-  const columns = useMemo((): ColumnView[] => {
-    if (ui.viewMode === "detail") return deriveDetailColumns(repo, rootId, foldDepths)
-    return deriveColumnsFromLens(visibleLensValue, repo)
+  const columnIds = useMemo((): readonly string[] => {
+    if (ui.viewMode === "detail") {
+      // Detail mode: virtual metadata columns need ColumnView derivation
+      return deriveDetailColumns(repo, rootId, foldDepths).map((c) => c.node.id)
+    }
+    const lensRoot = visibleLensValue.rootId
+    return lensRoot ? visibleLensValue.children(lensRoot) : []
   }, [visibleLensValue, ui.viewMode, repo, rootId, foldDepths])
 
   // Sync rule-based collapse (km.collapse:: true) into the store's collapsedNodes.
@@ -732,12 +730,13 @@ export function Board({ patchedConsole }: BoardProps) {
     if (prevSyncedRootRef.current === rootId) return
     prevSyncedRootRef.current = rootId
 
-    for (const col of columns) {
-      if (col.rules?.collapse === true && !storeCollapsedNodes.has(col.node.id)) {
-        dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: col.node.id })
+    for (const colId of columnIds) {
+      const rules = visibleLensValue.rules(colId)
+      if (rules?.collapse === true && !storeCollapsedNodes.has(colId)) {
+        dispatchBoard({ type: "TOGGLE_COLLAPSE", nodeId: colId })
       }
     }
-  }, [rootId, columns, storeCollapsedNodes, dispatchBoard])
+  }, [rootId, columnIds, visibleLensValue, storeCollapsedNodes, dispatchBoard])
 
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
@@ -769,8 +768,8 @@ export function Board({ patchedConsole }: BoardProps) {
   // Derive cursor position from cursor + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index
   const cursorPosition = useMemo(
-    () => deriveCursorIndices(columns, cursor, nodeIndex, getNode),
-    [columns, cursor, nodeIndex, getNode],
+    () => deriveCursorIndices({ length: columnIds.length }, cursor, nodeIndex, getNode),
+    [columnIds.length, cursor, nodeIndex, getNode],
   )
 
   const columnsLayout = useMemo(
@@ -820,18 +819,22 @@ export function Board({ patchedConsole }: BoardProps) {
   // lens excludes hidden nodes at build time. When showHidden is toggled,
   // PaneSignals.hiddenNodeIds updates → computed rebuilds. No need for
   // separate column filtering here.
-  const visibleColumns = columns
   const visibleColIndex = columnsLayout.colIndex
 
-  // Apply text + property filters to cards within columns
-  const filteredColumns = useMemo(() => {
+  // Per-column filter overlay — BoardCore forwards this to the Column components
+  // so they can render only the filtered subset and show the "+N filtered" footer.
+  // Apply text + property filters using tree card IDs (no ColumnView dependency).
+  const columnFilters = useMemo(() => {
+    const map = new Map<string, ColumnFilterState>()
     const hasTextFilter = !!ui.filterText
     const hasPropertyFilter = hasActivePropertyFilters(ui.filterProperties)
-    if (!hasTextFilter && !hasPropertyFilter) return visibleColumns
+    if (!hasTextFilter && !hasPropertyFilter) return map
     const lowerFilter = hasTextFilter ? ui.filterText.toLowerCase() : ""
-    return visibleColumns.map((col) => {
-      let hiddenDescendantCount = 0
-      const filteredCards = col.cardNodes.filter((card) => {
+    for (const colId of columnIds) {
+      const cardIds = visibleLensValue.children(colId)
+      const filteredCardIds = [...cardIds].filter((cardId) => {
+        const card = repo.getNode(cardId)
+        if (!card) return false
         // For embeds, resolve to source node for filtering
         const embedSource = card.symlink_to
         const filterNode = embedSource ? (repo.getNode(embedSource) ?? card) : card
@@ -847,40 +850,23 @@ export function Board({ patchedConsole }: BoardProps) {
         return true
       })
       // Count descendants hidden by property filters within surviving cards
+      let hiddenDescendantCount = 0
       if (hasPropertyFilter) {
-        for (const card of filteredCards) {
-          hiddenDescendantCount += countHiddenDescendants(repo, card.id, ui.filterProperties)
+        for (const cardId of filteredCardIds) {
+          hiddenDescendantCount += countHiddenDescendants(repo, cardId, ui.filterProperties)
         }
       }
-      return {
-        ...col,
-        totalCardCount: col.cardNodes.length,
-        cardNodes: filteredCards,
+      map.set(colId, {
+        filteredCardIds,
+        totalCardCount: cardIds.length,
         hiddenDescendantCount: hiddenDescendantCount > 0 ? hiddenDescendantCount : undefined,
-      }
-    })
-  }, [visibleColumns, ui.filterText, ui.filterProperties, repo])
-
-  // String-ID projection for BoardCore + non-cards views.
-  // Mirrors the order of `filteredColumns` so cursor indices remain aligned.
-  const boardColumnIds = useMemo(() => filteredColumns.map((c) => c.node.id), [filteredColumns])
-
-  // Per-column filter overlay — BoardCore forwards this to the Column components
-  // so they can render only the filtered subset and show the "+N filtered" footer.
-  // Empty map (no text/property filters active) is cheap to build.
-  const columnFilters = useMemo(() => {
-    const map = new Map<string, ColumnFilterState>()
-    const hasFilter = !!ui.filterText || hasActivePropertyFilters(ui.filterProperties)
-    if (!hasFilter) return map
-    for (const col of filteredColumns) {
-      map.set(col.node.id, {
-        filteredCardIds: col.cardNodes.map((c) => c.id),
-        totalCardCount: col.totalCardCount ?? col.cardNodes.length,
-        hiddenDescendantCount: col.hiddenDescendantCount,
       })
     }
     return map
-  }, [filteredColumns, ui.filterText, ui.filterProperties])
+  }, [columnIds, visibleLensValue, ui.filterText, ui.filterProperties, repo])
+
+  // boardColumnIds = columnIds (already string IDs from the tree)
+  const boardColumnIds = columnIds
 
   // Register find/search-replace handlers for workspace chrome.
   // These run in the focused Board connector which has access to filtered columns.
