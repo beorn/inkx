@@ -69,12 +69,8 @@ export interface OpCtx {
   cardIndex: number
   isAtCardLevel: boolean
   nodeIndex: Map<string, { colIndex: number; cardIndex: number }>
-  /** ViewNode tree — explicit visual hierarchy (replaces ad-hoc role derivation) */
-  viewTree: ViewNode
-  /** ViewNode index — O(1) lookup by node ID */
-  viewIndex: Map<string, ViewNode>
   /** ViewTreeProjection — per-node navigation (next/prev/parent/children/node).
-   * Primary tree API for action handlers. Wraps the same lens as ViewSnapshot. */
+   * Primary tree API for all action handlers and invariants. */
   tree: ViewTreeProjection
 
   // === Derived (computed once per key event) ===

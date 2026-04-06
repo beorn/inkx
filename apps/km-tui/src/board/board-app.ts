@@ -290,8 +290,6 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       cardIndex: cursor.cardIndex,
       isAtCardLevel: cursor.isAtCardLevel,
       nodeIndex,
-      viewTree,
-      viewIndex,
       tree,
       navigator: s.navigator,
       viewNavigation: getViewNavigation(board?.viewMode ?? "cards"),
