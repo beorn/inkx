@@ -795,7 +795,7 @@ function TreeNodeImpl({
             cardIndex={cardIndex}
             depth={depth}
             dimInactiveChildren={dimInactiveChildren}
-            dim={dim || style.isDoneOrDropped}
+            dim={dim || isBody || style.isDoneOrDropped}
             hiddenCount={isInlineEditing ? 0 : hiddenCount}
             getChildren={resolvedGetChildren}
             getParentContext={resolvedGetParentContext}
