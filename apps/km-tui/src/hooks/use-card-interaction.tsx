@@ -102,7 +102,17 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
         state.dispatchBoard({ type: "ZOOM_IN", nodeId: targetId })
         state.sel.node.select([targetId as import("@silvery/selection").ID])
       } else {
-        state.sel.node.select([targetId as import("@silvery/selection").ID])
+        // Route through dispatchBoard SELECT so the click hint (cardNodeId =
+        // the containing card) takes the embed-aware path. Clicking a sub-item
+        // inside an embed must keep the cursor in the embed's column, not the
+        // symlink target's column. Without this hint, the data-model parent
+        // chain walks via the symlink target and lands at the wrong card.
+        state.dispatchBoard({
+          type: "SELECT",
+          nodeId: targetId,
+          cardNodeId: nodeId,
+          cardHintSource: "click",
+        })
       }
 
       e.stopPropagation()

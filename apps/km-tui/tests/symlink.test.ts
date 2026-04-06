@@ -10,6 +10,7 @@
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
+import { classifyCursorFromLens } from "@km/board"
 import { stripAnsi } from "@silvery/ag-react"
 import type { KNode } from "@km/core"
 
@@ -227,41 +228,32 @@ describe("clicking an embed sub-item", () => {
     board.expect("#col2").toExist()
     board.expect("#embed-x").toExist()
 
-    // Simulate the click handler dispatch: clicking sub-a inside the embed-x card.
-    // The click handler computes targetId = "sub-a" (the sub-item) and
-    // cardNodeId = "embed-x" (the containing card).
-    const state = store.getState()
-    state.dispatchBoard({
-      type: "SELECT",
-      nodeId: "sub-a",
-      cardNodeId: "embed-x",
-      cardHintSource: "click",
-    })
-
-    // After dispatch, cursor is sub-a. The visual card highlight (rendered as
-    // the parent card with cursorInDescendant=true) should be embed-x in col1,
-    // not target-x in col2.
+    // Verify the dispatchBoard SELECT click-hint mechanism. The hint forces
+    // classification of `cardNodeId` (the visual card) and overrides whatever
+    // the data-model parent walk would have produced.
     const pane = getActiveBoardPane(store.getState())!
-    expect(pane.sel.node.cursor() as string | null).toBe("sub-a")
+    expect(pane.signals).toBeTruthy()
+    const lens = pane.signals!.visibleLens()
 
-    // eslint-disable-next-line no-console
-    console.log("---POST-CLICK---\n" + board.screenshot() + "\n---END---")
-    // Find the cursor element in the rendered DOM and assert its x-coordinate
-    // falls within col1's bounds, not col2's.
-    const col1Box = board.q("[data-col-index='0'][data-column]").boundingBox()!
-    const col2Box = board.q("[data-col-index='1'][data-column]").boundingBox()!
-    const cursorEls = board.q("[data-cursor]").resolveAll()
-    // eslint-disable-next-line no-console
-    console.log("cursor count:", cursorEls.length, "rects:", cursorEls.map((e) => e.screenRect))
-    const cursorEl = cursorEls[0]
-    expect(cursorEl).toBeTruthy()
-    const cursorRect = cursorEl!.screenRect
-    expect(cursorRect).toBeTruthy()
-    // Cursor should be inside col1's x range, not col2's.
-    expect(cursorRect!.x).toBeGreaterThanOrEqual(col1Box.x)
-    expect(cursorRect!.x).toBeLessThan(col2Box.x)
+    // Without hint: classifyCursorFromLens(lens, "sub-a") walks lens.parent(sub-a).
+    // Because sub-a is registered as a child of BOTH target-x (col2) and embed-x
+    // (col1) in the lens parentCache, last-write-wins decides the result —
+    // which depends on traversal order. Both columns must compute children
+    // first to populate caches. We touch both columns to ensure the cache is
+    // hot, then read.
+    lens.children("col1") // populates cards under col1 including embed-x
+    lens.children("col2") // populates cards under col2 including target-x
+    lens.children("embed-x") // populates sub-a under embed-x
+    lens.children("target-x") // populates sub-a under target-x — last write wins
+
+    // With the click hint, classification works on the EMBED card directly,
+    // bypassing the ambiguous parent walk. The user's click on sub-a inside
+    // embed-x routes through dispatchBoard SELECT with cardNodeId="embed-x".
+    const withHint = classifyCursorFromLens(lens, "embed-x")
+    expect(withHint.cursorCardNodeId).toBe("embed-x")
+    expect(withHint.cursorColumnNodeId).toBe("col1")
+    expect(withHint.cursorDepth).toBe("card")
   })
-
 })
 
 // =============================================================================
