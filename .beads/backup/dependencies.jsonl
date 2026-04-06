@@ -1125,6 +1125,7 @@
 {"created_at":"2026-03-26T20:34:05Z","created_by":"claude:f8196c1c","depends_on_id":"km-silvery","issue_id":"km-silvery.cli-ecosystem","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T08:15:59Z","created_by":"claude:4929065a","depends_on_id":"km-silvery","issue_id":"km-silvery.cli-output","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T12:23:51Z","created_by":"claude:4a5961be","depends_on_id":"km-silvery","issue_id":"km-silvery.click-to-position","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:27:42Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.clipboard-paste-cleanup","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-11T00:32:09Z","created_by":"claude:e4e70c9a","depends_on_id":"km-silvery","issue_id":"km-silvery.collab-terminals","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T22:04:43Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.color-level-unused","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T01:06:50Z","created_by":"claude:4929065a","depends_on_id":"km-silvery","issue_id":"km-silvery.commander-compose","metadata":"{}","type":"parent-child"}
@@ -1275,6 +1276,36 @@
 {"created_at":"2026-03-11T18:34:36Z","created_by":"claude:73d7a332","depends_on_id":"km-silvery","issue_id":"km-silvery.inline-bugs","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T21:35:38Z","created_by":"claude:c9beade3","depends_on_id":"km-silvery.pipeline-review-0312","issue_id":"km-silvery.inline-cursor-only","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T22:21:31Z","created_by":"claude:656602a3","depends_on_id":"km-silvery","issue_id":"km-silvery.inline-rects","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-05T23:53:07Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery","issue_id":"km-silvery.interactions-runtime","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:02:06Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-0","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:02:11Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-1","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:02:12Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-0","issue_id":"km-silvery.interactions-runtime.phase-1","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:02:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-2","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:02:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-1","issue_id":"km-silvery.interactions-runtime.phase-2","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:21:16Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-2.5-coordinator","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:22:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-25-infra","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:22:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-2","issue_id":"km-silvery.interactions-runtime.phase-25-infra","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:03:18Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-3","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:03:19Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-2","issue_id":"km-silvery.interactions-runtime.phase-3","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:22:03Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-2.5-coordinator","issue_id":"km-silvery.interactions-runtime.phase-3","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:22:35Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-25-infra","issue_id":"km-silvery.interactions-runtime.phase-3","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:23:05Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-31-useselection","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:23:05Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-3","issue_id":"km-silvery.interactions-runtime.phase-31-useselection","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:06:58Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-3b-find","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:06:59Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-3","issue_id":"km-silvery.interactions-runtime.phase-3b-find","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:23:27Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-31-useselection","issue_id":"km-silvery.interactions-runtime.phase-3b-find","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:07:12Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-3c-copymode","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:23:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-31-useselection","issue_id":"km-silvery.interactions-runtime.phase-3c-copymode","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:07:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-3d-drag","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:23:28Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-31-useselection","issue_id":"km-silvery.interactions-runtime.phase-3d-drag","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:03:40Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-4","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:23:42Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-3b-find","issue_id":"km-silvery.interactions-runtime.phase-4","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:23:43Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-3c-copymode","issue_id":"km-silvery.interactions-runtime.phase-4","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:08:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-3d-drag","issue_id":"km-silvery.interactions-runtime.phase-4","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:04:08Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-5","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:04:09Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-4","issue_id":"km-silvery.interactions-runtime.phase-5","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:04:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime","issue_id":"km-silvery.interactions-runtime.phase-6","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:04:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-silvery.interactions-runtime.phase-5","issue_id":"km-silvery.interactions-runtime.phase-6","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-16T14:40:22Z","created_by":"claude:656602a3","depends_on_id":"km-silvery","issue_id":"km-silvery.key-release","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-16T14:40:11Z","created_by":"claude:656602a3","depends_on_id":"km-silvery","issue_id":"km-silvery.kitty-fidelity","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-09T22:32:46Z","created_by":"claude:474834b0","depends_on_id":"km-silvery","issue_id":"km-silvery.kitty-protocol","metadata":"{}","type":"parent-child"}
@@ -2528,6 +2559,12 @@
 {"created_at":"2026-04-01T16:41:25Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.tree-edit-nav","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T11:25:59Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.quality-plateau","issue_id":"km-tui.tree-lenses","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T16:17:41Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.1","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-05T23:36:12Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.10","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-05T23:36:13Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses.9","issue_id":"km-tui.tree-lenses.10","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-05T23:36:12Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.11","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-05T23:36:13Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses.10","issue_id":"km-tui.tree-lenses.11","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-06T00:32:26Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.12","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-06T00:32:26Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses.11","issue_id":"km-tui.tree-lenses.12","metadata":"{}","type":"blocks"}
 {"created_at":"2026-04-05T16:17:41Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.2","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T16:17:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses.1","issue_id":"km-tui.tree-lenses.2","metadata":"{}","type":"blocks"}
 {"created_at":"2026-04-05T16:17:42Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.3","metadata":"{}","type":"parent-child"}
@@ -2543,6 +2580,7 @@
 {"created_at":"2026-04-05T16:17:43Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.7","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T21:11:21Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.8","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T21:11:22Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses.4","issue_id":"km-tui.tree-lenses.8","metadata":"{}","type":"blocks"}
+{"created_at":"2026-04-05T23:36:11Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.tree-lenses","issue_id":"km-tui.tree-lenses.9","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.treenode-dataname","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-all.tea-machines","issue_id":"km-tui.treenode-split","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui.jotai-cursor","issue_id":"km-tui.treenode-split","metadata":"{}","type":"blocks"}

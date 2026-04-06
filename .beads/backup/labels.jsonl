@@ -243,6 +243,10 @@
 {"issue_id":"km-silvery.hover-visual","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.ink-migration","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.inline-bugs","label":"horizon:v1.0"}
+{"issue_id":"km-silvery.interactions-runtime","label":"architecture"}
+{"issue_id":"km-silvery.interactions-runtime","label":"selection"}
+{"issue_id":"km-silvery.interactions-runtime","label":"silvery"}
+{"issue_id":"km-silvery.interactions-runtime","label":"simplification"}
 {"issue_id":"km-silvery.measure-fit-gaps","label":"pro"}
 {"issue_id":"km-silvery.nested-scroll","label":"horizon:undecided"}
 {"issue_id":"km-silvery.non-tty","label":"horizon:v1.0"}
