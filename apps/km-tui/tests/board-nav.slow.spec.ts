@@ -665,7 +665,7 @@ describe("Boundaries and Edge Cases", () => {
       // z on column header does nothing
       board.command("cursor_up")
       board.expect("#col[data-cursor]").toExist()
-      board.command("fold_all")
+      board.command("fold_all_more")
       board.expect("#col[data-cursor]").toExist()
     })
 
@@ -678,7 +678,7 @@ describe("Boundaries and Edge Cases", () => {
       board.expect("#leaf[data-cursor]").toExist()
 
       // z on card without children
-      board.command("fold_all")
+      board.command("fold_all_more")
       board.expect("#leaf[data-cursor]").toExist()
     })
   })

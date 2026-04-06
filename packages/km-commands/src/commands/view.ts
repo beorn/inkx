@@ -53,7 +53,7 @@ const toggleCollapse = {
 } satisfies CommandDef
 
 const foldNode = {
-  id: "fold_node",
+  id: "fold_more",
   name: "Fold Node",
   description: "Fold just this node",
   category: "Fold",
@@ -62,7 +62,7 @@ const foldNode = {
 } satisfies CommandDef
 
 const unfoldNode = {
-  id: "unfold_node",
+  id: "unfold_more",
   name: "Unfold Node",
   description: "Unfold just this node",
   category: "Fold",
@@ -79,7 +79,7 @@ const unfoldRecursive = {
 } satisfies CommandDef
 
 const foldAll = {
-  id: "fold_all",
+  id: "fold_all_more",
   name: "Fold All",
   description: "Fold all nodes at depth 1",
   category: "Fold",
@@ -87,7 +87,7 @@ const foldAll = {
 } satisfies CommandDef
 
 const unfoldAll = {
-  id: "unfold_all",
+  id: "unfold_all_more",
   name: "Unfold All",
   description: "Unfold all nodes",
   category: "Fold",

@@ -127,7 +127,7 @@ describe("Architecture: zoom navigation (1440 nodes)", () => {
         rows: 60,
       })
       for (let i = 0; i < 5; i++) board.command("cursor_down")
-      for (let i = 0; i < 3; i++) board.command("unfold_all")
+      for (let i = 0; i < 3; i++) board.command("unfold_all_more")
     },
     BENCH_OPTIONS,
   )
@@ -140,9 +140,9 @@ describe("Architecture: zoom navigation (1440 nodes)", () => {
         rows: 60,
       })
       for (let i = 0; i < 5; i++) board.command("cursor_down")
-      for (let i = 0; i < 3; i++) board.command("unfold_all")
+      for (let i = 0; i < 3; i++) board.command("unfold_all_more")
       for (let i = 0; i < 3; i++) board.command("cursor_down")
-      for (let i = 0; i < 3; i++) board.command("fold_all")
+      for (let i = 0; i < 3; i++) board.command("fold_all_more")
     },
     BENCH_OPTIONS,
   )

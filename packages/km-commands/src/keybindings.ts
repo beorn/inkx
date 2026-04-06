@@ -945,11 +945,11 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
       name: "fold",
       bindings: [
         // H/L = fold/unfold subtree at cursor (progressive)
-        { key: "shift-h", commandId: "fold_node" },
-        { key: "shift-l", commandId: "unfold_node" },
+        { key: "shift-h", commandId: "fold_more" },
+        { key: "shift-l", commandId: "unfold_more" },
         // </> = fold/unfold all (board-wide)
-        { key: "shift-,", commandId: "fold_all" }, // <
-        { key: "shift-.", commandId: "unfold_all" }, // >
+        { key: "shift-,", commandId: "fold_all_more" }, // <
+        { key: "shift-.", commandId: "unfold_all_more" }, // >
 
         // Bare symbol shortcuts (convenience aliases for common chord actions)
         // These only fire in node mode (not text edit, not dialog)

@@ -810,7 +810,7 @@ describe("undo: fold/collapse state", () => {
     const initialSize = store.getState().undoStack.size
 
     // Fold parent — cursor starts on parent card
-    board.command("fold_node")
+    board.command("fold_more")
 
     // Verify undo stack grew (operation was recorded)
     expect(store.getState().undoStack.size).toBeGreaterThan(initialSize)
@@ -823,7 +823,7 @@ describe("undo: fold/collapse state", () => {
     )
 
     // Fold parent — cursor starts on parent card
-    board.command("fold_node")
+    board.command("fold_more")
 
     const stackSizeBeforeUndo = store.getState().undoStack.size
     expect(store.getState().undoHandle.canUndo()).toBe(true)
@@ -842,7 +842,7 @@ describe("undo: fold/collapse state", () => {
     )
 
     // Fold parent — cursor starts on parent card
-    board.command("fold_node")
+    board.command("fold_more")
 
     // Undo fold
     board.command("undo")
@@ -875,12 +875,12 @@ describe("undo: fold/collapse state", () => {
     const initialSize = store.getState().undoStack.size
 
     // Fold p1 — cursor starts on p1
-    board.command("fold_node")
+    board.command("fold_more")
     const after1 = store.getState().undoStack.size
 
     // Navigate to p2, fold it
     board.command("cursor_down")
-    board.command("fold_node")
+    board.command("fold_more")
     const after2 = store.getState().undoStack.size
 
     // Each fold should have created an entry

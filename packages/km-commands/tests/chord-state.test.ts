@@ -21,14 +21,14 @@ function createCallbacks(
     opts.chords ??
     new Map<string, Resolved>([
       ["z:a", { commandId: "toggle_fold" }],
-      ["z:M", { commandId: "fold_all" }],
+      ["z:M", { commandId: "fold_all_more" }],
       ["g:g", { commandId: "cursor_first" }],
       ["g:o", { commandId: "open_in_system" }],
     ])
   const standalones =
     opts.standalones ??
     new Map<string, Resolved>([
-      ["z", { commandId: "fold_all" }],
+      ["z", { commandId: "fold_all_more" }],
       ["g", { commandId: "cursor_first" }],
     ])
 
@@ -73,7 +73,7 @@ describe("ChordState", () => {
       state.processKey("z", false, noMods, {}, cb)
       const r = state.processKey("M", false, noMods, {}, cb)
       expect(r.type).toBe("resolved")
-      if (r.type === "resolved") expect(r.commandId).toBe("fold_all")
+      if (r.type === "resolved") expect(r.commandId).toBe("fold_all_more")
     })
 
     test("pending is null after resolution", () => {

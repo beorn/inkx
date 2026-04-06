@@ -27,10 +27,10 @@ const SIMPLE_KEY_MAP: Record<string, string> = {
   K: "block_nav_up",
 
   // Fold
-  H: "fold_node",
-  L: "unfold_node",
-  "<": "fold_all",
-  ">": "unfold_all",
+  H: "fold_more",
+  L: "unfold_more",
+  "<": "fold_all_more",
+  ">": "unfold_all_more",
 
   // Zoom
   z: "zoom_inwards",

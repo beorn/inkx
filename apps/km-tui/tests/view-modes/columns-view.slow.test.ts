@@ -203,7 +203,7 @@ describe("Columns View", () => {
       board.expect("#child1").toExist()
       board.expect("#child2").toExist()
 
-      board.command("fold_all")
+      board.command("fold_all_more")
       board.expect("#child1").not.toExist()
       board.expect("#child2").not.toExist()
       expect(board.screenshot()).toContain(" 2")

@@ -218,7 +218,7 @@ describe("board.command()", () => {
     const { board: b2 } = testEnv(() => item("board", item("col", item("parent", item("child")))))
 
     b1.press("H")
-    b2.command("fold_node")
+    b2.command("fold_more")
 
     b1.expect("#child").not.toExist()
     b2.expect("#child").not.toExist()

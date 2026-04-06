@@ -797,7 +797,7 @@ describe("Outliner Enter — save + new sibling", () => {
     board.press("Enter") // save + create sibling in edit mode
 
     // User is now editing the new sibling — typing goes there
-    board.command("fold_node")
+    board.command("fold_more")
     board.press("i")
     board.press("Escape") // save and exit (Escape saves now)
 

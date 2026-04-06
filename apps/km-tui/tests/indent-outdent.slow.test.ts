@@ -325,7 +325,7 @@ describe("Interaction with folded nodes", () => {
     )
 
     // Fold parent
-    board.command("fold_node") // fold_node on parent
+    board.command("fold_more") // fold_node on parent
 
     // Navigate to target
     board.command("cursor_down") // → target

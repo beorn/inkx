@@ -723,9 +723,9 @@ describe("defaultKeybindings", () => {
     expect(commandIds).toContain("cycle_task_status")
 
     // Fold (v2: </> = fold/unfold all)
-    expect(commandIds).toContain("fold_all")
-    expect(commandIds).toContain("fold_node")
-    expect(commandIds).toContain("unfold_node")
+    expect(commandIds).toContain("fold_all_more")
+    expect(commandIds).toContain("fold_more")
+    expect(commandIds).toContain("unfold_more")
 
     // View
     expect(commandIds).toContain("visual_mode_enter")
@@ -1032,11 +1032,11 @@ describe("chord keybindings", () => {
     // v2: Space → select_toggle
     expect(resolveKeybinding(" ", {}, ctx)).toEqual({ commandId: "select_toggle" })
     // v2: H → fold_node, L → unfold_node
-    expect(resolveKeybinding("h", { shift: true }, ctx)).toEqual({ commandId: "fold_node" })
-    expect(resolveKeybinding("l", { shift: true }, ctx)).toEqual({ commandId: "unfold_node" })
-    // v2: < → fold_all, > → unfold_all
-    expect(resolveKeybinding(",", { shift: true }, ctx)).toEqual({ commandId: "fold_all" })
-    expect(resolveKeybinding(".", { shift: true }, ctx)).toEqual({ commandId: "unfold_all" })
+    expect(resolveKeybinding("h", { shift: true }, ctx)).toEqual({ commandId: "fold_more" })
+    expect(resolveKeybinding("l", { shift: true }, ctx)).toEqual({ commandId: "unfold_more" })
+    // v2: < → fold_all_more, > → unfold_all_more
+    expect(resolveKeybinding(",", { shift: true }, ctx)).toEqual({ commandId: "fold_all_more" })
+    expect(resolveKeybinding(".", { shift: true }, ctx)).toEqual({ commandId: "unfold_all_more" })
     // Tab → indent_node (structural indent)
     expect(resolveKeybinding("Tab", {}, ctx)).toEqual({ commandId: "indent_node" })
     // v2: : → command_palette, , → decrease_content_lines, . → increase_content_lines

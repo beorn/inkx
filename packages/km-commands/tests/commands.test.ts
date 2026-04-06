@@ -398,11 +398,11 @@ describe("viewCommands (fold and view config)", () => {
     })
 
     it("fold_all returns FOLD_LEVEL with depth 1", () => {
-      expectAction(viewCommands, "fold_all", { type: "FOLD_LEVEL", depth: 1 })
+      expectAction(viewCommands, "fold_all_more", { type: "FOLD_LEVEL", depth: 1 })
     })
 
     it("unfold_all returns UNFOLD_LEVEL with depth 99", () => {
-      expectAction(viewCommands, "unfold_all", { type: "UNFOLD_LEVEL", depth: 99 })
+      expectAction(viewCommands, "unfold_all_more", { type: "UNFOLD_LEVEL", depth: 99 })
     })
   })
 
@@ -484,7 +484,7 @@ describe("null context handling", () => {
     ["enter_move_mode"],
     ["undo"],
     ["redo"],
-    ["fold_all"],
+    ["fold_all_more"],
   ])("%s returns action even when currentNode is null", (cmdId) => {
     const result = executeCommand(allCommands, cmdId, nullCtx)
     expect(result).not.toBeNull()

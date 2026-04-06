@@ -176,7 +176,7 @@ export const commands: CommandDef[] = [
     needsContext: true,
   },
   {
-    id: "fold_all",
+    id: "fold_all_more",
     name: "Fold All",
     description: "Fold all nodes at depth 1",
     shortcut: "Z",
@@ -184,7 +184,7 @@ export const commands: CommandDef[] = [
     action: { type: "FOLD_LEVEL", depth: 1 },
   },
   {
-    id: "unfold_all",
+    id: "unfold_all_more",
     name: "Unfold All",
     description: "Unfold all nodes",
     shortcut: "Shift+Z",

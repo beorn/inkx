@@ -245,7 +245,7 @@ describe("J/K block navigation", () => {
     const { board } = testEnv(item.nestedBoard)
 
     // Fold the parent
-    board.command("fold_node")
+    board.command("fold_more")
     expect(board.screenshot()).not.toContain("child-1")
 
     // J skips hidden children, moves to next sibling card
@@ -774,7 +774,7 @@ describe("J/K block navigation edge cases", () => {
     )
 
     // Fold Parent
-    board.command("fold_node")
+    board.command("fold_more")
     expect(board.screenshot()).not.toContain("child-a")
 
     // J skips hidden children, moves to next sibling

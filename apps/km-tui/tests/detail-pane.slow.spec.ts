@@ -265,7 +265,7 @@ describe("Detail Pane Journeys", () => {
     expect(foldDepthsBefore.has("child-a")).toBe(false) // no override yet
 
     // Step 2: Unfold child-a with L (Shift+L)
-    board.command("unfold_node")
+    board.command("unfold_more")
 
     // Verify foldDepths was updated for child-a
     const detailPane2 = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
@@ -287,7 +287,7 @@ describe("Detail Pane Journeys", () => {
     // They also appear in the board card. After folding, they should disappear from detail.
 
     // Step 2: Fold child-a
-    board.command("fold_node")
+    board.command("fold_more")
 
     // Verify foldDepths was updated — child-a should have depth 0 (fully folded)
     const detailPane = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
@@ -295,7 +295,7 @@ describe("Detail Pane Journeys", () => {
     expect(foldDepths.get("child-a")).toBe(0)
 
     // Step 3: Unfold — should restore
-    board.command("unfold_node")
+    board.command("unfold_more")
     const detailPane2 = store.getState().workspace.panes.get("main-detail") as { foldDepths?: Map<string, number> }
     const foldDepths2 = detailPane2?.foldDepths ?? new Map()
     expect(foldDepths2.get("child-a")).toBeGreaterThan(0)

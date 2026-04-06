@@ -126,7 +126,7 @@ describe("Folding", () => {
   test("z toggles fold state on card with children", () => {
     const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
     board.expect("#child1").toExist()
-    board.command("fold_all")
+    board.command("fold_all_more")
     board.expect("#child1").not.toExist()
     // Children are hidden; child count is hidden in cards (overflow indicator shows it)
   })
@@ -134,7 +134,7 @@ describe("Folding", () => {
   test("folded card hides children", () => {
     const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
     board.expect("#sub1").toExist()
-    board.command("fold_all")
+    board.command("fold_all_more")
     board.expect("#sub1").not.toExist()
   })
 })

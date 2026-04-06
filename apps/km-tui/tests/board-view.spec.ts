@@ -25,9 +25,9 @@ describe("Column Fold/Collapse", () => {
 
     // Progressive fold: each press reduces depth by 1 (starts at 3)
     // After enough presses, sub-items are hidden (depth reaches 0)
-    board.command("fold_all") // 3→2
-    board.command("fold_all") // 2→1
-    board.command("fold_all") // 1→0
+    board.command("fold_all_more") // 3→2
+    board.command("fold_all_more") // 2→1
+    board.command("fold_all_more") // 1→0
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist()
     board.expect("#sub3").not.toExist()
@@ -42,13 +42,13 @@ describe("Column Fold/Collapse", () => {
       ),
     )
     // Fold all to depth 0
-    board.command("fold_all")
-    board.command("fold_all")
-    board.command("fold_all")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
     board.expect("#sub1").not.toExist()
 
     // > unfolds one level at a time
-    board.command("unfold_all") // 0→1
+    board.command("unfold_all_more") // 0→1
     board.expect("#sub1").toExist()
     board.expect("#sub2").toExist()
     board.expect("#sub3").toExist()
@@ -62,9 +62,9 @@ describe("Column Fold/Collapse", () => {
     board.expect("#sub2").toExist()
 
     // < folds all columns across the entire board progressively
-    board.command("fold_all")
-    board.command("fold_all")
-    board.command("fold_all")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
     board.expect("#sub1").not.toExist()
     board.expect("#sub2").not.toExist() // col2 also folded
   })
@@ -150,9 +150,9 @@ describe("Outline Depth and Content Lines", () => {
     board.expect("#sub1").toExist()
 
     // Progressive fold: 3 presses to reach depth 0 (from default start of 3)
-    board.command("fold_all")
-    board.command("fold_all")
-    board.command("fold_all")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
 
     // At depth 0, children beyond immediate cards should be hidden
     board.expect("#sub1").not.toExist()
@@ -161,20 +161,20 @@ describe("Outline Depth and Content Lines", () => {
   test("> increases outline depth, showing deeper children", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1", item("deep1"))))))
     // Decrease to 0 first
-    board.command("fold_all")
-    board.command("fold_all")
-    board.command("fold_all")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
     board.expect("#sub1").not.toExist()
 
     // Increase back — one press should reveal depth 1 children
-    board.command("unfold_all")
+    board.command("unfold_all_more")
     board.expect("#sub1").toExist()
   })
 
   test("< has minimum of 0", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1")))))
     // Press < many times - should not error
-    for (let i = 0; i < 5; i++) board.command("fold_all")
+    for (let i = 0; i < 5; i++) board.command("fold_all_more")
 
     // Cards in column are always visible (depth 0 = card titles only)
     board.expect("#1a").toExist()
@@ -184,7 +184,7 @@ describe("Outline Depth and Content Lines", () => {
   test("> has maximum of 10", () => {
     const { board } = testEnv(() => item("board", item("col1", item("1a", item("sub1")))))
     // Press > many times - should not error
-    for (let i = 0; i < 15; i++) board.command("unfold_all")
+    for (let i = 0; i < 15; i++) board.command("unfold_all_more")
 
     board.expect("#1a").toExist()
     board.expect("#sub1").toExist()

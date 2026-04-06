@@ -35,7 +35,7 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#ch2").toExist()
 
     // Step 1: Fold parent1 — children should disappear
-    board.command("fold_node")
+    board.command("fold_more")
 
     board.expect("#ch1").not.toExist()
     board.expect("#ch2").not.toExist()
@@ -61,19 +61,19 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#subB").toExist()
 
     // Step 1: Fold
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#subA").not.toExist()
     board.expect("#subB").not.toExist()
 
     // Step 2: Unfold
-    board.command("unfold_node")
+    board.command("unfold_more")
     board.expect("#subA").toExist()
     board.expect("#subB").toExist()
 
     // Step 3: Fold again, unfold again — no state corruption
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#subA").not.toExist()
-    board.command("unfold_node")
+    board.command("unfold_more")
     board.expect("#subA").toExist()
     board.expect("#subB").toExist()
   })
@@ -86,7 +86,7 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#nodeB-ch").toExist()
 
     // Step 1: Fold all — hides children everywhere
-    board.command("fold_all")
+    board.command("fold_all_more")
 
     board.expect("#nodeA-ch").not.toExist()
     board.expect("#nodeB-ch").not.toExist()
@@ -95,7 +95,7 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#nodeB").toExist()
 
     // Step 2: Unfold all — restores children everywhere
-    board.command("unfold_all")
+    board.command("unfold_all_more")
 
     board.expect("#nodeA-ch").toExist()
     board.expect("#nodeB-ch").toExist()
@@ -107,13 +107,13 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#p2-ch").toExist()
 
     // Step 1: Fold all
-    board.command("fold_all")
+    board.command("fold_all_more")
     board.expect("#p1-ch").not.toExist()
     board.expect("#p2-ch").not.toExist()
 
     // Step 2: Selectively unfold p1 only
     board.expect("#p1[data-cursor]").toExist()
-    board.command("unfold_node")
+    board.command("unfold_more")
 
     // p1's children visible, p2's children still hidden
     board.expect("#p1-ch").toExist()
@@ -127,14 +127,14 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#b1-ch").toExist()
 
     // Step 1: Fold a1
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#a1-ch").not.toExist()
     board.expect("#b1-ch").toExist()
 
     // Step 2: Navigate to b1 and fold it too
     board.command("cursor_down")
     board.expect("#b1[data-cursor]").toExist()
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#b1-ch").not.toExist()
 
     // Step 3: Both should still be folded
@@ -149,11 +149,11 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#par1[data-cursor]").toExist()
 
     // Step 1: Fold — cursor stays on par1
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#par1[data-cursor]").toExist()
 
     // Step 2: Unfold — cursor stays on par1 (not on a child)
-    board.command("unfold_node")
+    board.command("unfold_more")
     board.expect("#par1[data-cursor]").toExist()
 
     // Children should be visible again
@@ -169,19 +169,19 @@ describe("Fold/Unfold Journeys", () => {
     board.expect("#deep1").toExist()
 
     // Step 1: First H — folds deepest visible children
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#root1").toExist()
 
     // Step 2: Another H — folds the next level
-    board.command("fold_node")
+    board.command("fold_more")
     board.expect("#root1").toExist()
 
     // Step 3: L unfolds one level
-    board.command("unfold_node")
+    board.command("unfold_more")
     board.expect("#root1").toExist()
 
     // Step 4: Another L — should eventually restore deep1
-    board.command("unfold_node")
+    board.command("unfold_more")
     board.expect("#root1").toExist()
     board.expect("#mid1").toExist()
     board.expect("#deep1").toExist()
