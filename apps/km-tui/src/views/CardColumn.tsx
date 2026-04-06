@@ -320,6 +320,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
+          userSelect="none"
           {...hrLayoutProps}
           {...hoverHandlers}
         >
@@ -356,6 +357,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
+          userSelect="none"
           {...bodyBlockLayoutProps(
             isSelected || isEditing,
             bodyBorderColor,
@@ -400,6 +402,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
+          userSelect="none"
           borderStyle="round"
           borderColor={collapsedBorder}
           {...hoverHandlers}
@@ -450,6 +453,7 @@ const Card = React.memo(
           flexDirection="column"
           flexShrink={0}
           width={width}
+          userSelect="none"
           {...hoverHandlers}
         >
           <Box flexDirection="column" width={width} borderStyle="round" borderBottom={false} borderColor={borderColor}>
@@ -486,6 +490,7 @@ const Card = React.memo(
         flexDirection="column"
         flexShrink={0}
         width={width}
+        userSelect="none"
         borderStyle="round"
         borderColor={borderColor}
         {...hoverHandlers}
