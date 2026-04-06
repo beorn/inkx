@@ -28,7 +28,8 @@ import {
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
-import type { ColumnView, ViewMode } from "../types.ts"
+import type { ViewMode } from "../types.ts"
+import type { ColumnView } from "../hooks/use-columns.ts"
 import type { KNode } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import { ServicesProvider, useToastQueue, useJobRunner, useUndoHandle } from "../services-context.tsx"
@@ -479,11 +480,14 @@ export function BoardCore({
                       const colWidth = columnWidths[index] ?? expandedWidth
                       return (
                         <Column
-                          column={col}
+                          colId={col.node.id}
                           colIndex={index}
                           isCollapsed={collapsedNodes.has(col.node.id)}
                           width={colWidth}
                           height={contentHeight}
+                          filteredCardIds={col.cardNodes.map((c) => c.id)}
+                          totalCardCount={col.totalCardCount}
+                          hiddenDescendantCount={col.hiddenDescendantCount}
                         />
                       )
                     }}
