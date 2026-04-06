@@ -341,7 +341,7 @@ export function HelpOverlay({ width, height, scrollOffset = 0 }: HelpOverlayProp
   )
 
   return (
-    <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} flexDirection="column" data-dialog="help">
+    <Box position="absolute" marginLeft={marginLeft} marginTop={marginTop} flexDirection="column" data-dialog="help" userSelect="contain">
       <ModalDialog
         width={boxWidth}
         height={boxHeight}
