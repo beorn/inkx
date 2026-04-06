@@ -2272,6 +2272,62 @@ describe("edit outdent: Shift+Tab should not promote subitem beyond card", () =>
 // Empty card heading: navigation keys must NOT corrupt data (km-tui.empty-card-key-capture)
 // =============================================================================
 
+describe("Enter on heading card with children zooms instead of editing (km-tui.enter-heading-insert)", () => {
+  test("Enter on heading card with children zooms in, does not enter INSERT mode", () => {
+    // A heading card (type "h") with children — pressing Enter should zoom in,
+    // not enter inline edit mode. Edit mode hides checkbox indicators and is
+    // unexpected behavior on a section heading.
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("Tasks", item("task1"), item("task2")), item("leaf"))),
+    )
+
+    // Cursor starts on "Tasks" — the first card in col1
+    board.expect("#Tasks[data-cursor]").toExist()
+
+    // Press Enter — should zoom in, not enter edit mode
+    board.press("Enter")
+
+    // Should NOT be in edit mode (INSERT)
+    board.expectNotEditing()
+    expect(board.screenshot()).not.toContain("INSERT")
+
+    // The heading's children should now be visible as columns (zoomed in)
+    // After zoom, "Tasks" becomes the root and task1/task2 become the visible items
+    board.expect("#task1").toExist()
+    board.expect("#task2").toExist()
+  })
+
+  test("Enter on leaf card (no children) still enters inline edit", () => {
+    // Leaf cards should retain the existing Enter=edit behavior
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("Tasks", item("task1"), item("task2")), item("leaf"))),
+    )
+
+    // Navigate to the leaf card
+    board.navigateTo("leaf")
+    board.expect("#leaf[data-cursor]").toExist()
+
+    // Press Enter — should enter inline edit
+    board.press("Enter")
+    board.expectEditing("leaf")
+  })
+
+  test("i on heading card with children still enters inline edit (rename)", () => {
+    // 'i' is the explicit edit key — it should always enter edit mode,
+    // even on heading cards. Only Enter changes behavior.
+    const { board } = testEnv(() =>
+      item("board", item("col1", item("Tasks", item("task1"), item("task2")))),
+    )
+
+    board.press("j")
+    board.expect("#Tasks[data-cursor]").toExist()
+
+    // 'i' should enter inline edit (rename) even on heading cards
+    board.press("i")
+    board.expectEditing("Tasks")
+  })
+})
+
 describe("Empty card heading: navigation keys must not corrupt data", () => {
   test("orphaned text selection cleared on cursor move (P1 bug)", () => {
     // When sel.text() is non-null but no InlineEditField is mounted

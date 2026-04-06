@@ -439,11 +439,7 @@ const Card = React.memo(
     const theme = useTheme()
     const cursor = useSignal(nodeStore.cursor)
     const isCursorOnCard = cursor === nodeId && selLevel === "card"
-    const cardBg = isEditing
-      ? editingBg(theme)
-      : (isCursorOnCard || isNodeSelected)
-        ? selectedBg(theme)
-        : undefined
+    const cardBg = isEditing ? editingBg(theme) : isCursorOnCard || isNodeSelected ? selectedBg(theme) : undefined
 
     // Border: cyan when editing, yellow when card selected, hidden when column selected
     // Done/dropped tasks get a darker border to visually de-emphasize them

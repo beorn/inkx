@@ -76,6 +76,31 @@ const enterInlineEdit = {
   },
 } satisfies CommandDef
 
+/**
+ * Enter key behavior: zoom into heading cards with children, edit leaf cards.
+ *
+ * Heading cards (sections) with children act as containers — Enter drills in.
+ * Leaf cards (no children) enter inline edit. This prevents accidentally
+ * entering edit mode on section headings where the intent is navigation.
+ */
+const enterOrZoom = {
+  id: "enter_or_zoom",
+  name: "Enter / Zoom",
+  description: "Zoom into cards with children, edit leaf cards",
+  category: "Edit",
+  execute: (ctx) => {
+    const nodeId = ctx.cursor ?? ctx.currentNodeId
+    if (!nodeId) return { type: "INSERT_BELOW" }
+
+    // If the current node has children, zoom in instead of editing
+    const childCount = ctx.currentNode?.childCount ?? 0
+    if (childCount > 0) return { type: "ZOOM_INWARDS" }
+
+    // Leaf node — enter inline edit
+    return { type: "ENTER_INLINE_EDIT", nodeId }
+  },
+} satisfies CommandDef
+
 const enterBodyEdit = {
   id: "enter_body_edit",
   name: "Edit Body",

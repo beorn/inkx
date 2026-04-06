@@ -55,7 +55,7 @@ function buildCommandContexts(ctx: OpCtx) {
           (embedSource != null && ctx.repo.getNode(embedSource)?.item?.task?.status != null),
         children: [],
         depth: 0,
-        childCount: 0,
+        childCount: selectedNode ? ctx.tree.children(selectedNode.id).length : 0,
         childrenLoaded: true,
       } as TNode)
     : null

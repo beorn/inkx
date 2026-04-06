@@ -503,7 +503,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
             isTask: ctx.selectedNode.item?.task?.status != null,
             children: [],
             depth: 0,
-            childCount: 0,
+            childCount: ctx.selectedNode ? ctx.tree.children(ctx.selectedNode.id).length : 0,
             childrenLoaded: true,
           } as import("@km/commands").TNode)
         : null,

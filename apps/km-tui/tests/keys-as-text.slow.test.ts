@@ -342,6 +342,51 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     expect(repo.getNode("Delta task")?.content).toBe("Delta task")
   })
 
+  test("empty card heading does not capture j/k as text input", () => {
+    // P1 Bug: km-tui.empty-card-key-capture
+    // Empty heading sections (## Empty Section with no children) auto-enter
+    // edit mode, causing j/k navigation keys to be inserted as text.
+    const { board, repo } = testEnv(
+      () =>
+        item(
+          "board",
+          item(
+            "col1",
+            item("Task Above"),
+            item("Empty Section"), // heading with NO children — the problematic case
+            item("Task Below"),
+          ),
+          item("col2", item("Other task")),
+        ),
+      { columns: 120, rows: 40 },
+    )
+
+    // Navigate down to "Empty Section"
+    board.press("j") // move to Empty Section
+
+    // CRITICAL: Must NOT be in edit mode — empty cards should not auto-enter edit
+    board.expectNotEditing()
+
+    // Press k — should navigate UP, not insert "k" into heading
+    board.press("k")
+    board.expectNotEditing()
+    expect(repo.getNode("Empty Section")?.content).toBe("Empty Section")
+
+    // Navigate back to Empty Section
+    board.press("j")
+
+    // Press j — should navigate DOWN, not insert "j" into heading
+    board.press("j")
+    board.expectNotEditing()
+    expect(repo.getNode("Empty Section")?.content).toBe("Empty Section")
+
+    // Navigate to Empty Section again and try h/l
+    board.press("k") // back to Empty Section
+    board.press("l") // should navigate to col2, not insert "l"
+    board.expectNotEditing()
+    expect(repo.getNode("Empty Section")?.content).toBe("Empty Section")
+  })
+
   test("Enter to edit then Escape preserves content on navigation", () => {
     // This tests the inline edit path: Enter to start editing, Escape to cancel,
     // then navigate. The concern is that after exiting edit mode, inlineEditBlock
