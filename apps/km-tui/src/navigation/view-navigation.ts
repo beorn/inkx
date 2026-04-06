@@ -9,7 +9,7 @@
  */
 
 import type { Repo } from "@km/storage"
-import type { GridNavigator, ViewNode } from "@km/board"
+import type { GridNavigator, ViewTreeProjection, ViewType } from "@km/board"
 import { classifyCursorFromViewIndex, buildViewTree, buildViewIndex } from "@km/board"
 import type { ViewMode } from "../types.ts"
 import { computeMetadataKeys as computeDetailMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
@@ -29,12 +29,8 @@ export interface NavState {
   /** Current card containing the cursor (from layout derivation). Used as embed-aware
    * card boundary hint for ViewNode navigation. */
   cursorCardNodeId?: string | null
-  /** ViewNode tree — used internally by view-navigation (legacy, migrate to tree) */
-  viewTree: ViewNode
-  /** ViewNode index — used internally by view-navigation (legacy, migrate to tree) */
-  viewIndex: Map<string, ViewNode>
-  /** ViewTreeProjection — preferred for new code */
-  tree?: import("@km/board").ViewTreeProjection
+  /** ViewTreeProjection — per-node navigation tree. Primary API for view navigation. */
+  tree: ViewTreeProjection
 }
 
 /**
@@ -217,17 +213,23 @@ export function getViewNavigation(viewMode: ViewMode): ViewNavigation {
 }
 
 // =============================================================================
-// ViewNode-based navigation
+// ViewTreeProjection-based navigation helpers
 // =============================================================================
 
+/** Get the viewType for a node, using the ViewTreeProjection. */
+function viewType(tree: ViewTreeProjection, id: string): ViewType | undefined {
+  return tree.track(id)?.viewType()
+}
+
 /**
- * Find next/prev sibling in ViewNode tree.
+ * Find next/prev sibling ID in the tree.
  * Returns null if at boundary.
  */
-function vnSibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
-  if (!vn.parent) return null
-  const siblings = vn.parent.children
-  const idx = siblings.indexOf(vn)
+function siblingId(tree: ViewTreeProjection, id: string, delta: 1 | -1): string | null {
+  const parentId = tree.parent(id)
+  if (!parentId) return null
+  const siblings = tree.children(parentId)
+  const idx = siblings.indexOf(id)
   if (idx < 0) return null
   const targetIdx = idx + delta
   if (targetIdx < 0 || targetIdx >= siblings.length) return null
@@ -235,25 +237,27 @@ function vnSibling(vn: ViewNode, delta: 1 | -1): ViewNode | null {
 }
 
 /**
- * Walk up ancestors to find the containing column ViewNode.
+ * Walk up ancestors to find the containing column ID.
  */
-function vnFindColumn(vn: ViewNode): ViewNode | null {
-  let cur: ViewNode | null = vn
+function findColumnId(tree: ViewTreeProjection, id: string): string | null {
+  let cur: string | null = id
   while (cur) {
-    if (cur.role === "column" || cur.role === "body-column") return cur
-    cur = cur.parent
+    const vt = viewType(tree, cur)
+    if (vt === "column" || vt === "body-column") return cur
+    cur = tree.parent(cur)
   }
   return null
 }
 
 /**
- * Walk up ancestors to find the containing card ViewNode.
+ * Walk up ancestors to find the containing card ID.
  */
-function vnFindCard(vn: ViewNode): ViewNode | null {
-  let cur: ViewNode | null = vn
+function findCardId(tree: ViewTreeProjection, id: string): string | null {
+  let cur: string | null = id
   while (cur) {
-    if (cur.role === "card") return cur
-    cur = cur.parent
+    const vt = viewType(tree, cur)
+    if (vt === "card") return cur
+    cur = tree.parent(cur)
   }
   return null
 }
@@ -262,205 +266,209 @@ function vnFindCard(vn: ViewNode): ViewNode | null {
  * Get the structural column index (excluding body column) for stickyX purposes.
  * stickyX is an index into structural (non-body) columns only.
  */
-function vnStructuralColumnIndex(col: ViewNode): number {
-  if (col.parent?.role !== "board") return -1
-  const cols = col.parent.children
+function structuralColumnIndex(tree: ViewTreeProjection, colId: string, rootId: string): number {
+  const cols = tree.children(rootId)
   let structIdx = 0
-  for (const c of cols) {
-    if (c.role === "body-column") continue
-    if (c === col) return structIdx
+  for (const cId of cols) {
+    if (viewType(tree, cId) === "body-column") continue
+    if (cId === colId) return structIdx
     structIdx++
   }
   return -1
 }
 
 /**
- * Get structural (non-body) columns.
+ * Get structural (non-body) column IDs.
  * Hidden nodes are already excluded at tree construction time.
  */
-function vnStructuralColumns(board: ViewNode): ViewNode[] {
-  return board.children.filter((c) => c.role !== "body-column")
+function structuralColumnIds(tree: ViewTreeProjection, rootId: string): string[] {
+  return tree.children(rootId).filter((cId) => viewType(tree, cId) !== "body-column") as string[]
 }
 
 /**
- * Get body column from the board, if it exists.
+ * Get body column ID from the board, if it exists.
  * Hidden nodes are already excluded at tree construction time.
  */
-function vnBodyColumn(board: ViewNode): ViewNode | null {
-  return board.children.find((c) => c.role === "body-column") ?? null
+function bodyColumnId(tree: ViewTreeProjection, rootId: string): string | null {
+  return (tree.children(rootId).find((cId) => viewType(tree, cId) === "body-column") as string) ?? null
 }
 
 /**
- * Get card children of a column.
+ * Get visible card child IDs of a column.
  * Hidden nodes are already excluded at tree construction time.
  */
-function vnVisibleCards(col: ViewNode): ViewNode[] {
-  return col.children
+function visibleCardIds(tree: ViewTreeProjection, colId: string): readonly string[] {
+  return tree.children(colId)
 }
 
 /**
- * ViewNode-based vertical navigation (j/k).
+ * ViewTreeProjection-based vertical navigation (j/k).
  *
- * Uses the ViewNode tree to determine navigation targets instead of
- * ad-hoc repo walks. The tree already encodes visual roles.
+ * Uses the ViewTreeProjection to determine navigation targets.
+ * The tree already encodes visual roles via track().viewType().
  */
 function vnNavigateVertical(dir: "up" | "down", state: NavState, navigator: GridNavigator): string | null {
-  const { cursor, viewTree, viewIndex } = state
+  const { cursor, tree } = state
+  const rootId = state.rootId!
 
-  const vn = viewIndex.get(cursor)
-  if (!vn) {
+  const vt = viewType(tree, cursor)
+  if (!vt) {
     // Node not in view tree (e.g., deleted during sync)
     return state.rootId
   }
 
   // ----- Board level -----
-  if (vn.role === "board") {
+  if (vt === "board") {
     if (dir === "down") {
       const stickyX = navigator.stickyX
-      const structCols = vnStructuralColumns(viewTree)
+      const structCols = structuralColumnIds(tree, rootId)
       if (stickyX !== null && stickyX < structCols.length) {
-        return structCols[stickyX]?.id ?? null
+        return structCols[stickyX] ?? null
       }
       // No stickyX: prefer first visible body card, then first structural column
-      const bodyCol = vnBodyColumn(viewTree)
+      const bodyCol = bodyColumnId(tree, rootId)
       if (bodyCol) {
-        const visCards = vnVisibleCards(bodyCol)
-        if (visCards.length > 0) return visCards[0]!.id
+        const visCards = visibleCardIds(tree, bodyCol)
+        if (visCards.length > 0) return visCards[0]!
       }
-      const visCols = viewTree.children
-      return visCols[0]?.id ?? null
+      const visCols = tree.children(rootId)
+      return visCols[0] ?? null
     }
     // k from board → null
     return null
   }
 
   // ----- Body column header -----
-  if (vn.role === "body-column") {
+  if (vt === "body-column") {
     if (dir === "down") {
-      const visCards = vnVisibleCards(vn)
-      return visCards[0]?.id ?? null
+      const visCards = visibleCardIds(tree, cursor)
+      return visCards[0] ?? null
     }
     // k from body column header → board
     return state.rootId
   }
 
   // ----- Column level -----
-  if (vn.role === "column") {
+  if (vt === "column") {
     if (dir === "down") {
       // Collapsed column → can't enter
       if (state.collapsedNodes.has(cursor)) return null
-      const visCards = vnVisibleCards(vn)
-      return visCards[0]?.id ?? null
+      const visCards = visibleCardIds(tree, cursor)
+      return visCards[0] ?? null
     }
     // k from column → board (save stickyX)
-    const structIdx = vnStructuralColumnIndex(vn)
+    const structIdx = structuralColumnIndex(tree, cursor, rootId)
     if (structIdx >= 0) navigator.setStickyX(structIdx)
     return state.rootId
   }
 
   // ----- Card level -----
-  if (vn.role === "card") {
-    const col = vn.parent
-    if (!col) return null
+  if (vt === "card") {
+    const colId = tree.parent(cursor)
+    if (!colId) return null
+    const colType = viewType(tree, colId)
 
-    if (col.role === "body-column") {
+    if (colType === "body-column") {
       // Body card navigation
-      const visCards = vnVisibleCards(col)
-      const idx = visCards.indexOf(vn)
+      const visCards = visibleCardIds(tree, colId)
+      const idx = visCards.indexOf(cursor)
       if (dir === "down") {
-        return idx >= 0 && idx < visCards.length - 1 ? visCards[idx + 1]!.id : null
+        return idx >= 0 && idx < visCards.length - 1 ? visCards[idx + 1]! : null
       }
       // k from body card
-      if (idx > 0) return visCards[idx - 1]!.id
+      if (idx > 0) return visCards[idx - 1]!
       // At first body card → body column header
-      return col.id
+      return colId
     }
 
     // Structural column card
     if (dir === "down") {
-      const next = vnSibling(vn, 1)
-      return next?.id ?? null
+      return siblingId(tree, cursor, 1)
     }
     // k from card
-    const prev = vnSibling(vn, -1)
-    if (prev) return prev.id
+    const prev = siblingId(tree, cursor, -1)
+    if (prev) return prev
     // At first card → column header
-    return col.id
+    return colId
   }
 
   // ----- Subitem level (inside a card) -----
-  if (vn.role === "subitem") {
+  if (vt === "subitem") {
     // Find the containing card
-    const cardVn = vnFindCard(vn)
-    if (!cardVn) return null
+    const cardId = findCardId(tree, cursor)
+    if (!cardId) return null
 
     if (dir === "down") {
       // DFS order: first child → next sibling → parent's next sibling → next card
       // 1. Descend into first child if visible
-      if (vn.children.length > 0) return vn.children[0]!.id
+      const children = tree.children(cursor)
+      if (children.length > 0) return children[0]!
       // 2. Try next sibling at current level
-      const next = vnSibling(vn, 1)
-      if (next) return next.id
+      const next = siblingId(tree, cursor, 1)
+      if (next) return next
       // 3. Walk up ancestors to find one with a next sibling
-      let walk: ViewNode | null = vn.parent
-      while (walk && walk !== cardVn) {
-        const parentNext = vnSibling(walk, 1)
-        if (parentNext) return parentNext.id
-        walk = walk.parent
+      let walkId: string | null = tree.parent(cursor)
+      while (walkId && walkId !== cardId) {
+        const parentNext = siblingId(tree, walkId, 1)
+        if (parentNext) return parentNext
+        walkId = tree.parent(walkId)
       }
       // 4. Reached card level: jump to next card
-      if (cardVn.parent) {
-        const nextCard = vnSibling(cardVn, 1)
-        return nextCard?.id ?? null
+      const cardParent = tree.parent(cardId)
+      if (cardParent) {
+        return siblingId(tree, cardId, 1)
       }
       return null
     }
     // k from subitem — reverse DFS order
-    const prev = vnSibling(vn, -1)
+    const prev = siblingId(tree, cursor, -1)
     if (prev) {
       // Go to the deepest last descendant of the previous sibling
-      let deepest: ViewNode = prev
-      while (deepest.children.length > 0) {
-        deepest = deepest.children[deepest.children.length - 1]!
+      let deepestId: string = prev
+      let deepChildren = tree.children(deepestId)
+      while (deepChildren.length > 0) {
+        deepestId = deepChildren[deepChildren.length - 1]!
+        deepChildren = tree.children(deepestId)
       }
-      return deepest.id
+      return deepestId
     }
     // At first sibling → parent
-    return vn.parent?.id ?? null
+    return tree.parent(cursor)
   }
 
   return null
 }
 
 /**
- * ViewNode-based horizontal navigation (h/l).
+ * ViewTreeProjection-based horizontal navigation (h/l).
  *
- * Cross-column movement using the ViewNode tree.
+ * Cross-column movement using the ViewTreeProjection.
  */
 function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator: GridNavigator): string | null {
-  const { cursor, viewTree, viewIndex } = state
+  const { cursor, tree } = state
+  const rootId = state.rootId!
 
-  const vn = viewIndex.get(cursor)
-  if (!vn) {
+  const vt = viewType(tree, cursor)
+  if (!vt) {
     return state.rootId
   }
 
   // Board level → can't move h/l
-  if (vn.role === "board") return null
+  if (vt === "board") return null
 
   // ----- Body column header -----
-  if (vn.role === "body-column") {
+  if (vt === "body-column") {
     if (dir === "left") return null // body is leftmost
-    const structCols = vnStructuralColumns(viewTree)
-    return structCols[0]?.id ?? null
+    const structCols = structuralColumnIds(tree, rootId)
+    return structCols[0] ?? null
   }
 
   // ----- Column header -----
-  if (vn.role === "column") {
-    const col = vn
-    const structCols = vnStructuralColumns(viewTree)
-    const bodyCol = vnBodyColumn(viewTree)
-    const structIdx = structCols.indexOf(col)
+  if (vt === "column") {
+    const colId = cursor
+    const structCols = structuralColumnIds(tree, rootId)
+    const bodyCol = bodyColumnId(tree, rootId)
+    const structIdx = structCols.indexOf(colId)
 
     const hasBody = bodyCol !== null
 
@@ -468,19 +476,19 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
       if (structIdx === 0) {
         // First structural col → body column (if it has cards)
         if (!bodyCol) return null
-        return vnNavigateToColumn(bodyCol, state, navigator, {
+        return navigateToColumn(bodyCol, state, navigator, {
           viewColIdx: 0,
           isAtColumnLevel: true,
-          sourceColId: col.id,
+          sourceColId: colId,
           canLandOnHeader: false,
         })
       }
       if (structIdx > 0) {
         const targetIdx = structIdx - 1
-        return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+        return navigateToColumn(structCols[targetIdx]!, state, navigator, {
           viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
           isAtColumnLevel: true,
-          sourceColId: col.id,
+          sourceColId: colId,
           canLandOnHeader: true,
         })
       }
@@ -489,10 +497,10 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
     // right
     if (structIdx >= 0 && structIdx + 1 < structCols.length) {
       const targetIdx = structIdx + 1
-      return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+      return navigateToColumn(structCols[targetIdx]!, state, navigator, {
         viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
         isAtColumnLevel: true,
-        sourceColId: col.id,
+        sourceColId: colId,
         canLandOnHeader: true,
       })
     }
@@ -501,28 +509,29 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
 
   // ----- Card or subitem level -----
   // Resolve to the containing column
-  const colVn = vnFindColumn(vn)
-  if (!colVn) return null
+  const colId = findColumnId(tree, cursor)
+  if (!colId) return null
 
-  const structCols = vnStructuralColumns(viewTree)
-  const bodyCol = vnBodyColumn(viewTree)
+  const structCols = structuralColumnIds(tree, rootId)
+  const bodyCol = bodyColumnId(tree, rootId)
   const hasBody = bodyCol !== null
+  const colType = viewType(tree, colId)
 
-  if (colVn.role === "body-column") {
+  if (colType === "body-column") {
     // In body column
     if (dir === "left") return null
     if (structCols.length === 0) return null
-    return vnNavigateToColumn(structCols[0]!, state, navigator, { viewColIdx: hasBody ? 1 : 0, canLandOnHeader: true })
+    return navigateToColumn(structCols[0]!, state, navigator, { viewColIdx: hasBody ? 1 : 0, canLandOnHeader: true })
   }
 
   // In a structural column
-  const structIdx = structCols.indexOf(colVn)
+  const structIdx = structCols.indexOf(colId)
   if (structIdx < 0) {
     // Cursor is on a column not in the tree — redirect
-    if (structCols.length > 0) return structCols[0]!.id
+    if (structCols.length > 0) return structCols[0]!
     if (hasBody && bodyCol) {
-      const visCards = vnVisibleCards(bodyCol)
-      return visCards[0]?.id ?? null
+      const visCards = visibleCardIds(tree, bodyCol)
+      return visCards[0] ?? null
     }
     return null
   }
@@ -531,16 +540,18 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
     if (structIdx === 0) {
       if (!hasBody || !bodyCol) return null
       // Compute source card index for scroll-aware body navigation
-      const cardVn = vn.role === "card" ? vn : vnFindCard(vn)
+      const cursorVt = viewType(tree, cursor)
+      const cardNodeId = cursorVt === "card" ? cursor : findCardId(tree, cursor)
       let sourceCardIdx: number | undefined
-      if (cardVn) {
-        sourceCardIdx = cardVn.parent ? cardVn.parent.children.indexOf(cardVn) : -1
+      if (cardNodeId) {
+        const cardParent = tree.parent(cardNodeId)
+        sourceCardIdx = cardParent ? tree.children(cardParent).indexOf(cardNodeId) : -1
         if (sourceCardIdx < 0) sourceCardIdx = undefined
       }
-      return vnNavigateToColumn(bodyCol, state, navigator, { viewColIdx: 0, sourceCardIdx, canLandOnHeader: false })
+      return navigateToColumn(bodyCol, state, navigator, { viewColIdx: 0, sourceCardIdx, canLandOnHeader: false })
     }
     const targetIdx = structIdx - 1
-    return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+    return navigateToColumn(structCols[targetIdx]!, state, navigator, {
       viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
       canLandOnHeader: true,
     })
@@ -549,14 +560,14 @@ function vnNavigateHorizontal(dir: "left" | "right", state: NavState, navigator:
   // right
   if (structIdx + 1 >= structCols.length) return null
   const targetIdx = structIdx + 1
-  return vnNavigateToColumn(structCols[targetIdx]!, state, navigator, {
+  return navigateToColumn(structCols[targetIdx]!, state, navigator, {
     viewColIdx: hasBody ? targetIdx + 1 : targetIdx,
     canLandOnHeader: true,
   })
 }
 
-/** Options for vnNavigateToColumn controlling column-type-specific behavior. */
-interface VnNavigateToColumnOpts {
+/** Options for navigateToColumn controlling column-type-specific behavior. */
+interface NavigateToColumnOpts {
   /** View column index for position registry lookups. */
   viewColIdx: number
   /**
@@ -583,39 +594,37 @@ interface VnNavigateToColumnOpts {
 }
 
 /**
- * Navigate to a column ViewNode, selecting the appropriate card.
+ * Navigate to a column, selecting the appropriate card.
  *
  * Unified helper for both structural and body column navigation.
- * Behavior is controlled by `opts` — see VnNavigateToColumnOpts.
+ * Behavior is controlled by `opts` — see NavigateToColumnOpts.
  */
-function vnNavigateToColumn(
-  targetCol: ViewNode,
+function navigateToColumn(
+  targetColId: string,
   state: NavState,
   navigator: GridNavigator,
-  opts: VnNavigateToColumnOpts,
+  opts: NavigateToColumnOpts,
 ): string | null {
+  const { tree } = state
   const { viewColIdx, isAtColumnLevel, sourceColId, sourceCardIdx, canLandOnHeader } = opts
 
   // Collapsed target → land on column header (structural only)
-  if (canLandOnHeader && state.collapsedNodes.has(targetCol.id)) {
-    return targetCol.id
+  if (canLandOnHeader && state.collapsedNodes.has(targetColId)) {
+    return targetColId
   }
 
-  const visCards = vnVisibleCards(targetCol)
+  const visCards = visibleCardIds(tree, targetColId)
 
   if (visCards.length === 0) {
-    return canLandOnHeader ? targetCol.id : null
+    return canLandOnHeader ? targetColId : null
   }
 
   if (isAtColumnLevel) {
     // At column header: if source column has cards, stay at header level
     if (sourceColId) {
-      const sourceColVn = state.viewIndex.get(sourceColId)
-      if (sourceColVn) {
-        const sourceCards = vnVisibleCards(sourceColVn)
-        if (sourceCards.length > 0) {
-          return targetCol.id
-        }
+      const sourceCards = visibleCardIds(tree, sourceColId)
+      if (sourceCards.length > 0) {
+        return targetColId
       }
     }
     // Empty source column → use stickyY if available
@@ -623,33 +632,33 @@ function vnNavigateToColumn(
     if (stickyY !== null) {
       if (navigator.hasSection(viewColIdx)) {
         const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
-        return visCards[Math.min(Math.max(0, targetCardIdx), visCards.length - 1)]?.id ?? null
+        return visCards[Math.min(Math.max(0, targetCardIdx), visCards.length - 1)] ?? null
       }
       navigator.setDeferredNavigation(viewColIdx, stickyY)
-      return visCards[0]?.id ?? null
+      return visCards[0] ?? null
     }
-    return canLandOnHeader ? targetCol.id : (visCards[0]?.id ?? null)
+    return canLandOnHeader ? targetColId : (visCards[0] ?? null)
   }
 
   // At card level: use stickyY for position matching
   const stickyY = navigator.stickyY
   if (stickyY === null) {
-    return visCards[0]?.id ?? null
+    return visCards[0] ?? null
   }
 
   // Index-based matching (body column cross-column navigation)
   if (sourceCardIdx !== undefined) {
     const clampedIdx = Math.min(sourceCardIdx, visCards.length - 1)
     navigator.setDeferredNavigation(viewColIdx, stickyY)
-    return visCards[clampedIdx]?.id ?? null
+    return visCards[clampedIdx] ?? null
   }
 
   // Position-based matching via stickyY
   if (navigator.hasSection(viewColIdx)) {
     const targetCardIdx = navigator.findItemAtY(viewColIdx, stickyY)
-    return visCards[Math.min(Math.max(0, targetCardIdx), visCards.length - 1)]?.id ?? null
+    return visCards[Math.min(Math.max(0, targetCardIdx), visCards.length - 1)] ?? null
   }
 
   navigator.setDeferredNavigation(viewColIdx, stickyY)
-  return visCards[0]?.id ?? null
+  return visCards[0] ?? null
 }

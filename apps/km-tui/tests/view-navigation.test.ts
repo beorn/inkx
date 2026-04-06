@@ -18,7 +18,23 @@ import {
   createDetailViewNavigation,
   type NavState,
 } from "../src/navigation/view-navigation.ts"
-import { buildViewTree, buildViewIndex, classifyCursorFromViewIndex, createGridNavigator } from "@km/board"
+import {
+  buildViewTree,
+  buildViewIndex,
+  classifyCursorFromViewIndex,
+  createGridNavigator,
+  createViewTree,
+  createViewLens,
+  type ViewTreeProjection,
+} from "@km/board"
+
+/** Create a ViewTreeProjection from a repo and root, syncing it with a lens. */
+function makeTree(repo: Repo, rootId: string | null, opts?: { hiddenNodeIds?: Set<string> }): ViewTreeProjection {
+  const lens = createViewLens(repo, { rootId, foldDepths: new Map(), hiddenNodeIds: opts?.hiddenNodeIds })
+  const tree = createViewTree()
+  tree.sync(lens)
+  return tree
+}
 
 function makeState(
   cursor: string,
@@ -26,15 +42,13 @@ function makeState(
   rootId: string | null = "board",
   opts?: { hiddenNodeIds?: Set<string> },
 ): NavState {
-  const viewTree = buildViewTree(repo, rootId, new Map(), undefined, opts?.hiddenNodeIds)
-  const viewIndex = buildViewIndex(viewTree)
+  const tree = makeTree(repo, rootId, opts)
   return {
     cursor,
     rootId,
     foldDepths: new Map(),
     collapsedNodes: new Set(),
-    viewTree,
-    viewIndex,
+    tree,
   }
 }
 
