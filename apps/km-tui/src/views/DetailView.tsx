@@ -94,7 +94,7 @@ export function DetailView({ rootId, width, height }: DetailViewProps): React.Re
   const rootStatusIcon = rootIsTask ? getStatusIcon(rootNode.item?.task?.status ?? "todo") : null
 
   return (
-    <Box flexDirection="column" width={width} height={height} overflow="hidden">
+    <Box flexDirection="column" width={width} height={height} overflow="hidden" userSelect="contain">
       <InlineRenderProvider value={inlineCtx}>
         <Box flexDirection="column" flexGrow={1} overflow="hidden">
           {/* Document title — H1 (selectable) + node badge */}
