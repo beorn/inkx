@@ -28,7 +28,10 @@ export function collectVisibleNodeIds(columns: ColumnView[]): string[] {
  */
 export function findMatchingNodeIds(columns: ColumnView[], query: string): string[]
 export function findMatchingNodeIds(tree: import("@km/board").ViewTreeProjection, query: string): string[]
-export function findMatchingNodeIds(source: ColumnView[] | import("@km/board").ViewTreeProjection, query: string): string[] {
+export function findMatchingNodeIds(
+  source: ColumnView[] | import("@km/board").ViewTreeProjection,
+  query: string,
+): string[] {
   if (!query) return []
   const lowerQuery = query.toLowerCase()
   const matches: string[] = []

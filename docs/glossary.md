@@ -236,7 +236,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **km-ast** — The abstract syntax tree produced by km's markdown parser. Uses types like `oi` (outline item), `li` (list item), `p`, `h`, `code`, `quote`. Parse-time types that map to `KNode` in storage.
 
-**KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `symlink_to` (formerly `embed_source`), `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
+**KNode** — The universal node type. Every piece of content is a KNode: a flat record with `id`, `type`, optional `item`, `parent_id`, `parent_idx`, `content`, `title`, `symlink_to`, `fstype`, and `rules`. Also a namespace of type guards (`KNode.isItem`, `KNode.isOutline`, etc.) via the domain interface pattern.
 
 **KTree** — A namespace of pure tree traversal functions operating on flat node stores. The primary method is `KTree.nodes(tree, rootId, opts?)` — DFS pre-order with orthogonal `match` (what to yield) and `into` (what to descend into) predicates.
 

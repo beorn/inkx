@@ -4,10 +4,10 @@
  * Handles cursor movement, history navigation, and sibling board navigation.
  */
 
-import { ViewTree, CARD_REMAINING_DEPTH, type ViewNode } from "@km/board"
+import { ViewTree, CARD_REMAINING_DEPTH } from "@km/board"
 import type { OpResult } from "@km/commands"
 import { boundary, ok } from "@km/commands"
-import { KNode, getStatusForMarker, isOk } from "@km/core"
+import { KNode, isOk } from "@km/core"
 import type { ID } from "@silvery/selection"
 import { extractBody } from "@km/tree"
 import { clearSelection } from "./board-selection-helpers.ts"
@@ -34,17 +34,6 @@ function collectTreeDescendants(tree: ViewTreeProjection, rootId: string): strin
     result.push(...collectTreeDescendants(tree, childId))
   }
   return result
-}
-
-/** Build a ViewTree match predicate that skips nodes hidden by task status filter. */
-function taskStatusMatchFn(ctx: OpCtx): ((vn: ViewNode) => boolean) | undefined {
-  const filter = ctx.ui.filterProperties.taskStatus
-  if (filter.size === 0) return undefined
-  return (vn) => {
-    if (!vn.node) return true
-    const status = vn.node.item?.task?.status ?? getStatusForMarker(vn.node.item?.task?.marker)
-    return !status || filter.has(status)
-  }
 }
 
 /**
