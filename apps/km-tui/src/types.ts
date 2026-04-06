@@ -4,8 +4,8 @@
  * These types describe how nodes are presented in the TUI, not how they're stored.
  * The data model is KNode (from @km/core) — a single tree of nodes.
  *
- * ColumnView wraps a column KNode with its pre-fetched CardView cards.
- * CardView extends KNode with pre-resolved embed data, body classification, etc.
+ * ColumnView wraps a column KNode with its children as KNode[].
+ * View data (embed resolution, body classification) comes from ViewTree signals.
  */
 
 import type { KNode } from "@km/core"
@@ -26,7 +26,7 @@ export interface InitialBoardData {
 
 /**
  * VIEW MODEL: A column is a parent KNode whose children render as KNode[].
- * CardView enrichment is no longer needed — embed/body data comes from ViewTree signals.
+ * Embed/body data comes from ViewTree signals via useNode.
  */
 export interface ColumnView {
   node: KNode

@@ -82,7 +82,7 @@ export interface OpCtx {
   selectedNode: KNode | null
   /** Current column from layout */
   column: ColumnView | undefined
-  /** Current card from layout (CardView at top level) */
+  /** Current card from layout */
   card: KNode | undefined
 
   // === Dispatchers ===
