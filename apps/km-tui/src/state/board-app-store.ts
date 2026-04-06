@@ -880,18 +880,15 @@ export function createBoardAppStoreState(
           syncPaneSignals(board)
         }
 
-        // Cursor rescue via computed ViewSnapshot — no manual buildViewTree needed.
-        // The computed is fresh because we just synced signals above.
+        // Cursor rescue via visible lens — no manual buildViewTree needed.
         if (board?.signals) {
-          const snap = board.signals.view()
-          const vIndex = snap.index as Map<string, ViewNode>
+          const lens = board.signals.visibleLens()
 
           // Cursor rescue: if cursor node is hidden by fold state, move it to the
-          // nearest visible ancestor. Without this, folding a card while the cursor
-          // is on one of its children leaves the cursor invisible.
+          // nearest visible ancestor.
           let cursorId = board.sel.node.cursor() as string | null
           if (cursorId) {
-            const rescuedId = findVisibleAncestor(cursorId, vIndex, board.foldDepths)
+            const rescuedId = findVisibleAncestor(cursorId, lens, board.foldDepths)
             if (rescuedId !== cursorId) {
               cursorId = rescuedId
             }
@@ -899,7 +896,7 @@ export function createBoardAppStoreState(
 
           // Sync sel store cursor after structural changes (fold, zoom, etc.)
           if (cursorId) {
-            s.selTreeSource.update(board.signals.visibleLens())
+            s.selTreeSource.update(lens)
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
               s.sel.node.select([cursorId as import("@silvery/selection").ID])
@@ -1002,23 +999,22 @@ export function createBoardAppStoreState(
           return { workspace: { ...state.workspace, panes: newPanes } }
         })
 
-        // Sync PaneSignals + cursor rescue via computed ViewSnapshot
+        // Sync PaneSignals + cursor rescue via visible lens
         const s = _get()
         const boardPane = getActiveBoardPane(s)
         if (boardPane?.signals) {
           syncPaneSignals(boardPane)
-          const snap = boardPane.signals.view()
-          const vIndex = snap.index as Map<string, ViewNode>
+          const lens = boardPane.signals.visibleLens()
 
           // Cursor rescue: if cursor is on a node that will be hidden by the new
           // fold depths, move it to the nearest visible ancestor before applying.
           const boardPaneCursorId = (boardPane.sel.node.cursor() as string | null) ?? null
           if (boardPaneCursorId) {
-            const rescuedId = findVisibleAncestor(boardPaneCursorId, vIndex, boardPane.foldDepths)
+            const rescuedId = findVisibleAncestor(boardPaneCursorId, lens, boardPane.foldDepths)
             if (rescuedId !== null && rescuedId !== boardPaneCursorId) {
               boardPane.sel.node.select([rescuedId as import("@silvery/selection").ID])
             }
-            s.selTreeSource.update(boardPane.signals!.visibleLens())
+            s.selTreeSource.update(lens)
             const ids = s.sel.node.ids()
             if (ids.length <= 1) {
               s.sel.node.select([(rescuedId ?? boardPaneCursorId) as import("@silvery/selection").ID])
@@ -1073,13 +1069,21 @@ export function createBoardAppStoreState(
           if (!parentPane || !isBoardPane(parentPane)) return state
 
           // Detail pane root = parent's cursor card (what we're showing details of)
-          // Derive cursor card from sel store cursor + view tree classification
+          // Walk up via lens to find containing card, then column, then fallback to root.
           const cursorId = parentPane.sel.node.cursor() as string | null
           let detailRootId: string | null = parentPane.rootId
           if (cursorId && parentPane.signals) {
-            const snap = parentPane.signals.view()
-            const ancestors = snap.classify(cursorId)
-            detailRootId = ancestors.cursorCardNodeId ?? ancestors.cursorColumnNodeId ?? parentPane.rootId
+            const lens = parentPane.signals.visibleLens()
+            let cardId: string | null = null
+            let columnId: string | null = null
+            let walker: string | null = cursorId
+            while (walker) {
+              const role = lens.role(walker)
+              if (role === "card" && !cardId) cardId = walker
+              if ((role === "column" || role === "body-column") && !columnId) columnId = walker
+              walker = lens.parent(walker)
+            }
+            detailRootId = cardId ?? columnId ?? parentPane.rootId
           }
 
           const firstItemId = computeDetailInitialCursor(state.repo, detailRootId)
@@ -1526,59 +1530,48 @@ function updateBoardPane(
  */
 function findVisibleAncestor(
   nodeId: string,
-  viewIndex: Map<string, import("@km/board").ViewNode>,
+  lens: import("@km/board").TreeLens,
   foldDepths: Map<string, number>,
 ): string | null {
-  const vn = viewIndex.get(nodeId)
-  if (!vn) return nodeId // Node not in view tree — leave it
+  const role = lens.role(nodeId)
+  if (!role) return nodeId // Node not in view tree — leave it
 
   // Board and column nodes are always visible
-  if (vn.role === "board" || vn.role === "column" || vn.role === "body-column") return nodeId
+  if (role === "board" || role === "column" || role === "body-column") return nodeId
 
   // Cards are always visible (they're direct children of columns in the ViewTree)
-  if (vn.role === "card") return nodeId
+  if (role === "card") return nodeId
 
   // For subitems: walk up to find if any ancestor hides this node via fold
-  // Check each ancestor from bottom up. If an ancestor is folded (depth 0),
-  // the cursor should move to that ancestor.
-  let current = vn.parent
+  let currentId = lens.parent(nodeId)
   let depthFromCard = 0
-  while (current) {
-    if (current.role === "card") {
+  while (currentId) {
+    const currentRole = lens.role(currentId)
+    if (currentRole === "card") {
       // The card's fold depth determines if its children are visible
-      const cardFold = foldDepths.get(current.id)
+      const cardFold = foldDepths.get(currentId)
       if (cardFold !== undefined && cardFold <= 0) {
-        // Card is fully folded — cursor goes to the card
-        return current.id
+        return currentId
       }
-      // Card is not folded — check remaining depth from card.
-      // Default is CARD_REMAINING_DEPTH (2). Each level below the card
-      // consumes 1 depth. If depthFromCard >= effective remaining depth,
-      // the node is in the FoldedChildRow zone.
       const effectiveDepth = cardFold ?? CARD_REMAINING_DEPTH
       if (depthFromCard >= effectiveDepth) {
-        return current.id
+        return currentId
       }
-      // Node is within the visible depth of this card
       return nodeId
     }
-    if (current.role === "subitem") {
-      // Check if this intermediate subitem has a fold override
-      const subFold = foldDepths.get(current.id)
+    if (currentRole === "subitem") {
+      const subFold = foldDepths.get(currentId)
       if (subFold !== undefined && subFold <= 0) {
-        // This intermediate node is folded — cursor goes to it
-        return current.id
+        return currentId
       }
       depthFromCard++
     }
-    if (current.role === "column" || current.role === "body-column" || current.role === "board") {
-      // Reached column/board without hitting a card — node is visible
+    if (currentRole === "column" || currentRole === "body-column" || currentRole === "board") {
       return nodeId
     }
-    current = current.parent
+    currentId = lens.parent(currentId)
   }
 
-  // Shouldn't reach here but return nodeId as safe fallback
   return nodeId
 }
 
