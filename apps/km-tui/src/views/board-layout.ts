@@ -11,8 +11,7 @@ export const COLLAPSED_COL_WIDTH = 3
 /** Compute expanded column widths given board width and collapsed state.
  *  Columns are flush (no gap/separator) — HVL renders them edge-to-edge.
  *
- *  Takes column ids (string[]) directly — callers no longer need to pass
- *  ColumnView[] just to get id lookups. The `collapsedNodes` set carries
+ *  Takes column ids (string[]) directly. The `collapsedNodes` set carries
  *  the per-column collapsed state.
  *
  *  Returns a base `expandedWidth` and a `remainder` count. The first `remainder`
