@@ -6,47 +6,44 @@
 import { describe, test, expect } from "vitest"
 import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
-import { createEmptyState, initBoardState, buildBoardState, getNodeDisplayName } from "../src/state.ts"
+import { getNodeDisplayName } from "../src/state.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createViewLens, createVisibleLens } from "@km/board"
 
-describe("State", () => {
-  test("buildBoardState creates columns from children", () => {
+/** Helper: create lens from repo + rootId */
+function lens(repo: ReturnType<typeof createFakeRepo>, rootId: string) {
+  return createVisibleLens(createViewLens(repo, { rootId, foldDepths: new Map() }))
+}
+
+describe("Lens-based column derivation", () => {
+  test("lens derives columns from children", () => {
     const nodes = item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a")))
     const repo = createFakeRepo({ nodes })
-    const state = buildBoardState(repo, "board")
-    expect(state.rootId).toBe("board")
-    expect(state.columns).toHaveLength(2)
-    expect(state.columns[0]?.cardNodes).toHaveLength(2)
-    expect(state.columns[1]?.cardNodes).toHaveLength(1)
+    const l = lens(repo, "board")
+    const colIds = l.children("board")
+    expect(colIds).toHaveLength(2)
+    expect(l.children(colIds[0]!)).toHaveLength(2)
+    expect(l.children(colIds[1]!)).toHaveLength(1)
   })
 
-  test("initBoardState builds state from repo root", () => {
+  test("lens derives columns from folder root", () => {
     const nodes = item.root("repo-root", item.folder("Projects"), item.folder("Archive"))
     const repo = createFakeRepo({ nodes })
-    const state = initBoardState(repo, "repo-root")
-    expect(state).not.toBeNull()
-    expect(state!.rootId).toBe("repo-root")
-    expect(state!.columns).toHaveLength(2)
+    const l = lens(repo, "repo-root")
+    expect(l.children("repo-root")).toHaveLength(2)
   })
 
-  test("initBoardState handles nested folders", () => {
+  test("lens derives nested folders", () => {
     const nodes = item.root(
       "repo-root",
       item.folder("ref", item.folder("Projects"), item.folder("Archive"), item.folder("Work")),
     )
     const repo = createFakeRepo({ nodes })
-    const state = initBoardState(repo, "ref")
-    expect(state).not.toBeNull()
-    expect(state!.rootId).toBe("ref")
-    expect(state!.columns).toHaveLength(3)
-    const cardNames = state!.columns.map((c) => c.node.content || c.node.data?.name)
-    expect(cardNames).toEqual(["Projects", "Archive", "Work"])
-  })
-
-  test("initBoardState returns null for empty database", () => {
-    const repo = createFakeRepo({ nodes: [] })
-    const state = initBoardState(repo)
-    expect(state).toBeNull()
+    const l = lens(repo, "ref")
+    const colIds = l.children("ref")
+    expect(colIds).toHaveLength(3)
+    const colNames = colIds.map((id) => repo.getNode(id)?.content || repo.getNode(id)?.data?.name)
+    expect(colNames).toEqual(["Projects", "Archive", "Work"])
   })
 
   test("getNodeDisplayName returns content", () => {
@@ -63,7 +60,7 @@ describe("State", () => {
     expect(getNodeDisplayName(repo, node)).toBe("My Folder")
   })
 
-  test("buildBoardState filters out paragraph nodes as columns (km-1tho)", () => {
+  test("lens filters paragraph nodes into body column (km-1tho)", () => {
     const nodes = item.file(
       "@issue.md",
       item.p("All issues tracked with the @issue tag."),
@@ -71,16 +68,17 @@ describe("State", () => {
       item.section("Closed Issues", item("Fix bug #2")),
     )
     const repo = createFakeRepo({ nodes })
-    const state = buildBoardState(repo, "@issue.md")
-    expect(state.columns).toHaveLength(3)
-    expect(state.columns[0]!.isVirtual).toBe(true)
-    expect(state.columns[0]!.cardNodes).toHaveLength(1)
-    expect(state.columns[0]!.cardNodes[0]!.type).toBe("p")
-    expect(state.columns[1]!.node.type).toBe("h")
-    expect(state.columns[2]!.node.type).toBe("h")
+    const l = lens(repo, "@issue.md")
+    const colIds = l.children("@issue.md")
+    expect(colIds).toHaveLength(3)
+    expect(l.role(colIds[0]!)).toBe("body-column")
+    expect(l.children(colIds[0]!)).toHaveLength(1)
+    expect(repo.getNode(l.children(colIds[0]!)[0]!)?.type).toBe("p")
+    expect(repo.getNode(colIds[1]!)?.type).toBe("h")
+    expect(repo.getNode(colIds[2]!)?.type).toBe("h")
   })
 
-  test("buildBoardState filters out code and quote nodes as columns", () => {
+  test("lens groups code and quote nodes into body column", () => {
     const nodes = item.file(
       "readme.md",
       item.code("const x = 1;"),
@@ -88,12 +86,12 @@ describe("State", () => {
       item.section("Getting Started", item("Install dependencies")),
     )
     const repo = createFakeRepo({ nodes })
-    const state = buildBoardState(repo, "readme.md")
-    expect(state.columns).toHaveLength(2)
-    expect(state.columns[0]!.isVirtual).toBe(true)
-    // Each body node is its own navigable card
-    expect(state.columns[0]!.cardNodes).toHaveLength(2)
-    expect(state.columns[1]!.node.id).toBe("Getting Started")
+    const l = lens(repo, "readme.md")
+    const colIds = l.children("readme.md")
+    expect(colIds).toHaveLength(2)
+    expect(l.role(colIds[0]!)).toBe("body-column")
+    expect(l.children(colIds[0]!)).toHaveLength(2)
+    expect(colIds[1]).toBe("Getting Started")
   })
 })
 
