@@ -445,10 +445,11 @@ const Card = React.memo(
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
+    const isBoardLevel = selLevel === "board"
     const borderColor = isEditing
       ? "$focusborder"
-      : isColSelected
-        ? "$surface-bg" // hide borders when column is selected
+      : isColSelected || isBoardLevel
+        ? "$surface-bg" // hide borders when column or board is selected
         : isSelected || isNodeSelected
           ? "$selection-bg"
           : (hoverBorderColor ?? defaultBorder)
