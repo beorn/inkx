@@ -184,8 +184,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   /**
    * Build an OpCtx from store state.
    * Called on each key event to get fresh state.
-   * Reads ViewSnapshot from PaneSignals computed — single build, auto-cached.
-   * Converts to ColumnView[] via viewNodeToColumnViews on demand.
+   * Derives ColumnView[] from the visible lens (PaneSignals.visibleLens computed).
    */
   function buildOpCtx(
     get: () => BoardAppStore,
