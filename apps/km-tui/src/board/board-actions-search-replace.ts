@@ -77,7 +77,7 @@ export function handleSearchReplaceDoReplace(ctx: OpCtx): OpResult {
   if (!replaced) return boundary("search-replace", "Replace failed")
 
   // Recompute matches after replacement
-  const updatedMatches = searchReplaceMatchingNodeIds(ctx.columns, ctx.repo, sr.searchQuery, sr.useRegex)
+  const updatedMatches = searchReplaceMatchingNodeIds(ctx.tree, ctx.repo, sr.searchQuery, sr.useRegex)
   const newMatchIndex = Math.min(sr.matchIndex, Math.max(0, updatedMatches.length - 1))
 
   // Navigate to current match position
@@ -111,7 +111,7 @@ export function handleSearchReplaceDoReplaceAll(ctx: OpCtx): OpResult {
   }
 
   // Recompute matches (should be 0 after replace all)
-  const updatedMatches = searchReplaceMatchingNodeIds(ctx.columns, ctx.repo, sr.searchQuery, sr.useRegex)
+  const updatedMatches = searchReplaceMatchingNodeIds(ctx.tree, ctx.repo, sr.searchQuery, sr.useRegex)
 
   ctx.setUI({
     searchReplace: {
@@ -132,7 +132,7 @@ export function handleSearchReplaceToggleRegex(ctx: OpCtx): OpResult {
   if (!sr) return ok()
 
   const newUseRegex = !sr.useRegex
-  const matches = sr.searchQuery ? searchReplaceMatchingNodeIds(ctx.columns, ctx.repo, sr.searchQuery, newUseRegex) : []
+  const matches = sr.searchQuery ? searchReplaceMatchingNodeIds(ctx.tree, ctx.repo, sr.searchQuery, newUseRegex) : []
 
   // Navigate to first match
   if (matches.length > 0 && matches[0]) {
@@ -174,7 +174,7 @@ export function handleSearchReplaceTabField(ctx: OpCtx): OpResult {
  * and replacements may have mutated the repo since the last render.
  */
 export function searchReplaceMatchingNodeIds(
-  columns: ColumnView[],
+  source: ColumnView[] | import("@km/board").ViewTreeProjection,
   repo: { getNode: (id: string) => import("@km/core").KNode | null | undefined },
   query: string,
   useRegex: boolean,
@@ -194,22 +194,31 @@ export function searchReplaceMatchingNodeIds(
 
   const lowerQuery = query.toLowerCase()
 
-  for (const col of columns) {
-    for (const card of col.cardNodes) {
-      // Re-fetch from repo for freshness after replacements
-      const node = repo.getNode(card.id)
-      if (!node) continue
-      const text = KNode.string(node)
-      if (useRegex && regex) {
-        regex.lastIndex = 0
-        if (regex.test(text)) {
-          matches.push(card.id)
-        }
-      } else {
-        if (text.toLowerCase().includes(lowerQuery)) {
-          matches.push(card.id)
-        }
+  // Collect card IDs from either ColumnView[] or ViewTreeProjection
+  const cardIds: string[] = []
+  if (Array.isArray(source)) {
+    for (const col of source) {
+      for (const card of col.cardNodes) cardIds.push(card.id)
+    }
+  } else {
+    const rootId = source.rootId
+    if (rootId) {
+      for (const colId of source.children(rootId)) {
+        for (const cardId of source.children(colId)) cardIds.push(cardId)
       }
+    }
+  }
+
+  for (const id of cardIds) {
+    // Re-fetch from repo for freshness after replacements
+    const node = repo.getNode(id)
+    if (!node) continue
+    const text = KNode.string(node)
+    if (useRegex && regex) {
+      regex.lastIndex = 0
+      if (regex.test(text)) matches.push(id)
+    } else {
+      if (text.toLowerCase().includes(lowerQuery)) matches.push(id)
     }
   }
   return matches
@@ -271,7 +280,7 @@ export function updateSearchReplaceMatches(ctx: OpCtx, searchQuery: string): voi
   const sr = ctx.ui.searchReplace
   if (!sr) return
 
-  const matchNodeIds = searchReplaceMatchingNodeIds(ctx.columns, ctx.repo, searchQuery, sr.useRegex)
+  const matchNodeIds = searchReplaceMatchingNodeIds(ctx.tree, ctx.repo, searchQuery, sr.useRegex)
   const matchCount = matchNodeIds.length
 
   // Navigate to first match if available
