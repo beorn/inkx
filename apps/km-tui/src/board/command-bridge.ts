@@ -62,6 +62,16 @@ function buildCommandContexts(ctx: OpCtx) {
 
   const dialogInput = PaneUI.isDialogInput(ui)
 
+  // Detect orphaned text selection: sel.text() is non-null but no edit target is mounted.
+  // This can happen when a card is scrolled off screen or the edit field didn't mount.
+  // Clear the orphaned state to prevent keys being captured as TEXT_INSERT.
+  const textSel = ctx.sel.text()
+  const isTextEditing = textSel !== null && activeEditTargetRef.current !== null
+  if (textSel !== null && activeEditTargetRef.current === null) {
+    log.debug?.("Clearing orphaned text selection (no active edit target)")
+    ctx.sel.text.deselect()
+  }
+
   const kbCtx = buildKeybindingContext({
     inMoveMode: ctx.moveState.active,
     inSearchMode: ui.showSearchDialog,
@@ -76,8 +86,8 @@ function buildCommandContexts(ctx: OpCtx) {
       }),
     ),
     currentNode: nodeForCtx,
-    textInputFocused: PaneUI.isTextInputFocused(ui, ctx.sel.text() !== null),
-    isInlineEditing: ctx.sel.text() !== null,
+    textInputFocused: PaneUI.isTextInputFocused(ui, isTextEditing),
+    isInlineEditing: isTextEditing,
     searchDialogOpen: ui.showSearchDialog,
     itemPickerOpen: !!ui.activePicker,
     newItemDialogOpen: ui.showNewItemDialog,

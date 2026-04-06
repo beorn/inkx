@@ -2153,7 +2153,10 @@ describe("edit indentation parity", () => {
     const editX = editLine.indexOf("body child")
 
     // Indentation should be the same (±1 char for cursor/gutter)
-    expect(Math.abs(editX - displayX), `edit indent (${editX}) should be close to display indent (${displayX})`).toBeLessThanOrEqual(2)
+    expect(
+      Math.abs(editX - displayX),
+      `edit indent (${editX}) should be close to display indent (${displayX})`,
+    ).toBeLessThanOrEqual(2)
   })
 })
 
@@ -2164,11 +2167,7 @@ describe("edit indentation parity", () => {
 describe("edit block navigate: Ctrl+N from last card should not jump to column header", () => {
   test("Ctrl+N from last card in col1 navigates to first card of col2, not col2 header", () => {
     const { board } = testEnv(() =>
-      item(
-        "board",
-        item("col1", item("card-a"), item("card-b")),
-        item("col2", item("card-c"), item("card-d")),
-      ),
+      item("board", item("col1", item("card-a"), item("card-b")), item("col2", item("card-c"), item("card-d"))),
     )
 
     // Navigate to last card in col1
@@ -2187,9 +2186,7 @@ describe("edit block navigate: Ctrl+N from last card should not jump to column h
 
 describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
   test("Ctrl+Z in edit mode cleanly exits edit without crash", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item("card-a"), item("card-b"))),
-    )
+    const { board } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
 
     board.expect("#card-a[data-cursor]").toExist()
 
@@ -2209,9 +2206,7 @@ describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
   })
 
   test("Ctrl+Z during active typing in edit mode discards unsaved changes", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("card-a"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("card-a"))))
 
     board.expect("#card-a[data-cursor]").toExist()
 
@@ -2231,9 +2226,7 @@ describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
   })
 
   test("undo after structural operation works when triggered from edit mode", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("card-a"), item("card-b"))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("card-a"), item("card-b"))))
 
     // Make a structural change (priority) that creates an undo entry
     board.expect("#card-a[data-cursor]").toExist()
@@ -2256,9 +2249,7 @@ describe("edit undo: Ctrl+Z during inline edit should not crash", () => {
 
 describe("edit outdent: Shift+Tab should not promote subitem beyond card", () => {
   test("Shift+Tab on direct card child during edit does not promote to column level", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item("card", item("sub1"), item("sub2")))),
-    )
+    const { board, repo } = testEnv(() => item("board", item("col1", item("card", item("sub1"), item("sub2")))))
 
     // Navigate to the card, then block-nav into sub1
     board.expect("#card[data-cursor]").toExist()
@@ -2274,5 +2265,71 @@ describe("edit outdent: Shift+Tab should not promote subitem beyond card", () =>
     // sub1 should still be a child of card, NOT promoted to col1
     const sub1 = repo.getNode("sub1")
     expect(sub1?.parent_id, "sub1 should stay inside card during edit").toBe("card")
+  })
+})
+
+// =============================================================================
+// Empty card heading: navigation keys must NOT corrupt data (km-tui.empty-card-key-capture)
+// =============================================================================
+
+describe("Empty card heading: navigation keys must not corrupt data", () => {
+  test("orphaned text selection cleared on cursor move (P1 bug)", () => {
+    // When sel.text() is non-null but no InlineEditField is mounted
+    // (orphaned edit state), cursor movement should clear the stale text
+    // selection so subsequent keys navigate instead of being captured as text.
+    const { board, repo, store } = testEnv(() =>
+      item("board", item("col1", item("task1"), item("task2"), item("task3"))),
+    )
+
+    board.expect("#task1[data-cursor]").toExist()
+    board.expectNotEditing()
+
+    // Manually set an orphaned text selection (simulates a state where
+    // the edit field was never mounted — e.g., card scrolled off screen)
+    const pane = getActiveBoardPane(store.getState())
+    pane!.sel.text.edit("task1" as any, 0)
+
+    // Now j should still navigate (the orphaned edit state should be cleared)
+    board.press("j")
+
+    // task1 content must be unchanged
+    expect(repo.getNode("task1")?.content, "j must not modify task1").toBe("task1")
+
+    // Cursor should have moved to task2
+    board.expect("#task2[data-cursor]").toExist()
+
+    // Should no longer be in edit mode
+    board.expectNotEditing()
+  })
+
+  test("j/k on heading card with no children navigates instead of typing", () => {
+    // A heading card (type: "h") that has no children — like an empty section
+    // heading in a real vault. j/k should navigate, NOT enter edit mode.
+    const { board, repo } = testEnv(() => {
+      const nodes = item("board", item("col1", item("task1"), item("task2")))
+      // Replace task1 with a heading-type node (simulating an empty section heading)
+      const task1 = nodes.find((n) => n.id === "task1")!
+      task1.type = "h"
+      task1.item = {}
+      task1.data = { name: "Section Heading" }
+      task1.content = undefined
+      task1.name = "section-heading"
+      task1.fstype = "mdsection"
+      return nodes
+    })
+
+    // cursor starts on the heading card
+    board.expectCursorVisible()
+    board.expectNotEditing()
+
+    // Press 'j' to move down — should navigate, not type
+    board.press("j")
+
+    // The heading content must be unchanged
+    const headingNode = repo.getNode("task1")
+    expect(headingNode?.data?.name, "j key corrupted heading text").toBe("Section Heading")
+
+    // Cursor should have moved to task2
+    board.expect("#task2[data-cursor]").toExist()
   })
 })
