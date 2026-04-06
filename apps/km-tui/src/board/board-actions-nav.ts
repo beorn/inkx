@@ -463,6 +463,7 @@ export function navStateFrom(ctx: OpCtx): NavState {
     cursorCardNodeId: ctx.cursorCardNodeId,
     viewTree: ctx.viewTree,
     viewIndex: ctx.viewIndex,
+    tree: ctx.tree,
   }
 }
 

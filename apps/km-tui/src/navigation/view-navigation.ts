@@ -29,10 +29,12 @@ export interface NavState {
   /** Current card containing the cursor (from layout derivation). Used as embed-aware
    * card boundary hint for ViewNode navigation. */
   cursorCardNodeId?: string | null
-  /** ViewNode tree — explicit visual hierarchy for ViewNode-based navigation */
+  /** ViewNode tree — used internally by view-navigation (legacy, migrate to tree) */
   viewTree: ViewNode
-  /** ViewNode index — O(1) lookup by node ID */
+  /** ViewNode index — used internally by view-navigation (legacy, migrate to tree) */
   viewIndex: Map<string, ViewNode>
+  /** ViewTreeProjection — preferred for new code */
+  tree?: import("@km/board").ViewTreeProjection
 }
 
 /**
