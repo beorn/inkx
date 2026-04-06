@@ -75,7 +75,7 @@ export function buildQueryString(
  *
  * Returns the command for chaining.
  */
-export function addSharedQueryOptions<T extends Command>(cmd: T): T {
+export function addSharedQueryOptions<T extends Command<any>>(cmd: T) {
   return cmd
     .option("-s, --status <status>", "Filter by status (todo,wip,blocked,done,dropped)")
     .option("-t, --type <type>", "Filter by type")
@@ -84,5 +84,5 @@ export function addSharedQueryOptions<T extends Command>(cmd: T): T {
     .option("--blocked", "Show only blocked")
     .option("--unblocked", "Show only unblocked")
     .option("--all", "Show all (ignore default filters)")
-    .option("--json", "Output as JSON") as T
+    .option("--json", "Output as JSON")
 }
