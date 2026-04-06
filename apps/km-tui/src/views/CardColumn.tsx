@@ -433,13 +433,15 @@ const Card = React.memo(
       )
     }
 
-    // Card bg: selection tint when directly selected, editing tint when editing.
+    // Direct cursor match: cursor is ON this card (not on a descendant).
+    // isSelected = cursor is anywhere in this card (for border, hover).
+    // isCursorOnCard = cursor is directly on this card node (for inverse title).
     const theme = useTheme()
     const cursor = useSignal(nodeStore.cursor)
-    const isCardDirectlySelected = cursor === nodeId && selLevel === "card"
+    const isCursorOnCard = cursor === nodeId && selLevel === "card"
     const cardBg = isEditing
       ? editingBg(theme)
-      : (isCardDirectlySelected || isNodeSelected)
+      : (isCursorOnCard || isNodeSelected)
         ? selectedBg(theme)
         : undefined
 
@@ -448,10 +450,12 @@ const Card = React.memo(
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
     const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
     const isBoardLevel = selLevel === "board"
+    // When column/board selected, card borders match the tinted bg (blend into it)
+    const tintedBorder = selectedBg(theme)
     const borderColor = isEditing
       ? "$focusborder"
       : isColSelected || isBoardLevel
-        ? "$surface-bg" // hide borders when column or board is selected
+        ? (tintedBorder ?? "$surface-bg")
         : isSelected || isNodeSelected
           ? "$selection-bg"
           : (hoverBorderColor ?? defaultBorder)
@@ -488,7 +492,7 @@ const Card = React.memo(
               node={card}
               depth={0}
               remainingDepth={CARD_REMAINING_DEPTH}
-              isSelected={isSelected}
+              isSelected={isCursorOnCard}
               colIndex={colIndex}
               cardIndex={cardIndex}
               dimInactiveChildren={false}
@@ -527,7 +531,7 @@ const Card = React.memo(
           node={card}
           depth={0}
           remainingDepth={CARD_REMAINING_DEPTH}
-          isSelected={isSelected}
+          isSelected={isCursorOnCard}
           colIndex={colIndex}
           cardIndex={cardIndex}
           dimInactiveChildren={false}
