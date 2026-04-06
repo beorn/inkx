@@ -10,7 +10,6 @@ import type { ID } from "@silvery/selection"
 import { KNode } from "@km/core"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import type { ColumnView } from "../hooks/use-columns.ts"
 import { runRepoEffect } from "./board-effect-runner.ts"
 
 /** Open the search & replace dialog */
@@ -174,7 +173,7 @@ export function handleSearchReplaceTabField(ctx: OpCtx): OpResult {
  * and replacements may have mutated the repo since the last render.
  */
 export function searchReplaceMatchingNodeIds(
-  source: ColumnView[] | import("@km/board").ViewTreeProjection,
+  source: import("@km/board").ViewTreeProjection,
   repo: { getNode: (id: string) => import("@km/core").KNode | null | undefined },
   query: string,
   useRegex: boolean,
@@ -194,18 +193,12 @@ export function searchReplaceMatchingNodeIds(
 
   const lowerQuery = query.toLowerCase()
 
-  // Collect card IDs from either ColumnView[] or ViewTreeProjection
+  // Collect card IDs from ViewTreeProjection
   const cardIds: string[] = []
-  if (Array.isArray(source)) {
-    for (const col of source) {
-      for (const card of col.cardNodes) cardIds.push(card.id)
-    }
-  } else {
-    const rootId = source.rootId
-    if (rootId) {
-      for (const colId of source.children(rootId)) {
-        for (const cardId of source.children(colId)) cardIds.push(cardId)
-      }
+  const rootId = source.rootId
+  if (rootId) {
+    for (const colId of source.children(rootId)) {
+      for (const cardId of source.children(colId)) cardIds.push(cardId)
     }
   }
 

@@ -9,52 +9,24 @@ import { type OpResult, boundary, ok } from "@km/commands"
 import type { ID } from "@silvery/selection"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
-import type { ColumnView } from "../hooks/use-columns.ts"
-
-/** Collect visible node IDs from columns in visual order */
-export function collectVisibleNodeIds(columns: ColumnView[]): string[] {
-  const ids: string[] = []
-  for (const col of columns) {
-    for (const card of col.cardNodes) {
-      ids.push(card.id)
-    }
-  }
-  return ids
-}
 
 /**
  * Search visible nodes for a query string (case-insensitive substring).
  * Pure function — usable from both action handlers and React callbacks.
  */
-export function findMatchingNodeIds(columns: ColumnView[], query: string): string[]
-export function findMatchingNodeIds(tree: import("@km/board").ViewTreeProjection, query: string): string[]
-export function findMatchingNodeIds(
-  source: ColumnView[] | import("@km/board").ViewTreeProjection,
-  query: string,
-): string[] {
+export function findMatchingNodeIds(tree: import("@km/board").ViewTreeProjection, query: string): string[] {
   if (!query) return []
   const lowerQuery = query.toLowerCase()
   const matches: string[] = []
 
-  if (Array.isArray(source)) {
-    // ColumnView[] path (Board.tsx React component)
-    for (const col of source) {
-      for (const card of col.cardNodes) {
-        const text = (card.content ?? card.name ?? "").toLowerCase()
-        if (text.includes(lowerQuery)) matches.push(card.id)
-      }
-    }
-  } else {
-    // ViewTreeProjection path (action handlers via ctx.tree)
-    const rootId = source.rootId
-    if (!rootId) return matches
-    for (const colId of source.children(rootId)) {
-      for (const cardId of source.children(colId)) {
-        const node = source.node(cardId)
-        if (!node) continue
-        const text = (node.content ?? node.name ?? "").toLowerCase()
-        if (text.includes(lowerQuery)) matches.push(cardId)
-      }
+  const rootId = tree.rootId
+  if (!rootId) return matches
+  for (const colId of tree.children(rootId)) {
+    for (const cardId of tree.children(colId)) {
+      const node = tree.node(cardId)
+      if (!node) continue
+      const text = (node.content ?? node.name ?? "").toLowerCase()
+      if (text.includes(lowerQuery)) matches.push(cardId)
     }
   }
   return matches

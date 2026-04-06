@@ -885,8 +885,6 @@ export function Board({ patchedConsole }: BoardProps) {
   // Register find/search-replace handlers for workspace chrome.
   // These run in the focused Board connector which has access to filtered columns.
   const storeRef = React.useContext(StoreContext)
-  const columnsRef = useRef(filteredColumns)
-  columnsRef.current = filteredColumns
   const findTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
   const handleFindQueryChange = useCallback(
     (query: string) => {
@@ -901,7 +899,7 @@ export function Board({ patchedConsole }: BoardProps) {
       }))
       clearTimeout(findTimerRef.current)
       const computeMatches = () => {
-        const matchNodeIds = findMatchingNodeIds(columnsRef.current, query)
+        const matchNodeIds = findMatchingNodeIds(ps.viewTree, query)
         if (matchNodeIds.length > 0 && matchNodeIds[0]) {
           sel.node.select([matchNodeIds[0] as import("@silvery/selection").ID])
         }
@@ -937,7 +935,7 @@ export function Board({ patchedConsole }: BoardProps) {
       const computeMatches = () => {
         const latestSr = searchReplaceRef.current
         if (!latestSr) return
-        const matchNodeIds = searchReplaceMatchingNodeIds(columnsRef.current, repo, searchQuery, latestSr.useRegex)
+        const matchNodeIds = searchReplaceMatchingNodeIds(ps.viewTree, repo, searchQuery, latestSr.useRegex)
         if (matchNodeIds.length > 0 && matchNodeIds[0]) {
           sel.node.select([matchNodeIds[0] as import("@silvery/selection").ID])
         }
