@@ -1,8 +1,69 @@
 /**
- * Selection Styling Rules
+ * Selection + Inline Styling Rules — km-tui style system
  *
- * Codifies all visual treatment for selection/cursor state in km.
- * One place to understand, one place to change.
+ * Codifies all visual treatment for selection/cursor state AND the precedence
+ * order for composing cell styles in km. One place to understand, one place
+ * to change. If you change any styling logic in km-tui, update this file too.
+ *
+ * ## Precedence: how a cell's final style is composed
+ *
+ * Four independent sources contribute to a cell's rendered output. They
+ * compose in this fixed order — LATER layers override EARLIER layers for any
+ * attribute they set:
+ *
+ * ```
+ *   1. Content intent     — leaf components (InlineWikiLink, InlineCode, InlineMention, …)
+ *                           emit color/underline/dim based on what the CONTENT means
+ *                           (e.g. code → $inputborder fg, broken link → dashed $error underline)
+ *
+ *   2. Type state         — done/dropped tasks strip colors; headings get bold; body
+ *                           items get dim. Applied via tree-node-helpers.computeNodeStyle().
+ *
+ *   3. Container state    — the cell's wrapping card/column/board tint when
+ *                           cursor is at that level (subtle primary blend via selectedBg).
+ *                           Applied via CardColumn.tsx / Board.tsx backgroundColor.
+ *
+ *   4. Cursor state       — the cursor NODE gets inverse-yellow head row
+ *                           ($selection-bg bg + $selection fg). This forces the fg
+ *                           color across the entire cursor line, so leaves in this
+ *                           cell MUST be cursor-safe (see "Cursor-safe leaves" below).
+ * ```
+ *
+ * ## Cursor-safe leaves
+ *
+ * When a leaf component applies its own `color=` attribute, it competes with
+ * the cursor inverse at layer 4. Two strategies:
+ *
+ * a) Route through `resolveColor(ctx, token)` — the leaf's color becomes
+ *    `undefined` when `colorOverride === null` (cursor/done path), and the
+ *    cursor's forced fg wins cleanly. This is the CURRENT model for most
+ *    leaves: `color={resolveColor(ctx, "$inputborder")}` etc.
+ *
+ * b) Don't set fg at all — use DECORATION attributes (underlineStyle,
+ *    underlineColor, dim, italic) which pass through layer 4 unchanged
+ *    because cursor inverse only forces fg/bg, not decorations. This is
+ *    the RIGHT model for "broken wikilink", "external link", and any
+ *    content marker that must be visible in ALL states.
+ *
+ * Rule of thumb: if the marker must be visible under the cursor, use
+ * decoration (b). If the marker is informational and can be dimmed under
+ * the cursor, use resolveColor (a).
+ *
+ * ## Known gaps in the current precedence model (tracked in km-silvery.variant-style-system)
+ *
+ * - `colorOverride` only handles fg. Decoration attributes (underline, dim,
+ *   bold, bg) don't go through it — they pass through regardless. This is
+ *   fine for the cursor-safe decoration rule above, but it means inconsistent
+ *   enforcement: a leaf can hardcode `underlineStyle` and nothing can strip it.
+ *
+ * - `shouldStripColor` is computed 4 different ways across TreeNode, NodeView,
+ *   DetailView, and shared-components. They should share one helper.
+ *
+ * - Hardcoded hex values exist (e.g. `#404050` pill bg in InlineComponents.tsx).
+ *   They bypass the theme token system and break dark/light mode consistency.
+ *
+ * - Enforcement is convention-only. There's no lint rule banning raw `color=`
+ *   or requiring `resolveColor`. Tracked in km-infra.style-precedence-lint.
  *
  * ## Hierarchy
  *

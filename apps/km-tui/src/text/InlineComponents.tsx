@@ -297,11 +297,20 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
     )
   }
   // Unresolved (broken wikilink): visual cue so it's obviously not a normal word.
-  // Red foreground + dashed underline in $error. Hover popover still works so the
-  // user can see what the unresolved target was.
+  //
+  // CURSOR-SAFE BY CONSTRUCTION: we intentionally do NOT set a foreground color
+  // here, because a red fg competes with cursor-inverse styling (the cell's fg
+  // gets forced to $selection on the cursor line, and inline colors get
+  // stripped via colorOverride=null on the subtree). Leaving fg alone means the
+  // cursor state can set fg freely, and the dashed $error underline passes
+  // through all states unchanged because decoration attributes are not
+  // composed into the fg/bg override pipeline.
+  //
+  // Follows VS Code / Obsidian convention: broken refs are indicated by
+  // decoration, not color substitution. Hover popover still works so the user
+  // can see what the unresolved target was.
   return (
     <Text
-      color={resolveColor(ctx, "$error")}
       underlineStyle="dashed"
       underlineColor="$error"
       onMouseEnter={onMouseEnter}
