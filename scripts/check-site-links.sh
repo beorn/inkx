@@ -24,6 +24,9 @@ if ! command -v lychee >/dev/null 2>&1; then
 fi
 
 # Sites to check — keep aligned with marketing/SKILL.md "Sites" table.
+# github.com/beorn is included because GitHub repo metadata (homepage URL,
+# README links, pinned-repo descriptions) is part of our marketing surface.
+# Recently bitten: bearly's homepage URL still pointed at the dead beorn.github.io/tools.
 ALL_SITES=(
   "https://silvery.dev"
   "https://terminfo.dev"
@@ -32,6 +35,7 @@ ALL_SITES=(
   "https://beorn.codes/flexily"
   "https://beorn.codes/loggily"
   "https://beorn.codes/mdspec"
+  "https://github.com/beorn"
 )
 
 QUICK=0
