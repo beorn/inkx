@@ -249,11 +249,7 @@ describe("Local Find", () => {
     // missing sub-items projected as "subitem" view type under cards.
     // Fix: walk the full visible projection via tree.walkOrder.
     const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col", item("parent-card", item("deeply-nested-subitem"), item("another-subitem"))),
-        ),
+      () => item("board", item("col", item("parent-card", item("deeply-nested-subitem"), item("another-subitem")))),
       { columns: 120 },
     )
     board.command("local_find")
@@ -274,11 +270,7 @@ describe("Local Find", () => {
   test("finds parent cards AND their sub-items for a matching query", () => {
     // Both a card title and its sub-items should be searchable.
     const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("todo", item("buy milk", item("buy eggs"), item("buy bread")), item("walk dog")),
-        ),
+      () => item("board", item("todo", item("buy milk", item("buy eggs"), item("buy bread")), item("walk dog"))),
       { columns: 120 },
     )
     board.command("local_find")

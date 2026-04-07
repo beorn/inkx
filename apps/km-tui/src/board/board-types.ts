@@ -135,6 +135,9 @@ export interface BoardPaneState extends PaneStateBase {
   rootPath: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
+  /** Sticky folds — per-node fold state that survives fold-all/unfold-all.
+   *  Map<nodeId, "folded" | "unfolded">. Persisted to .km/sticky-folds.json. */
+  stickyFolds: Map<string, "folded" | "unfolded">
   navHistory: NavHistoryEntry[]
   navHistoryIndex: number
   moveState: MoveState
@@ -301,6 +304,7 @@ export function createPaneState(
     rootPath: board.rootPath,
     foldDepths: board.foldDepths,
     collapsedNodes: board.collapsedNodes,
+    stickyFolds: new Map(),
     navHistory: board.navHistory,
     navHistoryIndex: board.navHistoryIndex,
     moveState: board.moveState,

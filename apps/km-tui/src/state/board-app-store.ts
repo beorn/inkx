@@ -50,6 +50,14 @@ import { signal, effect } from "alien-signals"
 import { createSelectionAdapter, type SelectionTreeSource } from "./selection-adapter.ts"
 import { createPaneSignals } from "./pane-signals.ts"
 import { computeHiddenNodeIds } from "../hidden.ts"
+import {
+  readStickyFolds,
+  createStickyFoldsWriter,
+  setSticky as mapSetSticky,
+  removeSticky as mapRemoveSticky,
+  type StickyFolds,
+  type StickyState,
+} from "../sticky-folds.ts"
 import { classifyCursorFromLens, CARD_REMAINING_DEPTH } from "@km/board"
 import { getViewNavigation } from "../navigation/view-navigation.ts"
 import { createUndoStack, type UndoStack } from "../undo-stack.ts"
@@ -202,6 +210,14 @@ export interface BoardAppActions {
 
   // Fold operations (single source of truth at store root)
   setFoldDepths(depths: Map<string, number>): void
+
+  // Sticky fold operations (per-node fold state that persists + survives fold-all/unfold-all)
+  /** Pin a node as sticky-folded or sticky-unfolded (persisted to .km/sticky-folds.json) */
+  setStickyFold(nodeId: string, state: "folded" | "unfolded"): void
+  /** Remove a node's sticky fold state (persisted) */
+  removeStickyFold(nodeId: string): void
+  /** Check whether a node currently has any sticky fold state. */
+  isStickyFold(nodeId: string): boolean
 
   // Direct setters
   setTextEditTarget(target: EditTarget | null): void
@@ -437,6 +453,11 @@ export function createBoardAppStoreState(
     const undoStack = createUndoStack()
     const { repo: undoableRepo, handle: undoHandle } = createUndoableRepo(params.repo, undoStack)
 
+    // Load sticky folds from disk — one .km/sticky-folds.json per repo, shared by all panes.
+    // Writes are debounced to avoid thrashing the filesystem on rapid toggles.
+    const initialStickyFolds: StickyFolds = params.repo.path ? readStickyFolds(params.repo.path) : new Map()
+    const stickyFoldsWriter = params.repo.path ? createStickyFoldsWriter(params.repo.path) : null
+
     // Bridge repo's subscribe/getSnapshot to alien-signals.
     // The repoVersion signal is a dependency for the computed view lens —
     // when repo mutates, this signal bumps, which invalidates the computed.
@@ -466,6 +487,11 @@ export function createBoardAppStoreState(
     // The computed view lens auto-invalidates when repo/rootId/foldDepths change.
     // The sel adapter reads from the lens — no manual auto-refresh needed.
     function initPaneSignals(pane: BoardPaneState): void {
+      // Seed the pane's sticky folds from the initial repo load if it hasn't been set.
+      // The sticky folds file is per-repo, so every pane shares the same initial map.
+      if (pane.stickyFolds.size === 0 && initialStickyFolds.size > 0) {
+        pane.stickyFolds = new Map(initialStickyFolds)
+      }
       pane.signals = createPaneSignals({
         id: pane.id,
         sel: pane.sel,
@@ -476,6 +502,7 @@ export function createBoardAppStoreState(
         rootPath: pane.rootPath ?? null,
         foldDepths: pane.foldDepths,
         collapsedNodes: pane.collapsedNodes,
+        stickyFolds: pane.stickyFolds,
         viewMode: pane.viewMode,
         moveState: pane.moveState,
         taskStatusFilter: pane.filterProperties?.taskStatus,
@@ -511,6 +538,7 @@ export function createBoardAppStoreState(
       pane.signals.rootPath(pane.rootPath)
       pane.signals.foldDepths(pane.foldDepths)
       pane.signals.collapsedNodes(pane.collapsedNodes)
+      pane.signals.stickyFolds(pane.stickyFolds)
       pane.signals.moveState(pane.moveState)
       pane.signals.viewMode(pane.viewMode)
       // Sync sel root when rootId changes (zoom/SET_ROOT). Without this,
@@ -561,12 +589,6 @@ export function createBoardAppStoreState(
       },
       get text() {
         return getActiveSel().text
-      },
-      get path() {
-        return getActiveSel().path
-      },
-      get crop() {
-        return getActiveSel().crop
       },
       get drag() {
         return getActiveSel().drag
@@ -1030,6 +1052,49 @@ export function createBoardAppStoreState(
             }
           }
         }
+      },
+
+      // --- Sticky folds ---
+      //
+      // Sticky folds are per-node fold pins that survive fold-all/unfold-all
+      // and are persisted to .km/sticky-folds.json. Writes are debounced.
+      //
+      // Phase 1 wiring: state plumbing only — not yet consulted by fold-all /
+      // unfold-all, and not yet exposed via a command. See km-tui.sticky-fold.
+
+      setStickyFold(nodeId: string, state: StickyState) {
+        set((s) => {
+          const focusedPaneId = s.workspace.focusedPaneId
+          const pane = s.workspace.panes.get(focusedPaneId)
+          if (!pane || !isBoardPane(pane)) return s
+          const nextFolds = mapSetSticky(pane.stickyFolds, nodeId, state)
+          const newPanes = updateBoardPane(s.workspace, focusedPaneId, pane, { stickyFolds: nextFolds })
+          return { workspace: { ...s.workspace, panes: newPanes } }
+        })
+        const boardPane = getActiveBoardPane(_get())
+        if (boardPane?.signals) syncPaneSignals(boardPane)
+        // Persist (debounced) — uses the focused pane's map as the authoritative copy.
+        if (stickyFoldsWriter && boardPane) stickyFoldsWriter.schedule(boardPane.stickyFolds)
+      },
+
+      removeStickyFold(nodeId: string) {
+        set((s) => {
+          const focusedPaneId = s.workspace.focusedPaneId
+          const pane = s.workspace.panes.get(focusedPaneId)
+          if (!pane || !isBoardPane(pane)) return s
+          const nextFolds = mapRemoveSticky(pane.stickyFolds, nodeId)
+          if (nextFolds === pane.stickyFolds) return s
+          const newPanes = updateBoardPane(s.workspace, focusedPaneId, pane, { stickyFolds: nextFolds })
+          return { workspace: { ...s.workspace, panes: newPanes } }
+        })
+        const boardPane = getActiveBoardPane(_get())
+        if (boardPane?.signals) syncPaneSignals(boardPane)
+        if (stickyFoldsWriter && boardPane) stickyFoldsWriter.schedule(boardPane.stickyFolds)
+      },
+
+      isStickyFold(nodeId: string): boolean {
+        const boardPane = getActiveBoardPane(_get())
+        return boardPane?.stickyFolds.has(nodeId) ?? false
       },
 
       setTextEditTarget(target: EditTarget | null) {

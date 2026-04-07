@@ -48,6 +48,8 @@ export interface PaneSignals {
   readonly rootPath: Signal<string | null>
   readonly foldDepths: Signal<Map<string, number>>
   readonly collapsedNodes: Signal<Set<string>>
+  /** Sticky folds — per-node fold state persisted to .km/sticky-folds.json. */
+  readonly stickyFolds: Signal<Map<string, "folded" | "unfolded">>
 
   // View config
   readonly viewMode: Signal<ViewMode>
@@ -90,6 +92,8 @@ export interface CreatePaneSignalsOptions {
   rootPath: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
+  /** Initial sticky folds map (nodeId → "folded" | "unfolded"). */
+  stickyFolds?: Map<string, "folded" | "unfolded">
   viewMode: ViewMode
   moveState: MoveState
   /** Initial hidden node IDs (from .km/hidden file). Excluded from the view lens. */
@@ -110,6 +114,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
   const rootPath = signal(opts.rootPath)
   const foldDepths = signal(opts.foldDepths)
   const collapsedNodes = signal(opts.collapsedNodes)
+  const stickyFolds = signal(opts.stickyFolds ?? new Map<string, "folded" | "unfolded">())
   const viewMode = signal(opts.viewMode)
   const moveState = signal(opts.moveState)
   const curswantX = signal<number | null>(null)
@@ -156,6 +161,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     rootPath,
     foldDepths,
     collapsedNodes,
+    stickyFolds,
     viewMode,
     moveState,
     curswantX,
