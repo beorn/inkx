@@ -428,7 +428,12 @@ import {
   handleZoomOutwards,
   handleZoomToRoot,
 } from "./board-actions-zoom.ts"
-import { handleLocalFindOpen, handleLocalFindNext, handleLocalFindPrev } from "./board-actions-find.ts"
+import {
+  handleLocalFindOpen,
+  handleLocalFindNext,
+  handleLocalFindPrev,
+  handleLocalFindConfirm,
+} from "./board-actions-find.ts"
 import {
   handleSearchReplaceOpen,
   handleSearchReplaceNext,
@@ -1426,12 +1431,7 @@ function handleDialogAction(ctx: OpCtx, action: DialogOp): OpResult {
       ctx.setUI({ localSearch: null })
       return ok()
     case "LOCAL_FIND_CONFIRM":
-      if (ctx.ui.localSearch) {
-        ctx.setUI({
-          localSearch: { ...ctx.ui.localSearch, isInputActive: false },
-        })
-      }
-      return ok()
+      return handleLocalFindConfirm(ctx)
     case "SEARCH_REPLACE_OPEN":
       return handleSearchReplaceOpen(ctx)
     case "SEARCH_REPLACE_CLOSE":

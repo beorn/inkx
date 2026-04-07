@@ -9,6 +9,7 @@ import { type OpResult, boundary, ok } from "@km/commands"
 import type { ID } from "@silvery/selection"
 import { getNodeDisplayName } from "@km/tree"
 import type { KNode } from "@km/core"
+import { activeEditTargetRef } from "@silvery/ag-react"
 import { clearSelection } from "./board-selection-helpers.ts"
 import type { OpCtx } from "../tui-context.ts"
 
@@ -119,4 +120,41 @@ export function updateLocalSearchMatches(ctx: OpCtx, query: string): void {
       matchNodeIds,
     },
   })
+}
+
+/**
+ * Confirm the local find — exit input mode but keep cursor on current match.
+ *
+ * This must flush any pending debounced query change before committing. When
+ * the user types a query and presses Enter before the 150ms debounce fires,
+ * ui.localSearch still holds the stale (empty or old) query and 0 matches.
+ * We fix this by reading the live query from the active edit target and
+ * recomputing matches synchronously. See km-tui.search-debounce-race.
+ */
+export function handleLocalFindConfirm(ctx: OpCtx): OpResult {
+  const ls = ctx.ui.localSearch
+  if (!ls) return ok()
+
+  // Flush pending debounce: prefer the live value from the edit target
+  // (captures keystrokes the debounce hasn't propagated yet), fall back to
+  // the committed query in UI state.
+  const liveQuery = activeEditTargetRef.current?.getContent() ?? ls.query
+  const matchNodeIds = findMatchingNodeIds(ctx.tree, liveQuery)
+  const matchCount = matchNodeIds.length
+
+  // Navigate to first match if the flush surfaced new matches.
+  if (matchCount > 0 && matchNodeIds[0]) {
+    ctx.sel.node.select([matchNodeIds[0] as ID])
+  }
+
+  ctx.setUI({
+    localSearch: {
+      query: liveQuery,
+      isInputActive: false,
+      matchIndex: 0,
+      matchCount,
+      matchNodeIds,
+    },
+  })
+  return ok()
 }

@@ -267,6 +267,67 @@ describe("Local Find", () => {
     expect(ls!.matchNodeIds).toContain("deeply-nested-subitem")
   })
 
+  // ---------------------------------------------------------------------------
+  // Debounce race — Enter before debounce fires (km-tui.search-debounce-race)
+  // ---------------------------------------------------------------------------
+
+  test("Enter before debounce flushes pending query and finds matches", () => {
+    // Regression for km-tui.search-debounce-race (P1):
+    //
+    // Repro the race: user types a query and presses Enter BEFORE the 150ms
+    // debounce in FindInput fires. At that instant the edit context holds
+    // the real query ("ox") but ui.localSearch still has the stale pre-
+    // debounce values (query="", matchCount=0). Without the fix, the
+    // LOCAL_FIND_CONFIRM handler just flips isInputActive → false while
+    // committing the stale state, so the user sees "No matches".
+    //
+    // We simulate the race in two steps:
+    //   1) Press the keys so the edit context holds "ox" (in test mode the
+    //      debounce is bypassed, so ui.localSearch also gets populated).
+    //   2) Force ui.localSearch back to the stale pre-debounce state while
+    //      leaving the edit context intact. This reproduces exactly what
+    //      state looks like during the debounce window in production.
+    //
+    // Then press Enter — the fix must flush the pending query (read the
+    // live edit target) and commit real matches.
+    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
+    board.command("local_find")
+
+    // Step 1: type "ox" via real commands (insert_below='o', toggle_task_done='x').
+    // This populates both the edit context AND ui.localSearch (act bypass).
+    board.command("insert_below")
+    board.command("toggle_task_done")
+    expect(getActiveBoardPane(store.getState())!.localSearch?.query).toBe("ox")
+
+    // Step 2: force ui.localSearch back to the stale pre-debounce state —
+    // empty query, no matches, input still active. The edit context is
+    // untouched so it still holds "ox" (the real user input).
+    const storeApi = store as unknown as { getState(): { setUI: (p: unknown) => void } }
+    storeApi.getState().setUI({
+      localSearch: {
+        query: "",
+        isInputActive: true,
+        matchIndex: 0,
+        matchCount: 0,
+        matchNodeIds: [],
+      },
+    })
+
+    // Step 3: user presses Enter. LOCAL_FIND_CONFIRM must flush the pending
+    // search — read the live value from the edit target, recompute matches,
+    // and commit them before flipping isInputActive → false.
+    board.press("Enter")
+
+    const ls = getActiveBoardPane(store.getState())!.localSearch
+    expect(ls).not.toBeNull()
+    expect(ls!.isInputActive).toBe(false)
+    // Matches MUST have been computed from the flushed query.
+    expect(ls!.query).toBe("ox")
+    expect(ls!.matchCount).toBe(2)
+    expect(ls!.matchNodeIds).toContain("fox")
+    expect(ls!.matchNodeIds).toContain("box")
+  })
+
   test("finds parent cards AND their sub-items for a matching query", () => {
     // Both a card title and its sub-items should be searchable.
     const { board, store } = testEnv(
