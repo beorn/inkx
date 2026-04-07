@@ -363,16 +363,20 @@ and all verb chords (a#, a@, m+, m[, etc.).
 
 | Key | Action |
 |-----|--------|
-| q | Quit (prompts on unsaved changes) |
+| Ctrl+c | Quit immediately |
+| : | Omnibox (type `quit` to exit) |
 | ? | Help |
 | / | Local find |
-| : | Omnibox |
 | c / C | Capture new (quick-add to inbox) |
 | Ctrl+k / Cmd+k | Omnibox |
 | Ctrl+f | Local find |
 | Cmd+n | Capture new (kitty) |
 | , | Settings / view modes |
 | \` | Debug console |
+
+> Bare `q` is intentionally **unbound**. A single fat-finger keystroke must
+> never destroy the session — especially after an incomplete chord like `vq`
+> where the user meant `vs`. See bead km-tui.q-quits-no-confirm.
 
 ## Mouse
 

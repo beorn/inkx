@@ -48,10 +48,10 @@ describe("Inline Editing", () => {
     board.expect("#1a[data-cursor]").toExist()
     board.press("Enter")
 
-    // These keys would navigate/quit in normal mode
+    // These keys would navigate in normal mode
     board.command("cursor_down")
     board.command("cursor_up")
-    board.command("quit")
+    board.press("q") // `q` is unbound in normal mode, but also must not leak to board commands while editing
     board.command("cursor_right")
 
     // Board should still be intact (didn't quit or navigate)

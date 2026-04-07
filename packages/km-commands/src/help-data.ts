@@ -121,7 +121,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: ["?"], command: "show_help", description: "help" },
       { keys: [",", "⌘,"], command: "settings", description: "settings" },
       { keys: ["`"], command: "console.toggle", description: "console" },
-      { keys: ["q", "esc"], command: "quit", description: "quit" },
+      { keys: ["⌃c", ": q"], command: "quit", description: "quit" },
     ],
   },
 ]

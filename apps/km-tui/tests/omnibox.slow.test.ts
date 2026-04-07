@@ -79,7 +79,7 @@ describe("omnibox", () => {
   it("shows no results for garbage query", () => {
     const { board } = standardBoard()
     board.command("command_palette")
-    board.command("zoom_inwards").command("zoom_inwards").command("zoom_inwards").command("quit").command("quit")
+    board.command("zoom_inwards").command("zoom_inwards").command("zoom_inwards").press("q").press("q")
     const screenshot = board.screenshot()
     expect(screenshot).toContain("No results")
   })

@@ -161,7 +161,9 @@ const COMMAND_TO_KEYS: Record<string, string[]> = {
   decrease_content_lines: [","],
   local_find: ["/"],
   command_palette: [":"],
-  quit: ["q"],
+  // `quit` has no keybinding in normal mode (bead km-tui.q-quits-no-confirm).
+  // Tests that want to press the literal `q` key should use `board.press("q")`.
+  // Tests that need to quit the app can drive it via the omnibox / `command_palette`.
 
   // Detail
   toggle_detail_pane: ["D"],

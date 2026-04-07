@@ -651,9 +651,13 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
     expect(resolveKeybinding("`", {}, ctx)).toEqual({ commandId: "console.close" })
   })
 
-  it("console: q quits", () => {
+  // Regression: bead km-tui.q-quits-no-confirm.
+  // A bare `q` must never kill the session — not in the console modal and not in
+  // normal mode. Inside the console, `q` closes the console (symmetric with
+  // Escape and backtick).
+  it("console: q closes console (not quits)", () => {
     const ctx = createContext({ consoleOpen: true })
-    expect(resolveKeybinding("q", {}, ctx)).toEqual({ commandId: "quit" })
+    expect(resolveKeybinding("q", {}, ctx)).toEqual({ commandId: "console.close" })
   })
 
   it("console: j is absorbed (noop)", () => {
@@ -680,6 +684,22 @@ describe("modal keybindings (initDefaultKeybindings)", () => {
   it("Ctrl+T fires task dialog", () => {
     const ctx = createContext()
     expect(resolveKeybinding("t", { ctrl: true }, ctx)).toEqual({ commandId: "task_dialog" })
+  })
+
+  // Regression: bead km-tui.q-quits-no-confirm.
+  // A bare `q` must NOT quit the app from normal mode. Users often press `q`
+  // after a fat-fingered chord (e.g. they meant `vs` and typed `vq`). Quit is
+  // only available through the command palette (Ctrl+K / Cmd+K / `:`),
+  // Ctrl+C, or contextual Escape (close_or_quit).
+  it("normal mode: bare q is unbound (does not quit)", () => {
+    const ctx = createContext()
+    expect(resolveKeybinding("q", {}, ctx)).toBeNull()
+  })
+
+  it("normal mode: bare q does not resolve to the quit command", () => {
+    const ctx = createContext()
+    const resolved = resolveKeybinding("q", {}, ctx)
+    expect(resolved?.commandId).not.toBe("quit")
   })
 })
 
@@ -1150,7 +1170,7 @@ describe("text mode keybinding separation", () => {
     // Navigation keys that should NOT fire in text mode
     it.each([
       ["m", {}, "enter_move_mode"],
-      ["q", {}, "quit"],
+      // `q` removed: bare q → quit was unbound (bead km-tui.q-quits-no-confirm).
       // v is now chord-only (v v = visual mode), tested in chord section
       ["/", {}, "local_find"],
       ["/", { shift: true }, "show_help"],

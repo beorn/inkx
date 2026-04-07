@@ -480,7 +480,9 @@ describe("Help overlay", () => {
     board.command("show_help")
     expect(store.getState().ui.showHelp).toBe(true)
 
-    board.command("quit")
+    // Bare `q` is unbound in normal mode (bead km-tui.q-quits-no-confirm),
+    // but inside the help overlay it still dismisses the overlay.
+    board.press("q")
     expect(store.getState().ui.showHelp).toBe(false)
   })
 

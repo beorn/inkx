@@ -274,7 +274,7 @@ Chords require pressing the prefix key, then the second key within a timeout. If
 
 | Key | TTY press | Command | Description |
 |-----|-----------|---------|-------------|
-| `q` | `q` | quit | Exit the TUI |
+| `Ctrl+C` | `Control+c` | quit | Exit the TUI (bare `q` is unbound — see km-tui.q-quits-no-confirm) |
 | `Escape` | `Escape` | close_or_quit | Close current dialog/pane, or quit |
 | `` ` `` | `` ` `` | console.toggle | Toggle console overlay |
 | `Ctrl+T` | `Control+t` | task_dialog | Open task dialog |
@@ -372,8 +372,7 @@ These keys only work during inline editing or when a text input field is active.
 | Help overlay | any other key | any | noop | All keys absorbed |
 | Delete confirm | `Enter` | `Enter` | delete_confirm.confirm | Execute deletion |
 | Delete confirm | any other key | any | delete_confirm.cancel | Cancel deletion |
-| Console | `Escape` / `` ` `` | `Escape` / `` ` `` | console.close | Close console |
-| Console | `q` | `q` | quit | Quit from console |
+| Console | `Escape` / `` ` `` / `q` | `Escape` / `` ` `` / `q` | console.close | Close console |
 | Console | any other key | any | noop | All keys absorbed |
 | Toast active | `Escape` | `Escape` | toast.dismiss | Dismiss toast (not during inline edit) |
 | Detail pane focused | `Escape` | `Escape` | close_or_quit | Unfocus detail pane (returns to board) |

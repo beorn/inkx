@@ -509,10 +509,12 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "Enter", commandId: "delete_confirm.confirm", when: deleteConfirmOpen },
         { key: "*", wildcard: true, commandId: "delete_confirm.cancel", when: deleteConfirmOpen },
 
-        // Console — Escape/backtick close, q quits, absorb rest
+        // Console — Escape/backtick/q close console, absorb rest.
+        // q closes the console (not quit) — a bare `q` must never kill the session.
+        // See bead km-tui.q-quits-no-confirm.
         { key: "Escape", commandId: "console.close", when: consoleOpen },
         { key: "`", commandId: "console.close", when: consoleOpen },
-        { key: "q", commandId: "quit", when: consoleOpen },
+        { key: "q", commandId: "console.close", when: consoleOpen },
         { key: "*", wildcard: true, commandId: "noop", when: consoleOpen },
 
         // Toast dismiss (non-blocking — only intercepts Escape when toast active)
@@ -1061,7 +1063,12 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "tui",
       bindings: [
-        { key: "q", commandId: "quit" },
+        // Bare `q` → quit is intentionally UNBOUND.
+        // A single fat-finger keystroke must never destroy the session (especially
+        // after an incomplete chord like `vq` where the user meant `vs`). Quit is
+        // still available via Ctrl+C, the command palette (Ctrl+K / Cmd+K / `:`)
+        // as the "quit" command, or contextual Escape (`close_or_quit`) when there
+        // is nothing left to close. See bead km-tui.q-quits-no-confirm.
         { key: "/", commandId: "local_find" },
         { key: "cmd-f", commandId: "local_find" },
         { key: "cmd-shift-f", commandId: "search_replace" },

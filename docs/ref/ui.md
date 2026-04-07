@@ -708,10 +708,15 @@ Press `?` in the TUI to show the interactive help overlay.
 
 ### General
 
-| Key | Action              |
-| --- | ------------------- |
-| `?` | Toggle help overlay |
-| `q` | Quit                |
+| Key         | Action                                        |
+| ----------- | --------------------------------------------- |
+| `?`         | Toggle help overlay                           |
+| `Escape`    | Close current dialog/pane/mode                |
+| `Ctrl+K` or `Cmd+K` or `:` | Open command palette (`quit` to exit) |
+| `Ctrl+C`    | Quit immediately                              |
+
+> `q` alone is **not** bound to quit — a single fat-finger keystroke must
+> never destroy the session. Use the command palette or `Ctrl+C`.
 
 ---
 
