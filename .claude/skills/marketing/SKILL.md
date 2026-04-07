@@ -1,6 +1,6 @@
 ---
 description: "Marketing — Content Marketing Coordination"
-argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|seo|check|plan|enrich|census|legal]
+argument-hint: [status|next|write|publish|programmatic|infra|newsletter|audit|seo|check|link-check|plan|enrich|census|legal]
 ---
 
 # Marketing — Content Marketing Coordination
@@ -28,6 +28,7 @@ Coordinates the entire content marketing effort across silvery.dev, termless.dev
 | `/marketing audit` | Load [workflows/audit.md](workflows/audit.md), check content freshness + SEO health | Monthly |
 | `/marketing seo <site>` | Run full SEO audit via /seo-audit agents | Quarterly |
 | `/marketing check` | Quick spot-check: fetch 5 pages/site, verify meta/OG/schema | Monthly |
+| `/marketing link-check [--quick] [<site>]` | Crawl all sites with lychee, find broken internal + external links | Monthly |
 | `/marketing legal` | Load [workflows/legal.md](workflows/legal.md), license + privacy + dependency audit | Before launch, quarterly |
 | `/marketing plan` | Review and update the strategy doc | Quarterly |
 
@@ -218,4 +219,5 @@ docs/data/probes.data.ts ← DERIVED: computed at build time from content/
 | [workflows/content-review.md](workflows/content-review.md) | GPT Pro quality review (~$5-15, 10 dimensions) |
 | [workflows/audit.md](workflows/audit.md) | Content freshness and SEO health check |
 | [workflows/seo-check.md](workflows/seo-check.md) | Lightweight SEO spot-check (meta, OG, schema, links) |
+| [workflows/link-check.md](workflows/link-check.md) | Crawl all sites with lychee, find broken internal + external links |
 | [workflows/legal.md](workflows/legal.md) | License, privacy, dependency, content legal audit |
