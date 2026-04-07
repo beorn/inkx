@@ -89,6 +89,91 @@ describe("Cursor movement preserves text content", () => {
 })
 
 // =============================================================================
+// Stable visual classification (km-tui.stable-visual-classification)
+//
+// Node visual identity (body vs structural, bullet/checkbox presence) must be
+// determined by DATA, not by cursor position. Moving the cursor expands a card
+// (bypassing maxContentLines), which changes which children are visible — but
+// it must NOT reclassify any child that was visible before the expansion.
+//
+// Regression: extractBody was called on the sliced visibleChildren instead of
+// the full children list, so growing the slice could flip earlier non-outline
+// children from "normal" to "body" (losing their bullet/checkbox) when an
+// outline sibling became visible for the first time.
+// =============================================================================
+
+describe("stable visual classification under cursor movement", () => {
+  test("card with body+structural mix: cursor expand does not reclassify siblings", () => {
+    // Card "parent" has tasks (non-outline) followed by a heading section (outline).
+    // With maxContentLines=3, only the first 3 children fit; the slice contains
+    // no outline node → extractBody says items=all, body=[] → tasks get bullets.
+    //
+    // Cursor expansion (via J/block_nav_down) bumps maxChildren to 20, revealing
+    // the outline "sec" item. If extractBody is recomputed on the larger slice,
+    // t1/t2/t3 get reclassified as body (they are now BEFORE an outline item),
+    // stripping their bullets. The fix uses a stable bodyIdSet computed from the
+    // FULL children array so classification is data-derived, not slice-derived.
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col", item("parent", item("t1"), item("t2"), item("t3"), item("t4"), item.file("sec", item("s1")))),
+        ),
+      { columns: 100, rows: 30 },
+    )
+
+    // Cursor starts on "parent" card. Card is not expanded: maxContentLines=3
+    // slice contains [t1, t2, t3] only.
+    const initialContent = getBoardContent(board.screenshot())
+
+    // Descend into the card via J (block_nav_down) — cursor lands on t1.
+    // Now cursorInDescendant=true, shouldExpand fires, maxChildren jumps to 20.
+    board.command("block_nav_down")
+    const afterDescend = getBoardContent(board.screenshot())
+
+    // Return to the card level — cursor back on "parent".
+    board.command("block_nav_up")
+    const backOnCard = getBoardContent(board.screenshot())
+
+    // Extract the leading characters before each task title — this captures
+    // the bullet/checkbox glyph (or its absence if reclassified as body).
+    const taskPrefix = (content: string, id: string): string | null => {
+      for (const line of content.split("\n")) {
+        const idx = line.indexOf(id)
+        if (idx > 0) return line.slice(0, idx)
+      }
+      return null
+    }
+
+    // All three tasks must be visible initially and have a prefix.
+    const initialPrefixes = {
+      t1: taskPrefix(initialContent, "t1"),
+      t2: taskPrefix(initialContent, "t2"),
+      t3: taskPrefix(initialContent, "t3"),
+    }
+    expect(initialPrefixes.t1, "t1 visible before expansion").not.toBeNull()
+    expect(initialPrefixes.t2, "t2 visible before expansion").not.toBeNull()
+    expect(initialPrefixes.t3, "t3 visible before expansion").not.toBeNull()
+
+    // After expansion, t1/t2/t3 must still have the SAME prefix.
+    // With the bug: they lose their "□ " checkbox and reclassify as body (dim,
+    // no marker). With the fix: prefix is data-derived and stays stable.
+    const expandedPrefixes = {
+      t1: taskPrefix(afterDescend, "t1"),
+      t2: taskPrefix(afterDescend, "t2"),
+      t3: taskPrefix(afterDescend, "t3"),
+    }
+    expect(expandedPrefixes.t1, "t1 prefix stable on expand").toBe(initialPrefixes.t1)
+    expect(expandedPrefixes.t2, "t2 prefix stable on expand").toBe(initialPrefixes.t2)
+    expect(expandedPrefixes.t3, "t3 prefix stable on expand").toBe(initialPrefixes.t3)
+
+    // Round trip: returning to the original cursor position must produce
+    // byte-identical output (no lingering classification flicker).
+    expect(backOnCard, "returning cursor restores initial rendering").toBe(initialContent)
+  })
+})
+
+// =============================================================================
 // Cursor stability after property mutations (km-tui.td-cursor-jump)
 //
 // After setting date/priority/status, cursor must remain on the same card.

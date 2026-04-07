@@ -403,6 +403,28 @@ function TreeNodeImpl({
     return extractBody(allChildren).items
   }, [isInlineEditing, childrenSourceId, resolvedGetChildren, children])
 
+  // STABLE body classification: compute the body ID set from the FULL children
+  // array before any slicing. This is CURSOR-INDEPENDENT — `children` is derived
+  // from data (ViewTree childIds or repo.getChildren), never from cursor position.
+  // Passing this set to NodeChildren means each child's isBody flag is determined
+  // by data only, not by which slice happens to be visible.
+  //
+  // Without this, NodeChildren would call extractBody(visibleChildren), and slicing
+  // can include/exclude outline items, flipping body classification on cursor move
+  // (e.g. cursor expansion grows the slice from 3 to 20 and suddenly an outline
+  // sibling appears, reclassifying earlier tasks as body).
+  //
+  // Preserves the existing invariant: body classification only applies when body
+  // and structural items coexist. If all children are non-outline (no `items`),
+  // they are treated as normal children (no body dim).
+  const stableBodyIdSet = useMemo(() => {
+    const { body, items } = extractBody(children)
+    if (body.length === 0 || items.length === 0) return null // classify all as non-body
+    const ids = new Set<string>()
+    for (const b of body) ids.add(b.id)
+    return ids
+  }, [children])
+
   // Strip inline colors when a text color override is active (cursor inverse)
   // or for done/dropped tasks (colored dates/priorities aren't meaningful).
   // When textColor is set, competing inline colors would clash with the forced fg.
@@ -809,6 +831,7 @@ function TreeNodeImpl({
             extraExcludedSigils={extraExcludedSigils}
             showOverflowIndicator={depth > 0}
             remainingDepth={resolvedDepth - 1}
+            bodyIdSet={stableBodyIdSet}
           />
         </ErrorBoundary>
       )}
@@ -1084,6 +1107,11 @@ interface NodeChildrenProps {
   showOverflowIndicator?: boolean
   /** Remaining depth budget for fold rendering (passed from parent TreeNode) */
   remainingDepth?: number
+  /** Stable body ID set computed from the FULL children array (before slicing).
+   * When provided, body classification is data-derived (cursor-independent).
+   * When null/undefined, NodeChildren falls back to extractBody(children) which
+   * is stable for unsliced children (e.g. when no maxChildren cap applies). */
+  bodyIdSet?: Set<string> | null
 }
 
 function NodeChildren({
@@ -1100,22 +1128,34 @@ function NodeChildren({
   extraExcludedSigils,
   showOverflowIndicator = true,
   remainingDepth,
+  bodyIdSet,
 }: NodeChildrenProps): React.ReactElement {
-  // Apply recursive body extraction: separate body content from structural items
-  const { body: bodyChildren, items: structuralChildren } = extractBody(children)
-
-  // Determine rendering order:
-  // - If structural items exist, body items are dimmed (non-selectable)
-  // - If no structural items, all items are treated normally
-  const hasStructural = structuralChildren.length > 0
-
-  // Build ordered children list with body flag
-  const orderedChildren = hasStructural
-    ? [
-        ...bodyChildren.map((c) => ({ node: c, isBody: true })),
-        ...structuralChildren.map((c) => ({ node: c, isBody: false })),
-      ]
-    : children.map((c) => ({ node: c, isBody: false }))
+  // Classify each child as body or structural using the STABLE body ID set
+  // computed from the parent's full children array (cursor-independent).
+  //
+  // Fallback path: if no stable set was passed (legacy callers), call
+  // extractBody(children) — but this is only stable when `children` is the
+  // full unsliced array. This fallback matches the previous behavior.
+  const orderedChildren = useMemo(() => {
+    if (bodyIdSet !== undefined) {
+      // Stable path: preserve input order but flag body children per the stable set.
+      // Body-first ordering is already enforced upstream in the full children list
+      // (extractBody puts body before items), so preserving input order is correct.
+      if (!bodyIdSet || bodyIdSet.size === 0) {
+        return children.map((c) => ({ node: c, isBody: false }))
+      }
+      return children.map((c) => ({ node: c, isBody: bodyIdSet.has(c.id) }))
+    }
+    // Legacy fallback: re-derive from the (possibly sliced) children array.
+    const { body: bodyChildren, items: structuralChildren } = extractBody(children)
+    const hasStructural = structuralChildren.length > 0
+    return hasStructural
+      ? [
+          ...bodyChildren.map((c) => ({ node: c, isBody: true })),
+          ...structuralChildren.map((c) => ({ node: c, isBody: false })),
+        ]
+      : children.map((c) => ({ node: c, isBody: false }))
+  }, [children, bodyIdSet])
 
   // Fast path: when remainingDepth <= 0, ALL children will be folded (no sub-children).
   // Use FoldedChildRow (2 hooks, 3 elements) instead of TreeNode (15+ hooks, 15 elements).
