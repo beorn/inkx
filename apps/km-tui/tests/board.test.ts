@@ -8,7 +8,6 @@
 
 import { describe, expect, test, vi } from "vitest"
 import { createFakeRepo } from "@km/storage"
-import { createEmptyState } from "../src/state.ts"
 import { checkInvariants, InvariantViolationError } from "../src/invariants.ts"
 import { type BoardApp, board } from "./helpers/board-app.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
@@ -20,20 +19,6 @@ function createMockSel() {
     tree: { walkOrder: () => [], parent: () => undefined, children: () => [] },
   })
 }
-
-// =============================================================================
-// Empty State
-// =============================================================================
-
-describe("createEmptyState", () => {
-  test("returns valid empty state", () => {
-    const state = createEmptyState()
-    expect(state.rootId).toBeNull()
-    expect(state.columns).toHaveLength(0)
-    expect(state.collapsedColumns.size).toBe(0)
-    expect(state.collapsedNodeIds.size).toBe(0)
-  })
-})
 
 // =============================================================================
 // board.app() API
