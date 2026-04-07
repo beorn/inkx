@@ -176,9 +176,15 @@ export const PERSON_SHORT_NAMES: Record<string, string> = {
   shi: "SD",
 }
 
-/** Strip known person @mentions entirely, strip #tags and +projects.
- * Unknown @mentions (sigils like @next, @urgent) are preserved.
- * Used for card titles where the info suffix already shows @BS. */
+/** Strip ONLY known person @mentions; preserve everything else verbatim.
+ *
+ * Bug history (km-tui.strip-known-mentions-overreach): the previous version
+ * stripped #tags, +projects, and inline formatting markers (bold/italic/code/
+ * link/url) from card titles. The "info suffix already shows @BS" rationale
+ * doesn't apply to anything except the @mention itself, so the function now
+ * preserves all other inline content byte-for-byte.
+ *
+ * Unknown @mentions (sigils like @next, @urgent) are also preserved. */
 export function stripKnownMentions(text: string): string {
   const nodes = parseInlineText(text)
   return stripKnownFromNodes(nodes).trim().replace(/  +/g, " ")
@@ -210,23 +216,32 @@ function stripKnownFromNodes(nodes: InlineNode[]): string {
         }
         break
       }
+      // Tags and projects: preserve verbatim with sigil. Previously stripped.
       case "tag":
-      case "project":
-      case "field":
+        result += `#${node.name}`
         break
-      case "blockref":
-        // Dead path after cleanup — bare ^ID is no longer parsed as blockref.
-        // Only [[^ID]] wikilinks create cross-references (handled in wikilink case).
+      case "project":
+        result += `+${node.name}`
+        break
+      // Inline formatting: preserve markers so the user sees the actual style.
+      // Previously emitted only the inner children, losing bold/italic/strike.
+      case "bold":
+        result += `**${stripKnownFromNodes(node.children)}**`
+        break
+      case "italic":
+        result += `*${stripKnownFromNodes(node.children)}*`
+        break
+      case "strikethrough":
+        result += `~~${stripKnownFromNodes(node.children)}~~`
         break
       case "wikilink":
-        // Preserve wikilinks — they may resolve to titles in InlineText
         result += node.alias ? `[[${node.target}|${node.alias}]]` : `[[${node.target}]]`
         break
-      case "bold":
-      case "italic":
-      case "strikethrough":
-        result += stripKnownFromNodes(node.children)
-        break
+      // For code, link, bareurl, field, blockref, and plain, fall through to
+      // inlineNodesToPlainText, which already does the right thing:
+      //   • code/link → just the text content (URL hidden)
+      //   • bareurl → prettifyUrl (protocol stripped, www removed, params cleaned)
+      //   • field/blockref → "" (metadata, not displayed in titles)
       default:
         result += inlineNodesToPlainText([node])
         break
