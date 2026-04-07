@@ -227,6 +227,11 @@
 {"issue_id":"km-silvery.blink-hidden-style","label":"pro"}
 {"issue_id":"km-silvery.ci-pipeline","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.color-level-unused","label":"pro"}
+{"issue_id":"km-silvery.commander-action-native","label":"cli"}
+{"issue_id":"km-silvery.commander-action-native","label":"discuss"}
+{"issue_id":"km-silvery.commander-action-native","label":"foot-gun"}
+{"issue_id":"km-silvery.commander-action-native","label":"silvery"}
+{"issue_id":"km-silvery.commander-action-native","label":"vendor"}
 {"issue_id":"km-silvery.component-parity","label":"horizon:v1.0"}
 {"issue_id":"km-silvery.deep-review-0313","label":"pro"}
 {"issue_id":"km-silvery.demos","label":"horizon:v0.5"}
