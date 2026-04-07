@@ -296,8 +296,20 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
       </Text>
     )
   }
-  // Unresolved: plain text (same weight as surrounding text).
-  return <Text>{node.target}</Text>
+  // Unresolved (broken wikilink): visual cue so it's obviously not a normal word.
+  // Red foreground + dashed underline in $error. Hover popover still works so the
+  // user can see what the unresolved target was.
+  return (
+    <Text
+      color={resolveColor(ctx, "$error")}
+      underlineStyle="dashed"
+      underlineColor="$error"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      {node.target}
+    </Text>
+  )
 }
 
 export function InlineMention({ node }: { node: MentionNode }): React.ReactElement | null {
