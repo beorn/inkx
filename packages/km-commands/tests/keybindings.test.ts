@@ -900,7 +900,12 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => parseKeyString(b.key).chord)
-    expect(chordBindings.length).toBe(186) // 26 g + 27 v + 23 m + 18 a + 13 t + 2 c + 26 Ctrl+g + 23 Ctrl+m + 27 Ctrl+v + 1 q (q q quit chord)
+    // 26 g + 28 v + 23 m + 18 a + 13 t + 2 c + 26 Ctrl+g + 23 Ctrl+m + 28 Ctrl+v + 1 q
+    // - g-prefix gained `f` (follow_wikilink)
+    // - v-prefix gained `|` (pane_split_vertical, moved from `s` so `s` could carry the
+    //   sticky-fold mnemonic) — `s` now resolves to toggle_sticky_fold
+    // - q q chord added so quit has muscle-memory access without the bare-q footgun
+    expect(chordBindings.length).toBe(188)
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -965,7 +970,7 @@ describe("chord keybindings", () => {
   it("getChordSuffixes returns v-prefix hints", () => {
     const suffixes = getChordSuffixes("v")
     const keys = suffixes.map((s) => s.key).sort()
-    // View: - , c d m v | Pane: = shift-. Tab h j k l n o p s w z
+    // View: - , c d m s (sticky) v | Pane: = shift-. Tab h j k l n o p w z | (split)
     // Note: shift-,/shift-h/shift-j/shift-k/shift-l/shift-n shadowed by ,/h/j/k/l/n in same chordMap bucket
     // Note: x shadowed by shift-x (registered first) in same chordMap bucket
     expect(keys).toEqual([
@@ -989,6 +994,7 @@ describe("chord keybindings", () => {
       "v",
       "w",
       "z",
+      "|",
     ])
   })
 
@@ -1017,6 +1023,7 @@ describe("chord keybindings", () => {
       "v",
       "w",
       "z",
+      "|",
     ])
   })
 
