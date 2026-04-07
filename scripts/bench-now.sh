@@ -157,25 +157,38 @@ fi
 # history line still gets the metadata even if the per-bench numbers are empty.
 SUMMARY_JSON="$(bun -e '
 const fs = require("node:fs")
-const path = process.argv[2]
-const sha = process.argv[3]
-const ts = process.argv[4]
-const cores = process.argv[5]
-const load = process.argv[6]
-const phasesPath = process.argv[7]
-const benchFile = process.argv[8]
+// bun -e: argv[0]=bun, argv[1..]=user args (no script filename slot)
+const path = process.argv[1]
+const sha = process.argv[2]
+const ts = process.argv[3]
+const cores = process.argv[4]
+const load = process.argv[5]
+const phasesPath = process.argv[6]
+const benchFile = process.argv[7]
 const text = fs.readFileSync(path, "utf8")
 const benches = []
+// Vitest bench rows look like:
+//   " · 100 cards — 20 j-presses  0.4798  2,069.11  2,120.65  2,084.35  ..."
+// Columns after the name: hz  min  max  mean  p75  p99  p995  p999  rme  samples
+// Name and hz are separated by 2+ spaces; subsequent columns by single spaces.
+// We split on " " runs, find the first numeric column, and treat that as hz.
 for (const line of text.split("\n")) {
-  // Match vitest bench rows: " · NAME  hz  min  max  mean  ..."
-  const m = line.match(/^\s+·\s+(.+?)\s{2,}([\d.]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/)
-  if (m) {
-    benches.push({
-      name: m[1].trim(),
-      hz: parseFloat(m[2]),
-      meanMs: parseFloat(m[5].replace(/,/g, "")),
-    })
-  }
+  const prefixMatch = line.match(/^\s+·\s+(.+)$/)
+  if (!prefixMatch) continue
+  const rest = prefixMatch[1]
+  // Split by 2+ spaces to separate name from the numeric columns.
+  const parts = rest.split(/ {2,}/)
+  if (parts.length < 2) continue
+  const name = parts[0].trim()
+  // Remaining parts are space-separated numeric columns joined back.
+  const numericStr = parts.slice(1).join("  ")
+  const nums = numericStr.split(/\s+/).filter(Boolean).map(s => parseFloat(s.replace(/,/g, "")))
+  if (nums.length < 5) continue
+  // Column order: hz min max mean p75 ...
+  // `meanMs` comes from column index 3 (mean).
+  const [hz, _min, _max, mean] = nums
+  if (!Number.isFinite(hz) || !Number.isFinite(mean)) continue
+  benches.push({ name, hz, meanMs: mean })
 }
 let phases = null
 if (fs.existsSync(phasesPath)) {
@@ -212,7 +225,7 @@ echo "==> Summary"
 echo "$SUMMARY_JSON" | bun -e '
 const data = JSON.parse(require("node:fs").readFileSync(0, "utf8"))
 console.log(`  sha:        ${data.sha}`)
-console.log(`  duration:   ${data.benches.length} benches`)
+console.log(`  benches:    ${data.benches.length}`)
 for (const b of data.benches.slice(0, 12)) {
   console.log(`  ${b.name.padEnd(36)} ${b.meanMs.toFixed(2).padStart(10)}ms  (${b.hz.toFixed(2)} hz)`)
 }

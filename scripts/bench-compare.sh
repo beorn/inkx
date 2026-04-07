@@ -89,6 +89,24 @@ echo "==> Initializing submodules in worktree"
     vendor/termless 2>&1 | tail -5
 ) || echo "    (submodule init partially failed — proceeding)"
 
+# Fall back to the parent repo's checked-out submodules for any vendor
+# package the worktree couldn't fetch (e.g. because the ref's submodule
+# pointer is an unpushed commit). This lets bench-compare work against
+# arbitrary local-only commits at the cost of measuring the current
+# submodule state instead of the ref's exact submodule state.
+#
+# We never delete existing content here — we only populate empty submodule
+# directories. If the worktree already has content, leave it alone.
+for pkg in silvery bearly loggily flexily vimonkey termless; do
+  if [[ -d "$WORKTREE/vendor/$pkg" ]] \
+    && [[ ! -f "$WORKTREE/vendor/$pkg/package.json" ]] \
+    && [[ -z "$(ls -A "$WORKTREE/vendor/$pkg" 2>/dev/null)" ]] \
+    && [[ -d "$REPO_ROOT/vendor/$pkg" ]]; then
+    echo "==> Mirroring vendor/$pkg from parent (submodule unfetchable at ref)"
+    cp -R "$REPO_ROOT/vendor/$pkg/." "$WORKTREE/vendor/$pkg/" 2>/dev/null || true
+  fi
+done
+
 # Many ref branches won't have vt100 in .gitmodules — fall back to copying
 # from the parent repo so bun install can resolve workspace deps.
 if [[ ! -d "$WORKTREE/vendor/vt100/packages" ]]; then
@@ -111,6 +129,28 @@ echo "==> Running bun install in worktree"
   echo "    bun install failed in worktree — aborting"
   exit 1
 }
+
+# Some km commits (pre mdspec-submodule-removal) reference
+# `mdspec/vitest-plugin` but mdspec is no longer an installable dependency.
+# Mirror it from the first node_modules tree that has it — usually the
+# main km checkout. This keeps bench-compare focused on measuring perf
+# instead of debugging missing tooling.
+if [[ ! -d "$WORKTREE/node_modules/mdspec" ]]; then
+  MDSPEC_SRC=""
+  for candidate in "$REPO_ROOT/node_modules/mdspec" "$HOME/Code/pim/km/node_modules/mdspec"; do
+    if [[ -d "$candidate" ]]; then
+      MDSPEC_SRC="$candidate"
+      break
+    fi
+  done
+  if [[ -n "$MDSPEC_SRC" ]]; then
+    echo "==> Mirroring node_modules/mdspec from $MDSPEC_SRC"
+    mkdir -p "$WORKTREE/node_modules/mdspec"
+    cp -R "$MDSPEC_SRC/." "$WORKTREE/node_modules/mdspec/"
+  else
+    echo "    WARNING: mdspec not found — vitest.config.ts may fail to load"
+  fi
+fi
 
 # -----------------------------------------------------------------------------
 # Step 3: Generate build-info if the worktree needs it
@@ -161,18 +201,28 @@ echo
 echo "==> Diff: per-bench mean (ref -> HEAD)"
 bun -e '
 const fs = require("node:fs")
+// Vitest bench rows: " · NAME  hz  min  max  mean  p75  ..."
+// Name and hz are separated by 2+ spaces; subsequent columns by single spaces.
 function parse(path) {
   if (!fs.existsSync(path)) return new Map()
   const text = fs.readFileSync(path, "utf8")
   const out = new Map()
   for (const line of text.split("\n")) {
-    const m = line.match(/^\s+·\s+(.+?)\s{2,}([\d.]+)\s+([\d.,]+)\s+([\d.,]+)\s+([\d.,]+)/)
-    if (m) out.set(m[1].trim(), parseFloat(m[5].replace(/,/g, "")))
+    const prefix = line.match(/^\s+·\s+(.+)$/)
+    if (!prefix) continue
+    const parts = prefix[1].split(/ {2,}/)
+    if (parts.length < 2) continue
+    const name = parts[0].trim()
+    const nums = parts.slice(1).join("  ").split(/\s+/).filter(Boolean).map(s => parseFloat(s.replace(/,/g, "")))
+    if (nums.length < 4) continue
+    const mean = nums[3]
+    if (Number.isFinite(mean)) out.set(name, mean)
   }
   return out
 }
-const ref = parse(process.argv[2])
-const head = parse(process.argv[3])
+// bun -e: argv[0]=bun, argv[1..]=user args
+const ref = parse(process.argv[1])
+const head = parse(process.argv[2])
 const names = new Set([...ref.keys(), ...head.keys()])
 if (names.size === 0) { console.log("  (no benches matched in either output)"); process.exit(0) }
 console.log("  " + "name".padEnd(36) + "  " + "ref ms".padStart(12) + "  " + "HEAD ms".padStart(12) + "  " + "delta".padStart(10))
@@ -202,8 +252,9 @@ if [[ -f "$REF_PHASES" ]] && [[ -f "$HEAD_PHASES" ]]; then
   echo "==> Diff: per-phase wall time (ref -> HEAD)"
   bun -e '
   const fs = require("node:fs")
-  const ref = JSON.parse(fs.readFileSync(process.argv[2], "utf8"))
-  const head = JSON.parse(fs.readFileSync(process.argv[3], "utf8"))
+  // bun -e: argv[0]=bun, argv[1..]=user args
+  const ref = JSON.parse(fs.readFileSync(process.argv[1], "utf8"))
+  const head = JSON.parse(fs.readFileSync(process.argv[2], "utf8"))
   const refMap = new Map(ref.map(r => [r.name, r]))
   const headMap = new Map(head.map(r => [r.name, r]))
   const names = new Set([...refMap.keys(), ...headMap.keys()])
