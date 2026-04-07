@@ -53,7 +53,7 @@ done
   - Click-through rates (any titles worth A/B testing?)
 - [ ] Check sitemap is current
 - [ ] Verify canonical URLs are working
-- [ ] Check for broken links (internal + external)
+- [ ] **Run `/marketing link-check`** — full sitemap-driven cross-site crawl via lychee. See [link-check.md](link-check.md). File any broken links under `km-marketing.broken-links-<YYYY-MM>` per-month bead.
 - [ ] JSON-LD schemas valid (TechArticle, BreadcrumbList on every non-home page)
 - [ ] `lastUpdated` dates are recent (not all pages showing same old date)
 

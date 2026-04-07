@@ -104,6 +104,18 @@ Run pre-flight checks:
 - No commits since last tag? → Nothing to release, abort
 - Version drift (local ≠ npm but no tag)? → Warn, confirm
 
+### Pre-flight: link check (soft warning, vendor packages with public sites only)
+
+For vendor packages that ship a public docs site (silvery, termless, terminfo.dev, flexily, loggily, mdspec), run the cross-site link checker against the affected site as a final sanity check before publish:
+
+```bash
+scripts/check-site-links.sh https://<site>
+```
+
+This is a **soft warning** — broken links do NOT block the release. Surface the SUMMARY.md path and ask the user whether to proceed. The point is to catch dead third-party citations and stale cross-site references before they hit announce traffic, not to gate the release on issues that may pre-date this change.
+
+If the package being released does not have a public site (e.g. internal libs), skip this step.
+
 ## Phase 2: Generate Changelog
 
 Build changelog entries from two sources: **git log** and **closed beads**.
