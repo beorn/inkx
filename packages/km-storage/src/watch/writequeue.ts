@@ -6,8 +6,9 @@
 
 import { createLogger } from "loggily"
 import * as fs from "fs"
-import { dirname } from "path"
+import { dirname, basename, join } from "path"
 import { EventEmitter } from "events"
+import { hashContent } from "../fs/cas.ts"
 
 const log = createLogger("km:storage:watch:writequeue")
 
@@ -36,7 +37,7 @@ export type ErrorType =
  */
 export interface PermissionError {
   path: string
-  treeop: "read" | "write" | "delete" | "rename"
+  operation: "read" | "write" | "delete" | "rename"
   code: string
   message: string
   suggestion: string
@@ -261,14 +262,35 @@ export interface PendingWrite {
 }
 
 /**
- * Conflict information when detected
+ * Conflict information when detected.
+ *
+ * A conflict means the on-disk content no longer matches what km last
+ * observed/projected for the file — someone (or something) else modified
+ * the file externally since km loaded it.
+ *
+ * Detection is content-hash-based when a baseline is available (via
+ * `getBaselineHash` in WriteQueueConfig) and falls back to mtime-based
+ * comparison otherwise. Hash-based is strictly preferred because editors
+ * frequently touch mtime without changing content.
  */
 export interface ConflictInfo {
   path: string
+  /** Baseline mtime captured when the write was queued (legacy mtime-only detection) */
   baseMtime: number
+  /** Current file mtime at flush time (legacy mtime-only detection) */
   currentMtime: number
+  /** Hash km expected to find on disk (null if no baseline was available) */
+  baselineHash?: string | null
+  /** Hash actually found on disk (null if file was unreadable) */
+  currentHash?: string | null
   strategy: ConflictStrategy
   resolution: "written" | "discarded"
+  /**
+   * If a conflict backup was written, this is the absolute path of the
+   * `.conflict.<timestamp>.md` file containing the disk version that would
+   * otherwise have been silently overwritten.
+   */
+  backupPath?: string
 }
 
 export interface WriteQueueConfig {
@@ -284,6 +306,14 @@ export interface WriteQueueConfig {
   onDelete?: (path: string) => void
   /** Delay before clearing in-flight status after writes, in ms (default: 1000) */
   clearInFlightDelayMs?: number
+  /**
+   * Return the content-hash baseline km expects to find on disk for this path,
+   * or null if km has no record of the file. Used for hash-based conflict
+   * detection — when provided, it takes precedence over mtime-only detection.
+   *
+   * Typically wired to the OwnershipTracker's SyncState baseline_hash.
+   */
+  getBaselineHash?: (absPath: string) => string | null
 }
 
 const DEFAULT_CONFIG: WriteQueueConfig = {
@@ -304,6 +334,11 @@ export interface TreeOpResult {
   conflict?: ConflictInfo
 }
 
+/**
+ * @deprecated Use TreeOpResult. Kept as an alias for tests/external callers.
+ */
+export type OperationResult = TreeOpResult
+
 export class WriteQueue extends EventEmitter {
   private pending: Map<string, WriteTreeOp> = new Map()
   private debounceTimer: ReturnType<typeof setTimeout> | undefined
@@ -314,6 +349,7 @@ export class WriteQueue extends EventEmitter {
   private fs: FileSystemOps
   private onWrite: ((path: string, content: string) => void) | undefined
   private onDelete: ((path: string) => void) | undefined
+  private getBaselineHash: ((absPath: string) => string | null) | undefined
   private clearInFlightDelayMs: number
   /** Generation counter for in-flight tracking — prevents older flush timers from clearing newer markInFlight calls */
   private flushGeneration = new Map<string, number>()
@@ -329,6 +365,7 @@ export class WriteQueue extends EventEmitter {
     this.fs = config.fs ?? realFs
     this.onWrite = config.onWrite
     this.onDelete = config.onDelete
+    this.getBaselineHash = config.getBaselineHash
     this.clearInFlightDelayMs = config.clearInFlightDelayMs ?? 1000
   }
 
@@ -452,14 +489,66 @@ export class WriteQueue extends EventEmitter {
   }
 
   /**
-   * Check for conflict before writing
+   * Check for conflict before writing.
+   *
+   * Prefers content-hash comparison (via `getBaselineHash`) over mtime comparison:
+   * editors frequently touch mtime without changing content, and mtime-only
+   * detection can be fooled by clock skew or touch-without-change.
+   *
+   * Hash-based path (preferred when baseline is available):
+   *   1. Look up the baseline hash km recorded when it last observed/projected this file
+   *   2. Read the current on-disk content and hash it
+   *   3. If the hashes differ, the file was modified externally → conflict
+   *
+   * Mtime-based path (fallback when no baseline):
+   *   Compare the mtime captured at queue() time with the current mtime.
    */
   private checkForConflict(op: WriteTreeOp): ConflictInfo | null {
-    if (op.type !== "write" || op.baseMtime === undefined) {
-      return null
+    if (op.type !== "write") return null
+
+    // Try hash-based detection first (preferred — robust against editor mtime touches)
+    const baselineHash = this.getBaselineHash?.(op.path) ?? null
+    if (baselineHash) {
+      let currentContent: string
+      let currentMtime = 0
+      try {
+        if (!this.fs.statSync || !this.fs.readFileSync) return null
+        currentContent = this.fs.readFileSync(op.path, "utf-8")
+        const stat = this.fs.statSync(op.path)
+        currentMtime = stat.mtimeMs
+      } catch {
+        // File doesn't exist on disk — no conflict (new file or deleted)
+        return null
+      }
+
+      // New: if km is about to write the same content that's already on disk,
+      // it's trivially a no-op even if the baseline differs. Skip the conflict.
+      if (currentContent === op.content) return null
+
+      const currentHash = hashContent(currentContent)
+      if (currentHash === baselineHash) return null
+
+      // External modification detected — file hash no longer matches baseline
+      const resolution = this.conflictStrategy === "fs_wins" ? "discarded" : "written"
+
+      log.info?.(
+        `external edit detected path=${op.path} baselineHash=${baselineHash.slice(0, 8)} currentHash=${currentHash.slice(0, 8)} strategy=${this.conflictStrategy} resolution=${resolution}`,
+      )
+
+      return {
+        path: op.path,
+        baseMtime: op.baseMtime ?? 0,
+        currentMtime,
+        baselineHash,
+        currentHash,
+        strategy: this.conflictStrategy,
+        resolution,
+      }
     }
 
-    // Get current file mtime
+    // Fallback: mtime-based detection (legacy path, no baseline available)
+    if (op.baseMtime === undefined) return null
+
     let currentMtime: number
     try {
       if (!this.fs.statSync) return null
@@ -470,12 +559,11 @@ export class WriteQueue extends EventEmitter {
       return null
     }
 
-    // Check if file changed since we queued the write
     if (currentMtime !== op.baseMtime) {
       const resolution = this.conflictStrategy === "fs_wins" ? "discarded" : "written"
 
       log.debug?.(
-        `conflict detected path=${op.path} baseMtime=${op.baseMtime} currentMtime=${currentMtime} strategy=${this.conflictStrategy} resolution=${resolution}`,
+        `conflict detected (mtime) path=${op.path} baseMtime=${op.baseMtime} currentMtime=${currentMtime} strategy=${this.conflictStrategy} resolution=${resolution}`,
       )
 
       return {
@@ -488,6 +576,42 @@ export class WriteQueue extends EventEmitter {
     }
 
     return null
+  }
+
+  /**
+   * Write the on-disk content to a `.conflict.<timestamp>.md` sibling file so
+   * the external change is not lost when km overwrites the file.
+   *
+   * Returns the backup path on success, or null if the backup could not be
+   * written (in which case we still proceed with the write but surface the
+   * conflict without a backup — better to have an incomplete warning than to
+   * lose data AND fail silently).
+   */
+  private writeConflictBackup(op: WriteTreeOp & { type: "write" }): string | null {
+    try {
+      if (!this.fs.readFileSync) return null
+      const diskContent = this.fs.readFileSync(op.path, "utf-8")
+      const dir = dirname(op.path)
+      const name = basename(op.path)
+      // ISO-8601 compact, filesystem-safe: 20260406T135530Z
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}/, "")
+      // Insert .conflict.<timestamp> before the extension: foo.md → foo.conflict.<ts>.md
+      const dotIdx = name.lastIndexOf(".")
+      const backupName =
+        dotIdx === -1
+          ? `${name}.conflict.${timestamp}`
+          : `${name.slice(0, dotIdx)}.conflict.${timestamp}${name.slice(dotIdx)}`
+      const backupPath = join(dir, backupName)
+      this.fs.writeFileSync(backupPath, diskContent, "utf-8")
+      log.info?.(`conflict backup written: ${backupPath} (${diskContent.length} bytes)`)
+      return backupPath
+    } catch (err) {
+      log.error?.(`conflict backup failed path=${op.path}: ${err instanceof Error ? err.message : String(err)}`)
+      return null
+    }
   }
 
   /**
@@ -504,7 +628,15 @@ export class WriteQueue extends EventEmitter {
         // fs_wins: don't write, return success with conflict info
         return { op, success: true, attempts: 0, conflict }
       }
-      // db_wins or last_write_wins: proceed with write but attach conflict info
+      // last_write_wins / db_wins: write a backup of the disk version BEFORE
+      // we overwrite it, so the external change isn't silently lost.
+      // (Only meaningful for write ops — checkForConflict already guards type.)
+      if (op.type === "write") {
+        const backupPath = this.writeConflictBackup(op)
+        if (backupPath) {
+          conflict.backupPath = backupPath
+        }
+      }
     }
 
     for (let attempt = 0; attempt <= this.retryConfig.maxRetries; attempt++) {
@@ -699,7 +831,7 @@ export class WriteQueue extends EventEmitter {
     // Emit specific event for permission errors (actionable by user)
     if (permissionErrors.length > 0) {
       log.debug?.(
-        `permission denied: ${JSON.stringify(permissionErrors.map((p) => ({ path: p.path, operation: p.treeop, code: p.code })))}`,
+        `permission denied: ${JSON.stringify(permissionErrors.map((p) => ({ path: p.path, operation: p.operation, code: p.code })))}`,
       )
       this.emit("permission-denied", permissionErrors)
     }

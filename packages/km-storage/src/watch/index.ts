@@ -45,7 +45,7 @@ export type { PatternMatcher, PatternMatcherOptions } from "../fs/ignore.ts"
 // Write queue
 export { WriteQueue } from "./writequeue.ts"
 
-export type { PendingWrite, WriteQueueConfig } from "./writequeue.ts"
+export type { PendingWrite, WriteQueueConfig, ConflictInfo } from "./writequeue.ts"
 
 // Heartbeat (periodic reconciliation)
 export { createHeartbeat, DEFAULT_HEARTBEAT } from "./heartbeat.ts"

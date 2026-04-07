@@ -14,9 +14,9 @@
  * See: docs/00-principles.md
  */
 
-import { Database } from "bun:sqlite"
+import { Database, SQLiteError } from "bun:sqlite"
 import { createLogger } from "loggily"
-import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, statSync } from "fs"
+import { existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, statSync } from "fs"
 import { basename, dirname, join } from "path"
 
 import type { Change, KNode, TaskStatus } from "@km/core"
@@ -478,9 +478,16 @@ function createMutationMethods(deps: RepoMethodDeps, state: { version: number; n
         return
       }
 
-      // 1. Rename the node itself (update both content and name)
-      // Use this.updateNode (not mutations.updateNode) so undo proxy intercepts
-      this.updateNode(id, { content: newContent, name: newName, title: newContent })
+      // 1. Rename the node itself (update content, name, title, and data.name).
+      // data.name (the frontmatter title override) takes priority in
+      // getNodeDisplayName, so leaving it stale would make the column header
+      // keep showing the old label after a successful rename.
+      // Use this.updateNode (not mutations.updateNode) so undo proxy intercepts.
+      const nextData =
+        node.data && typeof node.data === "object" && "name" in (node.data as Record<string, unknown>)
+          ? { ...(node.data as Record<string, unknown>), name: newName }
+          : node.data
+      this.updateNode(id, { content: newContent, name: newName, title: newContent, data: nextData })
 
       // 2. Update backlinks in source nodes
       const backlinks = dbGetBacklinks(deps.db, id)
@@ -1032,7 +1039,25 @@ export class IncompleteDatabase extends Error {
   }
 }
 
-/** Performance pragmas for disk-mode SQLite (WAL, cache, mmap) */
+/** SQLite error codes that indicate the on-disk file is corrupt/unusable. */
+const CORRUPT_SQLITE_CODES = new Set(["SQLITE_CORRUPT", "SQLITE_NOTADB", "SQLITE_IOERR_SHORT_READ", "SQLITE_CANTOPEN"])
+
+/** True if the error looks like on-disk corruption (vs. a logic error). */
+function isCorruptionError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  if (err instanceof SQLiteError) {
+    if (err.code && CORRUPT_SQLITE_CODES.has(err.code)) return true
+  }
+  const msg = err.message.toLowerCase()
+  return (
+    msg.includes("malformed") ||
+    msg.includes("not a database") ||
+    msg.includes("database disk image") ||
+    msg.includes("file is not a database")
+  )
+}
+
+/** Performance pragmas for disk-mode SQLite (WAL, cache, mmap). Throws SQLiteError on corrupt DB. */
 function configurePragmas(db: Database): void {
   db.run("PRAGMA journal_mode = WAL")
   db.run("PRAGMA synchronous = NORMAL")
@@ -1040,6 +1065,57 @@ function configurePragmas(db: Database): void {
   db.run("PRAGMA cache_size = -200000")
   db.run("PRAGMA mmap_size = 268435456")
   db.run("PRAGMA wal_autocheckpoint = 10000")
+}
+
+/**
+ * Move a corrupt state.db (and its WAL/SHM sidecars) aside so a fresh one can be created.
+ * The corrupt files are renamed with a timestamp suffix and a brief diagnostic log is emitted.
+ * Returns the quarantine directory path used for the moved files.
+ */
+function quarantineCorruptDb(dbPath: string, reason: string): string {
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-")
+  const suffix = `.corrupt-${timestamp}`
+  const moved: string[] = []
+  for (const sidecar of ["", "-wal", "-shm"]) {
+    const src = dbPath + sidecar
+    if (existsSync(src)) {
+      const dest = src + suffix
+      try {
+        renameSync(src, dest)
+        moved.push(dest)
+      } catch (renameErr) {
+        log.debug?.(`quarantineCorruptDb: failed to rename ${src}: ${String(renameErr)}`)
+      }
+    }
+  }
+  log.debug?.(`quarantineCorruptDb: reason=${reason} moved=${moved.length} files (${moved.join(", ")})`)
+  return moved[0] ?? dbPath + suffix
+}
+
+/**
+ * Open a disk-mode SQLite database with corruption recovery.
+ *
+ * If opening or configuring the database fails with a corruption error, the corrupt
+ * state.db (and its -wal/-shm sidecars) is moved aside with a timestamped suffix and
+ * a fresh database is created at the original path. Callers are responsible for
+ * replaying changes.jsonl into the fresh database afterwards (loadRepo does this).
+ */
+function openDiskDatabase(dbPath: string): Database {
+  try {
+    const db = new Database(dbPath)
+    configurePragmas(db)
+    // Sanity probe: a corrupt file may only fail when actually read.
+    db.run("SELECT 1")
+    return db
+  } catch (err) {
+    if (!isCorruptionError(err)) throw err
+    const reason = err instanceof Error ? err.message : String(err)
+    log.debug?.(`openDiskDatabase: corrupt DB detected at ${dbPath}, moving aside and rebuilding`)
+    quarantineCorruptDb(dbPath, reason)
+    const db = new Database(dbPath)
+    configurePragmas(db)
+    return db
+  }
 }
 
 /**
@@ -1420,8 +1496,7 @@ function* initWithFileLoading(
       mkdirSync(kmDir, { recursive: true })
     }
     const dbPath = join(kmDir, "state.db")
-    db = new Database(dbPath)
-    configurePragmas(db)
+    db = openDiskDatabase(dbPath)
     migrateSchema(db)
     db.run(SCHEMA)
   } else {
@@ -1512,8 +1587,7 @@ function* initEmptyDb(kmDir: string, options: CreateRepoOptions): Generator<Step
     }
 
     const dbPath = join(kmDir, "state.db")
-    db = new Database(dbPath)
-    configurePragmas(db)
+    db = openDiskDatabase(dbPath)
     migrateSchema(db)
     db.run(SCHEMA)
     dataStore = createDBDataStore(db, { emitter })

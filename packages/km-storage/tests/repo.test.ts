@@ -425,6 +425,77 @@ describe("Repo.needsRebuild", () => {
 })
 
 // =============================================================================
+// Corrupt state.db Recovery Tests
+// =============================================================================
+
+describe("Repo corrupt state.db recovery", () => {
+  let tempDir: string
+
+  beforeEach(() => {
+    tempDir = createTempDir()
+  })
+
+  afterEach(() => {
+    cleanupTempDir(tempDir)
+  })
+
+  test("rebuilds from changes.jsonl when state.db is corrupt", async () => {
+    const { readdirSync: readdirFs } = await import("fs")
+    // Step 1: create a healthy repo with .km directory and actual files so
+    // changes.jsonl gets populated from file discovery.
+    const kmDir = join(tempDir, ".km")
+    mkdirSync(kmDir, { recursive: true })
+    writeFileSync(
+      join(tempDir, "notes.md"),
+      "# Notes\n\n- [ ] corrupt-recovery-marker-1\n- [ ] corrupt-recovery-marker-2\n",
+    )
+    {
+      using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+      expect(repo.stats.nodeCount).toBeGreaterThan(0)
+      // Make a mutation so changes.jsonl gets written through the emitter
+      repo.data.addNode(null, { type: "p", item: {}, content: "corrupt-recovery-marker-3" })
+    }
+
+    // Sanity: state.db + changes.jsonl should both exist after first open
+    const dbPath = join(kmDir, "state.db")
+    const changesPath = join(kmDir, "changes.jsonl")
+    expect(existsSync(dbPath)).toBe(true)
+    expect(existsSync(changesPath)).toBe(true)
+    expect(readFileSync(changesPath, "utf-8").trim().length).toBeGreaterThan(0)
+
+    // Step 2: corrupt state.db by overwriting with garbage bytes.
+    // Also nuke the WAL/SHM so corruption isn't masked by a clean WAL.
+    for (const sidecar of ["-wal", "-shm"]) {
+      const p = dbPath + sidecar
+      if (existsSync(p)) rmSync(p, { force: true })
+    }
+    writeFileSync(dbPath, "NOT A SQLITE DATABASE — this is corrupt garbage")
+
+    // Step 3: reopening must NOT throw, must recover cleanly
+    using repo = runGenerator(createRepo(tempDir, { loadFiles: true }))
+
+    // Step 4: the corrupt file should have been moved aside with a timestamped suffix
+    const kmFiles = readdirFs(kmDir) as string[]
+    const quarantined = kmFiles.filter((f) => f.startsWith("state.db.corrupt-"))
+    expect(quarantined.length).toBeGreaterThan(0)
+
+    // Step 5: the new state.db must be a healthy sqlite file (not the garbage)
+    const head = readFileSync(dbPath).subarray(0, 15).toString("utf-8")
+    expect(head.startsWith("SQLite format")).toBe(true)
+
+    // Step 6: the recovered repo should have content back — both worktree and
+    // changes.jsonl markers must be present.
+    expect(repo.stats.nodeCount).toBeGreaterThan(0)
+    const recoveredContent = repo.data
+      .getAllNodes()
+      .map((n) => n.content ?? "")
+      .join("\n")
+    // From changes.jsonl (replayed)
+    expect(recoveredContent).toContain("corrupt-recovery-marker-3")
+  })
+})
+
+// =============================================================================
 // refresh Tests
 // =============================================================================
 

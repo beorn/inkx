@@ -10,6 +10,7 @@
 
 import { createLogger } from "loggily"
 import { dirname } from "path"
+import { readFileSync } from "fs"
 import type { Database } from "bun:sqlite"
 import { toAbsoluteFsPath } from "../fs/path-utils.ts"
 import { scanDirectoryRecursiveGen, type ScanEntry } from "./watcher.ts"
@@ -17,6 +18,7 @@ import { reconcileDirectory, applyReconcileOps, type ReconcileOp } from "./recon
 import { createIgnoreMatcher } from "../fs/ignore.ts"
 import type { Emitter, EmitOptions } from "../emitter.ts"
 import type { WriteQueue } from "./writequeue.ts"
+import type { OwnershipTracker } from "./ownership-tracker.ts"
 import {
   getAllNodes,
   getSubtree,
@@ -61,6 +63,13 @@ export interface BulkSyncDeps {
   writeQueue: WriteQueue
   emitter: Emitter
   createBlockIdAssigner: (eventId: string) => BlockIdAssigner
+  /**
+   * OwnershipTracker for recording sync_state baselines after reconciliation.
+   * When provided, BulkSync.fromFs records the hash of each file it reconciles
+   * so future writes can detect external edits via hash-based conflict check.
+   * Optional for backwards compatibility.
+   */
+  tracker?: OwnershipTracker
 }
 
 /**
@@ -114,7 +123,7 @@ export const BulkSync = {
    * Yields progress updates as StepYield values.
    */
   async *fromFsWithProgress(deps: BulkSyncDeps): AsyncGenerator<StepYield, SyncFromFsResult> {
-    const { db, repoPath, writeQueue, emitter, createBlockIdAssigner } = deps
+    const { db, repoPath, writeQueue, emitter, createBlockIdAssigner, tracker } = deps
     log.debug?.(`fromFs: scanning ${repoPath}`)
     const start = Date.now()
 
@@ -186,6 +195,26 @@ export const BulkSync = {
     } catch (error) {
       db.run("ROLLBACK")
       throw error
+    }
+
+    // Record sync_state baselines so future writes can detect external edits
+    // via hash-based conflict detection. Done outside the transaction since
+    // sync_state is a separate concern from node tree state.
+    if (tracker) {
+      for (const op of allOps) {
+        try {
+          if (op.type === "create" || op.type === "update") {
+            const content = readFileSync(op.path, "utf-8")
+            tracker.recordObservation(op.path, content, op.nodeId)
+          } else if (op.type === "rename" && op.oldPath) {
+            tracker.renamePath(op.oldPath, op.path)
+          } else if (op.type === "delete") {
+            tracker.removePath(op.path)
+          }
+        } catch (err) {
+          log.debug?.(`recordObservation failed path=${op.path}: ${err instanceof Error ? err.message : String(err)}`)
+        }
+      }
     }
 
     if (allOps.length === 0) {

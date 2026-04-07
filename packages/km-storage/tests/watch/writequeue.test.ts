@@ -47,7 +47,10 @@ function codeError(code: string, message?: string): Error & { code: string } {
 }
 
 /**
- * Create a mock filesystem with configurable failure behavior
+ * Create a mock filesystem with configurable failure behavior.
+ *
+ * `contents` tracks per-path file content so tests can exercise hash-based
+ * conflict detection. If omitted, reads return empty string (legacy behavior).
  */
 function createMockFs(
   options: {
@@ -61,6 +64,8 @@ function createMockFs(
     mtimes?: Map<string, number>
     /** Set of paths that are directories */
     directories?: Set<string>
+    /** Map of path -> content for hash-based tests */
+    contents?: Map<string, string>
   } = {},
 ): FileSystemOps {
   let failCount = options.failCount ?? 0
@@ -68,6 +73,7 @@ function createMockFs(
   const history = options.history ?? []
   const mtimes = options.mtimes ?? new Map<string, number>()
   const directories = options.directories ?? new Set<string>()
+  const contents = options.contents ?? new Map<string, string>()
 
   const maybeFail = () => {
     if (failCount > 0) {
@@ -77,20 +83,23 @@ function createMockFs(
   }
 
   return {
-    writeFileSync: (path: string, _content: string) => {
+    writeFileSync: (path: string, content: string) => {
       maybeFail()
       history.push(`write:${path}`)
       mtimes.set(path, Date.now())
+      contents.set(path, content)
     },
     unlinkSync: (path: string) => {
       maybeFail()
       history.push(`delete:${path}`)
       mtimes.delete(path)
+      contents.delete(path)
     },
     rmSync: (path: string) => {
       maybeFail()
       history.push(`rmdir:${path}`)
       mtimes.delete(path)
+      contents.delete(path)
     },
     mkdirSync: () => {},
     existsSync: (path: string) => mtimes.has(path),
@@ -102,8 +111,13 @@ function createMockFs(
         mtimes.set(newPath, mtime)
         mtimes.delete(oldPath)
       }
+      const content = contents.get(oldPath)
+      if (content !== undefined) {
+        contents.set(newPath, content)
+        contents.delete(oldPath)
+      }
     },
-    readFileSync: () => "",
+    readFileSync: (path: string) => contents.get(path) ?? "",
     statSync: (path: string) => {
       const mtime = mtimes.get(path)
       if (mtime === undefined) {
@@ -128,12 +142,14 @@ function createWriteQueue(options: {
   fs: FileSystemOps
   retry?: Partial<RetryConfig>
   conflictStrategy?: "last_write_wins" | "fs_wins" | "db_wins"
+  getBaselineHash?: (path: string) => string | null
 }): WriteQueue {
   return new WriteQueue({
     debounceMs: 0,
     fs: options.fs,
     retry: { ...FAST_RETRY, ...options.retry },
     conflictStrategy: options.conflictStrategy,
+    getBaselineHash: options.getBaselineHash,
   })
 }
 
@@ -427,11 +443,15 @@ describe("Conflict Detection", () => {
 
     const { flushed } = await flushAndCapture(queue)
 
-    // last_write_wins: should still write despite conflict
-    expect(history).toEqual(["write:/test.md"])
+    // last_write_wins: writes a .conflict.<ts>.md backup of the disk version,
+    // then writes km's version. Two writes: backup first, then the real file.
+    expect(history.length).toBe(2)
+    expect(history[0]).toMatch(/^write:\/test\.conflict\..*\.md$/)
+    expect(history[1]).toBe("write:/test.md")
     expect(flushed.conflicts).toBe(1)
     expect(conflictsEvent).toHaveLength(1)
     expect(flushed.results[0]?.conflict?.resolution).toBe("written")
+    expect(flushed.results[0]?.conflict?.backupPath).toMatch(/^\/test\.conflict\..*\.md$/)
   })
 
   test("discards write when file changed (fs_wins strategy)", async () => {
@@ -476,10 +496,13 @@ describe("Conflict Detection", () => {
 
     const { flushed } = await flushAndCapture(queue)
 
-    // db_wins: should write despite conflict
-    expect(history).toEqual(["write:/test.md"])
+    // db_wins: also writes the backup before overwriting (safer default).
+    expect(history.length).toBe(2)
+    expect(history[0]).toMatch(/^write:\/test\.conflict\..*\.md$/)
+    expect(history[1]).toBe("write:/test.md")
     expect(flushed.conflicts).toBe(1)
     expect(flushed.results[0]?.conflict?.resolution).toBe("written")
+    expect(flushed.results[0]?.conflict?.backupPath).toMatch(/^\/test\.conflict\..*\.md$/)
   })
 
   test("no conflict for new files", async () => {
@@ -516,6 +539,194 @@ describe("Conflict Detection", () => {
     expect(conflictsEvent![0]?.path).toBe("/test.md")
     expect(conflictsEvent![0]?.baseMtime).toBe(1000)
     expect(conflictsEvent![0]?.currentMtime).toBe(2000)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Hash-Based Conflict Detection (km-storage.last-write-wins-no-mtime fix)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe("Hash-based Conflict Detection (external edits)", () => {
+  // Helper: SHA-256 of a string, matching src/fs/cas.ts hashContent()
+  function hash(content: string): string {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- test helper
+    const { createHash } = require("crypto") as typeof import("crypto")
+    return createHash("sha256").update(content, "utf-8").digest("hex")
+  }
+
+  test("no conflict when disk content matches baseline hash", async () => {
+    const history: string[] = []
+    const contents = new Map([["/doc.md", "original\n"]])
+    const mtimes = new Map([["/doc.md", 1000]])
+    const baselines = new Map([["/doc.md", hash("original\n")]])
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, contents, mtimes }),
+      conflictStrategy: "last_write_wins",
+      getBaselineHash: (p) => baselines.get(p) ?? null,
+    })
+
+    queue.queue({ path: "/doc.md", content: "km edit\n", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    // No conflict — disk still matches baseline, write proceeds normally
+    expect(flushed.conflicts).toBe(0)
+    expect(history).toEqual(["write:/doc.md"])
+  })
+
+  test("writes conflict backup when disk content differs from baseline (last_write_wins)", async () => {
+    // Reproduce the P0 bug: km loaded "original\n" (baseline hash set),
+    // user starts editing in TUI, external process appends "## External\n",
+    // user confirms km edit. Before the fix: external content silently lost.
+    // After the fix: disk content saved to /doc.conflict.<ts>.md, then km writes.
+    const history: string[] = []
+    const contents = new Map([["/doc.md", "original\n## External\n"]]) // external addition
+    const mtimes = new Map([["/doc.md", 1000]])
+    const baselines = new Map([["/doc.md", hash("original\n")]]) // km's baseline
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, contents, mtimes }),
+      conflictStrategy: "last_write_wins",
+      getBaselineHash: (p) => baselines.get(p) ?? null,
+    })
+
+    let conflictsEvent: ConflictInfo[] | null = null
+    queue.on("conflicts", (e) => (conflictsEvent = e as ConflictInfo[]))
+
+    queue.queue({ path: "/doc.md", content: "km edited version\n", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    // Two writes: the backup, then km's version
+    expect(history.length).toBe(2)
+    expect(history[0]).toMatch(/^write:\/doc\.conflict\.\d{8}T\d{6}Z\.md$/)
+    expect(history[1]).toBe("write:/doc.md")
+
+    // Conflict metadata is populated with both hashes and the backup path
+    expect(flushed.conflicts).toBe(1)
+    expect(conflictsEvent).toHaveLength(1)
+    const conflict = conflictsEvent![0]!
+    expect(conflict.path).toBe("/doc.md")
+    expect(conflict.resolution).toBe("written")
+    expect(conflict.baselineHash).toBe(hash("original\n"))
+    expect(conflict.currentHash).toBe(hash("original\n## External\n"))
+    expect(conflict.backupPath).toMatch(/^\/doc\.conflict\.\d{8}T\d{6}Z\.md$/)
+
+    // The backup file contains the EXTERNAL content (not km's), so the user
+    // can recover the external edit
+    expect(contents.get(conflict.backupPath!)).toBe("original\n## External\n")
+    // km's version ended up at the original path
+    expect(contents.get("/doc.md")).toBe("km edited version\n")
+  })
+
+  test("hash-based detection is robust against mtime-only touches", async () => {
+    // Editor touched mtime but did not change content — should NOT trigger a conflict
+    const history: string[] = []
+    const contents = new Map([["/doc.md", "stable content\n"]])
+    const mtimes = new Map([["/doc.md", 1000]])
+    const baselines = new Map([["/doc.md", hash("stable content\n")]])
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, contents, mtimes }),
+      conflictStrategy: "last_write_wins",
+      getBaselineHash: (p) => baselines.get(p) ?? null,
+    })
+
+    queue.queue({ path: "/doc.md", content: "km update\n", sourceEventId: "1" })
+    mtimes.set("/doc.md", 9999) // mtime touched but content unchanged
+
+    const { flushed } = await flushAndCapture(queue)
+
+    // No conflict — hash matches baseline despite mtime difference
+    expect(flushed.conflicts).toBe(0)
+    expect(history).toEqual(["write:/doc.md"])
+  })
+
+  test("fs_wins discards km's write and does NOT create a backup", async () => {
+    // fs_wins means the disk version is kept as-is, so there's nothing to back up.
+    const history: string[] = []
+    const contents = new Map([["/doc.md", "external wins\n"]])
+    const mtimes = new Map([["/doc.md", 1000]])
+    const baselines = new Map([["/doc.md", hash("baseline\n")]])
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, contents, mtimes }),
+      conflictStrategy: "fs_wins",
+      getBaselineHash: (p) => baselines.get(p) ?? null,
+    })
+
+    queue.queue({ path: "/doc.md", content: "km edit\n", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    // Nothing written — no backup, no overwrite
+    expect(history).toEqual([])
+    expect(flushed.conflicts).toBe(1)
+    expect(flushed.results[0]?.conflict?.resolution).toBe("discarded")
+    expect(flushed.results[0]?.conflict?.backupPath).toBeUndefined()
+  })
+
+  test("no conflict when km is about to write the same content already on disk", async () => {
+    // Idempotent case: km's pending write matches the current disk content.
+    // Even if the baseline differs from the current disk (e.g. someone edited
+    // it to exactly what km would have written), don't flag a conflict — the
+    // write is a no-op anyway.
+    const history: string[] = []
+    const contents = new Map([["/doc.md", "identical\n"]])
+    const mtimes = new Map([["/doc.md", 1000]])
+    const baselines = new Map([["/doc.md", hash("stale baseline\n")]])
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, contents, mtimes }),
+      conflictStrategy: "last_write_wins",
+      getBaselineHash: (p) => baselines.get(p) ?? null,
+    })
+
+    queue.queue({ path: "/doc.md", content: "identical\n", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    // No conflict, but still writes (trivially a no-op in terms of content)
+    expect(flushed.conflicts).toBe(0)
+    expect(history).toEqual(["write:/doc.md"])
+  })
+
+  test("no baseline → falls back to legacy mtime-only detection", async () => {
+    // Regression guard: if no getBaselineHash is wired (or returns null for
+    // this path), we should still use the legacy mtime comparison so older
+    // code paths keep working.
+    const history: string[] = []
+    const mtimes = new Map([["/doc.md", 1000]])
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, mtimes }),
+      conflictStrategy: "last_write_wins",
+      getBaselineHash: () => null,
+    })
+
+    queue.queue({ path: "/doc.md", content: "edit", sourceEventId: "1" })
+    mtimes.set("/doc.md", 2000)
+    const { flushed } = await flushAndCapture(queue)
+
+    expect(flushed.conflicts).toBe(1)
+    expect(flushed.results[0]?.conflict?.baselineHash).toBeUndefined()
+  })
+
+  test("conflict backup filename includes timestamp and preserves extension", async () => {
+    const history: string[] = []
+    const contents = new Map([["/path/to/note.md", "disk\n"]])
+    const mtimes = new Map([["/path/to/note.md", 1000]])
+    const baselines = new Map([["/path/to/note.md", hash("baseline\n")]])
+
+    const queue = createWriteQueue({
+      fs: createMockFs({ history, contents, mtimes }),
+      conflictStrategy: "last_write_wins",
+      getBaselineHash: (p) => baselines.get(p) ?? null,
+    })
+
+    queue.queue({ path: "/path/to/note.md", content: "km\n", sourceEventId: "1" })
+    const { flushed } = await flushAndCapture(queue)
+
+    const backupPath = flushed.results[0]?.conflict?.backupPath
+    expect(backupPath).toBeDefined()
+    // Lives in the same directory as the original
+    expect(backupPath).toMatch(/^\/path\/to\/note\.conflict\.\d{8}T\d{6}Z\.md$/)
   })
 })
 
@@ -1038,7 +1249,7 @@ describe("Chaos: error class coverage", () => {
 })
 
 describe("Chaos: conflict detection with strategies", () => {
-  test("mtime mismatch detected with last_write_wins — writes anyway", async () => {
+  test("mtime mismatch detected with last_write_wins — writes backup then km's version", async () => {
     const history: string[] = []
     const mtimes = new Map([["/doc.md", 1000]])
     const queue = createWriteQueue({
@@ -1057,8 +1268,10 @@ describe("Chaos: conflict detection with strategies", () => {
     expect(conflicts[0]?.baseMtime).toBe(1000)
     expect(conflicts[0]?.currentMtime).toBe(5000)
     expect(conflicts[0]?.resolution).toBe("written")
-    // File was written despite conflict
+    expect(conflicts[0]?.backupPath).toMatch(/^\/doc\.conflict\..*\.md$/)
+    // File was written after the backup
     expect(history).toContain("write:/doc.md")
+    expect(history.some((h) => /write:\/doc\.conflict\..*\.md/.test(h))).toBe(true)
   })
 
   test("mtime mismatch detected with fs_wins — discards write", async () => {

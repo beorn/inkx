@@ -532,7 +532,13 @@ export function createFakeRepo(options: FakeRepoOptions = {}): FakeRepo {
       const oldName = node.name ?? ""
       const newName = newContent.replace(/^- \[.\]\s*/, "")
 
-      this.updateNode(id, { content: newContent, name: newName })
+      // Mirror real repo: when data.name is set (frontmatter title override),
+      // it takes priority in getNodeDisplayName and must be updated too.
+      const nextData =
+        node.data && typeof node.data === "object" && "name" in (node.data as Record<string, unknown>)
+          ? { ...(node.data as Record<string, unknown>), name: newName }
+          : node.data
+      this.updateNode(id, { content: newContent, name: newName, data: nextData })
 
       if (!oldName || oldName === newName) return
 

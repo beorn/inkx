@@ -87,11 +87,16 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
   // Ownership tracker for watcher suppression
   const tracker: OwnershipTracker = createOwnershipTracker(db)
 
-  // Write queue for debounced FS writes
+  // Write queue for debounced FS writes.
+  // Hash-based conflict detection: compare on-disk content against the
+  // baseline km last observed/projected. If they differ, an external edit
+  // happened — WriteQueue will write a .conflict.<ts>.md backup before
+  // overwriting the file, so the external change is never silently lost.
   const writeQueue = new WriteQueue({
     debounceMs: debounceWrite,
     onWrite: (path, content) => tracker.recordWrite(path, content),
     onDelete: (path) => tracker.recordDelete(path),
+    getBaselineHash: (absPath) => tracker.getSyncState().get(absPath)?.baseline_hash ?? null,
   })
 
   // File watcher
@@ -211,6 +216,7 @@ export function createFsStore(repoPath: string, options?: FsStoreOptions): FsSto
       writeQueue,
       emitter,
       createBlockIdAssigner: (eventId: string) => handlers.createBlockIdAssigner(eventId),
+      tracker,
     }
   }
 

@@ -7,10 +7,11 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { mkdirSync, existsSync, writeFileSync, readFileSync } from "fs"
+import { mkdirSync, existsSync, writeFileSync, readFileSync, readdirSync } from "fs"
 import { join, relative } from "path"
 
-import { getNodeByPath, getAllNodes, getAncestors } from "@km/storage"
+import { getNodeByPath, getAllNodes, getAncestors, type ConflictInfo } from "@km/storage"
+import { createSyncState } from "../../src/watch/sync-state.ts"
 
 /** Convert absolute path to relative (matching DB storage format) */
 function toRel(repoDir: string, absPath: string): string {
@@ -719,6 +720,146 @@ code
         // No extra H1 headings (only "# Board")
         const h1Matches = content.match(/^# /gm) ?? []
         expect(h1Matches.length).toBe(1)
+      }))
+  })
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // km-storage.last-write-wins-no-mtime — external edits preserved as backups
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // Regression: last_write_wins used to overwrite external edits silently.
+  // The fix is hash-based conflict detection driven by sync_state.baseline_hash,
+  // writing a .conflict.<ts>.md backup before overwriting the user's changes.
+  describe("external edit conflict backup", () => {
+    test("external append before km save preserves disk content in .conflict backup", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const testFile = join(repoDir, "tasks.md")
+        writeFileSync(
+          testFile,
+          `# Tasks
+
+- [ ] Alpha
+- [ ] Beta
+`,
+        )
+
+        const conflicts: ConflictInfo[] = []
+        const manager = createTestSync(db, repoDir, {
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "last_write_wins",
+          callbacks: {
+            onConflicts: (cs) => conflicts.push(...cs),
+          },
+        })
+
+        // Initial sync — records baseline hash for tasks.md in sync_state
+        await manager.syncFromFs()
+
+        // Sanity check: baseline was recorded
+        const syncState = createSyncState(db)
+        const baseline = syncState.get(testFile)
+        expect(baseline).not.toBeNull()
+        expect(baseline!.baseline_hash).toBeTruthy()
+
+        const alpha = getAllNodes(db).find((n) => n.content === "Alpha")
+        expect(alpha).toBeDefined()
+
+        // Flip Alpha to done in the DB (simulating a TUI edit)
+        db.run("UPDATE nodes SET task_status = 'done', updated_at = ? WHERE id = ?", [Date.now(), alpha!.id])
+
+        // *** External edit happens BEFORE km's save flushes to disk ***
+        const externalContent = `# Tasks
+
+- [ ] Alpha
+- [ ] Beta
+- [ ] External task added by another editor
+`
+        writeFileSync(testFile, externalContent)
+
+        // km now tries to save its version
+        manager.applyChangeToFs({
+          id: "test-conflict-1",
+          ts: Date.now(),
+          type: "node_updated",
+          actor: "user",
+          target: alpha!.id,
+          data: { task_status: "done" },
+        })
+
+        // Let the debounced flush run
+        await new Promise((r) => setTimeout(r, 100))
+        await manager.stop()
+
+        // A conflict must have been reported
+        expect(conflicts.length).toBeGreaterThanOrEqual(1)
+        const conflict = conflicts[0]!
+        expect(conflict.path).toBe(testFile)
+        expect(conflict.resolution).toBe("written")
+        expect(conflict.backupPath).toBeDefined()
+        expect(conflict.backupPath).toMatch(/tasks\.conflict\.\d{8}T\d{6}Z\.md$/)
+
+        // The backup file must contain the external edit (so the user can recover it)
+        const backupContent = readFileSync(conflict.backupPath!, "utf-8")
+        expect(backupContent).toBe(externalContent)
+        expect(backupContent).toContain("External task added by another editor")
+
+        // The original file now holds km's version (Alpha marked done)
+        const originalContent = readFileSync(testFile, "utf-8")
+        expect(originalContent).toContain("[x] Alpha")
+
+        // A real .conflict.*.md file exists in the repo directory
+        const files = readdirSync(repoDir)
+        expect(files.some((f) => /^tasks\.conflict\..*\.md$/.test(f))).toBe(true)
+      }))
+
+    test("no conflict when km saves with no external edits", () =>
+      withTestEnv(async ({ repoDir, db }) => {
+        const testFile = join(repoDir, "clean.md")
+        writeFileSync(
+          testFile,
+          `# Tasks
+
+- [ ] Work
+`,
+        )
+
+        const conflicts: ConflictInfo[] = []
+        const manager = createTestSync(db, repoDir, {
+          debounceFs: 0,
+          debounceApply: 0,
+          conflictStrategy: "last_write_wins",
+          callbacks: {
+            onConflicts: (cs) => conflicts.push(...cs),
+          },
+        })
+
+        await manager.syncFromFs()
+
+        const work = getAllNodes(db).find((n) => n.content === "Work")
+        expect(work).toBeDefined()
+
+        db.run("UPDATE nodes SET task_status = 'done', updated_at = ? WHERE id = ?", [Date.now(), work!.id])
+        manager.applyChangeToFs({
+          id: "test-no-conflict",
+          ts: Date.now(),
+          type: "node_updated",
+          actor: "user",
+          target: work!.id,
+          data: { task_status: "done" },
+        })
+
+        await new Promise((r) => setTimeout(r, 100))
+        await manager.stop()
+
+        expect(conflicts).toHaveLength(0)
+
+        // No backup file created
+        const files = readdirSync(repoDir)
+        expect(files.some((f) => f.includes(".conflict."))).toBe(false)
+
+        // File on disk has km's update
+        expect(readFileSync(testFile, "utf-8")).toContain("[x] Work")
       }))
   })
 })

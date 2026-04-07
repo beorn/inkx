@@ -223,6 +223,7 @@ export type {
   ReconcileOp,
   PendingWrite,
   WriteQueueConfig,
+  ConflictInfo,
   WatcherStatus,
   WatcherState,
   WatcherInterface,

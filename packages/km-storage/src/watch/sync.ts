@@ -17,7 +17,8 @@ import { WorkerWatcher } from "./worker-bridge.ts"
 import type { WatcherStatus } from "./worker-thread.ts"
 import type { WatcherInterface } from "./types.ts"
 import { createParsePool, type ParsePoolService } from "../markdown/parse-pool.ts"
-import { WriteQueue } from "./writequeue.ts"
+import { WriteQueue, type ConflictInfo } from "./writequeue.ts"
+export type { ConflictInfo } from "./writequeue.ts"
 import { createOwnershipTracker, type OwnershipTracker } from "./ownership-tracker.ts"
 import { getIgnorePatterns } from "../fs/ignore.ts"
 import { type Change } from "@km/core"
@@ -73,6 +74,13 @@ export interface SyncCallbacks {
   onStateChange?: (state: SyncState) => void
   onWriteComplete?: (data: { count: number; errors: number }) => void
   onWriteErrors?: (errors: Array<{ path: string; error: Error; errorClass?: string }>) => void
+  /**
+   * Fired when the writer detects that the on-disk content no longer matches
+   * the baseline km loaded. For `last_write_wins` / `db_wins` this is
+   * informational — the TUI typically shows a toast pointing at
+   * `backupPath` so the user can reconcile the external edit manually.
+   */
+  onConflicts?: (conflicts: ConflictInfo[]) => void
   onWatcherStatus?: (status: WatcherStatus) => void
   onHeartbeatDrift?: (info: { opsCount: number; totalDrift: number }) => void
   onHeartbeatComplete?: (info: { duration: number; opsCount: number }) => void
@@ -152,6 +160,7 @@ export function withSync(config?: Partial<SyncConfig>) {
     const writeQueue = new WriteQueue({
       debounceMs: cfg.debounceApply,
       retry: cfg.retry,
+      conflictStrategy: cfg.conflictStrategy,
       clearInFlightDelayMs: cfg.clearInFlightDelayMs,
       onWrite: (path, content) => {
         tracker.recordWrite(path, content)
@@ -159,6 +168,10 @@ export function withSync(config?: Partial<SyncConfig>) {
       onDelete: (path) => {
         tracker.recordDelete(path)
       },
+      // Hash-based conflict detection: before overwriting a file, ask the
+      // OwnershipTracker what hash km last observed/projected for it. If
+      // the disk hash differs, an external edit happened behind our back.
+      getBaselineHash: (absPath) => tracker.getSyncState().get(absPath)?.baseline_hash ?? null,
     })
     writeQueue.setWatcher(watcher)
 
@@ -317,6 +330,9 @@ export function withSync(config?: Partial<SyncConfig>) {
         }
       }
     })
+    writeQueue.on("conflicts", (conflicts) => {
+      callbacks?.onConflicts?.(conflicts as ConflictInfo[])
+    })
 
     // ── BulkSync deps ─────────────────────────────────────────────────────
 
@@ -327,6 +343,7 @@ export function withSync(config?: Partial<SyncConfig>) {
         writeQueue,
         emitter,
         createBlockIdAssigner: (eventId: string) => handlers.createBlockIdAssigner(eventId),
+        tracker,
       }
     }
 
