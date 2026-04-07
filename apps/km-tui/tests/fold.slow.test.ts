@@ -1621,3 +1621,121 @@ describe("cursor-reveals-hidden", () => {
     expect(board.screenshot()).toContain("subtask-x")
   })
 })
+
+// =============================================================================
+// Sticky folds (km-tui.sticky-fold Phase 2) — per-node pins immune to fold-all
+// =============================================================================
+
+describe("sticky folds", () => {
+  test("vs on an unfolded card pins it — fold_all_more leaves it unfolded", () => {
+    const { board, store } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "col1",
+          item.folder("PinnedParent", item("pinned-child-1"), item("pinned-child-2")),
+          item.folder("OtherParent", item("other-child-1"), item("other-child-2")),
+        ),
+      ),
+    )
+
+    // Move cursor to the parent card we want to pin.
+    store.getState().dispatchBoard({ type: "SELECT", nodeId: "PinnedParent" })
+    board.press("")
+
+    // Press vs → toggle_sticky_fold pins PinnedParent as sticky-unfolded
+    // (current state = unfolded). store action is the direct path; board.command
+    // is the binding-driven equivalent if vs resolves via keybinding.
+    board.command("toggle_sticky_fold")
+
+    // Sticky state is in the active board pane
+    let pane = getActiveBoardPane(store.getState())!
+    expect(pane.stickyFolds.get("PinnedParent")).toBe("unfolded")
+
+    // Sanity check: both parents' children are currently visible
+    expect(board.screenshot()).toContain("pinned-child-1")
+    expect(board.screenshot()).toContain("other-child-1")
+
+    // Fold progressively until children would be hidden. fold_all_more is
+    // progressive (depth 3 → 2 → 1 → 0); 3 presses reach depth 0.
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+
+    // Sticky check: OtherParent's children are hidden, PinnedParent's are NOT.
+    expect(board.screenshot()).not.toContain("other-child-1")
+    expect(board.screenshot()).toContain("pinned-child-1")
+
+    // Sticky state survives the fold-all (not cleared)
+    pane = getActiveBoardPane(store.getState())!
+    expect(pane.stickyFolds.get("PinnedParent")).toBe("unfolded")
+  })
+
+  test("vs on a folded card pins it — unfold_all_more leaves it folded", () => {
+    const { board, store } = testEnv(() =>
+      item(
+        "board",
+        item(
+          "col1",
+          item.folder("PinnedParent", item("pinned-child-1"), item("pinned-child-2")),
+          item.folder("OtherParent", item("other-child-1"), item("other-child-2")),
+        ),
+      ),
+    )
+
+    // Fold PinnedParent first via the store (skips the cursor-nav dance).
+    store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "PinnedParent" })
+    board.press("")
+    expect(board.screenshot()).not.toContain("pinned-child-1")
+
+    // Move cursor to the now-folded card
+    store.getState().dispatchBoard({ type: "SELECT", nodeId: "PinnedParent" })
+    board.press("")
+
+    // Pin it — now sticky-folded
+    board.command("toggle_sticky_fold")
+    let pane = getActiveBoardPane(store.getState())!
+    expect(pane.stickyFolds.get("PinnedParent")).toBe("folded")
+
+    // Also fold OtherParent so unfold_all_more has something to unfold
+    store.getState().dispatchBoard({ type: "TOGGLE_FOLD", nodeId: "OtherParent" })
+    board.press("")
+    expect(board.screenshot()).not.toContain("other-child-1")
+
+    // unfold_all_more: OtherParent unfolds, PinnedParent stays folded
+    board.command("unfold_all_more")
+    board.press("")
+
+    expect(board.screenshot()).toContain("other-child-1")
+    expect(board.screenshot()).not.toContain("pinned-child-1")
+
+    // Sticky state survives the unfold-all
+    pane = getActiveBoardPane(store.getState())!
+    expect(pane.stickyFolds.get("PinnedParent")).toBe("folded")
+  })
+
+  test("vs three times cycles sticky-unfolded → sticky-folded → off", () => {
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
+    )
+
+    // Cursor on the parent card; card starts unfolded.
+    store.getState().dispatchBoard({ type: "SELECT", nodeId: "Parent" })
+    board.press("")
+
+    // 1st vs: pins at current state (unfolded)
+    board.command("toggle_sticky_fold")
+    expect(getActiveBoardPane(store.getState())!.stickyFolds.get("Parent")).toBe("unfolded")
+    // Children still visible (sticky-unfolded keeps them visible)
+    expect(board.screenshot()).toContain("child-1")
+
+    // 2nd vs: flips to sticky-folded and collapses the node
+    board.command("toggle_sticky_fold")
+    expect(getActiveBoardPane(store.getState())!.stickyFolds.get("Parent")).toBe("folded")
+    expect(board.screenshot()).not.toContain("child-1")
+
+    // 3rd vs: clears the pin entirely (node remains folded; user can unfold)
+    board.command("toggle_sticky_fold")
+    expect(getActiveBoardPane(store.getState())!.stickyFolds.has("Parent")).toBe(false)
+  })
+})

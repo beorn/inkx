@@ -1551,26 +1551,37 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
     case "TOGGLE_STICKY_FOLD": {
       // Pin the cursor node's fold state so fold-all / unfold-all skip it.
       //
-      // Cycles: (no sticky) → sticky-<current fold> → sticky-<opposite> → (no sticky)
+      // Three-state cycle (matches org-mode's VISIBILITY: folded semantics):
+      //   (no sticky) → sticky-<current fold> → sticky-<opposite> → (no sticky)
       //
-      // The "current" fold state is determined from ctx.foldDepths: a depth of 0
-      // means the node is folded, any other value (or absence) means unfolded.
-      // This matches applyToggleFold's semantics.
+      // Rationale: a single press should "just pin" whatever the user currently
+      // sees. A second press flips the pin to the opposite state so users who
+      // immediately want the other visibility don't have to un-pin first. A
+      // third press clears the pin and returns the node to transient fold state.
+      //
+      // "current" fold state is read from ctx.foldDepths: depth 0 = folded,
+      // any other value (or absence) = unfolded. Matches applyToggleFold.
       const targetId = ctx.cursor
       if (!targetId) return boundary("sticky-fold", "No cursor")
       const existing = ctx.stickyFolds.get(targetId)
       if (existing === undefined) {
-        // First press: pin whatever the node currently is
+        // 1st press: pin whatever the node currently is
         const depth = ctx.foldDepths.get(targetId)
         const nextState: "folded" | "unfolded" = depth === 0 ? "folded" : "unfolded"
         ctx.setStickyFold(targetId, nextState)
         ctx.setUI({ status: { level: "info", message: `Sticky ${nextState}: ${shortName(ctx, targetId)}` } })
-      } else if (existing === "folded") {
-        // Flip to sticky-unfolded
-        ctx.setStickyFold(targetId, "unfolded")
-        ctx.setUI({ status: { level: "info", message: `Sticky unfolded: ${shortName(ctx, targetId)}` } })
+      } else if (existing === "unfolded") {
+        // 2nd press from unfolded-pin: flip to folded-pin. Also collapses
+        // the display — the pin implies the new fold state, not just
+        // immunity to fold-all.
+        ctx.setStickyFold(targetId, "folded")
+        const newDepths = new Map(ctx.foldDepths)
+        newDepths.set(targetId, 0)
+        ctx.setFoldDepths(newDepths)
+        ctx.setUI({ status: { level: "info", message: `Sticky folded: ${shortName(ctx, targetId)}` } })
       } else {
-        // existing === "unfolded" — third press clears the pin
+        // existing === "folded" — 3rd press clears the pin (and leaves the
+        // node folded; user can unfold manually if desired).
         ctx.removeStickyFold(targetId)
         ctx.setUI({ status: { level: "info", message: `Sticky cleared: ${shortName(ctx, targetId)}` } })
       }
