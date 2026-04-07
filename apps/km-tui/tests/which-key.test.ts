@@ -204,7 +204,8 @@ describe("getChordSuffixes", () => {
   test("returns empty for non-prefix key", () => {
     testEnv(() => item("board", item("col", item("task"))))
 
-    const suffixes = getChordSuffixes("q")
+    // Use `z` because `q` is now a chord prefix (q q → quit, see km-tui.q-quits-no-confirm).
+    const suffixes = getChordSuffixes("z")
     expect(suffixes.length).toBe(0)
   })
 })
