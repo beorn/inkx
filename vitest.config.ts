@@ -129,9 +129,8 @@ export default defineConfig({
 			: [...alwaysExclude, "**/*.slow.*", "**/*.pty.*", "vendor/**"],
 		setupFiles: ["./packages/km-infra/vitest/setup.ts"],
 		benchmark: {
-			include: [
-				"**/*.bench.{ts,tsx}",
-			],
+			include: ["**/*.bench.{ts,tsx}"],
+			exclude: alwaysExclude,
 		},
 		projects,
 	},
