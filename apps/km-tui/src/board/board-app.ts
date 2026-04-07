@@ -824,11 +824,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (!hitNode) return
 
       // Walk up ancestors to find clicked item and card-level node.
-      // data-view="item" = sub-block, data-view="card"/data-card-id = card wrapper, data-view="column" = column
+      // data-view="item" = sub-block, data-view="card"/data-card-id = card wrapper,
+      // data-view="column" = column, data-view="column-header" = the header band of a column
       let nodeId: string | null = null // First id found (may be sub-block)
       let idNode: AgNode | null = null
       let cardId: string | null = null // Card-level id (for border-click fallback)
       let firstIdIsColumn = false
+      let clickedHeader = false // True if the hit chain passed through ColumnHeader
       let colIndex: number | null = null
       let hasClickHandler = false
       let current: AgNode | null = hitNode
@@ -844,13 +846,17 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
         // Card wrapper uses data-card-id (not id) to avoid duplicate id conflicts with TreeNode.
         if (!cardId && typeof props["data-card-id"] === "string") cardId = props["data-card-id"] as string
+        if (props["data-view"] === "column-header") clickedHeader = true
         if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
         if (typeof props.onClick === "function") hasClickHandler = true
         current = current.parent
       }
-      // Column click = no card ancestor found AND the first id-bearing element is the column.
-      // Clicks inside cards always find data-card-id or data-view="item" before the column.
-      const isColumnNode = firstIdIsColumn && !cardId
+      // Column header click = no card ancestor found AND the click landed on
+      // the ColumnHeader band (data-view="column-header"). A click on the
+      // empty space below the last card hits the column box but NOT the
+      // header — that should deselect (fall through to the !selectId branch),
+      // not select the column.
+      const isColumnNode = firstIdIsColumn && !cardId && clickedHeader
       // Selection priority:
       // 1. Sub-block nodeId (click on content inside card → j/k sub-block navigation)
       // 2. Card-level cardId (click on border → card selection, not column deselect)
@@ -908,7 +914,13 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         opctx.sel.text.deselect()
       }
 
-      if (!selectId) {
+      // Empty-space-in-column click: the click landed on a column box (no card
+      // ancestor) but did NOT pass through the ColumnHeader band. This means
+      // the user clicked the empty area below the last card. Treat the same
+      // as clicking outside everything — deselect all, cursor to board root.
+      const isEmptySpaceInColumn = firstIdIsColumn && !cardId && !clickedHeader
+
+      if (!selectId || isEmptySpaceInColumn) {
         // Empty space click → deselect all, cursor to board root
         opctx.sel.node.select([opctx.rootId as ID])
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }

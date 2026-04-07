@@ -314,4 +314,36 @@ describe("mouse click targeting", () => {
     // Cursor should be on the column (Inbox), not board root
     expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("Inbox")
   })
+
+  test("clicking empty space below the last card in a column deselects (cursor → board root)", () => {
+    // Regression: previously this clicked the column box and selected the column,
+    // but the user expectation is that clicking empty space (below the last card)
+    // is the same as clicking outside everything — deselect all.
+    const { board, store } = testEnv(
+      () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Navigate to a card so we have a non-root selection to clear
+    board.command("cursor_down")
+    const rootId = getActiveBoardPane(store.getState())!.rootId
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).not.toBe(rootId)
+
+    // Find the first column's bounding box
+    const col1 = board.q("[data-col-index='0'][data-column]")
+    expect(col1.count()).toBeGreaterThan(0)
+    const col1Box = col1.boundingBox()
+    expect(col1Box).not.toBeNull()
+
+    // Click in the EMPTY SPACE near the bottom of the column (well below the
+    // last card and well below the header). The header is at row 0; cards take
+    // a few rows; everything below is empty.
+    board.click(col1Box!.x + 2, col1Box!.y + col1Box!.height - 1)
+
+    // After clicking empty space, cursor should be on the board root
+    // (deselected) — NOT on the Inbox column.
+    const cursor = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
+    expect(cursor).toBe(rootId)
+    expect(cursor).not.toBe("Inbox")
+  })
 })
