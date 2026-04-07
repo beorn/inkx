@@ -3,7 +3,6 @@
  * Run: cd /Users/beorn/Code/pim/km ; bun apps/km-tui/tests/profile-startup.ts
  */
 import { createRepo } from "@km/storage"
-import { buildBoardState } from "../src/state.ts"
 import { deriveColumnsFromRepo, buildNodeIndex } from "../src/hooks/use-columns.ts"
 import { createBoardState } from "../src/board/board-types.ts"
 import { createBoardApp } from "../src/board/board-app.ts"
@@ -55,27 +54,22 @@ async function profile() {
   out(`  Total nodes: ${totalNodes.cnt}`)
   out(`  Root: ${rootNode?.title || rootNode?.name} (${rootId})`)
 
-  // Phase 2: Build board state
-  const t2 = timer("buildBoardState")
-  const state = buildBoardState(repo, rootId)
+  // Phase 2: createBoardState (board-types.ts)
+  // (Legacy buildBoardState removed — live code uses the tree-lens pipeline.)
+  const t2 = timer("createBoardState")
+  const boardState = createBoardState(rootId, null, new Set<string>())
   t2.end()
-  out(`  Columns: ${state.columns.length}`)
-  for (const col of state.columns) {
+
+  // Phase 3: deriveColumnsFromRepo (initial sync — what useState initializer calls)
+  const foldDepths = new Map<string, number>([[rootId, 1]])
+  const t3 = timer("deriveColumnsFromRepo (sync initial)")
+  const columns = deriveColumnsFromRepo(repo, rootId, foldDepths)
+  t3.end()
+  out(`  Columns: ${columns.length}, total cards: ${columns.reduce((s, c) => s + c.cardNodes.length, 0)}`)
+  for (const col of columns) {
     const name = col.node.title || col.node.name || "(body)"
     out(`    ${name.slice(0, 40)}: ${col.cardNodes.length} cards`)
   }
-
-  // Phase 3: createBoardState (board-types.ts)
-  const t3 = timer("createBoardState")
-  const boardState = createBoardState(rootId, state.rootPath, state.collapsedNodeIds)
-  t3.end()
-
-  // Phase 4: deriveColumnsFromRepo (initial sync — what useState initializer calls)
-  const foldDepths = new Map<string, number>([[rootId, 1]])
-  const t4 = timer("deriveColumnsFromRepo (sync initial)")
-  const columns = deriveColumnsFromRepo(repo, rootId, foldDepths)
-  t4.end()
-  out(`  Columns: ${columns.length}, total cards: ${columns.reduce((s, c) => s + c.cardNodes.length, 0)}`)
 
   // Phase 5: buildNodeIndex
   const t5 = timer("buildNodeIndex (lazy)")
@@ -86,7 +80,7 @@ async function profile() {
   // Phase 6: React render (measure just createElement tree)
   out("\n--- React render measurement ---")
   const t6 = timer("createBoardApp (store init)")
-  const initialCursorNodeId = state.columns[0]?.cardNodes[0]?.id ?? null
+  const initialCursorNodeId = columns[0]?.cardNodes[0]?.id ?? null
   using toastQueue = createToastQueue()
   const storeParams: CreateBoardAppStoreParams = {
     repo,
@@ -239,7 +233,7 @@ async function profile() {
   out(`  Average: ${avgNav.toFixed(1)}ms`)
 
   // Measure fold/unfold on a card with many children
-  const bigCol = [...state.columns].sort((a, b) => b.cardNodes.length - a.cardNodes.length)[0]!
+  const bigCol = [...columns].sort((a, b) => b.cardNodes.length - a.cardNodes.length)[0]!
   const unfoldTarget = bigCol.cardNodes[0]
   if (unfoldTarget) {
     out(`\n--- Fold/unfold timing (${(unfoldTarget.title || unfoldTarget.name || "card").slice(0, 30)}) ---`)
@@ -276,7 +270,7 @@ async function profile() {
   tp1.end()
 
   // Simulate what happens on zoom into a deep card
-  const deepColumn = state.columns.sort((a: any, b: any) => b.cardNodes.length - a.cardNodes.length)[0]!
+  const deepColumn = columns.sort((a: any, b: any) => b.cardNodes.length - a.cardNodes.length)[0]!
   const deepCard = deepColumn.cardNodes[0]
   if (deepCard) {
     // Clear cache to simulate zoom
@@ -294,7 +288,7 @@ async function profile() {
   // Phase 9: Measure zoom (what happens when user presses Enter on a deep card)
   out("\n--- Zoom simulation ---")
   // Pick the largest column and zoom into its first card
-  const biggestCol = [...state.columns].sort((a, b) => b.cardNodes.length - a.cardNodes.length)[0]!
+  const biggestCol = [...columns].sort((a, b) => b.cardNodes.length - a.cardNodes.length)[0]!
   const zoomTarget = biggestCol.cardNodes[0]
   if (zoomTarget) {
     out(`  Zooming into: ${(zoomTarget.title || zoomTarget.name || "").slice(0, 40)} (${zoomTarget.id.slice(0, 12)})`)

@@ -11,7 +11,7 @@ import { KNode } from "@km/core"
 import type { SectionRules } from "@km/markdown"
 import { createLogger } from "loggily"
 import { computeMetadataKeys, DETAIL_META_PREFIX } from "../views/detail-pane-items.ts"
-import { createViewLens, extractWipLimits, type TreeLens, type ViewLensRepo } from "@km/board"
+import { createViewLens, extractWipLimits, type ViewLensRepo } from "@km/board"
 
 // =============================================================================
 // ColumnView — legacy view model wrapper
@@ -20,8 +20,9 @@ import { createViewLens, extractWipLimits, type TreeLens, type ViewLensRepo } fr
 /**
  * @deprecated Legacy view model — new code should use `colId: string` + `useNode(id)`
  * + `useSignal(ps.visibleLens)` to self-resolve data reactively. This type is
- * only retained for the lower-priority code paths (state.ts initial load,
- * buildOpCtx, driver, tests). React view components take string IDs.
+ * only retained for detail-mode cursor derivation, the web target
+ * (km-canvas.tsx), and the older buildNodeIndex test helper. React view
+ * components take string IDs.
  *
  * A column is a parent KNode whose children render as KNode[].
  * Embed/body data comes from ViewTree signals via useNode.
@@ -49,16 +50,15 @@ const perfLog = createLogger("km:perf") as any
 // =============================================================================
 
 /**
- * CANONICAL column derivation — the single source of truth for Repo → ColumnView[].
+ * Legacy column derivation over an ephemeral ViewLens.
  *
- * Runtime column derivation paths:
- * - Board.tsx via deriveColumnsFromLens (primary React path)
- * - buildOpCtx() in board-app.ts via deriveColumnsFromLens
- * - driver.ts getContext/getDriverState (test/AI automation path)
- * - km-canvas.tsx via useColumns() hook (web target)
+ * Runtime derivation uses `useSignal(pane.signals.visibleLens)` + the tree
+ * lens directly — this function exists only for tests and the web target
+ * (km-canvas.tsx) that need to materialize a ColumnView[] without mounting
+ * the React tree.
  *
- * Builds an ephemeral ViewLens over the repo and delegates to deriveColumnsFromLens.
- * Used by tests, the web target, and any caller that doesn't already have a lens.
+ * The previous `deriveColumnsFromLens` helper has been inlined here since it
+ * had no callers outside this function.
  */
 export function deriveColumnsFromRepo(
   repo: Repo,
@@ -67,24 +67,14 @@ export function deriveColumnsFromRepo(
 ): ColumnView[] {
   using span = log.span("derive-columns")
   const lens = createViewLens(repo as unknown as ViewLensRepo, { rootId, foldDepths })
-  const columns = deriveColumnsFromLens(lens, repo)
-  span.spanData.columns = columns.length
-  return columns
-}
 
-/**
- * Derive ColumnView[] from a TreeLens — the canonical lens-based path.
- * The lens caches children per node internally, so repeat calls are cheap.
- * Used by Board.tsx, buildOpCtx, driver.ts, and deriveColumnsFromRepo.
- */
-export function deriveColumnsFromLens(
-  lens: TreeLens,
-  repo: { getNode: (id: string) => KNode | null | undefined },
-): ColumnView[] {
-  const rootId = lens.rootId
-  if (!rootId) return []
+  const lensRootId = lens.rootId
+  if (!lensRootId) {
+    span.spanData.columns = 0
+    return []
+  }
 
-  const colIds = lens.children(rootId)
+  const colIds = lens.children(lensRootId)
 
   // Collect structural column nodes for WIP limit extraction (excludes body-column)
   const structuralNodes: KNode[] = []
@@ -96,7 +86,7 @@ export function deriveColumnsFromLens(
   }
   const wipLimits = extractWipLimits(structuralNodes)
 
-  return colIds
+  const columns = colIds
     .map((colId): ColumnView | null => {
       const node = lens.get(colId)
       if (!node) return null
@@ -115,6 +105,9 @@ export function deriveColumnsFromLens(
       }
     })
     .filter((c): c is ColumnView => c != null)
+
+  span.spanData.columns = columns.length
+  return columns
 }
 
 // =============================================================================
