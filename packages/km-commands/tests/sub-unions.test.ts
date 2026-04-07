@@ -257,8 +257,8 @@ describe("sub-union categorization", () => {
     expect(VERB_TYPES).toHaveLength(4)
   })
 
-  test("NavOp has 12 types", () => {
-    expect(NAV_TYPES).toHaveLength(12)
+  test("NavOp has 13 types", () => {
+    expect(NAV_TYPES).toHaveLength(13)
   })
 
   test("EditOp has 25 types", () => {

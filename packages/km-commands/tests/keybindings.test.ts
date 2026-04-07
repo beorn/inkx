@@ -898,7 +898,7 @@ describe("chord keybindings", () => {
   it("getAllKeybindings includes chord bindings", () => {
     const all = getAllKeybindings()
     const chordBindings = all.filter((b) => parseKeyString(b.key).chord)
-    expect(chordBindings.length).toBe(183) // 25 g + 27 v + 23 m + 18 a + 13 t + 2 c + 25 Ctrl+g + 23 Ctrl+m + 27 Ctrl+v
+    expect(chordBindings.length).toBe(185) // 26 g + 27 v + 23 m + 18 a + 13 t + 2 c + 26 Ctrl+g + 23 Ctrl+m + 27 Ctrl+v (g/Ctrl+g each gained `f` for follow_wikilink)
   })
 
   it("getChordSuffixes returns a-prefix hints", () => {
@@ -949,6 +949,7 @@ describe("chord keybindings", () => {
       "9",
       "[",
       "a",
+      "f",
       "g",
       "h",
       "i",
