@@ -1,0 +1,8 @@
+# km runtime state — rebuilds from the .md files on every init
+.km/
+
+# km init --force --default files — not part of the showcase, cleaned by show-styles.sh
+@next.md
+@someday.md
+inbox/
+archive/

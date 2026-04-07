@@ -310,12 +310,7 @@ export function InlineWikiLink({ node }: { node: WikiLinkNode }): React.ReactEle
   // decoration, not color substitution. Hover popover still works so the user
   // can see what the unresolved target was.
   return (
-    <Text
-      underlineStyle="dashed"
-      underlineColor="$error"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
+    <Text underlineStyle="dashed" underlineColor="$error" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       {node.target}
     </Text>
   )
