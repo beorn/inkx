@@ -408,7 +408,15 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **SQLite** — The embedded relational database used by km for node storage. Runs in WAL mode for concurrent access. In disk mode, persisted as `.km/state.db`; in memory mode, rebuilt from files each run.
 
-**symlink** — A node that displays another node's content at its position in the tree. `KNode.symlink_to` points to the target node ID. The ViewTree resolves it: `viewNode.display` = the target KNode, `viewNode.isSymlink` = true, `viewNode.childIds` = target's children. Like a Unix symlink — follows the target for content and children. Contrast with *link* (inline `[[wikilink]]` in content, navigates on click) and *embed* (future: `![[page]]`, displays content inline within a node's body).
+**symlink** — Old name for **embed**. Renamed because it collided with the filesystem concept. See *embed*.
+
+**embed** — A KNode whose content is exactly one Link with `rel: "embed"`. Cached on the node as `embed_of` (target id) for hot-path access. Created from markdown `![[Note]]` syntax when it's the sole content of a li/heading/paragraph. Contrast with *link* (a navigable reference, `rel: "link"`) and *inline embed* (an embed Link inside other prose, not promoted to node level). See [docs/design/links.md](design/links.md) for the full link model.
+
+**Link** — The canonical reference type. Lives inside parsed AST inside `KNode.content`. Shape: `{ href: string, rel: string, alias?, md? }`. Source is implicit (the containing node). Built-in `rel` values: `link`, `embed`. Sigils (`@`, `#`, `+`) are `rel: "link"` with notation in `md.form`. User-defined rels from property syntax (e.g., `[blocked-by:: [[X]]]` → `rel: "blocked-by"`). See [docs/design/links.md](design/links.md).
+
+**URI** — Link targets use RFC 3986 URIs. Internal: `km:<id>` or `km:<name>[#<frag>]`. External: `https://...`, `mailto:...`, etc. Future federation: `km://<authority>/<path>`. See [docs/design/links.md](design/links.md).
+
+**rel** — On a Link, the semantic relation. Built-in: `link` (default, includes sigils), `embed`. User-defined: `blocked-by`, `author`, `cites`, etc. Same model as HTML's `rel` attribute (RFC 8288).
 
 **sticky** — A layout feature in flexily where a node sticks to the top or bottom of its scroll container as the user scrolls.
 

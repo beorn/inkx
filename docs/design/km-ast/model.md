@@ -19,7 +19,9 @@ interface KNode {
   item?: ItemData               // present = item, undefined = leaf block
 
   // Embed trait (orthogonal to type — any node type can be an embed)
-  symlink_to?: string | null   // Target node ID (null = unresolved)
+  // Cache: set when content is exactly one Link with rel='embed'.
+  // See [docs/design/links.md](../links.md) for the full link model.
+  embed_of?: string | null   // Target node ID (null = unresolved)
 
   // Tree
   parent_id: string | null
@@ -46,7 +48,7 @@ The old categorical types (oi, li, link) are derived from block type + traits:
 | `type:"p", item:{list:"-"}` | List item (was `li`) | `- content` |
 | `type:"quote", item:{list:"-"}` | Quote list item | `- > content` |
 | `type:"code", item:{list:"-"}` | Code list item | `- \`\`\`code\`\`\`` |
-| any type + `symlink_to` | Embed (was `link`) | `![[target]]` |
+| any type + `embed_of` | Embed (was `link`) | `![[target]]` |
 | `type:"p"` (no item) | Paragraph block | `content` |
 | `type:"code"` (no item) | Code block | ` ```code``` ` |
 | etc. | Leaf block | Various |
@@ -59,7 +61,7 @@ import { KNode } from "@km/core"
 KNode.isOutline(node) // node.type === "h" && node.item != null
 KNode.isListItem(node) // node.type !== "h" && node.item != null
 KNode.isItem(node)     // node.item != null
-KNode.isEmbed(node)    // node.symlink_to != null (orthogonal to type)
+KNode.isEmbed(node)    // node.embed_of != null (orthogonal to type)
 KNode.isBlock(node)    // node.item == null (leaf node)
 ```
 
@@ -71,7 +73,7 @@ KNode.isBlock(node)    // node.item == null (leaf node)
 |---|---|
 | h requires item | `type === "h"` implies `item != null` |
 | task requires item | `item.task` can only exist when `item` is present (always true by structure) |
-| embed is orthogonal | `symlink_to != null` marks a node as an embed — any type can be an embed |
+| embed is orthogonal | `embed_of != null` marks a node as an embed — any type can be an embed |
 | embed children from source | Embed nodes' children come from the target node (resolved at render time) |
 | item-allowed types | h, p, quote, code can be items; table, hr, html, math cannot |
 | h-children ordering | `body*, h*` — body content first, sub-sections last, no interleaving |
@@ -136,23 +138,29 @@ Content leaf. Has a `content` string. No children (except `quote`).
 | `math` | Block math (LaTeX) |
 ### Embed Trait (orthogonal to type)
 
-Any node with `symlink_to != null` is an embed — a block-level transclusion. The node's `type` stays as-is (`p`, `h`, etc.). Embeds created by different paths:
+A node is an "embed" iff `embed_of != null`. This is a **denormalized cache** for the predicate "the node's content is exactly one Link with `rel='embed'`" — a hot-path index for rendering. The canonical link model lives inside `KNode.content` as parsed AST Link nodes; see [docs/design/links.md](../links.md).
 
-- **Markdown parser**: `![[target]]` → sets `symlink_to` on the parsed node (type preserved from context)
-- **Board rules** (`km.add::`): creates `type:"h", item:{}, symlink_to:<id>` (outline item)
-- **CLI add**: creates `type:"p", item:{list:"-"}, symlink_to:<id>` (list item)
+Embeds created by different paths:
+
+- **Markdown parser**: `![[target]]` as sole content of a li/heading/paragraph → cache `embed_of` set
+- **Board rules** (`km.add::`): creates `type:"h", item:{}` with content set to the embed link
+- **CLI add**: creates `type:"p", item:{list:"-"}` with content set to the embed link
 
 | Field | Type | Notes |
 |---|---|---|
-| `symlink_to` | `string?` | Target node ID (null = unresolved) |
+| `embed_of` | `string?` | Cache: target node ID when sole-content embed (null = not a sole-content embed, or unresolved) |
 | `name` | `string?` | Alias (from `![[target\|alias]]`) |
-| `content` | `string?` | Display text (source node's content) |
+| `content` | `string?` | Source markdown — parses to AST containing the Link |
 
-`![[target|alias]]` → embed with `name` as alias. When absent, display falls back to target's title.
+**Links vs embeds (in the canonical model)**:
+- Both are `Link` nodes inside `KNode.content` AST
+- `[[wikilink]]` → `Link { to: "km:wikilink", rel: "link" }`
+- `![[embed]]` → `Link { to: "km:embed", rel: "embed" }`
+- A KNode is "a node link" iff its content has exactly one Link and nothing else (recognition pattern, not stored type)
+- The `embed_of` column is a hot-path cache for the embed-only case
+- All Links flow into the `links` cache table for indexed queries (backlinks, outgoing, typed)
 
-**Links vs Embeds**:
-- `[[wikilink]]` is **inline text** — NOT a node. Tracked in `links` table for graph queries.
-- `![[embed]]` is a node with `symlink_to` set — a **block-level transclusion**.
+See [docs/design/links.md](../links.md) for the full link model, URI scheme, `rel` taxonomy, and recovery semantics.
 
 ## Children Model
 
@@ -302,7 +310,7 @@ h item   → any node types as children (blocks, list items; sub-items are h ite
 p item   → any node types as children (blocks; sub-items are p items; can interleave)
 quote    → blocks (p, code, math, table, hr, html, list items)
 p, code, math, table, hr, html → no children (leaf nodes)
-(embed nodes with symlink_to: children resolved from target at render time)
+(embed nodes with embed_of: children resolved from target at render time)
 ```
 
 Key constraints:
@@ -323,7 +331,7 @@ h item  name:"vault"           fstype:"repo"
           p item(list:"-", task:{marker:"[ ]",status:"todo"})  "Eggs"
           quote "note"
         quote item(list:"-")  "quote list item"
-        p  symlink_to:"<id>"          # embed (any type + symlink_to)
+        p  embed_of:"<id>"          # embed (any type + embed_of)
         h item  name:"sub"   fstype:"mdsection"
 ```
 
@@ -363,12 +371,12 @@ How every CommonMark + GFM + Obsidian construct maps to km-ast:
 | Section (H2+ heading) | `h item (fstype:"mdsection")` — title in `.content` |
 | Repository root | `h item (fstype:"repo")` |
 | **Links & embeds** | |
-| `![[target]]` (embed) | node with `symlink_to:"<id>"` (type from context) |
-| `![[target\|alias]]` | node with `symlink_to:"<id>", name:"alias"` |
+| `![[target]]` (embed) | node with `embed_of:"<id>"` (type from context) |
+| `![[target\|alias]]` | node with `embed_of:"<id>", name:"alias"` |
 | `[[target]]` inline | Stays in `p.content`, indexed in `links` table |
 | `[text](url)` | Stays in `p.content` (inline) |
 | `![alt](url)` | Stays in `p.content` (inline image) |
-| `![[image.png]]` (vault image) | `embed (symlink_to:"<image-node-id>")` |
+| `![[image.png]]` (vault image) | `embed (embed_of:"<image-node-id>")` |
 | `[^1]` reference | Stays in `p.content` (inline) |
 | **Metadata** | |
 | YAML frontmatter (`---`) | `data` JSON field on file's h item node |
@@ -389,7 +397,7 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 
 - `**bold**` → stored as-is in `p.content`
 - `![alt](url)` → stored as-is in `p.content` (standard MD images)
-- `![[vault-image.png]]` → becomes a node with `symlink_to` (Obsidian-style)
+- `![[vault-image.png]]` → becomes a node with `embed_of` (Obsidian-style)
 - `[[wiki-link]]` inline → stays in content string, extracted to `links` table
 - `[^1]` reference → stays in content string
 
@@ -409,7 +417,7 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 | `item.list` as literal string | Preserves user's bullet style | Requires parsing for ordered list logic |
 | Footnotes as list items with `[^id]` marker | Reuses list structure for multi-paragraph footnotes | Unconventional |
 | No list container nodes | Simpler tree, matches Notion's flat approach | Serializer must detect consecutive item siblings |
-| Embeds as orthogonal trait (not a type) | Any node type can be an embed via `symlink_to`. Consistent with block+trait model. | Must check `symlink_to != null` instead of type |
+| Embeds as orthogonal trait (not a type) | Any node type can be an embed via `embed_of`. Consistent with block+trait model. | Must check `embed_of != null` instead of type |
 | Block-level AST only | Sufficient for TUI outline/kanban views | No inline node manipulation |
 | Callouts as `quote` + data | Syntactically they ARE blockquotes | Requires `data.callout_type` check |
 | Frontmatter as `data` field | Metadata, not content | Must serialize back from JSON |
@@ -420,12 +428,12 @@ Inline formatting (bold, italic, code spans, standard links, images) stays in co
 |---|---|
 | `type: "oi"` | `type: "h", item: {}` |
 | `type: "li"` | `type: "p", item: { list?, task? }` (or actual block type) |
-| `type: "link"` | any type + `symlink_to` |
-| `link_to` field | `symlink_to` field |
+| `type: "link"` | any type + `embed_of` |
+| `link_to` field | `embed_of` field |
 | `link_alias` field | `name` field |
-| `embed` boolean | Derived from `symlink_to != null` |
+| `embed` boolean | Derived from `embed_of != null` |
 | `data.depth` | Derived from tree nesting |
 
-Existing databases are auto-migrated by `migrateSchema()` in `schema.ts` — it converts `oi`→`h`+item, `li`→`p`+item, `link`→`p`+symlink_to.
+Existing databases are auto-migrated by `migrateSchema()` in `schema.ts` — it converts `oi`→`h`+item, `li`→`p`+item, `link`→`p`+embed_of.
 
 The old types (`"oi"`, `"li"`, `"link"`) and fields (`link_to`, `link_alias`, `embed` boolean) have been fully removed from the codebase.
