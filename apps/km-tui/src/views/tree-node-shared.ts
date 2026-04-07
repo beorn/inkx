@@ -23,7 +23,10 @@ import {
   type StatusIcon,
 } from "../text/index.ts"
 
-/** Compute the bullet icon based on icon style, task status, and fold state. */
+/** Compute the bullet icon based on icon style, task status, fold state, and
+ *  sticky-fold state. Sticky nodes render the fold marker with inverse video
+ *  so the user sees that fold-all/unfold-all will skip the node — see
+ *  km-tui.sticky-fold. */
 export function computeBulletIcon(
   displayNode: KNode,
   nodeIsTask: boolean,
@@ -32,11 +35,22 @@ export function computeBulletIcon(
   isFolded: boolean,
   ownColor: string | undefined,
   iconStyle: string,
+  sticky: "folded" | "unfolded" | null = null,
 ): StatusIcon {
-  if (nodeIsTask && taskStatusIcon) return taskStatusIcon
+  if (nodeIsTask && taskStatusIcon) {
+    // Task with a sticky pin: overlay inverse background so the checkbox
+    // still shows the status but visually announces the pin. Matches the
+    // fold-marker treatment below.
+    if (sticky !== null) {
+      return { ...taskStatusIcon, color: "$selection", backgroundColor: "$fg" }
+    }
+    return taskStatusIcon
+  }
   if (iconStyle === "workflowy") {
     const bullet = getCircleBullet(hasChildren, hasChildren && isFolded)
-    return ownColor ? { ...bullet, color: ownColor } : bullet
+    const base = ownColor ? { ...bullet, color: ownColor } : bullet
+    if (sticky !== null) return { ...base, color: "$selection", backgroundColor: "$fg" }
+    return base
   }
   if (iconStyle === "nerdfont") {
     // Fold marker (▸) takes priority when children are hidden — the user must see
@@ -44,12 +58,16 @@ export function computeBulletIcon(
     // the node is unfolded or has no children (no fold state to communicate).
     const bullet =
       hasChildren && isFolded
-        ? getFoldMarker(hasChildren, isFolded, ownColor)
-        : (getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, ownColor))
-    return ownColor ? { ...bullet, color: ownColor } : bullet
+        ? getFoldMarker(hasChildren, isFolded, ownColor, sticky)
+        : (getTypeBullet(displayNode, hasChildren) ?? getFoldMarker(hasChildren, isFolded, ownColor, sticky))
+    const base = ownColor ? { ...bullet, color: ownColor } : bullet
+    // When the nerdfont branch returned a type bullet (not the fold marker), we still
+    // want sticky to show — overlay inverse regardless.
+    if (sticky !== null) return { ...base, color: "$selection", backgroundColor: "$fg" }
+    return base
   }
-  // "regular" style — existing fold markers
-  return getFoldMarker(hasChildren, isFolded, ownColor)
+  // "regular" style — existing fold markers (getFoldMarker handles sticky internally)
+  return getFoldMarker(hasChildren, isFolded, ownColor, sticky)
 }
 
 /**

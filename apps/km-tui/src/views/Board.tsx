@@ -609,6 +609,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const paneSel = ps.sel
   const cursor = useSignal(paneSel.node.cursor) as string | null
   const foldDepths = useSignal(ps.foldDepths)
+  const stickyFolds = useSignal(ps.stickyFolds)
   const storeCollapsedNodes = useSignal(ps.collapsedNodes)
   const toastQueue = useToastQueue()
   const setUI = useAppStore<BoardAppStore, BoardAppStore["setUI"]>((s) => s.setUI)
@@ -660,7 +661,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const selIds = useSignal(paneSel.node.ids) as unknown as ReadonlyArray<string>
   const selectedSet = new Set(selIds) // compat bridge for hydrate
   useEffect(() => {
-    nodeStore.hydrate(repo, rootId, foldDepths, selectedSet)
+    nodeStore.hydrate(repo, rootId, foldDepths, selectedSet, stickyFolds)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
   }, [nodeStore, repo, rootId])
 
@@ -673,6 +674,17 @@ export function Board({ patchedConsole }: BoardProps) {
       prevFoldDepthsRef.current = foldDepths
     }
   }, [nodeStore, foldDepths])
+
+  // Incrementally sync sticky-fold changes to reactive node state so that
+  // toggle_sticky_fold causes only the affected TreeNode to re-render.
+  const prevStickyFoldsRef = useRef(stickyFolds)
+  useEffect(() => {
+    const prev = prevStickyFoldsRef.current
+    if (prev !== stickyFolds) {
+      nodeStore.syncStickyFolds(prev, stickyFolds)
+      prevStickyFoldsRef.current = stickyFolds
+    }
+  }, [nodeStore, stickyFolds])
 
   // Incrementally sync multi-selection changes to reactive node state
   // Pass repo so descendants of selected nodes also appear visually selected

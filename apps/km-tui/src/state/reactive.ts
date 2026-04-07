@@ -48,6 +48,11 @@ interface NodeReactiveState {
   /** True when mouse is hovering over this node's card. Per-node signal so
    * only the entering/leaving card re-renders (not all cards). */
   hovered: Signal<boolean>
+  /** Sticky fold state for this node (km-tui.sticky-fold).
+   * `"folded"` | `"unfolded"` = pinned, immune to fold-all/unfold-all.
+   * `null` = not sticky. Used by fold-marker rendering to show the inverse
+   * visual cue on sticky nodes. */
+  sticky: Signal<"folded" | "unfolded" | null>
 }
 
 function createNodeState(): NodeReactiveState {
@@ -60,6 +65,7 @@ function createNodeState(): NodeReactiveState {
     excludedSigils: signal<string[]>([]),
     cursorInDescendant: signal(false),
     hovered: signal(false),
+    sticky: signal<"folded" | "unfolded" | null>(null),
   }
 }
 
@@ -152,9 +158,16 @@ export class ReactiveNodeStore {
 
   /**
    * Hydrate node state for the current board view.
-   * Sets parent links, own sigils, excluded sigils, fold depths, multi-selection.
+   * Sets parent links, own sigils, excluded sigils, fold depths, sticky folds,
+   * multi-selection.
    */
-  hydrate(repo: Repo, rootId: string | null, foldDepths: Map<string, number>, selected: Set<string>): void {
+  hydrate(
+    repo: Repo,
+    rootId: string | null,
+    foldDepths: Map<string, number>,
+    selected: Set<string>,
+    stickyFolds: Map<string, "folded" | "unfolded"> = new Map(),
+  ): void {
     // Clean up old nodes
     if (this.knownNodeIds.size > 0) {
       this.cleanup(this.knownNodeIds)
@@ -230,6 +243,13 @@ export class ReactiveNodeStore {
         this.knownNodeIds.add(card.id)
       }
     }
+
+    // Hydrate sticky fold signals — flip the `sticky` signal for any node
+    // that the caller says is currently pinned. Covers columns, cards, and
+    // sub-items since sticky folds are not tied to any hierarchy level.
+    for (const [id, state] of stickyFolds) {
+      this.getOrCreate(id).sticky(state)
+    }
   }
 
   /** Sync fold depth changes incrementally. */
@@ -242,6 +262,24 @@ export class ReactiveNodeStore {
     for (const [id, depth] of newDepths) {
       if (oldDepths.get(id) !== depth) {
         this.getOrCreate(id).foldOverride(depth)
+      }
+    }
+  }
+
+  /** Sync sticky-fold changes incrementally. Flips per-node `sticky` signals so
+   * that the affected TreeNodes re-render (and only them). */
+  syncStickyFolds(
+    oldSticky: Map<string, "folded" | "unfolded">,
+    newSticky: Map<string, "folded" | "unfolded">,
+  ): void {
+    for (const [id] of oldSticky) {
+      if (!newSticky.has(id)) {
+        this.getOrCreate(id).sticky(null)
+      }
+    }
+    for (const [id, state] of newSticky) {
+      if (oldSticky.get(id) !== state) {
+        this.getOrCreate(id).sticky(state)
       }
     }
   }

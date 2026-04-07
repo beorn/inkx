@@ -219,6 +219,9 @@ function TreeNodeImpl({
   const isNodeSelected = useSignal(nodeStore.getOrCreate(node.id).selected)
   const editState = useSignal(nodeStore.getOrCreate(node.id).edit)
   const foldOverride = useSignal(nodeStore.getOrCreate(node.id).foldOverride)
+  // Sticky-fold state — drives the inverse fold-marker visual for pinned nodes.
+  // See km-tui.sticky-fold.
+  const stickyFold = useSignal(nodeStore.getOrCreate(node.id).sticky)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
   const resolvedDepth = foldOverride ?? remainingDepth ?? Infinity
   const isFolded = resolvedDepth <= 0
@@ -362,8 +365,19 @@ function TreeNodeImpl({
             isFolded,
             style.ownColor,
             iconStyle,
+            stickyFold,
           ),
-    [isBody, nodeIsTask, iconStyle, displayNode.type, hasChildren, isFolded, style.ownColor, style.taskStatusIcon],
+    [
+      isBody,
+      nodeIsTask,
+      iconStyle,
+      displayNode.type,
+      hasChildren,
+      isFolded,
+      style.ownColor,
+      style.taskStatusIcon,
+      stickyFold,
+    ],
   )
 
   // Memoize prefix - body nodes get empty prefix (just indentation space)
@@ -997,6 +1011,9 @@ const FoldedChildRow = React.memo(
     // Read multi-selection signal so grandchildren highlight when parent is selected
     const nodeStore = useNodeStore()
     const isNodeSelected = useSignal(nodeStore.getOrCreate(node.id).selected)
+    // Sticky-fold signal — inverse-videos the fold marker so sticky nodes read
+    // visibly different from regular fold (km-tui.sticky-fold).
+    const stickyFold = useSignal(nodeStore.getOrCreate(node.id).sticky)
 
     const nodeIsTask = KNode.isTask(node)
     const hasChildren = childCount > 0
@@ -1016,7 +1033,7 @@ const FoldedChildRow = React.memo(
     const { iconStyle } = treeConfig
     const bulletIcon = isBody
       ? null
-      : computeBulletIcon(node, nodeIsTask, style.taskStatusIcon, hasChildren, true, style.ownColor, iconStyle)
+      : computeBulletIcon(node, nodeIsTask, style.taskStatusIcon, hasChildren, true, style.ownColor, iconStyle, stickyFold)
     const prefix = bulletIcon
       ? buildPrefix(bulletIcon)
       : { markerChar: "", markerColor: undefined as string | undefined, afterMarker: " ", length: 1 }
