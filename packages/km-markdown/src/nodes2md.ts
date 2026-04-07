@@ -37,6 +37,49 @@ function generateBlockId(existingIds: Set<string>): string {
 }
 
 /**
+ * Inline source preservation (km-markdown.inline-format-loss).
+ *
+ * At parse time, the parser stores the verbatim inline source slice on
+ * `node.data._mdSource` and the parse-time content baseline on
+ * `node.data._mdSourceContent`. The parser only sets `_mdSource` when
+ * `nothingStripped` holds — meaning the source contains no emoji task
+ * metadata, no inline `key:: value` properties, and nothing else that
+ * the reconstruction path would synthesize.
+ *
+ * At serialize time, we return the verbatim source iff the node is still
+ * in its parse-time shape:
+ *   - `content` equals the parse-time baseline (no text edit)
+ *   - no task metadata has been added out-of-band (due_at, start_at,
+ *     priority, rrule) — the TUI edits these without touching content
+ *   - no inline properties have been added via data.propsRaw
+ *
+ * Any of those conditions failing means "the node was edited" and we fall
+ * back to the reconstruction path so the new data survives. Edited nodes
+ * lose inline formatting; unedited siblings keep theirs byte-for-byte.
+ */
+function getUneditedInlineSource(node: KNode): string | undefined {
+  const src = node.data?._mdSource as string | undefined
+  if (src === undefined) return undefined
+  const baseline = node.data?._mdSourceContent as string | undefined
+  if (baseline === undefined) return undefined
+  if ((node.content ?? "") !== baseline) return undefined
+
+  // Out-of-band edits: if any metadata field is now set but the source was
+  // captured with nothingStripped=true (no metadata in source), the node
+  // must have been edited through another path — reconstruct instead.
+  if (node.due_at !== undefined) return undefined
+  if (node.start_at !== undefined) return undefined
+  if (node.priority !== undefined) return undefined
+  if (node.rrule !== undefined) return undefined
+  const propsRaw = node.data?.propsRaw as Record<string, string> | undefined
+  if (propsRaw && Object.keys(propsRaw).length > 0) return undefined
+  const dataMetadata = node.data?.metadata as Record<string, string> | undefined
+  if (dataMetadata && Object.keys(dataMetadata).length > 0) return undefined
+
+  return src
+}
+
+/**
  * Convert nodes to markdown
  */
 export function nodesToMarkdown(
@@ -138,6 +181,9 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
   delete frontmatterData._allMentions // Computed: aggregated from content
   delete frontmatterData._allTags // Computed: aggregated from content
   delete frontmatterData._allProjects // Computed: aggregated from content
+  delete frontmatterData._mdSource // Internal: verbatim inline source (km-markdown.inline-format-loss)
+  delete frontmatterData._mdSourceContent // Internal: content baseline for edit detection
+  delete frontmatterData._mdBullet // Internal: original list bullet char
 
   // If raw frontmatter was preserved due to malformed YAML, emit it verbatim
   const rawFrontmatter = frontmatterData._rawFrontmatter as string | undefined
@@ -156,15 +202,26 @@ function serializeFile(node: KNode, ctx: SerializeContext): string {
 
   // H1 heading (merged into file node) — use same logic as serializeSection for fidelity
   if (node.content) {
-    // Use || (not ??) — empty string title should fall through to content
-    const title = node.title || node.content || ""
-    const ruleStr = node.rules ? serializeRules(node.rules) : ""
-    const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
-    let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
-    if (node.symlink_to || node.block_id) headingLine = headingLine.trimEnd()
-    if (node.symlink_to) headingLine += ` ![[${node.symlink_to}]]`
-    if (node.block_id) headingLine += ` ^${node.block_id}`
-    md += headingLine + "\n\n"
+    // km-markdown.inline-format-loss: prefer verbatim source when unedited
+    // (source already contains any block_id / inline props, so skip the
+    // reconstructed appendings in that branch).
+    const source = getUneditedInlineSource(node)
+    if (source !== undefined) {
+      const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
+      let headingLine = `# ${markerPrefix}${source}`
+      if (node.symlink_to) headingLine = headingLine.trimEnd() + ` ![[${node.symlink_to}]]`
+      md += headingLine + "\n\n"
+    } else {
+      // Use || (not ??) — empty string title should fall through to content
+      const title = node.title || node.content || ""
+      const ruleStr = node.rules ? serializeRules(node.rules) : ""
+      const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
+      let headingLine = ruleStr ? `# ${markerPrefix}${title} ${ruleStr}` : `# ${markerPrefix}${title}`
+      if (node.symlink_to || node.block_id) headingLine = headingLine.trimEnd()
+      if (node.symlink_to) headingLine += ` ![[${node.symlink_to}]]`
+      if (node.block_id) headingLine += ` ^${node.block_id}`
+      md += headingLine + "\n\n"
+    }
   }
 
   // Children (with proper list grouping) — depth 2 for direct children of # heading
@@ -215,6 +272,13 @@ function serializeNode(
 
   switch (node.type) {
     case "p": {
+      // km-markdown.inline-format-loss: prefer verbatim source when unedited.
+      // The source slice already contains the ^block_id if it was present in
+      // the original, so we skip the reconstructed append in that branch.
+      const source = getUneditedInlineSource(node)
+      if (source !== undefined) {
+        return source + "\n\n"
+      }
       let paraContent = node.content ?? ""
       if (node.block_id) paraContent += ` ^${node.block_id}`
       return paraContent + "\n\n"
@@ -248,18 +312,28 @@ function serializeSection(node: KNode, children: KNode[], ctx: SerializeContext,
   // Markdown only supports h1-h6; clamp to avoid invalid headings (e.g., ####### becomes a paragraph)
   const depth = Math.min(treeDepth, 6)
   const prefix = "#".repeat(depth)
-  // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
-  // Use || (not ??) — empty string title should fall through to content
-  const title = node.title || node.content || ""
-  const ruleStr = node.rules ? serializeRules(node.rules) : ""
-  // Prepend task marker if present (e.g., "## [x] Task title")
   const markerPrefix = node.item?.task ? `${statusToMarker(node.item.task.status, node.item.task.marker)} ` : ""
-  let headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
-  // Trim trailing whitespace before appending embed/block_id to avoid double spaces
-  // (e.g., when title is empty and markerPrefix ends with space)
-  if (node.symlink_to || node.block_id) headingLine = headingLine.trimEnd()
-  if (node.symlink_to) headingLine += ` ![[${node.symlink_to}]]`
-  if (node.block_id) headingLine += ` ^${node.block_id}`
+
+  // km-markdown.inline-format-loss: prefer verbatim inline source when unedited.
+  // The source slice already contains any block_id / inline props that would
+  // otherwise be appended separately, so we skip those reconstructions.
+  const source = getUneditedInlineSource(node)
+  let headingLine: string
+  if (source !== undefined) {
+    headingLine = `${prefix} ${markerPrefix}${source}`
+    if (node.symlink_to) headingLine = headingLine.trimEnd() + ` ![[${node.symlink_to}]]`
+  } else {
+    // Reconstruct heading from title + serialized rules (ensures roundtrip fidelity)
+    // Use || (not ??) — empty string title should fall through to content
+    const title = node.title || node.content || ""
+    const ruleStr = node.rules ? serializeRules(node.rules) : ""
+    headingLine = ruleStr ? `${prefix} ${markerPrefix}${title} ${ruleStr}` : `${prefix} ${markerPrefix}${title}`
+    // Trim trailing whitespace before appending embed/block_id to avoid double spaces
+    // (e.g., when title is empty and markerPrefix ends with space)
+    if (node.symlink_to || node.block_id) headingLine = headingLine.trimEnd()
+    if (node.symlink_to) headingLine += ` ![[${node.symlink_to}]]`
+    if (node.block_id) headingLine += ` ^${node.block_id}`
+  }
   let md = headingLine + "\n\n"
 
   // Use serializeChildren for proper list grouping
@@ -442,24 +516,39 @@ function serializeLi(
 ): string {
   const indentStr = "  ".repeat(indent)
 
+  // km-markdown.inline-format-loss: prefer verbatim inline source when unedited.
+  // The source slice already contains any ^block_id, task metadata (due::, etc.),
+  // and inline properties (key:: value) that would otherwise be reconstructed
+  // via appendTaskMetadata and the ^block_id suffix. Skip those in the source path.
+  const source = getUneditedInlineSource(node)
+  // Preserve original bullet marker char (*, +, -, or ordered like "1.") for
+  // unedited list items. mdast normalizes all bullets to the same AST, so the
+  // parser sniffs the source directly and stores the char in data._mdBullet.
+  const originalBullet = node.data?._mdBullet as string | undefined
+
   // Build the line prefix and content
   let line: string
   if (node.item?.task) {
     const marker = statusToMarker(node.item.task.status, node.item.task.marker)
-    const content = appendTaskMetadata(node)
+    const content = source !== undefined ? source : appendTaskMetadata(node)
     line = `${indentStr}- ${marker} ${content}`
   } else {
     let listMarker: string
     if (node.item?.list === "1.") {
       const start = (node.data?.list_start as number | undefined) ?? 1
       listMarker = `${start + orderedIndex}.`
+    } else if (originalBullet && (originalBullet === "*" || originalBullet === "+" || originalBullet === "-")) {
+      // Preserve the original bullet char for unordered lists
+      listMarker = originalBullet
     } else {
       listMarker = "-"
     }
-    line = `${indentStr}${listMarker} ${node.content ?? ""}`
+    const body = source !== undefined ? source : (node.content ?? "")
+    line = `${indentStr}${listMarker} ${body}`
   }
 
-  if (node.block_id) line += ` ^${node.block_id}`
+  // Only append ^block_id if we didn't already emit via source (source includes it).
+  if (source === undefined && node.block_id) line += ` ^${node.block_id}`
   let md = line + "\n"
 
   // Child nodes: list items nested, block content indented under this item

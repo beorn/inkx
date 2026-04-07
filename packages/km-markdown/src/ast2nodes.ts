@@ -150,7 +150,7 @@ export function parseMarkdownWithLinks(content: string, fsPath: string, fsIno?: 
 
   const fileNode = createFileNode(fsPath, fsIno, fsMtime, frontmatter, now)
   const h1Ids = new Set<string>()
-  let childNodes = astToNodes(ast, fileNode, h1Ids)
+  let childNodes = astToNodes(ast, fileNode, h1Ids, body)
 
   const { childNodes: filteredChildren, hadH1 } = mergeH1IntoFileNode(fileNode, childNodes, h1Ids)
   childNodes = filteredChildren
@@ -220,10 +220,63 @@ function parseFrontmatter(yaml: string): Record<string, unknown> {
 }
 
 /**
+ * Extract the verbatim inline source span for a container node (paragraph or heading).
+ *
+ * Uses mdast position data on the inline children to slice the original markdown
+ * body string. This lets us preserve inline formatting (bold, italic, code, links,
+ * strikethrough) byte-for-byte across parse → serialize round trips.
+ *
+ * The span runs from the first inline child's start offset to the last inline
+ * child's end offset — i.e., it excludes the leading `# ` heading prefix or
+ * `- [ ] ` list item marker (which is outside the inline children).
+ *
+ * Returns undefined if positions are unavailable (generated nodes, etc.).
+ */
+function extractInlineSource(
+  node: { children?: unknown[]; position?: { start?: { offset?: number }; end?: { offset?: number } } },
+  body: string,
+): string | undefined {
+  const children = node.children as Array<{ position?: { start?: { offset?: number }; end?: { offset?: number } } }>
+  if (!Array.isArray(children) || children.length === 0) return undefined
+  const first = children[0]
+  const last = children[children.length - 1]
+  const startOffset = first?.position?.start?.offset
+  const endOffset = last?.position?.end?.offset
+  if (typeof startOffset !== "number" || typeof endOffset !== "number") return undefined
+  if (startOffset < 0 || endOffset > body.length || startOffset > endOffset) return undefined
+  return body.slice(startOffset, endOffset)
+}
+
+/**
+ * Extract the bullet marker character(s) for a list item from its source position.
+ * Returns "-", "*", "+", or an ordered marker like "1." / "1)".
+ *
+ * mdast normalizes all list items into the same structure regardless of marker
+ * style, so we sniff the source directly to preserve the original character.
+ */
+function extractBullet(item: { position?: { start?: { offset?: number } } }, body: string): string | undefined {
+  const start = item.position?.start?.offset
+  if (typeof start !== "number") return undefined
+  // Skip leading whitespace (list item indentation)
+  let i = start
+  while (i < body.length && (body[i] === " " || body[i] === "\t")) i++
+  const ch = body[i]
+  if (ch === "-" || ch === "*" || ch === "+") return ch
+  // Ordered list marker: digits followed by `.` or `)`
+  if (ch !== undefined && ch >= "0" && ch <= "9") {
+    let j = i + 1
+    while (j < body.length && body[j]! >= "0" && body[j]! <= "9") j++
+    const marker = body[j]
+    if (marker === "." || marker === ")") return body.slice(i, j + 1)
+  }
+  return undefined
+}
+
+/**
  * Convert AST children to km nodes
  */
 // oxlint-disable-next-line complexity/complexity -- Recursive AST conversion with many node types
-function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
+function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>, body: string = ""): KNode[] {
   const nodes: KNode[] = []
   const sectionStack: Array<{ depth: number; node: KNode }> = []
   let currentParent = fileNode
@@ -275,6 +328,27 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
 
       const parentSection = sectionStack[sectionStack.length - 1]
       const nodeId = ulid()
+      // Capture verbatim inline source for round-trip formatting fidelity (km-markdown.inline-format-loss).
+      // _mdSource holds the raw source slice (including any block_id / inline props that were
+      // stripped from cleanText), and _mdSourceContent is the cleanText baseline used to detect edits.
+      //
+      // For headings, kmHeadingTaskMarkTransform strips the [x] prefix from text.value but
+      // does not update positions — so we strip it from the source too, since the serializer
+      // re-prepends the task marker from node.item.task.
+      //
+      // We only store the source for headings WITHOUT inline properties (km.* rules). If the
+      // heading has rules, the existing serializer reconstructs the rule string separately,
+      // and the source path would double-emit. Bail out in that case.
+      let mdSource =
+        body && !hasRules ? extractInlineSource(heading as unknown as { children?: unknown[] }, body) : undefined
+      if (mdSource !== undefined && taskMark !== undefined) {
+        mdSource = mdSource.replace(/^\[([ xX/\-!])\]\s*/, "")
+      }
+      const headingData: Record<string, unknown> = hasRules ? { rules, title } : {}
+      if (mdSource !== undefined) {
+        headingData._mdSource = mdSource
+        headingData._mdSourceContent = cleanText
+      }
       const sectionNode: KNode = {
         id: nodeId,
         type: "h",
@@ -289,7 +363,7 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
         content_hash: undefined,
         title, // Clean title without rules and task mark
         rules: hasRules ? rules : undefined, // Only set if rules exist
-        data: hasRules ? { rules, title } : {},
+        data: headingData,
         created_at: now,
         updated_at: now,
         version: "",
@@ -327,14 +401,14 @@ function astToNodes(ast: Root, fileNode: KNode, h1Ids?: Set<string>): KNode[] {
 
       for (const item of list.children) {
         const listItem = item as ListItem
-        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++, list.start)
+        const itemNodes = convertListItem(listItem, currentParent, list.ordered ?? false, sortOrder++, list.start, body)
         nodes.push(...itemNodes)
       }
       continue
     }
 
     // Handle other block types
-    const blockNode = convertBlock(child, currentParent, sortOrder++)
+    const blockNode = convertBlock(child, currentParent, sortOrder++, body)
     if (blockNode) {
       nodes.push(blockNode)
     }
@@ -352,6 +426,7 @@ function convertListItem(
   ordered: boolean,
   sortOrder: number,
   listStart?: number | null,
+  body: string = "",
 ): KNode[] {
   const nodes: KNode[] = []
   const now = Date.now()
@@ -360,6 +435,13 @@ function convertListItem(
   // Extra paragraphs are handled as child nodes below (convertBlock).
   const firstPara = item.children.find((c) => c.type === "paragraph" || (c as { type: string }).type === "text")
   const text = firstPara ? nodeToText(firstPara as RootContent) : ""
+  // Capture verbatim inline source (before any stripping) for formatting fidelity.
+  // Only used downstream when displayContent === text (no stripping), so tasks with
+  // emoji metadata and items with inline properties fall through to the reconstruction path.
+  const rawMdSource =
+    body && firstPara ? extractInlineSource(firstPara as unknown as { children?: unknown[] }, body) : undefined
+  // Capture original bullet marker char (*, +, -, or "1.") to preserve alt-bullet styles.
+  const mdBullet = body ? extractBullet(item, body) : undefined
 
   // Read task mark from kmast data (set by kmTaskMark tokenizer)
   const taskMark = item.data?.taskMark as string | undefined
@@ -420,6 +502,19 @@ function convertListItem(
   // Use inline created:: metadata to populate created_at if present
   const inlineCreatedAt = parseFrontmatterTimestamp(metadataFromProps.created)
 
+  // km-markdown.inline-format-loss: only preserve the raw source if nothing
+  // was stripped (no task metadata migration, no inline properties extracted).
+  // Otherwise the serializer's reconstruction path (emoji → key::, propsRaw
+  // ordering) should run as before.
+  const nothingStripped =
+    displayContent === text &&
+    Object.keys(parsedProps.propsRaw).length === 0 &&
+    metadata.dueAt === undefined &&
+    metadata.startAt === undefined &&
+    metadata.priority === undefined &&
+    metadata.rrule === undefined
+  const mdSource = nothingStripped ? rawMdSource : undefined
+
   const node: KNode = {
     id: ulid(),
     type: "p",
@@ -447,6 +542,11 @@ function convertListItem(
       ...(Object.keys(structuralPropsRaw).length > 0 ? { propsRaw: structuralPropsRaw } : {}),
       ...(Object.keys(metadataFromProps).length > 0 ? { metadata: metadataFromProps } : {}),
       ...(ordered && listStart != null && listStart !== 1 ? { list_start: listStart } : {}),
+      // km-markdown.inline-format-loss: preserve inline formatting byte-for-byte
+      // for unedited nodes. _mdSource is the raw source slice, _mdSourceContent
+      // is the parse-time content baseline (used to detect edits).
+      ...(mdSource !== undefined ? { _mdSource: mdSource, _mdSourceContent: displayContent } : {}),
+      ...(mdBullet !== undefined ? { _mdBullet: mdBullet } : {}),
     },
     created_at: inlineCreatedAt ?? now,
     updated_at: now,
@@ -463,7 +563,7 @@ function convertListItem(
     if (child.type === "list") {
       const list = child as List
       for (const nestedItem of list.children) {
-        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++)
+        const nestedNodes = convertListItem(nestedItem, node, list.ordered ?? false, childSort++, list.start, body)
         nodes.push(...nestedNodes)
       }
     } else if (child.type === "heading") {
@@ -489,7 +589,7 @@ function convertListItem(
         continue
       }
       // Extra paragraphs in multi-paragraph list items
-      const blockNode = convertBlock(child, node, childSort++)
+      const blockNode = convertBlock(child, node, childSort++, body)
       if (blockNode) nodes.push(blockNode)
     } else if (
       child.type === "blockquote" ||
@@ -498,7 +598,7 @@ function convertListItem(
       child.type === "html" ||
       child.type === "thematicBreak"
     ) {
-      const blockNode = convertBlock(child, node, childSort++)
+      const blockNode = convertBlock(child, node, childSort++, body)
       if (blockNode) nodes.push(blockNode)
     }
   }
@@ -520,7 +620,7 @@ function getEmbeddingText(text: string): string | null {
 /**
  * Convert a block element to a node
  */
-function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNode | null {
+function convertBlock(block: RootContent, parent: KNode, sortOrder: number, body: string = ""): KNode | null {
   const now = Date.now()
 
   let type: NodeType
@@ -534,6 +634,13 @@ function convertBlock(block: RootContent, parent: KNode, sortOrder: number): KNo
     case "paragraph": {
       type = "p"
       content = nodeToText(block)
+      // km-markdown.inline-format-loss: capture verbatim inline source for
+      // round-trip formatting fidelity. Used on unedited nodes at serialize time.
+      const mdSource = body ? extractInlineSource(block as unknown as { children?: unknown[] }, body) : undefined
+      if (mdSource !== undefined) {
+        data._mdSource = mdSource
+        data._mdSourceContent = content
+      }
       // Detect embedding syntax ![[...]] and store target for reconciliation
       if (getEmbeddingText(content)) {
         const links = parseWikiLinks(content)
@@ -719,6 +826,15 @@ function mergeH1IntoFileNode(
   // Store H1 title in data for DB persistence (using _h1Title to avoid collision with frontmatter title)
   if (h1Section.title) {
     fileNode.data = { ...fileNode.data, _h1Title: h1Section.title }
+  }
+  // km-markdown.inline-format-loss: ensure the H1 inline source/baseline
+  // flows to the file node so the serializer can re-emit verbatim.
+  if (h1Section.data?._mdSource !== undefined) {
+    fileNode.data = {
+      ...fileNode.data,
+      _mdSource: h1Section.data._mdSource,
+      _mdSourceContent: h1Section.data._mdSourceContent,
+    }
   }
 
   // Re-parent H1's children to the file node

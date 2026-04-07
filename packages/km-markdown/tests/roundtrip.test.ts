@@ -33,9 +33,14 @@ Third paragraph.`)
     expect(output).toContain("Third paragraph")
   })
 
-  test("should preserve text content (inline formatting becomes plain text)", () => {
-    // Note: Current parser strips inline formatting but preserves text content
-    expect(roundtrip(`This has **bold** and *italic* and \`code\`.`)).toContain("This has bold and italic and code")
+  test("should preserve inline formatting verbatim for unedited nodes", () => {
+    // km-markdown.inline-format-loss: the parser captures the verbatim inline source
+    // slice at parse time and the serializer re-emits it byte-for-byte when the
+    // node hasn't been edited. Bold/italic/code/links/strikethrough all round-trip.
+    const out = roundtrip(`This has **bold** and *italic* and \`code\`.`)
+    expect(out).toContain("**bold**")
+    expect(out).toContain("*italic*")
+    expect(out).toContain("`code`")
   })
 
   test("should preserve headings", () => {
@@ -938,13 +943,14 @@ describe("Round-trip: Wiki Links and Markdown Links", () => {
     expect(output).toContain("[[doc#section|link text]]")
   })
 
-  test("should preserve wiki links with block IDs", () => {
-    // Both [[doc^block]] and [[doc#^block]] parse to the same AST and
-    // round-trip to the canonical #^ form
+  test("should preserve wiki links with block IDs verbatim", () => {
+    // km-markdown.inline-format-loss: the parser captures the verbatim inline
+    // source, so wiki links with block IDs are round-tripped in their original
+    // form (no normalization of [[doc^x]] → [[doc#^x]]).
     const output = roundtrip(`Reference [[doc^block123]] and [[page^abc|ref]].`)
 
-    expect(output).toContain("[[doc#^block123]]")
-    expect(output).toContain("[[page#^abc|ref]]")
+    expect(output).toContain("[[doc^block123]]")
+    expect(output).toContain("[[page^abc|ref]]")
   })
 
   test("should preserve markdown links text content", () => {
