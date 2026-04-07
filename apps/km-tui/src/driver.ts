@@ -179,7 +179,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   ensureCommandSystemInitialized()
   resetModeStack()
 
-  // Derive initial cursor and collapsed nodes from lens (no buildBoardState needed)
+  // Derive initial cursor and collapsed nodes from the tree lens
   const initLens = createVisibleLens(createViewLens(repo, { rootId, foldDepths: new Map() }))
   const initColIds = rootId ? initLens.children(rootId) : []
   const firstColId = initColIds[0]

@@ -4,12 +4,11 @@
  * Wraps silvery createRenderer with a concise, documentation-like API
  * for testing TUI board rendering.
  *
- * ## Architecture (3-layer pattern)
+ * ## Architecture
  *
- * Uses BoardCore (pure rendering) for static tests, or Board (stateful)
- * for keyboard navigation tests:
- * - Static visual testing with BoardCore
- * - Keyboard navigation with Board (useReducer + useInput)
+ * Uses Board (stateful, with useReducer + useInput) for keyboard navigation
+ * tests. Static rendering is done via renderBoardWithStore which wraps Board
+ * in the full store context.
  *
  * ## Tree Builder API (decker-inspired)
  *
@@ -62,7 +61,7 @@ import { createBoardState, createPaneState } from "../../src/board/board-types.t
 import { createToastQueue, type KNode, type NodeRules, type NodeType, type ItemData, type TaskStatus } from "@km/core"
 import { parseHeadingRules } from "@km/markdown"
 
-import { BoardCore, Board, BoardApp } from "../../src/views/Board.tsx"
+import { Board, BoardApp } from "../../src/views/Board.tsx"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../../src/state/ui-reducer.ts"
 import { createGridNavigator, createViewLens, createVisibleLens } from "@km/board"
 import { RepoProvider } from "../../src/repo-context.tsx"
@@ -81,13 +80,8 @@ import {
 import { handleKey, handleMouse, resetBoardAppState } from "../../src/board/board-app.ts"
 import { defaultKmTheme } from "../../src/theme.ts"
 import type { ParsedMouse } from "@silvery/ag-react"
-import type { BoardStateResult } from "../../src/state.ts"
 
 import { createSelection, type SelectionStore, EMPTY_ORDERED_SET } from "@silvery/selection"
-import { signal as alienSignal } from "alien-signals"
-import { createPaneSignals } from "../../src/state/pane-signals.ts"
-import { createSelectionAdapter } from "../../src/state/selection-adapter.ts"
-import { PaneIdProvider } from "../../src/pane-context.tsx"
 
 /** Create a mock SelectionStore for test environments that don't use createApp. */
 function createMockSel(): SelectionStore {
@@ -100,13 +94,9 @@ function createMockSel(): SelectionStore {
   })
 }
 
-// NOTE: BoardCore is pure rendering (no hooks) - use for static visual tests.
 // Board includes useReducer + useInput - use for keyboard navigation tests.
-import {
-  createBoardState as createBoardStateFixture,
-  createColumnView,
-  createCardNode,
-} from "../fixtures/board-fixtures.ts"
+// (Legacy board() / renderBoard / SIMPLE_BOARD DSL has been removed — tests
+//  now use testEnv() + item().)
 
 // =============================================================================
 // Command → Key reverse lookup (for command() semantic alias)
@@ -1894,172 +1884,10 @@ expect.extend({
 // Factory Functions
 // =============================================================================
 
-/**
- * Render a board with the given state and return a test helper
- */
-export function renderBoard(state: BoardStateResult, options: { columns?: number; rows?: number } = {}) {
-  const { columns = 80, rows = 24 } = options
-
-  // Create a fake repo populated with nodes from the state
-  const allNodes: import("@km/core").KNode[] = []
-  if (state.rootId) {
-    const rootNode = {
-      id: state.rootId,
-      type: "h" as const,
-      parent_id: null,
-      content: state.rootId,
-      data: {},
-      item: {},
-      name: state.rootId,
-      title: state.rootId,
-      fstype: "mdsection" as const,
-      parent_idx: 0,
-    } as any
-    allNodes.push(rootNode)
-  }
-  for (const col of state.columns) {
-    allNodes.push(col.node)
-    for (const card of col.cardNodes) {
-      allNodes.push(card)
-    }
-  }
-  const repo = createFakeRepo({ nodes: allNodes })
-
-  // singlePassLayout matches production's create-app.tsx rendering pipeline
-  const render = createRenderer({ cols: columns, rows, singlePassLayout: true })
-  const boardCoreElement = React.createElement(BoardCore, {
-    rootId: state.rootId,
-    columnIds: state.columns.map((c: any) => c.node.id),
-    columnFilters: new Map<string, import("../../src/views/Board.tsx").ColumnFilterState>(),
-    colIndex: 0,
-    cardIndex: 0,
-    ui: createInitialPaneUI("cards", [], { columns, rows }),
-    cursorDepth: "card",
-    dimensions: { columns, rows },
-    collapsedNodes: new Set<string>(),
-    hasDetailPane: false,
-  })
-  // Wrap in StoreContext + ReactiveNodeStoreProvider + TreeRenderProvider so TreeNode's hooks work
-  const initialUI = createInitialPaneUI("cards", [], { columns, rows })
-  // Set up PaneSignals early so sel is available for the store factory
-  const repoVersion = alienSignal(0)
-  const { app: selApp, source: selTreeSource } = createSelectionAdapter()
-  const sel = createSelection(selApp)
-
-  const mockPane = createPaneState("main", createBoardState(state.rootId, state.rootPath), {
-    viewMode: "cards",
-  })
-  const store = createSignalStore(() => ({
-    foldDepths: new Map<string, number>(),
-    ui: initialUI,
-    navigator: null,
-    setUI: () => {},
-    sel: sel as any,
-    textEditHints: null,
-    workspace: {
-      panes: new Map([["main", mockPane]]),
-      focusedPaneId: "main",
-      previousFocusedPaneId: null,
-      layout: { type: "leaf" as const, paneId: "main" },
-      preZoomLayout: null,
-      preZoomPanes: null,
-    },
-  }))
-  const treeConfig = deriveTreeConfig(initialUI.viewMode, initialUI.maxContentLines, initialUI)
-  const nodeStore = new ReactiveNodeStore()
-  const noopToastQueue = {
-    push: () => "",
-    dismiss: () => {},
-    dismissAll: () => {},
-    getAll: () => [],
-    getLatest: () => null,
-    info: () => "",
-    success: () => "",
-    warning: () => "",
-    error: () => "",
-    [Symbol.dispose]: () => {},
-  }
-  const noopJobRunner = { submit: () => ({ cancel: () => {}, promise: Promise.resolve() }) }
-  const noopUndoHandle = {
-    startBatch: () => {},
-    endBatch: () => {},
-    setCursor: () => {},
-    setCursorAfter: () => {},
-    undo: () => ({ success: false }),
-    redo: () => ({ success: false }),
-    canUndo: () => false,
-    canRedo: () => false,
-  }
-  const paneSignals = createPaneSignals({
-    id: "main",
-    sel,
-    selTreeSource,
-    repo: Object.assign(repo, { path: "/test" }),
-    repoVersion,
-    rootId: state.rootId,
-    rootPath: null,
-    foldDepths: new Map(),
-    collapsedNodes: new Set(),
-    viewMode: "cards" as const,
-    moveState: { active: false } as any,
-  })
-  // Wire PaneSignals into the mock pane so usePaneSignals() works
-  ;(mockPane as any).signals = paneSignals
-  // Initialize sel tree from lens
-  selTreeSource.update(paneSignals.visibleLens())
-
-  const wrappedElement = h(
-    PaneIdProvider,
-    { value: "main" },
-    h(
-      TreeRenderProvider,
-      {
-        treeConfig,
-        setUI: () => {},
-        sel: sel as any,
-        jobRunner: noopJobRunner as any,
-        undoHandle: noopUndoHandle as any,
-        taskStatusFilter: new Set<string>(),
-        boardFocused: true,
-      },
-      boardCoreElement,
-    ),
-  )
-  const reactiveStore = withReactive(createStoreFromRepo(repo))
-  const result = render(
-    h(
-      ServicesProvider,
-      {
-        toastQueue: noopToastQueue as any,
-        jobRunner: noopJobRunner as any,
-        undoHandle: noopUndoHandle as any,
-      },
-      h(
-        StoreContext.Provider,
-        { value: store as StoreApi<unknown> },
-        h(
-          ReactiveNodeStoreProvider,
-          { value: nodeStore },
-          h(StoreProvider, { store: reactiveStore }, h(RepoProvider, { repo, children: wrappedElement })),
-        ),
-      ),
-    ),
-  )
-
-  return {
-    press(key: string) {
-      void result.press(key)
-      return this
-    },
-    expectVisible(text: string) {
-      expect(result.text).toContain(text)
-      return this
-    },
-    screenshot(): string {
-      return result.text
-    },
-  }
-}
+// Legacy renderBoard(BoardStateResult) / board() / column() / SIMPLE_BOARD DSL
+// removed — they wrapped BoardStateResult which no longer exists. Tests now use
+// testEnv() + item() or renderBoardWithStore(). Historical "board-test helper"
+// tests in board-test.test.ts were deleted in the same cleanup.
 
 /**
  * Render Board with a Zustand store context (for tests that render Board directly).
@@ -2132,62 +1960,5 @@ export function renderBoardWithStore(
   )
 }
 
-// =============================================================================
-// Fixture Builders - Concise DSL for creating test boards
-// =============================================================================
-
-/**
- * Create a column for the board DSL
- */
-export function column(title: string, cards: (string | { title: string; children?: string[] })[]) {
-  const cardStates = cards.map((card, idx) => {
-    if (typeof card === "string") {
-      return createCardNode({ content: card, parent_idx: idx })
-    }
-    const children = (card.children ?? []).map((childContent, childIdx) => ({
-      id: `child-${idx}-${childIdx}`,
-      type: "p" as const,
-      item: {},
-      list_marker: "-" as const,
-      parent_id: `card-${idx}`,
-      parent_idx: childIdx,
-      content: childContent,
-      data: {},
-      symlink_to: null,
-      created_at: Date.now(),
-      updated_at: Date.now(),
-      version: "v1",
-    }))
-    return createCardNode({ content: card.title, parent_idx: idx }, children)
-  })
-
-  return createColumnView({ content: title }, cardStates)
-}
-
-/**
- * Create a board fixture from columns
- *
- * @example
- * ```typescript
- * const SIMPLE_BOARD = board({
- *   columns: [
- *     column('To Do', ['Task 1', 'Task 2']),
- *     column('Done', ['Task 3']),
- *   ],
- * });
- * ```
- */
-export function board(config: { columns: ReturnType<typeof column>[] }): BoardStateResult {
-  return createBoardStateFixture(config.columns)
-}
-
-// =============================================================================
-// Common Fixtures
-// =============================================================================
-
-/**
- * Simple 2-column board with basic tasks
- */
-export const SIMPLE_BOARD = board({
-  columns: [column("To Do", ["Task 1", "Task 2"]), column("Done", ["Task 3"])],
-})
+// Legacy fixture-builder DSL (column/board/SIMPLE_BOARD) removed — it produced
+// BoardStateResult which no longer exists. Tests now use testEnv() + item().

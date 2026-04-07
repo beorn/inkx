@@ -1,10 +1,9 @@
 /**
  * Board State Utilities
  *
- * Display-name helpers and badge utilities for board state.
- * The legacy column-based board state (buildBoardState, initBoardState,
- * BoardStateResult, createEmptyState) has been removed — live code uses
- * the tree-lens pipeline (deriveColumnsFromLens, TreeLens, PaneSignals).
+ * Display-name helpers and badge utilities. The legacy column-based board
+ * state API was removed in favor of the tree-lens pipeline
+ * (deriveColumnsFromLens, TreeLens, PaneSignals).
  */
 
 import type { Repo } from "./repo-context.tsx"
