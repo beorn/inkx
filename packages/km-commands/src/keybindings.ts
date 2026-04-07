@@ -970,6 +970,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "g shift-g", commandId: "cursor_last" },
         { key: "g o", commandId: "open_in_system" },
         { key: "g shift-o", commandId: "open_in_terminal" },
+        { key: "g f", commandId: "follow_wikilink" },
 
         // v-prefix chords — VIEW + PANE operations (generated from shared V_CHORD_SUFFIXES)
         ...prefixChords("v", V_CHORD_SUFFIXES),
@@ -1003,6 +1004,7 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
         { key: "Ctrl+g shift-g", commandId: "cursor_last" },
         { key: "Ctrl+g o", commandId: "open_in_system" },
         { key: "Ctrl+g shift-o", commandId: "open_in_terminal" },
+        { key: "Ctrl+g f", commandId: "follow_wikilink" },
         { key: "Ctrl+m m", commandId: "enter_move_mode", when: hasKitty },
         { key: "Ctrl+m a", commandId: "archive", when: hasKitty },
 

@@ -239,6 +239,93 @@ export function handleZoomInNode(ctx: OpCtx, nodeId: string): OpResult {
 }
 
 /**
+ * Zoom to an arbitrary target node using the same "walk up for context" heuristic
+ * as handleFollowLink. Shared between symlink-follow and wikilink-follow.
+ */
+function zoomToTargetInContext(ctx: OpCtx, targetId: string): OpResult {
+  const { dispatchBoard } = ctx
+  const target = ctx.repo.getNode(targetId)
+  if (!target) return boundary("follow_wikilink", "target not found")
+
+  // Walk up to 3 levels from target to find the best board root
+  let rootId = target.parent_id
+  if (!rootId) return boundary("follow_wikilink", "target has no parent")
+
+  for (let i = 0; i < 2; i++) {
+    const node = ctx.repo.getNode(rootId)
+    if (!node?.parent_id) break // at repo root, stop
+    rootId = node.parent_id
+  }
+
+  saveNavHistory(ctx)
+
+  dispatchBoard({
+    type: "ZOOM_IN",
+    nodeId: rootId,
+  })
+  ctx.sel.node.select([target.id as ID])
+
+  clearSelection(ctx)
+  ctx.setUI({ status: { level: "info", message: `Followed link: ${shortName(ctx, target.id)}` } })
+  return ok()
+}
+
+/** Matches [[target]] or [[target|alias]] in card content. */
+const WIKILINK_RE = /\[\[([^\]|]+)(?:\|[^\]]*)?\]\]/
+
+/**
+ * Extract the first wikilink target found in the subtree rooted at nodeId.
+ * Searches the card's own content first, then walks into sub-items in order,
+ * so "first wikilink visible on the card" wins.
+ */
+function findFirstWikilinkTarget(ctx: OpCtx, rootNodeId: string): string | null {
+  const queue: string[] = [rootNodeId]
+  // Breadth-first so the root's own content is inspected before descendants.
+  while (queue.length > 0) {
+    const nodeId = queue.shift()!
+    const node = ctx.repo.getNode(nodeId)
+    if (!node) continue
+    const content = node.content ?? ""
+    if (content) {
+      const match = WIKILINK_RE.exec(content)
+      if (match?.[1]) return match[1].trim()
+    }
+    for (const child of ctx.repo.getChildren(nodeId)) {
+      queue.push(child.id)
+    }
+  }
+  return null
+}
+
+/**
+ * Follow the first [[wikilink]] in the current card's content.
+ * Resolves the target via repo.resolveByName and zooms into it using the same
+ * "walk up for context" heuristic as handleFollowLink.
+ */
+export function handleFollowWikilink(ctx: OpCtx): OpResult {
+  const card = ctx.card
+  if (!card) return precondition("card")
+
+  const target = findFirstWikilinkTarget(ctx, card.id)
+  if (!target) return boundary("follow_wikilink", "no wikilink in card")
+
+  // Try name resolution first, then fall back to id / ^id lookup.
+  let resolved = ctx.repo.resolveByName?.(target) ?? null
+  if (!resolved) {
+    resolved = ctx.repo.getNode(target) ?? null
+  }
+  if (!resolved && target.startsWith("^")) {
+    resolved = ctx.repo.getNode(target.slice(1)) ?? null
+  }
+  if (!resolved) {
+    ctx.setUI({ status: { level: "warning", message: `Broken wikilink: [[${target}]]` } })
+    return boundary("follow_wikilink", "unresolved target")
+  }
+
+  return zoomToTargetInContext(ctx, resolved.id)
+}
+
+/**
  * Follow a symlink: zoom to the link target in context.
  *
  * Walks up from the target to find the best board root for maximum context:

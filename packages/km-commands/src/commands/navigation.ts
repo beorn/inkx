@@ -194,6 +194,16 @@ const followLink = {
   execute: () => ({ type: "FOLLOW_LINK" }),
 } satisfies CommandDef
 
+// Follow first [[wikilink]] in the current card's content
+const followWikilink = {
+  id: "follow_wikilink",
+  name: "Follow Wikilink",
+  shortLabel: "follow",
+  description: "Pick the first [[wikilink]] in the current card and zoom to its target",
+  category: "Navigation",
+  execute: () => ({ type: "FOLLOW_WIKILINK" }),
+} satisfies CommandDef
+
 // Composable goto command — dispatches to board or favorite based on ctx.targetId
 const goto = {
   id: "goto",
@@ -336,6 +346,7 @@ export const navigationCommands: CommandDef[] = [
   siblingBoardPrev,
   zoomInwards,
   followLink,
+  followWikilink,
   openInSystem,
   openInTerminal,
   filter,

@@ -477,6 +477,10 @@ interface FollowLinkOp {
   type: "FOLLOW_LINK" // Navigate to embedded link target in context
 }
 
+interface FollowWikilinkOp {
+  type: "FOLLOW_WIKILINK" // Pick the first [[wikilink]] in the current card's content and zoom to its target
+}
+
 interface PageJumpOp {
   type: "PAGE_JUMP"
   direction: "up" | "down"
@@ -789,6 +793,7 @@ export type NavOp =
   | ZoomOutwardsOp
   | ZoomToRootOp
   | FollowLinkOp
+  | FollowWikilinkOp
   | PageJumpOp
   | JumpToColumnOp
   | FoldLevelOp

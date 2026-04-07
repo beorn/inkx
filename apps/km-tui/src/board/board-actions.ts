@@ -129,6 +129,7 @@ const NAV_TYPE_LIST = [
   "ZOOM_OUTWARDS",
   "ZOOM_TO_ROOT",
   "FOLLOW_LINK",
+  "FOLLOW_WIKILINK",
   "PAGE_JUMP",
   "JUMP_TO_COLUMN",
   "FOLD_LEVEL",
@@ -421,6 +422,7 @@ import {
 import { handleExtendSelectHorizontal, handleExtendSelectVertical } from "./board-actions-selection.ts"
 import {
   handleFollowLink,
+  handleFollowWikilink,
   handleZoomIn,
   handleZoomInwards,
   handleZoomOutwards,
@@ -574,6 +576,8 @@ function handleNavAction(ctx: OpCtx, action: NavOp): OpResult {
       return handleZoomToRoot(ctx)
     case "FOLLOW_LINK":
       return handleFollowLink(ctx)
+    case "FOLLOW_WIKILINK":
+      return handleFollowWikilink(ctx)
     case "PAGE_JUMP":
       handlePageJump(ctx, action.direction)
       return ok()
