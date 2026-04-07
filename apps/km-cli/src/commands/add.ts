@@ -91,7 +91,7 @@ export const addCommand = new Command("add")
   .option("--quiet", "Suppress progress output")
   .showHelpAfterError(true)
   // oxlint-disable-next-line complexity/complexity -- CLI add with query matching, sigil tagging, and four-way dedup
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     // Detect sigil target (@next, +project, #tag)
     // Match bare sigil (e.g., @next) or extract from path basename (e.g., /tmp/vt/@next)
     const basename = opts.target.replace(/\/$/, "").split("/").pop() ?? opts.target

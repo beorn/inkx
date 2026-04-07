@@ -44,7 +44,7 @@ export const viewCommand = new Command("view")
   .option("--no-interactive", "Non-interactive mode, just print")
   .option("--as <mode>", `Initial view mode: ${VIEW_MODES.join(", ")} (default: cards)`, "cards")
   .option("--no-watch", "Disable file watching (faster startup on large repos)")
-  .action(async ({ root, ...options }) => {
+  .action(async (root, options) => {
     // Register top-level crash handlers early — before alt screen is entered.
     // runBoard() registers its own handlers inside tui.tsx, but these catch errors
     // that occur before runBoard starts or after it cleans up its handlers.

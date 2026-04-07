@@ -37,7 +37,7 @@ bdAgentCommand
   .command("ls")
   .description("List all agents")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agents = queryAgents(repo)
@@ -65,7 +65,7 @@ bdAgentCommand
   .argument("<agent-id>", "Agent ID")
   .description("Show agent's assigned issues")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.agentId)
@@ -117,7 +117,7 @@ bdAgentCommand
   .argument("<agent-id>", "Agent ID")
   .argument("<issue-id>", "Issue ID")
   .description("Assign an issue to an agent's queue")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.agentId)
@@ -149,7 +149,7 @@ bdAgentCommand
   .argument("<agent-id>", "Agent ID")
   .argument("<issue-id>", "Issue ID")
   .description("Remove an issue from agent's queue")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.agentId)
@@ -180,7 +180,7 @@ bdAgentCommand
   .argument("<agent-id>", "Agent ID")
   .description("Agent claims the next ready issue from the backlog")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.agentId)
@@ -226,7 +226,7 @@ bdAgentCommand
   .description("Run agent on its work queue (continuous mode)")
   .option("--max-tasks <n>", "Maximum tasks to process", int)
   .option("--dry-run", "Show what would be done")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.agentId)

@@ -113,7 +113,7 @@ program
   .command("switch")
   .argument("<name>", "Account name to switch to")
   .description("Switch active Claude Code account")
-  .action(async (opts: { name: string }) => {
+  .actionMerged(async (opts: { name: string }) => {
     const result = await switchAccount(opts.name)
     if (result.success) {
       console.log(pc.green(`Switched to "${opts.name}". New Claude Code sessions will use this account.`))
@@ -176,7 +176,7 @@ program
   )
   .option("--key", "Prompt for API key")
   .option("--env <var>", "Environment variable containing the API key")
-  .action((opts: { name: string; provider: string; key?: boolean; env?: string }) => {
+  .actionMerged((opts: { name: string; provider: string; key?: boolean; env?: string }) => {
     const provider = opts.provider as AccountProvider
     upsertAccount({ name: opts.name, provider })
 
@@ -204,7 +204,7 @@ program
   .argument("<old-name>", "Current account name")
   .argument("<new-name>", "New account name")
   .description("Rename an account")
-  .action((opts: { oldName: string; newName: string }) => {
+  .actionMerged((opts: { oldName: string; newName: string }) => {
     const account = getAccount(opts.oldName)
     if (!account) {
       console.error(pc.red(`Account "${opts.oldName}" not found`))
@@ -225,7 +225,7 @@ program
   .command("remove")
   .argument("<name>", "Account name to remove")
   .description("Remove an account")
-  .action((opts: { name: string }) => {
+  .actionMerged((opts: { name: string }) => {
     const account = getAccount(opts.name)
     if (!account) {
       console.error(pc.red(`Account "${opts.name}" not found`))

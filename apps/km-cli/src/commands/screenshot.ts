@@ -28,10 +28,12 @@ export const screenshotCommand = new Command("screenshot")
   .action(async (root, options) => {
     log.debug?.("screenshot command", { root, ...options })
 
-    const width = options.width
-    const height = options.height
-    const viewMode: ViewMode = VIEW_MODES.includes(options.as) ? (options.as as ViewMode) : "cards"
-    const format: OutputFormat = options.format as OutputFormat
+    // Defaults are applied by Commander, but the types remain | undefined.
+    const width = options.width ?? 80
+    const height = options.height ?? 24
+    const asOpt = options.as ?? "cards"
+    const viewMode: ViewMode = (VIEW_MODES as readonly string[]).includes(asOpt) ? (asOpt as ViewMode) : "cards"
+    const format: OutputFormat = (options.format ?? "text") as OutputFormat
 
     // Import modules
     const [storageModule, coreModule, cliModule, tuiModule, silverytModule] = await Promise.all([

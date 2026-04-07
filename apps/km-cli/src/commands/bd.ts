@@ -60,7 +60,7 @@ bdCommand
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
   // oxlint-disable-next-line complexity/complexity -- CLI info display with config/stats sections
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(opts.scope)
     const scopePath = resolved.nodeRef ?? undefined
     const configObj = loadConfigObject(resolved.repoRoot)
@@ -106,7 +106,7 @@ bdCommand
   .option("--unblocked", "Show only unblocked issues")
   .option("--all", "Show all tasks (ignore board filter)")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const queryParts: string[] = opts.query ?? []
     const positionalQuery = queryParts.length > 0 ? queryParts.join(" ") : undefined
 
@@ -196,7 +196,7 @@ const showCmd = bdCommand
   .argument("[id]", "Issue ID")
   .description("Show issue details")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id) {
       showCmd.outputHelp()
       return
@@ -234,7 +234,7 @@ bdCommand
   .option("--id <custom>", "Custom short ID")
   .option("--parent <id>", "Parent issue for sub-issues")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
@@ -299,7 +299,7 @@ const updateCmd = bdCommand
   .option("-n, --notes <text>", "Append notes (adds child paragraph)")
   .option("--type <type>", "Set issue type")
   .option("--claim", "Claim issue (set status=wip + assignee to you)")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id) {
       updateCmd.outputHelp()
       return
@@ -376,7 +376,7 @@ const closeCmd = bdCommand
   .argument("[id]", "Issue ID")
   .description("Close an issue (mark as done)")
   .option("-r, --reason <reason>", "Close reason")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id) {
       closeCmd.outputHelp()
       return
@@ -404,7 +404,7 @@ const dropCmd = bdCommand
   .argument("[id]", "Issue ID")
   .description("Drop an issue (mark as won't do)")
   .option("-r, --reason <reason>", "Drop reason")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id) {
       dropCmd.outputHelp()
       return
@@ -434,7 +434,7 @@ const depAddCmd = depCommand
   .argument("[id]", "Issue ID")
   .argument("[depends-on]", "Blocking issue ID")
   .description("Add a dependency (issue is blocked by depends-on)")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id || !opts.dependsOn) {
       depAddCmd.outputHelp()
       return
@@ -461,7 +461,7 @@ const depRemoveCmd = depCommand
   .argument("[id]", "Issue ID")
   .argument("[depends-on]", "Blocking issue ID")
   .description("Remove a dependency")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id || !opts.dependsOn) {
       depRemoveCmd.outputHelp()
       return
@@ -492,7 +492,7 @@ const depListCmd = depCommand
   .command("list")
   .argument("[id]", "Issue ID")
   .description("List dependencies for an issue")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     if (!opts.id) {
       depListCmd.outputHelp()
       return
@@ -527,7 +527,7 @@ bdCommand
   .description("List issues not updated in N days")
   .option("-d, --days <n>", "Days threshold", int, 14)
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
@@ -558,7 +558,7 @@ bdCommand
   .command("claim")
   .argument("<id>", "Issue ID")
   .description("Claim an issue (set status to wip and assign to you)")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
@@ -590,7 +590,7 @@ bdCommand
   .argument("<id>", "Issue ID")
   .description("List children of an issue (e.g., sub-tasks of an epic)")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.id)
@@ -624,7 +624,7 @@ bdCommand
   .command("blocked")
   .description("List all blocked issues")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
     using repo = await loadRepo(resolved.repoRoot)
@@ -663,7 +663,7 @@ bdCommand
   .argument("[scope]", "Path scope")
   .description("Show beads configuration and statistics")
   // oxlint-disable-next-line complexity/complexity -- CLI action with sequential reporting steps
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(opts.scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
@@ -757,7 +757,7 @@ bdCommand
   .command("where")
   .argument("[scope]", "Path scope")
   .description("Show beads paths and configuration")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(opts.scope)
     const kmDir = join(resolved.repoRoot, ".km")
 
@@ -788,7 +788,7 @@ bdCommand
   .argument("<expression...>", "DSL query expression")
   .description("Query issues with raw DSL expression (no default board filter)")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const expression = opts.expression.join(" ")
 
     const resolved = resolvePathArg(undefined)
@@ -819,7 +819,7 @@ bdCommand
   .argument("<old-id>", "Current issue ID")
   .argument("<new-id>", "New issue ID")
   .description("Rename an issue ID (updates all references)")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const resolved = resolvePathArg(undefined)
     using repo = await loadRepo(resolved.repoRoot)
     const issue = resolveIssueArg(repo, opts.oldId)

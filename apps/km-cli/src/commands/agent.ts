@@ -67,7 +67,7 @@ agentCommand
   .option("-s, --status <status>", "Filter by status (idle, running, stopped, error)")
   .option("--harness <name>", "Filter by harness")
   .option("--json", "Output as JSON")
-  .action(async (opts: LsOptions) => {
+  .actionMerged(async (opts: LsOptions) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
 
@@ -103,7 +103,7 @@ agentCommand
   .option("--id <custom>", "Custom short ID")
   .option("--workdir <path>", "Working directory")
   .option("--json", "Output as JSON")
-  .action((opts) => {
+  .actionMerged((opts) => {
     // Validate harness exists
     if (opts.harness) {
       const harness = loadHarness(opts.harness)
@@ -141,7 +141,7 @@ agentCommand
   .command("stop")
   .argument("<id>", "Agent ID")
   .description("Stop an agent gracefully")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.id)
@@ -163,7 +163,7 @@ agentCommand
   .command("kill")
   .argument("<id>", "Agent ID")
   .description("Force kill an agent")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.id)
@@ -191,7 +191,7 @@ agentCommand
   .argument("<id>", "Agent ID")
   .description("Show agent details")
   .option("--json", "Output as JSON")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.id)
@@ -214,7 +214,7 @@ agentCommand
   .command("harnesses")
   .description("List available harnesses")
   .option("--json", "Output as JSON")
-  .action((opts: HarnessesOptions) => {
+  .actionMerged((opts: HarnessesOptions) => {
     const harnesses = listHarnesses()
 
     if (opts.json) {
@@ -243,7 +243,7 @@ agentCommand
   .description("List sessions (optionally for a specific agent)")
   .option("-n, --limit <n>", "Limit results", int)
   .option("--json", "Output as JSON")
-  .action((opts) => {
+  .actionMerged((opts) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
       console.error(term.red("No .km directory found"))
@@ -275,7 +275,7 @@ agentCommand
   .argument("<session-id>", "Session ID")
   .description("View session transcript")
   .option("--json", "Output as JSON")
-  .action((opts) => {
+  .actionMerged((opts) => {
     const kmDir = findKmRootFromPath(process.cwd())
     if (!kmDir) {
       console.error(term.red("No .km directory found"))
@@ -312,7 +312,7 @@ agentCommand
   .option("--continuous", "Process work queue continuously")
   .option("--max-tasks <n>", "Max tasks in continuous mode", int)
   .option("--dry-run", "Show plan without executing")
-  .action(async (opts) => {
+  .actionMerged(async (opts) => {
     const pathResolved = resolvePathArg(process.cwd(), getRootPath())
     using repo = await loadRepo(pathResolved.repoRoot)
     const agent = getAgent(repo, opts.id)

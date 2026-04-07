@@ -37,7 +37,7 @@ configCommand
   .command("get")
   .argument("<key>", "Config key (board, parent, prefix)")
   .description("Get a configuration value")
-  .action((opts) => {
+  .actionMerged((opts) => {
     const resolved = resolvePathArg(undefined)
     const configObj = loadConfigObject(resolved.repoRoot)
 
@@ -63,7 +63,7 @@ configCommand
   .argument("<key>", "Config key (board, parent, prefix)")
   .argument("<value>", "Config value")
   .description("Set a configuration value (edits .km/config.yaml)")
-  .action((opts) => {
+  .actionMerged((opts) => {
     // Validate key
     if (!["board", "parent", "prefix"].includes(opts.key)) {
       console.error(term.red(`Unknown config key: ${opts.key}`))
