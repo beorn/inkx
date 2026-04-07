@@ -24,6 +24,13 @@ export interface KmEvents {
   // User-facing events (→ UI feedback)
   "parse-error": (e: { file: string; line: number; message: string }) => void
   "sync-error": (e: { path: string; message: string }) => void
+  /**
+   * External edit detected at write time. The on-disk file no longer matched
+   * the baseline km loaded, so the disk version was preserved at `backupPath`
+   * before km's change was written. The TUI surfaces this as a toast pointing
+   * at the backup so the user can reconcile the edits manually.
+   */
+  "sync-conflict": (e: { path: string; backupPath: string | null; strategy: string }) => void
   "validation-warning": (e: { nodeId: string; message: string }) => void
 
   // Debug events (→ debug() log)

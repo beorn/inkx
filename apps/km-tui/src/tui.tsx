@@ -131,6 +131,27 @@ export async function runBoard(
             })
           }
         },
+        // Surface conflict backups as toasts: km detected an external edit
+        // before overwriting, preserved the disk version at `backupPath`, and
+        // is asking the user to review it.
+        onConflicts: (conflicts) => {
+          for (const c of conflicts) {
+            // fs_wins conflicts have no backup (nothing was overwritten) —
+            // surface them as sync-errors so the user still sees something.
+            if (c.resolution === "discarded") {
+              kmEvents.emit("sync-error", {
+                path: c.path,
+                message: `External edit detected — km's pending write was discarded`,
+              })
+              continue
+            }
+            kmEvents.emit("sync-conflict", {
+              path: c.path,
+              backupPath: c.backupPath ?? null,
+              strategy: c.strategy,
+            })
+          }
+        },
         onError: (error) => {
           kmEvents.emit("sync-error", { path: "", message: error instanceof Error ? error.message : String(error) })
         },

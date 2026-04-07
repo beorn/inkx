@@ -162,6 +162,21 @@ export function createErrorWarningHandler(toastQueue?: ToastQueue): () => void {
     notify(process.stdout, `Sync error: ${e.path}`, { title: "km" })
   })
 
+  // External-edit conflicts: file changed on disk before km could save.
+  // km already wrote a .conflict.<ts>.md backup — point the user at it.
+  const unsubSyncConflict = kmEvents.on("sync-conflict", (e) => {
+    const filename = e.path.split("/").pop() ?? e.path
+    const backupName = e.backupPath ? (e.backupPath.split("/").pop() ?? e.backupPath) : null
+    const description = backupName
+      ? `External changes saved to ${backupName} — please review`
+      : `External changes detected but backup could not be written — check ${filename}`
+    toastQueue?.warning(`File changed externally: ${filename}`, {
+      description,
+      batchKey: "sync-conflict",
+    })
+    notify(process.stdout, `File changed externally: ${filename}`, { title: "km" })
+  })
+
   // Validation warnings
   const unsubValidationWarning = kmEvents.on("validation-warning", (e) => {
     toastQueue?.warning("Validation warning", {
@@ -173,6 +188,7 @@ export function createErrorWarningHandler(toastQueue?: ToastQueue): () => void {
   return () => {
     unsubParseError()
     unsubSyncError()
+    unsubSyncConflict()
     unsubValidationWarning()
   }
 }
