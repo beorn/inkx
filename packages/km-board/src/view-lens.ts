@@ -59,6 +59,18 @@ export interface ViewLensOptions {
  * - Detail-only exclusion: detailOnly / well-known metadata sections hidden
  * - Deduplication by fs_path
  * - Section rules from frontmatter
+ *
+ * **Layering**: this returns a {@link TreeLens} (data layer). React components
+ * should NOT consume the returned lens directly — use `createViewTree`
+ * (in `view-tree-projection.ts`) which wraps it with per-node signal bags
+ * for incremental rendering. Use this factory only from non-React code:
+ * reducers, selectors, navigation helpers, store, pane-signals reactive graph.
+ *
+ * Known stub: the `foldDepths` option is part of `ViewLensOptions` but is
+ * NOT currently read by this function. Per-node fold lives at the React
+ * layer in `ReactiveNodeStore` (apps/km-tui/src/state/reactive.ts) for
+ * incremental rendering performance reasons. See
+ * `bd show km-tui.view-mode-feature-parity` for the planned cleanup.
  */
 export function createViewLens(repo: ViewLensRepo, options: ViewLensOptions): TreeLens {
   const { rootId, hiddenNodeIds } = options

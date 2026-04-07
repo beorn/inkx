@@ -1,10 +1,33 @@
 # Per-Node View Computeds: Architecture Assessment
 
+> **Status: historical design doc.** The migration this assessed is **done**.
+> The current architecture uses `createViewTree()` (in
+> `packages/km-board/src/view-tree-projection.ts`) which wraps a `TreeLens`
+> with per-node signal bags via `ProjectedMap`. React components subscribe via
+> `useNode(id)` and re-render only when *that node's* state changes. The old
+> `buildViewTree` / `ViewSnapshot` path referenced throughout this doc was
+> deleted in commit `2910f2dd8` (refactor(board): delete view-tree.ts +
+> view-snapshot.ts).
+>
+> See [docs/design/visibility-model.md](visibility-model.md) and the
+> `ViewTree` / `TreeLens` glossary entries for the current architecture. This
+> doc is preserved for historical context — the trade-off analysis (perf,
+> incrementality, debuggability, testing) is still useful as a record of why
+> the per-node projection was chosen.
+
 Research-only assessment of replacing the single `PaneSignals.view` computed (which
 rebuilds the entire ViewSnapshot) with a network of fine-grained per-node reactive
 derivations.
 
-## 1. Current Architecture
+> **Reminder**: throughout this doc, references to `buildViewTree`,
+> `ViewSnapshot`, and `PaneSignals.view` describe the *previous* architecture
+> (deleted in commit `2910f2dd8`). The "Current Architecture" section below
+> means "current as of when this assessment was written," not "current as of
+> today." For the actual current architecture, see
+> [docs/design/visibility-model.md](visibility-model.md) and the
+> `TreeLens` / `ViewTree` glossary entries.
+
+## 1. Architecture at the time this assessment was written
 
 ```
 PaneSignals.view = computed(() => createViewSnapshot(repo, rootId(), foldDepths()))

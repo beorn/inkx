@@ -44,6 +44,12 @@ export interface VisibleLensOptions {
  * The visible lens delegates all get/role/isBody/resolvedSymlink/rules to
  * the parent lens. It only modifies children() and walkOrder to exclude
  * collapsed cards and filtered cards.
+ *
+ * **Layering**: this returns a {@link TreeLens} (data layer). React components
+ * should NOT consume the returned lens directly — use `createViewTree`
+ * (in `view-tree-projection.ts`) which wraps it with per-node signal bags
+ * for incremental rendering. Use this factory only from non-React code:
+ * reducers, selectors, navigation helpers, store, pane-signals reactive graph.
  */
 export function createVisibleLens(parent: TreeLens, options: VisibleLensOptions = {}): TreeLens {
   const { collapsedNodes, cardFilter, taskStatusFilter } = options

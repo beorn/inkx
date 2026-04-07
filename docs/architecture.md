@@ -119,32 +119,55 @@ Key design: **no tree data in state**. Navigation and rendering query Repo on de
 
 `BoardReducerOp` — discriminated union dispatched to the reducer (`SELECT`, `TOGGLE_FOLD`, `ZOOM_IN`, etc.). `KmOp` — higher-level user intent (verbs, nav, edits, text ops, dialog ops) dispatched through the command system. Defined in `@km/commands`.
 
-### ColumnView / CardView — Derived View Models (legacy, being replaced)
+### TreeLens Pipeline — The Visual Tree
 
-> **Migration in progress**: ColumnView/CardView/ViewNode are being replaced by the **TreeLens + Projection** architecture. See `bd show km-tui.tree-lenses` for the design. The new architecture uses one node type (KNode) through all layers, with enrichments as computed lens methods and per-node projection signals for React. Components will use `useProjection(id)` instead of reading from ColumnView/ViewNode.
+The visual tree is derived (not stored) via a three-layer pipeline of `TreeLens` instances, each wrapping the previous:
 
-Derived (not stored) representations for rendering. `ColumnView` = a section heading with its cards. `CardView` = a KNode enriched with resolved embed data and body classification.
-
-```typescript
-interface ColumnView { node: KNode; cardNodes: CardView[]; rules?: SectionRules; isVirtual?: boolean }
-interface CardView extends KNode { resolvedNode?: KNode; isBody: boolean; hasBodyChildren: boolean }
+```
+repo
+  └── createViewLens(repo, { rootId, hiddenNodeIds })
+        └── createVisibleLens(view, { collapsedNodes, taskStatusFilter })
+              └── createViewTree()  ← React-side projection with per-node signals
 ```
 
-### ViewNode — Explicit Visual Tree (legacy, being replaced by TreeLens)
+`TreeLens` is the universal navigation interface (`packages/km-board/src/tree-lens.ts`). Each layer preserves the same KNode identity through all levels — only visibility changes. Enrichments (`role`, `isBody`, `resolvedSymlink`, `rules`) are lens **methods**, not node properties — pure query interface, zero upfront allocation, lazy + cached.
 
-The authoritative visual tree. Every navigation, cursor classification, and column derivation goes through ViewNode. Defined in `@km/board` ([packages/km-board/src/view-tree.ts](../packages/km-board/src/view-tree.ts)). Each node carries its visual role, parent pointer, and resolved embed data. Hidden nodes are filtered at tree construction time.
+`ViewTree` (`packages/km-board/src/view-tree-projection.ts`) wraps the bottom of the lens stack with `ProjectedMap` per-node signal bags. React components subscribe to individual node IDs via `useNode(id)` — they re-render only when *that specific node's* view state changes. This is what enables the cards-view incremental rendering performance.
 
 ```typescript
 type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
 
-interface ViewNode {
-  id: string; role: ViewRole; node: KNode | null
-  parent: ViewNode | null; children: ViewNode[]
-  isBody: boolean; resolvedEmbed?: KNode; rules?: SectionRules
+// TreeLens — universal navigation interface (data layer, no signals)
+interface TreeLens {
+  readonly rootId: string | null
+  get(id: string): KNode | undefined
+  children(id: string): readonly string[]
+  parent(id: string): string | null
+  nextInWalk(id: string): string | null
+  prevInWalk(id: string): string | null
+  readonly walkOrder: readonly string[]
+  role(id: string): ViewRole | undefined
+  isBody(id: string): boolean
+  resolvedSymlink(id: string): KNode | undefined
+  rules(id: string): SectionRules | undefined
+}
+
+// ViewTree — React-side projection with per-node signal bags
+interface ViewTree {
+  track(id: string): Projected<ViewNodeState> | undefined
+  sync(lens: TreeLens): void
+  next(id: string): string | null
+  prev(id: string): string | null
+  nodes(opts?: { from?: string; reverse?: boolean }): IterableIterator<string>
+  // ... delegates node/children/parent to the underlying lens
 }
 ```
 
-`buildViewTree(repo, rootId, foldDepths, cache?, hiddenNodeIds?)` builds the tree with per-column caching. `buildViewIndex(tree)` provides O(1) lookup. `classifyCursorFromViewIndex(index, nodeId)` derives cursor card/column/selection level. `viewNodeToColumnViews(tree)` produces ColumnView[] for React rendering.
+**Layering rule of thumb**:
+- React components → use `ViewTree` via `useNode(id)`
+- Reducers, selectors, navigation helpers, store → use `TreeLens` directly
+
+See [docs/design/visibility-model.md](design/visibility-model.md) for details.
 
 ## Five Layers
 

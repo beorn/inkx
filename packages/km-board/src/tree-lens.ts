@@ -31,6 +31,23 @@ export type ViewRole = "board" | "body-column" | "column" | "card" | "subitem"
  * All tree representations (repo, view, visible) implement this.
  * Same KNode, same IDs, different visibility.
  *
+ * **Layering — read this before consuming TreeLens directly:**
+ *
+ * TreeLens is the *data layer*. It has no state, no signals, no React
+ * integration. It's lazy and cached but pure. Use it directly only from
+ * non-React code: reducers, selectors, navigation helpers, store code,
+ * pane-signals reactive graph, bulk computation.
+ *
+ * **From React components, use `ViewTree` instead** (`createViewTree` in
+ * `view-tree-projection.ts`). ViewTree wraps any TreeLens with per-node
+ * signal bags via ProjectedMap, so components can subscribe to individual
+ * nodes via `useNode(id)` and re-render only when *that node's* view state
+ * changes. Consuming TreeLens directly from React skips the per-node
+ * incremental rendering optimization and triggers full re-renders on every
+ * lens change.
+ *
+ * See: docs/design/visibility-model.md, docs/glossary.md (TreeLens, ViewTree).
+ *
  * @example
  * ```ts
  * const view = createViewLens(repo, { rootId, foldDepths, hidden })

@@ -453,6 +453,8 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **transform** — Position adjustment: `Point.transform(point, op)` adjusts a Point or Range after an operation to keep it valid. Used for selection preservation across mutations. Note: SlateJS's `Transforms.*` (compound mutation helpers) map to methods on Repo/TreeMutator in km — we don't have a separate Transforms namespace.
 
+**TreeLens** — The universal navigation interface for tree structures (`packages/km-board/src/tree-lens.ts`). Pure data layer — no state, no signals, lazy caching. All three lenses in the visibility pipeline implement TreeLens: `repo` (raw nodes), `createViewLens` (rooted subtree, hidden filtered, roles computed), `createVisibleLens` (collapsed/filtered/task-status applied). Methods: `get(id)`, `children(id)`, `parent(id)`, `nextInWalk(id)`, `prevInWalk(id)`, `walkOrder` (eager DFS array), `role(id)`, `isBody(id)`, `resolvedSymlink(id)`, `rules(id)`. **Layering rule**: React components should NOT consume TreeLens directly — use *ViewTree* (the React-side projection that wraps a TreeLens with per-node signal bags) via `useNode(id)`. TreeLens is for non-React code: reducers, selectors, navigation helpers, store, pane-signals reactive graph.
+
 **TreeMutator** — The interface Repo satisfies for tree mutations: `getNode`, `getChildren`, `addNode`, `updateNode`, `moveNode`, `deleteNode`. Decouples tree logic from storage.
 
 **tribe** — A system for coordinating multiple Claude Code sessions working on the same codebase. One session is the chief (coordinator), others are members.
@@ -467,17 +469,20 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **vendor** — The `vendor/` directory containing git submodule packages. Each is a standalone repo with its own npm scope and release cycle. Packages must not reference `vendor/` paths in their source.
 
+**ViewLens** — The first lens in the visibility pipeline. `createViewLens(repo, { rootId, hiddenNodeIds, foldDepths })` returns a *TreeLens* scoped to a root node, with structural exclusions (`isCollapsedChild`, `isDetailOnly`, `km.collapse:: true`), symlink resolution, role computation, and folder-index file expansion. Returns the same KNode identities as the underlying repo — only visibility differs. Lazy: each method computes on demand and caches results, zero upfront allocation. **Use directly only from non-React code** (reducers, selectors, navigation helpers). React code should consume the *ViewTree* projection above this layer.
+
 **ViewNode** — An enriched view of a KNode within the ViewTree. Carries `viewType` (visual role), `childIds` (visible children), `parentId` (visual parent), `display` (the KNode to render — self or symlink target), `isBody`, `isSymlink`, `rules`. The raw repo node is accessible via `.data`. React components subscribe to individual ViewNodes via `useNode(id)` — re-renders only when that specific node's view state changes.
 
 **ViewType** — One of `"board"`, `"body-column"`, `"column"`, `"card"`, `"subitem"`. Assigned by tree position, not node type. (Replaces `ViewRole`.)
 
-**ViewTree** — The visible tree: a computed projection from RepoTree + navigation signals (rootId, foldDepths, collapsedNodes, hiddenNodeIds). Provides per-node signal-backed ViewNodes and tree navigation (`next()`, `prev()`, `nodes()`). React components read via `useNode(id)`. Navigation reads via `view.next(id)`. The single source of truth for both rendering and navigation. Mirrors the RepoTree API: `node(id)`, `children(id)`, `parent(id)`.
+**ViewTree** — The React-side projection of a *TreeLens*. `createViewTree()` wraps any TreeLens with per-node signal bags via `ProjectedMap`, plus a `nodes({ from?, reverse? })` iterator for tree-wide traversal. Components subscribe to individual nodes via `useNode(id)` — re-renders only when *that node's* view state changes. The single source of truth for React rendering and navigation. Methods: `track(id)`, `sync(lens)`, `next(id)`, `prev(id)`, `nodes(opts?)`, plus delegation to the underlying lens (`node(id)`, `children(id)`, `parent(id)`). **Use this from React code**, not the raw TreeLens.
 
-**visibility model** — Two levels of visibility, both handled inside the ViewTree:
-- **Structural** (fold, hidden file, body extraction): nodes excluded from the tree entirely
-- **Render** (collapsed columns, property/text filters): nodes excluded from visible children and walkOrder
+**VisibleLens** — The second lens in the visibility pipeline. `createVisibleLens(view, { collapsedNodes, taskStatusFilter, cardFilter })` wraps a *ViewLens* with column collapse, task-status filtering, and card-level predicate filtering. Same TreeLens interface as the parent — only `children()` and `walkOrder` are modified to exclude collapsed and filtered cards. Cards in collapsed columns are excluded from `walkOrder` so the cursor cannot land on them. **Use directly only from non-React code.**
 
-All visibility is centralized in the ViewTree. Components never check `isHidden` or `isFiltered` — they just read the ViewTree which already has it applied.
+**visibility model** — Three independent visibility mechanisms, each at a different layer of the lens pipeline. See [docs/design/visibility-model.md](design/visibility-model.md) for the full picture.
+- **Structural exclusion** (ViewLens construction): nodes never appear in `walkOrder` — `isCollapsedChild`, `isDetailOnly`, `hiddenNodeIds`
+- **Collapsed columns** (VisibleLens construction): card children of collapsed columns excluded
+- **Per-node fold** (ReactiveNodeStore, React layer): subtree rendering skipped in cards view; alternate views currently bypass this — see `km-tui.view-mode-feature-parity`
 
 **visual lasso** — During area-select gestures, a rectangular overlay (inverse video + dim background) showing the drag selection region.
 
