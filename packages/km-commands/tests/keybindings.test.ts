@@ -805,8 +805,10 @@ describe("chord keybindings", () => {
 
       ["v", "-", {}, "clear_filters"],
       ["v", ",", {}, "filter"],
-      // v-prefix chords (pane operations)
-      ["v", "s", {}, "pane_split_vertical"],
+      // v-prefix chords (sticky fold — Phase 2 of km-tui.sticky-fold)
+      ["v", "s", {}, "toggle_sticky_fold"],
+      // v-prefix chords (pane operations) — `|` is vim's Ctrl+W | vertical split
+      ["v", "|", {}, "pane_split_vertical"],
       ["v", "h", {}, "pane_focus_left"],
       ["v", "j", {}, "pane_focus_down"],
       ["v", "k", {}, "pane_focus_up"],

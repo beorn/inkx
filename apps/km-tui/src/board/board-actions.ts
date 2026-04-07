@@ -1548,6 +1548,34 @@ function handleViewAction(ctx: OpCtx, action: ViewOp): OpResult {
         return { viewMode: modes[(idx + 1) % modes.length] ?? "cards" }
       })
       return ok()
+    case "TOGGLE_STICKY_FOLD": {
+      // Pin the cursor node's fold state so fold-all / unfold-all skip it.
+      //
+      // Cycles: (no sticky) → sticky-<current fold> → sticky-<opposite> → (no sticky)
+      //
+      // The "current" fold state is determined from ctx.foldDepths: a depth of 0
+      // means the node is folded, any other value (or absence) means unfolded.
+      // This matches applyToggleFold's semantics.
+      const targetId = ctx.cursor
+      if (!targetId) return boundary("sticky-fold", "No cursor")
+      const existing = ctx.stickyFolds.get(targetId)
+      if (existing === undefined) {
+        // First press: pin whatever the node currently is
+        const depth = ctx.foldDepths.get(targetId)
+        const nextState: "folded" | "unfolded" = depth === 0 ? "folded" : "unfolded"
+        ctx.setStickyFold(targetId, nextState)
+        ctx.setUI({ status: { level: "info", message: `Sticky ${nextState}: ${shortName(ctx, targetId)}` } })
+      } else if (existing === "folded") {
+        // Flip to sticky-unfolded
+        ctx.setStickyFold(targetId, "unfolded")
+        ctx.setUI({ status: { level: "info", message: `Sticky unfolded: ${shortName(ctx, targetId)}` } })
+      } else {
+        // existing === "unfolded" — third press clears the pin
+        ctx.removeStickyFold(targetId)
+        ctx.setUI({ status: { level: "info", message: `Sticky cleared: ${shortName(ctx, targetId)}` } })
+      }
+      return ok()
+    }
     case "CYCLE_ICON_STYLE": {
       ctx.setUI((prev) => {
         const iconStyles = ["nerdfont", "workflowy", "regular"] as const

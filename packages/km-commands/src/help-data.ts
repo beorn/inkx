@@ -87,6 +87,7 @@ const HELP_SECTIONS: HelpSection[] = [
       { keys: [", / ."], command: "increase_content_lines", description: "fewer / more lines" },
       { keys: ["H / L"], command: "fold_more", description: "fold / unfold more" },
       { keys: ["< / >"], command: "fold_all_more", description: "fold / unfold all more" },
+      { keys: ["v s"], command: "toggle_sticky_fold", description: "sticky-fold pin (immune to < / >)" },
       { keys: ["D", "⌃i", "⌘p"], command: "toggle_detail_pane", description: "detail pane" },
       { keys: ["v ,", "V"], command: "filter", description: "view settings" },
       { keys: ["v x"], command: "hide_node", description: "hide item" },
@@ -100,7 +101,7 @@ const HELP_SECTIONS: HelpSection[] = [
   {
     category: "Panes",
     items: [
-      { keys: ["v s"], command: "pane_split_vertical", description: "split" },
+      { keys: ["v |"], command: "pane_split_vertical", description: "split" },
       { keys: ["v h/l"], command: "pane_focus_left", description: "focus left / right" },
       { keys: ["v j/k"], command: "pane_focus_down", description: "focus down / up" },
       { keys: ["n/N", "v n/N"], command: "pane_focus_next", description: "next / prev pane" },

@@ -193,6 +193,7 @@ const VIEW_TYPES = [
   "CLOSE_OR_QUIT",
   "CYCLE_VIEW_MODE",
   "CYCLE_ICON_STYLE",
+  "TOGGLE_STICKY_FOLD",
   "SHOW_HELP",
   "HIDE_HELP",
   "HELP_SCROLL_UP",
@@ -277,8 +278,8 @@ describe("sub-union categorization", () => {
     expect(PANE_TYPES).toHaveLength(15)
   })
 
-  test("ViewOp has 23 types", () => {
-    expect(VIEW_TYPES).toHaveLength(23)
+  test("ViewOp has 24 types", () => {
+    expect(VIEW_TYPES).toHaveLength(24)
   })
 
   // Compile-time assignability checks — these verify the types.ts definitions match

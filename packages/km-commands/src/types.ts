@@ -169,6 +169,17 @@ interface CycleIconStyleOp {
   type: "CYCLE_ICON_STYLE"
 }
 
+/**
+ * Toggle the sticky fold state of the cursor node.
+ *
+ * Cycles: (no sticky) → sticky-folded/unfolded (mirror current fold) →
+ * opposite sticky → no sticky. The TUI-side handler decides the next
+ * state from the current fold + current sticky entry.
+ */
+export interface ToggleStickyFoldOp {
+  type: "TOGGLE_STICKY_FOLD"
+}
+
 export interface DeleteNodeOp {
   type: "DELETE_NODE"
   nodeId: string
@@ -957,6 +968,7 @@ export type ViewOp =
   | CloseOrQuitOp
   | CycleViewModeOp
   | CycleIconStyleOp
+  | ToggleStickyFoldOp
   | ShowHelpOp
   | HideHelpOp
   | HelpScrollUpOp

@@ -442,13 +442,18 @@ const V_CHORD_SUFFIXES: Array<{ suffix: string; commandId: string; when?: WhenPr
   { suffix: "m", commandId: "cycle_view_mode" },
   // View operations
   { suffix: "c", commandId: "toggle_collapse" },
+  // Sticky fold — pin the cursor node's fold state so fold-all / unfold-all skip it.
+  // km-tui.sticky-fold: km is the second editor (after Emacs org-mode) to get this right.
+  { suffix: "s", commandId: "toggle_sticky_fold" },
   { suffix: "shift-x", commandId: "toggle_show_hidden" },
   { suffix: "d", commandId: "toggle_hide_done" },
   { suffix: "x", commandId: "hide_node" },
   { suffix: "-", commandId: "clear_filters" },
   { suffix: ",", commandId: "filter" },
   // Pane operations
-  { suffix: "s", commandId: "pane_split_vertical" },
+  // vs was the old pane split; moved to | (vim Ctrl+W | convention) to make
+  // room for toggle_sticky_fold, which wanted the mnemonic s-for-sticky.
+  { suffix: "|", commandId: "pane_split_vertical" },
   { suffix: "h", commandId: "pane_focus_left" },
   { suffix: "j", commandId: "pane_focus_down" },
   { suffix: "k", commandId: "pane_focus_up" },
