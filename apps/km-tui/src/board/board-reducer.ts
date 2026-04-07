@@ -34,6 +34,13 @@ export interface BoardNavState {
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
 
+  /**
+   * Sticky folds — per-node pins that survive fold-all / unfold-all.
+   * Map<nodeId, "folded" | "unfolded">. Optional (empty Map default) so tests
+   * and REPL paths that don't care about stickiness can omit it.
+   */
+  stickyFolds?: Map<string, "folded" | "unfolded">
+
   /** Root node of the current zoom level */
   rootId: string | null
 
@@ -630,11 +637,16 @@ export function applyPageJump(
  * Progressive fold: decrease visible depth by 1 for all cards.
  * Each press of '<' folds one more level. At depth 0, cards show title only.
  * Returns the new depth level for status messages.
+ *
+ * Sticky-folded / sticky-unfolded nodes (from state.stickyFolds) are skipped:
+ * both their fold depth stays whatever the user pinned it to.
  */
 export function applyFoldLevel(state: BoardNavState, cardIds: string[]): ApplyResult & { depth: number } {
-  // Find the current minimum depth across all cards (undefined = fully unfolded = Infinity)
+  const sticky = state.stickyFolds
+  // Find the current minimum depth across all NON-STICKY cards
   let minDepth = Infinity
   for (const id of cardIds) {
+    if (sticky?.has(id)) continue
     const d = state.foldDepths.get(id)
     if (d !== undefined && d < minDepth) minDepth = d
   }
@@ -644,6 +656,7 @@ export function applyFoldLevel(state: BoardNavState, cardIds: string[]): ApplyRe
 
   const newDepths = new Map(state.foldDepths)
   for (const id of cardIds) {
+    if (sticky?.has(id)) continue
     newDepths.set(id, newDepth)
   }
   return {
@@ -656,12 +669,16 @@ export function applyFoldLevel(state: BoardNavState, cardIds: string[]): ApplyRe
 /**
  * Progressive unfold: increase visible depth by 1 for all cards.
  * Each press of '>' unfolds one more level. Removes fold entirely when depth is high enough.
+ *
+ * Sticky nodes are skipped — a "folded" sticky stays folded even under unfold-all.
  */
 export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): ApplyResult & { depth: number | null } {
-  // Find the current maximum depth across folded cards
+  const sticky = state.stickyFolds
+  // Find the current maximum depth across folded, non-sticky cards
   let maxDepth = -1
   let anyFolded = false
   for (const id of cardIds) {
+    if (sticky?.has(id)) continue
     const d = state.foldDepths.get(id)
     if (d !== undefined) {
       anyFolded = true
@@ -669,7 +686,7 @@ export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): Apply
     }
   }
   if (!anyFolded) {
-    // Already fully unfolded
+    // Already fully unfolded (non-sticky cards)
     return {
       state,
       effects: [],
@@ -680,9 +697,10 @@ export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): Apply
   const newDepth = maxDepth + 1
   const newDepths = new Map(state.foldDepths)
 
-  // If new depth is high enough (>= 10), just remove all folds
+  // If new depth is high enough (>= 10), just remove all folds (except sticky)
   if (newDepth >= 10) {
     for (const id of cardIds) {
+      if (sticky?.has(id)) continue
       newDepths.delete(id)
     }
     return {
@@ -693,6 +711,7 @@ export function applyUnfoldLevel(state: BoardNavState, cardIds: string[]): Apply
   }
 
   for (const id of cardIds) {
+    if (sticky?.has(id)) continue
     if (newDepths.has(id)) {
       newDepths.set(id, newDepth)
     }

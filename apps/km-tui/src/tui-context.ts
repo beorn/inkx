@@ -54,6 +54,8 @@ export interface OpCtx {
   cursorCardNodeId: string | null
   foldDepths: Map<string, number>
   collapsedNodes: Set<string>
+  /** Sticky folds — per-node pins that survive fold-all/unfold-all. */
+  stickyFolds: Map<string, "folded" | "unfolded">
   moveState: import("./board/board-types.ts").MoveState
 
   // === State (merged global + per-pane) ===
@@ -86,6 +88,14 @@ export interface OpCtx {
   setUI: (partial: Partial<PaneUI> | ((prev: PaneUI) => Partial<PaneUI>)) => void
   /** Set foldDepths (single source of truth at store root) */
   setFoldDepths: (depths: Map<string, number>) => void
+
+  // === Sticky folds ===
+  /** Pin a node as sticky-folded or sticky-unfolded (persisted). */
+  setStickyFold: (nodeId: string, state: "folded" | "unfolded") => void
+  /** Remove a node's sticky fold state. */
+  removeStickyFold: (nodeId: string) => void
+  /** Check whether a node currently has any sticky fold state. */
+  isStickyFold: (nodeId: string) => boolean
 
   // === Undo/Redo ===
   /** Undo stack for reversible operations */
@@ -173,6 +183,9 @@ export const DELEGATED_OP_CTX_KEYS = [
   "dispatchBoard",
   "setUI",
   "setFoldDepths",
+  "setStickyFold",
+  "removeStickyFold",
+  "isStickyFold",
   "getDetailCursorId",
   "setDetailCursor",
   "openDetailPane",

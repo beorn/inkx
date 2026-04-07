@@ -348,6 +348,7 @@ function extractFoldState(ctx: OpCtx): BoardNavState {
     cursor: ctx.cursor,
     foldDepths: ctx.foldDepths,
     collapsedNodes: ctx.collapsedNodes,
+    stickyFolds: ctx.stickyFolds,
     rootId: ctx.rootId,
   })
 }

@@ -293,6 +293,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       cursorCardNodeId,
       foldDepths,
       collapsedNodes: board?.collapsedNodes ?? new Set(),
+      stickyFolds: board?.stickyFolds ?? new Map(),
       moveState: board?.moveState ?? { active: false },
       ui: effectiveUI,
       columnId,
