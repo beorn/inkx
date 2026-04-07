@@ -190,11 +190,13 @@ import { Command } from "commander"
 import { Command } from "@silvery/commander"
 ```
 
-`@silvery/commander` auto-colorizes `--help` output via Commander 13+ style hooks. Features:
-- Colorized section headings, command names, flags, argument brackets
+`@silvery/commander` auto-colorizes `--help` output and adds full type inference. Features:
+- Colorized section headings, command names, flags, argument brackets, console blocks (`$ ` prefix)
 - Respects NO_COLOR / FORCE_COLOR automatically
 - Standard Schema validation for option parsing (`port`, `csv`, `uint` presets)
-- `program.addHelpSection("title", "content")` for custom help sections
+- Typed positional args via inline syntax `command("deploy <service>")` OR explicit `.argument("<service>")` chains — both forms fully typed
+- Two action handler forms: `.action((arg1, arg2, opts, cmd) => ...)` Commander-native, or `.actionMerged((params, cmd) => ...)` for flat destructured params
+- `program.addHelpSection("title", rows)` with `$ ` console-block detection across all sections, multi-line terms with top-aligned descriptions
 - Array-as-choices detection in `.option()`: `.option("-e, --env <e>", "Env", ["dev", "staging", "prod"])`
 
 Don't write custom help views — let Commander's built-in `--help` do the work. Add extra sections with `addHelpSection()`:
