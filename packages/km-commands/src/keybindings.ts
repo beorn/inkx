@@ -1063,12 +1063,14 @@ export function defaultKeybindingLayers(): KeybindingLayer[] {
     {
       name: "tui",
       bindings: [
-        // Bare `q` → quit is intentionally UNBOUND.
-        // A single fat-finger keystroke must never destroy the session (especially
-        // after an incomplete chord like `vq` where the user meant `vs`). Quit is
-        // still available via Ctrl+C, the command palette (Ctrl+K / Cmd+K / `:`)
-        // as the "quit" command, or contextual Escape (`close_or_quit`) when there
-        // is nothing left to close. See bead km-tui.q-quits-no-confirm.
+        // Bare `q` → quit is intentionally UNBOUND. Quit requires the `q q`
+        // chord — press q twice in sequence within the chord timeout. A single
+        // fat-finger keystroke must never destroy the session (especially after
+        // an incomplete chord like `vq` where the user meant `vs`). Quit is
+        // also available via Ctrl+C, the command palette (Ctrl+K / Cmd+K / `:`)
+        // as the "quit" command, or contextual Escape (`close_or_quit`) when
+        // there is nothing left to close. See bead km-tui.q-quits-no-confirm.
+        { key: "q q", commandId: "quit" },
         { key: "/", commandId: "local_find" },
         { key: "cmd-f", commandId: "local_find" },
         { key: "cmd-shift-f", commandId: "search_replace" },
