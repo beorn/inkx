@@ -21,11 +21,29 @@ export const defaultKmTheme: Theme = ansi16DarkTheme
 export { detectTheme }
 
 /** Subtle primary-tinted bg for selected containers — keeps text readable.
- * Returns a hex color blending theme.bg with theme.primary at 12%.
+ * Returns a hex color blending theme.bg with theme.primary at 6%.
  * For ANSI-16 themes (no hex bg), returns undefined (border-only selection). */
 export function selectedBg(theme: Theme): string | undefined {
   if (theme.bg && theme.primary) return blend(theme.bg, theme.primary, 0.06)
   return undefined
+}
+
+/** Stronger primary-tinted bg for multi-selected items — roughly double the
+ * card-selection tint so multi-selected rows "stack" visually and the user
+ * can count selected items at a glance. Rule 6 in selection-style.ts.
+ *
+ * Truecolor: blend(theme.bg, theme.primary, 14%) — visibly brighter than
+ * selectedBg (6%) so a multi-selected sub-item reads as distinct even inside
+ * a card that already has the card-level tint.
+ *
+ * ANSI-16: returns a "blackBright" fallback so tests (which use ansi16DarkTheme
+ * with empty theme.bg) can still verify the marker. On real dark terminals
+ * this also draws a visible grey row.
+ */
+export function multiSelectedBg(theme: Theme): string | undefined {
+  if (theme.bg && theme.primary) return blend(theme.bg, theme.primary, 0.14)
+  // ANSI-16 fallback — visible on dark terminals, distinct from cursor yellow.
+  return "blackBright"
 }
 
 /** Subtle focusborder-tinted bg for editing containers.

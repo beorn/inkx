@@ -530,3 +530,66 @@ describe("Selection", () => {
     expect(board.getStatus()?.message).toMatch(/2 items/)
   })
 })
+
+// =============================================================================
+// Visual feedback (km-tui.multi-select-no-visual)
+//
+// Multi-selected nodes must show a visual marker (bg tint) so the user can
+// count selected items, not just see "2 items selected" in the status bar.
+// Rule 6 in selection-style.ts — multiSelectedBg(theme).
+//
+// In the default test theme (ansi16DarkTheme), the truecolor blend falls back
+// to the ANSI-16 "blackBright" (index 8) so the marker is visible in tests.
+// =============================================================================
+
+describe("Multi-select visual feedback", () => {
+  // ANSI-16 fallback from multiSelectedBg() — "blackBright" index.
+  // With a truecolor theme this would be a hex blend, but the test theme
+  // (ansi16DarkTheme) has no theme.bg so we return the ANSI-16 fallback.
+  const MULTI_BG = 8
+
+  test("multi-selected cards show multi-select bg; unselected do not", () => {
+    const { board } = testEnv(() => item("board", item("col", item("alpha"), item("beta"), item("gamma"))))
+    board.expect("#alpha[data-cursor]").toExist()
+
+    // Extend selection alpha -> beta (2 items selected, cursor on beta).
+    board.press("shift+ArrowDown")
+    expect(board.getStatus()?.message).toMatch(/2 items/)
+
+    // alpha is multi-selected but NOT the cursor → multi-select bg on title row.
+    board.expectNodeColor("alpha", { bg: MULTI_BG })
+
+    // beta is the cursor AND multi-selected → inverse yellow wins (rule 1).
+    board.expectNodeColor("beta", { bg: TC["$selection-bg"] })
+
+    // gamma is not in the selection → no multi-select bg, no selection bg.
+    board.expectNodeColor("gamma", { bg: null })
+  })
+
+  test("multi-selected sub-items (outline mode) show distinct bg", () => {
+    // Navigate into a folder card, then extend selection across sibling
+    // sub-items. Rule 6: multi-selected sub-items must have the multi-select
+    // bg so the user can count them — not just the cursor row.
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2"), item("child-3")))),
+    )
+    board.expect("#Parent[data-cursor]").toExist()
+
+    // Enter outline mode at child-1.
+    board.command("block_nav_down")
+    board.expect("#child-1[data-cursor]").toExist()
+
+    // Extend selection child-1 → child-3 (3 items selected, cursor on child-3).
+    board.press("shift+ArrowDown")
+    board.press("shift+ArrowDown")
+    expect(board.getStatus()?.message).toMatch(/3 items/)
+    board.expect("#child-3[data-cursor]").toExist()
+
+    // child-1 and child-2 are multi-selected but NOT cursor → multi-select bg.
+    board.expectNodeColor("child-1", { bg: MULTI_BG })
+    board.expectNodeColor("child-2", { bg: MULTI_BG })
+
+    // child-3 is the cursor → inverse selection bg (rule 1 wins).
+    board.expectNodeColor("child-3", { bg: TC["$selection-bg"] })
+  })
+})

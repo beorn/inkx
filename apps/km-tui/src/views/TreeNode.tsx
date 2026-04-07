@@ -42,7 +42,7 @@ import { stripKnownMentions } from "./detail-pane-helpers.ts"
 import { resolveSymlink, getDisplayContent } from "./symlink-display.ts"
 import { computeBulletIcon, useTreeInlineContext, useSearchDecorations } from "./tree-node-shared.ts"
 import { TitleEditor, BodyBlockEditor } from "./tree-node-edit.tsx"
-import { selectedBg } from "../theme.ts"
+import { selectedBg, multiSelectedBg } from "../theme.ts"
 import { CheckboxIcon } from "./CheckboxIcon.tsx"
 import { log } from "../log.ts"
 import { useApp as useAppStore } from "@silvery/create/create-app"
@@ -315,7 +315,8 @@ function TreeNodeImpl({
 
   // Cursor node (isSelected): inverse yellow on its title row only.
   // Parent card (cursorInDescendant): yellow fg + faint highlight bg on title row.
-  // Multi-selected (isNodeSelected): no inverse — CardColumn handles bg tint.
+  // Multi-selected sub-item (isNodeSelected && !isSelected): stronger bg tint
+  // on the head row so the user can visually count selected items.
   const cursorInDescendant = useSignal(nodeStore.getOrCreate(node.id).cursorInDescendant)
   const isParentOfCursor = depth === 0 && cursorInDescendant
 
@@ -325,14 +326,18 @@ function TreeNodeImpl({
   const searchHighlight = isSearchMatch && !isSelected && !isNodeSelected
   // Cursor node: inverse bg on head row.
   // Parent of cursor: yellow fg + faint highlight bg on head row.
-  // Card-level subtle bg comes from CardColumn, not TreeNode.
+  // Multi-selected (non-cursor) sub-item: stronger primary tint on head row.
+  // Card-level subtle bg for a multi-selected card comes from CardColumn.
   const theme = useTheme()
+  const isMultiSelectedOnly = isNodeSelected && !isSelected
   const effectiveBg = isSelected || isParentOfCursor ? undefined : style.backgroundColor
   const headRowBg = isSelected
     ? style.backgroundColor // inverse ($selection-bg)
     : isParentOfCursor
       ? selectedBg(theme) // faint highlight
-      : undefined
+      : isMultiSelectedOnly
+        ? multiSelectedBg(theme) // stronger tint for multi-selected sub-items
+        : undefined
   const tc = isSelected
     ? style.textColor // $selection (black) for inverse
     : isParentOfCursor

@@ -46,7 +46,7 @@ import { isHRContent, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 import { useTheme } from "@silvery/ag-react"
-import { selectedBg, editingBg } from "../theme.ts"
+import { selectedBg, multiSelectedBg, editingBg } from "../theme.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -436,10 +436,19 @@ const Card = React.memo(
     // Direct cursor match: cursor is ON this card (not on a descendant).
     // isSelected = cursor is anywhere in this card (for border, hover).
     // isCursorOnCard = cursor is directly on this card node (for inverse title).
+    // Multi-selected cards get the stronger multiSelectedBg tint so they stack
+    // visually with the rest of the selection (rule 6). Cursor-only still uses
+    // the subtle selectedBg (rule 2).
     const theme = useTheme()
     const cursor = useSignal(nodeStore.cursor)
     const isCursorOnCard = cursor === nodeId && selLevel === "card"
-    const cardBg = isEditing ? editingBg(theme) : isCursorOnCard || isNodeSelected ? selectedBg(theme) : undefined
+    const cardBg = isEditing
+      ? editingBg(theme)
+      : isNodeSelected
+        ? multiSelectedBg(theme)
+        : isCursorOnCard
+          ? selectedBg(theme)
+          : undefined
 
     // Border: cyan when editing, yellow when card selected, hidden when column selected
     // Done/dropped tasks get a darker border to visually de-emphasize them

@@ -92,8 +92,22 @@
  *    - Column title: yellow when any child has cursor
  *    - Column underline: yellow when any child has cursor
  *
- * 6. MULTI-SELECTION (isNodeSelected): Gets card bg tint from CardColumn,
- *    but NOT inverse on title. Only the direct cursor node gets inverse.
+ * 6. MULTI-SELECTION (isNodeSelected): Gets a STRONGER primary bg tint than
+ *    the card-level cursor tint — multiSelectedBg = blend(bg, primary, 14%),
+ *    roughly double selectedBg's 6%. The stronger tint lets the user count
+ *    selected items at a glance, even when some are inside a card that already
+ *    has the subtle cursor-tint.
+ *
+ *    Sites:
+ *    - Multi-selected cards (CardColumn.cardBg): entire card box uses
+ *      multiSelectedBg(theme).
+ *    - Multi-selected sub-items (TreeNode.headRowBg): the title row uses
+ *      multiSelectedBg(theme) when isNodeSelected && !isSelected.
+ *    - Cursor node stays inverse (rule 1); the cursor card still gets the
+ *      stronger tint on its body when it is part of a multi-selection.
+ *
+ *    For ANSI-16 themes (no hex bg), multiSelectedBg falls back to "blackBright"
+ *    so the marker remains visible (selectedBg returns undefined in ANSI-16).
  *
  * 7. OVERFLOW INDICATORS: "+N more" inside cards uses dimColor (inherits
  *    card bg tint). "+N more" on card border also gets card bg tint.
@@ -105,13 +119,15 @@
  * ## Implementation Sites
  *
  * - tree-node-helpers.tsx: computeNodeStyle() — cursor inverse (rule 1)
- * - TreeNode.tsx: headRowBg/effectiveBg — title-only inverse (rule 1)
+ * - TreeNode.tsx: headRowBg/effectiveBg — title-only inverse (rule 1),
+ *   multi-select tint for sub-items (rule 6)
  * - TreeNode.tsx: shouldStripColor — inline color stripping (rules 1, 8)
- * - CardColumn.tsx Card: cardBg — card container tint (rule 2)
+ * - CardColumn.tsx Card: cardBg — card container tint (rules 2, 6)
  * - CardColumn.tsx Card: borderColor — parent indicator (rule 5)
  * - CardColumn.tsx Column: columnBg — column container tint (rule 3)
  * - Board.tsx: boardBg — board container tint (rule 4)
- * - theme.ts: selectedBg() — computes the blend color
+ * - theme.ts: selectedBg() — 6% primary tint for cursor containers (rules 2-4)
+ * - theme.ts: multiSelectedBg() — 14% primary tint for multi-selected (rule 6)
  *
  * ## Future
  *
