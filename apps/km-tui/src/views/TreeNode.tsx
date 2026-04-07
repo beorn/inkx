@@ -724,9 +724,24 @@ function TreeNodeImpl({
               </Text>
             ) : (
               <Text
-                bold={depth === 0}
-                color={isBrokenSymlink && !isSelected ? "$error" : dimUntitled ? "$warning" : (tc ?? style.ownColor)}
-                dimColor={sd}
+                // Body items at depth 0 should NOT be bolder than structural
+                // subitems — they're prose, not list items. Subitems stay bold
+                // at depth 0; body becomes plain-weight italic muted text so
+                // it visually recedes behind the structural children. See bead
+                // km-tui.body-vs-subitem-emphasis.
+                bold={depth === 0 && !isBody}
+                italic={isBody}
+                color={
+                  isBrokenSymlink && !isSelected
+                    ? "$error"
+                    : dimUntitled
+                      ? "$warning"
+                      : isBody && !isSelected && !isNodeSelected
+                        ? "$muted"
+                        : (tc ?? style.ownColor)
+                }
+                // Don't double-dim if we already pulled body to $muted
+                dimColor={sd && !isBody}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
@@ -1033,7 +1048,16 @@ const FoldedChildRow = React.memo(
     const { iconStyle } = treeConfig
     const bulletIcon = isBody
       ? null
-      : computeBulletIcon(node, nodeIsTask, style.taskStatusIcon, hasChildren, true, style.ownColor, iconStyle, stickyFold)
+      : computeBulletIcon(
+          node,
+          nodeIsTask,
+          style.taskStatusIcon,
+          hasChildren,
+          true,
+          style.ownColor,
+          iconStyle,
+          stickyFold,
+        )
     const prefix = bulletIcon
       ? buildPrefix(bulletIcon)
       : { markerChar: "", markerColor: undefined as string | undefined, afterMarker: " ", length: 1 }
