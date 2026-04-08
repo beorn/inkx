@@ -148,21 +148,21 @@ export class ReactiveNodeStore {
 
   /** Get cursorDescendant reduced signal for a node (replaces cursorInDescendant).
    * Returns a boolean alien-signal: true when any descendant of this node has cursor. */
-  cursorDescendant(nodeId: string): (() => boolean) {
+  cursorDescendant(nodeId: string): () => boolean {
     const sig = this.reduced.node(nodeId).reduced.get("cursorDescendant")
     return (sig ?? (() => false)) as () => boolean
   }
 
   /** Get selectedAncestor reduced signal for a node.
    * Returns a boolean alien-signal: true when any ancestor of this node is selected. */
-  selectedAncestor(nodeId: string): (() => boolean) {
+  selectedAncestor(nodeId: string): () => boolean {
     const sig = this.reduced.node(nodeId).reduced.get("selectedAncestor")
     return (sig ?? (() => false)) as () => boolean
   }
 
   /** Get editingDescendant reduced signal for a node.
    * Returns a boolean alien-signal: true when any descendant of this node is being edited. */
-  editingDescendant(nodeId: string): (() => boolean) {
+  editingDescendant(nodeId: string): () => boolean {
     const sig = this.reduced.node(nodeId).reduced.get("editingDescendant")
     return (sig ?? (() => false)) as () => boolean
   }

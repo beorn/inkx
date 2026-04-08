@@ -22,13 +22,24 @@ import { ReducedSignalStore, tree, isReducedDescriptor, type TreeAccess } from "
  */
 function simpleTree(): TreeAccess {
   const parentMap: Record<string, string | null> = {
-    root: null, col1: "root", col2: "root",
-    card1: "col1", card2: "col1", card3: "col2",
-    sub1: "card1", sub2: "card1",
+    root: null,
+    col1: "root",
+    col2: "root",
+    card1: "col1",
+    card2: "col1",
+    card3: "col2",
+    sub1: "card1",
+    sub2: "card1",
   }
   const childrenMap: Record<string, string[]> = {
-    root: ["col1", "col2"], col1: ["card1", "card2"], col2: ["card3"],
-    card1: ["sub1", "sub2"], card2: [], card3: [], sub1: [], sub2: [],
+    root: ["col1", "col2"],
+    col1: ["card1", "card2"],
+    col2: ["card3"],
+    card1: ["sub1", "sub2"],
+    card2: [],
+    card3: [],
+    sub1: [],
+    sub2: [],
   }
   return {
     parent: (id) => parentMap[id] ?? null,
