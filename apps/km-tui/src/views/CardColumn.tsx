@@ -232,7 +232,7 @@ const Card = React.memo(
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
     // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
-    const isNodeSelected = useSignal(nodeStore.getOrCreate(nodeId).selected)
+    const isNodeSelected = useSignal(nodeStore.reduced.get(nodeId).selected)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.

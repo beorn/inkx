@@ -33,38 +33,6 @@ export interface NodeEditState {
 // Per-Node Reactive State
 // =============================================================================
 
-interface NodeReactiveState {
-  // Plain data (set during hydration, not subscribed by components directly)
-  parent: string | null
-  ownSigils: string[]
-
-  // Reactive (subscribed by components via useSignal)
-  selected: Signal<boolean>
-  foldOverride: Signal<number | undefined>
-  edit: Signal<NodeEditState | null>
-  excludedSigils: Signal<string[]>
-  /** True when mouse is hovering over this node's card. Per-node signal so
-   * only the entering/leaving card re-renders (not all cards). */
-  hovered: Signal<boolean>
-  /** Sticky fold state for this node (km-tui.sticky-fold).
-   * `"folded"` | `"unfolded"` = pinned, immune to fold-all/unfold-all.
-   * `null` = not sticky. Used by fold-marker rendering to show the inverse
-   * visual cue on sticky nodes. */
-  sticky: Signal<"folded" | "unfolded" | null>
-}
-
-function createNodeState(): NodeReactiveState {
-  return {
-    parent: null,
-    ownSigils: [],
-    selected: signal(false),
-    foldOverride: signal<number | undefined>(undefined),
-    edit: signal<NodeEditState | null>(null),
-    excludedSigils: signal<string[]>([]),
-    hovered: signal(false),
-    sticky: signal<"folded" | "unfolded" | null>(null),
-  }
-}
 
 // =============================================================================
 // ReactiveNodeStore
@@ -92,6 +60,10 @@ function createReducedStore(traversal: Traversal) {
       selected: signal(false),
       editing: signal(false),
       isDone: signal(false),
+      hovered: signal(false),
+      foldOverride: signal(undefined as number | undefined),
+      edit: signal(null as NodeEditState | null),
+      sticky: signal(null as "folded" | "unfolded" | null),
       ownSigils: signal([] as string[]),
 
       // Computeds — derived from tree walks, cached
@@ -108,7 +80,6 @@ function createReducedStore(traversal: Traversal) {
 }
 
 export class ReactiveNodeStore {
-  private nodes = new Map<string, NodeReactiveState>()
   private knownNodeIds = new Set<string>()
 
   // ── Reactive tree — computed-based engine ──────────────────────────────
@@ -150,8 +121,8 @@ export class ReactiveNodeStore {
         if (target === undefined) return
         const prev = this.hoveredNodeId
         if (prev === target) return
-        if (prev) this.getOrCreate(prev).hovered(false)
-        if (target) this.getOrCreate(target).hovered(true)
+        if (prev) this.reduced.get(prev).hovered(false)
+        if (target) this.reduced.get(target).hovered(true)
         this.hoveredNodeId = target
       }, 0)
     }
@@ -197,16 +168,6 @@ export class ReactiveNodeStore {
     return this.reduced.get(nodeId).excludedSigils as () => string[]
   }
 
-  /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
-  getOrCreate(nodeId: string): NodeReactiveState {
-    let state = this.nodes.get(nodeId)
-    if (!state) {
-      state = createNodeState()
-      this.nodes.set(nodeId, state)
-    }
-    return state
-  }
-
   /**
    * Hydrate node state for the current board view.
    * Sets parent links, own sigils, excluded sigils, fold depths, sticky folds,
@@ -233,54 +194,27 @@ export class ReactiveNodeStore {
       children: (id) => repo.getChildren(id).map((n) => n.id),
     })
 
-    // Root board
-    const rootState = this.getOrCreate(rootId)
-    const rootSigils = deriveExcludedSigils(repo, rootId)
-    rootState.parent = null
-    rootState.ownSigils = rootSigils
-    const rootFold = foldDepths.get(rootId)
-    if (rootFold !== undefined) {
-      rootState.foldOverride(rootFold)
+    // Hydrate fold depths
+    for (const [id, depth] of foldDepths) {
+      this.reduced.get(id).foldOverride(depth)
     }
+    const rootSigils = deriveExcludedSigils(repo, rootId)
     this.knownNodeIds.add(rootId)
 
-    // Columns (children of root)
+    // Hydrate columns
     const columns = repo.getChildren(rootId)
     for (const col of columns) {
-      const colState = this.getOrCreate(col.id)
-      colState.parent = rootId
-
-      const colName = getNodeDisplayName(repo, col)
-      const colSigils = deriveColumnExcludedSigils(colName, col.id, col.fs_path)
-      colState.ownSigils = colSigils
-
-      const colFold = foldDepths.get(col.id)
-      if (colFold !== undefined) {
-        colState.foldOverride(colFold)
-      }
       this.knownNodeIds.add(col.id)
-
-      // Cards (children of columns)
       const cards = repo.getChildren(col.id)
       for (const card of cards) {
-        const cardState = this.getOrCreate(card.id)
-        cardState.parent = col.id
-
         if (card.symlink_to && !repo.getNode(card.symlink_to)) {
           log.debug?.(`Broken symlink: node ${card.id} → missing target ${card.symlink_to}`)
         }
-
-        const cardFold = foldDepths.get(card.id)
-        if (cardFold !== undefined) {
-          cardState.foldOverride(cardFold)
-        }
-
         // Multi-selection — mark the card and all its descendants
         if (selected.has(card.id)) {
-          cardState.selected(true)
+          this.reduced.get(card.id).selected(true)
           this.hydrateDescendantSelection(repo, card.id)
         }
-
         this.knownNodeIds.add(card.id)
       }
     }
@@ -293,18 +227,12 @@ export class ReactiveNodeStore {
       if (colSigils.length > 0) this.reduced.get(col.id).ownSigils(colSigils)
     }
 
-    // Bridge: sync reduced excludedSigils → old NodeReactiveState.excludedSigils for readers
-    // that haven't migrated yet (TreeNode.tsx). Remove when all readers use nodeStore.excludedSigils().
-    for (const id of this.knownNodeIds) {
-      const sigils = this.reduced.get(id).excludedSigils() as string[]
-      if (sigils.length > 0) this.getOrCreate(id).excludedSigils(sigils)
-    }
 
     // Hydrate sticky fold signals — flip the `sticky` signal for any node
     // that the caller says is currently pinned. Covers columns, cards, and
     // sub-items since sticky folds are not tied to any hierarchy level.
     for (const [id, state] of stickyFolds) {
-      this.getOrCreate(id).sticky(state)
+      this.reduced.get(id).sticky(state)
     }
   }
 
@@ -312,12 +240,12 @@ export class ReactiveNodeStore {
   syncFoldDepths(oldDepths: Map<string, number>, newDepths: Map<string, number>): void {
     for (const [id] of oldDepths) {
       if (!newDepths.has(id)) {
-        this.getOrCreate(id).foldOverride(undefined)
+        this.reduced.get(id).foldOverride(undefined)
       }
     }
     for (const [id, depth] of newDepths) {
       if (oldDepths.get(id) !== depth) {
-        this.getOrCreate(id).foldOverride(depth)
+        this.reduced.get(id).foldOverride(depth)
       }
     }
   }
@@ -327,12 +255,12 @@ export class ReactiveNodeStore {
   syncStickyFolds(oldSticky: Map<string, "folded" | "unfolded">, newSticky: Map<string, "folded" | "unfolded">): void {
     for (const [id] of oldSticky) {
       if (!newSticky.has(id)) {
-        this.getOrCreate(id).sticky(null)
+        this.reduced.get(id).sticky(null)
       }
     }
     for (const [id, state] of newSticky) {
       if (oldSticky.get(id) !== state) {
-        this.getOrCreate(id).sticky(state)
+        this.reduced.get(id).sticky(state)
       }
     }
   }
@@ -344,12 +272,12 @@ export class ReactiveNodeStore {
 
     for (const key of oldExpanded) {
       if (!newExpanded.has(key)) {
-        this.getOrCreate(key).selected(false)
+        this.reduced.get(key).selected(false)
       }
     }
     for (const key of newExpanded) {
       if (!oldExpanded.has(key)) {
-        this.getOrCreate(key).selected(true)
+        this.reduced.get(key).selected(true)
       }
     }
 
@@ -375,10 +303,10 @@ export class ReactiveNodeStore {
     cardNodeId?: string,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
-      this.getOrCreate(oldNodeId).edit(null)
+      this.reduced.get(oldNodeId).edit(null)
     }
     if (newNodeId && newState) {
-      this.getOrCreate(newNodeId).edit({
+      this.reduced.get(newNodeId).edit({
         blockIndex: newState.blockIndex,
         initialCursorPos: newState.initialCursorPos,
         stickyX: newState.stickyX,
@@ -397,16 +325,14 @@ export class ReactiveNodeStore {
     const expanded = expandWithDescendants(repo, new Set([parentId]))
     for (const id of expanded) {
       if (id !== parentId) {
-        this.getOrCreate(id).selected(true)
+        this.reduced.get(id).selected(true)
       }
     }
   }
 
   /** Remove node entries. Call on zoom/root change. */
-  private cleanup(nodeIds: Set<string>): void {
-    for (const id of nodeIds) {
-      this.nodes.delete(id)
-    }
+  private cleanup(_nodeIds: Set<string>): void {
+    // Reactive tree handles its own cleanup via rebind()
   }
 }
 

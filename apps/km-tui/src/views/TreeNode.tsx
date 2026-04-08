@@ -216,12 +216,12 @@ function TreeNodeImpl({
 
   // Per-node state via reactive signals — only this node re-renders when its state changes
   const nodeStore = useNodeStore()
-  const isNodeSelected = useSignal(nodeStore.getOrCreate(node.id).selected)
-  const editState = useSignal(nodeStore.getOrCreate(node.id).edit)
-  const foldOverride = useSignal(nodeStore.getOrCreate(node.id).foldOverride)
+  const n = nodeStore.reduced.get(node.id)
+  const isNodeSelected = useSignal(n.selected)
+  const editState = useSignal(n.edit)
+  const foldOverride = useSignal(n.foldOverride)
   // Sticky-fold state — drives the inverse fold-marker visual for pinned nodes.
-  // See km-tui.sticky-fold.
-  const stickyFold = useSignal(nodeStore.getOrCreate(node.id).sticky)
+  const stickyFold = useSignal(n.sticky)
   // Per-node fold override takes precedence, then remainingDepth from parent, then default (unfolded)
   const resolvedDepth = foldOverride ?? remainingDepth ?? Infinity
   const isFolded = resolvedDepth <= 0
@@ -236,7 +236,7 @@ function TreeNodeImpl({
   const viewNode = useNode(node.id)
 
   // Excluded sigils: use reactive store if hydrated, fallback for compatibility
-  const reactiveExcludedSigils = useSignal(nodeStore.getOrCreate(node.id).excludedSigils)
+  const reactiveExcludedSigils = useSignal(n.excludedSigils as (() => string[]))
   const excludedSigils = useMemo(() => {
     // If reactive store is hydrated, use it directly
     if (reactiveExcludedSigils.length > 0) return reactiveExcludedSigils
@@ -934,7 +934,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   isBody?: boolean
 }): React.ReactElement {
   const nodeStore = useNodeStore()
-  const foldOverride = useSignal(nodeStore.getOrCreate(node.id).foldOverride)
+  const foldOverride = useSignal(nodeStore.reduced.get(node.id).foldOverride)
 
   // If this child has an explicit unfold override or is the cursor target,
   // use full TreeNode (cursor can land here via J/K block navigation)
@@ -1017,10 +1017,9 @@ const FoldedChildRow = React.memo(
 
     // Read multi-selection signal so grandchildren highlight when parent is selected
     const nodeStore = useNodeStore()
-    const isNodeSelected = useSignal(nodeStore.getOrCreate(node.id).selected)
-    // Sticky-fold signal — inverse-videos the fold marker so sticky nodes read
-    // visibly different from regular fold (km-tui.sticky-fold).
-    const stickyFold = useSignal(nodeStore.getOrCreate(node.id).sticky)
+    const nf = nodeStore.reduced.get(node.id)
+    const isNodeSelected = useSignal(nf.selected)
+    const stickyFold = useSignal(nf.sticky)
 
     const nodeIsTask = KNode.isTask(node)
     const hasChildren = childCount > 0
