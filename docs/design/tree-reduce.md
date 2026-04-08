@@ -117,7 +117,7 @@ function TreeNode({ nodeId }) {
 }
 ```
 
-No mode enum. Each signal is independent. ~3 components read these — inline logic, no helper abstraction.
+No mode enum. Each signal is independent. Composition rules live in [node-visual-spec.md](node-visual-spec.md) — the state × role matrix that defines how signals map to visual treatment per component.
 
 ## How the store recognizes reduced signals
 
@@ -184,9 +184,26 @@ When a node moves from parent A to parent B during a batch:
 
 The store must capture old-parent info before structural mutations to correctly update old ancestor chains. batch() processes structural changes before recomputing reduced signals.
 
+### Visible vs structural order
+
+`tree.up` / `tree.down` and `tree.ancestors` / `tree.descendants` walk the **structural tree** (parent/child pointers). This is correct for state propagation (cursorDescendant, selectedAncestor, excludedSigils).
+
+Range selection (shift+j/k) uses **visible order** — structural order minus collapsed/filtered/hidden nodes. This requires the ViewTree / visible lens, not tree.up/down. See [selection-state-spec.md](selection-state-spec.md) for the distinction.
+
 ### Detached / root nodes
 
 A node with `parent === null` is a root. `tree.ancestors` yields nothing for it. `tree.descendants` walks its subtree normally.
+
+## Complexity contracts
+
+| Operation | Complexity | Notes |
+|-----------|-----------|-------|
+| Query concern on node | O(1) | Pre-computed, cached signal |
+| Update a leaf concern (cursor move) | O(depth) | Propagate up ancestor chain |
+| Move/reparent subtree | O(depth_old + depth_new + subtree) | Old chain subtract, new chain add |
+| Subtree insert/remove | O(subtree + ancestor propagation) | |
+
+Internally, descendant aggregates use **counts, not booleans**. Example: 2 selected descendants under an ancestor, remove one — boolean clears to false (wrong), count decrements to 1 (correct). The public API (`.some()`) returns boolean from the count.
 
 ## Constraints (v1)
 
@@ -236,18 +253,31 @@ Total: 3 signal writes. 3 component re-renders (sub1, card2, card1).
 
 ## Migration strategy
 
-Old sync code (`syncCursor`, `syncSelected`, etc.) stays alive during implementation for A/B comparison. Migration order:
+Branch-by-abstraction with shadow oracle. Old sync code stays as **shadow calculator** (not a second active codepath) during migration. One facade, one active implementation at a time.
 
-1. **Add reduced signals alongside old code** — both systems write signals. Assert they agree in dev mode.
-2. **Switch components** to read from reduced signals one at a time.
-3. **Once all consumers switched**, remove old sync code.
-4. **Run cursor-perf benchmark** before and after. Target: ≥10% improvement on 104ms baseline.
+1. **Characterize** — freeze current visual semantics in golden tests from [node-visual-spec.md](node-visual-spec.md). Table-driven tests for all selection/style precedence combinations. Add perf instrumentation harness.
+2. **Shadow implementation** — new reduced signals compute in parallel without owning UI. Compare old vs new **semantically** (not raw ANSI — two outputs can be visually equivalent but byte-different). Bounded soak period.
+3. **Cut over reads** — switch consumers to reduced signals behind the facade. Old sync becomes shadow oracle (reversed roles). Short soak with hard exit criteria.
+4. **Purge old writes** — remove old sync propagation. Verify only one source of truth.
+5. **Remove** — delete shadow comparison code, transitional glue, dead tests.
 
-This avoids a big-bang migration. Each step is independently verifiable.
+Hard exit criteria for shadow phase: differential tests pass, golden visual tests pass, N benchmark runs show no mismatches → then remove old sync immediately. Don't let it drift.
 
 ## Performance
 
 Per cursor move (j/k): ~8-10 signal writes, <0.1ms. The real win is rendering — components read O(1) pre-computed signals instead of O(depth) tree walks during render.
+
+### Bench gates
+
+Run `cursor-perf` bench at each milestone to catch regressions and verify improvements:
+
+| When | What to capture | Pass criteria |
+|------|----------------|---------------|
+| Before Phase 1 | Baseline (current HEAD) | Record wall + per-phase breakdown |
+| After Phase 2 (shadow) | Shadow overhead | Wall time ≤ 110% of baseline (shadow adds comparison cost) |
+| After Phase 3 (cutover) | New implementation solo | Content render ≤ baseline (no regression) |
+| After Phase 4 (purge) | Old code deleted | Wall time ≤ baseline (likely small improvement) |
+| After Phase 5 (editing + sigils) | Full migration | Content render ≤ 8% of wall time (same or better) |
 
 ## Future consumers
 

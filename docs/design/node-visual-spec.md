@@ -34,7 +34,7 @@ Replaces the 8-rule comment in `selection-style.ts` and the scattered implementa
 
 | State | Board | Column | Card | Sub-item |
 |-------|-------|--------|------|----------|
-| cursor | — | — | — | — |
+| cursor | $selection-bg tint | — | — | — |
 | selected | — | — | selectedBg (14%) | selectedBg on title row |
 | cursorDescendant | — | — | — | — |
 | selectedAncestor (muted) | — | mutedBg (6%) | mutedBg, no border | mutedBg |
@@ -142,9 +142,11 @@ const stripColors = cursor || selectedAncestor || isDone
 const expand = editingDescendant || cursor
 ```
 
-## Open questions
+## Open questions (resolved)
 
-- Should board-level cursor show ANY visual treatment? Currently just bg tint.
+- ~~Should board-level cursor show ANY visual treatment?~~ **Yes** — board-level cursor tints everything with $selection-bg. Confirmed by user 2026-04-08.
+
+## Open questions
 - Should muted cards hide their border entirely or show it as the bg color?
 - When cursor is on a sub-item, should the parent card show selectedBg? Currently no.
 - Should `hovered` and `cursorDescendant` compose (hover on a breadcrumb card)?
