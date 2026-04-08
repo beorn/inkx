@@ -40,7 +40,7 @@ import {
   silveryBenchOutputDetail,
   type SilveryBenchPhases,
   type SilveryBenchOutputDetail,
-} from "@silvery/ag-term"
+} from "@silvery/ag-term/pipeline"
 
 // =============================================================================
 // Types
