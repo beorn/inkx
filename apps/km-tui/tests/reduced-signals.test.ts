@@ -126,138 +126,138 @@ describe("createReactiveTree", () => {
 
   describe("typed node accessor", () => {
     it("primary signals default to false", () => {
-      expect(store.node("card1").cursor()).toBe(false)
+      expect(store.get("card1").cursor()).toBe(false)
     })
 
     it("primary signals are writable via accessor", () => {
-      store.node("card1").cursor(true)
-      expect(store.node("card1").cursor()).toBe(true)
+      store.get("card1").cursor(true)
+      expect(store.get("card1").cursor()).toBe(true)
     })
 
     it("reduced signals are readable", () => {
-      expect(store.node("card1").cursorDescendant()).toBe(false)
+      expect(store.get("card1").cursorDescendant()).toBe(false)
     })
   })
 
   describe("cursorDescendant propagation", () => {
     it("cursor on leaf → ancestors get cursorDescendant", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(true))
 
-      expect(store.node("card1").cursorDescendant()).toBe(true)
-      expect(store.node("col1").cursorDescendant()).toBe(true)
-      expect(store.node("root").cursorDescendant()).toBe(true)
+      expect(store.get("card1").cursorDescendant()).toBe(true)
+      expect(store.get("col1").cursorDescendant()).toBe(true)
+      expect(store.get("root").cursorDescendant()).toBe(true)
       // self excluded
-      expect(store.node("sub1").cursorDescendant()).toBe(false)
+      expect(store.get("sub1").cursorDescendant()).toBe(false)
       // other branches unaffected
-      expect(store.node("col2").cursorDescendant()).toBe(false)
+      expect(store.get("col2").cursorDescendant()).toBe(false)
     })
 
     it("cursor move clears old path, sets new path", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(true))
 
       store.batch(t, () => {
-        store.node("sub1").cursor(false)
-        store.node("card2").cursor(true)
+        store.get("sub1").cursor(false)
+        store.get("card2").cursor(true)
       })
 
-      expect(store.node("card1").cursorDescendant()).toBe(false)
-      expect(store.node("col1").cursorDescendant()).toBe(true) // card2 still under col1
+      expect(store.get("card1").cursorDescendant()).toBe(false)
+      expect(store.get("col1").cursorDescendant()).toBe(true) // card2 still under col1
     })
 
     it("cross-column cursor move", () => {
-      store.batch(t, () => store.node("card1").cursor(true))
-      expect(store.node("col1").cursorDescendant()).toBe(true)
+      store.batch(t, () => store.get("card1").cursor(true))
+      expect(store.get("col1").cursorDescendant()).toBe(true)
 
       store.batch(t, () => {
-        store.node("card1").cursor(false)
-        store.node("card3").cursor(true)
+        store.get("card1").cursor(false)
+        store.get("card3").cursor(true)
       })
 
-      expect(store.node("col1").cursorDescendant()).toBe(false)
-      expect(store.node("col2").cursorDescendant()).toBe(true)
+      expect(store.get("col1").cursorDescendant()).toBe(false)
+      expect(store.get("col2").cursorDescendant()).toBe(true)
     })
   })
 
   describe("selectedAncestor propagation", () => {
     it("selecting card makes descendants see selectedAncestor", () => {
-      store.batch(t, () => store.node("card1").selected(true))
+      store.batch(t, () => store.get("card1").selected(true))
 
-      expect(store.node("sub1").selectedAncestor()).toBe(true)
-      expect(store.node("sub2").selectedAncestor()).toBe(true)
+      expect(store.get("sub1").selectedAncestor()).toBe(true)
+      expect(store.get("sub2").selectedAncestor()).toBe(true)
       // self excluded
-      expect(store.node("card1").selectedAncestor()).toBe(false)
+      expect(store.get("card1").selectedAncestor()).toBe(false)
       // non-descendants unaffected
-      expect(store.node("card2").selectedAncestor()).toBe(false)
+      expect(store.get("card2").selectedAncestor()).toBe(false)
     })
 
     it("deselecting clears descendants", () => {
-      store.batch(t, () => store.node("card1").selected(true))
-      store.batch(t, () => store.node("card1").selected(false))
-      expect(store.node("sub1").selectedAncestor()).toBe(false)
+      store.batch(t, () => store.get("card1").selected(true))
+      store.batch(t, () => store.get("card1").selected(false))
+      expect(store.get("sub1").selectedAncestor()).toBe(false)
     })
   })
 
   describe("counts not booleans", () => {
     it("two cursor descendants: remove one → still true", () => {
       store.batch(t, () => {
-        store.node("sub1").cursor(true)
-        store.node("sub2").cursor(true)
+        store.get("sub1").cursor(true)
+        store.get("sub2").cursor(true)
       })
 
-      expect(store.node("card1").cursorDescendant()).toBe(true)
+      expect(store.get("card1").cursorDescendant()).toBe(true)
 
-      store.batch(t, () => store.node("sub1").cursor(false))
-      expect(store.node("card1").cursorDescendant()).toBe(true) // sub2 still
+      store.batch(t, () => store.get("sub1").cursor(false))
+      expect(store.get("card1").cursorDescendant()).toBe(true) // sub2 still
 
-      store.batch(t, () => store.node("sub2").cursor(false))
-      expect(store.node("card1").cursorDescendant()).toBe(false)
+      store.batch(t, () => store.get("sub2").cursor(false))
+      expect(store.get("card1").cursorDescendant()).toBe(false)
     })
   })
 
   describe("node removal", () => {
     it("removing node with active signal subtracts from ancestors", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
-      expect(store.node("card1").cursorDescendant()).toBe(true)
+      store.batch(t, () => store.get("sub1").cursor(true))
+      expect(store.get("card1").cursorDescendant()).toBe(true)
 
-      store.removeNode("sub1", t)
+      store.delete("sub1", t)
 
-      expect(store.node("card1").cursorDescendant()).toBe(false)
-      expect(store.hasNode("sub1")).toBe(false)
+      expect(store.get("card1").cursorDescendant()).toBe(false)
+      expect(store.has("sub1")).toBe(false)
     })
   })
 
   describe("batch atomicity", () => {
     it("cursor move is atomic — reduced signals consistent after batch", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(true))
 
       store.batch(t, () => {
-        store.node("sub1").cursor(false)
-        store.node("card3").cursor(true)
+        store.get("sub1").cursor(false)
+        store.get("card3").cursor(true)
       })
 
-      expect(store.node("card1").cursorDescendant()).toBe(false)
-      expect(store.node("col2").cursorDescendant()).toBe(true)
+      expect(store.get("card1").cursorDescendant()).toBe(false)
+      expect(store.get("col2").cursorDescendant()).toBe(true)
     })
   })
 
   describe("edge cases", () => {
     it("deselected state: no cursor → all cursorDescendant false", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
-      store.batch(t, () => store.node("sub1").cursor(false))
+      store.batch(t, () => store.get("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(false))
 
-      expect(store.node("card1").cursorDescendant()).toBe(false)
-      expect(store.node("root").cursorDescendant()).toBe(false)
+      expect(store.get("card1").cursorDescendant()).toBe(false)
+      expect(store.get("root").cursorDescendant()).toBe(false)
     })
 
     it("setting same value twice is a no-op", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
-      store.batch(t, () => store.node("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(true))
       // No double-counting — still exactly 1
-      expect(store.node("card1").cursorDescendant()).toBe(true)
+      expect(store.get("card1").cursorDescendant()).toBe(true)
     })
 
     it("removing non-existent node is safe", () => {
-      store.removeNode("does-not-exist", t)
+      store.delete("does-not-exist", t)
     })
 
     it("batch with no changes is safe", () => {
@@ -265,27 +265,27 @@ describe("createReactiveTree", () => {
     })
 
     it("clear resets all state", () => {
-      store.batch(t, () => store.node("sub1").cursor(true))
+      store.batch(t, () => store.get("sub1").cursor(true))
       store.clear()
       expect(store.size).toBe(0)
-      expect(store.hasNode("sub1")).toBe(false)
+      expect(store.has("sub1")).toBe(false)
     })
   })
 
   describe("editingDescendant", () => {
     it("editing sub-item propagates editingDescendant to card", () => {
-      store.batch(t, () => store.node("sub1").editing(true))
+      store.batch(t, () => store.get("sub1").editing(true))
 
-      expect(store.node("card1").editingDescendant()).toBe(true)
-      expect(store.node("col1").editingDescendant()).toBe(true)
-      expect(store.node("sub1").editingDescendant()).toBe(false) // self excluded
+      expect(store.get("card1").editingDescendant()).toBe(true)
+      expect(store.get("col1").editingDescendant()).toBe(true)
+      expect(store.get("sub1").editingDescendant()).toBe(false) // self excluded
     })
 
     it("stop editing clears editingDescendant", () => {
-      store.batch(t, () => store.node("sub1").editing(true))
-      store.batch(t, () => store.node("sub1").editing(false))
+      store.batch(t, () => store.get("sub1").editing(true))
+      store.batch(t, () => store.get("sub1").editing(false))
 
-      expect(store.node("card1").editingDescendant()).toBe(false)
+      expect(store.get("card1").editingDescendant()).toBe(false)
     })
   })
 })

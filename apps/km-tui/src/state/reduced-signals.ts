@@ -170,19 +170,20 @@ interface NodeStore {
   counts: Map<string, number>
 }
 
+/** Map-like API: get/has/delete/size/clear, plus batch for atomic writes */
 export interface ReactiveTreeStore<T extends StateDef> {
-  /** Get typed per-node accessor. Lazy creation — nodes are created on first access. */
-  node(nodeId: string): NodeAccessor<T>
-  /** Batch multiple signal writes — recomputes reduced signals once at the end */
-  batch(treeAccess: TreeAccess, fn: () => void): void
+  /** Get typed per-node accessor (lazy creation) */
+  get(nodeId: string): NodeAccessor<T>
+  /** Check if a node exists in the store */
+  has(nodeId: string): boolean
   /** Remove a node and subtract its contributions from ancestor/descendant counts */
-  removeNode(nodeId: string, treeAccess?: TreeAccess): void
+  delete(nodeId: string, treeAccess?: TreeAccess): void
   /** Number of tracked nodes */
   readonly size: number
   /** Clear all nodes (topology change) */
   clear(): void
-  /** Check if a node exists */
-  hasNode(nodeId: string): boolean
+  /** Batch multiple signal writes — recomputes reduced signals once at the end */
+  batch(treeAccess: TreeAccess, fn: () => void): void
 }
 
 /**
@@ -327,25 +328,15 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
   // ── Public API ──
 
   return {
-    node(nodeId: string): NodeAccessor<T> {
+    get(nodeId: string): NodeAccessor<T> {
       return createNodeAccessor(nodeId)
     },
 
-    batch(treeAccess: TreeAccess, fn: () => void): void {
-      inBatch = true
-      pendingChanges = []
-      try {
-        fn()
-      } finally {
-        inBatch = false
-        if (pendingChanges.length > 0) {
-          recompute(pendingChanges, treeAccess)
-        }
-        pendingChanges = []
-      }
+    has(nodeId: string): boolean {
+      return nodes.has(nodeId)
     },
 
-    removeNode(nodeId: string, treeAccess?: TreeAccess): void {
+    delete(nodeId: string, treeAccess?: TreeAccess): void {
       const ns = nodes.get(nodeId)
       if (!ns) return
 
@@ -372,8 +363,18 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
       nodes.clear()
     },
 
-    hasNode(nodeId: string) {
-      return nodes.has(nodeId)
+    batch(treeAccess: TreeAccess, fn: () => void): void {
+      inBatch = true
+      pendingChanges = []
+      try {
+        fn()
+      } finally {
+        inBatch = false
+        if (pendingChanges.length > 0) {
+          recompute(pendingChanges, treeAccess)
+        }
+        pendingChanges = []
+      }
     },
   }
 }

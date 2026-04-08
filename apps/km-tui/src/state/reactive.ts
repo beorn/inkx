@@ -147,8 +147,8 @@ export class ReactiveNodeStore {
     // Update reduced signals: cursorDescendant propagates up from cursor node
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
-        if (prevCursor) this.reduced.node(prevCursor).cursor(false)
-        if (cursorState.cursor) this.reduced.node(cursorState.cursor).cursor(true)
+        if (prevCursor) this.reduced.get(prevCursor).cursor(false)
+        if (cursorState.cursor) this.reduced.get(cursorState.cursor).cursor(true)
       })
     }
   }
@@ -156,19 +156,19 @@ export class ReactiveNodeStore {
   /** Get cursorDescendant reduced signal for a node.
    * Returns a boolean getter: true when any descendant of this node has cursor. */
   cursorDescendant(nodeId: string): () => boolean {
-    return this.reduced.node(nodeId).cursorDescendant
+    return this.reduced.get(nodeId).cursorDescendant
   }
 
   /** Get selectedAncestor reduced signal for a node.
    * Returns a boolean getter: true when any ancestor of this node is selected. */
   selectedAncestor(nodeId: string): () => boolean {
-    return this.reduced.node(nodeId).selectedAncestor
+    return this.reduced.get(nodeId).selectedAncestor
   }
 
   /** Get editingDescendant reduced signal for a node.
    * Returns a boolean getter: true when any descendant of this node is being edited. */
   editingDescendant(nodeId: string): () => boolean {
-    return this.reduced.node(nodeId).editingDescendant
+    return this.reduced.get(nodeId).editingDescendant
   }
 
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
@@ -331,10 +331,10 @@ export class ReactiveNodeStore {
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
         for (const key of oldSelected) {
-          if (!newSelected.has(key)) this.reduced.node(key).selected(false)
+          if (!newSelected.has(key)) this.reduced.get(key).selected(false)
         }
         for (const key of newSelected) {
-          if (!oldSelected.has(key)) this.reduced.node(key).selected(true)
+          if (!oldSelected.has(key)) this.reduced.get(key).selected(true)
         }
       })
     }
@@ -369,8 +369,8 @@ export class ReactiveNodeStore {
     // Update reduced signals: editingDescendant propagates up from editing node
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
-        if (oldNodeId) this.reduced.node(oldNodeId).editing(false)
-        if (newNodeId && newState) this.reduced.node(newNodeId).editing(true)
+        if (oldNodeId) this.reduced.get(oldNodeId).editing(false)
+        if (newNodeId && newState) this.reduced.get(newNodeId).editing(true)
       })
     }
   }
