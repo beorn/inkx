@@ -157,6 +157,47 @@ Send an all-clear when the refactor is stable (tests pass).
 
 **When to use a worktree instead**: If the refactor will take >30 min or touch >20 files, prefer `bun worktree` to avoid disrupting other sessions entirely. Worktrees are free — the overhead of creating one is far less than the cost of blocking the tribe.
 
+## Shadow Oracle Technique (special case)
+
+When replacing a complex stateful system (e.g., state propagation, caching, rendering pipeline), the default "break then fix" approach may be too risky — a subtle behavioral difference can silently change output. In these cases, use a **shadow oracle**:
+
+### When to use
+- Replacing a stateful system with many implicit behaviors
+- Can't fully characterize correct output with unit tests alone
+- Behavioral parity matters more than API parity
+
+### How it works
+1. **Rename + privatize** old methods (e.g., `syncCursor` → `private _legacySyncCursor`). This gives a compile error to any component trying to call the old API — structural prevention, not just comments.
+2. **Add `@deprecated REMOVING in <bead-id>`** annotation on every legacy method, linking to the phase bead that deletes it.
+3. **Run both** — new implementation drives UI, old runs as shadow for comparison.
+4. **Assert parity** — dev-mode assertion that old and new agree semantically (not byte-for-byte).
+5. **Delete immediately** — shadow window is ONE test suite run, not days. The next phase deletes the legacy code.
+
+### /complete annotations
+Phase beads must note which legacy artifacts are **expected** vs **gone**:
+
+```
+# Phase 1 /complete (shadow exists — expected):
+rg syncCursor → 0 (public name gone, renamed)
+rg _legacySyncCursor → 2-3 hits (expected: definition + shadow caller)
+# NOTE: _legacySyncCursor removed in Phase 3
+
+# Phase 3 /complete (shadow deleted — clean):
+rg _legacySyncCursor → 0
+rg '@deprecated.*phase3' → 0 (annotations deleted too)
+```
+
+Without these annotations, /complete will flag the shadow artifacts as leftover OldWay — confusing the implementer.
+
+### Anti-patterns
+- Shadow window > 1 day → dual-path trap. If parity fails, fix and re-run, don't "soak longer."
+- Both paths drive UI → guaranteed divergence. ONE path drives UI; the other compares only.
+- Skip the rename → someone will call the old public method. Private + rename is the guard.
+- Leave @deprecated annotations after deletion → stale noise. Delete annotations in the same phase as the code.
+
+### Reference implementation
+km-tui.hierarchical-node-state (2026-04) — 5 sync methods replaced by reduced signals. Shadow oracle in Phase 1, cutover in Phase 2, purge in Phase 3. See that bead's phase beads for the exact pattern.
+
 ## Retrospective (after all phases complete)
 
 After closing a refactoring bead, write a brief retrospective in the bead notes or as a commit message. Include:
