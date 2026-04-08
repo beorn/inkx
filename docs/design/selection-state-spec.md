@@ -109,12 +109,14 @@ Silvery's `focusDirection("up"/"down"/"left"/"right")` provides the spatial look
 |---|---|---|---|
 | Board root | Yes (cursor=rootId) | No | No |
 | Column header | Yes | Yes | No |
-| Card (structural) | Yes | Yes | Yes (bold focusborder) |
+| Card (structural item) | Yes | Yes | Yes (bold focusborder) |
 | Sub-item inside card | Yes | Yes | No (card is the scope) |
 | Body block (paragraph/li) | Yes | Yes | Yes (same as card) |
 | Body card at column top | Yes | Yes | Yes |
-| +N more overflow | No | No | No |
+| Code block | Yes | Yes (code editing) | No (card is the scope) |
+| Table block | Yes | No (read-only) | No |
 | HR separator | Yes (navigable) | No | No |
+| +N more overflow | No | No | No |
 | Virtual __body__ column | Yes (cursor can land) | No | No |
 | Virtual __meta__ field | Yes (detail pane) | Yes (some) | No |
 | Dialog content | No (own focus system) | — | Yes (modal scope) |
@@ -178,16 +180,18 @@ These should be dev-mode assertions:
 
 ## Multi-Select
 
-Multi-select is at card level (select multiple cards in a column). Sub-items cannot be multi-selected across cards. Text editing and multi-select are mutually exclusive (entering edit clears multi-select).
+Any selectable node can be multi-selected — cards, sub-items, body blocks, column headers. The selection set is a flat set of node IDs (not limited to one tree level). Text editing and multi-select are mutually exclusive (entering edit clears multi-select).
 
 | Action | Effect on selection set |
 |---|---|
-| Click card | Set = {clicked card} |
-| Ctrl-click card | Toggle card in set |
-| Shift+j/k | Extend set in direction |
+| Click node | Set = {clicked node} |
+| Ctrl-click node | Toggle node in set |
+| Shift+j/k | Extend set in direction (visible order) |
 | j/k (no shift) | Collapse set to cursor |
 | Enter (edit) | Clear multi-select, enter edit on cursor |
 | Escape | If multi-selected: collapse to cursor. If single: deselect. |
+
+Batch commands (delete, move, cut, task status) operate on the full selection set. Single commands (fold, zoom, edit) operate on cursor only.
 
 ## See Also
 
