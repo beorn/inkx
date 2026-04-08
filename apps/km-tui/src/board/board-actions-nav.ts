@@ -47,9 +47,10 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   const prevCursor = ctx.cursor
 
   // No cursor (deselected state): place cursor at the default location —
-  // first card in the first column. Any directional key press re-enters
-  // the board from this anchor rather than silently no-opping.
-  if (!ctx.cursor) {
+  // first card in the first column. Only for vertical/block navigation;
+  // left/right must fall through to handleHorizontalNav which handles
+  // pane switching (detail pane → board) even with null cursor.
+  if (!ctx.cursor && dir !== "left" && dir !== "right") {
     const colIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
     for (const colId of colIds) {
       const cardIds = ctx.tree.children(colId)
