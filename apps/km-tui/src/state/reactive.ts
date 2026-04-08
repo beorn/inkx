@@ -473,3 +473,19 @@ export function useNodeStore(): ReactiveNodeStore {
   if (!store) throw new Error("useNodeStore: not inside ReactiveNodeStoreProvider")
   return store
 }
+
+/** Per-node typed accessor for the reduced signal store.
+ * Returns the typed accessor from store.get(nodeId) — use with useSignal
+ * for React subscription. Reads like pseudocode:
+ *
+ * ```tsx
+ * const n = useTreeNode(nodeId)
+ * const cursor = useSignal(n.cursor)
+ * const breadcrumb = n.cursorDescendant()
+ * const dim = n.doneAncestor()
+ * ```
+ */
+export function useTreeNode(nodeId: string) {
+  const store = useNodeStore()
+  return store.reduced.get(nodeId)
+}
