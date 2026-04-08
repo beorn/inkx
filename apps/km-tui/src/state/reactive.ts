@@ -7,7 +7,7 @@
  */
 
 import { signal } from "alien-signals"
-import { ReducedSignalStore, tree, type TreeAccess } from "./reduced-signals.ts"
+import { createReactiveTree, tree, type TreeAccess, type ReactiveTreeStore } from "./reduced-signals.ts"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -70,12 +70,22 @@ function createNodeState(): NodeReactiveState {
 // ReactiveNodeStore
 // =============================================================================
 
+/** State definition for per-node reduced signals */
+const reducedStateDef = {
+  cursor: signal(false),
+  selected: signal(false),
+  editing: signal(false),
+  cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
+  selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
+  editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
+}
+
 export class ReactiveNodeStore {
   private nodes = new Map<string, NodeReactiveState>()
   private knownNodeIds = new Set<string>()
 
-  // ── Reduced signal store (shadow — Phase 1) ──────────────────────────────
-  readonly reduced: ReducedSignalStore
+  // ── Reduced signal store — typed function-accessor API ──────────────────
+  readonly reduced: ReactiveTreeStore<typeof reducedStateDef>
 
   // ── Cursor state (synced from Board.tsx via syncCursor) ──
   cursor = signal<string | null>(null)
@@ -93,10 +103,7 @@ export class ReactiveNodeStore {
   private hoverScheduled = false
 
   constructor() {
-    this.reduced = new ReducedSignalStore()
-    this.reduced.defineReduced("cursorDescendant", tree.descendants("cursor").some())
-    this.reduced.defineReduced("selectedAncestor", tree.ancestors("selected").some())
-    this.reduced.defineReduced("editingDescendant", tree.descendants("editing").some())
+    this.reduced = createReactiveTree(reducedStateDef)
   }
 
   /** Set the hovered node. Coalesced: rapid mouseEnter/mouseLeave events
@@ -140,31 +147,28 @@ export class ReactiveNodeStore {
     // Update reduced signals: cursorDescendant propagates up from cursor node
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
-        if (prevCursor) this.reduced.setPrimary(prevCursor, "cursor", false)
-        if (cursorState.cursor) this.reduced.setPrimary(cursorState.cursor, "cursor", true)
+        if (prevCursor) this.reduced.node(prevCursor).cursor(false)
+        if (cursorState.cursor) this.reduced.node(cursorState.cursor).cursor(true)
       })
     }
   }
 
-  /** Get cursorDescendant reduced signal for a node (replaces cursorInDescendant).
-   * Returns a boolean alien-signal: true when any descendant of this node has cursor. */
+  /** Get cursorDescendant reduced signal for a node.
+   * Returns a boolean getter: true when any descendant of this node has cursor. */
   cursorDescendant(nodeId: string): () => boolean {
-    const sig = this.reduced.node(nodeId).reduced.get("cursorDescendant")
-    return (sig ?? (() => false)) as () => boolean
+    return this.reduced.node(nodeId).cursorDescendant
   }
 
   /** Get selectedAncestor reduced signal for a node.
-   * Returns a boolean alien-signal: true when any ancestor of this node is selected. */
+   * Returns a boolean getter: true when any ancestor of this node is selected. */
   selectedAncestor(nodeId: string): () => boolean {
-    const sig = this.reduced.node(nodeId).reduced.get("selectedAncestor")
-    return (sig ?? (() => false)) as () => boolean
+    return this.reduced.node(nodeId).selectedAncestor
   }
 
   /** Get editingDescendant reduced signal for a node.
-   * Returns a boolean alien-signal: true when any descendant of this node is being edited. */
+   * Returns a boolean getter: true when any descendant of this node is being edited. */
   editingDescendant(nodeId: string): () => boolean {
-    const sig = this.reduced.node(nodeId).reduced.get("editingDescendant")
-    return (sig ?? (() => false)) as () => boolean
+    return this.reduced.node(nodeId).editingDescendant
   }
 
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
@@ -327,10 +331,10 @@ export class ReactiveNodeStore {
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
         for (const key of oldSelected) {
-          if (!newSelected.has(key)) this.reduced.setPrimary(key, "selected", false)
+          if (!newSelected.has(key)) this.reduced.node(key).selected(false)
         }
         for (const key of newSelected) {
-          if (!oldSelected.has(key)) this.reduced.setPrimary(key, "selected", true)
+          if (!oldSelected.has(key)) this.reduced.node(key).selected(true)
         }
       })
     }
@@ -365,8 +369,8 @@ export class ReactiveNodeStore {
     // Update reduced signals: editingDescendant propagates up from editing node
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
-        if (oldNodeId) this.reduced.setPrimary(oldNodeId, "editing", false)
-        if (newNodeId && newState) this.reduced.setPrimary(newNodeId, "editing", true)
+        if (oldNodeId) this.reduced.node(oldNodeId).editing(false)
+        if (newNodeId && newState) this.reduced.node(newNodeId).editing(true)
       })
     }
   }
