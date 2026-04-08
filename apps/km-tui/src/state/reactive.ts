@@ -33,7 +33,6 @@ export interface NodeEditState {
 // Per-Node Reactive State
 // =============================================================================
 
-
 // =============================================================================
 // ReactiveNodeStore
 // =============================================================================
@@ -90,10 +89,6 @@ export class ReactiveNodeStore {
   cursorCardNodeId = signal<string | null>(null)
   cursorColumnNodeId = signal<string | null>(null)
   cursorDepth = signal<"board" | "column" | "card">("board")
-
-  // ── Edit expansion state ──
-  /** Card node ID that should expand because a descendant is being edited */
-  expandedEditCardId = signal<string | null>(null)
 
   // ── Hover state (centralized, coalesced across I/O events) ──
   private hoveredNodeId: string | null = null
@@ -227,7 +222,6 @@ export class ReactiveNodeStore {
       if (colSigils.length > 0) this.reduced.get(col.id).ownSigils(colSigils)
     }
 
-
     // Hydrate sticky fold signals — flip the `sticky` signal for any node
     // that the caller says is currently pinned. Covers columns, cards, and
     // sub-items since sticky folds are not tied to any hierarchy level.
@@ -312,9 +306,6 @@ export class ReactiveNodeStore {
         stickyX: newState.stickyX,
       })
     }
-    // Update expandedEditCardId for parent card expansion (legacy — kept until readers migrate)
-    this.expandedEditCardId(cardNodeId ?? null)
-
     // Write editing signals — editingDescendant auto-propagates via computeds
     if (oldNodeId) this.reduced.get(oldNodeId).editing(false)
     if (newNodeId && newState) this.reduced.get(newNodeId).editing(true)

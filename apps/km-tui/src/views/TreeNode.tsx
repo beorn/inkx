@@ -236,7 +236,7 @@ function TreeNodeImpl({
   const viewNode = useNode(node.id)
 
   // Excluded sigils: use reactive store if hydrated, fallback for compatibility
-  const reactiveExcludedSigils = useSignal(n.excludedSigils as (() => string[]))
+  const reactiveExcludedSigils = useSignal(n.excludedSigils as () => string[])
   const excludedSigils = useMemo(() => {
     // If reactive store is hydrated, use it directly
     if (reactiveExcludedSigils.length > 0) return reactiveExcludedSigils
@@ -858,6 +858,7 @@ function TreeNodeImpl({
             showOverflowIndicator={depth > 0}
             remainingDepth={resolvedDepth - 1}
             bodyIdSet={stableBodyIdSet}
+            suppressCursorHighlight={isInlineEditing || editingDescendant}
           />
         </ErrorBoundary>
       )}
@@ -1149,6 +1150,10 @@ interface NodeChildrenProps {
    * When null/undefined, NodeChildren falls back to extractBody(children) which
    * is stable for unsliced children (e.g. when no maxChildren cap applies). */
   bodyIdSet?: Set<string> | null
+  /** When true, suppress cursor selection highlights on children.
+   * Set by the parent TreeNode when it or a descendant is being edited —
+   * the bold focusborder is sufficient, row-level inverse is redundant. */
+  suppressCursorHighlight?: boolean
 }
 
 function NodeChildren({
@@ -1166,6 +1171,7 @@ function NodeChildren({
   showOverflowIndicator = true,
   remainingDepth,
   bodyIdSet,
+  suppressCursorHighlight = false,
 }: NodeChildrenProps): React.ReactElement {
   // Classify each child as body or structural using the STABLE body ID set
   // computed from the parent's full children array (cursor-independent).
@@ -1208,14 +1214,12 @@ function NodeChildren({
   )
 
   // Get cursor position from ReactiveNodeStore to determine which child is selected.
-  // When the containing card is in edit mode, suppress cursor selection highlights —
-  // the bold focusborder and text cursor are sufficient; row-level inverse is redundant
-  // and visually clutters the editing experience.
+  // When suppressCursorHighlight is true (parent is editing or has an editing
+  // descendant), suppress cursor selection highlights — the bold focusborder
+  // is sufficient, row-level inverse is redundant.
   const nodeStore = useNodeStore()
   const cursor = useSignal(nodeStore.cursor)
-  const expandedEditCardId = useSignal(nodeStore.expandedEditCardId)
-  const cardIsEditing = expandedEditCardId != null
-  const effectiveCursor = cardIsEditing ? null : cursor
+  const effectiveCursor = suppressCursorHighlight ? null : cursor
 
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children
