@@ -87,6 +87,38 @@ What each element looks like in each state:
 | **+N more** | matches border | matches border | matches border | matches border | matches border | matches border |
 | **Hover any card** | border → $muted | — | — | — | — | — |
 
+## Node Capabilities
+
+Not every node participates in every state concept. Three capabilities:
+
+| Capability | Meaning | Examples | Determines |
+|---|---|---|---|
+| **Selectable** | Can receive cursor; can be in selection set | Cards, sub-items, column headers, body blocks | What j/k/click/shift-select can land on |
+| **Editable** | Can enter text mode (has content to edit) | Cards with title, sub-items with content, body paragraphs | What Enter/i activates |
+| **Scoped** | Creates a keyboard capture boundary when active | Cards in edit mode, detail pane, dialogs | What traps keys and shows focusborder |
+
+### Spatial selection
+
+Navigation (j/k, arrows, mouse click) IS selection — moving the cursor selects the target node. "Spatial selection" means: given a direction, find the nearest SELECTABLE node and select it. Non-selectable nodes (decorative separators, overflow indicators, virtual grouping nodes) are skipped.
+
+Silvery's `focusDirection("up"/"down"/"left"/"right")` provides the spatial lookup. The `focusable` prop on a Box marks it as a valid target. In km, `focusable` = selectable.
+
+### Capability matrix
+
+| Node type | Selectable | Editable | Scoped (when editing) |
+|---|---|---|---|
+| Board root | Yes (cursor=rootId) | No | No |
+| Column header | Yes | Yes | No |
+| Card (structural) | Yes | Yes | Yes (bold focusborder) |
+| Sub-item inside card | Yes | Yes | No (card is the scope) |
+| Body block (paragraph/li) | Yes | Yes | Yes (same as card) |
+| Body card at column top | Yes | Yes | Yes |
+| +N more overflow | No | No | No |
+| HR separator | Yes (navigable) | No | No |
+| Virtual __body__ column | Yes (cursor can land) | No | No |
+| Virtual __meta__ field | Yes (detail pane) | Yes (some) | No |
+| Dialog content | No (own focus system) | — | Yes (modal scope) |
+
 ## Command Target Precedence
 
 When a command fires, which node(s) does it act on?
