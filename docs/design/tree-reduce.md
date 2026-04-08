@@ -2,11 +2,16 @@
 
 Per-node derived state as **reduced signals**: cached tree reductions, incrementally recomputed on change. Like `Array.reduce`, but over a tree walk.
 
-## Why
+## The idea
 
-Many per-node properties propagate through the tree — cursor path upward, selection muting downward, fold inheritance, sigil exclusion, visibility, error indicators. Previously 5+ ad-hoc mechanisms (imperative sync, prop threading, ViewLens, render-time computation). This caused bugs: visual blending from stacked backgrounds, shouldStripColor computed 4 ways, 3 different isSelected definitions.
+A reduced signal is a cached pure function over the tree. The store materializes it as a per-node signal. `batch()` incrementally recomputes dirty regions.
 
-One mechanism replaces all of them.
+```ts
+// Conceptually, this is all it computes:
+cursorDescendant(nodeId) = tree.descendants(nodeId).some(id => cursor(id))
+```
+
+The signal caches the result. Dirty tracking recomputes only affected regions on change.
 
 ## API
 
@@ -21,31 +26,60 @@ const store = reactiveTree({
     edit: signal<EditState | null>(null),
     hovered: signal(false),
 
-    // Reduced signals (cached tree walks — recomputed on batch)
-    cursorDescendant: walk.up(s => s.cursor).reduce(or, false),
-    selectedAncestor: walk.down(s => s.selected).reduce(or, false),
-    excludedSigils: walk.down(s => s.ownSigils).reduce(concat, []),
+    // Reduced signals (cached tree reductions — recomputed on batch)
+    cursorDescendant: tree.descendants(s => s.cursor).some(),
+    selectedAncestor: tree.ancestors(s => s.selected).some(),
+    excludedSigils: tree.ancestors(s => s.ownSigils).reduce(concat, []),
+    errorCount: tree.descendants(s => s.hasError).count(),
   }),
   tree: treeAccess,
 })
 ```
 
-`walk.up(accessor)` returns an intermediate — "source values walking up the tree" — with `.reduce(reducer, initial)` to materialize it. Same shape as `Array.reduce`, over a tree walk.
+Reads as English: "cursorDescendant: **some** of my tree **descendants** have **cursor**."
 
-Sugar for the common boolean case:
+### `tree.ancestors` / `tree.descendants` — declarative
 
-```ts
-cursorDescendant: descendants(s => s.cursor)     // = walk.up(...).reduce(or, false)
-selectedAncestor: ancestors(s => s.selected)      // = walk.down(...).reduce(or, false)
-```
-
-Future combinators on the intermediate:
+Create reduce descriptors for state definitions. The direction is the **node's perspective** — "look at my ancestors" or "look at my descendants."
 
 ```ts
-walk.up(s => s.cursor).some()       // boolean: any ancestor?
-walk.up(s => s.hasError).count()    // number: how many?
-walk.down(s => s.selected).every()  // boolean: all descendants?
+tree.ancestors(accessor)     // "values from my ancestors"
+tree.descendants(accessor)   // "values from my descendants"
 ```
+
+Returns an intermediate with standard iterator-like combinators:
+
+```ts
+.some()                      // boolean: any match? (default for boolean signals)
+.every()                     // boolean: all match?
+.count()                     // number: how many?
+.reduce(reducer, initial)    // T: custom aggregation
+.find()                      // T | undefined: first match
+```
+
+Same vocabulary as `Array.prototype` and TC39 Iterator Helpers. Nothing custom to learn.
+
+### `tree.up` / `tree.down` — imperative
+
+Walk the tree in loops, navigation, search, outliner ops. Takes a nodeId, returns an iterator:
+
+```ts
+tree.up(nodeId)                    // parent chain → Iterable<string>
+tree.down(nodeId)                  // DFS → Iterable<string>
+tree.down(nodeId, { into: pred })  // filtered DFS (skip subtrees)
+```
+
+### The split
+
+| | `ancestors` / `descendants` | `up` / `down` |
+|---|---|---|
+| **Purpose** | Declare what to compute | Walk the tree now |
+| **Takes** | Signal accessor | Node ID |
+| **Returns** | Reduce descriptor | `Iterable<string>` |
+| **Used in** | State definitions | Loops, navigation, search |
+| **Perspective** | "Look at my ancestors/descendants" | "Walk up/down from here" |
+
+Both live on `tree`. One is declarative, the other imperative. The declarative form uses the imperative form internally.
 
 ### Batch
 
@@ -56,7 +90,16 @@ store.batch(tree, () => {
 })
 ```
 
-All signal writes inside the callback are collected. Reduced signals recompute once at the end — only affected regions, only changed values written. Can't forget to propagate.
+Signal writes inside the callback are collected. Reduced signals recompute once at the end — only affected regions, only changed values written. Can't forget to propagate.
+
+### `store.node(id)`
+
+```ts
+store.node(nodeId)           // get or lazily create per-node state
+store.node(nodeId).cursor    // Signal<boolean>
+```
+
+Always auto-creates. Replaces `getOrCreate()`.
 
 ### Components
 
@@ -74,52 +117,24 @@ function TreeNode({ nodeId }) {
 }
 ```
 
-No mode enum. Each signal is independent. Components compose per visual aspect. ~3 components read these (TreeNode, CardColumn, NodeView) — inline logic, no helper abstraction needed.
+No mode enum. Each signal is independent. ~3 components read these — inline logic, no helper abstraction.
 
-`useNode(nodeId)` returns the node's signal state. Components subscribe granularly via `useSignal` — only re-render when a specific signal changes.
+## How the store recognizes reduced signals
 
-### `store.node(id)`
+Duck-typed. No markers needed:
 
-```ts
-store.node(nodeId)         // get or lazily create per-node state
-store.node(nodeId).cursor  // Signal<boolean>
-```
+- `signal(false)` — alien-signals are **callable functions**
+- `tree.descendants(s => s.cursor).some()` — returns a **plain object** with a `.reduce` property
 
-Always auto-creates. Replaces `getOrCreate()`.
-
-## Walk primitives
-
-Two uses of `walk.up` / `walk.down`:
-
-**In state definitions** — `walk.up(accessor)` creates a reduce descriptor. The accessor reads a signal from each node. The store uses it to build the reduced signal.
-
-**As standalone iterators** — reusable tree traversal, shared across the codebase:
-
-```ts
-walk.up(nodeId, tree)                   // parent chain → Iterable<string>
-walk.down(nodeId, tree)                 // DFS via KTree.nodes → Iterable<string>
-walk.down(nodeId, tree, { into })       // filtered DFS (skip subtrees)
-```
-
-Used by: reduced signals, navigation (j/k), search, outliner ops, visibility, count indicators.
-
-Minimal tree interface:
-
-```ts
-interface TreeAccess {
-  parent(nodeId: string): string | null
-  children(nodeId: string): readonly string[]
-}
-```
+The store checks: function → primary signal. Object with `.reduce` → reduced signal descriptor. Materializes accordingly.
 
 ## How it works
 
 A reduced signal is a cached pure function. The pure core has no signals, no React:
 
 ```ts
-// Conceptually, this is all a reduced signal computes:
 let acc = initial
-for (const id of walk(sourceNodeId, tree)) {
+for (const id of tree.up(sourceNodeId)) {   // ← uses the imperative iterator
   acc = reducer(acc, readSignal(id))
 }
 return acc
@@ -128,13 +143,24 @@ return acc
 The store wraps this with:
 1. **Cache** — result stored as a per-node `Signal<T>` for `useSignal` subscription
 2. **Dirty tracking** — which source signals changed since last batch
-3. **Incremental recomputation** — on `batch()`, recompute only affected regions, diff output, write only changed signals
+3. **Incremental recomputation** — on `batch()`, recompute only affected regions, diff, write only changed signals
 
 Same pattern as the `refs` table in the [link model](links.md): pure function → cache → incremental update on change.
 
+### Tree access
+
+Minimal interface — no dependency on Repo:
+
+```ts
+interface TreeAccess {
+  parent(nodeId: string): string | null
+  children(nodeId: string): readonly string[]
+}
+```
+
 ## Constraints (v1)
 
-- **No filtered walks in derivations** — `into` predicates create stale values in collapsed subtrees. Reduce over the full structural tree; visibility is a separate render concern.
+- **No filtered walks in reduced signals** — `into` predicates create stale values in collapsed subtrees. Reduce over the full structural tree; visibility is a separate render concern.
 - **No reduced-from-reduced** — a reduced signal cannot use another reduced signal as its source. Flat dependency graph for v1.
 - **`includeSelf: false` by default** — `selectedAncestor` excludes self (the name says "ancestor"). `cursorDescendant` excludes self.
 - **Structural mutations** (reparent/move) need old-parent info for correct ancestor chain updates.
@@ -149,26 +175,24 @@ Same pattern as the `refs` table in the [link model](links.md): pure function �
 | `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Components read `cursorDescendant` on ancestor |
 | 3 different `isSelected` definitions | `selected` + `selectedAncestor` |
 | `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` |
-| Ad-hoc sigil inheritance in `hydrate()` | `walk.down(s => s.ownSigils).reduce(concat, [])` |
+| Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` |
 
 ## Performance
 
-Per cursor move (j/k): ~8-10 signal writes, <0.1ms. Marginal overhead vs current `syncCursor`.
-
-The real win is **rendering**: components read O(1) pre-computed signals instead of O(depth) tree walks during render. Muted fast path (`selectedAncestor=true`) skips borders and color resolution.
+Per cursor move (j/k): ~8-10 signal writes, <0.1ms. The real win is rendering — components read O(1) pre-computed signals instead of O(depth) tree walks during render.
 
 ## Future consumers
 
 | Signal | Definition |
 |--------|-----------|
-| `cursorDescendant` | `descendants(s => s.cursor)` |
-| `selectedAncestor` | `ancestors(s => s.selected)` |
-| `excludedSigils` | `walk.down(s => s.ownSigils).reduce(concat, [])` |
-| `hasErrorDescendant` | `descendants(s => s.hasError)` |
-| `hasUnreadDescendant` | `descendants(s => s.isUnread)` |
-| `searchMatchAncestor` | `descendants(s => s.searchMatch)` |
-| `dimmedAncestor` | `ancestors(s => s.isDone)` |
+| `cursorDescendant` | `tree.descendants(s => s.cursor).some()` |
+| `selectedAncestor` | `tree.ancestors(s => s.selected).some()` |
+| `excludedSigils` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` |
+| `hasErrorDescendant` | `tree.descendants(s => s.hasError).some()` |
+| `hasUnreadDescendant` | `tree.descendants(s => s.isUnread).some()` |
+| `errorCount` | `tree.descendants(s => s.hasError).count()` |
+| `dimmedAncestor` | `tree.ancestors(s => s.isDone).some()` |
 
 Each = one line in the state definition.
 
-See also: [data-model.md](data-model.md) for KNode structure, [links.md](links.md) for the same cache pattern applied to links.
+See also: [data-model.md](data-model.md) for KNode structure, [links.md](links.md) for the same cache pattern.
