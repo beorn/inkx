@@ -105,19 +105,21 @@ Always auto-creates. Replaces `getOrCreate()`.
 
 ```tsx
 function TreeNode({ nodeId }) {
-  const node = useNode(nodeId)
-  const cursor = useSignal(node.cursor)
-  const muted = useSignal(node.selectedAncestor)
-  const breadcrumb = useSignal(node.cursorDescendant)
+  // One hook, all per-node state — reads like pseudocode
+  const n = useTreeNode(nodeId)
+  const cursor = n.cursor()
+  const muted = n.selectedAncestor()
+  const breadcrumb = n.cursorDescendant()
+  const dimmed = n.doneAncestor()
 
   // States compose — NOT mutually exclusive
   const bg = cursor ? inverseBg : muted ? mutedBg : normalBg
   const border = breadcrumb ? yellowBorder : normalBorder
-  const stripColors = cursor || muted
+  const stripColors = cursor || muted || dimmed
 }
 ```
 
-No mode enum. Each signal is independent. Composition rules live in [node-visual-spec.md](node-visual-spec.md) — the state × role matrix that defines how signals map to visual treatment per component.
+No mode enum. Each signal is independent. `useTreeNode(nodeId)` returns the typed accessor from `store.get(nodeId)` wrapped in React subscription. Composition rules live in [node-visual-spec.md](node-visual-spec.md) — the state × role matrix that defines how signals map to visual treatment per component.
 
 ## How the store recognizes reduced signals
 
@@ -343,17 +345,30 @@ Run `cursor-perf` bench at each milestone to catch regressions and verify improv
 | After Phase 4 (purge) | Old code deleted | Wall time ≤ baseline (likely small improvement) |
 | After Phase 5 (editing + sigils) | Full migration | Content render ≤ 8% of wall time (same or better) |
 
-## Future consumers
+## Signals inventory
+
+### Implemented (v1)
+
+| Signal | Definition | Status |
+|--------|-----------|--------|
+| `cursorDescendant` | `tree.descendants(s => s.cursor).some()` | Done |
+| `selectedAncestor` | `tree.ancestors(s => s.selected).some()` | Done |
+| `editingDescendant` | `tree.descendants(s => s.editing).some()` | Done |
+
+### v2 (km-tui.v2-reactive-tree)
+
+| Signal | Definition | Blocked by |
+|--------|-----------|------------|
+| `excludedSigils` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` | `.reduce()` combinator |
+| `doneAncestor` | `tree.ancestors(s => s.isDone).some()` | None |
+
+### Future
 
 | Signal | Definition |
 |--------|-----------|
-| `cursorDescendant` | `tree.descendants(s => s.cursor).some()` |
-| `selectedAncestor` | `tree.ancestors(s => s.selected).some()` |
-| `excludedSigils` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` |
 | `hasErrorDescendant` | `tree.descendants(s => s.hasError).some()` |
 | `hasUnreadDescendant` | `tree.descendants(s => s.isUnread).some()` |
 | `errorCount` | `tree.descendants(s => s.hasError).count()` |
-| `dimmedAncestor` | `tree.ancestors(s => s.isDone).some()` |
 
 Each = one line in the state definition.
 
