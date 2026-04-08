@@ -205,6 +205,26 @@ A node with `parent === null` is a root. `tree.ancestors` yields nothing for it.
 
 Internally, descendant aggregates use **counts, not booleans**. Example: 2 selected descendants under an ancestor, remove one — boolean clears to false (wrong), count decrements to 1 (correct). The public API (`.some()`) returns boolean from the count.
 
+## Writes outside batch()
+
+Writes outside `batch()` are auto-batched: each write triggers an immediate micro-batch that recomputes affected reduced signals. This is safe but less efficient than explicit `batch()` — use `batch()` when multiple signals change together (cursor move = 2 writes → 1 batch, not 2 micro-batches).
+
+## Equality / change detection
+
+For primitive types (boolean, number), `Object.is` equality. For non-primitive types (arrays like `excludedSigils`), the reduce descriptor can specify a custom `equals` function:
+
+```ts
+excludedSigils: tree.ancestors(s => s.ownSigils).reduce(concat, [], { equals: arrayShallowEqual })
+```
+
+Without custom `equals`, array-valued signals use reference equality and may write on every recomputation even when content is unchanged. For v1, all current consumers are boolean (`.some()`) so this only matters for `excludedSigils`.
+
+## Memory lifecycle
+
+- **Creation**: lazy — `store.node(id)` creates signals on first access.
+- **Cleanup**: deterministic on removal. When a node is removed from the tree during `batch()`, its signals are disposed, its contributions subtracted from ancestor counts, and its entry removed from the store's node map.
+- **Detach/reattach**: old parent captured before structural mutation. Subtraction from old chain, addition to new chain, both in the same batch boundary.
+
 ## Constraints (v1)
 
 - **No filtered walks in reduced signals** — `into` predicates create stale values in collapsed subtrees. Reduce over the full structural tree; visibility is a separate render concern.
@@ -250,6 +270,35 @@ Batch end — store recomputes:
 3. **selectedAncestor (down from selected sources)**: selection didn't change → 0 writes.
 
 Total: 3 signal writes. 3 component re-renders (sub1, card2, card1).
+
+## Worked example: reparent
+
+```
+Tree:  root → col1 → card1 (selected)
+                    → card2
+             col2 → card3
+```
+
+User drags `card1` from `col1` to `col2`.
+
+```ts
+store.batch(tree, () => {
+  // Structural mutation: move card1 from col1 to col2
+  tree.move('card1', 'col2')
+})
+```
+
+Batch end — store recomputes:
+
+1. **selected (self)**: card1 still selected → no change.
+2. **selectedAncestor (down from selected sources)**:
+   - Old path descendants of col1: card2 was `selectedAncestor=true` (sibling of selected card1). After move, card1 is no longer under col1 → card2's selectedAncestor becomes false. 1 write.
+   - New path descendants of col2: card3 gains `selectedAncestor=true` (sibling of moved card1). 1 write.
+   - col1 had count=1 (from card1). After move, count=0 → `selectedAncestor` for col1's subtree clears.
+   - col2 had count=0. After move, count=1 → `selectedAncestor` for col2's subtree sets.
+3. **cursorDescendant**: cursor didn't change → no recomputation.
+
+Key: the store captures `card1`'s old parent (`col1`) before the structural mutation, then subtracts card1's contributions from the old ancestor chain and adds to the new one. Without old-parent capture, col1's ancestor chain can't be correctly updated.
 
 ## Migration strategy
 

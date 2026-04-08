@@ -151,8 +151,15 @@ const expand = editingDescendant || cursor
 - When cursor is on a sub-item, should the parent card show selectedBg? Currently no.
 - Should `hovered` and `cursorDescendant` compose (hover on a breadcrumb card)?
 
+## Notes
+
+- **Deselected state** (cursor=null, all signals false) is a valid state — all nodes render as "normal". See [selection-state-spec.md](selection-state-spec.md).
+- **Editing border**: editing card gets bold `$focusborder` (not `$selection-bg`), per selection-state-spec.md. This distinguishes edit scope from cursor scope visually.
+- **Visible vs structural**: this spec describes visual treatment per node. State propagation uses structural tree walks (tree.ancestors/descendants). Range selection uses visible order. See [tree-reduce.md](tree-reduce.md).
+
 ## See also
 
 - [tree-reduce.md](tree-reduce.md) — the signal propagation system
+- [selection-state-spec.md](selection-state-spec.md) — 5 state concepts, mode ladder, interaction matrix
 - [data-model.md](data-model.md) — visual roles are positional, not typed
 - `apps/km-tui/src/views/selection-style.ts` — old rules (to be replaced by this spec)
