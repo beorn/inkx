@@ -103,7 +103,7 @@ function logImportSuccess(action: string, count: number, source?: string): void 
 // ============================================================================
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- commander infers complex generic types
-function createAsanaCommand(): Command {
+function createAsanaCommand(): Command<any, any, any> {
   const cmd = new Command("asana")
     .description("Import from Asana")
     .addHelpSection("Pipeline:", [
@@ -391,7 +391,7 @@ function createAsanaCommand(): Command {
 // ============================================================================
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- commander infers complex generic types
-function createCsvCommand(): Command {
+function createCsvCommand(): Command<any, any, any> {
   const cmd = new Command("csv")
     .description("Import from CSV or TSV file")
     .addHelpSection("Pipeline:", [

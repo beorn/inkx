@@ -42,7 +42,7 @@ export const taskCommand = new Command("tasks")
 
     if (options.done !== undefined) {
       // --done can be used with path-or-id or standalone with value
-      const taskId = options.done === true ? firstArg : options.done
+      const taskId = options.done === true ? firstArg : options.done || undefined
       void markDone(taskId, options)
       return
     }

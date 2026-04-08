@@ -132,7 +132,7 @@ export const shCommand = new Command("sh")
     }
 
     // Read input: -c takes priority, then -f, then stdin (REPL mode)
-    const cmdStrings: string[] | undefined = options.command
+    const cmdStrings: string[] | undefined = options.command ? [options.command].flat() : undefined
 
     if (cmdStrings && cmdStrings.length > 0) {
       // Batch mode: -c flag with commands

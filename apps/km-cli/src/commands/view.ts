@@ -163,7 +163,7 @@ export const viewCommand = new Command("view")
       // km-fast-md.7: Extract deferred files for background parsing
       const deferredFiles = createdRepo.deferredFiles
 
-      const viewMode = VIEW_MODES.includes(options.as) ? options.as : "cards"
+      const viewMode = VIEW_MODES.includes(options.as as ViewMode) ? (options.as as ViewMode) : "cards"
 
       // Watch options: CLI flag > config > default (true)
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion -- step runner guarantees module is loaded

@@ -60,7 +60,7 @@ export const syncCommand = new Command("sync")
     ensureRepoRootNode(db, repoPath)
 
     if (options.watch) {
-      startWatch(repoPath, options.debounce, db)
+      startWatch(repoPath, options.debounce ?? 5000, db)
     } else {
       await runSync(repoPath, kmRoot, options, db)
     }
