@@ -261,7 +261,7 @@ const Card = React.memo(
     // When cursor is inside this card (on a descendant), expand to show all children.
     // Must match TreeNode's shouldExpand logic — only expand when cursor is on a
     // descendant, not when cursor is on the card title itself.
-    const cursorInDescendant = useSignal(nodeStore.getOrCreate(nodeId).cursorInDescendant)
+    const cursorInDescendant = useSignal(nodeStore.cursorDescendant(nodeId))
     const isExpanded = cursorInDescendant || isEditing
 
     const childCount = childCountProp ?? children.length
@@ -462,8 +462,8 @@ const Card = React.memo(
     // Default card border: invisible ($surface-bg). Cards are separated by
     // whitespace, not visible borders. Borders appear as interactive feedback:
     // hover → $muted (faint), selection → $selection-bg (yellow).
-    // Done/dropped use $surface-bg too (no visual distinction at rest).
-    const defaultBorder = "$surface-bg"
+    // Done/dropped use $disabled-fg for a faint but distinct border.
+    const defaultBorder = isDoneOrDropped ? "$disabled-fg" : "$surface-bg"
     // "Board level" means cursor is *intentionally* at the board root (via
     // navigate-up), NOT "cursor is null because user deselected". cursorDepth
     // collapses both cases to "board"; we require a non-null cursor so
@@ -946,11 +946,7 @@ export const Column = React.memo(function Column({
           {/* Vertical title — one char per row, top-aligned */}
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
-              <Text
-                bold
-                color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")}
-                dimColor={!isColumnSelected}
-              >
+              <Text bold color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")} dimColor={!isColumnSelected}>
                 {ch}
               </Text>
             </Box>

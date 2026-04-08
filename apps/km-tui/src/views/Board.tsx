@@ -664,12 +664,10 @@ export function Board({ patchedConsole }: BoardProps) {
       }
       if (cursorCardNodeId) cursorDepth = "card"
       else if (cursorColumnNodeId) cursorDepth = "column"
-      store.syncCursor({
-        cursor,
-        cursorCardNodeId,
-        cursorColumnNodeId,
-        cursorDepth,
-      })
+      store.syncCursor(
+        { cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth },
+        lens,
+      )
     }
     return store
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount
@@ -710,10 +708,10 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => {
     const prev = prevMultiSelectedRef.current
     if (prev !== selectedSet) {
-      nodeStore.syncSelected(prev, selectedSet, repo)
+      nodeStore.syncSelected(prev, selectedSet, repo, ps.visibleLens())
       prevMultiSelectedRef.current = selectedSet
     }
-  }, [nodeStore, selectedSet, repo])
+  }, [nodeStore, selectedSet, repo, ps])
 
   // Incrementally sync inline edit state to reactive node state
   const textEdit = useSignal(paneSel.text) as { nodeId: string; offset: number } | null
@@ -845,13 +843,11 @@ export function Board({ patchedConsole }: BoardProps) {
   // happen here via useEffect. This is safe because the store selector triggers
   // re-render, which triggers this effect, which syncs the new cursor state.
   useEffect(() => {
-    nodeStore.syncCursor({
-      cursor,
-      cursorCardNodeId,
-      cursorColumnNodeId,
-      cursorDepth,
-    })
-  }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth])
+    nodeStore.syncCursor(
+      { cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth },
+      visibleLensValue,
+    )
+  }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth, visibleLensValue])
 
   // Hidden column filtering is centralized in the view lens — the computed
   // lens excludes hidden nodes at build time. When showHidden is toggled,

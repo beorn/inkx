@@ -169,6 +169,20 @@ export class ReactiveNodeStore {
     }
   }
 
+  /** Get cursorDescendant reduced signal for a node (replaces cursorInDescendant).
+   * Returns a boolean alien-signal: true when any descendant of this node has cursor. */
+  cursorDescendant(nodeId: string): (() => boolean) {
+    const sig = this.reduced.node(nodeId).reduced.get("cursorDescendant")
+    return (sig ?? (() => false)) as () => boolean
+  }
+
+  /** Get selectedAncestor reduced signal for a node.
+   * Returns a boolean alien-signal: true when any ancestor of this node is selected. */
+  selectedAncestor(nodeId: string): (() => boolean) {
+    const sig = this.reduced.node(nodeId).reduced.get("selectedAncestor")
+    return (sig ?? (() => false)) as () => boolean
+  }
+
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
   getOrCreate(nodeId: string): NodeReactiveState {
     let state = this.nodes.get(nodeId)

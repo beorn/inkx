@@ -320,7 +320,7 @@ function TreeNodeImpl({
   // Parent card (cursorInDescendant): yellow fg + faint highlight bg on title row.
   // Multi-selected sub-item (isNodeSelected && !isSelected): stronger bg tint
   // on the head row so the user can visually count selected items.
-  const cursorInDescendant = useSignal(nodeStore.getOrCreate(node.id).cursorInDescendant)
+  const cursorInDescendant = useSignal(nodeStore.cursorDescendant(node.id))
   const isParentOfCursor = depth === 0 && cursorInDescendant
 
   // Search match highlighting: white bg / black fg (current match brighter)
@@ -738,8 +738,7 @@ function TreeNodeImpl({
                         ? "$muted"
                         : (tc ?? style.ownColor)
                 }
-                // Don't double-dim if we already pulled body to $muted
-                dimColor={sd && !isBody}
+                dimColor={sd}
                 strikethrough={style.shouldStrikethrough}
                 wrap={isOneliner || isCardChild || node.type === "code" || node.type === "table" ? "truncate" : "wrap"}
               >
