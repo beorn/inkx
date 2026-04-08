@@ -205,6 +205,7 @@ export async function createBoardTest(
   // Render the board using BoardCore (pure rendering) wrapped in RepoProvider
   const boardCoreElement = React.createElement(BoardCore, {
     rootId,
+    cursor: firstCardNodeId,
     columnIds,
     columnFilters: new Map<string, import("./views/Board.tsx").ColumnFilterState>(),
     colIndex: 0,

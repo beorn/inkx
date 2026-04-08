@@ -21,7 +21,8 @@ import { isBoardPane, isDetailViewPane } from "./board-types.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
-import { getModeStack, resetModeStack } from "../dialog-guard.ts"
+import { getModeStack, resetModeStack, popDialogMode } from "../dialog-guard.ts"
+import { dialogTargetRef } from "../dialog-target.ts"
 import { handleKmOp } from "./board-actions.ts"
 import { clickToCursorOffset } from "./click-to-cursor.ts"
 import { needsRenderFlush } from "./board-actions-edit.ts"
@@ -825,12 +826,17 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
       // Walk up ancestors to find clicked item and card-level node.
       // data-view="item" = sub-block, data-view="card"/data-card-id = card wrapper,
-      // data-view="column" = column, data-view="column-header" = the header band of a column
+      // data-view="column" = column, data-view="column-header" = the header band of a column,
+      // data-view="top-bar" = the PaneBar chrome at the top of a pane,
+      // data-view="view-mode-button" = the "CARDS VIEW CL:3" text in the top bar.
       let nodeId: string | null = null // First id found (may be sub-block)
       let idNode: AgNode | null = null
       let cardId: string | null = null // Card-level id (for border-click fallback)
       let firstIdIsColumn = false
       let clickedHeader = false // True if the hit chain passed through ColumnHeader
+      let clickedTopBar = false // True if the hit chain passed through PaneBar top-bar chrome
+      let clickedViewModeButton = false // True if the hit chain passed through the view-mode button
+      let clickedInsideDialog = false // True if the hit chain passed through a dialog overlay
       let colIndex: number | null = null
       let hasClickHandler = false
       let current: AgNode | null = hitNode
@@ -846,7 +852,11 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
         }
         // Card wrapper uses data-card-id (not id) to avoid duplicate id conflicts with TreeNode.
         if (!cardId && typeof props["data-card-id"] === "string") cardId = props["data-card-id"] as string
-        if (props["data-view"] === "column-header") clickedHeader = true
+        const dv = props["data-view"]
+        if (dv === "column-header") clickedHeader = true
+        if (dv === "top-bar") clickedTopBar = true
+        if (dv === "view-mode-button") clickedViewModeButton = true
+        if (typeof props["data-dialog"] === "string") clickedInsideDialog = true
         if (colIndex === null && props["data-col-index"] != null) colIndex = Number(props["data-col-index"])
         if (typeof props.onClick === "function") hasClickHandler = true
         current = current.parent
@@ -869,9 +879,107 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const isDoubleClick =
         now - locals.lastClick.time < DOUBLE_CLICK_MS && dx <= DOUBLE_CLICK_DISTANCE && dy <= DOUBLE_CLICK_DISTANCE
 
+      // Click outside an open dialog → close the topmost dialog.
+      // Dialog overlays carry `data-dialog="..."`. If any dialog is open and
+      // the click did NOT land inside a dialog element, dismiss it — same as
+      // pressing Escape. This must be checked before any card/column selection
+      // logic so the dismiss doesn't also produce a cursor move.
+      if (!clickedInsideDialog) {
+        const { ui } = opctx
+        if (ui.showHelp) {
+          opctx.setUI({ showHelp: false })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.showOmnibox) {
+          popDialogMode()
+          opctx.setUI({ showOmnibox: false })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.searchReplace) {
+          opctx.setUI({ searchReplace: null })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.showSearchDialog) {
+          popDialogMode()
+          dialogTargetRef.current?.cancel()
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.showFilterDialog) {
+          popDialogMode()
+          opctx.setUI({ showFilterDialog: false })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.activePicker) {
+          popDialogMode()
+          opctx.setUI({ activePicker: null })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.showNewItemDialog) {
+          popDialogMode()
+          opctx.setUI({ showNewItemDialog: false })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.deleteConfirm) {
+          opctx.setUI({ deleteConfirm: null })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.datePrompt) {
+          popDialogMode()
+          opctx.setUI({ datePrompt: null })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+        if (ui.showFavoritesDialog) {
+          popDialogMode()
+          opctx.setUI({ showFavoritesDialog: false, favoritesSelectedKey: null })
+          locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+          return
+        }
+      }
+
       // Non-Ctrl clicks clear multi-selection (Ctrl-click extends it)
       if (!mouse.ctrl && opctx.selectedIds.size > 0) {
         clearSelection(opctx)
+      }
+
+      // Top-bar chrome clicks have priority over everything below. The view-mode
+      // button specifically opens the filter/view dialog; the rest of the top
+      // bar selects the board root so the user has a discoverable way to
+      // "select the board" after a deselect. These must be checked BEFORE the
+      // inline-edit click-handling and BEFORE the deselect branch so that
+      // clicking the top bar never falls into cards/columns/empty-space logic.
+      if (clickedViewModeButton) {
+        // Exit any edit mode first so the dialog opens cleanly
+        if (opctx.sel.text()) {
+          activeEditTargetRef.current?.save()
+          opctx.sel.text.deselect()
+        }
+        handleKmOp(opctx, { type: "SHOW_FILTER_DIALOG" })
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        return
+      }
+      if (clickedTopBar) {
+        // Click on top-bar chrome (the breadcrumb / white area around it) →
+        // select the board. This is the discoverable counterpart to
+        // "click empty space → deselect" — after deselecting, the user needs
+        // a visible target to re-enter "board level".
+        if (opctx.sel.text()) {
+          activeEditTargetRef.current?.save()
+          opctx.sel.text.deselect()
+        }
+        if (opctx.rootId) {
+          opctx.sel.node.select([opctx.rootId as ID])
+        }
+        locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
+        return
       }
 
       // When in inline edit mode, handle clicks differently:
@@ -921,8 +1029,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       const isEmptySpaceInColumn = firstIdIsColumn && !cardId && !clickedHeader
 
       if (!selectId || isEmptySpaceInColumn) {
-        // Empty space click → deselect all, cursor to board root
-        opctx.sel.node.select([opctx.rootId as ID])
+        // Empty space click → truly deselect (cursor=null, sel.kind="idle").
+        // Do NOT set cursor=rootId: the view treats rootId as "cursor
+        // intentionally walked up to board level" and tints the entire
+        // board (selection-style.ts rule 4). Empty-space clicks should
+        // clear all selection and all highlighting.
+        opctx.sel.node.select([])
         locals.lastClick = { time: now, x: mouse.x, y: mouse.y }
         return
       }

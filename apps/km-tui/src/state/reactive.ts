@@ -268,10 +268,7 @@ export class ReactiveNodeStore {
 
   /** Sync sticky-fold changes incrementally. Flips per-node `sticky` signals so
    * that the affected TreeNodes re-render (and only them). */
-  syncStickyFolds(
-    oldSticky: Map<string, "folded" | "unfolded">,
-    newSticky: Map<string, "folded" | "unfolded">,
-  ): void {
+  syncStickyFolds(oldSticky: Map<string, "folded" | "unfolded">, newSticky: Map<string, "folded" | "unfolded">): void {
     for (const [id] of oldSticky) {
       if (!newSticky.has(id)) {
         this.getOrCreate(id).sticky(null)

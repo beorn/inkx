@@ -315,10 +315,15 @@ describe("mouse click targeting", () => {
     expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBe("Inbox")
   })
 
-  test("clicking empty space below the last card in a column deselects (cursor → board root)", () => {
-    // Regression: previously this clicked the column box and selected the column,
-    // but the user expectation is that clicking empty space (below the last card)
-    // is the same as clicking outside everything — deselect all.
+  test("clicking empty space below the last card in a column deselects (cursor → null)", () => {
+    // Regression: previously clicking below the last card in a column selected
+    // the column. The user expectation is that clicking empty space (below the
+    // last card) is the same as clicking outside everything — fully deselect.
+    //
+    // "Fully deselect" means cursor=null, NOT cursor=rootId. When cursor=rootId
+    // the view tints the entire board (selection-style rule 4: "cursor at
+    // board level → board bg tint"), which is visually "everything selected"
+    // — the opposite of the user's intent.
     const { board, store } = testEnv(
       () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
       { columns: 80, rows: 24 },
@@ -340,10 +345,89 @@ describe("mouse click targeting", () => {
     // a few rows; everything below is empty.
     board.click(col1Box!.x + 2, col1Box!.y + col1Box!.height - 1)
 
-    // After clicking empty space, cursor should be on the board root
-    // (deselected) — NOT on the Inbox column.
+    // After clicking empty space, nothing should be selected. cursor=null so
+    // the board doesn't get the "cursor at board level" tint (rule 4).
+    const cursor = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
+    expect(cursor).toBeNull()
+    expect(cursor).not.toBe("Inbox")
+    expect(cursor).not.toBe(rootId)
+  })
+
+  test("clicking the top bar chrome selects the board root", () => {
+    // After a deselect-via-empty-space, the user needs a discoverable way to
+    // re-enter "board level" (cursor=rootId, which tints the whole board).
+    // Clicking the top-bar chrome (the white/breadcrumb row at the top of a
+    // pane, data-view='top-bar') selects the board root.
+    const { board, store } = testEnv(
+      () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Start somewhere that isn't the board root
+    board.command("cursor_down")
+    const rootId = getActiveBoardPane(store.getState())!.rootId
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).not.toBe(rootId)
+
+    // Find the top-bar chrome (PaneBar outer Box with data-view='top-bar')
+    const topBar = board.q("[data-view='top-bar']")
+    expect(topBar.count(), "top-bar should be rendered").toBeGreaterThan(0)
+    const topBarBox = topBar.boundingBox()
+    expect(topBarBox).not.toBeNull()
+
+    // Click somewhere in the top-bar chrome (avoid the view-mode button on
+    // the right, which has its own handler). Click near the left edge where
+    // the breadcrumb path lives.
+    board.click(topBarBox!.x + 1, topBarBox!.y)
+
+    // Cursor should be on the board root
     const cursor = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
     expect(cursor).toBe(rootId)
-    expect(cursor).not.toBe("Inbox")
+  })
+
+  test("clicking the view-mode button opens the filter/view dialog", () => {
+    // The 'CARDS VIEW CL:3' text in the top bar (data-view='view-mode-button')
+    // is a clickable control that opens the filter/view dialog — providing a
+    // mouse path to the same action as the 'filter' keyboard command.
+    const { board, store } = testEnv(() => item.root("board", item("Inbox", item("task-1"), item("task-2"))), {
+      columns: 80,
+      rows: 24,
+    })
+
+    expect(getActiveBoardPane(store.getState())!.showFilterDialog).toBe(false)
+
+    const viewModeBtn = board.q("[data-view='view-mode-button']")
+    expect(viewModeBtn.count(), "view-mode-button should be rendered").toBeGreaterThan(0)
+    const btnBox = viewModeBtn.boundingBox()
+    expect(btnBox).not.toBeNull()
+
+    // Click on the view-mode button
+    board.click(btnBox!.x + 1, btnBox!.y)
+
+    // Dialog should now be open
+    expect(getActiveBoardPane(store.getState())!.showFilterDialog).toBe(true)
+  })
+
+  test("board-level commands still work when cursor is null (no invariant error)", () => {
+    // Regression for km-tui.cursor-null-invariant: after deselecting via empty
+    // space click, board-level commands (fold_all_more, etc.) must not throw
+    // InvariantViolationError even though cursor is null on a non-empty board.
+    // The invariant now recognizes sel.kind === "idle" as a legitimate null
+    // cursor state.
+    const { board, store } = testEnv(
+      () => item.root("board", item("Inbox", item("task-1"), item("task-2")), item("Projects", item("proj-a"))),
+      { columns: 80, rows: 24 },
+    )
+
+    // Deselect via empty-space click
+    const col1 = board.q("[data-col-index='0'][data-column]")
+    const col1Box = col1.boundingBox()!
+    board.click(col1Box.x + 2, col1Box.y + col1Box.height - 1)
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBeNull()
+
+    // fold_all_more must NOT throw — it's board-level and doesn't need cursor
+    expect(() => board.command("fold_all_more")).not.toThrow()
+
+    // cursor still null (board-level op didn't restore selection)
+    expect(getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null).toBeNull()
   })
 })

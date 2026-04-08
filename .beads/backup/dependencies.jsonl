@@ -1706,6 +1706,7 @@
 {"created_at":"2026-04-02T15:01:21Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.generational-tokens","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T15:40:32Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-storage.item-decompose","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-06T13:49:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage","issue_id":"km-storage.last-write-wins-no-mtime","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T13:43:33Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage","issue_id":"km-storage.link-model-canonical","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-12T23:23:10Z","created_by":"claude:c9beade3","depends_on_id":"km-storage","issue_id":"km-storage.link-resolution-bugs","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T22:39:01Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.reactive-store","issue_id":"km-storage.memory-store","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-02T13:46:44Z","created_by":"Bjørn Stabell","depends_on_id":"km-storage.sync-refactor","issue_id":"km-storage.move-disk","metadata":"{}","type":"parent-child"}
@@ -2080,6 +2081,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-structure","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-trunc","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.body-truncate","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T14:43:30Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.body-vs-subitem-emphasis","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.border-after-detail-close","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.border-overflow","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.breadcrumb-ghost","metadata":"{}","type":"parent-child"}
@@ -2141,6 +2143,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.collapse-width","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.collapsed-shift","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.colsep-removal","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T14:42:11Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.column-empty-space-deselect","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-31T11:33:00Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.column-move","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T23:25:14Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.column-resolve-pipeline","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T11:22:39Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.command-feedback","metadata":"{}","type":"parent-child"}
@@ -2166,6 +2169,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.cursor-init-collapsed","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T18:52:13Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.cursor-invariant","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-27T17:41:10Z","created_by":"claude:f8196c1c","depends_on_id":"km-tui","issue_id":"km-tui.cursor-lost","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T16:00:04Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.cursor-null-invariant","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T18:31:43Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.simplification","issue_id":"km-tui.cursor-path","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-07T11:18:15Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.cursor-perf-2026-04-07","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-03T11:52:14Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.cursor-reveals-hidden","metadata":"{}","type":"parent-child"}
@@ -2236,6 +2240,7 @@
 {"created_at":"2026-03-28T22:44:20Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-tui.doc-view-nav","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-28T23:40:39Z","created_by":"claude:ceb7c9cb","depends_on_id":"km-tui","issue_id":"km-tui.doc-view-polish","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T12:45:25Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.plugin-architecture","issue_id":"km-tui.docs-consistency","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T14:30:05Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.docs-treelens-viewtree-layering","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.done-color","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.done-style","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.dotz-flicker","metadata":"{}","type":"parent-child"}
@@ -2301,6 +2306,7 @@
 {"created_at":"2026-04-06T13:03:01Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.filter-undoes-fold","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.find-replace-styling","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.flash-on-update","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T23:35:51Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.focus-cardlike","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-inkx.focus-report","issue_id":"km-tui.focus-pause","metadata":"{}","type":"blocks"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.focus-pause","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.focus-wiring","metadata":"{}","type":"parent-child"}
@@ -2426,6 +2432,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.no-section-label","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.nocolor-dry","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.node-header-unify","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T23:35:15Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.node-visual-spec","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.nodeindex-perf","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.nowrap-code","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-all.kb-rebind","issue_id":"km-tui.omnibox","metadata":"{}","type":"blocks"}
@@ -2644,6 +2651,7 @@
 {"created_at":"2026-04-06T13:49:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.title-edit-no-undo","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.title-truncation","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-06T13:03:02Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.toast-shows-node-id","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T15:56:17Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.top-bar-click-interactions","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.trailing-hash","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T16:41:25Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.tree-edit-nav","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T11:25:59Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui.quality-plateau","issue_id":"km-tui.tree-lenses","metadata":"{}","type":"parent-child"}
@@ -2706,6 +2714,7 @@
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.verb-grid-cmds","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-05T17:49:38Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.view-coalescing","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.view-ghost-chars","metadata":"{}","type":"parent-child"}
+{"created_at":"2026-04-07T13:32:07Z","created_by":"Bjørn Stabell","depends_on_id":"km-tui","issue_id":"km-tui.view-mode-feature-parity","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T18:32:32Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.simplification","issue_id":"km-tui.viewnode-cache","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-04-01T18:32:17Z","created_by":"Bjørn Stabell","depends_on_id":"km-all.simplification","issue_id":"km-tui.viewnode-hidden","metadata":"{}","type":"parent-child"}
 {"created_at":"2026-03-06T18:11:48Z","created_by":"import","depends_on_id":"km-tui","issue_id":"km-tui.virtual-cursor","metadata":"{}","type":"parent-child"}

@@ -116,6 +116,8 @@ export interface ColumnFilterState {
 export interface BoardCoreProps {
   /** Root node ID */
   rootId: string | null
+  /** Current cursor node ID (null = deselected, rootId = at board level) */
+  cursor: string | null
   /** Column node ids in render order (post-lens, post-filter) */
   columnIds: readonly string[]
   /**
@@ -272,11 +274,13 @@ function PaneBoardTopBar({
       }
       right={
         <>
-          <Text color={isBoardSelected ? "$selection" : undefined} id="view-mode">
-            {" "}
-            {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-            {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
-          </Text>
+          <Box data-view="view-mode-button">
+            <Text color={isBoardSelected ? "$selection" : undefined} id="view-mode">
+              {" "}
+              {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+              {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
+            </Text>
+          </Box>
           {filterIndicator && (
             <Text color={isBoardSelected ? "$selection" : undefined} id="filter-indicator">
               {" [F] "}
@@ -305,12 +309,19 @@ function BoardTopBar({
   const cursorDepth = useSignal(nodeStore.cursorDepth)
   const paneLabel = usePaneLabel()
 
-  const pathNodeId =
+  // Derive the node whose path is shown in the breadcrumb. Virtual nodes
+  // (__body__*, __meta__*) don't exist in the repo, so fall back to their
+  // real parent (rootId for body columns, the card for meta items).
+  const rawPathNodeId =
     cursorDepth === "board" || !cursorColumnNodeId
       ? rootId
       : cursorDepth === "column" || !cursorCardNodeId
         ? cursorColumnNodeId
         : cursorCardNodeId
+  const pathNodeId =
+    rawPathNodeId && (rawPathNodeId.startsWith("__body__") || rawPathNodeId.startsWith("__meta__"))
+      ? rootId
+      : rawPathNodeId
   // Let silvery's wrap="truncate" handle display width; only use renderPath for smart segment elision on very long paths
   const filterIndicator = formatFilterIndicator(filterProperties, filterText) ?? undefined
   const reservedWidth = filterIndicator ? filterIndicator.length + 6 : 0
@@ -348,11 +359,13 @@ function BoardTopBar({
       }
       right={
         <>
-          <Text color={isBoardSelected ? "$selection" : undefined} dimColor={!isBoardSelected} id="view-mode">
-            {" "}
-            {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
-            {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
-          </Text>
+          <Box data-view="view-mode-button">
+            <Text color={isBoardSelected ? "$selection" : undefined} dimColor={!isBoardSelected} id="view-mode">
+              {" "}
+              {(viewMode?.toUpperCase() ?? "CARDS") + " VIEW"}{" "}
+              {viewMode === "cards" && <Text dimColor>CL:{maxContentLines} </Text>}
+            </Text>
+          </Box>
           {filterIndicator && (
             <Text color={isBoardSelected ? "$selection" : undefined} id="filter-indicator">
               {" [F] "}
@@ -373,6 +386,7 @@ function BoardTopBar({
 // oxlint-disable-next-line complexity/complexity -- React component — JSX conditionals inflate score
 export function BoardCore({
   rootId,
+  cursor,
   columnIds,
   columnFilters,
   colIndex,
@@ -391,7 +405,11 @@ export function BoardCore({
   const termWidth = parentRect.width > 0 ? parentRect.width : dimensions.columns
   const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 
-  const isBoardSelected = cursorDepth === "board"
+  // "Board level selected" means cursor is *intentionally* at the board
+  // root (via navigate-up), NOT "cursor is null because user deselected".
+  // cursorDepth collapses both cases to "board"; we distinguish here so
+  // clicking empty space produces no board tint while walk-up nav still does.
+  const isBoardSelected = cursorDepth === "board" && cursor === rootId
   const paneLabel = usePaneLabel()
 
   // Board selection: subtle primary bg tint at board level.
@@ -1077,6 +1095,7 @@ export function Board({ patchedConsole }: BoardProps) {
       >
         <BoardCore
           rootId={rootId}
+          cursor={cursor}
           columnIds={boardColumnIds}
           columnFilters={columnFilters}
           colIndex={visibleColIndex}

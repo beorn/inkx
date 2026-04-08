@@ -46,7 +46,7 @@ import { isHRContent, MAX_EXPANDED_CHILDREN } from "./tree-node-helpers.tsx"
 import { isCollapsedChild, CARD_REMAINING_DEPTH } from "@km/board"
 import { useCardInteraction } from "../hooks/use-card-interaction.tsx"
 import { useTheme } from "@silvery/ag-react"
-import { selectedBg, multiSelectedBg, editingBg } from "../theme.ts"
+import { selectedBg, multiSelectedBg } from "../theme.ts"
 
 // =============================================================================
 // Virtualization Constants
@@ -307,7 +307,9 @@ const Card = React.memo(
     // yields its paddingTop (1→0, -1). Net: 0 shift.
     // When the last body block is selected (H+2 → H+2). Net: 0 shift.
     const yieldTop = !!(isPrevBodyBlock && isPrevAtCursor)
-    const bodyDefaultBorder = treeConfig.borderMode === "black" ? "$surface-bg" : "$muted"
+    // Body blocks at column top-level default to an invisible border
+    // (`$surface-bg`) — they read as plain prose until hovered/selected.
+    const bodyDefaultBorder = "$surface-bg"
 
     if (isHR && !isEditing) {
       // HR cards render borderless with padding (matching border width) for alignment.
@@ -371,6 +373,7 @@ const Card = React.memo(
             isNodeSelected,
             isColSelected,
             bodyDefaultBorder,
+            hoverBorderColor,
           )}
           {...hoverHandlers}
         >
@@ -381,6 +384,7 @@ const Card = React.memo(
             depth={0}
             remainingDepth={CARD_REMAINING_DEPTH}
             isSelected={isSelected}
+            isBody
             colIndex={colIndex}
             cardIndex={cardIndex}
             dimInactiveChildren={false}
@@ -442,8 +446,10 @@ const Card = React.memo(
     const theme = useTheme()
     const cursor = useSignal(nodeStore.cursor)
     const isCursorOnCard = cursor === nodeId && selLevel === "card"
+    // No custom bg during editing — the focusborder on the card border is
+    // enough to indicate edit mode. Normal selection tint applies when not editing.
     const cardBg = isEditing
-      ? editingBg(theme)
+      ? undefined
       : isNodeSelected
         ? multiSelectedBg(theme)
         : isCursorOnCard
@@ -453,8 +459,17 @@ const Card = React.memo(
     // Border: cyan when editing, yellow when card selected, hidden when column selected
     // Done/dropped tasks get a darker border to visually de-emphasize them
     const isDoneOrDropped = card.item?.task?.status === "done" || card.item?.task?.status === "dropped"
-    const defaultBorder = isDoneOrDropped ? "$muted" : treeConfig.borderMode === "black" ? "$surface-bg" : "$border"
-    const isBoardLevel = selLevel === "board"
+    // Default card border: invisible ($surface-bg). Cards are separated by
+    // whitespace, not visible borders. Borders appear as interactive feedback:
+    // hover → $muted (faint), selection → $selection-bg (yellow).
+    // Done/dropped use $surface-bg too (no visual distinction at rest).
+    const defaultBorder = "$surface-bg"
+    // "Board level" means cursor is *intentionally* at the board root (via
+    // navigate-up), NOT "cursor is null because user deselected". cursorDepth
+    // collapses both cases to "board"; we require a non-null cursor so
+    // deselect doesn't make card borders fade into the surface. Symmetric to
+    // the isBoardSelected check in Board.tsx BoardCore.
+    const isBoardLevel = selLevel === "board" && cursor !== null
     const borderColor = isEditing
       ? "$focusborder"
       : isColSelected || isBoardLevel
@@ -484,7 +499,7 @@ const Card = React.memo(
           <Box
             flexDirection="column"
             width={width}
-            borderStyle="round"
+            borderStyle={isEditing ? "bold" : "round"}
             borderBottom={false}
             borderColor={borderColor}
             backgroundColor={cardBg}
@@ -495,7 +510,7 @@ const Card = React.memo(
               node={card}
               depth={0}
               remainingDepth={CARD_REMAINING_DEPTH}
-              isSelected={isCursorOnCard}
+              isSelected={!isEditing && isCursorOnCard}
               colIndex={colIndex}
               cardIndex={cardIndex}
               dimInactiveChildren={false}
@@ -507,7 +522,7 @@ const Card = React.memo(
           <Box width={width} height={1} flexShrink={0} backgroundColor={cardBg}>
             <Text wrap="truncate">
               <Text color={borderColor}>╰{"─".repeat(leftPad)}</Text>
-              <Text dimColor> +{hiddenCount} more </Text>
+              <Text color={borderColor}> +{hiddenCount} more </Text>
               <Text color={borderColor}>{"─".repeat(rightPad)}╯</Text>
             </Text>
           </Box>
@@ -523,7 +538,7 @@ const Card = React.memo(
         flexShrink={0}
         width={width}
         userSelect="none"
-        borderStyle="round"
+        borderStyle={isEditing ? "bold" : "round"}
         borderColor={borderColor}
         backgroundColor={cardBg}
         {...hoverHandlers}
@@ -534,7 +549,7 @@ const Card = React.memo(
           node={card}
           depth={0}
           remainingDepth={CARD_REMAINING_DEPTH}
-          isSelected={isCursorOnCard}
+          isSelected={!isEditing && isCursorOnCard}
           colIndex={colIndex}
           cardIndex={cardIndex}
           dimInactiveChildren={false}
@@ -570,7 +585,12 @@ const Card = React.memo(
 
 /** Shared layout props for body blocks (virtual cards and HRs).
  * Always uses border for consistent sizing — borderColor varies by state.
- * Layout invariant: selecting/deselecting must NOT shift content. */
+ * Layout invariant: selecting/deselecting must NOT shift content.
+ *
+ * Body blocks at column top-level default to an INVISIBLE border
+ * (`$surface-bg`) so they visually read as plain prose. Hover and selection
+ * light up the border like a normal card — via `hoverBorderColor` from
+ * useCardInteraction and the `isNodeSelected`/`isColumnSelected` branches. */
 function bodyBlockLayoutProps(
   showBorder: boolean,
   borderColor: string,
@@ -578,13 +598,14 @@ function bodyBlockLayoutProps(
   _isLastBodyBlock: boolean,
   isNodeSelected: boolean,
   isColumnSelected = false,
-  defaultBorderColor = "$muted",
+  defaultBorderColor = "$surface-bg",
+  hoverBorderColor?: string,
   _cursorDim = false,
 ) {
   if (showBorder) return { borderStyle: "round" as const, borderColor }
   return {
     borderStyle: "round" as const,
-    borderColor: isNodeSelected || isColumnSelected ? "$selection-bg" : defaultBorderColor,
+    borderColor: isNodeSelected || isColumnSelected ? "$selection-bg" : (hoverBorderColor ?? defaultBorderColor),
   }
 }
 
@@ -926,7 +947,7 @@ export const Column = React.memo(function Column({
           {verticalChars.map((ch, i) => (
             <Box key={i} height={1} flexShrink={0}>
               <Text
-                bold={isColumnSelected}
+                bold
                 color={isColumnSelected ? "$selection" : (ownColor ?? "$muted")}
                 dimColor={!isColumnSelected}
               >
@@ -937,7 +958,7 @@ export const Column = React.memo(function Column({
           {/* Count at bottom, pushed down by flexGrow on spacer */}
           <Box flexGrow={1} />
           <Box height={1} flexShrink={0}>
-            <Text dimColor={!isColumnSelected} color={isColumnSelected ? "$selection" : undefined}>
+            <Text bold dimColor={!isColumnSelected} color={isColumnSelected ? "$selection" : undefined}>
               {countStr}
             </Text>
           </Box>

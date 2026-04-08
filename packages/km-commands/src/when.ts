@@ -34,6 +34,14 @@ export function and(...preds: WhenPredicate[]): WhenPredicate {
 
 // === Pre-built predicates ===
 
+/** True when there's a cursor node — used to gate cursor-required commands.
+ *  When cursor is null (user deselected via empty-space click), cursor-
+ *  targeted keybindings should be no-ops at the binding layer rather than
+ *  dispatching ops that fail with "cursor is null" errors. Commands that
+ *  operate on the board as a whole (fold_all_more, filter, toggle_view_mode,
+ *  etc) do NOT need this guard. */
+export const hasCursor = when("hasCursor", (ctx) => ctx.currentNode != null)
+
 export const textInputFocused = when("textInputFocused", (ctx) => ctx.textInputFocused)
 
 export const inMoveMode = when("inMoveMode", (ctx) => ctx.mode === "move")

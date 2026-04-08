@@ -1232,6 +1232,7 @@ function makeBoardCoreProps(
 
   return {
     rootId: state.rootId,
+    cursor: null,
     columnIds: state.columns.map((c) => c.node.id),
     columnFilters: new Map(),
     colIndex,

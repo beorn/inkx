@@ -42,13 +42,20 @@ export interface InvariantViolation {
 export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   const violations: InvariantViolation[] = []
 
-  // 0. Cursor must not be null on a non-empty board.
-  // Legitimate null-cursor cases: empty board, detail pane, move mode.
-  // Detail pane has virtual metadata columns — cursor can legitimately be null
-  // when navigating between metadata items and the pane's sel state resets.
+  // 0. Cursor must not be null on a non-empty board — UNLESS the user has
+  // intentionally deselected (sel.kind === "idle"). The invariant guards
+  // against stale selection state; an explicit deselect is not stale.
+  //
+  // Legitimate null-cursor cases:
+  //   - Empty board (no columns with real cards)
+  //   - Detail pane (virtual metadata columns; pane sel resets on nav)
+  //   - Move mode (cursor cleared while dragging)
+  //   - Intentional deselect (sel.kind === "idle" — click empty space,
+  //     click outside everything, sel.node.select([]))
   const treeColIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
   const isDetailMode = ctx.ui.viewMode === "detail"
-  if (!ctx.cursor && treeColIds.length > 0 && !ctx.moveState.active && !isDetailMode) {
+  const isIdle = ctx.sel.kind() === "idle"
+  if (!ctx.cursor && !isIdle && treeColIds.length > 0 && !ctx.moveState.active && !isDetailMode) {
     const hasRealCards = treeColIds.some((colId) => {
       if (isVirtualNodeId(colId)) return false
       return ctx.tree.children(colId).some((cardId) => !isVirtualNodeId(cardId))
@@ -133,7 +140,10 @@ export function checkInvariants(ctx: OpCtx): InvariantViolation[] {
   }
 
   // 5. Multi-selection: all selected node IDs exist in repo
+  // Skip virtual/synthetic nodes (__body__*, __meta__*) — they're generated
+  // at display time and don't exist in the repo.
   for (const nodeId of ctx.selectedIds) {
+    if (isVirtualNodeId(nodeId)) continue
     const node = ctx.repo.getNode(nodeId)
     if (!node) {
       violations.push({

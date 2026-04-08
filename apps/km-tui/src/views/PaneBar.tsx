@@ -32,7 +32,15 @@ export function PaneBar({ left, right, isFocused, backgroundColor, paneLabel }: 
   const bg = backgroundColor ?? "$inverse-bg"
 
   return (
-    <Box id="top-bar" flexShrink={0} flexDirection="row" backgroundColor={bg} color="$inverse" userSelect="none">
+    <Box
+      id="top-bar"
+      data-view="top-bar"
+      flexShrink={0}
+      flexDirection="row"
+      backgroundColor={bg}
+      color="$inverse"
+      userSelect="none"
+    >
       {/* Left: content (path, title, etc.) */}
       <Box flexGrow={1} overflow="hidden">
         {left}

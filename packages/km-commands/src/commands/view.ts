@@ -55,7 +55,8 @@ const toggleCollapse = {
 const toggleStickyFold = {
   id: "toggle_sticky_fold",
   name: "Toggle Sticky Fold",
-  description: "Pin the current node's fold state so fold-all / unfold-all skip it (cycles sticky-folded → sticky-unfolded → off)",
+  description:
+    "Pin the current node's fold state so fold-all / unfold-all skip it (cycles sticky-folded → sticky-unfolded → off)",
   category: "Fold",
   shortLabel: "sticky",
   execute: () => ({ type: "TOGGLE_STICKY_FOLD" }),

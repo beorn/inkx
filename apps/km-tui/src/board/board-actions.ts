@@ -2379,13 +2379,21 @@ function handleCloseOrQuit(ctx: OpCtx): OpResult {
     return ok()
   }
 
-  // --- Layer 4: Selection active -> clear selection ---
+  // --- Layer 4: Multi-selection active -> collapse to cursor ---
   if (ctx.selectedIds.size > 0) {
     clearSelection(ctx)
     return ok()
   }
 
-  // --- Layer 5: Nothing -> no-op (visual bell) ---
+  // --- Layer 5: Cursor exists -> deselect (cursor → null) ---
+  // Same as clicking empty column space — fully deselect so no card/column
+  // is highlighted. Another Escape from this state is a no-op (bell).
+  if (ctx.cursor) {
+    ctx.sel.node.select([])
+    return ok()
+  }
+
+  // --- Layer 6: Nothing -> no-op (visual bell) ---
   // Escape does NOT zoom out — use Z (ZOOM_OUT) for that.
   return boundary("escape", "nothing to close")
 }

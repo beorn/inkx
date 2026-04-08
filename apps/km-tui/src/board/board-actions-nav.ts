@@ -46,6 +46,21 @@ export function handleCursorMove(ctx: OpCtx, dir: string): OpResult {
   const { ui } = ctx
   const prevCursor = ctx.cursor
 
+  // No cursor (deselected state): place cursor at the default location —
+  // first card in the first column. Any directional key press re-enters
+  // the board from this anchor rather than silently no-opping.
+  if (!ctx.cursor) {
+    const colIds = ctx.tree.rootId ? ctx.tree.children(ctx.tree.rootId) : []
+    for (const colId of colIds) {
+      const cardIds = ctx.tree.children(colId)
+      if (cardIds.length > 0) {
+        ctx.sel.node.select([cardIds[0] as ID])
+        return ok()
+      }
+    }
+    return boundary(dir)
+  }
+
   // Outline mode sub-item navigation (when cursor is inside a card's descendants)
   const inOutlineMode = ctx.cursor !== null && ctx.card !== undefined && ctx.cursor !== ctx.card.id
   if (inOutlineMode && (dir === "prev" || dir === "next")) {

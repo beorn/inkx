@@ -116,6 +116,7 @@ export {
   when,
   not,
   and,
+  hasCursor,
   textInputFocused,
   inMoveMode,
   isInDetailPane,

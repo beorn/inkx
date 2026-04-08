@@ -724,13 +724,11 @@ function TreeNodeImpl({
               </Text>
             ) : (
               <Text
-                // Body items at depth 0 should NOT be bolder than structural
-                // subitems — they're prose, not list items. Subitems stay bold
-                // at depth 0; body becomes plain-weight italic muted text so
-                // it visually recedes behind the structural children. See bead
-                // km-tui.body-vs-subitem-emphasis.
+                // Body blocks (paragraphs, li's, etc.) are prose, not structure:
+                // plain weight + muted color, NO italic. Card titles (structural
+                // items at depth 0) stay bold. Everything else renders with
+                // normal fg (no bold, no muted). See bead km-tui.body-vs-subitem-emphasis.
                 bold={depth === 0 && !isBody}
-                italic={isBody}
                 color={
                   isBrokenSymlink && !isSelected
                     ? "$error"
@@ -1217,8 +1215,14 @@ function NodeChildren({
   )
 
   // Get cursor position from ReactiveNodeStore to determine which child is selected.
+  // When the containing card is in edit mode, suppress cursor selection highlights —
+  // the bold focusborder and text cursor are sufficient; row-level inverse is redundant
+  // and visually clutters the editing experience.
   const nodeStore = useNodeStore()
   const cursor = useSignal(nodeStore.cursor)
+  const expandedEditCardId = useSignal(nodeStore.expandedEditCardId)
+  const cardIsEditing = expandedEditCardId != null
+  const effectiveCursor = cardIsEditing ? null : cursor
 
   if (allFolded) {
     // Cap folded children at terminal height — no card can show more children
@@ -1235,7 +1239,7 @@ function NodeChildren({
           <FoldAwareChild
             key={item.node.id}
             node={item.node}
-            isSelected={cursor === item.node.id}
+            isSelected={effectiveCursor === item.node.id}
             depth={depth + 1}
             colIndex={colIndex}
             cardIndex={cardIndex}
@@ -1263,7 +1267,7 @@ function NodeChildren({
   return (
     <Box flexDirection="column">
       {orderedChildren.map((item, i) => {
-        const childSelected = cursor === item.node.id
+        const childSelected = effectiveCursor === item.node.id
 
         return (
           <TreeNode
