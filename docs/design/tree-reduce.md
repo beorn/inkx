@@ -242,14 +242,21 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 | `expandedEditCardId === nodeId` for expansion | `editingDescendant` (reduced signal) |
 | `tree-concerns.ts` (prototype) | `reduced-signals.ts` (production) |
 
-### Remaining (future phases)
+### v2 — Remaining (km-tui.v2-reactive-tree)
 
-| Old | New (planned) |
+| Old | New (planned) | Blocker |
+|-----|-----|-----|
+| Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` | Needs `.reduce()` combinator |
+| `expandWithDescendants()` (visual selection) | `selectedAncestor` reduces automatically | None (can remove helper) |
+| `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` | None |
+| `ReactiveNodeStore` class | Factory function per principles.md | None |
+| `expandedEditCardId` store signal (1 reader) | `editingDescendant` or direct edit check | None |
+
+### Kept by design (not tree-reduced)
+
+| Signal | Reason |
 |-----|-----|
-| `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Layout-derived, not tree-reduced — keep as-is |
-| `expandWithDescendants()` (visual selection) | `selectedAncestor` reduces this automatically |
-| `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` |
-| Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` |
+| `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Layout-derived from lens position, not tree aggregate |
 
 ## Worked example: cursor move
 
