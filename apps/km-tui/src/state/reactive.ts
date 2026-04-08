@@ -7,7 +7,7 @@
  */
 
 import { signal } from "alien-signals"
-import { createReactiveTree, tree, type TreeAccess, type ReactiveTreeStore } from "./reduced-signals.ts"
+import { reactiveTree, type Traversal, type ReactiveTree } from "./reactive-graph.ts"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -83,31 +83,36 @@ function concatSigils(acc: string[], value: unknown): string[] {
   return arr.length === 0 ? acc : [...acc, ...arr]
 }
 
-/** State definition for per-node reduced signals */
-const reducedStateDef = {
-  // Signals — writable per-node state
-  cursor: signal(false),
-  selected: signal(false),
-  editing: signal(false),
-  isDone: signal(false),
-  ownSigils: signal([] as string[]),
+/** Schema factory for per-node reactive state */
+function createReducedStore(traversal: Traversal) {
+  return reactiveTree(
+    (tree) => ({
+      // Signals — writable per node
+      cursor: signal(false),
+      selected: signal(false),
+      editing: signal(false),
+      isDone: signal(false),
+      ownSigils: signal([] as string[]),
 
-  // Reduced signals — cached tree aggregates
-  cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
-  selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
-  editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
-  doneAncestor: tree.ancestors((s: { isDone: unknown }) => s.isDone).some(),
-  excludedSigils: tree
-    .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
-    .reduce(concatSigils, () => [] as string[], { includeSelf: true, equals: arrayShallowEqual }),
+      // Computeds — derived from tree walks, cached
+      cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
+      selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
+      editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
+      doneAncestor: tree.ancestors((s: { isDone: unknown }) => s.isDone).some(),
+      excludedSigils: tree
+        .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
+        .reduce(concatSigils, () => [] as string[], { includeSelf: true, equals: arrayShallowEqual }),
+    }),
+    traversal,
+  )
 }
 
 export class ReactiveNodeStore {
   private nodes = new Map<string, NodeReactiveState>()
   private knownNodeIds = new Set<string>()
 
-  // ── Reduced signal store — typed function-accessor API ──────────────────
-  readonly reduced: ReactiveTreeStore<typeof reducedStateDef>
+  // ── Reactive tree — computed-based engine ──────────────────────────────
+  readonly reduced: ReturnType<typeof createReducedStore>
 
   // ── Cursor state (synced from Board.tsx via syncCursor) ──
   cursor = signal<string | null>(null)
@@ -124,8 +129,11 @@ export class ReactiveNodeStore {
   private pendingHover: string | null | undefined = undefined // undefined = no pending
   private hoverScheduled = false
 
+  /** Empty traversal — rebound on first hydrate */
+  private static emptyTraversal: Traversal = { parent: () => null, children: () => [] }
+
   constructor() {
-    this.reduced = createReactiveTree(reducedStateDef)
+    this.reduced = createReducedStore(ReactiveNodeStore.emptyTraversal)
   }
 
   /** Set the hovered node. Coalesced: rapid mouseEnter/mouseLeave events
@@ -149,58 +157,42 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync cursor state to signals (called by Board.tsx).
-   * @param treeAccess Optional tree for reduced signal shadow computation */
-  syncCursor(
-    cursorState: {
-      cursor: string | null
-      cursorCardNodeId: string | null
-      cursorColumnNodeId: string | null
-      cursorDepth: "board" | "column" | "card"
-    },
-    treeAccess?: TreeAccess,
-  ): void {
+  /** Sync cursor state to signals (called by Board.tsx). */
+  syncCursor(cursorState: {
+    cursor: string | null
+    cursorCardNodeId: string | null
+    cursorColumnNodeId: string | null
+    cursorDepth: "board" | "column" | "card"
+  }): void {
     const prevCursor = this.cursor()
     this.cursor(cursorState.cursor)
     this.cursorCardNodeId(cursorState.cursorCardNodeId)
     this.cursorColumnNodeId(cursorState.cursorColumnNodeId)
     this.cursorDepth(cursorState.cursorDepth)
 
-    // Update reduced signals: cursorDescendant propagates up from cursor node
-    if (treeAccess) {
-      this.reduced.batch(treeAccess, () => {
-        if (prevCursor) this.reduced.get(prevCursor).cursor(false)
-        if (cursorState.cursor) this.reduced.get(cursorState.cursor).cursor(true)
-      })
-    }
+    // Write cursor signals — computeds update automatically
+    if (prevCursor) this.reduced.get(prevCursor).cursor(false)
+    if (cursorState.cursor) this.reduced.get(cursorState.cursor).cursor(true)
   }
 
   /** Get cursorDescendant reduced signal for a node.
    * Returns a boolean getter: true when any descendant of this node has cursor. */
   cursorDescendant(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).cursorDescendant
+    return this.reduced.get(nodeId).cursorDescendant as () => boolean
   }
 
-  /** Get selectedAncestor reduced signal for a node.
-   * Returns a boolean getter: true when any ancestor of this node is selected. */
   selectedAncestor(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).selectedAncestor
+    return this.reduced.get(nodeId).selectedAncestor as () => boolean
   }
 
-  /** Get editingDescendant reduced signal for a node.
-   * Returns a boolean getter: true when any descendant of this node is being edited. */
   editingDescendant(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).editingDescendant
+    return this.reduced.get(nodeId).editingDescendant as () => boolean
   }
 
-  /** Get doneAncestor reduced signal for a node.
-   * Returns a boolean getter: true when any ancestor of this node is done/dropped. */
   doneAncestor(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).doneAncestor
+    return this.reduced.get(nodeId).doneAncestor as () => boolean
   }
 
-  /** Get excludedSigils reduced signal for a node.
-   * Returns a string[] getter: accumulated sigils from all ancestors (includes self). */
   excludedSigils(nodeId: string): () => string[] {
     return this.reduced.get(nodeId).excludedSigils as () => string[]
   }
@@ -227,20 +219,19 @@ export class ReactiveNodeStore {
     selected: Set<string>,
     stickyFolds: Map<string, "folded" | "unfolded"> = new Map(),
   ): void {
-    // Clean up old nodes and reset reduced signal store (topology changed)
+    // Clean up old nodes and rebind reactive tree to repo traversal
     if (this.knownNodeIds.size > 0) {
       this.cleanup(this.knownNodeIds)
     }
-    this.reduced.clear()
     this.knownNodeIds = new Set<string>()
 
     if (!rootId) return
 
-    // Build a TreeAccess adapter from the repo for reduced signal propagation
-    const repoTree: TreeAccess = {
+    // Rebind reactive tree to repo traversal
+    this.reduced.rebind({
       parent: (id) => repo.getNode(id)?.parent_id ?? null,
       children: (id) => repo.getChildren(id).map((n) => n.id),
-    }
+    })
 
     // Root board
     const rootState = this.getOrCreate(rootId)
@@ -294,15 +285,13 @@ export class ReactiveNodeStore {
       }
     }
 
-    // Set ownSigils on the reduced store and let .reduce() propagate excludedSigils
-    this.reduced.batch(repoTree, () => {
-      if (rootSigils.length > 0) this.reduced.get(rootId).ownSigils(rootSigils)
-      for (const col of columns) {
-        const colName = getNodeDisplayName(repo, col)
-        const colSigils = deriveColumnExcludedSigils(colName, col.id, col.fs_path)
-        if (colSigils.length > 0) this.reduced.get(col.id).ownSigils(colSigils)
-      }
-    })
+    // Set ownSigils — excludedSigils auto-propagates via computed
+    if (rootSigils.length > 0) this.reduced.get(rootId).ownSigils(rootSigils)
+    for (const col of columns) {
+      const colName = getNodeDisplayName(repo, col)
+      const colSigils = deriveColumnExcludedSigils(colName, col.id, col.fs_path)
+      if (colSigils.length > 0) this.reduced.get(col.id).ownSigils(colSigils)
+    }
 
     // Bridge: sync reduced excludedSigils → old NodeReactiveState.excludedSigils for readers
     // that haven't migrated yet (TreeNode.tsx). Remove when all readers use nodeStore.excludedSigils().
@@ -348,9 +337,8 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected.
-   * @param treeAccess Optional tree for reduced signal shadow computation */
-  syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo, treeAccess?: TreeAccess): void {
+  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected. */
+  syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
     const oldExpanded = repo ? expandWithDescendants(repo, oldSelected) : oldSelected
     const newExpanded = repo ? expandWithDescendants(repo, newSelected) : newSelected
 
@@ -365,19 +353,12 @@ export class ReactiveNodeStore {
       }
     }
 
-    // Update reduced signals with DIRECT selections only (not expanded descendants).
-    // selectedAncestor propagates down automatically via the reduced engine.
-    // Using expanded descendants would be semantically wrong (descendants aren't
-    // actually selected) and quadratically expensive.
-    if (treeAccess) {
-      this.reduced.batch(treeAccess, () => {
-        for (const key of oldSelected) {
-          if (!newSelected.has(key)) this.reduced.get(key).selected(false)
-        }
-        for (const key of newSelected) {
-          if (!oldSelected.has(key)) this.reduced.get(key).selected(true)
-        }
-      })
+    // Write DIRECT selections to reactive tree — selectedAncestor auto-propagates via computeds
+    for (const key of oldSelected) {
+      if (!newSelected.has(key)) this.reduced.get(key).selected(false)
+    }
+    for (const key of newSelected) {
+      if (!oldSelected.has(key)) this.reduced.get(key).selected(true)
     }
   }
 
@@ -392,7 +373,6 @@ export class ReactiveNodeStore {
       stickyX?: number
     } | null,
     cardNodeId?: string,
-    treeAccess?: TreeAccess,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
       this.getOrCreate(oldNodeId).edit(null)
@@ -407,13 +387,9 @@ export class ReactiveNodeStore {
     // Update expandedEditCardId for parent card expansion (legacy — kept until readers migrate)
     this.expandedEditCardId(cardNodeId ?? null)
 
-    // Update reduced signals: editingDescendant propagates up from editing node
-    if (treeAccess) {
-      this.reduced.batch(treeAccess, () => {
-        if (oldNodeId) this.reduced.get(oldNodeId).editing(false)
-        if (newNodeId && newState) this.reduced.get(newNodeId).editing(true)
-      })
-    }
+    // Write editing signals — editingDescendant auto-propagates via computeds
+    if (oldNodeId) this.reduced.get(oldNodeId).editing(false)
+    if (newNodeId && newState) this.reduced.get(newNodeId).editing(true)
   }
 
   /** Mark all descendants of a selected node as visually selected during hydration. */
