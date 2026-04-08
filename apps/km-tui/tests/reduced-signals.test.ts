@@ -261,4 +261,65 @@ describe("ReducedSignalStore", () => {
       expect(readReduced(store, "col2", "cursorDescendant")).toBe(true)
     })
   })
+
+  describe("edge cases", () => {
+    it("deselected state: no cursor → all cursorDescendant false", () => {
+      // Start with cursor
+      store.batch(t, () => store.setPrimary("sub1", "cursor", true))
+      expect(readReduced(store, "card1", "cursorDescendant")).toBe(true)
+
+      // Remove cursor (deselect)
+      store.batch(t, () => store.setPrimary("sub1", "cursor", false))
+
+      // All nodes should have cursorDescendant = false
+      expect(readReduced(store, "card1", "cursorDescendant")).toBe(false)
+      expect(readReduced(store, "col1", "cursorDescendant")).toBe(false)
+      expect(readReduced(store, "root", "cursorDescendant")).toBe(false)
+    })
+
+    it("setting same value twice is a no-op", () => {
+      store.batch(t, () => store.setPrimary("sub1", "cursor", true))
+      const countBefore = store.node("card1").counts.get("cursorDescendant")
+
+      // Set same value again
+      store.batch(t, () => store.setPrimary("sub1", "cursor", true))
+      const countAfter = store.node("card1").counts.get("cursorDescendant")
+
+      expect(countBefore).toBe(1)
+      expect(countAfter).toBe(1) // no double-counting
+    })
+
+    it("removing non-existent node is safe", () => {
+      store.removeNode("does-not-exist", t)
+      // Should not throw
+    })
+
+    it("batch with no changes is safe", () => {
+      store.batch(t, () => {
+        // empty batch
+      })
+      // Should not throw
+    })
+  })
+
+  describe("editingDescendant", () => {
+    beforeEach(() => {
+      store.defineReduced("editingDescendant", tree.descendants("editing").some())
+    })
+
+    it("editing sub-item propagates editingDescendant to card", () => {
+      store.batch(t, () => store.setPrimary("sub1", "editing", true))
+
+      expect(readReduced(store, "card1", "editingDescendant")).toBe(true)
+      expect(readReduced(store, "col1", "editingDescendant")).toBe(true)
+      expect(readReduced(store, "sub1", "editingDescendant")).toBe(false) // self excluded
+    })
+
+    it("stop editing clears editingDescendant", () => {
+      store.batch(t, () => store.setPrimary("sub1", "editing", true))
+      store.batch(t, () => store.setPrimary("sub1", "editing", false))
+
+      expect(readReduced(store, "card1", "editingDescendant")).toBe(false)
+    })
+  })
 })
