@@ -3,12 +3,13 @@
 1 apps/km-cli/src/commands/sync.ts
 1 apps/km-cli/src/commands/tasks/index.ts
 1 apps/km-cli/src/commands/view.ts
-2 apps/km-tui/src/undo/index.ts
-1 apps/km-tui/tests/undo-redo.slow.spec.ts
+6 apps/km-tui/src/state/reactive.ts
+44 apps/km-tui/tests/reduced-signals.test.ts
 1 vendor/accountly/src/cli.ts
 1 vendor/bearly/tools/recall.ts
 2 vendor/bearly/tools/tribe-cli.ts
 4 vendor/bearly/tools/tty.ts
+2 vendor/silvery/packages/ag-term/src/index.ts
 1 vendor/silvery/packages/create/src/with-focus.ts
 12 vendor/silvery/tests/features/copy-mode-feature.integration.test.ts
 11 vendor/silvery/tests/features/find-with-focus.test.ts

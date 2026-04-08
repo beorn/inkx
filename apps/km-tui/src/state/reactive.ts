@@ -7,7 +7,7 @@
  */
 
 import { signal } from "alien-signals"
-import { createReactiveTree, tree, type TreeAccess, type ReactiveTreeStore } from "./reduced-signals.ts"
+import { createReactiveTree, tree, primary, type TreeAccess, type ReactiveTreeStore } from "./reduced-signals.ts"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -72,9 +72,9 @@ function createNodeState(): NodeReactiveState {
 
 /** State definition for per-node reduced signals */
 const reducedStateDef = {
-  cursor: signal(false),
-  selected: signal(false),
-  editing: signal(false),
+  cursor: primary(false),
+  selected: primary(false),
+  editing: primary(false),
   cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
   selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
   editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
