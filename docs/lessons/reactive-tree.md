@@ -71,7 +71,18 @@ Engine benchmark (cursor move on flat tree):
 - 100 siblings: 0.006ms (computed) vs 0.034ms (count engine) — computed 5x faster
 - Deep chain 50: 0.006ms vs 0.229ms — computed 38x faster
 
-Full pipeline (200x60, 3700 cards): 84-88ms/press (rendering bottleneck, not signals).
+Full pipeline (200x60, 3700 cards): ~6.6ms/press production (1.6ms pipeline + 5ms React).
+Bench reports ~83ms because 78% is SILVERY_STRICT verification overhead.
+
+## Lesson 7: Bench numbers must represent production
+
+We spent multiple sessions investigating a "73-89% output phase bottleneck" that was actually SILVERY_STRICT test verification overhead. The bench inflated numbers by 12x (83ms bench vs 6.6ms production). We created beads, planned work, and ran Pro reviews based on wrong numbers.
+
+**Root cause chain**: bench reuses vitest setup which forces STRICT=1 → bench numbers confirmed gut feel ("felt sluggish") → nobody questioned whether bench = production → no principle requiring bench to match production conditions.
+
+**Fix**: `bun bench` now sets `SILVERY_STRICT=0`. Added to principles.md: "Benchmarks measure production — bench numbers must represent what users experience."
+
+**Rule**: always verify that your measurement tool isn't measuring its own overhead.
 
 ## See Also
 

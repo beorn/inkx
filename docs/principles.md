@@ -703,6 +703,7 @@ const db = new Database("/tmp/test.db")
 **Guidelines:**
 - [ ] In-memory tests — `withTestEnv()` / not `new Database('/tmp/test.db')`
 - [ ] Fast suite — `test:fast` < 15s / not minutes
+- [ ] Benchmarks measure production — `bun bench` disables test-only overhead (SILVERY_STRICT, checkIncremental). Bench numbers must represent what users experience, not what tests verify. If a bench includes verification overhead, its numbers are useless for optimization decisions.
 
 ---
 
