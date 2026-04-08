@@ -121,12 +121,16 @@ No mode enum. Each signal is independent. ~3 components read these — inline lo
 
 ## How the store recognizes reduced signals
 
-Duck-typed. No markers needed:
+Descriptors are branded with a symbol:
 
-- `signal(false)` — alien-signals are **callable functions**
-- `tree.descendants(s => s.cursor).some()` — returns a **plain object** with a `.reduce` property
+```ts
+const REDUCED = Symbol.for('km:reduced')
 
-The store checks: function → primary signal. Object with `.reduce` → reduced signal descriptor. Materializes accordingly.
+// tree.descendants(s => s.cursor).some() returns:
+{ [REDUCED]: true, walk, accessor, reducer, initial }
+```
+
+The store checks: `value[REDUCED]` → reduced signal descriptor, materialize it. Otherwise → primary signal. No duck-typing ambiguity.
 
 ## How it works
 
@@ -158,12 +162,37 @@ interface TreeAccess {
 }
 ```
 
+## Semantics
+
+### Self-inclusion
+
+`includeSelf: false` by default. `selectedAncestor` excludes self (the name says "ancestor"). `cursorDescendant` excludes self. Override with `{ includeSelf: true }` on the combinator if needed.
+
+### Order
+
+- `tree.ancestors` walks root-to-self (outermost first). Reducers accumulate outside-in.
+- `tree.descendants` walks DFS pre-order (parent before children). Reducers accumulate top-down.
+- For commutative reducers (`or`, `count`) order doesn't matter.
+- For order-sensitive reducers (`concat`) the traversal order is the reduce order.
+
+### Reparent / move / delete
+
+When a node moves from parent A to parent B during a batch:
+- **Up-propagated signals**: old ancestor chain (via A) must be recomputed — contributions from the moved node are removed. New ancestor chain (via B) gets contributions added.
+- **Down-propagated signals**: the moved subtree's inherited values recompute from the new parent's boundary value.
+- **Deleted nodes**: removing a source node clears its contributions from all affected ancestors/descendants. The node's own signals are cleaned up.
+
+The store must capture old-parent info before structural mutations to correctly update old ancestor chains. batch() processes structural changes before recomputing reduced signals.
+
+### Detached / root nodes
+
+A node with `parent === null` is a root. `tree.ancestors` yields nothing for it. `tree.descendants` walks its subtree normally.
+
 ## Constraints (v1)
 
 - **No filtered walks in reduced signals** — `into` predicates create stale values in collapsed subtrees. Reduce over the full structural tree; visibility is a separate render concern.
 - **No reduced-from-reduced** — a reduced signal cannot use another reduced signal as its source. Flat dependency graph for v1.
-- **`includeSelf: false` by default** — `selectedAncestor` excludes self (the name says "ancestor"). `cursorDescendant` excludes self.
-- **Structural mutations** (reparent/move) need old-parent info for correct ancestor chain updates.
+- **Structural mutations** (reparent/move) need old-parent info for correct ancestor chain updates (see Semantics above).
 
 ## What this replaces
 
@@ -176,6 +205,45 @@ interface TreeAccess {
 | 3 different `isSelected` definitions | `selected` + `selectedAncestor` |
 | `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` |
 | Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` |
+
+## Worked example: cursor move
+
+```
+Tree:  root → col1 → card1 → sub1 (cursor here)
+                    → card2
+             col2 → card3
+```
+
+User presses `j` — cursor moves from `sub1` to `card2`.
+
+```ts
+store.batch(tree, () => {
+  store.node('sub1').cursor(false)
+  store.node('card2').cursor(true)
+})
+```
+
+Batch end — store recomputes:
+
+1. **cursor (self)**: sub1 → false, card2 → true. 2 writes.
+2. **cursorDescendant (up from cursor sources)**:
+   - Old path: card1, col1, root were true → now false (sub1 no longer cursor). 3 writes.
+   - New path: col1, root already true (still ancestors of card2) → no write. card2 has no cursor descendant. 0 new writes.
+   - Net: card1 → false. 1 write. (col1/root unchanged — card2 is still under col1.)
+3. **selectedAncestor (down from selected sources)**: selection didn't change → 0 writes.
+
+Total: 3 signal writes. 3 component re-renders (sub1, card2, card1).
+
+## Migration strategy
+
+Old sync code (`syncCursor`, `syncSelected`, etc.) stays alive during implementation for A/B comparison. Migration order:
+
+1. **Add reduced signals alongside old code** — both systems write signals. Assert they agree in dev mode.
+2. **Switch components** to read from reduced signals one at a time.
+3. **Once all consumers switched**, remove old sync code.
+4. **Run cursor-perf benchmark** before and after. Target: ≥10% improvement on 104ms baseline.
+
+This avoids a big-bang migration. Each step is independently verifiable.
 
 ## Performance
 
