@@ -1,10 +1,10 @@
-# Tree Reduce — Cached Pure Functions Over the Node Tree
+# Reduced Signals — Cached Pure Functions Over the Node Tree
 
-Per-node derived state as cached tree reduces, incrementally recomputed on change.
+Per-node derived state as **reduced signals**: cached tree reductions, incrementally recomputed on change.
 
 ## The idea in one sentence
 
-A tree reduce is a **cached pure function** that walks the tree and reduces values. The store materializes the result as a per-node signal. `batch()` incrementally recomputes dirty regions.
+A reduced signal is a **cached pure function** that walks the tree and reduces values — like `Array.reduce`, but over a tree walk. The store materializes the result as a per-node signal. `batch()` incrementally recomputes dirty regions.
 
 ## Why
 
@@ -47,27 +47,27 @@ cursorDescendant: descendants(s => s.cursor)
 selectedAncestor: ancestors(s => s.selected)
 
 // Desugars to general form:
-cursorDescendant: update(s => s.cursor, walk.up, or, false)
-selectedAncestor: update(s => s.selected, walk.down, or, false)
+cursorDescendant: reduced(s => s.cursor, walk.up, or, false)
+selectedAncestor: reduced(s => s.selected, walk.down, or, false)
 ```
 
-`update(source, walk, reducer, initial)` — same shape as `Array.reduce`, but over a tree walk:
+`reduced(source, walk, reducer, initial)` — same shape as `Array.reduce`, but over a tree walk:
 - **source**: accessor for the source signal on each node
 - **walk**: tree iterator (`walk.up` = parent chain, `walk.down` = DFS)
 - **reducer**: `(accumulator, value) => accumulator`
 - **initial**: starting value
 
-The name `update` is source-centric: "when source changes, update nodes walking in this direction." This makes the walk direction intuitive — `walk.down` means "update descendants."
+The name `reduced` is declarative: "this signal is a reduction of source values, walking in this direction." Matches `Array.reduce` vocabulary — same concept, over a tree walk instead of an array.
 
 ### General form for non-boolean reduces
 
 ```ts
 // Set union walking down (sigil inheritance with merge)
-excludedSigils: update(s => s.ownSigils, walk.down,
+excludedSigils: reduced(s => s.ownSigils, walk.down,
   (acc, val) => [...acc, ...val], [])
 
 // Count walking up (error count in subtree)
-errorCount: update(s => s.hasError, walk.up,
+errorCount: reduced(s => s.hasError, walk.up,
   (acc, val) => acc + (val ? 1 : 0), 0)
 ```
 
@@ -174,7 +174,7 @@ Same pattern as the `refs` table in the link model: pure function → cache → 
 
 ## V1 constraints
 
-- **Boolean only** for `descendants()`/`ancestors()` sugar. General `update()` for non-boolean.
+- **Boolean only** for `descendants()`/`ancestors()` sugar. General `reduced()` for non-boolean.
 - **No filtered walks in derivations** — `into` predicates in tree reduces are a footgun (stale values in collapsed subtrees). Derivations run over the full structural tree. Visibility/collapse is a separate render concern.
 - **No derived-from-derived** — a tree reduce cannot reference another tree reduce as its source. Keep the dependency graph flat for v1.
 - **`includeSelf: false` by default** — `selectedAncestor` excludes self (the name says "ancestor", not "self or ancestor"). `cursorDescendant` excludes self.
@@ -190,7 +190,7 @@ Same pattern as the `refs` table in the link model: pure function → cache → 
 | `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Components read `cursorDescendant` on relevant ancestor |
 | 3 different `isSelected` definitions | One `selected` signal + one `selectedAncestor` reduce |
 | `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` signals |
-| Ad-hoc `excludedSigils` inheritance in `hydrate()` | `update()` reduce with merge |
+| Ad-hoc `excludedSigils` inheritance in `hydrate()` | `reduced()` reduce with merge |
 
 ## Performance
 
@@ -212,7 +212,7 @@ Rendering savings (the real win):
 |---------|-----------|-----------|
 | `cursorDescendant` | `descendants(s => s.cursor)` | up |
 | `selectedAncestor` | `ancestors(s => s.selected)` | down |
-| `excludedSigils` | `update(s => s.ownSigils, walk.down, concat, [])` | down (inherit+merge) |
+| `excludedSigils` | `reduced(s => s.ownSigils, walk.down, concat, [])` | down (inherit+merge) |
 | `hasErrorDescendant` | `descendants(s => s.hasError)` | up |
 | `hasUnreadDescendant` | `descendants(s => s.isUnread)` | up |
 | `searchMatchAncestor` | `descendants(s => s.searchMatch)` | up |
