@@ -664,10 +664,7 @@ export function Board({ patchedConsole }: BoardProps) {
       }
       if (cursorCardNodeId) cursorDepth = "card"
       else if (cursorColumnNodeId) cursorDepth = "column"
-      store.syncCursor(
-        { cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth },
-        lens,
-      )
+      store.syncCursor({ cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth }, lens)
     }
     return store
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount
@@ -796,7 +793,13 @@ export function Board({ patchedConsole }: BoardProps) {
           }
         }
       }
-      nodeStore.syncEdit(prev?.nodeId ?? null, editState?.nodeId ?? null, editState, derivedCardNodeId, ps.visibleLens())
+      nodeStore.syncEdit(
+        prev?.nodeId ?? null,
+        editState?.nodeId ?? null,
+        editState,
+        derivedCardNodeId,
+        ps.visibleLens(),
+      )
       prevInlineEditRef.current = editState
     }
   }, [nodeStore, editState, repo, nodeIndex, ps])
@@ -843,10 +846,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // happen here via useEffect. This is safe because the store selector triggers
   // re-render, which triggers this effect, which syncs the new cursor state.
   useEffect(() => {
-    nodeStore.syncCursor(
-      { cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth },
-      visibleLensValue,
-    )
+    nodeStore.syncCursor({ cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth }, visibleLensValue)
   }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth, visibleLensValue])
 
   // Hidden column filtering is centralized in the view lens — the computed

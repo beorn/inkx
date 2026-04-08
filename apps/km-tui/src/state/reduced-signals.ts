@@ -83,14 +83,27 @@ export interface ReducedDescriptor<T = unknown> {
 }
 
 export function isReducedDescriptor(value: unknown): value is ReducedDescriptor {
-  return value != null && typeof value === "object" && REDUCED in value && (value as Record<symbol, boolean>)[REDUCED] === true
+  return (
+    value != null &&
+    typeof value === "object" &&
+    REDUCED in value &&
+    (value as Record<symbol, boolean>)[REDUCED] === true
+  )
 }
 
 // ─── Accessor Capture ───────────────────────────────────────────────────────
 
 function captureKey<T>(accessor: (s: T) => unknown): string {
   const keys: string[] = []
-  const proxy = new Proxy({}, { get(_, key) { keys.push(String(key)); return undefined } })
+  const proxy = new Proxy(
+    {},
+    {
+      get(_, key) {
+        keys.push(String(key))
+        return undefined
+      },
+    },
+  )
   accessor(proxy as T)
   if (keys.length !== 1) throw new Error(`Accessor must access exactly one property, got: ${keys.join(", ")}`)
   return keys[0]!
@@ -110,16 +123,38 @@ interface DirectionBuilder {
   count(opts?: { includeSelf?: boolean }): ReducedDescriptor<number>
   /** Custom aggregation — reducer must be pure, must not mutate accumulator.
    * `initial` should be a factory for non-primitives to avoid shared references. */
-  reduce<V>(reducer: (acc: V, value: unknown) => V, initial: V | (() => V), opts?: ReduceOptions<V>): ReducedDescriptor<V>
+  reduce<V>(
+    reducer: (acc: V, value: unknown) => V,
+    initial: V | (() => V),
+    opts?: ReduceOptions<V>,
+  ): ReducedDescriptor<V>
 }
 
 function createBuilder(direction: "up" | "down", sourceKey: string): DirectionBuilder {
   return {
-    some: (opts) => ({ [REDUCED]: true as const, direction, sourceKey, reducerType: "some" as const, includeSelf: opts?.includeSelf ?? false }),
-    count: (opts) => ({ [REDUCED]: true as const, direction, sourceKey, reducerType: "count" as const, includeSelf: opts?.includeSelf ?? false }),
+    some: (opts) => ({
+      [REDUCED]: true as const,
+      direction,
+      sourceKey,
+      reducerType: "some" as const,
+      includeSelf: opts?.includeSelf ?? false,
+    }),
+    count: (opts) => ({
+      [REDUCED]: true as const,
+      direction,
+      sourceKey,
+      reducerType: "count" as const,
+      includeSelf: opts?.includeSelf ?? false,
+    }),
     reduce: (reducer, initial, opts) => ({
-      [REDUCED]: true as const, direction, sourceKey, reducerType: "reduce" as const,
-      includeSelf: opts?.includeSelf ?? false, reducer, initial, equals: opts?.equals,
+      [REDUCED]: true as const,
+      direction,
+      sourceKey,
+      reducerType: "reduce" as const,
+      includeSelf: opts?.includeSelf ?? false,
+      reducer,
+      initial,
+      equals: opts?.equals,
     }),
   }
 }
@@ -135,7 +170,10 @@ export const tree = {
   /** Imperative: walk up parent chain (excludes self) */
   *up(treeAccess: TreeAccess, nodeId: string): Iterable<string> {
     let current = treeAccess.parent(nodeId)
-    while (current !== null) { yield current; current = treeAccess.parent(current) }
+    while (current !== null) {
+      yield current
+      current = treeAccess.parent(current)
+    }
   },
 
   /** Imperative: DFS pre-order (excludes self) */
@@ -178,8 +216,14 @@ interface NodeStore {
   counts: Map<string, number>
 }
 
-interface PrimaryDef { name: string; initial: unknown | (() => unknown) }
-interface ReducedDef { name: string; descriptor: ReducedDescriptor }
+interface PrimaryDef {
+  name: string
+  initial: unknown | (() => unknown)
+}
+interface ReducedDef {
+  name: string
+  descriptor: ReducedDescriptor
+}
 
 /** Map-like API: get/has/delete/size/clear + batch */
 export interface ReactiveTreeStore<T extends StateDef> {
@@ -218,8 +262,8 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
 
   // ── Count-based reduceds (some/count) ──────────────────────────────────
 
-  const countDefs = reducedDefs.filter(d => d.descriptor.reducerType !== "reduce")
-  const fullReduceDefs = reducedDefs.filter(d => d.descriptor.reducerType === "reduce")
+  const countDefs = reducedDefs.filter((d) => d.descriptor.reducerType !== "reduce")
+  const fullReduceDefs = reducedDefs.filter((d) => d.descriptor.reducerType === "reduce")
 
   // ── Node lifecycle ─────────────────────────────────────────────────────
 
@@ -232,9 +276,14 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
         ns.primary.set(pd.name, signal(init) as AlienSignal<unknown>)
       }
       for (const rd of reducedDefs) {
-        const init = rd.descriptor.reducerType === "count" ? 0
-          : rd.descriptor.reducerType === "some" ? false
-          : typeof rd.descriptor.initial === "function" ? (rd.descriptor.initial as () => unknown)() : rd.descriptor.initial
+        const init =
+          rd.descriptor.reducerType === "count"
+            ? 0
+            : rd.descriptor.reducerType === "some"
+              ? false
+              : typeof rd.descriptor.initial === "function"
+                ? (rd.descriptor.initial as () => unknown)()
+                : rd.descriptor.initial
         ns.reduced.set(rd.name, signal(init) as AlienSignal<unknown>)
         ns.counts.set(rd.name, 0)
       }
@@ -285,7 +334,10 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
 
     // ── Count-based signals: delta propagation ──
     // Coalesce walks: group by (walkDirection, sourceNodeId)
-    const walks = new Map<string, Array<{ name: string; delta: number; descriptor: ReducedDescriptor; nodeId: string }>>()
+    const walks = new Map<
+      string,
+      Array<{ name: string; delta: number; descriptor: ReducedDescriptor; nodeId: string }>
+    >()
 
     for (const change of changes) {
       const delta = (change.newValue ? 1 : 0) - (change.oldValue ? 1 : 0)
@@ -296,7 +348,10 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
         const walkDir = rd.descriptor.direction === "down" ? "up" : "down" // inverse
         const walkKey = `${walkDir}:${change.nodeId}`
         let group = walks.get(walkKey)
-        if (!group) { group = []; walks.set(walkKey, group) }
+        if (!group) {
+          group = []
+          walks.set(walkKey, group)
+        }
         group.push({ name: rd.name, delta, descriptor: rd.descriptor, nodeId: change.nodeId })
 
         // includeSelf: also update the source node itself
@@ -358,7 +413,10 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
         if (rd.descriptor.sourceKey !== change.key) continue
 
         let targets = affected.get(rd)
-        if (!targets) { targets = new Set(); affected.set(rd, targets) }
+        if (!targets) {
+          targets = new Set()
+          affected.set(rd, targets)
+        }
 
         if (rd.descriptor.direction === "down") {
           // Source changed → ancestors need recompute
@@ -442,12 +500,18 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
       }
       nodes.delete(nodeId)
     },
-    get size() { return nodes.size },
-    clear() { nodes.clear() },
+    get size() {
+      return nodes.size
+    },
+    clear() {
+      nodes.clear()
+    },
     batch(treeAccess: TreeAccess, fn: () => void): void {
       inBatch = true
       pendingChanges = []
-      try { fn() } finally {
+      try {
+        fn()
+      } finally {
         inBatch = false
         if (pendingChanges.length > 0) recompute(pendingChanges, treeAccess)
         pendingChanges = []

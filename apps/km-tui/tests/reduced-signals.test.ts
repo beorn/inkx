@@ -6,19 +6,37 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
-import { createReactiveTree, tree, primary, isReducedDescriptor, type TreeAccess, type ReactiveTreeStore } from "../src/state/reduced-signals.ts"
+import {
+  createReactiveTree,
+  tree,
+  primary,
+  isReducedDescriptor,
+  type TreeAccess,
+  type ReactiveTreeStore,
+} from "../src/state/reduced-signals.ts"
 
 // ─── Test Tree ──────────────────────────────────────────────────────────────
 
 function simpleTree(): TreeAccess {
   const parentMap: Record<string, string | null> = {
-    root: null, col1: "root", col2: "root",
-    card1: "col1", card2: "col1", card3: "col2",
-    sub1: "card1", sub2: "card1",
+    root: null,
+    col1: "root",
+    col2: "root",
+    card1: "col1",
+    card2: "col1",
+    card3: "col2",
+    sub1: "card1",
+    sub2: "card1",
   }
   const childrenMap: Record<string, string[]> = {
-    root: ["col1", "col2"], col1: ["card1", "card2"], col2: ["card3"],
-    card1: ["sub1", "sub2"], card2: [], card3: [], sub1: [], sub2: [],
+    root: ["col1", "col2"],
+    col1: ["card1", "card2"],
+    col2: ["card3"],
+    card1: ["sub1", "sub2"],
+    card2: [],
+    card3: [],
+    sub1: [],
+    sub2: [],
   }
   return {
     parent: (id) => parentMap[id] ?? null,
@@ -50,9 +68,9 @@ function arrayShallowEqual(a: string[], b: string[]): boolean {
 
 const sigilDef = {
   ownSigils: primary(() => [] as string[]),
-  excludedSigils: tree.ancestors((s: { ownSigils: unknown }) => s.ownSigils).reduce(
-    arrayConcat, () => [] as string[], { includeSelf: true, equals: arrayShallowEqual },
-  ),
+  excludedSigils: tree
+    .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
+    .reduce(arrayConcat, () => [] as string[], { includeSelf: true, equals: arrayShallowEqual }),
 }
 
 // ─── Descriptors ────────────────────────────────────────────────────────────
@@ -71,9 +89,13 @@ describe("descriptors", () => {
   })
 
   it(".reduce() creates reduce descriptor with reducer and equality", () => {
-    const desc = tree.ancestors((s: { x: unknown }) => s.x).reduce(
-      (acc: number[], v) => [...acc, v as number], () => [] as number[], { equals: arrayShallowEqual as never },
-    )
+    const desc = tree
+      .ancestors((s: { x: unknown }) => s.x)
+      .reduce(
+        (acc: number[], v) => [...acc, v as number],
+        () => [] as number[],
+        { equals: arrayShallowEqual as never },
+      )
     expect(desc.reducerType).toBe("reduce")
     expect(desc.reducer).toBeDefined()
     expect(desc.equals).toBeDefined()
@@ -136,14 +158,20 @@ describe("createReactiveTree (boolean)", () => {
 
     it("cursor move clears old, sets new", () => {
       store.batch(t, () => store.get("sub1").cursor(true))
-      store.batch(t, () => { store.get("sub1").cursor(false); store.get("card2").cursor(true) })
+      store.batch(t, () => {
+        store.get("sub1").cursor(false)
+        store.get("card2").cursor(true)
+      })
       expect(store.get("card1").cursorDescendant()).toBe(false)
       expect(store.get("col1").cursorDescendant()).toBe(true) // card2 still under col1
     })
 
     it("cross-column move", () => {
       store.batch(t, () => store.get("card1").cursor(true))
-      store.batch(t, () => { store.get("card1").cursor(false); store.get("card3").cursor(true) })
+      store.batch(t, () => {
+        store.get("card1").cursor(false)
+        store.get("card3").cursor(true)
+      })
       expect(store.get("col1").cursorDescendant()).toBe(false)
       expect(store.get("col2").cursorDescendant()).toBe(true)
     })
@@ -167,7 +195,10 @@ describe("createReactiveTree (boolean)", () => {
 
   describe("counts not booleans", () => {
     it("two cursor descendants: remove one → still true", () => {
-      store.batch(t, () => { store.get("sub1").cursor(true); store.get("sub2").cursor(true) })
+      store.batch(t, () => {
+        store.get("sub1").cursor(true)
+        store.get("sub2").cursor(true)
+      })
       expect(store.get("card1").cursorDescendant()).toBe(true)
       store.batch(t, () => store.get("sub1").cursor(false))
       expect(store.get("card1").cursorDescendant()).toBe(true)
@@ -195,7 +226,10 @@ describe("createReactiveTree (boolean)", () => {
   describe("batch atomicity", () => {
     it("reduced signals consistent after batch", () => {
       store.batch(t, () => store.get("sub1").cursor(true))
-      store.batch(t, () => { store.get("sub1").cursor(false); store.get("card3").cursor(true) })
+      store.batch(t, () => {
+        store.get("sub1").cursor(false)
+        store.get("card3").cursor(true)
+      })
       expect(store.get("card1").cursorDescendant()).toBe(false)
       expect(store.get("col2").cursorDescendant()).toBe(true)
     })

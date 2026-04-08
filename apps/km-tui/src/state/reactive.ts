@@ -97,11 +97,9 @@ const reducedStateDef = {
   selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
   editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
   doneAncestor: tree.ancestors((s: { isDone: unknown }) => s.isDone).some(),
-  excludedSigils: tree.ancestors((s: { ownSigils: unknown }) => s.ownSigils).reduce(
-    concatSigils,
-    () => [] as string[],
-    { includeSelf: true, equals: arrayShallowEqual },
-  ),
+  excludedSigils: tree
+    .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
+    .reduce(concatSigils, () => [] as string[], { includeSelf: true, equals: arrayShallowEqual }),
 }
 
 export class ReactiveNodeStore {

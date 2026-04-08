@@ -103,12 +103,7 @@ const WIKILINKS = [
   "[[broken-link-xyz]]",
   "[[scrollback-fragility]]",
 ]
-const URLS = [
-  "https://silvery.dev",
-  "https://github.com/beorn/km",
-  "https://bun.sh",
-  "https://vitest.dev",
-]
+const URLS = ["https://silvery.dev", "https://github.com/beorn/km", "https://bun.sh", "https://vitest.dev"]
 const MD_LINKS = [
   "[docs](https://silvery.dev/guide)",
   "[bead](bd://km-tui.bench-system)",
