@@ -76,7 +76,8 @@ if (
 // DO NOT DISABLE THIS. If tests fail with IncrementalRenderMismatchError,
 // the bug is in silvery's incremental rendering — fix the renderer, not this flag.
 // Disabling this hides real production bugs where incremental rendering diverges.
-process.env.SILVERY_STRICT = "1"
+// Allow explicit SILVERY_STRICT=0 to disable (for benchmarks measuring production perf)
+if (process.env.SILVERY_STRICT !== "0") process.env.SILVERY_STRICT = "1"
 
 // SILVERY_STRICT_TERMINAL: Per-frame ANSI output verification via terminal backends.
 // Accepts comma-separated list: vt100 (fast internal parser), xterm (xterm.js headless),
