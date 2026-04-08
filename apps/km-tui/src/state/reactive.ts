@@ -7,7 +7,7 @@
  */
 
 import { signal } from "alien-signals"
-import { createReactiveTree, tree, primary, type TreeAccess, type ReactiveTreeStore } from "./reduced-signals.ts"
+import { createReactiveTree, tree, type TreeAccess, type ReactiveTreeStore } from "./reduced-signals.ts"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -85,12 +85,12 @@ function concatSigils(acc: string[], value: unknown): string[] {
 
 /** State definition for per-node reduced signals */
 const reducedStateDef = {
-  // Primary signals — writable per-node state
-  cursor: primary(false),
-  selected: primary(false),
-  editing: primary(false),
-  isDone: primary(false),
-  ownSigils: primary(() => [] as string[]),
+  // Signals — writable per-node state
+  cursor: signal(false),
+  selected: signal(false),
+  editing: signal(false),
+  isDone: signal(false),
+  ownSigils: signal([] as string[]),
 
   // Reduced signals — cached tree aggregates
   cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),

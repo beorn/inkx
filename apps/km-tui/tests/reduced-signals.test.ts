@@ -6,10 +6,10 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest"
+import { signal } from "alien-signals"
 import {
   createReactiveTree,
   tree,
-  primary,
   isReducedDescriptor,
   type TreeAccess,
   type ReactiveTreeStore,
@@ -47,9 +47,9 @@ function simpleTree(): TreeAccess {
 // ─── State Definitions ──────────────────────────────────────────────────────
 
 const booleanDef = {
-  cursor: primary(false),
-  selected: primary(false),
-  editing: primary(false),
+  cursor: signal(false),
+  selected: signal(false),
+  editing: signal(false),
   cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
   selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
   editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
@@ -67,7 +67,7 @@ function arrayShallowEqual(a: string[], b: string[]): boolean {
 }
 
 const sigilDef = {
-  ownSigils: primary(() => [] as string[]),
+  ownSigils: signal([] as string[]),
   excludedSigils: tree
     .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
     .reduce(arrayConcat, () => [] as string[], { includeSelf: true, equals: arrayShallowEqual }),
@@ -323,7 +323,7 @@ describe("createReactiveTree (.reduce)", () => {
 describe("includeSelf", () => {
   it("some() with includeSelf includes the source node itself", () => {
     const def = {
-      cursor: primary(false),
+      cursor: signal(false),
       cursorOrDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some({ includeSelf: true }),
     }
     const store = createReactiveTree(def)

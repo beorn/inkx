@@ -5,7 +5,8 @@
  */
 
 import { bench, describe } from "vitest"
-import { createReactiveTree, tree, primary, type TreeAccess } from "../src/state/reduced-signals.ts"
+import { signal } from "alien-signals"
+import { createReactiveTree, tree, type TreeAccess } from "../src/state/reduced-signals.ts"
 
 // ─── Tree Generators ────────────────────────────────────────────────────────
 
@@ -87,15 +88,15 @@ function arrayEq(a: string[], b: string[]): boolean {
 }
 
 const boolDef = {
-  cursor: primary(false),
-  selected: primary(false),
+  cursor: signal(false),
+  selected: signal(false),
   cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
   selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
 }
 
 const sigilDef = {
-  ownSigils: primary(() => [] as string[]),
-  cursor: primary(false),
+  ownSigils: signal([] as string[]),
+  cursor: signal(false),
   cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
   excludedSigils: tree
     .ancestors((s: { ownSigils: unknown }) => s.ownSigils)

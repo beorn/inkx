@@ -73,29 +73,6 @@ export interface TreeAccess {
 // ─── Symbol Brand ───────────────────────────────────────────────────────────
 
 const REDUCED = Symbol.for("km:reduced")
-const PRIMARY = Symbol.for("km:primary")
-
-// ─── Primary Descriptor ─────────────────────────────────────────────────────
-
-/** Primary signal descriptor — writable per-node state with typed initial value */
-export interface PrimaryDescriptor<T = unknown> {
-  readonly [PRIMARY]: true
-  readonly initial: T | (() => T)
-}
-
-/** Create a primary signal descriptor. Supports value or factory for non-primitives. */
-export function primary<T>(initial: T | (() => T)): PrimaryDescriptor<T> {
-  return { [PRIMARY]: true, initial }
-}
-
-function isPrimaryDescriptor(value: unknown): value is PrimaryDescriptor {
-  return value != null && typeof value === "object" && PRIMARY in value
-}
-
-/** Get the initial value from a primary descriptor */
-function resolveInitial<T>(desc: PrimaryDescriptor<T>): T {
-  return typeof desc.initial === "function" ? (desc.initial as () => T)() : desc.initial
-}
 
 // ─── Reduced Descriptor ─────────────────────────────────────────────────────
 
@@ -221,19 +198,20 @@ export const tree = {
 
 // ─── Reactive Tree Store ────────────────────────────────────────────────────
 
-/** State definition: field name → primary descriptor or reduced descriptor */
+/** State definition: field name → signal (writable) or tree-scoped computed (reduced descriptor) */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type StateDef = Record<string, PrimaryDescriptor<any> | ReducedDescriptor<any>>
+type StateDef = Record<string, AlienSignal<any> | ReducedDescriptor<any>>
 
-/** Extract keys by descriptor type */
+/** Extract signal (writable) keys */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PrimaryKeys<T extends StateDef> = { [K in keyof T]: T[K] extends PrimaryDescriptor<any> ? K : never }[keyof T]
+type SignalKeys<T extends StateDef> = { [K in keyof T]: T[K] extends ReducedDescriptor<any> ? never : K }[keyof T]
+/** Extract reduced (computed) keys */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ReducedKeys<T extends StateDef> = { [K in keyof T]: T[K] extends ReducedDescriptor<any> ? K : never }[keyof T]
 
-/** Per-node accessor: primaries are writable, reduceds are read-only */
+/** Per-node accessor: signals are writable, reduceds are read-only */
 export type NodeAccessor<T extends StateDef> = {
-  [K in PrimaryKeys<T>]: T[K] extends PrimaryDescriptor<infer V> ? AlienSignal<V> : never
+  [K in SignalKeys<T>]: T[K] extends AlienSignal<infer V> ? AlienSignal<V> : never
 } & {
   readonly [K in ReducedKeys<T>]: () => T[K] extends ReducedDescriptor<infer V> ? V : never
 }
@@ -245,9 +223,9 @@ interface NodeStore {
   counts: Map<string, number>
 }
 
-interface PrimaryDef {
+interface SignalDef {
   name: string
-  initial: unknown | (() => unknown)
+  initialValue: unknown // extracted from the definition-time signal
 }
 interface ReducedDef {
   name: string
@@ -274,14 +252,16 @@ export interface ReactiveTreeStore<T extends StateDef> {
  * same source node are updated in a single walk.
  */
 export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStore<T> {
-  const primaryDefs: PrimaryDef[] = []
+  const signalDefs: SignalDef[] = []
   const reducedDefs: ReducedDef[] = []
 
   for (const [key, value] of Object.entries(def)) {
     if (isReducedDescriptor(value)) {
       reducedDefs.push({ name: key, descriptor: value })
-    } else if (isPrimaryDescriptor(value)) {
-      primaryDefs.push({ name: key, initial: value.initial })
+    } else {
+      // It's a signal — extract its current value as the per-node default
+      const sig = value as AlienSignal<unknown>
+      signalDefs.push({ name: key, initialValue: sig() })
     }
   }
 
@@ -300,9 +280,11 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
     let ns = nodes.get(nodeId)
     if (!ns) {
       ns = { primary: new Map(), reduced: new Map(), counts: new Map() }
-      for (const pd of primaryDefs) {
-        const init = typeof pd.initial === "function" ? (pd.initial as () => unknown)() : pd.initial
-        ns.primary.set(pd.name, signal(init) as AlienSignal<unknown>)
+      for (const sd of signalDefs) {
+        // Clone initial value for non-primitives (arrays, objects)
+        const init =
+          Array.isArray(sd.initialValue) ? [...sd.initialValue] : typeof sd.initialValue === "object" && sd.initialValue !== null ? { ...sd.initialValue } : sd.initialValue
+        ns.primary.set(sd.name, signal(init) as AlienSignal<unknown>)
       }
       for (const rd of reducedDefs) {
         const init =
@@ -327,21 +309,21 @@ export function createReactiveTree<T extends StateDef>(def: T): ReactiveTreeStor
     const ns = getOrCreateNode(nodeId)
     const accessor: Record<string, unknown> = {}
 
-    for (const pd of primaryDefs) {
-      const sig = ns.primary.get(pd.name)!
-      accessor[pd.name] = Object.assign(
+    for (const sd of signalDefs) {
+      const sig = ns.primary.get(sd.name)!
+      accessor[sd.name] = Object.assign(
         function primaryAccessor(value?: unknown) {
           if (arguments.length === 0) return sig()
           const oldValue = sig()
           if (oldValue === value) return
           sig(value!)
           if (inBatch) {
-            pendingChanges.push({ key: pd.name, nodeId, oldValue, newValue: value })
+            pendingChanges.push({ key: sd.name, nodeId, oldValue, newValue: value })
           } else {
-            recompute([{ key: pd.name, nodeId, oldValue, newValue: value }])
+            recompute([{ key: sd.name, nodeId, oldValue, newValue: value }])
           }
         },
-        { toString: () => `[signal:${pd.name}]` },
+        { toString: () => `[signal:${sd.name}]` },
       )
     }
 
