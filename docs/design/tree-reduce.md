@@ -37,38 +37,36 @@ const store = reactiveTree({
 
 `ancestors(s => s.selected)` = "true when any ancestor has `selected=true`".
 
-### Sugar and general form
+### The API — `walk.direction(accessor).reduce()`
 
-The sugar covers the common boolean case:
+One form, `Array.reduce`-like chaining:
 
 ```ts
-// Sugar:
-cursorDescendant: descendants(s => s.cursor)
-selectedAncestor: ancestors(s => s.selected)
-
-// Desugars to general form:
-cursorDescendant: reduced(s => s.cursor, walk.up, or, false)
-selectedAncestor: reduced(s => s.selected, walk.down, or, false)
+cursorDescendant: walk.up(s => s.cursor).reduce(or, false),
+selectedAncestor: walk.down(s => s.selected).reduce(or, false),
+excludedSigils: walk.down(s => s.ownSigils).reduce(concat, []),
+errorCount: walk.up(s => s.hasError).reduce((a, v) => a + (v ? 1 : 0), 0),
 ```
 
-`reduced(source, walk, reducer, initial)` — same shape as `Array.reduce`, but over a tree walk:
-- **source**: accessor for the source signal on each node
-- **walk**: tree iterator (`walk.up` = parent chain, `walk.down` = DFS)
-- **reducer**: `(accumulator, value) => accumulator`
-- **initial**: starting value
+`walk.up(accessor)` returns an intermediate — "source values walking up the tree" — with `.reduce(reducer, initial)` to materialize it. Same vocabulary as `Array.reduce`, over a tree walk instead of an array.
 
-The name `reduced` is declarative: "this signal is a reduction of source values, walking in this direction." Matches `Array.reduce` vocabulary — same concept, over a tree walk instead of an array.
-
-### General form for non-boolean reduces
+The intermediate opens up future combinators:
 
 ```ts
-// Set union walking down (sigil inheritance with merge)
-excludedSigils: reduced(s => s.ownSigils, walk.down,
-  (acc, val) => [...acc, ...val], [])
+walk.up(s => s.cursor).some()     // = .reduce(or, false)
+walk.up(s => s.hasError).count()  // = .reduce((a,v) => a+(v?1:0), 0)
+walk.down(s => s.selected).every()
+```
 
-// Count walking up (error count in subtree)
-errorCount: reduced(s => s.hasError, walk.up,
-  (acc, val) => acc + (val ? 1 : 0), 0)
+Sugar for the common boolean case:
+
+```ts
+// These are equivalent:
+cursorDescendant: descendants(s => s.cursor)
+cursorDescendant: walk.up(s => s.cursor).reduce(or, false)
+
+selectedAncestor: ancestors(s => s.selected)
+selectedAncestor: walk.down(s => s.selected).reduce(or, false)
 ```
 
 ### Batch — incremental re-materialization
