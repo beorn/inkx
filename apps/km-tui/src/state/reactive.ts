@@ -43,9 +43,6 @@ interface NodeReactiveState {
   foldOverride: Signal<number | undefined>
   edit: Signal<NodeEditState | null>
   excludedSigils: Signal<string[]>
-  /** True when cursor is in this card but on a descendant (not this node).
-   * Used by card title TreeNode to show yellow fg instead of inverse bg. */
-  cursorInDescendant: Signal<boolean>
   /** True when mouse is hovering over this node's card. Per-node signal so
    * only the entering/leaving card re-renders (not all cards). */
   hovered: Signal<boolean>
@@ -64,7 +61,6 @@ function createNodeState(): NodeReactiveState {
     foldOverride: signal<number | undefined>(undefined),
     edit: signal<NodeEditState | null>(null),
     excludedSigils: signal<string[]>([]),
-    cursorInDescendant: signal(false),
     hovered: signal(false),
     sticky: signal<"folded" | "unfolded" | null>(null),
   }
@@ -86,8 +82,6 @@ export class ReactiveNodeStore {
   cursorCardNodeId = signal<string | null>(null)
   cursorColumnNodeId = signal<string | null>(null)
   cursorDepth = signal<"board" | "column" | "card">("board")
-  /** Track which card had cursorInDescendant=true so we can clear it on change */
-  private prevDescendantCardId: string | null = null
 
   // ── Edit expansion state ──
   /** Card node ID that should expand because a descendant is being edited */
@@ -142,25 +136,7 @@ export class ReactiveNodeStore {
     this.cursorColumnNodeId(cursorState.cursorColumnNodeId)
     this.cursorDepth(cursorState.cursorDepth)
 
-    // Update per-card cursorInDescendant: true when cursor is in this card
-    // but on a sub-item (not the card title). Only the affected card's
-    // TreeNode at depth 0 subscribes, so only 1-2 components re-render.
-    const cardId = cursorState.cursorCardNodeId
-    const isInDescendant = cardId != null && cursorState.cursor !== cardId
-
-    // Clear previous card's flag (if it changed)
-    if (this.prevDescendantCardId && this.prevDescendantCardId !== cardId) {
-      this.getOrCreate(this.prevDescendantCardId).cursorInDescendant(false)
-    }
-
-    // Set current card's flag
-    if (cardId) {
-      this.getOrCreate(cardId).cursorInDescendant(isInDescendant)
-    }
-
-    this.prevDescendantCardId = isInDescendant ? cardId : null
-
-    // ── Shadow: update reduced signals ──
+    // Update reduced signals: cursorDescendant propagates up from cursor node
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
         if (prevCursor) this.reduced.setPrimary(prevCursor, "cursor", false)
