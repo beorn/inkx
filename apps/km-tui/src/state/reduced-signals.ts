@@ -155,18 +155,18 @@ export const tree = {
 // ─── Reactive Tree Store ────────────────────────────────────────────────────
 
 /** State definition: field name → primary descriptor or reduced descriptor */
-type StateDef = Record<string, PrimaryDescriptor<unknown> | ReducedDescriptor>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type StateDef = Record<string, PrimaryDescriptor<any> | ReducedDescriptor<any>>
 
-/** Infer the value type of a primary descriptor */
-type PrimaryValue<T> = T extends PrimaryDescriptor<infer V> ? V : never
+/** Extract keys by descriptor type */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type PrimaryKeys<T extends StateDef> = { [K in keyof T]: T[K] extends PrimaryDescriptor<any> ? K : never }[keyof T]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ReducedKeys<T extends StateDef> = { [K in keyof T]: T[K] extends ReducedDescriptor<any> ? K : never }[keyof T]
 
-/** Extract keys by type */
-type PrimaryKeys<T extends StateDef> = { [K in keyof T]: T[K] extends PrimaryDescriptor ? K : never }[keyof T]
-type ReducedKeys<T extends StateDef> = { [K in keyof T]: T[K] extends ReducedDescriptor ? K : never }[keyof T]
-
-/** Per-node accessor: primaries are writable AlienSignal<V>, reduceds are read-only () => V */
+/** Per-node accessor: primaries are writable, reduceds are read-only */
 export type NodeAccessor<T extends StateDef> = {
-  [K in PrimaryKeys<T>]: AlienSignal<PrimaryValue<T[K]>>
+  [K in PrimaryKeys<T>]: T[K] extends PrimaryDescriptor<infer V> ? AlienSignal<V> : never
 } & {
   readonly [K in ReducedKeys<T>]: () => T[K] extends ReducedDescriptor<infer V> ? V : never
 }

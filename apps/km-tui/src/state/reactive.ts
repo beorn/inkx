@@ -70,14 +70,38 @@ function createNodeState(): NodeReactiveState {
 // ReactiveNodeStore
 // =============================================================================
 
+/** Shallow array equality for excludedSigils */
+function arrayShallowEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false
+  return true
+}
+
+/** Concat sigil arrays (reducer for excludedSigils) */
+function concatSigils(acc: string[], value: unknown): string[] {
+  const arr = value as string[]
+  return arr.length === 0 ? acc : [...acc, ...arr]
+}
+
 /** State definition for per-node reduced signals */
 const reducedStateDef = {
+  // Primary signals — writable per-node state
   cursor: primary(false),
   selected: primary(false),
   editing: primary(false),
+  isDone: primary(false),
+  ownSigils: primary(() => [] as string[]),
+
+  // Reduced signals — cached tree aggregates
   cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
   selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
   editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
+  doneAncestor: tree.ancestors((s: { isDone: unknown }) => s.isDone).some(),
+  excludedSigils: tree.ancestors((s: { ownSigils: unknown }) => s.ownSigils).reduce(
+    concatSigils,
+    () => [] as string[],
+    { includeSelf: true, equals: arrayShallowEqual },
+  ),
 }
 
 export class ReactiveNodeStore {
@@ -171,6 +195,18 @@ export class ReactiveNodeStore {
     return this.reduced.get(nodeId).editingDescendant
   }
 
+  /** Get doneAncestor reduced signal for a node.
+   * Returns a boolean getter: true when any ancestor of this node is done/dropped. */
+  doneAncestor(nodeId: string): () => boolean {
+    return this.reduced.get(nodeId).doneAncestor
+  }
+
+  /** Get excludedSigils reduced signal for a node.
+   * Returns a string[] getter: accumulated sigils from all ancestors (includes self). */
+  excludedSigils(nodeId: string): () => string[] {
+    return this.reduced.get(nodeId).excludedSigils as () => string[]
+  }
+
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
   getOrCreate(nodeId: string): NodeReactiveState {
     let state = this.nodes.get(nodeId)
@@ -202,12 +238,17 @@ export class ReactiveNodeStore {
 
     if (!rootId) return
 
+    // Build a TreeAccess adapter from the repo for reduced signal propagation
+    const repoTree: TreeAccess = {
+      parent: (id) => repo.getNode(id)?.parent_id ?? null,
+      children: (id) => repo.getChildren(id).map((n) => n.id),
+    }
+
     // Root board
     const rootState = this.getOrCreate(rootId)
     const rootSigils = deriveExcludedSigils(repo, rootId)
     rootState.parent = null
     rootState.ownSigils = rootSigils
-    rootState.excludedSigils(rootSigils)
     const rootFold = foldDepths.get(rootId)
     if (rootFold !== undefined) {
       rootState.foldOverride(rootFold)
@@ -224,16 +265,6 @@ export class ReactiveNodeStore {
       const colSigils = deriveColumnExcludedSigils(colName, col.id, col.fs_path)
       colState.ownSigils = colSigils
 
-      // Excluded sigils = parent's excluded + own
-      const parentExcluded = rootState.excludedSigils()
-      colState.excludedSigils(
-        colSigils.length === 0
-          ? parentExcluded
-          : parentExcluded.length === 0
-            ? colSigils
-            : [...parentExcluded, ...colSigils],
-      )
-
       const colFold = foldDepths.get(col.id)
       if (colFold !== undefined) {
         colState.foldOverride(colFold)
@@ -246,12 +277,10 @@ export class ReactiveNodeStore {
         const cardState = this.getOrCreate(card.id)
         cardState.parent = col.id
 
-        // Log broken symlinks
         if (card.symlink_to && !repo.getNode(card.symlink_to)) {
           log.debug?.(`Broken symlink: node ${card.id} → missing target ${card.symlink_to}`)
         }
 
-        // Card fold depth
         const cardFold = foldDepths.get(card.id)
         if (cardFold !== undefined) {
           cardState.foldOverride(cardFold)
@@ -263,11 +292,25 @@ export class ReactiveNodeStore {
           this.hydrateDescendantSelection(repo, card.id)
         }
 
-        // Excluded sigils — inherit from column (cards don't add own sigils)
-        cardState.excludedSigils(colState.excludedSigils())
-
         this.knownNodeIds.add(card.id)
       }
+    }
+
+    // Set ownSigils on the reduced store and let .reduce() propagate excludedSigils
+    this.reduced.batch(repoTree, () => {
+      if (rootSigils.length > 0) this.reduced.get(rootId).ownSigils(rootSigils)
+      for (const col of columns) {
+        const colName = getNodeDisplayName(repo, col)
+        const colSigils = deriveColumnExcludedSigils(colName, col.id, col.fs_path)
+        if (colSigils.length > 0) this.reduced.get(col.id).ownSigils(colSigils)
+      }
+    })
+
+    // Bridge: sync reduced excludedSigils → old NodeReactiveState.excludedSigils for readers
+    // that haven't migrated yet (TreeNode.tsx). Remove when all readers use nodeStore.excludedSigils().
+    for (const id of this.knownNodeIds) {
+      const sigils = this.reduced.get(id).excludedSigils() as string[]
+      if (sigils.length > 0) this.getOrCreate(id).excludedSigils(sigils)
     }
 
     // Hydrate sticky fold signals — flip the `sticky` signal for any node
