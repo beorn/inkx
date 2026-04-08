@@ -18,25 +18,23 @@ The signal caches the result. Dirty tracking recomputes only affected regions on
 ### State definition
 
 ```ts
-const store = reactiveTree({
-  state: () => ({
-    // Primary signals (set directly by actions)
-    cursor: signal(false),
-    selected: signal(false),
-    edit: signal<EditState | null>(null),
-    hovered: signal(false),
+const store = reactiveTree((tree) => ({
+  // Signals — writable per-node state
+  cursor: signal(false),
+  selected: signal(false),
+  editing: signal(false),
+  ownSigils: signal([]),
 
-    // Reduced signals (cached tree reductions — recomputed on batch)
-    cursorDescendant: tree.descendants(s => s.cursor).some(),
-    selectedAncestor: tree.ancestors(s => s.selected).some(),
-    excludedSigils: tree.ancestors(s => s.ownSigils).reduce(concat, []),
-    errorCount: tree.descendants(s => s.hasError).count(),
-  }),
-  tree: treeAccess,
-})
+  // Computeds — derived from tree walks, cached by alien-signals
+  cursorDescendant: tree.descendants(s => s.cursor).some(),
+  selectedAncestor: tree.ancestors(s => s.selected).some(),
+  excludedSigils: tree.ancestors(s => s.ownSigils).reduce(concat, () => []),
+}), visibleLens)  // any { parent, children }
 ```
 
 Reads as English: "cursorDescendant: **some** of my tree **descendants** have **cursor**."
+
+The factory receives a tree DSL builder; the second argument binds the traversal. Signals are plain alien-signals. Computeds compile to `computed(() => walk + aggregate)` — alien-signals handles dependency tracking, caching, and batching.
 
 ### `tree.ancestors` / `tree.descendants` — declarative
 
