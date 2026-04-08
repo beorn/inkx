@@ -18,7 +18,7 @@ import { createFakeRepo } from "@km/storage"
 import type { KNode } from "@km/core"
 import { createUndoStack } from "../src/undo-stack.ts"
 import { createUndoableRepo } from "../src/undo/undoable-repo.ts"
-import { invertOperation } from "../src/undo/operations.ts"
+import { invertTreeOp } from "../src/undo/operations.ts"
 import { item, testEnv } from "./helpers/board-test.ts"
 
 // =============================================================================
@@ -163,9 +163,9 @@ describe("UndoStack unit tests", () => {
 // Inverse computation
 // =============================================================================
 
-describe("invertOperation", () => {
+describe("invertTreeOp", () => {
   test("add_node inverts to remove_node", () => {
-    const inv = invertOperation({
+    const inv = invertTreeOp({
       type: "add_node",
       nodeId: "n1",
       parentId: "p1",
@@ -177,7 +177,7 @@ describe("invertOperation", () => {
   })
 
   test("remove_node inverts to add_node", () => {
-    const inv = invertOperation({
+    const inv = invertTreeOp({
       type: "remove_node",
       nodeId: "n1",
       parentId: "p1",
@@ -193,7 +193,7 @@ describe("invertOperation", () => {
   })
 
   test("move_node inverts by swapping from/to", () => {
-    const inv = invertOperation({
+    const inv = invertTreeOp({
       type: "move_node",
       nodeId: "n1",
       fromParentId: "p1",
@@ -211,7 +211,7 @@ describe("invertOperation", () => {
   })
 
   test("update_node inverts by swapping before/after", () => {
-    const inv = invertOperation({
+    const inv = invertTreeOp({
       type: "update_node",
       nodeId: "n1",
       before: { priority: "P1" },
