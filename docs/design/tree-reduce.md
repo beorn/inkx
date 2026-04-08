@@ -233,13 +233,21 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 
 ## What this replaces
 
+### Done (implemented)
+
 | Old | New |
 |-----|-----|
-| `syncCursor()` | `batch()` + `cursor` + `cursorDescendant` |
-| `syncSelected()` + `expandWithDescendants()` | `batch()` + `selected` + `selectedAncestor` |
-| `cursorInDescendant` (card-only) | `cursorDescendant` (all nodes) |
-| `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Components read `cursorDescendant` on ancestor |
-| 3 different `isSelected` definitions | `selected` + `selectedAncestor` |
+| `cursorInDescendant` (card-only, manual sync) | `cursorDescendant` (all nodes, reduced signal) |
+| Manual `prevDescendantCardId` tracking | Automatic via `batch()` + counts |
+| `expandedEditCardId === nodeId` for expansion | `editingDescendant` (reduced signal) |
+| `tree-concerns.ts` (prototype) | `reduced-signals.ts` (production) |
+
+### Remaining (future phases)
+
+| Old | New (planned) |
+|-----|-----|
+| `cursorCardNodeId` / `cursorColumnNodeId` / `cursorDepth` | Layout-derived, not tree-reduced — keep as-is |
+| `expandWithDescendants()` (visual selection) | `selectedAncestor` reduces this automatically |
 | `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` |
 | Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` |
 

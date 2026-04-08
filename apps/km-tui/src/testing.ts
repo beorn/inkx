@@ -221,12 +221,15 @@ export async function createBoardTest(
   const nodeStore = new ReactiveNodeStore()
   // Derive initial cursor ancestors for sync via lens
   const initAncestors = classifyCursorFromLens(initViewLens, firstCardNodeId)
-  nodeStore.syncCursor({
-    cursor: firstCardNodeId,
-    cursorCardNodeId: initAncestors.cursorCardNodeId,
-    cursorColumnNodeId: initAncestors.cursorColumnNodeId,
-    cursorDepth: initAncestors.cursorDepth,
-  })
+  nodeStore.syncCursor(
+    {
+      cursor: firstCardNodeId,
+      cursorCardNodeId: initAncestors.cursorCardNodeId,
+      cursorColumnNodeId: initAncestors.cursorColumnNodeId,
+      cursorDepth: initAncestors.cursorDepth,
+    },
+    initViewLens,
+  )
 
   const reactiveStore = withReactive(createStoreFromRepo(repo))
   const repoElement = React.createElement(RepoProvider, { repo, children: boardCoreElement })
