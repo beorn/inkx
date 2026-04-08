@@ -96,6 +96,7 @@ export class ReactiveNodeStore {
     this.reduced = new ReducedSignalStore()
     this.reduced.defineReduced("cursorDescendant", tree.descendants("cursor").some())
     this.reduced.defineReduced("selectedAncestor", tree.ancestors("selected").some())
+    this.reduced.defineReduced("editingDescendant", tree.descendants("editing").some())
   }
 
   /** Set the hovered node. Coalesced: rapid mouseEnter/mouseLeave events
@@ -156,6 +157,13 @@ export class ReactiveNodeStore {
    * Returns a boolean alien-signal: true when any ancestor of this node is selected. */
   selectedAncestor(nodeId: string): (() => boolean) {
     const sig = this.reduced.node(nodeId).reduced.get("selectedAncestor")
+    return (sig ?? (() => false)) as () => boolean
+  }
+
+  /** Get editingDescendant reduced signal for a node.
+   * Returns a boolean alien-signal: true when any descendant of this node is being edited. */
+  editingDescendant(nodeId: string): (() => boolean) {
+    const sig = this.reduced.node(nodeId).reduced.get("editingDescendant")
     return (sig ?? (() => false)) as () => boolean
   }
 
@@ -324,8 +332,8 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync inline edit state. When cardNodeId is present (sub-item editing),
-   *  sets expandedEditCardId so the parent card can expand to show all children. */
+  /** Sync inline edit state. When a sub-item is edited, sets editingDescendant
+   * via reduced signals so the parent card can expand to show all children. */
   syncEdit(
     oldNodeId: string | null,
     newNodeId: string | null,
@@ -335,6 +343,7 @@ export class ReactiveNodeStore {
       stickyX?: number
     } | null,
     cardNodeId?: string,
+    treeAccess?: TreeAccess,
   ): void {
     if (oldNodeId && oldNodeId !== newNodeId) {
       this.getOrCreate(oldNodeId).edit(null)
@@ -346,8 +355,16 @@ export class ReactiveNodeStore {
         stickyX: newState.stickyX,
       })
     }
-    // Update expandedEditCardId for parent card expansion
+    // Update expandedEditCardId for parent card expansion (legacy — kept until readers migrate)
     this.expandedEditCardId(cardNodeId ?? null)
+
+    // Update reduced signals: editingDescendant propagates up from editing node
+    if (treeAccess) {
+      this.reduced.batch(treeAccess, () => {
+        if (oldNodeId) this.reduced.setPrimary(oldNodeId, "editing", false)
+        if (newNodeId && newState) this.reduced.setPrimary(newNodeId, "editing", true)
+      })
+    }
   }
 
   /** Mark all descendants of a selected node as visually selected during hydration. */

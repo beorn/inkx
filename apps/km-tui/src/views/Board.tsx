@@ -796,10 +796,10 @@ export function Board({ patchedConsole }: BoardProps) {
           }
         }
       }
-      nodeStore.syncEdit(prev?.nodeId ?? null, editState?.nodeId ?? null, editState, derivedCardNodeId)
+      nodeStore.syncEdit(prev?.nodeId ?? null, editState?.nodeId ?? null, editState, derivedCardNodeId, ps.visibleLens())
       prevInlineEditRef.current = editState
     }
-  }, [nodeStore, editState, repo, nodeIndex])
+  }, [nodeStore, editState, repo, nodeIndex, ps])
 
   // Derive cursor position from cursor + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index

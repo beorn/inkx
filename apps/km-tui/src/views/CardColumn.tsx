@@ -223,12 +223,12 @@ const Card = React.memo(
     const isPrevAtCursor = prevCardNodeId != null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
 
     // Check if this card is in inline edit mode (for border color).
-    // Also matches when a sub-item of this card is being edited (derived expandedEditCardId).
-    const expandedEditCardId = useSignal(nodeStore.expandedEditCardId)
+    // Also matches when a sub-item of this card is being edited (editingDescendant).
+    const editingDescendant = useSignal(nodeStore.editingDescendant(nodeId))
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
       return s.sel.text()?.nodeId === nodeId
     })
-    const isEditing = isDirectlyEditing || expandedEditCardId === nodeId
+    const isEditing = isDirectlyEditing || editingDescendant
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
     // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
