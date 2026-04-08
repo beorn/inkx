@@ -25,6 +25,35 @@
  * // store.get("card1").cursorDescendant() → true
  * ```
  *
+ * ## Performance
+ *
+ * | Operation | Cost |
+ * |-----------|------|
+ * | Read any signal | O(1) — pre-computed, cached |
+ * | Cursor move (batch write) | O(depth) — walk parent chain, update counts |
+ * | .reduce() recompute | O(depth × affected) — full walk, rare |
+ * | Batch with N writes, same source | O(depth) — coalesced into one walk |
+ * | Node creation | O(primaryDefs + reducedDefs) |
+ *
+ * Benchmarks (Bun, M5 Max):
+ * - 10,000 siblings, cursor move: <1ms
+ * - depth 100, cursor move: 0.4ms
+ * - 1,111 nodes, select/deselect root: 1.7ms
+ *
+ * ## Memory
+ *
+ * ~2.7 KB per node (5 primaries + 5 reduceds). Per-node cost:
+ * 3 Maps + 10 alien-signal closures + 5 count numbers + accessor object.
+ *
+ * | Nodes | Memory |
+ * |-------|--------|
+ * | 100 | ~265 KB |
+ * | 1,000 | ~2.7 MB |
+ * | 10,000 | ~26 MB |
+ *
+ * Could reduce ~40% with fixed-size arrays instead of Maps (field set is
+ * known at definition time), but not worth the complexity for current scale.
+ *
  * Design doc: docs/design/tree-reduce.md
  */
 
