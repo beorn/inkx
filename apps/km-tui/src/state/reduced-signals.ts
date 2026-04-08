@@ -34,8 +34,7 @@ interface ReducedDescriptor<T> {
   readonly [REDUCED]: true
   readonly direction: "up" | "down"
   readonly sourceKey: string
-  readonly reducerType: "some" | "count" | "every"
-  readonly equals?: (a: T, b: T) => boolean
+  readonly reducerType: "some" | "count"
 }
 
 /** Check if a value is a reduced signal descriptor */
@@ -48,14 +47,12 @@ export function isReducedDescriptor(value: unknown): value is ReducedDescriptor<
 interface DirectionBuilder {
   some(): ReducedDescriptor<boolean>
   count(): ReducedDescriptor<number>
-  every(): ReducedDescriptor<boolean>
 }
 
 function createBuilder(direction: "up" | "down", sourceKey: string): DirectionBuilder {
   return {
     some: () => ({ [REDUCED]: true as const, direction, sourceKey, reducerType: "some" as const }),
     count: () => ({ [REDUCED]: true as const, direction, sourceKey, reducerType: "count" as const }),
-    every: () => ({ [REDUCED]: true as const, direction, sourceKey, reducerType: "every" as const }),
   }
 }
 
@@ -119,12 +116,13 @@ export class ReducedSignalStore {
   private inBatch = false
   private pendingSourceChanges: Array<{ key: string; nodeId: string; oldValue: boolean; newValue: boolean }> = []
 
-  /** Register a reduced signal definition */
+  /** Register a reduced signal definition. Must be called before any node() calls. */
   defineReduced<T>(name: string, descriptor: ReducedDescriptor<T>): void {
     this.reducedDefs.push({ name, descriptor: descriptor as ReducedDescriptor<unknown> })
   }
 
-  /** Get or create signals for a node */
+  /** Get or create signals for a node. Lazy creation is intentional — nodes are
+   * created on first access (either via setPrimary or via component read). */
   node(nodeId: string): NodeSignals {
     let ns = this.nodes.get(nodeId)
     if (!ns) {
@@ -137,6 +135,11 @@ export class ReducedSignalStore {
       this.nodes.set(nodeId, ns)
     }
     return ns
+  }
+
+  /** Number of tracked nodes (for debugging/monitoring) */
+  get size(): number {
+    return this.nodes.size
   }
 
   /** Get a primary signal for a node, creating if needed */
@@ -251,25 +254,23 @@ export class ReducedSignalStore {
   private updateCount(nodeId: string, name: string, delta: number, descriptor: ReducedDescriptor<unknown>): void {
     const ns = this.node(nodeId)
     const oldCount = ns.counts.get(name) ?? 0
-    const newCount = Math.max(0, oldCount + delta)
-    ns.counts.set(name, newCount)
+    const newCount = oldCount + delta
+    if (newCount < 0) {
+      // Dev assertion: negative counts indicate a stale-topology bug.
+      // Clamp to 0 to avoid cascading corruption, but log for debugging.
+      if (process.env.NODE_ENV !== "production") {
+        console.warn(`[reduced-signals] negative count for ${name} on ${nodeId}: ${oldCount} + ${delta}`)
+      }
+      ns.counts.set(name, 0)
+    } else {
+      ns.counts.set(name, newCount)
+    }
+    const effectiveCount = Math.max(0, newCount)
 
     const sig = ns.reduced.get(name)
     if (!sig) return
 
-    let newValue: unknown
-    switch (descriptor.reducerType) {
-      case "some":
-        newValue = newCount > 0
-        break
-      case "count":
-        newValue = newCount
-        break
-      case "every":
-        newValue = newCount > 0 // simplified for v1
-        break
-    }
-
+    const newValue = descriptor.reducerType === "count" ? effectiveCount : effectiveCount > 0
     if (sig() !== newValue) {
       ;(sig as AlienSignal<unknown>)(newValue)
     }

@@ -189,10 +189,11 @@ export class ReactiveNodeStore {
     selected: Set<string>,
     stickyFolds: Map<string, "folded" | "unfolded"> = new Map(),
   ): void {
-    // Clean up old nodes
+    // Clean up old nodes and reset reduced signal store (topology changed)
     if (this.knownNodeIds.size > 0) {
       this.cleanup(this.knownNodeIds)
     }
+    this.reduced.clear()
     this.knownNodeIds = new Set<string>()
 
     if (!rootId) return
@@ -319,14 +320,17 @@ export class ReactiveNodeStore {
       }
     }
 
-    // ── Shadow: update reduced signals ──
+    // Update reduced signals with DIRECT selections only (not expanded descendants).
+    // selectedAncestor propagates down automatically via the reduced engine.
+    // Using expanded descendants would be semantically wrong (descendants aren't
+    // actually selected) and quadratically expensive.
     if (treeAccess) {
       this.reduced.batch(treeAccess, () => {
-        for (const key of oldExpanded) {
-          if (!newExpanded.has(key)) this.reduced.setPrimary(key, "selected", false)
+        for (const key of oldSelected) {
+          if (!newSelected.has(key)) this.reduced.setPrimary(key, "selected", false)
         }
-        for (const key of newExpanded) {
-          if (!oldExpanded.has(key)) this.reduced.setPrimary(key, "selected", true)
+        for (const key of newSelected) {
+          if (!oldSelected.has(key)) this.reduced.setPrimary(key, "selected", true)
         }
       })
     }
