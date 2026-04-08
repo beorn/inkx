@@ -84,7 +84,7 @@ For production-representative timing without running benches:
 
 ```bash
 # Per-keypress phase timing (loggily spans)
-TRACE=silvery:pipeline DEBUG_LOG=/tmp/perf.log bun km view ~/vault
+TRACE=silvery:render DEBUG_LOG=/tmp/perf.log bun km view ~/vault
 
 # Render phase stats (node visit/skip/render counts)
 SILVERY_INSTRUMENT=1 bun km view ~/vault

@@ -115,7 +115,7 @@ Current instrumentation for diagnosing performance issues:
 | silvery strict mode | `SILVERY_STRICT=1` | Incremental vs fresh render comparison |
 | React DevTools | `DEBUG_DEVTOOLS=1 bun km view` | Flame graph of component mount/update |
 | Debug logging | `DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log` | Detailed render pipeline trace |
-| Pipeline phase timing | `DEBUG=silvery:pipeline` or `globalThis.__silvery_last_pipeline` | Per-phase breakdown (measure, layout, content, output) |
+| Pipeline phase timing | `DEBUG=silvery:render` or `globalThis.__silvery_last_pipeline` | Per-phase breakdown (measure, layout, content, output) |
 
 ## Key Lessons
 
