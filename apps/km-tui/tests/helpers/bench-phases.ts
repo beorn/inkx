@@ -37,7 +37,9 @@ import {
   silveryBenchStart,
   silveryBenchStop,
   silveryBenchReset,
+  silveryBenchOutputDetail,
   type SilveryBenchPhases,
+  type SilveryBenchOutputDetail,
 } from "@silvery/ag-term"
 
 // =============================================================================
@@ -53,6 +55,8 @@ export interface BenchPhaseRecord {
   wallMs: number
   /** Sum of per-phase timings across iterations. */
   phases: SilveryBenchPhases
+  /** Output-phase sub-timing detail (diffBuffers vs changesToAnsi). */
+  outputDetail: SilveryBenchOutputDetail
 }
 
 export interface BenchPhasesAccumulator {
@@ -113,7 +117,13 @@ export function withBenchPhases(name: string): BenchPhasesAccumulator {
   ensureExitHook()
   let record = records.find((r) => r.name === name)
   if (!record) {
-    record = { name, iterations: 0, wallMs: 0, phases: emptyPhases() }
+    record = {
+      name,
+      iterations: 0,
+      wallMs: 0,
+      phases: emptyPhases(),
+      outputDetail: { diffMs: 0, ansiMs: 0, calls: 0, totalChanges: 0, dirtyRows: 0, outputBytes: 0 },
+    }
     records.push(record)
   }
   const r = record
@@ -144,6 +154,16 @@ export function withBenchPhases(name: string): BenchPhasesAccumulator {
         r.phases.reconcile += phases.reconcile
         r.phases.pipelineCalls += phases.pipelineCalls
         r.phases.renderCalls += phases.renderCalls
+        // Capture output-phase sub-timing
+        const outDetail = silveryBenchOutputDetail()
+        if (outDetail) {
+          r.outputDetail.diffMs += outDetail.diffMs
+          r.outputDetail.ansiMs += outDetail.ansiMs
+          r.outputDetail.calls += outDetail.calls
+          r.outputDetail.totalChanges += outDetail.totalChanges
+          r.outputDetail.dirtyRows += outDetail.dirtyRows
+          r.outputDetail.outputBytes += outDetail.outputBytes
+        }
         silveryBenchReset()
         // Eagerly persist the sidecar after each iteration. vitest bench
         // workers may exit without firing afterAll/beforeExit reliably, so
@@ -188,7 +208,9 @@ export function formatBenchPhases(record: BenchPhaseRecord): string {
   const pct = (ms: number) => (wall === 0 ? "0%" : `${((ms / wall) * 100).toFixed(0)}%`)
   const fmt = (label: string, ms: number) => `    ${label.padEnd(18)} ${ms.toFixed(2)}ms (${pct(ms)})`
 
-  return [
+  const od = record.outputDetail
+  const odCalls = od.calls || 1
+  const lines = [
     `[bench-phases] ${record.name}`,
     `  iterations:        ${i}`,
     `  wall (per iter):   ${wall.toFixed(2)}ms`,
@@ -202,9 +224,18 @@ export function formatBenchPhases(record: BenchPhaseRecord): string {
     fmt("  notify", phases.notify / i),
     fmt("content (render)", content),
     fmt("output (diff/ANSI)", output),
-    fmt("other", other),
-    "",
-  ].join("\n")
+  ]
+  if (od.calls > 0) {
+    lines.push(
+      fmt("  diffBuffers", od.diffMs / i),
+      fmt("  changesToAnsi", od.ansiMs / i),
+      `    changes/call:    ${(od.totalChanges / odCalls).toFixed(0)}`,
+      `    dirty rows/call: ${(od.dirtyRows / odCalls).toFixed(0)}`,
+      `    bytes/call:      ${(od.outputBytes / odCalls).toFixed(0)}`,
+    )
+  }
+  lines.push(fmt("other", other), "")
+  return lines.join("\n")
 }
 
 /**
@@ -218,7 +249,9 @@ export function formatBenchPhases(record: BenchPhaseRecord): string {
  */
 export function dumpBenchPhases(...accumulators: BenchPhasesAccumulator[]): void {
   const wanted = accumulators.length > 0 ? new Set(accumulators.map((a) => a.name)) : null
-  const filtered = wanted ? records.filter((r) => wanted.has(r.name) && r.iterations > 0) : records.filter((r) => r.iterations > 0)
+  const filtered = wanted
+    ? records.filter((r) => wanted.has(r.name) && r.iterations > 0)
+    : records.filter((r) => r.iterations > 0)
   if (filtered.length === 0) return
 
   for (const r of filtered) {
