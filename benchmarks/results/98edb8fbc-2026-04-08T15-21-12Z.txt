@@ -1,0 +1,38 @@
+Cursor Performance Benchmark Results
+=====================================
+Date:   2026-04-08T15:21:12Z
+Commit: 98edb8fbc (docs(design): update tree-reduce.md with v2 signals inventory + useTreeNode target)
+System: M5 Max, 18 cores
+Context: After reduced signals engine + findInheritedBg O(1) threading (km-tui.tree-perf epic)
+
+Benchmark file: apps/km-tui/tests/cursor-perf.bench.ts
+
+--- getSibling overhead (getChildren + findIndex) ---
+  100 siblings — 50 moves   11,354.18 hz  mean=0.0881ms
+  500 siblings — 50 moves    2,408.39 hz  mean=0.4152ms
+  1000 siblings — 50 moves   1,289.70 hz  mean=0.7754ms
+  2000 siblings — 50 moves     642.64 hz  mean=1.5561ms
+  3700 siblings — 50 moves     349.94 hz  mean=2.8577ms
+
+--- Full pipeline: j-press on large column (200x60) ---
+  100 cards — 20 j-presses   0.4855 hz  mean=2059.68ms
+  500 cards — 20 j-presses   0.4799 hz  mean=2083.89ms
+  1000 cards — 20 j-presses  0.4730 hz  mean=2114.09ms
+  2000 cards — 20 j-presses  0.4751 hz  mean=2104.93ms
+  3700 cards — 20 j-presses  0.4602 hz  mean=2173.12ms
+
+--- Full pipeline: j-press on large column (400x200) ---
+  500 cards — 20 j-presses   0.0799 hz  mean=12510.92ms
+  2000 cards — 20 j-presses  0.0798 hz  mean=12526.26ms
+  3700 cards — 20 j-presses  0.0793 hz  mean=12617.98ms
+
+--- Full pipeline: h/l on multi-column (3 cols x 1000) ---
+  navigate right across columns  0.9570 hz  mean=1044.96ms
+
+=== Phase Breakdown (per iteration, 200x60, 3700 cards) ===
+  wall:            2184.80ms
+  layout side:       11.89ms (0.5%)
+  content (render): 152.73ms (7.0%)
+  output (diff):   1595.16ms (73.0%)
+  other:            424.72ms (19.4%)
+
