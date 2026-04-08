@@ -44,15 +44,21 @@ function buildCommandContexts(ctx: OpCtx) {
   const { ui, selectedNode } = ctx
 
   // Compute TNode derived fields from KNode for the command system.
-  // For symlink nodes, resolve through symlink_to to check if the target is a task,
-  // so that task commands (x, Space) work on symlinks pointing to tasks.
+  // For symlink nodes, resolve through symlink_to so that task commands (x, Space)
+  // see the target's task status — not the symlink's (which has none).
   const symlinkTarget = selectedNode?.symlink_to
+  const targetNode = symlinkTarget ? ctx.repo.getNode(symlinkTarget) : null
+  const resolvedItem =
+    symlinkTarget && targetNode?.item?.task
+      ? { ...selectedNode?.item, task: targetNode.item.task }
+      : selectedNode?.item
   const nodeForCtx: TNode | null = selectedNode
     ? ({
         ...selectedNode,
+        item: resolvedItem,
         isTask:
           selectedNode.item?.task?.status != null ||
-          (symlinkTarget != null && ctx.repo.getNode(symlinkTarget)?.item?.task?.status != null),
+          (symlinkTarget != null && targetNode?.item?.task?.status != null),
         children: [],
         depth: 0,
         childCount: selectedNode ? ctx.tree.children(selectedNode.id).length : 0,
