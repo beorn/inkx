@@ -7,6 +7,7 @@
  */
 
 import { signal } from "alien-signals"
+import { ReducedSignalStore, tree, type TreeAccess } from "./reduced-signals.ts"
 import { createContext, useContext } from "react"
 import type { Repo } from "../repo-context.tsx"
 import { deriveExcludedSigils, deriveColumnExcludedSigils } from "./ui-context.tsx"
@@ -77,6 +78,9 @@ export class ReactiveNodeStore {
   private nodes = new Map<string, NodeReactiveState>()
   private knownNodeIds = new Set<string>()
 
+  // ── Reduced signal store (shadow — Phase 1) ──────────────────────────────
+  readonly reduced: ReducedSignalStore
+
   // ── Cursor state (synced from Board.tsx via syncCursor) ──
   cursor = signal<string | null>(null)
   cursorCardNodeId = signal<string | null>(null)
@@ -93,6 +97,12 @@ export class ReactiveNodeStore {
   private hoveredNodeId: string | null = null
   private pendingHover: string | null | undefined = undefined // undefined = no pending
   private hoverScheduled = false
+
+  constructor() {
+    this.reduced = new ReducedSignalStore()
+    this.reduced.defineReduced("cursorDescendant", tree.descendants("cursor").some())
+    this.reduced.defineReduced("selectedAncestor", tree.ancestors("selected").some())
+  }
 
   /** Set the hovered node. Coalesced: rapid mouseEnter/mouseLeave events
    * across multiple I/O callbacks batch into one update. setTimeout(0)
@@ -115,13 +125,18 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync cursor state to signals (called by Board.tsx) */
-  syncCursor(cursorState: {
-    cursor: string | null
-    cursorCardNodeId: string | null
-    cursorColumnNodeId: string | null
-    cursorDepth: "board" | "column" | "card"
-  }): void {
+  /** Sync cursor state to signals (called by Board.tsx).
+   * @param treeAccess Optional tree for reduced signal shadow computation */
+  syncCursor(
+    cursorState: {
+      cursor: string | null
+      cursorCardNodeId: string | null
+      cursorColumnNodeId: string | null
+      cursorDepth: "board" | "column" | "card"
+    },
+    treeAccess?: TreeAccess,
+  ): void {
+    const prevCursor = this.cursor()
     this.cursor(cursorState.cursor)
     this.cursorCardNodeId(cursorState.cursorCardNodeId)
     this.cursorColumnNodeId(cursorState.cursorColumnNodeId)
@@ -144,6 +159,14 @@ export class ReactiveNodeStore {
     }
 
     this.prevDescendantCardId = isInDescendant ? cardId : null
+
+    // ── Shadow: update reduced signals ──
+    if (treeAccess) {
+      this.reduced.batch(treeAccess, () => {
+        if (prevCursor) this.reduced.setPrimary(prevCursor, "cursor", false)
+        if (cursorState.cursor) this.reduced.setPrimary(cursorState.cursor, "cursor", true)
+      })
+    }
   }
 
   /** Get or lazily create per-node reactive state. Stable reference per nodeId. */
@@ -281,8 +304,9 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected. */
-  syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
+  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected.
+   * @param treeAccess Optional tree for reduced signal shadow computation */
+  syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo, treeAccess?: TreeAccess): void {
     const oldExpanded = repo ? expandWithDescendants(repo, oldSelected) : oldSelected
     const newExpanded = repo ? expandWithDescendants(repo, newSelected) : newSelected
 
@@ -295,6 +319,18 @@ export class ReactiveNodeStore {
       if (!oldExpanded.has(key)) {
         this.getOrCreate(key).selected(true)
       }
+    }
+
+    // ── Shadow: update reduced signals ──
+    if (treeAccess) {
+      this.reduced.batch(treeAccess, () => {
+        for (const key of oldExpanded) {
+          if (!newExpanded.has(key)) this.reduced.setPrimary(key, "selected", false)
+        }
+        for (const key of newExpanded) {
+          if (!oldExpanded.has(key)) this.reduced.setPrimary(key, "selected", true)
+        }
+      })
     }
   }
 

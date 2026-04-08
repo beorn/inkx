@@ -40,7 +40,7 @@ interface ReducedDescriptor<T> {
 
 /** Check if a value is a reduced signal descriptor */
 export function isReducedDescriptor(value: unknown): value is ReducedDescriptor<unknown> {
-  return value != null && typeof value === "object" && REDUCED in value && (value as Record<symbol, boolean>)[REDUCED]
+  return value != null && typeof value === "object" && REDUCED in value && (value as Record<symbol, boolean>)[REDUCED] === true
 }
 
 // ─── Descriptor Builders ────────────────────────────────────────────────────
@@ -120,8 +120,8 @@ export class ReducedSignalStore {
   private pendingSourceChanges: Array<{ key: string; nodeId: string; oldValue: boolean; newValue: boolean }> = []
 
   /** Register a reduced signal definition */
-  defineReduced(name: string, descriptor: ReducedDescriptor<unknown>): void {
-    this.reducedDefs.push({ name, descriptor })
+  defineReduced<T>(name: string, descriptor: ReducedDescriptor<T>): void {
+    this.reducedDefs.push({ name, descriptor: descriptor as ReducedDescriptor<unknown> })
   }
 
   /** Get or create signals for a node */
