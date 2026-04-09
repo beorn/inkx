@@ -8,7 +8,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
@@ -277,17 +277,15 @@ describe("km-tui.shift-cursor: column shift preserves cursor position", () => {
  * fall through to single-node path and only operate on cursor (B).
  */
 describe("Shift-J single press range (km-cnn5z)", () => {
-  // NOTE: "single J from A selects both A and B" uses board.getStatus() which is not
-  // exposed on createTestApp — stays on testEnv.
   test("single J from A selects both A and B", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
     // Cursor starts on A (card 0)
-    board.press("shift+ArrowDown") // anchor=A, cursor→B
+    app.press("shift+ArrowDown") // anchor=A, cursor→B
 
     // After one J, the selection range should include both A and B
     // Check status message reflects 2 items selected
-    const status = board.getStatus()
+    const status = app.getStatus()
     expect(status).not.toBeNull()
     expect(status!.message).toContain("2")
   })
@@ -333,8 +331,6 @@ describe("Shift-J single press range (km-cnn5z)", () => {
   })
 })
 
-// NOTE: shift card boundary detection tests use `board.bell` which is not exposed
-// by createTestApp — entire describe block stays on testEnv.
 describe("shift card boundary detection", () => {
   const singleCol = () => item("board", item("Col", item("a"), item("b"), item("c")))
   const twoCols = () => item("board", item("Col1", item("a")), item("Col2", item("b")))
@@ -343,7 +339,7 @@ describe("shift card boundary detection", () => {
     {
       name: "shift up at top card",
       fixture: singleCol,
-      opts: { columns: 60, rows: 20 },
+      opts: { cols: 60, rows: 20 },
       nav: [],
       key: "opt+k",
       bell: true,
@@ -351,7 +347,7 @@ describe("shift card boundary detection", () => {
     {
       name: "shift down at bottom card",
       fixture: () => item("board", item("Col", item("a"), item("b"))),
-      opts: { columns: 60, rows: 20 },
+      opts: { cols: 60, rows: 20 },
       nav: ["j"],
       key: "opt+j",
       bell: true,
@@ -359,7 +355,7 @@ describe("shift card boundary detection", () => {
     {
       name: "shift left at leftmost column",
       fixture: twoCols,
-      opts: { columns: 80, rows: 20 },
+      opts: { cols: 80, rows: 20 },
       nav: [],
       key: "opt+h",
       bell: true,
@@ -367,7 +363,7 @@ describe("shift card boundary detection", () => {
     {
       name: "shift right at rightmost column",
       fixture: twoCols,
-      opts: { columns: 80, rows: 20 },
+      opts: { cols: 80, rows: 20 },
       nav: ["l"],
       key: "opt+l",
       bell: true,
@@ -375,7 +371,7 @@ describe("shift card boundary detection", () => {
     {
       name: "shift down in middle succeeds (no bell)",
       fixture: singleCol,
-      opts: { columns: 60, rows: 20 },
+      opts: { cols: 60, rows: 20 },
       nav: [],
       key: "opt+j",
       bell: false,
@@ -383,15 +379,15 @@ describe("shift card boundary detection", () => {
     {
       name: "shift up at column header",
       fixture: twoCols,
-      opts: { columns: 80, rows: 20 },
+      opts: { cols: 80, rows: 20 },
       nav: ["k"],
       key: "opt+k",
       bell: true,
     },
   ])("$name", ({ fixture, opts, nav, key, bell }) => {
-    const { board } = testEnv(fixture, opts)
-    for (const k of nav) board.press(k)
-    board.press(key)
-    expect(board.bell).toBe(bell)
+    using app = createTestApp(fixture, opts)
+    for (const k of nav) app.press(k)
+    app.press(key)
+    expect(app.bell).toBe(bell)
   })
 })
