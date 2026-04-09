@@ -8,9 +8,29 @@ allowed-tools: Bash, Read, Glob, Grep, Task
 
 **Keywords**: test, TDD, bun test, test:fast, test:all, buffer assertions, chaos, silvery
 
-## Workflows
+---
 
-All work follows the [test-first protocol](test-first-protocol.md).
+## Test-First Protocol
+
+Every bug fix, feature, and refactor follows this protocol:
+
+1. **Value check** -- does this test belong at this layer? See [test layers](#test-layers) below.
+2. **Write a failing test FIRST** -- before any fix/implementation code
+3. **Verify it fails for the right reason** -- the test must demonstrate the actual bug/missing feature
+4. **Implement the minimal change** -- fix only what's broken, no extras
+5. **Verify the test passes** -- run `bun run test:fast`
+6. **Run full suite** -- `bun run test:fast` must stay green
+
+For rendering bugs, use **buffer assertions** (not just state assertions):
+- `board.expectNodeColor()`, `board.expectRow()`, `board.screen.cell()` -- see [buffer assertions](#buffer-assertions)
+
+**Never**: theorize without a test, skip the failing-test step, guess at fixes, or close a bead without a test that specifically targets the issue.
+
+**Non-obvious tests need rationale**: If the test guards a subtle edge case, add a comment explaining why it exists and when it's safe to remove.
+
+---
+
+## Commands
 
 ### Coding Iteration (every change)
 
@@ -33,31 +53,7 @@ bun run test:all           # Full suite (must pass) ~2-3min
 bun run test:ci            # 6-phase suite: typecheck, lint, fast, slow, vendor, fuzz (~3-5min)
 ```
 
-Run `test:ci` before pushing significant changes, after large refactors, or when the pre-push hook reminds you. It covers everything `test:all` does plus typecheck, lint, and fuzz tests. A successful run writes a timestamp to `/tmp/km-test-ci-last-run` so the pre-push hook can track freshness.
-
-### Timing Guard
-
-**test:fast target: <20s wall-clock** (30s warning threshold allows for CPU contention).
-If it exceeds 30s:
-1. Something is wrong (hanging test, infinite loop, CPU contention)
-2. Check `ps aux | grep vitest` for stale processes from other sessions
-3. If a test hangs: find it with per-file runs, fix or mark `.slow.test.ts`
-4. New TUI tests >5s should be `.slow.test.ts` — the fast suite is capped
-
-### Why test:fast Is Fast
-
-TUI board-rendering tests (testEnv + press + buffer assertions) dominate test time.
-Files >5s are in `.slow.` to keep test:fast under 20s. The split:
-- **test:fast** (~200 files, ~4200 tests, ~25s): unit tests, small TUI tests, CLI, storage, parsers
-- **test:slow** (~40 files, ~1100 tests): heavy TUI navigation, rendering, incremental verification
-- Both run in **test:all** before commit
-
-### Performance Analysis
-
-```bash
-bun run test:fast:html     # Fast tests + HTML report + perf tracking
-bun run test:all:html      # All tests + HTML report + perf tracking
-```
+Run `test:ci` before pushing significant changes, after large refactors, or when the pre-push hook reminds you. A successful run writes a timestamp to `/tmp/km-test-ci-last-run`.
 
 ### Working on Specific Areas
 
@@ -68,36 +64,9 @@ bun run test:all:html      # All tests + HTML report + perf tracking
 | Specific file        | `bun vitest related src/foo.ts`         |
 | Sync, watcher, chaos | `bun run test:slow`                     |
 | Broad non-vendor     | `bun run test:fast`                     |
+| Package iteration    | `bun vitest run vendor/silvery/tests/`  |
 
-Still run `test:all` before commit.
-
-### Efficient Test Verification
-
-Dot reporter is the default (configured in vitest.config.ts) — one dot per test, details only on failure.
-
-**test:fast** runs the default project (non-slow, non-vendor). **test:all** runs all 3 projects. Fuzz files need `test:fuzz` (or are included in `test:ci`).
-
-**When iterating on a package**, run vitest directly on that directory:
-```bash
-bun vitest run vendor/silvery/tests/
-bun vitest run apps/km-tui/tests/
-```
-
-**If `test:all` fails:** fix using targeted vitest runs, then `test:all` one final time.
-
-**Do NOT:**
-- Re-run `test:all` to analyze a failure you already saw
-- Pipe test output through grep (dot reporter handles this)
-- Run full suites as "sanity checks" after targeted tests pass
-
-### CI / Release
-
-```bash
-bun run test:ci                   # Full 6-phase suite (typecheck, lint, fast, slow, vendor, fuzz)
-TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
-```
-
-**NEVER use bare `bun test`** - picks up archived tests.
+**NEVER use bare `bun test`** -- picks up archived tests.
 
 ---
 
@@ -106,11 +75,10 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 | Command            | What it runs                                                  | Notes                |
 | ------------------ | ------------------------------------------------------------- | -------------------- |
 | `test:fast`        | Default project (excludes `*.slow.*` and `vendor/**`)         | Fast feedback        |
-| `test:slow`        | `--project slow` — `*.slow.{test,spec}.*` only                | Integration tests    |
+| `test:slow`        | `--project slow` -- `*.slow.{test,spec}.*` only               | Integration tests    |
 | `test:all`         | `--project default --project slow --project vendor`           | Before commit        |
-| `test:fuzz`        | `FUZZ=1` — `*.fuzz.ts` files only                             | Exploratory testing  |
-| (fuzz in test:ci)  | `FUZZ=1 FUZZ_REPEATS=1000` — bounded fuzz run                 | Part of test:ci      |
-| `test:vendor`      | `--project vendor` — vendor tests only                        | Vendor isolation     |
+| `test:fuzz`        | `FUZZ=1` -- `*.fuzz.ts` files only                             | Exploratory testing  |
+| `test:vendor`      | `--project vendor` -- vendor tests only                        | Vendor isolation     |
 | `test:fast:html`   | Fast tests + HTML report + performance tracking               | Performance analysis |
 | `test:all:html`    | All tests + HTML report + performance tracking                | Full analysis        |
 | `test:ci`          | 6-phase: typecheck, lint, fast, slow, vendor, fuzz            | Before push          |
@@ -127,42 +95,52 @@ TEST_MODE=real bun run test:all   # Disk DB, full infrastructure
 
 ---
 
-## Testing Categories
+## Three Testing Modes
 
-| Category | What | Skill |
-|----------|------|-------|
-| **TUI Tests** | Component + board testing (silvery) | [tui.md](tui.md) |
-| **Terminal Tests** | ANSI/cell/cursor verification (termless) | [termless.md](termless.md) |
-| **CLI Tests** | Command output (mdspec) | [cli.md](cli.md) |
-| **GUI/TTY Tests** | Screenshots (MCP/playwright) | [gui.md](gui.md) |
-| **Fuzz / Chaos** | Property-based, gen/take/test.fuzz (vimonkey) | [chaos.md](chaos.md) |
-| **Exploration** | Interactive AI probing + monkey testing | `/explore` |
-| **Bench** | Benchmarks | [bench.md](bench.md) |
-| **Storybook** | Interactive component catalog | `bun storybook` (inline), `--fullscreen` |
+### 1. Regression (headless/termless) -- automated, CI-friendly
+
+Deterministic tests that run in CI. Two rendering backends:
+
+```
+React reconcile --> measure --> layout --> content --> output --> terminal
+headless: ____________________________________________/  (phases 1-4, ~5ms/op)
+termless: ______________________________________________________/  (all 5, ~50ms/op)
+TTY MCP:  ______________________________________________________________/  (real terminal)
+```
+
+- **Headless** (`createRenderer()`, `testEnv()`): Tests the virtual buffer. Fast (~5ms). Use for component logic, board state, navigation, most rendering assertions.
+- **Termless** (`createTermless()`): Tests ANSI output through a real xterm.js emulator. Use when the bug involves terminal features -- colors, cursor position, alt screen, scrollback, escape sequences. ~50ms/op.
+
+### 2. Exploratory (TTY screenshots) -- adaptive, judgment-based
+
+AI-driven interactive exploration of the running TUI. Not scripted -- observe, hypothesize, investigate. See [exploratory.md](exploratory.md).
+
+### 3. Fuzz (property-based) -- randomized invariant checking
+
+Randomized inputs with invariant assertions after every action. Auto-shrinks on failure. See [fuzz section](#fuzz--chaos-testing) below.
+
+---
 
 ## Which Tool? Decision Tree
 
 ```
 I want to test...
-├── Component rendering / state / navigation
-│   ├── km board behavior → testEnv() [tui.md]
-│   └── Silvery component → createRenderer() [tui.md]
-│
-├── ANSI output correctness (colors, cursor, escape sequences)
-│   ├── Silvery component → createTermless() [termless.md]
-│   └── Spawned process → createTerminalFixture() + spawn() [termless.md]
-│
-├── Cross-emulator conformance (xterm vs Ghostty vs vt100)
-│   └── Multi-backend workspace [termless.md]
-│
-├── CLI command output
-│   └── mdspec (.spec.md files) [cli.md]
-│
-├── Visual pixel verification / manual debugging
-│   └── TTY MCP tools [gui.md]
-│
-└── Fuzz / chaos / property-based
-    └── vimonkey (gen/take/test.fuzz) [chaos.md]
++-- Component rendering / state / navigation
+|   +-- km board behavior --> testEnv() + item()
+|   +-- Silvery component --> createRenderer()
+|
++-- ANSI output correctness (colors, cursor, escape sequences)
+|   +-- Silvery component --> createTermless()
+|   +-- Spawned process --> createTerminalFixture() + spawn()
+|
++-- CLI command output
+|   +-- mdspec (.spec.md files) [cli.md]
+|
++-- Visual pixel verification / manual debugging
+|   +-- TTY MCP tools (mcp__tty__screenshot) or app.screenshot()
+|
++-- Fuzz / chaos / property-based
+    +-- vimonkey (gen/take/test.fuzz)
 ```
 
 ### Tool Comparison
@@ -176,137 +154,505 @@ I want to test...
 | `.spawn()` | Terminal method | 1-15s | Real PTY process | Integration / E2E |
 | TTY MCP | `mcp__tty__*` | seconds | Browser screenshots | Visual debugging, pixel-level |
 
-- Any **test** can have `.slow.` suffix (manually assigned)
-- **Bench** and **Storybook** are not "tests" - must qualify
-- See [testing.md#dynamic-testing-taxonomy](../../docs/dev/testing.md#dynamic-testing-taxonomy) for industry terminology
+### Choosing Between testEnv and createTermless
 
-### Test File Organization
+| Bug reported as... | Use | Why |
+|---|---|---|
+| "I pressed X and saw Y" (visual) | **`createTermless()`** | Tests what reaches the terminal |
+| "Cursor jumped to wrong place" | **`createTermless()`** | Real cursor position from emulator |
+| "Alt screen didn't switch" | **`createTermless()`** | Terminal mode detection |
+| "Card disappeared after indent" | **`testEnv()`** first, **`createTermless()`** if testEnv passes | May be DOM or ANSI bug |
+| "Undo doesn't restore fold state" | **`testEnv()`** | Internal state, no terminal feature |
+| "Command doesn't dispatch" | **`testEnv()`** | State machine, no rendering |
 
-**Always add regression tests to existing thematic files.** The km-tui test suite is organized by domain (fold, zoom, scroll, etc.), not by bug ID. See [test-first-protocol.md](test-first-protocol.md#where-to-put-regression-tests) for the full domain→file mapping.
+**Rule**: If the user describes what they **saw on screen** or the bug involves **terminal features** (alt screen, scrollback, cursor style, colors, escape sequences), use termless. If they describe **behavior** (undo, navigation logic, command dispatch), use testEnv.
+
+---
+
+## Headless Testing (createRenderer / testEnv)
+
+### createRenderer() -- Silvery component tests
+
+Fast (~5ms), no ANSI processing -- tests the virtual buffer.
+
+```typescript
+import { createRenderer } from "@silvery/test"
+
+const render = createRenderer({ cols: 80, rows: 24 })
+
+test("help dialog renders sections", async () => {
+  const app = render(<Help />)
+  expect(app.text).toContain("NAVIGATION")
+
+  await app.press("j")
+  expect(app.getByText("SCROLL").count()).toBe(1)
+})
+```
+
+**Key APIs**: `app.text`, `app.ansi`, `app.press()`, `app.type()`, `app.resize()`, `app.getByTestId()`, `app.getByText()`, `app.locator()`, `app.screenshot()`, `app.rerender()`, `app.unmount()`.
+
+**Auto-refreshing locators** re-evaluate on every access:
+```typescript
+const cursor = app.locator('[data-cursor]')
+expect(cursor.textContent()).toBe("item1")
+await app.press("j")
+expect(cursor.textContent()).toBe("item2")  // Same locator, fresh result
+```
+
+### testEnv() -- km board tests
+
+Wraps createRenderer with board state + repo.
+
+```typescript
+import { testEnv, item } from "./helpers"
+
+const { board } = testEnv(() =>
+  item("board",
+    item("col1", item("1a"), item("1b")),
+    item("col2", item("2a")),
+  )
+)
+
+board.press("ArrowDown")
+board.expect("#1a[data-cursor]").toExist()
+```
+
+### Keyboard Input (Playwright-style)
+
+```typescript
+board.press("ArrowDown")     // Instead of "\x1b[B"
+board.press("Enter")         // Instead of "\r"
+board.press("Control+c")    // Ctrl+C
+board.press("Shift+Tab")    // Shift+Tab
+board.press("j")             // Single character
+```
+
+<a name="buffer-assertions"></a>
+
+### Buffer Assertions
+
+For rendering bugs, use buffer assertions -- state assertions (`toExist()`) pass even when rendering is broken.
+
+| Method | What it checks |
+|--------|---------------|
+| `board.screen.cell(x,y)` | Raw cell: `{char, fg, bg, attrs}` |
+| `board.screen.row(n)` | Text of row n |
+| `board.screen.nodePos(id)` | Screen position of a node |
+| `board.screen.nodeBox(id)` | Bounding box of a node |
+| `board.screen.findRow(text)` | Find row containing text |
+| `board.expectScreen(text)` | Screen contains text |
+| `board.expectRow(n, pattern)` | Row contains/matches |
+| `board.expectCellChar(x,y,c)` | Character at position |
+| `board.expectCellColor(x,y,{fg,bg})` | Colors at position |
+| `board.expectNodeColor(id,{fg,bg,attrs})` | Colors on node's text |
+| `board.expectNodeBorder(id)` | Node has border chars |
+| `board.expectNodeNoBorder(id)` | Node has no border |
+| `board.expectBorderContinuous(id)` | All 4 sides unbroken |
+| `board.expectHorizontalBorder(id, side)` | Top or bottom border |
+| `board.expectAdjacentBorders(id)` | Node + neighbors intact |
+| `board.expectNoGhostChars(region?)` | No NUL, control chars |
+| `board.expectBlankRegion(x,y,w,h)` | Region is all spaces |
+| `board.expectNoBlankLine(from?,to?)` | No fully blank rows |
+| `board.expectNoContentGaps(rows?)` | No blank rows in content |
+| `board.expectCursorVisible()` | Cursor within bounds |
+| `board.expectTextNotOverflowing(id)` | Text within node bounds |
+| `board.expectTextTruncated(id)` | Long text truncated |
+| `board.expectColumnsAligned(ids[])` | Columns ordered, non-overlapping |
+| `board.expectIncrementalMatchesFresh()` | Incremental matches fresh render |
+
+**Color numbers**: 0=black, 1=red, 2=green, 3=yellow, 4=blue, 5=magenta, 6=cyan, 7=white
+
+---
+
+## Termless Testing (createTermless)
+
+When you need to verify actual ANSI output through a real terminal emulator (xterm.js). Use for bugs involving colors, cursor position, terminal modes, scrollback, escape sequences.
+
+### Quick Start
+
+```typescript
+import { createTermless } from "@silvery/test"
+import "@termless/test/matchers"
+
+test("renders header with correct colors", async () => {
+  const term = createTermless({ cols: 80, rows: 24 })
+  const handle = await run(<MyApp />, term)
+
+  expect(term.screen).toContainText("Dashboard")
+  expect(term.cell(0, 0)).toBeBold()
+  expect(term.cell(0, 0)).toHaveFg("#00ff00")
+
+  await handle.press("j")
+  expect(term).toHaveCursorAt(0, 1)
+})
+```
+
+### 3-Layer Verification Pattern
+
+For terminal feature bugs, verify all three layers:
+
+```typescript
+test("feature works end-to-end", async () => {
+  using term = createTermless({ cols: 40, rows: 10 })
+  const handle = await run(<App />, term, { alternateScreen: true })
+  await settle()
+
+  expect(term.screen).toContainText("BOARD VIEW")    // Screen content
+  expect(term).toBeInMode("altScreen")                // Terminal state
+  expect(appState.mode).toBe("board")                 // App state
+})
+```
+
+### What Only Termless Can Test
+
+| Capability | Matcher / API |
+|---|---|
+| Scrollback content | `term.scrollback`, `toHaveScrollbackLines(n)` |
+| Cursor position | `toHaveCursorAt(x, y)` |
+| Cursor style | `toHaveCursorStyle("beam")` |
+| Cursor visibility | `toHaveCursorVisible()`, `toHaveCursorHidden()` |
+| Terminal modes (11 modes) | `toBeInMode("altScreen")` |
+| Resolved RGB colors | `toHaveFg("#ff0000")`, `toHaveBg({r,g,b})` |
+| Cell attributes | `toBeBold()`, `toBeItalic()`, `toBeDim()` |
+| ANSI sequence correctness | Feed raw ANSI, assert rendered result |
+| Wide character / emoji | `toBeWide()` |
+| Terminal title | `toHaveTitle("My App")` |
+| Cross-emulator conformance | Multi-backend workspace |
+| Real PTY process output | `term.spawn()` + `waitForStable()` |
+
+### Region Selectors
+
+```typescript
+term.screen       // Visible area only
+term.scrollback   // History above visible area
+term.buffer       // Everything (scrollback + screen)
+term.row(0)       // First visible row
+term.cell(0, 5)   // Cell at row 0, col 5
+```
+
+### Matchers
+
+Import: `import "@termless/test/matchers"`
+
+**Text** (auto-retry when awaited): `toContainText()`, `toHaveText()`, `toMatchLines()`, `toHaveTextCount()`
+
+**Cell style**: `toBeBold()`, `toBeItalic()`, `toBeDim()`, `toBeStrikethrough()`, `toBeInverse()`, `toHaveUnderline("curly")`, `toHaveFg("#ff0000")`, `toHaveBg({r,g,b})`
+
+**Terminal state** (auto-retry when awaited): `toHaveCursorAt()`, `toHaveCursorStyle()`, `toHaveCursorVisible()`, `toBeInMode()`, `toHaveTitle()`, `toHaveScrollbackLines()`
+
+### Inline Mode Testing
+
+Inline mode bugs only manifest when the terminal has existing scrollback. Pre-populate it:
+
+```typescript
+// BAD: empty terminal
+const term = createTermless({ cols: 80, rows: 24 })
+
+// GOOD: pre-populate scrollback like a real terminal
+const term = createTermless({ cols: 80, rows: 24 })
+term.write("$ previous-command\r\n$ another-command\r\n")
+```
+
+---
+
+## Fuzz & Chaos Testing
+
+Property-based fuzz testing with auto-shrinking. Uses vimonkey's `test.fuzz` with `gen()`/`take()`.
+
+### When to Use
+
+If you can state an invariant ("X should always be true regardless of input"), fuzz it.
+
+### Quick Reference
+
+```bash
+bun run test:fuzz                               # All fuzz tests
+FUZZ=1 bun vitest run path/to/file.fuzz.ts      # Specific file
+FUZZ_SEED=12345 FUZZ=1 bun vitest run           # Reproducible run
+```
+
+**File suffix**: `.fuzz.ts` -- excluded from `test:all`, only runs with `test:fuzz` or `test:ci`.
+
+### Core API
+
+```typescript
+import { test, gen, take } from "vimonkey"
+
+test.fuzz("navigation never crashes", async () => {
+  const { board } = testEnv(() => item("board", item("col", item("a"), item("b"))))
+  for await (const key of take(gen(["j", "k", "h", "l", "Enter", "Escape"]), 200)) {
+    board.press(key)
+    board.expectNoGhostChars()  // Invariant checked after every action
+  }
+})
+```
+
+On failure: vimonkey auto-shrinks to minimal failing sequence and saves to `__fuzz_cases__/` for regression.
+
+### Chaos Stream Transformers
+
+For testing event stream systems (file sync, real-time updates):
+
+| Transformer | What It Simulates |
+|---|---|
+| `drop` | Skip events with probability |
+| `reorder` | Shuffle within sliding window |
+| `duplicate` | Yield some events twice |
+| `coalesce` | Replace N events with summary |
+| `burst` | Collect then emit in rapid bursts |
+| `delay` | Await before yield |
+| `partialWrite` | Split change into multiple |
+| `renameChain` | Expand rename into chain |
+
+### Anti-Patterns
+
+- **Checking invariants only at the end** -- bugs hide in intermediate states
+- **No shrinking** -- use `test.fuzz()`, not raw `test()` with random loops
+- **Too few iterations** -- 100+ for dev, 10000+ for CI
+- **Fuzz file without `.fuzz.ts` suffix** -- will accidentally run in `test:all`
+- **Stress tests in `.test.ts`** -- high iteration counts must be `.bench.ts` or `.fuzz.ts`
+
+---
+
+## GUI/TTY Testing (Screenshots)
+
+For pixel-level verification and interactive debugging using the `tty` MCP server.
+
+### In-Process Screenshots (Preferred)
+
+```typescript
+const png = await driver.screenshot('/tmp/board.png')
+```
+
+Uses `bufferToHTML()` + lazy Playwright rendering -- no PTY needed.
+
+### TTY MCP (Interactive Debugging)
+
+```
+mcp__tty__start({ command: ["bun", "km", "view", "/path"] })
+mcp__tty__wait({ sessionId, for: "BOARD VIEW" })
+mcp__tty__press({ sessionId, key: "j" })
+mcp__tty__screenshot({ sessionId })     // ALWAYS use screenshots for verification
+mcp__tty__stop({ sessionId })
+```
+
+**Use screenshots** (`mcp__tty__screenshot`) for visual verification -- not `mcp__tty__text`.
+
+For automated tests, prefer termless over TTY MCP. Termless runs in-process, is faster, and deterministic. TTY MCP is for interactive debugging where you need visual inspection.
+
+---
+
+## SILVERY_STRICT Enforcement
+
+`SILVERY_STRICT=1` is enabled globally in `packages/km-infra/vitest/setup.ts`. Every render frame is compared incremental vs fresh. **Unknown mismatches fail the test.**
+
+If a test fails with `IncrementalRenderMismatchError`:
+
+1. **Fix the renderer bug** -- do not disable STRICT or skip the test
+2. If the mismatch is a known bug, whitelist it:
+   - **Per-run**: `SILVERY_STRICT_KNOWN="*zoom*,*garble*" bun vitest run ...`
+   - **Permanent**: Add to `getKnownPatterns()` in `setup.ts`
+
+### Diagnostic Mode
+
+```bash
+SILVERY_STRICT=1 bun km view /path/to/vault       # Real app
+SILVERY_STRICT=1 bun vitest run apps/km-tui/tests/ # Tests
+```
+
+**What it catches**: incremental vs fresh render mismatches, ghost pixels, stale background colors, blank cards after fold/unfold, buffer divergence after outline depth changes.
+
+---
+
+## Test File Organization
+
+**Always add regression tests to existing thematic files.** The km-tui test suite is organized by domain (fold, zoom, scroll, etc.), not by bug ID.
 
 **Rules:**
 1. Search for an existing file that matches your bug's domain before creating a new file
 2. Only create a new file if: no domain match exists AND the test seeds 5+ related cases
 3. Name new files by domain (`fold.test.ts`), not by bug (`fold-border-blank.test.ts`)
-4. Group related tests under `describe()` blocks within the file
-
-**Anti-pattern:** One file per bug (e.g., `fold-border-blank.test.ts`, `fold-border-regression.test.ts`). This causes test suite bloat — merge into `fold.test.ts` instead.
+4. Group related tests under `describe()` blocks
 
 ### Test File Suffixes
 
 | Suffix          | What It Tests                   | Layer |
 | --------------- | ------------------------------- | ----- |
-| `.spec.ts`      | **User-level journeys** — keys in, observations out | km-tui (Layer 5) |
-| `.test.ts`      | Unit/component/pipeline — internal API | All layers |
+| `.spec.ts`      | **User-level journeys** -- keys in, observations out | km-tui (Layer 5) |
+| `.test.ts`      | Unit/component/pipeline -- internal API | All layers |
 | `.slow.test.ts` | Heavy TUI tests (>5s), sync, real vault | Layers 3-5 |
 | `.slow.spec.ts` | Heavy user-level journeys (>5s) | km-tui (Layer 5) |
 | `.bench.ts`     | Performance measurement (vitest bench) | Any |
 | `.fuzz.ts`      | Fuzz + chaos tests (excluded from test:all) | Any |
 | `.spec.md`      | CLI commands via mdspec         | km-cli |
 
-**When to use `.spec.ts`**: If the test presses keys and asserts what the user sees + what got saved, use `.spec.ts`. If it calls internal functions or checks internal state, use `.test.ts`. See [test-layers.md](test-layers.md#when-suffix-should-be-spects-vs-testts) for details.
-
 **Rules**:
 - Tests taking >5s should be `.slow.test.ts` or `.slow.spec.ts`
-- **Stress tests, large fixtures (100+ nodes), high iteration counts (100+), and performance measurements MUST be `.bench.ts`** — never `.test.ts` or `.slow.test.ts`. They run via `bun run bench`, not `test:all`.
-- Ad-hoc debugging tests that aren't evergreen regression guards should be deleted, not committed
+- Stress tests, large fixtures (100+ nodes), high iteration counts (100+) MUST be `.bench.ts`
+- Ad-hoc debugging tests that aren't evergreen should be deleted, not committed
+
+### When to Use .spec.ts vs .test.ts
+
+If your test presses keys and asserts what the user sees, use `.spec.ts`. If it calls internal functions or checks internal state, use `.test.ts`.
 
 ---
 
-## TEST_MODE
+<a name="test-layers"></a>
 
-Controls test infrastructure via environment variable.
+## Test Layers
 
-| Mode      | Database | When to Use                   |
-| --------- | -------- | ----------------------------- |
-| (default) | :memory: | Normal development            |
-| `real`    | Disk     | CI, releases, drift detection |
+Every test should answer: **"Does this test what THIS layer adds?"**
 
-Example: `TEST_MODE=real bun run test:all`
+### Priority: Acceptance Tests First
 
-> **Note**: `mock` mode exists but doesn't currently skip tests. See [test-fakes.md](../../docs/dev/test-fakes.md) for behavioral fakes that work independently of TEST_MODE.
+**The most valuable tests are closest to the user.** Journey tests (`.spec.ts`) that press keys and verify what the user sees + what got saved are the highest priority.
 
----
-
-## Performance Tracking
-
-Use `:html` commands for performance tracking and HTML reports:
+### The Layers
 
 ```
-============================================================
-📊 Test Performance Summary
-============================================================
+-- km app --
+Layer 5b: Termless (.termless.test.ts) --> ANSI output verification
+Layer 5a: km-tui (.spec.ts)           --> User journeys (TOP PRIORITY)
+Layer 4: km-board (.test.ts)          --> Action sequences, state transitions
+Layer 3: km-storage (.test.ts)        --> Pipeline integrity: files <-> nodes
+Layer 2: km-markdown (.test.ts)       --> Parse fidelity: markdown <-> AST
+Layer 1: km-core (.test.ts)           --> Contracts: invariants hold
 
-⏱️  Total: 13.2s (2292 tests, 107 files)
-   Avg per test: 5.8ms
-   📉 2.1% faster than previous run
-
-🐌 Slowest Files (top 5):
-   1. packages/km-storage/tests/repo.test.ts
-      2.1s (45 tests)
-
-⚠️  2 file(s) taking >1000ms should be .slow.test.ts:
-   - packages/km-storage/tests/repo.test.ts (2.1s)
+-- vendor --
+Layer 0a-d: silvery, flexily, ansi    --> Rendering, layout, terminal primitives
+Layer 0e+: infrastructure             --> Logger, vimonkey, mdspec, tools, etc.
 ```
 
-**What to do:**
+### Value Check (before writing any test)
 
-- Files >1s should be moved to `.slow.test.ts`
-- > 10% regression: investigate immediately
-- View HTML UI: `bunx vite preview --outDir test-results`
+1. **Layer check**: Does this test belong at this layer?
+2. **Addition check**: Does it verify what THIS layer adds?
+3. **Observation check**: Is the assertion at the right abstraction level?
+
+### Anti-Pattern: Cross-Layer Re-Testing
+
+**Bad**: Storage test verifying markdown heading parse (belongs in km-markdown). TUI test asserting board reducer state shape (belongs in km-board).
+
+**Good**: TUI test pressing keys and checking screen + saved data. Storage test writing a file, syncing, editing DB, syncing back.
+
+### Import Cost Layers
+
+| Layer | Import Cost | Example |
+|---|---|---|
+| 0: Pure Logic | ~20-50ms | `text-utils.test.ts` |
+| 0+: Module imports | ~500-700ms | `input-mode.test.ts` |
+| 1: Component Unit | ~200ms | `node-view.test.tsx` |
+| 2+: Integration | ~1.8s | `hr.test.ts`, `fold.slow.test.ts` |
+
+Layer 2+ files share ~1.8s import cost. Consolidating them saves ~1.8s per eliminated file. Don't merge Layer 0 tests into Layer 2 files.
 
 ---
-
-## Vitest Config
-
-Single config at `vitest.config.ts` with 3 named projects:
-- **`default`** — excludes `*.slow.*` and `vendor/**` (= fast tests)
-- **`slow`** — only `*.slow.{test,spec}.*` files
-- **`vendor`** — only `vendor/**`
-
-Bare `vitest run` = default project only (fast). Use `--project` for others.
-Reporter: `dot` (minimal). All imports use `vitest` (not `bun:test`), run with `bunx --bun`.
-
-## SILVERY_STRICT Enforcement
-
-`SILVERY_STRICT=1` is enabled globally in `packages/km-infra/vitest/setup.ts`. Every render frame is compared incremental vs fresh. **Unknown mismatches fail the test** -- they are not warnings.
-
-If a test fails with `IncrementalRenderMismatchError`:
-
-1. **Fix the renderer bug** -- do not disable STRICT or skip the test
-2. If the mismatch is a known bug being fixed incrementally, whitelist it:
-   - **Per-run**: `SILVERY_STRICT_KNOWN="*zoom*,*garble*" bun vitest run ...`
-   - **Permanent**: Add the pattern to `getKnownPatterns()` in `setup.ts`
-3. Patterns are comma-separated globs matching test names (e.g., `*zoom*`, `fold*card*`)
-4. Known mismatches produce a warning instead of a failure
 
 ## Output Rules
 
 **km project tests must be silent on success.** Any stdout/stderr output fails the test.
 
 - `console.log/info/debug` are intercepted and fail the test
-- `process.stdout.write` is intercepted
 - If your test needs output, use `vi.spyOn(console, "log").mockImplementation(() => {})`
 - Debug with: `SKIP_OUTPUT_CHECK=1 bun test path/to/test.ts`
 
-Vendor tests do not have console enforcement (they emit act() warnings from react-reconciler).
+Vendor tests do not have console enforcement.
 
-See [docs/dev/testing.md](../../docs/dev/testing.md#test-output-rules) for details.
+---
+
+## TEST_MODE
+
+| Mode      | Database | When to Use                   |
+| --------- | -------- | ----------------------------- |
+| (default) | :memory: | Normal development            |
+| `real`    | Disk     | CI, releases, drift detection |
+
+---
+
+## TDD Cycle
+
+1. Write failing test (test-first protocol)
+2. Implement feature
+3. `test:fast` passes
+4. `bun fix` passes
+5. `test:all` passes
+6. Clean up: keep as `.test.ts` or delete if ad-hoc (`.scratch.ts` for vitest-ignored scratch)
+7. Commit
+
+**Test Safety**: Tests use `/tmp/kmtest-*` (auto-cleaned). NEVER test on real user data. `km sync --to-fs` can corrupt files -- always isolate.
+
+---
+
+## Timing Guard
+
+**test:fast target: <20s wall-clock** (30s warning threshold).
+If it exceeds 30s:
+1. Check `ps aux | grep vitest` for stale processes
+2. Find hanging test with per-file runs, fix or mark `.slow.test.ts`
+3. New TUI tests >5s should be `.slow.test.ts`
+
+---
+
+## Vitest Config
+
+Single config at `vitest.config.ts` with named projects:
+- **`default`** -- excludes `*.slow.*`, `*.pty.*`, and `vendor/**` (= fast tests)
+- **`slow`** -- only `*.slow.{test,spec}.*` files
+- **`vendor`** -- only `vendor/**`
+
+Reporter: `dot` (minimal). All imports use `vitest` (not `bun:test`), run with `bunx --bun`.
+
+---
+
+## Bug Classification
+
+| Bug Type | Test Approach | Example |
+|----------|--------------|---------|
+| **State bug** (wrong cursor, missing node) | DOM assertions: `board.expect("#id").toExist()` | Cursor on wrong card |
+| **Rendering bug** (wrong color, missing border) | Buffer assertions: `board.expectNodeColor()` | Wrong selected color |
+| **Terminal bug** (cursor, modes, ANSI) | Termless: `term.cell()`, `toBeInMode()` | Alt screen wrong |
+| **Mixed** (state + rendering) | Both: DOM + buffer assertions | Card exists but no border |
+
+**CRITICAL**: For rendering bugs, state-only assertions are insufficient. Always use buffer assertions.
+
+---
+
+## Node-Type-Specific Testing
+
+Include the actual node type being tested in fixtures:
+
+```typescript
+// BAD: generic items
+const { board } = testEnv(() => item("board", item("col", item("card"))))
+
+// GOOD: include the actual node type
+const { board } = testEnv(() =>
+  item("board", item("col",
+    item("card above"),
+    item.hr(),           // actual HR node
+    item("card below"),  // verify adjacent integrity
+  ))
+)
+```
+
+---
+
+## Common Pitfalls
+
+- **Multi-pass layout**: Some components trigger layout feedback loops. Test with components that change height based on measured width.
+- **Fixtures must match production complexity**: Real vault data triggers mismatches that synthetic fixtures miss. Use large fixtures (50+ items) for suspected real-data bugs.
+- **Init-sequence bugs**: Startup timing bugs need `createTermless` tests that verify ANSI sequence order.
+- **checkIncremental must be ON**: Default in `testEnv()`. Never create tests with `checkIncremental: false` unless deliberately testing a known-broken path.
 
 ---
 
 ## Sub-Skills
 
-| Need                         | Load                                            |
-| ---------------------------- | ----------------------------------------------- |
-| TDD workflow, test safety    | [tdd-workflow.md](tdd-workflow.md)              |
-| Test layering philosophy     | [test-layers.md](test-layers.md)                |
-| TUI testing (silvery)        | [tui.md](tui.md)                                |
-| Terminal testing (termless)  | [termless.md](termless.md)                      |
-| CLI testing (mdspec)         | [cli.md](cli.md)                                |
-| GUI/TTY testing (MCP/screenshots) | [gui.md](gui.md)                           |
-| Benchmarks                   | [bench.md](bench.md)                            |
-| Fuzz/chaos testing (vimonkey) | [chaos.md](chaos.md)                           |
-| Test quality review          | [review-tests.md](review-tests.md) (infrequent) |
+| Need                              | Load                                  |
+| --------------------------------- | ------------------------------------- |
+| Exploratory testing               | [exploratory.md](exploratory.md)      |
+| API reference (full interfaces)   | [reference.md](reference.md)          |
+| CLI testing (mdspec)              | [cli.md](cli.md)                      |
+| Benchmarks                        | [bench.md](bench.md)                  |
 
 **Full reference**: [docs/dev/testing.md](../../docs/dev/testing.md)
