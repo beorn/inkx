@@ -201,24 +201,24 @@ describe("Date Badge Display Journeys", () => {
 
   test("date badge updates after programmatic repo change", () => {
     const nodes = item("board", item("col1", item.task("Task A"), item.task("Task B")))
-    const { board, repo } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: No dates initially
-    expect(board.screenshot()).not.toContain("Mar 15")
+    expect(app.text).not.toContain("Mar 15")
 
     // Step 2: Set due_at on Task A via repo
-    const col = repo.getChildren("board")[0]!
-    const taskA = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const taskA = app.repo.getChildren(col.id)[0]!
     act(() => {
-      repo.updateNode(taskA.id, { due_at: "2026-03-15" })
+      app.repo.updateNode(taskA.id, { due_at: "2026-03-15" })
     })
-    board.command("cursor_down") // flush render
+    app.command("cursor_down") // flush render
 
     // Step 3: Date badge should appear
-    expect(board.screenshot()).toContain("Mar 15")
+    expect(app.text).toContain("Mar 15")
 
     // Step 4: Navigate and come back — badge persists
-    board.command("cursor_up")
-    expect(board.screenshot()).toContain("Mar 15")
+    app.command("cursor_up")
+    expect(app.text).toContain("Mar 15")
   })
 })
