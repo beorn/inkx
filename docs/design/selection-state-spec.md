@@ -34,7 +34,7 @@ A card is a container node at column depth. It bridges node selection and text s
 | Arrow up/down in edit | cursor = adjacentId | {nodeId: adjacentId, offset: 0} | Editing scope unchanged |
 | Escape from edit | cursor = nodeId | — (cleared) | Returns to node selection |
 
-The card is the **editing scope**: `expandedEditCardId` tracks which card owns the current edit session. The bold focusborder wraps the scope (the card), not the individual node being edited. Analogous to VS Code's editor pane having focus border, not the individual line.
+The card is the **editing scope**: the `editingDescendant` reduced signal on each node tracks whether any descendant is being edited. The bold focusborder wraps the scope (the card), not the individual node being edited. Analogous to VS Code's editor pane having focus border, not the individual line.
 
 **Dual role**: cards are focusable containers normally (click, j/k to select). Promoted to editing scopes when any descendant enters text mode (captures keyboard, suppresses selection highlights, shows bold focusborder).
 
@@ -156,7 +156,7 @@ cursor: string | null           // sel.node.cursor()
 selectedIds: Set<string>        // sel.node.ids() — includes cursor
 editTarget: { nodeId, offset }  // sel.text()
 ```
-Plus derived: cursorCardNodeId, cursorColumnNodeId, cursorDepth, expandedEditCardId — computed in Board.tsx and synced to ReactiveNodeStore.
+Plus derived: cursorCardNodeId, cursorColumnNodeId, cursorDepth — computed in Board.tsx and synced to ReactiveNodeStore. Editing scope detected via `editingDescendant` reduced signal (per-node, not store-level).
 
 ### Target (Phase F of km-tui.focus)
 ```ts
@@ -176,7 +176,7 @@ These should be dev-mode assertions:
 - [ ] Cursor on node not visible in current view (not in ViewTree)
 - [ ] Active scope pointing to non-existent pane
 - [ ] Multi-select across panes (each pane has independent selection)
-- [ ] expandedEditCardId set but sel.text() is null
+- [ ] editingDescendant true but sel.text() is null (editing signal without active text selection)
 
 ## Multi-Select
 
