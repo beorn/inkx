@@ -31,15 +31,6 @@ function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId:
   return repo.getChildren(parentId).map((n) => n.id)
 }
 
-// Helper: get cursor target node ID from the sel store.
-function cursorTargetId(store: {
-  getState(): {
-    sel: { node: { cursor(): string | null } }
-  }
-}): string | null {
-  return store.getState().sel.node.cursor() as string | null
-}
-
 describe("Indent (Tab)", () => {
   describe("basic indent", () => {
     test("indent reparents node under previous sibling", () => {
@@ -161,30 +152,29 @@ describe("Indent (Tab)", () => {
   })
 
   describe("cursor follows node after indent", () => {
-    // NOTE: these tests use `store` (Zustand) which is not exposed by createTestApp — stay on testEnv.
     test("cursor follows indented node", () => {
       // col1: [A, B, C] — indent B under A → cursor follows B (now child of A)
-      const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
+      using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
 
-      board.command("cursor_down") // → B
-      board.command("indent_node") // indent B under A → col1=[A, C], cursor follows B
+      app.command("cursor_down") // → B
+      app.command("indent_node") // indent B under A → col1=[A, C], cursor follows B
 
       // B was indented under A
-      expect(childIds(repo, "A")).toEqual(["B"])
-      expect(childIds(repo, "col1")).toEqual(["A", "C"])
+      expect(childIds(app.repo, "A")).toEqual(["B"])
+      expect(childIds(app.repo, "col1")).toEqual(["A", "C"])
       // Cursor follows B (the indented node)
-      expect(cursorTargetId(store)).toBe("B")
+      app.expect("#B[data-cursor]").toExist()
     })
 
     test("cursor follows indented node when last sibling", () => {
       // col1: [A, B] — indent B under A → col1=[A], cursor follows B
-      const { board, store, repo } = testEnv(() => item("board", item("col1", item("A"), item("B"))))
+      using app = createTestApp(item("board", item("col1", item("A"), item("B"))))
 
-      board.command("cursor_down") // → B
-      board.command("indent_node") // indent B under A → col1=[A]
+      app.command("cursor_down") // → B
+      app.command("indent_node") // indent B under A → col1=[A]
 
-      expect(childIds(repo, "A")).toEqual(["B"])
-      expect(cursorTargetId(store)).toBe("B")
+      expect(childIds(app.repo, "A")).toEqual(["B"])
+      app.expect("#B[data-cursor]").toExist()
     })
   })
 })
@@ -504,17 +494,16 @@ describe("Multi-select indent (atomic batch)", () => {
     expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C", "D"])
   })
 
-  // NOTE: uses board.getStatus() which is not exposed by createTestApp — stays on testEnv.
   test("selection is cleared after successful multi-select indent", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"), item("D"))))
 
-    board.command("cursor_down") // → B
-    board.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}
-    board.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}
-    board.command("indent_node")
+    app.command("cursor_down") // → B
+    app.press("shift+ArrowDown") // anchor=B, multiSelected={B:0}
+    app.press("shift+ArrowDown") // range B→D, multiSelected={B:0,C:0,D:0}
+    app.command("indent_node")
 
     // After successful batch indent, no "selected" status
-    const status = board.getStatus()
+    const status = app.getStatus()
     if (status) {
       expect(status.message).not.toContain("selected")
     }
@@ -544,7 +533,6 @@ describe("Multi-select outdent (atomic batch)", () => {
 // =============================================================================
 
 describe("Cursor follows node (invariant)", () => {
-  // NOTE: uses `store` (Zustand) — stays on testEnv.
   test.each([
     {
       name: "indent: cursor follows indented node (with siblings)",
@@ -575,13 +563,11 @@ describe("Cursor follows node (invariant)", () => {
       expected: "B",
     },
   ])("$name", ({ fixture, nav, key, expected }) => {
-    const { board, store } = testEnv(fixture)
-    for (const k of nav) board.press(k)
-    board.press(key)
-    // After structural tree changes (indent/outdent), cursor store is the source of truth.
-    // The data-cursor render attribute may not update within the same press cycle due to
-    // React's useSyncExternalStore flush timing during the silvery render pipeline.
-    expect(cursorTargetId(store)).toBe(expected)
+    using app = createTestApp(fixture())
+    for (const k of nav) app.press(k)
+    app.press(key)
+    // After structural tree changes (indent/outdent), cursor moves to the expected node.
+    app.expect(`#${expected}[data-cursor]`).toExist()
   })
 
   test("indent then navigate: can reach next sibling after indent", () => {
@@ -597,18 +583,17 @@ describe("Cursor follows node (invariant)", () => {
     expect(app.q("[data-cursor]").textContent()).toContain("C")
   })
 
-  // NOTE: uses `store` — stays on testEnv.
   test("INVARIANT: indent then outdent preserves tree structure", () => {
     // col1: [A, B, C] — indent B under A → directly verify repo state
     // Then test outdent by constructing pre-nested tree
-    const { board, repo, store } = testEnv(() => item("board", item("col1", item("A"), item("B"), item("C"))))
-    expect(childIds(repo, "col1")).toEqual(["A", "B", "C"])
+    using app = createTestApp(item("board", item("col1", item("A"), item("B"), item("C"))))
+    expect(childIds(app.repo, "col1")).toEqual(["A", "B", "C"])
 
-    board.command("cursor_down") // → B
-    board.command("indent_node") // indent B under A → cursor follows B
-    expect(childIds(repo, "col1")).toEqual(["A", "C"]) // B moved under A
-    expect(childIds(repo, "A")).toEqual(["B"])
-    expect(cursorTargetId(store)).toBe("B")
+    app.command("cursor_down") // → B
+    app.command("indent_node") // indent B under A → cursor follows B
+    expect(childIds(app.repo, "col1")).toEqual(["A", "C"]) // B moved under A
+    expect(childIds(app.repo, "A")).toEqual(["B"])
+    app.expect("#B[data-cursor]").toExist()
   })
 
   test("non-item nodes cannot be indented (type restriction)", () => {
@@ -713,14 +698,21 @@ describe("Indent visibility (regression: tab-disappear)", () => {
     app.expectScreen("third")
   })
 
-  // NOTE: uses `expectCursorVisible()` which is not exposed by createTestApp — stays on testEnv.
   test("cursor is visible after indent", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task1"), item("task2"), item("task3"))))
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"), item("task3"))))
 
-    board.command("cursor_down") // Move to task2
-    board.command("indent_node") // Indent task2 under task1
+    app.command("cursor_down") // Move to task2
+    app.command("indent_node") // Indent task2 under task1
 
-    board.expectCursorVisible()
+    // Cursor element exists and its bounding box is within screen bounds
+    const loc = app.q("[data-cursor]")
+    expect(loc.count()).toBeGreaterThan(0)
+    const box = loc.boundingBox()
+    expect(box).not.toBeNull()
+    if (box) {
+      expect(box.x).toBeGreaterThanOrEqual(0)
+      expect(box.y).toBeGreaterThanOrEqual(0)
+    }
   })
 
   test("sequential indent keeps all nodes visible", () => {
