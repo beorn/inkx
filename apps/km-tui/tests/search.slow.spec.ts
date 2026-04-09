@@ -1473,7 +1473,7 @@ describe("search flow via key presses (zoom + internal state)", () => {
     board.press("Enter")
 
     // Should select taskA2 in the current view (it's a grandchild of "projects")
-    expect(store.getState().ui.showSearchDialog).toBe(false)
+    board.expect("[data-dialog='search']").not.toExist()
     expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects") // No zoom needed
     board.expectState({ cursor: "taskA2" })
     expect(derivedState(store).cursorDepth).toBe("card")
