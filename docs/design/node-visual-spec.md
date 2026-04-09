@@ -135,8 +135,11 @@ const bg = cursor ? undefined          // title-only inverse, not container
 const border = cursor || cursorDescendant ? '$selection-bg'
   : selected ? '$selection-bg'
   : hovered ? hoverColor
-  : selectedAncestor ? bg             // invisible — border matches bg
+  : selectedAncestor ? bg             // invisible — border matches bg, no layout shift
   : '$muted'
+
+// Hover is universal — same treatment on any card (breadcrumb or not).
+// Shows what clicking would select, not current state.
 
 const stripColors = cursor || selectedAncestor || isDone
 const expand = editingDescendant || cursor
@@ -146,10 +149,11 @@ const expand = editingDescendant || cursor
 
 - ~~Should board-level cursor show ANY visual treatment?~~ **Yes** — board-level cursor tints everything with $selection-bg. Confirmed by user 2026-04-08.
 
-## Open questions
-- Should muted cards hide their border entirely or show it as the bg color?
-- When cursor is on a sub-item, should the parent card show selectedBg? Currently no.
-- Should `hovered` and `cursorDescendant` compose (hover on a breadcrumb card)?
+## Open questions (resolved)
+
+- ~~Should muted cards hide their border entirely or show it as the bg color?~~ **Hide border** — set border color to match bg (invisible), but keep the border space (no layout shift). Muted = parent column/board is selected, so children are de-emphasized.
+- ~~When cursor is on a sub-item, should the parent card show selectedBg?~~ **No selectedBg** — the card title shows yellow fg (cursorDescendant breadcrumb), optionally with a faint selectedBg tint on the title row only. No full-card selectedBg.
+- ~~Should `hovered` and `cursorDescendant` compose?~~ **Hover is universal** — hovered on any card (including breadcrumb cards) shows the same hover treatment. Hover indicates "click here to select this card" — it previews the selection target, not the current state.
 
 ## Notes
 
