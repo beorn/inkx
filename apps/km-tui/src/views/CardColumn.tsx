@@ -202,13 +202,13 @@ const Card = React.memo(
     const viewNode = useNode(nodeId)
     const isBodyCard = viewNode?.isBody ?? isBodyCardProp
 
-    // Get selection state from NodeStore (self-subscription via nodeId).
-    // NODE MODEL V2: Cards self-select by nodeId instead of positional indices.
-    // Only this card and the previously-selected card re-render on j/k.
+    // Per-node reactive selection state — reads tree signals instead of global
+    // cursor/depth. Only the old + new cursor cards re-render on j/k.
     const nodeStore = useNodeStore()
-    const cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
-    const selLevel = useSignal(nodeStore.cursorDepth)
-    const isSelected = cursorCardNodeId === nodeId && selLevel === "card"
+    const treeNode = useTreeNode(nodeId)
+    const isCursorOnThis = useSignal(treeNode.cursor)
+    const cursorInDescendant = useSignal(treeNode.cursorDescendant)
+    const isSelected = isCursorOnThis || cursorInDescendant
 
     // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
     const {
@@ -219,12 +219,15 @@ const Card = React.memo(
 
     // Check if the card ABOVE is at cursor position. Used by body blocks:
     // yield paddingTop only when prev is a BODY block at cursor (not structural).
-    // NODE MODEL V2: Self-selecting via prevCardNodeId instead of positional indices.
-    const isPrevAtCursor = prevCardNodeId != null && cursorCardNodeId === prevCardNodeId && selLevel === "card"
+    // Reads prev card's tree node signals — avoids global cursorCardNodeId read.
+    const prevTreeNode = useTreeNode(prevCardNodeId ?? nodeId) // fallback to self when no prev
+    const prevCursor = useSignal(prevTreeNode.cursor)
+    const prevCursorDesc = useSignal(prevTreeNode.cursorDescendant)
+    const isPrevAtCursor = prevCardNodeId != null && (prevCursor || prevCursorDesc)
 
     // Check if this card is in inline edit mode (for border color).
     // Also matches when a sub-item of this card is being edited (editingDescendant).
-    const editingDescendant = useSignal(nodeStore.editingDescendant(nodeId))
+    const editingDescendant = useSignal(treeNode.editingDescendant)
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
       return s.sel.text()?.nodeId === nodeId
     })
@@ -232,7 +235,7 @@ const Card = React.memo(
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
     // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
-    const isNodeSelected = useSignal(useTreeNode(nodeId).selected)
+    const isNodeSelected = useSignal(treeNode.selected)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.
@@ -261,7 +264,7 @@ const Card = React.memo(
     // When cursor is inside this card (on a descendant), expand to show all children.
     // Must match TreeNode's shouldExpand logic — only expand when cursor is on a
     // descendant, not when cursor is on the card title itself.
-    const cursorInDescendant = useSignal(nodeStore.cursorDescendant(nodeId))
+    // cursorInDescendant is already read from treeNode above.
     const isExpanded = cursorInDescendant || isEditing
 
     const childCount = childCountProp ?? children.length
@@ -438,25 +441,20 @@ const Card = React.memo(
     }
 
     // Direct cursor match: cursor is ON this card (not on a descendant).
-    // isSelected = cursor is anywhere in this card (for border, hover).
-    // isCursorOnCard = cursor is directly on this card node (for inverse title).
+    // isCursorOnThis = per-node cursor signal (avoids global cursor read).
+    // isSelected = cursor anywhere in this card scope (cursor || cursorDescendant).
     // Multi-selected cards get the stronger multiSelectedBg tint so they stack
     // visually with the rest of the selection (rule 6). Cursor anywhere in card
     // (direct or descendant) gets the subtle selectedBg tint (rule 2).
     const theme = useTheme()
-    const cursor = useSignal(nodeStore.cursor)
-    const isCursorOnCard = cursor === nodeId && selLevel === "card"
     // No custom bg during editing — the focusborder on the card border is
     // enough to indicate edit mode. Normal selection tint applies when not editing.
-    // Priority: cursor (subtle 6%) wins over multi-select (stronger 14%) because
-    // the cursor card is always in the selection ids — without this check, cursor
-    // cards always get multiSelectedBg instead of the intended subtle selectedBg.
     const cardBg = isEditing
       ? undefined
-      : isCursorOnCard || cursorInDescendant
-        ? selectedBg(theme)
-        : isNodeSelected
-          ? multiSelectedBg(theme)
+      : isNodeSelected
+        ? multiSelectedBg(theme)
+        : isSelected
+          ? selectedBg(theme)
           : undefined
 
     // Border: cyan when editing, yellow when card selected, hidden when column selected
@@ -467,12 +465,12 @@ const Card = React.memo(
     // hover → $muted (faint), selection → $selection-bg (yellow).
     // Done/dropped use $disabled-fg for a faint but distinct border.
     const defaultBorder = isDoneOrDropped ? "$disabled-fg" : "$surface-bg"
-    // "Board level" means cursor is *intentionally* at the board root (via
-    // navigate-up), NOT "cursor is null because user deselected". cursorDepth
-    // collapses both cases to "board"; we require a non-null cursor so
-    // deselect doesn't make card borders fade into the surface. Symmetric to
-    // the isBoardSelected check in Board.tsx BoardCore.
-    const isBoardLevel = selLevel === "board" && cursor !== null
+    // "Board level" means cursor is on an ancestor (column or board root).
+    // Read cursorDepth only for the board-level border-hiding check — this is
+    // a global concern (rare change), not per-card.
+    const selLevel = useSignal(nodeStore.cursorDepth)
+    const globalCursor = useSignal(nodeStore.cursor)
+    const isBoardLevel = selLevel === "board" && globalCursor !== null
     const borderColor = isEditing
       ? "$focusborder"
       : isColSelected || isBoardLevel
@@ -513,7 +511,7 @@ const Card = React.memo(
               node={card}
               depth={0}
               remainingDepth={CARD_REMAINING_DEPTH}
-              isSelected={!isEditing && isCursorOnCard}
+              isSelected={!isEditing && isCursorOnThis}
               colIndex={colIndex}
               cardIndex={cardIndex}
               dimInactiveChildren={false}
@@ -552,7 +550,7 @@ const Card = React.memo(
           node={card}
           depth={0}
           remainingDepth={CARD_REMAINING_DEPTH}
-          isSelected={!isEditing && isCursorOnCard}
+          isSelected={!isEditing && isCursorOnThis}
           colIndex={colIndex}
           cardIndex={cardIndex}
           dimInactiveChildren={false}
@@ -717,13 +715,12 @@ export const Column = React.memo(function Column({
     } cards)`,
   )
 
-  // Subscribe to column selection only (stable on j/k within same column).
-  // NODE MODEL V2: Self-select by nodeId instead of positional index.
-  // ScrollTrackingVirtualList handles cardIndex subscription.
-  const nodeStore = useNodeStore()
-  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useSignal(nodeStore.cursorDepth)
-  const isSelected = cursorColumnNodeId === nodeId
+  // Per-node reactive selection — reads tree signals instead of global
+  // cursorColumnNodeId/cursorDepth. Re-renders only when this column's state changes.
+  const colTreeNode = useTreeNode(nodeId)
+  const colCursorOnThis = useSignal(colTreeNode.cursor)
+  const colCursorInDescendant = useSignal(colTreeNode.cursorDescendant)
+  const isSelected = colCursorOnThis || colCursorInDescendant
 
   // Check if this column header is being inline-edited
   const textEdit = useSignal(sel.text)
@@ -826,7 +823,9 @@ export const Column = React.memo(function Column({
     sel.text.deselect()
   }, [setUI])
 
-  const isColumnSelected = isSelected && cursorDepth === "column"
+  // Column header is selected when cursor is directly on this column node.
+  // Uses per-node cursor signal — avoids reading global cursorDepth.
+  const isColumnSelected = colCursorOnThis
 
   // Column selection: subtle primary bg tint only when cursor is at column level.
   const colTheme = useTheme()

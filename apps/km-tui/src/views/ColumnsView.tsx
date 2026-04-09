@@ -101,7 +101,6 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
 
   // Per-node reactive selection — reads tree signals instead of global
   // cursorColumnNodeId/cursorDepth. Re-renders only when this column's state changes.
-  const nodeStore = useNodeStore()
   const colTreeNode = useTreeNode(colId)
   const colCursorOnThis = useSignal(colTreeNode.cursor)
   const colCursorInDesc = useSignal(colTreeNode.cursorDescendant)
