@@ -15,6 +15,7 @@
 
 import { describe, test, expect } from "vitest"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp, type TestApp } from "./helpers/test-app.ts"
 import { VirtualTerminal, outputPhase } from "@silvery/ag-term/toolbelt"
 import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
@@ -23,75 +24,67 @@ import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 // =============================================================================
 
 describe("fold-all-corruption", () => {
-  test("zM (fold all chord) folds all cards in column", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
-    )
+  test("zM (fold all chord) folds all cards in column", async () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
-    expect(board.screenshot()).toContain("child-1")
+    expect(app.text).toContain("child-1")
 
     // zM chord → fold_all (FOLD_LEVEL depth:1)
-    board.command("fold_all_more")
+    await app.command("fold_all_more")
 
-    expect(board.screenshot()).not.toContain("child-1")
-    expect(board.screenshot()).not.toContain("child-2")
+    expect(app.text).not.toContain("child-1")
+    expect(app.text).not.toContain("child-2")
     // Parent title should still be readable
-    expect(board.screenshot()).toContain("Parent")
+    expect(app.text).toContain("Parent")
   })
 
-  test("H folds a card, > should unfold it", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
-    )
+  test("H folds a card, > should unfold it", async () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold via H
-    board.command("fold_more")
+    await app.command("fold_more")
 
     // Children should be hidden
-    expect(board.screenshot()).not.toContain("child-1")
+    expect(app.text).not.toContain("child-1")
 
     // Z (unfold all) should restore children
-    board.command("unfold_all_more")
+    await app.command("unfold_all_more")
 
-    expect(board.screenshot()).toContain("child-1")
-    expect(board.screenshot()).toContain("child-2")
+    expect(app.text).toContain("child-1")
+    expect(app.text).toContain("child-2")
   })
 
-  test("H (fold_node) folds current card and hides children", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
-    )
+  test("H (fold_node) folds current card and hides children", async () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
-    expect(board.screenshot()).toContain("child-1")
+    expect(app.text).toContain("child-1")
 
     // H → fold_node
-    board.command("fold_more")
+    await app.command("fold_more")
 
-    const folded = board.screenshot()
+    const folded = app.text
     expect(folded).not.toContain("child-1")
     expect(folded).not.toContain("child-2")
     expect(folded).toContain("Parent")
   })
 
-  test("L (unfold node) restores children after fold", () => {
-    const { board } = testEnv(() =>
-      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))),
-    )
+  test("L (unfold node) restores children after fold", async () => {
+    using app = createTestApp(item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")))))
 
     // Fold with H
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("child-1")
+    await app.command("fold_more")
+    expect(app.text).not.toContain("child-1")
 
     // Unfold with L
-    board.command("unfold_more")
+    await app.command("unfold_more")
 
-    const unfolded = board.screenshot()
+    const unfolded = app.text
     expect(unfolded).toContain("child-1")
     expect(unfolded).toContain("child-2")
   })
 
-  test("Z unfolds all after individually folding multiple cards", () => {
-    const { board } = testEnv(() =>
+  test("Z unfolds all after individually folding multiple cards", async () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item.folder("Processing", item("sub-a"), item("sub-b")), item.folder("Review", item("sub-c"))),
@@ -99,17 +92,17 @@ describe("fold-all-corruption", () => {
     )
 
     // Fold both cards individually with H
-    board.command("fold_more") // fold Processing
-    board.command("cursor_down") // move to Review
-    board.command("fold_more") // fold Review
+    await app.command("fold_more") // fold Processing
+    await app.command("cursor_down") // move to Review
+    await app.command("fold_more") // fold Review
 
-    expect(board.screenshot()).not.toContain("sub-a")
-    expect(board.screenshot()).not.toContain("sub-c")
+    expect(app.text).not.toContain("sub-a")
+    expect(app.text).not.toContain("sub-c")
 
     // Z should unfold all
-    board.command("unfold_all_more")
+    await app.command("unfold_all_more")
 
-    const after = board.screenshot()
+    const after = app.text
     expect(after).toContain("sub-a")
     expect(after).toContain("sub-b")
     expect(after).toContain("sub-c")
@@ -453,20 +446,19 @@ describe("fold border blank — buffer-level assertions", () => {
    * Tests that folding (via < or H) preserves bottom borders of folded cards
    * AND top borders of cards directly below them.
    */
-  function multiCardBoard(opts?: { columns?: number; rows?: number }) {
-    return testEnv(
-      () =>
+  function multiCardBoard(opts?: { columns?: number; rows?: number }): TestApp {
+    return createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("Parent-A", item("a-child1"), item("a-child2"), item("a-child3")),
-            item("Parent-B", item("b-child1"), item("b-child2")),
-            item("Leaf-C"),
-            item("Parent-D", item("d-child1")),
-          ),
+          "col1",
+          item("Parent-A", item("a-child1"), item("a-child2"), item("a-child3")),
+          item("Parent-B", item("b-child1"), item("b-child2")),
+          item("Leaf-C"),
+          item("Parent-D", item("d-child1")),
         ),
-      { columns: opts?.columns ?? 60, rows: opts?.rows ?? 30, incremental: true },
+      ),
+      { cols: opts?.columns ?? 60, rows: opts?.rows ?? 30, incremental: true },
     )
   }
 
@@ -476,11 +468,8 @@ describe("fold border blank — buffer-level assertions", () => {
    *
    * Returns the row indices of the card's top border (╭) and bottom border (╰).
    */
-  function findCardBorderRows(
-    board: ReturnType<typeof testEnv>["board"],
-    nodeText: string,
-  ): { topRow: number; bottomRow: number } {
-    const rows = board.screenshot().split("\n")
+  function findCardBorderRows(app: TestApp, nodeText: string): { topRow: number; bottomRow: number } {
+    const rows = app.text.split("\n")
     // Find the text row INSIDE a card (must have │ on the left margin, skipping breadcrumb)
     let textRow = -1
     for (let i = 0; i < rows.length; i++) {
@@ -520,9 +509,9 @@ describe("fold border blank — buffer-level assertions", () => {
    * This is the core assertion for the fold-border-blank bug: when folding shrinks
    * a card, the bottom border should not be left blank or overwritten.
    */
-  function expectBottomBorderIntact(board: ReturnType<typeof testEnv>["board"], nodeText: string) {
-    const { bottomRow } = findCardBorderRows(board, nodeText)
-    const rows = board.screenshot().split("\n")
+  function expectBottomBorderIntact(app: TestApp, nodeText: string) {
+    const { bottomRow } = findCardBorderRows(app, nodeText)
+    const rows = app.text.split("\n")
     const row = rows[bottomRow]!
     const leftIdx = row.indexOf("\u2570")
     const rightIdx = row.lastIndexOf("\u256f")
@@ -544,9 +533,9 @@ describe("fold border blank — buffer-level assertions", () => {
   /**
    * Assert that a card's top border row has continuous dashes between ╭ and ╮.
    */
-  function expectTopBorderIntact(board: ReturnType<typeof testEnv>["board"], nodeText: string) {
-    const { topRow } = findCardBorderRows(board, nodeText)
-    const rows = board.screenshot().split("\n")
+  function expectTopBorderIntact(app: TestApp, nodeText: string) {
+    const { topRow } = findCardBorderRows(app, nodeText)
+    const rows = app.text.split("\n")
     const row = rows[topRow]!
     const leftIdx = row.indexOf("\u256d")
     const rightIdx = row.lastIndexOf("\u256e")
@@ -564,10 +553,10 @@ describe("fold border blank — buffer-level assertions", () => {
    * Assert no stale content between two cards (no orphaned border chars or content
    * between one card's bottom border and the next card's top border).
    */
-  function expectNoStaleBetweenCards(board: ReturnType<typeof testEnv>["board"], upperNode: string, lowerNode: string) {
-    const { bottomRow: upperBottom } = findCardBorderRows(board, upperNode)
-    const { topRow: lowerTop } = findCardBorderRows(board, lowerNode)
-    const rows = board.screenshot().split("\n")
+  function expectNoStaleBetweenCards(app: TestApp, upperNode: string, lowerNode: string) {
+    const { bottomRow: upperBottom } = findCardBorderRows(app, upperNode)
+    const { topRow: lowerTop } = findCardBorderRows(app, lowerNode)
+    const rows = app.text.split("\n")
     // Between upper card bottom and lower card top, there should be no stale border chars
     for (let i = upperBottom + 1; i < lowerTop; i++) {
       const row = rows[i] ?? ""
@@ -577,109 +566,110 @@ describe("fold border blank — buffer-level assertions", () => {
     }
   }
 
-  test("decrease outline depth (<) preserves bottom border of folded cards", () => {
-    const { board } = multiCardBoard()
+  test("decrease outline depth (<) preserves bottom border of folded cards", async () => {
+    using app = multiCardBoard()
 
     // Decrease outline depth twice: hides all children
-    board.command("fold_all_more").command("fold_all_more")
+    await app.command("fold_all_more")
+    await app.command("fold_all_more")
 
     // After folding: all cards should have intact bottom borders
-    expectBottomBorderIntact(board, "Parent-A")
-    expectBottomBorderIntact(board, "Parent-B")
-    expectTopBorderIntact(board, "Leaf-C")
-    expectBottomBorderIntact(board, "Leaf-C")
+    expectBottomBorderIntact(app, "Parent-A")
+    expectBottomBorderIntact(app, "Parent-B")
+    expectTopBorderIntact(app, "Leaf-C")
+    expectBottomBorderIntact(app, "Leaf-C")
   })
 
-  test("decrease outline depth preserves borders between adjacent cards", () => {
-    const { board } = multiCardBoard()
+  test("decrease outline depth preserves borders between adjacent cards", async () => {
+    using app = multiCardBoard()
 
     // Fold once
-    board.command("fold_all_more")
-    expectBottomBorderIntact(board, "Parent-A")
-    expectTopBorderIntact(board, "Parent-B")
+    await app.command("fold_all_more")
+    expectBottomBorderIntact(app, "Parent-A")
+    expectTopBorderIntact(app, "Parent-B")
 
     // Fold again
-    board.command("fold_all_more")
-    expectBottomBorderIntact(board, "Parent-A")
-    expectTopBorderIntact(board, "Parent-B")
-    expectBottomBorderIntact(board, "Leaf-C")
-    expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
-    expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
+    await app.command("fold_all_more")
+    expectBottomBorderIntact(app, "Parent-A")
+    expectTopBorderIntact(app, "Parent-B")
+    expectBottomBorderIntact(app, "Leaf-C")
+    expectNoStaleBetweenCards(app, "Parent-A", "Parent-B")
+    expectNoStaleBetweenCards(app, "Parent-B", "Leaf-C")
   })
 
-  test("individual fold (H) preserves border of card below", () => {
-    const { board } = multiCardBoard()
+  test("individual fold (H) preserves border of card below", async () => {
+    using app = multiCardBoard()
 
     // Fold Parent-A via H
-    board.command("fold_more")
+    await app.command("fold_more")
 
     // Parent-A bottom border should be intact
-    expectBottomBorderIntact(board, "Parent-A")
+    expectBottomBorderIntact(app, "Parent-A")
     // Parent-B top border should be intact (card below the folded one)
-    expectTopBorderIntact(board, "Parent-B")
+    expectTopBorderIntact(app, "Parent-B")
     // No stale content between Parent-A and Parent-B
-    expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
+    expectNoStaleBetweenCards(app, "Parent-A", "Parent-B")
   })
 
-  test("toggle fold (H) preserves borders of folded card and neighbors", () => {
-    const { board } = multiCardBoard()
+  test("toggle fold (H) preserves borders of folded card and neighbors", async () => {
+    using app = multiCardBoard()
 
     // Navigate to Parent-B then fold it
-    board.command("cursor_down")
-    board.command("fold_more")
+    await app.command("cursor_down")
+    await app.command("fold_more")
 
     // Parent-B bottom border should be intact
-    expectBottomBorderIntact(board, "Parent-B")
+    expectBottomBorderIntact(app, "Parent-B")
     // Leaf-C borders should be intact (card below the folded one)
-    expectTopBorderIntact(board, "Leaf-C")
-    expectBottomBorderIntact(board, "Leaf-C")
+    expectTopBorderIntact(app, "Leaf-C")
+    expectBottomBorderIntact(app, "Leaf-C")
     // Parent-A borders should remain intact (card above)
-    expectBottomBorderIntact(board, "Parent-A")
+    expectBottomBorderIntact(app, "Parent-A")
     // No stale content between cards
-    expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
+    expectNoStaleBetweenCards(app, "Parent-B", "Leaf-C")
   })
 
-  test("fold then unfold round-trip preserves all borders", () => {
-    const { board } = multiCardBoard()
+  test("fold then unfold round-trip preserves all borders", async () => {
+    using app = multiCardBoard()
 
     // Fold Parent-A, then unfold it — individual card fold round-trip
-    board.command("fold_more") // fold Parent-A
-    board.command("unfold_more") // unfold Parent-A
+    await app.command("fold_more") // fold Parent-A
+    await app.command("unfold_more") // unfold Parent-A
 
     // All cards should have intact borders after round-trip
-    expectBottomBorderIntact(board, "Parent-A")
-    expectBottomBorderIntact(board, "Parent-B")
-    expectBottomBorderIntact(board, "Leaf-C")
-    expectBottomBorderIntact(board, "Parent-D")
-    expectTopBorderIntact(board, "Parent-A")
-    expectTopBorderIntact(board, "Parent-B")
-    expectTopBorderIntact(board, "Leaf-C")
-    expectTopBorderIntact(board, "Parent-D")
+    expectBottomBorderIntact(app, "Parent-A")
+    expectBottomBorderIntact(app, "Parent-B")
+    expectBottomBorderIntact(app, "Leaf-C")
+    expectBottomBorderIntact(app, "Parent-D")
+    expectTopBorderIntact(app, "Parent-A")
+    expectTopBorderIntact(app, "Parent-B")
+    expectTopBorderIntact(app, "Leaf-C")
+    expectTopBorderIntact(app, "Parent-D")
   })
 
-  test("fold with many cards and realistic viewport (5+ cards, constrained height)", () => {
+  test("fold with many cards and realistic viewport (5+ cards, constrained height)", async () => {
     // Smaller viewport forces scrolling and more border stress
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("Task-1", item("1a"), item("1b")),
-            item("Task-2", item("2a")),
-            item("Task-3", item("3a"), item("3b"), item("3c")),
-            item("Task-4"),
-            item("Task-5", item("5a")),
-            item("Task-6"),
-          ),
+          "col1",
+          item("Task-1", item("1a"), item("1b")),
+          item("Task-2", item("2a")),
+          item("Task-3", item("3a"), item("3b"), item("3c")),
+          item("Task-4"),
+          item("Task-5", item("5a")),
+          item("Task-6"),
         ),
-      { columns: 50, rows: 20, incremental: true },
+      ),
+      { cols: 50, rows: 20, incremental: true },
     )
 
     // Fold twice to hide nested children
-    board.command("fold_all_more").command("fold_all_more")
+    await app.command("fold_all_more")
+    await app.command("fold_all_more")
 
-    const text = board.screenshot()
+    const text = app.text
     // Every bottom border line should have continuous dashes (no blanks)
     const rows = text.split("\n")
     for (const row of rows) {
@@ -701,59 +691,60 @@ describe("fold border blank — buffer-level assertions", () => {
     }
   })
 
-  test("multi-step fold sequence: navigate, fold, navigate, fold preserves borders", () => {
-    const { board } = multiCardBoard()
+  test("multi-step fold sequence: navigate, fold, navigate, fold preserves borders", async () => {
+    using app = multiCardBoard()
 
     // Step 1: fold Parent-A
-    board.command("fold_more")
-    expectBottomBorderIntact(board, "Parent-A")
+    await app.command("fold_more")
+    expectBottomBorderIntact(app, "Parent-A")
 
     // Step 2: move down to Parent-B, fold it
-    board.command("cursor_down")
-    board.command("fold_more")
-    expectBottomBorderIntact(board, "Parent-B")
+    await app.command("cursor_down")
+    await app.command("fold_more")
+    expectBottomBorderIntact(app, "Parent-B")
 
     // Step 3: move down to Leaf-C — its borders should be intact
-    board.command("cursor_down")
-    expectTopBorderIntact(board, "Leaf-C")
-    expectBottomBorderIntact(board, "Leaf-C")
+    await app.command("cursor_down")
+    expectTopBorderIntact(app, "Leaf-C")
+    expectBottomBorderIntact(app, "Leaf-C")
 
     // Step 4: move down to Parent-D, fold it
-    board.command("cursor_down")
-    board.command("fold_more")
-    expectBottomBorderIntact(board, "Parent-D")
+    await app.command("cursor_down")
+    await app.command("fold_more")
+    expectBottomBorderIntact(app, "Parent-D")
 
     // Step 5: unfold each card individually via zl, verify borders restored
     // Cursor is on Parent-D after step 4
-    board.command("unfold_more") // unfold Parent-D
-    expectBottomBorderIntact(board, "Parent-D")
-    board.command("cursor_up") // move up to Leaf-C
-    board.command("cursor_up") // move up to Parent-B
-    board.command("unfold_more") // unfold Parent-B
-    expectBottomBorderIntact(board, "Parent-B")
-    board.command("cursor_up") // move up to Parent-A
-    board.command("unfold_more") // unfold Parent-A
-    expectBottomBorderIntact(board, "Parent-A")
+    await app.command("unfold_more") // unfold Parent-D
+    expectBottomBorderIntact(app, "Parent-D")
+    await app.command("cursor_up") // move up to Leaf-C
+    await app.command("cursor_up") // move up to Parent-B
+    await app.command("unfold_more") // unfold Parent-B
+    expectBottomBorderIntact(app, "Parent-B")
+    await app.command("cursor_up") // move up to Parent-A
+    await app.command("unfold_more") // unfold Parent-A
+    expectBottomBorderIntact(app, "Parent-A")
     // No stale between cards
-    expectNoStaleBetweenCards(board, "Parent-A", "Parent-B")
-    expectNoStaleBetweenCards(board, "Parent-B", "Leaf-C")
-    expectNoStaleBetweenCards(board, "Leaf-C", "Parent-D")
+    expectNoStaleBetweenCards(app, "Parent-A", "Parent-B")
+    expectNoStaleBetweenCards(app, "Parent-B", "Leaf-C")
+    expectNoStaleBetweenCards(app, "Leaf-C", "Parent-D")
   })
 
-  test("cell-level border check: bottom border cells are not blank after fold", () => {
-    const { board } = multiCardBoard()
+  test("cell-level border check: bottom border cells are not blank after fold", async () => {
+    using app = multiCardBoard()
 
     // Fold via < <
-    board.command("fold_all_more").command("fold_all_more")
+    await app.command("fold_all_more")
+    await app.command("fold_all_more")
 
     // Find each card's bottom border row and check cell-by-cell
     for (const nodeText of ["Parent-A", "Parent-B", "Leaf-C", "Parent-D"]) {
-      const { bottomRow } = findCardBorderRows(board, nodeText)
+      const { bottomRow } = findCardBorderRows(app, nodeText)
       // Check cells across the full width using the screen buffer (not text)
       let foundCornerLeft = false
       let foundCornerRight = false
-      for (let x = 0; x < board.screen.width; x++) {
-        const cell = board.screen.cell(x, bottomRow)
+      for (let x = 0; x < app.screen.width; x++) {
+        const cell = app.screen.cell(x, bottomRow)
         if (cell.char === "\u2570") foundCornerLeft = true
         if (cell.char === "\u256f") foundCornerRight = true
         // Between corners: should be ─, not space or other characters
@@ -783,30 +774,29 @@ describe("Fold border regression", () => {
     return screenshot.split("\n").filter((line) => /╭.*─.*╮/.test(line)).length
   }
 
-  test("every visible card has matching top and bottom borders", () => {
+  test("every visible card has matching top and bottom borders", async () => {
     // Cards with children overflow a 20-row viewport with default fold depth.
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("A", item("a1"), item("a2"), item("a3")),
-            item("B", item("b1"), item("b2")),
-            item("C", item("c1"), item("c2"), item("c3")),
-            item("D"),
-            item("E", item("e1")),
-            item("F"),
-            item("G", item("g1")),
-          ),
+          "col1",
+          item("A", item("a1"), item("a2"), item("a3")),
+          item("B", item("b1"), item("b2")),
+          item("C", item("c1"), item("c2"), item("c3")),
+          item("D"),
+          item("E", item("e1")),
+          item("F"),
+          item("G", item("g1")),
         ),
-      { columns: 60, rows: 20 },
+      ),
+      { cols: 60, rows: 20 },
     )
 
     // At every fold level, top borders must equal bottom borders
     for (let press = 0; press < 4; press++) {
-      if (press > 0) board.command("fold_all_more")
-      const text = board.screenshot()
+      if (press > 0) await app.command("fold_all_more")
+      const text = app.text
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
       // Top can exceed bottom by 1 (partially visible card at viewport edge)
@@ -814,38 +804,41 @@ describe("Fold border regression", () => {
     }
 
     for (let press = 0; press < 4; press++) {
-      board.command("unfold_all_more")
-      const text = board.screenshot()
+      await app.command("unfold_all_more")
+      const text = app.text
       const top = countTopBorders(text)
       const bottom = countBottomBorders(text)
       expect(Math.abs(top - bottom), `After ${press} '>' presses: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
     }
   })
 
-  test("border integrity after scrolling then folding", () => {
-    const { board } = testEnv(
-      () =>
+  test("border integrity after scrolling then folding", async () => {
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("A", item("a1"), item("a2")),
-            item("B", item("b1"), item("b2")),
-            item("C", item("c1")),
-            item("D", item("d1"), item("d2"), item("d3")),
-            item("E"),
-            item("F", item("f1")),
-            item("G"),
-            item("H", item("h1")),
-          ),
+          "col1",
+          item("A", item("a1"), item("a2")),
+          item("B", item("b1"), item("b2")),
+          item("C", item("c1")),
+          item("D", item("d1"), item("d2"), item("d3")),
+          item("E"),
+          item("F", item("f1")),
+          item("G"),
+          item("H", item("h1")),
         ),
-      { columns: 60, rows: 20 },
+      ),
+      { cols: 60, rows: 20 },
     )
 
-    board.command("cursor_down").command("cursor_down").command("cursor_down").command("cursor_down")
-    board.command("fold_all_more").command("fold_all_more")
+    await app.command("cursor_down")
+    await app.command("cursor_down")
+    await app.command("cursor_down")
+    await app.command("cursor_down")
+    await app.command("fold_all_more")
+    await app.command("fold_all_more")
 
-    const text = board.screenshot()
+    const text = app.text
     const top = countTopBorders(text)
     const bottom = countBottomBorders(text)
     expect(Math.abs(top - bottom), `scrolled + folded: top=${top} bottom=${bottom}`).toBeLessThanOrEqual(1)
@@ -862,31 +855,30 @@ describe("fold overflow transition border integrity", () => {
    * and the card transitions from custom bottom border (╰─ +N ─╯) to standard
    * round border (╰──────╯). This transition must not leave stale pixels.
    */
-  test("fold card with overflow preserves bottom border (no blank cells)", () => {
+  test("fold card with overflow preserves bottom border (no blank cells)", async () => {
     // Create cards with enough children to trigger overflow
     // maxContentLines defaults to 3, so 6 children will show +3 overflow
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("BigCard", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6")),
-            item("SmallCard"),
-          ),
+          "col1",
+          item("BigCard", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6")),
+          item("SmallCard"),
         ),
-      { columns: 60, rows: 30, incremental: true },
+      ),
+      { cols: 60, rows: 30, incremental: true },
     )
 
     // Verify overflow is showing before fold
-    const before = board.screenshot()
+    const before = app.text
     expect(before, "should show overflow indicator").toContain("+")
 
     // Fold BigCard via H
-    board.command("fold_more")
+    await app.command("fold_more")
 
     // After fold, the +N indicator should be gone and borders should be intact
-    const after = board.screenshot()
+    const after = app.text
     const lines = after.split("\n")
 
     // Find BigCard and check its bottom border row
@@ -914,11 +906,11 @@ describe("fold overflow transition border integrity", () => {
     // The row pattern is: ╰─── +N ───╯ (when overflow, label has spaces)
     // or ╰────────────╯ (when no overflow)
     // Allowed chars between ╰ and ╯: ─, space (part of +N label), +, digits
-    const rowText = board.screen.row(bottomBorderRow)
+    const rowText = app.screen.row(bottomBorderRow)
     let inBorder = false
     const ALLOWED = new Set(["─", " ", "+", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
-    for (let x = 0; x < board.screen.width; x++) {
-      const cell = board.screen.cell(x, bottomBorderRow)
+    for (let x = 0; x < app.screen.width; x++) {
+      const cell = app.screen.cell(x, bottomBorderRow)
       if (cell.char === "╰") {
         inBorder = true
         continue
@@ -940,25 +932,24 @@ describe("fold overflow transition border integrity", () => {
     expect(rowText, "bottom border should have ╯").toContain("╯")
   })
 
-  test("unfold card restores overflow indicator without border corruption", () => {
-    const { board } = testEnv(
-      () =>
+  test("unfold card restores overflow indicator without border corruption", async () => {
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("BigCard", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6")),
-            item("NextCard", item("n1")),
-          ),
+          "col1",
+          item("BigCard", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6")),
+          item("NextCard", item("n1")),
         ),
-      { columns: 60, rows: 30, incremental: true },
+      ),
+      { cols: 60, rows: 30, incremental: true },
     )
 
     // Fold then unfold — should restore overflow indicator with intact borders
-    board.command("fold_more") // fold
-    board.command("unfold_more") // unfold
+    await app.command("fold_more") // fold
+    await app.command("unfold_more") // unfold
 
-    const after = board.screenshot()
+    const after = app.text
     expect(after, "should show overflow indicator after unfold").toContain("+")
 
     // Check NextCard's top border is intact (card below BigCard)
@@ -982,34 +973,33 @@ describe("fold overflow transition border integrity", () => {
     }
   })
 
-  test("decrease outline depth with overflow cards preserves all borders (cell-level)", () => {
-    const { board } = testEnv(
-      () =>
+  test("decrease outline depth with overflow cards preserves all borders (cell-level)", async () => {
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
+          "col1",
           item(
-            "col1",
-            item(
-              "CardA",
-              item("a1", item("deep1")),
-              item("a2", item("deep2")),
-              item("a3", item("deep3")),
-              item("a4"),
-              item("a5"),
-            ),
-            item("CardB", item("b1"), item("b2"), item("b3"), item("b4")),
-            item("CardC"),
+            "CardA",
+            item("a1", item("deep1")),
+            item("a2", item("deep2")),
+            item("a3", item("deep3")),
+            item("a4"),
+            item("a5"),
           ),
+          item("CardB", item("b1"), item("b2"), item("b3"), item("b4")),
+          item("CardC"),
         ),
-      { columns: 60, rows: 25, incremental: true },
+      ),
+      { cols: 60, rows: 25, incremental: true },
     )
 
     // Decrease outline depth — should change overflow counts
-    board.command("fold_all_more")
+    await app.command("fold_all_more")
 
     // Check every visible card's bottom border row
     for (const nodeText of ["CardA", "CardB", "CardC"]) {
-      const lines = board.screenshot().split("\n")
+      const lines = app.text.split("\n")
       let textRow = -1
       for (let i = 0; i < lines.length; i++) {
         if (lines[i]!.includes(nodeText) && lines[i]!.includes("│")) {
@@ -1032,13 +1022,13 @@ describe("fold overflow transition border integrity", () => {
 
       // Cell-level: no blank cells in bottom border
       let inBorder = false
-      for (let x = 0; x < board.screen.width; x++) {
-        const cell = board.screen.cell(x, bottomRow)
+      for (let x = 0; x < app.screen.width; x++) {
+        const cell = app.screen.cell(x, bottomRow)
         if (cell.char === "\u2570") inBorder = true
         if (cell.char === "\u256f") inBorder = false
         if (inBorder && cell.char !== "\u2570" && cell.char !== "\u2500" && cell.char !== " ") {
           // Allow spaces for "+N" label, but not blank cells outside the label
-          const rowText = board.screen.row(bottomRow)
+          const rowText = app.screen.row(bottomRow)
           if (!rowText.includes("+")) {
             expect(cell.char, `"${nodeText}" bottom border at (${x},${bottomRow}) should be ─`).toBe("\u2500")
           }
@@ -1746,12 +1736,8 @@ describe("sticky folds", () => {
 
 describe("fold depth preservation across zoom", () => {
   test("zoom out resets fold depths — folded children become visible again", () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling")),
-        ),
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling"))),
     )
 
     // Fold the Parent card (H)
@@ -1777,12 +1763,8 @@ describe("fold depth preservation across zoom", () => {
   })
 
   test("progressive fold all (< x3) then unfold all (> x3) restores children", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("P1", item("c1"), item("c2")), item.folder("P2", item("c3"))),
-        ),
+    const { board } = testEnv(() =>
+      item("board", item("col1", item.folder("P1", item("c1"), item("c2")), item.folder("P2", item("c3")))),
     )
 
     expect(board.screenshot()).toContain("c1")
@@ -1804,13 +1786,8 @@ describe("fold depth preservation across zoom", () => {
   })
 
   test("sticky fold survives navigation away and back", () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.folder("Pinned", item("child-1"), item("child-2"))),
-          item("col2", item("other")),
-        ),
+    const { board, store } = testEnv(() =>
+      item("board", item("col1", item.folder("Pinned", item("child-1"), item("child-2"))), item("col2", item("other"))),
     )
 
     // Navigate to Pinned and toggle sticky fold
