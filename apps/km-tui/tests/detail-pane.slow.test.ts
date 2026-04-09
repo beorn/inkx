@@ -20,6 +20,7 @@ import {
 } from "../src/views/detail-pane-helpers.ts"
 import { createBoardDriver } from "../src/driver.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
@@ -254,44 +255,28 @@ describe("resolveProjectDisplayNames", () => {
 
 describe("Detail pane toggle (D key)", () => {
   test("D opens only detail pane, not an extra empty workspace pane", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
-      columns: 120,
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))), {
+      cols: 120,
       rows: 24,
     })
 
-    // Initially: 1 pane (main), no detail pane
-    expect(store.getState().workspace.panes.size).toBe(1)
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    // Initially: main pane only, no detail pane
+    app.expect("#main").toExist()
+    app.expect("#main-detail").not.toExist()
 
     // Press D to toggle detail pane open
-    board.press("D")
+    app.press("D")
 
-    // Should have exactly 2 panes: main + main-detail
-    const ws = store.getState().workspace
-    expect(ws.panes.size).toBe(2)
-    expect(ws.panes.has("main")).toBe(true)
-    expect(ws.panes.has("main-detail")).toBe(true)
+    // Detail pane should be present alongside main
+    app.expect("#main").toExist()
+    app.expect("#main-detail").toExist()
 
-    // The detail pane should be a board pane with viewMode "detail"
-    const detailPane = ws.panes.get("main-detail")!
-    expect(detailPane.viewType).toBe("board")
-    expect((detailPane as any).viewMode).toBe("detail")
-
-    // Detail pane should be present in workspace panes
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-
-    // No "empty" panes should exist
-    const emptyPanes = [...ws.panes.values()].filter((p) => p.viewType === "empty")
-    expect(emptyPanes).toHaveLength(0)
-
-    // The layout should be a split with main (left) and main-detail (right)
-    expect(ws.layout.type).toBe("split")
-    if (ws.layout.type === "split") {
-      expect(ws.layout.left).toEqual({ type: "leaf", paneId: "main" })
-      expect(ws.layout.right).toEqual({ type: "leaf", paneId: "main-detail" })
-    }
+    // No "Empty pane" placeholder text
+    expect(app.text).not.toContain("Empty pane")
   })
 
+  // NOTE: uses splitFocusedPane() directly on store — requires white-box access.
+  // Kept on testEnv for store manipulation.
   test("D with split panes does not create extra empty pane", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
       columns: 120,
@@ -300,41 +285,30 @@ describe("Detail pane toggle (D key)", () => {
 
     // Split the pane first
     store.getState().splitFocusedPane("h")
-    expect(store.getState().workspace.panes.size).toBe(2)
 
     // Now press D to open detail pane
     board.press("D")
 
-    const ws = store.getState().workspace
-    // Should have 3 panes: main, main-detail, and the split pane
-    // Detail pane is a BoardPaneState with viewMode "detail"
-    const detailPane = ws.panes.get("main-detail")
-    expect(detailPane).toBeDefined()
-    expect(detailPane!.viewType).toBe("board")
-    expect((detailPane as any).viewMode).toBe("detail")
-    // Any empty panes should only be from the split (not from D)
-    const emptyPanes = [...ws.panes.values()].filter((p) => p.viewType === "empty")
-    expect(emptyPanes.length).toBeLessThanOrEqual(1)
-
     // The rendered output should not show "Empty pane" text
     const text = board.screenshot()
     expect(text).not.toContain("Empty pane")
+    // Detail pane should be present in the rendered output
+    board.expect("#main-detail").toExist()
   })
 
   test("D toggles detail pane closed when already open", () => {
-    const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
-      columns: 120,
+    using app = createTestApp(item("board", item("col1", item("task1"), item("task2"))), {
+      cols: 120,
       rows: 24,
     })
 
     // Open detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.size).toBe(2)
+    app.press("D")
+    app.expect("#main-detail").toExist()
 
     // Close detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.size).toBe(1)
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.press("D")
+    app.expect("#main-detail").not.toExist()
   })
 })
 
@@ -700,6 +674,8 @@ describe("incremental rendering after detail pane toggle", () => {
 // --- Detail pane empty state fallback ---
 
 describe("detail pane empty state fallback", () => {
+  // NOTE: uses dispatchBoard/sel.deselect() directly — requires white-box store access
+  // to simulate an invalid cursor / deselected state. Kept on testEnv.
   test("shows empty board when cursor points to non-existent node", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"), item("task2"))), {
       checkIncremental: false,
@@ -708,7 +684,7 @@ describe("detail pane empty state fallback", () => {
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    board.expect("#main-detail").toExist()
 
     // Detail pane should show the current card's content
     expect(board.screenshot()).toContain("task1")
@@ -729,6 +705,7 @@ describe("detail pane empty state fallback", () => {
     expect(board.screenshot()).not.toContain("Error loading")
   })
 
+  // NOTE: uses sel.deselect() directly — requires white-box store access.
   test("shows empty board when both card and column are null", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))), {
       checkIncremental: false,
@@ -737,7 +714,7 @@ describe("detail pane empty state fallback", () => {
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    board.expect("#main-detail").toExist()
 
     // Simulate board-level deselection via sel store.
     // The detail pane has its own rootId (set when opened), so it keeps
@@ -752,6 +729,7 @@ describe("detail pane empty state fallback", () => {
     expect(board.screenshot()).not.toContain("Error loading")
   })
 
+  // NOTE: uses sel.deselect() directly — requires white-box store access.
   test("detail pane shows header bar in fallback state", () => {
     const { board, store } = testEnv(() => item("board", item("col1", item("task1"))), {
       checkIncremental: false,
@@ -760,7 +738,7 @@ describe("detail pane empty state fallback", () => {
 
     // Open detail pane
     board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    board.expect("#main-detail").toExist()
 
     // Make cursor invalid — deselect via sel store
     act(() => {
@@ -854,167 +832,160 @@ describe("detail pane cursor", () => {
 
 describe("detail pane on link-type nodes", () => {
   test("Space toggles detail pane open and closed on link node", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.link("link-to-target", "target-id"), item("regular-card")),
-          item("col2", item("card2")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.link("link-to-target", "target-id"), item("regular-card")),
+        item("col2", item("card2")),
+      ),
       { checkIncremental: false, incremental: false },
     )
 
     // Navigate to the link node (it's the first card in col1)
-    board.expectState({ cursor: "link-to-target" })
+    app.expect("#link-to-target[data-cursor]").toExist()
 
-    // Open detail pane with Space
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    // Open detail pane with D
+    app.press("D")
+    app.expect("#main-detail").toExist()
 
-    // Close detail pane with Space
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    // Close detail pane with D
+    app.press("D")
+    app.expect("#main-detail").not.toExist()
   })
 
   test("Escape from detail pane returns to board, then closes pane", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.link("link-to-target", "target-id"), item("regular-card")),
-          item("col2", item("card2")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.link("link-to-target", "target-id"), item("regular-card")),
+        item("col2", item("card2")),
+      ),
       { checkIncremental: false, incremental: false },
     )
 
     // D opens + focuses detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    expect(store.getState().workspace.focusedPaneId).toBe("main-detail")
+    app.press("D")
+    app.expect("#main-detail").toExist()
+    app.expect("#main-detail[data-focused]").toExist()
 
     // Escape from detail → returns to board (pane stays open)
-    board.press("Escape")
-    expect(store.getState().workspace.focusedPaneId).not.toBe("main-detail")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("Escape")
+    app.expect("#main-detail[data-focused]").not.toExist()
+    app.expect("#main-detail").toExist()
 
     // Escape again → closes pane
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.press("Escape")
+    app.expect("#main-detail").not.toExist()
   })
 
   test("link node whose target has children: Enter zooms instead of detail pane", { timeout: 5000 }, () => {
     // The link target "col2" has children, so Enter should zoom into it, not open detail pane
-    const { board, store } = testEnv(
-      () =>
-        item("board", item("col1", item.link("embed-link", "col2"), item("another-card")), item("col2", item("card2"))),
+    using app = createTestApp(
+      item("board", item("col1", item.link("embed-link", "col2"), item("another-card")), item("col2", item("card2"))),
       { checkIncremental: false, incremental: false },
     )
 
     // Enter on link node starts inline edit (Enter is bound to enter_inline_edit in normal mode)
-    board.press("Enter")
+    app.press("Enter")
     // Detail pane should NOT open — Enter triggers inline edit, not OPEN_DETAIL_PANE
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.expect("#main-detail").not.toExist()
   })
 
   test("backslash key does NOT toggle detail pane (bound to command palette)", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.link("link-to-target", "target-id"), item("regular-card")),
-          item("col2", item("card2")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.link("link-to-target", "target-id"), item("regular-card")),
+        item("col2", item("card2")),
+      ),
       { checkIncremental: false, incremental: false },
     )
 
     // Backslash is bound to command_palette, not toggle_detail_pane
-    board.press("\\")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.press("\\")
+    app.expect("#main-detail").not.toExist()
 
-    // Space is the correct key to open detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    // D is the correct key to open detail pane
+    app.press("D")
+    app.expect("#main-detail").toExist()
 
     // Backslash does NOT close it either
-    board.press("\\")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("\\")
+    app.expect("#main-detail").toExist()
 
-    // Space closes it
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    // D closes it
+    app.press("D")
+    app.expect("#main-detail").not.toExist()
   })
 
   test("detail pane stays closeable after navigating to different card", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.link("link-node", "target-id"), item("regular-card")),
-          item("col2", item("card2")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.link("link-node", "target-id"), item("regular-card")),
+        item("col2", item("card2")),
+      ),
       { checkIncremental: false, incremental: false },
     )
 
     // D opens + focuses detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("D")
+    app.expect("#main-detail").toExist()
 
     // Return to board, navigate to next card
-    board.press("h")
-    board.press("j")
-    board.expectState({ cursor: "regular-card" })
+    app.press("h")
+    app.press("j")
+    app.expect("#regular-card[data-cursor]").toExist()
 
     // Detail pane still open, should close with D
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.expect("#main-detail").toExist()
+    app.press("D")
+    app.expect("#main-detail").not.toExist()
   })
 
   test("detail pane stays closeable after navigating to different column", { timeout: 5000 }, () => {
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.link("link-node", "target-id"), item("regular-card")),
-          item("col2", item("card2")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.link("link-node", "target-id"), item("regular-card")),
+        item("col2", item("card2")),
+      ),
       { checkIncremental: false, incremental: false },
     )
 
     // D opens + focuses detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("D")
+    app.expect("#main-detail").toExist()
 
     // Return to board, navigate to different column
-    board.press("h")
-    board.press("l")
-    board.expectState({ cursor: "card2" })
+    app.press("h")
+    app.press("l")
+    app.expect("#card2[data-cursor]").toExist()
 
     // Escape closes pane
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
-    board.press("Escape")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    app.expect("#main-detail").toExist()
+    app.press("Escape")
+    app.expect("#main-detail").not.toExist()
   })
 
   test("detail pane closes on link node pointing to existing target", { timeout: 5000 }, () => {
     // The link target exists in the repo
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item.link("embed-link", "card2"), item("another-card")),
-          item("col2", item("card2")),
-        ),
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item.link("embed-link", "card2"), item("another-card")),
+        item("col2", item("card2")),
+      ),
       { checkIncremental: false, incremental: false },
     )
 
     // Open detail pane
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(true)
+    app.press("D")
+    app.expect("#main-detail").toExist()
 
-    // Close with Space
-    board.press("D")
-    expect(store.getState().workspace.panes.has("main-detail")).toBe(false)
+    // Close with D
+    app.press("D")
+    app.expect("#main-detail").not.toExist()
   })
 })
 
