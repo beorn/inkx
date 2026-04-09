@@ -89,15 +89,34 @@ Bump Ink to latest version, run compat tests, fix any regressions, update shims 
 5. **Categorize failures**
    For each new failure vs prior run:
    - **Bug**: silvery compat layer bug → fix in `packages/ink/src/ink.ts` or `ink-hooks.ts`
-   - **New feature**: Ink added something new → add shim or mark as "not supported"
+   - **New feature**: Ink added something new → evaluate (see step 5b)
    - **Architectural**: intentional divergence → document in RESULTS.md
+
+5b. **Evaluate new Ink features (CRITICAL — don't just shim everything)**
+   For each new Ink feature, answer:
+   - Is this a better design than what silvery currently has?
+   - Does silvery already have an equivalent (possibly under a different name)?
+   - Would adopting Ink's API improve silvery, or pollute it?
+
+   Then classify:
+
+   | Verdict | When | Action |
+   |---|---|---|
+   | **ADOPT** | Ink's design is genuinely good and silvery doesn't have it | Add to silvery proper (not just compat layer). New hook/prop in @silvery/ag-react. |
+   | **SHIM** | Silvery already does it better under a different API | Map Ink's API to silvery's existing implementation in the compat layer. |
+   | **IGNORE** | Cosmetic difference, no user-visible impact | Document as intentional divergence. Don't add code. |
+   | **DEFER** | Feature doesn't add value for silvery's audience yet | Document, create a bead, revisit later. |
+
+   **Principle**: While silvery is young, adopt what's genuinely better from Ink. Keep what silvery does better with a compat shim. Bad Ink designs should stay in the compat layer, not pollute silvery's core API.
+
+   Document each evaluation in the tracking bead (km-silvery.ink70-feature-eval or equivalent for future versions).
 
 6. **Add shims for new hooks**
    Check `/Users/beorn/Code/pim/km/node_modules/ink/build/index.d.ts` for new exports.
-   For each new hook:
-   - Add to `vendor/silvery/packages/ink/src/ink-hooks.ts`
-   - Map to silvery's equivalent (or stub with warning)
-   - Add to compat tests
+   For each new hook/feature:
+   - If ADOPT: implement in `packages/ag-react/src/hooks/` and re-export from compat layer
+   - If SHIM: add to `vendor/silvery/packages/ink/src/ink-hooks.ts`, map to silvery equivalent
+   - If IGNORE/DEFER: mark as known divergence in RESULTS.md
 
 7. **Update scorecard**
    - `vendor/silvery/tests/compat/ink/RESULTS.md` — new totals
