@@ -43,6 +43,7 @@ The principles reinforce each other: composable pieces enable fast tests, fast t
   - [Principle: Quarantine and Delete](#principle-quarantine-and-delete)
 - [Part 3: Code for Humans](#part-3-code-for-humans)
   - [Principle: Inverted Pyramid](#principle-inverted-pyramid)
+  - [Principle: Public API First](#principle-public-api-first)
   - [Principle: Alignment](#principle-alignment)
   - [Naming Conventions](#naming-conventions)
   - [No Prop Drilling](#no-prop-drilling)
@@ -786,6 +787,22 @@ function loadDatabase(p: string) { /* ... */ }
 - [ ] Helpers below — after `return` or bottom of file / not before main
 
 > **Lessons learned**: [docs/lessons/read-the-factory.md](lessons/read-the-factory.md)
+
+---
+
+### Principle: Public API First
+
+The public API of a file — the functions, types, and constants that callers import — must appear near the top of the file, ideally within the first 50 lines. Private helpers and internal state come after.
+
+**Why:** Readers scan top-down. AI agents and humans alike look at the first screen of a file to understand what it does. If the public API is buried among helpers, the file looks like a utility module and the canonical entry point is hidden. This was the root cause of the "board driver vs createBoardApp" confusion — tests used low-level drivers because `createBoardApp()` was line 380, not line 20.
+
+**In practice:**
+- Exported factories come first
+- Exported types and interfaces the factory returns come with the factory (or immediately above it)
+- Private helpers, constants, and internal state come after
+- If a helper is only called by one public function, inline it or define it just below (newspaper-style)
+
+This is the stricter, enforceable form of [Inverted Pyramid](#principle-inverted-pyramid): *within the first 50 lines, grep for the canonical `export function create…` or `export const`*. If you can't find it there, the file is miscategorised and readers will reach for the wrong thing.
 
 ---
 
