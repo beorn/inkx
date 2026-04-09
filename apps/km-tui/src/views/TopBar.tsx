@@ -12,13 +12,12 @@ import type { PathSegment } from "../layout/index.ts"
 interface TopBarProps {
   segments: PathSegment[]
   width: number
-  isBoardSelected?: boolean
 }
 
-export function TopBar({ segments, width, isBoardSelected = true }: TopBarProps): React.ReactElement {
+export function TopBar({ segments, width }: TopBarProps): React.ReactElement {
   return (
     <Box width={width} paddingLeft={1} paddingRight={1} flexShrink={0} userSelect="none">
-      <Text>{renderTopBarContent(segments, isBoardSelected)}</Text>
+      <Text>{renderTopBarContent(segments)}</Text>
     </Box>
   )
 }

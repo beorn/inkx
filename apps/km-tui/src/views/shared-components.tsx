@@ -19,7 +19,7 @@ import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { useNavigator } from "../layout-context.tsx"
 import { useRepo } from "../repo-context.tsx"
 import { useTreeRenderContext } from "../state/ui-context.tsx"
-import { useNodeStore } from "../state/reactive.ts"
+import { useTreeNode } from "../state/reactive.ts"
 import { useSignal } from "../hooks/use-signal.ts"
 
 // =============================================================================
@@ -58,11 +58,12 @@ export const MemoizedTreeCard = React.memo(
     getBoardPills,
     extraExcludedSigils,
   }: MemoizedTreeCardProps): React.ReactElement {
-    // Self-subscribe to NodeStore for selection state (by nodeId)
-    const nodeStore = useNodeStore()
-    const _cursorCardNodeId = useSignal(nodeStore.cursorCardNodeId)
-    const _cursorDepth = useSignal(nodeStore.cursorDepth)
-    const cursorIsSelected = _cursorCardNodeId === card.id && _cursorDepth === "card"
+    // Per-node reactive selection — reads tree signals instead of global
+    // cursorCardNodeId/cursorDepth. Only affected cards re-render on j/k.
+    const treeNode = useTreeNode(card.id)
+    const cursorOnThis = useSignal(treeNode.cursor)
+    const cursorInDesc = useSignal(treeNode.cursorDescendant)
+    const cursorIsSelected = cursorOnThis || cursorInDesc
     const isSelected = isSelectedProp ?? cursorIsSelected
     const ps = usePaneSignals()
     const textEdit = useSignal(ps.sel.text)
@@ -184,8 +185,10 @@ interface MemoizedColumnHeaderProps {
   /** Column node id — self-resolves data via lens */
   colId: string
   colIdx: number
-  isSelected: boolean
-  isColSelected: boolean
+  /** Whether cursor is anywhere in this column — auto-derived from tree signals if omitted */
+  isSelected?: boolean
+  /** Whether cursor is directly on the column header — auto-derived from tree signals if omitted */
+  isColSelected?: boolean
   width: number
   /** Show blank line above (for list view, not first header) */
   showTopSpacer?: boolean
@@ -203,12 +206,18 @@ export const MemoizedColumnHeader = React.memo(
   function MemoizedColumnHeader({
     colId,
     colIdx,
-    isSelected,
-    isColSelected,
+    isSelected: isSelectedProp,
+    isColSelected: isColSelectedProp,
     width,
     showTopSpacer = false,
     showSeparator = true,
   }: MemoizedColumnHeaderProps): React.ReactElement | null {
+    // Self-derive selection state from tree signals when props are not provided.
+    const colTreeNode = useTreeNode(colId)
+    const cursorOnCol = useSignal(colTreeNode.cursor)
+    const cursorInColDesc = useSignal(colTreeNode.cursorDescendant)
+    const isSelected = isSelectedProp ?? (cursorOnCol || cursorInColDesc)
+    const isColSelected = isColSelectedProp ?? cursorOnCol
     const repo = useRepo()
     const {
       treeConfig: { iconStyle },

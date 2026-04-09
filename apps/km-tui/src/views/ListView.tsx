@@ -150,16 +150,12 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
       if (item.type === "header") {
         const cIdx = item.colIndex
         const colNodeId = item.colId
-        const isColSelected = cursorDepth === "column" && cursorColumnNodeId === colNodeId
-        const isSelected = cursorColumnNodeId === colNodeId
 
         return (
           <Box key={`header-${colNodeId}-${flatIndex}`} position="sticky" stickyTop={0}>
             <MemoizedColumnHeader
               colId={colNodeId}
               colIdx={cIdx}
-              isSelected={isSelected}
-              isColSelected={isColSelected}
               width={width}
               showTopSpacer={cIdx > 0}
             />
@@ -167,11 +163,10 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
         )
       }
 
-      // Card item
+      // Card item — MemoizedTreeCard self-subscribes to tree node signals
       const cIdx = item.colIndex
       const cardIdx = item.cardIndex
       const cardNodeId = item.card.id
-      const isCardSelected = cursorDepth === "card" && cursorCardNodeId === cardNodeId
 
       return (
         <MemoizedTreeCard
@@ -179,14 +174,13 @@ export function ListView({ columnIds, width, height }: ListViewProps): React.Rea
           card={item.card}
           colIndex={cIdx}
           cardIndex={cardIdx}
-          isSelected={isCardSelected}
           children={EMPTY_CHILDREN}
           getBoardPills={getCachedBoardPills}
           extraExcludedSigils={columnExcludedSigilsByCol.get(cIdx)}
         />
       )
     },
-    [cursorCardNodeId, cursorColumnNodeId, cursorDepth, width, getCachedBoardPills, columnExcludedSigilsByCol],
+    [width, getCachedBoardPills, columnExcludedSigilsByCol],
   )
 
   // Empty state

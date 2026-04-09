@@ -122,7 +122,6 @@ export function getPathSegments(repo: Repo, nodeId: string | null, boardRootId: 
  */
 export function renderTopBarContent(
   segments: Array<{ name: string; sep: string; isWithinBoard?: boolean }>,
-  _isBoardSelected: boolean,
   boardColor?: string,
 ): string {
   const style = createTermStyle()

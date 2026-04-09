@@ -23,7 +23,7 @@ import { type BoardAppStore } from "../state/board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useNodeStore } from "../state/reactive.ts"
+import { useNodeStore, useTreeNode } from "../state/reactive.ts"
 import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { extractWipLimits } from "@km/board"
@@ -99,11 +99,13 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
     return limits.get(normalizedName)
   }, [rules, colNode, lens, colId])
 
-  // Subscribe to column selection only (stable on j/k within same column)
+  // Per-node reactive selection — reads tree signals instead of global
+  // cursorColumnNodeId/cursorDepth. Re-renders only when this column's state changes.
   const nodeStore = useNodeStore()
-  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
-  const cursorDepth = useSignal(nodeStore.cursorDepth)
-  const isSelected = cursorColumnNodeId === colId
+  const colTreeNode = useTreeNode(colId)
+  const colCursorOnThis = useSignal(colTreeNode.cursor)
+  const colCursorInDesc = useSignal(colTreeNode.cursorDescendant)
+  const isSelected = colCursorOnThis || colCursorInDesc
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
@@ -112,8 +114,8 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
 
   const count = cardNodes.length
 
-  // Column header is selected when at column level
-  const isColumnHeaderSelected = isSelected && cursorDepth === "column"
+  // Column header is selected when cursor is directly on this column node.
+  const isColumnHeaderSelected = colCursorOnThis
 
   // Fallback header node when lens/repo lookup fails
   const headerNode: KNode = colNode ?? ({ id: colId, type: "h", content: "" } as unknown as KNode)
