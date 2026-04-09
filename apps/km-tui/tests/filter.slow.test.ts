@@ -372,54 +372,53 @@ describe("deep filter: embedded tasks use source node properties (km-tui.filter-
     return [board, tasksCol, embed1, embed2, normalTask, srcParent, src1, src2]
   }
 
-  test("filtering by 'todo' status includes embed whose source is todo", () => {
-    const { board } = testEnv(() => buildEmbedBoard(), {
-      columns: 120,
+  test("filtering by 'todo' status includes embed whose source is todo", async () => {
+    using app = createTestApp(buildEmbedBoard(), {
+      cols: 120,
       rows: 24,
       checkIncremental: false,
     })
 
     // Verify all cards are visible initially
-    let screen = board.screenshot()
-    expect(screen).toContain("Source task 1") // embed1 resolves to src1's display
-    expect(screen).toContain("Normal task")
+    expect(app.text).toContain("Source task 1") // embed1 resolves to src1's display
+    expect(app.text).toContain("Normal task")
 
     // Apply 'todo' status filter — Status is row 0
-    board.command("filter") // open filter
-    board.command("select_toggle") // toggle todo (Status row, first value)
-    board.press("Escape") // close filter
+    await app.command("filter") // open filter
+    await app.command("select_toggle") // toggle todo (Status row, first value)
+    await app.press("Escape") // close filter
 
-    screen = board.screenshot()
     // embed1 links to src1 which is task_status=todo → should be visible
     // embed2 links to src2 which is task_status=done → should be hidden
     // normalTask is task_status=todo → should be visible
-    expect(screen).toContain("Source task 1")
-    expect(screen).toContain("Normal task")
-    expect(screen).not.toContain("Source task 2")
+    expect(app.text).toContain("Source task 1")
+    expect(app.text).toContain("Normal task")
+    expect(app.text).not.toContain("Source task 2")
   })
 
-  test("filtering by 'done' status includes embed whose source is done", () => {
-    const { board } = testEnv(() => buildEmbedBoard(), {
-      columns: 120,
+  test("filtering by 'done' status includes embed whose source is done", async () => {
+    using app = createTestApp(buildEmbedBoard(), {
+      cols: 120,
       rows: 24,
       checkIncremental: false,
     })
 
     // Apply 'done' status filter — Status is row 0
-    board.command("filter") // open filter
+    await app.command("filter") // open filter
     // Navigate to 'done' value: h/l through values
     // Status row values: todo, wip, blocked, done, dropped
-    board.command("cursor_right").command("cursor_right").command("cursor_right") // move to 'done'
-    board.command("select_toggle") // toggle done
-    board.press("Escape") // close filter
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("cursor_right") // move to 'done'
+    await app.command("select_toggle") // toggle done
+    await app.press("Escape") // close filter
 
-    const screen = board.screenshot()
     // embed2 links to src2 which is task_status=done → should be visible
     // embed1 links to src1 which is task_status=todo → should be hidden
     // normalTask is task_status=todo → should be hidden
-    expect(screen).toContain("Source task 2")
-    expect(screen).not.toContain("Source task 1")
-    expect(screen).not.toContain("Normal task")
+    expect(app.text).toContain("Source task 2")
+    expect(app.text).not.toContain("Source task 1")
+    expect(app.text).not.toContain("Normal task")
   })
 })
 
@@ -717,7 +716,7 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
 // =============================================================================
 
 describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", () => {
-  test("toggle_hide_done preserves manually-folded card state", () => {
+  test("toggle_hide_done preserves manually-folded card state", async () => {
     // Build a board where we can fold a card and observe its children disappear,
     // then toggle the done filter and verify the fold state survives.
     const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")), item("sibling-todo")))
@@ -725,84 +724,84 @@ describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", 
     const sibling = nodes.find((n) => n.id === "sibling-todo")!
     sibling.item = { ...sibling.item, task: { status: "todo", marker: "[ ]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Initially: parent1's children visible
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).toContain("child-a")
-    expect(board.screenshot()).toContain("child-b")
+    expect(app.text).toContain("parent1")
+    expect(app.text).toContain("child-a")
+    expect(app.text).toContain("child-b")
 
     // Fold parent1 — children disappear
-    board.command("fold_more")
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).not.toContain("child-a")
-    expect(board.screenshot()).not.toContain("child-b")
+    await app.command("fold_more")
+    expect(app.text).toContain("parent1")
+    expect(app.text).not.toContain("child-a")
+    expect(app.text).not.toContain("child-b")
 
     // Toggle done filter via vd — this should NOT silently undo the fold
-    board.command("toggle_hide_done")
+    await app.command("toggle_hide_done")
 
     // The fold state should be preserved — children should still be hidden
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).not.toContain("child-a")
-    expect(board.screenshot()).not.toContain("child-b")
+    expect(app.text).toContain("parent1")
+    expect(app.text).not.toContain("child-a")
+    expect(app.text).not.toContain("child-b")
   })
 
-  test("opening filter dialog preserves fold state", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")))))
+  test("opening filter dialog preserves fold state", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")))))
 
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).toContain("child-a")
+    expect(app.text).toContain("parent1")
+    expect(app.text).toContain("child-a")
 
     // Fold parent1
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("child-a")
+    await app.command("fold_more")
+    expect(app.text).not.toContain("child-a")
 
     // Open filter dialog (V)
-    board.command("filter")
+    await app.command("filter")
     // Close filter dialog
-    board.press("Escape")
+    await app.press("Escape")
 
     // Fold should be preserved
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).not.toContain("child-a")
+    expect(app.text).toContain("parent1")
+    expect(app.text).not.toContain("child-a")
   })
 
-  test("repro: fold (H) → open filter (V) → toggle done value preserves fold", () => {
+  test("repro: fold (H) → open filter (V) → toggle done value preserves fold", async () => {
     // Exact repro from bead km-tui.filter-undoes-fold:
     // "Fold a card with H → open filter (V) → toggle done. The fold is silently undone."
     const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b")), item("done-task")))
     const doneNode = nodes.find((n) => n.id === "done-task")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).toContain("child-a")
+    expect(app.text).toContain("parent1")
+    expect(app.text).toContain("child-a")
 
     // Fold parent1 with H (fold_more)
-    board.command("fold_more")
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).not.toContain("child-a")
-    expect(board.screenshot()).not.toContain("child-b")
+    await app.command("fold_more")
+    expect(app.text).toContain("parent1")
+    expect(app.text).not.toContain("child-a")
+    expect(app.text).not.toContain("child-b")
 
     // Open filter dialog with V
-    board.command("filter")
+    await app.command("filter")
 
     // Toggle the "done" value via DIALOG_CONFIRM. Status row is row 0,
     // value index 3 = "done" (todo, wip, blocked, done). Move right 3 times,
     // then Space to toggle.
-    board.command("cursor_right")
-    board.command("cursor_right")
-    board.command("cursor_right")
-    board.command("select_toggle")
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("select_toggle")
 
     // Close the dialog
-    board.press("Escape")
+    await app.press("Escape")
 
     // The fold state should be preserved — child-a should still be hidden
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).not.toContain("child-a")
-    expect(board.screenshot()).not.toContain("child-b")
+    expect(app.text).toContain("parent1")
+    expect(app.text).not.toContain("child-a")
+    expect(app.text).not.toContain("child-b")
   })
 
   test("repro2: setUI({filterProperties: ...}) preserves manually-folded state", () => {
