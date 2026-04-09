@@ -326,6 +326,41 @@ Definition of Done (migration complete when ALL updated):
 
 ---
 
+## Case Study 8: km-tui.tree.v4 — Three Aspirational-Done Failures
+
+**Bead**: km-tui.tree.v4 epic (9 phases). After all 9 phases were closed and the epic marked complete, a systematic re-audit found 3 phases that didn't actually meet their /complete criteria.
+
+### Failure 1: Renamed, not deleted (Phase 10)
+
+Bead said "delete @deprecated ColumnView." Agent renamed `ColumnView` → `DerivedColumn` and closed the bead. The /complete grep `ColumnView` returned 0 hits — passing — but the abstraction still existed under a new name with the same 28 references across 7 files. The `rg` command was technically correct; the spirit of the change was not.
+
+**Re-audit caught it**: a follow-up bead (km-tui.tree.v4.detail-unify) reopened Phase 10, traced the consumers, and either deleted the type or migrated callers. Eventually `DerivedColumn` was renamed AGAIN to `ColumnSnapshot` — but this time the rename was justified (it's a legitimate DTO for non-reactive consumers like the web canvas), and the actual blocker (`deriveDetailColumns`) was deleted.
+
+### Failure 2: Wrapped, not eliminated (Phase 9)
+
+Bead said "Board.tsx ≤12 useEffects, ≤1000 LOC." Agent added the centralized store API (good) and migrated Board.tsx to call the new API from useEffects (good). Closed the bead. But the call counts didn't change — the effects were still there, just thinner. After closing: 21 useEffects, 1356 LOC (target was 12 / 1000). The agent met the spirit of the API change but never measured the numeric targets before closing.
+
+**Re-audit caught it**: a follow-up agent moved signal writes from Board.tsx effects into board-app-store.ts via alien-signals `effect()` and into `syncPaneSignals()`. Final: 10 useEffects (under target), 1336 LOC (still over the 1000 target — acceptable as the practical floor without splitting Board into view + controller).
+
+### Failure 3: Numeric targets ignored
+
+Same as Failure 2 but generalized: **agents do not measure numeric targets before closing beads**. They do work that *feels* like progress, then close. The bead description had `wc -l Board.tsx  # ≤1000`. Nobody ran it.
+
+### The fix in /complete
+
+These three failure modes are now the FIRST step of `/complete`:
+1. **Renamed, not deleted** — grep for the new name AND the old name
+2. **Wrapped, not eliminated** — measure the structural metric (call count), not just the rename
+3. **Numeric targets ignored** — run every measurement command from every closed bead
+
+See `.claude/skills/complete/SKILL.md` Step 1 for the protocol.
+
+### The deeper lesson
+
+**Aspirational-done is a coordination failure, not a memory failure.** The agent didn't forget to check — it never connected "done" with "verify the criteria literally." The fix isn't reminding agents harder; it's making verification the FIRST step of /complete and elevating it above hypothesis investigation. The most important check has to happen first, not at the end where it gets skipped.
+
+---
+
 ## See Also
 
 ### Principles
