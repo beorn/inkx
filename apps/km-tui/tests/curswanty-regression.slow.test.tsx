@@ -1,7 +1,7 @@
 /**
  * Regression test for curswantY calculation
  *
- * Bug: HeadRow used useBoxRectCallback which reads parent's NodeContext,
+ * Bug: HeadRow used useBoxRect which reads parent's NodeContext,
  * causing headHeight to equal full card height instead of title row height.
  *
  * Fix: Use Box's onLayout prop which correctly measures the HeadRow's own dimensions.
@@ -20,7 +20,7 @@ const render120 = createRenderer({ cols: 120, rows: 40 })
 
 describe("curswantY regression", () => {
   test("headHeight should be 1 (title row), not full card height", () => {
-    // Bug: headHeight was equal to cardHeight because useBoxRectCallback
+    // Bug: headHeight was equal to cardHeight because useBoxRect
     // read the parent's NodeContext, not HeadRow's own Box
     const registry = createGridNavigator()
 

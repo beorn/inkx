@@ -5,7 +5,7 @@
  * to provide consistent, optimized rendering of cards and headers.
  */
 import React, { useCallback } from "react"
-import { Box, Text, Muted, Small, CursorLine, ModalDialog, useBoxRectCallback } from "@silvery/ag-react"
+import { Box, Text, Muted, Small, CursorLine, ModalDialog, useBoxRect } from "@silvery/ag-react"
 import { usePaneSignals } from "../hooks/use-signal.ts"
 import { createLogger } from "loggily"
 
@@ -132,7 +132,7 @@ interface CardLayoutTrackerProps {
 /**
  * Wrapper that tracks the card's layout and registers it with the registry.
  *
- * Uses useBoxRectCallback to register measured positions without causing re-renders.
+ * Uses useBoxRect to register measured positions without causing re-renders.
  * This avoids the blank screen issue with useLayout() + many cards.
  */
 function CardLayoutTracker({
@@ -163,7 +163,7 @@ function CardLayoutTracker({
     [registry, colIndex, cardIndex, nodeId],
   )
 
-  useBoxRectCallback(handleLayout)
+  useBoxRect(handleLayout)
 
   return (
     <Box

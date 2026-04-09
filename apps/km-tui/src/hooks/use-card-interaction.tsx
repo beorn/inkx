@@ -25,7 +25,7 @@ interface CardInteraction {
   armed: boolean
   hoverBorderColor: string | undefined
   /** Ref to track the card's screen-space bounding box for popover overlap positioning.
-   *  Populate via useScrollRectCallback inside the card's Box. */
+   *  Populate via useScrollRect inside the card's Box. */
   cardRectRef: React.MutableRefObject<{ x: number; y: number; width: number; height: number } | null>
   handlers: {
     onMouseEnter: (e: SilveryMouseEvent) => void
@@ -58,7 +58,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   // Track mouse position for popover anchor (fallback for point-based positioning)
   const mousePos = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
   // Track the card's screen-space bounding box for overlap positioning.
-  // Populated by a useScrollRectCallback registrar rendered inside the card's Box.
+  // Populated by a useScrollRect registrar rendered inside the card's Box.
   const cardRectRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null)
 
   const handleMouseEnter = useCallback(

@@ -11,7 +11,7 @@ import React, { useCallback, useMemo } from "react"
 import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive.ts"
 import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
-import { Box, ErrorBoundary, Link, Text, useScrollRectCallback, useTheme } from "@silvery/ag-react"
+import { Box, ErrorBoundary, Link, Text, useScrollRect, useTheme } from "@silvery/ag-react"
 import { KNode, getStatusForMarker } from "@km/core"
 import { useRepo } from "../repo-context.tsx"
 import {
@@ -883,7 +883,7 @@ interface HeadRowProps {
 }
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
-  // Use a child registrar with useScrollRectCallback to get screen-relative
+  // Use a child registrar with useScrollRect to get screen-relative
   // positions (accounting for scroll offsets). Box.onLayout provides boxRect
   // which doesn't change on scroll — that would give wrong positions for
   // cross-column navigation when columns have different scroll offsets.
@@ -895,11 +895,11 @@ function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
   )
 }
 
-/** Reports the HeadRow's screen-relative position via useScrollRectCallback. */
+/** Reports the HeadRow's screen-relative position via useScrollRect. */
 function HeadLayoutRegistrar({ onLayout }: { onLayout: HeadRowProps["onLayout"] }): null {
   const callbackRef = React.useRef(onLayout)
   callbackRef.current = onLayout
-  useScrollRectCallback((rect) => callbackRef.current(rect))
+  useScrollRect((rect) => callbackRef.current(rect))
   return null
 }
 

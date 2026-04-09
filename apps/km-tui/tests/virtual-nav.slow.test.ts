@@ -6,7 +6,7 @@
  * NOT always the first card.
  *
  * These tests rely on layout notifications being enabled in the test renderer
- * (run.tsx) so that useScrollRectCallback fires and populates the position
+ * (run.tsx) so that useScrollRect fires and populates the position
  * registry with real screen positions -- the same path as production.
  *
  * Consolidated from:
@@ -36,7 +36,7 @@ describe("spatial navigation: Y-position matching", () => {
     )
 
     // Registry should have sections for both columns (0 and 1)
-    // This proves useScrollRectCallback fires during test renders
+    // This proves useScrollRect fires during test renders
     expect(registry.hasSection(0)).toBe(true)
     expect(registry.hasSection(1)).toBe(true)
 
