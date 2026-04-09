@@ -153,7 +153,7 @@ Pure navigation functions in `board-reducer.ts` follow the TEA shape: `(BoardNav
 - **Command**: `page_down` / `page_up` -> `PAGE_JUMP`
 - **Entry**: `handleNavAction` -> `handlePageJump` in `board-actions-nav.ts`
 - **Implementation**: Jumps cursor by half a page worth of cards in the current column
-- **Source of truth**: Column's `cardNodes` array (from `DerivedColumn`) -- MIXED
+- **Source of truth**: Column's `cardNodes` array (from `ColumnSnapshot`) -- MIXED
 - **Data flow**:
   1. Computes `pageSize` from terminal dimensions: `max(5, floor((rows - 4) / 2))`
   2. Gets card IDs from `col.cardNodes` (derived from Repo but only top-level cards, not subitems)
@@ -256,6 +256,6 @@ Epic: `km-tui.nav-clarity` (P2)
 
 3. **Tree navigation ignores ViewTree**. `handleTreeNavigation` in `navigation-handlers.ts` uses `repo.getChildren` for sibling/parent/child lookups. This works correctly today because tree nav directions (first/last/child/parent) don't need visibility filtering in the same way spatial nav does, but unifying on ViewTree would reduce the number of traversal strategies.
 
-4. **Page jump uses col.cardNodes**. This is a DerivedColumn-derived list, not a ViewTree walk. It only includes top-level cards (not subitems), which is intentional for page-sized jumps, but the data source is inconsistent with block/outline nav.
+4. **Page jump uses col.cardNodes**. This is a ColumnSnapshot-derived list, not a ViewTree walk. It only includes top-level cards (not subitems), which is intentional for page-sized jumps, but the data source is inconsistent with block/outline nav.
 
 5. **Detail view navigates via Repo**. The detail pane's vertical navigation walks `repo.getChildren` directly. Since detail has virtual metadata rows with no ViewNode representation, migrating to ViewTree would require extending ViewNode to support virtual items.

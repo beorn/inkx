@@ -246,11 +246,11 @@ Without custom `equals`, array-valued signals use reference equality and may wri
 
 | Old | New (planned) | Blocker |
 |-----|-----|-----|
-| Ad-hoc sigil inheritance in `hydrate()` | `tree.ancestors(s => s.ownSigils).reduce(concat, [])` | Needs `.reduce()` combinator |
+| ~~Ad-hoc sigil inheritance in `hydrate()`~~ | ~~`tree.ancestors(s => s.ownSigils).reduce(concat, [])`~~ | Done — `.reduce()` combinator + `excludedSigils` signal |
 | ~~`expandWithDescendants()` (visual selection)~~ | ~~`selectedAncestor` reduces automatically~~ | Done — helper removed |
-| `shouldStripColor` computed 4 ways | Derive from `cursor` / `selectedAncestor` | None |
+| ~~`shouldStripColor` computed 4 ways~~ | ~~Derive from `cursor` / `selectedAncestor`~~ | Done — unified to 2 sites |
 | ~~`ReactiveNodeStore` class~~ | ~~Factory function per principles.md~~ | Done — `createNodeStore()` factory |
-| `expandedEditCardId` store signal (1 reader) | `editingDescendant` or direct edit check | None |
+| ~~`expandedEditCardId` store signal (1 reader)~~ | ~~`editingDescendant` or direct edit check~~ | Done — purged in commit d3dc1c2 |
 
 ### Kept by design (not tree-reduced)
 

@@ -289,7 +289,7 @@ Action handlers receive an `OpCtx` — a context object re-derived on each keypr
 
 ### ViewTreeProjection as Single Authority
 
-The ViewTreeProjection (in OpCtx as `tree`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Each pane's `PaneSignals.visibleLens` is a computed alien-signal — one build, auto-cached. `buildOpCtx` derives `columnId` and `card` from the tree directly (board mode) or via `deriveDetailColumns` (detail mode). Board.tsx reads column IDs via `useSignal(ps.visibleLens)`. Components take string IDs and self-resolve via `useNode(id)`. Cursor classification uses `classifyCursorFromLens` (O(1) lookup + parent walk). Navigation traverses the tree's `next/prev/parent/children` methods.
+The ViewTreeProjection (in OpCtx as `tree`) is the single authoritative derivation of visual roles, cursor classification, and navigation. Each pane's `PaneSignals.visibleLens` is a computed alien-signal — one build, auto-cached. `buildOpCtx` derives `columnId` and `card` from the tree directly. Board.tsx reads column IDs via `useSignal(ps.visibleLens)`. Components take string IDs and self-resolve via `useNode(id)`. Cursor classification uses `classifyCursorFromLens` (O(1) lookup + parent walk). Navigation traverses the tree's `next/prev/parent/children` methods.
 
 ### Target: TEA State Machines + Plugin Slices
 
