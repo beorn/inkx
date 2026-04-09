@@ -85,7 +85,7 @@ This means you no longer need separate `SILVERY_INSTRUMENT` or `SILVERY_CELL_DEB
 
 ### Step 2: Write a Failing Test
 
-Follow the [test-first protocol](../tests/test-first-protocol.md). Write a failing test before any fix. For silvery bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
+Follow the [test-first protocol](../tests/SKILL.md#test-first-protocol). Write a failing test before any fix. For silvery bugs, use `withDiagnostics` with `{ checkIncremental: true, checkReplay: true, checkStability: true }`.
 
 ### Step 3: SILVERY_INSTRUMENT
 

@@ -107,9 +107,9 @@ Report to user. DO NOT guess at fixes.
 
 ## Step 3: Write Failing Test (MANDATORY — test-first)
 
-**Where to put the test:** Always add to an existing thematic test file that matches the bug's domain (e.g., fold bug → `fold.test.ts`, scroll bug → `scroll.test.ts`). See [test-first-protocol.md](../../tests/test-first-protocol.md#where-to-put-regression-tests) for the full domain→file mapping. Never create a per-bug test file.
+**Where to put the test:** Always add to an existing thematic test file that matches the bug's domain (e.g., fold bug → `fold.test.ts`, scroll bug → `scroll.test.ts`). See the [tests skill](../../tests/SKILL.md) for the full domain→file mapping. Never create a per-bug test file.
 
-Follow the [test-first protocol](../../tests/test-first-protocol.md). The test **must fail before** you write any fix code.
+Follow the [test-first protocol](../../tests/SKILL.md#test-first-protocol). The test **must fail before** you write any fix code.
 
 **Classify the bug** to choose the right test type:
 
@@ -153,7 +153,7 @@ test("card has left/right borders", () => {
 
 ### Buffer assertion API
 
-**You MUST use** the [buffer assertion API](../../tests/tui.md#buffer-assertions) for rendering bugs — read that section for the full method list and color codes. State assertions (`toExist()`) miss rendering issues.
+**You MUST use** the [buffer assertion API](../../tests/SKILL.md#buffer-assertions) for rendering bugs — read that section for the full method list and color codes. State assertions (`toExist()`) miss rendering issues.
 
 Run `bun run test:fast` - verify the test fails for the right reason.
 

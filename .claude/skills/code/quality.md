@@ -60,9 +60,9 @@ Check against all principles in [docs/principles.md](../../../docs/principles.md
 - Deprecated code deleted, not shimmed
 
 **Inverted Pyramid (Public API First):**
-- Is the main export in the first screenful? If a file is >200 lines and the factory/public API is below line 100, flag it.
+- Is the main export in the first screenful? The exported factory/public API should appear within the first 50 lines of the file. See [docs/principles.md#principle-public-api-first](../../../docs/principles.md).
 - Every file's first 20 lines should answer: what is this, what's the main entry point?
-- Public exports at top, internal helpers at bottom.
+- Public exports at top, internal helpers at bottom (newspaper style — lead with the answer).
 
 **Composable Domain Objects:**
 - Factory functions with options, not classes

@@ -9,7 +9,7 @@ argument-hint: [issue] (describe the visual bug, or "explore" for full check)
 
 ## Rules
 
-Follow the [test-first protocol](../tests/test-first-protocol.md). No code analysis or theorizing until you have a failing test.
+Follow the [test-first protocol](../tests/SKILL.md#test-first-protocol). No code analysis or theorizing until you have a failing test.
 
 0. **Verify incremental checking is ON** — `testEnv()` has `checkIncremental: true` by default. If the test uses `checkIncremental: false`, remove it first. Incremental checking catches stale-pixel bugs that are invisible to other assertions.
 1. **Use withDiagnostics** — it has checkIncremental, checkReplay, checkStability
@@ -95,7 +95,7 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 2. **Load real vault** if user mentions a path
 3. **Reproduce the bug** - if test fails, bug confirmed
 4. **Fix the code** - iterate on the fix
-5. **Promote to existing thematic file** - move the test into the matching domain file in `apps/km-tui/tests/` (e.g., fold bug → `fold.test.ts`, scroll bug → `scroll.test.ts`). See [test-first-protocol.md](../tests/test-first-protocol.md#where-to-put-regression-tests) for the full domain→file mapping.
+5. **Promote to existing thematic file** - move the test into the matching domain file in `apps/km-tui/tests/` (e.g., fold bug → `fold.test.ts`, scroll bug → `scroll.test.ts`). See the [tests skill](../tests/SKILL.md) for the full domain→file mapping.
 6. **Clean up** - after the bug is fixed, the repro test MUST be either:
    - **Promoted**: merged into the existing thematic test file for its domain
    - **Deleted**: if the bug is already covered by other tests
@@ -105,7 +105,7 @@ Run: `bun vitest run /tmp/diag-cursor-bug.spec.ts`
 
 ## Buffer Assertion Toolbelt
 
-**You MUST read and use** the [buffer assertion API](../tests/tui.md#buffer-assertions) for rendering bugs — it has the full method list, color codes, and usage guidance.
+**You MUST read and use** the [buffer assertion API](../tests/SKILL.md#buffer-assertions) for rendering bugs — it has the full method list, color codes, and usage guidance.
 
 ```typescript
 const { board } = testEnv(() => item("board", item("col", item("task"))))
