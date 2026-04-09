@@ -59,6 +59,11 @@ Check against all principles in [docs/principles.md](../../../docs/principles.md
 - One way to do things — no dual patterns coexisting
 - Deprecated code deleted, not shimmed
 
+**Inverted Pyramid (Public API First):**
+- Is the main export in the first screenful? If a file is >200 lines and the factory/public API is below line 100, flag it.
+- Every file's first 20 lines should answer: what is this, what's the main entry point?
+- Public exports at top, internal helpers at bottom.
+
 **Composable Domain Objects:**
 - Factory functions with options, not classes
 - Explicit deps via `options.inject`, no globals
@@ -115,7 +120,7 @@ bun lint:unused 2>&1 | tee /tmp/knip-output.txt  # unused files/exports
 | Global/singleton   | Module-level state, `getX()` patterns                                       |
 | Compat shim        | Backwards compat that never gets removed                                    |
 | **Style**          |                                                                             |
-| Inverted pyramid   | Helpers before main logic                                                   |
+| Inverted pyramid   | Helpers before main logic; file >200 lines with factory/public API below line 100 |
 | Prop drilling      | Same props through 3+ layers                                                |
 | Hardcoded color    | `color="red"` instead of `color="$error"`                                   |
 

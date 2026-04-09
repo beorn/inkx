@@ -747,48 +747,45 @@ Code is read more than written. Use [Plain Domain Language](#principle-plain-lan
 
 ### Principle: Inverted Pyramid
 
-**The insight**: Main flow at top of file/function, helpers after return.
+**The insight**: Every file's first 20 lines should answer: what is this, what's the main entry point? Public exports and factory functions go at the top, internal helpers at the bottom. If a file is >200 lines and the main export is below line 100, restructure it.
 
-**The pattern**: Use JavaScript hoisting to write code in reading order.
+**The pattern**: Use JavaScript hoisting to write code in reading order. The most important logic appears first, implementation details follow naturally.
 
-This is **literate programming**: code as narrative for humans. The most important logic appears first, implementation details follow naturally.
+This is **literate programming**: code as narrative for humans. AI agents read top-to-bottom with limited context. If the important thing isn't in the first read, it may never be found.
 
 ```typescript
-// ✅ GOOD - main logic first, helpers after return
-function processRepo() {
-  const path = validatePath(repoPath)
-  const db = loadDatabase(path)
-  return { path, db }
-
-  // Implementation details after return (hoisted)
-  function validatePath(p: string) {
-    /* ... */
-  }
-  function loadDatabase(p: string) {
-    /* ... */
-  }
+// ✅ GOOD - public API first, helpers after
+export function createRepo(path: string) {
+  const validated = validatePath(path)
+  const db = loadDatabase(validated)
+  return { path: validated, db }
 }
 
-// Pure helpers at module level - BOTTOM of file
-function formatDate(d: Date): string {
-  /* ... */
-}
+// Secondary exports next
+export function createRepoHelpers() { /* ... */ }
+
+// Internal helpers at bottom
+function validatePath(p: string) { /* ... */ }
+function loadDatabase(p: string) { /* ... */ }
 ```
 
 **File layout**:
 
 1. Imports
-2. Exports / re-exports
-3. **Main components/functions** ← Reader starts here
-4. Helper functions
+2. **Main export / factory function** ← Reader starts here
+3. Secondary exports
+4. Internal helper functions
 5. Constants/config
 
-**Why**: Readers start at what matters, not implementation details.
+**Why**: Readers (human and AI) start at what matters, not implementation details.
 
 **Guidelines:**
 - [ ] Main first — exports at top / not buried after helpers
+- [ ] Public API in first screenful — if >200 lines and factory below line 100, restructure
 - [ ] Short core — < 15 lines main logic / not 50-line functions
 - [ ] Helpers below — after `return` or bottom of file / not before main
+
+> **Lessons learned**: [docs/lessons/read-the-factory.md](lessons/read-the-factory.md)
 
 ---
 

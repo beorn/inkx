@@ -37,130 +37,87 @@ import { hitTestSplitBorder, hitTestPaneId } from "../layout-helpers.ts"
 import { type LayoutNode, mergePaneUI, hasDetailPaneFor } from "./board-types.ts"
 import type { PaneUI } from "../state/ui-reducer.ts"
 
-const perfLog = createLogger("km:perf")
-
-/** Pick a subset of keys from an object, returning a new object with only those keys. */
-function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
-  const result = {} as Pick<T, K>
-  for (const key of keys) result[key] = obj[key]
-  return result
-}
-
 // =============================================================================
-// Shared key-name lookup table (Key boolean → display name)
+// Board App — THE public API
 // =============================================================================
 
-/** Map Key boolean properties to human-readable names. Used by diagnostics and describeKey(). */
-const KEY_NAMES: [keyof Key, string][] = [
-  ["escape", "Escape"],
-  ["return", "Enter"],
-  ["backspace", "Backspace"],
-  ["delete", "Delete"],
-  ["tab", "Tab"],
-  ["upArrow", "Up"],
-  ["downArrow", "Down"],
-  ["leftArrow", "Left"],
-  ["rightArrow", "Right"],
-  ["pageUp", "PageUp"],
-  ["pageDown", "PageDown"],
-  ["home", "Home"],
-  ["end", "End"],
-]
+/**
+ * Create the board app definition.
+ *
+ * TODO(km-canonical): Migrate to pipe() composition. Currently uses createApp()
+ * with an event handler map, which couples store creation and event wiring.
+ * The pipe() migration would separate these concerns:
+ *   pipe(
+ *     createApp(storeCreator),
+ *     withReact(<BoardApp />),
+ *     withTerminal(process, { mouse, kitty, ... }),
+ *     withFocus(),
+ *     withDomEvents(),
+ *   )
+ * This requires createApp() to support deferred event handler registration
+ * (e.g., via a withEventHandlers() plugin) so term:key/term:mouse/term:resize
+ * handlers can be composed as plugins rather than constructor args.
+ *
+ * @param storeParams - Parameters for creating the initial store state
+ * @returns AppDefinition that can be .run() with a React element
+ */
+export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
+  let exitFn: (() => void) | null = null
+  resetModeStack()
 
-/** Look up the display name for a special key, or return null for printable/unknown keys. */
-function lookupKeyName(key: Key): string | null {
-  for (const [prop, name] of KEY_NAMES) {
-    if (key[prop]) return name
-  }
-  return null
-}
+  const app = createApp<Record<string, unknown>, BoardAppStore>(() => createBoardAppStoreState(storeParams), {
+    "term:key": (data, ctx) => {
+      const result = handleKey(data as { input: string; key: Key }, ctx as EventHandlerContext<BoardAppStore>, () =>
+        exitFn?.(),
+      )
+      return result
+    },
+    "term:resize": (data, ctx) => {
+      const { cols, rows } = data as { cols: number; rows: number }
+      ctx.get().setDimensions({ columns: cols, rows: rows })
+    },
+    "term:mouse": (data, ctx) => {
+      handleMouse(data as ParsedMouse, ctx as EventHandlerContext<BoardAppStore>)
+    },
+    "term:focus": (data, ctx) => {
+      const { focused } = data as { focused: boolean }
+      ctx.get().setUI({ terminalFocused: focused })
+      // Expose on globalThis for the heartbeat interval (which runs outside the store)
+      globalThis.__km_terminal_focused = focused
+    },
+  })
 
-// =============================================================================
-// Board App Locals — per-instance mutable state (no module-level lets)
-// =============================================================================
-
-export interface BoardAppLocals {
-  lastKeyTime: number
-  cachedFocusManager: FocusManager | null
-  cachedFocus: ((testID: string) => void) | null
-  cachedActivateScope: ((scopeId: string) => void) | null
-  /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
-  cursorCache: {
-    cursorId: string | null
-    cursorCardNodeId: string | null
-    /** Reference identity of the nodeIndex used for this derivation */
-    nodeIndexRef: Map<string, { colIndex: number; cardIndex: number }>
-    colIndex: number
-    cardIndex: number
-    isAtCardLevel: boolean
-  } | null
-  chordTimer: ReturnType<typeof setTimeout> | null
-  pendingChordShownAt: number
-  chordDismissTimer: ReturnType<typeof setTimeout> | null
-  chordTimeoutFiredAt: number
-  lastClick: { time: number; x: number; y: number }
-  dragState: {
-    splitNode: LayoutNode & { type: "split" }
-    containerStart: number
-    containerSize: number
-  } | null
-  /** Lazy-created empty ViewTreeProjection fallback for when no board/signals exist */
-  emptyTree: import("@km/board").ViewTreeProjection | null
-}
-
-export function createBoardAppLocals(): BoardAppLocals {
+  // Wrap run to capture the exit function
+  const originalRun = app.run.bind(app)
   return {
-    lastKeyTime: 0,
-    cachedFocusManager: null,
-    cachedFocus: null,
-    cachedActivateScope: null,
-    cursorCache: null,
-    chordTimer: null,
-    pendingChordShownAt: 0,
-    chordDismissTimer: null,
-    chordTimeoutFiredAt: 0,
-    lastClick: { time: 0, x: 0, y: 0 },
-    dragState: null,
-    emptyTree: null,
+    run: (...args: Parameters<typeof originalRun>) => {
+      const runner = originalRun(...args)
+      // Wrap the promise to capture the handle
+      return {
+        then(onfulfilled?: ((value: unknown) => unknown) | null, onrejected?: ((reason: unknown) => unknown) | null) {
+          return runner.then((handle) => {
+            exitFn = () => handle.unmount()
+            return onfulfilled ? onfulfilled(handle) : handle
+          }, onrejected)
+        },
+        [Symbol.asyncIterator]: () => (runner as AsyncIterable<unknown>)[Symbol.asyncIterator](),
+      } as typeof runner
+    },
   }
 }
 
-// =============================================================================
-// Mouse Helpers (stateless — shared across all handler instances)
-// =============================================================================
-
-/** Scroll-wheel step count: each notch moves cursor by this many items */
-const SCROLL_STEP = 3
-
-const DOUBLE_CLICK_MS = 400
-const DOUBLE_CLICK_DISTANCE = 2
-
-/** Find which column index the mouse x-coordinate falls in, or -1 if none. */
-function resolveMouseToColumn(opctx: OpCtx, mouseX: number): number {
-  const { navigator } = opctx
-
-  // Primary: use registered column bounds (covers all columns including empty ones)
-  const colIdx = navigator.findColumnAtX(mouseX)
-  if (colIdx >= 0) return colIdx
-
-  // Fallback: check card positions (for columns whose bounds haven't been registered yet)
-  const columnCount = opctx.rootId ? opctx.tree.children(opctx.rootId).length : 0
-  for (let ci = 0; ci < columnCount; ci++) {
-    const itemCount = navigator.getItemCount(ci)
-    if (itemCount === 0) continue
-    for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
-      const rect = navigator.getPosition(ci, itemIdx)
-      if (rect) {
-        if (mouseX >= rect.x && mouseX < rect.x + rect.width) return ci
-        break
-      }
-    }
-  }
-  return -1
+/**
+ * Reset the default module-level handlers' state for isolate: false test compat.
+ * Clears pending timers, then replaces with a fresh bag.
+ */
+export function resetBoardAppState(): void {
+  if (defaultLocals.chordTimer !== null) clearTimeout(defaultLocals.chordTimer)
+  if (defaultLocals.chordDismissTimer !== null) clearTimeout(defaultLocals.chordDismissTimer)
+  Object.assign(defaultLocals, createBoardAppLocals())
 }
 
 // =============================================================================
-// Handler Factory
+// Handler Factory — secondary export
 // =============================================================================
 
 /** Return type of createBoardAppHandlers — all handler functions closed over one locals bag. */
@@ -1075,20 +1032,130 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 } // end createBoardAppHandlers
 
 // =============================================================================
-// Default handlers — backward-compatible module-level exports
+// Board App Locals — secondary export
 // =============================================================================
 
-const defaultLocals = createBoardAppLocals()
-const defaultHandlers = createBoardAppHandlers(defaultLocals)
+export interface BoardAppLocals {
+  lastKeyTime: number
+  cachedFocusManager: FocusManager | null
+  cachedFocus: ((testID: string) => void) | null
+  cachedActivateScope: ((scopeId: string) => void) | null
+  /** Cache for cursor indices — avoids re-deriving colIndex/cardIndex when cursor+layout unchanged */
+  cursorCache: {
+    cursorId: string | null
+    cursorCardNodeId: string | null
+    /** Reference identity of the nodeIndex used for this derivation */
+    nodeIndexRef: Map<string, { colIndex: number; cardIndex: number }>
+    colIndex: number
+    cardIndex: number
+    isAtCardLevel: boolean
+  } | null
+  chordTimer: ReturnType<typeof setTimeout> | null
+  pendingChordShownAt: number
+  chordDismissTimer: ReturnType<typeof setTimeout> | null
+  chordTimeoutFiredAt: number
+  lastClick: { time: number; x: number; y: number }
+  dragState: {
+    splitNode: LayoutNode & { type: "split" }
+    containerStart: number
+    containerSize: number
+  } | null
+  /** Lazy-created empty ViewTreeProjection fallback for when no board/signals exist */
+  emptyTree: import("@km/board").ViewTreeProjection | null
+}
 
-export const handleKey = defaultHandlers.handleKey
-export const handleMouse = defaultHandlers.handleMouse
-export const dispatchCommandById = defaultHandlers.dispatchCommandById
-export const __triggerChordTimeout = defaultHandlers.triggerChordTimeout
+export function createBoardAppLocals(): BoardAppLocals {
+  return {
+    lastKeyTime: 0,
+    cachedFocusManager: null,
+    cachedFocus: null,
+    cachedActivateScope: null,
+    cursorCache: null,
+    chordTimer: null,
+    pendingChordShownAt: 0,
+    chordDismissTimer: null,
+    chordTimeoutFiredAt: 0,
+    lastClick: { time: 0, x: 0, y: 0 },
+    dragState: null,
+    emptyTree: null,
+  }
+}
 
 // =============================================================================
-// App Definition
+// Internal helpers
 // =============================================================================
+
+const perfLog = createLogger("km:perf")
+
+/** Pick a subset of keys from an object, returning a new object with only those keys. */
+function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
+  const result = {} as Pick<T, K>
+  for (const key of keys) result[key] = obj[key]
+  return result
+}
+
+// =============================================================================
+// Shared key-name lookup table (Key boolean → display name)
+// =============================================================================
+
+/** Map Key boolean properties to human-readable names. Used by diagnostics and describeKey(). */
+const KEY_NAMES: [keyof Key, string][] = [
+  ["escape", "Escape"],
+  ["return", "Enter"],
+  ["backspace", "Backspace"],
+  ["delete", "Delete"],
+  ["tab", "Tab"],
+  ["upArrow", "Up"],
+  ["downArrow", "Down"],
+  ["leftArrow", "Left"],
+  ["rightArrow", "Right"],
+  ["pageUp", "PageUp"],
+  ["pageDown", "PageDown"],
+  ["home", "Home"],
+  ["end", "End"],
+]
+
+/** Look up the display name for a special key, or return null for printable/unknown keys. */
+function lookupKeyName(key: Key): string | null {
+  for (const [prop, name] of KEY_NAMES) {
+    if (key[prop]) return name
+  }
+  return null
+}
+
+// =============================================================================
+// Mouse Helpers (stateless — shared across all handler instances)
+// =============================================================================
+
+/** Scroll-wheel step count: each notch moves cursor by this many items */
+const SCROLL_STEP = 3
+
+const DOUBLE_CLICK_MS = 400
+const DOUBLE_CLICK_DISTANCE = 2
+
+/** Find which column index the mouse x-coordinate falls in, or -1 if none. */
+function resolveMouseToColumn(opctx: OpCtx, mouseX: number): number {
+  const { navigator } = opctx
+
+  // Primary: use registered column bounds (covers all columns including empty ones)
+  const colIdx = navigator.findColumnAtX(mouseX)
+  if (colIdx >= 0) return colIdx
+
+  // Fallback: check card positions (for columns whose bounds haven't been registered yet)
+  const columnCount = opctx.rootId ? opctx.tree.children(opctx.rootId).length : 0
+  for (let ci = 0; ci < columnCount; ci++) {
+    const itemCount = navigator.getItemCount(ci)
+    if (itemCount === 0) continue
+    for (let itemIdx = 0; itemIdx < itemCount; itemIdx++) {
+      const rect = navigator.getPosition(ci, itemIdx)
+      if (rect) {
+        if (mouseX >= rect.x && mouseX < rect.x + rect.width) return ci
+        break
+      }
+    }
+  }
+  return -1
+}
 
 /** Produce a human-readable label for a key press (e.g. "Ctrl+x", "F5", "w"). */
 function describeKey(input: string, key: Key): string {
@@ -1105,81 +1172,14 @@ function describeKey(input: string, key: Key): string {
   return parts.join("+")
 }
 
-/**
- * Create the board app definition.
- *
- * TODO(km-canonical): Migrate to pipe() composition. Currently uses createApp()
- * with an event handler map, which couples store creation and event wiring.
- * The pipe() migration would separate these concerns:
- *   pipe(
- *     createApp(storeCreator),
- *     withReact(<BoardApp />),
- *     withTerminal(process, { mouse, kitty, ... }),
- *     withFocus(),
- *     withDomEvents(),
- *   )
- * This requires createApp() to support deferred event handler registration
- * (e.g., via a withEventHandlers() plugin) so term:key/term:mouse/term:resize
- * handlers can be composed as plugins rather than constructor args.
- *
- * @param storeParams - Parameters for creating the initial store state
- * @returns AppDefinition that can be .run() with a React element
- */
-export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
-  let exitFn: (() => void) | null = null
-  resetModeStack()
-
-  const app = createApp<Record<string, unknown>, BoardAppStore>(() => createBoardAppStoreState(storeParams), {
-    "term:key": (data, ctx) => {
-      const result = handleKey(data as { input: string; key: Key }, ctx as EventHandlerContext<BoardAppStore>, () =>
-        exitFn?.(),
-      )
-      return result
-    },
-    "term:resize": (data, ctx) => {
-      const { cols, rows } = data as { cols: number; rows: number }
-      ctx.get().setDimensions({ columns: cols, rows: rows })
-    },
-    "term:mouse": (data, ctx) => {
-      handleMouse(data as ParsedMouse, ctx as EventHandlerContext<BoardAppStore>)
-    },
-    "term:focus": (data, ctx) => {
-      const { focused } = data as { focused: boolean }
-      ctx.get().setUI({ terminalFocused: focused })
-      // Expose on globalThis for the heartbeat interval (which runs outside the store)
-      globalThis.__km_terminal_focused = focused
-    },
-  })
-
-  // Wrap run to capture the exit function
-  const originalRun = app.run.bind(app)
-  return {
-    run: (...args: Parameters<typeof originalRun>) => {
-      const runner = originalRun(...args)
-      // Wrap the promise to capture the handle
-      return {
-        then(onfulfilled?: ((value: unknown) => unknown) | null, onrejected?: ((reason: unknown) => unknown) | null) {
-          return runner.then((handle) => {
-            exitFn = () => handle.unmount()
-            return onfulfilled ? onfulfilled(handle) : handle
-          }, onrejected)
-        },
-        [Symbol.asyncIterator]: () => (runner as AsyncIterable<unknown>)[Symbol.asyncIterator](),
-      } as typeof runner
-    },
-  }
-}
-
 // =============================================================================
-// Helpers
+// Default handlers — backward-compatible module-level exports
 // =============================================================================
 
-/**
- * Reset the default module-level handlers' state for isolate: false test compat.
- * Clears pending timers, then replaces with a fresh bag.
- */
-export function resetBoardAppState(): void {
-  if (defaultLocals.chordTimer !== null) clearTimeout(defaultLocals.chordTimer)
-  if (defaultLocals.chordDismissTimer !== null) clearTimeout(defaultLocals.chordDismissTimer)
-  Object.assign(defaultLocals, createBoardAppLocals())
-}
+const defaultLocals = createBoardAppLocals()
+const defaultHandlers = createBoardAppHandlers(defaultLocals)
+
+export const handleKey = defaultHandlers.handleKey
+export const handleMouse = defaultHandlers.handleMouse
+export const dispatchCommandById = defaultHandlers.dispatchCommandById
+export const __triggerChordTimeout = defaultHandlers.triggerChordTimeout
