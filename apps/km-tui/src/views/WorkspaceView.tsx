@@ -170,6 +170,7 @@ function LayoutNodeView({
         color={isFocused ? undefined : "$fg"}
         focusScope
         testID={node.paneId}
+        data-focused={isFocused || undefined}
         theme={paneTheme}
         onMouseDown={() => onPaneClick?.(node.paneId)}
       >

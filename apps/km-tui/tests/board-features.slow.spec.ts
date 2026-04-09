@@ -8,6 +8,7 @@
 import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import type { SignalStoreApi as StoreApi } from "../src/state/signal-store.ts"
 import { getActiveBoardPane, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { dispatchCommandById } from "../src/board/board-app.ts"
@@ -124,18 +125,18 @@ describe("Folding", () => {
   // Note: "Enter on card with children shows detail pane" covered in Zooming tests
 
   test("z toggles fold state on card with children", () => {
-    const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))))
-    board.expect("#child1").toExist()
-    board.command("fold_all_more")
-    board.expect("#child1").not.toExist()
+    using app = createTestApp(item("board", item("col", item("parent", item("child1"), item("child2")))))
+    app.expect("#child1").toExist()
+    app.command("fold_all_more")
+    app.expect("#child1").not.toExist()
     // Children are hidden; child count is hidden in cards (overflow indicator shows it)
   })
 
   test("folded card hides children", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
-    board.expect("#sub1").toExist()
-    board.command("fold_all_more")
-    board.expect("#sub1").not.toExist()
+    using app = createTestApp(item("board", item("col", item("task", item("sub1"), item("sub2"), item("sub3")))))
+    app.expect("#sub1").toExist()
+    app.command("fold_all_more")
+    app.expect("#sub1").not.toExist()
   })
 })
 
@@ -188,30 +189,29 @@ describe("Text Rendering", () => {
 
 describe("Terminal Sizes", () => {
   test("narrow terminal (40 cols) shows single column", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("task")), item("col2", item("task"))), {
-      columns: 40,
+    using app = createTestApp(item("board", item("col1", item("task")), item("col2", item("task"))), {
+      cols: 40,
     })
     // Should only show one column at a time in narrow terminal
   })
 
   test("wide terminal (200 cols) shows many columns", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("t1")),
-          item("col2", item("t2")),
-          item("col3", item("t3")),
-          item("col4", item("t4")),
-        ),
-      { columns: 200 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("t1")),
+        item("col2", item("t2")),
+        item("col3", item("t3")),
+        item("col4", item("t4")),
+      ),
+      { cols: 200 },
     )
     // Verify all columns are rendered (their cards are visible)
     // The first line is the path breadcrumb, not column headers
-    board.expect("#col1").toExist()
-    board.expect("#col2").toExist()
-    board.expect("#col3").toExist()
-    board.expect("#col4").toExist()
+    app.expect("#col1").toExist()
+    app.expect("#col2").toExist()
+    app.expect("#col3").toExist()
+    app.expect("#col4").toExist()
   })
 
   test("terminal resize maintains cursor position", () => {
@@ -229,13 +229,13 @@ describe("Terminal Sizes", () => {
     //
     // We verify this by checking that cursor elements have stable node IDs.
 
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item("1a"), item("1b")), item("col2", item("2a"), item("2b"))),
     )
 
     // Navigate to a card
-    board.command("cursor_right") // Move to col2's first card
-    const cursorEl = board.q("[data-cursor]")
+    app.command("cursor_right") // Move to col2's first card
+    const cursorEl = app.q("[data-cursor]")
     const cursorId = cursorEl.getAttribute("id")
 
     // Verify cursor is tracked by node ID, not visual indices
@@ -263,27 +263,26 @@ describe("Terminal Sizes", () => {
     //   So 7 columns fit, 1 overflows → right overflow indicator should show
 
     test("280 cols: 8 columns shows 7 with overflow indicator (not all 8)", () => {
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("t1")),
-            item("col2", item("t2")),
-            item("col3", item("t3")),
-            item("col4", item("t4")),
-            item("col5", item("t5")),
-            item("col6", item("t6")),
-            item("col7", item("t7")),
-            item("col8", item("t8")),
-          ),
-        { columns: 280, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("col1", item("t1")),
+          item("col2", item("t2")),
+          item("col3", item("t3")),
+          item("col4", item("t4")),
+          item("col5", item("t5")),
+          item("col6", item("t6")),
+          item("col7", item("t7")),
+          item("col8", item("t8")),
+        ),
+        { cols: 280, rows: 40 },
       )
 
-      const text = board.screenshot()
+      const text = app.text
 
       // First 7 columns should be visible
       for (let i = 1; i <= 7; i++) {
-        board.expect(`#col${i}`).toExist()
+        app.expect(`#col${i}`).toExist()
       }
 
       // Right overflow indicator should appear (▸ arrows from VerticalScrollIndicator)
@@ -293,21 +292,20 @@ describe("Terminal Sizes", () => {
     })
 
     test("280 cols: columns render without overlapping or gaps", () => {
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("Alpha", item("task-a1"), item("task-a2")),
-            item("Bravo", item("task-b1"), item("task-b2")),
-            item("Charlie", item("task-c1")),
-            item("Delta", item("task-d1"), item("task-d2")),
-            item("Echo", item("task-e1")),
-            item("Foxtrot", item("task-f1"), item("task-f2")),
-          ),
-        { columns: 280, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("Alpha", item("task-a1"), item("task-a2")),
+          item("Bravo", item("task-b1"), item("task-b2")),
+          item("Charlie", item("task-c1")),
+          item("Delta", item("task-d1"), item("task-d2")),
+          item("Echo", item("task-e1")),
+          item("Foxtrot", item("task-f1"), item("task-f2")),
+        ),
+        { cols: 280, rows: 40 },
       )
 
-      const text = board.screenshot()
+      const text = app.text
       const lines = text.split("\n")
 
       // All 6 columns should fit at 280 cols (floor(278/35) = 7, we only have 6)
@@ -331,27 +329,26 @@ describe("Terminal Sizes", () => {
     test("320 cols: all 8 columns fit without overflow indicator", () => {
       // At 320 cols: boardWidth = 320 - 2 = 318, maxExpandedCols = floor(318/35) = 9
       // With 8 columns, all fit (9 > 8), no overflow needed
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("t1")),
-            item("col2", item("t2")),
-            item("col3", item("t3")),
-            item("col4", item("t4")),
-            item("col5", item("t5")),
-            item("col6", item("t6")),
-            item("col7", item("t7")),
-            item("col8", item("t8")),
-          ),
-        { columns: 320, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("col1", item("t1")),
+          item("col2", item("t2")),
+          item("col3", item("t3")),
+          item("col4", item("t4")),
+          item("col5", item("t5")),
+          item("col6", item("t6")),
+          item("col7", item("t7")),
+          item("col8", item("t8")),
+        ),
+        { cols: 320, rows: 40 },
       )
 
-      const text = board.screenshot()
+      const text = app.text
 
       // All 8 columns should be visible
       for (let i = 1; i <= 8; i++) {
-        board.expect(`#col${i}`).toExist()
+        app.expect(`#col${i}`).toExist()
       }
 
       // No overflow indicators should appear when all columns fit
@@ -360,99 +357,94 @@ describe("Terminal Sizes", () => {
     })
 
     test("280 cols: navigation works across visible and overflow columns", { timeout: 15_000 }, () => {
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("t1")),
-            item("col2", item("t2")),
-            item("col3", item("t3")),
-            item("col4", item("t4")),
-            item("col5", item("t5")),
-            item("col6", item("t6")),
-            item("col7", item("t7")),
-            item("col8", item("t8")),
-          ),
-        { columns: 280, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("col1", item("t1")),
+          item("col2", item("t2")),
+          item("col3", item("t3")),
+          item("col4", item("t4")),
+          item("col5", item("t5")),
+          item("col6", item("t6")),
+          item("col7", item("t7")),
+          item("col8", item("t8")),
+        ),
+        { cols: 280, rows: 40 },
       )
 
       // Start at col1
-      board.expect("#t1[data-cursor]").toExist()
+      app.expect("#t1[data-cursor]").toExist()
 
       // Navigate right through all columns — cursor should reach col8
       for (let i = 2; i <= 8; i++) {
-        board.command("cursor_right")
-        board.expect(`#t${i}[data-cursor]`).toExist()
+        app.command("cursor_right")
+        app.expect(`#t${i}[data-cursor]`).toExist()
       }
 
       // After navigating to col8, col8 should be visible (scrolled into view)
-      board.expect("#col8").toExist()
+      app.expect("#col8").toExist()
 
       // Left overflow indicator should now appear (scrolled past col1)
-      const textAtEnd = board.screenshot()
-      expect(textAtEnd).toContain("◂")
+      expect(app.text).toContain("◂")
 
       // Navigate back to col1
       for (let i = 7; i >= 1; i--) {
-        board.command("cursor_left")
-        board.expect(`#t${i}[data-cursor]`).toExist()
+        app.command("cursor_left")
+        app.expect(`#t${i}[data-cursor]`).toExist()
       }
 
       // Back at col1: left indicator gone, right indicator back
-      const textAtStart = board.screenshot()
-      expect(textAtStart).not.toContain("◂")
-      expect(textAtStart).toContain("▸")
+      expect(app.text).not.toContain("◂")
+      expect(app.text).toContain("▸")
     })
 
     test("320 cols: vertical navigation works at wide width", () => {
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("a1"), item("a2"), item("a3")),
-            item("col2", item("b1"), item("b2"), item("b3")),
-          ),
-        { columns: 320, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("col1", item("a1"), item("a2"), item("a3")),
+          item("col2", item("b1"), item("b2"), item("b3")),
+        ),
+        { cols: 320, rows: 40 },
       )
 
       // j/k navigation within column at 320-col width
-      board.expect("#a1[data-cursor]").toExist()
-      board.command("cursor_down")
-      board.expect("#a2[data-cursor]").toExist()
-      board.command("cursor_down")
-      board.expect("#a3[data-cursor]").toExist()
+      app.expect("#a1[data-cursor]").toExist()
+      app.command("cursor_down")
+      app.expect("#a2[data-cursor]").toExist()
+      app.command("cursor_down")
+      app.expect("#a3[data-cursor]").toExist()
 
       // k back up
-      board.command("cursor_up")
-      board.expect("#a2[data-cursor]").toExist()
+      app.command("cursor_up")
+      app.expect("#a2[data-cursor]").toExist()
 
       // Move to col2 from a2 — curswantY lands on b2 (similar Y position)
-      board.command("cursor_right")
-      board.expect("#b2[data-cursor]").toExist()
-      board.command("cursor_down")
-      board.expect("#b3[data-cursor]").toExist()
+      app.command("cursor_right")
+      app.expect("#b2[data-cursor]").toExist()
+      app.command("cursor_down")
+      app.expect("#b3[data-cursor]").toExist()
 
       // Move back to col1 — cursor restores to a2's Y position
-      board.command("cursor_left")
+      app.command("cursor_left")
       // curswantY preserved: returns to card at similar Y
-      const cursor = board.q("[data-cursor]")
+      const cursor = app.q("[data-cursor]")
       expect(cursor.count()).toBeGreaterThan(0)
     })
 
     test("280 cols: card content does not overflow into adjacent columns", () => {
       // Use cards with longish titles to stress column boundary rendering
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("Todo", item("Implement the new dashboard feature"), item("Review pull request #42")),
-            item("InProgress", item("Write integration tests for API"), item("Deploy staging environment")),
-            item("Done", item("Fix authentication bug in login"), item("Update dependency versions")),
-          ),
-        { columns: 280, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("Todo", item("Implement the new dashboard feature"), item("Review pull request #42")),
+          item("InProgress", item("Write integration tests for API"), item("Deploy staging environment")),
+          item("Done", item("Fix authentication bug in login"), item("Update dependency versions")),
+        ),
+        { cols: 280, rows: 40 },
       )
 
-      const text = board.screenshot()
+      const text = app.text
       const lines = text.split("\n")
 
       // All columns visible (3 columns easily fits at 280)
@@ -480,12 +472,12 @@ describe("Terminal Sizes", () => {
       // unused terminal columns at the right edge. At wide terminals this creates
       // a visible gap. Verify the sum of column widths equals the available viewport.
       const columns = Array.from({ length: numCols }, (_, i) => item(`col${i + 1}`, item(`t${i + 1}`)))
-      const { board } = testEnv(() => item("board", ...columns), { columns: cols, rows: 40 })
+      using app = createTestApp(item("board", ...columns), { cols, rows: 40 })
 
       // Get column bounding boxes
       const boxes = []
       for (let i = 1; i <= numCols; i++) {
-        const box = board.screen.nodeBox(`col${i}`)
+        const box = app.screen.nodeBox(`col${i}`)
         expect(box, `col${i} should have a bounding box`).not.toBeNull()
         boxes.push(box!)
       }
@@ -507,31 +499,29 @@ describe("Terminal Sizes", () => {
     })
 
     test("320 cols: collapsed columns alongside expanded at very wide width", () => {
-      const { board } = testEnv(
-        () =>
-          item(
-            "board",
-            item("col1", item("t1")),
-            item("col2", item("t2")),
-            item("col3", item("t3")),
-            item("col4", item("t4")),
-          ),
-        { columns: 320, rows: 40 },
+      using app = createTestApp(
+        item(
+          "board",
+          item("col1", item("t1")),
+          item("col2", item("t2")),
+          item("col3", item("t3")),
+          item("col4", item("t4")),
+        ),
+        { cols: 320, rows: 40 },
       )
 
       // Collapse col1
-      board.command("toggle_collapse")
-      board.expect("#t1").not.toExist()
-      board.expect("[data-collapsed]").toExist()
+      app.command("toggle_collapse")
+      app.expect("#t1").not.toExist()
+      app.expect("[data-collapsed]").toExist()
 
       // Other columns should still be visible
-      board.expect("#col2").toExist()
-      board.expect("#col3").toExist()
-      board.expect("#col4").toExist()
+      app.expect("#col2").toExist()
+      app.expect("#col3").toExist()
+      app.expect("#col4").toExist()
 
       // No line exceeds terminal width
-      const text = board.screenshot()
-      for (const line of text.split("\n")) {
+      for (const line of app.text.split("\n")) {
         expect(line.length).toBeLessThanOrEqual(320)
       }
     })
@@ -879,38 +869,35 @@ describe("Search and Filter", () => {
 describe("Virtual body card", () => {
   test("body-only columns render items borderless (virtual)", () => {
     // Column with only paragraphs (no tasks) — items render borderless
-    const { board } = testEnv(() => item("board", item.section("col1", item.p("intro text"), item.p("more text"))))
+    using app = createTestApp(item("board", item.section("col1", item.p("intro text"), item.p("more text"))))
     // Cursor starts on first card (paragraph) in Cards view
-    const output = board.screenshot()
-    expect(output).toContain("intro text")
+    expect(app.text).toContain("intro text")
 
-    board.command("cursor_down") // second paragraph
-    const output2 = board.screenshot()
-    expect(output2).toContain("more text")
+    app.command("cursor_down") // second paragraph
+    expect(app.text).toContain("more text")
 
     // After last body item, boundary
-    board.command("cursor_down")
-    expect(board.bell).toBe(true)
+    app.command("cursor_down")
+    expect(app.bell).toBe(true)
   })
 
   test("task-only columns render items with borders (non-virtual)", () => {
     // Column with tasks should render as regular bordered cards
-    const { board } = testEnv(() => item("board", item("col1", item("taska"), item("taskb"), item("taskc"))))
+    using app = createTestApp(item("board", item("col1", item("taska"), item("taskb"), item("taskc"))))
     // Cursor starts on first card in Cards view
-    board.expect("#taska[data-cursor]").toExist()
-    board.command("cursor_down")
-    board.expect("#taskb[data-cursor]").toExist()
-    board.command("cursor_down")
-    board.expect("#taskc[data-cursor]").toExist()
+    app.expect("#taska[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#taskb[data-cursor]").toExist()
+    app.command("cursor_down")
+    app.expect("#taskc[data-cursor]").toExist()
   })
 })
 
 describe("Help and Keyboard Shortcuts", () => {
   test("? shows keyboard shortcuts", () => {
-    const { board } = testEnv(() => item("board", item("col", item("task"))))
-    board.command("show_help")
-    const output = board.screenshot()
-    expect(output).toMatch(/help|shortcuts|keys/i)
+    using app = createTestApp(item("board", item("col", item("task"))))
+    app.command("show_help")
+    expect(app.text).toMatch(/help|shortcuts|keys/i)
   })
 })
 
@@ -920,45 +907,42 @@ describe("Content Lines (+/-)", () => {
 
   test("= increases visible children inside cards", () => {
     // Card with 6 children -- default maxContentLines=3 should show 3, then = shows 4
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6"))),
       ),
     )
-    const before = board.screenshot()
     // Default maxContentLines=3: should show c1, c2, c3 and hide c4-c6
-    expect(before).toContain("c1")
-    expect(before).toContain("c2")
-    expect(before).toContain("c3")
-    expect(before).not.toContain("c4")
+    expect(app.text).toContain("c1")
+    expect(app.text).toContain("c2")
+    expect(app.text).toContain("c3")
+    expect(app.text).not.toContain("c4")
 
-    board.command("increase_content_lines")
-    const after = board.screenshot()
+    app.command("increase_content_lines")
     // After =, maxContentLines=4: should now show c4
-    expect(after).toContain("c4")
-    expect(after).not.toContain("c5")
+    expect(app.text).toContain("c4")
+    expect(app.text).not.toContain("c5")
   })
 
   test("- decreases visible children inside cards", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4"), item("c5"), item("c6"))),
       ),
     )
-    const before = board.screenshot()
-    expect(before).toContain("c3")
+    expect(app.text).toContain("c3")
 
-    board.command("decrease_content_lines")
-    const after = board.screenshot()
+    app.command("decrease_content_lines")
     // After -, maxContentLines=2: c3 should be hidden
-    expect(after).not.toContain("c3")
-    expect(after).toContain("c1")
-    expect(after).toContain("c2")
+    expect(app.text).not.toContain("c3")
+    expect(app.text).toContain("c1")
+    expect(app.text).toContain("c2")
   })
 
   test("multiple = presses progressively reveal more children", () => {
+    // Left on testEnv: content lines behavior differs at createTestApp's default 120 cols vs testEnv's 80 cols
     const { board } = testEnv(() =>
       item(
         "board",
@@ -981,11 +965,11 @@ describe("Content Lines (+/-)", () => {
   })
 
   test("=/- shows status feedback in bottom bar", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col", item("parent", item("c1"), item("c2"), item("c3"), item("c4")))),
     )
-    board.command("increase_content_lines")
-    const status = board.getStatus()
+    app.command("increase_content_lines")
+    const status = app.getStatus()
     expect(status).not.toBeNull()
     expect(status!.message).toContain("Content lines: 4")
   })

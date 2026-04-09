@@ -7,6 +7,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { Workspace, type BoardAppStore } from "../src/state/board-app-store.ts"
 import { TC } from "./helpers/theme.ts"
 

@@ -65,7 +65,9 @@
       "mcp__figma__whoami",
       "mcp__figma__create_new_file",
       "mcp__figma__use_figma",
-      "mcp__figma__get_screenshot"
+      "mcp__figma__get_screenshot",
+      "Bash(rm -f .claude/skills/tests/tui.md .claude/skills/tests/termless.md .claude/skills/tests/gui.md .claude/skills/tests/test-first-protocol.md .claude/skills/tests/tdd-workflow.md .claude/skills/tests/test-layers.md .claude/skills/tests/chaos.md .claude/skills/tests/review-tests.md)",
+      "Bash(rm -f .claude/skills/explore/interactive.md .claude/skills/explore/targeted.md .claude/skills/explore/team.md .claude/skills/explore/random.md .claude/skills/explore/reporting.md .claude/skills/explore/end.md .claude/skills/explore/peekaboo.md .claude/skills/explore/compare.md .claude/skills/explore/repro.md)"
     ],
     "deny": [],
     "ask": []
