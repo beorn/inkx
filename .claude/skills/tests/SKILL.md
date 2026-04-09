@@ -108,8 +108,12 @@ termless: ______________________________________________________/  (all 5, ~50ms
 TTY MCP:  ______________________________________________________________/  (real terminal)
 ```
 
-- **Headless** (`createRenderer()`, `testEnv()`): Tests the virtual buffer. Fast (~5ms). Use for component logic, board state, navigation, most rendering assertions.
-- **Termless** (`createTermless()`): Tests ANSI output through a real xterm.js emulator. Use when the bug involves terminal features -- colors, cursor position, alt screen, scrollback, escape sequences. ~50ms/op.
+**Preferred for new km tests**: `createTestApp()` — backend-agnostic. Write once, switch backend via `TEST_BACKEND=termless`. See [reference.md#createTestApp](reference.md#createtestapp----backend-agnostic-km-tests-recommended).
+
+- **createTestApp()** (km-tui helpers): Backend-agnostic km board tests. Default headless (`~5ms/op`), switch to termless (`~50ms/op`) via env var. Same test code runs on either.
+- **createRenderer()** (`@silvery/test`): Generic silvery component tests. Tests virtual buffer. Use for non-km components.
+- **testEnv()** (km-tui helpers): Legacy km board API. Still used by ~50 existing tests. New tests should prefer `createTestApp()`.
+- **createTermless()** (`@silvery/test`): Generic terminal emulator tests. Use for testing ANSI output of silvery components without km board state.
 
 ### 2. Exploratory (TTY screenshots) -- adaptive, judgment-based
 
@@ -154,18 +158,22 @@ I want to test...
 | `.spawn()` | Terminal method | 1-15s | Real PTY process | Integration / E2E |
 | TTY MCP | `mcp__tty__*` | seconds | Browser screenshots | Visual debugging, pixel-level |
 
-### Choosing Between testEnv and createTermless
+### Choosing the Backend (createTestApp)
 
-| Bug reported as... | Use | Why |
+For new km tests, always use `createTestApp()`. The question is which backend (`headless` default vs `TEST_BACKEND=termless`):
+
+| Bug reported as... | Backend | Why |
 |---|---|---|
-| "I pressed X and saw Y" (visual) | **`createTermless()`** | Tests what reaches the terminal |
-| "Cursor jumped to wrong place" | **`createTermless()`** | Real cursor position from emulator |
-| "Alt screen didn't switch" | **`createTermless()`** | Terminal mode detection |
-| "Card disappeared after indent" | **`testEnv()`** first, **`createTermless()`** if testEnv passes | May be DOM or ANSI bug |
-| "Undo doesn't restore fold state" | **`testEnv()`** | Internal state, no terminal feature |
-| "Command doesn't dispatch" | **`testEnv()`** | State machine, no rendering |
+| "I pressed X and saw Y" (visual) | **termless** | Tests what reaches the terminal |
+| "Cursor jumped to wrong place" | **termless** | Real cursor position from emulator |
+| "Alt screen didn't switch" | **termless** | Terminal mode detection |
+| "Card disappeared after indent" | **headless first**, run termless to verify | May be DOM or ANSI bug |
+| "Undo doesn't restore fold state" | **headless** | Internal state, no terminal feature |
+| "Command doesn't dispatch" | **headless** | State machine, no rendering |
 
-**Rule**: If the user describes what they **saw on screen** or the bug involves **terminal features** (alt screen, scrollback, cursor style, colors, escape sequences), use termless. If they describe **behavior** (undo, navigation logic, command dispatch), use testEnv.
+**Rule**: For visual or terminal feature bugs, run the test on both backends (headless for fast iteration, termless for terminal-level verification). For behavioral bugs, headless is sufficient.
+
+`createTestApp` defaults to headless. CI also runs headless. Run `TEST_BACKEND=termless bun run test:slow` periodically and after touching ANSI output, color resolution, or terminal mode handling.
 
 ---
 

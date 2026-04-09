@@ -8,6 +8,148 @@ Detailed API reference for km testing infrastructure. For when-to-use guidance, 
 
 ---
 
+## createTestApp() -- Backend-Agnostic km Tests (RECOMMENDED)
+
+The unified API for km board tests. Write once, run on either backend:
+
+- **headless** (default): wraps `createBoardDriver` + `withDiagnostics`. Synchronous, fast (~5ms/op), incremental rendering checks. Phases 1-4.
+- **termless**: wraps `createBoardApp.run() + createTermless()`. Real xterm.js emulator, full 5-phase pipeline (~50ms/op). Catches ANSI bugs that headless misses.
+
+Switch backend via `TEST_BACKEND=termless` env var or `backend` option.
+
+```typescript
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
+
+test("D opens detail pane", async () => {
+  using app = createTestApp(item("board", item("col1", item.task("Buy milk"))))
+
+  app.expect("#buy-milk[data-cursor]").toExist()
+  await app.command("toggle_detail_pane")
+  app.expectScreen("Buy milk")
+  await app.press("D")  // close
+  app.expectScreenNot("DETAIL VIEW")
+})
+```
+
+### Factory
+
+```typescript
+createTestApp(nodes: KNode[], opts?: TestAppOptions): TestApp
+```
+
+### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `cols` | number | 120 | Terminal width |
+| `rows` | number | 30 | Terminal height |
+| `backend` | "headless" \| "termless" | env `TEST_BACKEND` or "headless" | Backend selection |
+| `viewMode` | "cards" \| "columns" \| "list" \| "tabs" | "cards" | Initial view mode |
+| `checkIncremental` | boolean | true | Verify incremental matches fresh render (headless only) |
+| `incremental` | boolean | true | Enable incremental rendering (headless only) |
+
+### TestApp API
+
+**Actions** (all async — must `await`):
+
+| Method | Description |
+|--------|-------------|
+| `app.press(key)` | Send keypress (e.g. `"j"`, `"Enter"`, `"Control+d"`) |
+| `app.type(text)` | Type a string (each char as a keypress) |
+| `app.command(commandId)` | Dispatch command by ID (e.g. `"cursor_down"`, `"fold_more"`) |
+| `app.navigateTo(target)` | Press `j` until cursor reaches target node (max 50 steps) |
+
+**Locator assertions** (synchronous):
+
+| Method | Description |
+|--------|-------------|
+| `app.expect(selector).toExist()` | Assert locator finds at least one node |
+| `app.expect(selector).not.toExist()` | Assert locator finds no nodes |
+| `app.expect(selector).toHaveCount(n)` | Assert exact count |
+| `app.locator(selector)` | Return AutoLocator |
+| `app.q(selector)` | Alias for locator |
+| `app.getByText(text)` | Locator by text content |
+| `app.getByTestId(id)` | Locator by testID |
+
+**Screen assertions** (synchronous, chainable):
+
+| Method | Description |
+|--------|-------------|
+| `app.expectScreen(text)` | Assert screen contains text |
+| `app.expectScreenNot(text)` | Assert screen does NOT contain text |
+| `app.expectRow(n, pattern)` | Row n contains text or matches regex |
+| `app.expectCellChar(x, y, char)` | Cell at position has char |
+| `app.expectCellColor(x, y, {fg, bg})` | Cell colors match |
+
+**Read access** (synchronous):
+
+| Method | Description |
+|--------|-------------|
+| `app.text` | Plain text screen content |
+| `app.cell(col, row)` | Cell info `{char, fg, bg, bold, dim, italic}` |
+| `app.screen.text` | Same as `app.text` |
+| `app.screen.rows` | Lines split by `\n` |
+| `app.screen.row(n)` | Row n text |
+| `app.screen.cell(x, y)` | Same as `app.cell()` |
+| `app.screen.nodePos(id)` | Top-left of node `{x, y}` or null |
+| `app.screen.nodeBox(id)` | Bounding box `{x, y, width, height}` or null |
+| `app.screen.findRow(text)` | First row index containing text (-1 if none) |
+| `app.screen.width` / `height` | Terminal dimensions |
+| `app.repo` | Full Repo for persistence assertions (`app.repo.getNode(id)`, etc.) |
+
+**Backend-specific** (use sparingly):
+
+| Method | Description |
+|--------|-------------|
+| `app.driver` | Underlying BoardDriver (headless only — throws on termless) |
+
+**Cleanup**: `using` declaration handles disposal automatically. No `unmount()` needed.
+
+### Migration from testEnv
+
+```typescript
+// BEFORE (testEnv)
+import { item, testEnv } from "./helpers/board-test.ts"
+
+test("foo", () => {
+  const { board, repo } = testEnv(() => item("board", item("col1")))
+  board.command("cursor_down")
+  expect(repo.getNode("col1")).toBeDefined()
+})
+
+// AFTER (createTestApp)
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
+
+test("foo", async () => {
+  using app = createTestApp(item("board", item("col1")))
+  await app.command("cursor_down")
+  expect(app.repo.getNode("col1")).toBeDefined()
+})
+```
+
+Key differences:
+- `testEnv(() => item(...))` → `createTestApp(item(...))` — strip `() =>` wrapper
+- `const { board, repo } = testEnv(...)` → `using app = createTestApp(...)` — `using` for auto-cleanup
+- `board.command(...)` → `await app.command(...)` — async
+- `repo.getNode(...)` → `app.repo.getNode(...)`
+- `{ columns: 80 }` → `{ cols: 80 }` — option name change
+
+### When to leave on testEnv
+
+`createTestApp` does NOT yet support:
+- `store` (Zustand store) — for tests that read internal `workspace.panes`, `ui.*` state
+- `board.click(x, y)`, mouse events
+- `board.expectNodeBorder/Color/Gutter` — node-level styling assertions
+- `board.bell`, `board.hasStatus()`, `board.getStatus()`
+- `board.expectNoGhostChars()`, `board.expectNoBlankCards()` — visual integrity
+- `board.screen.ansi` — raw ANSI output
+
+For tests using these, keep `testEnv()` (you can mix both in the same file).
+
+---
+
 ## createRenderer() -- Silvery Component Tests
 
 ```typescript
