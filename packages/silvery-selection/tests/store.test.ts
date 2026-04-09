@@ -442,4 +442,73 @@ describe("createSelection", () => {
       cleanup()
     })
   })
+
+  // --- transform (SlateJS pattern) ---
+
+  describe("transform", () => {
+    function makeTreeSnap(nodes: ID[]) {
+      const set = new Set(nodes)
+      return {
+        walkOrder: (_root: ID | null) => nodes,
+        has: (n: ID) => set.has(n),
+        contains: (_anc: ID, desc: ID) => set.has(desc),
+      }
+    }
+
+    it("deleteNode repairs cursor to nearest surviving node", () => {
+      const sel = createSelection(flatApp([A, B, C, D, E]))
+      // Multi-select including B so there are survivors after delete
+      sel.node.select([A, B, C])
+      expect(sel.node.cursor()).toBe(A)
+
+      const prevTree = makeTreeSnap([A, B, C, D, E])
+      const nextTree = makeTreeSnap([A, C, D, E])
+      sel.transform({ type: "deleteNode", id: B }, prevTree, nextTree)
+
+      // B is gone; A and C survive; cursor still on a valid node
+      expect(sel.node.ids().has(B)).toBe(false)
+      expect(sel.node.cursor()).not.toBe(B)
+      expect(sel.node.cursor()).not.toBeNull()
+    })
+
+    it("deleteNode of only selected node clears selection", () => {
+      const sel = createSelection(flatApp([A, B, C, D, E]))
+      sel.node.select([B])
+
+      const prevTree = makeTreeSnap([A, B, C, D, E])
+      const nextTree = makeTreeSnap([A, C, D, E])
+      sel.transform({ type: "deleteNode", id: B }, prevTree, nextTree)
+
+      // Selection cleared since the only selected node is gone
+      expect(sel.node.cursor()).toBeNull()
+      expect(sel.node.ids().length).toBe(0)
+    })
+
+    it("deleteNode preserves multi-selection survivors", () => {
+      const sel = createSelection(flatApp([A, B, C, D, E]))
+      sel.node.select([A, B, C])
+
+      const prevTree = makeTreeSnap([A, B, C, D, E])
+      const nextTree = makeTreeSnap([A, C, D, E])
+      sel.transform({ type: "deleteNode", id: B }, prevTree, nextTree)
+
+      // A and C survive; B removed
+      expect(sel.node.ids().has(A)).toBe(true)
+      expect(sel.node.ids().has(C)).toBe(true)
+      expect(sel.node.ids().has(B)).toBe(false)
+    })
+
+    it("insertNode is a no-op (new nodes aren't selected)", () => {
+      const sel = createSelection(flatApp([A, B, C]))
+      sel.node.select([A])
+      const before = sel.node.ids()
+
+      const prevTree = makeTreeSnap([A, B, C])
+      const nextTree = makeTreeSnap([A, B, C, D])
+      sel.transform({ type: "insertNode", id: D, parent: A }, prevTree, nextTree)
+
+      expect(sel.node.ids()).toBe(before)
+      expect(sel.node.cursor()).toBe(A)
+    })
+  })
 })

@@ -625,6 +625,9 @@ export function createBoardAppStoreState(
       reconcile() {
         getActiveSel().reconcile()
       },
+      transform(op, prevTree, nextTree) {
+        getActiveSel().transform(op, prevTree, nextTree)
+      },
     }
 
     // Create stable routing proxy for selTreeSource.

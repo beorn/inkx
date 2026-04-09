@@ -25,6 +25,8 @@ import {
   applyTextSelect,
   EMPTY_STATE,
 } from "./apply.ts"
+import { transformSelection } from "./transform.ts"
+import type { SelectionTree, TreeOp } from "./transform.ts"
 import { createOrderedSet, EMPTY_ORDERED_SET } from "./ordered-set.ts"
 import type { OrderedSet } from "./ordered-set.ts"
 import { createTextAccessor } from "./sub-text.ts"
@@ -111,6 +113,31 @@ export type SelectionStore<Sub = DefaultSubSelection> = {
   readonly snapshot: () => SelectionSnapshot<Sub>
   /** Reconcile selection against current valid nodes */
   reconcile(): void
+  /**
+   * Transform selection inline with a tree mutation (SlateJS pattern).
+   *
+   * Call this AFTER mutating the tree but with both pre- and post- snapshots
+   * available. The selection is repaired atomically: deleted IDs are removed,
+   * cursor/anchor are repaired to the nearest surviving node, sub-selection
+   * referencing deleted/moved nodes is cleared, and remaining IDs are
+   * re-ordered to match the new tree walk order.
+   *
+   * Usage pattern:
+   * ```ts
+   * const prevTree = captureTreeSnapshot(repo)
+   * repo.deleteNode(id)
+   * sel.transform({ type: "deleteNode", id }, prevTree, currentTree)
+   * ```
+   *
+   * Eliminates the need for manual cursor reconciliation in action handlers
+   * (e.g. computing "next sibling" before delete). The transform handles
+   * cursor repair, multi-selection survivors, and sub-selection cleanup
+   * in a single atomic operation.
+   *
+   * Status: foundation API. Migration from manual reconciliation is
+   * incremental — see km-tui.inline-transform-selection.
+   */
+  transform(op: TreeOp, prevTree: SelectionTree, nextTree: SelectionTree): void
 }
 
 // --- Factory ---
@@ -363,6 +390,11 @@ export function createSelection<Sub extends SubSelectionBase = DefaultSubSelecti
       const validSet = new Set(order)
       // applyReconcile needs Sub extends SubSelectionBase — safe since our constraint guarantees it
       apply((snap) => applyReconcile(snap as SelectionSnapshot<Sub & SubSelectionBase>, validSet, order))
+    },
+
+    transform(op: TreeOp, prevTree: SelectionTree, nextTree: SelectionTree): void {
+      // Inline atomic transform — repairs cursor/anchor/ids/sub in one apply()
+      apply((snap) => transformSelection(snap, op, prevTree, nextTree))
     },
   }
 
