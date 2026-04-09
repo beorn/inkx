@@ -82,6 +82,7 @@ async function main() {
 	// Fresh enough — no output (silent when all is well)
 }
 
-main().catch((err) => {
-	console.error(`${DIM}bench-staleness: ${err.message}${RESET}`);
+main().catch((err: unknown) => {
+	const msg = err instanceof Error ? err.message : String(err);
+	console.error(`${DIM}bench-staleness: ${msg}${RESET}`);
 });

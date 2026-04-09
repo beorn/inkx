@@ -12,6 +12,7 @@ How we measure and track performance in km and silvery.
 bun bench                              # All benches (STRICT=0 automatic)
 bun bench apps/km-tui/tests/           # km-tui benches only
 bun bench vendor/silvery/tests/perf/   # silvery pipeline only
+bun bench:check                        # Check if benchmarks are stale
 ```
 
 `bun bench` sets `SILVERY_STRICT=0` in `package.json`. This is intentional — benchmarks measure production perf.
@@ -24,8 +25,17 @@ bun bench vendor/silvery/tests/perf/   # silvery pipeline only
 |------|------|------------|
 | `cursor-perf.bench.ts` | j/k/h/l press latency at various card counts + terminal sizes | ms/press |
 | `cursor-real-vault.bench.ts` | Same but with real vault data (`/tmp/vt`) | ms/press |
-| `reduced-signals.bench.ts` | (deleted — was for old count engine) | — |
 | `computed-vs-engine.bench.ts` | Head-to-head: computed vs count engine | ops/sec |
+
+### System-level (`benchmarks/`)
+
+| File | What | Key metric |
+|------|------|------------|
+| `startup.bench.ts` | Cold start: board setup, first render, full startup | ms |
+| `layout.bench.ts` | Flexily layout computation | ms/layout |
+| `parser.bench.ts` | Markdown parsing | ms/parse |
+| `queries.bench.ts` | Storage query performance | ms/query |
+| `sync.bench.ts` | File sync performance | ms/sync |
 
 ### silvery (pipeline — isolated phases)
 
@@ -83,8 +93,8 @@ Benchmarks are **not run in CI**. Shared runners have variable load, noisy neigh
 For production-representative timing without running benches:
 
 ```bash
-# Per-keypress phase timing (loggily spans)
-TRACE=silvery:render DEBUG_LOG=/tmp/perf.log bun km view ~/vault
+# Per-keypress span timing (loggily spans — zero overhead when off)
+TRACE=silvery:perf bun km view ~/vault
 
 # Render phase stats (node visit/skip/render counts)
 SILVERY_INSTRUMENT=1 bun km view ~/vault
@@ -92,6 +102,16 @@ SILVERY_INSTRUMENT=1 bun km view ~/vault
 # Full pipeline debug output
 DEBUG=silvery:* DEBUG_LOG=/tmp/silvery.log bun km view ~/vault
 ```
+
+## Staleness Check
+
+`bun bench:check` warns when benchmark results are stale:
+
+- **>24h + pipeline files changed**: yellow warning
+- **>7 days regardless**: yellow warning
+- **Fresh**: silent (no output)
+
+Watches: `vendor/silvery/packages/ag-term/src/pipeline/**`, `vendor/flexily/src/layout-zero.ts`, `vendor/flexily/src/node-zero.ts`, `apps/km-tui/src/state/reactive*.ts`.
 
 ## Perf Budgets
 
