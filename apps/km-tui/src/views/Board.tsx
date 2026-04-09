@@ -676,7 +676,16 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Hydrate reactive node state on initial load and root change (zoom)
   const selIds = useSignal(paneSel.node.ids) as unknown as ReadonlyArray<string>
-  const selectedSet = new Set(selIds) // compat bridge for hydrate
+  const cursorId = useSignal(paneSel.node.cursor) as string | null
+  // Exclude cursor from multi-selection set — the cursor card's visual tint is
+  // handled by CardColumn's cardBg (selectedBg). Including it causes hydrate to
+  // expand descendants, and TreeNode applies multiSelectedBg on their head rows
+  // creating a zebra pattern (depth-1 get multiSelectedBg, depth-2 inherit selectedBg).
+  const selectedSet = useMemo(() => {
+    const s = new Set(selIds)
+    if (cursorId) s.delete(cursorId)
+    return s
+  }, [selIds, cursorId])
   useEffect(() => {
     nodeStore.hydrate(repo, rootId, foldDepths, selectedSet, stickyFolds)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change

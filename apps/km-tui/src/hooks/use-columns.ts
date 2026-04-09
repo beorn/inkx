@@ -2,32 +2,29 @@
  * Column Utilities — VIEW MODEL DERIVATION
  *
  * Column derivation, node index, and cursor position utilities.
- * DerivedColumn materializes tree lens data for consumers that can't
- * subscribe reactively (tests, web canvas, detail-mode cursor derivation).
  * Live rendering uses the tree lens directly (useNode + useSignal).
+ * `deriveColumnsFromRepo` materializes a ColumnSnapshot[] for consumers
+ * that can't subscribe reactively (tests, web canvas).
  */
 
 import type { Repo } from "@km/storage"
 import { KNode } from "@km/core"
 import type { SectionRules } from "@km/markdown"
 import { createLogger } from "loggily"
-import { computeMetadataKeys } from "../views/detail-pane-items.ts"
 import { createViewLens, extractWipLimits, type ViewLensRepo } from "@km/board"
 
 // =============================================================================
-// DerivedColumn — materialized column snapshot
+// ColumnSnapshot — materialized column data for non-reactive consumers
 // =============================================================================
 
 /**
  * A materialized column: a parent KNode whose children render as KNode[].
  *
  * Used by `deriveColumnsFromRepo` for consumers that can't subscribe
- * reactively (tests, web canvas). Detail mode uses `deriveDetailColumns`
- * for real children only — metadata rows are focusable React components
- * in DetailView.tsx. Live rendering uses `colId: string` +
+ * reactively (tests, web canvas). Live rendering uses `colId: string` +
  * `useNode(id)` + `useSignal(ps.visibleLens)`.
  */
-export interface DerivedColumn {
+export interface ColumnSnapshot {
   node: KNode
   cardNodes: KNode[]
   wipLimit?: number
@@ -48,21 +45,18 @@ const perfLog = createLogger("km:perf")
 // =============================================================================
 
 /**
- * Legacy column derivation over an ephemeral ViewLens.
+ * Column derivation over an ephemeral ViewLens.
  *
- * Runtime derivation uses `useSignal(pane.signals.visibleLens)` + the tree
+ * Runtime rendering uses `useSignal(pane.signals.visibleLens)` + the tree
  * lens directly — this function exists only for tests and the web target
- * (km-canvas.tsx) that need to materialize a DerivedColumn[] without mounting
+ * (km-canvas.tsx) that need to materialize a ColumnSnapshot[] without mounting
  * the React tree.
- *
- * The previous `deriveColumnsFromLens` helper has been inlined here since it
- * had no callers outside this function.
  */
 export function deriveColumnsFromRepo(
   repo: Repo,
   rootId: string | null,
   foldDepths: Map<string, number>,
-): DerivedColumn[] {
+): ColumnSnapshot[] {
   using span = log.span("derive-columns")
   const lens = createViewLens(repo as unknown as ViewLensRepo, { rootId, foldDepths })
 
@@ -85,7 +79,7 @@ export function deriveColumnsFromRepo(
   const wipLimits = extractWipLimits(structuralNodes)
 
   const columns = colIds
-    .map((colId): DerivedColumn | null => {
+    .map((colId): ColumnSnapshot | null => {
       const node = lens.get(colId)
       if (!node) return null
       const role = lens.role(colId)
@@ -102,64 +96,11 @@ export function deriveColumnsFromRepo(
         isVirtual: role === "body-column" ? true : undefined,
       }
     })
-    .filter((c): c is DerivedColumn => c != null)
+    .filter((c): c is ColumnSnapshot => c != null)
 
   span.spanData.columns = columns.length
   return columns
 }
-
-// =============================================================================
-// Detail view columns
-// =============================================================================
-
-/**
- * Derive columns for the detail view mode.
- *
- * Returns a single virtual column containing only real tree children.
- * Metadata property rows are rendered as focusable React components
- * in DetailView.tsx (with testID="__meta__<Key>") and navigated via
- * the view-navigation system — no virtual KNode objects needed.
- */
-export function deriveDetailColumns(repo: Repo, rootId: string | null, _foldDepths: Map<string, number>): DerivedColumn[] {
-  const rootNode = rootId ? repo.getNode(rootId) : null
-  const metaKeys = rootNode ? computeMetadataKeys(rootNode) : []
-
-  const allChildren = repo.getChildren(rootId)
-
-  // If no metadata rows and no children, nothing to show
-  if (metaKeys.length === 0 && allChildren.length === 0) return []
-
-  return [
-    {
-      node: createVirtualBodyNode(rootId),
-      cardNodes: allChildren,
-      isVirtual: true,
-    },
-  ]
-}
-
-/**
- * Create a virtual node for the body column.
- * This node represents leading non-section content grouped for display.
- */
-function createVirtualBodyNode(parentId: string | null): KNode {
-  const now = Date.now()
-  return {
-    id: `__body__${parentId ?? "root"}`,
-    type: "h",
-    item: {},
-    fstype: "mdsection",
-    parent_id: parentId,
-    parent_idx: 0,
-    title: "Description",
-    content: "",
-    data: {},
-    created_at: now,
-    updated_at: now,
-    version: "",
-  }
-}
-
 
 // =============================================================================
 // Cursor Position Derivation
@@ -228,7 +169,7 @@ export function deriveCursorIndices(
  * When getChildren is provided, also maps card descendants for cursor resolution.
  */
 export function buildNodeIndex(
-  columns: DerivedColumn[],
+  columns: ColumnSnapshot[],
   getChildren?: (parentId: string) => { id: string }[],
   foldDepths?: Map<string, number>,
   rootId?: string | null,
@@ -274,7 +215,7 @@ function mapDescendants(
 }
 
 /**
- * Build nodeIndex from ViewTreeProjection — no DerivedColumn dependency.
+ * Build nodeIndex from ViewTreeProjection.
  * Uses tree.children(rootId) for columns, tree.children(colId) for cards.
  */
 export function buildNodeIndexFromTree(

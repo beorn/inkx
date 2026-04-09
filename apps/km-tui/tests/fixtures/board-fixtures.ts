@@ -8,7 +8,6 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import type { DerivedColumn } from "../../src/hooks/use-columns.ts"
 
 /**
  * Create a test KNode with defaults
@@ -41,24 +40,3 @@ export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KN
   return createTestKNode(nodeOverrides)
 }
 
-/**
- * Create a DerivedColumn with card nodes
- */
-export function createDerivedColumn(nodeOverrides: Partial<KNode> = {}, cardNodes: KNode[] = []): DerivedColumn {
-  const node = createTestKNode({
-    type: "h",
-    item: {},
-    fstype: "folder",
-    ...nodeOverrides,
-  })
-  return {
-    node,
-    cardNodes: cardNodes.map((c) => ({
-      ...c,
-      __cardView: true as const,
-      isBody: false,
-      isBrokenSymlink: false,
-      hasBodyChildren: false,
-    })),
-  }
-}

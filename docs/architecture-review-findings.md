@@ -14,8 +14,8 @@ Three-pass architectural review of the km codebase. Evidence-based with grep cou
 - `TNode` — packages/km-core/src/types.ts — KNode + recursive children/depth. **Duplicate** copy at apps/km-repl/src/board-types.ts (drifted: has `title: string | null`, lacks `fstype`)
 - `ViewNode` — packages/km-board/src/view-tree.ts — explicit visual tree (migration Phase 2a complete)
 - `CardView` — apps/km-tui/src/types.ts — KNode + resolvedNode/isBody. **Overlaps** ViewNode card-level nodes
-- `DerivedColumn` — apps/km-tui/src/types.ts — column header + CardView[]. **Overlaps** ViewNode column-level nodes
-- `CompatDerivedColumn` — packages/km-board/src/view-tree.ts — backward-compat bridge from ViewNode to DerivedColumn
+- `ColumnSnapshot` — apps/km-tui/src/hooks/use-columns.ts — column header + KNode[]. Non-reactive materialization for tests/canvas
+- *(CompatDerivedColumn — deleted, was backward-compat bridge)*
 - `LayoutNode` — apps/km-tui/src/board-types.ts — pane layout tree (separate domain, no redundancy)
 
 Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a separate domain.
@@ -75,7 +75,7 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 
 Files: repo-loader.ts -> discovery.ts -> parser.ts -> ast2nodes.ts -> repo-loader.ts -> link-resolution.ts -> db-rules.ts -> repo.ts -> use-columns.ts -> Board.tsx
 
-Type chain: `string` -> `Root` (mdast) -> `KNode[]` -> `Event[]` -> SQLite rows -> `KNode[]` -> `{body, items}` -> `CardView[]` -> `DerivedColumn[]` -> React elements -> ANSI
+Type chain: `string` -> `Root` (mdast) -> `KNode[]` -> `Event[]` -> SQLite rows -> `KNode[]` -> ViewLens -> React elements -> ANSI
 
 Re-derivations:
 1. **extractBody called 3x per board render** — once in deriveColumnsFromRepo for root, once in kNodeToDerivedColumn per column, once in deriveColumnsIncremental
@@ -179,7 +179,7 @@ Top 3 files per concern:
 
 **1. Unify column derivation — eliminate use-columns.ts duplication**
 - Now: use-columns.ts (772 lines) and view-tree.ts (476 lines) duplicate isCollapsedChild, isDetailOnly, deduplicateByFsPath, createVirtualBodyNode, expandIndexFileColumns
-- Target: ViewNode tree is sole authority; use-columns.ts becomes thin wrapper calling buildViewTree() + toDerivedColumns()
+- Target: ViewLens is sole authority; use-columns.ts provides non-reactive materialization via deriveColumnsFromRepo()
 - Impact: ~400 lines removed, derivation drift bug class eliminated
 - ViewNode status: IS the Phase 3 target
 

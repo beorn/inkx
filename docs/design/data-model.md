@@ -216,7 +216,7 @@ The TUI wraps KNode in view models for rendering:
 | View model | Wraps | Adds |
 |---|---|---|
 | `CardView` | KNode | `isBody`, `resolvedNode` (embed), `isBrokenEmbed`, `hasBodyChildren` |
-| `DerivedColumn` | KNode + CardView[] | `wipLimit`, `isVirtual`, `totalCardCount`, `hiddenDescendantCount` |
+| `ColumnSnapshot` | KNode + KNode[] | `wipLimit`, `isVirtual`, `totalCardCount`, `hiddenDescendantCount` |
 
 ## Comparison with Decker
 

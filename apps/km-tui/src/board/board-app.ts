@@ -141,7 +141,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   /**
    * Build an OpCtx from store state.
    * Called on each key event to get fresh state.
-   * Derives DerivedColumn[] from the visible lens (PaneSignals.visibleLens computed).
+   * Derives cursor + column state from the visible lens (PaneSignals.visibleLens computed).
    */
   function buildOpCtx(
     get: () => BoardAppStore,
@@ -159,7 +159,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Always provide a tree (empty fallback when no board/signals exist).
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
-    // Use tree-based index when lens is available (no DerivedColumn dependency).
+    // Use tree-based index when lens is available.
     const nodeIndex = board?.signals
       ? buildNodeIndexFromTree(board.signals.visibleLens())
       : new Map<string, { colIndex: number; cardIndex: number }>()
@@ -191,7 +191,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       card = cursor_ && !isMetaCursor ? (s.repo.getNode(cursor_ as string) ?? undefined) : undefined
       selectedNode = card ?? (cursor_ ? ({ id: cursor_, content: cursor_ } as unknown as KNode) : null)
     } else {
-      // Board mode: derive entirely from tree (no DerivedColumn needed)
+      // Board mode: derive entirely from tree
       const treeColIds = rootId ? tree.children(rootId) : []
       if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
         cursor = cc

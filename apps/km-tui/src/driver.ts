@@ -361,7 +361,7 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
     const rootId = board?.rootId ?? null
     const foldDepths = board?.foldDepths ?? new Map<string, number>()
 
-    // Derive layout from tree on demand (no DerivedColumn dependency)
+    // Derive layout from tree on demand
     const ni = board?.signals
       ? buildNodeIndexFromTree(board.signals.visibleLens())
       : new Map<string, { colIndex: number; cardIndex: number }>()

@@ -29,7 +29,7 @@ import { useInput } from "../../../vendor/silvery/packages/ag-react/src/hooks/us
 import type { Key } from "../../../vendor/silvery/packages/ag/src/keys.ts"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import type { KNode } from "@km/core"
-import type { DerivedColumn as RealDerivedColumn } from "../src/hooks/use-columns.ts"
+import type { ColumnSnapshot } from "../src/hooks/use-columns.ts"
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
 
 // ============================================================================
@@ -569,8 +569,8 @@ function nodeName(node: { content?: string; title?: string; name?: string }): st
   return node.content || node.title || node.name || "(untitled)"
 }
 
-/** Convert RealDerivedColumn[] to the generic Column[] for BoardView */
-function toColumns(columns: RealDerivedColumn[], repo: RepoLike): Column[] {
+/** Convert ColumnSnapshot[] to the generic Column[] for BoardView */
+function toColumns(columns: ColumnSnapshot[], repo: RepoLike): Column[] {
   return columns.map((col) => ({
     id: col.node.id,
     name: nodeName(col.node),
