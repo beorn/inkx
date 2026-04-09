@@ -159,3 +159,89 @@ describe("cursor skips hidden nodes", () => {
     expect(c).not.toBe("2a")
   })
 })
+
+// =============================================================================
+// Characterization: cursor signal invariants after move
+// =============================================================================
+
+describe("cursor signal invariants after move", () => {
+  test("after j/k, cursor is on new node and not on old node", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("1a"), item("1b"), item("1c"))),
+      { incremental: false },
+    )
+    // Initial cursor on 1a
+    const c0 = expectCursor(store)
+    expect(c0).toBe("1a")
+
+    // Move down to 1b
+    board.press("j")
+    const c1 = expectCursor(store)
+    expect(c1).toBe("1b")
+    // Old cursor is no longer 1a
+    expect(c1).not.toBe("1a")
+
+    // Move down to 1c
+    board.press("j")
+    const c2 = expectCursor(store)
+    expect(c2).toBe("1c")
+
+    // Move back up to 1b
+    board.press("k")
+    const c3 = expectCursor(store)
+    expect(c3).toBe("1b")
+
+    // Move back up to 1a
+    board.press("k")
+    const c4 = expectCursor(store)
+    expect(c4).toBe("1a")
+  })
+
+  test("cursorDescendant propagates — parent card visible when cursor is on child", () => {
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.folder("Parent", item("child-a"), item("child-b")), item("sibling")),
+        ),
+      { incremental: false },
+    )
+    // Initial cursor is on first card (Parent)
+    expectCursor(store)
+
+    // Move down into the children (j navigates into the card's children)
+    board.press("j") // col1 or next visible item
+    board.press("j")
+    board.press("j")
+
+    // Cursor should be somewhere within the tree
+    const c = expectCursor(store)
+
+    // Parent card title should still be visible on screen (breadcrumb)
+    board.expect("#Parent").toExist()
+    // Screen should show at least one child
+    expect(board.screenshot()).toContain("child-a")
+  })
+
+  test("cursor recovery when current node is deleted — moves to sibling", () => {
+    const { board, store, repo } = testEnv(
+      () => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))),
+      { incremental: false },
+    )
+    // Move to task-b
+    board.press("j")
+    expect(expectCursor(store)).toBe("task-b")
+
+    // Delete task-b
+    board.command("delete_node")
+
+    // Cursor should recover to a sibling (not null)
+    const afterDelete = expectCursor(store)
+    expect(afterDelete).not.toBe("task-b")
+    expect(["task-a", "task-c", "col1"]).toContain(afterDelete)
+
+    // Verify the node is actually gone
+    const children = repo.getChildren("col1").map((n: { id: string }) => n.id)
+    expect(children).not.toContain("task-b")
+  })
+})

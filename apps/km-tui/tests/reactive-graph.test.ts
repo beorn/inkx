@@ -280,3 +280,128 @@ describe("includeSelf", () => {
     expect(store.get("col1").cursorOrDescendant()).toBe(true) // ancestor
   })
 })
+
+// =============================================================================
+// Characterization: doneAncestor signal propagation
+// =============================================================================
+
+describe("doneAncestor (ancestors → propagate down)", () => {
+  function makeDoneStore(t: Traversal) {
+    return reactiveTree(
+      (tree) => ({
+        isDone: signal(false),
+        doneAncestor: tree.ancestors((s: { isDone: unknown }) => s.isDone).some(),
+      }),
+      t,
+    )
+  }
+
+  it("marking parent done → children show doneAncestor=true", () => {
+    const store = makeDoneStore(simpleTree())
+    store.get("card1").isDone(true)
+    expect(store.get("sub1").doneAncestor()).toBe(true)
+    expect(store.get("sub2").doneAncestor()).toBe(true)
+    expect(store.get("card1").doneAncestor()).toBe(false) // self excluded
+    expect(store.get("card2").doneAncestor()).toBe(false) // sibling
+  })
+
+  it("marking column done → all cards and sub-items show doneAncestor", () => {
+    const store = makeDoneStore(simpleTree())
+    store.get("col1").isDone(true)
+    expect(store.get("card1").doneAncestor()).toBe(true)
+    expect(store.get("card2").doneAncestor()).toBe(true)
+    expect(store.get("sub1").doneAncestor()).toBe(true)
+    expect(store.get("col2").doneAncestor()).toBe(false) // other branch
+    expect(store.get("card3").doneAncestor()).toBe(false) // other branch
+  })
+
+  it("un-marking done clears doneAncestor from descendants", () => {
+    const store = makeDoneStore(simpleTree())
+    store.get("card1").isDone(true)
+    expect(store.get("sub1").doneAncestor()).toBe(true)
+    store.get("card1").isDone(false)
+    expect(store.get("sub1").doneAncestor()).toBe(false)
+    expect(store.get("sub2").doneAncestor()).toBe(false)
+  })
+
+  it("nested done: parent done removed but grandparent still done → still true", () => {
+    const store = makeDoneStore(simpleTree())
+    store.get("col1").isDone(true)
+    store.get("card1").isDone(true)
+    expect(store.get("sub1").doneAncestor()).toBe(true)
+
+    // Remove card1's done — but col1 is still done, so sub1 stays doneAncestor
+    store.get("card1").isDone(false)
+    expect(store.get("sub1").doneAncestor()).toBe(true)
+
+    // Remove col1's done — now sub1 should be false
+    store.get("col1").isDone(false)
+    expect(store.get("sub1").doneAncestor()).toBe(false)
+  })
+})
+
+// =============================================================================
+// Characterization: excludedSigils multi-level propagation
+// =============================================================================
+
+describe("excludedSigils multi-level propagation", () => {
+  function makeSigilStoreLocal(t: Traversal) {
+    return reactiveTree(
+      (tree) => ({
+        ownSigils: signal([] as string[]),
+        excludedSigils: tree
+          .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
+          .reduce(
+            (acc: string[], v) => {
+              const arr = v as string[]
+              return arr.length === 0 ? acc : [...acc, ...arr]
+            },
+            () => [] as string[],
+            {
+              includeSelf: true,
+              equals: (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i]),
+            },
+          ),
+      }),
+      t,
+    )
+  }
+
+  it("sigils from root + column merge on card descendants", () => {
+    const store = makeSigilStoreLocal(simpleTree())
+    store.get("root").ownSigils(["@global"])
+    store.get("col1").ownSigils(["@next"])
+
+    // card1 inherits root + col1
+    expect(store.get("card1").excludedSigils()).toEqual(["@global", "@next"])
+    // sub1 also inherits (no own sigils)
+    expect(store.get("sub1").excludedSigils()).toEqual(["@global", "@next"])
+    // col2's branch only inherits from root
+    expect(store.get("card3").excludedSigils()).toEqual(["@global"])
+  })
+
+  it("clearing sigils on a node updates descendants", () => {
+    const store = makeSigilStoreLocal(simpleTree())
+    store.get("root").ownSigils(["@a"])
+    store.get("col1").ownSigils(["@b"])
+    expect(store.get("card1").excludedSigils()).toEqual(["@a", "@b"])
+
+    // Clear col1 sigils
+    store.get("col1").ownSigils([])
+    expect(store.get("card1").excludedSigils()).toEqual(["@a"])
+
+    // Clear root sigils
+    store.get("root").ownSigils([])
+    expect(store.get("card1").excludedSigils()).toEqual([])
+  })
+
+  it("card-level sigils compose with ancestor sigils", () => {
+    const store = makeSigilStoreLocal(simpleTree())
+    store.get("root").ownSigils(["@root"])
+    store.get("card1").ownSigils(["@card"])
+    // sub1 gets root + card1 sigils
+    expect(store.get("sub1").excludedSigils()).toEqual(["@root", "@card"])
+    // card1 itself gets root + own
+    expect(store.get("card1").excludedSigils()).toEqual(["@root", "@card"])
+  })
+})

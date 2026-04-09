@@ -1739,3 +1739,95 @@ describe("sticky folds", () => {
     expect(getActiveBoardPane(store.getState())!.stickyFolds.has("Parent")).toBe(false)
   })
 })
+
+// =============================================================================
+// Characterization: fold depths preserved across zoom
+// =============================================================================
+
+describe("fold depth preservation across zoom", () => {
+  test("zoom out resets fold depths — folded children become visible again", () => {
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.folder("Parent", item("child-1"), item("child-2")), item("sibling")),
+        ),
+    )
+
+    // Fold the Parent card (H)
+    board.command("fold_more")
+    expect(board.screenshot()).not.toContain("child-1")
+
+    // Confirm fold state exists
+    const pane1 = getActiveBoardPane(store.getState())!
+    expect(pane1.foldDepths.size).toBeGreaterThan(0)
+
+    // Zoom into col1
+    board.command("zoom_inwards")
+    const pane2 = getActiveBoardPane(store.getState())!
+    expect(pane2.rootId).not.toBe("board")
+
+    // Zoom back out
+    board.command("zoom_outwards")
+
+    // Current behavior: zoom cycle resets fold depths — children become visible
+    // (Characterization: this documents that fold state is lost on zoom out)
+    expect(board.screenshot()).toContain("Parent")
+    expect(board.screenshot()).toContain("child-1")
+  })
+
+  test("progressive fold all (< x3) then unfold all (> x3) restores children", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.folder("P1", item("c1"), item("c2")), item.folder("P2", item("c3"))),
+        ),
+    )
+
+    expect(board.screenshot()).toContain("c1")
+    expect(board.screenshot()).toContain("c3")
+
+    // Fold all progressively
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    board.command("fold_all_more")
+    expect(board.screenshot()).not.toContain("c1")
+    expect(board.screenshot()).not.toContain("c3")
+
+    // Unfold all progressively — children should restore
+    board.command("unfold_all_more")
+    board.command("unfold_all_more")
+    board.command("unfold_all_more")
+    expect(board.screenshot()).toContain("c1")
+    expect(board.screenshot()).toContain("c3")
+  })
+
+  test("sticky fold survives navigation away and back", () => {
+    const { board, store } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.folder("Pinned", item("child-1"), item("child-2"))),
+          item("col2", item("other")),
+        ),
+    )
+
+    // Navigate to Pinned and toggle sticky fold
+    board.navigateTo("Pinned")
+    board.command("toggle_sticky_fold") // unfolded → sticky-unfolded
+    board.command("toggle_sticky_fold") // sticky-unfolded → sticky-folded
+
+    const paneBefore = getActiveBoardPane(store.getState())!
+    expect(paneBefore.stickyFolds.has("Pinned")).toBe(true)
+
+    // Navigate away to col2
+    board.press("l")
+    // Navigate back
+    board.press("h")
+
+    // Sticky fold should still be there
+    const paneAfter = getActiveBoardPane(store.getState())!
+    expect(paneAfter.stickyFolds.has("Pinned")).toBe(true)
+  })
+})

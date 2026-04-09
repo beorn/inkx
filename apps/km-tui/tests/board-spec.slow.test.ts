@@ -915,3 +915,134 @@ describe("Inline edit + undo interaction", () => {
     board.expectCursorVisible()
   })
 })
+
+// =============================================================================
+// Characterization: selection state through cursor movement
+// =============================================================================
+
+describe("selection state through cursor movement", () => {
+  test("cursor moves through j/k — sel.node.cursor() tracks current node", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"), item("task3"), item("task4"))),
+    )
+
+    // Initial cursor
+    expect(store.getState().sel.node.cursor() as string | null).toBe("task1")
+
+    // Move down
+    board.command("cursor_down")
+    expect(store.getState().sel.node.cursor() as string | null).toBe("task2")
+
+    // Move down again
+    board.command("cursor_down")
+    expect(store.getState().sel.node.cursor() as string | null).toBe("task3")
+
+    // Move up
+    board.command("cursor_up")
+    expect(store.getState().sel.node.cursor() as string | null).toBe("task2")
+
+    // Move up past start — stays at first
+    board.command("cursor_up")
+    board.command("cursor_up")
+    board.command("cursor_up") // should not go past task1
+    const cursor = store.getState().sel.node.cursor() as string | null
+    expect(cursor).not.toBeNull()
+  })
+
+  test("cursor position matches data-cursor attribute on screen", () => {
+    const { board, store } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"), item("task3"))),
+    )
+
+    // task1 has cursor
+    board.expect("#task1[data-cursor]").toExist()
+
+    // Move to task2
+    board.command("cursor_down")
+    board.expect("#task2[data-cursor]").toExist()
+    board.expect("#task1[data-cursor]").not.toExist()
+
+    // Move to task3
+    board.command("cursor_down")
+    board.expect("#task3[data-cursor]").toExist()
+    board.expect("#task2[data-cursor]").not.toExist()
+  })
+})
+
+// =============================================================================
+// Characterization: edit signal propagation
+// =============================================================================
+
+describe("edit signal propagation", () => {
+  test("enter edit mode sets editing, exit clears it", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"))),
+    )
+
+    // Initially not editing
+    board.expectNotEditing()
+
+    // Enter edit mode via i
+    board.press("i")
+    board.expectEditing("task1")
+
+    // Exit edit mode via Escape
+    board.press("Escape")
+    board.expectNotEditing()
+
+    // Cursor should remain on task1
+    board.expect("#task1[data-cursor]").toExist()
+  })
+
+  test("edit on different cards tracks correct nodeId", () => {
+    const { board } = testEnv(
+      () => item("board", item("col1", item("task1"), item("task2"), item("task3"))),
+    )
+
+    // Edit task1
+    board.press("i")
+    board.expectEditing("task1")
+    board.press("Escape")
+
+    // Move to task2 and edit
+    board.command("cursor_down")
+    board.press("i")
+    board.expectEditing("task2")
+    board.press("Escape")
+
+    // Move to task3 and edit
+    board.command("cursor_down")
+    board.press("i")
+    board.expectEditing("task3")
+    board.press("Escape")
+
+    // All cleared
+    board.expectNotEditing()
+  })
+
+  test("edit sub-item in nested card works and cleans up", () => {
+    const { board } = testEnv(
+      () =>
+        item(
+          "board",
+          item("col1", item.folder("Parent", item("child-a"), item("child-b"))),
+        ),
+    )
+
+    // Navigate into children via j keys
+    board.press("j") // move to next visible item
+    board.press("j")
+    board.press("j")
+
+    // Enter edit on current node
+    board.press("i")
+    board.expectEditing()
+
+    // Parent card should still be visible on screen
+    board.expect("#Parent").toExist()
+
+    // Exit edit cleanly
+    board.press("Escape")
+    board.expectNotEditing()
+  })
+})

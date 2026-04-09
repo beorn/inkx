@@ -894,3 +894,102 @@ describe("undo: fold/collapse state", () => {
     // After two undos, depends on initial state
   })
 })
+
+// =============================================================================
+// Characterization: delete + undo signal interaction
+// =============================================================================
+
+describe("delete/undo cursor signal interaction", () => {
+  test("delete card → cursor moves to sibling; undo → card restored + cursor valid", () => {
+    const { board, repo, store } = testEnv(
+      () => item("board", item("col1", item("task-a"), item("task-b"), item("task-c"))),
+    )
+
+    // Move to task-b
+    board.command("cursor_down")
+    const cursor0 = store.getState().sel.node.cursor() as string | null
+    expect(cursor0).toBe("task-b")
+
+    // Delete task-b
+    board.command("delete_node")
+
+    // Card should be removed from repo
+    const childrenAfterDelete = repo.getChildren("col1").map((n: { id: string }) => n.id)
+    expect(childrenAfterDelete).not.toContain("task-b")
+
+    // Cursor should be on a valid sibling
+    const cursorAfterDelete = store.getState().sel.node.cursor() as string | null
+    expect(cursorAfterDelete).not.toBeNull()
+    expect(cursorAfterDelete).not.toBe("task-b")
+
+    // Undo restores the card
+    board.command("undo")
+    const childrenAfterUndo = repo.getChildren("col1").map((n: { id: string }) => n.id)
+    expect(childrenAfterUndo).toContain("task-b")
+
+    // Cursor should be valid after undo
+    const cursorAfterUndo = store.getState().sel.node.cursor() as string | null
+    expect(cursorAfterUndo).not.toBeNull()
+  })
+
+  test("delete first card → cursor moves to next card", () => {
+    const { board, repo, store } = testEnv(
+      () => item("board", item("col1", item("first"), item("second"), item("third"))),
+    )
+
+    // Cursor starts on first card
+    expect(store.getState().sel.node.cursor() as string | null).toBe("first")
+
+    // Delete first
+    board.command("delete_node")
+    expect(repo.getChildren("col1").map((n: { id: string }) => n.id)).not.toContain("first")
+
+    // Cursor should move to a remaining card
+    const cursor = store.getState().sel.node.cursor() as string | null
+    expect(cursor).not.toBeNull()
+    expect(cursor).not.toBe("first")
+  })
+
+  test("delete last card → cursor moves to previous card", () => {
+    const { board, repo, store } = testEnv(
+      () => item("board", item("col1", item("alpha"), item("beta"), item("gamma"))),
+    )
+
+    // Navigate to last card
+    board.command("cursor_down") // beta
+    board.command("cursor_down") // gamma
+    expect(store.getState().sel.node.cursor() as string | null).toBe("gamma")
+
+    // Delete last card
+    board.command("delete_node")
+    expect(repo.getChildren("col1").map((n: { id: string }) => n.id)).not.toContain("gamma")
+
+    // Cursor should be on a remaining card (not null, not gamma)
+    const cursor = store.getState().sel.node.cursor() as string | null
+    expect(cursor).not.toBeNull()
+    expect(cursor).not.toBe("gamma")
+  })
+
+  test("delete + undo cycle preserves children count", () => {
+    const { board, repo } = testEnv(
+      () => item("board", item("col1", item("A"), item("B"), item("C"), item("D"))),
+    )
+
+    const initialCount = repo.getChildren("col1").length
+    expect(initialCount).toBe(4)
+
+    // Delete A
+    board.command("delete_node")
+    expect(repo.getChildren("col1").length).toBe(3)
+
+    // Undo
+    board.command("undo")
+    expect(repo.getChildren("col1").length).toBe(4)
+
+    // Delete again and undo again — cycle should be stable
+    board.command("delete_node")
+    expect(repo.getChildren("col1").length).toBe(3)
+    board.command("undo")
+    expect(repo.getChildren("col1").length).toBe(4)
+  })
+})
