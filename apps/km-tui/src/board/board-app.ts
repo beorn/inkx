@@ -184,7 +184,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
   /**
    * Build an OpCtx from store state.
    * Called on each key event to get fresh state.
-   * Derives ColumnView[] from the visible lens (PaneSignals.visibleLens computed).
+   * Derives DerivedColumn[] from the visible lens (PaneSignals.visibleLens computed).
    */
   function buildOpCtx(
     get: () => BoardAppStore,
@@ -202,7 +202,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     // Always provide a tree (empty fallback when no board/signals exist).
     const tree = board?.signals?.viewTree ?? locals.emptyTree ?? (locals.emptyTree = createViewTree())
 
-    // Use tree-based index when lens is available (no ColumnView dependency).
+    // Use tree-based index when lens is available (no DerivedColumn dependency).
     const nodeIndex = board?.signals
       ? buildNodeIndexFromTree(board.signals.visibleLens())
       : new Map<string, { colIndex: number; cardIndex: number }>()
@@ -216,7 +216,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       s.selTreeSource.update(board.signals.visibleLens())
     }
 
-    // Derive cursor indices, columnId, card from tree (board mode) or ColumnView (detail mode).
+    // Derive cursor indices, columnId, card from tree (board mode) or DerivedColumn (detail mode).
     // Detail mode uses deriveDetailColumns because it creates virtual metadata columns
     // that don't exist in the tree. Board mode uses the tree directly.
     let cursor: { colIndex: number; cardIndex: number; isAtCardLevel: boolean }
@@ -226,7 +226,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
 
     const cc = locals.cursorCache
     if (board?.viewMode === "detail") {
-      // Detail mode: derive via ColumnView (virtual metadata columns not in tree)
+      // Detail mode: derive via DerivedColumn (virtual metadata columns not in tree)
       const columns = deriveDetailColumns(s.repo, rootId, foldDepths)
       if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
         cursor = cc
@@ -238,7 +238,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       card = _column?.cardNodes[cursor.cardIndex]
       selectedNode = card ?? _column?.node ?? null
     } else {
-      // Board mode: derive entirely from tree (no ColumnView needed)
+      // Board mode: derive entirely from tree (no DerivedColumn needed)
       const treeColIds = rootId ? tree.children(rootId) : []
       if (cc && cc.cursorId === cursor_ && cc.nodeIndexRef === nodeIndex) {
         cursor = cc

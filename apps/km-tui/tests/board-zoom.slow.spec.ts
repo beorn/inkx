@@ -766,7 +766,7 @@ describe("Zoom View Diff - embed cards should not be virtual", () => {
 })
 
 // Parity tests (buildBoardState vs deriveColumnsFromRepo) deleted — both functions
-// produced equivalent ColumnView[] output. The lens is now the single authority.
+// produced equivalent DerivedColumn[] output. The lens is now the single authority.
 // Column derivation coverage moved to board.test.tsx (lens-based tests).
 
 // --- Merged from zoom-cursor-fallback.test.ts (bead: km-tui.zoom-cursor-fallback) ---

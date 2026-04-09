@@ -601,7 +601,7 @@ export interface BoardProps {
  * Board connector component.
  *
  * Reads ui and board nav fields from signal store via useApp() selectors,
- * computes derived layout (useColumns, useCursorPosition),
+ * computes derived layout (column derivation, cursor position),
  * pushes layout back to store, renders BoardCore.
  *
  * Keys are handled by the term:key handler in board-app.ts — not here.
@@ -735,7 +735,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const visibleLensValue = useSignal(ps.visibleLens)
   const columnIds = useMemo((): readonly string[] => {
     if (ui.viewMode === "detail") {
-      // Detail mode: virtual metadata columns need ColumnView derivation
+      // Detail mode: virtual metadata columns need DerivedColumn derivation
       return deriveDetailColumns(repo, rootId, foldDepths).map((c) => c.node.id)
     }
     const lensRoot = visibleLensValue.rootId
@@ -761,7 +761,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
-  // Derived from the visible lens (no ColumnView dependency).
+  // Derived from the visible lens (no DerivedColumn dependency).
   const nodeIndex = useMemo(() => buildNodeIndexFromTree(visibleLensValue), [visibleLensValue])
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
 
@@ -794,7 +794,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const cursorDepth = CursorDepth.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
 
   // Derive cursorCardNodeId and cursorColumnNodeId from layout indices via lens.
-  // Uses the lens column/card lists instead of ColumnView[] for identity resolution.
+  // Uses the lens column/card lists instead of DerivedColumn[] for identity resolution.
   const cursorCardNodeId = useMemo(() => {
     const rootLensId = visibleLensValue.rootId
     if (!rootLensId || cursorPosition.colIndex < 0) return null
@@ -830,7 +830,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Per-column filter overlay — BoardCore forwards this to the Column components
   // so they can render only the filtered subset and show the "+N filtered" footer.
-  // Apply text + property filters using tree card IDs (no ColumnView dependency).
+  // Apply text + property filters using tree card IDs (no DerivedColumn dependency).
   const columnFilters = useMemo(() => {
     const map = new Map<string, ColumnFilterState>()
     const hasTextFilter = !!ui.filterText

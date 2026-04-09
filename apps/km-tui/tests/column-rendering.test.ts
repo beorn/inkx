@@ -896,7 +896,7 @@ describe("body block spacing in columns view", () => {
 describe("ghost cursor — folder index file (km-nx8af)", () => {
   /**
    * Folder "project" with children: [project.md (index), task-a, task-b].
-   * View shows: [task-a, task-b]. project.md is filtered by kNodeToColumnView.
+   * View shows: [task-a, task-b]. project.md is filtered by column derivation.
    * Navigation via j/k must skip project.md.
    */
   function makeFolderWithIndexFile(): KNode[] {

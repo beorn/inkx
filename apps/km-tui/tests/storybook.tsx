@@ -65,13 +65,13 @@ import { BoardCore, type BoardCoreProps } from "../src/views/Board.tsx"
 import { CommandBox } from "../src/views/CommandBox.tsx"
 import { ToastStack } from "../src/views/ToastStack.tsx"
 import type { KNode, TaskStatus, TaskMarker } from "@km/core"
-import type { ColumnView } from "../src/hooks/use-columns.ts"
+import type { DerivedColumn } from "../src/hooks/use-columns.ts"
 
 /** Local type for storybook mock board state (TUIBoardState was removed from types.ts) */
 interface TUIBoardState {
   rootId: string | null
   rootPath: string | null
-  columns: ColumnView[]
+  columns: DerivedColumn[]
   visualMode: boolean
   foldDepths: Map<string, number>
   collapsedColumns: Set<number>
@@ -972,8 +972,8 @@ function mockBodyCards(id: string, bodyDefs: Array<{ type: string; content: stri
   })
 }
 
-// Helper to create mock ColumnView
-function mockColumn(name: string, cardNodes: KNode[]): ColumnView {
+// Helper to create mock DerivedColumn
+function mockColumn(name: string, cardNodes: KNode[]): DerivedColumn {
   return {
     node: mockNode(`col-${name}`, name, undefined, "h", { fstype: "mdsection" }),
     cardNodes: cardNodes.map((c) => ({

@@ -6,7 +6,7 @@
  *
  * 1. Mock data (default) — static demo board
  * 2. Remote repo — connects to km-web server via WebSocket, uses real
- *    useColumns hook for column derivation matching the TUI exactly
+ *    deriveColumnsFromRepo for column derivation matching the TUI exactly
  *
  * Usage:
  *   ?mode=mock   — mock data (default)
@@ -29,7 +29,7 @@ import { useInput } from "../../../vendor/silvery/packages/ag-react/src/hooks/us
 import type { Key } from "../../../vendor/silvery/packages/ag/src/keys.ts"
 import { deriveColumnsFromRepo } from "../src/hooks/use-columns.ts"
 import type { KNode } from "@km/core"
-import type { ColumnView as RealColumnView } from "../src/hooks/use-columns.ts"
+import type { DerivedColumn as RealDerivedColumn } from "../src/hooks/use-columns.ts"
 import type { RepoLike } from "../../km-web/src/remote-repo.ts"
 
 // ============================================================================
@@ -560,7 +560,7 @@ function MockBoardWrapper({ width }: { width: number }) {
 }
 
 // ============================================================================
-// Remote Board — real useColumns, zoom, live sync
+// Remote Board — real column derivation, zoom, live sync
 // ============================================================================
 
 const emptyFoldDepths = new Map<string, number>()
@@ -569,8 +569,8 @@ function nodeName(node: { content?: string; title?: string; name?: string }): st
   return node.content || node.title || node.name || "(untitled)"
 }
 
-/** Convert RealColumnView[] to the generic Column[] for BoardView */
-function toColumns(columns: RealColumnView[], repo: RepoLike): Column[] {
+/** Convert RealDerivedColumn[] to the generic Column[] for BoardView */
+function toColumns(columns: RealDerivedColumn[], repo: RepoLike): Column[] {
   return columns.map((col) => ({
     id: col.node.id,
     name: nodeName(col.node),

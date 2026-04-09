@@ -8,7 +8,7 @@
 
 import { ulid } from "ulid"
 import type { KNode } from "@km/core"
-import type { ColumnView } from "../../src/hooks/use-columns.ts"
+import type { DerivedColumn } from "../../src/hooks/use-columns.ts"
 
 /**
  * Create a test KNode with defaults
@@ -42,9 +42,9 @@ export function createCardNode(nodeOverrides: Partial<KNode> = {}, _children: KN
 }
 
 /**
- * Create a ColumnView with card nodes
+ * Create a DerivedColumn with card nodes
  */
-export function createColumnView(nodeOverrides: Partial<KNode> = {}, cardNodes: KNode[] = []): ColumnView {
+export function createDerivedColumn(nodeOverrides: Partial<KNode> = {}, cardNodes: KNode[] = []): DerivedColumn {
   const node = createTestKNode({
     type: "h",
     item: {},

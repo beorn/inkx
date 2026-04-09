@@ -223,7 +223,7 @@ describe("Terminal Sizes", () => {
     // When terminal resizes, BoardApp's resize handler calls store.setDimensions().
     // The Board component then:
     // 1. Updates ui.dimensions state
-    // 2. useColumns re-derives columns from repo (triggered by dimension change)
+    // 2. Column derivation re-derives columns from repo (triggered by dimension change)
     // 3. useCursorPosition re-derives visual position from cursorId
     // 4. Cursor stays on the same node automatically
     //

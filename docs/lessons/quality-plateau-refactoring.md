@@ -1,7 +1,7 @@
 # Lessons Learned: Quality Plateau Refactoring (tree-lenses)
 
 **Session**: 2026-04-06, tree-lenses epic (14 beads) + InitialBoardData deletion
-**Scope**: Replace dual-type system (ViewNode/ColumnView) with single TreeLens pipeline
+**Scope**: Replace dual-type system (ViewNode/DerivedColumn) with single TreeLens pipeline
 **Result**: ~1600 lines deleted, all live code paths on one pipeline
 
 ## Was "quality plateau" useful as a concept?
@@ -14,7 +14,7 @@ The key insight: the plateau is about the LIVE code path (every keypress, every 
 
 1. **Inside-out migration order**: Action handlers first (most call sites), then Board.tsx rendering, then buildOpCtx, then initialization, then tests. Each step was independently committable and testable. We never had a broken main.
 
-2. **String IDs as the interface boundary**: The key architectural decision was `ctx.column: ColumnView` → `ctx.columnId: string`. Once the interface is a string, the implementation behind it is free to change. Components that take string IDs and self-resolve via `useNode(id)` are completely decoupled from how the tree is built.
+2. **String IDs as the interface boundary**: The key architectural decision was `ctx.column: DerivedColumn` → `ctx.columnId: string`. Once the interface is a string, the implementation behind it is free to change. Components that take string IDs and self-resolve via `useNode(id)` are completely decoupled from how the tree is built.
 
 3. **Lens as the single source of truth**: ViewLens → VisibleLens → ViewTreeProjection. One pipeline that handles fold, hidden, body, embed, collapse, task-status-filter. No parallel code path that might diverge.
 

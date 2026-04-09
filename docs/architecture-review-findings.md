@@ -14,8 +14,8 @@ Three-pass architectural review of the km codebase. Evidence-based with grep cou
 - `TNode` — packages/km-core/src/types.ts — KNode + recursive children/depth. **Duplicate** copy at apps/km-repl/src/board-types.ts (drifted: has `title: string | null`, lacks `fstype`)
 - `ViewNode` — packages/km-board/src/view-tree.ts — explicit visual tree (migration Phase 2a complete)
 - `CardView` — apps/km-tui/src/types.ts — KNode + resolvedNode/isBody. **Overlaps** ViewNode card-level nodes
-- `ColumnView` — apps/km-tui/src/types.ts — column header + CardView[]. **Overlaps** ViewNode column-level nodes
-- `CompatColumnView` — packages/km-board/src/view-tree.ts — backward-compat bridge from ViewNode to ColumnView
+- `DerivedColumn` — apps/km-tui/src/types.ts — column header + CardView[]. **Overlaps** ViewNode column-level nodes
+- `CompatDerivedColumn` — packages/km-board/src/view-tree.ts — backward-compat bridge from ViewNode to DerivedColumn
 - `LayoutNode` — apps/km-tui/src/board-types.ts — pane layout tree (separate domain, no redundancy)
 
 Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a separate domain.
@@ -75,11 +75,11 @@ Inline AST types (14 types in apps/km-tui/src/text/inline-ast-types.ts) are a se
 
 Files: repo-loader.ts -> discovery.ts -> parser.ts -> ast2nodes.ts -> repo-loader.ts -> link-resolution.ts -> db-rules.ts -> repo.ts -> use-columns.ts -> Board.tsx
 
-Type chain: `string` -> `Root` (mdast) -> `KNode[]` -> `Event[]` -> SQLite rows -> `KNode[]` -> `{body, items}` -> `CardView[]` -> `ColumnView[]` -> React elements -> ANSI
+Type chain: `string` -> `Root` (mdast) -> `KNode[]` -> `Event[]` -> SQLite rows -> `KNode[]` -> `{body, items}` -> `CardView[]` -> `DerivedColumn[]` -> React elements -> ANSI
 
 Re-derivations:
-1. **extractBody called 3x per board render** — once in deriveColumnsFromRepo for root, once in kNodeToColumnView per column, once in deriveColumnsIncremental
-2. **parseHeadingRules called multiple times** — at AST parse time (interpretHeadingRules) and again in use-columns.ts (getCollapseRules, kNodeToColumnView)
+1. **extractBody called 3x per board render** — once in deriveColumnsFromRepo for root, once in kNodeToDerivedColumn per column, once in deriveColumnsIncremental
+2. **parseHeadingRules called multiple times** — at AST parse time (interpretHeadingRules) and again in use-columns.ts (getCollapseRules, kNodeToDerivedColumn)
 3. **KNode item decomposition/recomposition** — item:{list, task:{marker, status}} decomposed to flat SQL columns on write, recomposed on read
 4. **WIP limits extracted twice** — extractWipLimits scans all columns, then each column also checks rules.limit
 
@@ -179,7 +179,7 @@ Top 3 files per concern:
 
 **1. Unify column derivation — eliminate use-columns.ts duplication**
 - Now: use-columns.ts (772 lines) and view-tree.ts (476 lines) duplicate isCollapsedChild, isDetailOnly, deduplicateByFsPath, createVirtualBodyNode, expandIndexFileColumns
-- Target: ViewNode tree is sole authority; use-columns.ts becomes thin wrapper calling buildViewTree() + toColumnViews()
+- Target: ViewNode tree is sole authority; use-columns.ts becomes thin wrapper calling buildViewTree() + toDerivedColumns()
 - Impact: ~400 lines removed, derivation drift bug class eliminated
 - ViewNode status: IS the Phase 3 target
 

@@ -561,7 +561,7 @@ const Card = React.memo(
     )
   },
   (prev, next) => {
-    // Reference equality on card — structural sharing in useColumns ensures
+    // Reference equality on card — structural sharing in column derivation ensures
     // unchanged cards keep the same object reference across re-derivations.
     // isSelected is driven by NodeStore self-subscription (not props),
     // so it's not compared here — NodeStore triggers re-renders independently.

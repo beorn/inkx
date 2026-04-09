@@ -422,7 +422,7 @@ describe("Full Round-Trip", () => {
         const task = getAllNodes(db).find((n) => n.item?.task?.status != null)
         expect(task).toBeDefined()
 
-        // Subscribe (same pattern as useSyncExternalStore in useColumns)
+        // Subscribe (same pattern as useSyncExternalStore in signal-store)
         let notifyCount = 0
         const unsub = repo.subscribe(() => {
           notifyCount++
