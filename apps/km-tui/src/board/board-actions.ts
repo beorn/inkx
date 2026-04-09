@@ -69,8 +69,7 @@ import {
   type BoardNavState,
 } from "./board-reducer.ts"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
-const log = createLogger("km:tui:board-actions") as any
+const log = createLogger("km:tui:board-actions")
 
 // =============================================================================
 // Auto-create files for date-template locations
@@ -2448,7 +2447,7 @@ function spawnOpen(ctx: OpCtx, args: string[], label: string): void {
 
 function handleOpenInSystem(ctx: OpCtx, nodeId: string): void {
   const result = resolveNodeFsPath(ctx.repo, nodeId)
-  log.debug?.("open_in_system: opening %s", result.fsPath)
+  log.debug?.(`open_in_system: opening ${result.fsPath}`)
   spawnOpen(ctx, [result.fsPath], "open_in_system")
 }
 
@@ -2490,7 +2489,7 @@ function handleOpenInTerminal(ctx: OpCtx, nodeId: string): void {
   const dir = result.isFolder ? result.fsPath : dirname(result.fsPath)
   const termProgram = process.env.TERM_PROGRAM
   const app = termProgram || "Terminal"
-  log.debug?.("open_in_terminal: opening %s at %s", app, dir)
+  log.debug?.(`open_in_terminal: opening ${app} at ${dir}`)
   spawnOpen(ctx, ["-a", app, dir], "open_in_terminal")
 }
 

@@ -29,6 +29,33 @@ export interface RenderOptions {
 /**
  * Options for running the TUI
  */
+// =============================================================================
+// Global diagnostic hooks
+// =============================================================================
+
+/**
+ * Typed globalThis extensions for cross-boundary diagnostics.
+ *
+ * km sets: __km_last_key, __km_terminal_focused
+ * silvery sets: __silvery_last_pipeline, __silvery_render_count
+ */
+declare global {
+  // eslint-disable-next-line no-var -- must be `var` for `declare global`
+  var __km_last_key: string | undefined
+  // eslint-disable-next-line no-var
+  var __km_terminal_focused: boolean | undefined
+  // eslint-disable-next-line no-var
+  var __silvery_last_pipeline:
+    | { measure: number; layout: number; content: number; output: number; total: number }
+    | undefined
+  // eslint-disable-next-line no-var
+  var __silvery_render_count: number | undefined
+}
+
+// =============================================================================
+// TUI Options
+// =============================================================================
+
 export interface TuiOptions {
   /**
    * Run in interactive mode (default: true).

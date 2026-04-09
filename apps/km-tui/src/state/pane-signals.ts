@@ -128,7 +128,7 @@ export function createPaneSignals(opts: CreatePaneSignalsOptions): PaneSignals {
     const _rootId = rootId()
     const _foldDepths = foldDepths()
     const _hiddenOverride = hiddenNodeIds()
-    const _hidden = _hiddenOverride.size > 0 ? _hiddenOverride : computeHiddenNodeIds(opts.repo as any, _rootId)
+    const _hidden = _hiddenOverride.size > 0 ? _hiddenOverride : computeHiddenNodeIds(opts.repo, _rootId)
     return createViewLens(opts.repo, {
       rootId: _rootId,
       foldDepths: _foldDepths,

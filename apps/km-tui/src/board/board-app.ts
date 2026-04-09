@@ -380,8 +380,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     const { get } = ctx
 
     // Track last key for event loop block diagnostics (read by heartbeat in tui.tsx)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-    ;(globalThis as any).__km_last_key = lookupKeyName(key) ?? (input || "?")
+    globalThis.__km_last_key = lookupKeyName(key) ?? (input || "?")
 
     // Cache focus manager from EventHandlerContext (update if changed, e.g. new test env)
     if (locals.cachedFocusManager !== ctx.focusManager) {
@@ -635,8 +634,7 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
       if (result.commandId) {
         parentSpan.spanData.command = result.commandId
         // Update last key label to include command (for heartbeat diagnostics)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-        ;(globalThis as any).__km_last_key += ` → ${result.commandId}`
+        globalThis.__km_last_key += ` → ${result.commandId}`
       }
     }
 
@@ -1153,8 +1151,7 @@ export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
       const { focused } = data as { focused: boolean }
       ctx.get().setUI({ terminalFocused: focused })
       // Expose on globalThis for the heartbeat interval (which runs outside the store)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-      ;(globalThis as any).__km_terminal_focused = focused
+      globalThis.__km_terminal_focused = focused
     },
   })
 

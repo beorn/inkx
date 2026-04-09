@@ -40,10 +40,8 @@ export interface ColumnView {
   hiddenDescendantCount?: number
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
-const log = createLogger("km:tui:columns") as any
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const perfLog = createLogger("km:perf") as any
+const log = createLogger("km:tui:columns")
+const perfLog = createLogger("km:perf")
 
 // =============================================================================
 // Column derivation — delegates to the TreeLens

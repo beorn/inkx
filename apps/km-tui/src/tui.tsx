@@ -32,8 +32,7 @@ import { createGridNavigator, createViewLens, createVisibleLens } from "@km/boar
 import { saveWorkspace, loadWorkspace } from "./workspace-persist.ts"
 import { loadConfig, saveConfig, initLocations, onFavoritesChange, getAllLocations } from "@km/commands"
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- loggily types don't fully resolve via tsc bundler mode
-const log = createLogger("km:tui") as any
+const log = createLogger("km:tui")
 
 /**
  * Global event emitter for TUI refresh events
@@ -165,7 +164,7 @@ export async function runBoard(
 
     // Memory diagnostics: log RSS growth every 30s when km:memory debug is enabled.
     // Useful for identifying memory leaks in long-running sessions.
-    const memLog = createLogger("km:memory") as any
+    const memLog = createLogger("km:memory")
     let memoryTickCount = 0
     const MEMORY_LOG_INTERVAL = 150 // Every 150 ticks * 200ms = 30s
 
@@ -175,8 +174,7 @@ export async function runBoard(
     let lastHeartbeat = performance.now()
     let lastRenderCount = 0
     heartbeatInterval = setInterval(() => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-      const termFocused = (globalThis as any).__km_terminal_focused as boolean | undefined
+      const termFocused = globalThis.__km_terminal_focused
       if (termFocused === false) {
         // Reset heartbeat baseline so we don't false-alarm on refocus
         lastHeartbeat = performance.now()
@@ -188,8 +186,7 @@ export async function runBoard(
         const parts = [`event loop blocked for ${gap.toFixed(0)}ms`]
 
         // Last key that was pressed (set by board-app handleKey)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-        const lastKey = (globalThis as any).__km_last_key as string | undefined
+        const lastKey = globalThis.__km_last_key
         if (lastKey) {
           parts.push(`after key='${lastKey}'`)
         } else {
@@ -197,12 +194,8 @@ export async function runBoard(
         }
 
         // Per-phase pipeline timing from last render
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-        const pipeline = (globalThis as any).__silvery_last_pipeline as
-          | { measure: number; layout: number; content: number; output: number; total: number }
-          | undefined
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- globalThis diagnostic hook
-        const renderCount = ((globalThis as any).__silvery_render_count as number) ?? 0
+        const pipeline = globalThis.__silvery_last_pipeline
+        const renderCount = globalThis.__silvery_render_count ?? 0
         const rendersSinceLastCheck = renderCount - lastRenderCount
         lastRenderCount = renderCount
 

@@ -16,7 +16,7 @@ import { getScrollToIndex } from "./scroll-helpers.ts"
 
 interface ScrollTrackingListViewProps<T> extends Omit<ListViewProps<T>, "scrollTo"> {
   isSelected: boolean
-  /** Extract nodeId from items for cursor→index lookup. Falls back to (item as any).node.id */
+  /** Extract nodeId from items for cursor→index lookup. Falls back to item.node.id */
   getKey?: (item: T) => string
   /** Explicit scroll anchor (from mouse wheel). Overrides cursor-derived scrollTo when set. */
   scrollAnchor?: number | null

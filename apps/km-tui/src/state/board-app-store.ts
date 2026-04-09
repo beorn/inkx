@@ -1001,7 +1001,7 @@ export function createBoardAppStoreState(
           if (resolvedKeys.has("hiddenVersion") || resolvedKeys.has("showHidden")) {
             const hidden = afterPane.showHidden
               ? new Set<string>()
-              : computeHiddenNodeIds(afterS.repo as any, afterPane.rootId)
+              : computeHiddenNodeIds(afterS.repo, afterPane.rootId)
             afterPane.signals.hiddenNodeIds(hidden)
           }
           // Sync taskStatusFilter signal when filterProperties change

@@ -1,2 +1,1 @@
-2 vendor/silvery/packages/ag-term/src/buffer.ts
-2 vendor/silvery/packages/create/src/create-app.tsx
+1 vendor/silvery/packages/create/src/create-app.tsx
