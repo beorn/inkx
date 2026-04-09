@@ -128,8 +128,8 @@ const program = new Command()
   .option("-b, --bail", "Stop on first failure", false)
   .option("-t, --timeout <seconds>", "Test timeout in seconds", uint)
   .option("--no-color", "Disable colored output")
-  .action(async (patterns: string[], options: Options) => {
-    await runTests(patterns, options)
+  .actionMerged(async ({ patterns, ...options }) => {
+    await runTests(patterns, options as unknown as Options)
   })
 
 program.parse()

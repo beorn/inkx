@@ -111,8 +111,8 @@ program
 // ── switch ──────────────────────────────────────────────────────────────
 program
   .command("switch")
-  .argument("<name>", "Account name to switch to")
   .description("Switch active Claude Code account")
+  .argument("<name>", "Account name to switch to")
   .actionMerged(async (opts: { name: string }) => {
     const result = await switchAccount(opts.name)
     if (result.success) {
@@ -168,15 +168,16 @@ program
 // ── add ─────────────────────────────────────────────────────────────────
 program
   .command("add")
-  .argument("<name>", "Account name")
   .description("Add an account manually")
-  .requiredOption(
-    "-p, --provider <provider>",
-    "Provider type (claude-oauth, anthropic-api, openai, xai, google, openrouter)",
-  )
+  .argument("<name>", "Account name")
+  .option("-p, --provider <provider>", "Provider type (claude-oauth, anthropic-api, openai, xai, google, openrouter)")
   .option("--key", "Prompt for API key")
   .option("--env <var>", "Environment variable containing the API key")
-  .actionMerged((opts: { name: string; provider: string; key?: boolean; env?: string }) => {
+  .actionMerged((opts) => {
+    if (!opts.provider) {
+      console.error(pc.red("Error: --provider is required"))
+      process.exit(1)
+    }
     const provider = opts.provider as AccountProvider
     upsertAccount({ name: opts.name, provider })
 
@@ -201,9 +202,9 @@ program
 // ── rename ──────────────────────────────────────────────────────────────
 program
   .command("rename")
+  .description("Rename an account")
   .argument("<old-name>", "Current account name")
   .argument("<new-name>", "New account name")
-  .description("Rename an account")
   .actionMerged((opts: { oldName: string; newName: string }) => {
     const account = getAccount(opts.oldName)
     if (!account) {
@@ -223,8 +224,8 @@ program
 // ── remove ──────────────────────────────────────────────────────────────
 program
   .command("remove")
-  .argument("<name>", "Account name to remove")
   .description("Remove an account")
+  .argument("<name>", "Account name to remove")
   .actionMerged((opts: { name: string }) => {
     const account = getAccount(opts.name)
     if (!account) {
