@@ -35,8 +35,10 @@ test("D opens detail pane", async () => {
 ### Factory
 
 ```typescript
-createTestApp(nodes: KNode[], opts?: TestAppOptions): TestApp
+createTestApp(nodes: KNode[] | (() => KNode[]), opts?: TestAppOptions): TestApp
 ```
+
+Accepts both a node array and a fixture function: `createTestApp(item.simpleBoard)` works.
 
 ### Options
 
@@ -51,14 +53,27 @@ createTestApp(nodes: KNode[], opts?: TestAppOptions): TestApp
 
 ### TestApp API
 
-**Actions** (all async — must `await`):
+**Actions** (async — must `await`; chainable via thenable):
 
 | Method | Description |
 |--------|-------------|
 | `app.press(key)` | Send keypress (e.g. `"j"`, `"Enter"`, `"Control+d"`) |
 | `app.type(text)` | Type a string (each char as a keypress) |
 | `app.command(commandId)` | Dispatch command by ID (e.g. `"cursor_down"`, `"fold_more"`) |
+| `app.dispatch(commandId)` | Dispatch orphan command (no key binding, e.g. `"search"`) |
 | `app.navigateTo(target)` | Press `j` until cursor reaches target node (max 50 steps) |
+
+**Chaining**: Actions return a `TestAppChain` (thenable). Queue multiple and await once:
+
+```typescript
+await app.command("cursor_down").command("cursor_right").press("z")
+```
+
+**Async `not.toThrow()`**: Use Vitest's `.resolves` matcher:
+
+```typescript
+await expect(app.press("H")).resolves.not.toThrow()
+```
 
 **Locator assertions** (synchronous):
 
@@ -81,6 +96,14 @@ createTestApp(nodes: KNode[], opts?: TestAppOptions): TestApp
 | `app.expectRow(n, pattern)` | Row n contains text or matches regex |
 | `app.expectCellChar(x, y, char)` | Cell at position has char |
 | `app.expectCellColor(x, y, {fg, bg})` | Cell colors match |
+
+**Feedback** (synchronous):
+
+| Method | Description |
+|--------|-------------|
+| `app.bell` | Boolean — true if boundary hit (e.g. cursor at edge) |
+| `app.hasStatus` | Boolean — true if status bar is showing a message |
+| `app.getStatus()` | `{level, message}` or null — current status bar content |
 
 **Read access** (synchronous):
 
