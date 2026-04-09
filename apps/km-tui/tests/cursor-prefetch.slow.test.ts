@@ -11,157 +11,155 @@
 import { describe, test, expect } from "vitest"
 import { act } from "react"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
 // Cursor prefetch warms adjacent columns
 // =============================================================================
 
 describe("cursor prefetch on horizontal navigation", () => {
-  test("rapid h/l navigation across 5 columns lands on correct final position", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a"), item("3b")),
-          item("col4", item("4a"), item("4b")),
-          item("col5", item("5a"), item("5b")),
-        ),
-      { columns: 120, rows: 20 },
+  test("rapid h/l navigation across 5 columns lands on correct final position", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a"), item("2b")),
+        item("col3", item("3a"), item("3b")),
+        item("col4", item("4a"), item("4b")),
+        item("col5", item("5a"), item("5b")),
+      ),
+      { cols: 120, rows: 20 },
     )
 
     // Start at col1, first card
-    board.expect("#1a[data-cursor]").toExist()
+    app.expect("#1a[data-cursor]").toExist()
 
     // Navigate right rapidly through all columns
-    board.command("cursor_right").command("cursor_right").command("cursor_right").command("cursor_right")
-    board.expect("#5a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    app.expect("#5a[data-cursor]").toExist()
 
     // Navigate back left rapidly
-    board.command("cursor_left").command("cursor_left").command("cursor_left").command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
+    await app.command("cursor_left")
+    await app.command("cursor_left")
+    await app.command("cursor_left")
+    await app.command("cursor_left")
+    app.expect("#1a[data-cursor]").toExist()
   })
 
-  test("h/l navigation with mixed j/k between columns renders correctly", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b"), item("1c")),
-          item("col2", item("2a"), item("2b"), item("2c")),
-          item("col3", item("3a"), item("3b"), item("3c")),
-        ),
-      { columns: 100, rows: 20 },
+  test("h/l navigation with mixed j/k between columns renders correctly", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b"), item("1c")),
+        item("col2", item("2a"), item("2b"), item("2c")),
+        item("col3", item("3a"), item("3b"), item("3c")),
+      ),
+      { cols: 100, rows: 20 },
     )
 
     // Move down in col1
-    board.command("cursor_down")
-    board.expect("#1b[data-cursor]").toExist()
+    await app.command("cursor_down")
+    app.expect("#1b[data-cursor]").toExist()
 
     // Move right to col2 — stickyY should position near 1b
-    board.command("cursor_right")
-    // Should land on a card in col2
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("2a")
-    expect(screenshot).toContain("2b")
+    await app.command("cursor_right")
+    expect(app.text).toContain("2a")
+    expect(app.text).toContain("2b")
 
     // Move right again to col3
-    board.command("cursor_right")
-    // Should still be rendering correctly
-    expect(board.screenshot()).toContain("3a")
+    await app.command("cursor_right")
+    expect(app.text).toContain("3a")
 
     // Move back left twice
-    board.command("cursor_left").command("cursor_left")
-    // Should be back in col1
-    const finalScreenshot = board.screenshot()
-    expect(finalScreenshot).toContain("1a")
-    expect(finalScreenshot).toContain("1b")
-    expect(finalScreenshot).toContain("1c")
+    await app.command("cursor_left")
+    await app.command("cursor_left")
+    expect(app.text).toContain("1a")
+    expect(app.text).toContain("1b")
+    expect(app.text).toContain("1c")
   })
 
-  test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", () => {
-    const { board } = testEnv(item.multiColBoard, { columns: 120, rows: 20 })
+  test("rapid l-l-h-l-h-h sequence preserves cursor and rendering", async () => {
+    using app = createTestApp(item.multiColBoard(), { cols: 120, rows: 20 })
 
-    board.expect("#1a[data-cursor]").toExist()
+    app.expect("#1a[data-cursor]").toExist()
 
     // Rapid back-and-forth
-    board.command("cursor_right") // -> col2
-    board.command("cursor_right") // -> col3
-    board.command("cursor_left") // -> col2
-    board.command("cursor_right") // -> col3
-    board.command("cursor_left") // -> col2
-    board.command("cursor_left") // -> col1
+    await app.command("cursor_right") // -> col2
+    await app.command("cursor_right") // -> col3
+    await app.command("cursor_left") // -> col2
+    await app.command("cursor_right") // -> col3
+    await app.command("cursor_left") // -> col2
+    await app.command("cursor_left") // -> col1
 
-    board.expect("#1a[data-cursor]").toExist()
+    app.expect("#1a[data-cursor]").toExist()
 
     // Screen should render without artifacts — cursor is on col1,
     // so col1 and col2 should be visible at minimum
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("col1")
-    expect(screenshot).toContain("col2")
+    expect(app.text).toContain("col1")
+    expect(app.text).toContain("col2")
   })
 
-  test("prefetch fires after horizontal nav without errors", () => {
+  test("prefetch fires after horizontal nav without errors", async () => {
     // The prefetch in handleHorizontalNav uses setTimeout(0) to warm
     // adjacent column children. This test verifies the prefetch doesn't
     // throw or corrupt state by navigating and then performing operations
     // that depend on column data being correct.
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("1a"), item("1b")),
-          item("col2", item("2a"), item("2b")),
-          item("col3", item("3a"), item("3b")),
-        ),
-      { columns: 100, rows: 20 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("1a"), item("1b")),
+        item("col2", item("2a"), item("2b")),
+        item("col3", item("3a"), item("3b")),
+      ),
+      { cols: 100, rows: 20 },
     )
 
     // Navigate right — triggers prefetch of col1 and col3
-    board.command("cursor_right")
-    board.expect("#2a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#2a[data-cursor]").toExist()
 
     // Subsequent vertical navigation should work — depends on column data
-    board.command("cursor_down")
-    board.expect("#2b[data-cursor]").toExist()
+    await app.command("cursor_down")
+    app.expect("#2b[data-cursor]").toExist()
 
     // Navigate to col3 — if prefetch corrupted col3 data, this would fail
-    board.command("cursor_right")
-    board.expect("#3b[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#3b[data-cursor]").toExist()
 
     // Navigate back to col1
-    board.command("cursor_left").command("cursor_left")
-    // Cursor should land on a card in col1
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("1a")
+    await app.command("cursor_left")
+    await app.command("cursor_left")
+    expect(app.text).toContain("1a")
   })
 
-  test("horizontal nav across boundary doesn't cause errors", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("1a")), item("col2", item("2a"))), {
-      columns: 80,
+  test("horizontal nav across boundary doesn't cause errors", async () => {
+    using app = createTestApp(item("board", item("col1", item("1a")), item("col2", item("2a"))), {
+      cols: 80,
       rows: 20,
     })
 
     // Navigate to right boundary
-    board.command("cursor_right")
-    board.expect("#2a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#2a[data-cursor]").toExist()
 
     // Try to go further right — should hit boundary, no crash
-    board.command("cursor_right")
-    board.expect("#2a[data-cursor]").toExist()
+    await app.command("cursor_right")
+    app.expect("#2a[data-cursor]").toExist()
 
     // Navigate left
-    board.command("cursor_left")
-    board.expect("#1a[data-cursor]").toExist()
+    await app.command("cursor_left")
+    app.expect("#1a[data-cursor]").toExist()
 
     // h at leftmost card goes to column header
-    board.command("cursor_left")
-    board.expect("#col1[data-cursor]").toExist()
+    await app.command("cursor_left")
+    app.expect("#col1[data-cursor]").toExist()
 
     // h at column header is boundary, no crash
-    board.command("cursor_left")
-    board.expect("#col1[data-cursor]").toExist()
+    await app.command("cursor_left")
+    app.expect("#col1[data-cursor]").toExist()
   })
 })
 
