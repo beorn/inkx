@@ -23,7 +23,7 @@ import { isDetailPaneId } from "./board-types.ts"
 import { CursorDepth } from "../state/cursor-depth.ts"
 import { PaneUI } from "../state/ui-reducer.ts"
 import { createLogger } from "loggily"
-import { getModeStack } from "../dialog-guard.ts"
+import { currentMode } from "../dialog-guard.ts"
 
 const log = createLogger("km:command-bridge")
 
@@ -100,7 +100,7 @@ function buildCommandContexts(ctx: OpCtx) {
     deleteConfirmOpen: !!ui.deleteConfirm,
     consoleOpen: ui.showConsole,
     hasActiveToast: !!ctx.toastQueue.getLatest(),
-    inputMode: getModeStack().current(),
+    inputMode: currentMode(),
     visualMode: false, // visual mode removed — sel handles multi-selection
     localFindActive: !!ui.localSearch,
     omniboxOpen: ui.showOmnibox,

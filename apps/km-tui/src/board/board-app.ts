@@ -21,7 +21,7 @@ import { isBoardPane, isDetailViewPane } from "./board-types.ts"
 import { ensureCommandSystemInitialized } from "./command-bridge.ts"
 import { processKeyWithContext, processChordTimeout } from "./command-bridge.ts"
 import { executeCommand } from "@km/commands"
-import { getModeStack, resetModeStack, popDialogMode } from "../dialog-guard.ts"
+import { isDialogOpen, resetDialogGuard, popDialogMode } from "../dialog-guard.ts"
 import { dialogTargetRef } from "../dialog-target.ts"
 import { handleKmOp } from "./board-actions.ts"
 import { clickToCursorOffset } from "./click-to-cursor.ts"
@@ -63,7 +63,7 @@ import type { PaneUI } from "../state/ui-reducer.ts"
  */
 export function createBoardApp(storeParams: CreateBoardAppStoreParams) {
   let exitFn: (() => void) | null = null
-  resetModeStack()
+  resetDialogGuard()
 
   const app = createApp<Record<string, unknown>, BoardAppStore>(() => createBoardAppStoreState(storeParams), {
     "term:key": (data, ctx) => {
@@ -595,12 +595,12 @@ export function createBoardAppHandlers(locals: BoardAppLocals): BoardAppHandlers
     if (handleChordInput(result, ctx, get, exitApp, parentSpan) === "consumed") return
 
     // When a dialog is open, unhandled keys are expected (limited key set).
-    // TODO(km-canonical): The dialog mode stack and command filtering below could
-    // potentially be replaced with withFocus() scoping, where dialog components
-    // create focus scopes that intercept keys before they reach the board command
-    // system. This would move dialog key filtering from imperative mode checks to
+    // TODO(km-canonical): The dialog filter below could potentially be replaced
+    // with withFocus() scoping, where dialog components create focus scopes
+    // that intercept keys before they reach the board command system. This
+    // would move dialog key filtering from imperative mode checks to
     // declarative focus tree structure.
-    const dialogOpen = getModeStack().isDialog()
+    const dialogOpen = isDialogOpen()
 
     if (!result.handled) {
       parentSpan.spanData.outcome = dialogOpen ? "dialog-pass" : "unhandled"

@@ -126,8 +126,9 @@ export function inScope(scopeId: string): WhenPredicate {
   return when(`inScope:${scopeId}`, (ctx) => ctx.activeScopes?.includes(scopeId) ?? false)
 }
 
-// === Mode stack predicates ===
-// These check the inputMode field populated from the ModeStack.
+// === Mode predicates ===
+// These check the inputMode field, which is derived from the FocusManager's
+// scope stack (top-of-stack, defaulting to "command" when empty).
 
 /** True when in command mode (no dialog, no insert — the default). */
 export const inCommandMode = when("inCommandMode", (ctx) => (ctx.inputMode ?? "command") === "command")

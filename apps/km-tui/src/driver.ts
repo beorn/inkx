@@ -67,7 +67,7 @@ import { StoreProvider } from "./state/store-context.tsx"
 import { createGridNavigator, createViewLens, createVisibleLens, type GridNavigator } from "@km/board"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { ensureCommandSystemInitialized } from "./board/command-bridge.ts"
-import { resetModeStack, bindFocusManager } from "./dialog-guard.ts"
+import { resetDialogGuard, installDialogGuard } from "./dialog-guard.ts"
 import {
   createBoardAppStoreState,
   Workspace,
@@ -175,9 +175,9 @@ export interface CreateBoardDriverOptions {
 export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoardDriverOptions = {}): BoardDriver {
   const { columns = 80, rows = 24, viewMode = "cards", incremental = false } = options
 
-  // Initialize command system and reset mode stack for clean state
+  // Initialize command system and reset dialog guard for clean state
   ensureCommandSystemInitialized()
-  resetModeStack()
+  resetDialogGuard()
 
   // Derive initial cursor and collapsed nodes from the tree lens
   const initLens = createVisibleLens(createViewLens(repo, { rootId, foldDepths: new Map() }))
@@ -222,9 +222,9 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // withFocus({ focusManager }) already accepts an external instance.
   const focusManager = createFocusManager()
 
-  // Bind the dialog guard to the focus manager so dialog mode stack
-  // delegates to the FocusManager's scope stack (Phase 1 unification).
-  bindFocusManager(focusManager)
+  // Install the focus manager as the dialog guard backend so push/pop/current
+  // read and mutate its scope stack directly.
+  installDialogGuard(focusManager)
 
   // Create command registry
   const registry = createCommandRegistry()
