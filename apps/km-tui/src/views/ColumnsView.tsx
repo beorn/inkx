@@ -23,7 +23,7 @@ import { type BoardAppStore } from "../state/board-app-store.ts"
 import { ColumnHeader, deriveColumnHeaderProps } from "./NodeView.tsx"
 import { VerticalScrollIndicator } from "./VerticalScrollIndicator.tsx"
 import { MemoizedTreeCard } from "./shared-components.tsx"
-import { useNodeStore, useTreeNode } from "../state/reactive.ts"
+import { useNodeStore } from "../state/reactive.ts"
 import { useSignal, usePaneSignals } from "../hooks/use-signal.ts"
 import { ScrollTrackingVirtualList } from "./ScrollTracker.tsx"
 import { extractWipLimits } from "@km/board"
@@ -99,12 +99,14 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
     return limits.get(normalizedName)
   }, [rules, colNode, lens, colId])
 
-  // Per-node reactive selection — reads tree signals instead of global
-  // cursorColumnNodeId/cursorDepth. Re-renders only when this column's state changes.
-  const colTreeNode = useTreeNode(colId)
-  const colCursorOnThis = useSignal(colTreeNode.cursor)
-  const colCursorInDesc = useSignal(colTreeNode.cursorDescendant) as boolean
-  const isSelected = colCursorOnThis || colCursorInDesc
+  // Column selection: use cursorColumnNodeId signal directly (not tree-based
+  // cursorDescendant) because the reactive tree's traversal isn't itself a signal —
+  // computeds that walk the tree can't detect when rebind() changes the structure,
+  // so cursorDescendant may return stale false after hydration.
+  const nodeStore = useNodeStore()
+  const cursorColumnNodeId = useSignal(nodeStore.cursorColumnNodeId)
+  const cursorDepthSignal = useSignal(nodeStore.cursorDepth)
+  const isSelected = cursorColumnNodeId === colId
 
   // Track editing state for dynamic item height (border adds 2 rows)
   const sel = useAppStore<BoardAppStore, import("@silvery/selection").SelectionStore>((s) => s.sel)
@@ -114,7 +116,7 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
   const count = cardNodes.length
 
   // Column header is selected when cursor is directly on this column node.
-  const isColumnHeaderSelected = colCursorOnThis
+  const isColumnHeaderSelected = isSelected && cursorDepthSignal === "column"
 
   // Fallback header node when lens/repo lookup fails
   const headerNode: KNode = colNode ?? ({ id: colId, type: "h", content: "" } as unknown as KNode)

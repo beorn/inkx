@@ -1596,7 +1596,13 @@ export function createBoardAppStoreState(
         const repo = s.repo
         const stopSelEffect = effect(() => {
           const ids = pane.sel.node.ids()
+          const cursorId = pane.sel.node.cursor() as string | null
+          // Exclude cursor from multi-selection set — the cursor card's visual tint
+          // is handled by CardColumn's cardBg (selectedBg). Including it causes
+          // setSelection to expand descendants and mark all sub-items as selected,
+          // creating a zebra pattern (sections get multiSelectedBg, leaves inherit selectedBg).
           const selectedSet = new Set(ids as unknown as string[])
+          if (cursorId) selectedSet.delete(cursorId)
           nodeStore.setSelection(selectedSet, repo)
         })
         const stopEditEffect = effect(() => {
