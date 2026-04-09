@@ -116,8 +116,7 @@ const driver = withDiagnostics(createBoardDriver(repo, "board"), {
 ```
 mcp__tty__start(command: ["bun", "km", "view", "/path"])
 mcp__tty__press(key: "j")
-mcp__tty__screenshot()  // visual evidence
-mcp__tty__text()        // terminal text for assertions
+mcp__tty__screenshot()  // visual evidence (canonical TTY verification)
 mcp__tty__stop()
 ```
 
@@ -169,7 +168,7 @@ bun run test:fast                     # No regressions
 
 **Never commit standalone repro files.** After the fix:
 
-1. **Merge into the existing domain test file** — see the [domain mapping](tests/test-first-protocol.md#domain--file-mapping-km-tui)
+1. **Merge into the existing domain test file** — see the [tests skill](../tests/SKILL.md) for the test-first protocol and domain mapping
 2. **Remove the `/tmp/` file** — it served its purpose
 3. **Combine with related tests** — if the domain file already tests similar scenarios, extend a journey test instead of adding a new one
 

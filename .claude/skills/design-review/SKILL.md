@@ -256,27 +256,28 @@ pip3 install Pillow numpy
 
 Phase 3 has three tiers, selected by flags. Higher tiers catch more issues. All tiers evaluate against the checklist below.
 
-### Tier 0: TTY Text Scan (every iteration, free)
+### Tier 0: Termless Structural Scan (every iteration, free)
 
-Run the app in a headless terminal, capture text output, and programmatically scan for overflow and alignment issues. This catches the most critical bugs (content past borders) that vision models sometimes miss.
+Run the app through a headless terminal emulator (termless) and programmatically scan the rendered frame for overflow and alignment issues. This catches the most critical bugs (content past borders) that vision models sometimes miss.
 
-```bash
-# Start TTY at demo dimensions (~137 cols x 43 rows for 1100x700 viewport)
-mcp__tty__start  # command: "bun <demo-script>", cols: 137, rows: 43
-mcp__tty__wait   # wait 3s for rendering
-mcp__tty__text   # capture text output
-mcp__tty__stop   # cleanup
+```typescript
+import { createTermless } from "@silvery/test"
+import { run } from "silvery/runtime"
+
+using term = createTermless({ cols: 137, rows: 43 })
+const handle = await run(<Demo />, term)
+// Scan term.screen frame programmatically
 ```
 
-**What to scan for in the text output:**
+**What to scan for in the rendered frame:**
 - Content past `│` `╭` `╮` `╰` `╯` border characters (overflow)
 - Lines longer than expected column count (horizontal overflow)
 - Columns that should align but don't (misalignment)
 - Missing box-drawing characters (broken borders)
 - Content touching the terminal edges (missing margin)
 
-**Strengths**: 80% effective detection rate in experiments. Catches structural bugs (border collisions, content overflow, column misalignment). Also found 4 additional bugs NOT visible in screenshots (Unicode corruption, content overflow past borders).
-**Weaknesses**: Cannot detect color, spacing aesthetics, visual weight, or sub-character-width alignment.
+**Strengths**: Catches structural bugs (border collisions, content overflow, column misalignment) that screenshots sometimes miss (Unicode corruption, content overflow past borders).
+**Weaknesses**: Cannot detect color, spacing aesthetics, visual weight, or sub-character-width alignment — pair with Tier 1+ screenshots for full coverage.
 
 ### Tier 1: Claude Read of 2x Image (free, instant)
 

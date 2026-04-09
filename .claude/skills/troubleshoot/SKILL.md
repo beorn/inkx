@@ -51,8 +51,7 @@ ANSI diff errors, and scroll state corruption that createRenderer tests miss.
 # TTY reproduction pattern
 mcp__tty__start(command=["bun", "km", "view", ...], waitFor="stable")
 mcp__tty__press(key="l")  # navigate
-mcp__tty__screenshot(outputPath="/tmp/repro.png")  # capture evidence
-# For automated bisect: use mcp__tty__text to get terminal text, compare against expected
+mcp__tty__screenshot(outputPath="/tmp/repro.png")  # capture evidence (canonical TTY verification)
 ```
 
 Write the test to `/tmp/` first, promote to `apps/km-tui/tests/` when stable.

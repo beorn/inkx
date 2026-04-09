@@ -214,17 +214,21 @@ After implementation — and **after every subsequent refactor** — verify the 
 
 ### 5a. Capture baseline (first implementation)
 
-```bash
-# Start TTY at exact mockup dimensions
-mcp__tty__start  # command: "bun <demo>", cols: 137, rows: 43
-mcp__tty__wait   # stable
-mcp__tty__text   # capture → save to /tmp/<demo>-baseline.txt
-mcp__tty__stop
+Render through termless (a real terminal emulator) and save the frame as text:
+
+```typescript
+import { createTermless } from "@silvery/test"
+import { run } from "silvery/runtime"
+import { writeFileSync } from "node:fs"
+
+using term = createTermless({ cols: 137, rows: 43 })
+const handle = await run(<Demo />, term)
+writeFileSync("/tmp/<demo>-baseline.txt", term.screen.text)
 ```
 
 ### 5b. Structural diff against mockup
 
-Strip ANSI from the approved mockup and diff against the TTY text:
+Strip ANSI from the approved mockup and diff against the termless-rendered text:
 
 ```bash
 # Strip ANSI escape codes from mockup
@@ -246,10 +250,15 @@ What will differ (live data — acceptable):
 
 ### 5c. After refactoring
 
-**MANDATORY:** Re-capture TTY text and diff against the baseline:
+**MANDATORY:** Re-render through termless and diff against the baseline:
+
+```typescript
+using term = createTermless({ cols: 137, rows: 43 })
+const handle = await run(<Demo />, term)
+writeFileSync("/tmp/<demo>-after.txt", term.screen.text)
+```
 
 ```bash
-mcp__tty__start → mcp__tty__text → save to /tmp/<demo>-after.txt
 diff /tmp/<demo>-baseline.txt /tmp/<demo>-after.txt
 ```
 
