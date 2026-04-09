@@ -17,7 +17,41 @@ allowed-tools: Bash, Read, Glob, Grep, Skill, AskUserQuestion
 - Diffs (truncated): !`git diff -U2 HEAD~5 -- ':!vendor' 2>/dev/null | head -200 || git diff -U2 -- ':!vendor' | head -200`
 - Uncommitted diffs: !`git diff -U2 | head -100`
 
-## Step 1: Understand the Work
+## Step 1: Verify Closed Beads (the #1 gap in our process)
+
+**Before investigating anything else, verify every bead closed in this session.**
+
+Beads get closed aspirationally — the agent did work, the bead says "done," but the /complete criteria don't actually pass. This is the most common failure mode and the hardest to catch because everyone assumes closed = done.
+
+### Three failure modes to watch for
+
+1. **Renamed, not deleted.** Agent renames `OldThing` → `NewThing` and closes "delete OldThing." The abstraction survives with a new name and the same number of references. (Real example: km-tui.tree.v4 Phase 10 — ColumnView → DerivedColumn, 28 refs remain.)
+
+2. **Wrapped, not eliminated.** Agent wraps old ceremony in a thinner wrapper and closes "eliminate ceremony." The call count doesn't change, just the call depth. (Real example: km-tui.tree.v4 Phase 9 — 21 useEffects → still 21, just calling store API now.)
+
+3. **Numeric targets ignored.** Bead says "≤12 useEffects, ≤1000 LOC." Agent doesn't check the numbers before closing. (Real example: actual = 21 useEffects, 1356 LOC.)
+
+### Verification protocol
+
+For EVERY bead closed during this session (or this epic if auditing an epic):
+
+1. `bd show <id>` — read the description, identify every /complete criteria
+2. **Run every grep/wc/ls command literally.** Not "I think it's 0" — run it, paste the output
+3. **For quantitative targets** (LOC, useEffect count, reference count): measure. If the number doesn't match, the bead was closed prematurely
+4. **For deletion claims** ("delete X"): grep for X AND common renames. If it exists under a new name, that's not deleted
+5. **For elimination claims** ("eliminate pattern"): grep for the pattern's STRUCTURE, not just its name. Same logic in a new function = not eliminated
+
+```bash
+# Batch-verify all criteria for an epic — run this as ONE block
+bd list --parent <epic-id> --status closed | while read id; do
+  echo "=== $id ===" && bd show $id 2>&1 | grep -A1 '/complete'
+done
+# Then run each grep command from the output
+```
+
+**If any criterion fails: REOPEN the bead.** "Mostly done" is not done. Report with verdict REOPEN, not PASS.
+
+## Step 2: Understand the Work
 
 **Argument**: $ARGUMENTS
 
@@ -29,7 +63,7 @@ Read the diffs above. Determine concretely:
 
 If the diffs are truncated, Read the changed files to fill gaps. If still unclear, ask the user.
 
-## Step 2: Investigate (the whole point of this skill)
+## Step 3: Investigate (the whole point of this skill)
 
 **Think about what you DIDN'T touch.** The files you changed are fine — the compiler and tests verify those. The danger is everything else: the consumer you forgot, the doc page nobody reads, the test helper that still sets up the old shape, the sibling function with the same bug.
 
@@ -86,32 +120,17 @@ Only escalate to the user when a fix would be:
 
 For everything else — stale docs, version bumps, redundant imports, missing exports, outdated comments — just fix it and note what you did in the report.
 
-### For multi-phase or epic-level audits
+### Bead-vs-Reality (already covered in Step 1)
 
-When auditing an entire epic (not just one session), add a **feature-by-feature verification** step: for each closed bead, check that the bead's specific promises match actual code. This catches gaps that per-session `/complete` misses — unimplemented promises, missing tests, stale docstrings across the full feature set.
+Step 1 handles bead verification. If you're auditing work NOT tracked by beads, apply the same rigor: for each claim ("deleted X", "eliminated Y", "reduced to N"), verify literally with grep.
 
-### Bead-vs-Reality Verification
-
-When auditing work tracked by a bead, verify each promise literally — not from memory, not from bead notes saying "done." This catches "bead drift" where the bead says one thing but reality diverged (see Case Study 6 in `docs/lessons/refactoring.md`).
-
-1. **Read the bead description**: `bd show <id>`. Identify every checklist item and /complete criteria.
-2. **For EACH checklist item**: verify it literally with grep/ls/read.
-   - "Move X from A to B" → grep X in A (should be 0), grep X in B (should be >0)
-   - "Delete Y" → ls Y (should not exist)
-   - "Re-export from Z" → grep "from.*Z" in the barrel file
-   - "Rename A to B" → grep A (should be 0 outside history/changelogs), grep B (should be >0)
-3. **For EACH /complete criteria in the bead**: run the exact grep command as written.
-4. **Flag any item that's marked done but doesn't match reality.** Report it as a finding with verdict FIX.
-
-This step is especially important after multi-phase work where each phase assumed previous phases were accurate.
-
-## Step 3: Code Clean
+## Step 4: Code Clean
 
 Run `/code clean --dry-run` on the files changed by this session's work. This catches things the hypothesis scan won't — simplification opportunities, anti-patterns from `docs/principles.md`, logging violations, narrative flow issues.
 
 Don't implement — just report findings alongside the investigation results.
 
-## Step 4: Wrap Up
+## Step 5: Wrap Up
 
 Run tests and lint — table stakes, not the point of this skill:
 
@@ -153,6 +172,10 @@ Close completed beads. Sync (`bd sync`). Commit and push.
 
 ## Anti-Patterns
 
+- **Skipping Step 1** (bead verification) — the most common and most costly mistake. Everything else catches residue; Step 1 catches lies
+- **Accepting agent "done" claims without running the greps** — agents close beads aspirationally. Trust but verify. Run the commands yourself
+- **Closing beads with renamed-not-deleted code** — grep for the OLD name AND the new name. If the same ref count exists under a new name, nothing was deleted
+- **Closing beads when numeric targets weren't met** — "≤12 useEffects" means measure it. If it's 21, the bead stays open
 - Declaring "done" because tests pass — tests don't catch stale docs, compat shims, or sibling bugs
 - Only grepping for exact old names — search for variants, related concepts, partial matches
 - Scoping investigation to changed files — the whole point is checking what you DIDN'T change
