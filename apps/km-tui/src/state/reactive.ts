@@ -3,7 +3,7 @@
  *
  * Each node gets a stable set of signals (selected, edit, foldOverride, etc.).
  * React components subscribe via useSignal() from hooks/use-signal.ts.
- * Global cursor state (cursor, cursorCardNodeId, etc.) lives on ReactiveNodeStore.
+ * Global cursor state (cursor, cursorCardNodeId, etc.) lives on the NodeStore.
  */
 
 import { signal } from "alien-signals"
@@ -34,7 +34,7 @@ export interface NodeEditState {
 // =============================================================================
 
 // =============================================================================
-// ReactiveNodeStore
+// NodeStore Factory
 // =============================================================================
 
 /** Shallow array equality for excludedSigils */
@@ -78,71 +78,78 @@ function createReducedStore(traversal: Traversal) {
   )
 }
 
-export class ReactiveNodeStore {
-  private knownNodeIds = new Set<string>()
+/** Empty traversal — rebound on first hydrate */
+const emptyTraversal: Traversal = { parent: () => null, children: () => [] }
+
+export function createNodeStore() {
+  let knownNodeIds = new Set<string>()
 
   // ── Reactive tree — computed-based engine ──────────────────────────────
-  readonly reduced: ReturnType<typeof createReducedStore>
+  const reduced = createReducedStore(emptyTraversal)
 
   // ── Cursor state (written directly by Board.tsx) ──
-  cursor = signal<string | null>(null)
-  cursorCardNodeId = signal<string | null>(null)
-  cursorColumnNodeId = signal<string | null>(null)
-  cursorDepth = signal<"board" | "column" | "card">("board")
+  const cursor = signal<string | null>(null)
+  const cursorCardNodeId = signal<string | null>(null)
+  const cursorColumnNodeId = signal<string | null>(null)
+  const cursorDepth = signal<"board" | "column" | "card">("board")
 
   // ── Hover state (centralized, coalesced across I/O events) ──
-  private hoveredNodeId: string | null = null
-  private pendingHover: string | null | undefined = undefined // undefined = no pending
-  private hoverScheduled = false
-
-  /** Empty traversal — rebound on first hydrate */
-  private static emptyTraversal: Traversal = { parent: () => null, children: () => [] }
-
-  constructor() {
-    this.reduced = createReducedStore(ReactiveNodeStore.emptyTraversal)
-  }
+  let hoveredNodeId: string | null = null
+  let pendingHover: string | null | undefined = undefined // undefined = no pending
+  let hoverScheduled = false
 
   /** Set the hovered node. Coalesced: rapid mouseEnter/mouseLeave events
    * across multiple I/O callbacks batch into one update. setTimeout(0)
    * fires after all pending I/O, so only the last hover target renders. */
-  setHovered(nodeId: string | null): void {
-    this.pendingHover = nodeId
-    if (!this.hoverScheduled) {
-      this.hoverScheduled = true
+  function setHovered(nodeId: string | null): void {
+    pendingHover = nodeId
+    if (!hoverScheduled) {
+      hoverScheduled = true
       setTimeout(() => {
-        this.hoverScheduled = false
-        const target = this.pendingHover
-        this.pendingHover = undefined
+        hoverScheduled = false
+        const target = pendingHover
+        pendingHover = undefined
         if (target === undefined) return
-        const prev = this.hoveredNodeId
+        const prev = hoveredNodeId
         if (prev === target) return
-        if (prev) this.reduced.get(prev).hovered(false)
-        if (target) this.reduced.get(target).hovered(true)
-        this.hoveredNodeId = target
+        if (prev) reduced.get(prev).hovered(false)
+        if (target) reduced.get(target).hovered(true)
+        hoveredNodeId = target
       }, 0)
     }
   }
 
   /** Get cursorDescendant reduced signal for a node.
    * Returns a boolean getter: true when any descendant of this node has cursor. */
-  cursorDescendant(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).cursorDescendant as () => boolean
+  function cursorDescendant(nodeId: string): () => boolean {
+    return reduced.get(nodeId).cursorDescendant as () => boolean
   }
 
-  selectedAncestor(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).selectedAncestor as () => boolean
+  function selectedAncestor(nodeId: string): () => boolean {
+    return reduced.get(nodeId).selectedAncestor as () => boolean
   }
 
-  editingDescendant(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).editingDescendant as () => boolean
+  function editingDescendant(nodeId: string): () => boolean {
+    return reduced.get(nodeId).editingDescendant as () => boolean
   }
 
-  doneAncestor(nodeId: string): () => boolean {
-    return this.reduced.get(nodeId).doneAncestor as () => boolean
+  function doneAncestor(nodeId: string): () => boolean {
+    return reduced.get(nodeId).doneAncestor as () => boolean
   }
 
-  excludedSigils(nodeId: string): () => string[] {
-    return this.reduced.get(nodeId).excludedSigils as () => string[]
+  function excludedSigils(nodeId: string): () => string[] {
+    return reduced.get(nodeId).excludedSigils as () => string[]
+  }
+
+  /** Mark all descendants of a selected node as visually selected during hydration. */
+  function hydrateDescendantSelection(repo: Repo, parentId: string): void {
+    const markDescendants = (nodeId: string): void => {
+      for (const child of repo.getChildren(nodeId)) {
+        reduced.get(child.id).selected(true)
+        markDescendants(child.id)
+      }
+    }
+    markDescendants(parentId)
   }
 
   /**
@@ -150,7 +157,7 @@ export class ReactiveNodeStore {
    * Sets parent links, own sigils, excluded sigils, fold depths, sticky folds,
    * multi-selection.
    */
-  hydrate(
+  function hydrate(
     repo: Repo,
     rootId: string | null,
     foldDepths: Map<string, number>,
@@ -158,30 +165,30 @@ export class ReactiveNodeStore {
     stickyFolds: Map<string, "folded" | "unfolded"> = new Map(),
   ): void {
     // Clean up old nodes and rebind reactive tree to repo traversal
-    if (this.knownNodeIds.size > 0) {
-      this.cleanup(this.knownNodeIds)
+    if (knownNodeIds.size > 0) {
+      // Reactive tree handles its own cleanup via rebind()
     }
-    this.knownNodeIds = new Set<string>()
+    knownNodeIds = new Set<string>()
 
     if (!rootId) return
 
     // Rebind reactive tree to repo traversal
-    this.reduced.rebind({
+    reduced.rebind({
       parent: (id) => repo.getNode(id)?.parent_id ?? null,
       children: (id) => repo.getChildren(id).map((n) => n.id),
     })
 
     // Hydrate fold depths
     for (const [id, depth] of foldDepths) {
-      this.reduced.get(id).foldOverride(depth)
+      reduced.get(id).foldOverride(depth)
     }
     const rootSigils = deriveExcludedSigils(repo, rootId)
-    this.knownNodeIds.add(rootId)
+    knownNodeIds.add(rootId)
 
     // Hydrate columns
     const columns = repo.getChildren(rootId)
     for (const col of columns) {
-      this.knownNodeIds.add(col.id)
+      knownNodeIds.add(col.id)
       const cards = repo.getChildren(col.id)
       for (const card of cards) {
         if (card.symlink_to && !repo.getNode(card.symlink_to)) {
@@ -189,87 +196,100 @@ export class ReactiveNodeStore {
         }
         // Multi-selection — mark the card and all its descendants
         if (selected.has(card.id)) {
-          this.reduced.get(card.id).selected(true)
-          this.hydrateDescendantSelection(repo, card.id)
+          reduced.get(card.id).selected(true)
+          hydrateDescendantSelection(repo, card.id)
         }
-        this.knownNodeIds.add(card.id)
+        knownNodeIds.add(card.id)
       }
     }
 
     // Set ownSigils — excludedSigils auto-propagates via computed
-    if (rootSigils.length > 0) this.reduced.get(rootId).ownSigils(rootSigils)
+    if (rootSigils.length > 0) reduced.get(rootId).ownSigils(rootSigils)
     for (const col of columns) {
       const colName = getNodeDisplayName(repo, col)
       const colSigils = deriveColumnExcludedSigils(colName, col.id, col.fs_path)
-      if (colSigils.length > 0) this.reduced.get(col.id).ownSigils(colSigils)
+      if (colSigils.length > 0) reduced.get(col.id).ownSigils(colSigils)
     }
 
     // Hydrate sticky fold signals — flip the `sticky` signal for any node
     // that the caller says is currently pinned. Covers columns, cards, and
     // sub-items since sticky folds are not tied to any hierarchy level.
     for (const [id, state] of stickyFolds) {
-      this.reduced.get(id).sticky(state)
+      reduced.get(id).sticky(state)
     }
   }
 
   /** Sync fold depth changes incrementally. */
-  syncFoldDepths(oldDepths: Map<string, number>, newDepths: Map<string, number>): void {
+  function syncFoldDepths(oldDepths: Map<string, number>, newDepths: Map<string, number>): void {
     for (const [id] of oldDepths) {
       if (!newDepths.has(id)) {
-        this.reduced.get(id).foldOverride(undefined)
+        reduced.get(id).foldOverride(undefined)
       }
     }
     for (const [id, depth] of newDepths) {
       if (oldDepths.get(id) !== depth) {
-        this.reduced.get(id).foldOverride(depth)
+        reduced.get(id).foldOverride(depth)
       }
     }
   }
 
   /** Sync sticky-fold changes incrementally. Flips per-node `sticky` signals so
    * that the affected TreeNodes re-render (and only them). */
-  syncStickyFolds(oldSticky: Map<string, "folded" | "unfolded">, newSticky: Map<string, "folded" | "unfolded">): void {
+  function syncStickyFolds(
+    oldSticky: Map<string, "folded" | "unfolded">,
+    newSticky: Map<string, "folded" | "unfolded">,
+  ): void {
     for (const [id] of oldSticky) {
       if (!newSticky.has(id)) {
-        this.reduced.get(id).sticky(null)
+        reduced.get(id).sticky(null)
       }
     }
     for (const [id, state] of newSticky) {
       if (oldSticky.get(id) !== state) {
-        this.reduced.get(id).sticky(state)
+        reduced.get(id).sticky(state)
       }
     }
   }
 
-  /** Mark all descendants of a selected node as visually selected during hydration. */
-  private hydrateDescendantSelection(repo: Repo, parentId: string): void {
-    const markDescendants = (nodeId: string): void => {
-      for (const child of repo.getChildren(nodeId)) {
-        this.reduced.get(child.id).selected(true)
-        markDescendants(child.id)
-      }
-    }
-    markDescendants(parentId)
-  }
-
-  /** Remove node entries. Call on zoom/root change. */
-  private cleanup(_nodeIds: Set<string>): void {
-    // Reactive tree handles its own cleanup via rebind()
+  return {
+    reduced,
+    cursor,
+    cursorCardNodeId,
+    cursorColumnNodeId,
+    cursorDepth,
+    setHovered,
+    cursorDescendant,
+    selectedAncestor,
+    editingDescendant,
+    doneAncestor,
+    excludedSigils,
+    hydrate,
+    syncFoldDepths,
+    syncStickyFolds,
   }
 }
+
+/** Type of the reactive node store returned by createNodeStore(). */
+export type NodeStore = ReturnType<typeof createNodeStore>
 
 // =============================================================================
 // React Context
 // =============================================================================
 
-export const ReactiveNodeStoreContext = createContext<ReactiveNodeStore | null>(null)
+export const NodeStoreContext = createContext<NodeStore | null>(null)
 
-export const ReactiveNodeStoreProvider = ReactiveNodeStoreContext.Provider
+export const NodeStoreProvider = NodeStoreContext.Provider
 
-/** Get the ReactiveNodeStore from context. Throws if not in a provider. */
-export function useNodeStore(): ReactiveNodeStore {
-  const store = useContext(ReactiveNodeStoreContext)
-  if (!store) throw new Error("useNodeStore: not inside ReactiveNodeStoreProvider")
+/** Alias — some consumers still import this name. */
+export const ReactiveNodeStoreContext = NodeStoreContext
+
+/** Alias — some consumers still import this name. */
+export const ReactiveNodeStoreProvider = NodeStoreProvider
+
+/** Get the NodeStore from context. Throws if not in a provider. */
+export function useNodeStore(): NodeStore {
+  const store = useContext(NodeStoreContext)
+  if (!store) throw new Error("useNodeStore: not inside NodeStoreProvider")
   return store
 }
 

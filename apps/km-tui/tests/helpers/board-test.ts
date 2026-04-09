@@ -41,7 +41,6 @@ const h = (type: any, props: any, ...children: any[]): React.ReactElement =>
     type,
     children.length === 1 ? { ...props, children: children[0] } : children.length > 0 ? { ...props, children } : props,
   )
-import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../../src/state/reactive.ts"
 import { createRenderer, keyToAnsi, bufferToText, type App, type AutoLocator } from "@silvery/test"
 import { compareBuffers, formatMismatch } from "@silvery/ag-term/toolbelt"
 import { StoreContext } from "@silvery/create/create-app"

@@ -41,7 +41,7 @@ import { BoardCore } from "./views/index.ts"
 import { createInitialPaneUI } from "./state/ui-reducer.ts"
 import { RepoProvider } from "./repo-context.tsx"
 import { StoreProvider } from "./state/store-context.tsx"
-import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "./state/reactive.ts"
+import { createNodeStore, NodeStoreProvider } from "./state/reactive.ts"
 import { classifyCursorFromLens, createViewLens } from "@km/board"
 
 /** No-op dialog handlers — constant to avoid per-render allocation */
@@ -217,8 +217,8 @@ export async function createBoardTest(
     hasDetailPane: false,
   })
 
-  // Create ReactiveNodeStore and write initial cursor signals directly
-  const nodeStore = new ReactiveNodeStore()
+  // Create NodeStore and write initial cursor signals directly
+  const nodeStore = createNodeStore()
   const initAncestors = classifyCursorFromLens(initViewLens, firstCardNodeId)
   nodeStore.cursor(firstCardNodeId)
   nodeStore.cursorCardNodeId(initAncestors.cursorCardNodeId)
@@ -229,7 +229,7 @@ export async function createBoardTest(
   const reactiveStore = withReactive(createStoreFromRepo(repo))
   const repoElement = React.createElement(RepoProvider, { repo, children: boardCoreElement })
   const storeElement = React.createElement(StoreProvider, { store: reactiveStore, children: repoElement })
-  const app = render(React.createElement(ReactiveNodeStoreProvider, { value: nodeStore, children: storeElement }))
+  const app = render(React.createElement(NodeStoreProvider, { value: nodeStore, children: storeElement }))
 
   // Current root ID for getState()
 

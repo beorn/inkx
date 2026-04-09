@@ -84,7 +84,7 @@ import { TreeRenderProvider, deriveTreeConfig } from "../src/state/ui-context.ts
 import { StoreContext } from "@silvery/create/create-app"
 import { createSignalStore } from "../src/state/signal-store.ts"
 import { createSelection } from "@silvery/selection"
-import { ReactiveNodeStore, ReactiveNodeStoreProvider } from "../src/state/reactive.ts"
+import { createNodeStore, NodeStoreProvider } from "../src/state/reactive.ts"
 import { createInitialUIState, createInitialPaneUI, type PaneUI } from "../src/state/ui-reducer.ts"
 import { RepoProvider } from "../src/repo-context.tsx"
 import { createFakeRepo } from "@km/storage"
@@ -149,7 +149,7 @@ const mockZustandStore = createSignalStore(() => ({
 }))
 
 // Wrap children with all providers TreeNode needs
-const storybookNodeStore = new ReactiveNodeStore()
+const storybookNodeStore = createNodeStore()
 const noopUndoHandle = {
   startBatch: () => {},
   endBatch: () => {},
@@ -165,7 +165,7 @@ export function StorybookProviders({ children }: { children: React.ReactNode }):
   const treeConfig = deriveTreeConfig(mockUIState.viewMode, mockUIState.maxContentLines, mockUIState)
   return (
     <StoreContext.Provider value={mockZustandStore as import("@silvery/create/signal-store").StoreApi<unknown>}>
-      <ReactiveNodeStoreProvider value={storybookNodeStore}>
+      <NodeStoreProvider value={storybookNodeStore}>
         <TreeRenderProvider
           treeConfig={treeConfig}
           setUI={() => {}}
@@ -191,7 +191,7 @@ export function StorybookProviders({ children }: { children: React.ReactNode }):
         >
           {children}
         </TreeRenderProvider>
-      </ReactiveNodeStoreProvider>
+      </NodeStoreProvider>
     </StoreContext.Provider>
   )
 }

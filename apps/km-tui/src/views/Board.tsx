@@ -28,7 +28,7 @@ import {
 } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { selectedBg } from "../theme.ts"
-import { ReactiveNodeStore, ReactiveNodeStoreProvider, useNodeStore } from "../state/reactive.ts"
+import { createNodeStore, NodeStoreProvider, useNodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
 import type { ViewMode } from "../types.ts"
 import type { KNode } from "@km/core"
@@ -647,7 +647,7 @@ export function Board({ patchedConsole }: BoardProps) {
   // Reactive node store — per-pane scope, stable across re-renders.
   // Pre-populate cursor state so child components have valid cursor on first render.
   const nodeStore = useMemo(() => {
-    const store = new ReactiveNodeStore()
+    const store = createNodeStore()
     // Derive initial cursor classification from the visible lens
     if (cursor && rootId) {
       const lens = ps.visibleLens()
@@ -856,7 +856,7 @@ export function Board({ patchedConsole }: BoardProps) {
     return colIds[cursorPosition.colIndex] ?? null
   }, [visibleLensValue, cursorPosition.colIndex])
 
-  // Sync cursor state to ReactiveNodeStore after render.
+  // Sync cursor state to NodeStore after render.
   // The initial sync happens in the useMemo above (pre-render); subsequent syncs
   // happen here via useEffect. This is safe because the store selector triggers
   // re-render, which triggers this effect, which syncs the new cursor state.
@@ -1097,7 +1097,7 @@ export function Board({ patchedConsole }: BoardProps) {
   const currentMatchNodeId = ui.localSearch?.matchNodeIds[ui.localSearch.matchIndex] ?? null
 
   return (
-    <ReactiveNodeStoreProvider value={nodeStore}>
+    <NodeStoreProvider value={nodeStore}>
       <TreeRenderProvider
         treeConfig={treeConfig}
         setUI={setUI}
@@ -1125,7 +1125,7 @@ export function Board({ patchedConsole }: BoardProps) {
           hasDetailPane={hasDetailPane}
         />
       </TreeRenderProvider>
-    </ReactiveNodeStoreProvider>
+    </NodeStoreProvider>
   )
 }
 
