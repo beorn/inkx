@@ -132,8 +132,9 @@ interface CardLayoutTrackerProps {
 /**
  * Wrapper that tracks the card's layout and registers it with the registry.
  *
- * Uses useBoxRect to register measured positions without causing re-renders.
- * This avoids the blank screen issue with useLayout() + many cards.
+ * Uses the `useBoxRect(callback)` form to register measured positions without
+ * causing re-renders. The reactive form (`useBoxRect()` without a callback)
+ * triggers a blank-screen feedback loop with many cards.
  */
 function CardLayoutTracker({
   nodeId,
