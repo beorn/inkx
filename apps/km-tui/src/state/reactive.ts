@@ -219,38 +219,6 @@ export function createNodeStore() {
     }
   }
 
-  /** Sync fold depth changes incrementally. */
-  function syncFoldDepths(oldDepths: Map<string, number>, newDepths: Map<string, number>): void {
-    for (const [id] of oldDepths) {
-      if (!newDepths.has(id)) {
-        reduced.get(id).foldOverride(undefined)
-      }
-    }
-    for (const [id, depth] of newDepths) {
-      if (oldDepths.get(id) !== depth) {
-        reduced.get(id).foldOverride(depth)
-      }
-    }
-  }
-
-  /** Sync sticky-fold changes incrementally. Flips per-node `sticky` signals so
-   * that the affected TreeNodes re-render (and only them). */
-  function syncStickyFolds(
-    oldSticky: Map<string, "folded" | "unfolded">,
-    newSticky: Map<string, "folded" | "unfolded">,
-  ): void {
-    for (const [id] of oldSticky) {
-      if (!newSticky.has(id)) {
-        reduced.get(id).sticky(null)
-      }
-    }
-    for (const [id, state] of newSticky) {
-      if (oldSticky.get(id) !== state) {
-        reduced.get(id).sticky(state)
-      }
-    }
-  }
-
   return {
     reduced,
     cursor,
@@ -264,8 +232,6 @@ export function createNodeStore() {
     doneAncestor,
     excludedSigils,
     hydrate,
-    syncFoldDepths,
-    syncStickyFolds,
   }
 }
 
@@ -279,12 +245,6 @@ export type NodeStore = ReturnType<typeof createNodeStore>
 export const NodeStoreContext = createContext<NodeStore | null>(null)
 
 export const NodeStoreProvider = NodeStoreContext.Provider
-
-/** Alias — some consumers still import this name. */
-export const ReactiveNodeStoreContext = NodeStoreContext
-
-/** Alias — some consumers still import this name. */
-export const ReactiveNodeStoreProvider = NodeStoreProvider
 
 /** Get the NodeStore from context. Throws if not in a provider. */
 export function useNodeStore(): NodeStore {

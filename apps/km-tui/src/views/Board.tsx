@@ -688,7 +688,12 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => {
     const prev = prevFoldDepthsRef.current
     if (prev !== foldDepths) {
-      nodeStore.syncFoldDepths(prev, foldDepths)
+      for (const [id] of prev) {
+        if (!foldDepths.has(id)) nodeStore.reduced.get(id).foldOverride(undefined)
+      }
+      for (const [id, depth] of foldDepths) {
+        if (prev.get(id) !== depth) nodeStore.reduced.get(id).foldOverride(depth)
+      }
       prevFoldDepthsRef.current = foldDepths
     }
   }, [nodeStore, foldDepths])
@@ -699,7 +704,12 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => {
     const prev = prevStickyFoldsRef.current
     if (prev !== stickyFolds) {
-      nodeStore.syncStickyFolds(prev, stickyFolds)
+      for (const [id] of prev) {
+        if (!stickyFolds.has(id)) nodeStore.reduced.get(id).sticky(null)
+      }
+      for (const [id, state] of stickyFolds) {
+        if (prev.get(id) !== state) nodeStore.reduced.get(id).sticky(state)
+      }
       prevStickyFoldsRef.current = stickyFolds
     }
   }, [nodeStore, stickyFolds])
