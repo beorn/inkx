@@ -572,7 +572,7 @@ Undo captures `SelectionState` snapshots. `op()` records the path + args for rep
 
 ## Content model
 
-The ag tree provides everything: IDs, ordering (tree walk), hierarchy (parent/children), visibility (rendered = selectable), hit testing (screenRect).
+The ag tree provides everything: IDs, ordering (tree walk), hierarchy (parent/children), visibility (rendered = selectable), hit testing (scrollRect).
 
 Assumptions:
 - Tree hierarchy — nodes have parent/children

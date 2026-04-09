@@ -191,7 +191,7 @@ SILVERY_STRICT=1 bun km view /path
 | `src/pipeline/render-text.ts` | `getCellBg` inheritance, BgSegment tracking |
 | `src/pipeline/render-box.ts` | `skipBgFill`, border rendering |
 | `src/pipeline/output-phase.ts` | Buffer diff, ANSI output generation |
-| `src/pipeline/layout-phase.ts` | Scroll state, sticky positions, screenRect |
+| `src/pipeline/layout-phase.ts` | Scroll state, sticky positions, scrollRect |
 | `src/debug-mismatch.ts` | Mismatch diagnostics, node attribution |
 | `src/with-diagnostics.ts` | Diagnostic plugin, VirtualTerminal |
 | `src/pipeline/CLAUDE.md` | Full pipeline internals reference |

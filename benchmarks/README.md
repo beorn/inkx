@@ -79,7 +79,7 @@ Append-only newline-delimited JSON, one record per `bench-now.sh` run:
         "measure": 11.9,
         "layout": 65.4,
         "scroll": 5.3,
-        "screenRect": 3.6,
+        "scrollRect": 3.6,
         "notify": 3.2,
         "layoutTotal": 89.4,
         "content": 811.5,
@@ -106,9 +106,9 @@ Source: `vendor/silvery/packages/ag-term/src/pipeline/index.ts` and `pipeline/CL
 | `measure`         | `measurePhase()` — intrinsic-size measurement for `width/height="fit-content"` | New fit-content nodes, expensive text measurement            |
 | `flexbox layout`  | `layoutPhase()` — Yoga's `calculateLayout()`                                    | Larger trees, broken layout caching, dimension thrashing     |
 | `scroll`          | `scrollPhase()` — visible-children calculation for overflow=scroll containers   | More scroll containers, expensive sticky positioning         |
-| `screenRect`      | `screenRectPhase()` — screen-relative rect propagation                          | Deeper trees                                                 |
-| `notify`          | `notifyLayoutSubscribers()` — fires `useContentRect`/`useScreenRect` callbacks  | More layout subscribers, expensive callbacks                 |
-| `layout side total` | Sum of measure + layout + scroll + screenRect + notify                        | —                                                            |
+| `scrollRect`      | `scrollrectPhase()` — screen-relative rect propagation                          | Deeper trees                                                 |
+| `notify`          | `notifyLayoutSubscribers()` — fires `useContentRect`/`useScrollRect` callbacks  | More layout subscribers, expensive callbacks                 |
+| `layout side total` | Sum of measure + layout + scroll + scrollRect + notify                        | —                                                            |
 | `content (render)` | `renderPhase()` — walks the tree, writes cells to the TerminalBuffer            | New nodes, broken incremental skip path, sticky pass forced refresh |
 | `output (diff/ANSI)` | `outputPhase()` — diffs prev vs current buffer, emits ANSI escape sequences   | More cells changed, expensive ANSI generation, incremental disabled |
 | `other`            | Wall - (reconcile + layout + content + output). Includes setup, store updates, key handling, the React act() wrapper, garbage collection. | Test harness overhead, GC pressure, store update churn       |

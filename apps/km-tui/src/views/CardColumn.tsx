@@ -13,7 +13,7 @@ import { useApp as useAppStore } from "@silvery/create/create-app"
 import { useRepo } from "../repo-context.tsx"
 import { layoutLog, sid } from "../log.ts"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
-import { Box, Text, Small, useScreenRectCallback } from "@silvery/ag-react"
+import { Box, Text, Small, useScrollRectCallback } from "@silvery/ag-react"
 import { useJobRunner, useUndoHandle } from "../services-context.tsx"
 import { isDetailViewPane } from "../board/board-types.ts"
 import { type KNode, getStatusForMarker } from "@km/core"
@@ -110,7 +110,7 @@ interface CardProps {
  * Key optimization: cursor movement only changes isSelected for 2 cards
  * (old selection and new selection). All other cards should skip re-render.
  *
- * Layout registration: Uses useScreenRectCallback to register screen positions
+ * Layout registration: Uses useScrollRectCallback to register screen positions
  * without causing re-renders. This enables h/l visual navigation across
  * columns with different scroll positions.
  */
@@ -151,7 +151,7 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
     [registry, colIndex, cardIndex, isDetailPane],
   )
 
-  useScreenRectCallback(handleLayout)
+  useScrollRectCallback(handleLayout)
 
   // Clean up registry entry when ListView unmounts this card.
   // Without this, stale entries with old screen positions remain in the
@@ -169,14 +169,14 @@ function CardLayoutRegistrar({ colIndex, cardIndex }: { colIndex: number; cardIn
 /**
  * Populates a ref with the card's screen-space bounding box for popover
  * overlap positioning. Rendered inside the card's Box to get the correct
- * NodeContext. Uses useScreenRectCallback (zero re-renders).
+ * NodeContext. Uses useScrollRectCallback (zero re-renders).
  */
 function PopoverRectRegistrar({
   rectRef,
 }: {
   rectRef: React.MutableRefObject<{ x: number; y: number; width: number; height: number } | null>
 }): null {
-  useScreenRectCallback((rect) => {
+  useScrollRectCallback((rect) => {
     rectRef.current = rect
   })
   return null

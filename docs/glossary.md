@@ -372,7 +372,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **scope** — A structured concurrency primitive that tracks child tasks and timers. Disposing a scope cancels all its children. Supports nesting.
 
-**screenRect** — The absolute terminal coordinates of a component after layout. Used for hit testing and absolute positioning.
+**scrollRect** — The absolute terminal coordinates of a component after layout. Used for hit testing and absolute positioning.
 
 **scroll** — `overflow="scroll"` on a Box enables automatic scrolling. silvery measures children, renders only what fits, and shows scroll indicators.
 

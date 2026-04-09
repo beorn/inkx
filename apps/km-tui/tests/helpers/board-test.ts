@@ -1808,24 +1808,12 @@ function createFluentBoardApi(ctx: {
 }
 
 /**
- * @deprecated Prefer `createTestApp()` from `./test-app.ts` for new tests.
+ * @deprecated Use createTestApp() from './test-app.ts' for new tests.
  *
- * `createTestApp()` is backend-agnostic (headless + termless via `TEST_BACKEND=termless`),
- * exposes a richer async API (command, navigateTo, expect, screen.*, repo), and is the
- * recommended way to write km board tests.
- *
- * `testEnv()` remains for legacy tests that need:
- * - Zustand `store` access for white-box state inspection
- * - `board.click(x, y)` mouse events
- * - `board.bell`, `board.getStatus()`, `board.hasStatus()` status bar feedback
- * - `board.expectNodeBorder/Color/Gutter` node-level styling assertions
- * - `board.expectNoGhostChars/Blank` visual integrity checks
- * - `board.screen.ansi` raw ANSI output access
- * - `board._result` raw renderer access (buffer diffs, lastBuffer, freshRender)
- *
- * See km-all.test-reclassify for the migration plan (FREEZE bucket = files using
- * these features intentionally; REWRITE bucket = files that should be rewritten as
- * screen-based tests and then migrated to createTestApp).
+ * testEnv remains in use only for tests that genuinely require testEnv's rich
+ * API surface (mouse clicks, bell, expectNodeBorder, palette colors, raw buffer
+ * diff, PTY integration, createBoardDriver internals). See km-all.test-system
+ * bead FREEZE bucket for the allow-list.
  */
 export function testEnv(treeBuilder: () => KNode[], options?: TestEnvOptions) {
   const nodes = treeBuilder()
@@ -1847,27 +1835,12 @@ export function testEnv(treeBuilder: () => KNode[], options?: TestEnvOptions) {
 }
 
 /**
- * Test environment using an existing Repo instead of treeBuilder.
+ * @deprecated Use createTestApp() from './test-app.ts' for new tests.
  *
- * Use this to test with real vault data or complex repo configurations
- * that can't easily be expressed with item() DSL.
- *
- * @deprecated Prefer `createTestApp()` for new tests. `testEnvWithRepo` only
- * remains because `createTestApp` always creates a fresh repo with `nodes[0].id`
- * as the root — it can't wrap an existing Repo with a different rootId.
- * Use this when you need an existing Repo (real vault via createRepo, custom
- * root node ID, etc.). See km-all.test-reclassify for the migration plan.
- *
- * @example
- * ```typescript
- * // Load a real repo and test navigation
- * const repo = await loadRepo('/tmp/test-vault')
- * using board = testEnvWithRepo(repo, rootId, { incremental: true })
- *
- * board.press('l').press('j')
- * board.expect('#some-card[data-cursor]').toExist()
- * // Auto-cleanup via `using` — no .unmount() needed
- * ```
+ * testEnv remains in use only for tests that genuinely require testEnv's rich
+ * API surface (mouse clicks, bell, expectNodeBorder, palette colors, raw buffer
+ * diff, PTY integration, createBoardDriver internals). See km-all.test-system
+ * bead FREEZE bucket for the allow-list.
  */
 export function testEnvWithRepo(repo: Repo, rootId: string, options?: TestEnvOptions) {
   const env = createTestRenderEnv(repo, rootId, options)

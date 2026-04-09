@@ -50,7 +50,7 @@ function mockEditCtx(text: string, wrapWidth = 80): TermEditContext {
 }
 
 function mockIdNode(x: number, y: number, width = 80) {
-  return { screenRect: { x, y, width, height: 1 } } as any
+  return { scrollRect: { x, y, width, height: 1 } } as any
 }
 
 describe("clickToCursorOffset", () => {
@@ -78,10 +78,10 @@ describe("clickToCursorOffset", () => {
     expect(clickToCursorOffset(0, 5, ctx, node)).toBe(0)
   })
 
-  test("returns current position when no screenRect", () => {
+  test("returns current position when no scrollRect", () => {
     const ctx = mockEditCtx("hello")
     ;(ctx as any).selectionStart = 3
-    expect(clickToCursorOffset(10, 5, ctx, { screenRect: null } as any)).toBe(3)
+    expect(clickToCursorOffset(10, 5, ctx, { scrollRect: null } as any)).toBe(3)
   })
 
   test("wrapped lines: click on second row", () => {

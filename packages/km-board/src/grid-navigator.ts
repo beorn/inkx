@@ -1,4 +1,4 @@
-import type { PositionRegistry, ScreenRect } from "@silvery/ag-react"
+import type { PositionRegistry, ScrollRect } from "@silvery/ag-react"
 import { createPositionRegistry } from "@silvery/ag-react"
 import { createLogger } from "loggily"
 
@@ -13,9 +13,9 @@ export interface CrossAxisResult {
 
 export interface GridNavigator {
   // === Delegated position queries (facade) ===
-  register(section: number, item: number, rect: ScreenRect): void
+  register(section: number, item: number, rect: ScrollRect): void
   unregister(section: number, item: number): void
-  getPosition(section: number, item: number): ScreenRect | undefined
+  getPosition(section: number, item: number): ScrollRect | undefined
   hasSection(section: number): boolean
   getItemCount(section: number): number
   findItemAtY(section: number, targetY: number): number
@@ -23,11 +23,11 @@ export interface GridNavigator {
 
   // === Column bounds (for mouse click targeting) ===
   /** Register a column's bounding box (x, y, width, height) for mouse hit testing. */
-  registerColumnBounds(section: number, rect: ScreenRect): void
+  registerColumnBounds(section: number, rect: ScrollRect): void
   /** Unregister a column's bounding box. */
   unregisterColumnBounds(section: number): void
   /** Get a column's bounding box, or undefined if not registered. */
-  getColumnBounds(section: number): ScreenRect | undefined
+  getColumnBounds(section: number): ScrollRect | undefined
   /** Find which column index the mouse x-coordinate falls in, or -1 if none. */
   findColumnAtX(mouseX: number): number
 
@@ -68,7 +68,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
   const heads = new Map<string, { y: number; height: number }>()
 
   // Column bounds: Map keyed by section index → bounding rect of the whole column
-  const columnBounds = new Map<number, ScreenRect>()
+  const columnBounds = new Map<number, ScrollRect>()
 
   let stickyY: number | null = null
   let stickyX: number | null = null
@@ -84,7 +84,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
   const navigator: GridNavigator = {
     // === Facade: delegated position queries ===
 
-    register(section: number, item: number, rect: ScreenRect): void {
+    register(section: number, item: number, rect: ScrollRect): void {
       pos.register(section, item, rect)
 
       // Resolve deferred navigation when target section's items are registered.
@@ -106,7 +106,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
       heads.delete(headKey(section, item))
     },
 
-    getPosition(section: number, item: number): ScreenRect | undefined {
+    getPosition(section: number, item: number): ScrollRect | undefined {
       return pos.getPosition(section, item)
     },
 
@@ -128,7 +128,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
 
     // === Column bounds (for mouse click targeting) ===
 
-    registerColumnBounds(section: number, rect: ScreenRect): void {
+    registerColumnBounds(section: number, rect: ScrollRect): void {
       columnBounds.set(section, rect)
       log.debug?.(`registerColumnBounds sec=${section} x=${rect.x} w=${rect.width}`)
     },
@@ -138,7 +138,7 @@ export function createGridNavigator(positions?: PositionRegistry): GridNavigator
       log.debug?.(`unregisterColumnBounds sec=${section}`)
     },
 
-    getColumnBounds(section: number): ScreenRect | undefined {
+    getColumnBounds(section: number): ScrollRect | undefined {
       return columnBounds.get(section)
     },
 

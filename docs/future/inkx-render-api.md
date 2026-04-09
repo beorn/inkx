@@ -80,7 +80,7 @@ expect(result.lastFrameText()).toContain("...")
 Both use `executeRender()`:
 
 ```
-Measure → Layout → Scroll → ScreenRect → Content → (Output)
+Measure → Layout → Scroll → ScrollRect → Content → (Output)
 ```
 
 Tests capture buffer; production diffs and emits ANSI.

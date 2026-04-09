@@ -17,7 +17,7 @@ interface BenchPhases {
   measure: number
   layout: number
   scroll: number
-  screenRect: number
+  scrollRect: number
   notify: number
   layoutTotal: number
   content: number

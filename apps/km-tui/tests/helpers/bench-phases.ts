@@ -97,7 +97,7 @@ function emptyPhases(): SilveryBenchPhases {
     measure: 0,
     layout: 0,
     scroll: 0,
-    screenRect: 0,
+    scrollRect: 0,
     notify: 0,
     layoutTotal: 0,
     content: 0,
@@ -145,7 +145,7 @@ export function withBenchPhases(name: string): BenchPhasesAccumulator {
         r.phases.measure += phases.measure
         r.phases.layout += phases.layout
         r.phases.scroll += phases.scroll
-        r.phases.screenRect += phases.screenRect
+        r.phases.scrollRect += phases.scrollRect
         r.phases.notify += phases.notify
         r.phases.layoutTotal += phases.layoutTotal
         r.phases.content += phases.content
@@ -220,7 +220,7 @@ export function formatBenchPhases(record: BenchPhaseRecord): string {
     fmt("  measure", phases.measure / i),
     fmt("  flexbox layout", phases.layout / i),
     fmt("  scroll", phases.scroll / i),
-    fmt("  screenRect", phases.screenRect / i),
+    fmt("  scrollRect", phases.scrollRect / i),
     fmt("  notify", phases.notify / i),
     fmt("content (render)", content),
     fmt("output (diff/ANSI)", output),

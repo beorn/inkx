@@ -211,7 +211,7 @@ Stats are also retained on globalThis for programmatic access:
 
 | Variable | Set By | Contents |
 |----------|--------|----------|
-| `__silvery_last_pipeline` | `pipeline/index.ts` | Per-phase timing: `{ measure, layout, scroll, screenRect, notify, content, output, total }` |
+| `__silvery_last_pipeline` | `pipeline/index.ts` | Per-phase timing: `{ measure, layout, scroll, scrollRect, notify, content, output, total }` |
 | `__silvery_content_detail` | `render-phase.ts` | Render-phase breakdown: nodes visited/rendered/skipped, per-flag counts, scroll tier info |
 | `__silvery_content_all` | `render-phase.ts` | Array of all per-frame render-phase snapshots |
 | `__km_last_key` | `board-app.ts` | Last key pressed + resolved command (e.g., `"j → cursor_down"`) |

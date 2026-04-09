@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from "vitest"
 import { createGridNavigator } from "../src/grid-navigator.ts"
-import type { ScreenRect } from "@silvery/ag-react"
+import type { ScrollRect } from "@silvery/ag-react"
 
-function rect(y: number, height: number, x = 0, width = 100): ScreenRect {
+function rect(y: number, height: number, x = 0, width = 100): ScrollRect {
   return { x, y, width, height }
 }
 

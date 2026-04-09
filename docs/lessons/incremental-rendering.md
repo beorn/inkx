@@ -138,8 +138,8 @@ if (node.subtreeDirty && !hasAnyDirtyDescendant(node)) {
 }
 
 // Integration: Layout invariants
-if (child.screenRect && parent.screenRect) {
-  if (!rectContains(parent.screenRect, child.screenRect)) {
+if (child.scrollRect && parent.scrollRect) {
+  if (!rectContains(parent.scrollRect, child.scrollRect)) {
     throw new Error(`Child ${childPath} outside parent bounds`)
   }
 }

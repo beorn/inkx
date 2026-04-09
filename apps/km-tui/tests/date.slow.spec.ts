@@ -22,7 +22,7 @@
 
 import { describe, test, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import { formatDate } from "@km/core"
 
