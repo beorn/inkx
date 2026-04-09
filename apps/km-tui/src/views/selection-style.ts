@@ -75,10 +75,10 @@
  *    on its title row only (headRowBg = $selection-bg, textColor = $selection).
  *    Inline colors are stripped for readability on the inverse bg.
  *
- * 2. CARD CONTAINER: When cursor is DIRECTLY on the card (not on a sub-item),
- *    the entire card gets a subtle primary bg tint (selectedBg = blend(bg, primary, 12%)).
- *    Sub-items keep their regular fg colors. When cursor is on a sub-item,
- *    only the sub-item title gets inverse — the card does NOT get the tint.
+ * 2. CARD CONTAINER: When cursor is anywhere in the card (directly on the card
+ *    OR on a descendant sub-item), the entire card gets a subtle primary bg
+ *    tint (selectedBg = blend(bg, primary, 12%)). This prevents zebra-pattern
+ *    artifacts where some sub-item rows have bg and others don't.
  *
  * 3. COLUMN CONTAINER: When cursor is at COLUMN level (not card level),
  *    the entire column gets the subtle bg tint. When cursor is at card level,

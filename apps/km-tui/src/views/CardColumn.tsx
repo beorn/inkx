@@ -441,8 +441,8 @@ const Card = React.memo(
     // isSelected = cursor is anywhere in this card (for border, hover).
     // isCursorOnCard = cursor is directly on this card node (for inverse title).
     // Multi-selected cards get the stronger multiSelectedBg tint so they stack
-    // visually with the rest of the selection (rule 6). Cursor-only still uses
-    // the subtle selectedBg (rule 2).
+    // visually with the rest of the selection (rule 6). Cursor anywhere in card
+    // (direct or descendant) gets the subtle selectedBg tint (rule 2).
     const theme = useTheme()
     const cursor = useSignal(nodeStore.cursor)
     const isCursorOnCard = cursor === nodeId && selLevel === "card"
@@ -452,7 +452,7 @@ const Card = React.memo(
       ? undefined
       : isNodeSelected
         ? multiSelectedBg(theme)
-        : isCursorOnCard
+        : isCursorOnCard || cursorInDescendant
           ? selectedBg(theme)
           : undefined
 
