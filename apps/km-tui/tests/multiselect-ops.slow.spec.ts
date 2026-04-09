@@ -21,6 +21,7 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 function setTaskStatus(repo: { updateNode(id: string, updates: Record<string, unknown>): void }, ids: string[]) {
   for (const id of ids) {
@@ -65,86 +66,88 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     expect(children).not.toContain("del-C")
   })
 
-  test("select multiple tasks, bulk status toggle, verify screen and persistence", () => {
-    const { board, repo } = testEnv(() =>
+  test("select multiple tasks, bulk status toggle, verify screen and persistence", async () => {
+    using app = createTestApp(
       item("board", item("col1", item("task-1"), item("task-2"), item("task-3"), item("task-4"))),
     )
-    setTaskStatus(repo, ["task-1", "task-2", "task-3", "task-4"])
+    setTaskStatus(app.repo, ["task-1", "task-2", "task-3", "task-4"])
 
     // Step 1: Select task-1 through task-3
-    board.press("shift+ArrowDown") // anchor=task-1, cursor->task-2
-    board.press("shift+ArrowDown") // range task-1..task-3, cursor->task-3
+    await app.press("shift+ArrowDown") // anchor=task-1, cursor->task-2
+    await app.press("shift+ArrowDown") // range task-1..task-3, cursor->task-3
 
     // Step 2: Toggle status (todo -> wip)
-    board.command("cycle_task_status")
+    await app.command("cycle_task_status")
 
     // Step 3: Verify persistence — first 3 tasks should be wip, task-4 unchanged
-    expect(repo.getNode("task-1")?.item?.task?.status).toBe("wip")
-    expect(repo.getNode("task-2")?.item?.task?.status).toBe("wip")
-    expect(repo.getNode("task-3")?.item?.task?.status).toBe("wip")
-    expect(repo.getNode("task-4")?.item?.task?.status).toBe("todo")
+    expect(app.repo.getNode("task-1")?.item?.task?.status).toBe("wip")
+    expect(app.repo.getNode("task-2")?.item?.task?.status).toBe("wip")
+    expect(app.repo.getNode("task-3")?.item?.task?.status).toBe("wip")
+    expect(app.repo.getNode("task-4")?.item?.task?.status).toBe("todo")
 
     // Step 4: Toggle again (wip -> blocked)
-    board.command("cycle_task_status")
-    expect(repo.getNode("task-1")?.item?.task?.status).toBe("blocked")
-    expect(repo.getNode("task-2")?.item?.task?.status).toBe("blocked")
-    expect(repo.getNode("task-3")?.item?.task?.status).toBe("blocked")
-    expect(repo.getNode("task-4")?.item?.task?.status).toBe("todo")
+    await app.command("cycle_task_status")
+    expect(app.repo.getNode("task-1")?.item?.task?.status).toBe("blocked")
+    expect(app.repo.getNode("task-2")?.item?.task?.status).toBe("blocked")
+    expect(app.repo.getNode("task-3")?.item?.task?.status).toBe("blocked")
+    expect(app.repo.getNode("task-4")?.item?.task?.status).toBe("todo")
   })
 
-  test("select cards with children, delete requires confirmation", () => {
-    const { board, repo } = testEnv(() =>
+  test("select cards with children, delete requires confirmation", async () => {
+    using app = createTestApp(
       item("board", item("col1", item("simple"), item("parent", item("child-a"), item("child-b")), item("after"))),
     )
 
     // Step 1: Select simple and parent (which has children)
-    board.press("shift+ArrowDown") // anchor=simple, cursor->parent
+    await app.press("shift+ArrowDown") // anchor=simple, cursor->parent
 
     // Step 2: Delete — should show confirmation because parent has children
-    board.press("Backspace")
+    await app.press("Backspace")
 
     // Step 3: Nothing deleted yet (confirmation dialog open)
-    expect(repo.getChildren("col1").map((n) => n.id)).toContain("simple")
-    expect(repo.getChildren("col1").map((n) => n.id)).toContain("parent")
+    expect(app.repo.getChildren("col1").map((n) => n.id)).toContain("simple")
+    expect(app.repo.getChildren("col1").map((n) => n.id)).toContain("parent")
 
     // Step 4: Confirm deletion
-    board.press("Enter")
+    await app.press("Enter")
 
     // Step 5: Both simple and parent (with children) should be deleted
-    const remaining = repo.getChildren("col1").map((n) => n.id)
+    const remaining = app.repo.getChildren("col1").map((n) => n.id)
     expect(remaining).toEqual(["after"])
 
     // Step 6: Screen should only show "after"
-    board.expect("#after").toExist()
-    board.expect("#simple").not.toExist()
-    board.expect("#parent").not.toExist()
+    app.expect("#after").toExist()
+    app.expect("#simple").not.toExist()
+    app.expect("#parent").not.toExist()
   })
 
-  test("select upward with Shift+ArrowUp, delete, verify correct cards removed", () => {
-    const { board, repo } = testEnv(() =>
+  test("select upward with Shift+ArrowUp, delete, verify correct cards removed", async () => {
+    using app = createTestApp(
       item("board", item("col1", item("A"), item("B"), item("C"), item("D"), item("E"))),
     )
 
     // Step 1: Navigate to D
-    board.command("cursor_down").command("cursor_down").command("cursor_down") // -> D
-    board.expect("#D[data-cursor]").toExist()
+    await app.command("cursor_down")
+    await app.command("cursor_down")
+    await app.command("cursor_down") // -> D
+    app.expect("#D[data-cursor]").toExist()
 
     // Step 2: Select upward to cover B, C, D
-    board.press("shift+ArrowUp") // anchor=D, cursor->C
-    board.press("shift+ArrowUp") // range B..D, cursor->B
+    await app.press("shift+ArrowUp") // anchor=D, cursor->C
+    await app.press("shift+ArrowUp") // range B..D, cursor->B
 
     // Step 3: Delete
-    board.press("Backspace")
+    await app.press("Backspace")
 
     // Step 4: Verify screen
-    board.expect("#A").toExist()
-    board.expect("#E").toExist()
-    board.expect("#B").not.toExist()
-    board.expect("#C").not.toExist()
-    board.expect("#D").not.toExist()
+    app.expect("#A").toExist()
+    app.expect("#E").toExist()
+    app.expect("#B").not.toExist()
+    app.expect("#C").not.toExist()
+    app.expect("#D").not.toExist()
 
     // Step 5: Verify persistence
-    const remaining = repo.getChildren("col1").map((n) => n.id)
+    const remaining = app.repo.getChildren("col1").map((n) => n.id)
     expect(remaining).toEqual(["A", "E"])
   })
 
@@ -176,30 +179,31 @@ describe("Multi-Selection Bulk Operations Journeys", () => {
     expect(cursor.count()).toBe(1)
   })
 
-  test("bulk delete at end of column, cursor repositions to remaining cards", () => {
-    const { board, repo } = testEnv(() =>
+  test("bulk delete at end of column, cursor repositions to remaining cards", async () => {
+    using app = createTestApp(
       item("board", item("col1", item("stay-1"), item("stay-2"), item("go-1"), item("go-2"), item("go-3"))),
     )
 
     // Step 1: Navigate to go-1
-    board.command("cursor_down").command("cursor_down") // -> go-1
-    board.expect("#go-1[data-cursor]").toExist()
+    await app.command("cursor_down")
+    await app.command("cursor_down") // -> go-1
+    app.expect("#go-1[data-cursor]").toExist()
 
     // Step 2: Select go-1, go-2, go-3
-    board.press("shift+ArrowDown") // anchor=go-1, cursor->go-2
-    board.press("shift+ArrowDown") // range go-1..go-3, cursor->go-3
+    await app.press("shift+ArrowDown") // anchor=go-1, cursor->go-2
+    await app.press("shift+ArrowDown") // range go-1..go-3, cursor->go-3
 
     // Step 3: Delete
-    board.press("Backspace")
+    await app.press("Backspace")
 
     // Step 4: Verify remaining cards
-    const remaining = repo.getChildren("col1").map((n) => n.id)
+    const remaining = app.repo.getChildren("col1").map((n) => n.id)
     expect(remaining).toEqual(["stay-1", "stay-2"])
 
     // Step 5: Cursor should land on a valid remaining card
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
-    board.expect("#stay-1").toExist()
-    board.expect("#stay-2").toExist()
+    app.expect("#stay-1").toExist()
+    app.expect("#stay-2").toExist()
   })
 })
