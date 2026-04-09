@@ -448,12 +448,15 @@ const Card = React.memo(
     const isCursorOnCard = cursor === nodeId && selLevel === "card"
     // No custom bg during editing — the focusborder on the card border is
     // enough to indicate edit mode. Normal selection tint applies when not editing.
+    // Priority: cursor (subtle 6%) wins over multi-select (stronger 14%) because
+    // the cursor card is always in the selection ids — without this check, cursor
+    // cards always get multiSelectedBg instead of the intended subtle selectedBg.
     const cardBg = isEditing
       ? undefined
-      : isNodeSelected
-        ? multiSelectedBg(theme)
-        : isCursorOnCard || cursorInDescendant
-          ? selectedBg(theme)
+      : isCursorOnCard || cursorInDescendant
+        ? selectedBg(theme)
+        : isNodeSelected
+          ? multiSelectedBg(theme)
           : undefined
 
     // Border: cyan when editing, yellow when card selected, hidden when column selected
