@@ -167,21 +167,9 @@ export function createNodeStore() {
     return expanded
   }
 
-  /** Mark all descendants of a selected node as visually selected during hydration. */
-  function hydrateDescendantSelection(repo: Repo, parentId: string): void {
-    const markDescendants = (nodeId: string): void => {
-      for (const child of repo.getChildren(nodeId)) {
-        reduced.get(child.id).selected(true)
-        markDescendants(child.id)
-      }
-    }
-    markDescendants(parentId)
-  }
-
   // ── Internal prev-tracking state for store write API ─────────────────
   let prevCursorId: string | null = null
-  let prevSelectedExpanded = new Set<string>()
-  let prevSelectedDirect = new Set<string>()
+  let prevExpandedSelection = new Set<string>()
   let prevEditNodeId: string | null = null
   let prevFoldOverrides = new Map<string, number>()
   let prevStickyFolds = new Map<string, "folded" | "unfolded">()
@@ -199,27 +187,20 @@ export function createNodeStore() {
     prevCursorId = nodeId
   }
 
-  /** Replace entire selection — diffs against current, writes selected signals.
-   * Expands to include descendants for visual selection. */
+  /** Replace entire selection — diffs against current, writes per-node selected signals.
+   * Expands to include all descendants for visual selection (e.g., card selected →
+   * all sub-items visually highlighted). Single source of truth: one expanded set,
+   * one diff pass, one prev-tracking variable. */
   function setSelection(ids: ReadonlySet<string>, repo: { getChildren(parentId: string | null): { id: string }[] }): void {
     const newExpanded = expandSelectionWithDescendants(repo, ids)
-    // Clear nodes that were expanded-selected but no longer are
-    for (const key of prevSelectedExpanded) {
+    // Diff: clear deselected, set newly selected
+    for (const key of prevExpandedSelection) {
       if (!newExpanded.has(key)) reduced.get(key).selected(false)
     }
-    // Set newly expanded-selected nodes
     for (const key of newExpanded) {
-      if (!prevSelectedExpanded.has(key)) reduced.get(key).selected(true)
+      if (!prevExpandedSelection.has(key)) reduced.get(key).selected(true)
     }
-    // Write DIRECT selections — selectedAncestor auto-propagates via computeds
-    for (const key of prevSelectedDirect) {
-      if (!ids.has(key)) reduced.get(key).selected(false)
-    }
-    for (const key of ids) {
-      if (!prevSelectedDirect.has(key)) reduced.get(key).selected(true)
-    }
-    prevSelectedExpanded = newExpanded
-    prevSelectedDirect = new Set(ids)
+    prevExpandedSelection = newExpanded
   }
 
   /** Begin editing a node — sets edit + editing signals, clears any previous edit. */
@@ -310,11 +291,6 @@ export function createNodeStore() {
         if (card.symlink_to && !repo.getNode(card.symlink_to)) {
           log.debug?.(`Broken symlink: node ${card.id} → missing target ${card.symlink_to}`)
         }
-        // Multi-selection — mark the card and all its descendants
-        if (selected.has(card.id)) {
-          reduced.get(card.id).selected(true)
-          hydrateDescendantSelection(repo, card.id)
-        }
         knownNodeIds.add(card.id)
       }
     }
@@ -332,6 +308,18 @@ export function createNodeStore() {
     // sub-items since sticky folds are not tied to any hierarchy level.
     for (const [id, state] of stickyFolds) {
       reduced.get(id).sticky(state)
+    }
+
+    // Re-apply selection after rebind. The board-app-store effect already
+    // wrote selection signals during the first render, but those writes used
+    // the old empty traversal — selectedAncestor computeds cached false.
+    // Re-applying after rebind triggers signal invalidation, forcing computeds
+    // to re-evaluate with the new (correct) traversal. Without this, the test
+    // sees a zebra pattern (sections get multiSelectedBg, sub-items selectedBg).
+    if (selected.size > 0) {
+      // Reset prev tracking so setSelection writes ALL signals (not just diff)
+      prevExpandedSelection = new Set()
+      setSelection(selected, repo)
     }
   }
 
