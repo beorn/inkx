@@ -789,6 +789,34 @@ function loadDatabase(p: string) { /* ... */ }
 
 ---
 
+### Principle: Sync Test Surface
+
+**The insight**: Production code being async doesn't mean test APIs must be. React's `act()` synchronously flushes effects — test wrappers should void async promises and expose a synchronous API.
+
+```typescript
+// ✅ GOOD - sync test API, act() handles the flush
+test("cursor moves down", () => {
+  using app = createTestApp(item("board", item("col1", item("task"))))
+  app.command("cursor_down")
+  app.expect("#task[data-cursor]").toExist()
+})
+
+// ❌ BAD - async ceremony for no benefit
+test("cursor moves down", async () => {
+  using app = await createTestApp(item("board", item("col1", item("task"))))
+  await app.command("cursor_down")
+  app.expect("#task[data-cursor]").toExist()
+})
+```
+
+**Why**: Sync APIs enable native chaining (`app.command("a").command("b")`), eliminate `async/await` noise, and match testEnv's proven 2+ year pattern.
+
+**Corollary**: Use batch refactor editsets for surgical migrations, not per-file agents. Agents grind for 5-15 minutes per file; editsets let you review all changes at once.
+
+> **Lessons learned**: [docs/lessons/sync-test-api.md](lessons/sync-test-api.md)
+
+---
+
 ### Principle: Alignment
 
 **The insight**: Aligned code is more readable AND more composable.
