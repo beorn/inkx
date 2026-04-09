@@ -84,7 +84,7 @@ export class ReactiveNodeStore {
   // ── Reactive tree — computed-based engine ──────────────────────────────
   readonly reduced: ReturnType<typeof createReducedStore>
 
-  // ── Cursor state (synced from Board.tsx via syncCursor) ──
+  // ── Cursor state (written directly by Board.tsx) ──
   cursor = signal<string | null>(null)
   cursorCardNodeId = signal<string | null>(null)
   cursorColumnNodeId = signal<string | null>(null)
@@ -121,24 +121,6 @@ export class ReactiveNodeStore {
         this.hoveredNodeId = target
       }, 0)
     }
-  }
-
-  /** Sync cursor state to signals (called by Board.tsx). */
-  syncCursor(cursorState: {
-    cursor: string | null
-    cursorCardNodeId: string | null
-    cursorColumnNodeId: string | null
-    cursorDepth: "board" | "column" | "card"
-  }): void {
-    const prevCursor = this.cursor()
-    this.cursor(cursorState.cursor)
-    this.cursorCardNodeId(cursorState.cursorCardNodeId)
-    this.cursorColumnNodeId(cursorState.cursorColumnNodeId)
-    this.cursorDepth(cursorState.cursorDepth)
-
-    // Write cursor signals — computeds update automatically
-    if (prevCursor) this.reduced.get(prevCursor).cursor(false)
-    if (cursorState.cursor) this.reduced.get(cursorState.cursor).cursor(true)
   }
 
   /** Get cursorDescendant reduced signal for a node.
@@ -259,66 +241,15 @@ export class ReactiveNodeStore {
     }
   }
 
-  /** Sync multi-selection changes. Marks selected nodes AND their descendants as visually selected. */
-  syncSelected(oldSelected: Set<string>, newSelected: Set<string>, repo?: Repo): void {
-    const oldExpanded = repo ? expandWithDescendants(repo, oldSelected) : oldSelected
-    const newExpanded = repo ? expandWithDescendants(repo, newSelected) : newSelected
-
-    for (const key of oldExpanded) {
-      if (!newExpanded.has(key)) {
-        this.reduced.get(key).selected(false)
-      }
-    }
-    for (const key of newExpanded) {
-      if (!oldExpanded.has(key)) {
-        this.reduced.get(key).selected(true)
-      }
-    }
-
-    // Write DIRECT selections to reactive tree — selectedAncestor auto-propagates via computeds
-    for (const key of oldSelected) {
-      if (!newSelected.has(key)) this.reduced.get(key).selected(false)
-    }
-    for (const key of newSelected) {
-      if (!oldSelected.has(key)) this.reduced.get(key).selected(true)
-    }
-  }
-
-  /** Sync inline edit state. When a sub-item is edited, sets editingDescendant
-   * via reduced signals so the parent card can expand to show all children. */
-  syncEdit(
-    oldNodeId: string | null,
-    newNodeId: string | null,
-    newState: {
-      blockIndex: number
-      initialCursorPos?: "start" | "end" | number
-      stickyX?: number
-    } | null,
-    cardNodeId?: string,
-  ): void {
-    if (oldNodeId && oldNodeId !== newNodeId) {
-      this.reduced.get(oldNodeId).edit(null)
-    }
-    if (newNodeId && newState) {
-      this.reduced.get(newNodeId).edit({
-        blockIndex: newState.blockIndex,
-        initialCursorPos: newState.initialCursorPos,
-        stickyX: newState.stickyX,
-      })
-    }
-    // Write editing signals — editingDescendant auto-propagates via computeds
-    if (oldNodeId) this.reduced.get(oldNodeId).editing(false)
-    if (newNodeId && newState) this.reduced.get(newNodeId).editing(true)
-  }
-
   /** Mark all descendants of a selected node as visually selected during hydration. */
   private hydrateDescendantSelection(repo: Repo, parentId: string): void {
-    const expanded = expandWithDescendants(repo, new Set([parentId]))
-    for (const id of expanded) {
-      if (id !== parentId) {
-        this.reduced.get(id).selected(true)
+    const markDescendants = (nodeId: string): void => {
+      for (const child of repo.getChildren(nodeId)) {
+        this.reduced.get(child.id).selected(true)
+        markDescendants(child.id)
       }
     }
+    markDescendants(parentId)
   }
 
   /** Remove node entries. Call on zoom/root change. */
@@ -328,33 +259,10 @@ export class ReactiveNodeStore {
 }
 
 // =============================================================================
-// Tree expansion helper
-// =============================================================================
-
-/** Expand a set of node IDs to include all descendants. */
-function expandWithDescendants(repo: Repo, ids: ReadonlySet<string>): Set<string> {
-  if (ids.size === 0) return new Set()
-  const expanded = new Set<string>(ids)
-  for (const id of ids) {
-    collectDescendants(repo, id, expanded)
-  }
-  return expanded
-}
-
-/** Recursively collect all descendants of a node into the target set. */
-function collectDescendants(repo: Repo, nodeId: string, target: Set<string>): void {
-  const children = repo.getChildren(nodeId)
-  for (const child of children) {
-    target.add(child.id)
-    collectDescendants(repo, child.id, target)
-  }
-}
-
-// =============================================================================
 // React Context
 // =============================================================================
 
-const ReactiveNodeStoreContext = createContext<ReactiveNodeStore | null>(null)
+export const ReactiveNodeStoreContext = createContext<ReactiveNodeStore | null>(null)
 
 export const ReactiveNodeStoreProvider = ReactiveNodeStoreContext.Provider
 

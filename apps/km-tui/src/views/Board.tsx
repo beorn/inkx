@@ -664,7 +664,12 @@ export function Board({ patchedConsole }: BoardProps) {
       }
       if (cursorCardNodeId) cursorDepth = "card"
       else if (cursorColumnNodeId) cursorDepth = "column"
-      store.syncCursor({ cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth })
+      // Write cursor signals directly — computeds update automatically
+      store.cursor(cursor)
+      store.cursorCardNodeId(cursorCardNodeId)
+      store.cursorColumnNodeId(cursorColumnNodeId)
+      store.cursorDepth(cursorDepth)
+      store.reduced.get(cursor).cursor(true)
     }
     return store
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount
@@ -705,7 +710,23 @@ export function Board({ patchedConsole }: BoardProps) {
   useEffect(() => {
     const prev = prevMultiSelectedRef.current
     if (prev !== selectedSet) {
-      nodeStore.syncSelected(prev, selectedSet, repo)
+      // Diff old/new selection and write selected signals directly.
+      // Expand to include descendants so tree nodes under selected cards also show selected.
+      const oldExpanded = expandSelectionWithDescendants(repo, prev)
+      const newExpanded = expandSelectionWithDescendants(repo, selectedSet)
+      for (const key of oldExpanded) {
+        if (!newExpanded.has(key)) nodeStore.reduced.get(key).selected(false)
+      }
+      for (const key of newExpanded) {
+        if (!oldExpanded.has(key)) nodeStore.reduced.get(key).selected(true)
+      }
+      // Write DIRECT selections — selectedAncestor auto-propagates via computeds
+      for (const key of prev) {
+        if (!selectedSet.has(key)) nodeStore.reduced.get(key).selected(false)
+      }
+      for (const key of selectedSet) {
+        if (!prev.has(key)) nodeStore.reduced.get(key).selected(true)
+      }
       prevMultiSelectedRef.current = selectedSet
     }
   }, [nodeStore, selectedSet, repo, ps])
@@ -777,23 +798,23 @@ export function Board({ patchedConsole }: BoardProps) {
   const nodeIndex = useMemo(() => buildNodeIndexFromTree(visibleLensValue), [visibleLensValue])
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
 
-  // Sync inline edit state. Derives cardNodeId from parent_id so callers
-  // never need to pass it — if the edit node is inside a card, the card expands.
+  // Sync inline edit state to reactive node store.
   useEffect(() => {
     const prev = prevInlineEditRef.current
     if (prev !== editState) {
-      let derivedCardNodeId: string | undefined
-      if (editState?.nodeId) {
-        // Walk up ancestors to find the containing card via O(1) nodeIndex lookup
-        for (const ancestor of Tree.ancestors(repo, editState.nodeId)) {
-          const entry = nodeIndex.get(ancestor.id)
-          if (entry && entry.cardIndex >= 0) {
-            derivedCardNodeId = ancestor.id
-            break
-          }
-        }
+      // Write edit signals directly — editingDescendant auto-propagates via computeds
+      const oldNodeId = prev?.nodeId ?? null
+      const newNodeId = editState?.nodeId ?? null
+      if (oldNodeId && oldNodeId !== newNodeId) {
+        nodeStore.reduced.get(oldNodeId).edit(null)
       }
-      nodeStore.syncEdit(prev?.nodeId ?? null, editState?.nodeId ?? null, editState, derivedCardNodeId)
+      if (newNodeId && editState) {
+        nodeStore.reduced.get(newNodeId).edit({
+          blockIndex: editState.blockIndex,
+        })
+      }
+      if (oldNodeId) nodeStore.reduced.get(oldNodeId).editing(false)
+      if (newNodeId && editState) nodeStore.reduced.get(newNodeId).editing(true)
       prevInlineEditRef.current = editState
     }
   }, [nodeStore, editState, repo, nodeIndex, ps])
@@ -840,7 +861,14 @@ export function Board({ patchedConsole }: BoardProps) {
   // happen here via useEffect. This is safe because the store selector triggers
   // re-render, which triggers this effect, which syncs the new cursor state.
   useEffect(() => {
-    nodeStore.syncCursor({ cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth })
+    // Write cursor signals directly — computeds update automatically
+    const prevCursor = nodeStore.cursor()
+    nodeStore.cursor(cursor)
+    nodeStore.cursorCardNodeId(cursorCardNodeId)
+    nodeStore.cursorColumnNodeId(cursorColumnNodeId)
+    nodeStore.cursorDepth(cursorDepth)
+    if (prevCursor) nodeStore.reduced.get(prevCursor).cursor(false)
+    if (cursor) nodeStore.reduced.get(cursor).cursor(true)
   }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth, visibleLensValue])
 
   // Hidden column filtering is centralized in the view lens — the computed
@@ -1289,6 +1317,36 @@ export function BoardApp({ initialViewMode = "cards", toastQueue, navigator, pat
       </PopoverProvider>
     </ServicesProvider>
   )
+}
+
+// =============================================================================
+// Selection Expansion Helper
+// =============================================================================
+
+/** Expand a set of selected node IDs to include all their descendants.
+ * Used so tree nodes under a selected card also show as visually selected. */
+function expandSelectionWithDescendants(
+  repo: { getChildren(parentId: string | null): KNode[] },
+  ids: ReadonlySet<string>,
+): Set<string> {
+  if (ids.size === 0) return new Set()
+  const expanded = new Set<string>(ids)
+  for (const id of ids) {
+    collectDescendantsInto(repo, id, expanded)
+  }
+  return expanded
+}
+
+function collectDescendantsInto(
+  repo: { getChildren(parentId: string | null): KNode[] },
+  nodeId: string,
+  target: Set<string>,
+): void {
+  const children = repo.getChildren(nodeId)
+  for (const child of children) {
+    target.add(child.id)
+    collectDescendantsInto(repo, child.id, target)
+  }
 }
 
 // =============================================================================
