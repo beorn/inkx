@@ -12,13 +12,24 @@ import { reactiveTree, type Traversal, type ReactiveTree } from "../src/state/re
 
 function simpleTree(): Traversal {
   const pa: Record<string, string | null> = {
-    root: null, col1: "root", col2: "root",
-    card1: "col1", card2: "col1", card3: "col2",
-    sub1: "card1", sub2: "card1",
+    root: null,
+    col1: "root",
+    col2: "root",
+    card1: "col1",
+    card2: "col1",
+    card3: "col2",
+    sub1: "card1",
+    sub2: "card1",
   }
   const ch: Record<string, string[]> = {
-    root: ["col1", "col2"], col1: ["card1", "card2"], col2: ["card3"],
-    card1: ["sub1", "sub2"], card2: [], card3: [], sub1: [], sub2: [],
+    root: ["col1", "col2"],
+    col1: ["card1", "card2"],
+    col2: ["card3"],
+    card1: ["sub1", "sub2"],
+    card2: [],
+    card3: [],
+    sub1: [],
+    sub2: [],
   }
   return { parent: (id) => pa[id] ?? null, children: (id) => ch[id] ?? [] }
 }
@@ -26,25 +37,39 @@ function simpleTree(): Traversal {
 // ─── Schema ─────────────────────────────────────────────────────────────────
 
 function makeStore(t: Traversal) {
-  return reactiveTree((tree) => ({
-    cursor: signal(false),
-    selected: signal(false),
-    editing: signal(false),
-    cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
-    selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
-    editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
-  }), t)
+  return reactiveTree(
+    (tree) => ({
+      cursor: signal(false),
+      selected: signal(false),
+      editing: signal(false),
+      cursorDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some(),
+      selectedAncestor: tree.ancestors((s: { selected: unknown }) => s.selected).some(),
+      editingDescendant: tree.descendants((s: { editing: unknown }) => s.editing).some(),
+    }),
+    t,
+  )
 }
 
 function makeSigilStore(t: Traversal) {
-  return reactiveTree((tree) => ({
-    ownSigils: signal([] as string[]),
-    excludedSigils: tree.ancestors((s: { ownSigils: unknown }) => s.ownSigils).reduce(
-      (acc: string[], v) => { const arr = v as string[]; return arr.length === 0 ? acc : [...acc, ...arr] },
-      () => [] as string[],
-      { includeSelf: true, equals: (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i]) },
-    ),
-  }), t)
+  return reactiveTree(
+    (tree) => ({
+      ownSigils: signal([] as string[]),
+      excludedSigils: tree
+        .ancestors((s: { ownSigils: unknown }) => s.ownSigils)
+        .reduce(
+          (acc: string[], v) => {
+            const arr = v as string[]
+            return arr.length === 0 ? acc : [...acc, ...arr]
+          },
+          () => [] as string[],
+          {
+            includeSelf: true,
+            equals: (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i]),
+          },
+        ),
+    }),
+    t,
+  )
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -172,11 +197,15 @@ describe("reactiveTree (computed-based)", () => {
   })
 
   describe("rebind", () => {
-    it("rebind clears nodes and uses new traversal", () => {
+    it("rebind preserves signal nodes and uses new traversal", () => {
       store.get("sub1").cursor(true)
       expect(store.get("card1").cursorDescendant()).toBe(true)
+      const prevSize = store.size
       store.rebind(simpleTree()) // fresh traversal
-      expect(store.size).toBe(0) // all cleared
+      // Nodes are preserved (not cleared) so React subscriptions remain valid
+      expect(store.size).toBe(prevSize)
+      // Signal values survive rebind
+      expect(store.get("sub1").cursor()).toBe(true)
     })
   })
 })
@@ -216,10 +245,13 @@ describe("reactiveTree .reduce()", () => {
 describe("reactiveTree .count()", () => {
   it("counts descendants with cursor", () => {
     const t = simpleTree()
-    const store = reactiveTree((tree) => ({
-      cursor: signal(false),
-      cursorCount: tree.descendants((s: { cursor: unknown }) => s.cursor).count(),
-    }), t)
+    const store = reactiveTree(
+      (tree) => ({
+        cursor: signal(false),
+        cursorCount: tree.descendants((s: { cursor: unknown }) => s.cursor).count(),
+      }),
+      t,
+    )
 
     store.get("sub1").cursor(true)
     store.get("sub2").cursor(true)
@@ -235,10 +267,13 @@ describe("reactiveTree .count()", () => {
 describe("includeSelf", () => {
   it("some() with includeSelf includes source node", () => {
     const t = simpleTree()
-    const store = reactiveTree((tree) => ({
-      cursor: signal(false),
-      cursorOrDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some({ includeSelf: true }),
-    }), t)
+    const store = reactiveTree(
+      (tree) => ({
+        cursor: signal(false),
+        cursorOrDescendant: tree.descendants((s: { cursor: unknown }) => s.cursor).some({ includeSelf: true }),
+      }),
+      t,
+    )
 
     store.get("card1").cursor(true)
     expect(store.get("card1").cursorOrDescendant()).toBe(true) // self!

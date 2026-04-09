@@ -52,7 +52,15 @@ function isDescriptor(v: unknown): v is Descriptor {
 
 function captureKey<T>(accessor: (s: T) => unknown): string {
   const keys: string[] = []
-  const proxy = new Proxy({}, { get(_, k) { keys.push(String(k)); return undefined } })
+  const proxy = new Proxy(
+    {},
+    {
+      get(_, k) {
+        keys.push(String(k))
+        return undefined
+      },
+    },
+  )
   accessor(proxy as T)
   if (keys.length !== 1) throw new Error(`Accessor must access exactly one property, got: ${keys.join(", ")}`)
   return keys[0]!
@@ -63,14 +71,27 @@ function captureKey<T>(accessor: (s: T) => unknown): string {
 interface DirectionBuilder {
   some(opts?: { includeSelf?: boolean }): Descriptor
   count(opts?: { includeSelf?: boolean }): Descriptor
-  reduce<V>(reducer: (acc: V, value: unknown) => V, initial: V | (() => V), opts?: { includeSelf?: boolean; equals?: (a: V, b: V) => boolean }): Descriptor
+  reduce<V>(
+    reducer: (acc: V, value: unknown) => V,
+    initial: V | (() => V),
+    opts?: { includeSelf?: boolean; equals?: (a: V, b: V) => boolean },
+  ): Descriptor
 }
 
 function dirBuilder(dir: "up" | "down", key: string): DirectionBuilder {
   return {
     some: (opts) => ({ [DESC]: true as const, dir, key, type: "some", includeSelf: opts?.includeSelf }),
     count: (opts) => ({ [DESC]: true as const, dir, key, type: "count", includeSelf: opts?.includeSelf }),
-    reduce: (reducer, initial, opts) => ({ [DESC]: true as const, dir, key, type: "reduce", reducer: reducer as (acc: unknown, value: unknown) => unknown, initial, equals: opts?.equals as ((a: unknown, b: unknown) => boolean) | undefined, includeSelf: opts?.includeSelf }),
+    reduce: (reducer, initial, opts) => ({
+      [DESC]: true as const,
+      dir,
+      key,
+      type: "reduce",
+      reducer: reducer as (acc: unknown, value: unknown) => unknown,
+      initial,
+      equals: opts?.equals as ((a: unknown, b: unknown) => boolean) | undefined,
+      includeSelf: opts?.includeSelf,
+    }),
   }
 }
 
@@ -93,7 +114,10 @@ function* walkDown(t: Traversal, id: string): Iterable<string> {
 
 function* walkUp(t: Traversal, id: string): Iterable<string> {
   let cur = t.parent(id)
-  while (cur !== null) { yield cur; cur = t.parent(cur) }
+  while (cur !== null) {
+    yield cur
+    cur = t.parent(cur)
+  }
 }
 
 // ─── Store ──────────────────────────────────────────────────────────────────
@@ -161,8 +185,9 @@ export function reactiveTree<T extends SchemaDef>(
         accessor[name] = computed(() => {
           if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
           const walk = desc.dir === "down" ? walkDown : walkUp
-          for (const vid of walk(traversal, nodeId))
+          for (const vid of walk(traversal, nodeId)) {
             if ((get(vid) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
+          }
           return false
         })
       } else if (desc.type === "count") {
@@ -170,8 +195,9 @@ export function reactiveTree<T extends SchemaDef>(
           let n = 0
           if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
           const walk = desc.dir === "down" ? walkDown : walkUp
-          for (const vid of walk(traversal, nodeId))
+          for (const vid of walk(traversal, nodeId)) {
             if ((get(vid) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
+          }
           return n
         })
       } else {
@@ -214,7 +240,17 @@ export function reactiveTree<T extends SchemaDef>(
     get,
     has: (id) => nodes.has(id),
     clear: () => nodes.clear(),
-    get size() { return nodes.size },
-    rebind(t: Traversal) { traversal = t; nodes.clear() },
+    get size() {
+      return nodes.size
+    },
+    rebind(t: Traversal) {
+      traversal = t
+      // NOTE: we intentionally do NOT clear nodes here. Clearing would destroy
+      // signal instances that React components are subscribed to via useSignal,
+      // causing stale subscriptions (components would never see subsequent writes).
+      // The `traversal` closure variable is shared by all computed closures, so
+      // updating it here is sufficient — computeds will lazily pick up the new
+      // tree structure on their next evaluation.
+    },
   }
 }

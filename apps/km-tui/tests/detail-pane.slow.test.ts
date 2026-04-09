@@ -576,6 +576,127 @@ test("border regression: Space → l → Space with createBoardDriver", async ()
   await driver.press("D") // close detail pane
 })
 
+// --- Incremental rendering correctness after detail pane toggle ---
+
+describe("incremental rendering after detail pane toggle", () => {
+  test("buffer: incremental matches fresh after D open/close", async () => {
+    const nodes = item(
+      "board",
+      item("col1", item("task1"), item("task2"), item("task3")),
+      item("col2", item("task4"), item("task5")),
+      item("col3", item("task6")),
+    )
+    const boardRootId = nodes[0]!.id
+    const repo = createFakeRepo({ nodes })
+
+    const driver = withDiagnostics(
+      createBoardDriver(repo, boardRootId, {
+        columns: 120,
+        rows: 30,
+      }),
+      {
+        checkIncremental: true,
+        checkStability: true,
+        skipLines: [0, -1],
+      },
+    )
+
+    await driver.press("D")
+    await driver.press("D")
+    await driver.press("j")
+    await driver.press("l")
+  })
+
+  test("buffer: incremental matches fresh after D open then Escape", async () => {
+    const nodes = item(
+      "board",
+      item("col1", item("task1"), item("task2"), item("task3")),
+      item("col2", item("task4"), item("task5")),
+      item("col3", item("task6")),
+    )
+    const boardRootId = nodes[0]!.id
+    const repo = createFakeRepo({ nodes })
+
+    const driver = withDiagnostics(
+      createBoardDriver(repo, boardRootId, {
+        columns: 120,
+        rows: 30,
+      }),
+      {
+        checkIncremental: true,
+        checkStability: true,
+        skipLines: [0, -1],
+      },
+    )
+
+    await driver.press("D")
+    await driver.press("Escape")
+    await driver.press("j")
+  })
+
+  test("buffer: incremental matches fresh after D open, navigate, then close", async () => {
+    const nodes = item(
+      "board",
+      item("col1", item("task1"), item("task2"), item("task3")),
+      item("col2", item("task4"), item("task5")),
+      item("col3", item("task6")),
+    )
+    const boardRootId = nodes[0]!.id
+    const repo = createFakeRepo({ nodes })
+
+    const driver = withDiagnostics(
+      createBoardDriver(repo, boardRootId, {
+        columns: 120,
+        rows: 30,
+      }),
+      {
+        checkIncremental: true,
+        checkStability: true,
+        skipLines: [0, -1],
+      },
+    )
+
+    await driver.press("D")
+    await driver.press("h")
+    await driver.press("j")
+    await driver.press("D")
+    await driver.press("l")
+  })
+
+  test("wide terminal: incremental matches fresh after D toggle", async () => {
+    // Wide terminal with many columns — tests layout change at large widths
+    const nodes = item(
+      "board",
+      item("col1", item("task1"), item("task2"), item("task3")),
+      item("col2", item("task4"), item("task5")),
+      item("col3", item("task6"), item("task7")),
+      item("col4", item("task8")),
+    )
+    const boardRootId = nodes[0]!.id
+    const repo = createFakeRepo({ nodes })
+
+    const driver = withDiagnostics(
+      createBoardDriver(repo, boardRootId, {
+        columns: 160,
+        rows: 40,
+      }),
+      {
+        checkIncremental: true,
+        checkStability: true,
+        skipLines: [0, -1],
+      },
+    )
+
+    await driver.press("D")
+    await driver.press("D")
+    await driver.press("j")
+    await driver.press("l")
+    await driver.press("D")
+    await driver.press("Escape")
+    await driver.press("j")
+  })
+})
+
 // --- Detail pane empty state fallback ---
 
 describe("detail pane empty state fallback", () => {
