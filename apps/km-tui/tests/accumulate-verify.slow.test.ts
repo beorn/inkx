@@ -8,14 +8,15 @@
  * passes) but the ANSI escape sequences produced by changesToAnsi are wrong
  * (garbled terminal output in production).
  *
- * The board driver defaults incremental=false, so most tests never exercise
- * the actual ANSI diff path used in production. This test explicitly enables it.
+ * Uses createTestApp with incremental rendering enabled (default) and
+ * SILVERY_STRICT to verify both buffer content and ANSI output.
  */
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
-import { createRepo, getChildren, type Repo } from "@km/storage"
+import { createRepo, getChildren } from "@km/storage"
 import { runGenerator } from "@km/core"
 import { createBoardDriver } from "../src/driver.ts"
 import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // Enable buffer-level + vt100 ANSI output verification.
 beforeEach(() => {
@@ -27,18 +28,15 @@ afterEach(() => {
 
 describe("Incremental ANSI output verification", () => {
   test("changesToAnsi produces correct ANSI sequences during navigation", { retry: 2 }, async () => {
-    const nodes = item.root(
-      "board",
-      item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
-      item("beta-col", item("task-d"), item("task-e")),
-      item("gamma-col", item("task-f"), item("task-g"), item("task-h")),
+    using app = createTestApp(
+      item.root(
+        "board",
+        item("alpha-col", item("task-a"), item("task-b"), item("task-c")),
+        item("beta-col", item("task-d"), item("task-e")),
+        item("gamma-col", item("task-f"), item("task-g"), item("task-h")),
+      ),
+      { cols: 120, rows: 30 },
     )
-    const repo = (await import("@km/storage")).createFakeRepo({ nodes })
-    const driver = createBoardDriver(repo, "board", {
-      columns: 120,
-      rows: 30,
-      incremental: true,
-    })
 
     // Navigation that exercises various changesToAnsi patterns:
     // - Cursor outline moving between cards (stylePropsDirty, border changes)
@@ -75,7 +73,7 @@ describe("Incremental ANSI output verification", () => {
     ]
 
     for (const key of sequence) {
-      await driver.press(key)
+      await app.press(key)
       // SILVERY_STRICT verifies buffer content and ANSI output (vt100 backend)
     }
 
@@ -83,20 +81,17 @@ describe("Incremental ANSI output verification", () => {
   })
 
   test("larger board with more columns", { retry: 2 }, async () => {
-    const nodes = item.root(
-      "board",
-      item("col-1", item("a1"), item("a2"), item("a3"), item("a4")),
-      item("col-2", item("b1"), item("b2")),
-      item("col-3", item("c1"), item("c2"), item("c3")),
-      item("col-4", item("d1"), item("d2"), item("d3"), item("d4"), item("d5")),
-      item("col-5", item("e1"), item("e2")),
+    using app = createTestApp(
+      item.root(
+        "board",
+        item("col-1", item("a1"), item("a2"), item("a3"), item("a4")),
+        item("col-2", item("b1"), item("b2")),
+        item("col-3", item("c1"), item("c2"), item("c3")),
+        item("col-4", item("d1"), item("d2"), item("d3"), item("d4"), item("d5")),
+        item("col-5", item("e1"), item("e2")),
+      ),
+      { cols: 160, rows: 40 },
     )
-    const repo = (await import("@km/storage")).createFakeRepo({ nodes })
-    const driver = createBoardDriver(repo, "board", {
-      columns: 160,
-      rows: 40,
-      incremental: true,
-    })
 
     // Navigate through all columns and back
     const sequence = [
@@ -122,7 +117,7 @@ describe("Incremental ANSI output verification", () => {
     ]
 
     for (const key of sequence) {
-      await driver.press(key)
+      await app.press(key)
     }
 
     expect(true).toBe(true)
@@ -152,7 +147,8 @@ describe("Incremental ANSI output verification", () => {
     }
     if (!rootId) throw new Error("No suitable board root found in vault")
 
-    // No withDiagnostics — just incremental rendering with SILVERY_STRICT checks
+    // Real vault uses createBoardDriver directly because createTestApp
+    // takes a KNode[] fixture, not an existing Repo.
     const driver = createBoardDriver(repo, rootId, {
       columns: 120,
       rows: 30,
