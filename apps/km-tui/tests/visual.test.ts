@@ -8,7 +8,7 @@
  * - dim-subtree.test.ts (dim styling for done/dropped task children)
  */
 
-import { describe, test, expect } from "vitest"
+import { describe, test, expect, beforeEach } from "vitest"
 import { createRenderer } from "@silvery/test"
 import { createGridNavigator } from "@km/board"
 import { createFakeRepo } from "@km/storage"
@@ -156,9 +156,16 @@ describe("visual toolbelt: border assertions", () => {
 // Visual navigation integration: card position registration
 // =============================================================================
 
-const render80 = createRenderer({ cols: 80, rows: 24 })
-
 describe("Visual navigation integration: card position registration", () => {
+  // Fresh renderer per test — sharing one across tests in this describe
+  // causes test pollution: the layout subscribers from an earlier test's
+  // tree survive into the next render and the new registry never gets
+  // populated for some cards.
+  let render80: ReturnType<typeof createRenderer>
+  beforeEach(() => {
+    render80 = createRenderer({ cols: 80, rows: 24 })
+  })
+
   test("cards in single column register with increasing Y positions", () => {
     const registry = createGridNavigator()
 
