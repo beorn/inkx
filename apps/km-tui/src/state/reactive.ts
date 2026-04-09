@@ -191,7 +191,10 @@ export function createNodeStore() {
    * Expands to include all descendants for visual selection (e.g., card selected →
    * all sub-items visually highlighted). Single source of truth: one expanded set,
    * one diff pass, one prev-tracking variable. */
-  function setSelection(ids: ReadonlySet<string>, repo: { getChildren(parentId: string | null): { id: string }[] }): void {
+  function setSelection(
+    ids: ReadonlySet<string>,
+    repo: { getChildren(parentId: string | null): { id: string }[] },
+  ): void {
     const newExpanded = expandSelectionWithDescendants(repo, ids)
     // Diff: clear deselected, set newly selected
     for (const key of prevExpandedSelection) {
@@ -308,18 +311,6 @@ export function createNodeStore() {
     // sub-items since sticky folds are not tied to any hierarchy level.
     for (const [id, state] of stickyFolds) {
       reduced.get(id).sticky(state)
-    }
-
-    // Re-apply selection after rebind. The board-app-store effect already
-    // wrote selection signals during the first render, but those writes used
-    // the old empty traversal — selectedAncestor computeds cached false.
-    // Re-applying after rebind triggers signal invalidation, forcing computeds
-    // to re-evaluate with the new (correct) traversal. Without this, the test
-    // sees a zebra pattern (sections get multiSelectedBg, sub-items selectedBg).
-    if (selected.size > 0) {
-      // Reset prev tracking so setSelection writes ALL signals (not just diff)
-      prevExpandedSelection = new Set()
-      setSelection(selected, repo)
     }
   }
 

@@ -166,6 +166,11 @@ export function reactiveTree<T extends SchemaDef>(
   let traversal = initialTraversal
   const nodes = new Map<string, NodeAccessor<T>>()
 
+  // Shared version signal — every tree-walking computed reads it to establish
+  // a dependency. rebind() bumps it to atomically invalidate all cached
+  // computeds, forcing them to re-evaluate against the new traversal.
+  const treeVersion = signal(0)
+
   function get(id: string): NodeAccessor<T> {
     let node = nodes.get(id)
     if (node) return node
@@ -183,6 +188,7 @@ export function reactiveTree<T extends SchemaDef>(
       const nodeId = id // capture for closure
       if (desc.type === "some") {
         accessor[name] = computed(() => {
+          treeVersion() // establish dependency so rebind() invalidates us
           if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) return true
           const walk = desc.dir === "down" ? walkDown : walkUp
           for (const vid of walk(traversal, nodeId)) {
@@ -192,6 +198,7 @@ export function reactiveTree<T extends SchemaDef>(
         })
       } else if (desc.type === "count") {
         accessor[name] = computed(() => {
+          treeVersion() // establish dependency so rebind() invalidates us
           let n = 0
           if (desc.includeSelf && (get(nodeId) as Record<string, Sig<unknown>>)[desc.key]?.()) n++
           const walk = desc.dir === "down" ? walkDown : walkUp
@@ -203,6 +210,7 @@ export function reactiveTree<T extends SchemaDef>(
       } else {
         // reduce
         accessor[name] = computed(() => {
+          treeVersion() // establish dependency so rebind() invalidates us
           const reducer = desc.reducer!
           let acc = typeof desc.initial === "function" ? (desc.initial as () => unknown)() : desc.initial
 
@@ -245,12 +253,15 @@ export function reactiveTree<T extends SchemaDef>(
     },
     rebind(t: Traversal) {
       traversal = t
-      // NOTE: we intentionally do NOT clear nodes here. Clearing would destroy
+      // Bump the shared version signal to invalidate every cached tree-walking
+      // computed. Without this, computeds that walked with the old traversal
+      // would keep returning their stale cached values until one of their
+      // per-node signal dependencies changed.
+      //
+      // We intentionally do NOT clear `nodes` here. Clearing would destroy
       // signal instances that React components are subscribed to via useSignal,
       // causing stale subscriptions (components would never see subsequent writes).
-      // The `traversal` closure variable is shared by all computed closures, so
-      // updating it here is sufficient — computeds will lazily pick up the new
-      // tree structure on their next evaluation.
+      treeVersion(treeVersion() + 1)
     },
   }
 }
