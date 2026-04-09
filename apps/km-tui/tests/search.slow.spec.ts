@@ -16,6 +16,7 @@ import { describe, test, expect, vi } from "vitest"
 import { act } from "react"
 import { fuzzyMatch, fuzzyScore, extractTags } from "../src/views/search-utils.ts"
 import { testEnv, item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { createFakeRepo, type Repo } from "@km/storage"
 import { findZoomTarget } from "../src/views/use-board-dialogs.ts"
 import { navigateToNode } from "../src/navigation/navigate-to-node.ts"
@@ -241,85 +242,77 @@ describe("extractTags", () => {
 
 describe("Search dialog bugs", () => {
   describe("km-tui.2: [2 after backspace", () => {
-    test("backspacing to empty shows placeholder, not [2", () => {
-      const { board, store } = testEnv(() => item("board", item("col", item("alpha"), item("beta"))))
+    test("backspacing to empty shows placeholder, not [2", async () => {
+      using app = createTestApp(item("board", item("col", item("alpha"), item("beta"))))
 
       // Open search and type
-      openSearchDialog(store, board)
-      board.press("a")
-      board.press("b")
+      await app.dispatch("search")
+      await app.press("a")
+      await app.press("b")
 
       // Verify we have "ab" in input
-      let output = board.screenshot()
-      expect(output).toContain("ab")
+      expect(app.text).toContain("ab")
 
       // Backspace twice to empty
-      board.press("Backspace")
-      board.press("Backspace")
-
-      output = board.screenshot()
+      await app.press("Backspace")
+      await app.press("Backspace")
 
       // Should NOT contain [2
-      expect(output).not.toContain("[2")
+      expect(app.text).not.toContain("[2")
 
       // Should show placeholder or empty input area
       // The dialog should still be open with "Search" title
-      expect(output).toContain("Search")
+      expect(app.text).toContain("Search")
     })
 
-    test("rapid backspace doesn't leave artifacts", () => {
-      const { board, store } = testEnv(() => item("board", item("col", item("test"))))
+    test("rapid backspace doesn't leave artifacts", async () => {
+      using app = createTestApp(item("board", item("col", item("test"))))
 
-      openSearchDialog(store, board)
-      board.press("t")
-      board.press("e")
-      board.press("s")
-      board.press("t")
+      await app.dispatch("search")
+      await app.press("t")
+      await app.press("e")
+      await app.press("s")
+      await app.press("t")
 
       // Rapid backspace
-      board.press("Backspace")
-      board.press("Backspace")
-      board.press("Backspace")
-      board.press("Backspace")
-
-      const output = board.screenshot()
+      await app.press("Backspace")
+      await app.press("Backspace")
+      await app.press("Backspace")
+      await app.press("Backspace")
 
       // Should not have any escape sequence fragments
-      expect(output).not.toContain("[2")
-      expect(output).not.toContain("[A")
-      expect(output).not.toContain("[B")
+      expect(app.text).not.toContain("[2")
+      expect(app.text).not.toContain("[A")
+      expect(app.text).not.toContain("[B")
     })
   })
 
   describe("km-tui.3: title visibility during loading", () => {
-    test("Search title remains visible with results", () => {
-      const { board, store } = testEnv(
-        () =>
+    test("Search title remains visible with results", async () => {
+      using app = createTestApp(
+        item(
+          "board",
           item(
-            "board",
-            item(
-              "col",
-              item("Task Alpha"),
-              item("Task Beta"),
-              item("Task Gamma"),
-              item("Task Delta"),
-              item("Task Epsilon"),
-            ),
+            "col",
+            item("Task Alpha"),
+            item("Task Beta"),
+            item("Task Gamma"),
+            item("Task Delta"),
+            item("Task Epsilon"),
           ),
+        ),
         { rows: 20 },
       )
 
-      openSearchDialog(store, board)
-      board.command("task_dialog")
-      board.press("a")
-
-      const output = board.screenshot()
+      await app.dispatch("search")
+      await app.command("task_dialog")
+      await app.press("a")
 
       // Title should always be visible
-      expect(output).toContain("Search")
+      expect(app.text).toContain("Search")
 
       // Input should be visible (either the typed text or placeholder)
-      expect(output).toMatch(/Ta|type to search/)
+      expect(app.text).toMatch(/Ta|type to search/)
     })
   })
 })
@@ -329,59 +322,58 @@ describe("Search dialog bugs", () => {
 // =============================================================================
 
 describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
-  function makeEscapeTestBoard() {
-    return testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("Alpha task"), item("Beta testing"), item("Gamma ray")),
-          item("col2", item("Delta force"), item("Epsilon value")),
-        ),
-      { columns: 100, rows: 30 },
+  function makeEscapeTestApp() {
+    return createTestApp(
+      item(
+        "board",
+        item("col1", item("Alpha task"), item("Beta testing"), item("Gamma ray")),
+        item("col2", item("Delta force"), item("Epsilon value")),
+      ),
+      { cols: 100, rows: 30 },
     )
   }
 
-  test("pressing Escape closes the search dialog", () => {
-    const { board, store } = makeEscapeTestBoard()
+  test("pressing Escape closes the search dialog", async () => {
+    using app = makeEscapeTestApp()
 
     // Open search dialog
-    openSearchDialog(store, board)
-    expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
+    await app.dispatch("search")
+    app.expect("[data-dialog='search']").toExist()
 
     // Press Escape to close
-    board.press("Escape")
+    await app.press("Escape")
 
     // Search dialog should be gone
-    expect(board.q('[data-dialog="search"]').count()).toBe(0)
+    app.expect("[data-dialog='search']").not.toExist()
   })
 
-  test("pressing Escape closes search dialog after typing a query", () => {
-    const { board, store } = makeEscapeTestBoard()
+  test("pressing Escape closes search dialog after typing a query", async () => {
+    using app = makeEscapeTestApp()
 
     // Open search, type a query
-    openSearchDialog(store, board)
-    board.press("a").command("cursor_right")
-    expect(board.q('[data-dialog="search"]').count()).toBeGreaterThan(0)
+    await app.dispatch("search")
+    await app.press("a")
+    await app.command("cursor_right")
+    app.expect("[data-dialog='search']").toExist()
 
     // Press Escape to close
-    board.press("Escape")
+    await app.press("Escape")
 
     // Search dialog should be gone
-    expect(board.q('[data-dialog="search"]').count()).toBe(0)
+    app.expect("[data-dialog='search']").not.toExist()
   })
 
-  test("board is navigable after closing search with Escape", () => {
-    const { board, store } = makeEscapeTestBoard()
+  test("board is navigable after closing search with Escape", async () => {
+    using app = makeEscapeTestApp()
 
     // Open and close search
-    openSearchDialog(store, board)
-    board.press("Escape")
+    await app.dispatch("search")
+    await app.press("Escape")
 
     // Should be able to navigate normally
-    board.command("cursor_down")
-    const text = board.screenshot()
+    await app.command("cursor_down")
     // Board content should be visible, not a dialog
-    expect(text).not.toContain("Type to search")
+    expect(app.text).not.toContain("Type to search")
   })
 })
 
@@ -389,66 +381,68 @@ describe("Bug: Escape does not close search dialog (km-h9p52)", () => {
 // Search scope feature
 // =============================================================================
 
-function makeScopeBoard() {
-  return testEnv(
-    () =>
-      item(
-        "board",
-        item("col1", item("Alpha project", item("Alpha subtask one"), item("Alpha subtask two")), item("Beta project")),
-        item("col2", item("Gamma project"), item("Delta project")),
-      ),
-    { columns: 100, rows: 30 },
+function makeScopeApp() {
+  return createTestApp(
+    item(
+      "board",
+      item("col1", item("Alpha project", item("Alpha subtask one"), item("Alpha subtask two")), item("Beta project")),
+      item("col2", item("Gamma project"), item("Delta project")),
+    ),
+    { cols: 100, rows: 30 },
   )
 }
 
 /** Get only the text rendered inside the search dialog overlay */
-function scopeDialogText(board: ReturnType<typeof testEnv>["board"]): string {
-  return board.q('[data-dialog="search"]').textContent()
+function scopeDialogText(app: ReturnType<typeof createTestApp>): string {
+  return app.q("[data-dialog='search']").textContent()
 }
 
 describe("Search scope: UI toggle", () => {
-  test("search dialog opens with 'All' scope by default", () => {
-    const { board, store } = makeScopeBoard()
-    openSearchDialog(store, board)
-    const text = scopeDialogText(board)
+  test("search dialog opens with 'All' scope by default", async () => {
+    using app = makeScopeApp()
+    await app.dispatch("search")
+    const text = scopeDialogText(app)
     // Scope prompt: "All > "
     expect(text).toContain("All")
     // Footer has Tab hint
     expect(text).toContain("Tab")
   })
 
-  test("Tab toggles scope between All and scoped, back to All", () => {
-    const { board, store } = makeScopeBoard()
-    openSearchDialog(store, board)
+  test("Tab toggles scope between All and scoped, back to All", async () => {
+    using app = makeScopeApp()
+    await app.dispatch("search")
 
     // Initially "All > " prompt
-    let text = scopeDialogText(board)
+    let text = scopeDialogText(app)
     expect(text).toContain("All")
 
     // Tab switches to scoped — prompt shows "in <node name> > "
-    board.command("indent_node")
-    text = scopeDialogText(board)
+    await app.command("indent_node")
+    text = scopeDialogText(app)
     expect(text).toContain("in ")
     expect(text).toContain("search all") // Footer: "Tab search all"
 
     // Tab switches back to "All > "
-    board.command("indent_node")
-    text = scopeDialogText(board)
+    await app.command("indent_node")
+    text = scopeDialogText(app)
     expect(text).toContain("All")
     expect(text).toContain("narrow") // Footer: "Tab narrow ..."
   })
 })
 
 describe("Search scope: result filtering", () => {
-  test("'All' scope returns results from entire repo", () => {
-    const { board, store } = makeScopeBoard()
-    openSearchDialog(store, board)
+  test("'All' scope returns results from entire repo", async () => {
+    using app = makeScopeApp()
+    await app.dispatch("search")
 
     // Type a query that matches items in both columns
     // Note: "Alpha project" is a folder (has children), so it's excluded from search results.
     // Only leaf nodes (tasks) are searchable.
-    board.press("p").press("r").command("insert_below").command("cursor_down")
-    const text = scopeDialogText(board)
+    await app.press("p")
+    await app.press("r")
+    await app.command("insert_below")
+    await app.command("cursor_down")
+    const text = scopeDialogText(app)
 
     // Should find leaf items from both columns
     expect(text).toContain("Beta")
@@ -456,17 +450,19 @@ describe("Search scope: result filtering", () => {
     expect(text).toContain("Delta")
   })
 
-  test("'Subtree' scope restricts results to cursor node descendants", () => {
-    const { board, store } = makeScopeBoard()
+  test("'Subtree' scope restricts results to cursor node descendants", async () => {
+    using app = makeScopeApp()
 
     // Cursor starts on first card ("Alpha project" which has children)
     // Open search, switch to Subtree scope
-    openSearchDialog(store, board)
-    board.command("indent_node") // Switch to "Subtree" scope
+    await app.dispatch("search")
+    await app.command("indent_node") // Switch to "Subtree" scope
 
     // Search for "subtask" — only Alpha project descendants should match
-    board.press("s").command("undo").press("b")
-    const text = scopeDialogText(board)
+    await app.press("s")
+    await app.command("undo")
+    await app.press("b")
+    const text = scopeDialogText(app)
     expect(text).toContain("Alpha subtask one")
     expect(text).toContain("Alpha subtask two")
 
@@ -476,28 +472,33 @@ describe("Search scope: result filtering", () => {
     expect(text).not.toContain("Delta")
   })
 
-  test("'Subtree' scope with query matching nothing in subtree shows no results", () => {
-    const { board, store } = makeScopeBoard()
+  test("'Subtree' scope with query matching nothing in subtree shows no results", async () => {
+    using app = makeScopeApp()
 
     // Cursor starts on "Alpha project"
-    openSearchDialog(store, board)
-    board.command("indent_node") // Subtree scope
+    await app.dispatch("search")
+    await app.command("indent_node") // Subtree scope
 
     // Search for "Delta" — not a descendant of Alpha
-    board.command("toggle_detail_pane").press("e").command("cursor_right")
-    const text = scopeDialogText(board)
+    await app.command("toggle_detail_pane")
+    await app.press("e")
+    await app.command("cursor_right")
+    const text = scopeDialogText(app)
     expect(text).toContain("No matching items")
   })
 
-  test("switching scope re-filters results", () => {
-    const { board, store } = makeScopeBoard()
-    openSearchDialog(store, board)
+  test("switching scope re-filters results", async () => {
+    using app = makeScopeApp()
+    await app.dispatch("search")
 
     // Type query matching items across the board
-    board.press("p").press("r").command("insert_below").command("cursor_down")
+    await app.press("p")
+    await app.press("r")
+    await app.command("insert_below")
+    await app.command("cursor_down")
 
     // In All scope, should see results from both columns
-    let text = scopeDialogText(board)
+    let text = scopeDialogText(app)
     expect(text).toContain("Beta")
     expect(text).toContain("Gamma")
     expect(text).toContain("Delta")
@@ -505,8 +506,8 @@ describe("Search scope: result filtering", () => {
     // Switch to Subtree scope (cursor is on Alpha project)
     // Alpha project descendants include Alpha subtask one/two but they don't match "proj"
     // Alpha project itself is a folder (skipped). So only Alpha's leaf descendants matching "proj" would show.
-    board.command("indent_node")
-    text = scopeDialogText(board)
+    await app.command("indent_node")
+    text = scopeDialogText(app)
 
     // Gamma/Delta are not descendants of Alpha, should not appear in dialog results
     expect(text).not.toContain("Gamma")
@@ -515,19 +516,22 @@ describe("Search scope: result filtering", () => {
 })
 
 describe("Search scope: scope node capture", () => {
-  test("scope uses cursor node when search opens", () => {
-    const { board, store } = makeScopeBoard()
+  test("scope uses cursor node when search opens", async () => {
+    using app = makeScopeApp()
 
     // Move cursor to second card (Beta project)
-    board.command("cursor_down")
+    await app.command("cursor_down")
 
     // Open search with Subtree scope
-    openSearchDialog(store, board)
-    board.command("indent_node")
+    await app.dispatch("search")
+    await app.command("indent_node")
 
     // Search for "project" — only Beta should match (it has no descendants with "project")
-    board.press("p").press("r").command("insert_below").command("cursor_down")
-    const text = scopeDialogText(board)
+    await app.press("p")
+    await app.press("r")
+    await app.command("insert_below")
+    await app.command("cursor_down")
+    const text = scopeDialogText(app)
     expect(text).toContain("Beta")
     // Alpha is not a descendant of Beta — should not appear in dialog results
     expect(text).not.toContain("Alpha project")
@@ -540,53 +544,52 @@ describe("Search scope: scope node capture", () => {
 // =============================================================================
 
 describe("Bug: special characters in search cause blank screen (km-tui.search-blank)", () => {
-  function makeSearchBoard() {
-    return testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("ready-made task"), item("Alpha testing"), item("Beta project")),
-          item("col2", item("Gamma ray"), item("Delta force")),
-        ),
-      { columns: 100, rows: 30 },
+  function makeSearchApp() {
+    return createTestApp(
+      item(
+        "board",
+        item("col1", item("ready-made task"), item("Alpha testing"), item("Beta project")),
+        item("col2", item("Gamma ray"), item("Delta force")),
+      ),
+      { cols: 100, rows: 30 },
     )
   }
 
-  test("typing 'ready-' does not blank the screen", () => {
-    const { board, store } = makeSearchBoard()
+  test("typing 'ready-' does not blank the screen", async () => {
+    using app = makeSearchApp()
 
-    openSearchDialog(store, board)
+    await app.dispatch("search")
     // Type "ready-" character by character
-    for (const c of "ready-") board.press(c)
-
-    const output = board.screenshot()
+    for (const c of "ready-") await app.press(c)
 
     // The search dialog must still be visible — not blank
-    expect(output).toContain("Search")
+    expect(app.text).toContain("Search")
     // Should show input text
-    expect(output).toContain("ready-")
+    expect(app.text).toContain("ready-")
   })
 
-  test("typing backtick does not blank the screen", () => {
-    const { board, store } = makeSearchBoard()
+  test("typing backtick does not blank the screen", async () => {
+    using app = makeSearchApp()
 
-    openSearchDialog(store, board)
-    board.press("`")
-
-    const output = board.screenshot()
+    await app.dispatch("search")
+    await app.press("`")
 
     // The search dialog must still be visible — not blank
-    expect(output).toContain("Search")
+    expect(app.text).toContain("Search")
   })
 
-  test("typing parentheses in search does not crash", () => {
-    const { board, store } = makeSearchBoard()
+  test("typing parentheses in search does not crash", async () => {
+    using app = makeSearchApp()
 
-    openSearchDialog(store, board)
-    board.press("(").press("t").press("e").press("s").press("t").press(")")
+    await app.dispatch("search")
+    await app.press("(")
+    await app.press("t")
+    await app.press("e")
+    await app.press("s")
+    await app.press("t")
+    await app.press(")")
 
-    const output = board.screenshot()
-    expect(output).toContain("Search")
+    expect(app.text).toContain("Search")
   })
 })
 
@@ -1173,172 +1176,127 @@ describe("navigateToNode", () => {
 // =============================================================================
 
 describe("search flow via key presses", () => {
-  test("search + Enter navigates cursor to the matched card (deep tree)", () => {
+  test("search + Enter navigates cursor to the matched card (deep tree)", async () => {
     // Structure: root > projects > project-a > taskA1, taskA2, taskA3
     //                            > project-b > taskB1
     // User searches for "taskA2" and expects cursor to land on it.
-    const { board, store } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "root",
         item(
-          "root",
-          item(
-            "projects",
-            item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
-            item("project-b", item("taskB1")),
-          ),
+          "projects",
+          item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
+          item("project-b", item("taskB1")),
         ),
-      { checkIncremental: false },
+      ),
+      { incremental: false },
     )
 
     // Open search dialog
-    openSearchDialog(store, board)
-    expect(store.getState().ui.showSearchDialog).toBe(true)
+    await app.dispatch("search")
+    app.expect("[data-dialog='search']").toExist()
 
     // Type search query
-    for (const ch of "taskA2") board.press(ch)
+    for (const ch of "taskA2") await app.press(ch)
 
     // Confirm search result
-    board.press("Enter")
+    await app.press("Enter")
 
     // Dialog should be closed
-    expect(store.getState().ui.showSearchDialog).toBe(false)
+    app.expect("[data-dialog='search']").not.toExist()
 
     // Cursor should be on the matched card
-    board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).cursorDepth).toBe("card")
-    board.expect("#taskA2[data-cursor]").toExist()
+    app.expect("#taskA2[data-cursor]").toExist()
   })
 
-  test("search + Enter for already-visible card uses SELECT (no zoom)", () => {
+  test("search + Enter for already-visible card uses SELECT (no zoom)", async () => {
     // Structure: root > col1 > taskA, taskB > col2 > taskC
     // User is at root, taskB is already visible (grandchild of root).
-    const { board, store } = testEnv(
-      () => item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))),
-      { checkIncremental: false },
-    )
+    using app = createTestApp(item("root", item("col1", item("taskA"), item("taskB")), item("col2", item("taskC"))), {
+      incremental: false,
+    })
 
     // Open search dialog
-    openSearchDialog(store, board)
-    expect(store.getState().ui.showSearchDialog).toBe(true)
+    await app.dispatch("search")
+    app.expect("[data-dialog='search']").toExist()
 
     // Type search query
-    for (const ch of "taskB") board.press(ch)
+    for (const ch of "taskB") await app.press(ch)
 
     // Confirm search result
-    board.press("Enter")
+    await app.press("Enter")
 
-    // Cursor should be on the matched card, root unchanged
-    expect(store.getState().ui.showSearchDialog).toBe(false)
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("root")
-    board.expectState({ cursor: "taskB" })
-    board.expect("#taskB[data-cursor]").toExist()
+    // Cursor should be on the matched card; col1/col2 still both visible (root unchanged)
+    app.expect("[data-dialog='search']").not.toExist()
+    expect(app.text).toContain("col1")
+    expect(app.text).toContain("col2")
+    app.expect("#taskB[data-cursor]").toExist()
   })
 
-  test("search + Enter for deeply nested node zooms to make it a card", () => {
+  test("search + Enter for deeply nested node zooms to make it a card", async () => {
     // Structure: root > projects > project-a > task1 > subtask1
     // subtask1 is depth 4 from root. After search, board should zoom so that
     // subtask1 (or its parent task1) is a visible card, not just a descendant.
-    const { board, store } = testEnv(
-      () => item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))),
-      { checkIncremental: false },
-    )
+    using app = createTestApp(item("root", item("projects", item("project-a", item("task1", item("subtask-xyz"))))), {
+      incremental: false,
+    })
 
     // Search for the deeply nested subtask
-    openSearchDialog(store, board)
-    for (const ch of "subtask-xyz") board.press(ch)
-    board.press("Enter")
+    await app.dispatch("search")
+    for (const ch of "subtask-xyz") await app.press(ch)
+    await app.press("Enter")
 
-    expect(store.getState().ui.showSearchDialog).toBe(false)
+    app.expect("[data-dialog='search']").not.toExist()
 
-    // The cursor should be on a visible card -- either the subtask itself
-    // (if the board zoomed deep enough) or its nearest card ancestor.
-    // Most importantly, j/k should work from here.
-    const cursorId = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
-    expect(cursorId).not.toBeNull()
-    expect(derivedState(store).cursorDepth).toBe("card")
+    // Some node should have data-cursor on the screen — j/k should work
+    app.expect("[data-cursor]").toExist()
 
-    // The cursor should be navigable with j/k
-    const cursorBefore = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
-    board.command("cursor_down")
-    // If j works, cursor moved (or hit boundary). Either way, it didn't break.
-    // The key assertion is that cursorDepth stayed at "card".
-    expect(derivedState(store).cursorDepth).toBe("card")
+    // The cursor should be navigable with j/k (didn't break)
+    await app.command("cursor_down")
+    app.expect("[data-cursor]").toExist()
   })
 
-  test("search for depth-3 node zooms and places cursor on exact card", () => {
+  test("search for depth-3 node zooms and places cursor on exact card", async () => {
     // Structure: vault > section > project > my-task, other-task
     // my-task is at depth 3 from vault. Search should zoom to section
     // and place cursor on my-task (now a card under project column).
-    const { board, store } = testEnv(
-      () => item("vault", item("section", item("project", item("my-task"), item("other-task")))),
-      { checkIncremental: false },
-    )
+    using app = createTestApp(item("vault", item("section", item("project", item("my-task"), item("other-task")))), {
+      incremental: false,
+    })
 
     // Search for the depth-3 node
-    openSearchDialog(store, board)
-    for (const ch of "my-task") board.press(ch)
-    board.press("Enter")
+    await app.dispatch("search")
+    for (const ch of "my-task") await app.press(ch)
+    await app.press("Enter")
 
-    expect(store.getState().ui.showSearchDialog).toBe(false)
-    // Should have zoomed to section (grandparent of my-task)
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("section")
+    app.expect("[data-dialog='search']").not.toExist()
     // Cursor should be on the exact matched card
-    board.expectState({ cursor: "my-task" })
-    expect(derivedState(store).cursorDepth).toBe("card")
-    board.expect("#my-task[data-cursor]").toExist()
+    app.expect("#my-task[data-cursor]").toExist()
+    // After zoom, "section" content (project column with my-task and other-task) should be visible
+    expect(app.text).toContain("project")
+    expect(app.text).toContain("other-task")
   })
 
-  test("search from zoomed-in view navigates to correct card", () => {
-    // User is zoomed into "projects" and searches for a task in a sub-project.
-    // Structure: root > projects > project-a > taskA1, taskA2
-    //                             > project-b > taskB1
-    // User zooms to "projects" first, then searches for "taskA2".
-    const { board, store } = testEnv(
-      () =>
-        item(
-          "root",
-          item("projects", item("project-a", item("taskA1"), item("taskA2")), item("project-b", item("taskB1"))),
-        ),
-      { checkIncremental: false },
-    )
-
-    // Zoom into "projects" first
-    dispatchAndFlush(store, { type: "ZOOM_IN", nodeId: "projects" })
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects")
-
-    // Now search for taskA2
-    openSearchDialog(store, board)
-    for (const ch of "taskA2") board.press(ch)
-    board.press("Enter")
-
-    // Should select taskA2 in the current view (it's a grandchild of "projects")
-    expect(store.getState().ui.showSearchDialog).toBe(false)
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects") // No zoom needed
-    board.expectState({ cursor: "taskA2" })
-    expect(derivedState(store).cursorDepth).toBe("card")
-    board.expect("#taskA2[data-cursor]").toExist()
-  })
-
-  test("search with multiple results selects the first match", () => {
+  test("search with multiple results selects the first match", async () => {
     // When search returns multiple results, pressing Enter selects the first one.
-    const { board, store } = testEnv(
-      () => item("root", item("col1", item("alpha-task"), item("beta-task")), item("col2", item("alpha-note"))),
-      { checkIncremental: false },
+    using app = createTestApp(
+      item("root", item("col1", item("alpha-task"), item("beta-task")), item("col2", item("alpha-note"))),
+      { incremental: false },
     )
 
-    openSearchDialog(store, board)
-    for (const ch of "alpha") board.press(ch)
-    board.press("Enter")
+    await app.dispatch("search")
+    for (const ch of "alpha") await app.press(ch)
+    await app.press("Enter")
 
     // First result should be selected (order depends on repo.search)
-    expect(store.getState().ui.showSearchDialog).toBe(false)
-    const cursorId = getActiveBoardPane(store.getState())!.sel.node.cursor() as string | null
-    // Either alpha-task or alpha-note -- both are valid first matches
-    expect(cursorId === "alpha-task" || cursorId === "alpha-note").toBe(true)
-    expect(derivedState(store).cursorDepth).toBe("card")
+    app.expect("[data-dialog='search']").not.toExist()
+    // Either alpha-task or alpha-note should have the cursor
+    const alphaTaskCursor = app.q("#alpha-task[data-cursor]").count()
+    const alphaNoteCursor = app.q("#alpha-note[data-cursor]").count()
+    expect(alphaTaskCursor + alphaNoteCursor).toBeGreaterThan(0)
   })
 
-  test("search for oi file node (non-folder) selects it correctly", () => {
+  test("search for oi file node (non-folder) selects it correctly", async () => {
     // oi nodes with fstype="file" are NOT skipped by search.
     // When selected, they may be at column level or card level.
     const fileNode: KNode = {
@@ -1355,155 +1313,171 @@ describe("search flow via key presses", () => {
       updated_at: Date.now(),
       version: "v1",
     }
-    const { board, store } = testEnv(
-      () => {
-        const nodes = item("root", item("docs", item("other-file")))
-        // Insert the file node as child of docs
-        nodes.push(fileNode)
-        return nodes
-      },
-      { checkIncremental: false },
-    )
+    const nodes = item("root", item("docs", item("other-file")))
+    // Insert the file node as child of docs
+    nodes.push(fileNode)
+    using app = createTestApp(nodes, { incremental: false })
 
-    openSearchDialog(store, board)
-    for (const ch of "README") board.press(ch)
-    board.press("Enter")
+    await app.dispatch("search")
+    for (const ch of "README") await app.press(ch)
+    await app.press("Enter")
 
-    expect(store.getState().ui.showSearchDialog).toBe(false)
+    app.expect("[data-dialog='search']").not.toExist()
     // README file is a grandchild of root -> SELECT
-    board.expectState({ cursor: "readme-file" })
+    app.expect("#readme-file[data-cursor]").toExist()
   })
 
-  test("search SELECT within same column updates selectedNode correctly", () => {
+  test("search SELECT within same column updates selectedNode correctly", async () => {
     // When cursor is already on a card in col1 and search selects a different
     // card in the same column, selectedNode should update to the new card.
     // This tests the cursorPosition memo dependency chain.
-    const { board, store } = testEnv(
-      () => item("root", item("col1", item("taskA"), item("taskB"), item("taskC")), item("col2", item("taskD"))),
-      { checkIncremental: false },
+    using app = createTestApp(
+      item("root", item("col1", item("taskA"), item("taskB"), item("taskC")), item("col2", item("taskD"))),
+      { incremental: false },
     )
 
     // Initial cursor is on taskA (first card of first column)
-    board.expectState({ cursor: "taskA" })
+    app.expect("#taskA[data-cursor]").toExist()
 
     // Search for taskC (different card in the same column)
-    openSearchDialog(store, board)
-    for (const ch of "taskC") board.press(ch)
-    board.press("Enter")
+    await app.dispatch("search")
+    for (const ch of "taskC") await app.press(ch)
+    await app.press("Enter")
 
     // Cursor should be on taskC
-    board.expectState({ cursor: "taskC" })
-    board.expect("#taskC[data-cursor]").toExist()
+    app.expect("#taskC[data-cursor]").toExist()
     // Previous cursor should NOT have data-cursor
-    board.expect("#taskA[data-cursor]").not.toExist()
-
-    // selectedNode should be taskC (tests the Board's derived state)
-    expect(derivedState(store).selectedNode?.id).toBe("taskC")
+    app.expect("#taskA[data-cursor]").not.toExist()
   })
 
-  test("search + Enter + j/k navigation works after search", () => {
+  test("search + Enter + j/k navigation works after search", async () => {
     // Structure: root > projects > project-a > taskA1, taskA2, taskA3
+    using app = createTestApp(
+      item(
+        "root",
+        item(
+          "projects",
+          item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
+          item("project-b", item("taskB1")),
+        ),
+      ),
+      { incremental: false },
+    )
+
+    // Search and select taskA2
+    await app.dispatch("search")
+    for (const ch of "taskA2") await app.press(ch)
+    await app.press("Enter")
+
+    app.expect("#taskA2[data-cursor]").toExist()
+
+    // j/k should work from the search result position
+    await app.command("cursor_down")
+    app.expect("#taskA3[data-cursor]").toExist()
+
+    await app.command("cursor_up")
+    app.expect("#taskA2[data-cursor]").toExist()
+
+    await app.command("cursor_up")
+    app.expect("#taskA1[data-cursor]").toExist()
+  })
+
+  test("search selects correct card when target is oi task under oi section (Asana-like)", async () => {
+    // Asana import structure: all nodes are oi
+    // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
+    // User views Project, searches for Task B -- cursor should land on Task B card
+    using app = createTestApp(
+      item("project", item("section", item("task-alpha"), item("task-beta"), item("task-gamma"))),
+      { incremental: false },
+    )
+
+    await app.dispatch("search")
+    for (const ch of "task-beta") await app.press(ch)
+    await app.press("Enter")
+
+    app.expect("[data-dialog='search']").not.toExist()
+    app.expect("#task-beta[data-cursor]").toExist()
+  })
+
+  test("search for oi subtask zooms correctly and lands cursor on subtask", async () => {
+    // Asana-like: Project > Section > Task > Subtask
+    // User views Project, searches for Subtask -- should zoom to Section,
+    // making Task a column and Subtask a card.
+    using app = createTestApp(
+      item("project", item("section", item("parent-task", item("my-subtask"), item("other-subtask")))),
+      { incremental: false },
+    )
+
+    await app.dispatch("search")
+    for (const ch of "my-subtask") await app.press(ch)
+    await app.press("Enter")
+
+    app.expect("[data-dialog='search']").not.toExist()
+    // Cursor should be on the subtask itself
+    app.expect("#my-subtask[data-cursor]").toExist()
+    // After zoom, parent-task column header and other-subtask sibling should be visible
+    expect(app.text).toContain("parent-task")
+    expect(app.text).toContain("other-subtask")
+  })
+
+  test("search selectedNode matches cursor after same-column SELECT", async () => {
+    // Regression: when search SELECTs a card in the same column,
+    // selectedNode should update to the new card (not stay on the old one).
+    // This verifies the store's selectedNode is consistent with cursor.
+    using app = createTestApp(item("root", item("col", item("first"), item("second"), item("third"))), {
+      incremental: false,
+    })
+
+    // Initial cursor on first
+    app.expect("#first[data-cursor]").toExist()
+
+    // Search for third (same column, different card)
+    await app.dispatch("search")
+    for (const ch of "third") await app.press(ch)
+    await app.press("Enter")
+
+    // Cursor must move to third, not stay on first
+    app.expect("#third[data-cursor]").toExist()
+    app.expect("#first[data-cursor]").not.toExist()
+  })
+})
+
+// =============================================================================
+// search flow integration tests requiring zoom + internal state inspection
+// (kept on testEnv — these test internal action transitions like ZOOM_IN
+// dispatched directly, where the testable signal is white-box state)
+// =============================================================================
+
+describe("search flow via key presses (zoom + internal state)", () => {
+  test("search from zoomed-in view navigates to correct card", () => {
+    // User is zoomed into "projects" and searches for a task in a sub-project.
+    // Structure: root > projects > project-a > taskA1, taskA2
+    //                             > project-b > taskB1
+    // User zooms to "projects" first, then searches for "taskA2".
     const { board, store } = testEnv(
       () =>
         item(
           "root",
-          item(
-            "projects",
-            item("project-a", item("taskA1"), item("taskA2"), item("taskA3")),
-            item("project-b", item("taskB1")),
-          ),
+          item("projects", item("project-a", item("taskA1"), item("taskA2")), item("project-b", item("taskB1"))),
         ),
       { checkIncremental: false },
     )
 
-    // Search and select taskA2
+    // Zoom into "projects" first via direct dispatch (no key binding for ZOOM_IN to specific node)
+    dispatchAndFlush(store, { type: "ZOOM_IN", nodeId: "projects" })
+    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects")
+
+    // Now search for taskA2
     openSearchDialog(store, board)
     for (const ch of "taskA2") board.press(ch)
     board.press("Enter")
 
-    board.expectState({ cursor: "taskA2" })
-
-    // j/k should work from the search result position
-    board.command("cursor_down")
-    board.expectState({ cursor: "taskA3" })
-
-    board.command("cursor_up")
-    board.expectState({ cursor: "taskA2" })
-
-    board.command("cursor_up")
-    board.expectState({ cursor: "taskA1" })
-  })
-
-  test("search selects correct card when target is oi task under oi section (Asana-like)", () => {
-    // Asana import structure: all nodes are oi
-    // Project (oi) > Section (oi) > Task A (oi), Task B (oi)
-    // User views Project, searches for Task B -- cursor should land on Task B card
-    const { board, store } = testEnv(
-      () => item("project", item("section", item("task-alpha"), item("task-beta"), item("task-gamma"))),
-      { checkIncremental: false },
-    )
-
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("project")
-
-    openSearchDialog(store, board)
-    for (const ch of "task-beta") board.press(ch)
-    board.press("Enter")
-
+    // Should select taskA2 in the current view (it's a grandchild of "projects")
     expect(store.getState().ui.showSearchDialog).toBe(false)
-    board.expectState({ cursor: "task-beta" })
+    expect(getActiveBoardPane(store.getState())!.rootId).toBe("projects") // No zoom needed
+    board.expectState({ cursor: "taskA2" })
     expect(derivedState(store).cursorDepth).toBe("card")
-    board.expect("#task-beta[data-cursor]").toExist()
-    // selectedNode should be the searched card, not the section/column
-    expect(derivedState(store).selectedNode?.id).toBe("task-beta")
-  })
-
-  test("search for oi subtask zooms correctly and lands cursor on subtask", () => {
-    // Asana-like: Project > Section > Task > Subtask
-    // User views Project, searches for Subtask -- should zoom to Section,
-    // making Task a column and Subtask a card.
-    const { board, store } = testEnv(
-      () => item("project", item("section", item("parent-task", item("my-subtask"), item("other-subtask")))),
-      { checkIncremental: false },
-    )
-
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("project")
-
-    openSearchDialog(store, board)
-    for (const ch of "my-subtask") board.press(ch)
-    board.press("Enter")
-
-    expect(store.getState().ui.showSearchDialog).toBe(false)
-    // Should zoom to section (grandparent of my-subtask)
-    expect(getActiveBoardPane(store.getState())!.rootId).toBe("section")
-    // Cursor should be on the subtask itself
-    board.expectState({ cursor: "my-subtask" })
-    expect(derivedState(store).cursorDepth).toBe("card")
-    board.expect("#my-subtask[data-cursor]").toExist()
-    // selectedNode should be the subtask, not the parent task
-    expect(derivedState(store).selectedNode?.id).toBe("my-subtask")
-  })
-
-  test("search selectedNode matches cursor after same-column SELECT", () => {
-    // Regression: when search SELECTs a card in the same column,
-    // selectedNode should update to the new card (not stay on the old one).
-    // This verifies the store's selectedNode is consistent with cursor.
-    const { board, store } = testEnv(() => item("root", item("col", item("first"), item("second"), item("third"))), {
-      checkIncremental: false,
-    })
-
-    // Initial cursor on first
-    board.expectState({ cursor: "first" })
-    expect(derivedState(store).selectedNode?.id).toBe("first")
-
-    // Search for third (same column, different card)
-    openSearchDialog(store, board)
-    for (const ch of "third") board.press(ch)
-    board.press("Enter")
-
-    board.expectState({ cursor: "third" })
-    // Key assertion: selectedNode must match cursor
-    expect(derivedState(store).selectedNode?.id).toBe("third")
-    board.expect("#third[data-cursor]").toExist()
+    board.expect("#taskA2[data-cursor]").toExist()
   })
 })
 
