@@ -10,6 +10,7 @@
  */
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { TC } from "./helpers/theme.ts"
 
 // Build a tree deep enough for zoom: root > child-board > grandchild columns with cards
@@ -43,70 +44,67 @@ describe("Zoom-out rendering at wide terminal", () => {
     { cols: 200, rows: 50 },
     { cols: 160, rows: 40 },
     { cols: 120, rows: 30 },
-  ])("zoom out at $cols x $rows does not garble rendering", ({ cols, rows }) => {
+  ])("zoom out at $cols x $rows does not garble rendering", async ({ cols, rows }) => {
     // Start zoomed into child-board
-    const { board } = testEnv(deepTree, { columns: cols, rows })
+    using app = createTestApp(deepTree(), { cols, rows })
 
     // Zoom into child-board
-    board.press("z")
-    board.expect("#gc-col-A").toExist()
+    await app.press("z")
+    app.expect("#gc-col-A").toExist()
 
     // Zoom out (Z) — this is where garbling happens
-    board.press("Z")
+    await app.press("Z")
 
     // After zoom out, we should be back at root with child boards as columns
-    board.expect("#child-board").toExist()
+    app.expect("#child-board").toExist()
 
-    // Explicit incremental vs fresh check
-    board.expectIncrementalMatchesFresh()
+    // Incremental vs fresh check is enabled by default via withDiagnostics
+    // (checkIncremental: true is the createTestApp default)
   })
 
-  test("double zoom out at 200 cols", () => {
+  test("double zoom out at 200 cols", async () => {
     // Even deeper: root > mid > child-board > gc-cols
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "root",
         item(
-          "root",
-          item(
-            "mid",
-            item("deep", item("col1", item("c1")), item("col2", item("c2")), item("col3", item("c3"))),
-            item("sibling1", item("s1")),
-            item("sibling2", item("s2")),
-          ),
-          item("other", item("o1"), item("o2")),
+          "mid",
+          item("deep", item("col1", item("c1")), item("col2", item("c2")), item("col3", item("c3"))),
+          item("sibling1", item("s1")),
+          item("sibling2", item("s2")),
         ),
-      { columns: 200, rows: 50 },
+        item("other", item("o1"), item("o2")),
+      ),
+      { cols: 200, rows: 50 },
     )
 
     // Zoom into mid → deep
-    board.press("z") // into mid
-    board.press("z") // into deep
+    await app.press("z") // into mid
+    await app.press("z") // into deep
 
-    board.expect("#col1").toExist()
+    app.expect("#col1").toExist()
 
-    // First zoom out
-    board.press("Z")
-    board.expectIncrementalMatchesFresh()
+    // First zoom out — incremental matches fresh check is automatic via withDiagnostics
+    await app.press("Z")
 
     // Second zoom out
-    board.press("Z")
-    board.expectIncrementalMatchesFresh()
+    await app.press("Z")
   })
 
-  test("breadcrumb bar has no black/empty cells at column 0 after zoom out at 200 cols", () => {
+  test("breadcrumb bar has no black/empty cells at column 0 after zoom out at 200 cols", async () => {
     const cols = 200
-    const { board } = testEnv(deepTree, { columns: cols, rows: 50 })
+    using app = createTestApp(deepTree(), { cols, rows: 50 })
 
     // Zoom into child-board, then zoom back out
-    board.press("z")
-    board.expect("#gc-col-A").toExist()
-    board.press("Z")
-    board.expect("#child-board").toExist()
+    await app.press("z")
+    app.expect("#gc-col-A").toExist()
+    await app.press("Z")
+    app.expect("#child-board").toExist()
 
     // Row 0 is the breadcrumb/top bar. It should have a consistent background
     // color across its full width -- no black/null gaps at the left edge.
-    const col0Bg = board.screen.cell(0, 0).bg
-    const col1Bg = board.screen.cell(1, 0).bg
+    const col0Bg = app.screen.cell(0, 0).bg
+    const col1Bg = app.screen.cell(1, 0).bg
 
     // Column 0 must have the same bg as column 1 (no black gap at left edge)
     expect(col0Bg, "breadcrumb bar column 0 bg should match column 1").toEqual(col1Bg)
@@ -115,7 +113,7 @@ describe("Zoom-out rendering at wide terminal", () => {
     // should fill the entire row with $selection-bg or similar).
     const nullBgCells: number[] = []
     for (let x = 0; x < cols; x++) {
-      const cell = board.screen.cell(x, 0)
+      const cell = app.screen.cell(x, 0)
       if (cell.bg === null) {
         nullBgCells.push(x)
       }
@@ -126,6 +124,11 @@ describe("Zoom-out rendering at wide terminal", () => {
     ).toHaveLength(0)
   })
 
+  // NOTE: This test stays on testEnv because it relies on theme tokens resolving
+  // to 16-color ANSI indices (TC["$selection-bg"] === 3). createTestApp's driver
+  // does not wrap the app in a ThemeProvider with defaultKmTheme, so background
+  // colors are returned as truecolor {r,g,b} objects instead of palette indices,
+  // and the TC[...] comparisons fail.
   test("selection background stays within selected card bounds after zoom out at 200 cols", () => {
     const cols = 200
     const rows = 50

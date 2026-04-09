@@ -11,29 +11,30 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { item, testEnv } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { withDiagnostics } from "@silvery/ag-react"
 import { createBoardDriver } from "../src/driver.ts"
 import { createFakeRepo } from "@km/storage"
 
 describe("P2: TABS view content bleed from inactive tabs", () => {
-  test("breadcrumb updates cleanly when switching tabs", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("Alpha task one"), item("Alpha task two")),
-          item("Beta", item("Beta item one"), item("Beta item two")),
-          item("Gamma", item("Gamma entry one"), item("Gamma entry two")),
-        ),
-      { columns: 120, rows: 25 },
+  test("breadcrumb updates cleanly when switching tabs", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Alpha", item("Alpha task one"), item("Alpha task two")),
+        item("Beta", item("Beta item one"), item("Beta item two")),
+        item("Gamma", item("Gamma entry one"), item("Gamma entry two")),
+      ),
+      { cols: 120, rows: 25 },
     )
 
     // Switch to TABS view
-    board.command("cycle_view_mode").command("cycle_view_mode")
+    await app.command("cycle_view_mode")
+    await app.command("cycle_view_mode")
 
     // Alpha tab should be active, breadcrumb should show Alpha
-    let screen = board.screenshot()
+    let screen = app.text
     expect(screen).toContain("Alpha")
 
     // The first line (breadcrumb/top bar) should contain "Alpha" and NOT "Beta" or "Gamma"
@@ -43,35 +44,35 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     expect(line0).not.toContain("Gamma")
 
     // Switch to Beta tab
-    board.command("cursor_right")
-    screen = board.screenshot()
+    await app.command("cursor_right")
+    screen = app.text
     const line0After = screen.split("\n")[0]!
     // Breadcrumb should now show "Beta" path, NOT fragments from "Alpha"
     expect(line0After, `Top bar after switching to Beta: "${line0After}"`).not.toContain("Alpha")
 
     // Switch to Gamma tab
-    board.command("cursor_right")
-    screen = board.screenshot()
+    await app.command("cursor_right")
+    screen = app.text
     const line0Gamma = screen.split("\n")[0]!
     expect(line0Gamma, `Top bar after switching to Gamma: "${line0Gamma}"`).not.toContain("Alpha")
     expect(line0Gamma, `Top bar after switching to Gamma: "${line0Gamma}"`).not.toContain("Beta")
   })
 
-  test("active tab content has no fragments from other tabs", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("Alpha task one"), item("Alpha task two")),
-          item("Beta", item("Beta item one"), item("Beta item two")),
-          item("Gamma", item("Gamma entry one"), item("Gamma entry two")),
-        ),
-      { columns: 120, rows: 25 },
+  test("active tab content has no fragments from other tabs", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Alpha", item("Alpha task one"), item("Alpha task two")),
+        item("Beta", item("Beta item one"), item("Beta item two")),
+        item("Gamma", item("Gamma entry one"), item("Gamma entry two")),
+      ),
+      { cols: 120, rows: 25 },
     )
 
-    board.command("cycle_view_mode").command("cycle_view_mode")
+    await app.command("cycle_view_mode")
+    await app.command("cycle_view_mode")
 
-    const screen = board.screenshot()
+    const screen = app.text
     expect(screen).toContain("Alpha task one")
     expect(screen).toContain("Alpha task two")
 
@@ -84,31 +85,31 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     }
   })
 
-  test("switching from long to short content clears completely", () => {
-    const { board } = testEnv(
-      () =>
+  test("switching from long to short content clears completely", async () => {
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "TaskNotes",
-            item("Status: Not started - depends on HDHP enrollment"),
-            item("Health Savings Account provides triple tax advantage"),
-            item("Review benefits package with HR department"),
-          ),
-          item("ref", item("Reference doc")),
+          "TaskNotes",
+          item("Status: Not started - depends on HDHP enrollment"),
+          item("Health Savings Account provides triple tax advantage"),
+          item("Review benefits package with HR department"),
         ),
-      { columns: 120, rows: 25 },
+        item("ref", item("Reference doc")),
+      ),
+      { cols: 120, rows: 25 },
     )
 
-    board.command("cycle_view_mode").command("cycle_view_mode")
+    await app.command("cycle_view_mode")
+    await app.command("cycle_view_mode")
 
     // First tab (TaskNotes) should show its content
-    let screen = board.screenshot()
+    let screen = app.text
     expect(screen).toContain("HDHP enrollment")
 
     // Switch to ref tab (much shorter content)
-    board.command("cursor_right")
-    screen = board.screenshot()
+    await app.command("cursor_right")
+    screen = app.text
     expect(screen).toContain("Reference doc")
 
     // No fragments from TaskNotes should remain anywhere
@@ -118,24 +119,24 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     expect(screen).not.toContain("HR department")
   })
 
-  test("switching tabs cleans content area completely", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("First", item("First-unique-content-AAA")),
-          item("Second", item("Second-unique-content-BBB")),
-        ),
-      { columns: 120, rows: 25 },
+  test("switching tabs cleans content area completely", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("First", item("First-unique-content-AAA")),
+        item("Second", item("Second-unique-content-BBB")),
+      ),
+      { cols: 120, rows: 25 },
     )
 
-    board.command("cycle_view_mode").command("cycle_view_mode")
+    await app.command("cycle_view_mode")
+    await app.command("cycle_view_mode")
 
-    let screen = board.screenshot()
+    let screen = app.text
     expect(screen).toContain("First-unique-content-AAA")
 
-    board.command("cursor_right")
-    screen = board.screenshot()
+    await app.command("cursor_right")
+    screen = app.text
     expect(screen).toContain("Second-unique-content-BBB")
 
     const lines = screen.split("\n")
@@ -146,29 +147,28 @@ describe("P2: TABS view content bleed from inactive tabs", () => {
     }
   })
 
-  test("rapid back-and-forth tab switching has no bleed", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("Alpha-unique-111")),
-          item("Beta", item("Beta-unique-222")),
-          item("Gamma", item("Gamma-unique-333")),
-        ),
-      { columns: 120, rows: 25 },
+  test("rapid back-and-forth tab switching has no bleed", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Alpha", item("Alpha-unique-111")),
+        item("Beta", item("Beta-unique-222")),
+        item("Gamma", item("Gamma-unique-333")),
+      ),
+      { cols: 120, rows: 25 },
     )
 
-    board.command("cycle_view_mode").command("cycle_view_mode")
+    await app.command("cycle_view_mode")
+    await app.command("cycle_view_mode")
 
     // Rapid switching: Alpha -> Beta -> Gamma -> Beta -> Alpha -> Beta
-    board
-      .command("cursor_right")
-      .command("cursor_right")
-      .command("cursor_left")
-      .command("cursor_left")
-      .command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("cursor_right")
+    await app.command("cursor_left")
+    await app.command("cursor_left")
+    await app.command("cursor_right")
 
-    const screen = board.screenshot()
+    const screen = app.text
     expect(screen).toContain("Beta-unique-222")
     expect(screen).not.toContain("Alpha-unique-111")
     expect(screen).not.toContain("Gamma-unique-333")
