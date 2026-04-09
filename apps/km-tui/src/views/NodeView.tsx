@@ -45,18 +45,18 @@ import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "@silvery/ag-term/ansi"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
-import { ReactiveNodeStoreContext } from "../state/reactive.ts"
+import { NodeStoreContext } from "../state/reactive.ts"
 import { useSignal } from "../hooks/use-signal.ts"
 
 const FALSE_SIGNAL = () => false
 
 /**
  * Read the doneAncestor signal for a node. Returns false when no
- * ReactiveNodeStoreProvider is present (e.g. in unit tests with renderString).
+ * NodeStoreProvider is present (e.g. in unit tests with renderString).
  */
 function useDoneAncestor(nodeId: string): boolean {
-  const store = useContext(ReactiveNodeStoreContext)
-  const sig = (store?.reduced.get(nodeId).doneAncestor as (() => boolean) | undefined) ?? FALSE_SIGNAL
+  const store = useContext(NodeStoreContext)
+  const sig = store?.doneAncestor(nodeId) ?? FALSE_SIGNAL
   return useSignal(sig)
 }
 

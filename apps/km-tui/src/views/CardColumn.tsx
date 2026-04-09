@@ -36,7 +36,7 @@ import {
 } from "../state/ui-context.tsx"
 import { InlineEditField } from "./InlineEditField.tsx"
 import { useRepoEffect } from "../hooks/use-repo-effect.ts"
-import { useNodeStore } from "../state/reactive.ts"
+import { useNodeStore, useTreeNode } from "../state/reactive.ts"
 import { useSignal, useNode, useViewTree, usePaneSignals } from "../hooks/use-signal.ts"
 import { useStore } from "../state/store-context.tsx"
 import { useChildIdsSignal } from "../hooks/use-signal.ts"
@@ -232,7 +232,7 @@ const Card = React.memo(
 
     // Check if this card is part of a multi-selection (Shift+J/K or Shift+H/L).
     // Uses reactive signal (not raw Set) so descendants of selected parents also highlight.
-    const isNodeSelected = useSignal(nodeStore.reduced.get(nodeId).selected)
+    const isNodeSelected = useSignal(useTreeNode(nodeId).selected)
 
     // Compute overflow: check if any children are hidden by maxContentLines.
     // Mirrors TreeNode's logic: check root's direct children AND grandchildren.

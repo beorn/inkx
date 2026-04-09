@@ -13,7 +13,7 @@ import { useModifierKeys, useMouseCursor } from "@silvery/ag-react"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { Workspace, type BoardAppStore } from "../state/board-app-store.ts"
 import { saveNavHistoryFromPane } from "../keyboard/keyboard-helpers.ts"
-import { useNodeStore } from "../state/reactive.ts"
+import { useNodeStore, useTreeNode } from "../state/reactive.ts"
 import { useSignal } from "./use-signal.ts"
 import { usePopover } from "../views/Popover.tsx"
 import { useRepo } from "../repo-context.tsx"
@@ -39,7 +39,7 @@ export function useCardInteraction(nodeId: string, isSelected: boolean): CardInt
   // Centralized hover: per-node reactive signal, debounced at the store level.
   // Only 2 cards re-render per hover change (old clears, new sets).
   const nodeStore = useNodeStore()
-  const hovered = useSignal(nodeStore.reduced.get(nodeId).hovered)
+  const hovered = useSignal(useTreeNode(nodeId).hovered)
 
   // Cmd detection via Kitty keyboard protocol. The store tracks modifier
   // state from all key events, so getSnapshot() returns the current Cmd state

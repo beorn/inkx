@@ -8,7 +8,7 @@
 /* oxlint-disable complexity/max-cognitive, complexity/max-cyclomatic -- React component — JSX conditionals inflate score */
 
 import React, { useCallback, useMemo } from "react"
-import { useNodeStore, type NodeEditState } from "../state/reactive.ts"
+import { useNodeStore, useTreeNode, type NodeEditState } from "../state/reactive.ts"
 import { useSignal, useNode } from "../hooks/use-signal.ts"
 import { renderLog, sid } from "../log.ts"
 import { Box, ErrorBoundary, Link, Text, useScreenRectCallback, useTheme } from "@silvery/ag-react"
@@ -216,7 +216,7 @@ function TreeNodeImpl({
 
   // Per-node state via reactive signals — only this node re-renders when its state changes
   const nodeStore = useNodeStore()
-  const n = nodeStore.reduced.get(node.id)
+  const n = useTreeNode(node.id)
   const isNodeSelected = useSignal(n.selected)
   const editState = useSignal(n.edit)
   const foldOverride = useSignal(n.foldOverride)
@@ -934,8 +934,7 @@ const FoldAwareChild = React.memo(function FoldAwareChild({
   childCount: number
   isBody?: boolean
 }): React.ReactElement {
-  const nodeStore = useNodeStore()
-  const foldOverride = useSignal(nodeStore.reduced.get(node.id).foldOverride)
+  const foldOverride = useSignal(useTreeNode(node.id).foldOverride)
 
   // If this child has an explicit unfold override or is the cursor target,
   // use full TreeNode (cursor can land here via J/K block navigation)
@@ -1017,8 +1016,7 @@ const FoldedChildRow = React.memo(
     const repo = useRepo()
 
     // Read multi-selection signal so grandchildren highlight when parent is selected
-    const nodeStore = useNodeStore()
-    const nf = nodeStore.reduced.get(node.id)
+    const nf = useTreeNode(node.id)
     const isNodeSelected = useSignal(nf.selected)
     const stickyFold = useSignal(nf.sticky)
 
