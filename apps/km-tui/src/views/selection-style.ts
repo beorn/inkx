@@ -56,8 +56,8 @@
  *   fine for the cursor-safe decoration rule above, but it means inconsistent
  *   enforcement: a leaf can hardcode `underlineStyle` and nothing can strip it.
  *
- * - `shouldStripColor` is computed 4 different ways across TreeNode, NodeView,
- *   DetailView, and shared-components. They should share one helper.
+ * - `shouldStripColor` is computed 2 different ways across TreeNode and NodeView.
+ *   They should share one helper.
  *
  * - Hardcoded hex values exist (e.g. `#404050` pill bg in InlineComponents.tsx).
  *   They bypass the theme token system and break dark/light mode consistency.

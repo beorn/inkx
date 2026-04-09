@@ -27,7 +27,7 @@
  * This keeps NodeView testable and avoids coupling to cursor architecture.
  *
  */
-import React from "react"
+import React, { useContext } from "react"
 import { Box, Link, Muted, Text, Small } from "@silvery/ag-react"
 import { KNode } from "@km/core"
 import {
@@ -45,6 +45,20 @@ import type { StatusIcon } from "../text/index.ts"
 import { styledUnderline } from "@silvery/ag-term/ansi"
 import { extractBody } from "@km/tree"
 import { DateBadge, formatSubtaskBadge, stripTaskMark } from "./tree-node-helpers.tsx"
+import { ReactiveNodeStoreContext } from "../state/reactive.ts"
+import { useSignal } from "../hooks/use-signal.ts"
+
+const FALSE_SIGNAL = () => false
+
+/**
+ * Read the doneAncestor signal for a node. Returns false when no
+ * ReactiveNodeStoreProvider is present (e.g. in unit tests with renderString).
+ */
+function useDoneAncestor(nodeId: string): boolean {
+  const store = useContext(ReactiveNodeStoreContext)
+  const sig = (store?.reduced.get(nodeId).doneAncestor as (() => boolean) | undefined) ?? FALSE_SIGNAL
+  return useSignal(sig)
+}
 
 /** Check if two names are slug-equivalent (title→slug dedup).
  * Strips sigil prefixes (@#+ ), lowercases, and normalizes separators.
@@ -226,8 +240,6 @@ export interface NodeLineViewProps {
   node: KNode
   /** Whether this line is the selected/highlighted item */
   isSelected?: boolean
-  /** Whether ancestor is done/dropped (dims the entire line) */
-  ancestorDone?: boolean
   /** Width available for rendering */
   width?: number
   /** Override display name (pre-computed, skips stripTaskMark) */
@@ -240,20 +252,20 @@ export interface NodeLineViewProps {
  * Compact one-line node display: [indent] icon + title (truncated).
  *
  * Used inside cards for subitems, detail panes for child listings,
- * and folder outlines. Pure presentational — no hooks.
- * Status-aware: dims done/dropped items.
+ * and folder outlines. Status-aware: dims done/dropped items and
+ * items with a done ancestor (via doneAncestor signal).
  */
 export function NodeLineView({
   node,
   isSelected = false,
-  ancestorDone = false,
   width,
   displayName,
   indent = 0,
 }: NodeLineViewProps): React.ReactElement {
+  const doneAncestor = useDoneAncestor(node.id)
   const nodeIsTask = KNode.isTask(node)
   const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-  const shouldDim = isDoneOrDropped || ancestorDone
+  const shouldDim = isDoneOrDropped || doneAncestor
 
   // Icon: task status icon for tasks, type icon for non-tasks
   const icon = nodeIsTask
@@ -294,8 +306,6 @@ export interface NodeCardViewProps {
   children: KNode[]
   /** Whether this card is selected */
   isSelected?: boolean
-  /** Whether ancestor is done/dropped */
-  ancestorDone?: boolean
   /** Max number of subitems to show before overflow */
   maxSubitems?: number
   /** Width available for rendering */
@@ -312,22 +322,22 @@ export interface NodeCardViewProps {
  * Card-style node display: icon + title + date badge + N subitems (as lines) + overflow count.
  *
  * Used in board columns. Cross-cutting: isDone/isDropped dims entire card.
- * Pure presentational — no hooks.
+ * Ancestor done state is read from the doneAncestor signal.
  */
 export function NodeCardView({
   node,
   children,
   isSelected = false,
-  ancestorDone = false,
   maxSubitems = 5,
   width,
   isBlocked = false,
   parentContext,
   parentNodeId,
 }: NodeCardViewProps): React.ReactElement {
+  const doneAncestor = useDoneAncestor(node.id)
   const nodeIsTask = KNode.isTask(node)
   const isDoneOrDropped = node.item?.task?.status === "done" || node.item?.task?.status === "dropped"
-  const shouldDim = isDoneOrDropped || ancestorDone
+  const shouldDim = isDoneOrDropped || doneAncestor
 
   // Icon: task status icon for tasks, type icon for non-tasks
   const icon = nodeIsTask
@@ -404,7 +414,7 @@ export function NodeCardView({
       {/* Subitems */}
       {visibleChildren.map((child, i) => (
         <Box key={`${child.id}-${i}`} paddingLeft={1}>
-          <NodeLineView node={child} ancestorDone={shouldDim} />
+          <NodeLineView node={child} />
         </Box>
       ))}
       {/* Overflow indicator */}
