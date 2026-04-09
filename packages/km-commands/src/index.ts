@@ -145,17 +145,10 @@ export {
   inputTypeTextarea,
   // Focus scope predicates
   inScope,
-  // Mode stack predicates
+  // Mode predicates
   inCommandMode,
   inInsertMode,
   inDialog,
-  inDialogSearch,
-  inDialogRename,
-  inDialogConfirm,
-  inDialogNewItem,
-  inDialogPicker,
-  inDialogDatePrompt,
-  inDialogFilter,
 } from "./when.ts"
 
 // Config (types, defaults, I/O, template expansion)

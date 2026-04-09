@@ -139,23 +139,6 @@ export const inInsertMode = when("inInsertMode", (ctx) => ctx.inputMode === "ins
 /** True when any dialog:* mode is active. */
 export const inDialog = when("inDialog", (ctx) => (ctx.inputMode ?? "command").startsWith("dialog:"))
 
-/** True when the search dialog mode is active. */
-export const inDialogSearch = when("inDialogSearch", (ctx) => ctx.inputMode === "dialog:search")
-
-/** True when the rename dialog mode is active. */
-export const inDialogRename = when("inDialogRename", (ctx) => ctx.inputMode === "dialog:rename")
-
-/** True when the confirm dialog mode is active. */
-export const inDialogConfirm = when("inDialogConfirm", (ctx) => ctx.inputMode === "dialog:confirm")
-
-/** True when the new item dialog mode is active. */
-export const inDialogNewItem = when("inDialogNewItem", (ctx) => ctx.inputMode === "dialog:newItem")
-
-/** True when any picker dialog mode is active (project, tag, assignee). */
-export const inDialogPicker = when("inDialogPicker", (ctx) => ctx.inputMode === "dialog:picker")
-
-/** True when the date prompt dialog mode is active. */
-export const inDialogDatePrompt = when("inDialogDatePrompt", (ctx) => ctx.inputMode === "dialog:datePrompt")
-
-/** True when the filter dialog mode is active. */
-export const inDialogFilter = when("inDialogFilter", (ctx) => ctx.inputMode === "dialog:filter")
+// Per-dialog mode predicates (inDialogSearch, inDialogFilter, etc.) were
+// deleted in the inscope-commands + modestack-eliminate refactor. Use
+// inScope("dialog:search"), inScope("dialog:filter"), etc. instead.
