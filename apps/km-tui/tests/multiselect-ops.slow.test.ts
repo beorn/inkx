@@ -18,7 +18,7 @@
 
 import { describe, test, expect } from "vitest"
 import type { KNode } from "@km/core"
-import { testEnv, item } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 
 function childIds(repo: { getChildren(id: string): { id: string }[] }, parentId: string): string[] {
@@ -128,25 +128,24 @@ describe("Multi-select delete", () => {
   })
 
   test("delete card with only empty children reports zero childCount", () => {
-    const { board, store, repo } = testEnv(() =>
+    using app = createTestApp(
       item("board", item("col1", item("parent", item("child1"), item("child2")), item("B"))),
     )
 
     // Clear content from children to make them empty
-    repo.updateNode("child1", { content: undefined })
-    repo.updateNode("child2", { content: undefined })
+    app.repo.updateNode("child1", { content: undefined })
+    app.repo.updateNode("child2", { content: undefined })
 
     // Cursor starts on parent. Press Backspace — triggers confirmation (parent has metadata)
     // but childCount should be 0 since both children are empty.
-    board.press("Backspace")
+    app.press("Backspace")
 
-    const dc = store.getState().ui.deleteConfirm
-    expect(dc).toBeTruthy()
-    expect(dc!.childCount).toBe(0)
+    app.expect("[data-dialog='delete-confirm']").toExist()
+    app.expect("[data-dialog='delete-confirm'][data-child-count='0']").toExist()
   })
 
   test("delete card counts only non-empty children in confirmation", () => {
-    const { board, store, repo } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("parent", item("child1"), item("empty1"), item("empty2"), item("child2")), item("B")),
@@ -154,15 +153,14 @@ describe("Multi-select delete", () => {
     )
 
     // Make 2 of 4 children empty
-    repo.updateNode("empty1", { content: undefined })
-    repo.updateNode("empty2", { content: undefined })
+    app.repo.updateNode("empty1", { content: undefined })
+    app.repo.updateNode("empty2", { content: undefined })
 
     // Cursor starts on parent. Press Backspace — should show confirmation with childCount=2.
-    board.press("Backspace")
+    app.press("Backspace")
 
-    const dc = store.getState().ui.deleteConfirm
-    expect(dc).toBeTruthy()
-    expect(dc!.childCount).toBe(2)
+    app.expect("[data-dialog='delete-confirm']").toExist()
+    app.expect("[data-dialog='delete-confirm'][data-child-count='2']").toExist()
   })
 })
 
