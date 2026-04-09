@@ -155,6 +155,8 @@ export interface KeybindingContext {
   favoritesKeySelected?: boolean
   /** True when the terminal supports the Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
+  /** Active focus scopes from the FocusManager's scope stack */
+  activeScopes?: readonly string[]
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
   inputType?: "field" | "textarea"
   /** Index of the block being edited (0 = title, 1+ = body) */

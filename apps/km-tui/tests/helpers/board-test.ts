@@ -66,7 +66,7 @@ import { createGridNavigator, createViewLens, createVisibleLens } from "@km/boar
 import { RepoProvider } from "../../src/repo-context.tsx"
 import { ensureCommandSystemInitialized } from "../../src/board/command-bridge.ts"
 import { getChordState } from "@km/commands"
-import { resetModeStack } from "../../src/dialog-guard.ts"
+import { resetModeStack, bindFocusManager } from "../../src/dialog-guard.ts"
 import { TreeRenderProvider, deriveTreeConfig } from "../../src/state/ui-context.tsx"
 import { ServicesProvider } from "../../src/services-context.tsx"
 import {
@@ -553,6 +553,10 @@ function createTestRenderEnv(repo: Repo, rootId: string, options?: TestEnvOption
 
   // Create focus manager for focus tree (matches create-app.tsx production setup)
   const focusManager = createFocusManager()
+
+  // Bind the dialog guard to the focus manager so dialog mode stack
+  // delegates to the FocusManager's scope stack (Phase 1 unification).
+  bindFocusManager(focusManager)
 
   // Render BoardApp with StoreContext.Provider for L3 mode.
   // BoardApp handles workspace pane layout (including detail pane rendering)

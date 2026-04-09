@@ -290,6 +290,8 @@ export function buildKeybindingContext(options: {
   favoritesKeySelected?: boolean
   /** True when the terminal supports Kitty keyboard protocol (Cmd key available) */
   hasKitty?: boolean
+  /** Active focus scopes from the FocusManager's scope stack */
+  activeScopes?: readonly string[]
   /** Active input type: "field" for single-line inputs, "textarea" for multi-line (inline edit) */
   inputType?: "field" | "textarea"
   /** Index of the block being edited (0 = title, 1+ = body) */
@@ -333,6 +335,7 @@ export function buildKeybindingContext(options: {
     favoritesDialogOpen: options.favoritesDialogOpen ?? false,
     favoritesKeySelected: options.favoritesKeySelected ?? false,
     hasKitty: options.hasKitty ?? false,
+    activeScopes: options.activeScopes,
     inputType: options.inputType,
     editBlockIndex: options.editBlockIndex,
     cursorAtStart: options.cursorAtStart ?? (() => false),

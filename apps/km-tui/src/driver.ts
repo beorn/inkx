@@ -67,7 +67,7 @@ import { StoreProvider } from "./state/store-context.tsx"
 import { createGridNavigator, createViewLens, createVisibleLens, type GridNavigator } from "@km/board"
 import { buildNodeIndexFromTree, deriveCursorIndices } from "./hooks/use-columns.ts"
 import { ensureCommandSystemInitialized } from "./board/command-bridge.ts"
-import { resetModeStack } from "./dialog-guard.ts"
+import { resetModeStack, bindFocusManager } from "./dialog-guard.ts"
 import {
   createBoardAppStoreState,
   Workspace,
@@ -221,6 +221,10 @@ export function createBoardDriver(repo: Repo, rootId: string, options: CreateBoa
   // the focus manager can be provided via the plugin instead of manual creation.
   // withFocus({ focusManager }) already accepts an external instance.
   const focusManager = createFocusManager()
+
+  // Bind the dialog guard to the focus manager so dialog mode stack
+  // delegates to the FocusManager's scope stack (Phase 1 unification).
+  bindFocusManager(focusManager)
 
   // Create command registry
   const registry = createCommandRegistry()

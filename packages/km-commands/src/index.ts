@@ -143,6 +143,8 @@ export {
   // Input type predicates
   inputTypeField,
   inputTypeTextarea,
+  // Focus scope predicates
+  inScope,
   // Mode stack predicates
   inCommandMode,
   inInsertMode,

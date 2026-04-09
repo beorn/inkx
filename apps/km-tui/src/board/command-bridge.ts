@@ -108,6 +108,7 @@ function buildCommandContexts(ctx: OpCtx) {
     favoritesDialogOpen: ui.showFavoritesDialog,
     favoritesKeySelected: ui.favoritesSelectedKey != null,
     hasKitty: kittySupported,
+    activeScopes: ctx.focusManager.scopeStack,
     inputType: ctx.sel.text() ? "textarea" : dialogInput ? "field" : undefined,
     editBlockIndex: ctx.textEditHints?.blockIndex,
     cursorAtStart() {

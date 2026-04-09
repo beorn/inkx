@@ -66,6 +66,7 @@ function CenterDialog({
   widthFraction = 1 / 2,
   topFraction,
   children,
+  focusScope,
   ...rest
 }: {
   termWidth: number
@@ -75,6 +76,7 @@ function CenterDialog({
   topFraction: number
   children: React.ReactNode
   "data-dialog": string
+  focusScope?: boolean
 }): React.ReactElement {
   const w = Math.min(maxWidth, Math.floor(termWidth * widthFraction))
   return (
@@ -82,6 +84,7 @@ function CenterDialog({
       position="absolute"
       marginLeft={Math.floor((termWidth - w) / 2)}
       marginTop={Math.floor(contentHeight * topFraction)}
+      focusScope={focusScope}
       {...rest}
     >
       {children}
@@ -94,15 +97,17 @@ function TopRightDialog({
   termWidth,
   width,
   children,
+  focusScope,
   ...rest
 }: {
   termWidth: number
   width: number
   children: React.ReactNode
   "data-dialog": string
+  focusScope?: boolean
 }): React.ReactElement {
   return (
-    <Box position="absolute" marginLeft={Math.max(0, termWidth - width)} marginTop={1} {...rest}>
+    <Box position="absolute" marginLeft={Math.max(0, termWidth - width)} marginTop={1} focusScope={focusScope} {...rest}>
       {children}
     </Box>
   )
@@ -291,6 +296,7 @@ export function WorkspaceChrome({
           maxWidth={80}
           topFraction={1 / 2}
           data-dialog="picker"
+          focusScope
         >
           <ItemPicker
             title={pickerConfig[ui.activePicker.type].title}
@@ -318,6 +324,7 @@ export function WorkspaceChrome({
           maxWidth={70}
           topFraction={1 / 3}
           data-dialog="new-item"
+          focusScope
         >
           <CursorAwareNewItemDialog
             onCreate={dialogHandlers.handleNewItemCreate}
@@ -336,6 +343,7 @@ export function WorkspaceChrome({
           widthFraction={2 / 3}
           topFraction={1 / 6}
           data-dialog="search"
+          focusScope
         >
           <SearchDialog
             onSelect={dialogHandlers.handleSearchSelect}
@@ -351,7 +359,7 @@ export function WorkspaceChrome({
       )}
       {/* Filter panel — top-right corner, below top bar */}
       {ui.showFilterDialog && (
-        <TopRightDialog termWidth={termWidth} width={FILTER_PANEL_WIDTH} data-dialog="filter">
+        <TopRightDialog termWidth={termWidth} width={FILTER_PANEL_WIDTH} data-dialog="filter" focusScope>
           <FilterDialog
             filterProperties={ui.filterProperties}
             filterText={ui.filterText}
@@ -375,6 +383,7 @@ export function WorkspaceChrome({
           maxWidth={60}
           topFraction={1 / 3}
           data-dialog="date-prompt"
+          focusScope
         >
           <DatePromptDialog
             field={ui.datePrompt.field}
@@ -395,6 +404,7 @@ export function WorkspaceChrome({
           widthFraction={3 / 4}
           topFraction={1 / 6}
           data-dialog="omnibox"
+          focusScope
         >
           <Omnibox
             onSelect={dialogHandlers.handleOmniboxSelect}
@@ -413,6 +423,7 @@ export function WorkspaceChrome({
           widthFraction={0.6}
           topFraction={1 / 6}
           data-dialog="search-replace"
+          focusScope
         >
           <SearchReplaceDialog
             state={ui.searchReplace}
@@ -430,6 +441,7 @@ export function WorkspaceChrome({
           maxWidth={50}
           topFraction={1 / 4}
           data-dialog="favorites"
+          focusScope
         >
           <FavoritesDialog
             selectedKey={ui.favoritesSelectedKey}

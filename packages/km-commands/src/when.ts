@@ -118,6 +118,14 @@ export const inputTypeField = when("inputTypeField", (ctx) => ctx.inputType === 
 /** True when the active input is a multi-line textarea (Tab = indent) */
 export const inputTypeTextarea = when("inputTypeTextarea", (ctx) => ctx.inputType === "textarea")
 
+// === Focus scope predicates ===
+// These check the activeScopes field populated from the FocusManager's scope stack.
+
+/** True when the given scope ID is in the active focus scope stack. */
+export function inScope(scopeId: string): WhenPredicate {
+  return when(`inScope:${scopeId}`, (ctx) => ctx.activeScopes?.includes(scopeId) ?? false)
+}
+
 // === Mode stack predicates ===
 // These check the inputMode field populated from the ModeStack.
 
