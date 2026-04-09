@@ -1066,7 +1066,26 @@ export function createBoardAppLocals(): BoardAppLocals {
 // Internal helpers
 // =============================================================================
 
+/** Local type alias — works around loggily's `export *` not resolving via tsc bundler mode */
+type SpanLogger = ReturnType<ReturnType<typeof createLogger>["span"]>
+
 const perfLog = createLogger("km:perf")
+
+/**
+ * TODO(km-canonical): Migrate `createBoardApp` to pipe() composition. Currently uses
+ * createApp() with an event handler map, which couples store creation and event wiring.
+ * The pipe() migration would separate these concerns:
+ *   pipe(
+ *     createApp(storeCreator),
+ *     withReact(<BoardApp />),
+ *     withTerminal(process, { mouse, kitty, ... }),
+ *     withFocus(),
+ *     withDomEvents(),
+ *   )
+ * This requires createApp() to support deferred event handler registration
+ * (e.g., via a withEventHandlers() plugin) so term:key/term:mouse/term:resize
+ * handlers can be composed as plugins rather than constructor args.
+ */
 
 /** Pick a subset of keys from an object, returning a new object with only those keys. */
 function pick<T, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> {
