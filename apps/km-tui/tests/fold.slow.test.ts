@@ -1199,9 +1199,9 @@ describe("progressive fold/unfold", () => {
     )
 
   test("initial fold depth: cards render with remainingDepth=2, deepest children folded", () => {
-    const { board } = testEnv(deepTree, { rows: 30 })
+    using app = createTestApp(deepTree(), { rows: 30 })
 
-    const initial = board.screenshot()
+    const initial = app.text
     // remainingDepth={2}: card content visible down to depth 2 from card root
     // Phase 1/2 at depth 1 — visible
     expect(initial).toContain("Phase 1")
@@ -1214,65 +1214,65 @@ describe("progressive fold/unfold", () => {
     expect(initial).not.toContain("subtask-x")
   })
 
-  test("L unfolds per-card depth, eventually revealing deepest children", () => {
+  test("L unfolds per-card depth, eventually revealing deepest children", async () => {
     // Disable incremental check: expanding folded nodes changes tree height,
     // which can cause fresh-render layout drift in silvery
-    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially everything visible down to depth 2, subtask-x hidden
-    expect(board.screenshot()).toContain("Phase 1")
-    expect(board.screenshot()).toContain("Task A")
-    expect(board.screenshot()).not.toContain("subtask-x")
+    expect(app.text).toContain("Phase 1")
+    expect(app.text).toContain("Task A")
+    expect(app.text).not.toContain("subtask-x")
 
     // First L: increases Project foldOverride from inherited 1 → 2 (same as default remainingDepth)
     // No visible change since resolved depth was already 2
-    board.command("unfold_more")
-    expect(board.screenshot()).not.toContain("subtask-x")
+    await app.command("unfold_more")
+    expect(app.text).not.toContain("subtask-x")
 
     // Second L: increases Project foldOverride to 3, Task A gets depth 1, subtask-x visible
-    board.command("unfold_more")
-    expect(board.screenshot()).toContain("subtask-x")
+    await app.command("unfold_more")
+    expect(app.text).toContain("subtask-x")
   })
 
-  test("H folds deepest unfolded level progressively", () => {
+  test("H folds deepest unfolded level progressively", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded. Unfold both levels first.
-    board.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
-    board.command("unfold_more") // unfold Task A
-    expect(board.screenshot()).toContain("subtask-x")
+    await app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
+    await app.command("unfold_more") // unfold Task A
+    expect(app.text).toContain("subtask-x")
 
     // H folds deepest unfolded foldable level (Task A at depth 2)
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("subtask-x")
-    expect(board.screenshot()).toContain("Task A") // still visible, just folded
+    await app.command("fold_more")
+    expect(app.text).not.toContain("subtask-x")
+    expect(app.text).toContain("Task A") // still visible, just folded
 
     // Another H folds Phase 1/2 (depth 1)
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("Task A")
-    expect(board.screenshot()).not.toContain("Task B")
-    expect(board.screenshot()).toContain("Phase 1") // still shows as folded header
+    await app.command("fold_more")
+    expect(app.text).not.toContain("Task A")
+    expect(app.text).not.toContain("Task B")
+    expect(app.text).toContain("Phase 1") // still shows as folded header
 
     // Another H folds Project itself (depth 0)
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("Phase 1")
-    expect(board.screenshot()).toContain("Project") // card title always visible
+    await app.command("fold_more")
+    expect(app.text).not.toContain("Phase 1")
+    expect(app.text).toContain("Project") // card title always visible
   })
 
-  test("L on fully-folded card reveals only one level (progressive disclosure, km-ovuzg)", () => {
+  test("L on fully-folded card reveals only one level (progressive disclosure, km-ovuzg)", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Fold Project completely (3 H presses: depth 2 -> depth 1 -> depth 0)
-    board.command("fold_more") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
-    board.command("fold_more") // fold Project (depth 0)
-    expect(board.screenshot()).not.toContain("Phase 1")
-    expect(board.screenshot()).toContain("Project")
+    await app.command("fold_more") // fold Phase 1/2 (depth 1 — deepest unfolded with children)
+    await app.command("fold_more") // fold Project (depth 0)
+    expect(app.text).not.toContain("Phase 1")
+    expect(app.text).toContain("Project")
 
     // First L: unfold Project — should reveal Phase 1/2 but NOT their children
-    board.command("unfold_more")
-    const afterFirstL = board.screenshot()
+    await app.command("unfold_more")
+    const afterFirstL = app.text
     expect(afterFirstL).toContain("Phase 1")
     expect(afterFirstL).toContain("Phase 2")
     // Phase 1/2's children should be hidden because they were auto-folded
@@ -1281,8 +1281,8 @@ describe("progressive fold/unfold", () => {
     expect(afterFirstL).not.toContain("Task C")
 
     // Second L: unfold Phase 1/2 — should reveal Task A/B/C but NOT subtask-x
-    board.command("unfold_more")
-    const afterSecondL = board.screenshot()
+    await app.command("unfold_more")
+    const afterSecondL = app.text
     expect(afterSecondL).toContain("Task A")
     expect(afterSecondL).toContain("Task B")
     expect(afterSecondL).toContain("Task C")
@@ -1290,47 +1290,47 @@ describe("progressive fold/unfold", () => {
     expect(afterSecondL).not.toContain("subtask-x")
 
     // Third L: unfold Task A — reveals subtask-x
-    board.command("unfold_more")
-    expect(board.screenshot()).toContain("subtask-x")
+    await app.command("unfold_more")
+    expect(app.text).toContain("subtask-x")
   })
 
-  test("L on card with flat children (no grandchildren) reveals all at once", () => {
+  test("L on card with flat children (no grandchildren) reveals all at once", async () => {
     // When children are all leaves, L should show them all — no unnecessary folding
-    const { board } = testEnv(
-      () => item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
+    using app = createTestApp(
+      item("board", item("col1", item.folder("FlatParent", item("child-a"), item("child-b"), item("child-c")))),
       { rows: 30, checkIncremental: false },
     )
 
     // Fold FlatParent
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("child-a")
+    await app.command("fold_more")
+    expect(app.text).not.toContain("child-a")
 
     // Unfold — all children should be visible (they're all leaves)
-    board.command("unfold_more")
-    const after = board.screenshot()
+    await app.command("unfold_more")
+    const after = app.text
     expect(after).toContain("child-a")
     expect(after).toContain("child-b")
     expect(after).toContain("child-c")
   })
 
-  test("H/L round-trip: fold then unfold restores visibility", () => {
+  test("H/L round-trip: fold then unfold restores visibility", async () => {
     // Disable incremental check: fold/unfold changes tree height
-    const { board } = testEnv(deepTree, { rows: 30, checkIncremental: false })
+    using app = createTestApp(deepTree(), { rows: 30, checkIncremental: false })
 
     // Initially Phase 1/2 are folded at depth 1. Unfold first.
-    board.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
-    expect(board.screenshot()).toContain("Task A")
+    await app.command("unfold_more") // unfold Phase 1/2, auto-fold Task A
+    expect(app.text).toContain("Task A")
 
     // H folds the deepest unfolded level (Phase 1/2 at depth 1, since Task A is auto-folded)
-    board.command("fold_more")
-    const folded = board.screenshot()
+    await app.command("fold_more")
+    const folded = app.text
     expect(folded).not.toContain("Task A")
     expect(folded).toContain("Phase 1") // visible but folded
 
     // L unfolds the shallowest fold — Phase 1/2 at depth 1
     // With progressive disclosure, children-with-children (Task A) get auto-folded
-    board.command("unfold_more")
-    const restored = board.screenshot()
+    await app.command("unfold_more")
+    const restored = app.text
     expect(restored).toContain("Phase 1")
     expect(restored).toContain("Task A") // visible but folded (auto-folded by progressive disclosure)
     expect(restored).toContain("Task B") // leaf, always visible
@@ -1762,27 +1762,27 @@ describe("fold depth preservation across zoom", () => {
     expect(board.screenshot()).toContain("child-1")
   })
 
-  test("progressive fold all (< x3) then unfold all (> x3) restores children", () => {
-    const { board } = testEnv(() =>
+  test("progressive fold all (< x3) then unfold all (> x3) restores children", async () => {
+    using app = createTestApp(
       item("board", item("col1", item.folder("P1", item("c1"), item("c2")), item.folder("P2", item("c3")))),
     )
 
-    expect(board.screenshot()).toContain("c1")
-    expect(board.screenshot()).toContain("c3")
+    expect(app.text).toContain("c1")
+    expect(app.text).toContain("c3")
 
     // Fold all progressively
-    board.command("fold_all_more")
-    board.command("fold_all_more")
-    board.command("fold_all_more")
-    expect(board.screenshot()).not.toContain("c1")
-    expect(board.screenshot()).not.toContain("c3")
+    await app.command("fold_all_more")
+    await app.command("fold_all_more")
+    await app.command("fold_all_more")
+    expect(app.text).not.toContain("c1")
+    expect(app.text).not.toContain("c3")
 
     // Unfold all progressively — children should restore
-    board.command("unfold_all_more")
-    board.command("unfold_all_more")
-    board.command("unfold_all_more")
-    expect(board.screenshot()).toContain("c1")
-    expect(board.screenshot()).toContain("c3")
+    await app.command("unfold_all_more")
+    await app.command("unfold_all_more")
+    await app.command("unfold_all_more")
+    expect(app.text).toContain("c1")
+    expect(app.text).toContain("c3")
   })
 
   test("sticky fold survives navigation away and back", () => {
