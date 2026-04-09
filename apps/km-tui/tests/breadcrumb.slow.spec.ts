@@ -21,127 +21,125 @@
 
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 describe("Breadcrumb Navigation Journeys", () => {
-  test("zoom into a card, breadcrumb shows full ancestor path", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Projects", item("Frontend", item("react-app"), item("vue-app")), item("Backend", item("api-server"))),
-        ),
-      { columns: 120, rows: 24 },
+  test("zoom into a card, breadcrumb shows full ancestor path", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Projects", item("Frontend", item("react-app"), item("vue-app")), item("Backend", item("api-server"))),
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // Step 1: Initial breadcrumb shows board
-    const initialTopBar = board.q("#top-bar").textContent()
+    const initialTopBar = app.q("#top-bar").textContent()
     expect(initialTopBar).toContain("board")
 
     // Step 2: Zoom into Frontend (cursor starts on first card)
-    board.command("zoom_inwards")
-    board.expect("#react-app").toExist()
+    await app.command("zoom_inwards")
+    app.expect("#react-app").toExist()
 
     // Step 3: Breadcrumb should show the ancestor path
-    const zoomedTopBar = board.q("#top-bar").textContent()
+    const zoomedTopBar = app.q("#top-bar").textContent()
     expect(zoomedTopBar).toContain("board")
     expect(zoomedTopBar).toContain("Projects")
     expect(zoomedTopBar).toContain("Frontend")
   })
 
-  test("navigate columns with h/l, breadcrumb updates current column", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Inbox", item("msg1"), item("msg2")),
-          item("Projects", item("proj1")),
-          item("Archive", item("old1")),
-        ),
-      { columns: 120, rows: 24 },
+  test("navigate columns with h/l, breadcrumb updates current column", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Inbox", item("msg1"), item("msg2")),
+        item("Projects", item("proj1")),
+        item("Archive", item("old1")),
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // Step 1: Initially on Inbox
-    let topBar = board.q("#top-bar").textContent()
+    let topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Inbox")
 
     // Step 2: Move to Projects column
-    board.command("cursor_right")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("cursor_right")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Projects")
 
     // Step 3: Move to Archive column
-    board.command("cursor_right")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("cursor_right")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Archive")
 
     // Step 4: Move back to Projects
-    board.command("cursor_left")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("cursor_left")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Projects")
     // Should not contain ghost chars from Archive
     expect(topBar).not.toContain("AProjects")
   })
 
-  test("zoom out with Z, breadcrumb reflects parent level", () => {
-    const { board } = testEnv(
-      () => item("board", item("col", item("level1", item("level2", item("deep-a"), item("deep-b"))))),
-      { columns: 120, rows: 24 },
+  test("zoom out with Z, breadcrumb reflects parent level", async () => {
+    using app = createTestApp(
+      item("board", item("col", item("level1", item("level2", item("deep-a"), item("deep-b"))))),
+      { cols: 120, rows: 24 },
     )
 
     // Step 1: Zoom in twice
-    board.command("zoom_inwards") // into level1
-    board.command("zoom_inwards") // into level2
-    board.expect("#deep-a").toExist()
+    await app.command("zoom_inwards") // into level1
+    await app.command("zoom_inwards") // into level2
+    app.expect("#deep-a").toExist()
 
-    let topBar = board.q("#top-bar").textContent()
+    let topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("level2")
 
     // Step 2: Zoom out once
-    board.command("zoom_outwards")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("zoom_outwards")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("level1")
 
     // Step 3: Zoom out again — back to root board
-    board.command("zoom_outwards")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("zoom_outwards")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("board")
-    board.expect("#col").toExist()
+    app.expect("#col").toExist()
   })
 
-  test("long breadcrumb path truncates with ellipsis on narrow terminal", () => {
-    const { board } = testEnv(
-      () =>
+  test("long breadcrumb path truncates with ellipsis on narrow terminal", async () => {
+    using app = createTestApp(
+      item(
+        "VeryLongBoardName",
         item(
-          "VeryLongBoardName",
-          item(
-            "VeryLongColumnName",
-            item("VeryLongSectionName", item("VeryLongSubsection", item("leaf-a"), item("leaf-b"))),
-          ),
+          "VeryLongColumnName",
+          item("VeryLongSectionName", item("VeryLongSubsection", item("leaf-a"), item("leaf-b"))),
         ),
-      { columns: 60, rows: 24 },
+      ),
+      { cols: 60, rows: 24 },
     )
 
     // Step 1: Zoom deep so the full path is longer than 60 chars
-    board.command("zoom_inwards") // into VeryLongSectionName
-    board.command("zoom_inwards") // into VeryLongSubsection
+    await app.command("zoom_inwards") // into VeryLongSectionName
+    await app.command("zoom_inwards") // into VeryLongSubsection
 
     // Step 2: Breadcrumb should truncate with ellipsis
-    const topBar = board.q("#top-bar").textContent()
+    const topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("\u22EF") // ellipsis character
 
     // Step 3: The deepest visible segment should still be present
     expect(topBar).toContain("leaf-a")
   })
 
-  test("breadcrumb path uses > separator for hierarchy within board", () => {
-    const { board } = testEnv(() => item("board", item("col", item("card", item("sub1"), item("sub2")))), {
-      columns: 120,
+  test("breadcrumb path uses > separator for hierarchy within board", async () => {
+    using app = createTestApp(item("board", item("col", item("card", item("sub1"), item("sub2")))), {
+      cols: 120,
       rows: 24,
     })
 
     // Step 1: Navigate to card level
-    board.command("cursor_down")
-    const topBar = board.q("#top-bar").textContent()
+    await app.command("cursor_down")
+    const topBar = app.q("#top-bar").textContent()
 
     // Step 2: Path segments should be separated by >
     expect(topBar).toContain("board")
@@ -150,43 +148,43 @@ describe("Breadcrumb Navigation Journeys", () => {
     expect(topBar).toContain(">")
   })
 
-  test("zoom in, navigate columns, zoom out — breadcrumb stays consistent", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Work", item("Sprint-1", item("feat-a"), item("feat-b")), item("Sprint-2", item("feat-c"))),
-          item("Personal", item("hobby")),
-        ),
-      { columns: 120, rows: 24 },
+  test("zoom in, navigate columns, zoom out — breadcrumb stays consistent", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Work", item("Sprint-1", item("feat-a"), item("feat-b")), item("Sprint-2", item("feat-c"))),
+        item("Personal", item("hobby")),
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // Step 1: Zoom into Work
-    board.command("cursor_up") // to column header
-    board.command("zoom_inwards")
-    board.expect("#Sprint-1").toExist()
+    await app.command("cursor_up") // to column header
+    await app.command("zoom_inwards")
+    app.expect("#Sprint-1").toExist()
 
-    let topBar = board.q("#top-bar").textContent()
+    let topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Work")
 
     // Step 2: Navigate to Sprint-2 column
-    board.command("cursor_right")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("cursor_right")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Sprint-2")
 
     // Step 3: Navigate back to Sprint-1
-    board.command("cursor_left")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("cursor_left")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("Sprint-1")
 
     // Step 4: Zoom out back to root
-    board.command("zoom_outwards")
-    topBar = board.q("#top-bar").textContent()
+    await app.command("zoom_outwards")
+    topBar = app.q("#top-bar").textContent()
     expect(topBar).toContain("board")
-    board.expect("#Work").toExist()
-    board.expect("#Personal").toExist()
+    app.expect("#Work").toExist()
+    app.expect("#Personal").toExist()
   })
 
+  // This test stays on testEnv: uses board.expectNoGhostChars() which is not exposed by createTestApp.
   test("breadcrumb has no ghost characters after rapid navigation", () => {
     const { board } = testEnv(
       () =>

@@ -210,6 +210,8 @@ export interface TestAppOptions {
   checkIncremental?: boolean
   /** Enable incremental rendering (default: true for headless) */
   incremental?: boolean
+  /** Initial view mode (default: "cards") */
+  viewMode?: "cards" | "columns" | "list" | "tabs"
 }
 
 // =============================================================================
@@ -285,6 +287,7 @@ function createHeadlessTestApp(nodes: KNode[], cols: number, rows: number, opts:
     createBoardDriver(repo, boardRootId, {
       columns: cols,
       rows,
+      viewMode: opts.viewMode ?? "cards",
       incremental: opts.incremental !== false,
     }),
     {
@@ -459,6 +462,7 @@ const TERMLESS_SETTLE_MS = 50
 function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts: TestAppOptions): TestApp {
   const boardRootId = nodes[0]!.id
   const repo = createFakeRepo({ nodes })
+  const viewMode = _opts.viewMode ?? "cards"
 
   const initLens = createVisibleLens(createViewLens(repo, { rootId: boardRootId, foldDepths: new Map() }))
   const initColIds = boardRootId ? initLens.children(boardRootId) : []
@@ -487,7 +491,7 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
     initialBoardState: createBoardState(boardRootId, repo.path, collapsedNodeIds),
     initialCursor,
     initialUIState: createInitialUIState({ columns: cols, rows }),
-    initialViewMode: "cards",
+    initialViewMode: viewMode,
     dimensions: { columns: cols, rows },
   }
 
@@ -502,7 +506,7 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number, _opts
           {
             store: reactiveStore,
             children: React.createElement(BoardApp, {
-              initialViewMode: "cards",
+              initialViewMode: viewMode,
               toastQueue,
               navigator,
             }),
