@@ -17,152 +17,136 @@ import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
 import { addHidden, computeHiddenPath, readBoardHidden, isHidden } from "../src/hidden.ts"
 
 describe("P2: Filter feature", () => {
-  test("V toggles filter panel", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs")),
-          item("Notes", item("Meeting notes"), item("Design doc")),
-        ),
-      { columns: 120, rows: 24 },
+  test("V toggles filter panel", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs")),
+        item("Notes", item("Meeting notes"), item("Design doc")),
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // Initially no filter panel
-    let screen = board.screenshot()
-    expect(screen).not.toContain("View Settings")
+    expect(app.text).not.toContain("View Settings")
 
     // Open filter panel with V
-    board.command("filter")
-    screen = board.screenshot()
-    expect(screen).toContain("View Settings")
-    expect(screen).toContain("Status")
-    expect(screen).toContain("Priority")
-    expect(screen).toContain("Due")
+    await app.command("filter")
+    expect(app.text).toContain("View Settings")
+    expect(app.text).toContain("Status")
+    expect(app.text).toContain("Priority")
+    expect(app.text).toContain("Due")
   })
 
-  test("Escape closes filter panel", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
-      columns: 120,
+  test("Escape closes filter panel", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.command("filter")
-    let screen = board.screenshot()
-    expect(screen).toContain("View Settings")
+    await app.command("filter")
+    expect(app.text).toContain("View Settings")
 
-    board.press("Escape")
-    screen = board.screenshot()
-    expect(screen).not.toContain("Status")
+    await app.press("Escape")
+    expect(app.text).not.toContain("Status")
   })
 
-  test("j/k navigates between filter rows", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+  test("j/k navigates between filter rows", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    await app.command("filter")
     // Status is now row 0 (first row) — cursor starts there
-    let screen = board.screenshot()
     // Status row should be active (first row)
-    expect(screen).toContain("Status")
+    expect(app.text).toContain("Status")
 
     // Move down to Priority
-    board.command("cursor_down")
-    screen = board.screenshot()
-    expect(screen).toContain("Priority")
+    await app.command("cursor_down")
+    expect(app.text).toContain("Priority")
 
     // Move down to Due
-    board.command("cursor_down")
-    screen = board.screenshot()
-    expect(screen).toContain("Due")
+    await app.command("cursor_down")
+    expect(app.text).toContain("Due")
 
     // Move back up
-    board.command("cursor_up")
-    screen = board.screenshot()
-    expect(screen).toContain("Priority")
+    await app.command("cursor_up")
+    expect(app.text).toContain("Priority")
   })
 
-  test("Space toggles a filter value", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
-      columns: 120,
+  test("Space toggles a filter value", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"), item("Fix bug"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.command("filter")
+    await app.command("filter")
     // Status is row 0 — cursor starts there
     // Toggle 'todo' on
-    board.command("select_toggle")
-    let screen = board.screenshot()
-    expect(screen).toContain("✓ todo")
+    await app.command("select_toggle")
+    expect(app.text).toContain("✓ todo")
 
     // Toggle it off
-    board.command("select_toggle")
-    screen = board.screenshot()
-    expect(screen).toContain("□ todo")
+    await app.command("select_toggle")
+    expect(app.text).toContain("□ todo")
   })
 
-  test("h/l navigates between values in a row", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+  test("h/l navigates between values in a row", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    await app.command("filter")
     // Status is row 0 — cursor starts there
     // Move right to second value (wip)
-    board.command("cursor_right")
-    board.command("select_toggle") // toggle wip on
-    let screen = board.screenshot()
-    expect(screen).toContain("✓ wip")
+    await app.command("cursor_right")
+    await app.command("select_toggle") // toggle wip on
+    expect(app.text).toContain("✓ wip")
 
     // Move left back to first value (todo)
-    board.command("cursor_left")
-    board.command("select_toggle") // toggle todo on
-    screen = board.screenshot()
-    expect(screen).toContain("✓ todo")
-    expect(screen).toContain("✓ wip")
+    await app.command("cursor_left")
+    await app.command("select_toggle") // toggle todo on
+    expect(app.text).toContain("✓ todo")
+    expect(app.text).toContain("✓ wip")
   })
 
-  test("X clears all filters", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+  test("X clears all filters", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
-    board.command("filter")
+    await app.command("filter")
     // Status is row 0 — cursor starts there
     // Toggle some filters on
-    board.command("select_toggle") // todo on
-    board.command("cursor_right")
-    board.command("select_toggle") // wip on
+    await app.command("select_toggle") // todo on
+    await app.command("cursor_right")
+    await app.command("select_toggle") // wip on
 
-    let screen = board.screenshot()
-    expect(screen).toContain("✓ todo")
-    expect(screen).toContain("✓ wip")
+    expect(app.text).toContain("✓ todo")
+    expect(app.text).toContain("✓ wip")
 
     // Clear all
-    board.command("cycle_task_status")
-    screen = board.screenshot()
-    expect(screen).toContain("□ todo")
-    expect(screen).toContain("□ wip")
+    await app.command("cycle_task_status")
+    expect(app.text).toContain("□ todo")
+    expect(app.text).toContain("□ wip")
   })
 
-  test("filter indicator shows in top bar when filters active", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+  test("filter indicator shows in top bar when filters active", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
     // No filter indicator initially
-    let screen = board.screenshot()
-    expect(screen).not.toContain("[F]")
+    expect(app.text).not.toContain("[F]")
 
     // Open filter — Status is row 0, toggle todo
-    board.command("filter")
-    board.command("select_toggle") // toggle todo on
+    await app.command("filter")
+    await app.command("select_toggle") // toggle todo on
 
     // Close filter panel
-    board.press("Escape")
+    await app.press("Escape")
 
-    screen = board.screenshot()
     // Filter indicator should be visible in top bar
-    expect(screen).toContain("[F]")
-    expect(screen).toContain("todo")
+    expect(app.text).toContain("[F]")
+    expect(app.text).toContain("todo")
   })
 
   test("text filter still works via filterText state", () => {
@@ -234,18 +218,16 @@ describe("P2: Filter feature", () => {
     expect(cardArea).not.toContain("Buy groceries")
   })
 
-  test("V closes filter panel when already open (toggle)", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Buy groceries"))), { columns: 120, rows: 24 })
+  test("V closes filter panel when already open (toggle)", async () => {
+    using app = createTestApp(item("board", item("Tasks", item("Buy groceries"))), { cols: 120, rows: 24 })
 
     // Open
-    board.command("filter")
-    let screen = board.screenshot()
-    expect(screen).toContain("View Settings")
+    await app.command("filter")
+    expect(app.text).toContain("View Settings")
 
     // Close via V again
-    board.command("filter")
-    screen = board.screenshot()
-    expect(screen).not.toContain("Status")
+    await app.command("filter")
+    expect(app.text).not.toContain("Status")
   })
 })
 
