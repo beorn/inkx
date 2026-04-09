@@ -7,9 +7,9 @@
  */
 
 import { describe, test, expect } from "vitest"
+import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
-import { getActiveBoardPane } from "../src/state/board-app-store.ts"
 
 describe("Local Find", () => {
   // ---------------------------------------------------------------------------
@@ -17,27 +17,25 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("/ opens the find bar", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.command("local_find")
-    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
-    expect(getActiveBoardPane(store.getState())!.localSearch?.isInputActive).toBe(true)
-    board.expect("#find-bar").toExist()
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.command("local_find")
+    app.expect("#find-bar").toExist()
+    app.expect("#find-bar[data-input-active]").toExist()
   })
 
   test("Cmd+f opens the find bar", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.press("cmd+f")
-    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
-    expect(getActiveBoardPane(store.getState())!.localSearch?.isInputActive).toBe(true)
-    board.expect("#find-bar").toExist()
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.press("cmd+f")
+    app.expect("#find-bar").toExist()
+    app.expect("#find-bar[data-input-active]").toExist()
   })
 
   test("Escape closes the find bar", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("task1"), item("task2"))))
-    board.command("local_find")
-    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
-    board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
+    using app = createTestApp(item("board", item("col", item("task1"), item("task2"))))
+    app.command("local_find")
+    app.expect("#find-bar").toExist()
+    app.press("Escape")
+    app.expect("#find-bar").not.toExist()
   })
 
   test("find bar disappears from screen after Escape", () => {
@@ -53,17 +51,15 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("typing a query updates match count", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("box"), item("dog"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("box"), item("dog"))))
+    app.command("local_find")
     // Type "ox" — should match "fox" and "box"
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.query).toBe("ox")
-    expect(ls!.matchCount).toBe(2)
-    expect(ls!.matchNodeIds).toContain("fox")
-    expect(ls!.matchNodeIds).toContain("box")
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.expect("#find-bar[data-query='ox']").toExist()
+    app.expect("#find-bar[data-match-count='2']").toExist()
+    // Screen indicator shows "1 of 2"
+    expect(app.text).toContain("1 of 2")
   })
 
   test("match count displays on screen", () => {
@@ -85,16 +81,15 @@ describe("Local Find", () => {
   })
 
   test("search is case-insensitive", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("Alpha"), item("BETA"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("Alpha"), item("BETA"))))
+    app.command("local_find")
     // Type "alp" to match only "Alpha"
-    board.press("a")
-    board.command("cursor_right")
-    board.press("p")
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.matchCount).toBe(1)
-    expect(ls!.matchNodeIds).toContain("Alpha")
+    app.press("a")
+    app.command("cursor_right")
+    app.press("p")
+    app.expect("#find-bar[data-match-count='1']").toExist()
+    // The matched card should have cursor on it (first match auto-selected)
+    app.expect("#Alpha[data-cursor]").toExist()
   })
 
   // ---------------------------------------------------------------------------
@@ -102,25 +97,23 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("typing moves cursor to first match", () => {
-    const { board, store } = testEnv(
-      () => item("board", item("col1", item("apple"), item("banana")), item("col2", item("cherry"), item("apricot"))),
-      { columns: 120 },
+    using app = createTestApp(
+      item("board", item("col1", item("apple"), item("banana")), item("col2", item("cherry"), item("apricot"))),
+      { cols: 120 },
     )
     // Cursor starts on "apple" (first card, first column)
-    board.expectState({ cursor: "apple" })
+    app.expect("#apple[data-cursor]").toExist()
 
-    board.command("local_find")
+    app.command("local_find")
     // Type "ban" — should match only "banana"
-    board.press("b")
-    board.press("a")
-    board.press("n")
+    app.press("b")
+    app.press("a")
+    app.press("n")
 
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.matchCount).toBe(1)
-    expect(ls!.matchNodeIds).toContain("banana")
+    app.expect("#find-bar[data-match-count='1']").toExist()
+    app.expect("#find-bar[data-query='ban']").toExist()
     // Cursor should move to banana
-    board.expectState({ cursor: "banana" })
+    app.expect("#banana[data-cursor]").toExist()
   })
 
   // ---------------------------------------------------------------------------
@@ -128,80 +121,79 @@ describe("Local Find", () => {
   // ---------------------------------------------------------------------------
 
   test("Enter confirms and exits input mode", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"), item("box"))))
+    app.command("local_find")
     // "ox" matches fox and box
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    expect(getActiveBoardPane(store.getState())!.localSearch?.isInputActive).toBe(true)
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.expect("#find-bar[data-input-active]").toExist()
 
-    board.press("Enter")
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.isInputActive).toBe(false)
+    app.press("Enter")
+    app.expect("#find-bar").toExist()
+    app.expect("#find-bar[data-input-active]").not.toExist()
     // Matches should still be stored
-    expect(ls!.matchCount).toBe(2)
+    app.expect("#find-bar[data-match-count='2']").toExist()
   })
 
   test("n navigates to next match after Enter", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"), item("box"))))
+    app.command("local_find")
     // "ox" matches fox (index 0) and box (index 1)
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    board.press("Enter")
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.press("Enter")
 
     // Should be on first match (fox) — matchIndex 0
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(0)
+    app.expect("#find-bar[data-match-index='0']").toExist()
 
     // Press n for next
-    board.press("n")
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
-    board.expectState({ cursor: "box" })
+    app.press("n")
+    app.expect("#find-bar[data-match-index='1']").toExist()
+    app.expect("#box[data-cursor]").toExist()
   })
 
   test("N navigates to previous match after Enter", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"), item("box"))))
+    app.command("local_find")
     // "ox" matches fox (index 0) and box (index 1)
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    board.press("Enter")
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.press("Enter")
 
     // Press N for previous — wraps around to last match
-    board.press("N")
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
-    board.expectState({ cursor: "box" })
+    app.press("N")
+    app.expect("#find-bar[data-match-index='1']").toExist()
+    app.expect("#box[data-cursor]").toExist()
   })
 
   test("n wraps around from last to first match", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"), item("box"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"), item("box"))))
+    app.command("local_find")
     // "ox" matches fox and box (2 matches)
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    board.press("Enter")
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.press("Enter")
 
     // Navigate to last match
-    board.press("n") // index 1 (box)
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(1)
+    app.press("n") // index 1 (box)
+    app.expect("#find-bar[data-match-index='1']").toExist()
 
     // n should wrap to first
-    board.press("n") // index 0 (fox)
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchIndex).toBe(0)
-    board.expectState({ cursor: "fox" })
+    app.press("n") // index 0 (fox)
+    app.expect("#find-bar[data-match-index='0']").toExist()
+    app.expect("#fox[data-cursor]").toExist()
   })
 
   test("Escape after Enter closes find bar entirely", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"))))
-    board.command("local_find")
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    board.press("Enter")
-    expect(getActiveBoardPane(store.getState())!.localSearch).not.toBeNull()
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"))))
+    app.command("local_find")
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.press("Enter")
+    app.expect("#find-bar").toExist()
 
-    board.press("Escape")
-    expect(getActiveBoardPane(store.getState())!.localSearch).toBeNull()
+    app.press("Escape")
+    app.expect("#find-bar").not.toExist()
   })
 
   // ---------------------------------------------------------------------------
@@ -223,20 +215,20 @@ describe("Local Find", () => {
   })
 
   test("clearing query resets match count", () => {
-    const { board, store } = testEnv(() => item("board", item("col", item("fox"), item("dog"))))
-    board.command("local_find")
+    using app = createTestApp(item("board", item("col", item("fox"), item("dog"))))
+    app.command("local_find")
     // "fox" matches only "fox"
-    board.press("f")
-    board.command("insert_below")
-    board.command("toggle_task_done")
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchCount).toBe(1)
+    app.press("f")
+    app.command("insert_below")
+    app.command("toggle_task_done")
+    app.expect("#find-bar[data-match-count='1']").toExist()
 
     // Backspace 3 times to clear
-    board.press("Backspace")
-    board.press("Backspace")
-    board.press("Backspace")
-    expect(getActiveBoardPane(store.getState())!.localSearch?.matchCount).toBe(0)
-    expect(getActiveBoardPane(store.getState())!.localSearch?.query).toBe("")
+    app.press("Backspace")
+    app.press("Backspace")
+    app.press("Backspace")
+    app.expect("#find-bar[data-match-count='0']").toExist()
+    app.expect("#find-bar[data-query='']").toExist()
   })
 
   // ---------------------------------------------------------------------------
@@ -247,29 +239,32 @@ describe("Local Find", () => {
     // Bug: findMatchingNodeIds only walked 2 levels (root → col → card),
     // missing sub-items projected as "subitem" view type under cards.
     // Fix: walk the full visible projection via tree.walkOrder.
-    const { board, store } = testEnv(
-      () => item("board", item("col", item("parent-card", item("deeply-nested-subitem"), item("another-subitem")))),
-      { columns: 120 },
+    using app = createTestApp(
+      item("board", item("col", item("parent-card", item("deeply-nested-subitem"), item("another-subitem")))),
+      { cols: 120 },
     )
-    board.command("local_find")
+    app.command("local_find")
     // Type "nested" — should match "deeply-nested-subitem"
-    board.press("n")
-    board.press("e")
-    board.press("s")
-    board.press("t")
-    board.press("e")
-    board.press("d")
+    app.press("n")
+    app.press("e")
+    app.press("s")
+    app.press("t")
+    app.press("e")
+    app.press("d")
 
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.matchCount).toBe(1)
-    expect(ls!.matchNodeIds).toContain("deeply-nested-subitem")
+    app.expect("#find-bar[data-match-count='1']").toExist()
+    app.expect("#find-bar[data-query='nested']").toExist()
+    // Cursor should move to the matched subitem
+    app.expect("#deeply-nested-subitem[data-cursor]").toExist()
   })
 
   // ---------------------------------------------------------------------------
   // Debounce race — Enter before debounce fires (km-tui.search-debounce-race)
   // ---------------------------------------------------------------------------
 
+  // NOTE: this regression test needs to poke store.setUI() directly to
+  // simulate stale pre-debounce state — that signal has no screen proxy.
+  // Kept on testEnv for the white-box store manipulation.
   test("Enter before debounce flushes pending query and finds matches", () => {
     // Regression for km-tui.search-debounce-race (P1):
     //
@@ -296,20 +291,21 @@ describe("Local Find", () => {
     // This populates both the edit context AND ui.localSearch (act bypass).
     board.command("insert_below")
     board.command("toggle_task_done")
-    expect(getActiveBoardPane(store.getState())!.localSearch?.query).toBe("ox")
 
     // Step 2: force ui.localSearch back to the stale pre-debounce state —
     // empty query, no matches, input still active. The edit context is
     // untouched so it still holds "ox" (the real user input).
     const storeApi = store as unknown as { getState(): { setUI: (p: unknown) => void } }
-    storeApi.getState().setUI({
-      localSearch: {
-        query: "",
-        isInputActive: true,
-        matchIndex: 0,
-        matchCount: 0,
-        matchNodeIds: [],
-      },
+    act(() => {
+      storeApi.getState().setUI({
+        localSearch: {
+          query: "",
+          isInputActive: true,
+          matchIndex: 0,
+          matchCount: 0,
+          matchNodeIds: [],
+        },
+      })
     })
 
     // Step 3: user presses Enter. LOCAL_FIND_CONFIRM must flush the pending
@@ -317,33 +313,26 @@ describe("Local Find", () => {
     // and commit them before flipping isInputActive → false.
     board.press("Enter")
 
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.isInputActive).toBe(false)
-    // Matches MUST have been computed from the flushed query.
-    expect(ls!.query).toBe("ox")
-    expect(ls!.matchCount).toBe(2)
-    expect(ls!.matchNodeIds).toContain("fox")
-    expect(ls!.matchNodeIds).toContain("box")
+    // After the flush, #find-bar should report the real query + 2 matches,
+    // and input is no longer active.
+    board.expect("#find-bar[data-query='ox']").toExist()
+    board.expect("#find-bar[data-match-count='2']").toExist()
+    board.expect("#find-bar[data-input-active]").not.toExist()
   })
 
   test("finds parent cards AND their sub-items for a matching query", () => {
     // Both a card title and its sub-items should be searchable.
-    const { board, store } = testEnv(
-      () => item("board", item("todo", item("buy milk", item("buy eggs"), item("buy bread")), item("walk dog"))),
-      { columns: 120 },
+    using app = createTestApp(
+      item("board", item("todo", item("buy milk", item("buy eggs"), item("buy bread")), item("walk dog"))),
+      { cols: 120 },
     )
-    board.command("local_find")
+    app.command("local_find")
     // "buy" matches: buy milk, buy eggs, buy bread
-    board.press("b")
-    board.press("u")
-    board.press("y")
+    app.press("b")
+    app.press("u")
+    app.press("y")
 
-    const ls = getActiveBoardPane(store.getState())!.localSearch
-    expect(ls).not.toBeNull()
-    expect(ls!.matchCount).toBe(3)
-    expect(ls!.matchNodeIds).toContain("buy milk")
-    expect(ls!.matchNodeIds).toContain("buy eggs")
-    expect(ls!.matchNodeIds).toContain("buy bread")
+    app.expect("#find-bar[data-match-count='3']").toExist()
+    app.expect("#find-bar[data-query='buy']").toExist()
   })
 })
