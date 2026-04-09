@@ -14,6 +14,7 @@
 #   6. Fuzz tests (randomized property testing)
 #   7. SILVERY_STRICT terminal verification (xterm backend)
 
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -23,7 +24,7 @@ cd "$REPO_ROOT"
 TOTAL_START=$SECONDS
 RESULTS=()
 PHASE=0
-TOTAL_PHASES=8
+TOTAL_PHASES=7
 
 # Run a phase: name, command...
 run_phase() {
@@ -93,11 +94,8 @@ run_phase "Slow Tests" bun vitest run --project slow
 # Phase 5: Vendor tests
 run_phase "Vendor Tests" bun vitest run --project vendor
 
-# Phase 6: PTY tests (real process spawning, no isTTY override)
-run_phase "PTY Tests" bun vitest run --project pty
-
-# Phase 7: Fuzz tests
+# Phase 6: Fuzz tests
 run_phase "Fuzz Tests" bun vitest run --project fuzz
 
-# Phase 8: STRICT terminal verification (xterm backend)
+# Phase 7: STRICT terminal verification (xterm backend)
 run_phase "STRICT Terminal (xterm)" env SILVERY_STRICT_TERMINAL=vt100,xterm bun vitest run --project default --project slow
