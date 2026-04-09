@@ -66,5 +66,5 @@ bun km import --help               # Check argument parsing
 
 ## See Also
 
-- [Test layering philosophy](../../../.claude/skills/tests/test-layers.md)
-- [CLI testing skill](../../../.claude/skills/tests/cli.md)
+- [Tests skill](../../../.claude/skills/tests/SKILL.md) — test layering + test-first protocol
+- [Reference](../../../.claude/skills/tests/reference.md#cli-tests-mdspec) — CLI tests (mdspec) + benchmarks

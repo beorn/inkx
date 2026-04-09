@@ -123,6 +123,6 @@ test("quick check: my scenario", async () => {
 
 ## See Also
 
-- [Test layering philosophy](../../../.claude/skills/tests/test-layers.md)
-- [Chaos/fuzz testing](../../../.claude/skills/tests/chaos.md)
-- [Benchmarks](../../../.claude/skills/tests/bench.md)
+- [Tests skill](../../../.claude/skills/tests/SKILL.md) — test layering + test-first protocol
+- [Exploratory](../../../.claude/skills/tests/exploratory.md) — chaos/fuzz testing
+- [Reference](../../../.claude/skills/tests/reference.md#benchmarks-vitest-bench) — benchmarks

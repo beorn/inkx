@@ -81,7 +81,7 @@ are NOT worth abstracting — the abstraction adds more complexity than it saves
 - Add tests for edge cases found during refactoring
 - Add tests for code you changed (prove it still works)
 
-**Rule**: Tests should be at the right layer (see .claude/skills/tests/test-layers.md).
+**Rule**: Tests should be at the right layer (see .claude/skills/tests/SKILL.md).
 Journey tests (user-visible behavior) > unit tests (implementation details).
 
 ### 2. Implement the change

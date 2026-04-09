@@ -179,7 +179,7 @@ Prefer 3-5 step journey tests over many 1-step tests with identical fixtures. Ea
 
 Tests are organized **by domain, not by bug**. Always add to an existing thematic file first.
 
-See the [domain → file mapping](../../../.claude/skills/tests/test-first-protocol.md#domain--file-mapping-km-tui) for the full list.
+See the [tests skill](../../../.claude/skills/tests/SKILL.md) for the full domain → file mapping.
 
 **Anti-pattern**: Creating `fold-border-blank.test.ts` — merge into `fold.slow.test.ts` instead.
 
@@ -298,7 +298,7 @@ mcp__tty__stop()                 # cleanup
 
 ## Buffer Assertions
 
-For rendering bugs, use buffer assertions — not just state checks. See [tui.md](../../../.claude/skills/tests/tui.md#buffer-assertions) for the full method list.
+For rendering bugs, use buffer assertions — not just state checks. See the [tests skill](../../../.claude/skills/tests/SKILL.md#buffer-assertions) for the full method list.
 
 ```typescript
 board.expect("#card-title").toHaveStyle({ color: "cyan" })
@@ -380,7 +380,6 @@ test("board renders correct colors through real terminal", () => {
 
 ## See Also
 
-- [Test layering philosophy](../../../.claude/skills/tests/test-layers.md)
-- [TUI testing skill](../../../.claude/skills/tests/tui.md)
-- [Buffer assertions](../../../.claude/skills/tests/tui.md#buffer-assertions)
-- [Benchmarks](../../../.claude/skills/tests/bench.md)
+- [Tests skill](../../../.claude/skills/tests/SKILL.md) — test-first protocol, test layers, buffer assertions
+- [Reference](../../../.claude/skills/tests/reference.md) — full API, CLI tests (mdspec), benchmarks
+- [Exploratory](../../../.claude/skills/tests/exploratory.md) — TTY MCP visual exploration

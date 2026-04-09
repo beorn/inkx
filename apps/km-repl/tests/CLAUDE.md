@@ -41,4 +41,4 @@ Lightweight (~50ms). Pure state machine tests with inline tree construction. No 
 
 ## See Also
 
-- [Test layering philosophy](../../../.claude/skills/tests/test-layers.md)
+- [Tests skill](../../../.claude/skills/tests/SKILL.md) — test layering + test-first protocol

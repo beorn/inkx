@@ -51,4 +51,4 @@ Moderate cost (~200ms) due to XML parsing and fetch mocking. No real network cal
 
 ## See Also
 
-- [Test layering philosophy](../../../.claude/skills/tests/test-layers.md)
+- [Tests skill](../../../.claude/skills/tests/SKILL.md) — test layering + test-first protocol

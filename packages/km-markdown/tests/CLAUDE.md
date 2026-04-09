@@ -108,4 +108,4 @@ Pure parsing — no database, no framework. These tests are fast (~20-50ms impor
 
 ## See Also
 
-- [Test layering philosophy](../../../.claude/skills/tests/test-layers.md)
+- [Tests skill](../../../.claude/skills/tests/SKILL.md) — test layering + test-first protocol
