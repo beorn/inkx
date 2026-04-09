@@ -20,73 +20,74 @@
 
 import { describe, test, it, expect, beforeAll } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
 // Basic collapse/uncollapse
 // =============================================================================
 
 describe("collapse/uncollapse columns", () => {
-  test("c collapses the current column (regular children)", () => {
-    const { board } = testEnv(() =>
+  test("c collapses the current column (regular children)", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Cursor starts at first card in col1
-    expect(board.q("[data-cursor]").textContent()).toContain("task-a")
+    expect(app.q("[data-cursor]").textContent()).toContain("task-a")
 
     // Press 'c' to collapse col1
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // After collapse, cursor should be on column header (not an invisible card)
-    const collapsed = board.q("[data-collapsed]")
+    const collapsed = app.q("[data-collapsed]")
     expect(collapsed.count()).toBeGreaterThan(0)
 
     // Cursor should be on the collapsed column
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
   })
 
-  test("c on collapsed column uncollapses it", () => {
-    const { board } = testEnv(() =>
+  test("c on collapsed column uncollapses it", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse col1
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
     // Uncollapse col1
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(0)
 
     // Cards should be visible again
-    expect(board.q("[data-cursor]").count()).toBe(1)
+    expect(app.q("[data-cursor]").count()).toBe(1)
   })
 
   // =========================================================================
   // Different column types
   // =========================================================================
 
-  test("c collapses column with file children", () => {
-    const { board } = testEnv(() =>
+  test("c collapses column with file children", async () => {
+    using app = createTestApp(
       item.root("board", item("col-files", item.file("file1"), item.file("file2")), item("col-other", item("task1"))),
     )
 
     // Cursor should be on file1
-    expect(board.q("[data-cursor]").textContent()).toContain("file1")
+    expect(app.q("[data-cursor]").textContent()).toContain("file1")
 
     // Collapse
-    board.command("toggle_collapse")
-    const collapsed = board.q("[data-collapsed]")
+    await app.command("toggle_collapse")
+    const collapsed = app.q("[data-collapsed]")
     expect(collapsed.count()).toBeGreaterThan(0)
 
     // Uncollapse
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(0)
   })
 
-  test("c collapses column with folder children", () => {
-    const { board } = testEnv(() =>
+  test("c collapses column with folder children", async () => {
+    using app = createTestApp(
       item.root(
         "board",
         item("col-folders", item.folder("sub-a", item("item-a")), item.folder("sub-b")),
@@ -95,16 +96,16 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
     // Uncollapse
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(0)
   })
 
-  test("c collapses column with mixed file/folder/task children", () => {
-    const { board } = testEnv(() =>
+  test("c collapses column with mixed file/folder/task children", async () => {
+    using app = createTestApp(
       item.root(
         "board",
         item("col-mixed", item.file("file-a"), item.folder("folder-b"), item("task-c")),
@@ -112,42 +113,42 @@ describe("collapse/uncollapse columns", () => {
       ),
     )
 
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(0)
   })
 
-  test("c collapses column with body content (paragraphs before items)", () => {
-    const { board } = testEnv(() =>
+  test("c collapses column with body content (paragraphs before items)", async () => {
+    using app = createTestApp(
       item.root("board", item("col-body", item.p("intro text"), item("task1")), item("col-other", item("x"))),
     )
 
     // Navigate to col-body body card (intro text)
-    expect(board.q("[data-cursor]").textContent()).toContain("intro text")
+    expect(app.q("[data-cursor]").textContent()).toContain("intro text")
 
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(0)
   })
 
-  test("c collapses empty column", () => {
-    const { board } = testEnv(() => item.root("board", item("empty-col"), item("col-other", item("x"))))
+  test("c collapses empty column", async () => {
+    using app = createTestApp(item.root("board", item("empty-col"), item("col-other", item("x"))))
 
     // Navigate to empty column header
     // First, navigate up to board level
-    board.command("cursor_up")
+    await app.command("cursor_up")
     // Then down to first column header
-    board.command("cursor_down")
+    await app.command("cursor_down")
     // Move right to get to empty-col if needed (depends on initial cursor)
     // Actually let's just go up to board level first then navigate
     // Initial cursor should be on first card which is in col-other (since empty-col has no cards)
 
     // Press c - should work even on columns with no cards
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
     // (empty column collapse behavior - just verifying no crash)
   })
 
@@ -156,41 +157,41 @@ describe("collapse/uncollapse columns", () => {
   // =========================================================================
 
   test("column with km.collapse:: true starts collapsed (narrow rendering)", () => {
-    const { board } = testEnv(() =>
+    using app = createTestApp(
       item.root("board", item("col1 km.collapse:: true", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // col1 with km.collapse:: true should render as a narrow collapsed column
-    const collapsed = board.q("[data-collapsed]")
+    const collapsed = app.q("[data-collapsed]")
     expect(collapsed.count()).toBe(1)
 
     // col1's cards should not be visible (collapsed)
-    expect(board.screenshot()).not.toContain("task-a")
-    expect(board.screenshot()).not.toContain("task-b")
+    expect(app.text).not.toContain("task-a")
+    expect(app.text).not.toContain("task-b")
 
     // col2's cards should be visible
-    expect(board.screenshot()).toContain("task-c")
+    expect(app.text).toContain("task-c")
   })
 
-  test("keypress collapse works as alternative to km.collapse:: true rule", () => {
-    const { board } = testEnv(() =>
+  test("keypress collapse works as alternative to km.collapse:: true rule", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse col1 via keypress
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBeGreaterThan(0)
 
     // Navigate right to col2
-    board.command("cursor_right")
+    await app.command("cursor_right")
 
     // Uncollapse col1: go back left
-    board.command("cursor_left")
-    board.command("toggle_collapse")
+    await app.command("cursor_left")
+    await app.command("toggle_collapse")
 
     // Navigate down into col1
-    board.command("cursor_down")
-    const cursor = board.q("[data-cursor]")
+    await app.command("cursor_down")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-a")
   })
 
@@ -198,8 +199,8 @@ describe("collapse/uncollapse columns", () => {
   // Navigation between collapsed and uncollapsed columns
   // =========================================================================
 
-  test("h/l navigation works between collapsed and uncollapsed columns", () => {
-    const { board } = testEnv(() =>
+  test("h/l navigation works between collapsed and uncollapsed columns", async () => {
+    using app = createTestApp(
       item.root(
         "board",
         item("col1", item("task-a"), item("task-b")),
@@ -209,42 +210,42 @@ describe("collapse/uncollapse columns", () => {
     )
 
     // Collapse col1
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Move right to col2
-    board.command("cursor_right")
-    let cursor = board.q("[data-cursor]")
+    await app.command("cursor_right")
+    let cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-c")
 
     // Move right to col3
-    board.command("cursor_right")
-    cursor = board.q("[data-cursor]")
+    await app.command("cursor_right")
+    cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-d")
 
     // Move left back to col2
-    board.command("cursor_left")
-    cursor = board.q("[data-cursor]")
+    await app.command("cursor_left")
+    cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-c")
 
     // Move left to collapsed col1
-    board.command("cursor_left")
-    cursor = board.q("[data-cursor]")
+    await app.command("cursor_left")
+    cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     // Should be on col1 header (collapsed)
   })
 
-  test("j/k on collapsed column stays on header", () => {
-    const { board } = testEnv(() =>
+  test("j/k on collapsed column stays on header", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse col1
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Try pressing j - should not enter collapsed column
-    board.command("cursor_down")
+    await app.command("cursor_down")
     // Should stay at column header or move to next column
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
   })
 
@@ -252,39 +253,39 @@ describe("collapse/uncollapse columns", () => {
   // Cursor preservation
   // =========================================================================
 
-  test("cursor moves to column header on collapse", () => {
-    const { board } = testEnv(() =>
+  test("cursor moves to column header on collapse", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b"), item("task-c")), item("col2", item("task-d"))),
     )
 
     // Navigate to task-b (second card)
-    board.command("cursor_down")
-    expect(board.q("[data-cursor]").textContent()).toContain("task-b")
+    await app.command("cursor_down")
+    expect(app.q("[data-cursor]").textContent()).toContain("task-b")
 
     // Collapse - cursor should move to column header
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Collapsed column should have cursor
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
     // The cursor element should be on the collapsed column itself
-    const collapsed = board.q("[data-collapsed][data-cursor]")
+    const collapsed = app.q("[data-collapsed][data-cursor]")
     expect(collapsed.count()).toBe(1)
   })
 
-  test("cursor goes to first card on uncollapse", () => {
-    const { board } = testEnv(() =>
+  test("cursor goes to first card on uncollapse", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Collapse
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Uncollapse
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Cursor should be somewhere valid
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
   })
 
@@ -292,33 +293,33 @@ describe("collapse/uncollapse columns", () => {
   // Multiple collapsed columns
   // =========================================================================
 
-  test("multiple columns can be collapsed independently", () => {
-    const { board } = testEnv(() =>
+  test("multiple columns can be collapsed independently", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a")), item("col2", item("task-b")), item("col3", item("task-c"))),
     )
 
     // Collapse col1 (cursor starts on task-a)
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(1)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(1)
 
     // After collapse, cursor is on col1 header. Move right to col2's card
-    board.command("cursor_right")
+    await app.command("cursor_right")
 
     // Collapse col2
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(2)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(2)
 
     // After collapse, cursor on col2 header. Move right to col3
-    board.command("cursor_right")
-    const cursor = board.q("[data-cursor]")
+    await app.command("cursor_right")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("task-c")
 
     // Uncollapse col1: h from col3's card goes to col1 (since col2 is collapsed)
-    board.command("cursor_left")
-    board.command("toggle_collapse") // toggle collapse on whichever column we landed on
+    await app.command("cursor_left")
+    await app.command("toggle_collapse") // toggle collapse on whichever column we landed on
 
     // Should now have fewer collapsed columns
-    const collapsedAfter = board.q("[data-collapsed]").count()
+    const collapsedAfter = app.q("[data-collapsed]").count()
     expect(collapsedAfter).toBeLessThan(2) // at least one was uncollapsed
   })
 
@@ -326,17 +327,17 @@ describe("collapse/uncollapse columns", () => {
   // Virtual body column
   // =========================================================================
 
-  test("c on virtual body column (Description) does not crash", () => {
-    const { board } = testEnv(() => item.root("board", item.p("intro text"), item("col1", item("task-a"))))
+  test("c on virtual body column (Description) does not crash", async () => {
+    using app = createTestApp(item.root("board", item.p("intro text"), item("col1", item("task-a"))))
 
     // Cursor starts on body card ("intro text")
-    expect(board.q("[data-cursor]").textContent()).toContain("intro text")
+    expect(app.q("[data-cursor]").textContent()).toContain("intro text")
 
     // Try to collapse the virtual body column
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Should not crash - cursor should still be valid
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBe(1)
   })
 
@@ -344,30 +345,31 @@ describe("collapse/uncollapse columns", () => {
   // Column header level interactions
   // =========================================================================
 
-  test("c from column header level collapses the column", () => {
-    const { board } = testEnv(() =>
+  test("c from column header level collapses the column", async () => {
+    using app = createTestApp(
       item.root("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"))),
     )
 
     // Navigate to column header (k from first card)
-    board.command("cursor_up")
+    await app.command("cursor_up")
 
     // Collapse from column header
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBeGreaterThan(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBeGreaterThan(0)
   })
 
-  test("c from board level does nothing (no column to collapse)", () => {
-    const { board } = testEnv(() => item.root("board", item("col1", item("task-a")), item("col2", item("task-b"))))
+  test("c from board level does nothing (no column to collapse)", async () => {
+    using app = createTestApp(item.root("board", item("col1", item("task-a")), item("col2", item("task-b"))))
 
     // Navigate to board level
-    board.command("cursor_up").command("cursor_up")
+    await app.command("cursor_up")
+    await app.command("cursor_up")
 
     // Try to collapse from board level - should be a no-op
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Should still be at board level or no crash
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.count()).toBeLessThanOrEqual(1)
   })
 })
@@ -377,25 +379,25 @@ describe("collapse/uncollapse columns", () => {
 // =============================================================================
 
 describe("collapsed column width", () => {
-  it("collapsed column via keypress should be narrow (<=5 chars wide)", () => {
+  it("collapsed column via keypress should be narrow (<=5 chars wide)", async () => {
     // Use wider terminal (120 cols) to avoid silvery EXCESS layout warnings
     // when column widths change during collapse
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2", item("task-c"), item("task-d")),
-          item("col3", item("task-e")),
-        ),
-      { columns: 120, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("task-a"), item("task-b")),
+        item("col2", item("task-c"), item("task-d")),
+        item("col3", item("task-e")),
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // Navigate to col2 and collapse it
-    board.command("cursor_right").command("toggle_collapse")
+    await app.command("cursor_right")
+    await app.command("toggle_collapse")
 
     // The collapsed column should exist and be narrow
-    const collapsed = board.q("[data-collapsed]")
+    const collapsed = app.q("[data-collapsed]")
     expect(collapsed.count()).toBe(1)
 
     const bbox = collapsed.boundingBox()
@@ -404,19 +406,18 @@ describe("collapsed column width", () => {
   })
 
   it("collapsed column via km.collapse:: true rule should be narrow", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("col1", item("task-a"), item("task-b")),
-          item("col2 km.collapse:: true", item("task-c"), item("task-d")),
-          item("col3", item("task-e")),
-        ),
-      { columns: 120, rows: 24 },
+    using app = createTestApp(
+      item(
+        "board",
+        item("col1", item("task-a"), item("task-b")),
+        item("col2 km.collapse:: true", item("task-c"), item("task-d")),
+        item("col3", item("task-e")),
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // km.collapse:: true renders as a narrow collapsed column
-    const collapsed = board.q("[data-collapsed]")
+    const collapsed = app.q("[data-collapsed]")
     expect(collapsed.count()).toBe(1)
 
     const bbox = collapsed.boundingBox()
@@ -424,55 +425,59 @@ describe("collapsed column width", () => {
     expect(bbox!.width).toBeLessThanOrEqual(5)
 
     // col2's cards should not be visible (collapsed)
-    expect(board.screenshot()).not.toContain("task-c")
-    expect(board.screenshot()).not.toContain("task-d")
+    expect(app.text).not.toContain("task-c")
+    expect(app.text).not.toContain("task-d")
 
     // All 3 columns should exist (col2 is collapsed, not hidden)
-    const allColumns = board.q("[data-column]")
+    const allColumns = app.q("[data-column]")
     expect(allColumns.count()).toBe(3)
   })
 
-  it("expanded columns should get more space when sibling is collapsed", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
-      { columns: 80, rows: 24 },
+  it("expanded columns should get more space when sibling is collapsed", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
+      { cols: 80, rows: 24 },
     )
 
     // Get col1 width before collapse
-    const col1Before = board.q("#col1").boundingBox()
+    const col1Before = app.q("#col1").boundingBox()
     expect(col1Before).not.toBeNull()
 
     // Collapse col2
-    board.command("cursor_right").command("toggle_collapse")
+    await app.command("cursor_right")
+    await app.command("toggle_collapse")
 
     // Get col1 width after collapse — should be wider
-    const col1After = board.q("#col1").boundingBox()
+    const col1After = app.q("#col1").boundingBox()
     expect(col1After).not.toBeNull()
     expect(col1After!.width).toBeGreaterThan(col1Before!.width)
   })
 
-  it("incremental render of collapse matches fresh render", () => {
+  it("incremental render of collapse matches fresh render", async () => {
     // Render board and collapse col2 incrementally
-    const { board: incrementalBoard } = testEnv(
-      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
-      { columns: 80, rows: 24, incremental: true },
+    using incApp = createTestApp(
+      item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
+      { cols: 80, rows: 24, incremental: true },
     )
-    incrementalBoard.command("cursor_right").command("toggle_collapse")
-    const incrementalScreenshot = incrementalBoard.screenshot()
+    await incApp.command("cursor_right")
+    await incApp.command("toggle_collapse")
+    const incrementalScreenshot = incApp.text
 
     // Render same board with same collapse, but use fresh (non-incremental) rendering
-    const { board: freshBoard } = testEnv(
-      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
-      { columns: 80, rows: 24, incremental: false },
+    using freshApp = createTestApp(
+      item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
+      { cols: 80, rows: 24, incremental: false },
     )
-    freshBoard.command("cursor_right").command("toggle_collapse")
-    const freshScreenshot = freshBoard.screenshot()
+    await freshApp.command("cursor_right")
+    await freshApp.command("toggle_collapse")
+    const freshScreenshot = freshApp.text
 
     // Both should produce identical output
     expect(incrementalScreenshot).toBe(freshScreenshot)
   })
 
   it("incremental render buffer matches fresh render after collapse", () => {
+    // Uses _result.lastBuffer() / freshRender() — stays on testEnv
     const { board } = testEnv(
       () =>
         item(
@@ -509,22 +514,23 @@ describe("collapsed column width", () => {
     }
   })
 
-  it("collapsed column cards are not visible in rendered output", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
-      { columns: 80, rows: 24 },
+  it("collapsed column cards are not visible in rendered output", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("task-a"), item("task-b")), item("col2", item("task-c"), item("task-d"))),
+      { cols: 80, rows: 24 },
     )
 
     // Verify cards are visible before collapse
-    const beforeScreenshot = board.screenshot()
+    const beforeScreenshot = app.text
     expect(beforeScreenshot).toContain("task-c")
     expect(beforeScreenshot).toContain("task-d")
 
     // Collapse col2
-    board.command("cursor_right").command("toggle_collapse")
+    await app.command("cursor_right")
+    await app.command("toggle_collapse")
 
     // Cards inside collapsed column should NOT be visible
-    const afterScreenshot = board.screenshot()
+    const afterScreenshot = app.text
     expect(afterScreenshot).not.toContain("task-c")
     expect(afterScreenshot).not.toContain("task-d")
 
@@ -536,6 +542,9 @@ describe("collapsed column width", () => {
 
 // =============================================================================
 // Collapsed column border symmetry (km-tui.collapsed-shift)
+//
+// Uses beforeAll with shared board, plus board.expect() / board.press() chained.
+// Kept on testEnv because beforeAll async + using doesn't compose well here.
 // =============================================================================
 
 describe("collapsed column border symmetry", () => {
@@ -616,6 +625,9 @@ describe("collapsed column border symmetry", () => {
 
 // =============================================================================
 // Collapsed column after shift
+//
+// beforeAll-shared env + board.press("opt+l") + _result.lastBuffer() —
+// kept on testEnv.
 // =============================================================================
 
 describe("collapsed column after shift", () => {
@@ -720,30 +732,30 @@ describe("collapsed column after shift", () => {
     }
   })
 
-  test("collapsed column at different positions renders correctly", () => {
-    const { board } = testEnv(
-      () =>
-        item(
-          "board",
-          item("Alpha", item("a1")),
-          item("Beta", item("b1")),
-          item("Gamma", item("c1")),
-          item("Delta", item("d1")),
-        ),
-      { columns: 120, rows: 20 },
+  test("collapsed column at different positions renders correctly", async () => {
+    using app = createTestApp(
+      item(
+        "board",
+        item("Alpha", item("a1")),
+        item("Beta", item("b1")),
+        item("Gamma", item("c1")),
+        item("Delta", item("d1")),
+      ),
+      { cols: 120, rows: 20 },
     )
 
     // Navigate to Beta, collapse it
-    board.command("cursor_right").command("cursor_up")
-    board.expect("#Beta[data-cursor]").toExist()
-    board.command("toggle_collapse")
+    await app.command("cursor_right")
+    await app.command("cursor_up")
+    app.expect("#Beta[data-cursor]").toExist()
+    await app.command("toggle_collapse")
 
     // Shift collapsed Beta right (past Gamma)
-    board.press("opt+l")
-    board.expect("#Beta[data-cursor]").toExist()
+    await app.press("opt+l")
+    app.expect("#Beta[data-cursor]").toExist()
 
     // Verify Beta is still narrow and has proper borders
-    const betaBox = board.screen.nodeBox("Beta")
+    const betaBox = app.screen.nodeBox("Beta")
     expect(betaBox).not.toBeNull()
     if (!betaBox) return
 
@@ -751,8 +763,8 @@ describe("collapsed column after shift", () => {
 
     const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
     for (let y = betaBox.y; y < betaBox.y + betaBox.height; y++) {
-      const leftCell = board.screen.cell(betaBox.x, y)
-      const rightCell = board.screen.cell(betaBox.x + betaBox.width - 1, y)
+      const leftCell = app.screen.cell(betaBox.x, y)
+      const rightCell = app.screen.cell(betaBox.x + betaBox.width - 1, y)
       expect(isBorderChar(leftCell.char), `Row y=${y}: left at x=${betaBox.x} got '${leftCell.char}'`).toBe(true)
       expect(
         isBorderChar(rightCell.char),
@@ -761,9 +773,9 @@ describe("collapsed column after shift", () => {
     }
 
     // Also check visual order: Alpha, Gamma, Beta(collapsed), Delta
-    const alphaBox = board.screen.nodeBox("Alpha")
-    const gammaBox = board.screen.nodeBox("Gamma")
-    const deltaBox = board.screen.nodeBox("Delta")
+    const alphaBox = app.screen.nodeBox("Alpha")
+    const gammaBox = app.screen.nodeBox("Gamma")
+    const deltaBox = app.screen.nodeBox("Delta")
     expect(alphaBox).not.toBeNull()
     expect(gammaBox).not.toBeNull()
     expect(deltaBox).not.toBeNull()
@@ -781,6 +793,7 @@ describe("collapsed column after shift", () => {
 
 describe("uncollapse header rendering", () => {
   // Shared env: Alpha(a1,a2) + Beta(b1), collapse then uncollapse
+  // beforeAll + shared board — kept on testEnv
   describe("Alpha column round-trip (shared env)", () => {
     let board: ReturnType<typeof testEnv>["board"]
     beforeAll(() => {
@@ -805,39 +818,39 @@ describe("uncollapse header rendering", () => {
     })
   })
 
-  test("header row contains column name after uncollapsing", () => {
-    const { board } = testEnv(
-      () => item("board", item("MyColumn", item("task1"), item("task2")), item("Other", item("other1"))),
-      { columns: 80, rows: 20 },
+  test("header row contains column name after uncollapsing", async () => {
+    using app = createTestApp(
+      item("board", item("MyColumn", item("task1"), item("task2")), item("Other", item("other1"))),
+      { cols: 80, rows: 20 },
     )
 
     // Collapse and uncollapse
-    board.command("toggle_collapse")
-    board.expect("#task1").not.toExist()
-    board.command("toggle_collapse")
-    board.expect("#task1").toExist()
+    await app.command("toggle_collapse")
+    app.expect("#task1").not.toExist()
+    await app.command("toggle_collapse")
+    app.expect("#task1").toExist()
 
     // The column box should contain the header name in its first row
-    const colBox = board.screen.nodeBox("MyColumn")
+    const colBox = app.screen.nodeBox("MyColumn")
     expect(colBox).not.toBeNull()
     if (!colBox) return
 
-    const headerRow = board.screen.row(colBox.y)
+    const headerRow = app.screen.row(colBox.y)
     expect(headerRow).toContain("MyColumn")
   })
 
-  test("card count visible in header after uncollapsing", () => {
-    const { board } = testEnv(
-      () => item("board", item("Alpha", item("a1"), item("a2"), item("a3")), item("Beta", item("b1"))),
-      { columns: 80, rows: 20 },
+  test("card count visible in header after uncollapsing", async () => {
+    using app = createTestApp(
+      item("board", item("Alpha", item("a1"), item("a2"), item("a3")), item("Beta", item("b1"))),
+      { cols: 80, rows: 20 },
     )
 
     // Collapse and uncollapse
-    board.command("toggle_collapse")
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // The header should show the card count
-    const screenshot = board.screenshot()
+    const screenshot = app.text
     expect(screenshot).toContain("3") // 3 cards in Alpha column
   })
 })

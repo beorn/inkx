@@ -11,55 +11,56 @@
 
 import { describe, test, expect, vi } from "vitest"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 
 // =============================================================================
 // Bug 1: km-tui.uncollapse-header — repro tests
 // =============================================================================
 
 describe("km-tui.uncollapse-header", () => {
-  test("header row has column name text (not card content) after uncollapse", () => {
-    const { board } = testEnv(() => item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
-      columns: 80,
+  test("header row has column name text (not card content) after uncollapse", async () => {
+    using app = createTestApp(item("board", item("Alpha", item("a1"), item("a2")), item("Beta", item("b1"))), {
+      cols: 80,
       rows: 20,
     })
 
     // Collapse
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Uncollapse
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Get the Alpha column box
-    const colBox = board.screen.nodeBox("Alpha")
+    const colBox = app.screen.nodeBox("Alpha")
     expect(colBox, "Alpha column should be rendered").not.toBeNull()
     if (!colBox) return
 
     // The first row of the column should contain the header name, not a card
-    const headerRow = board.screen.row(colBox.y)
+    const headerRow = app.screen.row(colBox.y)
     expect(headerRow, "Header row should contain 'Alpha'").toContain("Alpha")
 
     // Second row should be separator (dashes)
-    const separatorRow = board.screen.row(colBox.y + 1)
+    const separatorRow = app.screen.row(colBox.y + 1)
     expect(separatorRow, "Row below header should be separator").toContain("─")
   })
 
-  test("header is not rendered as card (no card border chars) after uncollapse", () => {
-    const { board } = testEnv(
-      () => item("board", item("MyCol", item("task1"), item("task2")), item("Other", item("task3"))),
-      { columns: 80, rows: 20 },
+  test("header is not rendered as card (no card border chars) after uncollapse", async () => {
+    using app = createTestApp(
+      item("board", item("MyCol", item("task1"), item("task2")), item("Other", item("task3"))),
+      { cols: 80, rows: 20 },
     )
 
     // Collapse and uncollapse
-    board.command("toggle_collapse")
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Get column position
-    const colBox = board.screen.nodeBox("MyCol")
+    const colBox = app.screen.nodeBox("MyCol")
     expect(colBox).not.toBeNull()
     if (!colBox) return
 
     // Header row should NOT start with card border (╭)
-    const headerRow = board.screen.row(colBox.y)
+    const headerRow = app.screen.row(colBox.y)
     const firstNonSpace = headerRow.trimStart()[0]
     expect(firstNonSpace, "Header should not start with card border char").not.toBe("╭")
 
@@ -67,59 +68,59 @@ describe("km-tui.uncollapse-header", () => {
     expect(headerRow).toContain("MyCol")
   })
 
-  test("cards are rendered below separator after uncollapse", () => {
-    const { board } = testEnv(
-      () => item("board", item("Col1", item("task-x"), item("task-y")), item("Col2", item("task-z"))),
-      { columns: 80, rows: 20 },
+  test("cards are rendered below separator after uncollapse", async () => {
+    using app = createTestApp(
+      item("board", item("Col1", item("task-x"), item("task-y")), item("Col2", item("task-z"))),
+      { cols: 80, rows: 20 },
     )
 
     // Collapse and uncollapse
-    board.command("toggle_collapse")
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Card content should be visible
-    board.expectScreen("task-x")
-    board.expectScreen("task-y")
+    app.expectScreen("task-x")
+    app.expectScreen("task-y")
 
     // Find the separator and card rows
-    const colBox = board.screen.nodeBox("Col1")
+    const colBox = app.screen.nodeBox("Col1")
     expect(colBox).not.toBeNull()
     if (!colBox) return
 
     // First card should be below the header + separator (at least y+2)
-    const taskBox = board.screen.nodeBox("task-x")
+    const taskBox = app.screen.nodeBox("task-x")
     expect(taskBox, "task-x should be rendered").not.toBeNull()
     if (!taskBox) return
     expect(taskBox.y).toBeGreaterThanOrEqual(colBox.y + 2)
   })
 
-  test("uncollapse works after navigating to another column and back", () => {
-    const { board } = testEnv(() => item("board", item("Left", item("l1"), item("l2")), item("Right", item("r1"))), {
-      columns: 80,
+  test("uncollapse works after navigating to another column and back", async () => {
+    using app = createTestApp(item("board", item("Left", item("l1"), item("l2")), item("Right", item("r1"))), {
+      cols: 80,
       rows: 20,
     })
 
     // Collapse Left
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(1)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(1)
 
     // Navigate to Right column
-    board.command("cursor_right")
-    expect(board.q("[data-cursor]").textContent()).toContain("r1")
+    await app.command("cursor_right")
+    expect(app.q("[data-cursor]").textContent()).toContain("r1")
 
     // Navigate back to collapsed Left
-    board.command("cursor_left")
+    await app.command("cursor_left")
 
     // Uncollapse
-    board.command("toggle_collapse")
-    expect(board.q("[data-collapsed]").count()).toBe(0)
+    await app.command("toggle_collapse")
+    expect(app.q("[data-collapsed]").count()).toBe(0)
 
     // Header should be visible
-    board.expectScreen("Left")
+    app.expectScreen("Left")
 
     // Navigate down to first card
-    board.command("cursor_down")
-    expect(board.q("[data-cursor]").textContent()).toContain("l1")
+    await app.command("cursor_down")
+    expect(app.q("[data-cursor]").textContent()).toContain("l1")
   })
 })
 
@@ -128,65 +129,60 @@ describe("km-tui.uncollapse-header", () => {
 // =============================================================================
 
 describe("km-tui.collapsed-shift", () => {
-  test("collapsed column starts at x=0 (no left margin shift) in 2-column board", () => {
-    const { board } = testEnv(() => item("board", item("First", item("f1"), item("f2")), item("Second", item("s1"))), {
-      columns: 80,
+  test("collapsed column starts at x=0 (no left margin shift) in 2-column board", async () => {
+    using app = createTestApp(item("board", item("First", item("f1"), item("f2")), item("Second", item("s1"))), {
+      cols: 80,
       rows: 20,
     })
 
     // Collapse first column
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // The collapsed column should start at x=1 (left overflow indicator occupies x=0)
-    const collapsedBox = board.q("[data-collapsed]").boundingBox()
+    const collapsedBox = app.q("[data-collapsed]").boundingBox()
     expect(collapsedBox).not.toBeNull()
     expect(collapsedBox!.x, "Collapsed column should start at x=1 (after left overflow indicator)").toBe(1)
   })
 
-  test("collapsed column width is exactly COLLAPSED_WIDTH=3", () => {
-    const { board } = testEnv(() => item("board", item("Todo", item("t1")), item("Done", item("d1"))), {
-      columns: 80,
-      rows: 20,
-    })
+  test("collapsed column width is exactly COLLAPSED_WIDTH=3", async () => {
+    using app = createTestApp(item("board", item("Todo", item("t1")), item("Done", item("d1"))), { cols: 80, rows: 20 })
 
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
-    const collapsedBox = board.q("[data-collapsed]").boundingBox()
+    const collapsedBox = app.q("[data-collapsed]").boundingBox()
     expect(collapsedBox).not.toBeNull()
     expect(collapsedBox!.width, "Collapsed column width should be 3").toBe(3)
   })
 
-  test("expanded column starts right after collapsed column + separator", () => {
-    const { board } = testEnv(() => item("board", item("ColA", item("a1")), item("ColB", item("b1"))), {
-      columns: 80,
-      rows: 20,
-    })
+  test("expanded column starts right after collapsed column + separator", async () => {
+    using app = createTestApp(item("board", item("ColA", item("a1")), item("ColB", item("b1"))), { cols: 80, rows: 20 })
 
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // ColA collapsed at x=0, width=3
     // Separator at x=3, width=1
     // ColB should start at x=4
-    const colBBox = board.screen.nodeBox("ColB")
+    const colBBox = app.screen.nodeBox("ColB")
     expect(colBBox).not.toBeNull()
     expect(colBBox!.x, "Expanded column should start at collapsed_width + separator = 4").toBe(4)
   })
 
-  test("collapsed column in middle position has symmetric borders", () => {
+  test("collapsed column in middle position has symmetric borders", async () => {
     // Suppress [EXCESS] silvery layout warnings — column collapse/resize triggers
     // transient layout overflow that is unrelated to border rendering correctness
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {})
     try {
-      const { board } = testEnv(
-        () => item("board", item("Left", item("l1")), item("Middle", item("m1")), item("Right", item("r1"))),
-        { columns: 80, rows: 20 },
+      using app = createTestApp(
+        item("board", item("Left", item("l1")), item("Middle", item("m1")), item("Right", item("r1"))),
+        { cols: 80, rows: 20 },
       )
 
       // Navigate to middle column and collapse
-      board.command("cursor_right").command("toggle_collapse")
+      await app.command("cursor_right")
+      await app.command("toggle_collapse")
 
       // Find collapsed column
-      const collapsed = board.q("[data-collapsed]")
+      const collapsed = app.q("[data-collapsed]")
       expect(collapsed.count()).toBe(1)
       const collapsedBox = collapsed.boundingBox()
       expect(collapsedBox).not.toBeNull()
@@ -195,8 +191,8 @@ describe("km-tui.collapsed-shift", () => {
       // Check borders on all rows
       const isBorderChar = (c: string) => "│┌┐└┘├┤┬┴╭╮╯╰".includes(c)
       for (let y = collapsedBox.y; y < collapsedBox.y + collapsedBox.height; y++) {
-        const leftCell = board.screen.cell(collapsedBox.x, y)
-        const rightCell = board.screen.cell(collapsedBox.x + collapsedBox.width - 1, y)
+        const leftCell = app.screen.cell(collapsedBox.x, y)
+        const rightCell = app.screen.cell(collapsedBox.x + collapsedBox.width - 1, y)
         expect(
           isBorderChar(leftCell.char),
           `Row ${y}: left border at x=${collapsedBox.x} should be border char, got '${leftCell.char}'`,
@@ -214,6 +210,9 @@ describe("km-tui.collapsed-shift", () => {
 
 // =============================================================================
 // Bug 3: km-tui.card-border-missing — repro tests
+//
+// These tests use expectNodeBorder (not supported in createTestApp), so they
+// remain on testEnv.
 // =============================================================================
 
 describe("km-tui.card-border-missing", () => {
@@ -244,16 +243,16 @@ describe("km-tui.card-border-missing", () => {
     board.expectNodeBorder("narrow-task")
   })
 
-  test("selected card visible after scrolling through many cards", () => {
+  test("selected card visible after scrolling through many cards", async () => {
     const items = Array.from({ length: 10 }, (_, i) => item(`card-${i}`))
-    const { board } = testEnv(() => item("board", item("BigCol", ...items)), { columns: 80, rows: 15 })
+    using app = createTestApp(item("board", item("BigCol", ...items)), { cols: 80, rows: 15 })
 
     // Navigate to a card near the middle
-    for (let i = 0; i < 5; i++) board.command("cursor_down")
+    for (let i = 0; i < 5; i++) await app.command("cursor_down")
 
     // card-5 is now selected and should have [data-cursor]
-    board.expect("#card-5[data-cursor]").toExist()
-    board.expectScreen("card-5")
+    app.expect("#card-5[data-cursor]").toExist()
+    app.expectScreen("card-5")
   })
 
   test("structural cards always have borders regardless of selection", () => {
@@ -308,6 +307,7 @@ describe("km-tui.card-border-missing", () => {
 
 // =============================================================================
 // Edge cases: uncollapse header
+// Tests using _result.lastBuffer() / freshRender() stay on testEnv.
 // =============================================================================
 
 describe("uncollapse header edge cases", () => {
@@ -336,40 +336,40 @@ describe("uncollapse header edge cases", () => {
     }
   })
 
-  test("multiple collapse/uncollapse cycles keep header visible", () => {
-    const { board } = testEnv(() => item("board", item("Cycle", item("c1"), item("c2")), item("Other", item("o1"))), {
-      columns: 80,
+  test("multiple collapse/uncollapse cycles keep header visible", async () => {
+    using app = createTestApp(item("board", item("Cycle", item("c1"), item("c2")), item("Other", item("o1"))), {
+      cols: 80,
       rows: 20,
     })
 
     for (let i = 0; i < 5; i++) {
-      board.command("toggle_collapse") // collapse
-      board.command("toggle_collapse") // uncollapse
+      await app.command("toggle_collapse") // collapse
+      await app.command("toggle_collapse") // uncollapse
     }
 
     // Header should still be visible after many cycles
-    board.expectScreen("Cycle")
-    board.expectScreen("c1")
+    app.expectScreen("Cycle")
+    app.expectScreen("c1")
   })
 
-  test("uncollapse column after manual collapse shows header", () => {
-    const { board } = testEnv(
-      () => item("board", item("ColToCollapse", item("p1"), item("p2")), item("Normal", item("n1"))),
-      { columns: 80, rows: 20 },
+  test("uncollapse column after manual collapse shows header", async () => {
+    using app = createTestApp(
+      item("board", item("ColToCollapse", item("p1"), item("p2")), item("Normal", item("n1"))),
+      { cols: 80, rows: 20 },
     )
 
     // Navigate to first column and collapse it via v c chord
-    board.command("cursor_left") // move to ColToCollapse column
-    board.command("toggle_collapse") // collapse
+    await app.command("cursor_left") // move to ColToCollapse column
+    await app.command("toggle_collapse") // collapse
 
     // Column should now be collapsed
-    expect(board.q("[data-collapsed]").count()).toBe(1)
+    expect(app.q("[data-collapsed]").count()).toBe(1)
 
     // Uncollapse via v c chord
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
 
     // Header should be visible after uncollapse
-    board.expectScreen("ColToCollapse")
+    app.expectScreen("ColToCollapse")
   })
 
   test("uncollapse incremental buffer matches fresh after collapse/uncollapse — km-tui.uncollapse-header", () => {
@@ -412,24 +412,24 @@ describe("uncollapse header edge cases", () => {
 // =============================================================================
 
 describe("collapsed column shift edge cases", () => {
-  test("two collapsed columns side by side have correct positions", () => {
-    const { board } = testEnv(
-      () => item("board", item("A", item("a1")), item("B", item("b1")), item("C", item("c1"))),
-      { columns: 80, rows: 20 },
-    )
+  test("two collapsed columns side by side have correct positions", async () => {
+    using app = createTestApp(item("board", item("A", item("a1")), item("B", item("b1")), item("C", item("c1"))), {
+      cols: 80,
+      rows: 20,
+    })
 
     // Collapse A
-    board.command("toggle_collapse")
+    await app.command("toggle_collapse")
     // Navigate to B and collapse
-    board.command("cursor_right")
-    board.command("toggle_collapse")
+    await app.command("cursor_right")
+    await app.command("toggle_collapse")
 
     // Two collapsed columns
-    expect(board.q("[data-collapsed]").count()).toBe(2)
+    expect(app.q("[data-collapsed]").count()).toBe(2)
 
     // Find both collapsed column boxes
-    const aBox = board.screen.nodeBox("A")
-    const bBox = board.screen.nodeBox("B")
+    const aBox = app.screen.nodeBox("A")
+    const bBox = app.screen.nodeBox("B")
     expect(aBox).not.toBeNull()
     expect(bBox).not.toBeNull()
     if (!aBox || !bBox) return
@@ -440,20 +440,20 @@ describe("collapsed column shift edge cases", () => {
     expect(bBox.x).toBe(aBox.x + aBox.width)
   })
 
-  test("collapsed column with 3+ columns: middle collapsed maintains position", () => {
-    const { board } = testEnv(
-      () => item("board", item("Left", item("l1")), item("Mid", item("m1")), item("Right", item("r1"))),
-      { columns: 120, rows: 20 },
+  test("collapsed column with 3+ columns: middle collapsed maintains position", async () => {
+    using app = createTestApp(
+      item("board", item("Left", item("l1")), item("Mid", item("m1")), item("Right", item("r1"))),
+      { cols: 120, rows: 20 },
     )
 
     // Navigate to Mid, collapse it
-    board.command("cursor_right")
-    board.command("toggle_collapse")
+    await app.command("cursor_right")
+    await app.command("toggle_collapse")
 
     // Find the Right column
-    const rightBox = board.screen.nodeBox("Right")
-    const midBox = board.screen.nodeBox("Mid")
-    const leftBox = board.screen.nodeBox("Left")
+    const rightBox = app.screen.nodeBox("Right")
+    const midBox = app.screen.nodeBox("Mid")
+    const leftBox = app.screen.nodeBox("Left")
     expect(leftBox).not.toBeNull()
     expect(midBox).not.toBeNull()
     expect(rightBox).not.toBeNull()
@@ -470,6 +470,7 @@ describe("collapsed column shift edge cases", () => {
 
 // =============================================================================
 // Edge cases: card border missing
+// Tests using expectNodeBorder / _result.lastBuffer() stay on testEnv.
 // =============================================================================
 
 describe("card border missing edge cases", () => {
