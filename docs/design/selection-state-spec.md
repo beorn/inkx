@@ -2,6 +2,24 @@
 
 Defines the 5 state concepts that govern cursor, selection, editing, focus scoping, and visual treatment in km-tui. Implementation reference for `km-tui.focus` epic and `km-tui.hierarchical-node-state`.
 
+## Core Principle: TEA Owns All Input
+
+**TEA (the centralized command system) dispatches ALL keyboard input.** Components never directly intercept stdin. Focus scopes tell TEA which subtree is active so it can resolve the right commands — they don't capture keys.
+
+```
+terminal input → parser → TEA command system
+  → resolves command: key + mode + focus context (which scope is active)
+  → dispatches to handler (board-actions, dialog, text editor)
+  → unhandled keys bubble up through focus scopes → root = global commands
+```
+
+- **Commands** are centralized: keybinding registry, introspectable (help, which-key, command palette)
+- **Focus scopes** provide context: "this dialog is active" → dialog commands available
+- **`when()` predicates** gate commands: `when: inDialogScope` replaces `when: dialogOpen`
+- **`onKeyDown` on Box** is a low-level escape hatch, NOT the primary input model
+
+This matches VS Code: commands are centralized, `when` clauses determine availability based on context, components receive actions — they never listen for raw keys.
+
 ## The 5 Concepts
 
 These are SEPARATE even when the UX feels unified.
