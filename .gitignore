@@ -76,3 +76,4 @@ benchmarks/results/.last-phases.json
 .editsets/
 editset.json
 .claude/worktrees/
+.claude/scheduled_tasks.lock
