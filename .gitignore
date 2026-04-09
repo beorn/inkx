@@ -68,6 +68,10 @@ imports/
 # Playwright CLI session data (logs, page dumps)
 .playwright-cli/
 
+# Benchmark marker (touched by `bun bench`)
+benchmarks/results/.last-bench
+benchmarks/results/.last-phases.json
+
 # Batch refactor tool editsets
 .editsets/
 editset.json
