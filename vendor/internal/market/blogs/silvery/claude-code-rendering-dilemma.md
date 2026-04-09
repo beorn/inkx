@@ -4,6 +4,18 @@ description: "Why Claude Code flickers, why NO_FLICKER mode loses scrollback, an
 date: 2026-04-02
 ---
 
+> **⚠️ DRAFT — NEEDS FACT-CHECK BEFORE PUBLISHING**
+>
+> GPT-5.4 Pro review (2026-04-09) identified overclaims in the original "three axes of atomicity" framing. Key corrections applied:
+> - ~~"Ink doesn't use synchronized output"~~ → Ink 7 DOES use DEC 2026
+> - ~~"React fiber yields between Yoga and commit"~~ → Ink's commit IS synchronous
+> - ~~"Ink renders at width:0 for all components"~~ → only for measurement-dependent components (useBoxMetrics)
+> - Claude Code's missing-component issue is likely their custom incremental renderer, not Ink's pipeline
+>
+> What IS defensible: layout-first (useBoxRect vs useBoxMetrics two-pass) + direct-to-buffer rendering (no string→cell reconstruction).
+>
+> See bead `km-silvery.positioning` for full analysis. Pro review output at `/tmp/pro-blog-review-v2.md`.
+
 # Claude Code's Rendering Dilemma
 
 Claude Code just [shipped NO_FLICKER mode](https://x.com/bcherny/status/2039421575422980329) — an experimental renderer that switches to the alternate screen buffer to eliminate terminal flickering. It's the latest move in a long engineering effort:
@@ -106,82 +118,52 @@ Silvery has this architecture ready from day 1. It rests on a four-step dependen
 
 **Step 1: Cell-level buffer.** Instead of building strings, Silvery maintains a 2D grid where each cell tracks: character, foreground color, background color, attributes (bold, underline, etc.), and wide-character flags. This is the same model a terminal emulator uses internally — it gives us parity with terminal capabilities.
 
-**Step 2: Atomic layout-first pipeline.** This is the fundamental architectural split — and the single most important one in this entire post.
+**Step 2: Layout-first rendering.** This is the most important architectural difference.
 
-The core property Silvery has and Ink doesn't is **frame atomicity**: a frame is either fully committed or not at all. There are no intermediate states between "old frame" and "new frame" that a user, a terminal, or a scroll event can observe.
+Ink's measurement APIs — `measureElement()` and `useBoxMetrics()` — are post-layout. They return `{width: 0, height: 0}` during render and only provide real values after the first layout pass completes, updated via `useEffect`. Components that need their dimensions to decide what to render (truncating text, choosing a compact layout, fitting columns) must render twice: once with zeros, then again with real values. Each render produces a separate frame to the terminal.
 
-Ink's pipeline is non-atomic at three levels simultaneously:
+This matters most during scroll, when the virtualization window changes. Newly visible components enter the viewport, each going through the two-pass cycle. The first frame for each has wrong dimensions. Under rapid scrolling, many components cycle through this simultaneously, producing visible layout shift.
 
-**1. Non-atomic in time.** React's fiber reconciler can interrupt and resume work across multiple microtasks. Between "start rendering this tree" and "finish rendering this tree," other work can run. Output can paint. Input can arrive. State can mutate. When the resume finally happens, the world has moved on — the tree you're committing no longer matches the state it was reading from.
+Silvery inverts the order: [Flexily](https://beorn.codes/flexily) (pure TypeScript flexbox) computes the full layout tree **before** React renders anything. When a component calls `useBoxRect()`, it gets final dimensions on the first pass. One render, one frame, correct layout. No second pass needed.
 
-**2. Non-atomic in space.** Render-first, layout-second means a parent computes its render output (at `width: 0`), passes props to children, children render, layout runs, parent re-renders with real width, children re-render — but these re-renders propagate one level at a time. At any given moment, some parts of the tree are at "pre-layout state" and others are at "post-layout state." A scroll container's header can show the new layout while its body still shows the old. A list's container can be the new width while its items are still at the old width.
+```tsx
+// Ink: useBoxMetrics returns 0×0 on first render, updates via effect
+function Card() {
+  const ref = useRef(null)
+  const { width, hasMeasured } = useBoxMetrics(ref)
+  if (!hasMeasured) return <Box ref={ref}><Text>Loading...</Text></Box>
+  return <Box ref={ref}><Text>{truncate(title, width)}</Text></Box>
+}
 
-**3. Non-atomic in content.** Output emission streams cells to the terminal without wrapping in a synchronized-output barrier. The terminal can paint mid-emission, showing half the new frame over the other half of the old frame. In inline mode this is flicker; in alt-screen mode it's stuttering, tearing, and blank cells that appear for one frame then vanish.
+// Silvery: useBoxRect returns actual dimensions immediately
+function Card() {
+  const { width } = useBoxRect()
+  return <Text>{truncate(title, width)}</Text>
+}
+```
 
-The render-first/layout-second dance is just **one visible symptom** of non-atomic space:
+### Why Claude Code's NO_FLICKER mode still has rendering issues
 
-1. React renders component at `width: 0` — content collapses
-2. Yoga measures
-3. React re-renders with real width — content appears
-4. Paint
+Claude Code's v2.1.89 introduced inline scrollback support alongside the alt-screen NO_FLICKER mode. Users report components appearing and disappearing during scroll, and blank cells in the middle of conversations (#41965, 1000+ upvotes).
 
-If paint catches step 3 before its re-render completes, you see step 1's broken state. But even if you "fix" this one dance, non-atomicity in time and content will still leak. A pipeline that isn't atomic in all three dimensions will always have observable intermediate states.
+The two-pass measurement issue above is one factor — any measurement-dependent component briefly renders with wrong dimensions. But the more likely culprit for **components being completely missing** is Claude Code's custom incremental rendering system.
 
-This is why Claude Code's alt-screen NO_FLICKER mode still stutters. Alt-screen fixes the inline clear-and-redraw flicker, but it doesn't make rendering atomic. Components still flash in and out on scroll, half-update across frames, and reveal/hide inconsistently — because the underlying pipeline still violates all three atomicity dimensions. **This cannot be fixed with a renderer rewrite. It requires changing how the whole pipeline commits work.**
+Claude Code forked Ink and built a cell-level buffer + diff engine on top. The pipeline is roughly: React renders → Ink generates string output → custom layer reconstructs a cell buffer from those strings → diffs new buffer vs previous → emits only changed cells.
 
-Silvery's pipeline is atomic in all three dimensions:
+That reconstruction step is where things can go wrong under scroll. When the viewport shifts, every cell changes position. The diff compares the new buffer against the previous one, but if the reconstruction or position mapping is even slightly off — an off-by-one in the scrolled region, a stale reference after a resize, a mismatch between what Ink rendered and what the buffer parser sees — the diff concludes "these cells haven't changed" and doesn't emit them. The component is there in React's tree, but it never reaches the terminal.
 
-**Atomic in time:** `layout → render → diff → output` is a single synchronous transaction per frame. React's concurrent mode cannot interrupt it. When a frame starts committing, it completes committing before any other work runs.
+This is a hard class of bugs to fix because the diff and the renderer are separate systems with separate models of what's on screen. Any disagreement between them produces missing or duplicated content.
 
-**Atomic in space:** [Flexily](https://beorn.codes/flexily) computes the full layout tree before React renders anything. When a component renders, `useBoxRect()` returns the same layout values for every component in the tree, sampled at the same moment. No part of the tree is ever at a different layout state than another part. Children always see consistent parent dimensions because the layout was computed once, up front, for the whole tree.
+### How Silvery avoids this
 
-**Atomic in content:** Every frame emission is wrapped in DEC mode 2026 (synchronized output bracketing). The terminal either sees the full new frame or the full old frame — never a half-drawn mixture. Cell-level diffing + relative cursor addressing means the emission is small enough to fit inside a single sync barrier without tearing.
+Silvery renders **directly to the cell buffer** — there's no string intermediate, no reconstruction step, no second model of what's on screen. The pipeline is:
 
-The consequence: **no symptom class that stems from non-atomic rendering can occur in Silvery.** Not flicker during streaming. Not component dropout on scroll. Not stuttering in alt-screen. Not half-updated trees. Not tearing. These are not bugs Silvery needs to fix — they are bugs Silvery's architecture makes impossible to experience.
+1. Flexily computes layout (all positions and dimensions).
+2. React renders. Components write cells directly to the buffer via the content render phase. `useBoxRect()` returns real dimensions on first pass.
+3. Output phase diffs new buffer vs previous buffer at cell granularity.
+4. Emit only changed cells, wrapped in DEC mode 2026 (synchronized output).
 
-This is why Claude Code's team, despite six months of work and real engineering talent, keeps shipping regressions like #41965. They are fighting a non-atomic pipeline inside the alt-screen — the renderer got better, but the commit model is still non-atomic, and non-atomic commit models always find new ways to leak intermediate state.
-
-### A concrete example: scrolling while streaming
-
-Let's walk through a specific scenario that exposes all three atomicity failures in a single user interaction. This is the kind of thing you see constantly in Claude Code and never see in Silvery.
-
-**Scenario:** You're chatting with an AI agent. Your terminal is 40 lines tall. The conversation has 200 completed messages; you're scrolled 60 lines up from the bottom to re-read an earlier exchange. Meanwhile, the AI is streaming a new response — a 30-line code block — at the bottom. You gently scroll up by one more line with the mouse wheel to see one more word of the earlier message.
-
-**What happens in a non-atomic pipeline (Ink / Claude Code):**
-
-1. Scroll event arrives. Viewport offset changes by 1 line. React gets notified.
-2. Scroll container component re-renders with new offset. Its child list needs to compute which children are now visible.
-3. The list's memoized child window shifts by 1. One new child enters the top of the viewport; one leaves the bottom. The entering child hasn't been rendered yet — it was in the virtualization skip zone.
-4. React fiber starts rendering the entering child. First pass: `width: 0` because Yoga hasn't run yet for the new child's subtree.
-5. Fiber yields control. Meanwhile, the streaming token from the AI arrives — another state update. React schedules a second render.
-6. Terminal paints. What's on screen right now?
-   - Scroll container is at the **new** offset (from step 1)
-   - The entering child is at **width: 0** (from step 4) — it's a blank gap
-   - The streaming code block is at its **old** content (the new token hasn't rendered yet)
-   - The leaving child is still visible because it hasn't been unmounted yet
-7. Fiber resumes. Re-renders the entering child with real width. Re-renders the streaming block with the new token. Layout runs. Commit.
-8. Terminal paints. Now everything is correct.
-
-**Between steps 6 and 8, the user sees a broken frame:** a blank gap where the entering child should be, the streaming code block frozen one token behind, and an orphaned "leaving" child still ghosted at the bottom. If scroll events are fast (trackpad inertia scrolling, multiple wheel ticks), steps 4-6 happen over and over, and the user sees **a cascade of broken intermediate frames** — components blinking in and out, the streaming block stuttering one token behind, ghosted duplicates at the edges of the viewport.
-
-This is exactly what you see in Claude Code's NO_FLICKER mode: "sometimes components are shown sometimes not, and subtle scrolling makes some components show and others not." It is not a bug. It is the observable consequence of three simultaneous atomicity violations:
-
-- **Time violation:** fiber yielded between steps 4 and 7, letting paint occur in step 6
-- **Space violation:** entering child was at `width: 0` while scroll container was at new offset
-- **Content violation:** terminal painted a mixed frame without sync-barrier protection
-
-**What happens in an atomic pipeline (Silvery):**
-
-1. Scroll event arrives. Viewport offset changes.
-2. Flexily re-runs layout for the entire subtree synchronously. Every component in the new window has its real dimensions computed before any component renders.
-3. React renders. `useBoxRect()` returns real dimensions for every component on the first pass. No `width: 0`. No second pass.
-4. Output phase diffs new buffer vs old. Identifies changed cells (the scroll-revealed region + the streaming block's new token).
-5. Output emits all changed cells, wrapped in DEC mode 2026 bracketing.
-6. Terminal paints the full new frame atomically.
-
-Six steps, all synchronous, one commit point. The terminal only ever sees the old frame or the new frame — never a half-constructed mixture. Scroll is smooth. The streaming code block updates in place without stutter. The entering child appears fully-formed. No cascade of broken frames.
-
-The "more you scroll, the more breakage you see" property of Claude Code is the signature of a non-atomic pipeline — each scroll event is a new opportunity for the pipeline to expose a different intermediate state. In Silvery, scrolling is "free": there are no intermediate states to expose, so scrolling a thousand lines per second looks exactly like scrolling one line per second.
+The buffer IS the render output. The diff compares the actual render output, not a reconstruction. There is no gap between "what was rendered" and "what the diff sees" — they are the same data structure. This eliminates the class of bugs where the diff and the renderer disagree about what's on screen.
 
 **Step 3: Cell-level diff.** After render, Silvery compares the new buffer against the previous one at **cell granularity**. Not line-by-line (Ink via log-update). Not global clear-and-redraw. Just the cells that actually changed.
 
@@ -225,14 +207,14 @@ Split into two zones: a small live region at the bottom (React components, incre
 | **Output efficiency**              | Line-level; full redraw       | Cell-level; v2.1.89 flickering| Cell-level                       | Cell-level; 28-192x less output    |
 | **Diffing strategy**               | log-update (line-level)       | Cell-level buffer             | Cell-level                       | Cell-level buffer + incremental    |
 | **Layout timing**                  | Render → layout (Yoga)        | Render → layout (Yoga)       | Immediate (no components)        | Layout → render                    |
-| **Width available during render?** | No (`width: 0` then real)     | No                           | N/A (no components)              | Yes (`useBoxRect()` first pass)     |
+| **Dimensions during render?**      | Post-layout via useEffect     | Post-layout via useEffect    | N/A (no components)              | Yes (`useBoxRect()` first pass)     |
 | **Memory in long sessions**        | Grows (full tree)             | Flat (visible only)          | Flat (rebuilt/frame)             | Flat (graduated = strings)         |
 | **Layout engine**                  | Yoga (WASM, ~45KB gzipped)    | Yoga (WASM, ~45KB)           | Manual (Rust)                    | Flexily (pure TS, ~2KB)            |
 | **Total gzipped size**             | ~116.6 KB (Ink + Yoga)        | Same as Ink                  | Compiled binary (N/A)            | ~114.9 KB (runtime; parity)        |
 | **Cmd+F in inline**                | Native (but flickers)         | Alt-screen only; reimpl Cmd+O| Native                           | Native (graduated content)         |
 | **Text selection native**          | Yes (flickers)                | Alt-screen only; reimpl      | Yes                              | Yes (graduated content)            |
 | **GC pressure**                    | High (full tree)              | Medium (visible + alt)       | None (Rust)                      | Low (small live tree)              |
-| **Flicker in inline mode**         | ~1/3 of sessions still flicker| Fixed in alt-screen; v2.1.89 regressions| None                          | None (layout-first pipeline)       |
+| **Rendering stability**            | ~1/3 of sessions still flicker| v2.1.89 has missing-component regressions| N/A                          | Direct-to-buffer (no reconstruction) |
 
 <!-- VISUAL: VHS recording (.tape) of ScrollbackList in action — items streaming, completing, graduating to scrollback, user scrolling back through history -->
 
@@ -249,26 +231,6 @@ This means:
 
 On large sessions (1000+ graduated exchanges), resize will pause briefly. This is the tradeoff — you get scrollback + incremental rendering; the cost is occasional O(n) work on resize. Without graduated scrollback, every keystroke pays that cost.
 
-### Why NO_FLICKER still flickers — the two-pass dance
-
-Claude Code's v2.1.89 regression (#41965) shows components appearing and disappearing during scroll, blank cells in the middle of the conversation, and flicker even in alt-screen mode. The symptoms don't match reconciler latency (which would show uniform slowness) — they match **the two-pass render dance from Step 2 above**.
-
-Walk through what happens when you scroll in Claude Code's NO_FLICKER mode:
-
-1. User scrolls. Terminal reports new viewport height.
-2. React schedules a re-render of the scroll container.
-3. Scroll container re-renders with old height metadata → children get wrong width/height props.
-4. Yoga runs layout → computes real dimensions.
-5. React re-renders children with real dimensions.
-6. Terminal paint — if this happens between step 3 and step 5, **you see step 3's broken state on screen**.
-
-In step 3, any component that decides "how many items to show" or "should I truncate" computes from `width: 0` (or stale dimensions). Lists collapse. Text disappears. Entire components render to nothing. Then step 5 fixes it — but if paint happens first, you see the collapsed state.
-
-Scrolling triggers this cycle **continuously**, which is why "subtle scrolling makes some components show and others not" — you're catching different components at different points in their two-pass cycle.
-
-Silvery's layout-first pipeline eliminates this entirely. Layout runs before render, so `useBoxRect()` always returns real dimensions on the first pass. There is no step 3. There is no broken-intermediate-state to paint. Scrolling re-runs layout → children re-render with correct dimensions → paint. One pass, one frame, always correct.
-
-This is architectural, not optimization. Claude Code cannot fix it without abandoning their render-first pipeline — which would mean rewriting how their entire component tree interacts with layout. It's the same class of retrofit as moving from line-level to cell-level diffing, except this one goes even deeper: it changes when every component in the tree learns its own dimensions.
 
 ## The pattern
 

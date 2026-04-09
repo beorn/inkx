@@ -350,7 +350,7 @@
     },
     "vendor/flexily": {
       "name": "flexily",
-      "version": "0.5.0",
+      "version": "0.5.1",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "loggily": "^0.4.2",
@@ -364,7 +364,7 @@
     },
     "vendor/loggily": {
       "name": "loggily",
-      "version": "0.4.2",
+      "version": "0.5.0",
       "devDependencies": {
         "@types/node": "^25.5.0",
         "vitepress": "^1.6.4",
@@ -375,7 +375,7 @@
     },
     "vendor/silvery": {
       "name": "silvery",
-      "version": "0.10.0",
+      "version": "0.11.0",
       "dependencies": {
         "@chenglou/pretext": "^0.0.3",
         "@silvery/commander": "workspace:*",
@@ -584,7 +584,7 @@
     },
     "vendor/termless": {
       "name": "@termless/core",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "devDependencies": {
         "@termless/alacritty": "workspace:*",
         "@termless/kitty": "workspace:*",
