@@ -103,7 +103,7 @@ const ColumnTree = React.memo(function ColumnTree({ colId, colIndex, width, heig
   // cursorColumnNodeId/cursorDepth. Re-renders only when this column's state changes.
   const colTreeNode = useTreeNode(colId)
   const colCursorOnThis = useSignal(colTreeNode.cursor)
-  const colCursorInDesc = useSignal(colTreeNode.cursorDescendant)
+  const colCursorInDesc = useSignal(colTreeNode.cursorDescendant) as boolean
   const isSelected = colCursorOnThis || colCursorInDesc
 
   // Track editing state for dynamic item height (border adds 2 rows)

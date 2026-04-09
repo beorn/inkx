@@ -196,8 +196,8 @@ describe("card bg inheritance (zebra pattern bug)", () => {
 
     // Feed ANSI output through termless for real terminal emulation
     using term = createTermless({ cols, rows })
-    term.feed!("\x1b[H") // home cursor
-    term.feed!(result.ansi)
+    term.write("\x1b[H") // home cursor
+    term.write(result.ansi)
 
     // Verify termless received the content
     expect(term.screen).toContainText("Section1")
@@ -211,8 +211,8 @@ describe("card bg inheritance (zebra pattern bug)", () => {
         const row = lines.findIndex((line: string) => line.includes(label))
         if (row < 0) return null
         const col = lines[row]!.indexOf(label)
-        // termless cell(row, col) — row-first order
-        const cell = term.cell!(row, col)
+        // termless cell(row, col) — row-first order via emulator backend
+        const cell = (term as any)._emulator.screen.cell(row, col)
         return { label, bg: cell.bg, row, col }
       })
       .filter((b): b is NonNullable<typeof b> => b !== null)

@@ -285,16 +285,20 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number): Test
   const handlePromise = boardApp.run(
     React.createElement(
       RepoProvider,
-      { repo },
-      React.createElement(
-        StoreProvider,
-        { store: reactiveStore },
-        React.createElement(BoardApp, {
-          initialViewMode: "cards",
-          toastQueue,
-          navigator,
-        }),
-      ),
+      {
+        repo,
+        children: React.createElement(
+          StoreProvider,
+          {
+            store: reactiveStore,
+            children: React.createElement(BoardApp, {
+              initialViewMode: "cards",
+              toastQueue,
+              navigator,
+            }),
+          },
+        ),
+      },
     ),
     {
       cols,
@@ -306,7 +310,7 @@ function createTermlessTestApp(nodes: KNode[], cols: number, rows: number): Test
   // The handle resolves asynchronously (initial render).
   // We store the promise and resolve it lazily on first press().
   let handle: { press(key: string): Promise<void>; unmount(): void; text: string } | null = null
-  const handleReady: Promise<void> = handlePromise.then((h) => {
+  const handleReady: PromiseLike<void> = handlePromise.then((h) => {
     handle = h as typeof handle
   })
 

@@ -207,7 +207,7 @@ const Card = React.memo(
     const nodeStore = useNodeStore()
     const treeNode = useTreeNode(nodeId)
     const isCursorOnThis = useSignal(treeNode.cursor)
-    const cursorInDescendant = useSignal(treeNode.cursorDescendant)
+    const cursorInDescendant = useSignal(treeNode.cursorDescendant) as boolean
     const isSelected = isCursorOnThis || cursorInDescendant
 
     // Hover + click interaction (border highlight, click-to-select, Cmd+click-to-navigate)
@@ -222,12 +222,12 @@ const Card = React.memo(
     // Reads prev card's tree node signals — avoids global cursorCardNodeId read.
     const prevTreeNode = useTreeNode(prevCardNodeId ?? nodeId) // fallback to self when no prev
     const prevCursor = useSignal(prevTreeNode.cursor)
-    const prevCursorDesc = useSignal(prevTreeNode.cursorDescendant)
+    const prevCursorDesc = useSignal(prevTreeNode.cursorDescendant) as boolean
     const isPrevAtCursor = prevCardNodeId != null && (prevCursor || prevCursorDesc)
 
     // Check if this card is in inline edit mode (for border color).
     // Also matches when a sub-item of this card is being edited (editingDescendant).
-    const editingDescendant = useSignal(treeNode.editingDescendant)
+    const editingDescendant = useSignal(treeNode.editingDescendant) as boolean
     const isDirectlyEditing = useAppStore<BoardAppStore, boolean>((s) => {
       return s.sel.text()?.nodeId === nodeId
     })
@@ -719,7 +719,7 @@ export const Column = React.memo(function Column({
   // cursorColumnNodeId/cursorDepth. Re-renders only when this column's state changes.
   const colTreeNode = useTreeNode(nodeId)
   const colCursorOnThis = useSignal(colTreeNode.cursor)
-  const colCursorInDescendant = useSignal(colTreeNode.cursorDescendant)
+  const colCursorInDescendant = useSignal(colTreeNode.cursorDescendant) as boolean
   const isSelected = colCursorOnThis || colCursorInDescendant
 
   // Check if this column header is being inline-edited

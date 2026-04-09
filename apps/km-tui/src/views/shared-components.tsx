@@ -62,7 +62,7 @@ export const MemoizedTreeCard = React.memo(
     // cursorCardNodeId/cursorDepth. Only affected cards re-render on j/k.
     const treeNode = useTreeNode(card.id)
     const cursorOnThis = useSignal(treeNode.cursor)
-    const cursorInDesc = useSignal(treeNode.cursorDescendant)
+    const cursorInDesc = useSignal(treeNode.cursorDescendant) as boolean
     const cursorIsSelected = cursorOnThis || cursorInDesc
     const isSelected = isSelectedProp ?? cursorIsSelected
     const ps = usePaneSignals()
@@ -215,7 +215,7 @@ export const MemoizedColumnHeader = React.memo(
     // Self-derive selection state from tree signals when props are not provided.
     const colTreeNode = useTreeNode(colId)
     const cursorOnCol = useSignal(colTreeNode.cursor)
-    const cursorInColDesc = useSignal(colTreeNode.cursorDescendant)
+    const cursorInColDesc = useSignal(colTreeNode.cursorDescendant) as boolean
     const isSelected = isSelectedProp ?? (cursorOnCol || cursorInColDesc)
     const isColSelected = isColSelectedProp ?? cursorOnCol
     const repo = useRepo()
