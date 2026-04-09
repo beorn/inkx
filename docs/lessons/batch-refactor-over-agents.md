@@ -21,8 +21,9 @@ Results:
 
 ```bash
 # 1. Generate editset (proposes all changes, doesn't apply)
+# Note: --from takes a regex literal /pattern/flags. No /i = exact literal match.
 bun vendor/bearly/tools/refactor.ts migrate \
-  --from testEnv --to createTestApp \
+  --from '/testEnv/' --to createTestApp \
   --dry-run --output /tmp/edits
 
 # 2. Review the editset JSON — one pass, all changes visible
