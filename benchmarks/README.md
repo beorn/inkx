@@ -107,7 +107,7 @@ Source: `vendor/silvery/packages/ag-term/src/pipeline/index.ts` and `pipeline/CL
 | `flexbox layout`  | `layoutPhase()` — Yoga's `calculateLayout()`                                    | Larger trees, broken layout caching, dimension thrashing     |
 | `scroll`          | `scrollPhase()` — visible-children calculation for overflow=scroll containers   | More scroll containers, expensive sticky positioning         |
 | `scrollRect`      | `scrollrectPhase()` — screen-relative rect propagation                          | Deeper trees                                                 |
-| `notify`          | `notifyLayoutSubscribers()` — fires `useContentRect`/`useScrollRect` callbacks  | More layout subscribers, expensive callbacks                 |
+| `notify`          | `notifyLayoutSubscribers()` — fires `useboxRect`/`useScrollRect` callbacks  | More layout subscribers, expensive callbacks                 |
 | `layout side total` | Sum of measure + layout + scroll + scrollRect + notify                        | —                                                            |
 | `content (render)` | `renderPhase()` — walks the tree, writes cells to the TerminalBuffer            | New nodes, broken incremental skip path, sticky pass forced refresh |
 | `output (diff/ANSI)` | `outputPhase()` — diffs prev vs current buffer, emits ANSI escape sequences   | More cells changed, expensive ANSI generation, incremental disabled |

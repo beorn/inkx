@@ -10,7 +10,7 @@
  */
 
 import React from "react"
-import { EditContextDisplay, useContentRect, useEditContext } from "@silvery/ag-react"
+import { EditContextDisplay, useBoxRect, useEditContext } from "@silvery/ag-react"
 
 interface BodyEditFieldProps {
   initialValue: string
@@ -36,7 +36,7 @@ export function BodyEditField({
   stickyX,
   maxHeight,
 }: BodyEditFieldProps): React.ReactElement {
-  const { width } = useContentRect()
+  const { width } = useBoxRect()
 
   const { value, cursor } = useEditContext({
     initialValue,

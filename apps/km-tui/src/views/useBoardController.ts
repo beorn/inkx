@@ -14,7 +14,7 @@
  * which then passes the result to BoardView.
  */
 import React, { useCallback, useEffect, useMemo, useRef } from "react"
-import { useRuntime, useContentRect, setWindowTitle, useFocusManager, type PatchedConsole } from "@silvery/ag-react"
+import { useRuntime, useBoxRect, setWindowTitle, useFocusManager, type PatchedConsole } from "@silvery/ag-react"
 import { useApp as useAppStore, StoreContext } from "@silvery/create/create-app"
 import { createNodeStore, type NodeStore } from "../state/reactive.ts"
 import { usePaneSignals, useSignal } from "../hooks/use-signal.ts"
@@ -536,8 +536,8 @@ export function useBoardController({ patchedConsole }: UseBoardControllerArgs): 
   // NO useInput — keys handled by term:key in board-app.ts
 
   // Card inner width for line-aware title truncation.
-  // Uses actual pane width (from useContentRect) to match BoardCore's layout.
-  const paneRect = useContentRect()
+  // Uses actual pane width (from useBoxRect) to match BoardCore's layout.
+  const paneRect = useBoxRect()
   const cardInnerWidth = useMemo(() => {
     const termWidth = paneRect.width > 0 ? paneRect.width : ui.dimensions.columns
     const { expandedWidth } = computeColumnWidths(termWidth - 2, boardColumnIds, collapsedNodes)

@@ -336,7 +336,7 @@ describe("windowing — visual rendering", () => {
     expect(store.getState().workspace.panes.size).toBe(2)
 
     // Render BoardApp with the split store.
-    // Disable incremental check: the multi-pass stabilization (useContentRect
+    // Disable incremental check: the multi-pass stabilization (useBoxRect
     // width changes from fallback to actual) causes expected incremental mismatches.
     const focusManager = createFocusManager()
     const reactiveStore = withReactive(createStoreFromRepo(repo))
@@ -372,7 +372,7 @@ describe("windowing — visual rendering", () => {
     expect(text).toContain("Empty pane")
 
     // The board's data-view element should NOT span the full terminal width.
-    // With the fix, Board uses useContentRect() to get actual pane width (~60 cols for 50% of 120).
+    // With the fix, Board uses useBoxRect() to get actual pane width (~60 cols for 50% of 120).
     const boardView = result.locator("[data-view='board']")
     expect(boardView.count()).toBeGreaterThan(0)
     const boardBox = boardView.boundingBox()

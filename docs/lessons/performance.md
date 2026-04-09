@@ -14,7 +14,7 @@ Cursor navigation takes 1-2ms. Fold/unfold operations complete within 55ms. No o
 
 - **React mount overhead**: ~1.9s for 2852 React nodes (72 visible cards at ~24 nodes/card). This is pure component creation time in React's reconciler.
 - **Flexily layout at scale**: For boards with 3900+ components, layout takes ~746ms (87% of mount time, ~190us/node). Typical visible viewports (48 cards) render in ~140ms.
-- **useContentRect cascade**: Layout feedback hooks add ~45% to mount time via re-render cascade (140ms to 203ms for a 6x8 card grid).
+- **useboxRect cascade**: Layout feedback hooks add ~45% to mount time via re-render cascade (140ms to 203ms for a 6x8 card grid).
 - **Unfold at root**: ~150ms for unfold_all, ~462ms worst case (zoom-out after full unfold).
 
 ## Root Cause: Death by a Thousand SQL Queries

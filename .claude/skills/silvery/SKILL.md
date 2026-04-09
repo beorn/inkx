@@ -130,7 +130,7 @@ Common mistakes:
 - Using `needsOwnRepaint` where `contentAreaAffected` is needed (cascades border changes)
 - Missing `bgDirty` in `contentAreaAffected` (stale bg when backgroundColor removed)
 - Wrong `contentRegionCleared` propagation (transparent Boxes must propagate, colored Boxes break cascade)
-- Checking `!rectEqual(prevLayout, contentRect)` instead of `layoutChangedThisFrame` (stale when layout phase skipped)
+- Checking `!rectEqual(prevLayout, boxRect)` instead of `layoutChangedThisFrame` (stale when layout phase skipped)
 
 ### Step 6: Text Background Inheritance
 

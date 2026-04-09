@@ -251,9 +251,9 @@ echo ""
 echo "=== PATTERN 28: Deprecated silvery APIs ==="
 # APIs that should be migrated (see km-deprecations bead)
 #   - app.html → app.ansi
-#   - useLayout → useContentRect
+#   - useLayout → useboxRect
 #   - layoutEqual → rectEqual
-#   - computedLayout → contentRect
+#   - computedLayout → boxRect
 #   - ANSI_REGEX → stripAnsi()
 #   - flexture-adapter → flexture-zero-adapter
 grep -rn "app\.html\|useLayout()\|layoutEqual\|computedLayout\|ANSI_REGEX\|flexture-adapter" packages apps --include="*.ts" --include="*.tsx" 2>/dev/null \

@@ -197,7 +197,7 @@ measure -> layout -> render -> diff -> output
 
 render.note: |md
   Components have access to
-  `useContentRect()` here
+  `useboxRect()` here
 |
 ```
 
@@ -304,7 +304,7 @@ agg demo.cast demo.gif --cols 120 --rows 35
 silicon src/app.tsx -o app.png --theme Dracula
 
 # From stdin with language hint
-echo 'const x = useContentRect()' | silicon -l tsx -o snippet.png
+echo 'const x = useboxRect()' | silicon -l tsx -o snippet.png
 
 # With specific font and padding
 silicon src/app.tsx -o app.png --font "Iosevka" --pad-horiz 40 --pad-vert 30

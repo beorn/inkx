@@ -45,7 +45,7 @@ Hard-won lessons from big refactoring projects. Follow these to avoid common tra
 - README showed `render(<App />)` instead of `render(term, <App />)`
 - 8 example files still used OldWay patterns
 - docs/site API reference showed old signatures
-- Hook names `useLayout` instead of `useContentRect`
+- Hook names `useLayout` instead of `useboxRect`
 - Function overloads still accepted OldWay calls
 
 **Why this happens**:

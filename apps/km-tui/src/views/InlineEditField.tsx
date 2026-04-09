@@ -5,13 +5,13 @@
  * All key handling is done by the command system via when: textInputFocused.
  * No component-level useInputLayer needed.
  *
- * Width is auto-detected via useContentRect() — the nearest Box ancestor's
+ * Width is auto-detected via useBoxRect() — the nearest Box ancestor's
  * content width is used for visual line wrapping. This guarantees cursor
  * positions match silvery's rendered line breaks.
  */
 
 import React from "react"
-import { CursorLine, useContentRect, useEditContext } from "@silvery/ag-react"
+import { CursorLine, useBoxRect, useEditContext } from "@silvery/ag-react"
 
 interface InlineEditFieldProps {
   initialValue: string
@@ -42,7 +42,7 @@ export function InlineEditField({
   // Auto-detect width from nearest Box ancestor's content area.
   // This is the same width silvery's renderer uses for word wrapping,
   // ensuring cursor positions match displayed line breaks.
-  const { width } = useContentRect()
+  const { width } = useBoxRect()
 
   const { beforeCursor, afterCursor } = useEditContext({
     initialValue,

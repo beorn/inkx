@@ -884,7 +884,7 @@ interface HeadRowProps {
 
 function HeadRow({ onLayout, children }: HeadRowProps): React.ReactElement {
   // Use a child registrar with useScrollRectCallback to get screen-relative
-  // positions (accounting for scroll offsets). Box.onLayout provides contentRect
+  // positions (accounting for scroll offsets). Box.onLayout provides boxRect
   // which doesn't change on scroll — that would give wrong positions for
   // cross-column navigation when columns have different scroll offsets.
   return (

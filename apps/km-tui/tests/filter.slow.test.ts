@@ -16,7 +16,7 @@ import { describe, test, expect, afterEach } from "vitest"
 import { mkdtempSync, rmSync, existsSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
-import { item, testEnv, testEnvWithRepo } from "./helpers/board-test.ts"
+import { item } from "./helpers/board-test.ts"
 import { createTestApp } from "./helpers/test-app.ts"
 import type { KNode } from "@km/core"
 import { createFakeRepo } from "@km/storage"
@@ -150,7 +150,7 @@ describe("P2: Filter feature", () => {
   })
 
   test("text filter still works via filterText state", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () =>
         item(
           "board",
@@ -166,7 +166,7 @@ describe("P2: Filter feature", () => {
     )
 
     // All items visible initially
-    let screen = board.screenshot()
+    let screen = app.screenshot()
     expect(screen).toContain("Buy groceries")
     expect(screen).toContain("Fix bug in auth")
     expect(screen).toContain("Write documentation")
@@ -174,10 +174,10 @@ describe("P2: Filter feature", () => {
     // Set filter text programmatically (text search via SET_FILTER action)
     board.setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
-    board.command("filter")
-    board.press("Escape")
+    app.command("filter")
+    app.press("Escape")
 
-    screen = board.screenshot()
+    screen = app.screenshot()
     // Only "Fix" items should be visible in the card area
     // (top bar breadcrumb may still reference cursor position, so check card content area only)
     const cardArea = screen.split("\n").slice(2).join("\n")
@@ -188,7 +188,7 @@ describe("P2: Filter feature", () => {
   })
 
   test("filter persists across view mode changes", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () =>
         item(
           "board",
@@ -201,18 +201,18 @@ describe("P2: Filter feature", () => {
     // Apply text filter "Fix" programmatically
     board.setUI({ filterText: "Fix" })
     // Press a neutral key to flush the React render cycle
-    board.command("filter")
-    board.press("Escape")
+    app.command("filter")
+    app.press("Escape")
 
     // In cards view, only Fix items visible (skip breadcrumb in top bar)
-    let screen = board.screenshot()
+    let screen = app.screenshot()
     let cardArea = screen.split("\n").slice(2).join("\n")
     expect(cardArea).toContain("Fix bug")
     expect(cardArea).not.toContain("Buy groceries")
 
     // Switch to columns view — filter should persist
-    board.command("cycle_view_mode")
-    screen = board.screenshot()
+    app.command("cycle_view_mode")
+    screen = app.screenshot()
     cardArea = screen.split("\n").slice(2).join("\n")
     expect(cardArea).toContain("Fix bug")
     expect(cardArea).not.toContain("Buy groceries")
@@ -606,13 +606,13 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board } = testEnvWithRepo(repo, "file-1", {
+    using app = createTestApp(repo, "file-1", {
       columns: 80,
       rows: 24,
     })
 
     // Verify initial state: both columns visible, cursor on first card
-    const before = board.screenshot()
+    const before = app.screenshot()
     expect(before).toContain("Todo")
     expect(before).toContain("Done")
     expect(before).toContain("Task A")
@@ -634,10 +634,10 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     // Bump hiddenVersion to invalidate the readBoardHidden memo cache,
     // then press a key to flush the React render tree
     board.setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
-    board.command("cursor_right") // navigate right to trigger re-render
+    app.command("cursor_right") // navigate right to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden after ignoring.
-    const after = board.screenshot()
+    const after = app.screenshot()
     expect(after).not.toContain("§ Todo")
     // The "Done" column should still be visible
     expect(after).toContain("§ Done")
@@ -649,12 +649,12 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     const nodes = createRealisticNodes(tmpDir)
     const repo = createFakeRepo({ path: tmpDir, nodes })
 
-    const { board } = testEnvWithRepo(repo, "file-1", {
+    using app = createTestApp(repo, "file-1", {
       columns: 80,
       rows: 24,
     })
 
-    const headerView = board.screenshot()
+    const headerView = app.screenshot()
     expect(headerView).toContain("Todo")
 
     // hide_node is unbound in v2 keybindings — invoke addHidden directly
@@ -671,10 +671,10 @@ describe("Bug: hide_node should hide column (km-tui.hide-broken)", () => {
     // Bump hiddenVersion to invalidate the readBoardHidden memo cache,
     // then press a key to flush the React render tree
     board.setUI((prev) => ({ hiddenVersion: prev.hiddenVersion + 1 }))
-    board.command("cursor_right") // navigate to trigger re-render
+    app.command("cursor_right") // navigate to trigger re-render
 
     // The "Todo" column header (§ Todo) should be hidden
-    const after = board.screenshot()
+    const after = app.screenshot()
     expect(after).not.toContain("§ Todo")
     // The "Done" column should still be visible
     expect(after).toContain("§ Done")
@@ -808,14 +808,14 @@ describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", 
     // Reproduce the bug via the setUI() path (what the dialog ultimately does)
     const nodes = item("board", item("Tasks", item("parent1", item("child-a"), item("child-b"))))
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { columns: 80, rows: 24 })
 
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).toContain("child-a")
+    expect(app.screenshot()).toContain("parent1")
+    expect(app.screenshot()).toContain("child-a")
 
     // Fold parent1
-    board.command("fold_more")
-    expect(board.screenshot()).not.toContain("child-a")
+    app.command("fold_more")
+    expect(app.screenshot()).not.toContain("child-a")
 
     // Trigger a filter change by setting filterProperties via setUI
     // (mimics what the filter dialog ultimately does)
@@ -830,9 +830,9 @@ describe("Bug: filter toggle preserves fold state (km-tui.filter-undoes-fold)", 
     })
 
     // Fold should be preserved
-    expect(board.screenshot()).toContain("parent1")
-    expect(board.screenshot()).not.toContain("child-a")
-    expect(board.screenshot()).not.toContain("child-b")
+    expect(app.screenshot()).toContain("parent1")
+    expect(app.screenshot()).not.toContain("child-a")
+    expect(app.screenshot()).not.toContain("child-b")
   })
 })
 
@@ -857,7 +857,7 @@ function flushFilter(board: { press: (key: string) => void; command: (cmd: strin
 
 describe("filter hidden count indicator", () => {
   test("shows +N hidden when text filter hides cards", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () =>
         item(
           "board",
@@ -873,20 +873,20 @@ describe("filter hidden count indicator", () => {
     )
 
     // No hidden indicator initially
-    let screen = board.screenshot()
+    let screen = app.screenshot()
     expect(screen).not.toContain("filtered")
 
     // Apply text filter that hides 2 of 4 cards
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    screen = board.screenshot()
+    screen = app.screenshot()
     // 2 of 4 cards match "Fix", so 2 are hidden
     expect(screen).toContain("+2 filtered")
   })
 
   test("hidden indicator disappears when filter is cleared", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () => item("board", item("Tasks", item("Buy groceries"), item("Fix bug"), item("Write docs"))),
       { columns: 80, rows: 24 },
     )
@@ -895,19 +895,19 @@ describe("filter hidden count indicator", () => {
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    let screen = board.screenshot()
+    let screen = app.screenshot()
     expect(screen).toContain("+2 filtered")
 
     // Clear filter
     board.setUI({ filterText: "" })
     flushFilter(board)
 
-    screen = board.screenshot()
+    screen = app.screenshot()
     expect(screen).not.toContain("filtered")
   })
 
   test("no hidden indicator when all cards match filter", () => {
-    const { board } = testEnv(() => item("board", item("Tasks", item("Fix bug"), item("Fix login"))), {
+    using app = createTestApp(item("board", item("Tasks", item("Fix bug"), item("Fix login"))), {
       columns: 80,
       rows: 24,
     })
@@ -916,14 +916,14 @@ describe("filter hidden count indicator", () => {
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    const screen = board.screenshot()
+    const screen = app.screenshot()
     expect(screen).not.toContain("filtered")
   })
 
   test("hidden indicator appears right after last card, not at screen bottom", () => {
     // With a tall terminal (40 rows) and only 2 visible cards, the "+N hidden"
     // indicator should appear right after the cards, not at row 39.
-    const { board } = testEnv(
+    using app = createTestApp(
       () => item("board", item("Tasks", item("Fix bug"), item("Buy milk"), item("Write docs"), item("Fix login"))),
       { columns: 80, rows: 40 },
     )
@@ -932,7 +932,7 @@ describe("filter hidden count indicator", () => {
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    const screen = board.screenshot()
+    const screen = app.screenshot()
     expect(screen).toContain("+2 filtered")
 
     // Find the line containing "+2 filtered" — it should appear right after the 2 visible cards.
@@ -950,17 +950,17 @@ describe("filter hidden count indicator", () => {
     const doneNode = nodes.find((n) => n.id === "doneTask")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { columns: 80, rows: 24 })
 
     // No hidden indicator initially
-    let screen = board.screenshot()
+    let screen = app.screenshot()
     expect(screen).not.toContain("filtered")
     expect(screen).toContain("doneTask")
 
     // Press vd to hide done tasks
-    board.command("toggle_hide_done")
+    app.command("toggle_hide_done")
 
-    screen = board.screenshot()
+    screen = app.screenshot()
     expect(screen).toContain("todo1")
     expect(screen).toContain("todo2")
     expect(screen).not.toContain("doneTask")
@@ -982,15 +982,15 @@ describe("filter hidden count indicator", () => {
     const doneNode = nodes.find((n) => n.id === "doneChild")!
     doneNode.item = { ...doneNode.item, task: { status: "done", marker: "[x]" } }
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { columns: 80, rows: 24 })
 
     // No hidden indicator initially
-    expect(board.screenshot()).not.toContain("filtered")
+    expect(app.screenshot()).not.toContain("filtered")
 
     // Press vd to hide done tasks
-    board.command("toggle_hide_done")
+    app.command("toggle_hide_done")
 
-    const screen = board.screenshot()
+    const screen = app.screenshot()
     // The done child should be hidden, so we should see +1 hidden
     expect(screen).toContain("+1 filtered")
     // The todo child should still be visible
@@ -998,7 +998,7 @@ describe("filter hidden count indicator", () => {
   })
 
   test("shows hidden indicator per column independently", () => {
-    const { board } = testEnv(
+    using app = createTestApp(
       () =>
         item(
           "board",
@@ -1012,7 +1012,7 @@ describe("filter hidden count indicator", () => {
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    const screen = board.screenshot()
+    const screen = app.screenshot()
     // Both columns should show "+1 filtered"
     const matches = screen.match(/\+1 filtered/g)
     expect(matches).not.toBeNull()
@@ -1022,7 +1022,7 @@ describe("filter hidden count indicator", () => {
   test("hidden indicator positioned near cards, not at screen bottom (tall terminal, few visible)", () => {
     // 6 cards total, filter leaves only 2 visible. With rows=40, the +4 hidden
     // indicator should appear right after the 2 visible cards, not at the bottom.
-    const { board } = testEnv(
+    using app = createTestApp(
       () =>
         item(
           "board",
@@ -1040,14 +1040,14 @@ describe("filter hidden count indicator", () => {
     )
 
     // No hidden indicator initially
-    let screen = board.screenshot()
+    let screen = app.screenshot()
     expect(screen).not.toContain("filtered")
 
     // Apply text filter that shows only the 2 "Fix" cards, hiding 4
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    screen = board.screenshot()
+    screen = app.screenshot()
     expect(screen).toContain("+4 filtered")
 
     // The indicator should be near the top of the screen (close to the 2 visible cards),
@@ -1079,7 +1079,7 @@ describe("filter hidden count indicator", () => {
       item("Read novel"),
       item("Clean house"),
     ]
-    const { board } = testEnv(() => item("board", item("Tasks", ...cards)), {
+    using app = createTestApp(item("board", item("Tasks", ...cards)), {
       columns: 80,
       rows: 24,
     })
@@ -1088,7 +1088,7 @@ describe("filter hidden count indicator", () => {
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    const screen = board.screenshot()
+    const screen = app.screenshot()
 
     // Hidden count should show +5 hidden (rendered as listFooter inside VirtualList)
     expect(screen).toContain("+5 filtered")
@@ -1124,7 +1124,7 @@ describe("filter hidden count indicator", () => {
       item("Read novel"),
       item("Clean house"),
     ]
-    const { board } = testEnv(() => item("board", item("Tasks", ...cards)), {
+    using app = createTestApp(item("board", item("Tasks", ...cards)), {
       columns: 80,
       rows: 24,
     })
@@ -1133,7 +1133,7 @@ describe("filter hidden count indicator", () => {
     board.setUI({ filterText: "Fix" })
     flushFilter(board)
 
-    const screen = board.screenshot()
+    const screen = app.screenshot()
 
     // VirtualList overflow indicator ▼ should appear since 10 cards
     // won't fit in 24 rows

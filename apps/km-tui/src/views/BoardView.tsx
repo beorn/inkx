@@ -21,7 +21,7 @@ import {
   Small,
   ErrorBoundary,
   HorizontalVirtualList,
-  useContentRect,
+  useBoxRect,
   useFocusManager,
   Link,
   useTheme,
@@ -354,8 +354,8 @@ export function BoardCore({
   useComponentTiming(`BoardCore (${columnIds.length} columns)`)
 
   // Use actual pane dimensions from parent container (critical for multi-pane splits).
-  // Falls back to store dimensions on first render when contentRect is still zero.
-  const parentRect = useContentRect()
+  // Falls back to store dimensions on first render when boxRect is still zero.
+  const parentRect = useBoxRect()
   const termWidth = parentRect.width > 0 ? parentRect.width : dimensions.columns
   const termHeight = parentRect.height > 0 ? parentRect.height : dimensions.rows
 

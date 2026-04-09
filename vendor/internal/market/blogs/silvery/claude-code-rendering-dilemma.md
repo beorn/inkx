@@ -107,7 +107,7 @@ This is the mode that addresses the dilemma directly. I split the output into tw
 
 <!-- VISUAL: Three-zone diagram — top: "Native scrollback (terminal owns, Cmd+F works)", middle: "Tracked scrollback (app can re-emit on resize)", bottom: "Live screen (React components, incremental rendering)" -->
 
-**Flickering → avoided by two-phase rendering.** This is the part I think was the root cause of Claude Code's inline flickering. In a standard React terminal pipeline (Ink/Yoga), components render first, then layout runs. If a component needs to know its width to decide what to render, it has to render once at `width: 0`, measure, then render again with real dimensions. That second render pass is visible as flicker — especially in inline mode where you can't suppress intermediate frames. Silvery's pipeline runs layout first, so components have their dimensions on the first pass via `useContentRect()`. One render, one paint, no intermediate flash.
+**Flickering → avoided by two-phase rendering.** This is the part I think was the root cause of Claude Code's inline flickering. In a standard React terminal pipeline (Ink/Yoga), components render first, then layout runs. If a component needs to know its width to decide what to render, it has to render once at `width: 0`, measure, then render again with real dimensions. That second render pass is visible as flicker — especially in inline mode where you can't suppress intermediate frames. Silvery's pipeline runs layout first, so components have their dimensions on the first pass via `useboxRect()`. One render, one paint, no intermediate flash.
 
 On top of that: **incremental rendering** (only changed cells redraw), **content graduation** (completed exchanges become terminal-owned text — Cmd+F, selection, scroll all work natively), and **flat memory** (graduated items leave the React tree, so GC pressure stays low even in long sessions).
 
@@ -135,7 +135,7 @@ For apps that want full cell-level control — Silvery provides that too, with t
 | **Scrollback**                     | Native, but trashed by redraws         | None (reimplemented in-app)  | Native in inline mode            | Native (graduated content)         |
 | **Diffing**                        | Line-level                             | Cell-level                   | Cell-level                       | Cell-level                         |
 | **Layout timing**                  | Render → then layout (Yoga)            | Render → then layout (Yoga)  | Immediate (no component tree)    | Layout → then render               |
-| **Width available during render?** | No (`width: 0` first paint)            | No                           | N/A (no components)              | Yes (`useContentRect()`)           |
+| **Width available during render?** | No (`width: 0` first paint)            | No                           | N/A (no components)              | Yes (`useboxRect()`)           |
 | **Memory in long sessions**        | Grows (full tree mounted)              | Flat (only visible mounted)  | Flat (rebuilt each frame)        | Flat (graduated items are strings) |
 | **Layout engine**                  | Yoga (WASM, 16MB)                      | Yoga (WASM, deferred)        | Manual layout (Rust)             | Flexily (pure TypeScript)          |
 | **Cmd+F / text selection**         | Native (but flickers)                  | Reimplemented in-app         | Native in inline mode            | Native (graduated content)         |
