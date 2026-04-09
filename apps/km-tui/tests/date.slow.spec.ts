@@ -23,6 +23,7 @@
 import { describe, test, expect, vi, beforeAll, afterAll } from "vitest"
 import { act } from "react"
 import { item, testEnv } from "./helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { formatDate } from "@km/core"
 
 function yesterday(): string {
@@ -52,7 +53,7 @@ describe("Date Badge Display Journeys", () => {
     vi.useRealTimers()
   })
 
-  test("card with overdue date shows badge, future date shows badge, no-date card has none", () => {
+  test("card with overdue date shows badge, future date shows badge, no-date card has none", async () => {
     const nodes = item(
       "board",
       item("col1", item.task("Overdue task"), item.task("Future task"), item.task("No date task")),
@@ -63,10 +64,10 @@ describe("Date Badge Display Journeys", () => {
     const futureNode = nodes.find((n) => n.content === "Future task")!
     futureNode.due_at = daysFromNow(30)
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: All task names visible
-    const screenshot = board.screenshot()
+    const screenshot = app.text
     expect(screenshot).toContain("Overdue task")
     expect(screenshot).toContain("Future task")
     expect(screenshot).toContain("No date task")
@@ -75,8 +76,6 @@ describe("Date Badge Display Journeys", () => {
     const lines = screenshot.split("\n")
     const overdueLine = lines.find((l) => l.includes("Overdue task"))
     expect(overdueLine).toBeDefined()
-    // Overdue badge shows a date (some relative format like "5d ago" or a date)
-    // Just verify it has more than just the task name
     expect(overdueLine!.length).toBeGreaterThan("Overdue task".length + 10)
 
     // Step 3: Future date badge should also be present
@@ -85,121 +84,118 @@ describe("Date Badge Display Journeys", () => {
     expect(futureLine!.length).toBeGreaterThan("Future task".length + 10)
 
     // Step 4: No-date card should NOT have a date badge
-    // (it should be shorter or same length without extra date text)
     expect(screenshot).toContain("No date task")
   })
 
-  test("today's due date shows 'Today' badge text", () => {
+  test("today's due date shows 'Today' badge text", async () => {
     const nodes = item("board", item("col1", item.task("Due today")))
     const taskNode = nodes.find((n) => n.content === "Due today")!
     taskNode.due_at = today()
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: Task visible
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("Due today")
+    expect(app.text).toContain("Due today")
 
     // Step 2: Should show "Today" in the badge
-    expect(screenshot).toContain("Today")
+    expect(app.text).toContain("Today")
 
     // Step 3: "Today" badge should appear on the same line as the task
-    const lines = screenshot.split("\n")
+    const lines = app.text.split("\n")
     const todayLine = lines.find((l) => l.includes("Due today") && l.includes("Today"))
     expect(todayLine).toBeDefined()
   })
 
-  test("set due date via td chord, verify badge appears and persists", () => {
-    const { board, repo } = testEnv(() =>
-      item("board", item("col1", item.task("Buy groceries"), item.task("Do laundry"))),
-    )
+  test("set due date via td chord, verify badge appears and persists", async () => {
+    using app = createTestApp(item("board", item("col1", item.task("Buy groceries"), item.task("Do laundry"))))
 
     // Step 1: No date badge initially
-    expect(board.screenshot()).not.toContain("Today")
+    expect(app.text).not.toContain("Today")
 
     // Step 2: Open date prompt with td
-    board.command("set_due_date")
-    expect(board.screenshot()).toContain("Set Due Date")
+    await app.command("set_due_date")
+    expect(app.text).toContain("Set Due Date")
 
     // Step 3: Type "tomorrow" and confirm
-    for (const ch of "tomorrow") board.press(ch)
-    board.press("Enter")
+    for (const ch of "tomorrow") await app.press(ch)
+    await app.press("Enter")
 
     // Step 4: Dialog should close
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    expect(app.text).not.toContain("Set Due Date")
 
     // Step 5: Node should have due_at persisted in repo
-    const col = repo.getChildren("board")[0]!
-    const task = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const task = app.repo.getChildren(col.id)[0]!
     expect(task.due_at).toBeTruthy()
   })
 
-  test("date and priority badges coexist on the same card", () => {
+  test("date and priority badges coexist on the same card", async () => {
     const nodes = item("board", item("col1", item.task("Urgent task"), item.task("Normal task")))
     const urgentNode = nodes.find((n) => n.content === "Urgent task")!
     urgentNode.due_at = daysFromNow(3)
     urgentNode.priority = "P1"
 
-    const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
+    using app = createTestApp(nodes, { cols: 80, rows: 24 })
 
     // Step 1: Both badges should be visible on the same card
-    const screenshot = board.screenshot()
-    expect(screenshot).toContain("P1")
-    expect(screenshot).toContain("Urgent task")
+    expect(app.text).toContain("P1")
+    expect(app.text).toContain("Urgent task")
 
     // Step 2: Navigate to next card to verify cursor is on it
-    board.command("cursor_down")
-    const cursor = board.q("[data-cursor]")
+    await app.command("cursor_down")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("Normal task")
     // Normal task should not have a priority set
     const normalNode = nodes.find((n) => n.content === "Normal task")!
     expect(normalNode.priority).toBeUndefined()
   })
 
-  test("cancel date dialog with Escape, no date is set", () => {
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("My task"))))
+  test("cancel date dialog with Escape, no date is set", async () => {
+    using app = createTestApp(item("board", item("col1", item.task("My task"))))
 
     // Step 1: Open date dialog
-    board.command("set_due_date")
-    expect(board.screenshot()).toContain("Set Due Date")
+    await app.command("set_due_date")
+    expect(app.text).toContain("Set Due Date")
 
     // Step 2: Type some text
-    board.press("f").press("r").press("i")
-    expect(board.screenshot()).toContain("fri")
+    await app.press("f")
+    await app.press("r")
+    await app.press("i")
+    expect(app.text).toContain("fri")
 
     // Step 3: Cancel with Escape
-    board.press("Escape")
-    expect(board.screenshot()).not.toContain("Set Due Date")
+    await app.press("Escape")
+    expect(app.text).not.toContain("Set Due Date")
 
     // Step 4: No due_at should be set
-    const col = repo.getChildren("board")[0]!
-    const task = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const task = app.repo.getChildren(col.id)[0]!
     expect(task.due_at).toBeFalsy()
   })
 
-  test("ts cycles task status, tr opens recurrence dialog", () => {
+  test("ts cycles task status, tr opens recurrence dialog", async () => {
     // ts was remapped from set_start_date to cycle_task_status
-    const { board, repo } = testEnv(() => item("board", item("col1", item.task("Recurring task"))))
+    using app = createTestApp(item("board", item("col1", item.task("Recurring task"))))
 
     // Step 1: ts cycles task status (no dialog)
-    board.command("cycle_task_status_t")
-    expect(board.screenshot()).not.toContain("Set Start Date")
+    await app.command("cycle_task_status_t")
+    expect(app.text).not.toContain("Set Start Date")
 
     // Step 2: Verify status was cycled
-    const col = repo.getChildren("board")[0]!
-    const task = repo.getChildren(col.id)[0]!
+    const col = app.repo.getChildren("board")[0]!
+    const task = app.repo.getChildren(col.id)[0]!
     expect(task.item?.task?.status).not.toBe("todo")
 
     // Step 3: Open recurrence dialog
-    board.command("set_recurring")
-    expect(board.screenshot()).toContain("Set Recurrence")
+    await app.command("set_recurring")
+    expect(app.text).toContain("Set Recurrence")
 
     // Step 4: Cancel
-    board.press("Escape")
-    expect(board.screenshot()).not.toContain("Set Recurrence")
+    await app.press("Escape")
+    expect(app.text).not.toContain("Set Recurrence")
 
     // Step 5: Card should still be visible and cursor valid
-    const cursor = board.q("[data-cursor]")
+    const cursor = app.q("[data-cursor]")
     expect(cursor.textContent()).toContain("Recurring task")
   })
 
