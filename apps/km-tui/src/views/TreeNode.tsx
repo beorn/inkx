@@ -323,16 +323,23 @@ function TreeNodeImpl({
   const cursorInDescendant = useSignal(nodeStore.cursorDescendant(node.id))
   const isParentOfCursor = depth === 0 && cursorInDescendant
 
+  // If an ancestor is selected, the card/column already provides the visual bg
+  // (selectedBg from CardColumn). Don't add per-node multiSelectedBg on top —
+  // that creates a zebra pattern where sections get 14% tint while sub-items
+  // inherit the card's 6% tint.
+  const hasSelectedAncestor = useSignal(nodeStore.selectedAncestor(node.id))
+
   // Search match highlighting: white bg / black fg (current match brighter)
   const isSearchMatch = searchMatchNodeIds.has(node.id)
   const isCurrentMatch = node.id === currentMatchNodeId
   const searchHighlight = isSearchMatch && !isSelected && !isNodeSelected
   // Cursor node: inverse bg on head row.
   // Parent of cursor: yellow fg + faint highlight bg on head row.
-  // Multi-selected (non-cursor) sub-item: stronger primary tint on head row.
+  // Multi-selected (non-cursor) sub-item: stronger bg tint, but only when
+  // the node is independently selected (not just a descendant of a selected card).
   // Card-level subtle bg for a multi-selected card comes from CardColumn.
   const theme = useTheme()
-  const isMultiSelectedOnly = isNodeSelected && !isSelected
+  const isMultiSelectedOnly = isNodeSelected && !isSelected && !hasSelectedAncestor
   const effectiveBg = isSelected || isParentOfCursor ? undefined : style.backgroundColor
   const headRowBg = isSelected
     ? style.backgroundColor // inverse ($selection-bg)

@@ -211,8 +211,8 @@ describe("card bg inheritance (zebra pattern bug)", () => {
         const row = lines.findIndex((line: string) => line.includes(label))
         if (row < 0) return null
         const col = lines[row]!.indexOf(label)
-        // termless cell(row, col) — row-first order via emulator backend
-        const cell = (term as any)._emulator.screen.cell(row, col)
+        // termless cell(row, col) — row-first order
+        const cell = term.cell!(row, col)
         return { label, bg: cell.bg, row, col }
       })
       .filter((b): b is NonNullable<typeof b> => b !== null)

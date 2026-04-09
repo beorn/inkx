@@ -27,7 +27,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     // Create a task with a due date far enough in the future to show as a short date
     const nodes = item("board", item("col1", item.task("dateTask")))
     const taskNode = nodes.find((n) => n.content === "dateTask")!
-    taskNode.due_at = "2026-04-15" // Far future date -> "Apr 15"
+    taskNode.due_at = "2027-04-15" // Far future date -> "Apr 15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -81,7 +81,7 @@ describe("cursor colors (km-tui.cursor-colors)", () => {
     // Create two tasks, second one with a date
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("secondTask")))
     const secondTask = nodes.find((n) => n.content === "secondTask")!
-    secondTask.due_at = "2026-04-15"
+    secondTask.due_at = "2027-04-15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -375,7 +375,7 @@ describe("km-tui.selected-color: all selected card content is black-on-yellow", 
   it("date badge on selected card is $selectedfg on $selected", () => {
     const nodes = item("board", item("col1", item.task("taskWithDate")))
     const taskNode = nodes.find((n) => n.content === "taskWithDate")!
-    taskNode.due_at = "2026-04-15"
+    taskNode.due_at = "2027-04-15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
@@ -555,7 +555,7 @@ describe("km-tui.done-style: completed task date badge hidden, title dimmed", ()
   it("todo task DOES show date badge with colors", () => {
     const nodes = item("board", item("col1", item.task("firstTask"), item.task("todoDate")))
     const todoTask = nodes.find((n) => n.content === "todoDate")!
-    todoTask.due_at = "2026-04-15" // Future date
+    todoTask.due_at = "2027-04-15" // Far future date -> "Apr 15"
 
     const { board } = testEnv(() => nodes, { columns: 80, rows: 24 })
 
