@@ -139,6 +139,8 @@ function DeleteConfirmDialogBox({
       marginLeft={Math.floor((termWidth - dialogWidth) / 2)}
       marginTop={Math.floor(contentHeight / 3)}
       data-dialog="delete-confirm"
+      data-child-count={dc.childCount}
+      data-backlink-count={dc.backlinkCount}
     >
       <ConfirmDialog title={`Delete "${dc.title}"?`} warnings={warnings} width={dialogWidth} />
     </Box>
