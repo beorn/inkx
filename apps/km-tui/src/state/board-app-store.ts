@@ -260,6 +260,12 @@ export interface BoardAppActions {
   // Workspace pane operations (Phase 6: pane-aware navigation)
   /** Change the focused pane's viewType from "empty" to "board" */
   activateEmptyPane(): void
+
+  // NodeStore registration — Board connector registers its per-pane NodeStore so
+  // that syncPaneSignals and dispatchBoard can push fold/sticky/cursor/selection/edit
+  // state directly, eliminating sync useEffects in Board.tsx.
+  registerNodeStore(paneId: string, nodeStore: import("./reactive.ts").NodeStore): void
+  unregisterNodeStore(paneId: string): void
 }
 
 export type BoardAppStore = BoardAppState & BoardAppActions & { [key: string]: unknown }
@@ -531,6 +537,9 @@ export function createBoardAppStoreState(
      * Sync store pane fields → PaneSignals after a dispatchBoard set().
      * This keeps signals in sync so the computed view lens auto-invalidates.
      * Called after every structural dispatch (TOGGLE_FOLD, ZOOM_IN, SET_ROOT, etc.).
+     *
+     * Also syncs NodeStore (fold overrides, sticky folds) — eliminates the
+     * Board.tsx useEffects that previously mirrored these values.
      */
     function syncPaneSignals(pane: BoardPaneState): void {
       if (!pane.signals) return
@@ -545,6 +554,11 @@ export function createBoardAppStoreState(
       // getWalkOrder() uses the old root to scope the walk → empty walkOrder
       // when the old root doesn't exist in the new view lens → cursor null.
       pane.sel.root.set((pane.rootId as import("@silvery/selection").ID) ?? null)
+      // Sync NodeStore fold/sticky state (replaces Board.tsx useEffects)
+      if (pane.nodeStore) {
+        pane.nodeStore.replaceFoldOverrides(pane.foldDepths)
+        pane.nodeStore.replaceStickyFolds(pane.stickyFolds)
+      }
     }
 
     // Helper: get the focused pane's sel (delegates global sel to per-pane sel).
@@ -924,6 +938,8 @@ export function createBoardAppStoreState(
               s.sel.node.select([cursorId as import("@silvery/selection").ID])
             }
           }
+          // NodeStore cursor/fold/sticky sync is handled by alien-signals effects
+          // registered in registerNodeStore — no manual sync needed here.
         }
       },
 
@@ -1562,6 +1578,50 @@ export function createBoardAppStoreState(
         if (activatedPane && isBoardPane(activatedPane)) {
           watchCurswant(activatedPane.sel)
         }
+      },
+
+      registerNodeStore(paneId: string, nodeStore: import("./reactive.ts").NodeStore) {
+        const s = _get()
+        const pane = s.workspace.panes.get(paneId)
+        if (!pane || !isBoardPane(pane)) return
+        // Unregister previous if present (shouldn't happen, but defensive)
+        if (pane.nodeStoreCleanup) pane.nodeStoreCleanup()
+        // Attach nodeStore to pane (mutable — not part of Zustand shallow merge)
+        pane.nodeStore = nodeStore
+        // Set up alien-signals effects for selection and edit sync.
+        // These replace the Board.tsx useEffects that observed sel.node.ids and sel.text.
+        // Cursor sync remains as a useEffect in Board.tsx because it requires React render
+        // cycle coordination (useSignal subscriptions in TreeNode components need React
+        // to process the change within act() — alien-signals effects fire outside React's lifecycle).
+        const repo = s.repo
+        const stopSelEffect = effect(() => {
+          const ids = pane.sel.node.ids()
+          const selectedSet = new Set(ids as unknown as string[])
+          nodeStore.setSelection(selectedSet, repo)
+        })
+        const stopEditEffect = effect(() => {
+          const textEdit = pane.sel.text() as { nodeId: string; offset: number } | null
+          // Read textEditHints from store (not reactive — but updated synchronously before edit signals)
+          const hints = _get().textEditHints
+          if (textEdit) {
+            nodeStore.beginEdit(textEdit.nodeId, hints?.blockIndex ?? 0)
+          } else {
+            nodeStore.endEdit()
+          }
+        })
+        pane.nodeStoreCleanup = () => {
+          stopSelEffect()
+          stopEditEffect()
+          pane.nodeStore = undefined
+          pane.nodeStoreCleanup = undefined
+        }
+      },
+
+      unregisterNodeStore(paneId: string) {
+        const s = _get()
+        const pane = s.workspace.panes.get(paneId)
+        if (!pane || !isBoardPane(pane)) return
+        if (pane.nodeStoreCleanup) pane.nodeStoreCleanup()
       },
     }
   }

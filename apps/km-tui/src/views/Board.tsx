@@ -43,6 +43,7 @@ import { TabsView } from "./TabsView.tsx"
 import { DetailView } from "./DetailView.tsx"
 import { renderPath } from "../layout/index.ts"
 import type { GridNavigator } from "@km/board"
+import { classifyCursorFromLens } from "@km/board"
 import type { PaneUI, FilterProperties } from "../state/ui-reducer.ts"
 import { hasActivePropertyFilters } from "../state/ui-reducer.ts"
 import { ConstraintRoot } from "../layout/index.ts"
@@ -57,6 +58,10 @@ import { EmptyPaneWelcome } from "./EmptyPaneWelcome.tsx"
 import { useComponentTiming } from "../hooks/use-component-timing.ts"
 
 const _log = createLogger("km:tui:board")
+
+// Initialize command system at module level (idempotent — runs once on first import).
+// Previously a useEffect in Board; moved here to reduce effect count.
+ensureCommandSystemInitialized()
 
 // Extracted modules
 import { TOP_BAR_HEIGHT, BOTTOM_BAR_HEIGHT, COLLAPSED_COL_WIDTH, computeColumnWidths } from "./board-layout.ts"
@@ -646,6 +651,12 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Reactive node store — per-pane scope, stable across re-renders.
   // Pre-populate cursor state so child components have valid cursor on first render.
+  // Registers the nodeStore on the pane AND sets up alien-signals effects synchronously
+  // (during initial render) so that cursor/selection/edit/fold/sticky sync is active
+  // before any useEffects fire. This eliminates 5 sync useEffects.
+  const storeApiForReg = React.useContext(StoreContext) as
+    | import("../state/signal-store.ts").SignalStoreApi<BoardAppStore>
+    | null
   const nodeStore = useMemo(() => {
     const store = createNodeStore()
     // Derive initial cursor classification from the visible lens
@@ -670,8 +681,24 @@ export function Board({ patchedConsole }: BoardProps) {
       store.cursorColumnNodeId(cursorColumnNodeId)
       store.cursorDepth(cursorDepth)
     }
+    // Register nodeStore on the pane AND set up alien-signals effects synchronously.
+    // Must happen during render (not in useEffect) so the effects are active before
+    // any keypress — action handlers call sel.node.select() directly (not through
+    // dispatchBoard(SELECT)), so the effects must catch those changes immediately.
+    if (storeApiForReg) {
+      storeApiForReg.getState().registerNodeStore(paneId, store)
+    }
     return store
     // eslint-disable-next-line react-hooks/exhaustive-deps -- only on mount
+  }, [])
+
+  // Cleanup alien-signals effects on unmount
+  const unregisterNodeStore = useAppStore<BoardAppStore, BoardAppStore["unregisterNodeStore"]>(
+    (s) => s.unregisterNodeStore,
+  )
+  useEffect(() => {
+    return () => unregisterNodeStore(paneId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup only on unmount
   }, [])
 
   // Hydrate reactive node state on initial load and root change (zoom)
@@ -690,30 +717,6 @@ export function Board({ patchedConsole }: BoardProps) {
     nodeStore.hydrate(repo, rootId, foldDepths, selectedSet, stickyFolds)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- full re-hydrate only on root change
   }, [nodeStore, repo, rootId])
-
-  // Incrementally sync fold depth changes to reactive node state
-  useEffect(() => {
-    nodeStore.replaceFoldOverrides(foldDepths)
-  }, [nodeStore, foldDepths])
-
-  // Incrementally sync sticky-fold changes to reactive node state so that
-  // toggle_sticky_fold causes only the affected TreeNode to re-render.
-  useEffect(() => {
-    nodeStore.replaceStickyFolds(stickyFolds)
-  }, [nodeStore, stickyFolds])
-
-  // Incrementally sync multi-selection changes to reactive node state
-  // Store handles descendant expansion internally
-  useEffect(() => {
-    nodeStore.setSelection(selectedSet, repo)
-  }, [nodeStore, selectedSet, repo, ps])
-
-  // Incrementally sync inline edit state to reactive node state
-  const textEdit = useSignal(paneSel.text) as { nodeId: string; offset: number } | null
-  const textEditHints = useAppStore<BoardAppStore, import("../tui-context.ts").TextEditHints | null>(
-    (s) => s.textEditHints,
-  )
-  const editState = textEdit ? { nodeId: textEdit.nodeId as string, blockIndex: textEditHints?.blockIndex ?? 0 } : null
 
   // Layout is derived on demand — no store sync needed
 
@@ -772,18 +775,9 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Lazy nodeIndex: only indexes column headers + cards (no descendant queries).
   // deriveCursorIndices walks up parent chain on miss via getNode.
-  // Derived from the visible lens (no DerivedColumn dependency).
+  // Derived from the visible lens.
   const nodeIndex = useMemo(() => buildNodeIndexFromTree(visibleLensValue), [visibleLensValue])
   const getNode = useCallback((id: string) => repo.getNode(id), [repo])
-
-  // Sync inline edit state to reactive node store.
-  useEffect(() => {
-    if (editState) {
-      nodeStore.beginEdit(editState.nodeId, editState.blockIndex)
-    } else {
-      nodeStore.endEdit()
-    }
-  }, [nodeStore, editState])
 
   // Derive cursor position from cursor + columns
   // getNode enables parent-walk fallback for descendant nodes not in the lazy index
@@ -804,41 +798,17 @@ export function Board({ patchedConsole }: BoardProps) {
 
   const cursorDepth = CursorDepth.fromIndices(cursorPosition.colIndex, cursorPosition.isAtCardLevel)
 
-  // Derive cursorCardNodeId and cursorColumnNodeId from layout indices via lens.
-  // Uses the lens column/card lists instead of DerivedColumn[] for identity resolution.
-  // Detail mode: cursor IS the cursorCardNodeId (flat layout, no column derivation).
-  const cursorCardNodeId = useMemo(() => {
-    if (ui.viewMode === "detail") {
-      // In detail mode, every navigable item (metadata rows, doc nodes) is at card level.
-      // The cursor string directly IS the card node ID (or a __meta__ testID).
-      return cursor
-    }
-    const rootLensId = visibleLensValue.rootId
-    if (!rootLensId || cursorPosition.colIndex < 0) return null
-    const colIds = visibleLensValue.children(rootLensId)
-    const colId = colIds[cursorPosition.colIndex]
-    if (!colId || cursorPosition.cardIndex < 0) return null
-    const cardIds = visibleLensValue.children(colId)
-    return cardIds[cursorPosition.cardIndex] ?? null
-  }, [visibleLensValue, cursorPosition.colIndex, cursorPosition.cardIndex, ui.viewMode, cursor])
-  const cursorColumnNodeId = useMemo(() => {
-    if (ui.viewMode === "detail") return null
-    const rootLensId = visibleLensValue.rootId
-    if (!rootLensId || cursorPosition.colIndex < 0) return null
-    const colIds = visibleLensValue.children(rootLensId)
-    return colIds[cursorPosition.colIndex] ?? null
-  }, [visibleLensValue, cursorPosition.colIndex, ui.viewMode])
-
-  // Sync cursor state to NodeStore after render.
-  // The initial sync happens in the useMemo above (pre-render); subsequent syncs
-  // happen here via useEffect. This is safe because the store selector triggers
-  // re-render, which triggers this effect, which syncs the new cursor state.
+  // Sync cursor to NodeStore — must remain as useEffect because TreeNode components
+  // read per-node cursor signals via useSignal, which requires React render cycle
+  // coordination. Alien-signals effects fire outside React's lifecycle and don't
+  // trigger the useSignal subscriptions within act().
   useEffect(() => {
     nodeStore.setCursor(cursor)
-    nodeStore.cursorCardNodeId(cursorCardNodeId)
-    nodeStore.cursorColumnNodeId(cursorColumnNodeId)
-    nodeStore.cursorDepth(cursorDepth)
-  }, [nodeStore, cursor, cursorCardNodeId, cursorColumnNodeId, cursorDepth, visibleLensValue])
+    const ancestors = classifyCursorFromLens(visibleLensValue, cursor)
+    nodeStore.cursorCardNodeId(ancestors.cursorCardNodeId)
+    nodeStore.cursorColumnNodeId(ancestors.cursorColumnNodeId)
+    nodeStore.cursorDepth(ancestors.cursorDepth)
+  }, [nodeStore, cursor, visibleLensValue])
 
   // Hidden column filtering is centralized in the view lens — the computed
   // lens excludes hidden nodes at build time. When showHidden is toggled,
@@ -848,7 +818,7 @@ export function Board({ patchedConsole }: BoardProps) {
 
   // Per-column filter overlay — BoardCore forwards this to the Column components
   // so they can render only the filtered subset and show the "+N filtered" footer.
-  // Apply text + property filters using tree card IDs (no DerivedColumn dependency).
+  // Apply text + property filters using tree card IDs.
   const columnFilters = useMemo(() => {
     const map = new Map<string, ColumnFilterState>()
     const hasTextFilter = !!ui.filterText
@@ -997,11 +967,6 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [storeRef, handleFindQueryChange, handleSearchReplaceSearchChange, handleSearchReplaceReplaceChange])
 
-  // Initialize command system
-  useEffect(() => {
-    ensureCommandSystemInitialized()
-  }, [])
-
   // Auto-dismiss bell (150ms flash) and status (7s for bell messages, 3s otherwise).
   // Bell is also cleared at the start of the next keypress (board-app.ts line 104).
   useEffect(() => {
@@ -1034,12 +999,17 @@ export function Board({ patchedConsole }: BoardProps) {
     }
   }, [boardFocused, cursor, repo, rootId])
 
-  // Subscribe to external events
-  useEffect(() => createFileDropHandler(setUI), [setUI])
-  useEffect(() => createWatcherStatusHandler(setUI, toastQueue), [setUI, toastQueue])
-  useEffect(() => createBackgroundParseHandler(setUI), [setUI])
-  useEffect(() => createErrorWarningHandler(toastQueue), [toastQueue])
-  useEffect(() => createSyncEventCollector(setUI), [setUI])
+  // Subscribe to external events (combined into single effect)
+  useEffect(() => {
+    const cleanups = [
+      createFileDropHandler(setUI),
+      createWatcherStatusHandler(setUI, toastQueue),
+      createBackgroundParseHandler(setUI),
+      createErrorWarningHandler(toastQueue),
+      createSyncEventCollector(setUI),
+    ]
+    return () => cleanups.forEach((cleanup) => cleanup?.())
+  }, [setUI, toastQueue])
 
   // NO useInput — keys handled by term:key in board-app.ts
 

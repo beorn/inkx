@@ -130,6 +130,13 @@ export interface BoardPaneState extends PaneStateBase {
   /** Optional: present when PaneSignals are wired. Provides computed view/visible lenses. */
   signals?: import("../state/pane-signals.ts").PaneSignals
 
+  /** Per-pane reactive node store. Registered by Board connector, used by syncPaneSignals
+   *  to push fold/sticky/cursor/selection/edit state without React useEffects. */
+  nodeStore?: import("../state/reactive.ts").NodeStore
+  /** Cleanup function for alien-signals effects watching selection/edit changes.
+   *  Called when the nodeStore is unregistered. */
+  nodeStoreCleanup?: () => void
+
   // Board navigation
   rootId: string | null
   rootPath: string | null
