@@ -78,17 +78,17 @@ Silvery's pipeline is different. The key idea is separating **structural layout 
 
 1. **Structure pass** -- React creates the component tree. Structural properties (flex direction, padding, borders, min/max sizes) are extracted from JSX props.
 2. **Layout** -- Flexily (a Yoga-compatible layout engine) computes positions and sizes from the structural skeleton.
-3. **Content render** -- React renders each component's content with its computed dimensions available via `useboxRect()`.
+3. **Content render** -- React renders each component's content with its computed dimensions available via `useBoxRect()`.
 4. **Paint** -- the renderer writes characters to the terminal buffer, diffing against the previous frame.
 
 The question this raises: how can layout run before React renders content? Layout needs to know sizes. React generates the things being sized.
 
 The answer is that layout doesn't need content. It needs structure -- which nodes exist, what flex properties they have, what their constraints are. This is fully determined by the JSX props (flexDirection, padding, borderStyle, width, height, minWidth, maxWidth, etc.). When a component mounts, Silvery extracts these structural properties and builds a layout tree independently of the content.
 
-Content is what goes inside the boxes. A text string, a truncated title, a compact vs. full card layout -- these are content decisions that can vary based on the available space. Because layout runs first, `useboxRect()` returns real values:
+Content is what goes inside the boxes. A text string, a truncated title, a compact vs. full card layout -- these are content decisions that can vary based on the available space. Because layout runs first, `useBoxRect()` returns real values:
 
 ```tsx
-import { Box, Text, useboxRect } from "silvery"
+import { Box, Text, useBoxRect } from "silvery"
 
 interface Item {
   title: string
@@ -101,7 +101,7 @@ function truncate(text: string, maxLen: number): string {
 
 // Silvery: dimensions are known during content render
 function Card({ item }: { item: Item }) {
-  const { width, height } = useboxRect()
+  const { width, height } = useBoxRect()
 
   return (
     <Box>
@@ -112,7 +112,7 @@ function Card({ item }: { item: Item }) {
 }
 ```
 
-No effect. No second render. No flash. `useboxRect()` returns real values on the first content render because layout has already run on the structural skeleton.
+No effect. No second render. No flash. `useBoxRect()` returns real values on the first content render because layout has already run on the structural skeleton.
 
 ## The Content-Sensitive Layout Caveat
 
@@ -129,11 +129,11 @@ When it does come up, the workaround is explicit: set a fixed height on the cont
 Components can adapt to their container, not just the viewport:
 
 ```tsx
-import { useboxRect } from "silvery"
+import { useBoxRect } from "silvery"
 
 // simplified — CompactView, MediumView, FullView are your own components
 function Panel() {
-  const { width } = useboxRect()
+  const { width } = useBoxRect()
 
   if (width < 20) return <CompactView />
   if (width < 40) return <MediumView />
@@ -156,7 +156,7 @@ Silvery knows the width of every Box during content render. Text that exceeds it
 Back to the original problem:
 
 ```tsx
-import { Box, Text, useboxRect } from "silvery"
+import { Box, Text, useBoxRect } from "silvery"
 
 interface Column {
   id: string
@@ -170,7 +170,7 @@ interface CardData {
 }
 
 function Board({ columns }: { columns: Column[] }) {
-  const { width } = useboxRect()
+  const { width } = useBoxRect()
   const visibleCols = width < 60 ? 1 : width < 120 ? 2 : 3
 
   return (
@@ -190,7 +190,7 @@ function Board({ columns }: { columns: Column[] }) {
 }
 
 function CardView({ card }: { card: CardData }) {
-  const { width } = useboxRect()
+  const { width } = useBoxRect()
   const maxLen = Math.max(0, width - 2)
   const title = card.title.length <= maxLen ? card.title : card.title.slice(0, Math.max(0, maxLen - 1)) + "\u2026"
   return (
@@ -216,6 +216,6 @@ The win is not "one pass forever." It's that components can make width/height de
 
 ## The Web Parallel
 
-The web went through a similar evolution. For years, components couldn't know their container's size during render. CSS container queries (`@container`) finally solved this in 2023 by making container dimensions available during style calculation. `useboxRect()` is the terminal equivalent -- components adapt to their container, not the viewport.
+The web went through a similar evolution. For years, components couldn't know their container's size during render. CSS container queries (`@container`) finally solved this in 2023 by making container dimensions available during style calculation. `useBoxRect()` is the terminal equivalent -- components adapt to their container, not the viewport.
 
 The underlying principle: **components need to know their constraints to make good rendering decisions.** A pipeline that provides that information during render, rather than after, eliminates an entire category of workarounds.

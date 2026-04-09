@@ -251,7 +251,7 @@ echo ""
 echo "=== PATTERN 28: Deprecated silvery APIs ==="
 # APIs that should be migrated (see km-deprecations bead)
 #   - app.html → app.ansi
-#   - useLayout → useboxRect
+#   - useLayout → useBoxRect
 #   - layoutEqual → rectEqual
 #   - computedLayout → boxRect
 #   - ANSI_REGEX → stripAnsi()

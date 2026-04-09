@@ -63,7 +63,7 @@ Since all four sites already use VitePress for docs, add blogging to the existin
 ```yaml
 ---
 title: "How to Build a CLI Dashboard with React"
-description: "Step-by-step guide to building an interactive terminal dashboard using silvery's Box, Text, and useboxRect components."
+description: "Step-by-step guide to building an interactive terminal dashboard using silvery's Box, Text, and useBoxRect components."
 date: 2026-04-15
 author: "Silvery Team"
 tags: [tutorial, react, tui, dashboard]
@@ -157,7 +157,7 @@ Drop to **1 article/week per site** (4 total/week). Focus on depth and quality.
 | # | Title | Description | Tags |
 |---|-------|-------------|------|
 | 1 | Build a Git Status TUI in 50 Lines of React | Minimal git status viewer using Box, Text, and useInput. Shows how little code silvery needs vs raw ANSI. | tutorial, react, git, beginner |
-| 2 | Interactive CLI Dashboard with Real-Time Data | Fetch API data, display in auto-updating panels with useboxRect for responsive layout. | tutorial, dashboard, api, intermediate |
+| 2 | Interactive CLI Dashboard with Real-Time Data | Fetch API data, display in auto-updating panels with useBoxRect for responsive layout. | tutorial, dashboard, api, intermediate |
 | 3 | Build a Markdown Previewer for the Terminal | Parse markdown with remark, render with silvery Text/Box components. Side-by-side source + preview. | tutorial, markdown, react |
 | 4 | Terminal File Explorer with Keyboard Navigation | SelectList + directory traversal. Covers focus system, keyboard shortcuts, file icons. | tutorial, file-browser, keyboard |
 | 5 | Build a TODO App with Undo/Redo | useState + history stack pattern. Shows silvery's TEA-compatible state approach without requiring TEA. | tutorial, todo, state-management |
@@ -183,7 +183,7 @@ Drop to **1 article/week per site** (4 total/week). Focus on depth and quality.
 |---|-------|-------------|------|
 | 21 | How Silvery's Incremental Renderer Achieves 100x Faster Updates | 7 dirty flags, cell-level compositing, skip-tree optimization. With benchmarks. | deep-dive, performance, rendering |
 | 22 | The React Reconciler Nobody Told You About | How silvery's custom React reconciler maps JSX to terminal cells. HostConfig deep dive. | deep-dive, react, reconciler |
-| 23 | Layout Feedback: The Feature Ink Can't Have | Why useboxRect() requires layout-before-render inversion. Architectural constraint analysis. | deep-dive, layout, architecture |
+| 23 | Layout Feedback: The Feature Ink Can't Have | Why useBoxRect() requires layout-before-render inversion. Architectural constraint analysis. | deep-dive, layout, architecture |
 | 24 | Zero Native Dependencies: How We Eliminated WASM | Pure TypeScript layout engine, string-based ANSI rendering, no yoga. Trade-offs and benchmarks. | deep-dive, architecture, wasm |
 | 25 | Terminal Protocol Negotiation: 100+ Sequences Auto-Detected | How silvery discovers what your terminal supports without manual configuration. | deep-dive, protocols, terminal |
 | 26 | Building a Theme System with 38 Palettes | Semantic tokens, palette detection, auto dark/light mode. Design token architecture. | deep-dive, theming, design |

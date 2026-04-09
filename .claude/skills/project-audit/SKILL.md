@@ -122,7 +122,7 @@ Synthesize findings into categorized issues. For each issue, classify:
 | Category | Scope | Risk | Example |
 |----------|-------|------|---------|
 | **Code DRY** | Functions, patterns | Medium | Identical helper in 3 files |
-| **Stale docs** | Renamed APIs, wrong numbers | High | useLayout() renamed to useContentRect() 3 months ago |
+| **Stale docs** | Renamed APIs, wrong numbers | High | useLayout() renamed to useBoxRect() 3 months ago |
 | **Naming** | Inconsistent casing/terms | Low | "Silvery" vs "silvery" in prose |
 | **Structure** | Doc organization, file sizes | Medium | 627-line getting-started is really 2 docs |
 | **Overlap** | Duplicate content | Medium | comparison.md and ink-comparison.md share 80% |

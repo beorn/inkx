@@ -306,7 +306,7 @@ graph LR
 
     subgraph silvery["Silvery Pipeline"]
         direction LR
-        S["Structure Pass<br/>extract flex props"] --> L2["Flexily Layout<br/>compute sizes"] --> R2["Content Render<br/>useboxRect()"] --> D["Diff<br/>compare frames"] --> O2["Output<br/>write changes only"]
+        S["Structure Pass<br/>extract flex props"] --> L2["Flexily Layout<br/>compute sizes"] --> R2["Content Render<br/>useBoxRect()"] --> D["Diff<br/>compare frames"] --> O2["Output<br/>write changes only"]
     end
 
     style standard fill:#3a1a1a,color:#ccc,stroke:#a55
@@ -315,7 +315,7 @@ graph LR
     style R1b fill:#555,color:#ccc,stroke:#a55,stroke-dasharray: 5 5
 ```
 
-### When useboxRect() Is Available
+### When useBoxRect() Is Available
 
 ```mermaid
 %%{init: {'theme': 'dark'}}%%
@@ -352,7 +352,7 @@ graph TD
     Split -->|"children"| Content["Content<br/>Text, truncation,<br/>compact vs full layout,<br/>conditional elements"]
 
     Structure --> Layout["Flexily Layout<br/>Compute positions + sizes"]
-    Layout -->|"useboxRect()"| Content
+    Layout -->|"useBoxRect()"| Content
     Content --> Paint["Paint<br/>Write to terminal buffer"]
 
     style Split fill:#7d6608,color:#fff
@@ -382,7 +382,7 @@ graph TB
         W3["| Done     |"]
     end
 
-    CR["useboxRect()"] -->|"width"| narrow
+    CR["useBoxRect()"] -->|"width"| narrow
     CR -->|"width"| medium
     CR -->|"width"| wide
 

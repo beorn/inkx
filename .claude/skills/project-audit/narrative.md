@@ -66,7 +66,7 @@ A user should know "Can I use this?" before they run `npm install`.
 
 ### Bad: Flat list
 ```
-- useContentRect()
+- useBoxRect()
 - Five-phase pipeline
 - Flexture layout engine
 - No WASM memory growth
@@ -79,7 +79,7 @@ A user should know "Can I use this?" before they run `npm install`.
 
 ```
 ### Layout & Rendering
-- `useContentRect()` — components query their own dimensions (solves Ink's oldest issue)
+- `useBoxRect()` — components query their own dimensions (solves Ink's oldest issue)
 - Five-phase pipeline — only changed nodes re-render (200x+ faster interactive updates)
 - Flexture layout engine — pure TS, 7KB, zero native deps
 

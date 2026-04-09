@@ -110,7 +110,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **constructor** — A function on a domain interface that creates initial state (`Selection.create()`, `Board.create(rootId)`). Part of the domain interface anatomy alongside selectors and apply.
 
-**boxRect** — The available content area of a component after accounting for padding, borders, and layout. Accessed via `useboxRect()` — synchronous, available during render.
+**boxRect** — The available content area of a component after accounting for padding, borders, and layout. Accessed via `useBoxRect()` — synchronous, available during render.
 
 **CRDT** — Conflict-free Replicated Data Type. km's architecture is designed to be CRDT-compatible (ID-based addressing, event sourcing), though CRDTs are deferred.
 
@@ -244,7 +244,7 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **latch** — A signal value set on mousedown and cleared on mouseup/cancel. `pressOrigin` and `pressHit` are latches — they freeze the gesture's starting context.
 
-**layout feedback** — A silvery/flexily capability where components read their computed layout via `useboxRect()` during the same render pass. No second render needed.
+**layout feedback** — A silvery/flexily capability where components read their computed layout via `useBoxRect()` during the same render pass. No second render needed.
 
 **layout phase** — The first phase of silvery's rendering pipeline. Runs flexily's flexbox algorithm: measure, compute positions and sizes, resolve scroll offsets and sticky positioning.
 
@@ -372,7 +372,9 @@ Selection uses **transitions** (direct pure functions) rather than dispatched op
 
 **scope** — A structured concurrency primitive that tracks child tasks and timers. Disposing a scope cancels all its children. Supports nesting.
 
-**scrollRect** — The absolute terminal coordinates of a component after layout. Used for hit testing and absolute positioning.
+**scrollRect** — Scroll-adjusted position of a node, projected onto screen coordinates before sticky clamping. For non-sticky nodes equals `screenRect`; for sticky nodes, can go off-screen. Accessed via `useScrollRect()`.
+
+**screenRect** — Actual paint position of a node on the terminal screen (the `getBoundingClientRect()` analogue). Used for hit testing, cursor positioning, and cross-component visual navigation. Accessed via `useScreenRect()`.
 
 **scroll** — `overflow="scroll"` on a Box enables automatic scrolling. silvery measures children, renders only what fits, and shows scroll indicators.
 
