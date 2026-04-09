@@ -638,3 +638,77 @@ timer.setTimeout(() => { /* fires sync */ }, 100)
 timer.advanceTime(100)
 timer.dispose()
 ```
+
+---
+
+## CLI Tests (mdspec)
+
+Command output testing via the mdspec vitest plugin. Always acceptance-level (user-facing).
+
+**File pattern**: `*.spec.md` (fast) / `*.slow.spec.md` (subprocess, real I/O). Location: `apps/km-cli/tests/sh/*.spec.md`.
+
+**Required frontmatter** — the `memory: true` flag is CRITICAL for fast tests (without it: 16x slower, 190ms vs 12ms per command):
+
+```yaml
+---
+mdspec:
+  plugin: ../km-repl.ts
+  fixture: two-columns
+  memory: true
+---
+```
+
+**Example**:
+
+```markdown
+# Navigation Test
+
+## Setup
+
+$ km sync
+✓ Synced ...
+
+## Test
+
+$ km sh board.md -c 'j; state'
+cursor: [1]
+```
+
+**How it works**: km-repl plugin creates isolated `/tmp/kmtest-*` directory, `memory: true` sets `KM_DB_PATH=:memory:`, `executeKmCommand()` runs km commands in-process (no subprocess), plugin cleans up after all tests.
+
+**Use subprocess (`$ bun km ...`) only when testing**: CLI exit codes, environment variable handling, actual binary execution. These go in separate `.slow.spec.md` files.
+
+**Doctrine**: mdspec asserts semantic output, not formatting or layout. Don't assert spacing, ANSI colors, or cursor position in mdspec. See [mdspec README](../../../vendor/mdtest/README.md).
+
+---
+
+## Benchmarks (vitest bench)
+
+Performance measurement via vitest benchmarks. Benchmarks are **not tests** — they measure performance, not correctness. Never say "benchmark test" — say "benchmark" or "bench".
+
+**File pattern**: `benchmarks/*.bench.ts`.
+
+**Commands**:
+
+| Command | Use case |
+|---|---|
+| `bun run bench` | Run all benchmarks |
+| `bun run bench:baseline` | Create baseline for comparison (after optimization) |
+| `bun run bench:compare` | Compare against baseline (detect regressions) |
+
+**Current benchmarks**: `sync.bench.ts` (file sync), `parser.bench.ts` (markdown), `layout.bench.ts` (TUI layout), `queries.bench.ts` (database).
+
+**Example**:
+
+```typescript
+import { bench, describe } from "vitest"
+
+describe("parser", () => {
+  bench("parse small file", () => { parseMarkdown(smallContent) })
+  bench("parse large file", () => { parseMarkdown(largeContent) })
+})
+```
+
+**When to use**: after optimization work (baseline → compare), before releases (check for regressions), investigating slow operations (isolate bottlenecks).
+
+**Fast iteration** — full runs take minutes, so for quick dev feedback use a dedicated quick-compare script with minimal iterations (3–5, ~1s runtime). See `vendor/flexily/bench/quick-compare.ts` for a reference implementation. Only run full `bun run bench` for final validation.
