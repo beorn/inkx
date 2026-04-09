@@ -13,6 +13,7 @@
 import { act } from "react"
 import { describe, test, expect } from "vitest"
 import { item, testEnv } from "/Users/beorn/Code/pim/km/apps/km-tui/tests/helpers/board-test.ts"
+import { createTestApp } from "./helpers/test-app.ts"
 import { activeEditTargetRef } from "@silvery/ag-react"
 import { dialogTargetRef } from "../src/dialog-target.ts"
 import { deriveColumnsFromRepo, buildNodeIndex, deriveCursorIndices } from "../src/hooks/use-columns.ts"
@@ -33,9 +34,9 @@ function openSearchDialog(store: StoreApi<BoardAppStore>, board: ReturnType<type
 }
 
 describe("P1: Navigation keys must not corrupt card text", () => {
-  test("h/l/j/k navigation does not insert characters into card content", () => {
+  test("h/l/j/k navigation does not insert characters into card content", async () => {
     // Create a board with columns and cards — simple case
-    const { board, repo } = testEnv(() =>
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("Task Alpha"), item("Task Beta"), item("Task Gamma")),
@@ -44,98 +45,95 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     )
 
     // Verify initial content is correct
-    expect(repo.getNode("Task Alpha")?.content).toBe("Task Alpha")
-    expect(repo.getNode("Task Delta")?.content).toBe("Task Delta")
+    expect(app.repo.getNode("Task Alpha")?.content).toBe("Task Alpha")
+    expect(app.repo.getNode("Task Delta")?.content).toBe("Task Delta")
 
     // Navigate extensively
-    board
-      .press("l") // right to col2
-      .press("h") // back to col1
-      .press("j") // down to Task Beta
-      .press("j") // down to Task Gamma
-      .press("l") // right to col2
-      .press("j") // down to Task Epsilon
-      .press("k") // up to Task Delta
-      .press("h") // left to col1
-      .press("k") // up to Task Beta
-      .press("k") // up to Task Alpha
-      .press("l") // right again
-      .press("h") // left again
+    await app.press("l") // right to col2
+    await app.press("h") // back to col1
+    await app.press("j") // down to Task Beta
+    await app.press("j") // down to Task Gamma
+    await app.press("l") // right to col2
+    await app.press("j") // down to Task Epsilon
+    await app.press("k") // up to Task Delta
+    await app.press("h") // left to col1
+    await app.press("k") // up to Task Beta
+    await app.press("k") // up to Task Alpha
+    await app.press("l") // right again
+    await app.press("h") // left again
 
     // After all navigation, NO card content should be modified
-    expect(repo.getNode("Task Alpha")?.content).toBe("Task Alpha")
-    expect(repo.getNode("Task Beta")?.content).toBe("Task Beta")
-    expect(repo.getNode("Task Gamma")?.content).toBe("Task Gamma")
-    expect(repo.getNode("Task Delta")?.content).toBe("Task Delta")
-    expect(repo.getNode("Task Epsilon")?.content).toBe("Task Epsilon")
+    expect(app.repo.getNode("Task Alpha")?.content).toBe("Task Alpha")
+    expect(app.repo.getNode("Task Beta")?.content).toBe("Task Beta")
+    expect(app.repo.getNode("Task Gamma")?.content).toBe("Task Gamma")
+    expect(app.repo.getNode("Task Delta")?.content).toBe("Task Delta")
+    expect(app.repo.getNode("Task Epsilon")?.content).toBe("Task Epsilon")
   })
 
-  test("navigation with body paragraphs does not corrupt text", () => {
+  test("navigation with body paragraphs does not corrupt text", async () => {
     // Cards with body content (paragraphs) — closer to real vault structure
     // The bug specifically affects body text during navigation
-    const { board, repo } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "col1",
-            item("Task with body", item.p("Status: Not started depends on enrollment")),
-            item("Another task", item.p("Health Savings Account provides triple tax advantage")),
-          ),
-          item(
-            "col2",
-            item("Third task", item.p("Important notes about this task go here")),
-            item("Fourth task", item.p("More details about the fourth item")),
-          ),
+          "col1",
+          item("Task with body", item.p("Status: Not started depends on enrollment")),
+          item("Another task", item.p("Health Savings Account provides triple tax advantage")),
         ),
-      { columns: 120, rows: 40 },
+        item(
+          "col2",
+          item("Third task", item.p("Important notes about this task go here")),
+          item("Fourth task", item.p("More details about the fourth item")),
+        ),
+      ),
+      { cols: 120, rows: 40 },
     )
 
     // Verify initial paragraph content
-    expect(repo.getNode("Status: Not started depends on enrollment")?.content).toBe(
+    expect(app.repo.getNode("Status: Not started depends on enrollment")?.content).toBe(
       "Status: Not started depends on enrollment",
     )
-    expect(repo.getNode("Health Savings Account provides triple tax advantage")?.content).toBe(
+    expect(app.repo.getNode("Health Savings Account provides triple tax advantage")?.content).toBe(
       "Health Savings Account provides triple tax advantage",
     )
-    expect(repo.getNode("Important notes about this task go here")?.content).toBe(
+    expect(app.repo.getNode("Important notes about this task go here")?.content).toBe(
       "Important notes about this task go here",
     )
 
     // Navigate extensively — matching the real reproduction sequence
-    board
-      .press("l") // right to col2
-      .press("l") // right (boundary or further)
-      .press("h") // left
-      .press("h") // left
-      .press("h") // left (boundary)
-      .press("j") // down
-      .press("l") // right
-      .press("l") // right
-      .press("h") // left
-      .press("h") // left
-      .press("k") // up
-      .press("l") // right
-      .press("j") // down
-      .press("k") // up
-      .press("h") // left
+    await app.press("l") // right to col2
+    await app.press("l") // right (boundary or further)
+    await app.press("h") // left
+    await app.press("h") // left
+    await app.press("h") // left (boundary)
+    await app.press("j") // down
+    await app.press("l") // right
+    await app.press("l") // right
+    await app.press("h") // left
+    await app.press("h") // left
+    await app.press("k") // up
+    await app.press("l") // right
+    await app.press("j") // down
+    await app.press("k") // up
+    await app.press("h") // left
 
     // After navigation, ALL paragraph content must be UNCHANGED
     // The bug would insert 'h', 'l', 'j', 'k' chars into paragraph text
-    expect(repo.getNode("Status: Not started depends on enrollment")?.content).toBe(
+    expect(app.repo.getNode("Status: Not started depends on enrollment")?.content).toBe(
       "Status: Not started depends on enrollment",
     )
-    expect(repo.getNode("Health Savings Account provides triple tax advantage")?.content).toBe(
+    expect(app.repo.getNode("Health Savings Account provides triple tax advantage")?.content).toBe(
       "Health Savings Account provides triple tax advantage",
     )
-    expect(repo.getNode("Important notes about this task go here")?.content).toBe(
+    expect(app.repo.getNode("Important notes about this task go here")?.content).toBe(
       "Important notes about this task go here",
     )
-    expect(repo.getNode("More details about the fourth item")?.content).toBe("More details about the fourth item")
+    expect(app.repo.getNode("More details about the fourth item")?.content).toBe("More details about the fourth item")
   })
 
-  test("view mode switching (v) does not corrupt card text", () => {
-    const { board, repo } = testEnv(() =>
+  test("view mode switching (v) does not corrupt card text", async () => {
+    using app = createTestApp(
       item(
         "board",
         item("col1", item("Important task with long content")),
@@ -143,98 +141,97 @@ describe("P1: Navigation keys must not corrupt card text", () => {
       ),
     )
 
-    const originalContent1 = repo.getNode("Important task with long content")?.content
-    const originalContent2 = repo.getNode("Another critical item here")?.content
+    const originalContent1 = app.repo.getNode("Important task with long content")?.content
+    const originalContent2 = app.repo.getNode("Another critical item here")?.content
 
     // Switch view modes and navigate — matches reproduction sequence
-    board
-      .press("l") // navigate right
-      .press("v")
-      .press("v") // switch to columns view
-      .press("v")
-      .press("v") // switch to tabs view
-      .press("v")
-      .press("v") // back to cards view
-      .press("h") // navigate left
-      .press("j") // navigate down (even if only one card)
-      .press("k") // navigate up
+    await app.press("l") // navigate right
+    await app.press("v")
+    await app.press("v") // switch to columns view
+    await app.press("v")
+    await app.press("v") // switch to tabs view
+    await app.press("v")
+    await app.press("v") // back to cards view
+    await app.press("h") // navigate left
+    await app.press("j") // navigate down (even if only one card)
+    await app.press("k") // navigate up
 
     // Content must remain unchanged
-    expect(repo.getNode("Important task with long content")?.content).toBe(originalContent1)
-    expect(repo.getNode("Another critical item here")?.content).toBe(originalContent2)
+    expect(app.repo.getNode("Important task with long content")?.content).toBe(originalContent1)
+    expect(app.repo.getNode("Another critical item here")?.content).toBe(originalContent2)
   })
 
-  test("zoom in/out (z/Z) with navigation does not corrupt card text", () => {
+  test("zoom in/out (z/Z) with navigation does not corrupt card text", async () => {
     // This test matches the exact reproduction: navigate, then zoom in with 'e',
     // and verify content before and after zoom
-    const { board, repo } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "Projects",
-            item("Project Alpha", item.p("Alpha project description here")),
-            item("Project Beta", item.p("Beta project description here")),
-          ),
-          item(
-            "Tasks",
-            item("Task One", item.p("First task details go here")),
-            item("Task Two", item.p("Second task details go here")),
-          ),
+          "Projects",
+          item("Project Alpha", item.p("Alpha project description here")),
+          item("Project Beta", item.p("Beta project description here")),
         ),
-      { columns: 120, rows: 40 },
+        item(
+          "Tasks",
+          item("Task One", item.p("First task details go here")),
+          item("Task Two", item.p("Second task details go here")),
+        ),
+      ),
+      { cols: 120, rows: 40 },
     )
 
     // Navigate around
-    board
-      .press("l") // right to Tasks column
-      .press("j") // down to Task Two
-      .press("h") // left to Projects
-      .press("j") // down to Project Beta
-      .press("l") // right to Tasks
-      .press("k") // up to Task One
+    await app.press("l") // right to Tasks column
+    await app.press("j") // down to Task Two
+    await app.press("h") // left to Projects
+    await app.press("j") // down to Project Beta
+    await app.press("l") // right to Tasks
+    await app.press("k") // up to Task One
 
     // Verify content not corrupted BEFORE zoom
-    expect(repo.getNode("Alpha project description here")?.content).toBe("Alpha project description here")
-    expect(repo.getNode("Beta project description here")?.content).toBe("Beta project description here")
-    expect(repo.getNode("First task details go here")?.content).toBe("First task details go here")
-    expect(repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
+    expect(app.repo.getNode("Alpha project description here")?.content).toBe("Alpha project description here")
+    expect(app.repo.getNode("Beta project description here")?.content).toBe("Beta project description here")
+    expect(app.repo.getNode("First task details go here")?.content).toBe("First task details go here")
+    expect(app.repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
 
     // Zoom in (z) then escape back out
-    board.press("z") // zoom into Task One
+    await app.press("z") // zoom into Task One
 
     // Content should still be intact after zoom
-    expect(repo.getNode("First task details go here")?.content).toBe("First task details go here")
+    expect(app.repo.getNode("First task details go here")?.content).toBe("First task details go here")
 
-    board.press("Z") // exit zoom (zoom out)
+    await app.press("Z") // exit zoom (zoom out)
 
     // Navigate more after zoom
-    board.press("h").press("j").press("l").press("k")
+    await app.press("h")
+    await app.press("j")
+    await app.press("l")
+    await app.press("k")
 
     // All content still intact
-    expect(repo.getNode("Alpha project description here")?.content).toBe("Alpha project description here")
-    expect(repo.getNode("Beta project description here")?.content).toBe("Beta project description here")
-    expect(repo.getNode("First task details go here")?.content).toBe("First task details go here")
-    expect(repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
+    expect(app.repo.getNode("Alpha project description here")?.content).toBe("Alpha project description here")
+    expect(app.repo.getNode("Beta project description here")?.content).toBe("Beta project description here")
+    expect(app.repo.getNode("First task details go here")?.content).toBe("First task details go here")
+    expect(app.repo.getNode("Second task details go here")?.content).toBe("Second task details go here")
   })
 
-  test("search open/close (/ then Escape) does not corrupt card text", () => {
-    const { board, repo } = testEnv(() =>
+  test("search open/close (/ then Escape) does not corrupt card text", async () => {
+    using app = createTestApp(
       item("board", item("col1", item("Search target task")), item("col2", item("Another task here"))),
     )
 
     // Navigate, open search, close it, navigate more
-    board
-      .press("l") // right
-      .press("h") // left
-      .press("cmd+f") // open search
-      .press("Escape") // close search
-      .press("l") // right again
-      .press("h") // left again
+    await app.press("l") // right
+    await app.press("h") // left
+    await app.press("cmd+f") // open search
+    await app.press("Escape") // close search
+    await app.press("l") // right again
+    await app.press("h") // left again
 
     // Content must remain unchanged
-    expect(repo.getNode("Search target task")?.content).toBe("Search target task")
-    expect(repo.getNode("Another task here")?.content).toBe("Another task here")
+    expect(app.repo.getNode("Search target task")?.content).toBe("Search target task")
+    expect(app.repo.getNode("Another task here")?.content).toBe("Another task here")
   })
 
   test("search select via Enter does not enter edit mode or corrupt text", () => {
@@ -392,7 +389,7 @@ describe("P1: Navigation keys must not corrupt card text", () => {
     // then navigate. The concern is that after exiting edit mode, inlineEditBlock
     // might not be properly cleared, leaving textInputFocused=true.
     // Uses leaf items (no children) to match real li card data where content is set.
-    const { board, repo, store } = testEnv(
+    const { board, repo } = testEnv(
       () => item("board", item("col1", item("Editable task"), item("Second task")), item("col2", item("Other task"))),
       { columns: 120, rows: 40 },
     )

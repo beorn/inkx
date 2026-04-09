@@ -1062,48 +1062,51 @@ describe("u zooms out to parent", () => {
 // --- Merged from u-zoom-parent.test.ts (bead: km-tui.u-zoom-parent) ---
 
 describe("u key — go to parent, not previous sibling", () => {
-  test("u from 2nd card goes to column header (parent), not prev sibling", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
-      columns: 120,
+  test("u from 2nd card goes to column header (parent), not prev sibling", async () => {
+    using app = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.press("j") // → A2
-    board.expect("#A2[data-cursor]").toExist()
+    await app.press("j") // → A2
+    app.expect("#A2[data-cursor]").toExist()
 
-    board.press("Z")
-    board.expect("#col1[data-cursor]").toExist()
+    await app.press("Z")
+    app.expect("#col1[data-cursor]").toExist()
   })
 
-  test("u from 3rd card goes to column header (parent), not prev sibling", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
-      columns: 120,
+  test("u from 3rd card goes to column header (parent), not prev sibling", async () => {
+    using app = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.press("j").press("j") // → A3
-    board.expect("#A3[data-cursor]").toExist()
+    await app.press("j") // → A2
+    await app.press("j") // → A3
+    app.expect("#A3[data-cursor]").toExist()
 
-    board.press("Z")
-    board.expect("#col1[data-cursor]").toExist()
+    await app.press("Z")
+    app.expect("#col1[data-cursor]").toExist()
   })
 
-  test("u twice from card: card → column → board", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
-      columns: 120,
+  test("u twice from card: card → column → board", async () => {
+    using app = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.press("j").press("j") // → A3
-    board.expect("#A3[data-cursor]").toExist()
+    await app.press("j") // → A2
+    await app.press("j") // → A3
+    app.expect("#A3[data-cursor]").toExist()
 
-    board.press("Z") // → col1
-    board.expect("#col1[data-cursor]").toExist()
+    await app.press("Z") // → col1
+    app.expect("#col1[data-cursor]").toExist()
 
-    board.press("Z") // → board
-    board.expect("#board[data-cursor]").toExist()
+    await app.press("Z") // → board
+    app.expect("#board[data-cursor]").toExist()
   })
 
+  // Kept on testEnv: board.bell is not supported by createTestApp
   test("u from board level is boundary", () => {
     const { board } = testEnv(() => item("board", item("col1", item("A1"))), { columns: 120, rows: 24 })
 
@@ -1115,69 +1118,69 @@ describe("u key — go to parent, not previous sibling", () => {
     expect(board.bell).toBe(true)
   })
 
-  test("u from column header goes to board level", () => {
-    const { board } = testEnv(() => item("board", item("col1", item("A1")), item("col2", item("B1"))), {
-      columns: 120,
+  test("u from column header goes to board level", async () => {
+    using app = createTestApp(item("board", item("col1", item("A1")), item("col2", item("B1"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.press("k") // card → column header
-    board.expect("#col1[data-cursor]").toExist()
+    await app.press("k") // card → column header
+    app.expect("#col1[data-cursor]").toExist()
 
-    board.press("Z")
-    board.expect("#board[data-cursor]").toExist()
+    await app.press("Z")
+    app.expect("#board[data-cursor]").toExist()
   })
 
-  test("u is different from k: u → parent, k → prev sibling", () => {
-    const { board: boardU } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
-      columns: 120,
+  test("u is different from k: u → parent, k → prev sibling", async () => {
+    using appU = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      cols: 120,
       rows: 24,
     })
 
-    const { board: boardK } = testEnv(() => item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
-      columns: 120,
+    using appK = createTestApp(item("board", item("col1", item("A1"), item("A2"), item("A3"))), {
+      cols: 120,
       rows: 24,
     })
 
-    boardU.press("j") // → A2
-    boardK.press("j") // → A2
+    await appU.press("j") // → A2
+    await appK.press("j") // → A2
 
-    boardU.press("Z")
-    boardK.press("k")
+    await appU.press("Z")
+    await appK.press("k")
 
-    const uResult = boardU.q("[data-cursor]").getAttribute("id")
-    const kResult = boardK.q("[data-cursor]").getAttribute("id")
+    const uResult = appU.q("[data-cursor]").getAttribute("id")
+    const kResult = appK.q("[data-cursor]").getAttribute("id")
 
     expect(uResult).toBe("col1") // u → parent
     expect(kResult).toBe("A1") // k → prev sibling
   })
 
-  test("u from card in col2 goes to col2 header", () => {
-    const { board } = testEnv(
-      () => item("board", item("col1", item("A1")), item("col2", item("B1"), item("B2"), item("B3"))),
-      { columns: 120, rows: 24 },
+  test("u from card in col2 goes to col2 header", async () => {
+    using app = createTestApp(
+      item("board", item("col1", item("A1")), item("col2", item("B1"), item("B2"), item("B3"))),
+      { cols: 120, rows: 24 },
     )
 
-    board.press("l") // → B1
-    board.press("j") // → B2
-    board.expect("#B2[data-cursor]").toExist()
+    await app.press("l") // → B1
+    await app.press("j") // → B2
+    app.expect("#B2[data-cursor]").toExist()
 
-    board.press("Z")
-    board.expect("#col2[data-cursor]").toExist()
+    await app.press("Z")
+    app.expect("#col2[data-cursor]").toExist()
   })
 
-  test("u from body card goes to board level (body cards are children of root)", () => {
-    const { board } = testEnv(() => item("board", item.p("para1"), item.p("para2"), item("col1", item("A1"))), {
-      columns: 120,
+  test("u from body card goes to board level (body cards are children of root)", async () => {
+    using app = createTestApp(item("board", item.p("para1"), item.p("para2"), item("col1", item("A1"))), {
+      cols: 120,
       rows: 24,
     })
 
-    board.press("j") // → para2
-    board.expect("#para2[data-cursor]").toExist()
+    await app.press("j") // → para2
+    app.expect("#para2[data-cursor]").toExist()
 
     // Body cards' tree parent is the board root
-    board.press("Z")
-    board.expect("#board[data-cursor]").toExist()
+    await app.press("Z")
+    app.expect("#board[data-cursor]").toExist()
   })
 })
 
@@ -1235,46 +1238,45 @@ describe.skipIf(!existsSync(VAULT_PATH))("zoom-mismatch: real vault repro", () =
 })
 
 describe("zoom out from file to folder shows multiple columns", () => {
-  test("Z from a file with siblings produces horizontal columns, not single-column list", () => {
+  test("Z from a file with siblings produces horizontal columns, not single-column list", async () => {
     // Simulate folder structure: early-orbit folder with 3 md files
     // When zoomed into one file and pressing Z, the folder's children
     // should become columns (horizontal layout), not a single-column list.
-    const { board } = testEnv(
-      () =>
+    using app = createTestApp(
+      item(
+        "board",
         item(
-          "board",
-          item(
-            "early-orbit",
-            item("Overview", item("task-a"), item("task-b")),
-            item("Milestones", item("milestone-1"), item("milestone-2")),
-            item("Program", item("session-1")),
-          ),
+          "early-orbit",
+          item("Overview", item("task-a"), item("task-b")),
+          item("Milestones", item("milestone-1"), item("milestone-2")),
+          item("Program", item("session-1")),
         ),
-      { columns: 120, rows: 24 },
+      ),
+      { cols: 120, rows: 24 },
     )
 
     // Navigate to first card and zoom into it
-    board.press("z") // zoom into early-orbit (column → board)
-    board.expect("#Overview").toExist()
-    board.expect("#Milestones").toExist()
-    board.expect("#Program").toExist()
+    await app.press("z") // zoom into early-orbit (column → board)
+    app.expect("#Overview").toExist()
+    app.expect("#Milestones").toExist()
+    app.expect("#Program").toExist()
 
     // Zoom into Overview
-    board.press("z")
-    board.expect("#task-a").toExist()
+    await app.press("z")
+    app.expect("#task-a").toExist()
 
     // Z to zoom back out to early-orbit level
-    board.press("Z")
+    await app.press("Z")
 
     // All three sections should be visible as COLUMNS (horizontal layout)
-    board.expect("#Overview").toExist()
-    board.expect("#Milestones").toExist()
-    board.expect("#Program").toExist()
+    app.expect("#Overview").toExist()
+    app.expect("#Milestones").toExist()
+    app.expect("#Program").toExist()
 
     // Verify they're actually laid out as separate columns (horizontal, not stacked)
-    const overviewBox = board.q("#Overview").boundingBox()
-    const milestonesBox = board.q("#Milestones").boundingBox()
-    const programBox = board.q("#Program").boundingBox()
+    const overviewBox = app.q("#Overview").boundingBox()
+    const milestonesBox = app.q("#Milestones").boundingBox()
+    const programBox = app.q("#Program").boundingBox()
 
     // Columns should be side by side (different X positions, same Y row)
     expect(milestonesBox!.x).toBeGreaterThan(overviewBox!.x)
@@ -1288,6 +1290,10 @@ describe("zoom out from file to folder shows multiple columns", () => {
 // Zoom + Background Color Assertions
 // =============================================================================
 
+// Kept on testEnv: createTestApp's headless driver returns cell.bg as an RGB
+// object {r,g,b}, not a numeric ANSI index, so `cell.bg === TC["$selection-bg"]`
+// (expected numeric 3) never matches. testEnv uses the terminal emulator and
+// returns numeric color indices.
 describe("Zoom color assertions", () => {
   test("cursor card has $selection-bg after zoom in", () => {
     const { board } = testEnv(() => item("board", item("col", item("parent", item("child1"), item("child2")))), {
